@@ -5,12 +5,12 @@ description = 'A fresh FRAME-based Substrate node, ready for hacking.'
 edition = '2018'
 homepage = 'https://substrate.dev'
 license = 'Unlicense'
-name = 'node-template'
+name = 'parallel'
 repository = 'https://github.com/substrate-developer-hub/substrate-node-template/'
 version = '3.0.0'
 
 [[bin]]
-name = 'node-template'
+name = 'parallel'
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']
@@ -23,7 +23,7 @@ jsonrpc-core = '15.1.0'
 structopt = '0.3.8'
 
 # local dependencies
-node-template-runtime = { path = '../runtime', version = '3.0.0' }
+parallel-runtime = { path = '../runtime', version = '3.0.0' }
 
 # Substrate dependencies
 frame-benchmarking = '3.0.0'
@@ -55,4 +55,4 @@ substrate-frame-rpc-system = '3.0.0'
 
 [features]
 default = []
-runtime-benchmarks = ['node-template-runtime/runtime-benchmarks']
+runtime-benchmarks = ['parallel-runtime/runtime-benchmarks']
