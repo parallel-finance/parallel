@@ -6,11 +6,14 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+use codec::{Encode, Decode};
+#[cfg(feature= "std")]
+use serde::{Deserialize, Serialize};
 use sp_std::prelude::*;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
-	ApplyExtrinsicResult, generic, create_runtime_str, impl_opaque_keys, MultiSignature,
-	transaction_validity::{TransactionValidity, TransactionSource},
+	ApplyExtrinsicResult, generic, create_runtime_str, impl_opaque_keys, MultiSignature, RuntimeDebug,
+	transaction_validity::{TransactionValidity, TransactionSource}, ModuleId,
 };
 use sp_runtime::traits::{
 	AccountIdLookup, BlakeTwo256, Block as BlockT, Verify, IdentifyAccount, NumberFor,
@@ -22,6 +25,9 @@ use pallet_grandpa::fg_primitives;
 use sp_version::RuntimeVersion;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
+use orml_currencies::BasicCurrencyAdapter;
+use orml_traits::parameter_type_with_key;
+use primitives::{Amount, Balance, CurrencyId};
 
 // A few exports that help ease life for downstream crates.
 #[cfg(any(feature = "std", test))]
@@ -41,7 +47,13 @@ use pallet_transaction_payment::CurrencyAdapter;
 
 pub use pallet_template;
 
+pub use orml_currencies;
+
+pub use orml_tokens;
+
 pub use pallet_price;
+
+pub use pallet_loans;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -58,7 +70,7 @@ pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::Account
 pub type AccountIndex = u32;
 
 /// Balance of an account.
-pub type Balance = u128;
+// pub type Balance = u128;
 
 /// Index of a transaction in the chain.
 pub type Index = u32;
@@ -264,8 +276,44 @@ impl pallet_template::Config for Runtime {
 	type Event = Event;
 }
 
+parameter_type_with_key! {
+	pub ExistentialDeposits: |currency_id: CurrencyId| -> Balance {
+		Default::default()
+	};
+}
+
+impl orml_tokens::Config for Runtime {
+	type Event = Event;
+	type Balance = Balance;
+	type Amount = Amount;
+	type CurrencyId = CurrencyId;
+	type OnDust = ();
+	type WeightInfo = ();
+	type ExistentialDeposits = ExistentialDeposits;
+}
+
+parameter_types! {
+	pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Native;
+
+	pub const LoansModuleId: ModuleId = ModuleId(*b"aca/loan");
+}
+
+impl orml_currencies::Config for Runtime {
+	type Event = Event;
+	type MultiCurrency = Tokens;
+	type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+	type GetNativeCurrencyId = GetNativeCurrencyId;
+	type WeightInfo = ();
+}
+
 impl pallet_price::Config for Runtime {
 	type Event = Event;
+}
+
+impl pallet_loans::Config for Runtime {
+	type Event = Event;
+	type Currency = Currencies;
+	type ModuleId = LoansModuleId;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -285,7 +333,10 @@ construct_runtime!(
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
 		// Include the custom logic from the template pallet in the runtime.
 		TemplateModule: pallet_template::{Module, Call, Storage, Event<T>},
+		Currencies: orml_currencies::{Module, Call, Event<T>},
+		Tokens: orml_tokens::{Module, Storage, Event<T>, Config<T>},
 		Price: pallet_price::{Module, Call, Storage, Event<T>},
+		Loans: pallet_loans::{Module, Call, Storage, Event<T>},
 	}
 );
 

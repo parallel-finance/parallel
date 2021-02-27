@@ -153,5 +153,6 @@ fn testnet_genesis(
 			// Assign network admin rights.
 			key: root_key,
 		}),
+		orml_tokens: Default::default(),
 	}
 }
