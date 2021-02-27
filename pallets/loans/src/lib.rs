@@ -2,6 +2,7 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::collapsible_if)]
 
+use frame_system::pallet_prelude::*;
 use frame_support::pallet_prelude::*;
 use frame_support::transactional;
 use orml_traits::{Happened, MultiCurrency, MultiCurrencyExtended};
@@ -88,7 +89,20 @@ pub mod module {
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 
     #[pallet::call]
-    impl<T: Config> Pallet<T> {}
+    impl<T: Config> Pallet<T> {
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn adjust_loan(
+            origin: OriginFor<T>,
+            currency_id: CurrencyId,
+            collateral_adjustment: Amount,
+            debit_adjustment: Amount,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            Self::adjust_position(&who, currency_id, collateral_adjustment, debit_adjustment)?;
+            Ok(().into())
+        }
+    }
 }
 
 impl<T: Config> Pallet<T> {

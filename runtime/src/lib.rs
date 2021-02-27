@@ -335,8 +335,8 @@ construct_runtime!(
 		TemplateModule: pallet_template::{Module, Call, Storage, Event<T>},
 		Currencies: orml_currencies::{Module, Call, Event<T>},
 		Tokens: orml_tokens::{Module, Storage, Event<T>, Config<T>},
-		Price: pallet_price::{Module, Call, Storage, Event<T>},
-		Loans: pallet_loans::{Module, Call, Storage, Event<T>},
+		Price: pallet_price::{Module, Storage, Call, Event<T>},
+		Loans: pallet_loans::{Module, Storage, Call, Event<T>},
 	}
 );
 
