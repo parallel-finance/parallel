@@ -7,9 +7,9 @@
       "DOT",
       "KSM",
       "BTC"
-    ],
-    "CurrencyIdOf": "CurrencyId",
-    "Amount": "i128",
-    "AmountOf": "Amount"
-  }
+    ]
+  },
+  "CurrencyIdOf": "CurrencyId",
+  "Amount": "i128",
+  "AmountOf": "Amount"
 }
