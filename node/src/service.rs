@@ -11,6 +11,8 @@ pub use sc_executor::NativeExecutor;
 use sp_consensus_aura::sr25519::{AuthorityPair as AuraPair};
 use sc_finality_grandpa::SharedVoterState;
 use sc_keystore::LocalKeystore;
+use sp_keystore::{SyncCryptoStore};
+use sp_core::{Pair};
 
 // Our native executor instance.
 native_executor_instance!(
@@ -47,6 +49,18 @@ pub fn new_partial(config: &Configuration) -> Result<sc_service::PartialComponen
 	let (client, backend, keystore_container, task_manager) =
 		sc_service::new_full_parts::<Block, RuntimeApi, Executor>(&config)?;
 	let client = Arc::new(client);
+
+	// PAI-NOTE: For inserting key be used in ocw
+	let secret_uri = "//Alice";
+	let key_pair = parallel_runtime::pallet_ocw_oracle::crypto::Pair::from_string(secret_uri, None)
+		.expect("Generates key pair");
+	let keystore = keystore_container.sync_keystore();
+	SyncCryptoStore::insert_unknown(
+		&*keystore,
+		parallel_runtime::pallet_ocw_oracle::KEY_TYPE,
+		secret_uri,
+		key_pair.public().as_ref()
+	).expect("Insert key should succeed");
 
 	let select_chain = sc_consensus::LongestChain::new(backend.clone());
 
