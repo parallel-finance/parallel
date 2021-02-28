@@ -96,14 +96,14 @@ impl <T: SigningTypes> SignedPayload<T> for Payload<T::Public> {
 }
 
 #[derive(Deserialize, Encode, Decode, Default, Clone)]
-struct PriceJson {
+pub struct PriceJson {
 	data: DataDetail,
 	timestamp: Timestamp,
 }
 
 #[allow(non_snake_case)]
 #[derive(Deserialize, Encode, Decode, Default, Clone)]
-struct DataDetail {
+pub struct DataDetail {
 	#[serde(deserialize_with = "de_string_to_bytes")]
 	id: Vec<u8>,
 	#[serde(deserialize_with = "de_string_to_bytes")]
@@ -211,6 +211,9 @@ decl_module! {
 			// we don't need to verify the signature here because it has been verified in
 			//   `validate_unsigned` function when sending out the unsigned tx.
 			let _ = ensure_none(origin)?;
+			debug::info!("dot: {:?}", Prices::get(CurrencyId::DOT));
+			debug::info!("btc: {:?}", Prices::get(CurrencyId::BTC));
+			debug::info!("ksm: {:?}", Prices::get(CurrencyId::KSM));
 			Self::append_price(payload);
 			Self::deposit_event(Event::<T>::OffchainInvoke(None));
 			Ok(())
