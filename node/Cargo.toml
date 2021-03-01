@@ -54,6 +54,7 @@ sp-runtime = '3.0.0'
 sp-transaction-pool = '3.0.0'
 substrate-frame-rpc-system = '3.0.0'
 primitives = { package = "parallel-primitives", path = "../primitives", default-features = false }
+sp-keystore = '0.9.0'
 
 [features]
 default = []
