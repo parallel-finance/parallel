@@ -57,6 +57,8 @@ pub use pallet_loans;
 
 pub use pallet_ocw_oracle;
 
+pub use pallet_rate;
+
 /// An index to a block.
 pub type BlockNumber = u32;
 
@@ -329,6 +331,11 @@ impl pallet_ocw_oracle::Config for Runtime {
 	type PricePrecision = PricePrecision;
 }
 
+impl pallet_rate::Config for Runtime {
+	type Event = Event;
+}
+
+
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
 where
 	Call: From<LocalCall>,
@@ -401,6 +408,7 @@ construct_runtime!(
 		Price: pallet_price::{Module, Call, Storage, Event<T>},
 		Loans: pallet_loans::{Module, Call, Storage, Event<T>},
 		OcwOracle: pallet_ocw_oracle::{Module, Call, Storage, Event<T>, ValidateUnsigned},
+		InterestRate: pallet_rate::{Module, Call, Storage, Event<T>},
 	}
 );
 
