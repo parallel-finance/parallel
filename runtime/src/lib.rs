@@ -26,8 +26,8 @@ use sp_version::RuntimeVersion;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::parameter_type_with_key;
-use primitives::{Amount, Balance, CurrencyId};
+use orml_traits::{create_median_value_data_provider, parameter_type_with_key, DataFeeder, DataProviderExtended};
+use primitives::{Amount, Balance, CurrencyId, Price};
 
 // A few exports that help ease life for downstream crates.
 #[cfg(any(feature = "std", test))]
@@ -308,8 +308,15 @@ impl orml_currencies::Config for Runtime {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub const GetStableCurrencyId: CurrencyId = CurrencyId::PUSD;
+	pub StableCurrencyFixedPrice: Price = 1;
+}
+
 impl pallet_price::Config for Runtime {
 	type Event = Event;
+	type GetStableCurrencyId = GetStableCurrencyId;
+	type StableCurrencyFixedPrice = StableCurrencyFixedPrice;
 }
 
 impl pallet_loans::Config for Runtime {
@@ -398,7 +405,7 @@ construct_runtime!(
 		TemplateModule: pallet_template::{Module, Call, Storage, Event<T>},
 		Currencies: orml_currencies::{Module, Call, Event<T>},
 		Tokens: orml_tokens::{Module, Storage, Event<T>, Config<T>},
-		Price: pallet_price::{Module, Storage, Call, Event<T>},
+		Prices: pallet_price::{Module, Storage, Call, Event<T>},
 		Loans: pallet_loans::{Module, Storage, Call, Event<T>},
 		OcwOracle: pallet_ocw_oracle::{Module, Storage, Call, Event<T>, ValidateUnsigned},
 	}

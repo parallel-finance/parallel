@@ -97,6 +97,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "alt_serde"
+version = "1.0.119"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbdd08f26bc9972e3597a32bb7fe2b0de4e85ccfb4214acec94165b940aa537e"
+dependencies = [
+ "alt_serde_derive",
+]
+
+[[package]]
+name = "alt_serde_derive"
+version = "1.0.119"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "629ddaf5b2675d9a27e9521a88870f8edea113e4a83d6d5178268b0d70e9a9a3"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "alt_serde_json"
+version = "1.0.61"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c8f0eb8296bb24f54901cbb46b675ce2d4e6099a47eea0024cf0f48068c70313"
+dependencies = [
+ "alt_serde",
+ "itoa",
+ "ryu",
+]
+
+[[package]]
 name = "ansi_term"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3890,11 +3921,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-ocw-oracle"
+version = "2.0.1"
+dependencies = [
+ "alt_serde",
+ "alt_serde_json",
+ "frame-support",
+ "frame-system",
+ "num-traits",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "parking_lot 0.10.2",
+ "sp-core",
+ "sp-io",
+ "sp-keystore",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-price"
 version = "3.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
+ "orml-traits",
+ "parallel-primitives",
  "parity-scale-codec",
  "serde",
  "sp-core",
@@ -4062,6 +4114,7 @@ dependencies = [
  "sp-core",
  "sp-finality-grandpa",
  "sp-inherents",
+ "sp-keystore",
  "sp-runtime",
  "sp-transaction-pool",
  "structopt",
@@ -4104,6 +4157,7 @@ dependencies = [
  "pallet-balances",
  "pallet-grandpa",
  "pallet-loans",
+ "pallet-ocw-oracle",
  "pallet-price",
  "pallet-randomness-collective-flip",
  "pallet-sudo",

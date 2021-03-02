@@ -6,7 +6,8 @@
       "Native",
       "DOT",
       "KSM",
-      "BTC"
+      "BTC",
+      "PUSD"
     ]
   },
   "CurrencyIdOf": "CurrencyId",
@@ -15,5 +16,6 @@
   "Position": {
     "collateral": "Balance",
     "debit": "Balance"
-  }
+  },
+  "Price": "u128"
 }

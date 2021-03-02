@@ -76,4 +76,7 @@ pub enum CurrencyId {
 	DOT,
 	KSM,
 	BTC,
+	PUSD,
 }
+
+pub type Price = u128;

@@ -1,58 +1,63 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+#![allow(clippy::unused_unit)]
 
-use frame_support::{decl_module, decl_storage, decl_event, decl_error, dispatch, traits::Get};
-use frame_system::ensure_signed;
+use frame_support::{pallet_prelude::*, transactional};
+use frame_system::pallet_prelude::*;
+use orml_traits::{DataFeeder, DataProvider};
+use sp_runtime::traits::{CheckedDiv, CheckedMul};
+use primitives::{CurrencyId, Price};
 
-pub trait Config: frame_system::Config {
-    type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
+pub use module::*;
+
+#[frame_support::pallet]
+pub mod module {
+    use super::*;
+
+    #[pallet::config]
+    pub trait Config: frame_system::Config {
+        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
+        /// The data source, such as Oracle.
+        // type Source: DataProvider<CurrencyId, Price> + DataFeeder<CurrencyId, Price, Self::AccountId>;
+
+        #[pallet::constant]
+        /// The stable currency id, it should be AUSD in Acala.
+        type GetStableCurrencyId: Get<CurrencyId>;
+
+        #[pallet::constant]
+        /// The fixed prices of stable currency, it should be 1 USD in Acala.
+        type StableCurrencyFixedPrice: Get<Price>;
+    }
+
+    #[pallet::event]
+    #[pallet::generate_deposit(pub(crate) fn deposit_event)]
+    pub enum Event<T: Config> {
+        /// Lock price. \[currency_id, locked_price\]
+        LockPrice(CurrencyId, Price),
+        /// Unlock price. \[currency_id\]
+        UnlockPrice(CurrencyId),
+    }
+
+    /// Mapping from currency id to it's locked price
+    #[pallet::storage]
+    #[pallet::getter(fn locked_price)]
+    pub type LockedPrice<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Price, OptionQuery>;
+
+    #[pallet::pallet]
+    pub struct Pallet<T>(PhantomData<T>);
+
+    #[pallet::hooks]
+    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+
+    #[pallet::call]
+    impl<T: Config> Pallet<T> {
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn feed_price(origin: OriginFor<T>, currency_id: CurrencyId, price: Price) -> DispatchResultWithPostInfo {
+            ensure_signed(origin)?;
+            LockedPrice::<T>::insert(currency_id, price);
+            Ok(().into())
+        }
+    }
 }
 
-decl_storage! {
-	trait Store for Module<T: Config> as Price {
-	    /// BTC/DOT price, decimals is 8.
-		BtcDot get(fn btc_dot): Option<u64>;
-	}
-}
-
-decl_event!(
-	pub enum Event<T> where AccountId = <T as frame_system::Config>::AccountId {
-		BtcDotUpdated(u64, AccountId),
-	}
-);
-
-decl_error! {
-	pub enum Error for Module<T: Config> {
-		NoneValue,
-		StorageOverflow,
-	}
-}
-
-decl_module! {
-	pub struct Module<T: Config> for enum Call where origin: T::Origin {
-		type Error = Error<T>;
-
-		fn deposit_event() = default;
-
-		#[weight = 10_000 + T::DbWeight::get().writes(1)]
-		pub fn update_btc_dot(origin, btc_dot_price: u64) -> dispatch::DispatchResult {
-			let who = ensure_signed(origin)?;
-			BtcDot::put(btc_dot_price);
-			Self::deposit_event(RawEvent::BtcDotUpdated(btc_dot_price, who));
-
-			Ok(())
-		}
-
-		#[weight = 10_000 + T::DbWeight::get().reads_writes(1,1)]
-		pub fn cause_error(origin) -> dispatch::DispatchResult {
-			let _who = ensure_signed(origin)?;
-			match BtcDot::get() {
-				None => Err(Error::<T>::NoneValue)?,
-				Some(old) => {
-					let new = old.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
-					BtcDot::put(new);
-					Ok(())
-				},
-			}
-		}
-	}
-}

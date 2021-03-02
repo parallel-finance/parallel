@@ -167,6 +167,7 @@ fn testnet_genesis(
 					(x.clone(), CurrencyId::DOT, 10_000 * 10u128.pow(18)),
 					(x.clone(), CurrencyId::KSM, 10_000 * 10u128.pow(18)),
 					(x.clone(), CurrencyId::BTC, 10_000 * 10u128.pow(18)),
+					(x.clone(), CurrencyId::PUSD, 10_000 * 10u128.pow(18)),
 				]
 			})
 			.collect(),
