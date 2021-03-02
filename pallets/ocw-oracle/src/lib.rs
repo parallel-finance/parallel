@@ -31,7 +31,7 @@ use sp_std::{
 	prelude::*, str,
 };
 use serde::{Deserialize, Deserializer};
-use primitives::CurrencyId;
+use primitives::{Price, CurrencyId};
 
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"demo");
 pub const NUM_VEC_LEN: usize = 10;
@@ -72,7 +72,7 @@ pub mod crypto {
 	}
 }
 
-pub type Price = u64;
+// pub type Price = u64;
 pub type Timestamp = u64;
 pub type PriceDetail = (Price, Timestamp);
 

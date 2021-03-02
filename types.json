@@ -17,5 +17,16 @@
     "collateral": "Balance",
     "debit": "Balance"
   },
-  "Price": "u128"
+  "Price": "u128",
+  "Timestamp": "u64",
+  "PriceDetail": "(Price, Timestamp)",
+  "Payload": {
+    "list": "Vec<PayloadDetail>",
+    "public": "Public"
+  },
+  "PayloadDetail": {
+    "price": "Price",
+    "symbol": "CurrencyId",
+    "timestamp": "Moment"
+  }
 }
