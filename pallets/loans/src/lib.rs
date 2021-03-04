@@ -5,10 +5,10 @@
 use frame_system::pallet_prelude::*;
 use frame_support::pallet_prelude::*;
 use frame_support::transactional;
-use orml_traits::{Happened, MultiCurrency, MultiCurrencyExtended};
+use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 use primitives::{Amount, Balance, CurrencyId};
 use sp_runtime::{
-    traits::{AccountIdConversion, Convert, Zero},
+    traits::{AccountIdConversion, Zero},
     DispatchResult, ModuleId, RuntimeDebug,
 };
 use sp_std::{convert::TryInto, result};
@@ -124,7 +124,7 @@ impl<T: Config> Pallet<T> {
         Self::update_loan(who, currency_id, collateral_adjustment, debit_adjustment)?;
 
         let collateral_balance_adjustment = Self::balance_try_from_amount_abs(collateral_adjustment)?;
-        let debit_balance_adjustment = Self::balance_try_from_amount_abs(debit_adjustment)?;
+        let _debit_balance_adjustment = Self::balance_try_from_amount_abs(debit_adjustment)?;
         let module_account = Self::account_id();
 
         if collateral_adjustment.is_positive() {
@@ -217,7 +217,7 @@ impl<T: Config> Pallet<T> {
 
 impl<T: Config> Pallet<T> {
     /// Convert `Balance` to `Amount`.
-    fn amount_try_from_balance(b: Balance) -> result::Result<Amount, Error<T>> {
+    fn _amount_try_from_balance(b: Balance) -> result::Result<Amount, Error<T>> {
         TryInto::<Amount>::try_into(b).map_err(|_| Error::<T>::AmountConvertFailed)
     }
 
