@@ -1,37 +1,31 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use codec::{Decode, Encode};
 use core::fmt;
+use frame_support::{
+    debug, decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult, traits::Get,
+};
+use frame_system::{
+    ensure_none,
+    offchain::{
+        AppCrypto, CreateSignedTransaction, SendUnsignedTransaction, SignedPayload, Signer,
+        SigningTypes,
+    },
+};
 #[allow(unused_imports)]
 use num_traits::float::FloatCore;
-use frame_system::{
-	ensure_none,
-	offchain::{
-		AppCrypto, CreateSignedTransaction, SendUnsignedTransaction,
-		SignedPayload, SigningTypes, Signer,
-	}
-};
-use frame_support::{
-	debug,
-	dispatch::DispatchResult, decl_module, decl_storage, decl_event, decl_error,
-	traits::Get,
-};
+use primitives::{CurrencyId, Price};
+use serde::{Deserialize, Deserializer};
 use sp_core::crypto::KeyTypeId;
 use sp_runtime::{
-	RuntimeDebug,
-	offchain as rt_offchain,
-	offchain::{
-		storage_lock::{StorageLock, BlockAndTime},
-	},
-	transaction_validity::{
-		InvalidTransaction, ValidTransaction, TransactionValidity, TransactionSource,
-	},
+    offchain as rt_offchain,
+    offchain::storage_lock::{BlockAndTime, StorageLock},
+    transaction_validity::{
+        InvalidTransaction, TransactionSource, TransactionValidity, ValidTransaction,
+    },
+    RuntimeDebug,
 };
-use codec::{Encode, Decode};
-use sp_std::{
-	prelude::*, str,
-};
-use serde::{Deserialize, Deserializer};
-use primitives::{Price, CurrencyId};
+use sp_std::{prelude::*, str};
 
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"demo");
 pub const NUM_VEC_LEN: usize = 10;
@@ -47,29 +41,31 @@ pub const LOCK_BLOCK_EXPIRATION: u32 = 5; // in block number
 /// We can use from supported crypto kinds (`sr25519`, `ed25519` and `ecdsa`) and augment
 /// the types with this pallet-specific identifier.
 pub mod crypto {
-	use super::KEY_TYPE;
-	use sp_runtime::{
-		app_crypto::{app_crypto, sr25519},
-		traits::Verify,
-		MultiSignature, MultiSigner,
-	};
-	use sp_core::sr25519::Signature as Sr25519Signature;
-	app_crypto!(sr25519, KEY_TYPE);
+    use super::KEY_TYPE;
+    use sp_core::sr25519::Signature as Sr25519Signature;
+    use sp_runtime::{
+        app_crypto::{app_crypto, sr25519},
+        traits::Verify,
+        MultiSignature, MultiSigner,
+    };
+    app_crypto!(sr25519, KEY_TYPE);
 
-	pub struct TestAuthId;
-	// implemented for ocw-runtime
-	impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for TestAuthId {
-		type RuntimeAppPublic = Public;
-		type GenericSignature = sp_core::sr25519::Signature;
-		type GenericPublic = sp_core::sr25519::Public;
-	}
+    pub struct TestAuthId;
+    // implemented for ocw-runtime
+    impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for TestAuthId {
+        type RuntimeAppPublic = Public;
+        type GenericSignature = sp_core::sr25519::Signature;
+        type GenericPublic = sp_core::sr25519::Public;
+    }
 
-	// implemented for mock runtime in test
-	impl frame_system::offchain::AppCrypto<<Sr25519Signature as Verify>::Signer, Sr25519Signature> for TestAuthId {
-		type RuntimeAppPublic = Public;
-		type GenericSignature = sp_core::sr25519::Signature;
-		type GenericPublic = sp_core::sr25519::Public;
-	}
+    // implemented for mock runtime in test
+    impl frame_system::offchain::AppCrypto<<Sr25519Signature as Verify>::Signer, Sr25519Signature>
+        for TestAuthId
+    {
+        type RuntimeAppPublic = Public;
+        type GenericSignature = sp_core::sr25519::Signature;
+        type GenericPublic = sp_core::sr25519::Public;
+    }
 }
 
 // pub type Price = u64;
@@ -78,327 +74,343 @@ pub type PriceDetail = (Price, Timestamp);
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
 pub struct Payload<Public> {
-	list: Vec<PayloadDetail>,
-	public: Public
+    list: Vec<PayloadDetail>,
+    public: Public,
 }
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
 pub struct PayloadDetail {
-	price: Price,
-	symbol: CurrencyId,
-	timestamp: Timestamp,
+    price: Price,
+    symbol: CurrencyId,
+    timestamp: Timestamp,
 }
 
-impl <T: SigningTypes> SignedPayload<T> for Payload<T::Public> {
-	fn public(&self) -> T::Public {
-		self.public.clone()
-	}
+impl<T: SigningTypes> SignedPayload<T> for Payload<T::Public> {
+    fn public(&self) -> T::Public {
+        self.public.clone()
+    }
 }
 
 #[derive(Deserialize, Encode, Decode, Default, Clone)]
 pub struct PriceJson {
-	data: DataDetail,
-	timestamp: Timestamp,
+    data: DataDetail,
+    timestamp: Timestamp,
 }
 
 #[allow(non_snake_case)]
 #[derive(Deserialize, Encode, Decode, Default, Clone)]
 pub struct DataDetail {
-	#[serde(deserialize_with = "de_string_to_bytes")]
-	id: Vec<u8>,
-	#[serde(deserialize_with = "de_string_to_bytes")]
-	symbol: Vec<u8>,
-	#[serde(deserialize_with = "de_string_to_bytes")]
-	priceUsd: Vec<u8>,
+    #[serde(deserialize_with = "de_string_to_bytes")]
+    id: Vec<u8>,
+    #[serde(deserialize_with = "de_string_to_bytes")]
+    symbol: Vec<u8>,
+    #[serde(deserialize_with = "de_string_to_bytes")]
+    priceUsd: Vec<u8>,
 }
 
 pub fn de_string_to_bytes<'de, D>(de: D) -> Result<Vec<u8>, D::Error>
 where
-	D: Deserializer<'de>,
+    D: Deserializer<'de>,
 {
-	let s: &str = Deserialize::deserialize(de)?;
-	Ok(s.as_bytes().to_vec())
+    let s: &str = Deserialize::deserialize(de)?;
+    Ok(s.as_bytes().to_vec())
 }
 
 impl fmt::Debug for PriceJson {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(
-			f,
-			"{{ data: {:?}, timestamp: {} }}",
-			&self.data,
-			&self.timestamp
-		)
-	}
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{{ data: {:?}, timestamp: {} }}",
+            &self.data, &self.timestamp
+        )
+    }
 }
 
 impl fmt::Debug for DataDetail {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(
-			f,
-			"{{ id: {}, symbol: {}, priceUsd: {} }}",
-			str::from_utf8(&self.id).map_err(|_| fmt::Error)?,
-			str::from_utf8(&self.symbol).map_err(|_| fmt::Error)?,
-			str::from_utf8(&self.priceUsd).map_err(|_| fmt::Error)?
-		)
-	}
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{{ id: {}, symbol: {}, priceUsd: {} }}",
+            str::from_utf8(&self.id).map_err(|_| fmt::Error)?,
+            str::from_utf8(&self.symbol).map_err(|_| fmt::Error)?,
+            str::from_utf8(&self.priceUsd).map_err(|_| fmt::Error)?
+        )
+    }
 }
 
 /// This pallet's configuration trait
 pub trait Config: CreateSignedTransaction<Call<Self>> {
-	/// The identifier type for an offchain worker.
-	type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
-	/// The overarching event type.
-	type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
-	/// The overarching dispatch call type.
-	type Call: From<Call<Self>>;
-	/// the precision of the price
-	type PricePrecision: Get<u8>;
+    /// The identifier type for an offchain worker.
+    type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
+    /// The overarching event type.
+    type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
+    /// The overarching dispatch call type.
+    type Call: From<Call<Self>>;
+    /// the precision of the price
+    type PricePrecision: Get<u8>;
 }
 
 decl_storage! {
-	trait Store for Module<T: Config> as ExampleOffchainWorker {
-		pub Prices get(fn get_price): map hasher(blake2_128_concat) CurrencyId => Option<PriceDetail>;
-	}
+    trait Store for Module<T: Config> as ExampleOffchainWorker {
+        pub Prices get(fn get_price): map hasher(blake2_128_concat) CurrencyId => Option<PriceDetail>;
+    }
 }
 
 decl_event!(
-	/// Events generated by the module.
-	pub enum Event<T> where AccountId = <T as frame_system::Config>::AccountId {
-		OffchainInvoke(Option<AccountId>),
-	}
+    /// Events generated by the module.
+    pub enum Event<T>
+    where
+        AccountId = <T as frame_system::Config>::AccountId,
+    {
+        OffchainInvoke(Option<AccountId>),
+    }
 );
 
 decl_error! {
-	pub enum Error for Module<T: Config> {
-		// Error returned when not sure which ocw function to executed
-		UnknownOffchainMux,
+    pub enum Error for Module<T: Config> {
+        // Error returned when not sure which ocw function to executed
+        UnknownOffchainMux,
 
-		// Error returned when making signed transactions in off-chain worker
-		NoLocalAcctForSigning,
-		OffchainSignedTxError,
+        // Error returned when making signed transactions in off-chain worker
+        NoLocalAcctForSigning,
+        OffchainSignedTxError,
 
-		// Error returned when making unsigned transactions in off-chain worker
-		OffchainUnsignedTxError,
+        // Error returned when making unsigned transactions in off-chain worker
+        OffchainUnsignedTxError,
 
-		// Error returned when making unsigned transactions with signed payloads in off-chain worker
-		OffchainUnsignedTxSignedPayloadError,
+        // Error returned when making unsigned transactions with signed payloads in off-chain worker
+        OffchainUnsignedTxSignedPayloadError,
 
-		// Error returned when fetching info
-		HttpFetchingError,
+        // Error returned when fetching info
+        HttpFetchingError,
 
-		// Error when previous http is waiting
-		AcquireStorageLockError,
+        // Error when previous http is waiting
+        AcquireStorageLockError,
 
-		// Error when convert price
-		ConvertToStringError,
+        // Error when convert price
+        ConvertToStringError,
 
-		//Error when convert price
-		ParsingToF64Error,
-	}
+        //Error when convert price
+        ParsingToF64Error,
+    }
 }
 
 decl_module! {
-	/// A public part of the pallet.
-	pub struct Module<T: Config> for enum Call where origin: T::Origin {
-		fn deposit_event() = default;
+    /// A public part of the pallet.
+    pub struct Module<T: Config> for enum Call where origin: T::Origin {
+        fn deposit_event() = default;
 
-		const PricePrecision: u8 = T::PricePrecision::get();
-		
-		#[weight = 10000 ]
-		fn submit_price_unsigned_with_signed_payload(origin, payload: Payload<T::Public>,
-			_signature: T::Signature) -> DispatchResult
-		{
-			// we don't need to verify the signature here because it has been verified in
-			//   `validate_unsigned` function when sending out the unsigned tx.
-			let _ = ensure_none(origin)?;
-			debug::info!("dot: {:?}", Prices::get(CurrencyId::DOT));
-			debug::info!("btc: {:?}", Prices::get(CurrencyId::BTC));
-			debug::info!("ksm: {:?}", Prices::get(CurrencyId::KSM));
-			Self::append_price(payload);
-			Self::deposit_event(Event::<T>::OffchainInvoke(None));
-			Ok(())
-		}
+        const PricePrecision: u8 = T::PricePrecision::get();
 
-		fn offchain_worker(block_number: T::BlockNumber) {
-			debug::info!("Entering off-chain worker");
-			let urls = [
-				(CurrencyId::DOT,"https://api.coincap.io/v2/assets/polkadot"), 
-				(CurrencyId::BTC,"https://api.coincap.io/v2/assets/bitcoin"), 
-				(CurrencyId::KSM,"https://api.coincap.io/v2/assets/kusama")
-			].to_vec();
+        #[weight = 10000 ]
+        fn submit_price_unsigned_with_signed_payload(origin, payload: Payload<T::Public>,
+            _signature: T::Signature) -> DispatchResult
+        {
+            // we don't need to verify the signature here because it has been verified in
+            //   `validate_unsigned` function when sending out the unsigned tx.
+            let _ = ensure_none(origin)?;
+            debug::info!("dot: {:?}", Prices::get(CurrencyId::DOT));
+            debug::info!("btc: {:?}", Prices::get(CurrencyId::BTC));
+            debug::info!("ksm: {:?}", Prices::get(CurrencyId::KSM));
+            Self::append_price(payload);
+            Self::deposit_event(Event::<T>::OffchainInvoke(None));
+            Ok(())
+        }
 
-			match Self::fetch_price(urls) {
-				Ok(res) => {
-					let _ = Self::offchain_price_unsigned_with_signed_payload(res);
-				},
-				Err(e) => {
-					debug::error!("offchain_worker error: {:?}", e);
-				}
-			}
-		}
-	}
+        fn offchain_worker(block_number: T::BlockNumber) {
+            debug::info!("Entering off-chain worker");
+            let urls = [
+                (CurrencyId::DOT,"https://api.coincap.io/v2/assets/polkadot"),
+                (CurrencyId::BTC,"https://api.coincap.io/v2/assets/bitcoin"),
+                (CurrencyId::KSM,"https://api.coincap.io/v2/assets/kusama")
+            ].to_vec();
+
+            match Self::fetch_price(urls) {
+                Ok(res) => {
+                    let _ = Self::offchain_price_unsigned_with_signed_payload(res);
+                },
+                Err(e) => {
+                    debug::error!("offchain_worker error: {:?}", e);
+                }
+            }
+        }
+    }
 }
 
 impl<T: Config> Module<T> {
-	/// Append a new number to the tail of the list, removing an element from the head if reaching
-	///   the bounded length.
-	fn append_price(payload: Payload<T::Public>) {
-		let list = payload.list;
-		for i in 0..list.len() {
-			Prices::insert(&list[i].symbol, (list[i].price, list[i].timestamp));
-		}
-	}
+    /// Append a new number to the tail of the list, removing an element from the head if reaching
+    ///   the bounded length.
+    fn append_price(payload: Payload<T::Public>) {
+        let list = payload.list;
+        for i in 0..list.len() {
+            Prices::insert(&list[i].symbol, (list[i].price, list[i].timestamp));
+        }
+    }
 
-	pub fn fetch_price(urls: Vec<(CurrencyId,&str)> ) -> Result<Vec<(CurrencyId, PriceJson)>, Error<T>> {
-		let mut lock = StorageLock::<BlockAndTime<Self>>::with_block_and_time_deadline(
-			b"offchain-demo::lock", LOCK_BLOCK_EXPIRATION,
-			rt_offchain::Duration::from_millis(LOCK_TIMEOUT_EXPIRATION)
-		);
-		if let Ok(_guard) = lock.try_lock() {
-			//TODO async http
-			let mut res = Vec::new();
-			for (currency_id,url) in urls.into_iter() {
-				if let Ok(json) = Self::fetch_n_parse(url) {
-					res.push((currency_id, json));
-				} else {
-					debug::info!("error response: {}", url);
-				}
-			}
-			if res.len() > 0 {
-				return Ok(res);
-			} else {
-				return Err(<Error<T>>::HttpFetchingError.into());
-			}
-		}
-		Err(<Error<T>>::AcquireStorageLockError.into())
-	}
+    pub fn fetch_price(
+        urls: Vec<(CurrencyId, &str)>,
+    ) -> Result<Vec<(CurrencyId, PriceJson)>, Error<T>> {
+        let mut lock = StorageLock::<BlockAndTime<Self>>::with_block_and_time_deadline(
+            b"offchain-demo::lock",
+            LOCK_BLOCK_EXPIRATION,
+            rt_offchain::Duration::from_millis(LOCK_TIMEOUT_EXPIRATION),
+        );
+        if let Ok(_guard) = lock.try_lock() {
+            //TODO async http
+            let mut res = Vec::new();
+            for (currency_id, url) in urls.into_iter() {
+                if let Ok(json) = Self::fetch_n_parse(url) {
+                    res.push((currency_id, json));
+                } else {
+                    debug::info!("error response: {}", url);
+                }
+            }
+            if res.len() > 0 {
+                return Ok(res);
+            } else {
+                return Err(<Error<T>>::HttpFetchingError.into());
+            }
+        }
+        Err(<Error<T>>::AcquireStorageLockError.into())
+    }
 
-	/// Fetch from remote and deserialize the JSON to a struct
-	pub fn fetch_n_parse(url: &str) -> Result<PriceJson, Error<T>> {
-		let resp_bytes = Self::fetch_from_remote(url).map_err(|e| {
-			debug::error!("fetch_from_remote error: {:?}", e);
-			<Error<T>>::HttpFetchingError
-		})?;
-		let resp_str = str::from_utf8(&resp_bytes).map_err(|_| <Error<T>>::HttpFetchingError)?;
-		// Print out our fetched JSON string
-		// debug::info!("{}", resp_str);
-		let gh_info: PriceJson =
-			serde_json::from_str(&resp_str).map_err(|_| <Error<T>>::HttpFetchingError)?;
-		Ok(gh_info)
-	}
+    /// Fetch from remote and deserialize the JSON to a struct
+    pub fn fetch_n_parse(url: &str) -> Result<PriceJson, Error<T>> {
+        let resp_bytes = Self::fetch_from_remote(url).map_err(|e| {
+            debug::error!("fetch_from_remote error: {:?}", e);
+            <Error<T>>::HttpFetchingError
+        })?;
+        let resp_str = str::from_utf8(&resp_bytes).map_err(|_| <Error<T>>::HttpFetchingError)?;
+        // Print out our fetched JSON string
+        // debug::info!("{}", resp_str);
+        let gh_info: PriceJson =
+            serde_json::from_str(&resp_str).map_err(|_| <Error<T>>::HttpFetchingError)?;
+        Ok(gh_info)
+    }
 
-	/// This function uses the `offchain::http` API to query the remote github information,
-	///   and returns the JSON response as vector of bytes.
-	pub fn fetch_from_remote(url: &str) -> Result<Vec<u8>, Error<T>> {
-		// debug::info!("sending request to: {}", url);
+    /// This function uses the `offchain::http` API to query the remote github information,
+    ///   and returns the JSON response as vector of bytes.
+    pub fn fetch_from_remote(url: &str) -> Result<Vec<u8>, Error<T>> {
+        // debug::info!("sending request to: {}", url);
 
-		// Initiate an external HTTP GET request. This is using high-level wrappers from `sp_runtime`.
-		let request = rt_offchain::http::Request::get(url);
+        // Initiate an external HTTP GET request. This is using high-level wrappers from `sp_runtime`.
+        let request = rt_offchain::http::Request::get(url);
 
-		// Keeping the offchain worker execution time reasonable, so limiting the call to be within 3s.
-		let timeout = sp_io::offchain::timestamp()
-			.add(rt_offchain::Duration::from_millis(FETCH_TIMEOUT_PERIOD));
+        // Keeping the offchain worker execution time reasonable, so limiting the call to be within 3s.
+        let timeout = sp_io::offchain::timestamp()
+            .add(rt_offchain::Duration::from_millis(FETCH_TIMEOUT_PERIOD));
 
-		// For github API request, we also need to specify `user-agent` in http request header.
-		//   See: https://developer.github.com/v3/#user-agent-required
-		let pending = request
-			.add_header("User-Agent", HTTP_HEADER_USER_AGENT)
-			.deadline(timeout) // Setting the timeout time
-			.send() // Sending the request out by the host
-			.map_err(|_| <Error<T>>::HttpFetchingError)?;
+        // For github API request, we also need to specify `user-agent` in http request header.
+        //   See: https://developer.github.com/v3/#user-agent-required
+        let pending = request
+            .add_header("User-Agent", HTTP_HEADER_USER_AGENT)
+            .deadline(timeout) // Setting the timeout time
+            .send() // Sending the request out by the host
+            .map_err(|_| <Error<T>>::HttpFetchingError)?;
 
-		// By default, the http request is async from the runtime perspective. So we are asking the
-		//   runtime to wait here.
-		// The returning value here is a `Result` of `Result`, so we are unwrapping it twice by two `?`
-		//   ref: https://substrate.dev/rustdocs/v2.0.0/sp_runtime/offchain/http/struct.PendingRequest.html#method.try_wait
-		let response = pending
-			.try_wait(timeout)
-			.map_err(|_| <Error<T>>::HttpFetchingError)?
-			.map_err(|_| <Error<T>>::HttpFetchingError)?;
+        // By default, the http request is async from the runtime perspective. So we are asking the
+        //   runtime to wait here.
+        // The returning value here is a `Result` of `Result`, so we are unwrapping it twice by two `?`
+        //   ref: https://substrate.dev/rustdocs/v2.0.0/sp_runtime/offchain/http/struct.PendingRequest.html#method.try_wait
+        let response = pending
+            .try_wait(timeout)
+            .map_err(|_| <Error<T>>::HttpFetchingError)?
+            .map_err(|_| <Error<T>>::HttpFetchingError)?;
 
-		if response.code != 200 {
-			debug::error!("Unexpected http request status code: {}", response.code);
-			return Err(<Error<T>>::HttpFetchingError);
-		}
+        if response.code != 200 {
+            debug::error!("Unexpected http request status code: {}", response.code);
+            return Err(<Error<T>>::HttpFetchingError);
+        }
 
-		// Next we fully read the response body and collect it to a vector of bytes.
-		Ok(response.body().collect::<Vec<u8>>())
-	}
+        // Next we fully read the response body and collect it to a vector of bytes.
+        Ok(response.body().collect::<Vec<u8>>())
+    }
 
-	fn offchain_price_unsigned_with_signed_payload(json_list: Vec<(CurrencyId, PriceJson)>) -> Result<(), Error<T>>{
-		let signer = Signer::<T, T::AuthorityId>::any_account();
+    fn offchain_price_unsigned_with_signed_payload(
+        json_list: Vec<(CurrencyId, PriceJson)>,
+    ) -> Result<(), Error<T>> {
+        let signer = Signer::<T, T::AuthorityId>::any_account();
 
-		let payload_list = {
-			let mut v: Vec<PayloadDetail> = Vec::new();
-			for i in 0..json_list.len() {
-				let (currency_id, json) = json_list[i].clone();
-				let price = Self::to_price(json.data.priceUsd)?;
-				let symbol = currency_id;
-				let timestamp = json.timestamp;
-				v.push( PayloadDetail{price, symbol, timestamp});
-			}
-			v
-		};
+        let payload_list = {
+            let mut v: Vec<PayloadDetail> = Vec::new();
+            for i in 0..json_list.len() {
+                let (currency_id, json) = json_list[i].clone();
+                let price = Self::to_price(json.data.priceUsd)?;
+                let symbol = currency_id;
+                let timestamp = json.timestamp;
+                v.push(PayloadDetail {
+                    price,
+                    symbol,
+                    timestamp,
+                });
+            }
+            v
+        };
 
-		if let Some((_, res)) = signer.send_unsigned_transaction(
-			|acct| Payload { list: payload_list.clone(), public: acct.public.clone() },
-			Call::submit_price_unsigned_with_signed_payload
-		) {
-			return res.map_err(|_| {
-				debug::error!("Failed in offchain_unsigned_tx_signed_payload");
-				<Error<T>>::OffchainUnsignedTxSignedPayloadError
-			});
-		}
-		// The case of `None`: no account is available for sending
-		debug::error!("No local account available");
-		Err(<Error<T>>::NoLocalAcctForSigning)
-	}
+        if let Some((_, res)) = signer.send_unsigned_transaction(
+            |acct| Payload {
+                list: payload_list.clone(),
+                public: acct.public.clone(),
+            },
+            Call::submit_price_unsigned_with_signed_payload,
+        ) {
+            return res.map_err(|_| {
+                debug::error!("Failed in offchain_unsigned_tx_signed_payload");
+                <Error<T>>::OffchainUnsignedTxSignedPayloadError
+            });
+        }
+        // The case of `None`: no account is available for sending
+        debug::error!("No local account available");
+        Err(<Error<T>>::NoLocalAcctForSigning)
+    }
 
-	fn to_price(val_u8: Vec<u8>) -> Result<Price, Error<T>> {
-		// let val_u8: Vec<u8> = json.data.priceUsd;
-		let val_f64: f64 = core::str::from_utf8(&val_u8)
-			.map_err(|_| {
-				debug::error!("val_u8 convert to string error");
-				<Error<T>>::ConvertToStringError
-			})?
-			.parse::<f64>()
-		  	.map_err(|_| {
-				debug::error!("string convert to f64 error");
-				<Error<T>>::ParsingToF64Error
-			})?;
-		
-		let price = (val_f64 * 10f64.powi( T::PricePrecision::get() as i32 )).round() as Price;
-		Ok(price)
-	}
+    fn to_price(val_u8: Vec<u8>) -> Result<Price, Error<T>> {
+        // let val_u8: Vec<u8> = json.data.priceUsd;
+        let val_f64: f64 = core::str::from_utf8(&val_u8)
+            .map_err(|_| {
+                debug::error!("val_u8 convert to string error");
+                <Error<T>>::ConvertToStringError
+            })?
+            .parse::<f64>()
+            .map_err(|_| {
+                debug::error!("string convert to f64 error");
+                <Error<T>>::ParsingToF64Error
+            })?;
+
+        let price = (val_f64 * 10f64.powi(T::PricePrecision::get() as i32)).round() as Price;
+        Ok(price)
+    }
 }
 
 #[allow(deprecated)] // ValidateUnsigned
 impl<T: Config> frame_support::unsigned::ValidateUnsigned for Module<T> {
-	type Call = Call<T>;
+    type Call = Call<T>;
 
-	fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
-		let valid_tx = |provide| ValidTransaction::with_tag_prefix("ocw-demo")
-			.priority(UNSIGNED_TXS_PRIORITY)
-			.and_provides([&provide])
-			.longevity(3)
-			.propagate(true)
-			.build();
+    fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
+        let valid_tx = |provide| {
+            ValidTransaction::with_tag_prefix("ocw-demo")
+                .priority(UNSIGNED_TXS_PRIORITY)
+                .and_provides([&provide])
+                .longevity(3)
+                .propagate(true)
+                .build()
+        };
 
-		match call {
-			Call::submit_price_unsigned_with_signed_payload(ref payload, ref signature) => {
-				if !SignedPayload::<T>::verify::<T::AuthorityId>(payload, signature.clone()) {
-					return InvalidTransaction::BadProof.into();
-				}
-				valid_tx(b"submit_price_unsigned_with_signed_payload".to_vec())
-			},
-			_ => InvalidTransaction::Call.into(),
-		}
-	}
+        match call {
+            Call::submit_price_unsigned_with_signed_payload(ref payload, ref signature) => {
+                if !SignedPayload::<T>::verify::<T::AuthorityId>(payload, signature.clone()) {
+                    return InvalidTransaction::BadProof.into();
+                }
+                valid_tx(b"submit_price_unsigned_with_signed_payload".to_vec())
+            }
+            _ => InvalidTransaction::Call.into(),
+        }
+    }
 }
 
 impl<T: Config> rt_offchain::storage_lock::BlockNumberProvider for Module<T> {
-	type BlockNumber = T::BlockNumber;
-	fn current_block_number() -> Self::BlockNumber {
-	  <frame_system::Module<T>>::block_number()
-	}
+    type BlockNumber = T::BlockNumber;
+    fn current_block_number() -> Self::BlockNumber {
+        <frame_system::Module<T>>::block_number()
+    }
 }
