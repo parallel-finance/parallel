@@ -11,7 +11,7 @@ use sp_runtime::{
     traits::{AccountIdConversion, Zero},
     DispatchResult, ModuleId, RuntimeDebug,
 };
-use sp_std::{convert::TryInto, result};
+use sp_std::{convert::TryInto, result, vec::{Vec}};
 
 pub use module::*;
 
@@ -81,6 +81,29 @@ pub mod module {
     #[pallet::storage]
     #[pallet::getter(fn total_positions)]
     pub type TotalPositions<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Position, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn currencies)]
+    pub type Currencies<T: Config> = StorageValue<_, Vec<CurrencyId>, ValueQuery>;
+
+    #[pallet::genesis_config]
+    pub struct GenesisConfig {
+        pub currencies: Vec<CurrencyId>,
+    }
+
+    #[cfg(feature = "std")]
+    impl Default for GenesisConfig {
+        fn default() -> Self {
+            GenesisConfig { currencies: vec![] }
+        }
+    }
+
+    #[pallet::genesis_build]
+    impl<T: Config> GenesisBuild<T> for GenesisConfig {
+        fn build(&self) {
+            Currencies::<T>::put(self.currencies.clone());
+        }
+    }
 
     #[pallet::pallet]
     pub struct Pallet<T>(PhantomData<T>);

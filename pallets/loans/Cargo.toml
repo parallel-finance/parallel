@@ -10,7 +10,6 @@ targets = ['x86_64-unknown-linux-gnu']
 [dependencies]
 frame-support = { default-features = false, version = '3.0.0' }
 frame-system = { default-features = false, version = '3.0.0' }
-serde = { version = "1.0.101", optional = true }
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
 sp-std = { version = "3.0.0", default-features = false }
 sp-runtime = { version = "3.0.0", default-features = false }
@@ -19,6 +18,7 @@ orml-currencies = { default-features = false, version = '0.4.0' }
 orml-tokens = { default-features = false, version = '0.4.0' }
 orml-traits = { default-features = false, version = '0.4.0' }
 orml-utilities = { default-features = false, version = '0.4.0' }
+serde = { version = "1.0.102", features = ["derive"] }
 
 [dev-dependencies]
 serde = { version = "1.0.119" }

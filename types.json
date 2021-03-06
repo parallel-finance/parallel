@@ -19,6 +19,7 @@
   },
   "Price": "u128",
   "Timestamp": "u64",
+  "Public": "AccountId",
   "PriceDetail": "(Price, Timestamp)",
   "Payload": {
     "list": "Vec<PayloadDetail>",

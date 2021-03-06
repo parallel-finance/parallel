@@ -96,7 +96,13 @@ decl_module! {
 
 
         #[weight = 10_000]
-        pub fn update_borrow_rate_tx(origin, currency_id: CurrencyId, cash: Balance, borrows: Balance, reserves: Balance) -> dispatch::DispatchResult {
+        pub fn update_borrow_rate_tx(
+            origin,
+            currency_id: CurrencyId,
+            cash: Balance,
+            borrows: Balance,
+            reserves: Balance
+        ) -> dispatch::DispatchResult {
             let _who = ensure_signed(origin)?;
 
             let util = Self::utilization_rate
