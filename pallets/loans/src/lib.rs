@@ -15,6 +15,12 @@ use sp_std::{convert::TryInto, result, vec::{Vec}};
 
 pub use module::*;
 
+mod util;
+mod loan;
+mod rate;
+
+const INIT_EXCHANGE_RATE: u128 = 20_000_000_000_000_000;
+
 /// A collateralized debit position.
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
 pub struct Position {
@@ -53,6 +59,11 @@ pub mod module {
         CollateralOverflow,
         CollateralTooLow,
         AmountConvertFailed,
+        TotalCollateralTooLow,
+        Overflow,
+        GetBlockDeltaFailed,
+        CalcAccrueInterestFailed,
+        MarketNotFresh,
     }
 
     #[pallet::event]
@@ -67,8 +78,18 @@ pub mod module {
         ConfiscateCollateralAndDebit(T::AccountId, CurrencyId, Balance, Balance),
         /// Transfer loan. \[from, to, currency_id\]
         TransferLoan(T::AccountId, T::AccountId, CurrencyId),
+
+        AccrueInterest(CurrencyId),
+
+        NewInterestParams2(T::AccountId, u128, u128, u128, u128),
+        NewInterestParams(u128, u128, u128, u128),
+        BorrowRateUpdated(CurrencyId, u128),
+        SupplyRateUpdated(CurrencyId, u128),
+        UtilityRateUpdated(CurrencyId, u128),
+        Test(u128),
     }
 
+    // Loan storage
     /// The collateralized debit positions, map from
     /// Owner -> CollateralType -> Position
     #[pallet::storage]
@@ -82,19 +103,66 @@ pub mod module {
     #[pallet::getter(fn total_positions)]
     pub type TotalPositions<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Position, ValueQuery>;
 
+    /// The total supply, map from
+    /// CollateralType -> u128
+    #[pallet::storage]
+    #[pallet::getter(fn total_supply)]
+    pub type TotalSupply<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+
     #[pallet::storage]
     #[pallet::getter(fn currencies)]
     pub type Currencies<T: Config> = StorageValue<_, Vec<CurrencyId>, ValueQuery>;
 
+    #[pallet::storage]
+    #[pallet::getter(fn borrow_index)]
+    pub type BorrowIndex<T: Config> = StorageValue<_, u128, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn exchange_rate)]
+    pub type ExchangeRate<T: Config> = StorageValue<_, u128, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn accrual_block_number)]
+    pub type AccrualBlockNumber<T: Config> = StorageValue<_, T::BlockNumber, ValueQuery>;
+
+    // Rate storage
+    #[pallet::storage]
+    #[pallet::getter(fn multipler_per_block)]
+    pub type MultiplierPerBlock<T: Config> = StorageValue<_, Option<u128>, ValueQuery>;
+    #[pallet::storage]
+    #[pallet::getter(fn base_rate_per_block)]
+    pub type BaseRatePerBlock<T: Config> = StorageValue<_, Option<u128>, ValueQuery>;
+    #[pallet::storage]
+    #[pallet::getter(fn jump_multiplier_per_block)]
+    pub type JumpMultiplierPerBlock<T: Config> = StorageValue<_, Option<u128>, ValueQuery>;
+    #[pallet::storage]
+    #[pallet::getter(fn kink)]
+    pub type Kink<T: Config> = StorageValue<_, Option<u128>, ValueQuery>;
+    #[pallet::storage]
+    #[pallet::getter(fn borrow_rate)]
+    pub type BorrowRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+    #[pallet::storage]
+    #[pallet::getter(fn supply_rate)]
+    pub type SupplyRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+    #[pallet::storage]
+    #[pallet::getter(fn utility_rate)]
+    pub type UtilityRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+
     #[pallet::genesis_config]
     pub struct GenesisConfig {
         pub currencies: Vec<CurrencyId>,
+        pub total_position: Vec<(CurrencyId, Balance, Balance)>,
+        pub exchange_rate: u128,
     }
 
     #[cfg(feature = "std")]
     impl Default for GenesisConfig {
         fn default() -> Self {
-            GenesisConfig { currencies: vec![] }
+            GenesisConfig {
+                currencies: vec![],
+                total_position: vec![],
+                exchange_rate: INIT_EXCHANGE_RATE,
+            }
         }
     }
 
@@ -102,6 +170,15 @@ pub mod module {
     impl<T: Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
             Currencies::<T>::put(self.currencies.clone());
+            self.total_position
+                .iter()
+                .for_each(|(currency_id, collateral, debit)| {
+                    TotalPositions::<T>::insert(currency_id, Position{
+                        collateral: collateral.clone(),
+                        debit: debit.clone(),
+                    });
+                });
+            ExchangeRate::<T>::put(self.exchange_rate);
         }
     }
 
@@ -156,12 +233,6 @@ impl<T: Config> Pallet<T> {
             T::Currency::transfer(currency_id, &module_account, who, collateral_balance_adjustment)?;
         }
 
-        Self::deposit_event(Event::PositionUpdated(
-            who.clone(),
-            currency_id,
-            collateral_adjustment,
-            debit_adjustment,
-        ));
         Ok(())
     }
 
@@ -235,17 +306,5 @@ impl<T: Config> Pallet<T> {
 
             Ok(())
         })
-    }
-}
-
-impl<T: Config> Pallet<T> {
-    /// Convert `Balance` to `Amount`.
-    fn _amount_try_from_balance(b: Balance) -> result::Result<Amount, Error<T>> {
-        TryInto::<Amount>::try_into(b).map_err(|_| Error::<T>::AmountConvertFailed)
-    }
-
-    /// Convert the absolute value of `Amount` to `Balance`.
-    fn balance_try_from_amount_abs(a: Amount) -> result::Result<Balance, Error<T>> {
-        TryInto::<Balance>::try_into(a.saturating_abs()).map_err(|_| Error::<T>::AmountConvertFailed)
     }
 }

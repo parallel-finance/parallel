@@ -174,6 +174,8 @@ fn testnet_genesis(
 		}),
 		pallet_loans: Some(LoansConfig{
 			currencies: vec![CurrencyId::DOT, CurrencyId::KSM, CurrencyId::BTC, CurrencyId::PUSD],
+			total_position: vec![(CurrencyId::DOT, 100u128, 50u128)],
+			exchange_rate: 20_000_000_000_000_000u128,
 		})
 	}
 }
