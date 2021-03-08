@@ -9,7 +9,7 @@ use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 use primitives::{Amount, Balance, CurrencyId};
 use sp_runtime::{
     traits::{AccountIdConversion, Zero},
-    DispatchResult, ModuleId, RuntimeDebug,
+    DispatchResult, ModuleId,
 };
 use sp_std::{convert::TryInto, result, vec::{Vec}};
 
@@ -18,8 +18,6 @@ pub use module::*;
 mod util;
 mod loan;
 mod rate;
-
-const INIT_EXCHANGE_RATE: u128 = 20_000_000_000_000_000;
 
 /// A collateralized debit position.
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
@@ -59,10 +57,11 @@ pub mod module {
         CollateralOverflow,
         CollateralTooLow,
         AmountConvertFailed,
-        TotalCollateralTooLow,
         Overflow,
         GetBlockDeltaFailed,
         CalcAccrueInterestFailed,
+        CalcExchangeRateFailed,
+        CalcCollateralFailed,
         MarketNotFresh,
     }
 
@@ -161,7 +160,7 @@ pub mod module {
             GenesisConfig {
                 currencies: vec![],
                 total_position: vec![],
-                exchange_rate: INIT_EXCHANGE_RATE,
+                exchange_rate: 0,
             }
         }
     }
@@ -202,6 +201,18 @@ pub mod module {
             Self::adjust_position(&who, currency_id, collateral_adjustment, debit_adjustment)?;
             Ok(().into())
         }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn mint_collateral(
+            origin: OriginFor<T>,
+            currency_id: CurrencyId,
+            mint_amount: Balance
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            Self::mint_internal(&who, &currency_id, mint_amount)?;
+            Ok(().into())
+        }
     }
 }
 
@@ -224,7 +235,7 @@ impl<T: Config> Pallet<T> {
         Self::update_loan(who, currency_id, collateral_adjustment, debit_adjustment)?;
 
         let collateral_balance_adjustment = Self::balance_try_from_amount_abs(collateral_adjustment)?;
-        let _debit_balance_adjustment = Self::balance_try_from_amount_abs(debit_adjustment)?;
+        let debit_balance_adjustment = Self::balance_try_from_amount_abs(debit_adjustment)?;
         let module_account = Self::account_id();
 
         if collateral_adjustment.is_positive() {
@@ -233,11 +244,17 @@ impl<T: Config> Pallet<T> {
             T::Currency::transfer(currency_id, &module_account, who, collateral_balance_adjustment)?;
         }
 
+        if debit_adjustment.is_positive() {
+            T::Currency::transfer(currency_id, &module_account, who, debit_balance_adjustment)?;
+        } else if debit_adjustment.is_negative() {
+            T::Currency::transfer(currency_id, who, &module_account, debit_balance_adjustment)?;
+        }
+
         Ok(())
     }
 
     /// mutate records of collaterals and debits
-    fn update_loan(
+    pub fn update_loan(
         who: &T::AccountId,
         currency_id: CurrencyId,
         collateral_adjustment: Amount,

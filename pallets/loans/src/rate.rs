@@ -1,15 +1,13 @@
 use frame_system::pallet_prelude::*;
-use frame_support::pallet_prelude::*;
-use primitives::{Amount, Balance, CurrencyId};
+use primitives::{Balance, CurrencyId};
 use sp_runtime::{
-    traits::{AccountIdConversion, Zero},
-    DispatchResult, ModuleId, RuntimeDebug,
+    traits::{Zero},
+    DispatchResult,
 };
 use sp_std::prelude::*;
 use sp_std::{convert::TryInto, result, vec::{Vec}};
-use crate::*;
-use crate::module::*;
 
+use crate::*;
 
 const BLOCK_PER_YEAR: u128 = 5256000;
 // const BLOCK_PER_YEAR: u128 = 2102400;

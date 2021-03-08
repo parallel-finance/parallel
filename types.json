@@ -3,7 +3,6 @@
   "LookupSource": "MultiAddress",
   "CurrencyId": {
     "_enum": [
-      "Native",
       "DOT",
       "KSM",
       "BTC",

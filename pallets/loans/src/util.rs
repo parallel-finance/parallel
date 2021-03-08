@@ -11,7 +11,7 @@ use crate::module::*;
 
 impl<T: Config> Pallet<T> {
     /// Convert `Balance` to `Amount`.
-    pub fn _amount_try_from_balance(b: Balance) -> result::Result<Amount, Error<T>> {
+    pub fn amount_try_from_balance(b: Balance) -> result::Result<Amount, Error<T>> {
         TryInto::<Amount>::try_into(b).map_err(|_| Error::<T>::AmountConvertFailed)
     }
 

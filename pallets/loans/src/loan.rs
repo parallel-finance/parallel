@@ -1,5 +1,6 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+
 use frame_system::pallet_prelude::*;
-use frame_support::pallet_prelude::*;
 use primitives::{Amount, Balance, CurrencyId};
 use sp_runtime::{
     traits::{AccountIdConversion, Zero, CheckedSub},
@@ -9,7 +10,8 @@ use sp_std::{convert::TryInto, result, vec::{Vec}};
 use sp_std::prelude::*;
 
 use crate::*;
-use crate::module::*;
+
+const DECIMAL: u128 = 1_000_000_000_000_000_000;
 
 impl<T: Config> Pallet<T> {
     /// This calculates interest accrued from the last checkpointed block
@@ -25,7 +27,7 @@ impl<T: Config> Pallet<T> {
 
         // Read the previous values out of storage
         let mut total_position: Position = Self::total_positions(currency_id);
-        let cash_prior = Self::get_total_cash(currency_id)?;
+        let cash_prior = Self::get_total_cash(currency_id.clone());
         let borrows_prior = total_position.debit;
         let borrow_index_prior = Self::borrow_index();
 
@@ -58,7 +60,7 @@ impl<T: Config> Pallet<T> {
         let total_borrows_new = interest_accumulated.checked_add(borrows_prior)
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
         let borrow_index_new = simple_interest_factor.checked_mul(borrow_index_prior)
-            .and_then(|r| r.checked_sub(borrow_index_prior)).ok_or(Error::<T>::CalcAccrueInterestFailed)?;
+            .and_then(|r| r.checked_add(borrow_index_prior)).ok_or(Error::<T>::CalcAccrueInterestFailed)?;
 
         AccrualBlockNumber::<T>::put(current_block_number);
         BorrowIndex::<T>::put(borrow_index_new);
@@ -72,24 +74,24 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    pub fn get_total_cash(currency_id: &CurrencyId) -> result::Result<Balance, Error<T>> {
-        let total_position: Position = Self::total_positions(currency_id);
-        if total_position.collateral < total_position.debit {
-            return Err(Error::<T>::TotalCollateralTooLow);
-        }
-        Ok(total_position.collateral - total_position.debit)
+    pub fn get_total_cash(currency_id: CurrencyId) -> Balance {
+        T::Currency::free_balance(currency_id, &Self::account_id())
     }
 
-    pub fn mint_internal(currency_id: &CurrencyId) -> result::Result<(), Error<T>> {
-        let current_block_number = frame_system::Module::<T>::block_number();
-        let accrual_block_number_prior = Self::accrual_block_number();
+    /// mint collateral
+    ///
+    /// Ensured atomic.
+    #[transactional]
+    pub fn mint_internal(who: &T::AccountId, currency_id: &CurrencyId, mint_amount: Balance) -> DispatchResult {
+        let exchange_rate = Self::get_exchange_rate_internal(currency_id)?;
+        let collateral = mint_amount.checked_mul(DECIMAL)
+            .and_then(|r| r.checked_div(exchange_rate)).ok_or(Error::<T>::CalcCollateralFailed)?;
 
-        // Verify market's block number equals current block number
-        if current_block_number != accrual_block_number_prior {
-            return Err(Error::<T>::MarketNotFresh);
-        }
+        let collateral_amount = Self::amount_try_from_balance(collateral)?;
 
+        Self::update_loan(who, currency_id.clone(), collateral_amount, 0)?;
 
+        T::Currency::transfer(currency_id.clone(), who, &Self::account_id(), mint_amount)?;
 
         Ok(())
     }
@@ -101,15 +103,19 @@ impl<T: Config> Pallet<T> {
              * If there are no tokens minted:
              *  exchangeRate = initialExchangeRate
              */
-            return Ok(INIT_EXCHANGE_RATE);
+            Ok(Self::exchange_rate())
         } else {
             /*
              * Otherwise:
              *  exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
              */
-            let total_cash = Self::get_total_cash(currency_id)?;
-            // let cash_plus_borrows =
+            let total_cash = Self::get_total_cash(currency_id.clone());
+            let cash_plus_borrows = total_cash.checked_add(total_position.debit)
+                .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
+            let exchage_rate = cash_plus_borrows.checked_mul(DECIMAL)
+                .and_then(|r| r.checked_div(total_position.collateral)).ok_or(Error::<T>::CalcExchangeRateFailed)?;
+
+            Ok(exchage_rate)
         }
-        Ok(0)
     }
 }
