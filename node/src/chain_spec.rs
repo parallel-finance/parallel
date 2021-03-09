@@ -174,8 +174,12 @@ fn testnet_genesis(
 		}),
 		pallet_loans: Some(LoansConfig{
 			currencies: vec![CurrencyId::DOT, CurrencyId::KSM, CurrencyId::BTC, CurrencyId::PUSD],
-			total_position: vec![(CurrencyId::DOT, 100u128, 50u128)],
-			exchange_rate: 20_000_000_000_000_000u128,
+			total_position: vec![(CurrencyId::DOT, 100 * 10u128.pow(18), 50 * 10u128.pow(18))],
+			exchange_rate: 2 * 10u128.pow(16),		// 0.02
+			base_rate: 2 * 10u128.pow(16),			// 0.05
+			multiplier_per_year: 10u128.pow(17), 	// 0.1
+			jump_muiltiplier: 11 * 10u128.pow(17),  // 1.1
+			kink: 8 * 10u128.pow(17), 				// 0.8
 		})
 	}
 }

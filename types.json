@@ -6,7 +6,8 @@
       "DOT",
       "KSM",
       "BTC",
-      "PUSD"
+      "PUSD",
+      "Native"
     ]
   },
   "CurrencyIdOf": "CurrencyId",

@@ -76,6 +76,7 @@ pub enum CurrencyId {
 	KSM,
 	BTC,
 	PUSD,
+	Native,
 }
 
 pub type Price = u128;

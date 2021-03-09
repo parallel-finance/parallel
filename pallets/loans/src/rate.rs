@@ -40,8 +40,7 @@ impl<T: Config> Pallet<T> {
             .unwrap();
 
         borrows
-            .checked_mul(DECIMAL)
-            .and_then(|r| r.checked_div(total))
+            .checked_div(total)
             .unwrap()
     }
 
@@ -128,6 +127,22 @@ impl<T: Config> Pallet<T> {
             Self::utilization_rate(cash, borrows, reserves).checked_mul(rate_to_pool),
         );
         Self::insert_supply_rate(currency_id, rate);
+
+        Ok(())
+    }
+
+    pub fn calc_exchange_rate(currency_id: &CurrencyId) -> DispatchResult {
+        /*
+         *  exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
+         */
+        let total_position: Position = Self::total_positions(currency_id);
+        let total_cash = Self::get_total_cash(currency_id.clone());
+        let cash_plus_borrows = total_cash.checked_add(total_position.debit)
+            .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
+        let exchage_rate = cash_plus_borrows.checked_mul(DECIMAL)
+            .and_then(|r| r.checked_div(total_position.collateral)).ok_or(Error::<T>::CalcExchangeRateFailed)?;
+
+        ExchangeRate::<T>::insert(currency_id, exchage_rate);
 
         Ok(())
     }

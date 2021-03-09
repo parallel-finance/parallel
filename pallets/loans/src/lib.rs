@@ -9,9 +9,9 @@ use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 use primitives::{Amount, Balance, CurrencyId};
 use sp_runtime::{
     traits::{AccountIdConversion, Zero},
-    DispatchResult, ModuleId,
+    DispatchResult, ModuleId, RuntimeDebug,
 };
-use sp_std::{convert::TryInto, result, vec::{Vec}};
+use sp_std::{convert::TryInto, result, vec::Vec};
 
 pub use module::*;
 
@@ -40,9 +40,9 @@ pub mod module {
         /// module
         type Currency: MultiCurrencyExtended<
             Self::AccountId,
-            CurrencyId = CurrencyId,
-            Balance = Balance,
-            Amount = Amount,
+            CurrencyId=CurrencyId,
+            Balance=Balance,
+            Amount=Amount,
         >;
 
         /// The loan's module id, keep all collaterals of CDPs.
@@ -57,7 +57,6 @@ pub mod module {
         CollateralOverflow,
         CollateralTooLow,
         AmountConvertFailed,
-        Overflow,
         GetBlockDeltaFailed,
         CalcAccrueInterestFailed,
         CalcExchangeRateFailed,
@@ -66,7 +65,7 @@ pub mod module {
     }
 
     #[pallet::event]
-    #[pallet::generate_deposit(pub(crate) fn deposit_event)]
+    #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Position updated. \[owner, collateral_type, collateral_adjustment,
         /// debit_adjustment\]
@@ -94,7 +93,7 @@ pub mod module {
     #[pallet::storage]
     #[pallet::getter(fn positions)]
     pub type Positions<T: Config> =
-        StorageDoubleMap<_, Twox64Concat, CurrencyId, Twox64Concat, T::AccountId, Position, ValueQuery>;
+    StorageDoubleMap<_, Twox64Concat, CurrencyId, Twox64Concat, T::AccountId, Position, ValueQuery>;
 
     /// The total collateralized debit positions, map from
     /// CollateralType -> Position
@@ -102,27 +101,13 @@ pub mod module {
     #[pallet::getter(fn total_positions)]
     pub type TotalPositions<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Position, ValueQuery>;
 
-    /// The total supply, map from
-    /// CollateralType -> u128
-    #[pallet::storage]
-    #[pallet::getter(fn total_supply)]
-    pub type TotalSupply<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
-
     #[pallet::storage]
     #[pallet::getter(fn currencies)]
     pub type Currencies<T: Config> = StorageValue<_, Vec<CurrencyId>, ValueQuery>;
 
     #[pallet::storage]
-    #[pallet::getter(fn borrow_index)]
-    pub type BorrowIndex<T: Config> = StorageValue<_, u128, ValueQuery>;
-
-    #[pallet::storage]
     #[pallet::getter(fn exchange_rate)]
-    pub type ExchangeRate<T: Config> = StorageValue<_, u128, ValueQuery>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn accrual_block_number)]
-    pub type AccrualBlockNumber<T: Config> = StorageValue<_, T::BlockNumber, ValueQuery>;
+    pub type ExchangeRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
 
     // Rate storage
     #[pallet::storage]
@@ -152,6 +137,10 @@ pub mod module {
         pub currencies: Vec<CurrencyId>,
         pub total_position: Vec<(CurrencyId, Balance, Balance)>,
         pub exchange_rate: u128,
+        pub base_rate: u128,
+        pub multiplier_per_year: u128,
+        pub jump_muiltiplier: u128,
+        pub kink: u128,
     }
 
     #[cfg(feature = "std")]
@@ -161,6 +150,10 @@ pub mod module {
                 currencies: vec![],
                 total_position: vec![],
                 exchange_rate: 0,
+                base_rate: 0,
+                multiplier_per_year: 0,
+                jump_muiltiplier: 0,
+                kink: 0,
             }
         }
     }
@@ -172,12 +165,18 @@ pub mod module {
             self.total_position
                 .iter()
                 .for_each(|(currency_id, collateral, debit)| {
-                    TotalPositions::<T>::insert(currency_id, Position{
+                    TotalPositions::<T>::insert(currency_id, Position {
                         collateral: collateral.clone(),
                         debit: debit.clone(),
                     });
+                    ExchangeRate::<T>::insert(currency_id, self.exchange_rate);
                 });
-            ExchangeRate::<T>::put(self.exchange_rate);
+            Pallet::<T>::update_jump_rate_model(
+                self.base_rate,
+                self.multiplier_per_year,
+                self.jump_muiltiplier,
+                self.kink,
+            );
         }
     }
 
@@ -185,7 +184,14 @@ pub mod module {
     pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+        fn on_finalize(_now: T::BlockNumber) {
+            Self::currencies().iter().for_each(|currency_id| {
+                Self::accrue_interest(currency_id);
+                Self::calc_exchange_rate(currency_id);
+            });
+        }
+    }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
@@ -207,10 +213,36 @@ pub mod module {
         pub fn mint_collateral(
             origin: OriginFor<T>,
             currency_id: CurrencyId,
-            mint_amount: Balance
+            mint_amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::mint_internal(&who, &currency_id, mint_amount)?;
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn redeem_collateral(
+            origin: OriginFor<T>,
+            currency_id: CurrencyId,
+            redeem_amount: Balance,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            Self::redeem_internal(&who, &currency_id, redeem_amount)?;
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn transfer_token(
+            origin: OriginFor<T>,
+            to: T::AccountId,
+            currency_id: CurrencyId,
+            amount: Balance,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            T::Currency::transfer(currency_id, &who, &to, amount)?;
+
             Ok(().into())
         }
     }
