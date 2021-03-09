@@ -42,11 +42,11 @@ impl<T: Config> Pallet<T> {
 
         let borrow_rate_per_block = BorrowRate::<T>::get(currency_id);
         let interest_accumulated = borrow_rate_per_block.checked_mul(borrows_prior)
-            .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
+            .and_then(|r| r.checked_div(DECIMAL)).ok_or(Error::<T>::CalcAccrueInterestFailed)?;
         let total_borrows_new = interest_accumulated.checked_add(borrows_prior)
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
 
-        total_position.debit += total_borrows_new;
+        total_position.debit = total_borrows_new;
         TotalPositions::<T>::insert(currency_id, total_position);
 
         Self::deposit_event(Event::AccrueInterest(

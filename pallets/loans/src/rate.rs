@@ -11,7 +11,7 @@ use crate::*;
 
 const BLOCK_PER_YEAR: u128 = 5256000;
 // const BLOCK_PER_YEAR: u128 = 2102400;
-const DECIMAL: u128 = 1_000_000_000_000_000_000;
+pub const DECIMAL: u128 = 1_000_000_000_000_000_000;
 
 impl<T: Config> Pallet<T> {
     fn insert_borrow_rate(currency_id: CurrencyId, rate: u128) {

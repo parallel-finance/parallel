@@ -187,7 +187,11 @@ pub mod module {
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
         fn on_finalize(_now: T::BlockNumber) {
             Self::currencies().iter().for_each(|currency_id| {
+                let total_position: Position = Self::total_positions(currency_id);
+                let total_cash = Self::get_total_cash(currency_id.clone());
+
                 Self::accrue_interest(currency_id);
+                Self::update_supply_rate(*currency_id, total_cash, total_position.debit, 0, 1 * rate::DECIMAL);
                 Self::calc_exchange_rate(currency_id);
             });
         }
