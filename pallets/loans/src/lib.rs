@@ -28,6 +28,15 @@ pub struct Position {
     pub debit: Balance,
 }
 
+/// Container for borrow balance information
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
+pub struct BorrowSnapshot {
+    /// Principal Total balance (with accrued interest), after applying the most recent balance-changing action
+    pub principal: Balance,
+    /// InterestIndex Global borrowIndex as of the most recent balance-changing action
+    pub interest_index: u128,
+}
+
 #[frame_support::pallet]
 pub mod module {
     use super::*;
@@ -102,6 +111,33 @@ pub mod module {
     #[pallet::getter(fn total_positions)]
     pub type TotalPositions<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Position, ValueQuery>;
 
+    // new design
+    /// Total number of collateral tokens in circulation
+    /// CollateralType -> Balance
+    #[pallet::storage]
+    #[pallet::getter(fn total_supply)]
+    pub type TotalSupply<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Balance, ValueQuery>;
+
+    /// Total amount of outstanding borrows of the underlying in this market
+    /// CollateralType -> Balance
+    #[pallet::storage]
+    #[pallet::getter(fn total_borrows)]
+    pub type TotalBorrows<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Balance, ValueQuery>;
+
+    /// Mapping of account addresses to outstanding borrow balances
+    /// CollateralType -> Owner -> BorrowSnapshot
+    #[pallet::storage]
+    #[pallet::getter(fn account_borrows)]
+    pub type AccountBorrows<T: Config> =
+        StorageDoubleMap<_, Twox64Concat, CurrencyId, Twox64Concat, T::AccountId, BorrowSnapshot, ValueQuery>;
+
+    /// Mapping of account addresses to collateral tokens balances
+    /// CollateralType -> Owner -> Balance
+    #[pallet::storage]
+    #[pallet::getter(fn account_collateral)]
+    pub type AccountCollateral<T: Config> =
+        StorageDoubleMap<_, Twox64Concat, CurrencyId, Twox64Concat, T::AccountId, Balance, ValueQuery>;
+
     #[pallet::storage]
     #[pallet::getter(fn currencies)]
     pub type Currencies<T: Config> = StorageValue<_, Vec<CurrencyId>, ValueQuery>;
@@ -136,7 +172,8 @@ pub mod module {
     #[pallet::genesis_config]
     pub struct GenesisConfig {
         pub currencies: Vec<CurrencyId>,
-        pub total_position: Vec<(CurrencyId, Balance, Balance)>,
+        pub total_supply: Balance,
+        pub total_borrows: Balance,
         pub exchange_rate: u128,
         pub base_rate: u128,
         pub multiplier_per_year: u128,
@@ -149,7 +186,8 @@ pub mod module {
         fn default() -> Self {
             GenesisConfig {
                 currencies: vec![],
-                total_position: vec![],
+                total_supply: 0,
+                total_borrows: 0,
                 exchange_rate: 0,
                 base_rate: 0,
                 multiplier_per_year: 0,
@@ -162,16 +200,14 @@ pub mod module {
     #[pallet::genesis_build]
     impl<T: Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
-            Currencies::<T>::put(self.currencies.clone());
-            self.total_position
+            self.currencies
                 .iter()
-                .for_each(|(currency_id, collateral, debit)| {
-                    TotalPositions::<T>::insert(currency_id, Position {
-                        collateral: collateral.clone(),
-                        debit: debit.clone(),
-                    });
+                .for_each(|currency_id| {
+                    TotalSupply::<T>::insert(currency_id, self.total_supply);
+                    TotalBorrows::<T>::insert(currency_id, self.total_borrows);
                     ExchangeRate::<T>::insert(currency_id, self.exchange_rate);
                 });
+            Currencies::<T>::put(self.currencies.clone());
             Pallet::<T>::update_jump_rate_model(
                 self.base_rate,
                 self.multiplier_per_year,

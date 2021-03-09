@@ -146,14 +146,16 @@ impl<T: Config> Pallet<T> {
         /*
          *  exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
          */
-        let total_position: Position = Self::total_positions(currency_id);
+        let total_borrows = Self::total_borrows(currency_id);
+        let total_supply = Self::total_supply(currency_id);
         let total_cash = Self::get_total_cash(currency_id.clone());
+
         let cash_plus_borrows = total_cash
-            .checked_add(total_position.debit)
+            .checked_add(total_borrows)
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
         let exchage_rate = cash_plus_borrows
             .checked_mul(DECIMAL)
-            .and_then(|r| r.checked_div(total_position.collateral))
+            .and_then(|r| r.checked_div(total_supply))
             .ok_or(Error::<T>::CalcExchangeRateFailed)?;
 
         ExchangeRate::<T>::insert(currency_id, exchage_rate);

@@ -29,5 +29,9 @@
     "price": "Price",
     "symbol": "CurrencyId",
     "timestamp": "Moment"
+  },
+  "BorrowSnapshot": {
+    "principal": "Balance",
+    "interestIndex": "u128"
   }
 }
