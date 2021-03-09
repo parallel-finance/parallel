@@ -42,7 +42,8 @@ impl<T: Config> Pallet<T> {
             .ok_or(Error::<T>::CalcInterestRateFailed)?;
 
         borrows
-            .checked_div(total)
+            .checked_mul(DECIMAL)
+            .and_then(|r| r.checked_div(total))
             .ok_or(Error::<T>::CalcInterestRateFailed)
     }
 
