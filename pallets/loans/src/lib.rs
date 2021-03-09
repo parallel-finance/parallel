@@ -61,6 +61,7 @@ pub mod module {
         CalcAccrueInterestFailed,
         CalcExchangeRateFailed,
         CalcCollateralFailed,
+        CalcInterestRateFailed,
         MarketNotFresh,
     }
 
