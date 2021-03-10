@@ -13,10 +13,6 @@
   "CurrencyIdOf": "CurrencyId",
   "Amount": "i128",
   "AmountOf": "Amount",
-  "Position": {
-    "collateral": "Balance",
-    "debit": "Balance"
-  },
   "Price": "u128",
   "Timestamp": "u64",
   "Public": "AccountId",

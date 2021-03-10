@@ -19,15 +19,6 @@ mod loan;
 mod rate;
 mod util;
 
-/// A collateralized debit position.
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
-pub struct Position {
-    /// The amount of collateral.
-    pub collateral: Balance,
-    /// The amount of debit.
-    pub debit: Balance,
-}
-
 /// Container for borrow balance information
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
 pub struct BorrowSnapshot {
@@ -49,9 +40,9 @@ pub mod module {
         /// module
         type Currency: MultiCurrencyExtended<
             Self::AccountId,
-            CurrencyId = CurrencyId,
-            Balance = Balance,
-            Amount = Amount,
+            CurrencyId=CurrencyId,
+            Balance=Balance,
+            Amount=Amount,
         >;
 
         /// The loan's module id, keep all collaterals of CDPs.
@@ -101,28 +92,6 @@ pub mod module {
     }
 
     // Loan storage
-    /// The collateralized debit positions, map from
-    /// Owner -> CollateralType -> Position
-    #[pallet::storage]
-    #[pallet::getter(fn positions)]
-    pub type Positions<T: Config> = StorageDoubleMap<
-        _,
-        Twox64Concat,
-        CurrencyId,
-        Twox64Concat,
-        T::AccountId,
-        Position,
-        ValueQuery,
-    >;
-
-    /// The total collateralized debit positions, map from
-    /// CollateralType -> Position
-    #[pallet::storage]
-    #[pallet::getter(fn total_positions)]
-    pub type TotalPositions<T: Config> =
-        StorageMap<_, Twox64Concat, CurrencyId, Position, ValueQuery>;
-
-    // new design
     /// Total number of collateral tokens in circulation
     /// CollateralType -> Balance
     #[pallet::storage]
@@ -254,14 +223,13 @@ pub mod module {
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
         fn on_finalize(_now: T::BlockNumber) {
             Self::currencies().iter().for_each(|currency_id| {
-                let total_position: Position = Self::total_positions(currency_id);
                 let total_cash = Self::get_total_cash(currency_id.clone());
-
+                let total_borrows = Self::total_borrows(currency_id);
                 Self::accrue_interest(currency_id);
                 Self::update_supply_rate(
                     *currency_id,
                     total_cash,
-                    total_position.debit,
+                    total_borrows,
                     0,
                     1 * rate::DECIMAL,
                 );
@@ -274,20 +242,7 @@ pub mod module {
     impl<T: Config> Pallet<T> {
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn adjust_loan(
-            origin: OriginFor<T>,
-            currency_id: CurrencyId,
-            collateral_adjustment: Amount,
-            debit_adjustment: Amount,
-        ) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
-            Self::adjust_position(&who, currency_id, collateral_adjustment, debit_adjustment)?;
-            Ok(().into())
-        }
-
-        #[pallet::weight(10_000)]
-        #[transactional]
-        pub fn mint_collateral(
+        pub fn mint(
             origin: OriginFor<T>,
             currency_id: CurrencyId,
             mint_amount: Balance,
@@ -352,124 +307,5 @@ pub mod module {
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> T::AccountId {
         T::ModuleId::get().into_account()
-    }
-
-    /// adjust the position.
-    ///
-    /// Ensured atomic.
-    #[transactional]
-    pub fn adjust_position(
-        who: &T::AccountId,
-        currency_id: CurrencyId,
-        collateral_adjustment: Amount,
-        debit_adjustment: Amount,
-    ) -> DispatchResult {
-        // mutate collateral and debit
-        Self::update_loan(who, currency_id, collateral_adjustment, debit_adjustment)?;
-
-        let collateral_balance_adjustment =
-            Self::balance_try_from_amount_abs(collateral_adjustment)?;
-        let debit_balance_adjustment = Self::balance_try_from_amount_abs(debit_adjustment)?;
-        let module_account = Self::account_id();
-
-        if collateral_adjustment.is_positive() {
-            T::Currency::transfer(
-                currency_id,
-                who,
-                &module_account,
-                collateral_balance_adjustment,
-            )?;
-        } else if collateral_adjustment.is_negative() {
-            T::Currency::transfer(
-                currency_id,
-                &module_account,
-                who,
-                collateral_balance_adjustment,
-            )?;
-        }
-
-        if debit_adjustment.is_positive() {
-            T::Currency::transfer(currency_id, &module_account, who, debit_balance_adjustment)?;
-        } else if debit_adjustment.is_negative() {
-            T::Currency::transfer(currency_id, who, &module_account, debit_balance_adjustment)?;
-        }
-
-        Ok(())
-    }
-
-    /// mutate records of collaterals and debits
-    pub fn update_loan(
-        who: &T::AccountId,
-        currency_id: CurrencyId,
-        collateral_adjustment: Amount,
-        debit_adjustment: Amount,
-    ) -> DispatchResult {
-        let collateral_balance = Self::balance_try_from_amount_abs(collateral_adjustment)?;
-        let debit_balance = Self::balance_try_from_amount_abs(debit_adjustment)?;
-
-        <Positions<T>>::try_mutate_exists(currency_id, who, |may_be_position| -> DispatchResult {
-            let mut p = may_be_position.take().unwrap_or_default();
-            let new_collateral = if collateral_adjustment.is_positive() {
-                p.collateral
-                    .checked_add(collateral_balance)
-                    .ok_or(Error::<T>::CollateralOverflow)
-            } else {
-                p.collateral
-                    .checked_sub(collateral_balance)
-                    .ok_or(Error::<T>::CollateralTooLow)
-            }?;
-            let new_debit = if debit_adjustment.is_positive() {
-                p.debit
-                    .checked_add(debit_balance)
-                    .ok_or(Error::<T>::DebitOverflow)
-            } else {
-                p.debit
-                    .checked_sub(debit_balance)
-                    .ok_or(Error::<T>::DebitTooLow)
-            }?;
-
-            p.collateral = new_collateral;
-            p.debit = new_debit;
-
-            if p.collateral.is_zero() && p.debit.is_zero() {
-                // decrease account ref if zero position
-                frame_system::Module::<T>::dec_consumers(who);
-
-                // remove position storage if zero position
-                *may_be_position = None;
-            } else {
-                *may_be_position = Some(p);
-            }
-
-            Ok(())
-        })?;
-
-        TotalPositions::<T>::try_mutate(currency_id, |total_positions| -> DispatchResult {
-            total_positions.collateral = if collateral_adjustment.is_positive() {
-                total_positions
-                    .collateral
-                    .checked_add(collateral_balance)
-                    .ok_or(Error::<T>::CollateralOverflow)
-            } else {
-                total_positions
-                    .collateral
-                    .checked_sub(collateral_balance)
-                    .ok_or(Error::<T>::CollateralTooLow)
-            }?;
-
-            total_positions.debit = if debit_adjustment.is_positive() {
-                total_positions
-                    .debit
-                    .checked_add(debit_balance)
-                    .ok_or(Error::<T>::DebitOverflow)
-            } else {
-                total_positions
-                    .debit
-                    .checked_sub(debit_balance)
-                    .ok_or(Error::<T>::DebitTooLow)
-            }?;
-
-            Ok(())
-        })
     }
 }
