@@ -1,12 +1,12 @@
 name: Check Set-Up & Build
 
-# Controls when the action will run. 
+# Controls when the action will run.
 on:
   # Triggers the workflow on push or pull request events but only for the master branch
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -37,3 +37,7 @@ jobs:
       - name: Check Build
         run: |
           SKIP_WASM_BUILD=1 cargo check --release
+
+      - name: Check Foramt
+        run: |
+          SKIP_WASM_BUILD=1 cargo fmt --all -- --check

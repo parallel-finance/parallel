@@ -2,22 +2,22 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::collapsible_if)]
 
-use frame_system::pallet_prelude::*;
 use frame_support::pallet_prelude::*;
 use frame_support::transactional;
+use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 use primitives::{Amount, Balance, CurrencyId};
 use sp_runtime::{
     traits::{AccountIdConversion, Zero},
     DispatchResult, ModuleId, RuntimeDebug,
 };
-use sp_std::{vec::Vec};
+use sp_std::vec::Vec;
 
 pub use module::*;
 
-mod util;
 mod loan;
 mod rate;
+mod util;
 
 /// A collateralized debit position.
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
@@ -49,9 +49,9 @@ pub mod module {
         /// module
         type Currency: MultiCurrencyExtended<
             Self::AccountId,
-            CurrencyId=CurrencyId,
-            Balance=Balance,
-            Amount=Amount,
+            CurrencyId = CurrencyId,
+            Balance = Balance,
+            Amount = Amount,
         >;
 
         /// The loan's module id, keep all collaterals of CDPs.
@@ -105,14 +105,22 @@ pub mod module {
     /// Owner -> CollateralType -> Position
     #[pallet::storage]
     #[pallet::getter(fn positions)]
-    pub type Positions<T: Config> =
-    StorageDoubleMap<_, Twox64Concat, CurrencyId, Twox64Concat, T::AccountId, Position, ValueQuery>;
+    pub type Positions<T: Config> = StorageDoubleMap<
+        _,
+        Twox64Concat,
+        CurrencyId,
+        Twox64Concat,
+        T::AccountId,
+        Position,
+        ValueQuery,
+    >;
 
     /// The total collateralized debit positions, map from
     /// CollateralType -> Position
     #[pallet::storage]
     #[pallet::getter(fn total_positions)]
-    pub type TotalPositions<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Position, ValueQuery>;
+    pub type TotalPositions<T: Config> =
+        StorageMap<_, Twox64Concat, CurrencyId, Position, ValueQuery>;
 
     // new design
     /// Total number of collateral tokens in circulation
@@ -131,15 +139,29 @@ pub mod module {
     /// CollateralType -> Owner -> BorrowSnapshot
     #[pallet::storage]
     #[pallet::getter(fn account_borrows)]
-    pub type AccountBorrows<T: Config> =
-        StorageDoubleMap<_, Twox64Concat, CurrencyId, Twox64Concat, T::AccountId, BorrowSnapshot, ValueQuery>;
+    pub type AccountBorrows<T: Config> = StorageDoubleMap<
+        _,
+        Twox64Concat,
+        CurrencyId,
+        Twox64Concat,
+        T::AccountId,
+        BorrowSnapshot,
+        ValueQuery,
+    >;
 
     /// Mapping of account addresses to collateral tokens balances
     /// CollateralType -> Owner -> Balance
     #[pallet::storage]
     #[pallet::getter(fn account_collateral)]
-    pub type AccountCollateral<T: Config> =
-        StorageDoubleMap<_, Twox64Concat, CurrencyId, Twox64Concat, T::AccountId, Balance, ValueQuery>;
+    pub type AccountCollateral<T: Config> = StorageDoubleMap<
+        _,
+        Twox64Concat,
+        CurrencyId,
+        Twox64Concat,
+        T::AccountId,
+        Balance,
+        ValueQuery,
+    >;
 
     #[pallet::storage]
     #[pallet::getter(fn borrow_index)]
@@ -209,14 +231,12 @@ pub mod module {
     #[pallet::genesis_build]
     impl<T: Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
-            self.currencies
-                .iter()
-                .for_each(|currency_id| {
-                    TotalSupply::<T>::insert(currency_id, self.total_supply);
-                    TotalBorrows::<T>::insert(currency_id, self.total_borrows);
-                    ExchangeRate::<T>::insert(currency_id, self.exchange_rate);
-                    BorrowIndex::<T>::insert(currency_id, self.borrow_index);
-                });
+            self.currencies.iter().for_each(|currency_id| {
+                TotalSupply::<T>::insert(currency_id, self.total_supply);
+                TotalBorrows::<T>::insert(currency_id, self.total_borrows);
+                ExchangeRate::<T>::insert(currency_id, self.exchange_rate);
+                BorrowIndex::<T>::insert(currency_id, self.borrow_index);
+            });
             Currencies::<T>::put(self.currencies.clone());
             Pallet::<T>::update_jump_rate_model(
                 self.base_rate,
@@ -238,7 +258,13 @@ pub mod module {
                 let total_cash = Self::get_total_cash(currency_id.clone());
 
                 Self::accrue_interest(currency_id);
-                Self::update_supply_rate(*currency_id, total_cash, total_position.debit, 0, 1 * rate::DECIMAL);
+                Self::update_supply_rate(
+                    *currency_id,
+                    total_cash,
+                    total_position.debit,
+                    0,
+                    1 * rate::DECIMAL,
+                );
                 Self::calc_exchange_rate(currency_id);
             });
         }
@@ -282,7 +308,6 @@ pub mod module {
             Self::redeem_internal(&who, &currency_id, redeem_amount)?;
             Ok(().into())
         }
-
 
         #[pallet::weight(10_000)]
         #[transactional]
@@ -342,14 +367,25 @@ impl<T: Config> Pallet<T> {
         // mutate collateral and debit
         Self::update_loan(who, currency_id, collateral_adjustment, debit_adjustment)?;
 
-        let collateral_balance_adjustment = Self::balance_try_from_amount_abs(collateral_adjustment)?;
+        let collateral_balance_adjustment =
+            Self::balance_try_from_amount_abs(collateral_adjustment)?;
         let debit_balance_adjustment = Self::balance_try_from_amount_abs(debit_adjustment)?;
         let module_account = Self::account_id();
 
         if collateral_adjustment.is_positive() {
-            T::Currency::transfer(currency_id, who, &module_account, collateral_balance_adjustment)?;
+            T::Currency::transfer(
+                currency_id,
+                who,
+                &module_account,
+                collateral_balance_adjustment,
+            )?;
         } else if collateral_adjustment.is_negative() {
-            T::Currency::transfer(currency_id, &module_account, who, collateral_balance_adjustment)?;
+            T::Currency::transfer(
+                currency_id,
+                &module_account,
+                who,
+                collateral_balance_adjustment,
+            )?;
         }
 
         if debit_adjustment.is_positive() {
@@ -383,9 +419,13 @@ impl<T: Config> Pallet<T> {
                     .ok_or(Error::<T>::CollateralTooLow)
             }?;
             let new_debit = if debit_adjustment.is_positive() {
-                p.debit.checked_add(debit_balance).ok_or(Error::<T>::DebitOverflow)
+                p.debit
+                    .checked_add(debit_balance)
+                    .ok_or(Error::<T>::DebitOverflow)
             } else {
-                p.debit.checked_sub(debit_balance).ok_or(Error::<T>::DebitTooLow)
+                p.debit
+                    .checked_sub(debit_balance)
+                    .ok_or(Error::<T>::DebitTooLow)
             }?;
 
             p.collateral = new_collateral;
