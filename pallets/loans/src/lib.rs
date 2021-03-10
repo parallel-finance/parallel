@@ -40,9 +40,9 @@ pub mod module {
         /// module
         type Currency: MultiCurrencyExtended<
             Self::AccountId,
-            CurrencyId=CurrencyId,
-            Balance=Balance,
-            Amount=Amount,
+            CurrencyId = CurrencyId,
+            Balance = Balance,
+            Amount = Amount,
         >;
 
         /// The loan's module id, keep all collaterals of CDPs.
@@ -226,13 +226,7 @@ pub mod module {
                 let total_cash = Self::get_total_cash(currency_id.clone());
                 let total_borrows = Self::total_borrows(currency_id);
                 Self::accrue_interest(currency_id);
-                Self::update_supply_rate(
-                    *currency_id,
-                    total_cash,
-                    total_borrows,
-                    0,
-                    1 * rate::DECIMAL,
-                );
+                Self::update_supply_rate(*currency_id, total_cash, total_borrows, 0, 0);
                 Self::calc_exchange_rate(currency_id);
             });
         }
