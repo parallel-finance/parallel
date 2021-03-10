@@ -3,8 +3,8 @@
 
 use frame_support::{pallet_prelude::*, transactional};
 use frame_system::pallet_prelude::*;
-use orml_traits::{DataFeeder, DataProvider};
-use sp_runtime::traits::{CheckedDiv, CheckedMul};
+
+
 use primitives::{CurrencyId, Price};
 
 pub use module::*;

@@ -6,11 +6,9 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use codec::{Decode, Encode};
+use codec::Encode;
 use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::{
-    create_median_value_data_provider, parameter_type_with_key, DataFeeder, DataProviderExtended,
-};
+use orml_traits::parameter_type_with_key;
 use pallet_grandpa::fg_primitives;
 use pallet_grandpa::{AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use primitives::{Amount, Balance, CurrencyId, Price};
@@ -23,7 +21,7 @@ use sp_runtime::traits::{
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, ModuleId, MultiSignature, RuntimeDebug, SaturatedConversion,
+    ApplyExtrinsicResult, ModuleId, MultiSignature, SaturatedConversion,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
