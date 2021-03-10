@@ -4,7 +4,6 @@
 use frame_support::{pallet_prelude::*, transactional};
 use frame_system::pallet_prelude::*;
 
-
 use primitives::{CurrencyId, Price};
 
 pub use module::*;
@@ -53,11 +52,14 @@ pub mod module {
     impl<T: Config> Pallet<T> {
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn feed_price(origin: OriginFor<T>, currency_id: CurrencyId, price: Price) -> DispatchResultWithPostInfo {
+        pub fn feed_price(
+            origin: OriginFor<T>,
+            currency_id: CurrencyId,
+            price: Price,
+        ) -> DispatchResultWithPostInfo {
             ensure_signed(origin)?;
             LockedPrice::<T>::insert(currency_id, price);
             Ok(().into())
         }
     }
 }
-
