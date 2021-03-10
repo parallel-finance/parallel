@@ -3969,21 +3969,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-rate"
-version = "2.0.1"
-dependencies = [
- "frame-support",
- "frame-system",
- "parallel-primitives",
- "parity-scale-codec",
- "serde",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
 name = "pallet-session"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4017,19 +4002,6 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
-]
-
-[[package]]
-name = "pallet-template"
-version = "3.0.0"
-dependencies = [
- "frame-support",
- "frame-system",
- "parity-scale-codec",
- "serde",
- "sp-core",
- "sp-io",
- "sp-runtime",
 ]
 
 [[package]]
@@ -4175,9 +4147,7 @@ dependencies = [
  "pallet-ocw-oracle",
  "pallet-price",
  "pallet-randomness-collective-flip",
- "pallet-rate",
  "pallet-sudo",
- "pallet-template",
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",

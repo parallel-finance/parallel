@@ -47,8 +47,6 @@ use pallet_transaction_payment::CurrencyAdapter;
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
 
-pub use pallet_template;
-
 pub use orml_currencies;
 
 pub use orml_tokens;
@@ -58,8 +56,6 @@ pub use pallet_price;
 pub use pallet_loans;
 
 pub use pallet_ocw_oracle;
-
-pub use pallet_rate;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -277,10 +273,6 @@ impl pallet_sudo::Config for Runtime {
     type Call = Call;
 }
 
-impl pallet_template::Config for Runtime {
-    type Event = Event;
-}
-
 parameter_type_with_key! {
     pub ExistentialDeposits: |currency_id: CurrencyId| -> Balance {
         Default::default()
@@ -337,10 +329,6 @@ impl pallet_ocw_oracle::Config for Runtime {
     type Call = Call;
     type Event = Event;
     type PricePrecision = PricePrecision;
-}
-
-impl pallet_rate::Config for Runtime {
-    type Event = Event;
 }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
@@ -418,14 +406,12 @@ construct_runtime!(
         Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
         TransactionPayment: pallet_transaction_payment::{Module, Storage},
         Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
-        // Include the custom logic from the template pallet in the runtime.
-        TemplateModule: pallet_template::{Module, Call, Storage, Event<T>},
+
         Currencies: orml_currencies::{Module, Call, Event<T>},
         Tokens: orml_tokens::{Module, Storage, Event<T>, Config<T>},
         Prices: pallet_price::{Module, Call, Storage, Event<T>},
         Loans: pallet_loans::{Module, Call, Storage, Event<T>, Config},
         OcwOracle: pallet_ocw_oracle::{Module, Call, Storage, Event<T>, ValidateUnsigned},
-        InterestRate: pallet_rate::{Module, Call, Storage, Event<T>},
     }
 );
 
