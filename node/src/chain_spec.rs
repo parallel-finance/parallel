@@ -176,8 +176,9 @@ fn testnet_genesis(
 			currencies: vec![CurrencyId::DOT, CurrencyId::KSM, CurrencyId::BTC, CurrencyId::PUSD],
 			total_supply: 100 * 10u128.pow(18),		// 100
 			total_borrows: 50 * 10u128.pow(18),		// 50
+			borrow_index: 10u128.pow(18),			// 1
 			exchange_rate: 2 * 10u128.pow(16),		// 0.02
-			base_rate: 2 * 10u128.pow(16),			// 0.05
+			base_rate: 2 * 10u128.pow(16),			// 0.02
 			multiplier_per_year: 10u128.pow(17), 	// 0.1
 			jump_muiltiplier: 11 * 10u128.pow(17),  // 1.1
 			kink: 8 * 10u128.pow(17), 				// 0.8

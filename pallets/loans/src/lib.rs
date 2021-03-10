@@ -65,12 +65,15 @@ pub mod module {
         DebitTooLow,
         CollateralOverflow,
         CollateralTooLow,
+        InsufficientCash,
+        RepayAmountTooBig,
         AmountConvertFailed,
         GetBlockDeltaFailed,
         CalcAccrueInterestFailed,
         CalcExchangeRateFailed,
         CalcCollateralFailed,
         CalcInterestRateFailed,
+        CalcBorrowBalanceFailed,
         MarketNotFresh,
     }
 
@@ -139,6 +142,10 @@ pub mod module {
         StorageDoubleMap<_, Twox64Concat, CurrencyId, Twox64Concat, T::AccountId, Balance, ValueQuery>;
 
     #[pallet::storage]
+    #[pallet::getter(fn borrow_index)]
+    pub type BorrowIndex<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+
+    #[pallet::storage]
     #[pallet::getter(fn currencies)]
     pub type Currencies<T: Config> = StorageValue<_, Vec<CurrencyId>, ValueQuery>;
 
@@ -174,6 +181,7 @@ pub mod module {
         pub currencies: Vec<CurrencyId>,
         pub total_supply: Balance,
         pub total_borrows: Balance,
+        pub borrow_index: u128,
         pub exchange_rate: u128,
         pub base_rate: u128,
         pub multiplier_per_year: u128,
@@ -188,6 +196,7 @@ pub mod module {
                 currencies: vec![],
                 total_supply: 0,
                 total_borrows: 0,
+                borrow_index: 0,
                 exchange_rate: 0,
                 base_rate: 0,
                 multiplier_per_year: 0,
@@ -206,6 +215,7 @@ pub mod module {
                     TotalSupply::<T>::insert(currency_id, self.total_supply);
                     TotalBorrows::<T>::insert(currency_id, self.total_borrows);
                     ExchangeRate::<T>::insert(currency_id, self.exchange_rate);
+                    BorrowIndex::<T>::insert(currency_id, self.borrow_index);
                 });
             Currencies::<T>::put(self.currencies.clone());
             Pallet::<T>::update_jump_rate_model(
@@ -263,13 +273,38 @@ pub mod module {
 
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn redeem_collateral(
+        pub fn redeem(
             origin: OriginFor<T>,
             currency_id: CurrencyId,
             redeem_amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::redeem_internal(&who, &currency_id, redeem_amount)?;
+            Ok(().into())
+        }
+
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn borrow(
+            origin: OriginFor<T>,
+            currency_id: CurrencyId,
+            borrow_amount: Balance,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            Self::borrow_internal(&who, &currency_id, borrow_amount)?;
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn repay_borrow(
+            origin: OriginFor<T>,
+            currency_id: CurrencyId,
+            repay_amount: Balance,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            Self::repay_borrow_internal(&who, &currency_id, repay_amount)?;
             Ok(().into())
         }
 

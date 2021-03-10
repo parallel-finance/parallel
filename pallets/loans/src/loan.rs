@@ -40,16 +40,22 @@ impl<T: Config> Pallet<T> {
         */
 
         let borrow_rate_per_block = BorrowRate::<T>::get(currency_id);
-        let interest_accumulated = borrow_rate_per_block.checked_mul(borrows_prior)
-            .and_then(|r| r.checked_div(DECIMAL)).ok_or(Error::<T>::CalcAccrueInterestFailed)?;
-        let total_borrows_new = interest_accumulated.checked_add(borrows_prior)
+        let interest_accumulated = borrow_rate_per_block
+            .checked_mul(borrows_prior)
+            .and_then(|r| r.checked_div(DECIMAL))
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
-
+        let total_borrows_new = interest_accumulated
+            .checked_add(borrows_prior)
+            .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
+        let borrow_index = Self::borrow_index(currency_id);
+        let borrow_index_new = borrow_rate_per_block
+            .checked_mul(borrow_index)
+            .and_then(|r| r.checked_div(DECIMAL))
+            .and_then(|r| r.checked_add(borrow_index))
+            .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
+        
         TotalBorrows::<T>::insert(currency_id, total_borrows_new);
-
-        Self::deposit_event(Event::AccrueInterest(
-            currency_id.clone(),
-        ));
+        BorrowIndex::<T>::insert(currency_id, borrow_index_new);
 
         Ok(())
     }
@@ -58,7 +64,7 @@ impl<T: Config> Pallet<T> {
         T::Currency::free_balance(currency_id, &Self::account_id())
     }
 
-    /// mint collateral
+    /// Sender supplies assets into the market and receives cTokens in exchange
     ///
     /// Ensured atomic.
     #[transactional]
@@ -89,11 +95,13 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    /// mint collateral
+    /// Sender redeems cTokens in exchange for the underlying asset
     ///
     /// Ensured atomic.
     #[transactional]
-    pub fn redeem_internal(who: &T::AccountId, currency_id: &CurrencyId, redeem_amount: Balance) -> DispatchResult {
+    pub fn redeem_internal(who: &T::AccountId,
+                           currency_id: &CurrencyId,
+                           redeem_amount: Balance) -> DispatchResult {
         let exchange_rate = Self::exchange_rate(currency_id);
         let collateral = redeem_amount.checked_mul(DECIMAL)
             .and_then(|r| r.checked_div(exchange_rate)).ok_or(Error::<T>::CalcCollateralFailed)?;
@@ -115,5 +123,79 @@ impl<T: Config> Pallet<T> {
         T::Currency::transfer(currency_id.clone(), &Self::account_id(), who, redeem_amount)?;
 
         Ok(())
+    }
+
+    /// Sender borrows assets from the protocol to their own address
+    ///
+    /// Ensured atomic.
+    #[transactional]
+    pub fn borrow_internal(borrower: &T::AccountId,
+                           currency_id: &CurrencyId,
+                           borrow_amount: Balance) -> DispatchResult {
+        let total_cash = Self::get_total_cash(currency_id.clone());
+        if total_cash < borrow_amount {
+            return Err(Error::<T>::InsufficientCash.into());
+        }
+        let account_borrows = Self::borrow_balance_stored(borrower, currency_id)?;
+        let account_borrows_new = account_borrows.checked_add(borrow_amount)
+            .ok_or(Error::<T>::CalcBorrowBalanceFailed)?;
+        let total_borrows = Self::total_borrows(currency_id);
+        let total_borrows_new = total_borrows.checked_add(borrow_amount)
+            .ok_or(Error::<T>::CalcBorrowBalanceFailed)?;
+
+        T::Currency::transfer(currency_id.clone(), &Self::account_id(), borrower, borrow_amount)?;
+
+        AccountBorrows::<T>::insert(currency_id, borrower, BorrowSnapshot {
+            principal: account_borrows_new,
+            interest_index: Self::borrow_index(currency_id),
+        });
+        TotalBorrows::<T>::insert(currency_id, total_borrows_new);
+
+        Ok(())
+    }
+
+    /// Sender repays their own borrow
+    ///
+    /// Ensured atomic.
+    #[transactional]
+    pub fn repay_borrow_internal(borrower: &T::AccountId,
+                                 currency_id: &CurrencyId,
+                                 repay_amount: Balance) -> DispatchResult {
+        let account_borrows = Self::borrow_balance_stored(borrower, currency_id)?;
+        if account_borrows < repay_amount {
+            return Err(Error::<T>::RepayAmountTooBig.into());
+        }
+
+        T::Currency::transfer(currency_id.clone(), borrower, &Self::account_id(), repay_amount)?;
+
+        let account_borrows_new = account_borrows.checked_sub(repay_amount)
+            .ok_or(Error::<T>::CalcBorrowBalanceFailed)?;
+        let total_borrows = Self::total_borrows(currency_id);
+        let total_borrows_new = total_borrows.checked_sub(repay_amount)
+            .ok_or(Error::<T>::CalcBorrowBalanceFailed)?;
+
+        AccountBorrows::<T>::insert(currency_id, borrower, BorrowSnapshot {
+            principal: account_borrows_new,
+            interest_index: Self::borrow_index(currency_id),
+        });
+        TotalBorrows::<T>::insert(currency_id, total_borrows_new);
+
+        Ok(())
+    }
+
+    fn borrow_balance_stored(who: &T::AccountId, currency_id: &CurrencyId) -> result::Result<Balance, Error<T>> {
+        let snapshot: BorrowSnapshot = Self::account_borrows(currency_id, who);
+        if snapshot.principal == 0 || snapshot.interest_index == 0 {
+            return Ok(0);
+        }
+        /* Calculate new borrow balance using the interest index:
+         *  recentBorrowBalance = borrower.borrowBalance * market.borrowIndex / borrower.borrowIndex
+         */
+        let recent_borrow_balance =
+            snapshot.principal.checked_mul(Self::borrow_index(currency_id))
+                .and_then(|r| r.checked_div(snapshot.interest_index))
+                .ok_or(Error::<T>::CalcBorrowBalanceFailed)?;
+
+        Ok(recent_borrow_balance)
     }
 }
