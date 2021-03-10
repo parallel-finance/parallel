@@ -1,11 +1,8 @@
-use frame_system::pallet_prelude::*;
-use frame_support::pallet_prelude::*;
-use primitives::{Amount, Balance, CurrencyId};
-use sp_runtime::{
-    traits::{AccountIdConversion, Zero},
-    DispatchResult, ModuleId, RuntimeDebug,
-};
-use sp_std::{convert::TryInto, result, vec::{Vec}};
+
+
+use primitives::{Amount, Balance};
+
+use sp_std::{convert::TryInto, result};
 
 use crate::module::*;
 
@@ -17,6 +14,7 @@ impl<T: Config> Pallet<T> {
 
     /// Convert the absolute value of `Amount` to `Balance`.
     pub fn balance_try_from_amount_abs(a: Amount) -> result::Result<Balance, Error<T>> {
-        TryInto::<Balance>::try_into(a.saturating_abs()).map_err(|_| Error::<T>::AmountConvertFailed)
+        TryInto::<Balance>::try_into(a.saturating_abs())
+            .map_err(|_| Error::<T>::AmountConvertFailed)
     }
 }

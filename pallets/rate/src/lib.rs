@@ -64,7 +64,7 @@ decl_module! {
             kink: Balance,
         ) -> dispatch::DispatchResult {
 
-            let who = ensure_signed(origin)?;
+            let _who = ensure_signed(origin)?;
 
             let base = base_rate_per_year.checked_div(BLOCK_PER_YEAR).unwrap();
 

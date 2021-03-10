@@ -1,12 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_system::pallet_prelude::*;
-use primitives::{Amount, Balance, CurrencyId};
-use sp_runtime::{
-    traits::{AccountIdConversion, Zero, CheckedSub},
-    DispatchResult, ModuleId, RuntimeDebug, SaturatedConversion,
-};
-use sp_std::{convert::TryInto, result, vec::Vec};
+use primitives::{Balance, CurrencyId};
+use sp_runtime::DispatchResult;
 use sp_std::prelude::*;
 
 use crate::*;
@@ -23,14 +18,9 @@ impl<T: Config> Pallet<T> {
         let borrows_prior = total_position.debit;
 
         // Calculate the current borrow interest rate
-        Self::update_borrow_rate(
-            currency_id.clone(),
-            cash_prior,
-            borrows_prior,
-            0,
-        )?;
+        Self::update_borrow_rate(currency_id.clone(), cash_prior, borrows_prior, 0)?;
 
-         /*
+        /*
          * Compound protocol:
          * Calculate the interest accumulated into borrows and reserves and the new index:
          *  simpleInterestFactor = borrowRate * blockDelta
@@ -41,17 +31,18 @@ impl<T: Config> Pallet<T> {
          */
 
         let borrow_rate_per_block = BorrowRate::<T>::get(currency_id);
-        let interest_accumulated = borrow_rate_per_block.checked_mul(borrows_prior)
-            .and_then(|r| r.checked_div(DECIMAL)).ok_or(Error::<T>::CalcAccrueInterestFailed)?;
-        let total_borrows_new = interest_accumulated.checked_add(borrows_prior)
+        let interest_accumulated = borrow_rate_per_block
+            .checked_mul(borrows_prior)
+            .and_then(|r| r.checked_div(DECIMAL))
+            .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
+        let total_borrows_new = interest_accumulated
+            .checked_add(borrows_prior)
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
 
         total_position.debit = total_borrows_new;
         TotalPositions::<T>::insert(currency_id, total_position);
 
-        Self::deposit_event(Event::AccrueInterest(
-            currency_id.clone(),
-        ));
+        Self::deposit_event(Event::AccrueInterest(currency_id.clone()));
 
         Ok(())
     }
@@ -64,10 +55,16 @@ impl<T: Config> Pallet<T> {
     ///
     /// Ensured atomic.
     #[transactional]
-    pub fn mint_internal(who: &T::AccountId, currency_id: &CurrencyId, mint_amount: Balance) -> DispatchResult {
+    pub fn mint_internal(
+        who: &T::AccountId,
+        currency_id: &CurrencyId,
+        mint_amount: Balance,
+    ) -> DispatchResult {
         let exchange_rate = Self::exchange_rate(currency_id);
-        let collateral = mint_amount.checked_mul(DECIMAL)
-            .and_then(|r| r.checked_div(exchange_rate)).ok_or(Error::<T>::CalcCollateralFailed)?;
+        let collateral = mint_amount
+            .checked_mul(DECIMAL)
+            .and_then(|r| r.checked_div(exchange_rate))
+            .ok_or(Error::<T>::CalcCollateralFailed)?;
 
         let collateral_amount = Self::amount_try_from_balance(collateral)?;
 
@@ -82,10 +79,16 @@ impl<T: Config> Pallet<T> {
     ///
     /// Ensured atomic.
     #[transactional]
-    pub fn redeem_internal(who: &T::AccountId, currency_id: &CurrencyId, redeem_amount: Balance) -> DispatchResult {
+    pub fn redeem_internal(
+        who: &T::AccountId,
+        currency_id: &CurrencyId,
+        redeem_amount: Balance,
+    ) -> DispatchResult {
         let exchange_rate = Self::exchange_rate(currency_id);
-        let collateral = redeem_amount.checked_mul(DECIMAL)
-            .and_then(|r| r.checked_div(exchange_rate)).ok_or(Error::<T>::CalcCollateralFailed)?;
+        let collateral = redeem_amount
+            .checked_mul(DECIMAL)
+            .and_then(|r| r.checked_div(exchange_rate))
+            .ok_or(Error::<T>::CalcCollateralFailed)?;
 
         let collateral_amount = Self::amount_try_from_balance(collateral)?;
 

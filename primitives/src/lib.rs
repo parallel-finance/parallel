@@ -4,9 +4,9 @@
 
 use codec::{Decode, Encode};
 use sp_runtime::{
-	generic,
-	traits::{BlakeTwo256, IdentifyAccount, Verify},
-	MultiSignature, RuntimeDebug,
+    generic,
+    traits::{BlakeTwo256, IdentifyAccount, Verify},
+    MultiSignature, RuntimeDebug,
 };
 use sp_std::{convert::Into, prelude::*};
 
@@ -72,11 +72,11 @@ pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum CurrencyId {
-	DOT,
-	KSM,
-	BTC,
-	PUSD,
-	Native,
+    DOT,
+    KSM,
+    BTC,
+    PUSD,
+    Native,
 }
 
 pub type Price = u128;

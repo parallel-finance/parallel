@@ -1,11 +1,8 @@
-use frame_system::pallet_prelude::*;
+
 use primitives::{Balance, CurrencyId};
-use sp_runtime::{
-    traits::{Zero},
-    DispatchResult,
-};
+use sp_runtime::{traits::Zero, DispatchResult};
 use sp_std::prelude::*;
-use sp_std::{convert::TryInto, result, vec::{Vec}};
+
 
 use crate::*;
 
@@ -39,9 +36,7 @@ impl<T: Config> Pallet<T> {
             .and_then(|r| r.checked_sub(reserves))
             .unwrap();
 
-        borrows
-            .checked_div(total)
-            .unwrap()
+        borrows.checked_div(total).unwrap()
     }
 
     pub fn update_jump_rate_model(
@@ -137,10 +132,13 @@ impl<T: Config> Pallet<T> {
          */
         let total_position: Position = Self::total_positions(currency_id);
         let total_cash = Self::get_total_cash(currency_id.clone());
-        let cash_plus_borrows = total_cash.checked_add(total_position.debit)
+        let cash_plus_borrows = total_cash
+            .checked_add(total_position.debit)
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
-        let exchage_rate = cash_plus_borrows.checked_mul(DECIMAL)
-            .and_then(|r| r.checked_div(total_position.collateral)).ok_or(Error::<T>::CalcExchangeRateFailed)?;
+        let exchage_rate = cash_plus_borrows
+            .checked_mul(DECIMAL)
+            .and_then(|r| r.checked_div(total_position.collateral))
+            .ok_or(Error::<T>::CalcExchangeRateFailed)?;
 
         ExchangeRate::<T>::insert(currency_id, exchage_rate);
 
