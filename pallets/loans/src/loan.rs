@@ -141,11 +141,17 @@ impl<T: Config> Pallet<T> {
         currency_id: &CurrencyId,
         borrow_amount: Balance,
     ) -> DispatchResult {
+        let collateral_assets = AccountCollateralAssets::<T>::try_get(borrower).unwrap_or(vec![]);
+        if collateral_assets.is_empty() {
+            return Err(Error::<T>::NoCollateralAsset.into());
+        }
+
         let total_collateral_value = 0_u128;
-        let currencies = Currencies::<T>::get();
-        for currency_id in &currencies {
+
+        for currency_id in collateral_assets.iter() {
             let collateral = AccountCollateral::<T>::get(currency_id, borrower);
             let collateral_factor = CollateralRate::<T>::get(currency_id);
+
             // TODO: use ocw_oracle price
             let currency_price = 1_u128;
             let collateral_value = collateral
@@ -158,6 +164,8 @@ impl<T: Config> Pallet<T> {
                 .checked_add(collateral_value)
                 .ok_or(Error::<T>::CollateralOverflow)?;
         }
+
+        // TODO: use ocw_oracle price
         let borrow_currency = 1_u128;
         let total_borrow_value = borrow_amount
             .checked_mul(borrow_currency)
@@ -248,6 +256,35 @@ impl<T: Config> Pallet<T> {
             },
         );
         TotalBorrows::<T>::insert(currency_id, total_borrows_new);
+
+        Ok(())
+    }
+
+    pub fn collateral_asset_internal(
+        who: T::AccountId,
+        currency_id: CurrencyId,
+        enable: bool,
+    ) -> DispatchResult {
+        if let Ok(mut collateral_assets) = AccountCollateralAssets::<T>::try_get(&who) {
+            if enable {
+                if !collateral_assets.iter().any(|c| c == &currency_id) {
+                    collateral_assets.push(currency_id);
+                    AccountCollateralAssets::<T>::insert(who.clone(), collateral_assets);
+                    Self::deposit_event(Event::<T>::CollateralAssetAdded(who, currency_id));
+                }
+            } else {
+                if let Some(index) = collateral_assets.iter().position(|c| c == &currency_id) {
+                    collateral_assets.remove(index);
+                    AccountCollateralAssets::<T>::insert(who.clone(), collateral_assets);
+                    Self::deposit_event(Event::<T>::CollateralAssetRemoved(who, currency_id));
+                }
+            }
+        } else {
+            AccountCollateralAssets::<T>::insert(
+                who,
+                if enable { vec![currency_id] } else { vec![] },
+            );
+        }
 
         Ok(())
     }
