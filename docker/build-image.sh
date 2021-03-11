@@ -6,7 +6,7 @@ echo "*** Start build parallelfinance/parallel:latest ***"
 
 cd $(dirname ${BASH_SOURCE[0]})/..
 
-#sh ./docker/build.sh
+sh ./docker/build.sh
 
 mkdir -p tmp
 
