@@ -34,6 +34,7 @@ impl<T: Config> Pallet<T> {
             return Ok(Zero::zero());
         }
 
+        // utilizationRate = totalBorrows / (totalCash + totalBorrows − totalReserves)
         let total = cash
             .checked_add(borrows)
             .and_then(|r| r.checked_sub(reserves))

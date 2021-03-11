@@ -166,6 +166,9 @@ pub mod module {
     #[pallet::storage]
     #[pallet::getter(fn utility_rate)]
     pub type UtilityRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+    #[pallet::storage]
+    #[pallet::getter(fn collateral_rate)]
+    pub type CollateralRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig {
@@ -178,6 +181,7 @@ pub mod module {
         pub multiplier_per_year: u128,
         pub jump_muiltiplier: u128,
         pub kink: u128,
+        pub collateral_rate: Vec<(CurrencyId, u128)>,
     }
 
     #[cfg(feature = "std")]
@@ -193,6 +197,7 @@ pub mod module {
                 multiplier_per_year: 0,
                 jump_muiltiplier: 0,
                 kink: 0,
+                collateral_rate: vec![],
             }
         }
     }
@@ -206,6 +211,11 @@ pub mod module {
                 ExchangeRate::<T>::insert(currency_id, self.exchange_rate);
                 BorrowIndex::<T>::insert(currency_id, self.borrow_index);
             });
+            self.collateral_rate
+                .iter()
+                .for_each(|(currency_id, collateral_rate)| {
+                    CollateralRate::<T>::insert(currency_id, collateral_rate);
+                });
             Currencies::<T>::put(self.currencies.clone());
             Pallet::<T>::update_jump_rate_model(
                 self.base_rate,
@@ -267,6 +277,17 @@ pub mod module {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::borrow_internal(&who, &currency_id, borrow_amount)?;
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000)]
+        pub fn is_able_to_borrow(
+            origin: OriginFor<T>,
+            currency_id: CurrencyId,
+            borrow_amount: Balance,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            Self::borrow_guard(&who, &currency_id, borrow_amount)?;
             Ok(().into())
         }
 
