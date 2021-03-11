@@ -149,7 +149,7 @@ impl<T: Config> Pallet<T> {
             return Err(Error::<T>::NoCollateralAsset.into());
         }
 
-        let total_collateral_value = 0_u128;
+        let mut total_collateral_value = 0_u128;
 
         for currency_id in collateral_assets.iter() {
             let collateral = AccountCollateral::<T>::get(currency_id, borrower);
@@ -164,7 +164,7 @@ impl<T: Config> Pallet<T> {
                 .and_then(|r| r.checked_mul(currency_price))
                 .ok_or(Error::<T>::CollateralOverflow)?;
 
-            total_collateral_value
+            total_collateral_value = total_collateral_value
                 .checked_add(collateral_value)
                 .ok_or(Error::<T>::CollateralOverflow)?;
         }
@@ -177,7 +177,7 @@ impl<T: Config> Pallet<T> {
             .ok_or(Error::<T>::CollateralOverflow)?;
 
         if total_collateral_value < total_borrow_value {
-            return Err(Error::<T>::InsufficientCash.into());
+            return Err(Error::<T>::InsufficientCollateral.into());
         }
 
         Ok(())

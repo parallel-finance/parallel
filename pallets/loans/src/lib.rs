@@ -53,7 +53,7 @@ pub mod module {
         DebitTooLow,
         CollateralOverflow,
         CollateralTooLow,
-        InsufficientCash,
+        InsufficientCollateral,
         RepayAmountTooBig,
         AmountConvertFailed,
         GetBlockDeltaFailed,
