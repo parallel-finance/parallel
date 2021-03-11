@@ -1,5 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use frame_support::StorageMap;
 use primitives::{Balance, CurrencyId};
 use sp_runtime::DispatchResult;
 use sp_std::prelude::*;
@@ -8,6 +9,8 @@ use sp_std::result;
 use crate::*;
 
 const DECIMAL: u128 = 1_000_000_000_000_000_000;
+
+use pallet_ocw_oracle;
 
 impl<T: Config> Pallet<T> {
     /// This calculates interest accrued from the last checkpointed block
@@ -152,8 +155,9 @@ impl<T: Config> Pallet<T> {
             let collateral = AccountCollateral::<T>::get(currency_id, borrower);
             let collateral_factor = CollateralRate::<T>::get(currency_id);
 
-            // TODO: use ocw_oracle price
-            let currency_price = 1_u128;
+            let (currency_price, _) = pallet_ocw_oracle::Prices::get(currency_id)
+                .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
+
             let collateral_value = collateral
                 .checked_mul(collateral_factor)
                 .and_then(|r| r.checked_div(DECIMAL))
@@ -165,10 +169,11 @@ impl<T: Config> Pallet<T> {
                 .ok_or(Error::<T>::CollateralOverflow)?;
         }
 
-        // TODO: use ocw_oracle price
-        let borrow_currency = 1_u128;
+        let (borrow_currency_price, _) = pallet_ocw_oracle::Prices::get(currency_id)
+            .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
+
         let total_borrow_value = borrow_amount
-            .checked_mul(borrow_currency)
+            .checked_mul(borrow_currency_price)
             .ok_or(Error::<T>::CollateralOverflow)?;
 
         if total_collateral_value < total_borrow_value {
