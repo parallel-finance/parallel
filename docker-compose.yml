@@ -1,17 +1,36 @@
 version: "3.2"
 
 services:
-  dev:
-    container_name: parallel
+  build:
+    container_name: parallel-build
     image: paritytech/ci-linux:974ba3ac-20201006
-    working_dir: /var/www/parallel
+    working_dir: /parallel-finance/parallel
+    environment:
+      - CARGO_HOME=/parallel-finance/parallel/docker/.cargo
+    volumes:
+      - ../:/parallel-finance
+      - type: bind
+        source: ./docker/.local
+        target: /root/.local
+    command: bash -c "cargo build --release --target-dir /parallel-finance/parallel/docker/target"
+  dev:
+    container_name: parallel-dev
+    image: parallel-finance/parallel:latest
     ports:
       - "9944:9944"
-    environment:
-      - CARGO_HOME=/var/www/parallel/.cargo
     volumes:
-      - .:/var/www/parallel
-      - type: bind
-        source: ./.local
-        target: /root/.local
-    command: bash -c "cargo build --release && ./target/release/parallel --dev --ws-external"
+      - ./docker/.local:/root/.local
+#  dev:
+#    container_name: parallel
+#    image: paritytech/ci-linux:974ba3ac-20201006
+#    working_dir: /var/www/parallel
+#    ports:
+#      - "9944:9944"
+#    environment:
+#      - CARGO_HOME=/var/www/parallel/.cargo
+#    volumes:
+#      - .:/var/www/parallel
+#      - type: bind
+#        source: ./.local
+#        target: /root/.local
+#    command: bash -c "cargo build --release && ./target/release/parallel --dev --ws-external"
