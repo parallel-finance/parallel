@@ -7,10 +7,7 @@ use frame_support::transactional;
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 use primitives::{Amount, Balance, CurrencyId};
-use sp_runtime::{
-    traits::{AccountIdConversion, Zero},
-    DispatchResult, ModuleId, RuntimeDebug,
-};
+use sp_runtime::{traits::AccountIdConversion, ModuleId, RuntimeDebug};
 use sp_std::vec::Vec;
 
 pub use module::*;
@@ -66,6 +63,8 @@ pub mod module {
         CalcInterestRateFailed,
         CalcBorrowBalanceFailed,
         MarketNotFresh,
+        /// Please enable collateral for one of your assets before borrowing
+        NoCollateralAsset,
     }
 
     #[pallet::event]
@@ -88,6 +87,11 @@ pub mod module {
         BorrowRateUpdated(CurrencyId, u128),
         SupplyRateUpdated(CurrencyId, u128),
         UtilityRateUpdated(CurrencyId, u128),
+
+        /// Enable/Disable collateral for certain asset
+        CollateralAssetAdded(T::AccountId, CurrencyId),
+        CollateralAssetRemoved(T::AccountId, CurrencyId),
+
         Test(u128),
     }
 
@@ -131,6 +135,11 @@ pub mod module {
         Balance,
         ValueQuery,
     >;
+
+    #[pallet::storage]
+    #[pallet::getter(fn account_collateral_assets)]
+    pub type AccountCollateralAssets<T: Config> =
+        StorageMap<_, Twox64Concat, T::AccountId, Vec<CurrencyId>, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn borrow_index)]
@@ -281,17 +290,6 @@ pub mod module {
         }
 
         #[pallet::weight(10_000)]
-        pub fn is_able_to_borrow(
-            origin: OriginFor<T>,
-            currency_id: CurrencyId,
-            borrow_amount: Balance,
-        ) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
-            Self::borrow_guard(&who, &currency_id, borrow_amount)?;
-            Ok(().into())
-        }
-
-        #[pallet::weight(10_000)]
         #[transactional]
         pub fn repay_borrow(
             origin: OriginFor<T>,
@@ -313,6 +311,19 @@ pub mod module {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             T::Currency::transfer(currency_id, &who, &to, amount)?;
+
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn collateral_asset(
+            origin: OriginFor<T>,
+            currency_id: CurrencyId,
+            enable: bool,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            Self::collateral_asset_internal(who, currency_id, enable)?;
 
             Ok(().into())
         }
