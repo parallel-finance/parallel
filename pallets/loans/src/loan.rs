@@ -135,6 +135,41 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    /// Borrower shouldn't borrow more than what he/she has collateraled in total
+    pub(crate) fn borrow_guard(
+        borrower: &T::AccountId,
+        currency_id: &CurrencyId,
+        borrow_amount: Balance,
+    ) -> DispatchResult {
+        let total_collateral_value = 0_u128;
+        let currencies = Currencies::<T>::get();
+        for currency_id in &currencies {
+            let collateral = AccountCollateral::<T>::get(currency_id, borrower);
+            let collateral_factor = CollateralRate::<T>::get(currency_id);
+            // TODO: use ocw_oracle price
+            let currency_price = 1_u128;
+            let collateral_value = collateral
+                .checked_mul(collateral_factor)
+                .and_then(|r| r.checked_div(DECIMAL))
+                .and_then(|r| r.checked_mul(currency_price))
+                .ok_or(Error::<T>::CollateralOverflow)?;
+
+            total_collateral_value
+                .checked_add(collateral_value)
+                .ok_or(Error::<T>::CollateralOverflow)?;
+        }
+        let borrow_currency = 1_u128;
+        let total_borrow_value = borrow_amount
+            .checked_mul(borrow_currency)
+            .ok_or(Error::<T>::CollateralOverflow)?;
+
+        if total_collateral_value < total_borrow_value {
+            return Err(Error::<T>::InsufficientCash.into());
+        }
+
+        Ok(())
+    }
+
     /// Sender borrows assets from the protocol to their own address
     ///
     /// Ensured atomic.
@@ -144,10 +179,8 @@ impl<T: Config> Pallet<T> {
         currency_id: &CurrencyId,
         borrow_amount: Balance,
     ) -> DispatchResult {
-        let total_cash = Self::get_total_cash(currency_id.clone());
-        if total_cash < borrow_amount {
-            return Err(Error::<T>::InsufficientCash.into());
-        }
+        Self::borrow_guard(borrower, currency_id, borrow_amount)?;
+
         let account_borrows = Self::borrow_balance_stored(borrower, currency_id)?;
         let account_borrows_new = account_borrows
             .checked_add(borrow_amount)
