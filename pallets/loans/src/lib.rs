@@ -65,6 +65,8 @@ pub mod module {
         MarketNotFresh,
         /// Please enable collateral for one of your assets before borrowing
         NoCollateralAsset,
+        /// Currency's oracle price not ready
+        OracleCurrencyPriceNotReady,
     }
 
     #[pallet::event]
