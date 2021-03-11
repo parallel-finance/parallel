@@ -75,7 +75,7 @@ pub enum CurrencyId {
     DOT,
     KSM,
     BTC,
-    PUSD,
+    USDC,
     Native,
 }
 
