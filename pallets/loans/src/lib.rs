@@ -465,6 +465,8 @@ pub mod module {
             let who = ensure_signed(origin)?;
             Self::unstake_internal(&who, amount)?;
 
+        #[pallet::weight(10_000)]
+        #[transactional]
         pub fn liquidate_borrow (
             origin: OriginFor<T>,
             borrower: T::AccountId,

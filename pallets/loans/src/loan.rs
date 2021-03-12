@@ -369,7 +369,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    pub(crate) fn borrow_balance_stored(
+    
     /// please note, as bellow:
     /// - liquidate_token is borrower's debt, like DAI/USDT
     /// - collateral_token is borrower's collateral, like BTC/KSM/DOT
@@ -500,7 +500,7 @@ impl<T: Config> Pallet<T> {
     }
 
 
-    fn borrow_balance_stored(
+    pub(crate) fn borrow_balance_stored(
         who: &T::AccountId,
         currency_id: &CurrencyId,
     ) -> result::Result<Balance, Error<T>> {
