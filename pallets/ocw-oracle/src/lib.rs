@@ -212,6 +212,7 @@ decl_module! {
             debug::info!("dot: {:?}", Prices::get(CurrencyId::DOT));
             debug::info!("btc: {:?}", Prices::get(CurrencyId::BTC));
             debug::info!("ksm: {:?}", Prices::get(CurrencyId::KSM));
+            debug::info!("usdc: {:?}", Prices::get(CurrencyId::USDC));
             Self::append_price(payload);
             Self::deposit_event(Event::<T>::OffchainInvoke(None));
             Ok(())
@@ -222,7 +223,8 @@ decl_module! {
             let urls = [
                 (CurrencyId::DOT,"https://api.coincap.io/v2/assets/polkadot"),
                 (CurrencyId::BTC,"https://api.coincap.io/v2/assets/bitcoin"),
-                (CurrencyId::KSM,"https://api.coincap.io/v2/assets/kusama")
+                (CurrencyId::KSM,"https://api.coincap.io/v2/assets/kusama"),
+                (CurrencyId::USDC,"https://api.coincap.io/v2/assets/usd-coin")
             ].to_vec();
 
             match Self::fetch_price(urls) {
