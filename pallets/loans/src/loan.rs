@@ -141,7 +141,7 @@ impl<T: Config> Pallet<T> {
     /// Borrower shouldn't borrow more than what he/she has collateraled in total
     pub(crate) fn borrow_guard(
         borrower: &T::AccountId,
-        currency_id: &CurrencyId,
+        borrow_currency_id: &CurrencyId,
         borrow_amount: Balance,
     ) -> DispatchResult {
         let collateral_assets = AccountCollateralAssets::<T>::try_get(borrower).unwrap_or(vec![]);
@@ -149,34 +149,48 @@ impl<T: Config> Pallet<T> {
             return Err(Error::<T>::NoCollateralAsset.into());
         }
 
-        let mut total_collateral_value = 0_u128;
+        let mut total_asset_value = 0_u128;
+
+        let (borrow_currency_price, _) = pallet_ocw_oracle::Prices::get(borrow_currency_id)
+            .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
+        let mut total_borrow_value = borrow_amount
+            .checked_mul(borrow_currency_price)
+            .ok_or(Error::<T>::CollateralOverflow)?;
 
         for currency_id in collateral_assets.iter() {
             let collateral = AccountCollateral::<T>::get(currency_id, borrower);
             let collateral_factor = CollateralRate::<T>::get(currency_id);
+            let currency_exchange_rate = ExchangeRate::<T>::get(currency_id);
 
             let (currency_price, _) = pallet_ocw_oracle::Prices::get(currency_id)
                 .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
 
-            let collateral_value = collateral
+            let asset_value = collateral
                 .checked_mul(collateral_factor)
+                .and_then(|r| r.checked_div(DECIMAL))
+                .and_then(|r| r.checked_mul(currency_exchange_rate))
                 .and_then(|r| r.checked_div(DECIMAL))
                 .and_then(|r| r.checked_mul(currency_price))
                 .ok_or(Error::<T>::CollateralOverflow)?;
 
-            total_collateral_value = total_collateral_value
-                .checked_add(collateral_value)
+            total_asset_value = total_asset_value
+                .checked_add(asset_value)
                 .ok_or(Error::<T>::CollateralOverflow)?;
         }
 
-        let (borrow_currency_price, _) = pallet_ocw_oracle::Prices::get(currency_id)
-            .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
+        for currency_id in Currencies::<T>::get().iter() {
+            let account_currency_borrow_amount =
+                Self::borrow_balance_stored(borrower, currency_id)?;
+            let (borrow_currency_price, _) = pallet_ocw_oracle::Prices::get(currency_id)
+                .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
 
-        let total_borrow_value = borrow_amount
-            .checked_mul(borrow_currency_price)
-            .ok_or(Error::<T>::CollateralOverflow)?;
+            total_borrow_value = account_currency_borrow_amount
+                .checked_mul(borrow_currency_price)
+                .and_then(|r| r.checked_add(total_borrow_value))
+                .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
+        }
 
-        if total_collateral_value < total_borrow_value {
+        if total_asset_value < total_borrow_value {
             return Err(Error::<T>::InsufficientCollateral.into());
         }
 
@@ -195,6 +209,7 @@ impl<T: Config> Pallet<T> {
         Self::borrow_guard(borrower, currency_id, borrow_amount)?;
 
         let account_borrows = Self::borrow_balance_stored(borrower, currency_id)?;
+
         let account_borrows_new = account_borrows
             .checked_add(borrow_amount)
             .ok_or(Error::<T>::CalcBorrowBalanceFailed)?;
@@ -218,6 +233,7 @@ impl<T: Config> Pallet<T> {
                 interest_index: Self::borrow_index(currency_id),
             },
         );
+
         TotalBorrows::<T>::insert(currency_id, total_borrows_new);
 
         Ok(())
@@ -260,6 +276,7 @@ impl<T: Config> Pallet<T> {
                 interest_index: Self::borrow_index(currency_id),
             },
         );
+
         TotalBorrows::<T>::insert(currency_id, total_borrows_new);
 
         Ok(())
