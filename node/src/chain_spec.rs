@@ -204,6 +204,22 @@ fn testnet_genesis(
                 res.push((CurrencyId::USDC, 5 * 10u128.pow(17))); // 0.5
                 res
             },
+            liquidation_incentive: {
+                let mut res = vec![];
+                res.push((CurrencyId::DOT, 9 * 10u128.pow(17))); // 0.9
+                res.push((CurrencyId::KSM, 9 * 10u128.pow(17))); // 0.9
+                res.push((CurrencyId::BTC, 9 * 10u128.pow(17))); // 0.9
+                res.push((CurrencyId::USDC, 9 * 10u128.pow(17))); // 0.9
+                res
+            },
+            close_factor: {
+                let mut res = vec![];
+                res.push((CurrencyId::DOT, 5 * 10u128.pow(17))); // 0.5
+                res.push((CurrencyId::KSM, 5 * 10u128.pow(17))); // 0.5
+                res.push((CurrencyId::BTC, 5 * 10u128.pow(17))); // 0.5
+                res.push((CurrencyId::USDC, 5 * 10u128.pow(17))); // 0.5
+                res
+            },
         }),
     }
 }
