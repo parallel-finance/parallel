@@ -69,8 +69,8 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         let exchange_rate = Self::exchange_rate(currency_id);
         let collateral = mint_amount
-            .checked_mul(DECIMAL)
-            .and_then(|r| r.checked_div(exchange_rate))
+            .checked_div(exchange_rate)
+            .and_then(|r| r.checked_mul(DECIMAL))
             .ok_or(Error::<T>::CalcCollateralFailed)?;
 
         AccountCollateral::<T>::try_mutate(
@@ -105,13 +105,26 @@ impl<T: Config> Pallet<T> {
     pub fn redeem_internal(
         who: &T::AccountId,
         currency_id: &CurrencyId,
-        redeem_amount: Balance,
+        redeem_amount: Amount,
     ) -> DispatchResult {
+        let mut collateral = 0;
+        let mut redeem_balance = 0;
         let exchange_rate = Self::exchange_rate(currency_id);
-        let collateral = redeem_amount
-            .checked_mul(DECIMAL)
-            .and_then(|r| r.checked_div(exchange_rate))
-            .ok_or(Error::<T>::CalcCollateralFailed)?;
+        if redeem_amount == -1 {
+            collateral = AccountCollateral::<T>::get(currency_id, who);
+            redeem_balance = collateral
+                .checked_div(DECIMAL)
+                .and_then(|r| r.checked_mul(exchange_rate))
+                .ok_or(Error::<T>::CalcRedeemBalanceFailed)?;
+        } else if redeem_amount.is_positive() {
+            redeem_balance = Self::balance_try_from_amount_abs(redeem_amount)?;
+            collateral = redeem_balance
+                .checked_div(exchange_rate)
+                .and_then(|r| r.checked_mul(DECIMAL))
+                .ok_or(Error::<T>::CalcCollateralFailed)?;
+        } else {
+            return Err(Error::<T>::InvalidAmountParam.into());
+        }
 
         AccountCollateral::<T>::try_mutate(
             currency_id,
@@ -133,7 +146,7 @@ impl<T: Config> Pallet<T> {
             Ok(())
         })?;
 
-        T::Currency::transfer(currency_id.clone(), &Self::account_id(), who, redeem_amount)?;
+        T::Currency::transfer(currency_id.clone(), &Self::account_id(), who, redeem_balance)?;
 
         Ok(())
     }
@@ -246,10 +259,13 @@ impl<T: Config> Pallet<T> {
     pub fn repay_borrow_internal(
         borrower: &T::AccountId,
         currency_id: &CurrencyId,
-        repay_amount: Balance,
+        repay_amount: Amount,
     ) -> DispatchResult {
+        let mut repay_balance = Self::balance_try_from_amount_abs(repay_amount)?;
         let account_borrows = Self::borrow_balance_stored(borrower, currency_id)?;
-        if account_borrows < repay_amount {
+        if repay_amount == -1 {
+            repay_balance = account_borrows;
+        } else if account_borrows < repay_balance {
             return Err(Error::<T>::RepayAmountTooBig.into());
         }
 
@@ -257,15 +273,15 @@ impl<T: Config> Pallet<T> {
             currency_id.clone(),
             borrower,
             &Self::account_id(),
-            repay_amount,
+            repay_balance,
         )?;
 
         let account_borrows_new = account_borrows
-            .checked_sub(repay_amount)
+            .checked_sub(repay_balance)
             .ok_or(Error::<T>::CalcBorrowBalanceFailed)?;
         let total_borrows = Self::total_borrows(currency_id);
         let total_borrows_new = total_borrows
-            .checked_sub(repay_amount)
+            .checked_sub(repay_balance)
             .ok_or(Error::<T>::CalcBorrowBalanceFailed)?;
 
         AccountBorrows::<T>::insert(

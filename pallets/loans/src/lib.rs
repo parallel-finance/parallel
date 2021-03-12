@@ -56,10 +56,12 @@ pub mod module {
         InsufficientCollateral,
         RepayAmountTooBig,
         AmountConvertFailed,
+        InvalidAmountParam,
         GetBlockDeltaFailed,
         CalcAccrueInterestFailed,
         CalcExchangeRateFailed,
         CalcCollateralFailed,
+        CalcRedeemBalanceFailed,
         CalcInterestRateFailed,
         CalcBorrowBalanceFailed,
         MarketNotFresh,
@@ -272,7 +274,7 @@ pub mod module {
         pub fn redeem(
             origin: OriginFor<T>,
             currency_id: CurrencyId,
-            redeem_amount: Balance,
+            redeem_amount: Amount,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::redeem_internal(&who, &currency_id, redeem_amount)?;
@@ -296,7 +298,7 @@ pub mod module {
         pub fn repay_borrow(
             origin: OriginFor<T>,
             currency_id: CurrencyId,
-            repay_amount: Balance,
+            repay_amount: Amount,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::repay_borrow_internal(&who, &currency_id, repay_amount)?;
