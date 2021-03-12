@@ -92,6 +92,10 @@ pub mod module {
         DepositRequiredBeforeCollateral,
         /// Collateral disable action denied
         CollateralDisableActionDenied,
+        /// repay more than collateral
+        RepayBigThanCollateral,
+        /// real repay amount should less than repay amount
+        NotEnoughRepayAmount,
     }
 
     #[pallet::event]
@@ -219,6 +223,12 @@ pub mod module {
     #[pallet::storage]
     #[pallet::getter(fn collateral_rate)]
     pub type CollateralRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+    #[pallet::storage]
+    #[pallet::getter(fn liquidation_incentive)]
+    pub type LiquidationIncentive<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+    #[pallet::storage]
+    #[pallet::getter(fn close_factor)]
+    pub type CloseFactor<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig {
@@ -232,6 +242,8 @@ pub mod module {
         pub jump_muiltiplier: u128,
         pub kink: u128,
         pub collateral_rate: Vec<(CurrencyId, u128)>,
+        pub liquidation_incentive: Vec<(CurrencyId, u128)>,
+        pub close_factor: Vec<(CurrencyId, u128)>,
     }
 
     #[cfg(feature = "std")]
@@ -248,6 +260,8 @@ pub mod module {
                 jump_muiltiplier: 0,
                 kink: 0,
                 collateral_rate: vec![],
+                liquidation_incentive: vec![],
+                close_factor: vec![],
             }
         }
     }
@@ -271,6 +285,16 @@ pub mod module {
                 .iter()
                 .for_each(|(currency_id, collateral_rate)| {
                     CollateralRate::<T>::insert(currency_id, collateral_rate);
+                });
+            self.liquidation_incentive
+                .iter()
+                .for_each(|(currency_id, liquidation_incentive)| {
+                    LiquidationIncentive::<T>::insert(currency_id, liquidation_incentive);
+                });
+            self.close_factor
+                .iter()
+                .for_each(|(currency_id, close_factor)| {
+                    CloseFactor::<T>::insert(currency_id, close_factor);
                 });
             Currencies::<T>::put(self.currencies.clone());
             Pallet::<T>::update_jump_rate_model(
@@ -441,6 +465,15 @@ pub mod module {
             let who = ensure_signed(origin)?;
             Self::unstake_internal(&who, amount)?;
 
+        pub fn liquidate_borrow (
+            origin: OriginFor<T>,
+            borrower: T::AccountId,
+            liquidate_token: CurrencyId,
+            repay_amount: Balance,
+            collateral_token: CurrencyId,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            Self::liquidate_borrow_internal(who, borrower, liquidate_token, repay_amount, collateral_token)?;
             Ok(().into())
         }
     }
