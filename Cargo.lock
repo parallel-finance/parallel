@@ -3909,6 +3909,7 @@ dependencies = [
  "orml-tokens",
  "orml-traits",
  "orml-utilities",
+ "pallet-balances",
  "pallet-ocw-oracle",
  "parallel-primitives",
  "parity-scale-codec",

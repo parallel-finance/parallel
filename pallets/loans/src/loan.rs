@@ -2,7 +2,7 @@
 
 use frame_support::StorageMap;
 use primitives::{Balance, CurrencyId};
-use sp_runtime::DispatchResult;
+use sp_runtime::{traits::Zero, DispatchResult};
 use sp_std::prelude::*;
 use sp_std::result;
 
@@ -146,32 +146,57 @@ impl<T: Config> Pallet<T> {
             Ok(())
         })?;
 
-        T::Currency::transfer(currency_id.clone(), &Self::account_id(), who, redeem_balance)?;
+        T::Currency::transfer(
+            currency_id.clone(),
+            &Self::account_id(),
+            who,
+            redeem_balance,
+        )?;
 
         Ok(())
     }
 
-    /// Borrower shouldn't borrow more than what he/she has collateraled in total
-    pub(crate) fn borrow_guard(
+    pub(crate) fn total_borrow_value(
         borrower: &T::AccountId,
         borrow_currency_id: &CurrencyId,
         borrow_amount: Balance,
-    ) -> DispatchResult {
-        let collateral_assets = AccountCollateralAssets::<T>::try_get(borrower).unwrap_or(vec![]);
-        if collateral_assets.is_empty() {
-            return Err(Error::<T>::NoCollateralAsset.into());
-        }
-
-        let mut total_asset_value = 0_u128;
-
+    ) -> result::Result<Balance, Error<T>> {
         let (borrow_currency_price, _) = pallet_ocw_oracle::Prices::get(borrow_currency_id)
             .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
         let mut total_borrow_value = borrow_amount
             .checked_mul(borrow_currency_price)
             .ok_or(Error::<T>::CollateralOverflow)?;
 
+        for currency_id in Currencies::<T>::get().iter() {
+            let account_currency_borrow_amount =
+                Self::borrow_balance_stored(borrower, currency_id)?;
+            let (borrow_currency_price, _) = pallet_ocw_oracle::Prices::get(currency_id)
+                .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
+
+            total_borrow_value = account_currency_borrow_amount
+                .checked_mul(borrow_currency_price)
+                .and_then(|r| r.checked_add(total_borrow_value))
+                .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
+        }
+
+        return Ok(total_borrow_value);
+    }
+
+    pub(crate) fn total_collateral_asset_value(
+        borrower: &T::AccountId,
+    ) -> result::Result<Balance, Error<T>> {
+        let collateral_assets = AccountCollateralAssets::<T>::get(borrower);
+        if collateral_assets.is_empty() {
+            return Err(Error::<T>::NoCollateralAsset.into());
+        }
+
+        let mut total_asset_value: Balance = 0_u128;
         for currency_id in collateral_assets.iter() {
             let collateral = AccountCollateral::<T>::get(currency_id, borrower);
+            if collateral.is_zero() {
+                continue;
+            }
+
             let collateral_factor = CollateralRate::<T>::get(currency_id);
             let currency_exchange_rate = ExchangeRate::<T>::get(currency_id);
 
@@ -191,19 +216,20 @@ impl<T: Config> Pallet<T> {
                 .ok_or(Error::<T>::CollateralOverflow)?;
         }
 
-        for currency_id in Currencies::<T>::get().iter() {
-            let account_currency_borrow_amount =
-                Self::borrow_balance_stored(borrower, currency_id)?;
-            let (borrow_currency_price, _) = pallet_ocw_oracle::Prices::get(currency_id)
-                .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
+        return Ok(total_asset_value);
+    }
 
-            total_borrow_value = account_currency_borrow_amount
-                .checked_mul(borrow_currency_price)
-                .and_then(|r| r.checked_add(total_borrow_value))
-                .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
-        }
+    /// Borrower shouldn't borrow more than what he/she has collateraled in total
+    pub(crate) fn borrow_guard(
+        borrower: &T::AccountId,
+        borrow_currency_id: &CurrencyId,
+        borrow_amount: Balance,
+    ) -> DispatchResult {
+        let total_borrow_value =
+            Self::total_borrow_value(borrower, borrow_currency_id, borrow_amount)?;
+        let total_collateral_asset_value = Self::total_collateral_asset_value(borrower)?;
 
-        if total_asset_value < total_borrow_value {
+        if total_collateral_asset_value < total_borrow_value {
             return Err(Error::<T>::InsufficientCollateral.into());
         }
 
