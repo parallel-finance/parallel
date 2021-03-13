@@ -16,3 +16,27 @@ impl<T: Config> Pallet<T> {
             .map_err(|_| Error::<T>::AmountConvertFailed)
     }
 }
+
+pub fn mul_then_div(multiplier_l: u128, multiplier_r: u128, divisor: u128) -> Option<u128> {
+    multiplier_l
+        .checked_mul(multiplier_r)
+        .and_then(|r| r.checked_div(divisor))
+}
+
+pub fn mul_then_div_then_add(
+    multiplier_l: u128,
+    multiplier_r: u128,
+    divisor: u128,
+    addend: u128,
+) -> Option<u128> {
+    multiplier_l
+        .checked_mul(multiplier_r)
+        .and_then(|r| r.checked_div(divisor))
+        .and_then(|r| r.checked_add(addend))
+}
+
+pub fn add_then_sub(addend_a: u128, addend_b: u128, subtrahend: u128) -> Option<u128> {
+    addend_a
+        .checked_add(addend_b)
+        .and_then(|r| r.checked_sub(subtrahend))
+}

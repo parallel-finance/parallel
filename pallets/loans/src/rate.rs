@@ -2,11 +2,11 @@ use primitives::{Balance, CurrencyId};
 use sp_runtime::{traits::Zero, DispatchResult};
 use sp_std::prelude::*;
 
+use crate::util::*;
 use crate::*;
 
-const BLOCK_PER_YEAR: u128 = 5256000;
-// const BLOCK_PER_YEAR: u128 = 2102400;
-pub const DECIMAL: u128 = 1_000_000_000_000_000_000;
+pub const BLOCK_PER_YEAR: u128 = 5256000;
+pub const RATE_DECIMAL: u128 = 1_000_000_000_000_000_000;
 
 impl<T: Config> Pallet<T> {
     fn insert_borrow_rate(currency_id: CurrencyId, rate: u128) {
@@ -20,7 +20,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn to_decimal(n: Option<u128>) -> Result<u128, Error<T>> {
-        n.and_then(|r| r.checked_div(DECIMAL))
+        n.and_then(|r| r.checked_div(RATE_DECIMAL))
             .ok_or(Error::<T>::CalcInterestRateFailed)
     }
 
@@ -35,15 +35,10 @@ impl<T: Config> Pallet<T> {
         }
 
         // utilizationRate = totalBorrows / (totalCash + totalBorrows − totalReserves)
-        let total = cash
-            .checked_add(borrows)
-            .and_then(|r| r.checked_sub(reserves))
-            .ok_or(Error::<T>::CalcInterestRateFailed)?;
+        let total =
+            add_then_sub(cash, borrows, reserves).ok_or(Error::<T>::CalcInterestRateFailed)?;
 
-        borrows
-            .checked_mul(DECIMAL)
-            .and_then(|r| r.checked_div(total))
-            .ok_or(Error::<T>::CalcInterestRateFailed)
+        mul_then_div(borrows, RATE_DECIMAL, total).ok_or(Error::<T>::CalcInterestRateFailed)
     }
 
     pub fn update_jump_rate_model(
@@ -60,9 +55,7 @@ impl<T: Config> Pallet<T> {
             .checked_mul(kink)
             .ok_or(Error::<T>::CalcInterestRateFailed)?;
 
-        let multiplier = multiplier_per_year
-            .checked_mul(DECIMAL)
-            .and_then(|r| r.checked_div(temp))
+        let multiplier = mul_then_div(multiplier_per_year, RATE_DECIMAL, temp)
             .ok_or(Error::<T>::CalcInterestRateFailed)?;
 
         let jump = jump_multiplier_per_year
@@ -96,19 +89,22 @@ impl<T: Config> Pallet<T> {
         let jump_multiplier_per_block = Self::to_decimal(JumpMultiplierPerBlock::<T>::get())?;
 
         if util <= kink {
-            let rate = util
-                .checked_mul(multiplier_per_block)
-                .and_then(|r| r.checked_div(DECIMAL))
-                .and_then(|r| r.checked_add(base_rate_per_block))
-                .ok_or(Error::<T>::CalcInterestRateFailed)?;
-
+            let rate = mul_then_div_then_add(
+                util,
+                multiplier_per_block,
+                RATE_DECIMAL,
+                base_rate_per_block,
+            )
+            .ok_or(Error::<T>::CalcInterestRateFailed)?;
             Self::insert_borrow_rate(currency_id, rate);
         } else {
-            let normal_rate = kink
-                .checked_mul(multiplier_per_block)
-                .and_then(|r| r.checked_div(DECIMAL))
-                .and_then(|r| r.checked_add(base_rate_per_block))
-                .ok_or(Error::<T>::CalcInterestRateFailed)?;
+            let normal_rate = mul_then_div_then_add(
+                kink,
+                multiplier_per_block,
+                RATE_DECIMAL,
+                base_rate_per_block,
+            )
+            .ok_or(Error::<T>::CalcInterestRateFailed)?;
 
             let excess_util = util.saturating_sub(kink);
             let rate = excess_util
@@ -128,7 +124,8 @@ impl<T: Config> Pallet<T> {
         reserves: Balance,
         reserve_factor_mantissa: u128,
     ) -> DispatchResult {
-        let one_minus_reserve_factor = u128::from(DECIMAL).saturating_sub(reserve_factor_mantissa);
+        let one_minus_reserve_factor =
+            u128::from(RATE_DECIMAL).saturating_sub(reserve_factor_mantissa);
 
         let borrow_rate = BorrowRate::<T>::get(currency_id);
         let rate_to_pool = Self::to_decimal(borrow_rate.checked_mul(one_minus_reserve_factor))?;
@@ -153,7 +150,7 @@ impl<T: Config> Pallet<T> {
             .checked_add(total_borrows)
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
         let exchage_rate = cash_plus_borrows
-            .checked_mul(DECIMAL)
+            .checked_mul(RATE_DECIMAL)
             .and_then(|r| r.checked_div(total_supply))
             .ok_or(Error::<T>::CalcExchangeRateFailed)?;
 
