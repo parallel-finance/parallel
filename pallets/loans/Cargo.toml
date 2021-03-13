@@ -26,6 +26,7 @@ serde      = { version = "1.0.119" }
 sp-core    = { default-features = false, version = '3.0.0' }
 sp-io      = { default-features = false, version = '3.0.0' }
 sp-runtime = { default-features = false, version = '3.0.0' }
+pallet-balances = { default-features = false, version = '3.0.0' }
 
 [features]
 default = ['std']
