@@ -334,7 +334,9 @@ impl<T: Config> Pallet<T> {
     ///
     /// in this function, 
     /// the liquidator will pay liquidate_token from own account to module account,
-    /// the liquidator will receive collateral_token from borrower's account
+    /// the system will reduce borrower's debt
+    /// the liquidator will receive collateral_token(ctoken) from system (divide borrower's ctoken to liquidator)
+    /// then liquidator can decide if withdraw (from ctoken to token)
     pub fn liquidate_borrow_internal(
         liquidator: T::AccountId,
         borrower: T::AccountId,
@@ -403,13 +405,12 @@ impl<T: Config> Pallet<T> {
             return Err(Error::<T>::NotEnoughRepayAmount.into());
         }
         
-        //inside transfer token to module id
+        //inside transfer token
         Self::liquidate_repay_borrow_internal(&liquidator, &borrower, &liquidate_token, &collateral_token, real_liquidate_token_repay_amount, real_collateral_token_amount)?;
 
         Ok(())
     }
 
-    #[transactional]
     pub fn liquidate_repay_borrow_internal(
         liquidator: &T::AccountId,
         borrower: &T::AccountId,
@@ -418,23 +419,16 @@ impl<T: Config> Pallet<T> {
         liquidate_token_repay_amount: Balance,
         collateral_token_amount: Balance,
     ) -> DispatchResult {
-        //transfer from liquidator to moduleid
+        //1. liquidator repay borrower's debt, 
+        // transfer from liquidator to module account
         T::Currency::transfer(
             liquidate_token.clone(),
             liquidator,
             &Self::account_id(),
             liquidate_token_repay_amount,
         )?;
-        //transfer from borrower to liquidator
-        T::Currency::transfer(
-            collateral_token.clone(),
-            borrower,
-            liquidator,
-            collateral_token_amount,
-        )?;
-
+        //2. the system will reduce borrower's debt
         let account_borrows = Self::borrow_balance_stored(borrower, liquidate_token)?;
-
         let account_borrows_new = account_borrows
             .checked_sub(liquidate_token_repay_amount)
             .ok_or(Error::<T>::CalcBorrowBalanceFailed)?;
@@ -442,7 +436,6 @@ impl<T: Config> Pallet<T> {
         let total_borrows_new = total_borrows
             .checked_sub(liquidate_token_repay_amount)
             .ok_or(Error::<T>::CalcBorrowBalanceFailed)?;
-
         AccountBorrows::<T>::insert(
             liquidate_token,
             borrower,
@@ -452,7 +445,41 @@ impl<T: Config> Pallet<T> {
             },
         );
         TotalBorrows::<T>::insert(liquidate_token, total_borrows_new);
+        //3. the liquidator will receive collateral_token(ctoken) from system
+        // (divide borrower's ctoken to liquidator)
+        // decrease borrower's ctoken
+        let exchange_rate = Self::exchange_rate(collateral_token);
+        let collateral_ctoken_amount = collateral_token_amount
+            .checked_div(exchange_rate)
+            .and_then(|r| r.checked_mul(DECIMAL))
+            .ok_or(Error::<T>::CalcCollateralFailed)?;
+            
+        AccountCollateral::<T>::try_mutate(
+            collateral_token,
+            borrower,
+            |collateral_balance| -> DispatchResult {
+                let new_balance = collateral_balance
+                    .checked_sub(collateral_ctoken_amount)
+                    .ok_or(Error::<T>::CollateralTooLow)?;
+                *collateral_balance = new_balance;
+                Ok(())
+            },
+        )?;
+        // increase liquidator's ctoken
+        AccountCollateral::<T>::try_mutate(
+            collateral_token,
+            liquidator,
+            |collateral_balance| -> DispatchResult {
+                let new_balance = collateral_balance
+                    .checked_add(collateral_ctoken_amount)
+                    .ok_or(Error::<T>::CollateralOverflow)?;
+                *collateral_balance = new_balance;
+                Ok(())
+            },
+        )?;
 
+        //4. we can decide if withdraw to liquidator (from ctoken to token)
+        // Self::redeem_internal(&liquidator, &collateral_token, collateral_token_amount)?;
         Ok(())
     }
 
