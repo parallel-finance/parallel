@@ -4,7 +4,7 @@
 
 use super::*;
 
-use mock::{*};
+use mock::*;
 
 #[test]
 fn test_mock_genesis_ok() {
