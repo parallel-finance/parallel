@@ -83,6 +83,6 @@ pub type Price = u128;
 
 pub const TOKEN_DECIMAL: u128 = 1_000_000_000_000_000_000;
 
-pub const RATE_DECIMAL: u128 = 1_000_000_000_000_000_000;
+pub const RATE_DECIMAL: u128 = 1_000_000_000;
 
 pub const BLOCK_PER_YEAR: u128 = 5256000;
