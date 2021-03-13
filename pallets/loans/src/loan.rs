@@ -156,7 +156,33 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    pub(crate) fn total_borrow_value(
+    pub(crate) fn total_borrowed_value(
+        borrower: &T::AccountId,
+    ) -> result::Result<Balance, Error<T>> {
+        let mut total_borrow_value: Balance = 0_u128;
+
+        for currency_id in Currencies::<T>::get().iter() {
+            let currency_borrow_amount = Self::borrow_balance_stored(borrower, currency_id)?;
+            if currency_borrow_amount.is_zero() {
+                continue;
+            }
+
+            let (borrow_currency_price, _) = pallet_ocw_oracle::Prices::get(currency_id)
+                .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
+            if borrow_currency_price.is_zero() {
+                return Err(Error::<T>::OracleCurrencyPriceNotReady);
+            }
+
+            total_borrow_value = currency_borrow_amount
+                .checked_mul(borrow_currency_price)
+                .and_then(|r| r.checked_add(total_borrow_value))
+                .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
+        }
+
+        return Ok(total_borrow_value);
+    }
+
+    pub(crate) fn total_will_borrow_value(
         borrower: &T::AccountId,
         borrow_currency_id: &CurrencyId,
         borrow_amount: Balance,
@@ -167,19 +193,38 @@ impl<T: Config> Pallet<T> {
             .checked_mul(borrow_currency_price)
             .ok_or(Error::<T>::CollateralOverflow)?;
 
-        for currency_id in Currencies::<T>::get().iter() {
-            let account_currency_borrow_amount =
-                Self::borrow_balance_stored(borrower, currency_id)?;
-            let (borrow_currency_price, _) = pallet_ocw_oracle::Prices::get(currency_id)
-                .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
-
-            total_borrow_value = account_currency_borrow_amount
-                .checked_mul(borrow_currency_price)
-                .and_then(|r| r.checked_add(total_borrow_value))
-                .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
-        }
+        total_borrow_value = total_borrow_value
+            .checked_add(Self::total_borrowed_value(borrower)?)
+            .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
 
         return Ok(total_borrow_value);
+    }
+
+    pub(crate) fn collateral_asset_value(
+        borrower: &T::AccountId,
+        currency_id: &CurrencyId,
+    ) -> result::Result<Balance, Error<T>> {
+        let collateral = AccountCollateral::<T>::get(currency_id, borrower);
+        if collateral.is_zero() {
+            return Ok(0_u128);
+        }
+
+        let collateral_factor = CollateralRate::<T>::get(currency_id);
+        let currency_exchange_rate = ExchangeRate::<T>::get(currency_id);
+
+        let (currency_price, _) = pallet_ocw_oracle::Prices::get(currency_id)
+            .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
+        if currency_price.is_zero() {
+            return Err(Error::<T>::OracleCurrencyPriceNotReady);
+        }
+
+        Ok(collateral
+            .checked_mul(collateral_factor)
+            .and_then(|r| r.checked_div(DECIMAL))
+            .and_then(|r| r.checked_mul(currency_exchange_rate))
+            .and_then(|r| r.checked_div(DECIMAL))
+            .and_then(|r| r.checked_mul(currency_price))
+            .ok_or(Error::<T>::CollateralOverflow)?)
     }
 
     pub(crate) fn total_collateral_asset_value(
@@ -192,27 +237,8 @@ impl<T: Config> Pallet<T> {
 
         let mut total_asset_value: Balance = 0_u128;
         for currency_id in collateral_assets.iter() {
-            let collateral = AccountCollateral::<T>::get(currency_id, borrower);
-            if collateral.is_zero() {
-                continue;
-            }
-
-            let collateral_factor = CollateralRate::<T>::get(currency_id);
-            let currency_exchange_rate = ExchangeRate::<T>::get(currency_id);
-
-            let (currency_price, _) = pallet_ocw_oracle::Prices::get(currency_id)
-                .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
-
-            let asset_value = collateral
-                .checked_mul(collateral_factor)
-                .and_then(|r| r.checked_div(DECIMAL))
-                .and_then(|r| r.checked_mul(currency_exchange_rate))
-                .and_then(|r| r.checked_div(DECIMAL))
-                .and_then(|r| r.checked_mul(currency_price))
-                .ok_or(Error::<T>::CollateralOverflow)?;
-
             total_asset_value = total_asset_value
-                .checked_add(asset_value)
+                .checked_add(Self::collateral_asset_value(borrower, currency_id)?)
                 .ok_or(Error::<T>::CollateralOverflow)?;
         }
 
@@ -225,11 +251,11 @@ impl<T: Config> Pallet<T> {
         borrow_currency_id: &CurrencyId,
         borrow_amount: Balance,
     ) -> DispatchResult {
-        let total_borrow_value =
-            Self::total_borrow_value(borrower, borrow_currency_id, borrow_amount)?;
+        let total_will_borrow_value =
+            Self::total_will_borrow_value(borrower, borrow_currency_id, borrow_amount)?;
         let total_collateral_asset_value = Self::total_collateral_asset_value(borrower)?;
 
-        if total_collateral_asset_value < total_borrow_value {
+        if total_collateral_asset_value < total_will_borrow_value {
             return Err(Error::<T>::InsufficientCollateral.into());
         }
 
@@ -328,26 +354,46 @@ impl<T: Config> Pallet<T> {
         who: T::AccountId,
         currency_id: CurrencyId,
         enable: bool,
-    ) -> DispatchResult {
+    ) -> result::Result<(), Error<T>> {
         if let Ok(mut collateral_assets) = AccountCollateralAssets::<T>::try_get(&who) {
             if enable {
                 if !collateral_assets.iter().any(|c| c == &currency_id) {
-                    collateral_assets.push(currency_id);
-                    AccountCollateralAssets::<T>::insert(who.clone(), collateral_assets);
-                    Self::deposit_event(Event::<T>::CollateralAssetAdded(who, currency_id));
+                    let collateral = AccountCollateral::<T>::get(currency_id, &who);
+                    if !collateral.is_zero() {
+                        collateral_assets.push(currency_id);
+                        AccountCollateralAssets::<T>::insert(who.clone(), collateral_assets);
+                        Self::deposit_event(Event::<T>::CollateralAssetAdded(who, currency_id));
+                    } else {
+                        return Err(Error::<T>::DepositRequiredBeforeCollateral);
+                    }
+                } else {
+                    return Err(Error::<T>::AlreadyEnabledCollateral);
                 }
             } else {
                 if let Some(index) = collateral_assets.iter().position(|c| c == &currency_id) {
-                    collateral_assets.remove(index);
-                    AccountCollateralAssets::<T>::insert(who.clone(), collateral_assets);
-                    Self::deposit_event(Event::<T>::CollateralAssetRemoved(who, currency_id));
+                    let total_collateral_asset_value = Self::total_collateral_asset_value(&who)?;
+                    let collateral_asset_value = Self::collateral_asset_value(&who, &currency_id)?;
+                    let total_borrowed_value = Self::total_borrowed_value(&who)?;
+
+                    if total_collateral_asset_value
+                        > total_borrowed_value
+                            .checked_add(collateral_asset_value)
+                            .ok_or(Error::<T>::CollateralOverflow)?
+                    {
+                        collateral_assets.remove(index);
+                        AccountCollateralAssets::<T>::insert(who.clone(), collateral_assets);
+                        Self::deposit_event(Event::<T>::CollateralAssetRemoved(who, currency_id));
+                    } else {
+                        return Err(Error::<T>::CollateralDisableActionDenied);
+                    }
+                } else {
+                    return Err(Error::<T>::AlreadyDisabledCollateral);
                 }
             }
         } else {
-            AccountCollateralAssets::<T>::insert(
-                who,
-                if enable { vec![currency_id] } else { vec![] },
-            );
+            if enable {
+                AccountCollateralAssets::<T>::insert(who, vec![currency_id]);
+            }
         }
 
         Ok(())

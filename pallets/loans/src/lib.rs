@@ -71,6 +71,14 @@ pub mod module {
         NoCollateralAsset,
         /// Currency's oracle price not ready
         OracleCurrencyPriceNotReady,
+        /// Asset already enabled collateral
+        AlreadyEnabledCollateral,
+        /// Asset already disabled collateral
+        AlreadyDisabledCollateral,
+        /// Please deposit before collateral
+        DepositRequiredBeforeCollateral,
+        /// Collateral disable action denied
+        CollateralDisableActionDenied,
     }
 
     #[pallet::event]
