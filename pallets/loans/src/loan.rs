@@ -7,8 +7,8 @@ use sp_std::prelude::*;
 use sp_std::result;
 
 use crate::*;
-
-const DECIMAL: u128 = 1_000_000_000_000_000_000;
+use crate::util::*;
+use crate::rate::*;
 
 use pallet_ocw_oracle;
 
@@ -34,18 +34,13 @@ impl<T: Config> Pallet<T> {
          */
 
         let borrow_rate_per_block = BorrowRate::<T>::get(currency_id);
-        let interest_accumulated = borrow_rate_per_block
-            .checked_mul(borrows_prior)
-            .and_then(|r| r.checked_div(DECIMAL))
+        let interest_accumulated = mul_then_div(borrows_prior, borrow_rate_per_block, RATE_DECIMAL)
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
         let total_borrows_new = interest_accumulated
             .checked_add(borrows_prior)
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
         let borrow_index = Self::borrow_index(currency_id);
-        let borrow_index_new = borrow_rate_per_block
-            .checked_mul(borrow_index)
-            .and_then(|r| r.checked_div(DECIMAL))
-            .and_then(|r| r.checked_add(borrow_index))
+        let borrow_index_new = mul_then_div_then_add(borrow_index, borrow_rate_per_block, RATE_DECIMAL, borrow_index)
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
 
         TotalBorrows::<T>::insert(currency_id, total_borrows_new);
@@ -68,9 +63,7 @@ impl<T: Config> Pallet<T> {
         mint_amount: Balance,
     ) -> DispatchResult {
         let exchange_rate = Self::exchange_rate(currency_id);
-        let collateral = mint_amount
-            .checked_div(exchange_rate)
-            .and_then(|r| r.checked_mul(DECIMAL))
+        let collateral = mul_then_div(mint_amount, RATE_DECIMAL, exchange_rate)
             .ok_or(Error::<T>::CalcCollateralFailed)?;
 
         AccountCollateral::<T>::try_mutate(
@@ -105,26 +98,11 @@ impl<T: Config> Pallet<T> {
     pub fn redeem_internal(
         who: &T::AccountId,
         currency_id: &CurrencyId,
-        redeem_amount: Amount,
+        redeem_amount: Balance,
     ) -> DispatchResult {
-        let mut collateral = 0;
-        let mut redeem_balance = 0;
         let exchange_rate = Self::exchange_rate(currency_id);
-        if redeem_amount == -1 {
-            collateral = AccountCollateral::<T>::get(currency_id, who);
-            redeem_balance = collateral
-                .checked_div(DECIMAL)
-                .and_then(|r| r.checked_mul(exchange_rate))
-                .ok_or(Error::<T>::CalcRedeemBalanceFailed)?;
-        } else if redeem_amount.is_positive() {
-            redeem_balance = Self::balance_try_from_amount_abs(redeem_amount)?;
-            collateral = redeem_balance
-                .checked_div(exchange_rate)
-                .and_then(|r| r.checked_mul(DECIMAL))
-                .ok_or(Error::<T>::CalcCollateralFailed)?;
-        } else {
-            return Err(Error::<T>::InvalidAmountParam.into());
-        }
+        let collateral = mul_then_div(redeem_amount, RATE_DECIMAL, exchange_rate)
+            .ok_or(Error::<T>::CalcCollateralFailed)?;
 
         AccountCollateral::<T>::try_mutate(
             currency_id,
@@ -150,7 +128,7 @@ impl<T: Config> Pallet<T> {
             currency_id.clone(),
             &Self::account_id(),
             who,
-            redeem_balance,
+            redeem_amount,
         )?;
 
         Ok(())
@@ -220,9 +198,9 @@ impl<T: Config> Pallet<T> {
 
         Ok(collateral
             .checked_mul(collateral_factor)
-            .and_then(|r| r.checked_div(DECIMAL))
+            .and_then(|r| r.checked_div(RATE_DECIMAL))
             .and_then(|r| r.checked_mul(currency_exchange_rate))
-            .and_then(|r| r.checked_div(DECIMAL))
+            .and_then(|r| r.checked_div(RATE_DECIMAL))
             .and_then(|r| r.checked_mul(currency_price))
             .ok_or(Error::<T>::CollateralOverflow)?)
     }
@@ -311,13 +289,10 @@ impl<T: Config> Pallet<T> {
     pub fn repay_borrow_internal(
         borrower: &T::AccountId,
         currency_id: &CurrencyId,
-        repay_amount: Amount,
+        repay_amount: Balance,
     ) -> DispatchResult {
-        let mut repay_balance = Self::balance_try_from_amount_abs(repay_amount)?;
         let account_borrows = Self::borrow_balance_stored(borrower, currency_id)?;
-        if repay_amount == -1 {
-            repay_balance = account_borrows;
-        } else if account_borrows < repay_balance {
+        if account_borrows < repay_amount {
             return Err(Error::<T>::RepayAmountTooBig.into());
         }
 
@@ -325,15 +300,15 @@ impl<T: Config> Pallet<T> {
             currency_id.clone(),
             borrower,
             &Self::account_id(),
-            repay_balance,
+            repay_amount,
         )?;
 
         let account_borrows_new = account_borrows
-            .checked_sub(repay_balance)
+            .checked_sub(repay_amount)
             .ok_or(Error::<T>::CalcBorrowBalanceFailed)?;
         let total_borrows = Self::total_borrows(currency_id);
         let total_borrows_new = total_borrows
-            .checked_sub(repay_balance)
+            .checked_sub(repay_amount)
             .ok_or(Error::<T>::CalcBorrowBalanceFailed)?;
 
         AccountBorrows::<T>::insert(
@@ -377,8 +352,8 @@ impl<T: Config> Pallet<T> {
 
                 if total_collateral_asset_value
                     > total_borrowed_value
-                        .checked_add(collateral_asset_value)
-                        .ok_or(Error::<T>::CollateralOverflow)?
+                    .checked_add(collateral_asset_value)
+                    .ok_or(Error::<T>::CollateralOverflow)?
                 {
                     collateral_assets.remove(index);
                     AccountCollateralAssets::<T>::insert(who.clone(), collateral_assets);

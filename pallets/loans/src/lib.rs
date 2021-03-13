@@ -304,7 +304,7 @@ pub mod module {
         pub fn redeem(
             origin: OriginFor<T>,
             currency_id: CurrencyId,
-            redeem_amount: Amount,
+            redeem_amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::redeem_internal(&who, &currency_id, redeem_amount)?;
@@ -328,7 +328,7 @@ pub mod module {
         pub fn repay_borrow(
             origin: OriginFor<T>,
             currency_id: CurrencyId,
-            repay_amount: Amount,
+            repay_amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::repay_borrow_internal(&who, &currency_id, repay_amount)?;
