@@ -1,10 +1,10 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::pallet_prelude::*;
+
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, transactional};
-use frame_system::pallet_prelude::*;
-use orml_traits::{parameter_type_with_key, MultiCurrency, MultiCurrencyExtended};
+
+use orml_traits::{parameter_type_with_key};
 use primitives::{Amount, Balance, CurrencyId};
 // use sp_runtime::{traits::AccountIdConversion, ModuleId, RuntimeDebug};
 use sp_core::H256;

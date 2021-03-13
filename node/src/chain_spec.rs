@@ -196,14 +196,12 @@ fn testnet_genesis(
             multiplier_per_year: 10u128.pow(17),   // 0.1
             jump_muiltiplier: 11 * 10u128.pow(17), // 1.1
             kink: 8 * 10u128.pow(17),              // 0.8
-            collateral_rate: {
-                let mut res = vec![];
-                res.push((CurrencyId::DOT, 5 * 10u128.pow(17))); // 0.5
-                res.push((CurrencyId::KSM, 5 * 10u128.pow(17))); // 0.5
-                res.push((CurrencyId::BTC, 5 * 10u128.pow(17))); // 0.5
-                res.push((CurrencyId::USDC, 5 * 10u128.pow(17))); // 0.5
-                res
-            },
+            collateral_rate: vec![
+                (CurrencyId::DOT, 5 * 10u128.pow(17)),
+                (CurrencyId::KSM, 5 * 10u128.pow(17)),
+                (CurrencyId::BTC, 5 * 10u128.pow(17)),
+                (CurrencyId::USDC, 5 * 10u128.pow(17)),
+            ],
         }),
     }
 }
