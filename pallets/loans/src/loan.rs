@@ -355,44 +355,39 @@ impl<T: Config> Pallet<T> {
         currency_id: CurrencyId,
         enable: bool,
     ) -> result::Result<(), Error<T>> {
-        if let Ok(mut collateral_assets) = AccountCollateralAssets::<T>::try_get(&who) {
-            if enable {
-                if !collateral_assets.iter().any(|c| c == &currency_id) {
-                    let collateral = AccountCollateral::<T>::get(currency_id, &who);
-                    if !collateral.is_zero() {
-                        collateral_assets.push(currency_id);
-                        AccountCollateralAssets::<T>::insert(who.clone(), collateral_assets);
-                        Self::deposit_event(Event::<T>::CollateralAssetAdded(who, currency_id));
-                    } else {
-                        return Err(Error::<T>::DepositRequiredBeforeCollateral);
-                    }
+        let mut collateral_assets = AccountCollateralAssets::<T>::get(&who);
+        if enable {
+            if !collateral_assets.iter().any(|c| c == &currency_id) {
+                let collateral = AccountCollateral::<T>::get(currency_id, &who);
+                if !collateral.is_zero() {
+                    collateral_assets.push(currency_id);
+                    AccountCollateralAssets::<T>::insert(who.clone(), collateral_assets);
+                    Self::deposit_event(Event::<T>::CollateralAssetAdded(who, currency_id));
                 } else {
-                    return Err(Error::<T>::AlreadyEnabledCollateral);
+                    return Err(Error::<T>::DepositRequiredBeforeCollateral);
                 }
             } else {
-                if let Some(index) = collateral_assets.iter().position(|c| c == &currency_id) {
-                    let total_collateral_asset_value = Self::total_collateral_asset_value(&who)?;
-                    let collateral_asset_value = Self::collateral_asset_value(&who, &currency_id)?;
-                    let total_borrowed_value = Self::total_borrowed_value(&who)?;
-
-                    if total_collateral_asset_value
-                        > total_borrowed_value
-                            .checked_add(collateral_asset_value)
-                            .ok_or(Error::<T>::CollateralOverflow)?
-                    {
-                        collateral_assets.remove(index);
-                        AccountCollateralAssets::<T>::insert(who.clone(), collateral_assets);
-                        Self::deposit_event(Event::<T>::CollateralAssetRemoved(who, currency_id));
-                    } else {
-                        return Err(Error::<T>::CollateralDisableActionDenied);
-                    }
-                } else {
-                    return Err(Error::<T>::AlreadyDisabledCollateral);
-                }
+                return Err(Error::<T>::AlreadyEnabledCollateral);
             }
         } else {
-            if enable {
-                AccountCollateralAssets::<T>::insert(who, vec![currency_id]);
+            if let Some(index) = collateral_assets.iter().position(|c| c == &currency_id) {
+                let total_collateral_asset_value = Self::total_collateral_asset_value(&who)?;
+                let collateral_asset_value = Self::collateral_asset_value(&who, &currency_id)?;
+                let total_borrowed_value = Self::total_borrowed_value(&who)?;
+
+                if total_collateral_asset_value
+                    > total_borrowed_value
+                        .checked_add(collateral_asset_value)
+                        .ok_or(Error::<T>::CollateralOverflow)?
+                {
+                    collateral_assets.remove(index);
+                    AccountCollateralAssets::<T>::insert(who.clone(), collateral_assets);
+                    Self::deposit_event(Event::<T>::CollateralAssetRemoved(who, currency_id));
+                } else {
+                    return Err(Error::<T>::CollateralDisableActionDenied);
+                }
+            } else {
+                return Err(Error::<T>::AlreadyDisabledCollateral);
             }
         }
 
