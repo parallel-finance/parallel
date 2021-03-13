@@ -2,7 +2,7 @@ use parallel_runtime::{
     AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, LoansConfig, Signature,
     SudoConfig, SystemConfig, TokensConfig, WASM_BINARY,
 };
-use primitives::CurrencyId;
+use primitives::{CurrencyId, RATE_DECIMAL, TOKEN_DECIMAL};
 use sc_service::ChainType;
 use serde_json::map::Map;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -173,10 +173,10 @@ fn testnet_genesis(
                 .iter()
                 .flat_map(|x| {
                     vec![
-                        (x.clone(), CurrencyId::DOT, 10_000 * 10u128.pow(18)),
-                        (x.clone(), CurrencyId::KSM, 10_000 * 10u128.pow(18)),
-                        (x.clone(), CurrencyId::BTC, 10_000 * 10u128.pow(18)),
-                        (x.clone(), CurrencyId::USDC, 10_000 * 10u128.pow(18)),
+                        (x.clone(), CurrencyId::DOT, 10_000 * TOKEN_DECIMAL),
+                        (x.clone(), CurrencyId::KSM, 10_000 * TOKEN_DECIMAL),
+                        (x.clone(), CurrencyId::BTC, 10_000 * TOKEN_DECIMAL),
+                        (x.clone(), CurrencyId::USDC, 10_000 * TOKEN_DECIMAL),
                     ]
                 })
                 .collect(),
@@ -188,19 +188,20 @@ fn testnet_genesis(
                 CurrencyId::BTC,
                 CurrencyId::USDC,
             ],
-            total_supply: 100 * 10u128.pow(18),    // 100
-            total_borrows: 50 * 10u128.pow(18),    // 50
-            borrow_index: 10u128.pow(18),          // 1
-            exchange_rate: 2 * 10u128.pow(16),     // 0.02
-            base_rate: 2 * 10u128.pow(16),         // 0.02
-            multiplier_per_year: 10u128.pow(17),   // 0.1
-            jump_muiltiplier: 11 * 10u128.pow(17), // 1.1
-            kink: 8 * 10u128.pow(17),              // 0.8
+            total_supply: 100 * TOKEN_DECIMAL, // 100
+            total_borrows: 50 * TOKEN_DECIMAL, // 50
+
+            borrow_index: RATE_DECIMAL,               // 1
+            exchange_rate: 2 * RATE_DECIMAL / 100,     // 0.02
+            base_rate: 2 * RATE_DECIMAL / 100,         // 0.02
+            multiplier_per_year: 1 * RATE_DECIMAL / 10,   // 0.1
+            jump_muiltiplier: 11 * RATE_DECIMAL / 10, // 1.1
+            kink: 8 * RATE_DECIMAL / 10,              // 0.8
             collateral_rate: vec![
-                (CurrencyId::DOT, 5 * 10u128.pow(17)),
-                (CurrencyId::KSM, 5 * 10u128.pow(17)),
-                (CurrencyId::BTC, 5 * 10u128.pow(17)),
-                (CurrencyId::USDC, 5 * 10u128.pow(17)),
+                (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::KSM, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::BTC, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::USDC, 5 * RATE_DECIMAL / 10),
             ],
         }),
     }

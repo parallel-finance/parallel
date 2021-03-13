@@ -5,7 +5,7 @@ use super::*;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, transactional};
 
 use orml_traits::parameter_type_with_key;
-use primitives::{Amount, Balance, CurrencyId};
+use primitives::{Amount, Balance, CurrencyId, RATE_DECIMAL, TOKEN_DECIMAL, BLOCK_PER_YEAR};
 // use sp_runtime::{traits::AccountIdConversion, ModuleId, RuntimeDebug};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
@@ -165,20 +165,21 @@ impl ExtBuilder {
                 CurrencyId::BTC,
                 CurrencyId::USDC,
             ],
-            total_supply: 100 * 10u128.pow(18),    // 100
-            total_borrows: 50 * 10u128.pow(18),    // 50
-            borrow_index: 10u128.pow(18),          // 1
-            exchange_rate: 2 * 10u128.pow(16),     // 0.02
-            base_rate: 2 * 10u128.pow(16),         // 0.02
-            multiplier_per_year: 10u128.pow(17),   // 0.1
-            jump_muiltiplier: 11 * 10u128.pow(17), // 1.1
-            kink: 8 * 10u128.pow(17),              // 0.8
+            total_supply: 100 * TOKEN_DECIMAL, // 100
+            total_borrows: 50 * TOKEN_DECIMAL, // 50
+
+            borrow_index: RATE_DECIMAL,                 // 1
+            exchange_rate: 2 * RATE_DECIMAL / 100,       // 0.02
+            base_rate: 2 * RATE_DECIMAL / 100,           // 0.02
+            multiplier_per_year: 1 * RATE_DECIMAL / 10, // 0.1
+            jump_muiltiplier: 11 * RATE_DECIMAL / 10,   // 1.1
+            kink: 8 * RATE_DECIMAL / 10,                // 0.8
             collateral_rate: {
                 let mut res = vec![];
-                res.push((CurrencyId::DOT, 5 * 10u128.pow(17))); // 0.5
-                res.push((CurrencyId::KSM, 5 * 10u128.pow(17))); // 0.5
-                res.push((CurrencyId::BTC, 5 * 10u128.pow(17))); // 0.5
-                res.push((CurrencyId::USDC, 5 * 10u128.pow(17))); // 0.5
+                res.push((CurrencyId::DOT, 5 * RATE_DECIMAL / 10)); // 0.5
+                res.push((CurrencyId::KSM, 5 * RATE_DECIMAL / 10)); // 0.5
+                res.push((CurrencyId::BTC, 5 * RATE_DECIMAL / 10)); // 0.5
+                res.push((CurrencyId::USDC, 5 * RATE_DECIMAL / 10)); // 0.5
                 res
             },
         }

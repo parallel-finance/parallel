@@ -1,20 +1,19 @@
 //! Unit tests for the loans module.
 
 #![cfg(test)]
+use primitives::{Amount, Balance, CurrencyId, RATE_DECIMAL, TOKEN_DECIMAL, BLOCK_PER_YEAR};
 
 use super::*;
 
 use mock::*;
 
-use crate::rate::*;
-
 #[test]
 fn test_mock_genesis_ok() {
     ExtBuilder::default().build().execute_with(|| {
-        assert_eq!(TotalBorrows::<Runtime>::get(DOT), 50 * 10u128.pow(18));
-        assert_eq!(TotalSupply::<Runtime>::get(BTC), 100 * 10u128.pow(18));
-        assert_eq!(BorrowIndex::<Runtime>::get(USDC), 10u128.pow(18));
-        assert_eq!(CollateralRate::<Runtime>::get(KSM), 5 * 10u128.pow(17));
+        assert_eq!(TotalBorrows::<Runtime>::get(DOT), 50 * TOKEN_DECIMAL);
+        assert_eq!(TotalSupply::<Runtime>::get(BTC), 100 * TOKEN_DECIMAL);
+        assert_eq!(BorrowIndex::<Runtime>::get(USDC), RATE_DECIMAL);
+        assert_eq!(CollateralRate::<Runtime>::get(KSM), 5 * RATE_DECIMAL / 10);
     });
 }
 
@@ -24,31 +23,31 @@ fn test_utilization_rate() {
     // 50% borrow
     assert_eq!(
         Loans::utilization_rate(1, 1, 0).unwrap(),
-        5 * 10u128.pow(17)
+        5 * RATE_DECIMAL / 10
     );
     assert_eq!(
         Loans::utilization_rate(100, 100, 0).unwrap(),
-        5 * 10u128.pow(17)
+        5 * RATE_DECIMAL / 10
     );
     // no borrow
     assert_eq!(
         Loans::utilization_rate(1, 0, 0).unwrap(),
-        0 * 10u128.pow(17)
+        0 * RATE_DECIMAL / 10
     );
     // full borrow
     assert_eq!(
         Loans::utilization_rate(0, 1, 0).unwrap(),
-        1 * 10u128.pow(18)
+        1 * RATE_DECIMAL
     );
 }
 
 #[test]
 fn test_update_jump_rate_model() {
     ExtBuilder::default().build().execute_with(|| {
-        let base_rate_per_year: u128 = 2 * 10u128.pow(16);
-        let multiplier_per_year: u128 = 10u128.pow(17);
-        let jump_multiplier_per_year: u128 = 11 * 10u128.pow(17);
-        let kink: u128 = 8 * 10u128.pow(17);
+        let base_rate_per_year: u128 = 2 * RATE_DECIMAL / 100;
+        let multiplier_per_year: u128 = RATE_DECIMAL / 10;
+        let jump_multiplier_per_year: u128 = 11 * RATE_DECIMAL / 10;
+        let kink: u128 = 8 * RATE_DECIMAL / 10;
         Loans::update_jump_rate_model(
             base_rate_per_year,
             multiplier_per_year,
@@ -75,8 +74,8 @@ fn test_update_jump_rate_model() {
 fn test_update_borrow_rate() {
     ExtBuilder::default().build().execute_with(|| {
         // normal rate
-        let mut cash: u128 = 5 * 10u128.pow(18);
-        let borrows: u128 = 10 * 10u128.pow(18);
+        let mut cash: u128 = 5 * TOKEN_DECIMAL;
+        let borrows: u128 = 10 * TOKEN_DECIMAL;
         let reserves: u128 = 0;
         Loans::update_borrow_rate(CurrencyId::DOT, cash, borrows, reserves);
         let util = Loans::utilization_rate(cash, borrows, reserves).unwrap();
@@ -90,18 +89,16 @@ fn test_update_borrow_rate() {
         );
 
         // jump rate
-        cash = 1 * 10u128.pow(18);
+        cash = 1 * TOKEN_DECIMAL;
         Loans::update_borrow_rate(CurrencyId::KSM, cash, borrows, reserves);
         let normal_rate = kink * multiplier_per_block / RATE_DECIMAL + base_rate_per_block;
         let excess_util = util.saturating_sub(kink);
         assert_eq!(
             BorrowRate::<Runtime>::get(CurrencyId::KSM),
-            (excess_util * jump_multiplier_per_block) / RATE_DECIMAL + normal_rate
+            excess_util * (jump_multiplier_per_block / RATE_DECIMAL) + normal_rate
         );
     });
 }
 
 #[test]
-fn test_calc_exchange_rate() {
-
-}
+fn test_calc_exchange_rate() {}

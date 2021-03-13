@@ -1,14 +1,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::StorageMap;
-use primitives::{Balance, CurrencyId};
+use primitives::{Balance, CurrencyId, BLOCK_PER_YEAR, RATE_DECIMAL};
 use sp_runtime::{traits::Zero, DispatchResult};
 use sp_std::prelude::*;
 use sp_std::result;
 
-use crate::*;
 use crate::util::*;
-use crate::rate::*;
+use crate::*;
 
 use pallet_ocw_oracle;
 
@@ -40,8 +39,13 @@ impl<T: Config> Pallet<T> {
             .checked_add(borrows_prior)
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
         let borrow_index = Self::borrow_index(currency_id);
-        let borrow_index_new = mul_then_div_then_add(borrow_index, borrow_rate_per_block, RATE_DECIMAL, borrow_index)
-            .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
+        let borrow_index_new = mul_then_div_then_add(
+            borrow_index,
+            borrow_rate_per_block,
+            RATE_DECIMAL,
+            borrow_index,
+        )
+        .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
 
         TotalBorrows::<T>::insert(currency_id, total_borrows_new);
         BorrowIndex::<T>::insert(currency_id, borrow_index_new);
@@ -124,12 +128,7 @@ impl<T: Config> Pallet<T> {
             Ok(())
         })?;
 
-        T::Currency::transfer(
-            currency_id.clone(),
-            &Self::account_id(),
-            who,
-            redeem_amount,
-        )?;
+        T::Currency::transfer(currency_id.clone(), &Self::account_id(), who, redeem_amount)?;
 
         Ok(())
     }
@@ -352,8 +351,8 @@ impl<T: Config> Pallet<T> {
 
                 if total_collateral_asset_value
                     > total_borrowed_value
-                    .checked_add(collateral_asset_value)
-                    .ok_or(Error::<T>::CollateralOverflow)?
+                        .checked_add(collateral_asset_value)
+                        .ok_or(Error::<T>::CollateralOverflow)?
                 {
                     collateral_assets.remove(index);
                     AccountCollateralAssets::<T>::insert(who.clone(), collateral_assets);

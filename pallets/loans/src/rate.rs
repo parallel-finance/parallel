@@ -1,12 +1,9 @@
-use primitives::{Balance, CurrencyId};
+use primitives::{Balance, CurrencyId, BLOCK_PER_YEAR, RATE_DECIMAL};
 use sp_runtime::{traits::Zero, DispatchResult};
 use sp_std::prelude::*;
 
 use crate::util::*;
 use crate::*;
-
-pub const BLOCK_PER_YEAR: u128 = 5256000;
-pub const RATE_DECIMAL: u128 = 1_000_000_000_000_000_000;
 
 impl<T: Config> Pallet<T> {
     fn insert_borrow_rate(currency_id: CurrencyId, rate: u128) {
