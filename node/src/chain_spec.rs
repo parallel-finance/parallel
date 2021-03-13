@@ -177,6 +177,7 @@ fn testnet_genesis(
                         (x.clone(), CurrencyId::KSM, 10_000 * TOKEN_DECIMAL),
                         (x.clone(), CurrencyId::BTC, 10_000 * TOKEN_DECIMAL),
                         (x.clone(), CurrencyId::USDC, 10_000 * TOKEN_DECIMAL),
+                        (x.clone(), CurrencyId::LDOT, 10_000 * TOKEN_DECIMAL),
                     ]
                 })
                 .collect(),
@@ -187,21 +188,23 @@ fn testnet_genesis(
                 CurrencyId::KSM,
                 CurrencyId::BTC,
                 CurrencyId::USDC,
+                CurrencyId::LDOT,
             ],
             total_supply: 100 * TOKEN_DECIMAL, // 100
             total_borrows: 50 * TOKEN_DECIMAL, // 50
 
-            borrow_index: RATE_DECIMAL,               // 1
-            exchange_rate: 2 * RATE_DECIMAL / 100,     // 0.02
-            base_rate: 2 * RATE_DECIMAL / 100,         // 0.02
-            multiplier_per_year: 1 * RATE_DECIMAL / 10,   // 0.1
-            jump_muiltiplier: 11 * RATE_DECIMAL / 10, // 1.1
-            kink: 8 * RATE_DECIMAL / 10,              // 0.8
+            borrow_index: RATE_DECIMAL,                 // 1
+            exchange_rate: 2 * RATE_DECIMAL / 100,      // 0.02
+            base_rate: 2 * RATE_DECIMAL / 100,          // 0.02
+            multiplier_per_year: 1 * RATE_DECIMAL / 10, // 0.1
+            jump_muiltiplier: 11 * RATE_DECIMAL / 10,   // 1.1
+            kink: 8 * RATE_DECIMAL / 10,                // 0.8
             collateral_rate: vec![
                 (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),
                 (CurrencyId::KSM, 5 * RATE_DECIMAL / 10),
                 (CurrencyId::BTC, 5 * RATE_DECIMAL / 10),
                 (CurrencyId::USDC, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::LDOT, 5 * RATE_DECIMAL / 10),
             ],
         }),
     }

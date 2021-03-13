@@ -6,7 +6,7 @@ use frame_support::pallet_prelude::*;
 use frame_support::transactional;
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
-use primitives::{Amount, Balance, CurrencyId};
+use primitives::{Amount, Balance, CurrencyId, TOKEN_DECIMAL};
 use sp_runtime::{traits::AccountIdConversion, ModuleId, RuntimeDebug};
 use sp_std::vec::Vec;
 
@@ -15,6 +15,7 @@ pub use module::*;
 mod loan;
 mod mock;
 mod rate;
+mod staking;
 mod tests;
 mod util;
 
@@ -30,6 +31,7 @@ pub struct BorrowSnapshot {
 #[frame_support::pallet]
 pub mod module {
     use super::*;
+    use sp_runtime::traits::Saturating;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -228,6 +230,12 @@ pub mod module {
     #[pallet::genesis_build]
     impl<T: Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
+            T::Currency::update_balance(
+                CurrencyId::LDOT,
+                &Pallet::<T>::account_id(),
+                1_000_000_000_000_000_000_000_000_000_000,
+            );
+
             self.currencies.iter().for_each(|currency_id| {
                 TotalSupply::<T>::insert(currency_id, self.total_supply);
                 TotalBorrows::<T>::insert(currency_id, self.total_borrows);
@@ -358,6 +366,30 @@ pub mod module {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::collateral_asset_internal(who, currency_id, enable)?;
+
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn staking(
+            origin: OriginFor<T>,
+            amount: Balance,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            Self::staking_internal(&who, amount)?;
+
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn stop_staking(
+            origin: OriginFor<T>,
+            amount: Balance,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            Self::stop_staking_internal(&who, amount)?;
 
             Ok(().into())
         }

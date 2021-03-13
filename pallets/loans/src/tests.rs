@@ -1,7 +1,7 @@
 //! Unit tests for the loans module.
 
 #![cfg(test)]
-use primitives::{Amount, Balance, CurrencyId, RATE_DECIMAL, TOKEN_DECIMAL, BLOCK_PER_YEAR};
+use primitives::{Amount, Balance, CurrencyId, BLOCK_PER_YEAR, RATE_DECIMAL, TOKEN_DECIMAL};
 
 use super::*;
 
@@ -35,10 +35,7 @@ fn test_utilization_rate() {
         0 * RATE_DECIMAL / 10
     );
     // full borrow
-    assert_eq!(
-        Loans::utilization_rate(0, 1, 0).unwrap(),
-        1 * RATE_DECIMAL
-    );
+    assert_eq!(Loans::utilization_rate(0, 1, 0).unwrap(), 1 * RATE_DECIMAL);
 }
 
 #[test]

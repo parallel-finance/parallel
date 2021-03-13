@@ -5,7 +5,7 @@ use super::*;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, transactional};
 
 use orml_traits::parameter_type_with_key;
-use primitives::{Amount, Balance, CurrencyId, RATE_DECIMAL, TOKEN_DECIMAL, BLOCK_PER_YEAR};
+use primitives::{Amount, Balance, CurrencyId, BLOCK_PER_YEAR, RATE_DECIMAL, TOKEN_DECIMAL};
 // use sp_runtime::{traits::AccountIdConversion, ModuleId, RuntimeDebug};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
@@ -19,11 +19,12 @@ pub type BlockNumber = u64;
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 
-pub const NATIVE: CurrencyId = CurrencyId::Native;
-pub const USDC: CurrencyId = CurrencyId::USDC;
 pub const DOT: CurrencyId = CurrencyId::DOT;
-pub const BTC: CurrencyId = CurrencyId::BTC;
 pub const KSM: CurrencyId = CurrencyId::KSM;
+pub const BTC: CurrencyId = CurrencyId::BTC;
+pub const USDC: CurrencyId = CurrencyId::USDC;
+pub const LDOT: CurrencyId = CurrencyId::LDOT;
+pub const NATIVE: CurrencyId = CurrencyId::Native;
 
 mod loans {
     pub use super::super::*;
@@ -164,13 +165,14 @@ impl ExtBuilder {
                 CurrencyId::KSM,
                 CurrencyId::BTC,
                 CurrencyId::USDC,
+                CurrencyId::LDOT,
             ],
             total_supply: 100 * TOKEN_DECIMAL, // 100
             total_borrows: 50 * TOKEN_DECIMAL, // 50
 
             borrow_index: RATE_DECIMAL,                 // 1
-            exchange_rate: 2 * RATE_DECIMAL / 100,       // 0.02
-            base_rate: 2 * RATE_DECIMAL / 100,           // 0.02
+            exchange_rate: 2 * RATE_DECIMAL / 100,      // 0.02
+            base_rate: 2 * RATE_DECIMAL / 100,          // 0.02
             multiplier_per_year: 1 * RATE_DECIMAL / 10, // 0.1
             jump_muiltiplier: 11 * RATE_DECIMAL / 10,   // 1.1
             kink: 8 * RATE_DECIMAL / 10,                // 0.8
@@ -180,6 +182,7 @@ impl ExtBuilder {
                 res.push((CurrencyId::KSM, 5 * RATE_DECIMAL / 10)); // 0.5
                 res.push((CurrencyId::BTC, 5 * RATE_DECIMAL / 10)); // 0.5
                 res.push((CurrencyId::USDC, 5 * RATE_DECIMAL / 10)); // 0.5
+                res.push((CurrencyId::LDOT, 5 * RATE_DECIMAL / 10)); // 0.5
                 res
             },
         }
