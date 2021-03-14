@@ -40,8 +40,8 @@ pub struct EarnedSnapshot {
 #[frame_support::pallet]
 pub mod module {
     use super::*;
-    use sp_runtime::traits::Saturating;
     use crate::util::mul_then_div;
+    use sp_runtime::traits::Saturating;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -357,9 +357,8 @@ pub mod module {
             Self::update_earned_stored(&who, &currency_id)?;
             let collateral = AccountCollateral::<T>::get(&currency_id, &who);
             let exchange_rate = Self::exchange_rate(currency_id);
-            let redeem_amount=
-                mul_then_div(collateral, exchange_rate, RATE_DECIMAL)
-                    .ok_or(Error::<T>::CollateralOverflow)?;
+            let redeem_amount = mul_then_div(collateral, exchange_rate, RATE_DECIMAL)
+                .ok_or(Error::<T>::CollateralOverflow)?;
             Self::redeem_internal(&who, &currency_id, redeem_amount.into())?;
             Ok(().into())
         }
