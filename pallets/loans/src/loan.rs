@@ -128,6 +128,7 @@ impl<T: Config> Pallet<T> {
             Ok(())
         })?;
 
+        // debug::info!("moduleAccountBalance: {:?}", T::Currency::free_balance(currency_id.clone(), &who));
         T::Currency::transfer(currency_id.clone(), &Self::account_id(), who, redeem_amount)?;
 
         Ok(())
@@ -368,7 +369,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    fn borrow_balance_stored(
+    pub(crate) fn borrow_balance_stored(
         who: &T::AccountId,
         currency_id: &CurrencyId,
     ) -> result::Result<Balance, Error<T>> {

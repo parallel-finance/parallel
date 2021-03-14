@@ -6,7 +6,7 @@ use frame_support::pallet_prelude::*;
 use frame_support::transactional;
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
-use primitives::{Amount, Balance, CurrencyId};
+use primitives::{Amount, Balance, CurrencyId, RATE_DECIMAL};
 use sp_runtime::{traits::AccountIdConversion, ModuleId, RuntimeDebug};
 use sp_std::vec::Vec;
 
@@ -41,6 +41,7 @@ pub struct EarnedSnapshot {
 pub mod module {
     use super::*;
     use sp_runtime::traits::Saturating;
+    use crate::util::mul_then_div;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -348,6 +349,23 @@ pub mod module {
 
         #[pallet::weight(10_000)]
         #[transactional]
+        pub fn redeem_all(
+            origin: OriginFor<T>,
+            currency_id: CurrencyId,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            Self::update_earned_stored(&who, &currency_id)?;
+            let collateral = AccountCollateral::<T>::get(&currency_id, &who);
+            let exchange_rate = Self::exchange_rate(currency_id);
+            let redeem_amount=
+                mul_then_div(collateral, exchange_rate, RATE_DECIMAL)
+                    .ok_or(Error::<T>::CollateralOverflow)?;
+            Self::redeem_internal(&who, &currency_id, redeem_amount.into())?;
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
         pub fn borrow(
             origin: OriginFor<T>,
             currency_id: CurrencyId,
@@ -367,6 +385,18 @@ pub mod module {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::repay_borrow_internal(&who, &currency_id, repay_amount)?;
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn repay_borrow_all(
+            origin: OriginFor<T>,
+            currency_id: CurrencyId,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            let account_borrows = Self::borrow_balance_stored(&who, &currency_id)?;
+            Self::repay_borrow_internal(&who, &currency_id, account_borrows)?;
             Ok(().into())
         }
 
