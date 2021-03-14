@@ -206,6 +206,27 @@ fn testnet_genesis(
                 (CurrencyId::USDC, 5 * RATE_DECIMAL / 10),
                 (CurrencyId::xDOT, 5 * RATE_DECIMAL / 10),
             ],
+            liquidation_incentive: vec![
+                (CurrencyId::DOT, 9 * RATE_DECIMAL / 10),
+                (CurrencyId::KSM, 9* RATE_DECIMAL / 10),
+                (CurrencyId::BTC, 9 * RATE_DECIMAL / 10),
+                (CurrencyId::USDC, 9 * RATE_DECIMAL / 10),
+                (CurrencyId::xDOT, 9 * RATE_DECIMAL / 10),
+            ],
+            liquidation_threshold: vec![
+                (CurrencyId::DOT, 8 * RATE_DECIMAL / 10),
+                (CurrencyId::KSM, 8* RATE_DECIMAL / 10),
+                (CurrencyId::BTC, 8 * RATE_DECIMAL / 10),
+                (CurrencyId::USDC, 9 * RATE_DECIMAL / 10),
+                (CurrencyId::xDOT, 8 * RATE_DECIMAL / 10),
+            ],
+            close_factor: vec![
+                (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::KSM, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::BTC, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::USDC, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::xDOT, 5 * RATE_DECIMAL / 10),
+            ],
         }),
     }
 }
