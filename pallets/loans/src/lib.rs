@@ -397,18 +397,18 @@ pub mod module {
 
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn staking(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
+        pub fn stake(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::staking_internal(&who, amount)?;
+            Self::stake_internal(&who, amount)?;
 
             Ok(().into())
         }
 
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn stop_staking(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
+        pub fn unstake(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::stop_staking_internal(&who, amount)?;
+            Self::unstake_internal(&who, amount)?;
 
             Ok(().into())
         }

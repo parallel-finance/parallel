@@ -10,7 +10,7 @@ impl<T: Config> Pallet<T> {
     ///
     /// Ensured atomic.
     #[transactional]
-    pub fn staking_internal(who: &T::AccountId, amount: Balance) -> DispatchResult {
+    pub fn stake_internal(who: &T::AccountId, amount: Balance) -> DispatchResult {
         T::Currency::transfer(CurrencyId::DOT, who, &Self::account_id(), amount)?;
         T::Currency::transfer(CurrencyId::LDOT, &Self::account_id(), who, amount)?;
 
@@ -20,7 +20,7 @@ impl<T: Config> Pallet<T> {
     ///
     /// Ensured atomic.
     #[transactional]
-    pub fn stop_staking_internal(who: &T::AccountId, amount: Balance) -> DispatchResult {
+    pub fn unstake_internal(who: &T::AccountId, amount: Balance) -> DispatchResult {
         T::Currency::transfer(CurrencyId::DOT, &Self::account_id(), who, amount)?;
         T::Currency::transfer(CurrencyId::LDOT, who, &Self::account_id(), amount)?;
 
