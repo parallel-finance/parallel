@@ -6,7 +6,7 @@ use frame_support::pallet_prelude::*;
 use frame_support::transactional;
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
-use primitives::{Amount, Balance, CurrencyId, TOKEN_DECIMAL};
+use primitives::{Amount, Balance, CurrencyId};
 use sp_runtime::{traits::AccountIdConversion, ModuleId, RuntimeDebug};
 use sp_std::vec::Vec;
 
@@ -372,10 +372,7 @@ pub mod module {
 
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn staking(
-            origin: OriginFor<T>,
-            amount: Balance,
-        ) -> DispatchResultWithPostInfo {
+        pub fn staking(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::staking_internal(&who, amount)?;
 
@@ -384,10 +381,7 @@ pub mod module {
 
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn stop_staking(
-            origin: OriginFor<T>,
-            amount: Balance,
-        ) -> DispatchResultWithPostInfo {
+        pub fn stop_staking(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::stop_staking_internal(&who, amount)?;
 

@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::StorageMap;
-use primitives::{Balance, CurrencyId, BLOCK_PER_YEAR, RATE_DECIMAL};
+use primitives::{Balance, CurrencyId, RATE_DECIMAL};
 use sp_runtime::{traits::Zero, DispatchResult};
 use sp_std::prelude::*;
 use sp_std::result;

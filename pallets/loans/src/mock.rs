@@ -5,7 +5,7 @@ use super::*;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, transactional};
 
 use orml_traits::parameter_type_with_key;
-use primitives::{Amount, Balance, CurrencyId, BLOCK_PER_YEAR, RATE_DECIMAL, TOKEN_DECIMAL};
+use primitives::{Amount, Balance, CurrencyId, RATE_DECIMAL, TOKEN_DECIMAL};
 // use sp_runtime::{traits::AccountIdConversion, ModuleId, RuntimeDebug};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
