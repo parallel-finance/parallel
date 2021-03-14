@@ -28,6 +28,15 @@ pub struct BorrowSnapshot {
     pub interest_index: u128,
 }
 
+/// Container for earned amount information
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
+pub struct EarnedSnapshot {
+    /// Total deposit interest, after applying the most recent balance-changing action
+    pub total_earned_prior: Balance,
+    /// Exchange rate,  after applying the most recent balance-changing action
+    pub exchange_rate_prior: u128,
+}
+
 #[frame_support::pallet]
 pub mod module {
     use super::*;
@@ -68,6 +77,7 @@ pub mod module {
         CalcRedeemBalanceFailed,
         CalcInterestRateFailed,
         CalcBorrowBalanceFailed,
+        CalcEarnedFailed,
         MarketNotFresh,
         /// Please enable collateral for one of your assets before borrowing
         NoCollateralAsset,
@@ -149,6 +159,20 @@ pub mod module {
         Twox64Concat,
         T::AccountId,
         Balance,
+        ValueQuery,
+    >;
+
+    /// Mapping of account addresses to total deposit interest accrual
+    /// CollateralType -> Owner -> BorrowSnapshot
+    #[pallet::storage]
+    #[pallet::getter(fn account_earned)]
+    pub type AccountEarned<T: Config> = StorageDoubleMap<
+        _,
+        Twox64Concat,
+        CurrencyId,
+        Twox64Concat,
+        T::AccountId,
+        EarnedSnapshot,
         ValueQuery,
     >;
 
@@ -234,8 +258,7 @@ pub mod module {
                 CurrencyId::LDOT,
                 &Pallet::<T>::account_id(),
                 1_000_000_000_000_000_000_000_000_000_000,
-            );
-
+            ).unwrap();
             self.currencies.iter().for_each(|currency_id| {
                 TotalSupply::<T>::insert(currency_id, self.total_supply);
                 TotalBorrows::<T>::insert(currency_id, self.total_borrows);
@@ -253,7 +276,7 @@ pub mod module {
                 self.multiplier_per_year,
                 self.jump_muiltiplier,
                 self.kink,
-            );
+            ).unwrap();
         }
     }
 
@@ -303,6 +326,7 @@ pub mod module {
             mint_amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+            Self::update_earned_stored(&who, &currency_id)?;
             Self::mint_internal(&who, &currency_id, mint_amount)?;
             Ok(().into())
         }
@@ -315,6 +339,7 @@ pub mod module {
             redeem_amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+            Self::update_earned_stored(&who, &currency_id)?;
             Self::redeem_internal(&who, &currency_id, redeem_amount)?;
             Ok(().into())
         }

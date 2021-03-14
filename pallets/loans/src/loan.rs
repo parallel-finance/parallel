@@ -387,4 +387,26 @@ impl<T: Config> Pallet<T> {
 
         Ok(recent_borrow_balance)
     }
+
+    pub(crate) fn update_earned_stored(
+        who: &T::AccountId,
+        currency_id: &CurrencyId,
+    )-> DispatchResult {
+        let collateral = AccountCollateral::<T>::get(currency_id, who);
+        let exchange_rate = ExchangeRate::<T>::get(currency_id);
+        let account_earned = AccountEarned::<T>::get(currency_id, who);
+        let total_earned_prior_new = exchange_rate
+            .checked_sub(account_earned.exchange_rate_prior)
+            .and_then(|r| r.checked_mul(collateral))
+            .and_then(|r| r.checked_div(RATE_DECIMAL))
+            .and_then(|r| r.checked_add(account_earned.total_earned_prior))
+            .ok_or(Error::<T>::CalcEarnedFailed)?;
+
+        AccountEarned::<T>::insert(currency_id, who, EarnedSnapshot{
+            exchange_rate_prior: exchange_rate,
+            total_earned_prior: total_earned_prior_new,
+        });
+
+        Ok(())
+    }
 }
