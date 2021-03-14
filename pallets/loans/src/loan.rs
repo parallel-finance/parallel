@@ -479,8 +479,14 @@ impl<T: Config> Pallet<T> {
 
         // let real_repay_amount = repay_amount.checked_mul(colose_factor)?;
         // calculate the acutal amount and sum price of collateral currency(like BTC), that can be liquidated
-        let real_collateral_token_amount = collateral_token_amount.checked_mul(colose_factor).ok_or(Error::<T>::CollateralOverflow)?;
-        let real_collateral_token_sum_price = collateral_token_sum_price.checked_mul(colose_factor).ok_or(Error::<T>::CollateralOverflow)?;
+        let real_collateral_token_amount = collateral_token_amount
+            .checked_mul(colose_factor)
+            .and_then(|r| r.checked_div(RATE_DECIMAL))
+            .ok_or(Error::<T>::CollateralOverflow)?;
+        let real_collateral_token_sum_price = collateral_token_sum_price
+            .checked_mul(colose_factor)
+            .and_then(|r| r.checked_div(RATE_DECIMAL))
+            .ok_or(Error::<T>::CollateralOverflow)?;
 
         //calculate real liquidate_token amount that the liquidator should pay
         let real_liquidate_token_repay_amount = real_collateral_token_sum_price
@@ -568,7 +574,8 @@ impl<T: Config> Pallet<T> {
 
         //4. we can decide if withdraw to liquidator (from ctoken to token)
         // Self::redeem_internal(&liquidator, &collateral_token, collateral_token_amount)?;
-        //todo emit event
+        // liquidator, borrower,liquidate_token,collateral_token,liquidate_token_repay_amount,collateral_token_amount
+        Self::deposit_event(Event::<T>::LiquidationOccur(liquidator.clone(), borrower.clone(),liquidate_token.clone(),collateral_token.clone(),liquidate_token_repay_amount,collateral_token_amount));
         Ok(())
     }
 }
