@@ -123,6 +123,10 @@ pub mod module {
         CollateralAssetAdded(T::AccountId, CurrencyId),
         CollateralAssetRemoved(T::AccountId, CurrencyId),
 
+        /// a collateral has been liquidatied
+        /// liquidator, borrower,liquidate_token,collateral_token,liquidate_token_repay_amount,collateral_token_amount
+        LiquidationOccur(T::AccountId, T::AccountId, CurrencyId, CurrencyId, Balance, Balance),
+
         Test(u128),
     }
 
@@ -227,6 +231,9 @@ pub mod module {
     #[pallet::getter(fn liquidation_incentive)]
     pub type LiquidationIncentive<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
     #[pallet::storage]
+    #[pallet::getter(fn liquidation_threshold)]
+    pub type LiquidationThreshold<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+    #[pallet::storage]
     #[pallet::getter(fn close_factor)]
     pub type CloseFactor<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
 
@@ -243,6 +250,7 @@ pub mod module {
         pub kink: u128,
         pub collateral_rate: Vec<(CurrencyId, u128)>,
         pub liquidation_incentive: Vec<(CurrencyId, u128)>,
+        pub liquidation_threshold: Vec<(CurrencyId, u128)>,
         pub close_factor: Vec<(CurrencyId, u128)>,
     }
 
@@ -261,6 +269,7 @@ pub mod module {
                 kink: 0,
                 collateral_rate: vec![],
                 liquidation_incentive: vec![],
+                liquidation_threshold: vec![],
                 close_factor: vec![],
             }
         }
@@ -290,6 +299,11 @@ pub mod module {
                 .iter()
                 .for_each(|(currency_id, liquidation_incentive)| {
                     LiquidationIncentive::<T>::insert(currency_id, liquidation_incentive);
+                });
+            self.liquidation_threshold
+                .iter()
+                .for_each(|(currency_id, liquidation_threshold)| {
+                    LiquidationThreshold::<T>::insert(currency_id, liquidation_threshold);
                 });
             self.close_factor
                 .iter()
@@ -464,6 +478,9 @@ pub mod module {
         pub fn unstake(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::unstake_internal(&who, amount)?;
+
+            Ok(().into())
+        }
 
         #[pallet::weight(10_000)]
         #[transactional]

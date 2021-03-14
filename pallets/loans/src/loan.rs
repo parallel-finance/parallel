@@ -401,7 +401,7 @@ impl<T: Config> Pallet<T> {
         //the total amount of borrower's collateral token
         let collateral_token_amount = collateral_ctoken_amount
             .checked_mul(exchange_rate)
-            .and_then(|r| r.checked_div(DECIMAL))
+            .and_then(|r| r.checked_div(RATE_DECIMAL))
             .ok_or(Error::<T>::CollateralOverflow)?;
         
         //the total price of borrower's collateral token
@@ -494,7 +494,7 @@ impl<T: Config> Pallet<T> {
         let exchange_rate = Self::exchange_rate(collateral_token);
         let collateral_ctoken_amount = collateral_token_amount
             .checked_div(exchange_rate)
-            .and_then(|r| r.checked_mul(DECIMAL))
+            .and_then(|r| r.checked_mul(RATE_DECIMAL))
             .ok_or(Error::<T>::CalcCollateralFailed)?;
             
         AccountCollateral::<T>::try_mutate(
@@ -523,11 +523,12 @@ impl<T: Config> Pallet<T> {
 
         //4. we can decide if withdraw to liquidator (from ctoken to token)
         // Self::redeem_internal(&liquidator, &collateral_token, collateral_token_amount)?;
+        //todo emit event
         Ok(())
     }
 
 
-    pub(crate) fn borrow_balance_stored(
+    pub fn borrow_balance_stored(
         who: &T::AccountId,
         currency_id: &CurrencyId,
     ) -> result::Result<Balance, Error<T>> {
