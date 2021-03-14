@@ -8,7 +8,7 @@ use sp_std::result;
 
 use crate::*;
 
-const DECIMAL: u128 = 1_000_000_000_000_000_000;
+pub const DECIMAL: u128 = 1_000_000_000_000_000_000;
 
 use pallet_ocw_oracle;
 
@@ -480,11 +480,14 @@ impl<T: Config> Pallet<T> {
 
         //4. we can decide if withdraw to liquidator (from ctoken to token)
         // Self::redeem_internal(&liquidator, &collateral_token, collateral_token_amount)?;
+
+        //TODO add an index, that increase by 1
+        // Self::deposit_event(Event::<T>::LiquidationOccur(liquidator, borrower, liquidate_token, collateral_token,liquidate_token_repay_amount,collateral_token_amount));
         Ok(())
     }
 
 
-    fn borrow_balance_stored(
+    pub fn borrow_balance_stored(
         who: &T::AccountId,
         currency_id: &CurrencyId,
     ) -> result::Result<Balance, Error<T>> {

@@ -18,6 +18,8 @@ mod rate;
 mod tests;
 mod util;
 
+pub use loan::DECIMAL;
+type LiquidationIndex = u128;
 /// Container for borrow balance information
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
 pub struct BorrowSnapshot {
@@ -101,6 +103,10 @@ pub mod module {
         /// Enable/Disable collateral for certain asset
         CollateralAssetAdded(T::AccountId, CurrencyId),
         CollateralAssetRemoved(T::AccountId, CurrencyId),
+
+        /// a collateral has been liquidatied
+        /// liquidator, borrower,liquidate_token,collateral_token,liquidate_token_repay_amount,collateral_token_amount
+        LiquidationOccur(T::AccountId, T::AccountId, CurrencyId, CurrencyId, Balance, Balance),
 
         Test(u128),
     }
@@ -192,6 +198,9 @@ pub mod module {
     #[pallet::getter(fn liquidation_incentive)]
     pub type LiquidationIncentive<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
     #[pallet::storage]
+    #[pallet::getter(fn liquidation_threshold)]
+    pub type LiquidationThreshold<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+    #[pallet::storage]
     #[pallet::getter(fn close_factor)]
     pub type CloseFactor<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
 
@@ -208,6 +217,7 @@ pub mod module {
         pub kink: u128,
         pub collateral_rate: Vec<(CurrencyId, u128)>,
         pub liquidation_incentive: Vec<(CurrencyId, u128)>,
+        pub liquidation_threshold: Vec<(CurrencyId, u128)>,
         pub close_factor: Vec<(CurrencyId, u128)>,
     }
 
@@ -226,6 +236,7 @@ pub mod module {
                 kink: 0,
                 collateral_rate: vec![],
                 liquidation_incentive: vec![],
+                liquidation_threshold: vec![],
                 close_factor: vec![],
             }
         }
@@ -249,6 +260,11 @@ pub mod module {
                 .iter()
                 .for_each(|(currency_id, liquidation_incentive)| {
                     LiquidationIncentive::<T>::insert(currency_id, liquidation_incentive);
+                });
+            self.liquidation_threshold
+                .iter()
+                .for_each(|(currency_id, liquidation_threshold)| {
+                    LiquidationThreshold::<T>::insert(currency_id, liquidation_threshold);
                 });
             self.close_factor
                 .iter()

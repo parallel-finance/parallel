@@ -3900,6 +3900,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-liquidate"
+version = "2.0.1"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "hex",
+ "pallet-loans",
+ "pallet-ocw-oracle",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "parking_lot 0.10.2",
+ "serde",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-loans"
 version = "3.0.0"
 dependencies = [
@@ -3909,6 +3929,7 @@ dependencies = [
  "orml-tokens",
  "orml-traits",
  "orml-utilities",
+ "pallet-balances",
  "pallet-ocw-oracle",
  "parallel-primitives",
  "parity-scale-codec",
