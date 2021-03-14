@@ -177,7 +177,7 @@ fn testnet_genesis(
                         (x.clone(), CurrencyId::KSM, 10_000 * TOKEN_DECIMAL),
                         (x.clone(), CurrencyId::BTC, 10_000 * TOKEN_DECIMAL),
                         (x.clone(), CurrencyId::USDC, 10_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::LDOT, 10_000 * TOKEN_DECIMAL),
+                        (x.clone(), CurrencyId::xDOT, 10_000 * TOKEN_DECIMAL),
                     ]
                 })
                 .collect(),
@@ -188,7 +188,7 @@ fn testnet_genesis(
                 CurrencyId::KSM,
                 CurrencyId::BTC,
                 CurrencyId::USDC,
-                CurrencyId::LDOT,
+                CurrencyId::xDOT,
             ],
             total_supply: 100 * TOKEN_DECIMAL, // 100
             total_borrows: 50 * TOKEN_DECIMAL, // 50
@@ -204,7 +204,7 @@ fn testnet_genesis(
                 (CurrencyId::KSM, 5 * RATE_DECIMAL / 10),
                 (CurrencyId::BTC, 5 * RATE_DECIMAL / 10),
                 (CurrencyId::USDC, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::LDOT, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::xDOT, 5 * RATE_DECIMAL / 10),
             ],
         }),
     }

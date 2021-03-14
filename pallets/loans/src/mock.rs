@@ -23,7 +23,7 @@ pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const KSM: CurrencyId = CurrencyId::KSM;
 pub const BTC: CurrencyId = CurrencyId::BTC;
 pub const USDC: CurrencyId = CurrencyId::USDC;
-pub const LDOT: CurrencyId = CurrencyId::LDOT;
+pub const LDOT: CurrencyId = CurrencyId::xDOT;
 pub const NATIVE: CurrencyId = CurrencyId::Native;
 
 mod loans {
@@ -165,7 +165,7 @@ impl ExtBuilder {
                 CurrencyId::KSM,
                 CurrencyId::BTC,
                 CurrencyId::USDC,
-                CurrencyId::LDOT,
+                CurrencyId::xDOT,
             ],
             total_supply: 100 * TOKEN_DECIMAL, // 100
             total_borrows: 50 * TOKEN_DECIMAL, // 50
@@ -182,7 +182,7 @@ impl ExtBuilder {
                 res.push((CurrencyId::KSM, 5 * RATE_DECIMAL / 10)); // 0.5
                 res.push((CurrencyId::BTC, 5 * RATE_DECIMAL / 10)); // 0.5
                 res.push((CurrencyId::USDC, 5 * RATE_DECIMAL / 10)); // 0.5
-                res.push((CurrencyId::LDOT, 5 * RATE_DECIMAL / 10)); // 0.5
+                res.push((CurrencyId::xDOT, 5 * RATE_DECIMAL / 10)); // 0.5
                 res
             },
         }

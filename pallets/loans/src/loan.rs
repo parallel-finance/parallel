@@ -391,7 +391,7 @@ impl<T: Config> Pallet<T> {
     pub(crate) fn update_earned_stored(
         who: &T::AccountId,
         currency_id: &CurrencyId,
-    )-> DispatchResult {
+    ) -> DispatchResult {
         let collateral = AccountCollateral::<T>::get(currency_id, who);
         let exchange_rate = ExchangeRate::<T>::get(currency_id);
         let account_earned = AccountEarned::<T>::get(currency_id, who);
@@ -402,10 +402,14 @@ impl<T: Config> Pallet<T> {
             .and_then(|r| r.checked_add(account_earned.total_earned_prior))
             .ok_or(Error::<T>::CalcEarnedFailed)?;
 
-        AccountEarned::<T>::insert(currency_id, who, EarnedSnapshot{
-            exchange_rate_prior: exchange_rate,
-            total_earned_prior: total_earned_prior_new,
-        });
+        AccountEarned::<T>::insert(
+            currency_id,
+            who,
+            EarnedSnapshot {
+                exchange_rate_prior: exchange_rate,
+                total_earned_prior: total_earned_prior_new,
+            },
+        );
 
         Ok(())
     }

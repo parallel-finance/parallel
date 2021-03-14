@@ -12,7 +12,7 @@ impl<T: Config> Pallet<T> {
     #[transactional]
     pub fn stake_internal(who: &T::AccountId, amount: Balance) -> DispatchResult {
         T::Currency::transfer(CurrencyId::DOT, who, &Self::account_id(), amount)?;
-        T::Currency::transfer(CurrencyId::LDOT, &Self::account_id(), who, amount)?;
+        T::Currency::transfer(CurrencyId::xDOT, &Self::account_id(), who, amount)?;
 
         Ok(())
     }
@@ -22,7 +22,7 @@ impl<T: Config> Pallet<T> {
     #[transactional]
     pub fn unstake_internal(who: &T::AccountId, amount: Balance) -> DispatchResult {
         T::Currency::transfer(CurrencyId::DOT, &Self::account_id(), who, amount)?;
-        T::Currency::transfer(CurrencyId::LDOT, who, &Self::account_id(), amount)?;
+        T::Currency::transfer(CurrencyId::xDOT, who, &Self::account_id(), amount)?;
 
         Ok(())
     }
