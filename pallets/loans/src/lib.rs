@@ -41,7 +41,6 @@ pub struct EarnedSnapshot {
 pub mod module {
     use super::*;
     use crate::util::mul_then_div;
-    use sp_runtime::traits::Saturating;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -356,12 +355,12 @@ pub mod module {
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
         fn on_finalize(_now: T::BlockNumber) {
-            Self::currencies().iter().for_each(|currency_id| {
-                let total_cash = Self::get_total_cash(currency_id.clone());
+            Self::currencies().into_iter().for_each(|currency_id| {
+                let total_cash = Self::get_total_cash(currency_id);
                 let total_borrows = Self::total_borrows(currency_id);
-                Self::accrue_interest(currency_id);
-                Self::update_supply_rate(*currency_id, total_cash, total_borrows, 0, 0);
-                Self::calc_exchange_rate(currency_id);
+                let _ = Self::accrue_interest(currency_id);
+                let _ = Self::update_supply_rate(currency_id, total_cash, total_borrows, 0, 0);
+                let _ = Self::calc_exchange_rate(currency_id);
             });
         }
     }

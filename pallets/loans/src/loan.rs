@@ -14,7 +14,7 @@ use pallet_ocw_oracle;
 impl<T: Config> Pallet<T> {
     /// This calculates interest accrued from the last checkpointed block
     /// up to the current block and writes new checkpoint to storage.
-    pub fn accrue_interest(currency_id: &CurrencyId) -> DispatchResult {
+    pub fn accrue_interest(currency_id: CurrencyId) -> DispatchResult {
         // Read the previous values out of storage
         let cash_prior = Self::get_total_cash(currency_id.clone());
         let borrows_prior = Self::total_borrows(currency_id);

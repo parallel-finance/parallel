@@ -135,7 +135,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    pub fn calc_exchange_rate(currency_id: &CurrencyId) -> DispatchResult {
+    pub fn calc_exchange_rate(currency_id: CurrencyId) -> DispatchResult {
         /*
          *  exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
          */
