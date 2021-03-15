@@ -222,6 +222,7 @@ decl_module! {
             debug::info!("Entering off-chain worker");
             let urls = [
                 (CurrencyId::DOT,"https://api.coincap.io/v2/assets/polkadot"),
+                (CurrencyId::xDOT,"https://api.coincap.io/v2/assets/polkadot"),
                 (CurrencyId::BTC,"https://api.coincap.io/v2/assets/bitcoin"),
                 (CurrencyId::KSM,"https://api.coincap.io/v2/assets/kusama"),
                 (CurrencyId::USDC,"https://api.coincap.io/v2/assets/usd-coin")

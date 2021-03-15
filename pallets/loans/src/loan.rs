@@ -469,6 +469,7 @@ impl<T: Config> Pallet<T> {
 
         if collateral_token_sum_price
             .checked_mul(liquidation_incentive)
+            .and_then(|r| r.checked_div(RATE_DECIMAL))
             .ok_or(Error::<T>::CollateralOverflow)?
             < liquidate_token_sum_price
         {
@@ -492,6 +493,7 @@ impl<T: Config> Pallet<T> {
         //calculate real liquidate_token amount that the liquidator should pay
         let real_liquidate_token_repay_amount = real_collateral_token_sum_price
             .checked_mul(liquidation_incentive)
+            .and_then(|r| r.checked_div(RATE_DECIMAL))
             .and_then(|r| r.checked_div(liquidate_token_price))
             .ok_or(Error::<T>::CollateralOverflow)?;
 
