@@ -296,7 +296,7 @@ pub mod module {
         fn build(&self) {
             T::Currency::update_balance(
                 CurrencyId::xDOT,
-                &Pallet::<T>::account_id(),
+                &Pallet::<T>::staking_account_id(),
                 1_000_000_000_000_000_000_000_000_000_000,
             )
             .unwrap();
@@ -523,5 +523,8 @@ pub mod module {
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> T::AccountId {
         T::ModuleId::get().into_account()
+    }
+    pub fn staking_account_id() -> T::AccountId {
+        ModuleId(*b"staking/").into_account()
     }
 }
