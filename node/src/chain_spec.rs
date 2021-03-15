@@ -173,11 +173,11 @@ fn testnet_genesis(
                 .iter()
                 .flat_map(|x| {
                     vec![
-                        (x.clone(), CurrencyId::DOT, 10_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::KSM, 10_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::BTC, 10_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::USDC, 10_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::xDOT, 10_000 * TOKEN_DECIMAL),
+                        (x.clone(), CurrencyId::DOT, 1_000 * TOKEN_DECIMAL),
+                        (x.clone(), CurrencyId::KSM, 1_000 * TOKEN_DECIMAL),
+                        (x.clone(), CurrencyId::BTC, 1_000 * TOKEN_DECIMAL),
+                        (x.clone(), CurrencyId::USDC, 1_000 * TOKEN_DECIMAL),
+                        (x.clone(), CurrencyId::xDOT, 1_000 * TOKEN_DECIMAL),
                     ]
                 })
                 .collect(),
@@ -190,8 +190,8 @@ fn testnet_genesis(
                 CurrencyId::USDC,
                 CurrencyId::xDOT,
             ],
-            total_supply: 100 * TOKEN_DECIMAL, // 100
-            total_borrows: 50 * TOKEN_DECIMAL, // 50
+            total_supply: 1000 * TOKEN_DECIMAL, // 1000
+            total_borrows: 600 * TOKEN_DECIMAL, // 600
 
             borrow_index: RATE_DECIMAL,                 // 1
             exchange_rate: 2 * RATE_DECIMAL / 100,      // 0.02

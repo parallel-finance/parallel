@@ -45,7 +45,7 @@ impl<T: Config> Pallet<T> {
             RATE_DECIMAL,
             borrow_index,
         )
-            .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
+        .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
 
         TotalBorrows::<T>::insert(currency_id, total_borrows_new);
         BorrowIndex::<T>::insert(currency_id, borrow_index_new);
@@ -352,8 +352,8 @@ impl<T: Config> Pallet<T> {
 
                 if total_collateral_asset_value
                     > total_borrowed_value
-                    .checked_add(collateral_asset_value)
-                    .ok_or(Error::<T>::CollateralOverflow)?
+                        .checked_add(collateral_asset_value)
+                        .ok_or(Error::<T>::CollateralOverflow)?
                 {
                     collateral_assets.remove(index);
                     AccountCollateralAssets::<T>::insert(who.clone(), collateral_assets);
@@ -450,7 +450,8 @@ impl<T: Config> Pallet<T> {
         }
 
         //calculate collateral_token_sum price
-        let collateral_ctoken_amount = AccountCollateral::<T>::get(collateral_currency_id, &borrower);
+        let collateral_ctoken_amount =
+            AccountCollateral::<T>::get(collateral_currency_id, &borrower);
         let exchange_rate = Self::exchange_rate(collateral_currency_id);
 
         //the total amount of borrower's collateral token
@@ -477,8 +478,9 @@ impl<T: Config> Pallet<T> {
 
         // the incentive for liquidator and punishment for the borrower
         let liquidation_incentive = LiquidationIncentive::<T>::get(liquidate_currency_id);
-        let discd_collateral_value = mul_then_div(collateral_value, liquidation_incentive, RATE_DECIMAL)
-            .ok_or(Error::<T>::CalcDiscdCollateralValueFailed)?;
+        let discd_collateral_value =
+            mul_then_div(collateral_value, liquidation_incentive, RATE_DECIMAL)
+                .ok_or(Error::<T>::CalcDiscdCollateralValueFailed)?;
 
         if discd_collateral_value < liquidate_value {
             return Err(Error::<T>::RepayValueGreaterThanCollateral.into());
@@ -489,8 +491,12 @@ impl<T: Config> Pallet<T> {
             .checked_div(collateral_token_price)
             .ok_or(Error::<T>::EquivalentCollateralAmountOverflow)?;
 
-        let real_collateral_underlying_amount = mul_then_div(equivalent_collateral_amount, RATE_DECIMAL, liquidation_incentive)
-            .ok_or(Error::<T>::RealCollateralAmountOverflow)?;
+        let real_collateral_underlying_amount = mul_then_div(
+            equivalent_collateral_amount,
+            RATE_DECIMAL,
+            liquidation_incentive,
+        )
+        .ok_or(Error::<T>::RealCollateralAmountOverflow)?;
 
         //inside transfer token
         Self::liquidate_repay_borrow_internal(
@@ -544,8 +550,9 @@ impl<T: Config> Pallet<T> {
         // (divide borrower's ctoken to liquidator)
         // decrease borrower's ctoken
         let exchange_rate = Self::exchange_rate(collateral_currency_id);
-        let collateral_ctoken_amount = mul_then_div(collateral_underlying_amount, RATE_DECIMAL, exchange_rate)
-            .ok_or(Error::<T>::CalcCollateralFailed)?;
+        let collateral_ctoken_amount =
+            mul_then_div(collateral_underlying_amount, RATE_DECIMAL, exchange_rate)
+                .ok_or(Error::<T>::CalcCollateralFailed)?;
 
         AccountCollateral::<T>::try_mutate(
             collateral_currency_id,
