@@ -218,7 +218,7 @@ decl_module! {
             Ok(())
         }
 
-        fn offchain_worker(block_number: T::BlockNumber) {
+        fn offchain_worker(_block_number: T::BlockNumber) {
             debug::info!("Entering off-chain worker");
             let urls = [
                 (CurrencyId::DOT,"https://api.coincap.io/v2/assets/polkadot"),

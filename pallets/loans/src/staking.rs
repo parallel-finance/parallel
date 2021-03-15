@@ -6,7 +6,7 @@ use sp_runtime::DispatchResult;
 use crate::*;
 
 impl<T: Config> Pallet<T> {
-    /// Sender stakes DOTs to the validator and receives LDOTs in exchange
+    /// Sender stakes DOTs to the validator and receives xDOTs in exchange
     ///
     /// Ensured atomic.
     #[transactional]
@@ -16,7 +16,7 @@ impl<T: Config> Pallet<T> {
 
         Ok(())
     }
-    /// Sender redeems LDOTs in exchange for the DOTs
+    /// Sender redeems xDOTs in exchange for the DOTs
     ///
     /// Ensured atomic.
     #[transactional]
