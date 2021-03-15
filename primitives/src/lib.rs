@@ -76,6 +76,7 @@ pub enum CurrencyId {
     KSM,
     BTC,
     USDC,
+    #[allow(non_camel_case_types)]
     xDOT,
     Native,
 }
