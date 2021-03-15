@@ -23,7 +23,7 @@ pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const KSM: CurrencyId = CurrencyId::KSM;
 pub const BTC: CurrencyId = CurrencyId::BTC;
 pub const USDC: CurrencyId = CurrencyId::USDC;
-pub const LDOT: CurrencyId = CurrencyId::xDOT;
+pub const xDOT: CurrencyId = CurrencyId::xDOT;
 pub const NATIVE: CurrencyId = CurrencyId::Native;
 
 mod loans {
@@ -65,7 +65,7 @@ impl frame_system::Config for Runtime {
 }
 
 parameter_type_with_key! {
-    pub ExistentialDeposits: |currency_id: CurrencyId| -> Balance {
+    pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
         Default::default()
     };
 }
@@ -176,15 +176,34 @@ impl ExtBuilder {
             multiplier_per_year: 1 * RATE_DECIMAL / 10, // 0.1
             jump_muiltiplier: 11 * RATE_DECIMAL / 10,   // 1.1
             kink: 8 * RATE_DECIMAL / 10,                // 0.8
-            collateral_rate: {
-                let mut res = vec![];
-                res.push((CurrencyId::DOT, 5 * RATE_DECIMAL / 10)); // 0.5
-                res.push((CurrencyId::KSM, 5 * RATE_DECIMAL / 10)); // 0.5
-                res.push((CurrencyId::BTC, 5 * RATE_DECIMAL / 10)); // 0.5
-                res.push((CurrencyId::USDC, 5 * RATE_DECIMAL / 10)); // 0.5
-                res.push((CurrencyId::xDOT, 5 * RATE_DECIMAL / 10)); // 0.5
-                res
-            },
+            collateral_rate: vec![
+                (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::KSM, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::BTC, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::USDC, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::xDOT, 5 * RATE_DECIMAL / 10),
+            ],
+            liquidation_incentive: vec![
+                (CurrencyId::DOT, 9 * RATE_DECIMAL / 10),
+                (CurrencyId::KSM, 9 * RATE_DECIMAL / 10),
+                (CurrencyId::BTC, 9 * RATE_DECIMAL / 10),
+                (CurrencyId::USDC, 9 * RATE_DECIMAL / 10),
+                (CurrencyId::xDOT, 9 * RATE_DECIMAL / 10),
+            ],
+            liquidation_threshold: vec![
+                (CurrencyId::DOT, 8 * RATE_DECIMAL / 10),
+                (CurrencyId::KSM, 8 * RATE_DECIMAL / 10),
+                (CurrencyId::BTC, 8 * RATE_DECIMAL / 10),
+                (CurrencyId::USDC, 9 * RATE_DECIMAL / 10),
+                (CurrencyId::xDOT, 8 * RATE_DECIMAL / 10),
+            ],
+            close_factor: vec![
+                (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::KSM, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::BTC, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::USDC, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::xDOT, 5 * RATE_DECIMAL / 10),
+            ],
         }
         .assimilate_storage::<Runtime>(&mut t)
         .unwrap();

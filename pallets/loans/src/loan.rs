@@ -420,7 +420,7 @@ impl<T: Config> Pallet<T> {
     /// - collateral_token is borrower's collateral, like BTC/KSM/DOT
     /// - repay_amount is amount of liquidate_token (such as DAI/USDT)
     ///
-    /// in this function, 
+    /// in this function,
     /// the liquidator will pay liquidate_token from own account to module account,
     /// the system will reduce borrower's debt
     /// the liquidator will receive collateral_token(ctoken) from system (divide borrower's ctoken to liquidator)
@@ -468,9 +468,10 @@ impl<T: Config> Pallet<T> {
         //can not liquidate to Zero
 
         if collateral_token_sum_price
-                .checked_mul(liquidation_incentive)
-                .ok_or(Error::<T>::CollateralOverflow)? 
-                < liquidate_token_sum_price {
+            .checked_mul(liquidation_incentive)
+            .ok_or(Error::<T>::CollateralOverflow)?
+            < liquidate_token_sum_price
+        {
             return Err(Error::<T>::RepayBigThanCollateral.into());
         }
 
@@ -500,7 +501,14 @@ impl<T: Config> Pallet<T> {
         }
 
         //inside transfer token
-        Self::liquidate_repay_borrow_internal(&liquidator, &borrower, &liquidate_token, &collateral_token, real_liquidate_token_repay_amount, real_collateral_token_amount)?;
+        Self::liquidate_repay_borrow_internal(
+            &liquidator,
+            &borrower,
+            &liquidate_token,
+            &collateral_token,
+            real_liquidate_token_repay_amount,
+            real_collateral_token_amount,
+        )?;
 
         Ok(())
     }
@@ -513,7 +521,7 @@ impl<T: Config> Pallet<T> {
         liquidate_token_repay_amount: Balance,
         collateral_token_amount: Balance,
     ) -> DispatchResult {
-        //1. liquidator repay borrower's debt, 
+        //1. liquidator repay borrower's debt,
         // transfer from liquidator to module account
         T::Currency::transfer(
             liquidate_token.clone(),
@@ -575,7 +583,14 @@ impl<T: Config> Pallet<T> {
         //4. we can decide if withdraw to liquidator (from ctoken to token)
         // Self::redeem_internal(&liquidator, &collateral_token, collateral_token_amount)?;
         // liquidator, borrower,liquidate_token,collateral_token,liquidate_token_repay_amount,collateral_token_amount
-        Self::deposit_event(Event::<T>::LiquidationOccur(liquidator.clone(), borrower.clone(),liquidate_token.clone(),collateral_token.clone(),liquidate_token_repay_amount,collateral_token_amount));
+        Self::deposit_event(Event::<T>::LiquidationOccur(
+            liquidator.clone(),
+            borrower.clone(),
+            liquidate_token.clone(),
+            collateral_token.clone(),
+            liquidate_token_repay_amount,
+            collateral_token_amount,
+        ));
         Ok(())
     }
 }

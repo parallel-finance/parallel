@@ -125,7 +125,14 @@ pub mod module {
 
         /// a collateral has been liquidatied
         /// liquidator, borrower,liquidate_token,collateral_token,liquidate_token_repay_amount,collateral_token_amount
-        LiquidationOccur(T::AccountId, T::AccountId, CurrencyId, CurrencyId, Balance, Balance),
+        LiquidationOccur(
+            T::AccountId,
+            T::AccountId,
+            CurrencyId,
+            CurrencyId,
+            Balance,
+            Balance,
+        ),
 
         Test(u128),
     }
@@ -229,14 +236,16 @@ pub mod module {
     pub type CollateralRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
     #[pallet::storage]
     #[pallet::getter(fn liquidation_incentive)]
-    pub type LiquidationIncentive<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+    pub type LiquidationIncentive<T: Config> =
+        StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
     #[pallet::storage]
     #[pallet::getter(fn liquidation_threshold)]
-    pub type LiquidationThreshold<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+    pub type LiquidationThreshold<T: Config> =
+        StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
     #[pallet::storage]
     #[pallet::getter(fn close_factor)]
     pub type CloseFactor<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
-    
+
     #[pallet::genesis_config]
     pub struct GenesisConfig {
         pub currencies: Vec<CurrencyId>,
@@ -484,7 +493,7 @@ pub mod module {
 
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn liquidate_borrow (
+        pub fn liquidate_borrow(
             origin: OriginFor<T>,
             borrower: T::AccountId,
             liquidate_token: CurrencyId,
@@ -492,7 +501,13 @@ pub mod module {
             collateral_token: CurrencyId,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::liquidate_borrow_internal(who, borrower, liquidate_token, repay_amount, collateral_token)?;
+            Self::liquidate_borrow_internal(
+                who,
+                borrower,
+                liquidate_token,
+                repay_amount,
+                collateral_token,
+            )?;
             Ok(().into())
         }
     }
