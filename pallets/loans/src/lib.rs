@@ -92,9 +92,17 @@ pub mod module {
         /// Collateral disable action denied
         CollateralDisableActionDenied,
         /// repay more than collateral
-        RepayBigThanCollateral,
+        RepayValueGreaterThanCollateral,
         /// real repay amount should less than repay amount
         NotEnoughRepayAmount,
+        LiquidatorIsBorrower,
+        LiquidateAmountIsZero,
+        NoBorrowBalance,
+        CalcCloseBorrowsFailed,
+        CalcDiscdCollateralValueFailed,
+        LiquidateValueOverflow,
+        EquivalentCollateralAmountOverflow,
+        RealCollateralAmountOverflow,
     }
 
     #[pallet::event]
