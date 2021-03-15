@@ -49,8 +49,6 @@ pub use orml_currencies;
 
 pub use orml_tokens;
 
-pub use pallet_price;
-
 pub use pallet_loans;
 
 pub use pallet_ocw_oracle;
@@ -306,12 +304,6 @@ parameter_types! {
     pub StableCurrencyFixedPrice: Price = 1;
 }
 
-impl pallet_price::Config for Runtime {
-    type Event = Event;
-    type GetStableCurrencyId = GetStableCurrencyId;
-    type StableCurrencyFixedPrice = StableCurrencyFixedPrice;
-}
-
 impl pallet_loans::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
@@ -407,7 +399,6 @@ construct_runtime!(
 
         Currencies: orml_currencies::{Module, Call, Event<T>},
         Tokens: orml_tokens::{Module, Storage, Event<T>, Config<T>},
-        Prices: pallet_price::{Module, Call, Storage, Event<T>},
         Loans: pallet_loans::{Module, Call, Storage, Event<T>, Config},
         OcwOracle: pallet_ocw_oracle::{Module, Call, Storage, Event<T>, ValidateUnsigned},
     }

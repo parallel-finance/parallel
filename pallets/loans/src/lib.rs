@@ -108,19 +108,6 @@ pub mod module {
     #[pallet::event]
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// Position updated. \[owner, collateral_type, collateral_adjustment,
-        /// debit_adjustment\]
-        PositionUpdated(T::AccountId, CurrencyId, Amount, Amount),
-        /// Confiscate CDP's collateral assets and eliminate its debit. \[owner,
-        /// collateral_type, confiscated_collateral_amount,
-        /// deduct_debit_amount\]
-        ConfiscateCollateralAndDebit(T::AccountId, CurrencyId, Balance, Balance),
-        /// Transfer loan. \[from, to, currency_id\]
-        TransferLoan(T::AccountId, T::AccountId, CurrencyId),
-
-        AccrueInterest(CurrencyId),
-
-        NewInterestParams2(T::AccountId, u128, u128, u128, u128),
         NewInterestParams(u128, u128, u128, u128),
         BorrowRateUpdated(CurrencyId, u128),
         SupplyRateUpdated(CurrencyId, u128),
@@ -140,8 +127,6 @@ pub mod module {
             Balance,
             Balance,
         ),
-
-        Test(u128),
     }
 
     // Loan storage

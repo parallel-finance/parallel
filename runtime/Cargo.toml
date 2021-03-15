@@ -26,7 +26,6 @@ hex-literal = { optional = true, version = '0.3.1' }
 serde = { features = ['derive'], optional = true, version = '1.0.119' }
 
 # local dependencies
-pallet-price = { path = '../pallets/price', default-features = false, version = '3.0.0' }
 pallet-loans = { path = '../pallets/loans', default-features = false, version = '3.0.0' }
 pallet-ocw-oracle = { path = '../pallets/ocw-oracle', default-features = false, version = '2.0.1' }
 
