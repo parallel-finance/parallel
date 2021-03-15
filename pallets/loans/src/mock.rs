@@ -2,7 +2,7 @@
 
 use super::*;
 
-use frame_support::{construct_runtime, ord_parameter_types, parameter_types, transactional};
+use frame_support::{construct_runtime, parameter_types};
 
 use orml_traits::parameter_type_with_key;
 use primitives::{Amount, Balance, CurrencyId, RATE_DECIMAL, TOKEN_DECIMAL};
@@ -23,7 +23,7 @@ pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const KSM: CurrencyId = CurrencyId::KSM;
 pub const BTC: CurrencyId = CurrencyId::BTC;
 pub const USDC: CurrencyId = CurrencyId::USDC;
-pub const xDOT: CurrencyId = CurrencyId::xDOT;
+// pub const xDOT: CurrencyId = CurrencyId::xDOT;
 pub const NATIVE: CurrencyId = CurrencyId::Native;
 
 mod loans {

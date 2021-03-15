@@ -41,3 +41,7 @@ jobs:
       - name: Check Foramt
         run: |
           SKIP_WASM_BUILD=1 cargo fmt --all -- --check
+
+      - name: Check Test
+        run: |
+          SKIP_WASM_BUILD=1 cargo test

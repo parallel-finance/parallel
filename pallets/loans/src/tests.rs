@@ -45,12 +45,13 @@ fn test_update_jump_rate_model() {
         let multiplier_per_year: u128 = RATE_DECIMAL / 10;
         let jump_multiplier_per_year: u128 = 11 * RATE_DECIMAL / 10;
         let kink: u128 = 8 * RATE_DECIMAL / 10;
-        Loans::update_jump_rate_model(
+        assert!(Loans::update_jump_rate_model(
             base_rate_per_year,
             multiplier_per_year,
             jump_multiplier_per_year,
             kink,
-        );
+        )
+        .is_ok());
         assert_eq!(
             BaseRatePerBlock::<Runtime>::get(),
             Some(base_rate_per_year / BLOCK_PER_YEAR)
@@ -74,7 +75,7 @@ fn test_update_borrow_rate() {
         let mut cash: u128 = 5 * TOKEN_DECIMAL;
         let borrows: u128 = 10 * TOKEN_DECIMAL;
         let reserves: u128 = 0;
-        Loans::update_borrow_rate(CurrencyId::DOT, cash, borrows, reserves);
+        assert!(Loans::update_borrow_rate(CurrencyId::DOT, cash, borrows, reserves).is_ok());
         let util = Loans::utilization_rate(cash, borrows, reserves).unwrap();
         let multiplier_per_block = MultiplierPerBlock::<Runtime>::get().unwrap();
         let base_rate_per_block = BaseRatePerBlock::<Runtime>::get().unwrap();
@@ -87,7 +88,7 @@ fn test_update_borrow_rate() {
 
         // jump rate
         cash = 1 * TOKEN_DECIMAL;
-        Loans::update_borrow_rate(CurrencyId::KSM, cash, borrows, reserves);
+        assert!(Loans::update_borrow_rate(CurrencyId::KSM, cash, borrows, reserves).is_ok());
         let normal_rate = kink * multiplier_per_block / RATE_DECIMAL + base_rate_per_block;
         let excess_util = util.saturating_sub(kink);
         assert_eq!(
