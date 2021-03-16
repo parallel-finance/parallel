@@ -65,6 +65,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
                     get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Pool"),
                 ],
                 true,
             )
@@ -213,12 +214,14 @@ fn testnet_genesis(
                 (CurrencyId::USDC, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::xDOT, 9 * RATE_DECIMAL / 10),
             ],
+            //FIXME :In fact,"liquidation_threshold" should be higher than "collateral_rate",
+            //but for test, let's make it lower
             liquidation_threshold: vec![
-                (CurrencyId::DOT, 8 * RATE_DECIMAL / 10),
-                (CurrencyId::KSM, 8 * RATE_DECIMAL / 10),
-                (CurrencyId::BTC, 8 * RATE_DECIMAL / 10),
-                (CurrencyId::USDC, 9 * RATE_DECIMAL / 10),
-                (CurrencyId::xDOT, 8 * RATE_DECIMAL / 10),
+                (CurrencyId::DOT, 40 * RATE_DECIMAL / 100),
+                (CurrencyId::KSM, 40 * RATE_DECIMAL / 100),
+                (CurrencyId::BTC, 40 * RATE_DECIMAL / 100),
+                (CurrencyId::USDC, 40 * RATE_DECIMAL / 100),
+                (CurrencyId::xDOT, 40 * RATE_DECIMAL / 100),
             ],
             close_factor: vec![
                 (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),

@@ -76,6 +76,19 @@ pub fn new_partial(
     )
     .expect("Insert key should succeed");
 
+    //todo change to mock pool
+    let secret_uri = "//Pool";
+    let key_pair = parallel_runtime::pallet_liquidate::crypto::Pair::from_string(secret_uri, None)
+        .expect("Generates key pair");
+    let keystore = keystore_container.sync_keystore();
+    SyncCryptoStore::insert_unknown(
+        &*keystore,
+        parallel_runtime::pallet_liquidate::KEY_TYPE,
+        secret_uri,
+        key_pair.public().as_ref(),
+    )
+    .expect("Insert key should succeed");
+
     let select_chain = sc_consensus::LongestChain::new(backend.clone());
 
     let transaction_pool = sc_transaction_pool::BasicPool::new_full(

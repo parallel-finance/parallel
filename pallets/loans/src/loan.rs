@@ -442,7 +442,7 @@ impl<T: Config> Pallet<T> {
         }
 
         // we can only liquidate 50% of the borrows
-        let close_factor = CloseFactor::<T>::get(collateral_currency_id);
+        let close_factor = CloseFactor::<T>::get(liquidate_currency_id);
         let close_borrows = mul_then_div(account_borrows, close_factor, RATE_DECIMAL)
             .ok_or(Error::<T>::CalcCloseBorrowsFailed)?;
         if close_borrows < repay_amount {

@@ -3902,6 +3902,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-liquidate"
+version = "3.0.0"
+dependencies = [
+ "alt_serde",
+ "alt_serde_json",
+ "frame-support",
+ "frame-system",
+ "pallet-loans",
+ "pallet-ocw-oracle",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "parking_lot 0.10.2",
+ "sp-core",
+ "sp-io",
+ "sp-keystore",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-loans"
 version = "3.0.0"
 dependencies = [
@@ -4130,6 +4150,7 @@ dependencies = [
  "pallet-aura",
  "pallet-balances",
  "pallet-grandpa",
+ "pallet-liquidate",
  "pallet-loans",
  "pallet-ocw-oracle",
  "pallet-randomness-collective-flip",
