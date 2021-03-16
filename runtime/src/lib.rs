@@ -53,6 +53,8 @@ pub use pallet_loans;
 
 pub use pallet_ocw_oracle;
 
+pub use pallet_liquidate;
+
 /// An index to a block.
 pub type BlockNumber = u32;
 
@@ -321,6 +323,12 @@ impl pallet_ocw_oracle::Config for Runtime {
     type PricePrecision = PricePrecision;
 }
 
+impl pallet_liquidate::Config for Runtime {
+    type AuthorityId = pallet_liquidate::crypto::TestAuthId;
+    type Call = Call;
+    type Event = Event;
+}
+
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
 where
     Call: From<LocalCall>,
@@ -401,6 +409,7 @@ construct_runtime!(
         Tokens: orml_tokens::{Module, Storage, Event<T>, Config<T>},
         Loans: pallet_loans::{Module, Call, Storage, Event<T>, Config},
         OcwOracle: pallet_ocw_oracle::{Module, Call, Storage, Event<T>, ValidateUnsigned},
+        Liquidate: pallet_liquidate::{Module, Call, Event<T>},
     }
 );
 
