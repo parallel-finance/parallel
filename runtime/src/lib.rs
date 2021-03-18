@@ -51,6 +51,8 @@ pub use orml_tokens;
 
 pub use pallet_loans;
 
+pub use pallet_staking;
+
 pub use pallet_ocw_oracle;
 
 pub use pallet_liquidate;
@@ -291,6 +293,7 @@ parameter_types! {
     pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Native;
 
     pub const LoansModuleId: ModuleId = ModuleId(*b"par/loan");
+    pub const StakingModuleId: ModuleId = ModuleId(*b"par/stak");
 }
 
 impl orml_currencies::Config for Runtime {
@@ -310,6 +313,12 @@ impl pallet_loans::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
     type ModuleId = LoansModuleId;
+}
+
+impl pallet_staking::Config for Runtime {
+    type Event = Event;
+    type Currency = Currencies;
+    type ModuleId = StakingModuleId;
 }
 
 parameter_types! {
@@ -408,6 +417,7 @@ construct_runtime!(
         Currencies: orml_currencies::{Module, Call, Event<T>},
         Tokens: orml_tokens::{Module, Storage, Event<T>, Config<T>},
         Loans: pallet_loans::{Module, Call, Storage, Event<T>, Config},
+        Staking: pallet_staking::{Module, Call, Storage, Event<T>},
         OcwOracle: pallet_ocw_oracle::{Module, Call, Storage, Event<T>, ValidateUnsigned},
         Liquidate: pallet_liquidate::{Module, Call, Event<T>},
     }

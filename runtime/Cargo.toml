@@ -27,6 +27,7 @@ serde = { features = ['derive'], optional = true, version = '1.0.119' }
 
 # local dependencies
 pallet-loans = { path = '../pallets/loans', default-features = false, version = '3.0.0' }
+pallet-staking = { path = '../pallets/staking', default-features = false, version = '3.0.0' }
 pallet-ocw-oracle = { path = '../pallets/ocw-oracle', default-features = false, version = '2.0.1' }
 pallet-liquidate = { path = '../pallets/liquidate', default-features = false, version = '3.0.0' }
 
