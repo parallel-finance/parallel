@@ -1,6 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::StorageMap;
 use primitives::{Balance, CurrencyId, RATE_DECIMAL};
 use sp_runtime::{traits::Zero, DispatchResult};
 use sp_std::prelude::*;
@@ -145,7 +144,7 @@ impl<T: Config> Pallet<T> {
                 continue;
             }
 
-            let (borrow_currency_price, _) = pallet_ocw_oracle::Prices::get(currency_id)
+            let (borrow_currency_price, _) = pallet_ocw_oracle::Prices::<T>::get(currency_id)
                 .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
             if borrow_currency_price.is_zero() {
                 return Err(Error::<T>::OracleCurrencyPriceNotReady);
@@ -165,7 +164,7 @@ impl<T: Config> Pallet<T> {
         borrow_currency_id: &CurrencyId,
         borrow_amount: Balance,
     ) -> result::Result<Balance, Error<T>> {
-        let (borrow_currency_price, _) = pallet_ocw_oracle::Prices::get(borrow_currency_id)
+        let (borrow_currency_price, _) = pallet_ocw_oracle::Prices::<T>::get(borrow_currency_id)
             .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
         let mut total_borrow_value = borrow_amount
             .checked_mul(borrow_currency_price)
@@ -190,7 +189,7 @@ impl<T: Config> Pallet<T> {
         let collateral_factor = CollateralRate::<T>::get(currency_id);
         let currency_exchange_rate = ExchangeRate::<T>::get(currency_id);
 
-        let (currency_price, _) = pallet_ocw_oracle::Prices::get(currency_id)
+        let (currency_price, _) = pallet_ocw_oracle::Prices::<T>::get(currency_id)
             .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
         if currency_price.is_zero() {
             return Err(Error::<T>::OracleCurrencyPriceNotReady);
@@ -460,8 +459,9 @@ impl<T: Config> Pallet<T> {
             .and_then(|r| r.checked_div(RATE_DECIMAL))
             .ok_or(Error::<T>::CollateralOverflow)?;
 
-        let (collateral_token_price, _) = pallet_ocw_oracle::Prices::get(collateral_currency_id)
-            .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
+        let (collateral_token_price, _) =
+            pallet_ocw_oracle::Prices::<T>::get(collateral_currency_id)
+                .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
 
         //the total value of borrower's collateral token
         let collateral_value = collateral_underlying_amount
@@ -469,7 +469,7 @@ impl<T: Config> Pallet<T> {
             .ok_or(Error::<T>::CollateralOverflow)?;
 
         //calculate liquidate_token_sum
-        let (liquidate_token_price, _) = pallet_ocw_oracle::Prices::get(liquidate_currency_id)
+        let (liquidate_token_price, _) = pallet_ocw_oracle::Prices::<T>::get(liquidate_currency_id)
             .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
 
         let liquidate_value = repay_amount

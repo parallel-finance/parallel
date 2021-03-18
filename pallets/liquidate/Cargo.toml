@@ -20,7 +20,7 @@ sp-io = { version = "3.0.0", default-features = false }
 sp-runtime = { version = "3.0.0", default-features = false }
 sp-std = { version = "3.0.0", default-features = false }
 
-pallet-ocw-oracle = { path = '../ocw-oracle', default-features = false, version = '2.0.1' }
+pallet-ocw-oracle = { path = '../ocw-oracle', default-features = false, version = '3.0.0' }
 pallet-loans = { path = '../loans', default-features = false, version = '3.0.0' }
 primitives = { package = "parallel-primitives", path = "../../primitives", default-features = false }
 

@@ -3944,7 +3944,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-ocw-oracle"
-version = "2.0.1"
+version = "3.0.0"
 dependencies = [
  "alt_serde",
  "alt_serde_json",

@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use frame_support::{debug, pallet_prelude::*, StorageMap};
+use frame_support::pallet_prelude::*;
 use frame_system::{
     ensure_signed,
     offchain::{AppCrypto, CreateSignedTransaction, SendSignedTransaction, Signer},
@@ -83,7 +83,10 @@ pub mod module {
 
     #[pallet::config]
     pub trait Config:
-        frame_system::Config + CreateSignedTransaction<Call<Self>> + pallet_loans::Config
+        frame_system::Config
+        + CreateSignedTransaction<Call<Self>>
+        + pallet_loans::Config
+        + pallet_ocw_oracle::Config
     {
         /// The identifier type for an offchain worker.
         type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
@@ -179,7 +182,7 @@ pub mod module {
                     let mut classify_collaterals: Vec<CollateralsAccountBook> = vec![];
 
                     for currency_id in pallet_loans::Currencies::<T>::get().iter() {
-                        let currency_price = match pallet_ocw_oracle::Prices::get(currency_id)
+                        let currency_price = match pallet_ocw_oracle::Prices::<T>::get(currency_id)
                             .ok_or(Error::<T>::OracleCurrencyPriceNotReady)
                         {
                             Ok((v, _)) => v,
@@ -275,7 +278,7 @@ pub mod module {
                     let mut processing = true;
                     let collateral_liquidation_threshold_value = classify_collaterals.iter().fold(
                         Price::MIN,
-                        |acc,&(_,_,_,total_sum_price,liquidation_threshold)| 
+                        |acc,&(_,_,_,total_sum_price,liquidation_threshold)|
 							// acc + total_sum_price * liquidation_threshold
 							match total_sum_price
 								.checked_mul(liquidation_threshold)
@@ -297,7 +300,7 @@ pub mod module {
 
                     let debt_total_value = classify_debts.iter().fold(
                         Price::MIN,
-                        |acc, &(_,_,_,total_sum_price)| 
+                        |acc, &(_,_,_,total_sum_price)|
 							// acc + total_sum_price
 							match acc
 								.checked_add(total_sum_price)
@@ -332,7 +335,7 @@ pub mod module {
 
                     let collateral_total_value = classify_collaterals.iter().fold(
                         Price::MIN,
-                        |acc,&(_,_,_,total_sum_price,_)| 
+                        |acc,&(_,_,_,total_sum_price,_)|
 							// acc + total_sum_price 
 							match acc
 								.checked_add(total_sum_price)
@@ -403,7 +406,7 @@ pub mod module {
         ) {
             // Get signer from ocw
             //TODO get special pool account
-            let signer = Signer::<T, T::AuthorityId>::any_account();
+            let signer = Signer::<T, <T as module::Config>::AuthorityId>::any_account();
             let result = signer.send_signed_transaction(|_acct|
 				// This is the on-chain function
 				Call::execute_liquidation(waiting_for_liquidation_vec.clone()));

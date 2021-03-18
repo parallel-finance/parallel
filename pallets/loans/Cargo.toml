@@ -15,7 +15,7 @@ orml-currencies   = { default-features = false, version = '0.4.0' }
 orml-tokens       = { default-features = false, version = '0.4.0' }
 orml-traits       = { default-features = false, version = '0.4.0' }
 orml-utilities    = { default-features = false, version = '0.4.0' }
-pallet-ocw-oracle = { path = '../ocw-oracle', default-features = false, version = '2.0.1' }
+pallet-ocw-oracle = { path = '../ocw-oracle', default-features = false, version = '3.0.0' }
 primitives        = { package = "parallel-primitives", path = "../../primitives", default-features = false }
 serde             = { version = "1.0.102", features = ["derive"] }
 sp-runtime        = { version = "3.0.0", default-features = false }
