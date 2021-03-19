@@ -417,7 +417,7 @@ construct_runtime!(
         Currencies: orml_currencies::{Module, Call, Event<T>},
         Tokens: orml_tokens::{Module, Storage, Event<T>, Config<T>},
         Loans: pallet_loans::{Module, Call, Storage, Event<T>, Config},
-        Staking: pallet_staking::{Module, Call, Storage, Event<T>},
+        Staking: pallet_staking::{Module, Call, Storage, Event<T>, Config},
         OcwOracle: pallet_ocw_oracle::{Module, Call, Storage, Event<T>, ValidateUnsigned},
         Liquidate: pallet_liquidate::{Module, Call, Event<T>},
     }

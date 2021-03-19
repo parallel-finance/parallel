@@ -34,5 +34,9 @@
   "EarnedSnapshot": {
     "totalEarnedPrior": "Balance",
     "exchangeRatePrior": "u128"
+  },
+  "PendingBalance": {
+    "balance": "Balance",
+    "timestamp": "Moment"
   }
 }

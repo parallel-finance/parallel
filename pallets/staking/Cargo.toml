@@ -19,6 +19,7 @@ primitives        = { package = "parallel-primitives", path = "../../primitives"
 serde             = { version = "1.0.102", features = ["derive"] }
 sp-runtime        = { version = "3.0.0", default-features = false }
 sp-std            = { version = "3.0.0", default-features = false }
+pallet-timestamp = { default-features = false, version = '3.0.0' }
 
 [dev-dependencies]
 serde      = { version = "1.0.119" }
@@ -37,4 +38,5 @@ std     = [
   'orml-tokens/std',
   'orml-traits/std',
   'orml-utilities/std',
+  'pallet-timestamp/std',
 ]

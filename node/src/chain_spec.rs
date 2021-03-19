@@ -1,6 +1,6 @@
 use parallel_runtime::{
-    AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, LoansConfig, Signature,
-    SudoConfig, SystemConfig, TokensConfig, WASM_BINARY,
+    AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature,
+    SudoConfig, SystemConfig, TokensConfig, WASM_BINARY, LoansConfig, StakingConfig,
 };
 use primitives::{CurrencyId, RATE_DECIMAL, TOKEN_DECIMAL};
 use sc_service::ChainType;
@@ -231,5 +231,6 @@ fn testnet_genesis(
                 (CurrencyId::xDOT, 5 * RATE_DECIMAL / 10),
             ],
         }),
+        pallet_staking: Some(StakingConfig {}),
     }
 }

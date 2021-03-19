@@ -1,5 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use pallet_timestamp;
 use primitives::{Balance, CurrencyId};
 use sp_runtime::DispatchResult;
 
@@ -22,13 +23,12 @@ impl<T: Config> Pallet<T> {
     #[transactional]
     pub fn unstake_internal(nominator: &T::AccountId, amount: Balance) -> DispatchResult {
         T::Currency::transfer(CurrencyId::xDOT, nominator, &Self::account_id(), amount)?;
-        AccountPendingBalance::<T>::try_mutate(nominator, |pending_balance| -> DispatchResult {
-            let new_balance = pending_balance
-                .checked_add(amount)
-                .ok_or(Error::<T>::PendingBalanceOverflow)?;
-            *pending_balance = new_balance;
-            Ok(())
-        })?;
+        let mut pending_balances = Self::account_pending_balance(nominator);
+        pending_balances.push(PendingBalance {
+            balance: amount,
+            timestamp: <pallet_timestamp::Module<T>>::get(),
+        });
+        AccountPendingBalance::<T>::insert(nominator, pending_balances);
 
         Ok(())
     }
@@ -36,13 +36,22 @@ impl<T: Config> Pallet<T> {
     ///
     /// Ensured atomic.
     #[transactional]
-    pub fn return_unstake_balance(payer: &T::AccountId, nominator: &T::AccountId) -> DispatchResult {
-        let pending_balance = Self::account_pending_balance(nominator);
-        T::Currency::transfer(CurrencyId::DOT, payer, nominator, pending_balance)?;
-        AccountPendingBalance::<T>::try_mutate_exists(nominator, |pending_balance| -> DispatchResult {
-            *pending_balance = None;
-            Ok(())
-        })?;
+    pub fn return_pending_balance_internal(
+        payer: &T::AccountId,
+        nominator: &T::AccountId,
+        index: usize,
+    ) -> DispatchResult {
+        let mut pending_balances = Self::account_pending_balance(nominator);
+        if pending_balances.len() <= index {
+            return Err(Error::<T>::IndexOverflow.into());
+        }
+        let pending_balance = pending_balances[index];
+        T::Currency::transfer(CurrencyId::DOT, payer, nominator, pending_balance.balance)?;
+
+        // swap and pop
+        pending_balances[index] = pending_balances[pending_balances.len()-1];
+        pending_balances.pop();
+        AccountPendingBalance::<T>::insert(nominator, pending_balances);
 
         Ok(())
     }
