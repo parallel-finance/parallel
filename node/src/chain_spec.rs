@@ -1,6 +1,6 @@
 use parallel_runtime::{
-    AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature,
-    SudoConfig, SystemConfig, TokensConfig, WASM_BINARY, LoansConfig, StakingConfig,
+    AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, LoansConfig, Signature,
+    StakingConfig, SudoConfig, SystemConfig, TokensConfig, WASM_BINARY,
 };
 use primitives::{CurrencyId, RATE_DECIMAL, TOKEN_DECIMAL};
 use sc_service::ChainType;

@@ -49,7 +49,7 @@ impl<T: Config> Pallet<T> {
         T::Currency::transfer(CurrencyId::DOT, payer, nominator, pending_balance.balance)?;
 
         // swap and pop
-        pending_balances[index] = pending_balances[pending_balances.len()-1];
+        pending_balances[index] = pending_balances[pending_balances.len() - 1];
         pending_balances.pop();
         AccountPendingBalance::<T>::insert(nominator, pending_balances);
 

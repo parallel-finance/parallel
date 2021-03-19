@@ -9,8 +9,8 @@ use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 use pallet_timestamp;
 use primitives::{Amount, Balance, CurrencyId, RATE_DECIMAL};
 use sp_runtime::{traits::AccountIdConversion, ModuleId, RuntimeDebug};
-use sp_std::vec::Vec;
 use sp_std::convert::TryInto;
+use sp_std::vec::Vec;
 
 pub use module::*;
 
