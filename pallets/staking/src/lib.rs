@@ -6,8 +6,7 @@ use frame_support::pallet_prelude::*;
 use frame_support::transactional;
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
-use pallet_timestamp;
-use primitives::{Amount, Balance, CurrencyId, RATE_DECIMAL};
+use primitives::{Amount, Balance, CurrencyId};
 use sp_runtime::{traits::AccountIdConversion, ModuleId, RuntimeDebug};
 use sp_std::convert::TryInto;
 use sp_std::vec::Vec;
@@ -53,7 +52,6 @@ pub mod module {
     }
 
     #[pallet::event]
-    #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config> {}
 
     #[pallet::storage]

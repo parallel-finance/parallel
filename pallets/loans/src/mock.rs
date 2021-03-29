@@ -1,12 +1,12 @@
-#![cfg(test)]
-
-use super::*;
+mod loans {
+    pub use super::super::*;
+}
+use loans::*;
 
 use frame_support::{construct_runtime, parameter_types};
 
 use orml_traits::parameter_type_with_key;
-use primitives::{Amount, Balance, CurrencyId, RATE_DECIMAL, TOKEN_DECIMAL};
-// use sp_runtime::{traits::AccountIdConversion, ModuleId, RuntimeDebug};
+use primitives::{Amount, Balance, CurrencyId, RATE_DECIMAL};
 use sp_core::{
     sr25519::{self, Signature},
     Pair, Public, H256,
@@ -18,32 +18,34 @@ use sp_runtime::{
 };
 use sp_std::vec::Vec;
 
-// pub use module::*;
+type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
+type Block = frame_system::mocking::MockBlock<Runtime>;
 
-// pub type AccountId = u128;
-pub type BlockNumber = u64;
-
-pub const DOT: CurrencyId = CurrencyId::DOT;
-pub const KSM: CurrencyId = CurrencyId::KSM;
-pub const BTC: CurrencyId = CurrencyId::BTC;
-pub const USDC: CurrencyId = CurrencyId::USDC;
-// pub const xDOT: CurrencyId = CurrencyId::xDOT;
-pub const NATIVE: CurrencyId = CurrencyId::Native;
-
-mod loans {
-    pub use super::super::*;
-}
-
-parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = NATIVE;
-
-}
+construct_runtime!(
+    pub enum Runtime where
+        Block = Block,
+        NodeBlock = Block,
+        UncheckedExtrinsic = UncheckedExtrinsic,
+    {
+        System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
+        Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
+        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+        Currencies: orml_currencies::{Pallet, Call, Event<T>},
+        Loans: loans::{Pallet, Storage, Call, Config, Event<T>},
+        OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
+    }
+);
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
+    pub const SS58Prefix: u8 = 42;
 }
 
 impl frame_system::Config for Runtime {
+    type BaseCallFilter = ();
+    type BlockWeights = ();
+    type BlockLength = ();
+    type DbWeight = ();
     type Origin = Origin;
     type Call = Call;
     type Index = u64;
@@ -55,18 +57,22 @@ impl frame_system::Config for Runtime {
     type Header = Header;
     type Event = Event;
     type BlockHashCount = BlockHashCount;
-    type BlockWeights = ();
-    type BlockLength = ();
     type Version = ();
     type PalletInfo = PalletInfo;
     type AccountData = pallet_balances::AccountData<Balance>;
     type OnNewAccount = ();
     type OnKilledAccount = ();
-    type DbWeight = ();
-    type BaseCallFilter = ();
     type SystemWeightInfo = ();
-    type SS58Prefix = ();
+    type SS58Prefix = SS58Prefix;
 }
+
+pub type BlockNumber = u64;
+
+pub const DOT: CurrencyId = CurrencyId::DOT;
+pub const KSM: CurrencyId = CurrencyId::KSM;
+pub const BTC: CurrencyId = CurrencyId::BTC;
+pub const USDC: CurrencyId = CurrencyId::USDC;
+pub const NATIVE: CurrencyId = CurrencyId::Native;
 
 parameter_type_with_key! {
     pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
@@ -80,8 +86,12 @@ impl orml_tokens::Config for Runtime {
     type Amount = Amount;
     type CurrencyId = CurrencyId;
     type WeightInfo = ();
-    type ExistentialDeposits = ExistentialDeposits;
     type OnDust = ();
+    type ExistentialDeposits = ExistentialDeposits;
+}
+
+parameter_types! {
+    pub const GetNativeCurrencyId: CurrencyId = NATIVE;
 }
 
 impl orml_currencies::Config for Runtime {
@@ -95,16 +105,17 @@ impl orml_currencies::Config for Runtime {
 
 parameter_types! {
     pub const ExistentialDeposit: Balance = 1;
+    pub const MaxLocks: u32 = 50;
 }
 
 impl pallet_balances::Config for Runtime {
+    type MaxLocks = MaxLocks;
     type Balance = Balance;
-    type DustRemoval = ();
     type Event = Event;
+    type DustRemoval = ();
     type ExistentialDeposit = ExistentialDeposit;
-    type AccountStore = frame_system::Module<Runtime>;
-    type MaxLocks = ();
-    type WeightInfo = ();
+    type AccountStore = System;
+    type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -168,24 +179,6 @@ impl Config for Runtime {
     type ModuleId = LoansModuleId;
 }
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
-type Block = frame_system::mocking::MockBlock<Runtime>;
-
-construct_runtime!(
-    pub enum Runtime where
-        Block = Block,
-        NodeBlock = Block,
-        UncheckedExtrinsic = UncheckedExtrinsic,
-    {
-        System: frame_system::{Module, Call, Storage, Config, Event<T>},
-        Tokens: orml_tokens::{Module, Storage, Event<T>, Config<T>},
-        Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-        Currencies: orml_currencies::{Module, Call, Event<T>},
-        Loans: loans::{Module, Storage, Call, Config, Event<T>},
-        OcwOracle: pallet_ocw_oracle::{Module, Call, Storage, Event<T>, ValidateUnsigned},
-    }
-);
-
 parameter_types! {
     pub const LoansModuleId: ModuleId = ModuleId(*b"par/loan");
 }
@@ -216,7 +209,7 @@ impl ExtBuilder {
             .unwrap();
 
         orml_tokens::GenesisConfig::<Runtime> {
-            endowed_accounts: self.endowed_accounts,
+            endowed_accounts: self.endowed_accounts.clone(),
         }
         .assimilate_storage(&mut t)
         .unwrap();
@@ -229,9 +222,8 @@ impl ExtBuilder {
                 CurrencyId::USDC,
                 CurrencyId::xDOT,
             ],
-            total_supply: 100 * TOKEN_DECIMAL, // 100
-            total_borrows: 50 * TOKEN_DECIMAL, // 50
-
+            // total_supply: 100 * TOKEN_DECIMAL, // 100
+            // total_borrows: 50 * TOKEN_DECIMAL, // 50
             borrow_index: RATE_DECIMAL,                 // 1
             exchange_rate: 2 * RATE_DECIMAL / 100,      // 0.02
             base_rate: 2 * RATE_DECIMAL / 100,          // 0.02

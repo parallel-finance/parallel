@@ -1,25 +1,20 @@
-#![cfg_attr(not(feature = "std"), no_std)]
-
 use primitives::{Balance, CurrencyId, RATE_DECIMAL};
 use sp_runtime::{traits::Zero, DispatchResult};
 use sp_std::prelude::*;
 use sp_std::result;
 
-use crate::util::*;
-use crate::*;
-
-use pallet_ocw_oracle;
+use crate::{util::*, *};
 
 impl<T: Config> Pallet<T> {
     /// This calculates interest accrued from the last checkpointed block
     /// up to the current block and writes new checkpoint to storage.
     pub fn accrue_interest(currency_id: CurrencyId) -> DispatchResult {
         // Read the previous values out of storage
-        let cash_prior = Self::get_total_cash(currency_id.clone());
+        let cash_prior = Self::get_total_cash(currency_id);
         let borrows_prior = Self::total_borrows(currency_id);
 
         // Calculate the current borrow interest rate
-        Self::update_borrow_rate(currency_id.clone(), cash_prior, borrows_prior, 0)?;
+        Self::update_borrow_rate(currency_id, cash_prior, borrows_prior, 0)?;
 
         /*
          * Compound protocol:
@@ -89,7 +84,7 @@ impl<T: Config> Pallet<T> {
             Ok(())
         })?;
 
-        T::Currency::transfer(currency_id.clone(), who, &Self::account_id(), mint_amount)?;
+        T::Currency::transfer(*currency_id, who, &Self::account_id(), mint_amount)?;
 
         Ok(())
     }
@@ -128,7 +123,7 @@ impl<T: Config> Pallet<T> {
         })?;
 
         // debug::info!("moduleAccountBalance: {:?}", T::Currency::free_balance(currency_id.clone(), &who));
-        T::Currency::transfer(currency_id.clone(), &Self::account_id(), who, redeem_amount)?;
+        T::Currency::transfer(*currency_id, &Self::account_id(), who, redeem_amount)?;
 
         Ok(())
     }
@@ -156,7 +151,7 @@ impl<T: Config> Pallet<T> {
                 .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
         }
 
-        return Ok(total_borrow_value);
+        Ok(total_borrow_value)
     }
 
     pub(crate) fn total_will_borrow_value(
@@ -174,7 +169,7 @@ impl<T: Config> Pallet<T> {
             .checked_add(Self::total_borrowed_value(borrower)?)
             .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
 
-        return Ok(total_borrow_value);
+        Ok(total_borrow_value)
     }
 
     pub(crate) fn collateral_asset_value(
@@ -195,13 +190,13 @@ impl<T: Config> Pallet<T> {
             return Err(Error::<T>::OracleCurrencyPriceNotReady);
         }
 
-        Ok(collateral
+        collateral
             .checked_mul(collateral_factor)
             .and_then(|r| r.checked_div(RATE_DECIMAL))
             .and_then(|r| r.checked_mul(currency_exchange_rate))
             .and_then(|r| r.checked_div(RATE_DECIMAL))
             .and_then(|r| r.checked_mul(currency_price))
-            .ok_or(Error::<T>::CollateralOverflow)?)
+            .ok_or(Error::<T>::CollateralOverflow)
     }
 
     pub(crate) fn total_collateral_asset_value(
@@ -209,7 +204,7 @@ impl<T: Config> Pallet<T> {
     ) -> result::Result<Balance, Error<T>> {
         let collateral_assets = AccountCollateralAssets::<T>::get(borrower);
         if collateral_assets.is_empty() {
-            return Err(Error::<T>::NoCollateralAsset.into());
+            return Err(Error::<T>::NoCollateralAsset);
         }
 
         let mut total_asset_value: Balance = 0_u128;
@@ -219,7 +214,7 @@ impl<T: Config> Pallet<T> {
                 .ok_or(Error::<T>::CollateralOverflow)?;
         }
 
-        return Ok(total_asset_value);
+        Ok(total_asset_value)
     }
 
     /// Borrower shouldn't borrow more than what he/she has collateraled in total
@@ -260,12 +255,7 @@ impl<T: Config> Pallet<T> {
             .checked_add(borrow_amount)
             .ok_or(Error::<T>::CalcBorrowBalanceFailed)?;
 
-        T::Currency::transfer(
-            currency_id.clone(),
-            &Self::account_id(),
-            borrower,
-            borrow_amount,
-        )?;
+        T::Currency::transfer(*currency_id, &Self::account_id(), borrower, borrow_amount)?;
 
         AccountBorrows::<T>::insert(
             currency_id,
@@ -295,12 +285,7 @@ impl<T: Config> Pallet<T> {
             return Err(Error::<T>::RepayAmountTooBig.into());
         }
 
-        T::Currency::transfer(
-            currency_id.clone(),
-            borrower,
-            &Self::account_id(),
-            repay_amount,
-        )?;
+        T::Currency::transfer(*currency_id, borrower, &Self::account_id(), repay_amount)?;
 
         let account_borrows_new = account_borrows
             .checked_sub(repay_amount)
@@ -522,7 +507,7 @@ impl<T: Config> Pallet<T> {
         // 1.liquidator repay borrower's debt,
         // transfer from liquidator to module account
         T::Currency::transfer(
-            liquidate_currency_id.clone(),
+            *liquidate_currency_id,
             liquidator,
             &Self::account_id(),
             repay_amount,
@@ -584,8 +569,8 @@ impl<T: Config> Pallet<T> {
         Self::deposit_event(Event::<T>::LiquidationOccur(
             liquidator.clone(),
             borrower.clone(),
-            liquidate_currency_id.clone(),
-            collateral_currency_id.clone(),
+            *liquidate_currency_id,
+            *collateral_currency_id,
             repay_amount,
             collateral_underlying_amount,
         ));

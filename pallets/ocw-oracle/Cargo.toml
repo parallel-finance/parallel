@@ -1,40 +1,38 @@
 [package]
-name = "pallet-ocw-oracle"
-version = "3.0.0"
-authors = ["Parallel Team"]
-edition = "2018"
+authors = ['Parallel Team']
+edition = '2018'
+name    = 'pallet-ocw-oracle'
+version = '3.0.0'
 
 [package.metadata.docs.rs]
-targets = ["x86_64-unknown-linux-gnu"]
+targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
-frame-support = { version = "3.0.0", default-features = false }
-frame-system = { version = "3.0.0", default-features = false }
-parking_lot = "0.10.0"
-serde = { package = "alt_serde", version = "1", default-features = false, features = ["derive"] }
-serde_json = { package = "alt_serde_json", version = "1", default-features = false, features = ["alloc"] }
-sp-core = { version = "3.0.0", default-features = false }
-sp-keystore = { version = "0.9.0", optional = true }
-sp-io = { version = "3.0.0", default-features = false }
-sp-runtime = { version = "3.0.0", default-features = false }
-sp-std = { version = "3.0.0", default-features = false }
-primitives = { package = "parallel-primitives", path = "../../primitives", default-features = false }
+codec         = { package = 'parity-scale-codec', version = '2.0.0', default-features = false }
+frame-support = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
+frame-system  = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
+primitives    = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
+serde         = { package = 'alt_serde', version = '1', default-features = false, features = ['derive'] }
+serde_json    = { package = 'alt_serde_json', version = '1', default-features = false, features = ['alloc'] }
+sp-core       = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
+sp-io         = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
+sp-runtime    = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
+sp-std        = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
 
 [dependencies.num-traits]
-version = "0.2"
 default-features = false
-# features = ["libm"]    # <--- Uncomment if you wish to use `Float` and `Real` without `std`
+version          = '0.2'
+# features = ['libm']    # <--- Uncomment if you wish to use `Float` and `Real` without `std`
 
 [features]
-default = ["std"]
-std = [
-	"codec/std",
-	"frame-support/std",
-	"frame-system/std",
-	"sp-core/std",
-	"sp-io/std",
-	"sp-keystore",
-	"sp-runtime/std",
-	"sp-std/std",
+default = ['std']
+std     = [
+  'codec/std',
+  'frame-support/std',
+  'frame-system/std',
+  'sp-core/std',
+  'sp-io/std',
+  'sp-runtime/std',
+  'sp-std/std',
+  'primitives/std',
 ]

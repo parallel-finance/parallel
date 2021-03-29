@@ -8,25 +8,24 @@ version = '3.0.0'
 targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
-codec             = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
-frame-support     = { default-features = false, version = '3.0.0' }
-frame-system      = { default-features = false, version = '3.0.0' }
-orml-currencies   = { default-features = false, version = '0.4.0' }
-orml-tokens       = { default-features = false, version = '0.4.0' }
-orml-traits       = { default-features = false, version = '0.4.0' }
-orml-utilities    = { default-features = false, version = '0.4.0' }
-primitives        = { package = "parallel-primitives", path = "../../primitives", default-features = false }
-serde             = { version = "1.0.102", features = ["derive"] }
-sp-runtime        = { version = "3.0.0", default-features = false }
-sp-std            = { version = "3.0.0", default-features = false }
-pallet-timestamp = { default-features = false, version = '3.0.0' }
+codec            = { package = 'parity-scale-codec', version = '2.0.0', default-features = false }
+frame-support    = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', default-features = false, version = '3.0.0' }
+frame-system     = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', default-features = false, version = '3.0.0' }
+orml-currencies  = { path = '../../orml/currencies', default-features = false }
+orml-tokens      = { path = '../../orml/tokens', default-features = false }
+orml-traits      = { path = '../../orml/traits', default-features = false }
+orml-utilities   = { path = '../../orml/utilities', default-features = false }
+pallet-timestamp = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', default-features = false, version = '3.0.0' }
+primitives       = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
+serde            = { version = '1', features = ['derive'] }
+sp-runtime       = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
+sp-std           = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
 
 [dev-dependencies]
-serde      = { version = "1.0.119" }
-sp-core    = { default-features = false, version = '3.0.0' }
-sp-io      = { default-features = false, version = '3.0.0' }
-sp-runtime = { default-features = false, version = '3.0.0' }
-pallet-balances = { default-features = false, version = '3.0.0' }
+pallet-balances = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', default-features = false, version = '3.0.0' }
+serde           = { version = '1' }
+sp-core         = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', default-features = false, version = '3.0.0' }
+sp-io           = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', default-features = false, version = '3.0.0' }
 
 [features]
 default = ['std']
@@ -39,4 +38,7 @@ std     = [
   'orml-traits/std',
   'orml-utilities/std',
   'pallet-timestamp/std',
+  'primitives/std',
+  'sp-runtime/std',
+  'sp-std/std',
 ]
