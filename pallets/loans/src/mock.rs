@@ -229,9 +229,8 @@ impl ExtBuilder {
                 CurrencyId::USDC,
                 CurrencyId::xDOT,
             ],
-            total_supply: 100 * TOKEN_DECIMAL, // 100
-            total_borrows: 50 * TOKEN_DECIMAL, // 50
-
+            // total_supply: 100 * TOKEN_DECIMAL, // 100
+            // total_borrows: 50 * TOKEN_DECIMAL, // 50
             borrow_index: RATE_DECIMAL,                 // 1
             exchange_rate: 2 * RATE_DECIMAL / 100,      // 0.02
             base_rate: 2 * RATE_DECIMAL / 100,          // 0.02

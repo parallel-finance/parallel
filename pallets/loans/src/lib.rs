@@ -15,7 +15,6 @@ pub use module::*;
 mod loan;
 mod mock;
 mod rate;
-mod staking;
 mod tests;
 mod util;
 
@@ -279,12 +278,6 @@ pub mod module {
     #[pallet::genesis_build]
     impl<T: Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
-            T::Currency::update_balance(
-                CurrencyId::xDOT,
-                &Pallet::<T>::staking_account_id(),
-                1_000_000_000_000_000_000_000_000_000_000,
-            )
-            .unwrap();
             self.currencies.iter().for_each(|currency_id| {
                 // TotalSupply::<T>::insert(currency_id, self.total_supply);
                 // TotalBorrows::<T>::insert(currency_id, self.total_borrows);
@@ -467,24 +460,6 @@ pub mod module {
 
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn stake(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
-            Self::stake_internal(&who, amount)?;
-
-            Ok(().into())
-        }
-
-        #[pallet::weight(10_000)]
-        #[transactional]
-        pub fn unstake(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
-            Self::unstake_internal(&who, amount)?;
-
-            Ok(().into())
-        }
-
-        #[pallet::weight(10_000)]
-        #[transactional]
         pub fn liquidate_borrow(
             origin: OriginFor<T>,
             borrower: T::AccountId,
@@ -508,8 +483,5 @@ pub mod module {
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> T::AccountId {
         T::ModuleId::get().into_account()
-    }
-    pub fn staking_account_id() -> T::AccountId {
-        ModuleId(*b"staking/").into_account()
     }
 }
