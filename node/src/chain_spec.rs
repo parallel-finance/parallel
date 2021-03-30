@@ -191,9 +191,8 @@ fn testnet_genesis(
                 CurrencyId::USDC,
                 CurrencyId::xDOT,
             ],
-            total_supply: 1000 * TOKEN_DECIMAL, // 1000
-            total_borrows: 600 * TOKEN_DECIMAL, // 600
-
+            //total_supply: 1000 * TOKEN_DECIMAL, // 1000
+            //total_borrows: 600 * TOKEN_DECIMAL, // 600
             borrow_index: RATE_DECIMAL,                 // 1
             exchange_rate: 2 * RATE_DECIMAL / 100,      // 0.02
             base_rate: 2 * RATE_DECIMAL / 100,          // 0.02

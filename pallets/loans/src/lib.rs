@@ -15,7 +15,6 @@ pub use module::*;
 mod loan;
 mod mock;
 mod rate;
-mod staking;
 mod tests;
 mod util;
 
@@ -241,8 +240,8 @@ pub mod module {
     #[pallet::genesis_config]
     pub struct GenesisConfig {
         pub currencies: Vec<CurrencyId>,
-        pub total_supply: Balance,
-        pub total_borrows: Balance,
+        // pub total_supply: Balance,
+        // pub total_borrows: Balance,
         pub borrow_index: u128,
         pub exchange_rate: u128,
         pub base_rate: u128,
@@ -260,8 +259,8 @@ pub mod module {
         fn default() -> Self {
             GenesisConfig {
                 currencies: vec![],
-                total_supply: 0,
-                total_borrows: 0,
+                // total_supply: 0,
+                // total_borrows: 0,
                 borrow_index: 0,
                 exchange_rate: 0,
                 base_rate: 0,
@@ -279,15 +278,9 @@ pub mod module {
     #[pallet::genesis_build]
     impl<T: Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
-            T::Currency::update_balance(
-                CurrencyId::xDOT,
-                &Pallet::<T>::staking_account_id(),
-                1_000_000_000_000_000_000_000_000_000_000,
-            )
-            .unwrap();
             self.currencies.iter().for_each(|currency_id| {
-                TotalSupply::<T>::insert(currency_id, self.total_supply);
-                TotalBorrows::<T>::insert(currency_id, self.total_borrows);
+                // TotalSupply::<T>::insert(currency_id, self.total_supply);
+                // TotalBorrows::<T>::insert(currency_id, self.total_borrows);
                 ExchangeRate::<T>::insert(currency_id, self.exchange_rate);
                 BorrowIndex::<T>::insert(currency_id, self.borrow_index);
             });
@@ -467,24 +460,6 @@ pub mod module {
 
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn stake(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
-            Self::stake_internal(&who, amount)?;
-
-            Ok(().into())
-        }
-
-        #[pallet::weight(10_000)]
-        #[transactional]
-        pub fn unstake(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
-            Self::unstake_internal(&who, amount)?;
-
-            Ok(().into())
-        }
-
-        #[pallet::weight(10_000)]
-        #[transactional]
         pub fn liquidate_borrow(
             origin: OriginFor<T>,
             borrower: T::AccountId,
@@ -508,8 +483,5 @@ pub mod module {
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> T::AccountId {
         T::ModuleId::get().into_account()
-    }
-    pub fn staking_account_id() -> T::AccountId {
-        ModuleId(*b"staking/").into_account()
     }
 }
