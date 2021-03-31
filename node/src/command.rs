@@ -20,6 +20,8 @@ use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::Block as BlockT;
 use std::{io::Write, net::SocketAddr};
 
+const CHAIN_NAME: &str = "Parallel";
+
 fn load_spec(
     id: &str,
     para_id: ParaId,
@@ -35,7 +37,7 @@ fn load_spec(
 
 impl SubstrateCli for Cli {
     fn impl_name() -> String {
-        "Parachain Collator Template".into()
+        format!("{} Node", CHAIN_NAME)
     }
 
     fn impl_version() -> String {
@@ -43,13 +45,7 @@ impl SubstrateCli for Cli {
     }
 
     fn description() -> String {
-        format!(
-            "Parachain Collator Template\n\nThe command-line arguments provided first will be \
-		passed to the parachain node, while the arguments provided after -- will be passed \
-		to the relaychain node.\n\n\
-		{} [parachain-args] -- [relaychain-args]",
-            Self::executable_name()
-        )
+        env!("CARGO_PKG_DESCRIPTION").into()
     }
 
     fn author() -> String {
@@ -57,11 +53,11 @@ impl SubstrateCli for Cli {
     }
 
     fn support_url() -> String {
-        "https://github.com/substrate-developer-hub/substrate-parachain-template/issues/new".into()
+        "https://github.com/parallel-finance/parallel/issues".into()
     }
 
     fn copyright_start_year() -> i32 {
-        2017
+        2021
     }
 
     fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
@@ -75,7 +71,7 @@ impl SubstrateCli for Cli {
 
 impl SubstrateCli for RelayChainCli {
     fn impl_name() -> String {
-        "Parachain Collator Template".into()
+        format!("{} Parachain Collator", CHAIN_NAME)
     }
 
     fn impl_version() -> String {
@@ -83,11 +79,13 @@ impl SubstrateCli for RelayChainCli {
     }
 
     fn description() -> String {
-        "Parachain Collator Template\n\nThe command-line arguments provided first will be \
+        format!(
+            "{} parachain collator\n\nThe command-line arguments provided first will be \
 		passed to the parachain node, while the arguments provided after -- will be passed \
 		to the relaychain node.\n\n\
-		rococo-collator [parachain-args] -- [relaychain-args]"
-            .into()
+		rococo-collator [parachain-args] -- [relaychain-args]",
+            CHAIN_NAME
+        )
     }
 
     fn author() -> String {
@@ -95,11 +93,11 @@ impl SubstrateCli for RelayChainCli {
     }
 
     fn support_url() -> String {
-        "https://github.com/substrate-developer-hub/substrate-parachain-template/issues/new".into()
+        "https://github.com/parallel-finance/parallel/issues".into()
     }
 
     fn copyright_start_year() -> i32 {
-        2017
+        2021
     }
 
     fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
