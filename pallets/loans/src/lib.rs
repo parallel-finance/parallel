@@ -279,12 +279,6 @@ pub mod module {
     #[pallet::genesis_build]
     impl<T: Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
-            // T::Currency::update_balance(
-            //     CurrencyId::xDOT,
-            //     &Pallet::<T>::staking_account_id(),
-            //     1_000_000_000_000_000_000_000_000_000_000,
-            // )
-            // .unwrap();
             self.currencies.iter().for_each(|currency_id| {
                 // TotalSupply::<T>::insert(currency_id, self.total_supply);
                 // TotalBorrows::<T>::insert(currency_id, self.total_borrows);
