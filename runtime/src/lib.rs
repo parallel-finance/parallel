@@ -77,8 +77,8 @@ pub mod opaque {
 }
 
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-    spec_name: create_runtime_str!("cumulus-test-parachain"),
-    impl_name: create_runtime_str!("cumulus-test-parachain"),
+    spec_name: create_runtime_str!("parallel-parachain-runtime"),
+    impl_name: create_runtime_str!("parallel-parachain-runtime"),
     authoring_version: 1,
     spec_version: 100,
     impl_version: 1,
