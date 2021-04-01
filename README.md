@@ -1,4 +1,5 @@
-# Parallel Finance
+# Parallel Finance ![image](https://user-images.githubusercontent.com/40745291/113244934-d143c400-926a-11eb-9f2b-dc8350e11a58.png)
+
 
 A fresh FRAME-based [Substrate](https://www.substrate.io/) node, ready for hacking :rocket:
 
