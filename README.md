@@ -37,20 +37,23 @@ cargo build --release --features real-overseer
 
 ./target/release/polkadot build-spec --chain rococo-local --raw --disable-default-bootnode > rococo_local.json
 
-./target/release/polkadot --chain ./rococo_local.json -d cumulus_relay1 --validator --bob --port 50555
-./target/release/polkadot --chain ./rococo_local.json -d cumulus_relay0 --validator --alice --port 50556
+./target/release/polkadot --chain ./rococo_local.json -d cumulus_relay0 --validator --alice --port 50555
+
+./target/release/polkadot --chain ./rococo_local.json -d cumulus_relay1 --validator --bob --port 50556 \
+        --bootnodes /ip4/127.0.0.1/tcp/50555/p2p/<ALICE's peer id>
 ```
 
 Substrate Parachain Template:
 
 ```
 # this command assumes the chain spec is in a directory named polkadot that is a sibling of the working directory
-./target/release/parallel -d local-test --collator --alice --ws-port 9945 --parachain-id 200 -- --chain ../polkadot/rococo_local.json
+./target/release/parallel -d local-test --collator --alice --ws-port 9915 --parachain-id 200 -- --chain ../polkadot/rococo_local.json \
+        --bootnodes /ip4/127.0.0.1/tcp/50555/p2p/<ALICE's peer id>
 ```
 
 ### Registering on Local Relay Chain
 
-In order to produce blocks you will need to register the parachain as detailed in the [Substrate Cumulus Worship](https://substrate.dev/cumulus-workshop/#/en/3-parachains/2-register) by going to
+In order to produce blocks you will need to register the parachain as detailed in the [Substrate Cumulus Workshop](https://substrate.dev/cumulus-workshop/#/en/3-parachains/2-register) by going to
 
 Developer -> sudo -> paraSudoWrapper -> sudoScheduleParaInitialize(id, genesis)
 
