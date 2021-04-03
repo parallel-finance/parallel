@@ -82,7 +82,7 @@ jobs:
         run: |
           SKIP_WASM_BUILD=1 cargo clippy
 
-      - name: Check Foramt
+      - name: Check Format
         run: |
           SKIP_WASM_BUILD=1 cargo fmt --all -- --check
 
