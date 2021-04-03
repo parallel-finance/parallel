@@ -1,3 +1,17 @@
+[package]
+authors     = ['Parallel Team']
+build       = 'build.rs'
+description = 'A decentralized lending protocol which allow users to earn "double interests" from staking and lending'
+edition     = '2018'
+homepage    = 'https://parallel.fi'
+license     = 'Unlicense'
+name        = 'parallel'
+repository  = 'https://github.com/parallel-finance/parallel'
+version     = '2.0.0'
+
+[package.metadata.docs.rs]
+targets = ['x86_64-unknown-linux-gnu']
+
 [dependencies]
 codec                  = { package = 'parity-scale-codec', version = '2.0.0' }
 derive_more            = '0.15.0'
@@ -59,19 +73,6 @@ substrate-build-script-utils = { version = '3.0.0', git = 'https://github.com/pa
 
 [[bin]]
 name = 'parallel'
-
-[package]
-authors     = ['Parallel Team']
-build       = 'build.rs'
-description = 'A decentralized lending protocol which allow users to earn "double interests" from staking and lending'
-edition     = '2018'
-homepage    = 'https://parallel.fi'
-license     = 'Unlicense'
-name        = 'parallel'
-repository  = 'https://github.com/parallel-finance/parallel'
-version     = '2.0.0'
-[package.metadata.docs.rs]
-targets = ['x86_64-unknown-linux-gnu']
 
 [features]
 default            = []
