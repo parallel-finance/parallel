@@ -4222,17 +4222,15 @@ dependencies = [
 [[package]]
 name = "orml-currencies"
 version = "0.4.1-dev"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#db10cfda77388524b6b30faa7300b165c740e6d4"
 dependencies = [
  "frame-support",
  "frame-system",
  "funty",
- "orml-tokens",
  "orml-traits",
  "orml-utilities",
- "pallet-balances",
  "parity-scale-codec",
  "serde",
- "sp-core",
  "sp-io",
  "sp-runtime",
  "sp-std",
@@ -4241,17 +4239,14 @@ dependencies = [
 [[package]]
 name = "orml-tokens"
 version = "0.4.1-dev"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#db10cfda77388524b6b30faa7300b165c740e6d4"
 dependencies = [
  "frame-support",
  "frame-system",
  "funty",
  "orml-traits",
- "pallet-elections-phragmen",
- "pallet-treasury",
  "parity-scale-codec",
  "serde",
- "sp-core",
- "sp-io",
  "sp-runtime",
  "sp-std",
 ]
@@ -4259,6 +4254,7 @@ dependencies = [
 [[package]]
 name = "orml-traits"
 version = "0.4.1-dev"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#db10cfda77388524b6b30faa7300b165c740e6d4"
 dependencies = [
  "frame-support",
  "funty",
@@ -4275,13 +4271,12 @@ dependencies = [
 [[package]]
 name = "orml-utilities"
 version = "0.4.1-dev"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#db10cfda77388524b6b30faa7300b165c740e6d4"
 dependencies = [
  "frame-support",
- "frame-system",
  "funty",
  "parity-scale-codec",
  "serde",
- "serde_json",
  "sp-io",
  "sp-runtime",
  "sp-std",

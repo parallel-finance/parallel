@@ -11,10 +11,10 @@ targets = ['x86_64-unknown-linux-gnu']
 codec            = { package = 'parity-scale-codec', version = '2.0.0', default-features = false }
 frame-support    = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', default-features = false, version = '3.0.0' }
 frame-system     = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', default-features = false, version = '3.0.0' }
-orml-currencies  = { path = '../../orml/currencies', default-features = false }
-orml-tokens      = { path = '../../orml/tokens', default-features = false }
-orml-traits      = { path = '../../orml/traits', default-features = false }
-orml-utilities   = { path = '../../orml/utilities', default-features = false }
+orml-currencies  = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-tokens      = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-traits      = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-utilities   = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 pallet-timestamp = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', default-features = false, version = '3.0.0' }
 primitives       = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 serde            = { version = '1', features = ['derive'] }
