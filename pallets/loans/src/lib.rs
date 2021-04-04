@@ -2,8 +2,7 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::collapsible_if)]
 
-use frame_support::pallet_prelude::*;
-use frame_support::transactional;
+use frame_support::{pallet_prelude::*, transactional};
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 use primitives::{Amount, Balance, CurrencyId, RATE_DECIMAL};
@@ -13,8 +12,10 @@ use sp_std::vec::Vec;
 pub use module::*;
 
 mod loan;
+#[cfg(test)]
 mod mock;
 mod rate;
+#[cfg(test)]
 mod tests;
 mod util;
 
@@ -391,7 +392,7 @@ pub mod module {
             let exchange_rate = Self::exchange_rate(currency_id);
             let redeem_amount = mul_then_div(collateral, exchange_rate, RATE_DECIMAL)
                 .ok_or(Error::<T>::CollateralOverflow)?;
-            Self::redeem_internal(&who, &currency_id, redeem_amount.into())?;
+            Self::redeem_internal(&who, &currency_id, redeem_amount)?;
             Ok(().into())
         }
 

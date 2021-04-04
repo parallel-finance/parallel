@@ -1,6 +1,5 @@
 //! Unit tests for the loans module.
 
-#![cfg(test)]
 use primitives::{CurrencyId, BLOCK_PER_YEAR, RATE_DECIMAL, TOKEN_DECIMAL};
 
 use super::*;

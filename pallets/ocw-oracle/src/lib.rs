@@ -2,7 +2,7 @@
 
 use codec::{Decode, Encode};
 use core::fmt;
-use frame_support::pallet_prelude::*;
+use frame_support::{log, pallet_prelude::*};
 use frame_system::pallet_prelude::*;
 use frame_system::{
     ensure_none,
@@ -177,7 +177,7 @@ pub mod module {
                     let _ = Self::offchain_price_unsigned_with_signed_payload(res);
                 }
                 Err(e) => {
-                    debug::error!("offchain_worker error: {:?}", e);
+                    log::error!("offchain_worker error: {:?}", e);
                 }
             }
         }
@@ -239,10 +239,10 @@ pub mod module {
             // we don't need to verify the signature here because it has been verified in
             //   `validate_unsigned` function when sending out the unsigned tx.
             let _ = ensure_none(origin)?;
-            debug::info!("dot: {:?}", Prices::<T>::get(CurrencyId::DOT));
-            debug::info!("btc: {:?}", Prices::<T>::get(CurrencyId::BTC));
-            debug::info!("ksm: {:?}", Prices::<T>::get(CurrencyId::KSM));
-            debug::info!("usdc: {:?}", Prices::<T>::get(CurrencyId::USDC));
+            log::info!("dot: {:?}", Prices::<T>::get(CurrencyId::DOT));
+            log::info!("btc: {:?}", Prices::<T>::get(CurrencyId::BTC));
+            log::info!("ksm: {:?}", Prices::<T>::get(CurrencyId::KSM));
+            log::info!("usdc: {:?}", Prices::<T>::get(CurrencyId::USDC));
             Self::append_price(payload);
             Self::deposit_event(Event::<T>::OffchainInvoke(None));
             Ok(().into())
@@ -254,8 +254,8 @@ pub mod module {
         ///   the bounded length.
         fn append_price(payload: Payload<T::Public>) {
             let list = payload.list;
-            for i in 0..list.len() {
-                Prices::<T>::insert(&list[i].symbol, Some((list[i].price, list[i].timestamp)));
+            for item in list {
+                Prices::<T>::insert(&item.symbol, Some((item.price, item.timestamp)));
             }
         }
 
@@ -274,28 +274,28 @@ pub mod module {
                     if let Ok(json) = Self::fetch_n_parse(url) {
                         res.push((currency_id, json));
                     } else {
-                        debug::info!("error response: {}", url);
+                        log::info!("error response: {}", url);
                     }
                 }
-                if res.len() > 0 {
+                if !res.is_empty() {
                     return Ok(res);
                 } else {
-                    return Err(<Error<T>>::HttpFetchingError.into());
+                    return Err(<Error<T>>::HttpFetchingError);
                 }
             }
-            Err(<Error<T>>::AcquireStorageLockError.into())
+            Err(<Error<T>>::AcquireStorageLockError)
         }
 
         /// Fetch from remote and deserialize the JSON to a struct
         pub fn fetch_n_parse(url: &str) -> Result<PriceJson, Error<T>> {
             let resp_bytes = Self::fetch_from_remote(url).map_err(|e| {
-                debug::error!("fetch_from_remote error: {:?}", e);
+                log::error!("fetch_from_remote error: {:?}", e);
                 <Error<T>>::HttpFetchingError
             })?;
             let resp_str =
                 str::from_utf8(&resp_bytes).map_err(|_| <Error<T>>::HttpFetchingError)?;
             // Print out our fetched JSON string
-            // debug::info!("{}", resp_str);
+            // log::info!("{}", resp_str);
             let gh_info: PriceJson =
                 serde_json::from_str(&resp_str).map_err(|_| <Error<T>>::HttpFetchingError)?;
             Ok(gh_info)
@@ -304,7 +304,7 @@ pub mod module {
         /// This function uses the `offchain::http` API to query the remote github information,
         ///   and returns the JSON response as vector of bytes.
         pub fn fetch_from_remote(url: &str) -> Result<Vec<u8>, Error<T>> {
-            // debug::info!("sending request to: {}", url);
+            // log::info!("sending request to: {}", url);
 
             // Initiate an external HTTP GET request. This is using high-level wrappers from `sp_runtime`.
             let request = rt_offchain::http::Request::get(url);
@@ -331,7 +331,7 @@ pub mod module {
                 .map_err(|_| <Error<T>>::HttpFetchingError)?;
 
             if response.code != 200 {
-                debug::error!("Unexpected http request status code: {}", response.code);
+                log::error!("Unexpected http request status code: {}", response.code);
                 return Err(<Error<T>>::HttpFetchingError);
             }
 
@@ -346,8 +346,8 @@ pub mod module {
 
             let payload_list = {
                 let mut v: Vec<PayloadDetail> = Vec::new();
-                for i in 0..json_list.len() {
-                    let (currency_id, json) = json_list[i].clone();
+                for item in json_list {
+                    let (currency_id, json) = item;
                     let price = Self::to_price(json.data.priceUsd)?;
                     let symbol = currency_id;
                     let timestamp = json.timestamp;
@@ -368,12 +368,12 @@ pub mod module {
                 Call::submit_price_unsigned_with_signed_payload,
             ) {
                 return res.map_err(|_| {
-                    debug::error!("Failed in offchain_unsigned_tx_signed_payload");
+                    log::error!("Failed in offchain_unsigned_tx_signed_payload");
                     <Error<T>>::OffchainUnsignedTxSignedPayloadError
                 });
             }
             // The case of `None`: no account is available for sending
-            debug::error!("No local account available");
+            log::error!("No local account available");
             Err(<Error<T>>::NoLocalAcctForSigning)
         }
 
@@ -381,12 +381,12 @@ pub mod module {
             // let val_u8: Vec<u8> = json.data.priceUsd;
             let val_f64: f64 = core::str::from_utf8(&val_u8)
                 .map_err(|_| {
-                    debug::error!("val_u8 convert to string error");
+                    log::error!("val_u8 convert to string error");
                     <Error<T>>::ConvertToStringError
                 })?
                 .parse::<f64>()
                 .map_err(|_| {
-                    debug::error!("string convert to f64 error");
+                    log::error!("string convert to f64 error");
                     <Error<T>>::ParsingToF64Error
                 })?;
 
@@ -424,7 +424,7 @@ pub mod module {
     impl<T: Config> rt_offchain::storage_lock::BlockNumberProvider for Pallet<T> {
         type BlockNumber = T::BlockNumber;
         fn current_block_number() -> Self::BlockNumber {
-            <frame_system::Module<T>>::block_number()
+            <frame_system::Pallet<T>>::block_number()
         }
     }
 }

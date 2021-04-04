@@ -1,6 +1,3 @@
-#![cfg_attr(not(feature = "std"), no_std)]
-
-use pallet_timestamp;
 use primitives::{Balance, CurrencyId};
 use sp_runtime::DispatchResult;
 
@@ -14,7 +11,6 @@ impl<T: Config> Pallet<T> {
     pub fn stake_internal(who: &T::AccountId, amount: Balance) -> DispatchResult {
         T::Currency::transfer(CurrencyId::DOT, who, &Self::account_id(), amount)?;
         T::Currency::transfer(CurrencyId::xDOT, &Self::account_id(), who, amount)?;
-
         Ok(())
     }
     /// Sender redeems xDOTs in exchange for pending balance(Dot)
@@ -26,7 +22,7 @@ impl<T: Config> Pallet<T> {
         let mut pending_balances = Self::account_pending_balance(nominator);
         pending_balances.push(PendingBalance {
             balance: amount,
-            timestamp: <pallet_timestamp::Module<T>>::get(),
+            timestamp: <pallet_timestamp::Pallet<T>>::get(),
         });
         AccountPendingBalance::<T>::insert(nominator, pending_balances);
 

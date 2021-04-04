@@ -1,18 +1,16 @@
 use primitives::{Balance, CurrencyId, BLOCK_PER_YEAR, RATE_DECIMAL};
 use sp_runtime::{traits::Zero, DispatchResult};
-use sp_std::prelude::*;
 
-use crate::util::*;
-use crate::*;
+use crate::{util::*, *};
 
 impl<T: Config> Pallet<T> {
     fn insert_borrow_rate(currency_id: CurrencyId, rate: u128) {
-        BorrowRate::<T>::insert(currency_id, rate.clone());
+        BorrowRate::<T>::insert(currency_id, rate);
         Self::deposit_event(Event::BorrowRateUpdated(currency_id, rate));
     }
 
     fn insert_supply_rate(currency_id: CurrencyId, rate: u128) {
-        SupplyRate::<T>::insert(currency_id, rate.clone());
+        SupplyRate::<T>::insert(currency_id, rate);
         Self::deposit_event(Event::SupplyRateUpdated(currency_id, rate));
     }
 
@@ -121,8 +119,7 @@ impl<T: Config> Pallet<T> {
         reserves: Balance,
         reserve_factor_mantissa: u128,
     ) -> DispatchResult {
-        let one_minus_reserve_factor =
-            u128::from(RATE_DECIMAL).saturating_sub(reserve_factor_mantissa);
+        let one_minus_reserve_factor = RATE_DECIMAL.saturating_sub(reserve_factor_mantissa);
 
         let borrow_rate = BorrowRate::<T>::get(currency_id);
         let rate_to_pool = Self::to_decimal(borrow_rate.checked_mul(one_minus_reserve_factor))?;
@@ -141,7 +138,7 @@ impl<T: Config> Pallet<T> {
          */
         let total_borrows = Self::total_borrows(currency_id);
         let total_supply = Self::total_supply(currency_id);
-        let total_cash = Self::get_total_cash(currency_id.clone());
+        let total_cash = Self::get_total_cash(currency_id);
 
         let cash_plus_borrows = total_cash
             .checked_add(total_borrows)
