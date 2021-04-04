@@ -1,8 +1,3 @@
-[build-dependencies.substrate-wasm-builder]
-branch  = 'rococo-v1'
-git     = 'https://github.com/paritytech/substrate.git'
-version = '4.0.0'
-
 [package]
 authors     = ['Parallel Team']
 build       = 'build.rs'
@@ -62,6 +57,11 @@ xcm                                        = { git = 'https://github.com/parityt
 xcm-builder                                = { git = 'https://github.com/paritytech/polkadot.git', branch = 'rococo-v1', default-features = false }
 xcm-executor                               = { git = 'https://github.com/paritytech/polkadot.git', branch = 'rococo-v1', default-features = false }
 
+[build-dependencies.substrate-wasm-builder]
+branch  = 'rococo-v1'
+git     = 'https://github.com/paritytech/substrate.git'
+version = '4.0.0'
+
 [features]
 default            = ['std']
 runtime-benchmarks = [
@@ -91,6 +91,7 @@ std                = [
   'frame-support/std',
   'frame-executive/std',
   'frame-system/std',
+  'frame-benchmarking/std',
   'frame-system-rpc-runtime-api/std',
   'pallet-balances/std',
   'pallet-randomness-collective-flip/std',
@@ -99,6 +100,7 @@ std                = [
   'pallet-transaction-payment/std',
   'pallet-transaction-payment-rpc-runtime-api/std',
   'parachain-info/std',
+  'polkadot-parachain/std',
   'cumulus-pallet-parachain-system/std',
   'cumulus-primitives-core/std',
   'xcm/std',
