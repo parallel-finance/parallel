@@ -30,7 +30,7 @@ cargo build --release
 
 ### Local Testnet
 
-Polkadot (rococo-v1 branch):
+Polkadot (rococo-v1 branch, better use commit hash: `f3e2cbf49f179104d20b9f1b54830710ddac8be3`):
 
 ```
 cargo build --release --features real-overseer
