@@ -3,7 +3,7 @@ version: "3.2"
 services:
   build:
     container_name: parallel-build
-    image: paritytech/ci-linux:974ba3ac-20201006
+    image: paritytech/ci-linux:production
     working_dir: /parallel-finance/parallel
     environment:
       - CARGO_HOME=/parallel-finance/parallel/docker/.cargo
