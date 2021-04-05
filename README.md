@@ -1,5 +1,4 @@
-# Parallel Finance ![image](https://user-images.githubusercontent.com/40745291/113244934-d143c400-926a-11eb-9f2b-dc8350e11a58.png)
-
+# <div style="display:flex;align-items:center;"><img src="https://user-images.githubusercontent.com/40745291/113244934-d143c400-926a-11eb-9f2b-dc8350e11a58.png" width="40px" style="border-radius:50%;margin-right:10px;"><span style="transform: translateY(5px);">Parallel Finance</span></div>
 
 [![GitHub last commit](https://img.shields.io/github/last-commit/parallel-finance/parallel)](https://github.com/parallel-finance/parallel/commits/master)
 [![CI](https://github.com/parallel-finance/parallel/workflows/CI/badge.svg)](https://github.com/parallel-finance/parallel/actions)
