@@ -24,14 +24,17 @@ log                    = '0.4.13'
 primitives = { package = 'parallel-primitives', path = '../primitives' }
 
 pallet-transaction-payment-rpc = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
-parachain-runtime              = { version = '2.0.0', path = '../runtime' }
+parallel-runtime               = { version = '2.0.0', path = '../runtime/parallel' }
+vanilla-runtime                = { version = '2.0.0', path = '../runtime/vanilla' }
 
 sc-basic-authorship = { version = '0.9.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
 sc-chain-spec       = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
 sc-cli              = { version = '0.9.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', features = ['wasmtime'] }
 sc-client-api       = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
 sc-consensus        = { version = '0.9.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
+sc-consensus-aura   = { version = '0.9.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
 sc-executor         = { version = '0.9.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', features = ['wasmtime'] }
+sc-finality-grandpa = { version = '0.9.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
 sc-keystore         = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
 sc-rpc              = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
 sc-rpc-api          = { version = '0.9.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
@@ -49,8 +52,11 @@ sp-api              = { version = '3.0.0', git = 'https://github.com/paritytech/
 sp-block-builder    = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
 sp-blockchain       = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
 sp-consensus        = { version = '0.9.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
+sp-consensus-aura   = { version = '0.9.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
 sp-core             = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
+sp-finality-grandpa = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
 sp-inherents        = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
+sp-keystore         = { version = '0.9.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
 sp-runtime          = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
 sp-timestamp        = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
 sp-transaction-pool = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
@@ -76,4 +82,7 @@ name = 'parallel'
 
 [features]
 default            = []
-runtime-benchmarks = ['parachain-runtime/runtime-benchmarks']
+runtime-benchmarks = [
+  'vanilla-runtime/runtime-benchmarks',
+  'parallel-runtime/runtime-benchmarks',
+]
