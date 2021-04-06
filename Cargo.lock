@@ -4978,6 +4978,27 @@ dependencies = [
 [[package]]
 name = "pallet-staking"
 version = "3.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "orml-currencies",
+ "orml-tokens",
+ "orml-traits",
+ "orml-utilities",
+ "pallet-balances",
+ "pallet-timestamp",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-staking"
+version = "3.0.0"
 source = "git+https://github.com/paritytech/substrate.git?branch=rococo-v1#3ec97a31b285181fb1beab426ee2a8e2cb1188ab"
 dependencies = [
  "frame-election-provider-support",
@@ -4995,27 +5016,6 @@ dependencies = [
  "sp-staking",
  "sp-std",
  "static_assertions",
-]
-
-[[package]]
-name = "pallet-staking"
-version = "3.0.0"
-dependencies = [
- "frame-support",
- "frame-system",
- "orml-currencies",
- "orml-tokens",
- "orml-traits",
- "orml-utilities",
- "pallet-balances",
- "pallet-timestamp",
- "parallel-primitives",
- "parity-scale-codec",
- "serde",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
 ]
 
 [[package]]

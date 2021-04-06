@@ -86,7 +86,7 @@ pub type BlockNumber = u64;
 pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const KSM: CurrencyId = CurrencyId::KSM;
 pub const BTC: CurrencyId = CurrencyId::BTC;
-pub const USDC: CurrencyId = CurrencyId::USDC;
+pub const USDT: CurrencyId = CurrencyId::USDT;
 pub const NATIVE: CurrencyId = CurrencyId::Native;
 
 parameter_type_with_key! {
@@ -234,7 +234,7 @@ impl ExtBuilder {
                 CurrencyId::DOT,
                 CurrencyId::KSM,
                 CurrencyId::BTC,
-                CurrencyId::USDC,
+                CurrencyId::USDT,
                 CurrencyId::xDOT,
             ],
             // total_supply: 100 * TOKEN_DECIMAL, // 100
@@ -249,28 +249,28 @@ impl ExtBuilder {
                 (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),
                 (CurrencyId::KSM, 5 * RATE_DECIMAL / 10),
                 (CurrencyId::BTC, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::USDC, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::USDT, 5 * RATE_DECIMAL / 10),
                 (CurrencyId::xDOT, 5 * RATE_DECIMAL / 10),
             ],
             liquidation_incentive: vec![
                 (CurrencyId::DOT, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::KSM, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::BTC, 9 * RATE_DECIMAL / 10),
-                (CurrencyId::USDC, 9 * RATE_DECIMAL / 10),
+                (CurrencyId::USDT, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::xDOT, 9 * RATE_DECIMAL / 10),
             ],
             liquidation_threshold: vec![
                 (CurrencyId::DOT, 8 * RATE_DECIMAL / 10),
                 (CurrencyId::KSM, 8 * RATE_DECIMAL / 10),
                 (CurrencyId::BTC, 8 * RATE_DECIMAL / 10),
-                (CurrencyId::USDC, 9 * RATE_DECIMAL / 10),
+                (CurrencyId::USDT, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::xDOT, 8 * RATE_DECIMAL / 10),
             ],
             close_factor: vec![
                 (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),
                 (CurrencyId::KSM, 5 * RATE_DECIMAL / 10),
                 (CurrencyId::BTC, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::USDC, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::USDT, 5 * RATE_DECIMAL / 10),
                 (CurrencyId::xDOT, 5 * RATE_DECIMAL / 10),
             ],
         }
