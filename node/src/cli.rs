@@ -19,6 +19,7 @@ use structopt::StructOpt;
 /// Sub-commands supported by the collator.
 #[derive(Debug, StructOpt)]
 pub enum Subcommand {
+    Key(sc_cli::KeySubcommand),
     /// Export the genesis state of the parachain.
     #[structopt(name = "export-genesis-state")]
     ExportGenesisState(ExportGenesisStateCommand),
