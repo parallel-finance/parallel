@@ -280,6 +280,7 @@ impl pallet_loans::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
     type ModuleId = LoansModuleId;
+    type PriceFeeder = OcwOracle;
 }
 
 impl pallet_staking::Config for Runtime {
@@ -303,6 +304,7 @@ impl pallet_liquidate::Config for Runtime {
     type AuthorityId = pallet_liquidate::crypto::TestAuthId;
     type Call = Call;
     type Event = Event;
+    type PriceFeeder = OcwOracle;
 }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime

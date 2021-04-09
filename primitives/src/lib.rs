@@ -98,10 +98,18 @@ pub enum CurrencyId {
     Native,
 }
 
-pub type Price = u128;
-
 pub const TOKEN_DECIMAL: u128 = 1_000_000_000_000_000_000;
 
 pub const RATE_DECIMAL: u128 = 1_000_000_000;
 
 pub const BLOCK_PER_YEAR: u128 = 5256000;
+
+pub type Price = u128;
+
+pub type Timestamp = u64;
+
+pub type PriceDetail = (Price, Timestamp);
+
+pub trait PriceFeeder {
+    fn get(currency_id: &CurrencyId) -> Option<PriceDetail>;
+}

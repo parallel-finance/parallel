@@ -299,14 +299,13 @@ fn testnet_genesis(
                 (CurrencyId::USDT, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::xDOT, 9 * RATE_DECIMAL / 10),
             ],
-            //FIXME :In fact,"liquidation_threshold" should be higher than "collateral_rate",
-            //but for test, let's make it lower
+            //TODO : please refer to https://github.com/parallel-finance/parallel/issues/46
             liquidation_threshold: vec![
-                (CurrencyId::DOT, 40 * RATE_DECIMAL / 100),
-                (CurrencyId::KSM, 40 * RATE_DECIMAL / 100),
-                (CurrencyId::BTC, 40 * RATE_DECIMAL / 100),
-                (CurrencyId::USDT, 40 * RATE_DECIMAL / 100),
-                (CurrencyId::xDOT, 40 * RATE_DECIMAL / 100),
+                (CurrencyId::DOT, 90 * RATE_DECIMAL / 100),
+                (CurrencyId::KSM, 90 * RATE_DECIMAL / 100),
+                (CurrencyId::BTC, 90 * RATE_DECIMAL / 100),
+                (CurrencyId::USDT, 90 * RATE_DECIMAL / 100),
+                (CurrencyId::xDOT, 90 * RATE_DECIMAL / 100),
             ],
             close_factor: vec![
                 (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),

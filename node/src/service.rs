@@ -130,7 +130,7 @@ pub fn new_partial_dev(
     )
     .expect("Insert key should succeed");
 
-    //todo change to mock pool
+    //TODO please refer to https://github.com/parallel-finance/parallel/issues/47
     let secret_uri = "//Pool";
     let key_pair = vanilla_runtime::pallet_liquidate::crypto::Pair::from_string(secret_uri, None)
         .expect("Generates key pair");
@@ -427,7 +427,7 @@ pub fn new_partial(
     )
     .expect("Insert key should succeed");
 
-    //todo change to mock pool
+    //TODO please refer to https://github.com/parallel-finance/parallel/issues/47
     let secret_uri = "//Pool";
     let key_pair = parallel_runtime::pallet_liquidate::crypto::Pair::from_string(secret_uri, None)
         .expect("Generates key pair");

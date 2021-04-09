@@ -20,16 +20,9 @@ use loans::*;
 use frame_support::{construct_runtime, parameter_types};
 
 use orml_traits::parameter_type_with_key;
-use primitives::{Amount, Balance, CurrencyId, RATE_DECIMAL};
-use sp_core::{
-    sr25519::{self, Signature},
-    Pair, Public, H256,
-};
-use sp_runtime::{
-    testing::{Header, TestXt},
-    traits::{Extrinsic as ExtrinsicT, IdentifyAccount, IdentityLookup, Verify},
-    ModuleId,
-};
+use primitives::{Amount, Balance, CurrencyId, PriceDetail, PriceFeeder, RATE_DECIMAL};
+use sp_core::H256;
+use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
 use sp_std::vec::Vec;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
@@ -43,10 +36,9 @@ construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
-        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+        Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Loans: loans::{Pallet, Storage, Call, Config, Event<T>},
-        OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
     }
 );
 
@@ -81,7 +73,11 @@ impl frame_system::Config for Runtime {
     type OnSetCode = ();
 }
 
+pub type AccountId = u128;
 pub type BlockNumber = u64;
+
+pub const ALICE: AccountId = 1;
+pub const BOB: AccountId = 2;
 
 pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const KSM: CurrencyId = CurrencyId::KSM;
@@ -133,65 +129,17 @@ impl pallet_balances::Config for Runtime {
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
 }
 
-parameter_types! {
-    pub const PricePrecision: u8 = 3;
-}
-
-impl pallet_ocw_oracle::Config for Runtime {
-    type AuthorityId = pallet_ocw_oracle::crypto::TestAuthId;
-    type Call = Call;
-    type Event = Event;
-    type PricePrecision = PricePrecision;
-}
-
-type Extrinsic = TestXt<Call, ()>;
-type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
-type AccountPublic = <Signature as Verify>::Signer;
-
-pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
-    TPublic::Pair::from_string(&format!("//{}", seed), None)
-        .expect("static values are valid; qed")
-        .public()
-}
-/// Generate an account ID from seed.
-pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
-where
-    AccountPublic: From<<TPublic::Pair as Pair>::Public>,
-{
-    AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
-}
-
-impl frame_system::offchain::SigningTypes for Runtime {
-    type Public = <Signature as Verify>::Signer;
-    type Signature = Signature;
-}
-
-impl<LocalCall> frame_system::offchain::SendTransactionTypes<LocalCall> for Runtime
-where
-    Call: From<LocalCall>,
-{
-    type OverarchingCall = Call;
-    type Extrinsic = Extrinsic;
-}
-
-impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
-where
-    Call: From<LocalCall>,
-{
-    fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
-        call: Call,
-        _public: <Signature as Verify>::Signer,
-        _account: AccountId,
-        index: u64,
-    ) -> Option<(Call, <Extrinsic as ExtrinsicT>::SignaturePayload)> {
-        Some((call, (index, ())))
-    }
-}
-
 impl Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
     type ModuleId = LoansModuleId;
+    type PriceFeeder = Self;
+}
+
+impl PriceFeeder for Runtime {
+    fn get(_currency_id: &CurrencyId) -> Option<PriceDetail> {
+        Some((1, 1))
+    }
 }
 
 parameter_types! {
@@ -204,14 +152,12 @@ pub struct ExtBuilder {
 
 impl Default for ExtBuilder {
     fn default() -> Self {
-        let alice: AccountId = get_account_id_from_seed::<sr25519::Public>("Alice");
-        let bob: AccountId = get_account_id_from_seed::<sr25519::Public>("Bob");
         Self {
             endowed_accounts: vec![
-                (alice, DOT, 1000),
-                (alice, BTC, 1000),
-                (bob, DOT, 1000),
-                (bob, BTC, 1000),
+                (ALICE, DOT, 1000),
+                (ALICE, BTC, 1000),
+                (BOB, DOT, 1000),
+                (BOB, BTC, 1000),
             ],
         }
     }
