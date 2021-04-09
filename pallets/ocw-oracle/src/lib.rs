@@ -432,6 +432,7 @@ pub mod module {
 
 impl<T: Config> rt_offchain::storage_lock::BlockNumberProvider for Pallet<T> {
     type BlockNumber = T::BlockNumber;
+
     fn current_block_number() -> Self::BlockNumber {
         <frame_system::Pallet<T>>::block_number()
     }

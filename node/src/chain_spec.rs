@@ -299,7 +299,7 @@ fn testnet_genesis(
                 (CurrencyId::USDT, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::xDOT, 9 * RATE_DECIMAL / 10),
             ],
-            //TODO : please refer, https://github.com/parallel-finance/parallel/issues/46
+            //TODO : please refer to https://github.com/parallel-finance/parallel/issues/46
             liquidation_threshold: vec![
                 (CurrencyId::DOT, 90 * RATE_DECIMAL / 100),
                 (CurrencyId::KSM, 90 * RATE_DECIMAL / 100),
