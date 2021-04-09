@@ -112,4 +112,4 @@ pub type PriceDetail = (Price, Timestamp);
 
 pub trait PriceFeeder {
     fn get(currency_id: &CurrencyId) -> Option<PriceDetail>;
-} 
+}

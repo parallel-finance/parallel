@@ -138,7 +138,7 @@ impl Config for Runtime {
 
 impl PriceFeeder for Runtime {
     fn get(_currency_id: &CurrencyId) -> Option<PriceDetail> {
-        Some((1,1))
+        Some((1, 1))
     }
 }
 
