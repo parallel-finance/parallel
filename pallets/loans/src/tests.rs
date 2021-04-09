@@ -25,7 +25,7 @@ fn test_mock_genesis_ok() {
     ExtBuilder::default().build().execute_with(|| {
         assert_eq!(TotalBorrows::<Runtime>::get(DOT), 0 * TOKEN_DECIMAL);
         assert_eq!(TotalSupply::<Runtime>::get(BTC), 0 * TOKEN_DECIMAL);
-        assert_eq!(BorrowIndex::<Runtime>::get(USDC), RATE_DECIMAL);
+        assert_eq!(BorrowIndex::<Runtime>::get(USDT), RATE_DECIMAL);
         assert_eq!(CollateralRate::<Runtime>::get(KSM), 5 * RATE_DECIMAL / 10);
     });
 }

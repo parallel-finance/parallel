@@ -272,7 +272,7 @@ impl orml_currencies::Config for Runtime {
 }
 
 parameter_types! {
-    pub const GetStableCurrencyId: CurrencyId = CurrencyId::USDC;
+    pub const GetStableCurrencyId: CurrencyId = CurrencyId::USDT;
     pub StableCurrencyFixedPrice: Price = 1;
 }
 
