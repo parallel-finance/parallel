@@ -16,7 +16,6 @@ orml-tokens       = { git = 'https://github.com/open-web3-stack/open-runtime-mod
 orml-traits       = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-utilities    = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 pallet-balances   = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
-pallet-ocw-oracle = { path = '../ocw-oracle', default-features = false }
 primitives        = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 serde             = { version = '1', features = ['derive'] }
 sp-runtime        = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
@@ -36,7 +35,6 @@ std     = [
   'orml-tokens/std',
   'orml-traits/std',
   'orml-utilities/std',
-  'pallet-ocw-oracle/std',
   'primitives/std',
   'sp-runtime/std',
   'sp-std/std',
