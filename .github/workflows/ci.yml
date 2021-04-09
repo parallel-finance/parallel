@@ -70,17 +70,17 @@ jobs:
           path: target
           key: ${{ matrix.os }}-${{ matrix.rust }}-cargo-build-target-${{ hashFiles('**/Cargo.toml') }}-${{ secrets.CACHE_VERSION }}
 
-      - name: Check Build
-        run: |
-          SKIP_WASM_BUILD=1 cargo check --release
+      # - name: Check Build
+      #  run: |
+      #    SKIP_WASM_BUILD=1 cargo check --release
 
       # - name: Check Wasm
       #   run: |
       #     cargo check --release --manifest-path runtime/Cargo.toml --target wasm32-unknown-unknown --no-default-features
 
-      - name: Check Clippy Warnings
-        run: |
-          SKIP_WASM_BUILD=1 cargo clippy
+      # - name: Check Clippy Warnings
+      #  run: |
+      #    SKIP_WASM_BUILD=1 cargo clippy
 
       - name: Check Format
         run: |
