@@ -113,3 +113,20 @@ pub type PriceDetail = (Price, Timestamp);
 pub trait PriceFeeder {
     fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail>;
 }
+
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum AggregationStrategyEnum {
+    EMERGENCY,
+    MEDIAN,
+    AVERAGE,
+}
+
+pub type Url = Vec<u8>;
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum DataSourceEnum {
+    BINANCE,
+    COINBASE,
+    COINCAP,
+}

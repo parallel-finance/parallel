@@ -323,6 +323,7 @@ impl pallet_ocw_oracle::Config for Runtime {
     type Call = Call;
     type Event = Event;
     type PricePrecision = PricePrecision;
+    type Time = Timestamp;
 }
 
 parameter_types! {
@@ -477,7 +478,7 @@ construct_runtime!(
         XcmHandler: cumulus_pallet_xcm_handler::{Pallet, Event<T>, Origin},
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
-        OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
+        OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>},
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
         Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},
         Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},

@@ -298,6 +298,7 @@ impl pallet_ocw_oracle::Config for Runtime {
     type Call = Call;
     type Event = Event;
     type PricePrecision = PricePrecision;
+    type Time = Timestamp;
 }
 
 impl pallet_liquidate::Config for Runtime {
@@ -387,7 +388,7 @@ construct_runtime!(
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
         Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},
-        OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
+        OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>},
         Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},
     }
 );

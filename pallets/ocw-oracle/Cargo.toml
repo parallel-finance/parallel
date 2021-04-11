@@ -23,6 +23,8 @@ sp-std        = { git = 'https://github.com/paritytech/substrate.git', branch = 
 default-features = false
 version          = '0.2'
 # features = ['libm']    # <--- Uncomment if you wish to use `Float` and `Real` without `std`
+[dev-dependencies]
+sp-keystore = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '0.9.0', default-features = false }
 
 [features]
 default = ['std']

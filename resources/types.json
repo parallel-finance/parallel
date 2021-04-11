@@ -31,5 +31,26 @@
     "PendingBalance": {
         "balance": "Balance",
         "timestamp": "Moment"
+    },
+    "AggregationStrategyEnum": {
+      "_enum": [
+        "EMERGENCY",
+        "MEDIAN",
+        "AVERAGE"
+      ]
+    },
+    "DataSourceEnum": {
+      "_enum": [
+        "BINANCE",
+        "COINBASE",
+        "COINCAP"
+      ]
+    },
+    "Url": "Vec<u8>",
+    "Round": {
+      "index": "BlockNumber",
+      "provider": "Vec<AccountId>",
+      "combined": "Bool",
+      "last_combined": "BlockNumber"
     }
 }
