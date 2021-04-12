@@ -1,36 +1,44 @@
-version: "3.2"
-
+version: "3"
 services:
-  build:
-    container_name: parallel-build
-    image: paritytech/ci-linux:production
-    working_dir: /parallel-finance/parallel
-    environment:
-      - CARGO_HOME=/parallel-finance/parallel/docker/.cargo
-    volumes:
-      - ../:/parallel-finance
-      - type: bind
-        source: ./docker/.local
-        target: /root/.local
-    command: bash -c "cargo build --release --target-dir /parallel-finance/parallel/docker/target"
-  dev:
-    container_name: parallel-dev
-    image: parallel-finance/parallel:latest
+  node_alice:
     ports:
+      - "30333:30333"
+      - "9933:9933"
       - "9944:9944"
+    image: alexcj96/rococo-v1:latest
     volumes:
-      - ./docker/.local:/root/.local
-#  dev:
-#    container_name: parallel
-#    image: paritytech/ci-linux:974ba3ac-20201006
-#    working_dir: /var/www/parallel
-#    ports:
-#      - "9944:9944"
-#    environment:
-#      - CARGO_HOME=/var/www/parallel/.cargo
-#    volumes:
-#      - .:/var/www/parallel
-#      - type: bind
-#        source: ./.local
-#        target: /root/.local
-#    command: bash -c "cargo build --release && ./target/release/parallel --dev --ws-external"
+      - "polkadot-data-alice:/data"
+    command: polkadot --chain=/polkadot/rococo_local.json --alice -d /data --validator --rpc-cors all --rpc-methods=Unsafe --unsafe-rpc-external --unsafe-ws-external --node-key 0000000000000000000000000000000000000000000000000000000000000001
+    networks:
+      testing_net:
+        ipv4_address: 172.28.1.1
+    restart: always
+
+  node_bob:
+    depends_on:
+      - node_alice
+    ports:
+      - "30344:30344"
+      - "9935:9935"
+      - "9945:9945"
+    image: alexcj96/rococo-v1:latest
+    volumes:
+      - "polkadot-data-bob:/data"
+    links:
+      - "node_alice:alice"
+    command: polkadot --chain=/polkadot/rococo_local.json --bob -d /data --validator --port 30344 --rpc-port 9935 --ws-port 9945 --bootnodes '/ip4/172.28.1.1/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp'
+    networks:
+      testing_net:
+        ipv4_address: 172.28.1.2
+    restart: always
+
+volumes:
+  polkadot-data-alice:
+  polkadot-data-bob:
+
+networks:
+  testing_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16

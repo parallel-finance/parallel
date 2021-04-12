@@ -25,7 +25,7 @@ use primitives::{Amount, Balance, CurrencyId, PriceDetail, PriceFeeder, RATE_DEC
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
 use sp_std::vec::Vec;
-use std::{collections::HashMap, ops::DerefMut, sync::Mutex};
+use std::{collections::HashMap, sync::Mutex};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
