@@ -1,7 +1,24 @@
-FROM paritytech/ci-linux:974ba3ac-20201006
+FROM ubuntu:20.04
 
-COPY ./tmp/parallel /usr/local/bin/
+COPY .cargo/parallel /usr/local/bin
 
-EXPOSE 9944
+RUN apt update --fix-missing \
+    && apt install -y \
+        sudo
 
-CMD ["parallel", "--dev", "--ws-external"]
+RUN useradd -m -u 1000 -U -s /bin/sh -d /parallel parallel && \
+    usermod -aG sudo parallel && \
+	mkdir -p /parallel/.local/share && \
+	mkdir /data && \
+	chown -R parallel:parallel /data && \
+	ln -s /data /parallel/.local/share/parallel
+
+RUN echo '%sudo   ALL=(ALL:ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+COPY ./resources/rococo_local.json /parallel
+
+USER parallel
+EXPOSE 30333 9933 9944
+VOLUME ["/data"]
+
+CMD ["/usr/local/bin/parallel"]
