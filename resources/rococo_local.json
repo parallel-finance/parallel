@@ -2,7 +2,9 @@
   "name": "Rococo Local Testnet",
   "id": "rococo_local_testnet",
   "chainType": "Local",
-  "bootNodes": [],
+  "bootNodes": [
+      "/ip4/23.105.192.167/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp"
+  ],
   "telemetryEndpoints": null,
   "protocolId": "dot",
   "properties": null,
