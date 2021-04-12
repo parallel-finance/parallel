@@ -47,7 +47,7 @@ pub const NUM_VEC_LEN: usize = 10;
 pub const UNSIGNED_TXS_PRIORITY: u64 = 100;
 
 pub const HTTP_HEADER_USER_AGENT: &str = "Parallel";
-pub const FETCH_TIMEOUT_PERIOD: u64 = 3000; // in milli-seconds
+pub const FETCH_TIMEOUT_PERIOD: u64 = 8000; // in milli-seconds
 pub const LOCK_TIMEOUT_EXPIRATION: u64 = FETCH_TIMEOUT_PERIOD * 3 + 1000; // in milli-seconds
 pub const LOCK_BLOCK_EXPIRATION: u32 = 5; // in block number
 
@@ -288,6 +288,7 @@ pub mod module {
                 if !res.is_empty() {
                     return Ok(res);
                 } else {
+                    log::error!("response is empty");
                     return Err(<Error<T>>::HttpFetchingError);
                 }
             }
@@ -300,12 +301,16 @@ pub mod module {
                 log::error!("fetch_from_remote error: {:?}", e);
                 <Error<T>>::HttpFetchingError
             })?;
-            let resp_str =
-                str::from_utf8(&resp_bytes).map_err(|_| <Error<T>>::HttpFetchingError)?;
+            let resp_str = str::from_utf8(&resp_bytes).map_err(|err| {
+                log::error!("{:?}", err);
+                <Error<T>>::HttpFetchingError
+            })?;
             // Print out our fetched JSON string
             // log::info!("{}", resp_str);
-            let gh_info: PriceJson =
-                serde_json::from_str(&resp_str).map_err(|_| <Error<T>>::HttpFetchingError)?;
+            let gh_info: PriceJson = serde_json::from_str(&resp_str).map_err(|err| {
+                log::error!("{:?}", err);
+                <Error<T>>::HttpFetchingError
+            })?;
             Ok(gh_info)
         }
 
@@ -318,25 +323,35 @@ pub mod module {
             let request = rt_offchain::http::Request::get(url);
 
             // Keeping the offchain worker execution time reasonable, so limiting the call to be within 3s.
-            let timeout = sp_io::offchain::timestamp()
-                .add(rt_offchain::Duration::from_millis(FETCH_TIMEOUT_PERIOD));
+            // let timeout = sp_io::offchain::timestamp()
+                // .add(rt_offchain::Duration::from_millis(FETCH_TIMEOUT_PERIOD));
 
             // For github API request, we also need to specify `user-agent` in http request header.
             //   See: https://developer.github.com/v3/#user-agent-required
             let pending = request
                 .add_header("User-Agent", HTTP_HEADER_USER_AGENT)
-                .deadline(timeout) // Setting the timeout time
+                // .deadline(timeout) // Setting the timeout time
                 .send() // Sending the request out by the host
-                .map_err(|_| <Error<T>>::HttpFetchingError)?;
+                .map_err(|err| {
+                    log::error!("{:?}", err);
+                    <Error<T>>::HttpFetchingError
+                })?;
 
             // By default, the http request is async from the runtime perspective. So we are asking the
             //   runtime to wait here.
             // The returning value here is a `Result` of `Result`, so we are unwrapping it twice by two `?`
             //   ref: https://substrate.dev/rustdocs/v2.0.0/sp_runtime/offchain/http/struct.PendingRequest.html#method.try_wait
             let response = pending
-                .try_wait(timeout)
-                .map_err(|_| <Error<T>>::HttpFetchingError)?
-                .map_err(|_| <Error<T>>::HttpFetchingError)?;
+                .wait()
+                // .try_wait(timeout)
+                // .map_err(|err| {
+                //     log::error!("{:?}", err);
+                //     <Error<T>>::HttpFetchingError
+                // })?
+                .map_err(|err| {
+                    log::error!("{:?}", err);
+                    <Error<T>>::HttpFetchingError
+                })?;
 
             if response.code != 200 {
                 log::error!("Unexpected http request status code: {}", response.code);
