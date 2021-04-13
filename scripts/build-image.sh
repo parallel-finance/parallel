@@ -17,7 +17,7 @@ sudo cp .cargo/target/$PROFILE/parallel .cargo
 
 echo "*** Start building parallel image ***"
 sudo docker build -t \
-    parallelfinance/parallel:latest \
+    alexcj96/parallel:latest \
     . \
 && {
     echo "*** Updating resources ***"

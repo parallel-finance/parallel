@@ -47,7 +47,7 @@ pub const NUM_VEC_LEN: usize = 10;
 pub const UNSIGNED_TXS_PRIORITY: u64 = 100;
 
 pub const HTTP_HEADER_USER_AGENT: &str = "Parallel";
-pub const FETCH_TIMEOUT_PERIOD: u64 = 3000; // in milli-seconds
+pub const FETCH_TIMEOUT_PERIOD: u64 = 8000; // in milli-seconds
 pub const LOCK_TIMEOUT_EXPIRATION: u64 = FETCH_TIMEOUT_PERIOD * 3 + 1000; // in milli-seconds
 pub const LOCK_BLOCK_EXPIRATION: u32 = 5; // in block number
 
@@ -288,6 +288,7 @@ pub mod module {
                 if !res.is_empty() {
                     return Ok(res);
                 } else {
+                    log::error!("response is empty");
                     return Err(<Error<T>>::HttpFetchingError);
                 }
             }
@@ -327,7 +328,10 @@ pub mod module {
                 .add_header("User-Agent", HTTP_HEADER_USER_AGENT)
                 .deadline(timeout) // Setting the timeout time
                 .send() // Sending the request out by the host
-                .map_err(|_| <Error<T>>::HttpFetchingError)?;
+                .map_err(|err| {
+                    log::error!("{:?}", err);
+                    <Error<T>>::HttpFetchingError
+                })?;
 
             // By default, the http request is async from the runtime perspective. So we are asking the
             //   runtime to wait here.
@@ -335,8 +339,14 @@ pub mod module {
             //   ref: https://substrate.dev/rustdocs/v2.0.0/sp_runtime/offchain/http/struct.PendingRequest.html#method.try_wait
             let response = pending
                 .try_wait(timeout)
-                .map_err(|_| <Error<T>>::HttpFetchingError)?
-                .map_err(|_| <Error<T>>::HttpFetchingError)?;
+                .map_err(|err| {
+                    log::error!("{:?}", err);
+                    <Error<T>>::HttpFetchingError
+                })?
+                .map_err(|err| {
+                    log::error!("{:?}", err);
+                    <Error<T>>::HttpFetchingError
+                })?;
 
             if response.code != 200 {
                 log::error!("Unexpected http request status code: {}", response.code);
