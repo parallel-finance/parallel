@@ -323,8 +323,8 @@ pub mod module {
             let request = rt_offchain::http::Request::get(url);
 
             // Keeping the offchain worker execution time reasonable, so limiting the call to be within 3s.
-            let timeout = sp_io::offchain::timestamp()
-                .add(rt_offchain::Duration::from_millis(FETCH_TIMEOUT_PERIOD));
+            // let timeout = sp_io::offchain::timestamp()
+                // .add(rt_offchain::Duration::from_millis(FETCH_TIMEOUT_PERIOD));
 
             // For github API request, we also need to specify `user-agent` in http request header.
             //   See: https://developer.github.com/v3/#user-agent-required
