@@ -20,12 +20,10 @@ use crate::{util::*, *};
 impl<T: Config> Pallet<T> {
     fn insert_borrow_rate(currency_id: CurrencyId, rate: u128) {
         BorrowRate::<T>::insert(currency_id, rate);
-        Self::deposit_event(Event::BorrowRateUpdated(currency_id, rate));
     }
 
     fn insert_supply_rate(currency_id: CurrencyId, rate: u128) {
         SupplyRate::<T>::insert(currency_id, rate);
-        Self::deposit_event(Event::SupplyRateUpdated(currency_id, rate));
     }
 
     pub fn to_decimal(n: Option<u128>) -> Result<u128, Error<T>> {
@@ -50,7 +48,7 @@ impl<T: Config> Pallet<T> {
         mul_then_div(borrows, RATE_DECIMAL, total).ok_or(Error::<T>::CalcInterestRateFailed)
     }
 
-    pub fn update_jump_rate_model(
+    pub fn init_jump_rate_model(
         base_rate_per_year: u128,
         multiplier_per_year: u128,
         jump_multiplier_per_year: u128,
@@ -76,7 +74,7 @@ impl<T: Config> Pallet<T> {
         JumpMultiplierPerBlock::<T>::put(Some(jump));
         Kink::<T>::put(Some(kink));
 
-        Self::deposit_event(Event::NewInterestParams(base, multiplier, jump, kink));
+        Self::deposit_event(Event::InitInterestRateModel(base, multiplier, jump, kink));
         Ok(())
     }
 
@@ -88,7 +86,6 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         let util = Self::utilization_rate(cash, borrows, reserves)?;
         UtilityRate::<T>::insert(currency_id, util);
-        Self::deposit_event(Event::UtilityRateUpdated(currency_id, util));
 
         let multiplier_per_block =
             MultiplierPerBlock::<T>::get().ok_or(Error::<T>::CalcInterestRateFailed)?;

@@ -58,7 +58,7 @@ fn update_jump_rate_model_works() {
         let multiplier_per_year: u128 = RATE_DECIMAL / 10;
         let jump_multiplier_per_year: u128 = 11 * RATE_DECIMAL / 10;
         let kink: u128 = 8 * RATE_DECIMAL / 10;
-        assert_ok!(Loans::update_jump_rate_model(
+        assert_ok!(Loans::init_jump_rate_model(
             base_rate_per_year,
             multiplier_per_year,
             jump_multiplier_per_year,

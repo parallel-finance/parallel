@@ -79,23 +79,28 @@ pub mod module {
 
     #[pallet::error]
     pub enum Error<T> {
-        DebitOverflow,
-        DebitTooLow,
+        /// Collateral amount overflow when calculating
         CollateralOverflow,
+        /// Collateral amount too low to redeem
         CollateralTooLow,
+        /// Insufficient collateral asset to borrow more
         InsufficientCollateral,
+        /// Repay amount greater than borrow balance
         RepayAmountTooBig,
+        /// Amount type convert failed
         AmountConvertFailed,
-        InvalidAmountParam,
-        GetBlockDeltaFailed,
+        /// Calculate accrue interest failed
         CalcAccrueInterestFailed,
+        /// Calculate exchange rate failed
         CalcExchangeRateFailed,
+        /// Calculate collateral amount failed
         CalcCollateralFailed,
-        CalcRedeemBalanceFailed,
+        /// Calculate interest rate failed
         CalcInterestRateFailed,
+        /// Calculate borrow balance failed
         CalcBorrowBalanceFailed,
+        /// Calculate earned amount failed
         CalcEarnedFailed,
-        MarketNotFresh,
         /// Please enable collateral for one of your assets before borrowing
         NoCollateralAsset,
         /// Currency's oracle price not ready
@@ -108,34 +113,40 @@ pub mod module {
         DepositRequiredBeforeCollateral,
         /// Collateral disable action denied
         CollateralDisableActionDenied,
-        /// repay more than collateral
+        /// Repay amount more than collateral amount
         RepayValueGreaterThanCollateral,
-        /// real repay amount should less than repay amount
-        NotEnoughRepayAmount,
+        /// Liquidator is same as borrower
         LiquidatorIsBorrower,
-        LiquidateAmountIsZero,
+        /// There is no borrow balance
         NoBorrowBalance,
+        /// Calculate borrow balance with close factor failed
         CalcCloseBorrowsFailed,
+        /// Calculate incentive value failed
         CalcDiscdCollateralValueFailed,
+        /// Liquidate value overflow
         LiquidateValueOverflow,
+        /// Equivalent collateral amount overflow
         EquivalentCollateralAmountOverflow,
+        /// Real collateral amount overflow
         RealCollateralAmountOverflow,
     }
 
     #[pallet::event]
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config> {
-        NewInterestParams(u128, u128, u128, u128),
-        BorrowRateUpdated(CurrencyId, u128),
-        SupplyRateUpdated(CurrencyId, u128),
-        UtilityRateUpdated(CurrencyId, u128),
-
-        /// Enable/Disable collateral for certain asset
+        /// Initialize the interest rate parameter
+        /// [base_rate, multiplier_per_block, jump_multiplier_per_block, kink]
+        InitInterestRateModel(u128, u128, u128, u128),
+        /// Enable collateral for certain asset
+        /// [sender, currency_id]
         CollateralAssetAdded(T::AccountId, CurrencyId),
+        /// Disable collateral for certain asset
+        /// [sender, currency_id]
         CollateralAssetRemoved(T::AccountId, CurrencyId),
 
-        /// a collateral has been liquidatied
-        /// liquidator, borrower,liquidate_token,collateral_token,liquidate_token_repay_amount,collateral_token_amount
+        // TODO: add event for dispatchables `mint, redeem, borrow, repay, liquidate` (#32)
+        /// Liquidation occurred
+        /// [liquidator, borrower,liquidate_token,collateral_token,liquidate_token_repay_amount,collateral_token_amount]
         LiquidationOccur(
             T::AccountId,
             T::AccountId,
@@ -146,7 +157,6 @@ pub mod module {
         ),
     }
 
-    // Loan storage
     /// Total number of collateral tokens in circulation
     /// CollateralType -> Balance
     #[pallet::storage]
@@ -154,13 +164,13 @@ pub mod module {
     pub type TotalSupply<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Balance, ValueQuery>;
 
     /// Total amount of outstanding borrows of the underlying in this market
-    /// CollateralType -> Balance
+    /// CurrencyType -> Balance
     #[pallet::storage]
     #[pallet::getter(fn total_borrows)]
     pub type TotalBorrows<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Balance, ValueQuery>;
 
     /// Mapping of account addresses to outstanding borrow balances
-    /// CollateralType -> Owner -> BorrowSnapshot
+    /// CurrencyType -> Owner -> BorrowSnapshot
     #[pallet::storage]
     #[pallet::getter(fn account_borrows)]
     pub type AccountBorrows<T: Config> = StorageDoubleMap<
@@ -188,7 +198,7 @@ pub mod module {
     >;
 
     /// Mapping of account addresses to total deposit interest accrual
-    /// CollateralType -> Owner -> BorrowSnapshot
+    /// CurrencyType -> Owner -> BorrowSnapshot
     #[pallet::storage]
     #[pallet::getter(fn account_earned)]
     pub type AccountEarned<T: Config> = StorageDoubleMap<
@@ -201,56 +211,83 @@ pub mod module {
         ValueQuery,
     >;
 
+    /// Mapping of account addresses to assets which allowed as collateral
+    /// Owner -> Vec<CurrencyId>
     #[pallet::storage]
     #[pallet::getter(fn account_collateral_assets)]
     pub type AccountCollateralAssets<T: Config> =
         StorageMap<_, Twox64Concat, T::AccountId, Vec<CurrencyId>, ValueQuery>;
 
+    /// Accumulator of the total earned interest rate since the opening of the market
+    /// CurrencyType -> u128
     #[pallet::storage]
     #[pallet::getter(fn borrow_index)]
     pub type BorrowIndex<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
 
+    /// The currency types support on lending markets
     #[pallet::storage]
     #[pallet::getter(fn currencies)]
     pub type Currencies<T: Config> = StorageValue<_, Vec<CurrencyId>, ValueQuery>;
 
+    /// The exchange rate from the underlying to the internal collateral
     #[pallet::storage]
     #[pallet::getter(fn exchange_rate)]
     pub type ExchangeRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
 
-    // Rate storage
+    /// The multiplier per block of borrow interest rate
     #[pallet::storage]
     #[pallet::getter(fn multipler_per_block)]
     pub type MultiplierPerBlock<T: Config> = StorageValue<_, Option<u128>, ValueQuery>;
+
+    /// Base borrow interest rate pre block
     #[pallet::storage]
     #[pallet::getter(fn base_rate_per_block)]
     pub type BaseRatePerBlock<T: Config> = StorageValue<_, Option<u128>, ValueQuery>;
+
+    /// Jump multiplier per block of borrow interest rate
     #[pallet::storage]
     #[pallet::getter(fn jump_multiplier_per_block)]
     pub type JumpMultiplierPerBlock<T: Config> = StorageValue<_, Option<u128>, ValueQuery>;
+
+    /// The optimal utilization ratio
     #[pallet::storage]
     #[pallet::getter(fn kink)]
     pub type Kink<T: Config> = StorageValue<_, Option<u128>, ValueQuery>;
+
+    /// Mapping of borrow rate to currency type
     #[pallet::storage]
     #[pallet::getter(fn borrow_rate)]
     pub type BorrowRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+
+    /// Mapping of supply rate to currency type
     #[pallet::storage]
     #[pallet::getter(fn supply_rate)]
     pub type SupplyRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+
+    /// Borrow utilization ratio
     #[pallet::storage]
     #[pallet::getter(fn utility_rate)]
     pub type UtilityRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+
+    /// The collateral utilization ratio
     #[pallet::storage]
     #[pallet::getter(fn collateral_rate)]
     pub type CollateralRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+
+    /// Liquidation incentive ratio
     #[pallet::storage]
     #[pallet::getter(fn liquidation_incentive)]
     pub type LiquidationIncentive<T: Config> =
         StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+
+    /// The collateral utilization ratio will triggering the liquidation
     #[pallet::storage]
     #[pallet::getter(fn liquidation_threshold)]
     pub type LiquidationThreshold<T: Config> =
         StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+
+    /// The percent, ranging from 0% to 100%, of a liquidatable account's
+    /// borrow that can be repaid in a single liquidate transaction.
     #[pallet::storage]
     #[pallet::getter(fn close_factor)]
     pub type CloseFactor<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
@@ -323,7 +360,7 @@ pub mod module {
                     CloseFactor::<T>::insert(currency_id, close_factor);
                 });
             Currencies::<T>::put(self.currencies.clone());
-            Pallet::<T>::update_jump_rate_model(
+            Pallet::<T>::init_jump_rate_model(
                 self.base_rate,
                 self.multiplier_per_year,
                 self.jump_muiltiplier,

@@ -118,7 +118,7 @@ pub fn new_partial_dev(
     });
 
     // PAI-NOTE: For inserting key be used in ocw
-    let secret_uri = "//ALICE";
+    let secret_uri = "//Alice";
     let key_pair = vanilla_runtime::pallet_ocw_oracle::crypto::Pair::from_string(secret_uri, None)
         .expect("Generates key pair");
     let keystore = keystore_container.sync_keystore();
@@ -415,7 +415,7 @@ pub fn new_partial(
     let client = Arc::new(client);
 
     // PAI-NOTE: For inserting key be used in ocw
-    let secret_uri = "//ALICE";
+    let secret_uri = "//Alice";
     let key_pair = parallel_runtime::pallet_ocw_oracle::crypto::Pair::from_string(secret_uri, None)
         .expect("Generates key pair");
     let keystore = keystore_container.sync_keystore();
