@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -ex
 
 PROFILE=release
 DIR=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
@@ -13,10 +13,11 @@ docker run --rm \
     -t paritytech/ci-linux:production \
     bash -c "cd /parallel && CARGO_HOME=/parallel/.cargo cargo build --$PROFILE --target-dir /parallel/.cargo/target"
 
-sudo cp .cargo/target/$PROFILE/parallel .cargo
+sudo cp .cargo/target/$PROFILE/parallel .cargo/parallel
+sudo chown $(id -un):$(id -gn) .cargo/parallel
 
 echo "*** Start building parallel image ***"
-sudo docker build -t \
+docker build -t \
     alexcj96/parallel:latest \
     . \
 && {

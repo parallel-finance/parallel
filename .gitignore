@@ -17,3 +17,7 @@
 .cargo-remote.toml
 
 .vscode/
+
+*.tar.xz
+*.tar.gz
+*.tgz
