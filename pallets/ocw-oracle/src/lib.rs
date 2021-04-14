@@ -301,12 +301,16 @@ pub mod module {
                 log::error!("fetch_from_remote error: {:?}", e);
                 <Error<T>>::HttpFetchingError
             })?;
-            let resp_str =
-                str::from_utf8(&resp_bytes).map_err(|_| <Error<T>>::HttpFetchingError)?;
+            let resp_str = str::from_utf8(&resp_bytes).map_err(|err| {
+                log::error!("{:?}", err);
+                <Error<T>>::HttpFetchingError
+            })?;
             // Print out our fetched JSON string
             // log::info!("{}", resp_str);
-            let gh_info: PriceJson =
-                serde_json::from_str(&resp_str).map_err(|_| <Error<T>>::HttpFetchingError)?;
+            let gh_info: PriceJson = serde_json::from_str(&resp_str).map_err(|err| {
+                log::error!("{:?}", err);
+                <Error<T>>::HttpFetchingError
+            })?;
             Ok(gh_info)
         }
 
@@ -326,7 +330,7 @@ pub mod module {
             //   See: https://developer.github.com/v3/#user-agent-required
             let pending = request
                 .add_header("User-Agent", HTTP_HEADER_USER_AGENT)
-                .deadline(timeout) // Setting the timeout time
+                // .deadline(timeout) // Setting the timeout time
                 .send() // Sending the request out by the host
                 .map_err(|err| {
                     log::error!("{:?}", err);
@@ -338,11 +342,12 @@ pub mod module {
             // The returning value here is a `Result` of `Result`, so we are unwrapping it twice by two `?`
             //   ref: https://substrate.dev/rustdocs/v2.0.0/sp_runtime/offchain/http/struct.PendingRequest.html#method.try_wait
             let response = pending
-                .try_wait(timeout)
-                .map_err(|err| {
-                    log::error!("{:?}", err);
-                    <Error<T>>::HttpFetchingError
-                })?
+                .wait()
+                // .try_wait(timeout)
+                // .map_err(|err| {
+                //     log::error!("{:?}", err);
+                //     <Error<T>>::HttpFetchingError
+                // })?
                 .map_err(|err| {
                     log::error!("{:?}", err);
                     <Error<T>>::HttpFetchingError
