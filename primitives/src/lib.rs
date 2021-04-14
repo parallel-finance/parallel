@@ -87,7 +87,7 @@ pub type BlockId = generic::BlockId<Block>;
 pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
 pub enum CurrencyId {
     DOT,
     KSM,
@@ -111,5 +111,5 @@ pub type Timestamp = u64;
 pub type PriceDetail = (Price, Timestamp);
 
 pub trait PriceFeeder {
-    fn get(currency_id: &CurrencyId) -> Option<PriceDetail>;
+    fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail>;
 }

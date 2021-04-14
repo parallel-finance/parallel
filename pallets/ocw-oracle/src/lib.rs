@@ -439,7 +439,7 @@ impl<T: Config> rt_offchain::storage_lock::BlockNumberProvider for Pallet<T> {
 }
 
 impl<T: Config> PriceFeeder for Pallet<T> {
-    fn get(currency_id: &CurrencyId) -> Option<PriceDetail> {
+    fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
         Self::get_price(currency_id)
     }
 }

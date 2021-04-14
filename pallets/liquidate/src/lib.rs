@@ -194,7 +194,7 @@ pub mod module {
 
                     for currency_id in pallet_loans::Currencies::<T>::get().iter() {
                         let currency_price =
-                            match <T as module::Config>::PriceFeeder::get(currency_id)
+                            match <T as module::Config>::PriceFeeder::get_price(currency_id)
                                 .ok_or(Error::<T>::OracleCurrencyPriceNotReady)
                             {
                                 Ok((v, _)) => v,
