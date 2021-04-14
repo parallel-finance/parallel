@@ -133,7 +133,7 @@ impl pallet_balances::Config for Runtime {
 }
 
 lazy_static! {
-    pub static ref PRICE_ORACLE: Mutex<HashMap<CurrencyId, Option<PriceDetail>>> = {
+    pub static ref MOCK_PRICE_FEEDER: Mutex<HashMap<CurrencyId, Option<PriceDetail>>> = {
         Mutex::new(
             vec![DOT, KSM, BTC, USDT, XDOT]
                 .iter()
@@ -143,18 +143,18 @@ lazy_static! {
     };
 }
 
-impl PRICE_ORACLE {
+impl MOCK_PRICE_FEEDER {
     pub fn set_price(currency_id: CurrencyId, price: u128) {
-        PRICE_ORACLE
+        MOCK_PRICE_FEEDER
             .lock()
             .unwrap()
             .insert(currency_id, Some((price, 1u64)));
     }
 }
 
-impl PriceFeeder for PRICE_ORACLE {
+impl PriceFeeder for MOCK_PRICE_FEEDER {
     fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
-        *PRICE_ORACLE.lock().unwrap().get(currency_id).unwrap()
+        *MOCK_PRICE_FEEDER.lock().unwrap().get(currency_id).unwrap()
     }
 }
 
@@ -162,7 +162,7 @@ impl Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
     type ModuleId = LoansModuleId;
-    type PriceFeeder = PRICE_ORACLE;
+    type PriceFeeder = MOCK_PRICE_FEEDER;
 }
 
 parameter_types! {
