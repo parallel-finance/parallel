@@ -19,11 +19,13 @@ use loans::*;
 
 use frame_support::{construct_runtime, parameter_types};
 
+use lazy_static::lazy_static;
 use orml_traits::parameter_type_with_key;
 use primitives::{Amount, Balance, CurrencyId, PriceDetail, PriceFeeder, RATE_DECIMAL};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
 use sp_std::vec::Vec;
+use std::{collections::HashMap, ops::DerefMut, sync::Mutex};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
@@ -83,6 +85,7 @@ pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const KSM: CurrencyId = CurrencyId::KSM;
 pub const BTC: CurrencyId = CurrencyId::BTC;
 pub const USDT: CurrencyId = CurrencyId::USDT;
+pub const XDOT: CurrencyId = CurrencyId::xDOT;
 pub const NATIVE: CurrencyId = CurrencyId::Native;
 
 parameter_type_with_key! {
@@ -129,17 +132,37 @@ impl pallet_balances::Config for Runtime {
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
 }
 
+lazy_static! {
+    pub static ref MOCK_PRICE_FEEDER: Mutex<HashMap<CurrencyId, Option<PriceDetail>>> = {
+        Mutex::new(
+            vec![DOT, KSM, BTC, USDT, XDOT]
+                .iter()
+                .map(|&x| (x, Some((1, 1))))
+                .collect(),
+        )
+    };
+}
+
+impl MOCK_PRICE_FEEDER {
+    pub fn set_price(currency_id: CurrencyId, price: u128) {
+        MOCK_PRICE_FEEDER
+            .lock()
+            .unwrap()
+            .insert(currency_id, Some((price, 1u64)));
+    }
+}
+
+impl PriceFeeder for MOCK_PRICE_FEEDER {
+    fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
+        *MOCK_PRICE_FEEDER.lock().unwrap().get(currency_id).unwrap()
+    }
+}
+
 impl Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
     type ModuleId = LoansModuleId;
-    type PriceFeeder = Self;
-}
-
-impl PriceFeeder for Runtime {
-    fn get(_currency_id: &CurrencyId) -> Option<PriceDetail> {
-        Some((1, 1))
-    }
+    type PriceFeeder = MOCK_PRICE_FEEDER;
 }
 
 parameter_types! {
@@ -155,9 +178,13 @@ impl Default for ExtBuilder {
         Self {
             endowed_accounts: vec![
                 (ALICE, DOT, 1000),
+                (ALICE, KSM, 1000),
                 (ALICE, BTC, 1000),
+                (ALICE, USDT, 1000),
                 (BOB, DOT, 1000),
+                (BOB, KSM, 1000),
                 (BOB, BTC, 1000),
+                (BOB, USDT, 1000),
             ],
         }
     }

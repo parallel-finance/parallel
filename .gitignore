@@ -15,3 +15,5 @@
 .local
 
 .cargo-remote.toml
+
+local-test

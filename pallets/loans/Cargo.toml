@@ -24,6 +24,7 @@ sp-std            = { git = 'https://github.com/paritytech/substrate.git', branc
 [dev-dependencies]
 sp-core = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
 sp-io   = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
+lazy_static = { version = "1.4.0" }
 
 [features]
 default = ['std']
