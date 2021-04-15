@@ -234,22 +234,22 @@ pub mod module {
     #[pallet::getter(fn exchange_rate)]
     pub type ExchangeRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
 
-    /// The multiplier per block of borrow interest rate
+    /// The multiplier of utilization rate that gives the slope of the interest rate
     #[pallet::storage]
     #[pallet::getter(fn multipler_per_block)]
     pub type MultiplierPerBlock<T: Config> = StorageValue<_, Option<u128>, ValueQuery>;
 
-    /// Base borrow interest rate pre block
+    /// The base interest rate which is the y-intercept when utilization rate is 0
     #[pallet::storage]
     #[pallet::getter(fn base_rate_per_block)]
     pub type BaseRatePerBlock<T: Config> = StorageValue<_, Option<u128>, ValueQuery>;
 
-    /// Jump multiplier per block of borrow interest rate
+    /// The multiplierPerBlock after hitting a specified utilization point
     #[pallet::storage]
     #[pallet::getter(fn jump_multiplier_per_block)]
     pub type JumpMultiplierPerBlock<T: Config> = StorageValue<_, Option<u128>, ValueQuery>;
 
-    /// The optimal utilization ratio
+    /// The utilization point at which the jump multiplier is applied
     #[pallet::storage]
     #[pallet::getter(fn kink)]
     pub type Kink<T: Config> = StorageValue<_, Option<u128>, ValueQuery>;
@@ -301,7 +301,7 @@ pub mod module {
         pub exchange_rate: u128,
         pub base_rate: u128,
         pub multiplier_per_year: u128,
-        pub jump_muiltiplier: u128,
+        pub jump_multiplier: u128,
         pub kink: u128,
         pub collateral_rate: Vec<(CurrencyId, u128)>,
         pub liquidation_incentive: Vec<(CurrencyId, u128)>,
@@ -320,7 +320,7 @@ pub mod module {
                 exchange_rate: 0,
                 base_rate: 0,
                 multiplier_per_year: 0,
-                jump_muiltiplier: 0,
+                jump_multiplier: 0,
                 kink: 0,
                 collateral_rate: vec![],
                 liquidation_incentive: vec![],
@@ -363,7 +363,7 @@ pub mod module {
             Pallet::<T>::init_jump_rate_model(
                 self.base_rate,
                 self.multiplier_per_year,
-                self.jump_muiltiplier,
+                self.jump_multiplier,
                 self.kink,
             )
             .unwrap();

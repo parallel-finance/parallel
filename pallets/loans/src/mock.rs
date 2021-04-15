@@ -222,7 +222,7 @@ impl ExtBuilder {
             exchange_rate: 2 * RATE_DECIMAL / 100,      // 0.02
             base_rate: 2 * RATE_DECIMAL / 100,          // 0.02
             multiplier_per_year: 1 * RATE_DECIMAL / 10, // 0.1
-            jump_muiltiplier: 11 * RATE_DECIMAL / 10,   // 1.1
+            jump_multiplier: 11 * RATE_DECIMAL / 10,   // 1.1
             kink: 8 * RATE_DECIMAL / 10,                // 0.8
             collateral_rate: vec![
                 (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),
