@@ -155,7 +155,7 @@ fn make_http_call_and_parse_result_works() {
     let url = "https://api.binance.com/api/v3/ticker/price?symbol=DOTUSDT";
     let response =br#"{"data": {"id": "polkadot","symbol": "DOT", "priceUsd":"45.17530000"},"timestamp":1616844616682}"#.to_vec();
     price_oracle_response(&mut state.write(), url, response);
-    
+
     t.execute_with(|| {
         // when
         let resp_bytes = OcwOracle::fetch_from_remote(url).unwrap();

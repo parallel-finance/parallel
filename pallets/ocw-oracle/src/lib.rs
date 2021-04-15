@@ -94,7 +94,7 @@ use self::util::*;
 
 /// The type to sign and send transactions.
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"vocw");
-/// The price storage's length. 
+/// The price storage's length.
 pub const NUM_VEC_LEN: usize = 10;
 /// HTTP header
 pub const HTTP_HEADER_USER_AGENT: &str = "Parallel";
@@ -340,7 +340,7 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// Submit price by OCW 
+        /// Submit price by OCW
         OffchainInvoke(Option<T::AccountId>, RoundIndex<T::BlockNumber>),
         /// Price was succeed append
         AppendPrice(Option<T::AccountId>, Option<PriceDetailOf<T::BlockNumber>>),
@@ -490,7 +490,11 @@ pub mod pallet {
                 let timestamp: Timestamp =
                     now.try_into().or(Err(Error::<T>::ParseTimestampError))?;
                 Prices::<T>::insert(currency_id, Some((price, timestamp)));
-                Self::deposit_event(Event::<T>::EmergencyFeed(Some(who), currency_id, Some((price, timestamp))));
+                Self::deposit_event(Event::<T>::EmergencyFeed(
+                    Some(who),
+                    currency_id,
+                    Some((price, timestamp)),
+                ));
             } else {
                 return Err(Error::<T>::EmergencyFeedFail.into());
             }
