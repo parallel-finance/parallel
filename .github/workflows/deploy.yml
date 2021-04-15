@@ -1,7 +1,9 @@
-name: release
+name: Deploy
 
 on:
   push:
+    branches: [master]
+  pull_request:
     branches: [master]
 
 jobs:
@@ -15,7 +17,7 @@ jobs:
       - name: Login to DockerHub
         uses: docker/login-action@v1
         with:
-          username: parallelfinance
+          username: alexcj96
           password: ${{ secrets.DOCKER }}
       - name: Build and push
         id: docker_build
@@ -23,6 +25,17 @@ jobs:
         with:
           file: Dockerfile.release
           push: true
-          tags: parallelfinance/parallel:latest
+          tags: alexcj96/dummy:dev
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
+      - name: Deploy dev node
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVKEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            rm -fr parallel-chain || true
+            docker image pull alexcj96/dummy:dev
+            docker run -p 9944:9944 -p 30333:30333 -v ~/parallel-chain:/data -it --rm --name parallel -d alexcj96/dummy:dev
