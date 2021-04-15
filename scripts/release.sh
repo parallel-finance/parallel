@@ -5,6 +5,7 @@ set -ex
 SCRIPT_DIR=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
 ROOT="$(realpath $SCRIPT_DIR/..)"
 TMP_DIR="dist"
+BIN=".docker/cargo/parallel"
 
 function get_pkg_metadata() {
     local val=$(sed -ne "s/^\s*$1.*'\(.*\)'/\1/p" node/Cargo.toml |  sed -n "$2p")
@@ -18,7 +19,7 @@ PKG_NAME="$(get_pkg_metadata "name" 1)"
 PKG_VER="$(get_pkg_metadata "version" 1)"
 PKG_XZ="$PKG_NAME-$PKG_VER-$COMMIT_HASH.tar.xz"
 
-if [ ! -f .cargo/parallel ]; then
+if [ ! -f $BIN ]; then
     echo "No binary found in .cargo, run scripts/build-image.sh to generate it" && exit 1
 fi
 
