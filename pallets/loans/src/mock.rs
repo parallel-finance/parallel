@@ -150,6 +150,12 @@ impl MOCK_PRICE_FEEDER {
             .unwrap()
             .insert(currency_id, Some((price, 1u64)));
     }
+
+    pub fn reset() {
+        for (_, val) in MOCK_PRICE_FEEDER.lock().unwrap().iter_mut() {
+            *val = Some((1, 1u64));
+        }
+    }
 }
 
 impl PriceFeeder for MOCK_PRICE_FEEDER {
@@ -249,6 +255,8 @@ impl ExtBuilder {
         }
         .assimilate_storage::<Runtime>(&mut t)
         .unwrap();
+
+        MOCK_PRICE_FEEDER::reset();
 
         // t.into()
         let mut ext = sp_io::TestExternalities::new(t);
