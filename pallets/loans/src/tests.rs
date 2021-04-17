@@ -111,23 +111,20 @@ fn update_borrow_rate_works() {
 }
 
 #[test]
-fn calc_exchange_rate_works() {}
-
-#[test]
 fn mint_works() {
     ExtBuilder::default().build().execute_with(|| {
         // Deposit 100 DOT
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, 100));
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(100)));
 
         // DOT collateral: deposit = 100
         // DOT: cash - deposit = 1000 - 100 = 900
         assert_eq!(
             Loans::account_collateral(DOT, ALICE) * Loans::exchange_rate(DOT) / RATE_DECIMAL,
-            100
+            dollar(100)
         );
         assert_eq!(
             <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
-            900,
+            dollar(900),
         );
     })
 }
@@ -148,19 +145,19 @@ fn mint_failed() {
 fn redeem_works() {
     ExtBuilder::default().build().execute_with(|| {
         // Deposit 100 DOT
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, 100));
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(100)));
         // Redeem 20 DOT
-        assert_ok!(Loans::redeem(Origin::signed(ALICE), DOT, 20));
+        assert_ok!(Loans::redeem(Origin::signed(ALICE), DOT, dollar(20)));
 
         // DOT collateral: deposit - redeem = 100 - 20 = 80
         // DOT: cash - deposit + redeem = 1000 - 100 + 20 = 920
         assert_eq!(
             Loans::account_collateral(DOT, ALICE) * Loans::exchange_rate(DOT) / RATE_DECIMAL,
-            80
+            dollar(80)
         );
         assert_eq!(
             <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
-            920,
+            dollar(920),
         );
     })
 }
@@ -169,7 +166,7 @@ fn redeem_works() {
 fn redeem_all_works() {
     ExtBuilder::default().build().execute_with(|| {
         // Deposit 100 DOT
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, 100));
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(100)));
         // Redeem all DOT
         assert_ok!(Loans::redeem_all(Origin::signed(ALICE), DOT));
 
@@ -181,7 +178,7 @@ fn redeem_all_works() {
         );
         assert_eq!(
             <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
-            1000,
+            dollar(1000),
         );
     })
 }
@@ -190,24 +187,24 @@ fn redeem_all_works() {
 fn borrow_works() {
     ExtBuilder::default().build().execute_with(|| {
         // Deposit 200 DOT as collateral
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, 200));
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(200)));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
         // Borrow 100 DOT
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, 100));
+        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, dollar(100)));
 
         // DOT collateral: deposit = 200
         // DOT borrow balance: borrow = 100
         // DOT: cash - deposit + borrow = 1000 - 200 + 100 = 900
         assert_eq!(
             Loans::account_collateral(DOT, ALICE) * Loans::exchange_rate(DOT) / RATE_DECIMAL,
-            200
+            dollar(200)
         );
         let borrow_snapshot = Loans::account_borrows(DOT, ALICE);
-        assert_eq!(borrow_snapshot.principal, 100);
+        assert_eq!(borrow_snapshot.principal, dollar(100));
         assert_eq!(borrow_snapshot.interest_index, Loans::borrow_index(DOT));
         assert_eq!(
             <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
-            900,
+            dollar(900),
         );
     })
 }
@@ -216,26 +213,26 @@ fn borrow_works() {
 fn repay_borrow_works() {
     ExtBuilder::default().build().execute_with(|| {
         // Deposit 200 DOT as collateral
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, 200));
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(200)));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
         // Borrow 100 DOT
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, 100));
+        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, dollar(100)));
         // Repay 30 DOT
-        assert_ok!(Loans::repay_borrow(Origin::signed(ALICE), DOT, 30));
+        assert_ok!(Loans::repay_borrow(Origin::signed(ALICE), DOT, dollar(30)));
 
         // DOT collateral: deposit = 200
         // DOT borrow balance: borrow - repay = 100 - 30 = 70
         // DOT: cash - deposit + borrow - repay = 1000 - 200 + 100 - 30 = 870
         assert_eq!(
             Loans::account_collateral(DOT, ALICE) * Loans::exchange_rate(DOT) / RATE_DECIMAL,
-            200
+            dollar(200)
         );
         let borrow_snapshot = Loans::account_borrows(DOT, ALICE);
-        assert_eq!(borrow_snapshot.principal, 70);
+        assert_eq!(borrow_snapshot.principal, dollar(70));
         assert_eq!(borrow_snapshot.interest_index, Loans::borrow_index(DOT));
         assert_eq!(
             <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
-            870,
+            dollar(870),
         );
     })
 }
@@ -244,12 +241,12 @@ fn repay_borrow_works() {
 fn repay_borrow_all_works() {
     ExtBuilder::default().build().execute_with(|| {
         // Bob deposits 200 KSM
-        assert_ok!(Loans::mint(Origin::signed(BOB), KSM, 200));
+        assert_ok!(Loans::mint(Origin::signed(BOB), KSM, dollar(200)));
         // Alice deposit 200 DOT as collateral
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, 200));
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(200)));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
         // Alice borrow 100 KSM
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), KSM, 100));
+        assert_ok!(Loans::borrow(Origin::signed(ALICE), KSM, dollar(100)));
         // Alice repay all borrow balance
         assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), KSM));
 
@@ -259,11 +256,11 @@ fn repay_borrow_all_works() {
         // KSM borrow balance: borrow - repay = 100 - 100 = 0
         assert_eq!(
             <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
-            800,
+            dollar(800),
         );
         assert_eq!(
             Loans::account_collateral(DOT, ALICE) * Loans::exchange_rate(DOT) / RATE_DECIMAL,
-            200,
+            dollar(200),
         );
         let borrow_snapshot = Loans::account_borrows(KSM, ALICE);
         assert_eq!(borrow_snapshot.principal, 0);
@@ -275,12 +272,12 @@ fn repay_borrow_all_works() {
 fn liquidate_borrow_works() {
     ExtBuilder::default().build().execute_with(|| {
         // Bob deposits 200 KSM
-        assert_ok!(Loans::mint(Origin::signed(BOB), KSM, 200));
+        assert_ok!(Loans::mint(Origin::signed(BOB), KSM, dollar(200)));
         // Alice deposits 200 DOT as collateral
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, 200));
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(200)));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
         // Alice borrows 100 KSM
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), KSM, 100));
+        assert_ok!(Loans::borrow(Origin::signed(ALICE), KSM, dollar(100)));
         // adjust KSM price to make ALICE generate shortfall
         MOCK_PRICE_FEEDER::set_price(KSM, 2);
         // BOB repay the KSM borrow balance and get DOT from ALICE
@@ -288,7 +285,7 @@ fn liquidate_borrow_works() {
             Origin::signed(BOB),
             ALICE,
             KSM,
-            50,
+            dollar(50),
             DOT
         ));
 
@@ -301,21 +298,24 @@ fn liquidate_borrow_works() {
         // Bob DOT collateral: incentive = 50 * 2 / 0.9 = 111
         assert_eq!(
             <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
-            800,
+            dollar(800),
         );
         assert_eq!(
             Loans::account_collateral(DOT, ALICE) * Loans::exchange_rate(DOT) / RATE_DECIMAL,
-            89,
+            88888888888888888889,
         );
         assert_eq!(
             <Runtime as Config>::Currency::free_balance(KSM, &ALICE),
-            1100,
+            dollar(1100),
         );
-        assert_eq!(Loans::account_borrows(KSM, ALICE).principal, 50);
-        assert_eq!(<Runtime as Config>::Currency::free_balance(KSM, &BOB), 750);
+        assert_eq!(Loans::account_borrows(KSM, ALICE).principal, dollar(50));
+        assert_eq!(
+            <Runtime as Config>::Currency::free_balance(KSM, &BOB),
+            dollar(750)
+        );
         assert_eq!(
             Loans::account_collateral(DOT, BOB) * Loans::exchange_rate(DOT) / RATE_DECIMAL,
-            111,
+            111111111111111111111,
         );
     })
 }
@@ -326,5 +326,75 @@ fn collateral_asset_works() {
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, 200));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
         assert_eq!(Loans::account_collateral_assets(ALICE), vec![DOT]);
+    })
+}
+
+#[test]
+fn interest_rate_model_works() {
+    ExtBuilder::default().build().execute_with(|| {
+        // Deposit 200 DOT and borrow 100 DOT
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(200)));
+        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
+        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, dollar(100)));
+
+        let total_cash = dollar(200) - dollar(100);
+        let total_supply = dollar(200) * RATE_DECIMAL / Loans::exchange_rate(DOT);
+        assert_eq!(Loans::total_supply(DOT), total_supply);
+
+        let multiplier_per_year = 1 * RATE_DECIMAL / 10;
+        let multiplier_per_block =
+            multiplier_per_year / BLOCK_PER_YEAR * RATE_DECIMAL / (8 * RATE_DECIMAL / 10);
+        assert_eq!(multiplier_per_block, Loans::multipler_per_block().unwrap());
+
+        let borrow_snapshot = Loans::account_borrows(DOT, ALICE);
+        assert_eq!(borrow_snapshot.principal, dollar(100));
+        assert_eq!(borrow_snapshot.interest_index, 1 * RATE_DECIMAL);
+
+        let base_rate_pre_block = 2 * RATE_DECIMAL / 100 / BLOCK_PER_YEAR;
+        let mut borrow_index = 1 * RATE_DECIMAL;
+        let mut total_borrows = borrow_snapshot.principal;
+
+        // Finalized block from 1 to 49
+        for i in 2..50 {
+            run_to_block(i);
+
+            // utilizationRatio = totalBorrows / (totalCash + totalBorrows)
+            let util_ratio = (total_borrows * RATE_DECIMAL) / (total_cash + total_borrows);
+            assert_eq!(Loans::utility_rate(DOT), util_ratio);
+
+            let borrow_rate_per_block =
+                util_ratio * multiplier_per_block / RATE_DECIMAL + base_rate_pre_block;
+
+            println!("multiplier_per_block {:?}", multiplier_per_block);
+            println!("util_ratio {:?}", util_ratio);
+            println!("borrow_rate_per_block {:?}", borrow_rate_per_block);
+            println!("total_borrows before {:?}", total_borrows);
+            total_borrows = total_borrows * borrow_rate_per_block / RATE_DECIMAL + total_borrows;
+            println!("total_borrows after {:?}", total_borrows);
+            assert_eq!(Loans::total_borrows(DOT), total_borrows);
+
+            // exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
+            assert_eq!(
+                Loans::exchange_rate(DOT),
+                (total_cash + total_borrows - 0) * RATE_DECIMAL / total_supply
+            );
+
+            borrow_index = borrow_index * borrow_rate_per_block / RATE_DECIMAL + borrow_index;
+        }
+
+        println!("borrow_snapshot {:?}", borrow_snapshot);
+        println!("total_cash {:?}", total_cash);
+        println!("total_supply {:?}", total_supply);
+        println!("total_borrows {:?}", total_borrows);
+        println!("borrow_index {:?}", borrow_index);
+        // Calculate borrow accrued interest
+        let borrow_accrued_interest = borrow_index * borrow_snapshot.principal
+            / borrow_snapshot.interest_index
+            / RATE_DECIMAL;
+        let supply_interest = total_supply * Loans::exchange_rate(DOT) / RATE_DECIMAL - dollar(200);
+        println!("supply_interest {:?}", supply_interest);
+        println!("borrow_accrued_interest {:?}", borrow_accrued_interest);
+
+        assert_eq!(total_borrows, borrow_accrued_interest);
     })
 }

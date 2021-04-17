@@ -193,12 +193,12 @@ fn development_genesis(
             ],
             // total_supply: 1000 * TOKEN_DECIMAL, // 1000
             // total_borrows: 600 * TOKEN_DECIMAL, // 600
-            borrow_index: RATE_DECIMAL,               // 1
-            exchange_rate: 2 * RATE_DECIMAL / 100,    // 0.02
-            base_rate: 2 * RATE_DECIMAL / 100,        // 0.02
-            multiplier_per_year: RATE_DECIMAL / 10,   // 0.1
+            borrow_index: RATE_DECIMAL,              // 1
+            exchange_rate: 2 * RATE_DECIMAL / 100,   // 0.02
+            base_rate: 2 * RATE_DECIMAL / 100,       // 0.02
+            multiplier_per_year: RATE_DECIMAL / 10,  // 0.1
             jump_multiplier: 11 * RATE_DECIMAL / 10, // 1.1
-            kink: 8 * RATE_DECIMAL / 10,              // 0.8
+            kink: 8 * RATE_DECIMAL / 10,             // 0.8
             collateral_rate: vec![
                 (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),
                 (CurrencyId::KSM, 5 * RATE_DECIMAL / 10),
@@ -279,12 +279,12 @@ fn testnet_genesis(
             ],
             // total_supply: 1000 * TOKEN_DECIMAL, // 1000
             // total_borrows: 600 * TOKEN_DECIMAL, // 600
-            borrow_index: RATE_DECIMAL,               // 1
-            exchange_rate: 2 * RATE_DECIMAL / 100,    // 0.02
-            base_rate: 2 * RATE_DECIMAL / 100,        // 0.02
-            multiplier_per_year: RATE_DECIMAL / 10,   // 0.1
+            borrow_index: RATE_DECIMAL,              // 1
+            exchange_rate: 2 * RATE_DECIMAL / 100,   // 0.02
+            base_rate: 2 * RATE_DECIMAL / 100,       // 0.02
+            multiplier_per_year: RATE_DECIMAL / 10,  // 0.1
             jump_multiplier: 11 * RATE_DECIMAL / 10, // 1.1
-            kink: 8 * RATE_DECIMAL / 10,              // 0.8
+            kink: 8 * RATE_DECIMAL / 10,             // 0.8
             collateral_rate: vec![
                 (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),
                 (CurrencyId::KSM, 5 * RATE_DECIMAL / 10),
