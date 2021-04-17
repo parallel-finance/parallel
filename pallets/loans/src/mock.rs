@@ -230,13 +230,13 @@ impl ExtBuilder {
             base_rate: 2 * RATE_DECIMAL / 100,          // 0.02
             multiplier_per_year: 1 * RATE_DECIMAL / 10, // 0.1
             jump_multiplier: 11 * RATE_DECIMAL / 10,    // 1.1
-            kink: 8 * RATE_DECIMAL / 10,                // 0.8
+            kink: Permill::from_percent(80),            // 0.8
             collateral_rate: vec![
-                (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::KSM, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::BTC, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::USDT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::xDOT, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::DOT, Permill::from_percent(50)),
+                (CurrencyId::KSM, Permill::from_percent(50)),
+                (CurrencyId::BTC, Permill::from_percent(50)),
+                (CurrencyId::USDT, Permill::from_percent(50)),
+                (CurrencyId::xDOT, Permill::from_percent(50)),
             ],
             liquidation_incentive: vec![
                 (CurrencyId::DOT, 9 * RATE_DECIMAL / 10),
