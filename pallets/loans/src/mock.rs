@@ -15,15 +15,22 @@
 mod loans {
     pub use super::super::*;
 }
+
 use loans::*;
 
 use frame_support::{construct_runtime, parameter_types};
 
 use lazy_static::lazy_static;
 use orml_traits::parameter_type_with_key;
-use primitives::{Amount, Balance, CurrencyId, PriceDetail, PriceFeeder, RATE_DECIMAL};
+use primitives::{
+    Amount, Balance, CurrencyId, PriceDetail, PriceFeeder, RATE_DECIMAL, TOKEN_DECIMAL,
+};
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
+use sp_runtime::{
+    testing::Header,
+    traits::{IdentityLookup, Saturating},
+    ModuleId,
+};
 use sp_std::vec::Vec;
 use std::{collections::HashMap, ops::DerefMut, sync::Mutex};
 
@@ -183,14 +190,14 @@ impl Default for ExtBuilder {
     fn default() -> Self {
         Self {
             endowed_accounts: vec![
-                (ALICE, DOT, 1000),
-                (ALICE, KSM, 1000),
-                (ALICE, BTC, 1000),
-                (ALICE, USDT, 1000),
-                (BOB, DOT, 1000),
-                (BOB, KSM, 1000),
-                (BOB, BTC, 1000),
-                (BOB, USDT, 1000),
+                (ALICE, DOT, dollar(1000)),
+                (ALICE, KSM, dollar(1000)),
+                (ALICE, BTC, dollar(1000)),
+                (ALICE, USDT, dollar(1000)),
+                (BOB, DOT, dollar(1000)),
+                (BOB, KSM, dollar(1000)),
+                (BOB, BTC, dollar(1000)),
+                (BOB, USDT, dollar(1000)),
             ],
         }
     }
@@ -222,14 +229,14 @@ impl ExtBuilder {
             exchange_rate: 2 * RATE_DECIMAL / 100,      // 0.02
             base_rate: 2 * RATE_DECIMAL / 100,          // 0.02
             multiplier_per_year: 1 * RATE_DECIMAL / 10, // 0.1
-            jump_muiltiplier: 11 * RATE_DECIMAL / 10,   // 1.1
-            kink: 8 * RATE_DECIMAL / 10,                // 0.8
+            jump_multiplier: 11 * RATE_DECIMAL / 10,    // 1.1
+            kink: Permill::from_percent(80),            // 0.8
             collateral_rate: vec![
-                (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::KSM, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::BTC, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::USDT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::xDOT, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::DOT, Permill::from_percent(50)),
+                (CurrencyId::KSM, Permill::from_percent(50)),
+                (CurrencyId::BTC, Permill::from_percent(50)),
+                (CurrencyId::USDT, Permill::from_percent(50)),
+                (CurrencyId::xDOT, Permill::from_percent(50)),
             ],
             liquidation_incentive: vec![
                 (CurrencyId::DOT, 9 * RATE_DECIMAL / 10),
@@ -263,4 +270,19 @@ impl ExtBuilder {
         ext.execute_with(|| System::set_block_number(1));
         ext
     }
+}
+
+/// Progress to the given block, and then finalize the block.
+pub(crate) fn run_to_block(n: BlockNumber) {
+    Loans::on_finalize(System::block_number());
+    for b in (System::block_number() + 1)..=n {
+        System::set_block_number(b);
+        if b != n {
+            Loans::on_finalize(System::block_number());
+        }
+    }
+}
+
+pub fn dollar(d: u128) -> u128 {
+    d.saturating_mul(TOKEN_DECIMAL)
 }

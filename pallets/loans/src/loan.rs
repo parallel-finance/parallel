@@ -13,7 +13,10 @@
 // limitations under the License.
 
 use primitives::{Balance, CurrencyId, RATE_DECIMAL};
-use sp_runtime::{traits::Zero, DispatchResult};
+use sp_runtime::{
+    traits::{Saturating, Zero},
+    DispatchResult,
+};
 use sp_std::prelude::*;
 use sp_std::result;
 
@@ -196,7 +199,7 @@ impl<T: Config> Pallet<T> {
         }
 
         let collateral_factor = CollateralRate::<T>::get(currency_id);
-        let currency_exchange_rate = ExchangeRate::<T>::get(currency_id);
+        let exchange_rate = ExchangeRate::<T>::get(currency_id);
 
         let (currency_price, _) = T::PriceFeeder::get_price(currency_id)
             .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
@@ -204,10 +207,8 @@ impl<T: Config> Pallet<T> {
             return Err(Error::<T>::OracleCurrencyPriceNotReady);
         }
 
-        collateral
-            .checked_mul(collateral_factor)
-            .and_then(|r| r.checked_div(RATE_DECIMAL))
-            .and_then(|r| r.checked_mul(currency_exchange_rate))
+        (collateral_factor * collateral)
+            .checked_mul(exchange_rate)
             .and_then(|r| r.checked_div(RATE_DECIMAL))
             .and_then(|r| r.checked_mul(currency_price))
             .ok_or(Error::<T>::CollateralOverflow)
@@ -231,7 +232,7 @@ impl<T: Config> Pallet<T> {
         Ok(total_asset_value)
     }
 
-    /// Borrower shouldn't borrow more than what he/she has collateraled in total
+    /// Borrower shouldn't borrow more than what he/she has pledged in total
     pub(crate) fn borrow_guard(
         borrower: &T::AccountId,
         borrow_currency_id: &CurrencyId,
