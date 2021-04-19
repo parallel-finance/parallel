@@ -106,12 +106,6 @@ fn update_borrow_rate_works() {
         let util = Loans::calc_utilization_ratio(cash, borrows, reserves).unwrap();
         let normal_rate = kink * multiplier_per_block + base_rate_per_block;
         let excess_util = util.saturating_sub(kink);
-        println!("normal_rate {:?}", normal_rate);
-        println!("excess_util {:?}", excess_util);
-        println!(
-            "borrow_rate {:?}",
-            excess_util * jump_multiplier_per_block + normal_rate
-        );
         assert_eq!(
             excess_util * jump_multiplier_per_block + normal_rate,
             BorrowRate::<Runtime>::get(DOT),
@@ -361,6 +355,7 @@ fn interest_rate_model_works() {
         let base_rate_pre_block = 2 * RATE_DECIMAL / 100 / BLOCK_PER_YEAR;
         let mut borrow_index = 1 * RATE_DECIMAL;
         let mut total_borrows = borrow_snapshot.principal;
+        let total_reserves = 0;
 
         // Finalized block from 1 to 49
         for i in 2..50 {
@@ -375,7 +370,7 @@ fn interest_rate_model_works() {
             // exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
             assert_eq!(
                 Loans::exchange_rate(DOT),
-                (total_cash + total_borrows - 0) * RATE_DECIMAL / total_supply
+                (total_cash + total_borrows - total_reserves) * RATE_DECIMAL / total_supply
             );
 
             borrow_index = borrow_index * borrow_rate_per_block / RATE_DECIMAL + borrow_index;
