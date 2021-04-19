@@ -31,6 +31,7 @@ mod mock;
 mod rate;
 #[cfg(test)]
 mod tests;
+mod benchmarking;
 mod util;
 
 /// Container for borrow balance information
