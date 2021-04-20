@@ -373,7 +373,8 @@ pub mod module {
                         {
                             // let repay_amount = (single_collateral_total_sum_pirce / collateral_total_value) * (debt_repay_amount * close_factor);
                             let m: Price = 100;
-                            let repay_amount = match (close_factor * single_collateral_total_sum_pirce)
+                            let repay_amount = match (close_factor
+                                * single_collateral_total_sum_pirce)
                                 .checked_mul(m)
                                 .and_then(|r| r.checked_div(collateral_total_value))
                                 .and_then(|r| r.checked_mul(debt_repay_amount))

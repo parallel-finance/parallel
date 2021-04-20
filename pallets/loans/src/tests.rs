@@ -14,7 +14,7 @@
 
 //! Unit tests for the loans module.
 
-use frame_support::{assert_noop, assert_ok, error::BadOrigin};
+use frame_support::{assert_noop, assert_ok};
 use primitives::{CurrencyId, BLOCK_PER_YEAR, RATE_DECIMAL, TOKEN_DECIMAL};
 use sp_runtime::{traits::Saturating, Perbill};
 

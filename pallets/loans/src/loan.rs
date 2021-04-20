@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use primitives::{Balance, CurrencyId, Multiplier, RATE_DECIMAL};
+use primitives::{Balance, CurrencyId, RATE_DECIMAL};
 use sp_runtime::{
     traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, Saturating, Zero},
     DispatchResult, Perbill,

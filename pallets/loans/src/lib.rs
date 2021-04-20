@@ -16,10 +16,10 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::collapsible_if)]
 
-use frame_support::{pallet_prelude::*, transactional, PalletId};
+use frame_support::{pallet_prelude::*, transactional};
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
-use primitives::{Amount, Balance, CurrencyId, Multiplier, PriceFeeder, Rate, Ratio, RATE_DECIMAL};
+use primitives::{Amount, Balance, CurrencyId, Multiplier, PriceFeeder, Rate, Ratio};
 use sp_runtime::{traits::AccountIdConversion, FixedPointNumber, ModuleId, RuntimeDebug};
 use sp_std::vec::Vec;
 
@@ -54,7 +54,6 @@ pub struct EarnedSnapshot {
 #[frame_support::pallet]
 pub mod module {
     use super::*;
-    use crate::util::mul_then_div;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {

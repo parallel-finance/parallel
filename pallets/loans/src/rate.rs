@@ -14,7 +14,7 @@
 
 use primitives::{Balance, CurrencyId, Multiplier, Rate, Ratio, BLOCK_PER_YEAR, RATE_DECIMAL};
 use sp_runtime::{
-    traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, Saturating, Zero},
+    traits::{CheckedAdd, Saturating, Zero},
     DispatchResult, Perbill,
 };
 
