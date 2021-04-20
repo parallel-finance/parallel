@@ -18,7 +18,7 @@ mod loans {
 
 use loans::*;
 
-use frame_support::{construct_runtime, parameter_types};
+use frame_support::{construct_runtime, parameter_types, PalletId};
 
 use lazy_static::lazy_static;
 use orml_traits::parameter_type_with_key;
@@ -26,13 +26,9 @@ use primitives::{
     Amount, Balance, CurrencyId, PriceDetail, PriceFeeder, RATE_DECIMAL, TOKEN_DECIMAL,
 };
 use sp_core::H256;
-use sp_runtime::{
-    testing::Header,
-    traits::{IdentityLookup, Saturating},
-    ModuleId,
-};
+use sp_runtime::{testing::Header, traits::IdentityLookup};
 use sp_std::vec::Vec;
-use std::{collections::HashMap, ops::DerefMut, sync::Mutex};
+use std::{collections::HashMap, sync::Mutex};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
@@ -174,12 +170,12 @@ impl PriceFeeder for MOCK_PRICE_FEEDER {
 impl Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
-    type ModuleId = LoansModuleId;
+    type PalletId = LoansPalletId;
     type PriceFeeder = MOCK_PRICE_FEEDER;
 }
 
 parameter_types! {
-    pub const LoansModuleId: ModuleId = ModuleId(*b"par/loan");
+    pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
 }
 
 pub struct ExtBuilder {

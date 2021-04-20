@@ -60,7 +60,7 @@ type VanillaFullBackend = sc_service::TFullBackend<VanillaBlock>;
 
 type FullSelectChain = sc_consensus::LongestChain<VanillaFullBackend, VanillaBlock>;
 
-pub fn new_partial_dev(
+pub fn new_partial_vanilla(
     config: &Configuration,
 ) -> Result<
     sc_service::PartialComponents<
@@ -205,7 +205,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
         transaction_pool,
         inherent_data_providers,
         other: (block_import, grandpa_link, mut telemetry),
-    } = new_partial_dev(&config)?;
+    } = new_partial_vanilla(&config)?;
 
     if let Some(url) = &config.keystore_remote {
         match remote_keystore(url) {
@@ -378,7 +378,7 @@ fn remote_keystore(_url: &String) -> Result<Arc<LocalKeystore>, &'static str> {
 ///
 /// Use this macro if you don't actually need the full service, but just the builder in order to
 /// be able to perform chain operations.
-pub fn new_partial(
+pub fn new_partial_parallel(
     config: &Configuration,
 ) -> Result<
     PartialComponents<
@@ -613,7 +613,7 @@ where
 
     let parachain_config = prepare_node_config(parachain_config);
 
-    let params = new_partial(&parachain_config)?;
+    let params = new_partial_parallel(&parachain_config)?;
     params
         .inherent_data_providers
         .register_provider(sp_timestamp::InherentDataProvider)

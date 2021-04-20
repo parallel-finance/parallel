@@ -13,10 +13,7 @@
 // limitations under the License.
 
 use primitives::{Balance, CurrencyId, RATE_DECIMAL};
-use sp_runtime::{
-    traits::{Saturating, Zero},
-    DispatchResult,
-};
+use sp_runtime::{traits::Zero, DispatchResult};
 use sp_std::prelude::*;
 use sp_std::result;
 
