@@ -42,6 +42,8 @@ pallet-timestamp                           = { git = 'https://github.com/parityt
 pallet-transaction-payment                 = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
 pallet-xcm                                 = { git = 'https://github.com/paritytech/polkadot.git', branch = 'rococo-v1', default-features = false }
+pallet-collective                          = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = "rococo-v1", default-features = false }
+pallet-prices                              = { path = "../../pallets/prices", default-features = false }
 parachain-info                             = { git = 'https://github.com/paritytech/cumulus.git', version = '0.1.0', branch = 'rococo-v1', default-features = false }
 polkadot-parachain                         = { git = 'https://github.com/paritytech/polkadot.git', branch = 'rococo-v1', default-features = false }
 primitives                                 = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
@@ -122,6 +124,8 @@ std                = [
   'pallet-staking/std',
   'pallet-ocw-oracle/std',
   'pallet-liquidate/std',
+  'pallet-collective/std',
+  'pallet-prices/std',
   'orml-oracle/std',
   'orml-currencies/std',
   'orml-tokens/std',

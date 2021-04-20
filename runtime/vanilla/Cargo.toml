@@ -27,6 +27,7 @@ pallet-liquidate  = { path = '../../pallets/liquidate', default-features = false
 pallet-loans      = { path = '../../pallets/loans', default-features = false }
 pallet-ocw-oracle = { path = '../../pallets/ocw-oracle', default-features = false }
 pallet-staking    = { path = '../../pallets/staking', default-features = false }
+pallet-prices     = { path = "../../pallets/prices", default-features = false }
 
 # Substrate dependencies
 frame-benchmarking                         = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false, optional = true }
@@ -49,6 +50,7 @@ pallet-timestamp                           = { git = 'https://github.com/parityt
 pallet-transaction-payment                 = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
 pallet-utility                             = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
+pallet-collective                          = { git = "https://github.com/paritytech/substrate.git", version = '3.0.0', branch = "rococo-v1", default-features = false }
 primitives                                 = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 sp-api                                     = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
 sp-block-builder                           = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
@@ -111,4 +113,6 @@ std                = [
   'pallet-staking/std',
   'pallet-ocw-oracle/std',
   'pallet-liquidate/std',
+  'pallet-collective/std',
+  'pallet-prices/std',
 ]

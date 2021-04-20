@@ -9,19 +9,23 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 use codec::Encode;
 use frame_support::PalletId;
 use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::parameter_type_with_key;
+use orml_traits::{create_median_value_data_provider, parameter_type_with_key, DataFeeder, DataProviderExtended};
 use pallet_grandpa::fg_primitives;
 use pallet_grandpa::{AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use primitives::{Amount, Balance, CurrencyId, Price};
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_consensus_aura::SlotDuration;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+use sp_core::{
+	crypto::KeyTypeId, OpaqueMetadata,
+	u32_trait::{_1, _2, _3, _4},
+};
 use sp_runtime::traits::{self, AccountIdLookup, BlakeTwo256, Block as BlockT, NumberFor};
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, SaturatedConversion,
+    ApplyExtrinsicResult, ModuleId, SaturatedConversion,
+	DispatchResult, FixedU128,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -43,6 +47,9 @@ pub use frame_support::{
         IdentityFee, Weight,
     },
     StorageValue,
+};
+use frame_system::{
+	EnsureRoot, EnsureOneOf,
 };
 use pallet_transaction_payment::CurrencyAdapter;
 pub use primitives::*;
@@ -387,8 +394,32 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
 	type CombineData = orml_oracle::DefaultCombineData<Runtime, MinimumCount, ExpiresIn, ParallelDataProvider>;
 	type Time = Timestamp;
 	type OracleKey = CurrencyId;
-	type OracleValue = Price;
+	type OracleValue = FixedU128;
 	type RootOperatorAccountId = ZeroAccountId;
+	type WeightInfo = ();
+}
+
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<FixedU128, primitives::Moment>;
+create_median_value_data_provider!(
+	AggregatedDataProvider,
+	CurrencyId,
+	FixedU128,
+	TimeStampedPrice,
+	[VanillaOracle]
+);
+// Aggregated data provider cannot feed.
+impl DataFeeder<CurrencyId, FixedU128, AccountId> for AggregatedDataProvider {
+	fn feed_value(_: AccountId, _: CurrencyId, _: FixedU128) -> DispatchResult {
+		Err("Not supported".into())
+	}
+}
+
+impl pallet_prices::Config for Runtime {
+	type Event = Event;
+	type Source = AggregatedDataProvider;
+	type GetStableCurrencyId = GetStableCurrencyId;
+	type StableCurrencyFixedPrice = StableCurrencyFixedPrice;
+	type LockOrigin = EnsureRoot<AccountId>;
 	type WeightInfo = ();
 }
 
@@ -416,6 +447,7 @@ construct_runtime!(
         OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
         VanillaOracle: orml_oracle::<Instance2>::{Pallet, Storage, Call, Config<T>, Event<T>},
         Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},
+        Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
     }
 );
 

@@ -26,14 +26,18 @@ use frame_support::{
     PalletId,
 };
 use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::parameter_type_with_key;
+use orml_traits::{create_median_value_data_provider, parameter_type_with_key, DataFeeder, DataProviderExtended};
 use sp_api::impl_runtime_apis;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+use sp_core::{
+	crypto::KeyTypeId, OpaqueMetadata,
+	u32_trait::{_1, _2, _3, _4},
+};
 use sp_runtime::traits::{AccountIdLookup, BlakeTwo256, Block as BlockT};
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys, traits,
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, SaturatedConversion,
+    ApplyExtrinsicResult, ModuleId, SaturatedConversion,
+	DispatchResult, FixedU128,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -42,7 +46,10 @@ use sp_version::RuntimeVersion;
 
 // XCM imports
 use frame_support::log;
-use frame_system::limits::{BlockLength, BlockWeights};
+use frame_system::{
+    limits::{BlockLength, BlockWeights},
+    EnsureRoot, EnsureOneOf,
+};
 use polkadot_parachain::primitives::Sibling;
 use primitives::*;
 use xcm::v0::{Junction, MultiLocation, NetworkId};
@@ -548,9 +555,33 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
       type CombineData = orml_oracle::DefaultCombineData<Runtime, MinimumCount, ExpiresIn, ParallelDataProvider>;
       type Time = Timestamp;
       type OracleKey = CurrencyId;
-      type OracleValue = Price;
+      type OracleValue = FixedU128;
       type RootOperatorAccountId = ZeroAccountId;
       type WeightInfo = ();
+}
+
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<FixedU128, primitives::Moment>;
+create_median_value_data_provider!(
+	AggregatedDataProvider,
+	CurrencyId,
+	FixedU128,
+	TimeStampedPrice,
+	[ParallelOracle]
+);
+// Aggregated data provider cannot feed.
+impl DataFeeder<CurrencyId, FixedU128, AccountId> for AggregatedDataProvider {
+	fn feed_value(_: AccountId, _: CurrencyId, _: FixedU128) -> DispatchResult {
+		Err("Not supported".into())
+	}
+}
+
+impl pallet_prices::Config for Runtime {
+	type Event = Event;
+	type Source = AggregatedDataProvider;
+	type GetStableCurrencyId = GetStableCurrencyId;
+	type StableCurrencyFixedPrice = StableCurrencyFixedPrice;
+	type LockOrigin = EnsureRoot<AccountId>;
+	type WeightInfo = ();
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -578,6 +609,7 @@ construct_runtime!(
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
         Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},
         Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},
+        Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
     }
 );
 
