@@ -23,6 +23,7 @@ use sp_runtime::{
     traits::{IdentifyAccount, One, Verify},
     FixedPointNumber,
 };
+use parallel_runtime::ParallelOracleConfig;
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ParallelChainSpec =
@@ -174,6 +175,10 @@ fn testnet_genesis(
         },
         pallet_sudo: parallel_runtime::SudoConfig { key: root_key },
         parachain_info: parallel_runtime::ParachainInfoConfig { parachain_id: id },
+		orml_oracle_Instance1: ParallelOracleConfig {
+			members: Default::default(), // initialized by OperatorMembership
+			phantom: Default::default(),
+		},
         orml_tokens: parallel_runtime::TokensConfig {
             endowed_accounts: endowed_accounts
                 .iter()

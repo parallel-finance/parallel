@@ -4516,6 +4516,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "orml-oracle"
+version = "0.4.1-dev"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#ae67850c7b48afeb521ab0b6f25d2cd73639fede"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "orml-traits",
+ "orml-utilities",
+ "parity-scale-codec",
+ "serde",
+ "sp-application-crypto",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "orml-tokens"
 version = "0.4.1-dev"
 source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#5f74630d0742b12a3bd363d1634b877ba61d773b"
@@ -5137,7 +5154,7 @@ dependencies = [
 [[package]]
 name = "pallet-staking"
 version = "3.0.0"
-source = "git+https://github.com/paritytech/substrate.git?branch=rococo-v1#2be8fcc4236d32786c62f6f27a98e7fe7e550807"
+source = "git+https://github.com/paritytech/substrate.git?branch=rococo-v1#68cfc326fa0e3d96d0d92509e4db1a104b9da9bb"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
@@ -5465,6 +5482,7 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "hex-literal 0.3.1",
  "orml-currencies",
+ "orml-oracle",
  "orml-tokens",
  "orml-traits",
  "orml-utilities",
@@ -10845,6 +10863,7 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "hex-literal 0.3.1",
  "orml-currencies",
+ "orml-oracle",
  "orml-tokens",
  "orml-traits",
  "orml-utilities",

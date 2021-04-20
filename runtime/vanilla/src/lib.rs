@@ -374,6 +374,24 @@ where
     type Extrinsic = UncheckedExtrinsic;
 }
 
+parameter_types! {
+      pub const MinimumCount: u32 = 1;
+      pub const ExpiresIn: Moment = 1000 * 60 * 60; // 60 mins
+      pub ZeroAccountId: AccountId = AccountId::from([0u8; 32]);
+}
+
+type ParallelDataProvider = orml_oracle::Instance2;
+impl orml_oracle::Config<ParallelDataProvider> for Runtime {
+	type Event = Event;
+	type OnNewData = ();
+	type CombineData = orml_oracle::DefaultCombineData<Runtime, MinimumCount, ExpiresIn, ParallelDataProvider>;
+	type Time = Timestamp;
+	type OracleKey = CurrencyId;
+	type OracleValue = Price;
+	type RootOperatorAccountId = ZeroAccountId;
+	type WeightInfo = ();
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -396,6 +414,7 @@ construct_runtime!(
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
         Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},
         OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
+        VanillaOracle: orml_oracle::<Instance2>::{Pallet, Storage, Call, Config<T>, Event<T>},
         Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},
     }
 );

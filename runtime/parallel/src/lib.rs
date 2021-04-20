@@ -535,6 +535,24 @@ impl Config for XcmConfig {
     type ResponseHandler = (); // Don't handle responses for now.
 }
 
+parameter_types! {
+      pub const MinimumCount: u32 = 1;
+      pub const ExpiresIn: Moment = 1000 * 60 * 60; // 60 mins
+      pub ZeroAccountId: AccountId = AccountId::from([0u8; 32]);
+}
+
+type ParallelDataProvider = orml_oracle::Instance1;
+impl orml_oracle::Config<ParallelDataProvider> for Runtime {
+      type Event = Event;
+      type OnNewData = ();
+      type CombineData = orml_oracle::DefaultCombineData<Runtime, MinimumCount, ExpiresIn, ParallelDataProvider>;
+      type Time = Timestamp;
+      type OracleKey = CurrencyId;
+      type OracleValue = Price;
+      type RootOperatorAccountId = ZeroAccountId;
+      type WeightInfo = ();
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -556,6 +574,7 @@ construct_runtime!(
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
         OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
+        ParallelOracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Config<T>, Event<T>},
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
         Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},
         Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},
