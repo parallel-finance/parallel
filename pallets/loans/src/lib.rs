@@ -25,13 +25,13 @@ use sp_std::vec::Vec;
 
 pub use module::*;
 
+mod benchmarking;
 mod loan;
 #[cfg(test)]
 mod mock;
 mod rate;
 #[cfg(test)]
 mod tests;
-mod benchmarking;
 mod util;
 
 /// Container for borrow balance information

@@ -46,7 +46,7 @@ native_executor_instance!(
     pub Executor,
     parallel_runtime::api::dispatch,
     parallel_runtime::native_version,
-	frame_benchmarking::benchmarking::HostFunctions,
+    frame_benchmarking::benchmarking::HostFunctions,
 );
 
 type ParallelBlock = parallel_runtime::opaque::Block;
