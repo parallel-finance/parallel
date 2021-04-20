@@ -12,8 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use primitives::{Balance, CurrencyId, RATE_DECIMAL};
-use sp_runtime::{traits::Zero, DispatchResult};
+use primitives::{Balance, CurrencyId, Multiplier, RATE_DECIMAL};
+use sp_runtime::{
+    traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, Saturating, Zero},
+    DispatchResult, Perbill,
+};
 use sp_std::prelude::*;
 use sp_std::result;
 
@@ -41,19 +44,17 @@ impl<T: Config> Pallet<T> {
          */
 
         let borrow_rate_per_block = BorrowRate::<T>::get(currency_id);
-        let interest_accumulated = mul_then_div(borrows_prior, borrow_rate_per_block, RATE_DECIMAL)
+        let interest_accumulated = borrow_rate_per_block
+            .checked_mul_int(borrows_prior)
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
         let total_borrows_new = interest_accumulated
             .checked_add(borrows_prior)
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
         let borrow_index = Self::borrow_index(currency_id);
-        let borrow_index_new = mul_then_div_then_add(
-            borrow_index,
-            borrow_rate_per_block,
-            RATE_DECIMAL,
-            borrow_index,
-        )
-        .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
+        let borrow_index_new = borrow_index
+            .checked_mul(&borrow_rate_per_block)
+            .and_then(|r| r.checked_add(&borrow_index))
+            .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
 
         TotalBorrows::<T>::insert(currency_id, total_borrows_new);
         BorrowIndex::<T>::insert(currency_id, borrow_index_new);
@@ -75,8 +76,8 @@ impl<T: Config> Pallet<T> {
         mint_amount: Balance,
     ) -> DispatchResult {
         let exchange_rate = Self::exchange_rate(currency_id);
-        let collateral = mul_then_div(mint_amount, RATE_DECIMAL, exchange_rate)
-            .ok_or(Error::<T>::CalcCollateralFailed)?;
+        let collateral =
+            div_by_rate(mint_amount, exchange_rate).ok_or(Error::<T>::CalcCollateralFailed)?;
 
         AccountCollateral::<T>::try_mutate(
             currency_id,
@@ -113,8 +114,8 @@ impl<T: Config> Pallet<T> {
         redeem_amount: Balance,
     ) -> DispatchResult {
         let exchange_rate = Self::exchange_rate(currency_id);
-        let collateral = mul_then_div(redeem_amount, RATE_DECIMAL, exchange_rate)
-            .ok_or(Error::<T>::CalcCollateralFailed)?;
+        let collateral =
+            div_by_rate(redeem_amount, exchange_rate).ok_or(Error::<T>::CalcCollateralFailed)?;
 
         AccountCollateral::<T>::try_mutate(
             currency_id,
@@ -195,7 +196,7 @@ impl<T: Config> Pallet<T> {
             return Ok(0_u128);
         }
 
-        let collateral_factor = CollateralRate::<T>::get(currency_id);
+        let collateral_factor = CollateralFactor::<T>::get(currency_id);
         let exchange_rate = ExchangeRate::<T>::get(currency_id);
 
         let (currency_price, _) = T::PriceFeeder::get_price(currency_id)
@@ -204,9 +205,8 @@ impl<T: Config> Pallet<T> {
             return Err(Error::<T>::OracleCurrencyPriceNotReady);
         }
 
-        (collateral_factor * collateral)
-            .checked_mul(exchange_rate)
-            .and_then(|r| r.checked_div(RATE_DECIMAL))
+        exchange_rate
+            .checked_mul_int(collateral_factor * collateral)
             .and_then(|r| r.checked_mul(currency_price))
             .ok_or(Error::<T>::CollateralOverflow)
     }
@@ -274,7 +274,7 @@ impl<T: Config> Pallet<T> {
             borrower,
             BorrowSnapshot {
                 principal: account_borrows_new,
-                interest_index: Self::borrow_index(currency_id),
+                borrow_index: Self::borrow_index(currency_id),
             },
         );
 
@@ -312,7 +312,7 @@ impl<T: Config> Pallet<T> {
             borrower,
             BorrowSnapshot {
                 principal: account_borrows_new,
-                interest_index: Self::borrow_index(currency_id),
+                borrow_index: Self::borrow_index(currency_id),
             },
         );
 
@@ -370,16 +370,14 @@ impl<T: Config> Pallet<T> {
         currency_id: &CurrencyId,
     ) -> result::Result<Balance, Error<T>> {
         let snapshot: BorrowSnapshot = Self::account_borrows(currency_id, who);
-        if snapshot.principal == 0 || snapshot.interest_index == 0 {
+        if snapshot.principal == 0 || snapshot.borrow_index.is_zero() {
             return Ok(0);
         }
-        /* Calculate new borrow balance using the interest index:
-         *  recentBorrowBalance = borrower.borrowBalance * market.borrowIndex / borrower.borrowIndex
-         */
-        let recent_borrow_balance = snapshot
-            .principal
-            .checked_mul(Self::borrow_index(currency_id))
-            .and_then(|r| r.checked_div(snapshot.interest_index))
+        // Calculate new borrow balance using the interest index:
+        // recent_borrow_balance = snapshot.principal * borrow_index / snapshot.borrow_index
+        let recent_borrow_balance = Self::borrow_index(currency_id)
+            .checked_div(&snapshot.borrow_index)
+            .and_then(|r| r.checked_mul_int(snapshot.principal))
             .ok_or(Error::<T>::CalcBorrowBalanceFailed)?;
 
         Ok(recent_borrow_balance)
@@ -393,9 +391,8 @@ impl<T: Config> Pallet<T> {
         let exchange_rate = ExchangeRate::<T>::get(currency_id);
         let account_earned = AccountEarned::<T>::get(currency_id, who);
         let total_earned_prior_new = exchange_rate
-            .checked_sub(account_earned.exchange_rate_prior)
-            .and_then(|r| r.checked_mul(collateral))
-            .and_then(|r| r.checked_div(RATE_DECIMAL))
+            .checked_sub(&account_earned.exchange_rate_prior)
+            .and_then(|r| r.checked_mul_int(collateral))
             .and_then(|r| r.checked_add(account_earned.total_earned_prior))
             .ok_or(Error::<T>::CalcEarnedFailed)?;
 
@@ -439,9 +436,7 @@ impl<T: Config> Pallet<T> {
 
         // we can only liquidate 50% of the borrows
         let close_factor = CloseFactor::<T>::get(liquidate_currency_id);
-        let close_borrows = mul_then_div(account_borrows, close_factor, RATE_DECIMAL)
-            .ok_or(Error::<T>::CalcCloseBorrowsFailed)?;
-        if close_borrows < repay_amount {
+        if close_factor * account_borrows < repay_amount {
             return Err(Error::<T>::RepayAmountTooBig.into());
         }
 
@@ -451,9 +446,8 @@ impl<T: Config> Pallet<T> {
         let exchange_rate = Self::exchange_rate(collateral_currency_id);
 
         //the total amount of borrower's collateral token
-        let collateral_underlying_amount = collateral_ctoken_amount
-            .checked_mul(exchange_rate)
-            .and_then(|r| r.checked_div(RATE_DECIMAL))
+        let collateral_underlying_amount = exchange_rate
+            .checked_mul_int(collateral_ctoken_amount)
             .ok_or(Error::<T>::CollateralOverflow)?;
 
         let (collateral_token_price, _) = T::PriceFeeder::get_price(&collateral_currency_id)
@@ -537,7 +531,7 @@ impl<T: Config> Pallet<T> {
             borrower,
             BorrowSnapshot {
                 principal: account_borrows_new,
-                interest_index: Self::borrow_index(liquidate_currency_id),
+                borrow_index: Self::borrow_index(liquidate_currency_id),
             },
         );
         TotalBorrows::<T>::insert(liquidate_currency_id, total_borrows_new);
@@ -546,9 +540,8 @@ impl<T: Config> Pallet<T> {
         // (divide borrower's ctoken to liquidator)
         // decrease borrower's ctoken
         let exchange_rate = Self::exchange_rate(collateral_currency_id);
-        let collateral_ctoken_amount =
-            mul_then_div(collateral_underlying_amount, RATE_DECIMAL, exchange_rate)
-                .ok_or(Error::<T>::CalcCollateralFailed)?;
+        let collateral_ctoken_amount = div_by_rate(collateral_underlying_amount, exchange_rate)
+            .ok_or(Error::<T>::CalcCollateralFailed)?;
 
         AccountCollateral::<T>::try_mutate(
             collateral_currency_id,

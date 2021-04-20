@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use primitives::{Amount, Balance};
-
+use sp_runtime::{FixedPointNumber, FixedU128};
 use sp_std::{convert::TryInto, result};
 
 use crate::module::*;
@@ -53,4 +53,8 @@ pub fn add_then_sub(addend_a: u128, addend_b: u128, subtrahend: u128) -> Option<
     addend_a
         .checked_add(addend_b)
         .and_then(|r| r.checked_sub(subtrahend))
+}
+
+pub fn div_by_rate(dividend: u128, rate: FixedU128) -> Option<u128> {
+    rate.reciprocal().and_then(|r| r.checked_mul_int(dividend))
 }
