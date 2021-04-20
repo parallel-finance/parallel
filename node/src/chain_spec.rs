@@ -27,9 +27,9 @@ use sp_runtime::{
 use vanilla_runtime::{AuraConfig, GrandpaConfig};
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
-pub type VanillaChainSpec =
+pub type ParallelChainSpec =
     sc_service::GenericChainSpec<parallel_runtime::GenesisConfig, Extensions>;
-pub type DevChainSpec = sc_service::GenericChainSpec<vanilla_runtime::GenesisConfig>;
+pub type VanillaChainSpec = sc_service::GenericChainSpec<vanilla_runtime::GenesisConfig>;
 
 /// Helper function to generate a crypto pair from seed
 pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
@@ -69,8 +69,8 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
     (get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
 }
 
-pub fn development_config(id: ParaId) -> DevChainSpec {
-    DevChainSpec::from_genesis(
+pub fn development_config(id: ParaId) -> VanillaChainSpec {
+    VanillaChainSpec::from_genesis(
         // Name
         "Development",
         // ID
@@ -93,6 +93,10 @@ pub fn development_config(id: ParaId) -> DevChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+                    // Parallel team accounts
+                    "5G4fc9GN6DeFQm4h2HKq3d9hBTsBJWSLWkyuk35cKHh2sqEz"
+                        .parse()
+                        .unwrap(),
                 ],
                 id,
             )
@@ -105,8 +109,8 @@ pub fn development_config(id: ParaId) -> DevChainSpec {
     )
 }
 
-pub fn local_testnet_config(id: ParaId) -> VanillaChainSpec {
-    VanillaChainSpec::from_genesis(
+pub fn local_testnet_config(id: ParaId) -> ParallelChainSpec {
+    ParallelChainSpec::from_genesis(
         // Name
         "Local Testnet",
         // ID
@@ -128,6 +132,10 @@ pub fn local_testnet_config(id: ParaId) -> VanillaChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+                    // Parallel team accounts
+                    "5G4fc9GN6DeFQm4h2HKq3d9hBTsBJWSLWkyuk35cKHh2sqEz"
+                        .parse()
+                        .unwrap(),
                 ],
                 id,
             )
