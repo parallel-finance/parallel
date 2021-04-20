@@ -242,8 +242,8 @@ impl pallet_sudo::Config for Runtime {
 
 impl pallet_utility::Config for Runtime {
     type Event = Event;
-	type Call = Call;
-	type WeightInfo = pallet_utility::weights::SubstrateWeight<Runtime>;
+    type Call = Call;
+    type WeightInfo = pallet_utility::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_type_with_key! {

@@ -94,7 +94,9 @@ pub fn development_config(id: ParaId) -> VanillaChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                     // Parallel team accounts
-                    "5G4fc9GN6DeFQm4h2HKq3d9hBTsBJWSLWkyuk35cKHh2sqEz".parse().unwrap(),
+                    "5G4fc9GN6DeFQm4h2HKq3d9hBTsBJWSLWkyuk35cKHh2sqEz"
+                        .parse()
+                        .unwrap(),
                 ],
                 id,
             )
@@ -131,7 +133,9 @@ pub fn local_testnet_config(id: ParaId) -> ParallelChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                     // Parallel team accounts
-                    "5G4fc9GN6DeFQm4h2HKq3d9hBTsBJWSLWkyuk35cKHh2sqEz".parse().unwrap(),
+                    "5G4fc9GN6DeFQm4h2HKq3d9hBTsBJWSLWkyuk35cKHh2sqEz"
+                        .parse()
+                        .unwrap(),
                 ],
                 id,
             )
