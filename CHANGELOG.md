@@ -1,0 +1,23 @@
+# CHANGE LOG
+
+## 2021.04.28
+- Modify storage type `SupplyRate` from `u128` to `Rate`. 
+- Refactor rate module.
+
+## 2021.04.25
+- Remove BTC market. #69 #71
+
+## 2021.04.23
+- Rename storage `CollateralRate` to `CollateralFactor`. #64
+- Rename storage `UtilityRate` to `UtilizationRatio`. #64
+- Add new types :
+
+```
+"PalletId": "MultiAddress",
+"Rate": "FixedU128",
+"Ratio": "Permill",
+"Multiplier": "FixedU128",
+```
+
+- Modify types of `BorrowIndex`, `ExchangeRate`, `MultiplierPerBlock`, `JumpMultiplierPerBlock`, `BorrowRate`, `BaseRatePerBlock` from `u128` to `FixedU128` Modify their decimals from 1e9 to 1e18. #64
+- Modify types of `CollatreralFactor`, `UtilizationRatio` from `u128` to `Permill`. #64
