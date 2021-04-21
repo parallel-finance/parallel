@@ -12,7 +12,6 @@ frame-support = { git = "https://github.com/paritytech/substrate", branch = "roc
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 orml-traits = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-support = { package = "pallet-support", path = "../support", default-features = false }
 primitives = { package = "parallel-primitives", path = "../../primitives", default-features = false }
 
 [dev-dependencies]
@@ -30,6 +29,5 @@ std = [
 	"frame-system/std",
 	"sp-std/std",
 	"orml-traits/std",
-	"support/std",
 	"primitives/std",
 ]

@@ -26,11 +26,10 @@ use frame_support::{
     PalletId,
 };
 use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::{create_median_value_data_provider, parameter_type_with_key, DataFeeder, DataProviderExtended};
+use orml_traits::{create_median_value_data_provider, parameter_type_with_key, DataFeeder};
 use sp_api::impl_runtime_apis;
 use sp_core::{
 	crypto::KeyTypeId, OpaqueMetadata,
-	u32_trait::{_1, _2, _3, _4},
 };
 use sp_runtime::traits::{AccountIdLookup, BlakeTwo256, Block as BlockT};
 use sp_runtime::{
@@ -48,7 +47,7 @@ use sp_version::RuntimeVersion;
 use frame_support::log;
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureRoot, EnsureOneOf,
+    EnsureRoot,
 };
 use polkadot_parachain::primitives::Sibling;
 use primitives::*;

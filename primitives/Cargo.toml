@@ -11,7 +11,6 @@ sp-core    = { git = 'https://github.com/paritytech/substrate.git', branch = 'ro
 sp-io      = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
 sp-runtime = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
 sp-std     = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
-evm        = { version = "0.26.0", default-features = false, features = ["with-codec"] }
 
 [features]
 default = ['std']
@@ -22,6 +21,4 @@ std     = [
   'sp-core/std',
   'sp-std/std',
   'sp-io/std',
-  'evm/std',
-  'evm/with-serde',
 ]

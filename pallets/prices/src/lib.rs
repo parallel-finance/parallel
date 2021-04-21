@@ -1,20 +1,16 @@
-// This file is part of Acala.
+// Copyright 2021 Parallel Finance Developer.
+// This file is part of Parallel Finance.
 
-// Copyright (C) 2020-2021 Acala Foundation.
-// SPDX-License-Identifier: GPL-3.0-or-later WITH Classpath-exception-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 //! # Prices Module
 //!
@@ -31,20 +27,26 @@
 
 use frame_support::{pallet_prelude::*, transactional};
 use frame_system::pallet_prelude::*;
-use orml_traits::{DataFeeder, DataProvider, MultiCurrency};
-use primitives::{Balance, CurrencyId};
+use orml_traits::{DataFeeder, DataProvider};
+use primitives::CurrencyId;
 use sp_runtime::{
-	traits::{CheckedDiv, CheckedMul},
-	FixedPointNumber,
+	traits::CheckedDiv,
+	FixedU128
 };
-use support::{CurrencyIdMapping, DEXManager, ExchangeRateProvider, Price, PriceProvider};
 
-mod mock;
-mod tests;
 pub mod weights;
 
 pub use module::*;
 pub use weights::WeightInfo;
+
+pub type Price = FixedU128;
+
+pub trait PriceProvider<CurrencyId> {
+	fn get_relative_price(base: CurrencyId, quote: CurrencyId) -> Option<Price>;
+	fn get_price(currency_id: CurrencyId) -> Option<Price>;
+	fn lock_price(currency_id: CurrencyId);
+	fn unlock_price(currency_id: CurrencyId);
+}
 
 #[frame_support::pallet]
 pub mod module {
@@ -138,7 +140,7 @@ impl<T: Config> PriceProvider<CurrencyId> for Pallet<T> {
 	/// get the exchange rate of specific currency to USD
 	/// Note: this returns the price for 1 basic unit
 	fn get_price(currency_id: CurrencyId) -> Option<Price> {
-		let maybe_feed_price = if currency_id == T::GetStableCurrencyId::get() {
+		let _maybe_feed_price = if currency_id == T::GetStableCurrencyId::get() {
 			// if is stable currency, return fixed price
 			Some(T::StableCurrencyFixedPrice::get())
 		} else {

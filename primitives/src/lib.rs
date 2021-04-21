@@ -16,8 +16,6 @@
 #![allow(clippy::unnecessary_cast)]
 #![allow(clippy::upper_case_acronyms)]
 
-pub mod evm;
-
 use codec::{Decode, Encode};
 use sp_runtime::{
     generic,

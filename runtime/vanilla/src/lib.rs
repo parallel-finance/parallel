@@ -9,7 +9,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 use codec::Encode;
 use frame_support::PalletId;
 use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::{create_median_value_data_provider, parameter_type_with_key, DataFeeder, DataProviderExtended};
+use orml_traits::{create_median_value_data_provider, parameter_type_with_key, DataFeeder};
 use pallet_grandpa::fg_primitives;
 use pallet_grandpa::{AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use primitives::{Amount, Balance, CurrencyId, Price};
@@ -18,7 +18,6 @@ use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_consensus_aura::SlotDuration;
 use sp_core::{
 	crypto::KeyTypeId, OpaqueMetadata,
-	u32_trait::{_1, _2, _3, _4},
 };
 use sp_runtime::traits::{self, AccountIdLookup, BlakeTwo256, Block as BlockT, NumberFor};
 use sp_runtime::{
@@ -49,7 +48,7 @@ pub use frame_support::{
     StorageValue,
 };
 use frame_system::{
-	EnsureRoot, EnsureOneOf,
+	EnsureRoot,
 };
 use pallet_transaction_payment::CurrencyAdapter;
 pub use primitives::*;
