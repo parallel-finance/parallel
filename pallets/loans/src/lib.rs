@@ -16,11 +16,11 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::collapsible_if)]
 
-use frame_support::{pallet_prelude::*, transactional};
+use frame_support::{log, pallet_prelude::*, transactional};
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 use primitives::{Amount, Balance, CurrencyId, PriceFeeder, RATE_DECIMAL};
-use sp_runtime::{traits::AccountIdConversion, ModuleId, RuntimeDebug};
+use sp_runtime::{traits::AccountIdConversion, ModuleId, Permill, RuntimeDebug};
 use sp_std::vec::Vec;
 
 pub use module::*;
@@ -135,8 +135,8 @@ pub mod module {
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Initialize the interest rate parameter
-        /// [base_rate, multiplier_per_block, jump_multiplier_per_block, kink]
-        InitInterestRateModel(u128, u128, u128, u128),
+        /// [base_rate, multiplier_per_block, jump_multiplier_per_block]
+        InitInterestRateModel(u128, u128, u128),
         /// Enable collateral for certain asset
         /// [sender, currency_id]
         CollateralAssetAdded(T::AccountId, CurrencyId),
@@ -234,25 +234,25 @@ pub mod module {
     #[pallet::getter(fn exchange_rate)]
     pub type ExchangeRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
 
-    /// The multiplier per block of borrow interest rate
+    /// The multiplier of utilization rate that gives the slope of the interest rate
     #[pallet::storage]
     #[pallet::getter(fn multipler_per_block)]
     pub type MultiplierPerBlock<T: Config> = StorageValue<_, Option<u128>, ValueQuery>;
 
-    /// Base borrow interest rate pre block
+    /// The base interest rate which is the y-intercept when utilization rate is 0
     #[pallet::storage]
     #[pallet::getter(fn base_rate_per_block)]
     pub type BaseRatePerBlock<T: Config> = StorageValue<_, Option<u128>, ValueQuery>;
 
-    /// Jump multiplier per block of borrow interest rate
+    /// The multiplierPerBlock after hitting a specified utilization point
     #[pallet::storage]
     #[pallet::getter(fn jump_multiplier_per_block)]
     pub type JumpMultiplierPerBlock<T: Config> = StorageValue<_, Option<u128>, ValueQuery>;
 
-    /// The optimal utilization ratio
+    /// The utilization point at which the jump multiplier is applied
     #[pallet::storage]
     #[pallet::getter(fn kink)]
-    pub type Kink<T: Config> = StorageValue<_, Option<u128>, ValueQuery>;
+    pub type Kink<T: Config> = StorageValue<_, Permill, ValueQuery>;
 
     /// Mapping of borrow rate to currency type
     #[pallet::storage]
@@ -266,13 +266,15 @@ pub mod module {
 
     /// Borrow utilization ratio
     #[pallet::storage]
-    #[pallet::getter(fn utility_rate)]
-    pub type UtilityRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+    #[pallet::getter(fn utilization_ratio)]
+    pub type UtilizationRatio<T: Config> =
+        StorageMap<_, Twox64Concat, CurrencyId, Permill, ValueQuery>;
 
     /// The collateral utilization ratio
     #[pallet::storage]
     #[pallet::getter(fn collateral_rate)]
-    pub type CollateralRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+    pub type CollateralRate<T: Config> =
+        StorageMap<_, Twox64Concat, CurrencyId, Permill, ValueQuery>;
 
     /// Liquidation incentive ratio
     #[pallet::storage]
@@ -295,15 +297,13 @@ pub mod module {
     #[pallet::genesis_config]
     pub struct GenesisConfig {
         pub currencies: Vec<CurrencyId>,
-        // pub total_supply: Balance,
-        // pub total_borrows: Balance,
         pub borrow_index: u128,
         pub exchange_rate: u128,
         pub base_rate: u128,
         pub multiplier_per_year: u128,
-        pub jump_muiltiplier: u128,
-        pub kink: u128,
-        pub collateral_rate: Vec<(CurrencyId, u128)>,
+        pub jump_multiplier: u128,
+        pub kink: Permill,
+        pub collateral_rate: Vec<(CurrencyId, Permill)>,
         pub liquidation_incentive: Vec<(CurrencyId, u128)>,
         pub liquidation_threshold: Vec<(CurrencyId, u128)>,
         pub close_factor: Vec<(CurrencyId, u128)>,
@@ -314,14 +314,12 @@ pub mod module {
         fn default() -> Self {
             GenesisConfig {
                 currencies: vec![],
-                // total_supply: 0,
-                // total_borrows: 0,
                 borrow_index: 0,
                 exchange_rate: 0,
                 base_rate: 0,
                 multiplier_per_year: 0,
-                jump_muiltiplier: 0,
-                kink: 0,
+                jump_multiplier: 0,
+                kink: Permill::zero(),
                 collateral_rate: vec![],
                 liquidation_incentive: vec![],
                 liquidation_threshold: vec![],
@@ -334,15 +332,13 @@ pub mod module {
     impl<T: Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
             self.currencies.iter().for_each(|currency_id| {
-                // TotalSupply::<T>::insert(currency_id, self.total_supply);
-                // TotalBorrows::<T>::insert(currency_id, self.total_borrows);
                 ExchangeRate::<T>::insert(currency_id, self.exchange_rate);
                 BorrowIndex::<T>::insert(currency_id, self.borrow_index);
             });
             self.collateral_rate
                 .iter()
-                .for_each(|(currency_id, collateral_rate)| {
-                    CollateralRate::<T>::insert(currency_id, collateral_rate);
+                .for_each(|(currency_id, collateral_factor)| {
+                    CollateralRate::<T>::insert(currency_id, collateral_factor);
                 });
             self.liquidation_incentive
                 .iter()
@@ -359,12 +355,12 @@ pub mod module {
                 .for_each(|(currency_id, close_factor)| {
                     CloseFactor::<T>::insert(currency_id, close_factor);
                 });
+            Kink::<T>::put(self.kink.clone());
             Currencies::<T>::put(self.currencies.clone());
             Pallet::<T>::init_jump_rate_model(
                 self.base_rate,
                 self.multiplier_per_year,
-                self.jump_muiltiplier,
-                self.kink,
+                self.jump_multiplier,
             )
             .unwrap();
         }

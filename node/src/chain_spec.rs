@@ -20,13 +20,16 @@ use serde::{Deserialize, Serialize};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
-use sp_runtime::traits::{IdentifyAccount, Verify};
+use sp_runtime::{
+    traits::{IdentifyAccount, Verify},
+    Permill,
+};
 use vanilla_runtime::{AuraConfig, GrandpaConfig};
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
-pub type VanillaChainSpec =
+pub type ParallelChainSpec =
     sc_service::GenericChainSpec<parallel_runtime::GenesisConfig, Extensions>;
-pub type DevChainSpec = sc_service::GenericChainSpec<vanilla_runtime::GenesisConfig>;
+pub type VanillaChainSpec = sc_service::GenericChainSpec<vanilla_runtime::GenesisConfig>;
 
 /// Helper function to generate a crypto pair from seed
 pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
@@ -66,8 +69,8 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
     (get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
 }
 
-pub fn development_config(id: ParaId) -> DevChainSpec {
-    DevChainSpec::from_genesis(
+pub fn development_config(id: ParaId) -> VanillaChainSpec {
+    VanillaChainSpec::from_genesis(
         // Name
         "Development",
         // ID
@@ -90,6 +93,10 @@ pub fn development_config(id: ParaId) -> DevChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+                    // Parallel team accounts
+                    "5G4fc9GN6DeFQm4h2HKq3d9hBTsBJWSLWkyuk35cKHh2sqEz"
+                        .parse()
+                        .unwrap(),
                 ],
                 id,
             )
@@ -102,8 +109,8 @@ pub fn development_config(id: ParaId) -> DevChainSpec {
     )
 }
 
-pub fn local_testnet_config(id: ParaId) -> VanillaChainSpec {
-    VanillaChainSpec::from_genesis(
+pub fn local_testnet_config(id: ParaId) -> ParallelChainSpec {
+    ParallelChainSpec::from_genesis(
         // Name
         "Local Testnet",
         // ID
@@ -125,6 +132,10 @@ pub fn local_testnet_config(id: ParaId) -> VanillaChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+                    // Parallel team accounts
+                    "5G4fc9GN6DeFQm4h2HKq3d9hBTsBJWSLWkyuk35cKHh2sqEz"
+                        .parse()
+                        .unwrap(),
                 ],
                 id,
             )
@@ -191,20 +202,18 @@ fn development_genesis(
                 CurrencyId::USDT,
                 CurrencyId::xDOT,
             ],
-            // total_supply: 1000 * TOKEN_DECIMAL, // 1000
-            // total_borrows: 600 * TOKEN_DECIMAL, // 600
-            borrow_index: RATE_DECIMAL,               // 1
-            exchange_rate: 2 * RATE_DECIMAL / 100,    // 0.02
-            base_rate: 2 * RATE_DECIMAL / 100,        // 0.02
-            multiplier_per_year: RATE_DECIMAL / 10,   // 0.1
-            jump_muiltiplier: 11 * RATE_DECIMAL / 10, // 1.1
-            kink: 8 * RATE_DECIMAL / 10,              // 0.8
+            borrow_index: RATE_DECIMAL,              // 1
+            exchange_rate: 2 * RATE_DECIMAL / 100,   // 0.02
+            base_rate: 2 * RATE_DECIMAL / 100,       // 0.02
+            multiplier_per_year: RATE_DECIMAL / 10,  // 0.1
+            jump_multiplier: 11 * RATE_DECIMAL / 10, // 1.1
+            kink: Permill::from_percent(80),         // 0.8
             collateral_rate: vec![
-                (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::KSM, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::BTC, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::USDT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::xDOT, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::DOT, Permill::from_percent(50)),
+                (CurrencyId::KSM, Permill::from_percent(50)),
+                (CurrencyId::BTC, Permill::from_percent(50)),
+                (CurrencyId::USDT, Permill::from_percent(50)),
+                (CurrencyId::xDOT, Permill::from_percent(50)),
             ],
             liquidation_incentive: vec![
                 (CurrencyId::DOT, 9 * RATE_DECIMAL / 10),
@@ -277,20 +286,18 @@ fn testnet_genesis(
                 CurrencyId::USDT,
                 CurrencyId::xDOT,
             ],
-            // total_supply: 1000 * TOKEN_DECIMAL, // 1000
-            // total_borrows: 600 * TOKEN_DECIMAL, // 600
-            borrow_index: RATE_DECIMAL,               // 1
-            exchange_rate: 2 * RATE_DECIMAL / 100,    // 0.02
-            base_rate: 2 * RATE_DECIMAL / 100,        // 0.02
-            multiplier_per_year: RATE_DECIMAL / 10,   // 0.1
-            jump_muiltiplier: 11 * RATE_DECIMAL / 10, // 1.1
-            kink: 8 * RATE_DECIMAL / 10,              // 0.8
+            borrow_index: RATE_DECIMAL,              // 1
+            exchange_rate: 2 * RATE_DECIMAL / 100,   // 0.02
+            base_rate: 2 * RATE_DECIMAL / 100,       // 0.02
+            multiplier_per_year: RATE_DECIMAL / 10,  // 0.1
+            jump_multiplier: 11 * RATE_DECIMAL / 10, // 1.1
+            kink: Permill::from_percent(80),         // 0.8
             collateral_rate: vec![
-                (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::KSM, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::BTC, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::USDT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::xDOT, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::DOT, Permill::from_percent(50)),
+                (CurrencyId::KSM, Permill::from_percent(50)),
+                (CurrencyId::BTC, Permill::from_percent(50)),
+                (CurrencyId::USDT, Permill::from_percent(50)),
+                (CurrencyId::xDOT, Permill::from_percent(50)),
             ],
             liquidation_incentive: vec![
                 (CurrencyId::DOT, 9 * RATE_DECIMAL / 10),

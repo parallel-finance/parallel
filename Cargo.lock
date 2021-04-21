@@ -10653,6 +10653,7 @@ dependencies = [
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
+ "pallet-utility",
  "parallel-primitives",
  "parity-scale-codec",
  "serde",

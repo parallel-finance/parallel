@@ -13,7 +13,10 @@
 // limitations under the License.
 
 use primitives::{Balance, CurrencyId, BLOCK_PER_YEAR, RATE_DECIMAL};
-use sp_runtime::{traits::Zero, DispatchResult};
+use sp_runtime::{
+    traits::{Saturating, Zero},
+    DispatchResult, Permill,
+};
 
 use crate::{util::*, *};
 
@@ -31,38 +34,33 @@ impl<T: Config> Pallet<T> {
             .ok_or(Error::<T>::CalcInterestRateFailed)
     }
 
-    pub fn utilization_rate(
+    pub fn calc_utilization_ratio(
         cash: Balance,
         borrows: Balance,
         reserves: Balance,
-    ) -> Result<u128, Error<T>> {
-        // Utilization rate is 0 when there are no borrows
+    ) -> Result<Permill, Error<T>> {
+        // utilization rate is 0 when there are no borrows
         if borrows.is_zero() {
-            return Ok(Zero::zero());
+            return Ok(Permill::zero());
         }
-
         // utilizationRate = totalBorrows / (totalCash + totalBorrows − totalReserves)
         let total =
             add_then_sub(cash, borrows, reserves).ok_or(Error::<T>::CalcInterestRateFailed)?;
 
-        mul_then_div(borrows, RATE_DECIMAL, total).ok_or(Error::<T>::CalcInterestRateFailed)
+        Ok(Permill::from_rational(borrows, total))
     }
 
     pub fn init_jump_rate_model(
         base_rate_per_year: u128,
         multiplier_per_year: u128,
         jump_multiplier_per_year: u128,
-        kink: u128,
     ) -> DispatchResult {
         let base = base_rate_per_year
             .checked_div(BLOCK_PER_YEAR)
             .ok_or(Error::<T>::CalcInterestRateFailed)?;
 
-        let temp = BLOCK_PER_YEAR
-            .checked_mul(kink)
-            .ok_or(Error::<T>::CalcInterestRateFailed)?;
-
-        let multiplier = mul_then_div(multiplier_per_year, RATE_DECIMAL, temp)
+        let multiplier = multiplier_per_year
+            .checked_div(BLOCK_PER_YEAR)
             .ok_or(Error::<T>::CalcInterestRateFailed)?;
 
         let jump = jump_multiplier_per_year
@@ -72,9 +70,8 @@ impl<T: Config> Pallet<T> {
         BaseRatePerBlock::<T>::put(Some(base));
         MultiplierPerBlock::<T>::put(Some(multiplier));
         JumpMultiplierPerBlock::<T>::put(Some(jump));
-        Kink::<T>::put(Some(kink));
 
-        Self::deposit_event(Event::InitInterestRateModel(base, multiplier, jump, kink));
+        Self::deposit_event(Event::InitInterestRateModel(base, multiplier, jump));
         Ok(())
     }
 
@@ -84,40 +81,30 @@ impl<T: Config> Pallet<T> {
         borrows: Balance,
         reserves: Balance,
     ) -> DispatchResult {
-        let util = Self::utilization_rate(cash, borrows, reserves)?;
-        UtilityRate::<T>::insert(currency_id, util);
+        let util = Self::calc_utilization_ratio(cash, borrows, reserves)?;
+        UtilizationRatio::<T>::insert(currency_id, util);
 
         let multiplier_per_block =
             MultiplierPerBlock::<T>::get().ok_or(Error::<T>::CalcInterestRateFailed)?;
         let base_rate_per_block =
             BaseRatePerBlock::<T>::get().ok_or(Error::<T>::CalcInterestRateFailed)?;
-        let kink = Kink::<T>::get().ok_or(Error::<T>::CalcInterestRateFailed)?;
-        let jump_multiplier_per_block = Self::to_decimal(JumpMultiplierPerBlock::<T>::get())?;
+        let jump_multiplier_per_block =
+            JumpMultiplierPerBlock::<T>::get().ok_or(Error::<T>::CalcInterestRateFailed)?;
+        let kink = Kink::<T>::get();
 
         if util <= kink {
-            let rate = mul_then_div_then_add(
-                util,
-                multiplier_per_block,
-                RATE_DECIMAL,
-                base_rate_per_block,
-            )
-            .ok_or(Error::<T>::CalcInterestRateFailed)?;
+            let rate = (util * multiplier_per_block)
+                .checked_add(base_rate_per_block)
+                .ok_or(Error::<T>::CalcInterestRateFailed)?;
             Self::insert_borrow_rate(currency_id, rate);
         } else {
-            let normal_rate = mul_then_div_then_add(
-                kink,
-                multiplier_per_block,
-                RATE_DECIMAL,
-                base_rate_per_block,
-            )
-            .ok_or(Error::<T>::CalcInterestRateFailed)?;
-
-            let excess_util = util.saturating_sub(kink);
-            let rate = excess_util
-                .checked_mul(jump_multiplier_per_block)
-                .and_then(|r| r.checked_add(normal_rate))
+            let normal_rate = (kink * multiplier_per_block)
+                .checked_add(base_rate_per_block)
                 .ok_or(Error::<T>::CalcInterestRateFailed)?;
-
+            let excess_util = util.saturating_sub(kink);
+            let rate = (excess_util * jump_multiplier_per_block)
+                .checked_add(normal_rate)
+                .ok_or(Error::<T>::CalcInterestRateFailed)?;
             Self::insert_borrow_rate(currency_id, rate);
         }
         Ok(())
@@ -134,11 +121,8 @@ impl<T: Config> Pallet<T> {
 
         let borrow_rate = BorrowRate::<T>::get(currency_id);
         let rate_to_pool = Self::to_decimal(borrow_rate.checked_mul(one_minus_reserve_factor))?;
-
-        let rate = Self::to_decimal(
-            Self::utilization_rate(cash, borrows, reserves)?.checked_mul(rate_to_pool),
-        )?;
-        Self::insert_supply_rate(currency_id, rate);
+        let util = Self::calc_utilization_ratio(cash, borrows, reserves)?;
+        Self::insert_supply_rate(currency_id, util * rate_to_pool);
 
         Ok(())
     }
