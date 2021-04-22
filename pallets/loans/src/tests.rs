@@ -20,7 +20,7 @@ use sp_runtime::{traits::Saturating, Perbill};
 
 use super::*;
 
-use crate::util::div_by_rate;
+use crate::loan::calc_collateral_amount;
 use mock::*;
 
 #[test]
@@ -344,7 +344,7 @@ fn interest_rate_model_works() {
         assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, dollar(100)));
 
         let total_cash = dollar(200) - dollar(100);
-        let total_supply = div_by_rate(dollar(200), Loans::exchange_rate(DOT)).unwrap();
+        let total_supply = calc_collateral_amount(dollar(200), Loans::exchange_rate(DOT)).unwrap();
         assert_eq!(Loans::total_supply(DOT), total_supply);
 
         let multiplier_per_year = Multiplier::saturating_from_rational(1, 10);

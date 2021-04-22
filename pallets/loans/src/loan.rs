@@ -76,15 +76,15 @@ impl<T: Config> Pallet<T> {
         mint_amount: Balance,
     ) -> DispatchResult {
         let exchange_rate = Self::exchange_rate(currency_id);
-        let collateral =
-            div_by_rate(mint_amount, exchange_rate).ok_or(Error::<T>::CalcCollateralFailed)?;
+        let collateral_amount = calc_collateral_amount(mint_amount, exchange_rate)
+            .ok_or(Error::<T>::CalcCollateralFailed)?;
 
         AccountCollateral::<T>::try_mutate(
             currency_id,
             who,
             |collateral_balance| -> DispatchResult {
                 let new_balance = collateral_balance
-                    .checked_add(collateral)
+                    .checked_add(collateral_amount)
                     .ok_or(Error::<T>::CollateralOverflow)?;
                 *collateral_balance = new_balance;
                 Ok(())
@@ -93,7 +93,7 @@ impl<T: Config> Pallet<T> {
 
         TotalSupply::<T>::try_mutate(currency_id, |total_balance| -> DispatchResult {
             let new_balance = total_balance
-                .checked_add(collateral)
+                .checked_add(collateral_amount)
                 .ok_or(Error::<T>::CollateralOverflow)?;
             *total_balance = new_balance;
             Ok(())
@@ -114,8 +114,8 @@ impl<T: Config> Pallet<T> {
         redeem_amount: Balance,
     ) -> DispatchResult {
         let exchange_rate = Self::exchange_rate(currency_id);
-        let collateral =
-            div_by_rate(redeem_amount, exchange_rate).ok_or(Error::<T>::CalcCollateralFailed)?;
+        let collateral = calc_collateral_amount(redeem_amount, exchange_rate)
+            .ok_or(Error::<T>::CalcCollateralFailed)?;
 
         AccountCollateral::<T>::try_mutate(
             currency_id,
@@ -540,7 +540,7 @@ impl<T: Config> Pallet<T> {
         // (divide borrower's ctoken to liquidator)
         // decrease borrower's ctoken
         let exchange_rate = Self::exchange_rate(collateral_currency_id);
-        let collateral_ctoken_amount = div_by_rate(collateral_underlying_amount, exchange_rate)
+        let collateral_amount = calc_collateral_amount(collateral_underlying_amount, exchange_rate)
             .ok_or(Error::<T>::CalcCollateralFailed)?;
 
         AccountCollateral::<T>::try_mutate(
@@ -548,7 +548,7 @@ impl<T: Config> Pallet<T> {
             borrower,
             |collateral_balance| -> DispatchResult {
                 let new_balance = collateral_balance
-                    .checked_sub(collateral_ctoken_amount)
+                    .checked_sub(collateral_amount)
                     .ok_or(Error::<T>::CollateralTooLow)?;
                 *collateral_balance = new_balance;
                 Ok(())
@@ -560,7 +560,7 @@ impl<T: Config> Pallet<T> {
             liquidator,
             |collateral_balance| -> DispatchResult {
                 let new_balance = collateral_balance
-                    .checked_add(collateral_ctoken_amount)
+                    .checked_add(collateral_amount)
                     .ok_or(Error::<T>::CollateralOverflow)?;
                 *collateral_balance = new_balance;
                 Ok(())
@@ -581,4 +581,10 @@ impl<T: Config> Pallet<T> {
 
         Ok(())
     }
+}
+
+pub fn calc_collateral_amount(underlying_amount: u128, exchange_rate: Rate) -> Option<u128> {
+    exchange_rate
+        .reciprocal()
+        .and_then(|r| r.checked_mul_int(underlying_amount))
 }

@@ -16,11 +16,11 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::collapsible_if)]
 
-use frame_support::{pallet_prelude::*, transactional};
+use frame_support::{pallet_prelude::*, transactional, PalletId};
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 use primitives::{Amount, Balance, CurrencyId, Multiplier, PriceFeeder, Rate, Ratio};
-use sp_runtime::{traits::AccountIdConversion, FixedPointNumber, ModuleId, RuntimeDebug};
+use sp_runtime::{traits::AccountIdConversion, FixedPointNumber, RuntimeDebug};
 use sp_std::vec::Vec;
 
 pub use module::*;
@@ -298,9 +298,9 @@ pub mod module {
         pub currencies: Vec<CurrencyId>,
         pub borrow_index: Rate,
         pub exchange_rate: Rate,
-        pub base_rate: Rate,
+        pub base_rate_per_year: Rate,
         pub multiplier_per_year: Multiplier,
-        pub jump_multiplier: Multiplier,
+        pub jump_multiplier_per_year: Multiplier,
         pub kink: Ratio,
         pub collateral_factor: Vec<(CurrencyId, Ratio)>,
         pub liquidation_incentive: Vec<(CurrencyId, u128)>,
@@ -315,9 +315,9 @@ pub mod module {
                 currencies: vec![],
                 borrow_index: Rate::zero(),
                 exchange_rate: Rate::zero(),
-                base_rate: Rate::zero(),
+                base_rate_per_year: Rate::zero(),
                 multiplier_per_year: Multiplier::zero(),
-                jump_multiplier: Multiplier::zero(),
+                jump_multiplier_per_year: Multiplier::zero(),
                 kink: Ratio::zero(),
                 collateral_factor: vec![],
                 liquidation_incentive: vec![],
@@ -357,9 +357,9 @@ pub mod module {
             Kink::<T>::put(self.kink.clone());
             Currencies::<T>::put(self.currencies.clone());
             Pallet::<T>::init_jump_rate_model(
-                self.base_rate,
+                self.base_rate_per_year,
                 self.multiplier_per_year,
-                self.jump_multiplier,
+                self.jump_multiplier_per_year,
             )
             .unwrap();
         }
