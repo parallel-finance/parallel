@@ -2,8 +2,12 @@
 
 [![GitHub last commit](https://img.shields.io/github/last-commit/parallel-finance/parallel)](https://github.com/parallel-finance/parallel/commits/master)
 [![CI](https://github.com/parallel-finance/parallel/workflows/CI/badge.svg)](https://github.com/parallel-finance/parallel/actions)
+[![Discord chat][discord-badge]][discord-url]
 
 A new Cumulus-based Substrate node, ready for hacking :rocket:
+
+[discord-badge]: https://img.shields.io/discord/830972820846018600.svg?logo=discord&style=flat-square
+[discord-url]: https://discord.gg/3WGNW3j2
 
 ## Getting Started
 

@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    name: Auto Release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-18.04]
+        rust: [nightly]
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Install Rust toolchain ${{ matrix.rust }}
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
+
+      - name: Install wasm32-unknown-unknown for ${{ matrix.rust }}
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          target: wasm32-unknown-unknown
+          override: true
+
+      - name: Get The Version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+
+      - name: Build Release And Package
+        run: |
+          cargo build --release
+          rm -fr dist || true
+          mkdir dist || true
+          cp README.md dist
+          cp target/release/parallel dist
+          cp -r ./resources dist
+          cp scripts/setup.sh dist
+          cp LICENSE dist
+          target/release/parallel export-genesis-state --parachain-id 200 > dist/resources/para-200-genesis
+          target/release/parallel export-genesis-wasm > dist/resources/para-200.wasm
+          tar -cvJf vanilla-${{ steps.get_version.outputs.VERSION }}.tar.xz dist --transform 's|dist|parallel|'
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            vanilla-${{ steps.get_version.outputs.VERSION }}.tar.xz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

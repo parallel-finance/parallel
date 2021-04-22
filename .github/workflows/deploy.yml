@@ -1,0 +1,73 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    name: Auto Deploy
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-18.04]
+        rust: [nightly]
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Install Rust toolchain ${{ matrix.rust }}
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
+
+      - name: Install wasm32-unknown-unknown for ${{ matrix.rust }}
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          target: wasm32-unknown-unknown
+          override: true
+
+      - name: Build Release And Package
+        run: |
+          cargo build --release
+          rm -fr dist || true
+          mkdir dist || true
+          cp README.md dist
+          cp target/release/parallel dist
+          cp -r ./resources dist
+          cp scripts/setup.sh dist
+          target/release/parallel export-genesis-state --parachain-id 200 > dist/resources/para-200-genesis
+          target/release/parallel export-genesis-wasm > dist/resources/para-200.wasm
+          tar -cvJf parallel.tar.xz dist --transform 's|dist|parallel|'
+
+      - name: Copy File Via Ssh Password
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVKEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "*.tar.xz"
+          target: "~"
+
+      - name: Deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVKEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            rm -fr parallel-chain || true
+            if [ -d parallel ]; then cd parallel && ./setup.sh --undaemonize && cd ..; fi
+            rm -fr parallel
+            tar -Jxf parallel.tar.xz
+            cd parallel && ./setup.sh --daemonize

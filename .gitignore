@@ -9,7 +9,7 @@
 .DS_Store
 
 # The cache for docker container dependency
-.cargo
+.docker
 
 # The cache for chain data in container
 .local
@@ -17,3 +17,11 @@
 .cargo-remote.toml
 
 local-test
+
+.vscode/
+
+*.tar.xz
+*.tar.gz
+*.tgz
+
+dist/
