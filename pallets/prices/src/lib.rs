@@ -31,13 +31,15 @@ use orml_traits::{DataFeeder, DataProvider};
 use primitives::CurrencyId;
 use sp_runtime::{
 	traits::CheckedDiv,
-	FixedU128
+	FixedU128, FixedPointNumber
 };
 
 pub mod weights;
 
 pub use module::*;
 pub use weights::WeightInfo;
+
+pub const CURRENCY_DECIMAL: u32 = 18;
 
 pub type Price = FixedU128;
 
@@ -140,14 +142,21 @@ impl<T: Config> PriceProvider<CurrencyId> for Pallet<T> {
 	/// get the exchange rate of specific currency to USD
 	/// Note: this returns the price for 1 basic unit
 	fn get_price(currency_id: CurrencyId) -> Option<Price> {
-		let _maybe_feed_price = if currency_id == T::GetStableCurrencyId::get() {
+		let maybe_feed_price = if currency_id == T::GetStableCurrencyId::get() {
 			// if is stable currency, return fixed price
 			Some(T::StableCurrencyFixedPrice::get())
 		} else {
 			// if locked price exists, return it, otherwise return latest price from oracle.
 			Self::locked_price(currency_id).or_else(|| T::Source::get(&currency_id))
 		};
-		None
+
+		let maybe_adjustment_multiplier = 10u128.checked_pow(CURRENCY_DECIMAL);
+
+		if let (Some(feed_price), Some(adjustment_multiplier)) = (maybe_feed_price, maybe_adjustment_multiplier) {
+			Price::checked_from_rational(feed_price.into_inner(), adjustment_multiplier)
+		} else {
+			None
+		}
 	}
 
 	fn lock_price(currency_id: CurrencyId) {
