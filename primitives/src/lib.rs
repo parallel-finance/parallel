@@ -20,7 +20,7 @@ use codec::{Decode, Encode};
 use sp_runtime::{
     generic,
     traits::{BlakeTwo256, IdentifyAccount, Verify},
-    MultiSignature, RuntimeDebug,
+    FixedU128, MultiSignature, Permill, RuntimeDebug,
 };
 use sp_std::{convert::Into, prelude::*};
 
@@ -113,3 +113,9 @@ pub type PriceDetail = (Price, Timestamp);
 pub trait PriceFeeder {
     fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail>;
 }
+
+pub type Rate = FixedU128;
+
+pub type Ratio = Permill;
+
+pub type Multiplier = FixedU128;

@@ -23,7 +23,7 @@ use frame_support::{construct_runtime, parameter_types, PalletId};
 use lazy_static::lazy_static;
 use orml_traits::parameter_type_with_key;
 use primitives::{
-    Amount, Balance, CurrencyId, PriceDetail, PriceFeeder, RATE_DECIMAL, TOKEN_DECIMAL,
+    Amount, Balance, CurrencyId, PriceDetail, PriceFeeder, Rate, Ratio, RATE_DECIMAL, TOKEN_DECIMAL,
 };
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
@@ -219,20 +219,18 @@ impl ExtBuilder {
                 CurrencyId::USDT,
                 CurrencyId::xDOT,
             ],
-            // total_supply: 100 * TOKEN_DECIMAL, // 100
-            // total_borrows: 50 * TOKEN_DECIMAL, // 50
-            borrow_index: RATE_DECIMAL,                 // 1
-            exchange_rate: 2 * RATE_DECIMAL / 100,      // 0.02
-            base_rate: 2 * RATE_DECIMAL / 100,          // 0.02
-            multiplier_per_year: 1 * RATE_DECIMAL / 10, // 0.1
-            jump_multiplier: 11 * RATE_DECIMAL / 10,    // 1.1
-            kink: Permill::from_percent(80),            // 0.8
-            collateral_rate: vec![
-                (CurrencyId::DOT, Permill::from_percent(50)),
-                (CurrencyId::KSM, Permill::from_percent(50)),
-                (CurrencyId::BTC, Permill::from_percent(50)),
-                (CurrencyId::USDT, Permill::from_percent(50)),
-                (CurrencyId::xDOT, Permill::from_percent(50)),
+            borrow_index: Rate::one(),                                  // 1
+            exchange_rate: Rate::saturating_from_rational(2, 100),      // 0.02
+            base_rate_per_year: Rate::saturating_from_rational(2, 100), // 0.02
+            multiplier_per_year: Multiplier::saturating_from_rational(1, 10), // 0.1
+            jump_multiplier_per_year: Multiplier::saturating_from_rational(11, 10), // 1.1
+            kink: Ratio::from_percent(80),                              // 0.8
+            collateral_factor: vec![
+                (CurrencyId::DOT, Ratio::from_percent(50)),
+                (CurrencyId::KSM, Ratio::from_percent(50)),
+                (CurrencyId::BTC, Ratio::from_percent(50)),
+                (CurrencyId::USDT, Ratio::from_percent(50)),
+                (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
             liquidation_incentive: vec![
                 (CurrencyId::DOT, 9 * RATE_DECIMAL / 10),
@@ -249,11 +247,11 @@ impl ExtBuilder {
                 (CurrencyId::xDOT, 8 * RATE_DECIMAL / 10),
             ],
             close_factor: vec![
-                (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::KSM, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::BTC, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::USDT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::xDOT, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::DOT, Ratio::from_percent(50)),
+                (CurrencyId::KSM, Ratio::from_percent(50)),
+                (CurrencyId::BTC, Ratio::from_percent(50)),
+                (CurrencyId::USDT, Ratio::from_percent(50)),
+                (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
         }
         .assimilate_storage::<Runtime>(&mut t)

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use primitives::{Amount, Balance};
-
+use sp_runtime::FixedPointNumber;
 use sp_std::{convert::TryInto, result};
 
 use crate::module::*;
@@ -35,18 +35,6 @@ pub fn mul_then_div(multiplier_l: u128, multiplier_r: u128, divisor: u128) -> Op
     multiplier_l
         .checked_mul(multiplier_r)
         .and_then(|r| r.checked_div(divisor))
-}
-
-pub fn mul_then_div_then_add(
-    multiplier_l: u128,
-    multiplier_r: u128,
-    divisor: u128,
-    addend: u128,
-) -> Option<u128> {
-    multiplier_l
-        .checked_mul(multiplier_r)
-        .and_then(|r| r.checked_div(divisor))
-        .and_then(|r| r.checked_add(addend))
 }
 
 pub fn add_then_sub(addend_a: u128, addend_b: u128, subtrahend: u128) -> Option<u128> {

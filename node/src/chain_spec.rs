@@ -22,7 +22,7 @@ use sp_core::{sr25519, Pair, Public};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::{
     traits::{IdentifyAccount, Verify},
-    Permill,
+    FixedPointNumber,
 };
 use vanilla_runtime::{AuraConfig, GrandpaConfig};
 
@@ -202,18 +202,18 @@ fn development_genesis(
                 CurrencyId::USDT,
                 CurrencyId::xDOT,
             ],
-            borrow_index: RATE_DECIMAL,              // 1
-            exchange_rate: 2 * RATE_DECIMAL / 100,   // 0.02
-            base_rate: 2 * RATE_DECIMAL / 100,       // 0.02
-            multiplier_per_year: RATE_DECIMAL / 10,  // 0.1
-            jump_multiplier: 11 * RATE_DECIMAL / 10, // 1.1
-            kink: Permill::from_percent(80),         // 0.8
-            collateral_rate: vec![
-                (CurrencyId::DOT, Permill::from_percent(50)),
-                (CurrencyId::KSM, Permill::from_percent(50)),
-                (CurrencyId::BTC, Permill::from_percent(50)),
-                (CurrencyId::USDT, Permill::from_percent(50)),
-                (CurrencyId::xDOT, Permill::from_percent(50)),
+            borrow_index: Rate::one(),                                  // 1
+            exchange_rate: Rate::saturating_from_rational(2, 100),      // 0.02
+            base_rate_per_year: Rate::saturating_from_rational(2, 100), // 0.02
+            multiplier_per_year: Multiplier::saturating_from_rational(1, 10), // 0.1
+            jump_multiplier_per_year: Multiplier::saturating_from_rational(11, 10), // 1.1
+            kink: Ratio::from_percent(80),                              // 0.8
+            collateral_factor: vec![
+                (CurrencyId::DOT, Ratio::from_percent(50)),
+                (CurrencyId::KSM, Ratio::from_percent(50)),
+                (CurrencyId::BTC, Ratio::from_percent(50)),
+                (CurrencyId::USDT, Ratio::from_percent(50)),
+                (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
             liquidation_incentive: vec![
                 (CurrencyId::DOT, 9 * RATE_DECIMAL / 10),
@@ -222,7 +222,7 @@ fn development_genesis(
                 (CurrencyId::USDT, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::xDOT, 9 * RATE_DECIMAL / 10),
             ],
-            //FIXME :In fact,"liquidation_threshold" should be higher than "collateral_rate",
+            //FIXME :In fact,"liquidation_threshold" should be higher than "collateral_factor",
             //but for test, let's make it lower
             liquidation_threshold: vec![
                 (CurrencyId::DOT, 40 * RATE_DECIMAL / 100),
@@ -232,11 +232,11 @@ fn development_genesis(
                 (CurrencyId::xDOT, 40 * RATE_DECIMAL / 100),
             ],
             close_factor: vec![
-                (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::KSM, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::BTC, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::USDT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::xDOT, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::DOT, Ratio::from_percent(50)),
+                (CurrencyId::KSM, Ratio::from_percent(50)),
+                (CurrencyId::BTC, Ratio::from_percent(50)),
+                (CurrencyId::USDT, Ratio::from_percent(50)),
+                (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
         },
         pallet_staking: vanilla_runtime::StakingConfig {},
@@ -286,18 +286,18 @@ fn testnet_genesis(
                 CurrencyId::USDT,
                 CurrencyId::xDOT,
             ],
-            borrow_index: RATE_DECIMAL,              // 1
-            exchange_rate: 2 * RATE_DECIMAL / 100,   // 0.02
-            base_rate: 2 * RATE_DECIMAL / 100,       // 0.02
-            multiplier_per_year: RATE_DECIMAL / 10,  // 0.1
-            jump_multiplier: 11 * RATE_DECIMAL / 10, // 1.1
-            kink: Permill::from_percent(80),         // 0.8
-            collateral_rate: vec![
-                (CurrencyId::DOT, Permill::from_percent(50)),
-                (CurrencyId::KSM, Permill::from_percent(50)),
-                (CurrencyId::BTC, Permill::from_percent(50)),
-                (CurrencyId::USDT, Permill::from_percent(50)),
-                (CurrencyId::xDOT, Permill::from_percent(50)),
+            borrow_index: Rate::one(),                                  // 1
+            exchange_rate: Rate::saturating_from_rational(2, 100),      // 0.02
+            base_rate_per_year: Rate::saturating_from_rational(2, 100), // 0.02
+            multiplier_per_year: Multiplier::saturating_from_rational(1, 10), // 0.1
+            jump_multiplier_per_year: Multiplier::saturating_from_rational(11, 10), // 1.1
+            kink: Ratio::from_percent(80),                              // 0.8
+            collateral_factor: vec![
+                (CurrencyId::DOT, Ratio::from_percent(50)),
+                (CurrencyId::KSM, Ratio::from_percent(50)),
+                (CurrencyId::BTC, Ratio::from_percent(50)),
+                (CurrencyId::USDT, Ratio::from_percent(50)),
+                (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
             liquidation_incentive: vec![
                 (CurrencyId::DOT, 9 * RATE_DECIMAL / 10),
@@ -315,11 +315,11 @@ fn testnet_genesis(
                 (CurrencyId::xDOT, 90 * RATE_DECIMAL / 100),
             ],
             close_factor: vec![
-                (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::KSM, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::BTC, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::USDT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::xDOT, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::DOT, Ratio::from_percent(50)),
+                (CurrencyId::KSM, Ratio::from_percent(50)),
+                (CurrencyId::BTC, Ratio::from_percent(50)),
+                (CurrencyId::USDT, Ratio::from_percent(50)),
+                (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
         },
         pallet_staking: parallel_runtime::StakingConfig {},
