@@ -86,7 +86,6 @@ pub const BOB: AccountId = 2;
 
 pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const KSM: CurrencyId = CurrencyId::KSM;
-pub const BTC: CurrencyId = CurrencyId::BTC;
 pub const USDT: CurrencyId = CurrencyId::USDT;
 pub const XDOT: CurrencyId = CurrencyId::xDOT;
 pub const NATIVE: CurrencyId = CurrencyId::Native;
@@ -138,7 +137,7 @@ impl pallet_balances::Config for Runtime {
 lazy_static! {
     pub static ref MOCK_PRICE_FEEDER: Mutex<HashMap<CurrencyId, Option<PriceDetail>>> = {
         Mutex::new(
-            vec![DOT, KSM, BTC, USDT, XDOT]
+            vec![DOT, KSM, USDT, XDOT]
                 .iter()
                 .map(|&x| (x, Some((1, 1))))
                 .collect(),
@@ -188,11 +187,9 @@ impl Default for ExtBuilder {
             endowed_accounts: vec![
                 (ALICE, DOT, dollar(1000)),
                 (ALICE, KSM, dollar(1000)),
-                (ALICE, BTC, dollar(1000)),
                 (ALICE, USDT, dollar(1000)),
                 (BOB, DOT, dollar(1000)),
                 (BOB, KSM, dollar(1000)),
-                (BOB, BTC, dollar(1000)),
                 (BOB, USDT, dollar(1000)),
             ],
         }
@@ -215,7 +212,6 @@ impl ExtBuilder {
             currencies: vec![
                 CurrencyId::DOT,
                 CurrencyId::KSM,
-                CurrencyId::BTC,
                 CurrencyId::USDT,
                 CurrencyId::xDOT,
             ],
@@ -228,28 +224,24 @@ impl ExtBuilder {
             collateral_factor: vec![
                 (CurrencyId::DOT, Ratio::from_percent(50)),
                 (CurrencyId::KSM, Ratio::from_percent(50)),
-                (CurrencyId::BTC, Ratio::from_percent(50)),
                 (CurrencyId::USDT, Ratio::from_percent(50)),
                 (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
             liquidation_incentive: vec![
                 (CurrencyId::DOT, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::KSM, 9 * RATE_DECIMAL / 10),
-                (CurrencyId::BTC, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::USDT, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::xDOT, 9 * RATE_DECIMAL / 10),
             ],
             liquidation_threshold: vec![
                 (CurrencyId::DOT, 8 * RATE_DECIMAL / 10),
                 (CurrencyId::KSM, 8 * RATE_DECIMAL / 10),
-                (CurrencyId::BTC, 8 * RATE_DECIMAL / 10),
                 (CurrencyId::USDT, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::xDOT, 8 * RATE_DECIMAL / 10),
             ],
             close_factor: vec![
                 (CurrencyId::DOT, Ratio::from_percent(50)),
                 (CurrencyId::KSM, Ratio::from_percent(50)),
-                (CurrencyId::BTC, Ratio::from_percent(50)),
                 (CurrencyId::USDT, Ratio::from_percent(50)),
                 (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],

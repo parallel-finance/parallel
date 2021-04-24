@@ -174,7 +174,6 @@ pub mod module {
                     CurrencyId::xDOT,
                     "https://api.coincap.io/v2/assets/polkadot",
                 ),
-                (CurrencyId::BTC, "https://api.coincap.io/v2/assets/bitcoin"),
                 (CurrencyId::KSM, "https://api.coincap.io/v2/assets/kusama"),
                 (CurrencyId::USDT, "https://api.coincap.io/v2/assets/tether"),
             ]
