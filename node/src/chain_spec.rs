@@ -187,7 +187,6 @@ fn development_genesis(
                     vec![
                         (x.clone(), CurrencyId::DOT, 1_000 * TOKEN_DECIMAL),
                         (x.clone(), CurrencyId::KSM, 1_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::BTC, 1_000 * TOKEN_DECIMAL),
                         (x.clone(), CurrencyId::USDT, 1_000 * TOKEN_DECIMAL),
                         (x.clone(), CurrencyId::xDOT, 1_000 * TOKEN_DECIMAL),
                     ]
@@ -198,7 +197,6 @@ fn development_genesis(
             currencies: vec![
                 CurrencyId::DOT,
                 CurrencyId::KSM,
-                CurrencyId::BTC,
                 CurrencyId::USDT,
                 CurrencyId::xDOT,
             ],
@@ -211,14 +209,12 @@ fn development_genesis(
             collateral_factor: vec![
                 (CurrencyId::DOT, Ratio::from_percent(50)),
                 (CurrencyId::KSM, Ratio::from_percent(50)),
-                (CurrencyId::BTC, Ratio::from_percent(50)),
                 (CurrencyId::USDT, Ratio::from_percent(50)),
                 (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
             liquidation_incentive: vec![
                 (CurrencyId::DOT, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::KSM, 9 * RATE_DECIMAL / 10),
-                (CurrencyId::BTC, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::USDT, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::xDOT, 9 * RATE_DECIMAL / 10),
             ],
@@ -226,14 +222,12 @@ fn development_genesis(
             liquidation_threshold: vec![
                 (CurrencyId::DOT, 90 * RATE_DECIMAL / 100),
                 (CurrencyId::KSM, 90 * RATE_DECIMAL / 100),
-                (CurrencyId::BTC, 90 * RATE_DECIMAL / 100),
                 (CurrencyId::USDT, 90 * RATE_DECIMAL / 100),
                 (CurrencyId::xDOT, 90 * RATE_DECIMAL / 100),
             ],
             close_factor: vec![
                 (CurrencyId::DOT, Ratio::from_percent(50)),
                 (CurrencyId::KSM, Ratio::from_percent(50)),
-                (CurrencyId::BTC, Ratio::from_percent(50)),
                 (CurrencyId::USDT, Ratio::from_percent(50)),
                 (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
@@ -270,7 +264,6 @@ fn testnet_genesis(
                     vec![
                         (x.clone(), CurrencyId::DOT, 1_000 * TOKEN_DECIMAL),
                         (x.clone(), CurrencyId::KSM, 1_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::BTC, 1_000 * TOKEN_DECIMAL),
                         (x.clone(), CurrencyId::USDT, 1_000 * TOKEN_DECIMAL),
                         (x.clone(), CurrencyId::xDOT, 1_000 * TOKEN_DECIMAL),
                     ]
@@ -281,7 +274,6 @@ fn testnet_genesis(
             currencies: vec![
                 CurrencyId::DOT,
                 CurrencyId::KSM,
-                CurrencyId::BTC,
                 CurrencyId::USDT,
                 CurrencyId::xDOT,
             ],
@@ -294,14 +286,12 @@ fn testnet_genesis(
             collateral_factor: vec![
                 (CurrencyId::DOT, Ratio::from_percent(50)),
                 (CurrencyId::KSM, Ratio::from_percent(50)),
-                (CurrencyId::BTC, Ratio::from_percent(50)),
                 (CurrencyId::USDT, Ratio::from_percent(50)),
                 (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
             liquidation_incentive: vec![
                 (CurrencyId::DOT, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::KSM, 9 * RATE_DECIMAL / 10),
-                (CurrencyId::BTC, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::USDT, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::xDOT, 9 * RATE_DECIMAL / 10),
             ],
@@ -309,14 +299,12 @@ fn testnet_genesis(
             liquidation_threshold: vec![
                 (CurrencyId::DOT, 90 * RATE_DECIMAL / 100),
                 (CurrencyId::KSM, 90 * RATE_DECIMAL / 100),
-                (CurrencyId::BTC, 90 * RATE_DECIMAL / 100),
                 (CurrencyId::USDT, 90 * RATE_DECIMAL / 100),
                 (CurrencyId::xDOT, 90 * RATE_DECIMAL / 100),
             ],
             close_factor: vec![
                 (CurrencyId::DOT, Ratio::from_percent(50)),
                 (CurrencyId::KSM, Ratio::from_percent(50)),
-                (CurrencyId::BTC, Ratio::from_percent(50)),
                 (CurrencyId::USDT, Ratio::from_percent(50)),
                 (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
