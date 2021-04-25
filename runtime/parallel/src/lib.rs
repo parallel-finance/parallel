@@ -35,7 +35,7 @@ use sp_runtime::traits::{AccountIdLookup, BlakeTwo256, Block as BlockT};
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys, traits,
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, ModuleId, SaturatedConversion,
+    ApplyExtrinsicResult, SaturatedConversion,
 	DispatchResult,
 };
 use sp_std::prelude::*;
