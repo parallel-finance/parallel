@@ -13,7 +13,6 @@
 // limitations under the License.
 
 use primitives::{Amount, Balance};
-use sp_runtime::FixedPointNumber;
 use sp_std::{convert::TryInto, result};
 
 use crate::module::*;

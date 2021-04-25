@@ -91,7 +91,6 @@ pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 pub enum CurrencyId {
     DOT,
     KSM,
-    BTC,
     USDT,
     #[allow(non_camel_case_types)]
     xDOT,
