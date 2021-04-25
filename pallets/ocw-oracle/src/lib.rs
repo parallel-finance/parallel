@@ -247,7 +247,6 @@ pub mod module {
             //   `validate_unsigned` function when sending out the unsigned tx.
             let _ = ensure_none(origin)?;
             log::info!("dot: {:?}", Prices::<T>::get(CurrencyId::DOT));
-            log::info!("btc: {:?}", Prices::<T>::get(CurrencyId::BTC));
             log::info!("ksm: {:?}", Prices::<T>::get(CurrencyId::KSM));
             log::info!("usdt: {:?}", Prices::<T>::get(CurrencyId::USDT));
             Self::append_price(payload);
