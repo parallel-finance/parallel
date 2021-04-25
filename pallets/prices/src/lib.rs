@@ -30,7 +30,6 @@ use frame_system::pallet_prelude::*;
 use orml_traits::{DataFeeder, DataProvider};
 use primitives::CurrencyId;
 use sp_runtime::{
-	traits::CheckedDiv,
 	FixedU128, FixedPointNumber
 };
 
@@ -44,8 +43,8 @@ pub const CURRENCY_DECIMAL: u32 = 18;
 pub type OraclePrice = FixedU128;
 
 pub trait PriceProvider<CurrencyId> {
-	fn get_relative_price(base: CurrencyId, quote: CurrencyId) -> Option<OraclePrice>;
-	fn get_price(currency_id: CurrencyId) -> Option<OraclePrice>;
+	fn get_relative_price(base: CurrencyId, quote: CurrencyId) -> Option<u128>;
+	fn get_price(currency_id: CurrencyId) -> Option<u128>;
 	fn lock_price(currency_id: CurrencyId);
 	fn unlock_price(currency_id: CurrencyId);
 }
@@ -129,11 +128,11 @@ pub mod module {
 impl<T: Config> PriceProvider<CurrencyId> for Pallet<T> {
 	/// get exchange rate between two currency types
 	/// Note: this returns the price for 1 basic unit
-	fn get_relative_price(base_currency_id: CurrencyId, quote_currency_id: CurrencyId) -> Option<OraclePrice> {
+	fn get_relative_price(base_currency_id: CurrencyId, quote_currency_id: CurrencyId) -> Option<u128> {
 		if let (Some(base_price), Some(quote_price)) =
 			(Self::get_price(base_currency_id), Self::get_price(quote_currency_id))
 		{
-			base_price.checked_div(&quote_price)
+			base_price.checked_div(quote_price)
 		} else {
 			None
 		}
@@ -141,23 +140,25 @@ impl<T: Config> PriceProvider<CurrencyId> for Pallet<T> {
 
 	/// get the exchange rate of specific currency to USD
 	/// Note: this returns the price for 1 basic unit
-	fn get_price(currency_id: CurrencyId) -> Option<OraclePrice> {
+	fn get_price(currency_id: CurrencyId) -> Option<u128> {
 		let maybe_feed_price = if currency_id == T::GetStableCurrencyId::get() {
 			// if is stable currency, return fixed price
-			Some(T::StableCurrencyFixedPrice::get())
+			Some(T::StableCurrencyFixedPrice::get().into_inner())
 		} else {
 			// if locked price exists, return it, otherwise return latest price from oracle.
-			Self::locked_price(currency_id).or_else(|| T::Source::get(&currency_id))
+			Self::locked_price(currency_id)
+				.or_else(|| T::Source::get(&currency_id))
+				.and_then(|price| Some(price.into_inner()))
 		};
 
 		let maybe_adjustment_multiplier = 10u128.checked_pow(CURRENCY_DECIMAL);
 
 		if let (Some(feed_price), Some(adjustment_multiplier)) = (maybe_feed_price, maybe_adjustment_multiplier) {
-			OraclePrice::checked_from_rational(feed_price.into_inner(), adjustment_multiplier)
+			OraclePrice::checked_from_rational(feed_price, adjustment_multiplier)
+				.and_then(|price| Some(price.into_inner()))
 		} else {
 			None
 		}
-		// TODO return Price instead of OraclePrice
 		// TODO return FixedU128 price
 	}
 
