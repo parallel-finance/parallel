@@ -28,15 +28,12 @@ use frame_support::{
 use orml_currencies::BasicCurrencyAdapter;
 use orml_traits::{create_median_value_data_provider, parameter_type_with_key, DataFeeder};
 use sp_api::impl_runtime_apis;
-use sp_core::{
-	crypto::KeyTypeId, OpaqueMetadata,
-};
+use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::traits::{AccountIdLookup, BlakeTwo256, Block as BlockT};
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys, traits,
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, SaturatedConversion,
-	DispatchResult,
+    ApplyExtrinsicResult, DispatchResult, SaturatedConversion,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -78,11 +75,11 @@ pub use frame_support::{
     StorageValue,
 };
 pub use pallet_balances::Call as BalancesCall;
+use pallet_prices::OraclePrice;
 pub use pallet_timestamp::Call as TimestampCall;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
-use pallet_prices::OraclePrice;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -550,38 +547,39 @@ parameter_types! {
 
 type ParallelDataProvider = orml_oracle::Instance1;
 impl orml_oracle::Config<ParallelDataProvider> for Runtime {
-      type Event = Event;
-      type OnNewData = ();
-      type CombineData = orml_oracle::DefaultCombineData<Runtime, MinimumCount, ExpiresIn, ParallelDataProvider>;
-      type Time = Timestamp;
-      type OracleKey = CurrencyId;
-      type OracleValue = OraclePrice;
-      type RootOperatorAccountId = ZeroAccountId;
-      type WeightInfo = ();
+    type Event = Event;
+    type OnNewData = ();
+    type CombineData =
+        orml_oracle::DefaultCombineData<Runtime, MinimumCount, ExpiresIn, ParallelDataProvider>;
+    type Time = Timestamp;
+    type OracleKey = CurrencyId;
+    type OracleValue = OraclePrice;
+    type RootOperatorAccountId = ZeroAccountId;
+    type WeightInfo = ();
 }
 
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<OraclePrice, primitives::Moment>;
 create_median_value_data_provider!(
-	AggregatedDataProvider,
-	CurrencyId,
-	OraclePrice,
-	TimeStampedPrice,
-	[ParallelOracle]
+    AggregatedDataProvider,
+    CurrencyId,
+    OraclePrice,
+    TimeStampedPrice,
+    [ParallelOracle]
 );
 // Aggregated data provider cannot feed.
 impl DataFeeder<CurrencyId, OraclePrice, AccountId> for AggregatedDataProvider {
-	fn feed_value(_: AccountId, _: CurrencyId, _: OraclePrice) -> DispatchResult {
-		Err("Not supported".into())
-	}
+    fn feed_value(_: AccountId, _: CurrencyId, _: OraclePrice) -> DispatchResult {
+        Err("Not supported".into())
+    }
 }
 
 impl pallet_prices::Config for Runtime {
-	type Event = Event;
-	type Source = AggregatedDataProvider;
-	type GetStableCurrencyId = GetStableCurrencyId;
-	type StableCurrencyFixedPrice = StableCurrencyFixedPrice;
-	type LockOrigin = EnsureRoot<AccountId>;
-	type WeightInfo = ();
+    type Event = Event;
+    type Source = AggregatedDataProvider;
+    type GetStableCurrencyId = GetStableCurrencyId;
+    type StableCurrencyFixedPrice = StableCurrencyFixedPrice;
+    type LockOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = ();
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
