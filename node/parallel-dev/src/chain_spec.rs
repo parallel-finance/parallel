@@ -167,7 +167,7 @@ fn testnet_genesis(
         },
         pallet_sudo: vanilla_runtime::SudoConfig { key: root_key },
 		orml_oracle_Instance1: VanillaOracleConfig {
-			members: Default::default(), // initialized by OperatorMembership
+			members: endowed_accounts.clone().into()
 			phantom: Default::default(),
 		},
         orml_tokens: vanilla_runtime::TokensConfig {

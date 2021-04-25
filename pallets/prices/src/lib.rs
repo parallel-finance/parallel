@@ -41,11 +41,11 @@ pub use weights::WeightInfo;
 
 pub const CURRENCY_DECIMAL: u32 = 18;
 
-pub type Price = FixedU128;
+pub type OraclePrice = FixedU128;
 
 pub trait PriceProvider<CurrencyId> {
-	fn get_relative_price(base: CurrencyId, quote: CurrencyId) -> Option<Price>;
-	fn get_price(currency_id: CurrencyId) -> Option<Price>;
+	fn get_relative_price(base: CurrencyId, quote: CurrencyId) -> Option<OraclePrice>;
+	fn get_price(currency_id: CurrencyId) -> Option<OraclePrice>;
 	fn lock_price(currency_id: CurrencyId);
 	fn unlock_price(currency_id: CurrencyId);
 }
@@ -59,7 +59,7 @@ pub mod module {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
 		/// The data source, such as Oracle.
-		type Source: DataProvider<CurrencyId, Price> + DataFeeder<CurrencyId, Price, Self::AccountId>;
+		type Source: DataProvider<CurrencyId, OraclePrice> + DataFeeder<CurrencyId, OraclePrice, Self::AccountId>;
 
 		/// The stable currency id, it should be AUSD in Parallel.
 		#[pallet::constant]
@@ -67,7 +67,7 @@ pub mod module {
 
 		/// The fixed prices of stable currency, it should be 1 USD in Parallel.
 		#[pallet::constant]
-		type StableCurrencyFixedPrice: Get<Price>;
+		type StableCurrencyFixedPrice: Get<OraclePrice>;
 
 		/// The origin which may lock and unlock prices feed to system.
 		type LockOrigin: EnsureOrigin<Self::Origin>;
@@ -80,7 +80,7 @@ pub mod module {
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Lock price. \[currency_id, locked_price\]
-		LockPrice(CurrencyId, Price),
+		LockPrice(CurrencyId, OraclePrice),
 		/// Unlock price. \[currency_id\]
 		UnlockPrice(CurrencyId),
 	}
@@ -88,7 +88,7 @@ pub mod module {
 	/// Mapping from currency id to it's locked price
 	#[pallet::storage]
 	#[pallet::getter(fn locked_price)]
-	pub type LockedPrice<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Price, OptionQuery>;
+	pub type LockedPrice<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, OraclePrice, OptionQuery>;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(PhantomData<T>);
@@ -129,7 +129,7 @@ pub mod module {
 impl<T: Config> PriceProvider<CurrencyId> for Pallet<T> {
 	/// get exchange rate between two currency types
 	/// Note: this returns the price for 1 basic unit
-	fn get_relative_price(base_currency_id: CurrencyId, quote_currency_id: CurrencyId) -> Option<Price> {
+	fn get_relative_price(base_currency_id: CurrencyId, quote_currency_id: CurrencyId) -> Option<OraclePrice> {
 		if let (Some(base_price), Some(quote_price)) =
 			(Self::get_price(base_currency_id), Self::get_price(quote_currency_id))
 		{
@@ -141,7 +141,7 @@ impl<T: Config> PriceProvider<CurrencyId> for Pallet<T> {
 
 	/// get the exchange rate of specific currency to USD
 	/// Note: this returns the price for 1 basic unit
-	fn get_price(currency_id: CurrencyId) -> Option<Price> {
+	fn get_price(currency_id: CurrencyId) -> Option<OraclePrice> {
 		let maybe_feed_price = if currency_id == T::GetStableCurrencyId::get() {
 			// if is stable currency, return fixed price
 			Some(T::StableCurrencyFixedPrice::get())
@@ -153,10 +153,12 @@ impl<T: Config> PriceProvider<CurrencyId> for Pallet<T> {
 		let maybe_adjustment_multiplier = 10u128.checked_pow(CURRENCY_DECIMAL);
 
 		if let (Some(feed_price), Some(adjustment_multiplier)) = (maybe_feed_price, maybe_adjustment_multiplier) {
-			Price::checked_from_rational(feed_price.into_inner(), adjustment_multiplier)
+			OraclePrice::checked_from_rational(feed_price.into_inner(), adjustment_multiplier)
 		} else {
 			None
 		}
+		// TODO return Price instead of OraclePrice
+		// TODO return FixedU128 price
 	}
 
 	fn lock_price(currency_id: CurrencyId) {

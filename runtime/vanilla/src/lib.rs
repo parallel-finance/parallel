@@ -24,7 +24,7 @@ use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, ModuleId, SaturatedConversion,
-	DispatchResult, FixedU128,
+	DispatchResult,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -55,6 +55,7 @@ pub use primitives::*;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
+use pallet_prices::OraclePrice;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -393,22 +394,23 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
 	type CombineData = orml_oracle::DefaultCombineData<Runtime, MinimumCount, ExpiresIn, ParallelDataProvider>;
 	type Time = Timestamp;
 	type OracleKey = CurrencyId;
-	type OracleValue = FixedU128;
+	type OracleValue = OraclePrice;
 	type RootOperatorAccountId = ZeroAccountId;
 	type WeightInfo = ();
 }
 
-pub type TimeStampedPrice = orml_oracle::TimestampedValue<FixedU128, primitives::Moment>;
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<OraclePrice, primitives::Moment>;
 create_median_value_data_provider!(
 	AggregatedDataProvider,
 	CurrencyId,
-	FixedU128,
+	OraclePrice,
 	TimeStampedPrice,
 	[VanillaOracle]
 );
+
 // Aggregated data provider cannot feed.
-impl DataFeeder<CurrencyId, FixedU128, AccountId> for AggregatedDataProvider {
-	fn feed_value(_: AccountId, _: CurrencyId, _: FixedU128) -> DispatchResult {
+impl DataFeeder<CurrencyId, OraclePrice, AccountId> for AggregatedDataProvider {
+	fn feed_value(_: AccountId, _: CurrencyId, _: OraclePrice) -> DispatchResult {
 		Err("Not supported".into())
 	}
 }
