@@ -382,7 +382,7 @@ parameter_types! {
       pub ZeroAccountId: AccountId = AccountId::from([0u8; 32]);
 }
 
-type ParallelDataProvider = orml_oracle::Instance2;
+type ParallelDataProvider = orml_oracle::Instance1;
 impl orml_oracle::Config<ParallelDataProvider> for Runtime {
     type Event = Event;
     type OnNewData = ();
@@ -442,7 +442,7 @@ construct_runtime!(
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
         Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},
         OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
-        VanillaOracle: orml_oracle::<Instance2>::{Pallet, Storage, Call, Config<T>, Event<T>},
+        VanillaOracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Config<T>, Event<T>},
         Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
     }
