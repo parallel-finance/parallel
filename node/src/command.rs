@@ -43,9 +43,10 @@ fn load_spec(
     para_id: ParaId,
 ) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
     Ok(match id {
-        "dev" => Box::new(chain_spec::development_config(para_id)),
-        "" | "local" => Box::new(chain_spec::local_testnet_config(para_id)),
-        path => Box::new(chain_spec::VanillaChainSpec::from_json_file(
+        "dev" | "vanilla" => Box::new(chain_spec::development_config(para_id)),
+        "" => Box::new(chain_spec::local_testnet_config(para_id)),
+        "local" => Box::new(chain_spec::local_testnet_config(para_id)),
+        path => Box::new(chain_spec::ParallelChainSpec::from_json_file(
             std::path::PathBuf::from(path),
         )?),
     })
@@ -152,7 +153,7 @@ pub fn run() -> Result<()> {
                     task_manager,
                     import_queue,
                     ..
-                } = crate::service::new_partial(&config)?;
+                } = crate::service::new_partial_parallel(&config)?;
                 Ok((cmd.run(client, import_queue), task_manager))
             })
         }
@@ -163,7 +164,7 @@ pub fn run() -> Result<()> {
                     client,
                     task_manager,
                     ..
-                } = crate::service::new_partial(&config)?;
+                } = crate::service::new_partial_parallel(&config)?;
                 Ok((cmd.run(client, config.database), task_manager))
             })
         }
@@ -174,7 +175,7 @@ pub fn run() -> Result<()> {
                     client,
                     task_manager,
                     ..
-                } = crate::service::new_partial(&config)?;
+                } = crate::service::new_partial_parallel(&config)?;
                 Ok((cmd.run(client, config.chain_spec), task_manager))
             })
         }
@@ -186,7 +187,7 @@ pub fn run() -> Result<()> {
                     task_manager,
                     import_queue,
                     ..
-                } = crate::service::new_partial(&config)?;
+                } = crate::service::new_partial_parallel(&config)?;
                 Ok((cmd.run(client, import_queue), task_manager))
             })
         }
@@ -202,7 +203,7 @@ pub fn run() -> Result<()> {
                     task_manager,
                     backend,
                     ..
-                } = crate::service::new_partial(&config)?;
+                } = crate::service::new_partial_parallel(&config)?;
                 Ok((cmd.run(client, backend), task_manager))
             })
         }

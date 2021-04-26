@@ -20,13 +20,16 @@ use serde::{Deserialize, Serialize};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
-use sp_runtime::traits::{IdentifyAccount, Verify};
+use sp_runtime::{
+    traits::{IdentifyAccount, Verify},
+    FixedPointNumber,
+};
 use vanilla_runtime::{AuraConfig, GrandpaConfig};
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
-pub type VanillaChainSpec =
+pub type ParallelChainSpec =
     sc_service::GenericChainSpec<parallel_runtime::GenesisConfig, Extensions>;
-pub type DevChainSpec = sc_service::GenericChainSpec<vanilla_runtime::GenesisConfig>;
+pub type VanillaChainSpec = sc_service::GenericChainSpec<vanilla_runtime::GenesisConfig>;
 
 /// Helper function to generate a crypto pair from seed
 pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
@@ -66,8 +69,8 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
     (get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
 }
 
-pub fn development_config(id: ParaId) -> DevChainSpec {
-    DevChainSpec::from_genesis(
+pub fn development_config(id: ParaId) -> VanillaChainSpec {
+    VanillaChainSpec::from_genesis(
         // Name
         "Development",
         // ID
@@ -90,6 +93,10 @@ pub fn development_config(id: ParaId) -> DevChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+                    // Parallel team accounts
+                    "5G4fc9GN6DeFQm4h2HKq3d9hBTsBJWSLWkyuk35cKHh2sqEz"
+                        .parse()
+                        .unwrap(),
                 ],
                 id,
             )
@@ -102,8 +109,8 @@ pub fn development_config(id: ParaId) -> DevChainSpec {
     )
 }
 
-pub fn local_testnet_config(id: ParaId) -> VanillaChainSpec {
-    VanillaChainSpec::from_genesis(
+pub fn local_testnet_config(id: ParaId) -> ParallelChainSpec {
+    ParallelChainSpec::from_genesis(
         // Name
         "Local Testnet",
         // ID
@@ -125,6 +132,10 @@ pub fn local_testnet_config(id: ParaId) -> VanillaChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+                    // Parallel team accounts
+                    "5G4fc9GN6DeFQm4h2HKq3d9hBTsBJWSLWkyuk35cKHh2sqEz"
+                        .parse()
+                        .unwrap(),
                 ],
                 id,
             )
@@ -176,7 +187,6 @@ fn development_genesis(
                     vec![
                         (x.clone(), CurrencyId::DOT, 1_000 * TOKEN_DECIMAL),
                         (x.clone(), CurrencyId::KSM, 1_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::BTC, 1_000 * TOKEN_DECIMAL),
                         (x.clone(), CurrencyId::USDT, 1_000 * TOKEN_DECIMAL),
                         (x.clone(), CurrencyId::xDOT, 1_000 * TOKEN_DECIMAL),
                     ]
@@ -187,47 +197,39 @@ fn development_genesis(
             currencies: vec![
                 CurrencyId::DOT,
                 CurrencyId::KSM,
-                CurrencyId::BTC,
                 CurrencyId::USDT,
                 CurrencyId::xDOT,
             ],
-            // total_supply: 1000 * TOKEN_DECIMAL, // 1000
-            // total_borrows: 600 * TOKEN_DECIMAL, // 600
-            borrow_index: RATE_DECIMAL,               // 1
-            exchange_rate: 2 * RATE_DECIMAL / 100,    // 0.02
-            base_rate: 2 * RATE_DECIMAL / 100,        // 0.02
-            multiplier_per_year: RATE_DECIMAL / 10,   // 0.1
-            jump_muiltiplier: 11 * RATE_DECIMAL / 10, // 1.1
-            kink: 8 * RATE_DECIMAL / 10,              // 0.8
-            collateral_rate: vec![
-                (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::KSM, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::BTC, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::USDT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::xDOT, 5 * RATE_DECIMAL / 10),
+            borrow_index: Rate::one(),                                  // 1
+            exchange_rate: Rate::saturating_from_rational(2, 100),      // 0.02
+            base_rate_per_year: Rate::saturating_from_rational(2, 100), // 0.02
+            multiplier_per_year: Multiplier::saturating_from_rational(1, 10), // 0.1
+            jump_multiplier_per_year: Multiplier::saturating_from_rational(11, 10), // 1.1
+            kink: Ratio::from_percent(80),                              // 0.8
+            collateral_factor: vec![
+                (CurrencyId::DOT, Ratio::from_percent(50)),
+                (CurrencyId::KSM, Ratio::from_percent(50)),
+                (CurrencyId::USDT, Ratio::from_percent(50)),
+                (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
             liquidation_incentive: vec![
                 (CurrencyId::DOT, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::KSM, 9 * RATE_DECIMAL / 10),
-                (CurrencyId::BTC, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::USDT, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::xDOT, 9 * RATE_DECIMAL / 10),
             ],
-            //FIXME :In fact,"liquidation_threshold" should be higher than "collateral_rate",
-            //but for test, let's make it lower
+            //TODO : please refer to https://github.com/parallel-finance/parallel/issues/46
             liquidation_threshold: vec![
-                (CurrencyId::DOT, 40 * RATE_DECIMAL / 100),
-                (CurrencyId::KSM, 40 * RATE_DECIMAL / 100),
-                (CurrencyId::BTC, 40 * RATE_DECIMAL / 100),
-                (CurrencyId::USDT, 40 * RATE_DECIMAL / 100),
-                (CurrencyId::xDOT, 40 * RATE_DECIMAL / 100),
+                (CurrencyId::DOT, 90 * RATE_DECIMAL / 100),
+                (CurrencyId::KSM, 90 * RATE_DECIMAL / 100),
+                (CurrencyId::USDT, 90 * RATE_DECIMAL / 100),
+                (CurrencyId::xDOT, 90 * RATE_DECIMAL / 100),
             ],
             close_factor: vec![
-                (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::KSM, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::BTC, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::USDT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::xDOT, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::DOT, Ratio::from_percent(50)),
+                (CurrencyId::KSM, Ratio::from_percent(50)),
+                (CurrencyId::USDT, Ratio::from_percent(50)),
+                (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
         },
         pallet_staking: vanilla_runtime::StakingConfig {},
@@ -262,7 +264,6 @@ fn testnet_genesis(
                     vec![
                         (x.clone(), CurrencyId::DOT, 1_000 * TOKEN_DECIMAL),
                         (x.clone(), CurrencyId::KSM, 1_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::BTC, 1_000 * TOKEN_DECIMAL),
                         (x.clone(), CurrencyId::USDT, 1_000 * TOKEN_DECIMAL),
                         (x.clone(), CurrencyId::xDOT, 1_000 * TOKEN_DECIMAL),
                     ]
@@ -273,29 +274,24 @@ fn testnet_genesis(
             currencies: vec![
                 CurrencyId::DOT,
                 CurrencyId::KSM,
-                CurrencyId::BTC,
                 CurrencyId::USDT,
                 CurrencyId::xDOT,
             ],
-            // total_supply: 1000 * TOKEN_DECIMAL, // 1000
-            // total_borrows: 600 * TOKEN_DECIMAL, // 600
-            borrow_index: RATE_DECIMAL,               // 1
-            exchange_rate: 2 * RATE_DECIMAL / 100,    // 0.02
-            base_rate: 2 * RATE_DECIMAL / 100,        // 0.02
-            multiplier_per_year: RATE_DECIMAL / 10,   // 0.1
-            jump_muiltiplier: 11 * RATE_DECIMAL / 10, // 1.1
-            kink: 8 * RATE_DECIMAL / 10,              // 0.8
-            collateral_rate: vec![
-                (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::KSM, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::BTC, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::USDT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::xDOT, 5 * RATE_DECIMAL / 10),
+            borrow_index: Rate::one(),                                  // 1
+            exchange_rate: Rate::saturating_from_rational(2, 100),      // 0.02
+            base_rate_per_year: Rate::saturating_from_rational(2, 100), // 0.02
+            multiplier_per_year: Multiplier::saturating_from_rational(1, 10), // 0.1
+            jump_multiplier_per_year: Multiplier::saturating_from_rational(11, 10), // 1.1
+            kink: Ratio::from_percent(80),                              // 0.8
+            collateral_factor: vec![
+                (CurrencyId::DOT, Ratio::from_percent(50)),
+                (CurrencyId::KSM, Ratio::from_percent(50)),
+                (CurrencyId::USDT, Ratio::from_percent(50)),
+                (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
             liquidation_incentive: vec![
                 (CurrencyId::DOT, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::KSM, 9 * RATE_DECIMAL / 10),
-                (CurrencyId::BTC, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::USDT, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::xDOT, 9 * RATE_DECIMAL / 10),
             ],
@@ -303,16 +299,14 @@ fn testnet_genesis(
             liquidation_threshold: vec![
                 (CurrencyId::DOT, 90 * RATE_DECIMAL / 100),
                 (CurrencyId::KSM, 90 * RATE_DECIMAL / 100),
-                (CurrencyId::BTC, 90 * RATE_DECIMAL / 100),
                 (CurrencyId::USDT, 90 * RATE_DECIMAL / 100),
                 (CurrencyId::xDOT, 90 * RATE_DECIMAL / 100),
             ],
             close_factor: vec![
-                (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::KSM, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::BTC, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::USDT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::xDOT, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::DOT, Ratio::from_percent(50)),
+                (CurrencyId::KSM, Ratio::from_percent(50)),
+                (CurrencyId::USDT, Ratio::from_percent(50)),
+                (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
         },
         pallet_staking: parallel_runtime::StakingConfig {},

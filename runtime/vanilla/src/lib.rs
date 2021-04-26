@@ -7,6 +7,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use codec::Encode;
+use frame_support::PalletId;
 use orml_currencies::BasicCurrencyAdapter;
 use orml_traits::parameter_type_with_key;
 use pallet_grandpa::fg_primitives;
@@ -20,7 +21,7 @@ use sp_runtime::traits::{self, AccountIdLookup, BlakeTwo256, Block as BlockT, Nu
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, ModuleId, SaturatedConversion,
+    ApplyExtrinsicResult, SaturatedConversion,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -240,6 +241,12 @@ impl pallet_sudo::Config for Runtime {
     type Call = Call;
 }
 
+impl pallet_utility::Config for Runtime {
+    type Event = Event;
+    type Call = Call;
+    type WeightInfo = pallet_utility::weights::SubstrateWeight<Runtime>;
+}
+
 parameter_type_with_key! {
     pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
         Default::default()
@@ -259,8 +266,8 @@ impl orml_tokens::Config for Runtime {
 parameter_types! {
     pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Native;
 
-    pub const LoansModuleId: ModuleId = ModuleId(*b"par/loan");
-    pub const StakingModuleId: ModuleId = ModuleId(*b"par/stak");
+    pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
+    pub const StakingPalletId: PalletId = PalletId(*b"par/stak");
 }
 
 impl orml_currencies::Config for Runtime {
@@ -279,14 +286,14 @@ parameter_types! {
 impl pallet_loans::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
-    type ModuleId = LoansModuleId;
+    type PalletId = LoansPalletId;
     type PriceFeeder = OcwOracle;
 }
 
 impl pallet_staking::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
-    type ModuleId = StakingModuleId;
+    type PalletId = StakingPalletId;
 }
 
 parameter_types! {
@@ -382,6 +389,7 @@ construct_runtime!(
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
         TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
         Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
+        Utility: pallet_utility::{Pallet, Call, Event},
 
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},

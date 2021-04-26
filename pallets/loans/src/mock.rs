@@ -15,17 +15,20 @@
 mod loans {
     pub use super::super::*;
 }
+
 use loans::*;
 
-use frame_support::{construct_runtime, parameter_types};
+use frame_support::{construct_runtime, parameter_types, PalletId};
 
 use lazy_static::lazy_static;
 use orml_traits::parameter_type_with_key;
-use primitives::{Amount, Balance, CurrencyId, PriceDetail, PriceFeeder, RATE_DECIMAL};
+use primitives::{
+    Amount, Balance, CurrencyId, PriceDetail, PriceFeeder, Rate, Ratio, RATE_DECIMAL, TOKEN_DECIMAL,
+};
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
+use sp_runtime::{testing::Header, traits::IdentityLookup};
 use sp_std::vec::Vec;
-use std::{collections::HashMap, ops::DerefMut, sync::Mutex};
+use std::{collections::HashMap, sync::Mutex};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
@@ -83,7 +86,6 @@ pub const BOB: AccountId = 2;
 
 pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const KSM: CurrencyId = CurrencyId::KSM;
-pub const BTC: CurrencyId = CurrencyId::BTC;
 pub const USDT: CurrencyId = CurrencyId::USDT;
 pub const XDOT: CurrencyId = CurrencyId::xDOT;
 pub const NATIVE: CurrencyId = CurrencyId::Native;
@@ -135,7 +137,7 @@ impl pallet_balances::Config for Runtime {
 lazy_static! {
     pub static ref MOCK_PRICE_FEEDER: Mutex<HashMap<CurrencyId, Option<PriceDetail>>> = {
         Mutex::new(
-            vec![DOT, KSM, BTC, USDT, XDOT]
+            vec![DOT, KSM, USDT, XDOT]
                 .iter()
                 .map(|&x| (x, Some((1, 1))))
                 .collect(),
@@ -167,12 +169,12 @@ impl PriceFeeder for MOCK_PRICE_FEEDER {
 impl Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
-    type ModuleId = LoansModuleId;
+    type PalletId = LoansPalletId;
     type PriceFeeder = MOCK_PRICE_FEEDER;
 }
 
 parameter_types! {
-    pub const LoansModuleId: ModuleId = ModuleId(*b"par/loan");
+    pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
 }
 
 pub struct ExtBuilder {
@@ -183,14 +185,12 @@ impl Default for ExtBuilder {
     fn default() -> Self {
         Self {
             endowed_accounts: vec![
-                (ALICE, DOT, 1000),
-                (ALICE, KSM, 1000),
-                (ALICE, BTC, 1000),
-                (ALICE, USDT, 1000),
-                (BOB, DOT, 1000),
-                (BOB, KSM, 1000),
-                (BOB, BTC, 1000),
-                (BOB, USDT, 1000),
+                (ALICE, DOT, dollar(1000)),
+                (ALICE, KSM, dollar(1000)),
+                (ALICE, USDT, dollar(1000)),
+                (BOB, DOT, dollar(1000)),
+                (BOB, KSM, dollar(1000)),
+                (BOB, USDT, dollar(1000)),
             ],
         }
     }
@@ -212,45 +212,38 @@ impl ExtBuilder {
             currencies: vec![
                 CurrencyId::DOT,
                 CurrencyId::KSM,
-                CurrencyId::BTC,
                 CurrencyId::USDT,
                 CurrencyId::xDOT,
             ],
-            // total_supply: 100 * TOKEN_DECIMAL, // 100
-            // total_borrows: 50 * TOKEN_DECIMAL, // 50
-            borrow_index: RATE_DECIMAL,                 // 1
-            exchange_rate: 2 * RATE_DECIMAL / 100,      // 0.02
-            base_rate: 2 * RATE_DECIMAL / 100,          // 0.02
-            multiplier_per_year: 1 * RATE_DECIMAL / 10, // 0.1
-            jump_muiltiplier: 11 * RATE_DECIMAL / 10,   // 1.1
-            kink: 8 * RATE_DECIMAL / 10,                // 0.8
-            collateral_rate: vec![
-                (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::KSM, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::BTC, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::USDT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::xDOT, 5 * RATE_DECIMAL / 10),
+            borrow_index: Rate::one(),                                  // 1
+            exchange_rate: Rate::saturating_from_rational(2, 100),      // 0.02
+            base_rate_per_year: Rate::saturating_from_rational(2, 100), // 0.02
+            multiplier_per_year: Multiplier::saturating_from_rational(1, 10), // 0.1
+            jump_multiplier_per_year: Multiplier::saturating_from_rational(11, 10), // 1.1
+            kink: Ratio::from_percent(80),                              // 0.8
+            collateral_factor: vec![
+                (CurrencyId::DOT, Ratio::from_percent(50)),
+                (CurrencyId::KSM, Ratio::from_percent(50)),
+                (CurrencyId::USDT, Ratio::from_percent(50)),
+                (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
             liquidation_incentive: vec![
                 (CurrencyId::DOT, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::KSM, 9 * RATE_DECIMAL / 10),
-                (CurrencyId::BTC, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::USDT, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::xDOT, 9 * RATE_DECIMAL / 10),
             ],
             liquidation_threshold: vec![
                 (CurrencyId::DOT, 8 * RATE_DECIMAL / 10),
                 (CurrencyId::KSM, 8 * RATE_DECIMAL / 10),
-                (CurrencyId::BTC, 8 * RATE_DECIMAL / 10),
                 (CurrencyId::USDT, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::xDOT, 8 * RATE_DECIMAL / 10),
             ],
             close_factor: vec![
-                (CurrencyId::DOT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::KSM, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::BTC, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::USDT, 5 * RATE_DECIMAL / 10),
-                (CurrencyId::xDOT, 5 * RATE_DECIMAL / 10),
+                (CurrencyId::DOT, Ratio::from_percent(50)),
+                (CurrencyId::KSM, Ratio::from_percent(50)),
+                (CurrencyId::USDT, Ratio::from_percent(50)),
+                (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
         }
         .assimilate_storage::<Runtime>(&mut t)
@@ -263,4 +256,19 @@ impl ExtBuilder {
         ext.execute_with(|| System::set_block_number(1));
         ext
     }
+}
+
+/// Progress to the given block, and then finalize the block.
+pub(crate) fn run_to_block(n: BlockNumber) {
+    Loans::on_finalize(System::block_number());
+    for b in (System::block_number() + 1)..=n {
+        System::set_block_number(b);
+        if b != n {
+            Loans::on_finalize(System::block_number());
+        }
+    }
+}
+
+pub fn dollar(d: u128) -> u128 {
+    d.saturating_mul(TOKEN_DECIMAL)
 }

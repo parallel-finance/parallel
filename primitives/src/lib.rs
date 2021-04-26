@@ -20,7 +20,7 @@ use codec::{Decode, Encode};
 use sp_runtime::{
     generic,
     traits::{BlakeTwo256, IdentifyAccount, Verify},
-    MultiSignature, RuntimeDebug,
+    FixedU128, MultiSignature, Permill, RuntimeDebug,
 };
 use sp_std::{convert::Into, prelude::*};
 
@@ -91,7 +91,6 @@ pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 pub enum CurrencyId {
     DOT,
     KSM,
-    BTC,
     USDT,
     #[allow(non_camel_case_types)]
     xDOT,
@@ -100,7 +99,7 @@ pub enum CurrencyId {
 
 pub const TOKEN_DECIMAL: u128 = 1_000_000_000_000_000_000;
 
-pub const RATE_DECIMAL: u128 = 1_000_000_000;
+pub const RATE_DECIMAL: u128 = 1_000_000_000_000_000_000;
 
 pub const BLOCK_PER_YEAR: u128 = 5256000;
 
@@ -113,3 +112,9 @@ pub type PriceDetail = (Price, Timestamp);
 pub trait PriceFeeder {
     fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail>;
 }
+
+pub type Rate = FixedU128;
+
+pub type Ratio = Permill;
+
+pub type Multiplier = FixedU128;

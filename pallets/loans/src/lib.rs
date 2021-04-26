@@ -16,11 +16,11 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::collapsible_if)]
 
-use frame_support::{pallet_prelude::*, transactional};
+use frame_support::{pallet_prelude::*, transactional, PalletId};
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
-use primitives::{Amount, Balance, CurrencyId, PriceFeeder, RATE_DECIMAL};
-use sp_runtime::{traits::AccountIdConversion, ModuleId, RuntimeDebug};
+use primitives::{Amount, Balance, CurrencyId, Multiplier, PriceFeeder, Rate, Ratio};
+use sp_runtime::{traits::AccountIdConversion, FixedPointNumber, RuntimeDebug};
 use sp_std::vec::Vec;
 
 pub use module::*;
@@ -40,7 +40,7 @@ pub struct BorrowSnapshot {
     /// Principal Total balance (with accrued interest), after applying the most recent balance-changing action
     pub principal: Balance,
     /// InterestIndex Global borrowIndex as of the most recent balance-changing action
-    pub interest_index: u128,
+    pub borrow_index: Rate,
 }
 
 /// Container for earned amount information
@@ -49,13 +49,12 @@ pub struct EarnedSnapshot {
     /// Total deposit interest, after applying the most recent balance-changing action
     pub total_earned_prior: Balance,
     /// Exchange rate,  after applying the most recent balance-changing action
-    pub exchange_rate_prior: u128,
+    pub exchange_rate_prior: Rate,
 }
 
 #[frame_support::pallet]
 pub mod module {
     use super::*;
-    use crate::util::mul_then_div;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -75,7 +74,7 @@ pub mod module {
 
         /// The loan's module id, keep all collaterals of CDPs.
         #[pallet::constant]
-        type ModuleId: Get<ModuleId>;
+        type PalletId: Get<PalletId>;
     }
 
     #[pallet::error]
@@ -136,8 +135,8 @@ pub mod module {
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Initialize the interest rate parameter
-        /// [base_rate, multiplier_per_block, jump_multiplier_per_block, kink]
-        InitInterestRateModel(u128, u128, u128, u128),
+        /// [base_rate, multiplier_per_block, jump_multiplier_per_block]
+        InitInterestRateModel(Rate, Multiplier, Multiplier),
         /// Enable collateral for certain asset
         /// [sender, currency_id]
         CollateralAssetAdded(T::AccountId, CurrencyId),
@@ -223,7 +222,7 @@ pub mod module {
     /// CurrencyType -> u128
     #[pallet::storage]
     #[pallet::getter(fn borrow_index)]
-    pub type BorrowIndex<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+    pub type BorrowIndex<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Rate, ValueQuery>;
 
     /// The currency types support on lending markets
     #[pallet::storage]
@@ -233,32 +232,32 @@ pub mod module {
     /// The exchange rate from the underlying to the internal collateral
     #[pallet::storage]
     #[pallet::getter(fn exchange_rate)]
-    pub type ExchangeRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+    pub type ExchangeRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Rate, ValueQuery>;
 
-    /// The multiplier per block of borrow interest rate
+    /// The multiplier of utilization rate that gives the slope of the interest rate
     #[pallet::storage]
     #[pallet::getter(fn multipler_per_block)]
-    pub type MultiplierPerBlock<T: Config> = StorageValue<_, Option<u128>, ValueQuery>;
+    pub type MultiplierPerBlock<T: Config> = StorageValue<_, Multiplier, ValueQuery>;
 
-    /// Base borrow interest rate pre block
+    /// The base interest rate which is the y-intercept when utilization rate is 0
     #[pallet::storage]
     #[pallet::getter(fn base_rate_per_block)]
-    pub type BaseRatePerBlock<T: Config> = StorageValue<_, Option<u128>, ValueQuery>;
+    pub type BaseRatePerBlock<T: Config> = StorageValue<_, Rate, ValueQuery>;
 
-    /// Jump multiplier per block of borrow interest rate
+    /// The multiplierPerBlock after hitting a specified utilization point
     #[pallet::storage]
     #[pallet::getter(fn jump_multiplier_per_block)]
-    pub type JumpMultiplierPerBlock<T: Config> = StorageValue<_, Option<u128>, ValueQuery>;
+    pub type JumpMultiplierPerBlock<T: Config> = StorageValue<_, Multiplier, ValueQuery>;
 
-    /// The optimal utilization ratio
+    /// The utilization point at which the jump multiplier is applied
     #[pallet::storage]
     #[pallet::getter(fn kink)]
-    pub type Kink<T: Config> = StorageValue<_, Option<u128>, ValueQuery>;
+    pub type Kink<T: Config> = StorageValue<_, Ratio, ValueQuery>;
 
     /// Mapping of borrow rate to currency type
     #[pallet::storage]
     #[pallet::getter(fn borrow_rate)]
-    pub type BorrowRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+    pub type BorrowRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Rate, ValueQuery>;
 
     /// Mapping of supply rate to currency type
     #[pallet::storage]
@@ -267,13 +266,15 @@ pub mod module {
 
     /// Borrow utilization ratio
     #[pallet::storage]
-    #[pallet::getter(fn utility_rate)]
-    pub type UtilityRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+    #[pallet::getter(fn utilization_ratio)]
+    pub type UtilizationRatio<T: Config> =
+        StorageMap<_, Twox64Concat, CurrencyId, Ratio, ValueQuery>;
 
     /// The collateral utilization ratio
     #[pallet::storage]
-    #[pallet::getter(fn collateral_rate)]
-    pub type CollateralRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+    #[pallet::getter(fn collateral_factor)]
+    pub type CollateralFactor<T: Config> =
+        StorageMap<_, Twox64Concat, CurrencyId, Ratio, ValueQuery>;
 
     /// Liquidation incentive ratio
     #[pallet::storage]
@@ -291,23 +292,21 @@ pub mod module {
     /// borrow that can be repaid in a single liquidate transaction.
     #[pallet::storage]
     #[pallet::getter(fn close_factor)]
-    pub type CloseFactor<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+    pub type CloseFactor<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Ratio, ValueQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig {
         pub currencies: Vec<CurrencyId>,
-        // pub total_supply: Balance,
-        // pub total_borrows: Balance,
-        pub borrow_index: u128,
-        pub exchange_rate: u128,
-        pub base_rate: u128,
-        pub multiplier_per_year: u128,
-        pub jump_muiltiplier: u128,
-        pub kink: u128,
-        pub collateral_rate: Vec<(CurrencyId, u128)>,
+        pub borrow_index: Rate,
+        pub exchange_rate: Rate,
+        pub base_rate_per_year: Rate,
+        pub multiplier_per_year: Multiplier,
+        pub jump_multiplier_per_year: Multiplier,
+        pub kink: Ratio,
+        pub collateral_factor: Vec<(CurrencyId, Ratio)>,
         pub liquidation_incentive: Vec<(CurrencyId, u128)>,
         pub liquidation_threshold: Vec<(CurrencyId, u128)>,
-        pub close_factor: Vec<(CurrencyId, u128)>,
+        pub close_factor: Vec<(CurrencyId, Ratio)>,
     }
 
     #[cfg(feature = "std")]
@@ -315,15 +314,13 @@ pub mod module {
         fn default() -> Self {
             GenesisConfig {
                 currencies: vec![],
-                // total_supply: 0,
-                // total_borrows: 0,
-                borrow_index: 0,
-                exchange_rate: 0,
-                base_rate: 0,
-                multiplier_per_year: 0,
-                jump_muiltiplier: 0,
-                kink: 0,
-                collateral_rate: vec![],
+                borrow_index: Rate::zero(),
+                exchange_rate: Rate::zero(),
+                base_rate_per_year: Rate::zero(),
+                multiplier_per_year: Multiplier::zero(),
+                jump_multiplier_per_year: Multiplier::zero(),
+                kink: Ratio::zero(),
+                collateral_factor: vec![],
                 liquidation_incentive: vec![],
                 liquidation_threshold: vec![],
                 close_factor: vec![],
@@ -335,15 +332,13 @@ pub mod module {
     impl<T: Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
             self.currencies.iter().for_each(|currency_id| {
-                // TotalSupply::<T>::insert(currency_id, self.total_supply);
-                // TotalBorrows::<T>::insert(currency_id, self.total_borrows);
                 ExchangeRate::<T>::insert(currency_id, self.exchange_rate);
                 BorrowIndex::<T>::insert(currency_id, self.borrow_index);
             });
-            self.collateral_rate
+            self.collateral_factor
                 .iter()
-                .for_each(|(currency_id, collateral_rate)| {
-                    CollateralRate::<T>::insert(currency_id, collateral_rate);
+                .for_each(|(currency_id, collateral_factor)| {
+                    CollateralFactor::<T>::insert(currency_id, collateral_factor);
                 });
             self.liquidation_incentive
                 .iter()
@@ -360,12 +355,12 @@ pub mod module {
                 .for_each(|(currency_id, close_factor)| {
                     CloseFactor::<T>::insert(currency_id, close_factor);
                 });
+            Kink::<T>::put(self.kink.clone());
             Currencies::<T>::put(self.currencies.clone());
             Pallet::<T>::init_jump_rate_model(
-                self.base_rate,
+                self.base_rate_per_year,
                 self.multiplier_per_year,
-                self.jump_muiltiplier,
-                self.kink,
+                self.jump_multiplier_per_year,
             )
             .unwrap();
         }
@@ -402,7 +397,7 @@ pub mod module {
                 let total_borrows = Self::total_borrows(currency_id);
                 let _ = Self::accrue_interest(currency_id);
                 let _ = Self::update_supply_rate(currency_id, total_cash, total_borrows, 0, 0);
-                let _ = Self::calc_exchange_rate(currency_id);
+                let _ = Self::update_exchange_rate(currency_id);
             });
         }
     }
@@ -445,7 +440,8 @@ pub mod module {
             Self::update_earned_stored(&who, &currency_id)?;
             let collateral = AccountCollateral::<T>::get(&currency_id, &who);
             let exchange_rate = Self::exchange_rate(currency_id);
-            let redeem_amount = mul_then_div(collateral, exchange_rate, RATE_DECIMAL)
+            let redeem_amount = exchange_rate
+                .checked_mul_int(collateral)
                 .ok_or(Error::<T>::CollateralOverflow)?;
             Self::redeem_internal(&who, &currency_id, redeem_amount)?;
             Ok(().into())
@@ -538,6 +534,23 @@ pub mod module {
 
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> T::AccountId {
-        T::ModuleId::get().into_account()
+        T::PalletId::get().into_account()
+    }
+
+    pub fn update_exchange_rate(currency_id: CurrencyId) -> DispatchResult {
+        // exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
+        let total_borrows = Self::total_borrows(currency_id);
+        let total_supply = Self::total_supply(currency_id);
+        let total_cash = Self::get_total_cash(currency_id);
+
+        let cash_plus_borrows = total_cash
+            .checked_add(total_borrows)
+            .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
+        let exchange_rate = Rate::checked_from_rational(cash_plus_borrows, total_supply)
+            .ok_or(Error::<T>::CalcExchangeRateFailed)?;
+
+        ExchangeRate::<T>::insert(currency_id, exchange_rate);
+
+        Ok(())
     }
 }

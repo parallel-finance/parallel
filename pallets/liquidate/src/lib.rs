@@ -27,7 +27,7 @@ use sp_core::crypto::KeyTypeId;
 use sp_runtime::{
     offchain as rt_offchain,
     offchain::storage_lock::{BlockAndTime, StorageLock},
-    RuntimeDebug,
+    FixedPointNumber, RuntimeDebug,
 };
 use sp_std::prelude::*;
 
@@ -247,9 +247,8 @@ pub mod module {
                                 continue 'outer;
                             }
                             let exchange_rate = pallet_loans::ExchangeRate::<T>::get(currency_id);
-                            let collateral_currency_amount = match collateral_ctoken_amount
-                                .checked_mul(exchange_rate)
-                                .and_then(|r| r.checked_div(RATE_DECIMAL))
+                            let collateral_currency_amount = match exchange_rate
+                                .checked_mul_int(collateral_ctoken_amount)
                                 .ok_or(Error::<T>::CaculateError)
                             {
                                 Ok(v) => v,
@@ -374,12 +373,11 @@ pub mod module {
                         {
                             // let repay_amount = (single_collateral_total_sum_pirce / collateral_total_value) * (debt_repay_amount * close_factor);
                             let m: Price = 100;
-                            let repay_amount = match single_collateral_total_sum_pirce
+                            let repay_amount = match (close_factor
+                                * single_collateral_total_sum_pirce)
                                 .checked_mul(m)
                                 .and_then(|r| r.checked_div(collateral_total_value))
                                 .and_then(|r| r.checked_mul(debt_repay_amount))
-                                .and_then(|r| r.checked_div(RATE_DECIMAL))
-                                .and_then(|r| r.checked_mul(close_factor))
                                 .and_then(|r| r.checked_div(m))
                                 .ok_or(Error::<T>::CaculateError)
                             {

@@ -16,12 +16,12 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::collapsible_if)]
 
-use frame_support::pallet_prelude::*;
 use frame_support::transactional;
+use frame_support::{pallet_prelude::*, PalletId};
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 use primitives::{Amount, Balance, CurrencyId};
-use sp_runtime::{traits::AccountIdConversion, ModuleId, RuntimeDebug};
+use sp_runtime::{traits::AccountIdConversion, RuntimeDebug};
 use sp_std::convert::TryInto;
 use sp_std::vec::Vec;
 
@@ -55,7 +55,7 @@ pub mod module {
 
         /// The loan's module id, keep all collaterals of CDPs.
         #[pallet::constant]
-        type ModuleId: Get<ModuleId>;
+        type PalletId: Get<PalletId>;
     }
 
     #[pallet::error]
@@ -165,6 +165,6 @@ pub mod module {
 
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> T::AccountId {
-        T::ModuleId::get().into_account()
+        T::PalletId::get().into_account()
     }
 }
