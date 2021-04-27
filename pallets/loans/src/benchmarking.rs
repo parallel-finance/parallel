@@ -21,7 +21,7 @@ benchmarks! {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T>(caller.clone());
         let amount = 100;
-    }: _(SystemOrigin::Signed(caller.clone()), DOT, amount.clone())
+    }: _(SystemOrigin::Signed(caller.clone()), DOT, amount)
     verify {
         assert_eq!(
             <T as Config>::Currency::free_balance(DOT, &caller),
@@ -36,13 +36,13 @@ benchmarks! {
         let borrowed_amount = 100;
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, amount));
         assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(caller.clone()).into(), DOT, true));
-    }: _(SystemOrigin::Signed(caller.clone()), DOT, borrowed_amount.clone())
+    }: _(SystemOrigin::Signed(caller.clone()), DOT, borrowed_amount)
     verify {
         assert_eq!(
-            <T as Config>::Currency::free_balance(DOT, &caller.clone()),
+            <T as Config>::Currency::free_balance(DOT, &caller),
             INITIAL_AMOUNT - borrowed_amount,
         );
-        assert_eq!(Loans::<T>::account_borrows(DOT, caller.clone()).principal, borrowed_amount);
+        assert_eq!(Loans::<T>::account_borrows(DOT, caller).principal, borrowed_amount);
     }
 }
 
