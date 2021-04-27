@@ -7,7 +7,7 @@
 A new Cumulus-based Substrate node, ready for hacking :rocket:
 
 [discord-badge]: https://img.shields.io/discord/830972820846018600.svg?logo=discord&style=flat-square
-[discord-url]: https://discord.gg/buKKx4dySW
+[discord-url]: https://discord.gg/fDjjzCTW
 
 ## Getting Started
 
