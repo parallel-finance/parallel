@@ -17,6 +17,7 @@
 use frame_support::{assert_noop, assert_ok};
 use primitives::{BLOCK_PER_YEAR, RATE_DECIMAL};
 use sp_runtime::{traits::Saturating, Perbill};
+use sp_runtime::traits::One;
 
 use super::*;
 
