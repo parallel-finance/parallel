@@ -45,7 +45,6 @@ pub use frame_support::{
     StorageValue,
 };
 use frame_system::EnsureRoot;
-use pallet_prices::OraclePrice;
 use pallet_transaction_payment::CurrencyAdapter;
 pub use primitives::*;
 #[cfg(any(feature = "std", test))]
@@ -414,9 +413,10 @@ impl DataFeeder<CurrencyId, OraclePrice, AccountId> for AggregatedDataProvider {
 impl pallet_prices::Config for Runtime {
     type Event = Event;
     type Source = AggregatedDataProvider;
-    type GetStableCurrencyId = GetStableCurrencyId;
-    type StableCurrencyFixedPrice = StableCurrencyFixedPrice;
-    type LockOrigin = EnsureRoot<AccountId>;
+	type GetStableCurrencyId = GetStableCurrencyId;
+	type StableCurrencyFixedPrice = StableCurrencyFixedPrice;
+	type Time = Timestamp;
+    type FeederOrigin = EnsureRoot<AccountId>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
