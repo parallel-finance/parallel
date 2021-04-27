@@ -20,9 +20,9 @@ use frame_support::{pallet_prelude::*, transactional, PalletId};
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 use primitives::{Amount, Balance, CurrencyId, Multiplier, PriceFeeder, Rate, Ratio};
+use sp_runtime::traits::Zero;
 use sp_runtime::{traits::AccountIdConversion, FixedPointNumber, RuntimeDebug};
 use sp_std::vec::Vec;
-use sp_runtime::traits::Zero;
 
 pub use module::*;
 
