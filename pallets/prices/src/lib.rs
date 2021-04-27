@@ -12,27 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Copyright (C) 2020-2021 Acala Foundation.
-// SPDX-License-Identifier: GPL-3.0-or-later WITH Classpath-exception-2.0
-
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-//! # Prices Module
+//! # Prices Pallet
 //!
 //! ## Overview
 //!
-//! The data from Oracle cannot be used in business, prices module will do some
+//! The data from Oracle cannot be used in business, prices pallet will do some
 //! process and feed prices for parallel. Process include:
 //!   - specify a fixed price for stable currency
 //!   - feed price in USD or related price bewteen two currencies
@@ -43,25 +27,16 @@
 
 use frame_support::{pallet_prelude::*, transactional};
 use frame_system::pallet_prelude::*;
-use orml_traits::{DataFeeder, DataProvider};
-use primitives::CurrencyId;
+use orml_traits::{DataFeeder, DataProvider, DataProviderExtended};
+use primitives::{CurrencyId, PriceDetail, PriceFeeder, Moment};
 use sp_runtime::{FixedPointNumber, FixedU128};
 
-pub mod weights;
-
 pub use module::*;
-pub use weights::WeightInfo;
 
 pub const CURRENCY_DECIMAL: u32 = 18;
 
 pub type OraclePrice = FixedU128;
-
-pub trait PriceProvider<CurrencyId> {
-    fn get_relative_price(base: CurrencyId, quote: CurrencyId) -> Option<u128>;
-    fn get_price(currency_id: CurrencyId) -> Option<u128>;
-    fn lock_price(currency_id: CurrencyId);
-    fn unlock_price(currency_id: CurrencyId);
-}
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<OraclePrice, Moment>;
 
 #[frame_support::pallet]
 pub mod module {
@@ -73,7 +48,8 @@ pub mod module {
 
         /// The data source, such as Oracle.
         type Source: DataProvider<CurrencyId, OraclePrice>
-            + DataFeeder<CurrencyId, OraclePrice, Self::AccountId>;
+            + DataFeeder<CurrencyId, OraclePrice, Self::AccountId>
+            + DataProviderExtended<CurrencyId, TimeStampedPrice>;
 
         /// The stable currency id, it should be AUSD in Parallel.
         #[pallet::constant]
@@ -85,9 +61,6 @@ pub mod module {
 
         /// The origin which may lock and unlock prices feed to system.
         type LockOrigin: EnsureOrigin<Self::Origin>;
-
-        /// Weight information for the extrinsics in this module.
-        type WeightInfo: WeightInfo;
     }
 
     #[pallet::event]
@@ -113,93 +86,111 @@ pub mod module {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Lock the price and feed it to system.
-        ///
-        /// The dispatch origin of this call must be `LockOrigin`.
-        ///
-        /// - `currency_id`: currency type.
-        #[pallet::weight((T::WeightInfo::lock_price(), DispatchClass::Operational))]
+        #[pallet::weight(100)]
         #[transactional]
-        pub fn lock_price(
+        pub fn set_price(
             origin: OriginFor<T>,
             currency_id: CurrencyId,
         ) -> DispatchResultWithPostInfo {
-            T::LockOrigin::ensure_origin(origin)?;
-            <Pallet<T> as PriceProvider<CurrencyId>>::lock_price(currency_id);
+			// todo set price
+			T::LockOrigin::ensure_origin(origin)?;
             Ok(().into())
         }
 
-        /// Unlock the price and get the price from `PriceProvider` again
-        ///
-        /// The dispatch origin of this call must be `LockOrigin`.
-        ///
-        /// - `currency_id`: currency type.
-        #[pallet::weight((T::WeightInfo::unlock_price(), DispatchClass::Operational))]
-        #[transactional]
-        pub fn unlock_price(
-            origin: OriginFor<T>,
-            currency_id: CurrencyId,
-        ) -> DispatchResultWithPostInfo {
-            T::LockOrigin::ensure_origin(origin)?;
-            <Pallet<T> as PriceProvider<CurrencyId>>::unlock_price(currency_id);
-            Ok(().into())
-        }
+        // /// Lock the price and feed it to system.
+        // ///
+        // /// The dispatch origin of this call must be `LockOrigin`.
+        // ///
+        // /// - `currency_id`: currency type.
+        // #[pallet::weight(100)]
+        // #[transactional]
+        // pub fn lock_price(
+        //     origin: OriginFor<T>,
+        //     currency_id: CurrencyId,
+        // ) -> DispatchResultWithPostInfo {
+        //     T::LockOrigin::ensure_origin(origin)?;
+        //     <Pallet<T> as PriceProvider<CurrencyId>>::lock_price(currency_id);
+        //     Ok(().into())
+        // }
+        //
+        // /// Unlock the price and get the price from `PriceProvider` again
+        // ///
+        // /// The dispatch origin of this call must be `LockOrigin`.
+        // ///
+        // /// - `currency_id`: currency type.
+        // #[pallet::weight(100)]
+        // #[transactional]
+        // pub fn unlock_price(
+        //     origin: OriginFor<T>,
+        //     currency_id: CurrencyId,
+        // ) -> DispatchResultWithPostInfo {
+        //     T::LockOrigin::ensure_origin(origin)?;
+        //     <Pallet<T> as PriceProvider<CurrencyId>>::unlock_price(currency_id);
+        //     Ok(().into())
+        // }
     }
 }
 
-impl<T: Config> PriceProvider<CurrencyId> for Pallet<T> {
-    /// get exchange rate between two currency types
-    /// Note: this returns the price for 1 basic unit
-    fn get_relative_price(
-        base_currency_id: CurrencyId,
-        quote_currency_id: CurrencyId,
-    ) -> Option<u128> {
-        if let (Some(base_price), Some(quote_price)) = (
-            Self::get_price(base_currency_id),
-            Self::get_price(quote_currency_id),
-        ) {
-            base_price.checked_div(quote_price)
-        } else {
-            None
-        }
-    }
-
-    /// get the exchange rate of specific currency to USD
-    /// Note: this returns the price for 1 basic unit
-    fn get_price(currency_id: CurrencyId) -> Option<u128> {
-        let maybe_feed_price = if currency_id == T::GetStableCurrencyId::get() {
-            // if is stable currency, return fixed price
-            Some(T::StableCurrencyFixedPrice::get().into_inner())
-        } else {
-            // if locked price exists, return it, otherwise return latest price from oracle.
-            Self::locked_price(currency_id)
-                .or_else(|| T::Source::get(&currency_id))
-                .and_then(|price| Some(price.into_inner()))
-        };
-
-        let maybe_adjustment_multiplier = 10u128.checked_pow(CURRENCY_DECIMAL);
-
-        if let (Some(feed_price), Some(adjustment_multiplier)) =
-            (maybe_feed_price, maybe_adjustment_multiplier)
-        {
-            OraclePrice::checked_from_rational(feed_price, adjustment_multiplier)
-                .and_then(|price| Some(price.into_inner()))
-        } else {
-            None
-        }
-        // TODO return FixedU128 price
-    }
-
-    fn lock_price(currency_id: CurrencyId) {
-        // lock price when get valid price from source
-        if let Some(val) = T::Source::get(&currency_id) {
-            LockedPrice::<T>::insert(currency_id, val);
-            <Pallet<T>>::deposit_event(Event::LockPrice(currency_id, val));
-        }
-    }
-
-    fn unlock_price(currency_id: CurrencyId) {
-        LockedPrice::<T>::remove(currency_id);
-        <Pallet<T>>::deposit_event(Event::UnlockPrice(currency_id));
+impl<T: Config> PriceFeeder for Pallet<T> {
+    fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
+        // if locked price exists, return it, otherwise return latest price from oracle.
+        T::Source::get_no_op(&currency_id).and_then(|price| Some((price.value.into_inner(), price.timestamp)))
     }
 }
+//
+// impl<T: Config> PriceProvider<CurrencyId> for Pallet<T> {
+//     /// get exchange rate between two currency types
+//     /// Note: this returns the price for 1 basic unit
+//     fn get_relative_price(
+//         base_currency_id: CurrencyId,
+//         quote_currency_id: CurrencyId,
+//     ) -> Option<u128> {
+//         if let (Some(base_price), Some(quote_price)) = (
+//             Self::get_price(base_currency_id),
+//             Self::get_price(quote_currency_id),
+//         ) {
+//             base_price.checked_div(quote_price)
+//         } else {
+//             None
+//         }
+//     }
+//
+//     /// get the exchange rate of specific currency to USD
+//     /// Note: this returns the price for 1 basic unit
+//     fn get_price(currency_id: CurrencyId) -> Option<u128> {
+//         let maybe_feed_price = if currency_id == T::GetStableCurrencyId::get() {
+//             // if is stable currency, return fixed price
+//             Some(T::StableCurrencyFixedPrice::get().into_inner())
+//         } else {
+//             // if locked price exists, return it, otherwise return latest price from oracle.
+//             Self::locked_price(currency_id)
+//                 .or_else(|| T::Source::get(&currency_id))
+//                 .and_then(|price| Some(price.into_inner()))
+//         };
+//
+//         let maybe_adjustment_multiplier = 10u128.checked_pow(CURRENCY_DECIMAL);
+//
+//         if let (Some(feed_price), Some(adjustment_multiplier)) =
+//             (maybe_feed_price, maybe_adjustment_multiplier)
+//         {
+//             OraclePrice::checked_from_rational(feed_price, adjustment_multiplier)
+//                 .and_then(|price| Some(price.into_inner()))
+//         } else {
+//             None
+//         }
+//         // TODO return FixedU128 price
+//     }
+//
+//     fn lock_price(currency_id: CurrencyId) {
+//         // lock price when get valid price from source
+//         if let Some(val) = T::Source::get(&currency_id) {
+//             LockedPrice::<T>::insert(currency_id, val);
+//             <Pallet<T>>::deposit_event(Event::LockPrice(currency_id, val));
+//         }
+//     }
+//
+//     fn unlock_price(currency_id: CurrencyId) {
+//         LockedPrice::<T>::remove(currency_id);
+//         <Pallet<T>>::deposit_event(Event::UnlockPrice(currency_id));
+//     }
+// }

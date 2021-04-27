@@ -395,7 +395,7 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
     type WeightInfo = ();
 }
 
-pub type TimeStampedPrice = orml_oracle::TimestampedValue<OraclePrice, primitives::Moment>;
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<OraclePrice, Moment>;
 create_median_value_data_provider!(
     AggregatedDataProvider,
     CurrencyId,
@@ -417,7 +417,6 @@ impl pallet_prices::Config for Runtime {
     type GetStableCurrencyId = GetStableCurrencyId;
     type StableCurrencyFixedPrice = StableCurrencyFixedPrice;
     type LockOrigin = EnsureRoot<AccountId>;
-    type WeightInfo = ();
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
