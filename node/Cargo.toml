@@ -85,5 +85,5 @@ default            = []
 runtime-benchmarks = [
   'vanilla-runtime/runtime-benchmarks',
   'parallel-runtime/runtime-benchmarks',
-  'polkadot-service/runtime-benchmarks'
+  'polkadot-service/runtime-benchmarks',
 ]

@@ -25,7 +25,7 @@ use sp_runtime::{
     FixedPointNumber,
 };
 use vanilla_runtime::{AuraConfig, GrandpaConfig};
-
+use sp_runtime::traits::One;
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ParallelChainSpec =
     sc_service::GenericChainSpec<parallel_runtime::GenesisConfig, Extensions>;
