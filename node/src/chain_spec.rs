@@ -20,12 +20,12 @@ use serde::{Deserialize, Serialize};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
+use sp_runtime::traits::One;
 use sp_runtime::{
     traits::{IdentifyAccount, Verify},
     FixedPointNumber,
 };
 use vanilla_runtime::{AuraConfig, GrandpaConfig};
-
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ParallelChainSpec =
     sc_service::GenericChainSpec<parallel_runtime::GenesisConfig, Extensions>;

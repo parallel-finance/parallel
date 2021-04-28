@@ -72,6 +72,7 @@ runtime-benchmarks = [
   'pallet-balances/runtime-benchmarks',
   'pallet-timestamp/runtime-benchmarks',
   'sp-runtime/runtime-benchmarks',
+  'pallet-loans/runtime-benchmarks',
 ]
 std                = [
   'codec/std',

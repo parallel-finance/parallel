@@ -26,6 +26,7 @@ use primitives::{
     Amount, Balance, CurrencyId, PriceDetail, PriceFeeder, Rate, Ratio, RATE_DECIMAL, TOKEN_DECIMAL,
 };
 use sp_core::H256;
+use sp_runtime::traits::One;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 use sp_std::vec::Vec;
 use std::{collections::HashMap, sync::Mutex};
