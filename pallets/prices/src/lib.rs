@@ -15,13 +15,15 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-use frame_support::{pallet_prelude::*, traits::Time, transactional};
+use frame_support::{pallet_prelude::*, transactional};
 use frame_system::pallet_prelude::*;
+pub use module::*;
 use orml_traits::{DataFeeder, DataProvider, DataProviderExtended};
 use primitives::*;
 use sp_runtime::FixedPointNumber;
 
-pub use module::*;
+mod mock;
+mod tests;
 
 pub const CURRENCY_DECIMAL: u32 = 18;
 
@@ -48,9 +50,6 @@ pub mod module {
         #[pallet::constant]
         type StableCurrencyFixedPrice: Get<OraclePrice>;
 
-        /// Time provider
-        type Time: Time;
-
         /// The origin which may set prices feed to system.
         type FeederOrigin: EnsureOrigin<Self::Origin>;
     }
@@ -59,9 +58,9 @@ pub mod module {
     #[pallet::generate_deposit(pub(crate) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Set emergency price. \[currency_id, price_detail\]
-        SetEmergencyPrice(CurrencyId, OraclePrice),
+        SetPrice(CurrencyId, OraclePrice),
         /// Reset emergency price. \[currency_id\]
-        ResetEmergencyPrice(CurrencyId),
+        ResetPrice(CurrencyId),
     }
 
     /// Mapping from currency id to it's emergency price
@@ -143,12 +142,12 @@ impl<T: Config> EmergencyPriceFeeder<CurrencyId, OraclePrice> for Pallet<T> {
     fn set_emergency_price(currency_id: CurrencyId, price: OraclePrice) {
         // set price direct
         EmergencyPrice::<T>::insert(currency_id, price.clone());
-        <Pallet<T>>::deposit_event(Event::SetEmergencyPrice(currency_id, price));
+        <Pallet<T>>::deposit_event(Event::SetPrice(currency_id, price));
     }
 
     /// Reset emergency price
     fn reset_emergency_price(currency_id: CurrencyId) {
         EmergencyPrice::<T>::remove(currency_id);
-        <Pallet<T>>::deposit_event(Event::ResetEmergencyPrice(currency_id));
+        <Pallet<T>>::deposit_event(Event::ResetPrice(currency_id));
     }
 }

@@ -175,10 +175,10 @@ fn testnet_genesis(
         },
         pallet_sudo: parallel_runtime::SudoConfig { key: root_key },
         parachain_info: parallel_runtime::ParachainInfoConfig { parachain_id: id },
-		orml_oracle_Instance1: ParallelOracleConfig {
-			members: endowed_accounts.clone().into(),
-			phantom: Default::default(),
-		},
+        orml_oracle_Instance1: ParallelOracleConfig {
+            members: endowed_accounts.clone().into(),
+            phantom: Default::default(),
+        },
         orml_tokens: parallel_runtime::TokensConfig {
             endowed_accounts: endowed_accounts
                 .iter()

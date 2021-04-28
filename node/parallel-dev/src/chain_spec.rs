@@ -22,8 +22,7 @@ use sp_runtime::{
     traits::{IdentifyAccount, One, Verify},
     FixedPointNumber,
 };
-use vanilla_runtime::{AuraConfig, GrandpaConfig, WASM_BINARY};
-use vanilla_runtime::VanillaOracleConfig;
+use vanilla_runtime::{AuraConfig, GrandpaConfig, WASM_BINARY, VanillaOracleConfig};
 
 pub type VanillaChainSpec = sc_service::GenericChainSpec<vanilla_runtime::GenesisConfig>;
 
@@ -167,7 +166,7 @@ fn testnet_genesis(
         },
         pallet_sudo: vanilla_runtime::SudoConfig { key: root_key },
 		orml_oracle_Instance1: VanillaOracleConfig {
-			members: endowed_accounts.clone().into()
+			members: endowed_accounts.clone().into(),
 			phantom: Default::default(),
 		},
         orml_tokens: vanilla_runtime::TokensConfig {

@@ -577,7 +577,6 @@ impl pallet_prices::Config for Runtime {
     type Source = AggregatedDataProvider;
     type GetStableCurrencyId = GetStableCurrencyId;
     type StableCurrencyFixedPrice = StableCurrencyFixedPrice;
-    type Time = Timestamp;
     type FeederOrigin = EnsureRoot<AccountId>;
 }
 

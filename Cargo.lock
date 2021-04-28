@@ -5025,13 +5025,13 @@ dependencies = [
  "sp-std",
 ]
 
+[[package]]
 name = "pallet-prices"
 version = "1.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
  "orml-oracle",
- "orml-tokens",
  "orml-traits",
  "parallel-primitives",
  "parity-scale-codec",
