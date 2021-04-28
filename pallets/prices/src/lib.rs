@@ -125,16 +125,16 @@ impl<T: Config> PriceFeeder for Pallet<T> {
     /// Get price and timestamp by currency_id
     /// Timestamp is zero and the currency is not stable currency means the price is emergency price
     fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
-		// if is stable currency, return fixed price
-		if *currency_id == T::GetStableCurrencyId::get() {
+        // if is stable currency, return fixed price
+        if *currency_id == T::GetStableCurrencyId::get() {
             Some((T::StableCurrencyFixedPrice::get().into_inner(), 0))
         } else {
-			// if emergency price exists, return it, otherwise return latest price from oracle.
-			Self::get_emergency_price(currency_id).or_else(|| {
-				T::Source::get_no_op(&currency_id)
-					.and_then(|price| Some((price.value.into_inner(), price.timestamp)))
-			})
-		}
+            // if emergency price exists, return it, otherwise return latest price from oracle.
+            Self::get_emergency_price(currency_id).or_else(|| {
+                T::Source::get_no_op(&currency_id)
+                    .and_then(|price| Some((price.value.into_inner(), price.timestamp)))
+            })
+        }
     }
 }
 

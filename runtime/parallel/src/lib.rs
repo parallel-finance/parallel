@@ -573,12 +573,12 @@ impl DataFeeder<CurrencyId, OraclePrice, AccountId> for AggregatedDataProvider {
 }
 
 impl pallet_prices::Config for Runtime {
-	type Event = Event;
-	type Source = AggregatedDataProvider;
-	type GetStableCurrencyId = GetStableCurrencyId;
-	type StableCurrencyFixedPrice = StableCurrencyFixedPrice;
-	type Time = Timestamp;
-	type FeederOrigin = EnsureRoot<AccountId>;
+    type Event = Event;
+    type Source = AggregatedDataProvider;
+    type GetStableCurrencyId = GetStableCurrencyId;
+    type StableCurrencyFixedPrice = StableCurrencyFixedPrice;
+    type Time = Timestamp;
+    type FeederOrigin = EnsureRoot<AccountId>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

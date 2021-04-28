@@ -2,7 +2,7 @@
 name = "pallet-prices"
 authors = ['Parallel Team']
 edition = '2018'
-version = '3.0.0'
+version = '1.0.0'
 
 [dependencies]
 serde = { version = "1.0.124", optional = true }
