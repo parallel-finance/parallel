@@ -4,10 +4,10 @@ build       = 'build.rs'
 description = 'A decentralized lending protocol which allow users to earn "double interests" from staking and lending'
 edition     = '2018'
 homepage    = 'https://parallel.fi'
-license     = 'Unlicense'
-name        = 'parallel'
+license     = 'Apache'
+name        = 'parallel-dev'
 repository  = 'https://github.com/parallel-finance/parallel'
-version     = '2.0.0'
+version     = '1.0.0'
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']
@@ -21,11 +21,10 @@ hex-literal            = '0.2.1'
 jsonrpc-core           = '15.1.0'
 log                    = '0.4.13'
 
-primitives = { package = 'parallel-primitives', path = '../primitives' }
+primitives = { package = 'parallel-primitives', path = '../../primitives' }
 
 pallet-transaction-payment-rpc = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
-parallel-runtime               = { version = '2.0.0', path = '../runtime/parallel' }
-vanilla-runtime                = { version = '2.0.0', path = '../runtime/vanilla' }
+vanilla-runtime                = { version = '0.0.1', path = '../../runtime/vanilla' }
 
 sc-basic-authorship = { version = '0.9.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
 sc-chain-spec       = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
@@ -62,14 +61,7 @@ sp-timestamp        = { version = '3.0.0', git = 'https://github.com/paritytech/
 sp-transaction-pool = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
 sp-trie             = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
 
-cumulus-client-collator              = { git = 'https://github.com/paritytech/cumulus.git', branch = 'rococo-v1' }
-cumulus-client-consensus-relay-chain = { git = 'https://github.com/paritytech/cumulus.git', branch = 'rococo-v1' }
-cumulus-client-network               = { git = 'https://github.com/paritytech/cumulus.git', branch = 'rococo-v1' }
-cumulus-client-service               = { git = 'https://github.com/paritytech/cumulus.git', branch = 'rococo-v1' }
-cumulus-primitives-core              = { git = 'https://github.com/paritytech/cumulus.git', branch = 'rococo-v1' }
-
 polkadot-cli          = { git = 'https://github.com/paritytech/polkadot.git', branch = 'rococo-v1' }
-polkadot-parachain    = { git = 'https://github.com/paritytech/polkadot.git', branch = 'rococo-v1' }
 polkadot-primitives   = { git = 'https://github.com/paritytech/polkadot.git', branch = 'rococo-v1' }
 polkadot-service      = { git = 'https://github.com/paritytech/polkadot.git', branch = 'rococo-v1' }
 polkadot-test-service = { git = 'https://github.com/paritytech/polkadot.git', branch = 'rococo-v1' }
@@ -78,12 +70,8 @@ polkadot-test-service = { git = 'https://github.com/paritytech/polkadot.git', br
 substrate-build-script-utils = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
 
 [[bin]]
-name = 'parallel'
+name = 'parallel-dev'
 
 [features]
 default            = []
-runtime-benchmarks = [
-  'vanilla-runtime/runtime-benchmarks',
-  'parallel-runtime/runtime-benchmarks',
-  'polkadot-service/runtime-benchmarks',
-]
+runtime-benchmarks = ['vanilla-runtime/runtime-benchmarks']

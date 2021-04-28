@@ -42,16 +42,14 @@ jobs:
 
       - name: Build Release And Package
         run: |
-          cargo build --release
+          cargo build --bin parallel-dev --release
           rm -fr dist || true
           mkdir dist || true
           cp README.md dist
-          cp target/release/parallel dist
+          cp target/release/parallel-dev dist/parallel
           cp -r ./resources dist
           cp scripts/setup.sh dist
           cp LICENSE dist
-          target/release/parallel export-genesis-state --parachain-id 200 > dist/resources/para-200-genesis
-          target/release/parallel export-genesis-wasm > dist/resources/para-200.wasm
           tar -cvJf vanilla-${{ steps.get_version.outputs.VERSION }}.tar.xz dist --transform 's|dist|parallel|'
 
       - name: Release

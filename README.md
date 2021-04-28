@@ -3,11 +3,17 @@
 [![GitHub last commit](https://img.shields.io/github/last-commit/parallel-finance/parallel)](https://github.com/parallel-finance/parallel/commits/master)
 [![CI](https://github.com/parallel-finance/parallel/workflows/CI/badge.svg)](https://github.com/parallel-finance/parallel/actions)
 [![Discord chat][discord-badge]][discord-url]
+[![Dependency Status](https://deps.rs/repo/github/parallel-finance/parallel/status.svg)](https://deps.rs/repo/github/parallel-finance/parallel)
 
 A new Cumulus-based Substrate node, ready for hacking :rocket:
 
 [discord-badge]: https://img.shields.io/discord/830972820846018600.svg?logo=discord&style=flat-square
 [discord-url]: https://discord.gg/fDjjzCTW
+
+[Website](https://parallel.fi) |
+[White Paper](https://docs.parallel.fi/white-paper) |
+[API Docs](https://docs.parallel.fi) |
+[Chat](https://discord.gg/fDjjzCTW)
 
 ## Getting Started
 
@@ -28,6 +34,21 @@ Once the development environment is set up, build the node template. This comman
 
 ```bash
 cargo build --release
+```
+
+### Others available commands
+
+```
+build
+check
+purge
+restart
+run
+test
+bench
+lint
+fmt
+help
 ```
 
 ## Run

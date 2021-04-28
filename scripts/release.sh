@@ -26,7 +26,7 @@ PKG_VER="$(get_pkg_metadata "version" 1)"
 PKG_XZ="$PKG_NAME-$PKG_VER-$COMMIT_HASH.tar.xz"
 
 if [ ! -f $BIN ]; then
-    echo "No binary found in .cargo, run scripts/build-image.sh to generate it" && exit 1
+    echo "No binary found in target, run cargo build --bin parallel --release to generate it" && exit 1
 fi
 
 INCLUDES=( \

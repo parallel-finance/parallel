@@ -13,7 +13,7 @@ pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const INITIAL_AMOUNT: u128 = 10000;
 
 fn initial_set_up<T: Config>(caller: T::AccountId) {
-    T::Currency::deposit(DOT, &caller, INITIAL_AMOUNT);
+    T::Currency::deposit(DOT, &caller, INITIAL_AMOUNT).unwrap();
 }
 
 benchmarks! {

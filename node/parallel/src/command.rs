@@ -22,8 +22,6 @@ use cumulus_primitives_core::ParaId;
 use log::info;
 use parallel_runtime::Block;
 use polkadot_parachain::primitives::AccountIdConversion;
-use polkadot_service::Role;
-use sc_chain_spec::ChainType;
 use sc_cli::{
     ChainSpec, CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams,
     NetworkParams, Result, RuntimeVersion, SharedParams, SubstrateCli,
@@ -43,9 +41,8 @@ fn load_spec(
     para_id: ParaId,
 ) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
     Ok(match id {
-        "dev" | "vanilla" => Box::new(chain_spec::development_config(para_id)),
-        "" => Box::new(chain_spec::local_testnet_config(para_id)),
-        "local" => Box::new(chain_spec::local_testnet_config(para_id)),
+        "dev" => Box::new(chain_spec::development_config(para_id)),
+        "" | "local" => Box::new(chain_spec::local_testnet_config(para_id)),
         path => Box::new(chain_spec::ParallelChainSpec::from_json_file(
             std::path::PathBuf::from(path),
         )?),
@@ -153,7 +150,7 @@ pub fn run() -> Result<()> {
                     task_manager,
                     import_queue,
                     ..
-                } = crate::service::new_partial_parallel(&config)?;
+                } = crate::service::new_partial(&config)?;
                 Ok((cmd.run(client, import_queue), task_manager))
             })
         }
@@ -164,7 +161,7 @@ pub fn run() -> Result<()> {
                     client,
                     task_manager,
                     ..
-                } = crate::service::new_partial_parallel(&config)?;
+                } = crate::service::new_partial(&config)?;
                 Ok((cmd.run(client, config.database), task_manager))
             })
         }
@@ -175,7 +172,7 @@ pub fn run() -> Result<()> {
                     client,
                     task_manager,
                     ..
-                } = crate::service::new_partial_parallel(&config)?;
+                } = crate::service::new_partial(&config)?;
                 Ok((cmd.run(client, config.chain_spec), task_manager))
             })
         }
@@ -187,7 +184,7 @@ pub fn run() -> Result<()> {
                     task_manager,
                     import_queue,
                     ..
-                } = crate::service::new_partial_parallel(&config)?;
+                } = crate::service::new_partial(&config)?;
                 Ok((cmd.run(client, import_queue), task_manager))
             })
         }
@@ -203,7 +200,7 @@ pub fn run() -> Result<()> {
                     task_manager,
                     backend,
                     ..
-                } = crate::service::new_partial_parallel(&config)?;
+                } = crate::service::new_partial(&config)?;
                 Ok((cmd.run(client, backend), task_manager))
             })
         }
@@ -267,58 +264,47 @@ pub fn run() -> Result<()> {
             let runner = cli.create_runner(&*cli.run)?;
 
             runner.run_node_until_exit(|config| async move {
-                match config.chain_spec.chain_type() {
-                    ChainType::Development => match config.role {
-                        Role::Light => crate::service::new_light(config),
-                        _ => crate::service::new_full(config),
-                    }
-                    .map_err(sc_cli::Error::Service),
-                    _ => {
-                        // TODO
-                        let key = sp_core::Pair::generate().0;
+                // TODO
+                let key = sp_core::Pair::generate().0;
 
-                        let extension = chain_spec::Extensions::try_get(&*config.chain_spec);
-                        let relay_chain_id = extension.map(|e| e.relay_chain.clone());
-                        let para_id = extension.map(|e| e.para_id);
+                let extension = chain_spec::Extensions::try_get(&*config.chain_spec);
+                let relay_chain_id = extension.map(|e| e.relay_chain.clone());
+                let para_id = extension.map(|e| e.para_id);
 
-                        let polkadot_cli = RelayChainCli::new(
-                            config.base_path.as_ref().map(|x| x.path().join("polkadot")),
-                            relay_chain_id,
-                            [RelayChainCli::executable_name()]
-                                .iter()
-                                .chain(cli.relaychain_args.iter()),
-                        );
+                let polkadot_cli = RelayChainCli::new(
+                    config.base_path.as_ref().map(|x| x.path().join("polkadot")),
+                    relay_chain_id,
+                    [RelayChainCli::executable_name()]
+                        .iter()
+                        .chain(cli.relaychain_args.iter()),
+                );
 
-                        let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(200));
+                let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(200));
 
-                        let parachain_account = AccountIdConversion::<
-                            polkadot_primitives::v0::AccountId,
-                        >::into_account(&id);
+                let parachain_account =
+                    AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(&id);
 
-                        let block: Block = generate_genesis_block(&config.chain_spec)
-                            .map_err(|e| format!("{:?}", e))?;
-                        let genesis_state =
-                            format!("0x{:?}", HexDisplay::from(&block.header().encode()));
+                let block: Block =
+                    generate_genesis_block(&config.chain_spec).map_err(|e| format!("{:?}", e))?;
+                let genesis_state = format!("0x{:?}", HexDisplay::from(&block.header().encode()));
 
-                        let polkadot_config = SubstrateCli::create_configuration(
-                            &polkadot_cli,
-                            &polkadot_cli,
-                            config.task_executor.clone(),
-                        )
-                        .map_err(|err| format!("Relay chain argument error: {}", err))?;
-                        let collator = cli.run.base.validator || cli.collator;
+                let polkadot_config = SubstrateCli::create_configuration(
+                    &polkadot_cli,
+                    &polkadot_cli,
+                    config.task_executor.clone(),
+                )
+                .map_err(|err| format!("Relay chain argument error: {}", err))?;
+                let collator = cli.run.base.validator || cli.collator;
 
-                        info!("Parachain id: {:?}", id);
-                        info!("Parachain Account: {}", parachain_account);
-                        info!("Parachain genesis state: {}", genesis_state);
-                        info!("Is collating: {}", if collator { "yes" } else { "no" });
+                info!("Parachain id: {:?}", id);
+                info!("Parachain Account: {}", parachain_account);
+                info!("Parachain genesis state: {}", genesis_state);
+                info!("Is collating: {}", if collator { "yes" } else { "no" });
 
-                        crate::service::start_node(config, key, polkadot_config, id, collator)
-                            .await
-                            .map(|r| r.0)
-                            .map_err(Into::into)
-                    }
-                }
+                crate::service::start_node(config, key, polkadot_config, id, collator)
+                    .await
+                    .map(|r| r.0)
+                    .map_err(Into::into)
             })
         }
     }
