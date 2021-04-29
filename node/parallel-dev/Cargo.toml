@@ -61,11 +61,6 @@ sp-timestamp        = { version = '3.0.0', git = 'https://github.com/paritytech/
 sp-transaction-pool = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
 sp-trie             = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
 
-polkadot-cli          = { git = 'https://github.com/paritytech/polkadot.git', branch = 'rococo-v1' }
-polkadot-primitives   = { git = 'https://github.com/paritytech/polkadot.git', branch = 'rococo-v1' }
-polkadot-service      = { git = 'https://github.com/paritytech/polkadot.git', branch = 'rococo-v1' }
-polkadot-test-service = { git = 'https://github.com/paritytech/polkadot.git', branch = 'rococo-v1' }
-
 [build-dependencies]
 substrate-build-script-utils = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
 
