@@ -56,10 +56,12 @@ impl InterestRateModel {
     /// Calculates the current borrow interest rate per block
     pub fn get_borrow_rate(&self, util: Ratio) -> Option<Rate> {
         if util <= self.kink {
+            // borrowRate = multiplier * utilizationRatio + baseRate
             self.multiplier_per_block
                 .saturating_mul(util.into())
                 .checked_add(&self.base_rate_per_block)
         } else {
+            // borrowRate = (multiplier * kink + baseRate) + (jumpMultiplier * (utilizationRatio - kink))
             let normal_rate = self
                 .multiplier_per_block
                 .saturating_mul(self.kink.into())
@@ -74,6 +76,7 @@ impl InterestRateModel {
 
     /// Calculates the current supply interest rate per block
     pub fn get_supply_rate(borrow_rate: Rate, util: Ratio, reserve_factor: Ratio) -> Option<Rate> {
+        // supplyRate = ((1 - reserveFactor) * borrowRate) * utilizationRatio
         let one_minus_reserve_factor = Ratio::one().saturating_sub(reserve_factor);
         let rate_to_pool = borrow_rate.saturating_mul(one_minus_reserve_factor.into());
 

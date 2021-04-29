@@ -527,7 +527,7 @@ impl<T: Config> Pallet<T> {
         for currency_id in Self::currencies() {
             let total_cash = Self::get_total_cash(currency_id);
             let total_borrows = Self::total_borrows(currency_id);
-            let util = Self::calc_utilization_ratio(total_cash, total_borrows, 0)?;
+            let util = Self::calc_utilization_ratio(total_cash, total_borrows, Zero::zero())?;
             UtilizationRatio::<T>::insert(currency_id, util);
 
             let interest_model = Self::currency_interest_model(currency_id);
@@ -569,11 +569,11 @@ impl<T: Config> Pallet<T> {
         borrows: Balance,
         reserves: Balance,
     ) -> Result<Ratio, Error<T>> {
-        // utilization rate is 0 when there are no borrows
+        // utilization ratio is 0 when there are no borrows
         if borrows.is_zero() {
             return Ok(Ratio::zero());
         }
-        // utilizationRate = totalBorrows / (totalCash + totalBorrows − totalReserves)
+        // utilizationRatio = totalBorrows / (totalCash + totalBorrows − totalReserves)
         let total =
             add_then_sub(cash, borrows, reserves).ok_or(Error::<T>::CalcInterestRateFailed)?;
 
@@ -584,6 +584,7 @@ impl<T: Config> Pallet<T> {
         borrow_rate_per_block: Rate,
         currency_id: CurrencyId,
     ) -> DispatchResult {
+        // borrowIndex = borrowIndex * borrowRate + borrowIndex
         let borrows_prior = Self::total_borrows(currency_id);
         let interest_accumulated = borrow_rate_per_block
             .checked_mul_int(borrows_prior)
