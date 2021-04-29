@@ -17,6 +17,7 @@ use primitives::*;
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
+#[allow(unused_imports)]
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::{
     traits::{IdentifyAccount, One, Verify},
@@ -27,6 +28,7 @@ use sp_runtime::{
 pub type ParallelChainSpec =
     sc_service::GenericChainSpec<parallel_runtime::GenesisConfig, Extensions>;
 
+#[allow(dead_code)]
 /// Helper function to generate a crypto pair from seed
 pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
     TPublic::Pair::from_string(&format!("//{}", seed), None)
@@ -51,8 +53,10 @@ impl Extensions {
     }
 }
 
+#[allow(dead_code)]
 type AccountPublic = <Signature as Verify>::Signer;
 
+#[allow(dead_code)]
 /// Helper function to generate an account ID from seed
 pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
 where
