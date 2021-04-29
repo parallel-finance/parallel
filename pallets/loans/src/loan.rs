@@ -14,7 +14,7 @@
 
 use primitives::{Balance, CurrencyId, RATE_DECIMAL};
 use sp_runtime::{
-    traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, Zero},
+    traits::{CheckedSub, Zero},
     DispatchResult,
 };
 use sp_std::prelude::*;
@@ -23,49 +23,6 @@ use sp_std::result;
 use crate::{util::*, *};
 
 impl<T: Config> Pallet<T> {
-    /// This calculates interest accrued from the last checkpointed block
-    /// up to the current block and writes new checkpoint to storage.
-    pub fn accrue_interest(currency_id: CurrencyId) -> DispatchResult {
-        // Read the previous values out of storage
-        let cash_prior = Self::get_total_cash(currency_id);
-        let borrows_prior = Self::total_borrows(currency_id);
-
-        // Calculate the current borrow interest rate
-        Self::update_borrow_rate(currency_id, cash_prior, borrows_prior, 0)?;
-
-        /*
-         * Compound protocol:
-         * Calculate the interest accumulated into borrows and reserves and the new index:
-         *  simpleInterestFactor = borrowRate * blockDelta
-         *  interestAccumulated = simpleInterestFactor * totalBorrows
-         *  totalBorrowsNew = interestAccumulated + totalBorrows
-         *  totalReservesNew = interestAccumulated * reserveFactor + totalReserves
-         *  borrowIndexNew = simpleInterestFactor * borrowIndex + borrowIndex
-         */
-
-        let borrow_rate_per_block = BorrowRate::<T>::get(currency_id);
-        let interest_accumulated = borrow_rate_per_block
-            .checked_mul_int(borrows_prior)
-            .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
-        let total_borrows_new = interest_accumulated
-            .checked_add(borrows_prior)
-            .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
-        let borrow_index = Self::borrow_index(currency_id);
-        let borrow_index_new = borrow_index
-            .checked_mul(&borrow_rate_per_block)
-            .and_then(|r| r.checked_add(&borrow_index))
-            .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
-
-        TotalBorrows::<T>::insert(currency_id, total_borrows_new);
-        BorrowIndex::<T>::insert(currency_id, borrow_index_new);
-
-        Ok(())
-    }
-
-    pub fn get_total_cash(currency_id: CurrencyId) -> Balance {
-        T::Currency::free_balance(currency_id, &Self::account_id())
-    }
-
     /// Sender supplies assets into the market and receives cTokens in exchange
     ///
     /// Ensured atomic.

@@ -16,12 +16,16 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::collapsible_if)]
 
+use crate::rate::InterestRateModel;
+use crate::util::*;
 use frame_support::{pallet_prelude::*, transactional, PalletId};
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 use primitives::{Amount, Balance, CurrencyId, Multiplier, PriceFeeder, Rate, Ratio};
-use sp_runtime::traits::Zero;
-use sp_runtime::{traits::AccountIdConversion, FixedPointNumber, RuntimeDebug};
+use sp_runtime::{
+    traits::{AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, Zero},
+    FixedPointNumber,
+};
 use sp_std::vec::Vec;
 
 pub use module::*;
@@ -235,25 +239,11 @@ pub mod module {
     #[pallet::getter(fn exchange_rate)]
     pub type ExchangeRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Rate, ValueQuery>;
 
-    /// The multiplier of utilization rate that gives the slope of the interest rate
-    #[pallet::storage]
-    #[pallet::getter(fn multipler_per_block)]
-    pub type MultiplierPerBlock<T: Config> = StorageValue<_, Multiplier, ValueQuery>;
-
-    /// The base interest rate which is the y-intercept when utilization rate is 0
-    #[pallet::storage]
-    #[pallet::getter(fn base_rate_per_block)]
-    pub type BaseRatePerBlock<T: Config> = StorageValue<_, Rate, ValueQuery>;
-
-    /// The multiplierPerBlock after hitting a specified utilization point
-    #[pallet::storage]
-    #[pallet::getter(fn jump_multiplier_per_block)]
-    pub type JumpMultiplierPerBlock<T: Config> = StorageValue<_, Multiplier, ValueQuery>;
-
     /// The utilization point at which the jump multiplier is applied
     #[pallet::storage]
-    #[pallet::getter(fn kink)]
-    pub type Kink<T: Config> = StorageValue<_, Ratio, ValueQuery>;
+    #[pallet::getter(fn currency_interest_model)]
+    pub type CurrencyInterestModel<T: Config> =
+        StorageMap<_, Twox64Concat, CurrencyId, InterestRateModel, ValueQuery>;
 
     /// Mapping of borrow rate to currency type
     #[pallet::storage]
@@ -263,7 +253,7 @@ pub mod module {
     /// Mapping of supply rate to currency type
     #[pallet::storage]
     #[pallet::getter(fn supply_rate)]
-    pub type SupplyRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+    pub type SupplyRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Rate, ValueQuery>;
 
     /// Borrow utilization ratio
     #[pallet::storage]
@@ -333,6 +323,14 @@ pub mod module {
     impl<T: Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
             self.currencies.iter().for_each(|currency_id| {
+                let interest_model = InterestRateModel::init_model(
+                    self.base_rate_per_year,
+                    self.multiplier_per_year,
+                    self.jump_multiplier_per_year,
+                    self.kink,
+                )
+                .unwrap();
+                CurrencyInterestModel::<T>::insert(currency_id, interest_model);
                 ExchangeRate::<T>::insert(currency_id, self.exchange_rate);
                 BorrowIndex::<T>::insert(currency_id, self.borrow_index);
             });
@@ -356,14 +354,7 @@ pub mod module {
                 .for_each(|(currency_id, close_factor)| {
                     CloseFactor::<T>::insert(currency_id, close_factor);
                 });
-            Kink::<T>::put(self.kink.clone());
             Currencies::<T>::put(self.currencies.clone());
-            Pallet::<T>::init_jump_rate_model(
-                self.base_rate_per_year,
-                self.multiplier_per_year,
-                self.jump_multiplier_per_year,
-            )
-            .unwrap();
         }
     }
 
@@ -393,13 +384,7 @@ pub mod module {
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
         fn on_finalize(_now: T::BlockNumber) {
-            Self::currencies().into_iter().for_each(|currency_id| {
-                let total_cash = Self::get_total_cash(currency_id);
-                let total_borrows = Self::total_borrows(currency_id);
-                let _ = Self::accrue_interest(currency_id);
-                let _ = Self::update_supply_rate(currency_id, total_cash, total_borrows, 0, 0);
-                let _ = Self::update_exchange_rate(currency_id);
-            });
+            let _ = <Pallet<T>>::accrue_interest();
         }
     }
 
@@ -538,6 +523,30 @@ impl<T: Config> Pallet<T> {
         T::PalletId::get().into_account()
     }
 
+    fn accrue_interest() -> DispatchResult {
+        for currency_id in Self::currencies() {
+            let total_cash = Self::get_total_cash(currency_id);
+            let total_borrows = Self::total_borrows(currency_id);
+            let util = Self::calc_utilization_ratio(total_cash, total_borrows, Zero::zero())?;
+            UtilizationRatio::<T>::insert(currency_id, util);
+
+            let interest_model = Self::currency_interest_model(currency_id);
+            let borrow_rate = interest_model
+                .get_borrow_rate(util)
+                .ok_or(Error::<T>::CollateralOverflow)?;
+            let supply_rate = InterestRateModel::get_supply_rate(borrow_rate, util, Ratio::zero())
+                .ok_or(Error::<T>::CollateralOverflow)?;
+
+            BorrowRate::<T>::insert(currency_id, &borrow_rate);
+            SupplyRate::<T>::insert(currency_id, supply_rate);
+
+            Self::update_borrow_index(borrow_rate, currency_id)?;
+            Self::update_exchange_rate(currency_id)?;
+        }
+
+        Ok(())
+    }
+
     pub fn update_exchange_rate(currency_id: CurrencyId) -> DispatchResult {
         // exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
         let total_borrows = Self::total_borrows(currency_id);
@@ -553,5 +562,49 @@ impl<T: Config> Pallet<T> {
         ExchangeRate::<T>::insert(currency_id, exchange_rate);
 
         Ok(())
+    }
+
+    pub fn calc_utilization_ratio(
+        cash: Balance,
+        borrows: Balance,
+        reserves: Balance,
+    ) -> Result<Ratio, Error<T>> {
+        // utilization ratio is 0 when there are no borrows
+        if borrows.is_zero() {
+            return Ok(Ratio::zero());
+        }
+        // utilizationRatio = totalBorrows / (totalCash + totalBorrows − totalReserves)
+        let total =
+            add_then_sub(cash, borrows, reserves).ok_or(Error::<T>::CalcInterestRateFailed)?;
+
+        Ok(Ratio::from_rational(borrows, total))
+    }
+
+    pub fn update_borrow_index(
+        borrow_rate_per_block: Rate,
+        currency_id: CurrencyId,
+    ) -> DispatchResult {
+        // borrowIndex = borrowIndex * borrowRate + borrowIndex
+        let borrows_prior = Self::total_borrows(currency_id);
+        let interest_accumulated = borrow_rate_per_block
+            .checked_mul_int(borrows_prior)
+            .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
+        let total_borrows_new = interest_accumulated
+            .checked_add(borrows_prior)
+            .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
+        let borrow_index = Self::borrow_index(currency_id);
+        let borrow_index_new = borrow_index
+            .checked_mul(&borrow_rate_per_block)
+            .and_then(|r| r.checked_add(&borrow_index))
+            .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
+
+        TotalBorrows::<T>::insert(currency_id, total_borrows_new);
+        BorrowIndex::<T>::insert(currency_id, borrow_index_new);
+
+        Ok(())
+    }
+
+    pub fn get_total_cash(currency_id: CurrencyId) -> Balance {
+        T::Currency::free_balance(currency_id, &Self::account_id())
     }
 }

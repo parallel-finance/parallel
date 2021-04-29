@@ -16,8 +16,7 @@
 
 use frame_support::{assert_noop, assert_ok};
 use primitives::{BLOCK_PER_YEAR, RATE_DECIMAL};
-use sp_runtime::traits::One;
-use sp_runtime::{traits::Saturating, Perbill};
+use sp_runtime::traits::{CheckedDiv, One, Saturating};
 
 use super::*;
 
@@ -57,64 +56,6 @@ fn utilization_rate_works() {
         Loans::calc_utilization_ratio(0, 1, 0).unwrap(),
         Ratio::from_percent(100)
     );
-}
-
-#[test]
-fn update_jump_rate_model_works() {
-    ExtBuilder::default().build().execute_with(|| {
-        let base_rate_per_year = Rate::saturating_from_rational(2, 100);
-        let multiplier_per_year = Rate::saturating_from_rational(1, 10);
-        let jump_multiplier_per_year = Rate::saturating_from_rational(11, 10);
-        assert_ok!(Loans::init_jump_rate_model(
-            base_rate_per_year,
-            multiplier_per_year,
-            jump_multiplier_per_year,
-        ));
-        assert_eq!(
-            BaseRatePerBlock::<Runtime>::get(),
-            base_rate_per_year.saturating_mul(Perbill::from_rational(1, BLOCK_PER_YEAR).into())
-        );
-        assert_eq!(
-            MultiplierPerBlock::<Runtime>::get(),
-            multiplier_per_year.saturating_mul(Perbill::from_rational(1, BLOCK_PER_YEAR).into())
-        );
-        assert_eq!(
-            JumpMultiplierPerBlock::<Runtime>::get(),
-            jump_multiplier_per_year
-                .saturating_mul(Perbill::from_rational(1, BLOCK_PER_YEAR).into())
-        );
-    });
-}
-
-#[test]
-fn update_borrow_rate_works() {
-    ExtBuilder::default().build().execute_with(|| {
-        // normal rate
-        let mut cash: u128 = dollar(5);
-        let borrows: u128 = dollar(10);
-        let reserves: u128 = 0;
-        assert_ok!(Loans::update_borrow_rate(DOT, cash, borrows, reserves));
-        let util = Loans::calc_utilization_ratio(cash, borrows, reserves).unwrap();
-        let multiplier_per_block = MultiplierPerBlock::<Runtime>::get();
-        let base_rate_per_block = BaseRatePerBlock::<Runtime>::get();
-        let kink = Kink::<Runtime>::get();
-        let jump_multiplier_per_block = JumpMultiplierPerBlock::<Runtime>::get();
-        assert_eq!(
-            multiplier_per_block.saturating_mul(util.into()) + base_rate_per_block,
-            BorrowRate::<Runtime>::get(DOT),
-        );
-
-        // jump rate
-        cash = dollar(1);
-        assert_ok!(Loans::update_borrow_rate(DOT, cash, borrows, reserves));
-        let util = Loans::calc_utilization_ratio(cash, borrows, reserves).unwrap();
-        let normal_rate = multiplier_per_block.saturating_mul(kink.into()) + base_rate_per_block;
-        let excess_util = util.saturating_sub(kink);
-        assert_eq!(
-            jump_multiplier_per_block.saturating_mul(excess_util.into()) + normal_rate,
-            BorrowRate::<Runtime>::get(DOT),
-        );
-    });
 }
 
 #[test]
@@ -252,15 +193,15 @@ fn repay_borrow_all_works() {
         // Alice deposit 200 DOT as collateral
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(200)));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
-        // Alice borrow 100 KSM
-        assert_ok!(Loans::borrow(Origin::signed(ALICE), KSM, dollar(100)));
+        // Alice borrow 50 KSM
+        assert_ok!(Loans::borrow(Origin::signed(ALICE), KSM, dollar(50)));
         // Alice repay all borrow balance
         assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), KSM));
 
         // DOT: cash - deposit +  = 1000 - 200 = 800
         // DOT collateral: deposit = 200
-        // KSM: cash + borrow - repay = 1000 + 100 - 100 = 1000
-        // KSM borrow balance: borrow - repay = 100 - 100 = 0
+        // KSM: cash + borrow - repay = 1000 + 50 - 50 = 1000
+        // KSM borrow balance: borrow - repay = 50 - 50 = 0
         assert_eq!(
             <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
             dollar(800),
@@ -349,17 +290,25 @@ fn interest_rate_model_works() {
         assert_eq!(Loans::total_supply(DOT), total_supply);
 
         let multiplier_per_year = Multiplier::saturating_from_rational(1, 10);
-        let multiplier_per_block =
-            multiplier_per_year.saturating_mul(Perbill::from_rational(1, BLOCK_PER_YEAR).into());
-        assert_eq!(multiplier_per_block, Loans::multipler_per_block());
+        let multiplier_per_block = multiplier_per_year
+            .checked_div(&Rate::saturating_from_integer(BLOCK_PER_YEAR))
+            .unwrap();
+        assert_eq!(
+            multiplier_per_block,
+            Loans::currency_interest_model(DOT).multiplier_per_block
+        );
+        assert_eq!(multiplier_per_block, Rate::from_inner(19025875190));
 
         let borrow_snapshot = Loans::account_borrows(DOT, ALICE);
         assert_eq!(borrow_snapshot.principal, dollar(100));
         assert_eq!(borrow_snapshot.borrow_index, Rate::one());
 
         let base_rate_per_year = Rate::saturating_from_rational(2, 100);
-        let base_rate_per_block =
-            base_rate_per_year.saturating_mul(Perbill::from_rational(1, BLOCK_PER_YEAR).into());
+        let base_rate_per_block = base_rate_per_year
+            .checked_div(&Rate::saturating_from_integer(BLOCK_PER_YEAR))
+            .unwrap();
+        assert_eq!(base_rate_per_block, Rate::from_inner(3805175038));
+
         let mut borrow_index = Rate::one();
         let mut total_borrows = borrow_snapshot.principal;
         let total_reserves = 0;
@@ -373,6 +322,7 @@ fn interest_rate_model_works() {
 
             let borrow_rate_per_block =
                 multiplier_per_block.saturating_mul(util_ratio.into()) + base_rate_per_block;
+            assert_eq!(borrow_rate_per_block, Rate::from_inner(13318112633));
             total_borrows = borrow_rate_per_block.saturating_mul_int(total_borrows) + total_borrows;
             assert_eq!(Loans::total_borrows(DOT), total_borrows);
 
@@ -385,12 +335,20 @@ fn interest_rate_model_works() {
             borrow_index = borrow_index * borrow_rate_per_block + borrow_index;
             assert_eq!(Loans::borrow_index(DOT), borrow_index);
         }
+        assert_eq!(total_borrows, 100000063926960645957);
+        assert_eq!(borrow_index, Rate::from_inner(1000000639269606437));
+        assert_eq!(
+            Loans::exchange_rate(DOT),
+            Rate::from_inner(20000006392696064)
+        );
 
         // Calculate borrow accrued interest
         let borrow_principal = (borrow_index / borrow_snapshot.borrow_index)
             .saturating_mul_int(borrow_snapshot.principal);
         let supply_interest =
             Loans::exchange_rate(DOT).saturating_mul_int(total_supply) - dollar(200);
+        assert_eq!(supply_interest, 63926960640000);
+        assert_eq!(borrow_principal, 100000063926960643700);
         assert_eq!(total_borrows / 10000, borrow_principal / 10000);
         assert_eq!(
             (total_borrows - dollar(100)) / 10000,
