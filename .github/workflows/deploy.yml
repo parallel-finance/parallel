@@ -37,15 +37,13 @@ jobs:
 
       - name: Build Release And Package
         run: |
-          cargo build --release
+          cargo build --bin parallel-dev --release
           rm -fr dist || true
           mkdir dist || true
           cp README.md dist
-          cp target/release/parallel dist
+          cp target/release/parallel-dev dist/parallel
           cp -r ./resources dist
           cp scripts/setup.sh dist
-          target/release/parallel export-genesis-state --parachain-id 200 > dist/resources/para-200-genesis
-          target/release/parallel export-genesis-wasm > dist/resources/para-200.wasm
           tar -cvJf parallel.tar.xz dist --transform 's|dist|parallel|'
 
       - name: Copy File Via Ssh Password
@@ -66,7 +64,6 @@ jobs:
           key: ${{ secrets.SSH_PRIVKEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            rm -fr parallel-chain || true
             if [ -d parallel ]; then cd parallel && ./setup.sh --undaemonize && cd ..; fi
             rm -fr parallel
             tar -Jxf parallel.tar.xz

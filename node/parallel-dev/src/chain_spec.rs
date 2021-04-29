@@ -12,23 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use cumulus_primitives_core::ParaId;
 use primitives::*;
-use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::ChainType;
-use serde::{Deserialize, Serialize};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+#[allow(unused_imports)]
 use sp_core::{sr25519, Pair, Public};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
-use sp_runtime::traits::One;
 use sp_runtime::{
-    traits::{IdentifyAccount, Verify},
+    traits::{IdentifyAccount, One, Verify},
     FixedPointNumber,
 };
-use vanilla_runtime::{AuraConfig, GrandpaConfig};
-/// Specialized `ChainSpec` for the normal parachain runtime.
-pub type ParallelChainSpec =
-    sc_service::GenericChainSpec<parallel_runtime::GenesisConfig, Extensions>;
+use vanilla_runtime::{AuraConfig, GrandpaConfig, WASM_BINARY};
+
 pub type VanillaChainSpec = sc_service::GenericChainSpec<vanilla_runtime::GenesisConfig>;
 
 /// Helper function to generate a crypto pair from seed
@@ -38,25 +33,10 @@ pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Pu
         .public()
 }
 
-/// The extensions for the [`ChainSpec`].
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ChainSpecGroup, ChainSpecExtension)]
-#[serde(deny_unknown_fields)]
-pub struct Extensions {
-    /// The relay chain of the Parachain.
-    pub relay_chain: String,
-    /// The id of the Parachain.
-    pub para_id: u32,
-}
-
-impl Extensions {
-    /// Try to get the extension from the given `ChainSpec`.
-    pub fn try_get(chain_spec: &dyn sc_service::ChainSpec) -> Option<&Self> {
-        sc_chain_spec::get_extension(chain_spec.extensions())
-    }
-}
-
+#[allow(dead_code)]
 type AccountPublic = <Signature as Verify>::Signer;
 
+#[allow(dead_code)]
 /// Helper function to generate an account ID from seed
 pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
 where
@@ -69,16 +49,21 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
     (get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
 }
 
-pub fn development_config(id: ParaId) -> VanillaChainSpec {
-    VanillaChainSpec::from_genesis(
+pub fn development_config() -> Result<VanillaChainSpec, String> {
+    let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
+
+    Ok(VanillaChainSpec::from_genesis(
         // Name
         "Development",
         // ID
         "dev",
         ChainType::Development,
         move || {
-            development_genesis(
-                get_account_id_from_seed::<sr25519::Public>("Alice"),
+            testnet_genesis(
+                wasm_binary,
+                "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                    .parse()
+                    .unwrap(),
                 vec![authority_keys_from_seed("Alice")],
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Alice"),
@@ -94,11 +79,10 @@ pub fn development_config(id: ParaId) -> VanillaChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                     // Parallel team accounts
-                    "5G4fc9GN6DeFQm4h2HKq3d9hBTsBJWSLWkyuk35cKHh2sqEz"
+                    "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
                         .parse()
                         .unwrap(),
                 ],
-                id,
             )
         },
         vec![],
@@ -106,11 +90,13 @@ pub fn development_config(id: ParaId) -> VanillaChainSpec {
         None,
         None,
         None,
-    )
+    ))
 }
 
-pub fn local_testnet_config(id: ParaId) -> ParallelChainSpec {
-    ParallelChainSpec::from_genesis(
+pub fn local_testnet_config() -> Result<VanillaChainSpec, String> {
+    let wasm_binary = WASM_BINARY.ok_or_else(|| "Testnet wasm not available".to_string())?;
+
+    Ok(VanillaChainSpec::from_genesis(
         // Name
         "Local Testnet",
         // ID
@@ -118,7 +104,11 @@ pub fn local_testnet_config(id: ParaId) -> ParallelChainSpec {
         ChainType::Local,
         move || {
             testnet_genesis(
-                get_account_id_from_seed::<sr25519::Public>("Alice"),
+                wasm_binary,
+                "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                    .parse()
+                    .unwrap(),
+                vec![authority_keys_from_seed("Alice")],
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Alice"),
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -133,34 +123,29 @@ pub fn local_testnet_config(id: ParaId) -> ParallelChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                     // Parallel team accounts
-                    "5G4fc9GN6DeFQm4h2HKq3d9hBTsBJWSLWkyuk35cKHh2sqEz"
+                    "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
                         .parse()
                         .unwrap(),
                 ],
-                id,
             )
         },
         vec![],
         None,
         None,
         None,
-        Extensions {
-            relay_chain: "rococo-local".into(),
-            para_id: id.into(),
-        },
-    )
+        None,
+    ))
 }
-fn development_genesis(
+
+fn testnet_genesis(
+    wasm_binary: &[u8],
     root_key: AccountId,
     initial_authorities: Vec<(AuraId, GrandpaId)>,
     endowed_accounts: Vec<AccountId>,
-    _id: ParaId,
 ) -> vanilla_runtime::GenesisConfig {
     vanilla_runtime::GenesisConfig {
         frame_system: vanilla_runtime::SystemConfig {
-            code: vanilla_runtime::WASM_BINARY
-                .expect("WASM binary was not build, please build it!")
-                .to_vec(),
+            code: wasm_binary.to_vec(),
             changes_trie_config: Default::default(),
         },
         pallet_aura: AuraConfig {
@@ -233,82 +218,5 @@ fn development_genesis(
             ],
         },
         pallet_staking: vanilla_runtime::StakingConfig {},
-    }
-}
-
-fn testnet_genesis(
-    root_key: AccountId,
-    endowed_accounts: Vec<AccountId>,
-    id: ParaId,
-) -> parallel_runtime::GenesisConfig {
-    parallel_runtime::GenesisConfig {
-        frame_system: parallel_runtime::SystemConfig {
-            code: parallel_runtime::WASM_BINARY
-                .expect("WASM binary was not build, please build it!")
-                .to_vec(),
-            changes_trie_config: Default::default(),
-        },
-        pallet_balances: parallel_runtime::BalancesConfig {
-            balances: endowed_accounts
-                .iter()
-                .cloned()
-                .map(|k| (k, 1 << 60))
-                .collect(),
-        },
-        pallet_sudo: parallel_runtime::SudoConfig { key: root_key },
-        parachain_info: parallel_runtime::ParachainInfoConfig { parachain_id: id },
-        orml_tokens: parallel_runtime::TokensConfig {
-            endowed_accounts: endowed_accounts
-                .iter()
-                .flat_map(|x| {
-                    vec![
-                        (x.clone(), CurrencyId::DOT, 1_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::KSM, 1_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::USDT, 1_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::xDOT, 1_000 * TOKEN_DECIMAL),
-                    ]
-                })
-                .collect(),
-        },
-        pallet_loans: parallel_runtime::LoansConfig {
-            currencies: vec![
-                CurrencyId::DOT,
-                CurrencyId::KSM,
-                CurrencyId::USDT,
-                CurrencyId::xDOT,
-            ],
-            borrow_index: Rate::one(),                                  // 1
-            exchange_rate: Rate::saturating_from_rational(2, 100),      // 0.02
-            base_rate_per_year: Rate::saturating_from_rational(2, 100), // 0.02
-            multiplier_per_year: Multiplier::saturating_from_rational(1, 10), // 0.1
-            jump_multiplier_per_year: Multiplier::saturating_from_rational(11, 10), // 1.1
-            kink: Ratio::from_percent(80),                              // 0.8
-            collateral_factor: vec![
-                (CurrencyId::DOT, Ratio::from_percent(50)),
-                (CurrencyId::KSM, Ratio::from_percent(50)),
-                (CurrencyId::USDT, Ratio::from_percent(50)),
-                (CurrencyId::xDOT, Ratio::from_percent(50)),
-            ],
-            liquidation_incentive: vec![
-                (CurrencyId::DOT, 9 * RATE_DECIMAL / 10),
-                (CurrencyId::KSM, 9 * RATE_DECIMAL / 10),
-                (CurrencyId::USDT, 9 * RATE_DECIMAL / 10),
-                (CurrencyId::xDOT, 9 * RATE_DECIMAL / 10),
-            ],
-            //TODO : please refer to https://github.com/parallel-finance/parallel/issues/46
-            liquidation_threshold: vec![
-                (CurrencyId::DOT, 90 * RATE_DECIMAL / 100),
-                (CurrencyId::KSM, 90 * RATE_DECIMAL / 100),
-                (CurrencyId::USDT, 90 * RATE_DECIMAL / 100),
-                (CurrencyId::xDOT, 90 * RATE_DECIMAL / 100),
-            ],
-            close_factor: vec![
-                (CurrencyId::DOT, Ratio::from_percent(50)),
-                (CurrencyId::KSM, Ratio::from_percent(50)),
-                (CurrencyId::USDT, Ratio::from_percent(50)),
-                (CurrencyId::xDOT, Ratio::from_percent(50)),
-            ],
-        },
-        pallet_staking: parallel_runtime::StakingConfig {},
     }
 }

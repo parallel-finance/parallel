@@ -2,7 +2,7 @@
 authors = ['Parallel Team']
 edition = '2018'
 name    = 'pallet-liquidate'
-version = '3.0.0'
+version = '1.0.0'
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']
@@ -19,8 +19,8 @@ sp-keystore   = { git = 'https://github.com/paritytech/substrate.git', branch = 
 sp-runtime    = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
 sp-std        = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
 
-pallet-loans      = { path = '../loans', default-features = false }
-primitives        = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
+pallet-loans = { path = '../loans', default-features = false }
+primitives   = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 
 
 [features]

@@ -4,10 +4,10 @@ build       = 'build.rs'
 description = 'A decentralized lending protocol which allow users to earn "double interests" from staking and lending'
 edition     = '2018'
 homepage    = 'https://parallel.fi'
-license     = 'Unlicense'
+license     = 'Apache'
 name        = 'parallel-runtime'
 repository  = 'https://github.com/parallel-finance/parallel'
-version     = '2.0.0'
+version     = '0.0.1'
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']
@@ -16,9 +16,9 @@ targets = ['x86_64-unknown-linux-gnu']
 codec                                      = { package = 'parity-scale-codec', version = '2.0.0', default-features = false, features = ['derive'] }
 cumulus-pallet-parachain-system            = { git = 'https://github.com/paritytech/cumulus.git', branch = 'rococo-v1', default-features = false }
 cumulus-pallet-xcm                         = { git = 'https://github.com/paritytech/cumulus.git', branch = 'rococo-v1', default-features = false }
+cumulus-pallet-xcmp-queue                  = { git = 'https://github.com/paritytech/cumulus.git', branch = 'rococo-v1', default-features = false }
 cumulus-primitives-core                    = { git = 'https://github.com/paritytech/cumulus.git', branch = 'rococo-v1', default-features = false }
 cumulus-primitives-utility                 = { git = 'https://github.com/paritytech/cumulus.git', branch = 'rococo-v1', default-features = false }
-cumulus-pallet-xcmp-queue                  = { git = 'https://github.com/paritytech/cumulus.git', branch = 'rococo-v1', default-features = false }
 frame-benchmarking                         = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false, optional = true }
 frame-executive                            = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
 frame-support                              = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
@@ -31,7 +31,6 @@ orml-tokens                                = { git = 'https://github.com/open-we
 orml-traits                                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-utilities                             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 pallet-balances                            = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
-pallet-xcm                                 = { git = 'https://github.com/paritytech/polkadot.git',  branch = 'rococo-v1', default-features = false }
 pallet-liquidate                           = { path = '../../pallets/liquidate', default-features = false }
 pallet-loans                               = { path = '../../pallets/loans', default-features = false }
 pallet-ocw-oracle                          = { path = '../../pallets/ocw-oracle', default-features = false }
@@ -41,6 +40,7 @@ pallet-sudo                                = { git = 'https://github.com/parityt
 pallet-timestamp                           = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
 pallet-transaction-payment                 = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
+pallet-xcm                                 = { git = 'https://github.com/paritytech/polkadot.git', branch = 'rococo-v1', default-features = false }
 parachain-info                             = { git = 'https://github.com/paritytech/cumulus.git', version = '0.1.0', branch = 'rococo-v1', default-features = false }
 polkadot-parachain                         = { git = 'https://github.com/paritytech/polkadot.git', branch = 'rococo-v1', default-features = false }
 primitives                                 = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
