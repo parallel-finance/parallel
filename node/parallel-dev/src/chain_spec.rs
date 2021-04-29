@@ -58,7 +58,9 @@ pub fn development_config() -> Result<VanillaChainSpec, String> {
         move || {
             testnet_genesis(
                 wasm_binary,
-                get_account_id_from_seed::<sr25519::Public>("Alice"),
+                "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                    .parse()
+                    .unwrap(),
                 vec![authority_keys_from_seed("Alice")],
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Alice"),
@@ -74,7 +76,7 @@ pub fn development_config() -> Result<VanillaChainSpec, String> {
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                     // Parallel team accounts
-                    "5G4fc9GN6DeFQm4h2HKq3d9hBTsBJWSLWkyuk35cKHh2sqEz"
+                    "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
                         .parse()
                         .unwrap(),
                 ],
@@ -100,7 +102,9 @@ pub fn local_testnet_config() -> Result<VanillaChainSpec, String> {
         move || {
             testnet_genesis(
                 wasm_binary,
-                get_account_id_from_seed::<sr25519::Public>("Alice"),
+                "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                    .parse()
+                    .unwrap(),
                 vec![authority_keys_from_seed("Alice")],
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Alice"),
@@ -116,7 +120,7 @@ pub fn local_testnet_config() -> Result<VanillaChainSpec, String> {
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                     // Parallel team accounts
-                    "5G4fc9GN6DeFQm4h2HKq3d9hBTsBJWSLWkyuk35cKHh2sqEz"
+                    "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
                         .parse()
                         .unwrap(),
                 ],

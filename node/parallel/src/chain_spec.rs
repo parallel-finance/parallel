@@ -70,7 +70,9 @@ pub fn development_config(id: ParaId) -> ParallelChainSpec {
         ChainType::Development,
         move || {
             testnet_genesis(
-                get_account_id_from_seed::<sr25519::Public>("Alice"),
+                "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                    .parse()
+                    .unwrap(),
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Alice"),
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -85,7 +87,7 @@ pub fn development_config(id: ParaId) -> ParallelChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                     // Parallel team accounts
-                    "5G4fc9GN6DeFQm4h2HKq3d9hBTsBJWSLWkyuk35cKHh2sqEz"
+                    "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
                         .parse()
                         .unwrap(),
                 ],
@@ -112,7 +114,9 @@ pub fn local_testnet_config(id: ParaId) -> ParallelChainSpec {
         ChainType::Local,
         move || {
             testnet_genesis(
-                get_account_id_from_seed::<sr25519::Public>("Alice"),
+                "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                    .parse()
+                    .unwrap(),
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Alice"),
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -127,7 +131,7 @@ pub fn local_testnet_config(id: ParaId) -> ParallelChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                     // Parallel team accounts
-                    "5G4fc9GN6DeFQm4h2HKq3d9hBTsBJWSLWkyuk35cKHh2sqEz"
+                    "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
                         .parse()
                         .unwrap(),
                 ],
