@@ -62,6 +62,7 @@ use xcm_executor::{Config, XcmExecutor};
 pub use pallet_liquidate;
 pub use pallet_loans;
 pub use pallet_ocw_oracle;
+pub use pallet_prices;
 pub use pallet_staking;
 
 // A few exports that help ease life for downstream crates.
@@ -337,7 +338,7 @@ impl pallet_loans::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
     type PalletId = LoansPalletId;
-    type PriceFeeder = OcwOracle;
+    type PriceFeeder = Prices;
 }
 
 impl pallet_staking::Config for Runtime {
@@ -350,7 +351,7 @@ impl pallet_liquidate::Config for Runtime {
     type AuthorityId = pallet_liquidate::crypto::TestAuthId;
     type Call = Call;
     type Event = Event;
-    type PriceFeeder = OcwOracle;
+    type PriceFeeder = Prices;
 }
 
 parameter_types! {
