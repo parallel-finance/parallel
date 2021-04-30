@@ -26,14 +26,14 @@ use frame_support::{
     PalletId,
 };
 use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::{create_median_value_data_provider, parameter_type_with_key, DataFeeder};
+use orml_traits::{parameter_type_with_key, DataProvider};
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::traits::{AccountIdLookup, BlakeTwo256, Block as BlockT};
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys, traits,
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, DispatchResult, SaturatedConversion,
+    ApplyExtrinsicResult, SaturatedConversion,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -558,17 +558,10 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
 }
 
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<OraclePrice, Moment>;
-create_median_value_data_provider!(
-    AggregatedDataProvider,
-    CurrencyId,
-    OraclePrice,
-    TimeStampedPrice,
-    [ParallelOracle]
-);
-// Aggregated data provider cannot feed.
-impl DataFeeder<CurrencyId, OraclePrice, AccountId> for AggregatedDataProvider {
-    fn feed_value(_: AccountId, _: CurrencyId, _: OraclePrice) -> DispatchResult {
-        Err("Not supported".into())
+pub struct AggregatedDataProvider;
+impl DataProvider<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
+    fn get(key: &CurrencyId) -> Option<TimeStampedPrice> {
+        ParallelOracle::get(key)
     }
 }
 

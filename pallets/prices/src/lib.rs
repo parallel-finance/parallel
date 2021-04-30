@@ -18,7 +18,7 @@
 use frame_support::{pallet_prelude::*, transactional};
 use frame_system::pallet_prelude::*;
 pub use module::*;
-use orml_traits::{DataFeeder, DataProvider, DataProviderExtended};
+use orml_traits::DataProvider;
 use primitives::*;
 use sp_runtime::FixedPointNumber;
 
@@ -38,9 +38,7 @@ pub mod module {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// The data source, such as Oracle.
-        type Source: DataProvider<CurrencyId, OraclePrice>
-            + DataFeeder<CurrencyId, OraclePrice, Self::AccountId>
-            + DataProviderExtended<CurrencyId, TimeStampedPrice>;
+        type Source: DataProvider<CurrencyId, TimeStampedPrice>;
 
         /// The stable currency id, it should be USDT in Parallel.
         #[pallet::constant]
@@ -130,7 +128,7 @@ impl<T: Config> PriceFeeder for Pallet<T> {
         } else {
             // if emergency price exists, return it, otherwise return latest price from oracle.
             Self::get_emergency_price(currency_id).or_else(|| {
-                T::Source::get_no_op(&currency_id)
+                T::Source::get(&currency_id)
                     .and_then(|price| Some((price.value.into_inner(), price.timestamp)))
             })
         }

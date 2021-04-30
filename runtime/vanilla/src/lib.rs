@@ -9,7 +9,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 use codec::Encode;
 use frame_support::PalletId;
 use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::{create_median_value_data_provider, parameter_type_with_key, DataFeeder};
+use orml_traits::{parameter_type_with_key, DataProvider};
 use pallet_grandpa::fg_primitives;
 use pallet_grandpa::{AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use primitives::{Amount, Balance, CurrencyId, Price};
@@ -21,7 +21,7 @@ use sp_runtime::traits::{self, AccountIdLookup, BlakeTwo256, Block as BlockT, Nu
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, DispatchResult, SaturatedConversion,
+    ApplyExtrinsicResult, SaturatedConversion,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -395,18 +395,10 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
 }
 
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<OraclePrice, Moment>;
-create_median_value_data_provider!(
-    AggregatedDataProvider,
-    CurrencyId,
-    OraclePrice,
-    TimeStampedPrice,
-    [VanillaOracle]
-);
-
-// Aggregated data provider cannot feed.
-impl DataFeeder<CurrencyId, OraclePrice, AccountId> for AggregatedDataProvider {
-    fn feed_value(_: AccountId, _: CurrencyId, _: OraclePrice) -> DispatchResult {
-        Err("Not supported".into())
+pub struct AggregatedDataProvider;
+impl DataProvider<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
+    fn get(key: &CurrencyId) -> Option<TimeStampedPrice> {
+        VanillaOracle::get(key)
     }
 }
 
