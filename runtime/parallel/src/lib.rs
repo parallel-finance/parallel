@@ -26,7 +26,7 @@ use frame_support::{
     PalletId,
 };
 use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::parameter_type_with_key;
+use orml_traits::{parameter_type_with_key, DataProvider};
 use sp_api::impl_runtime_apis;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::traits::{AccountIdLookup, BlakeTwo256, Block as BlockT};
@@ -42,7 +42,10 @@ use sp_version::RuntimeVersion;
 
 // XCM imports
 use frame_support::log;
-use frame_system::limits::{BlockLength, BlockWeights};
+use frame_system::{
+    limits::{BlockLength, BlockWeights},
+    EnsureRoot,
+};
 use polkadot_parachain::primitives::Sibling;
 use primitives::*;
 use xcm::v0::{Junction, MultiLocation, NetworkId};
@@ -59,6 +62,7 @@ use xcm_executor::{Config, XcmExecutor};
 pub use pallet_liquidate;
 pub use pallet_loans;
 pub use pallet_ocw_oracle;
+pub use pallet_prices;
 pub use pallet_staking;
 
 // A few exports that help ease life for downstream crates.
@@ -334,7 +338,7 @@ impl pallet_loans::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
     type PalletId = LoansPalletId;
-    type PriceFeeder = OcwOracle;
+    type PriceFeeder = Prices;
 }
 
 impl pallet_staking::Config for Runtime {
@@ -347,7 +351,7 @@ impl pallet_liquidate::Config for Runtime {
     type AuthorityId = pallet_liquidate::crypto::TestAuthId;
     type Call = Call;
     type Event = Event;
-    type PriceFeeder = OcwOracle;
+    type PriceFeeder = Prices;
 }
 
 parameter_types! {
@@ -535,6 +539,41 @@ impl Config for XcmConfig {
     type ResponseHandler = (); // Don't handle responses for now.
 }
 
+parameter_types! {
+      pub const MinimumCount: u32 = 1;
+      pub const ExpiresIn: Moment = 1000 * 60 * 60; // 60 mins
+      pub ZeroAccountId: AccountId = AccountId::from([0u8; 32]);
+}
+
+type ParallelDataProvider = orml_oracle::Instance1;
+impl orml_oracle::Config<ParallelDataProvider> for Runtime {
+    type Event = Event;
+    type OnNewData = ();
+    type CombineData =
+        orml_oracle::DefaultCombineData<Runtime, MinimumCount, ExpiresIn, ParallelDataProvider>;
+    type Time = Timestamp;
+    type OracleKey = CurrencyId;
+    type OracleValue = OraclePrice;
+    type RootOperatorAccountId = ZeroAccountId;
+    type WeightInfo = ();
+}
+
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<OraclePrice, Moment>;
+pub struct AggregatedDataProvider;
+impl DataProvider<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
+    fn get(key: &CurrencyId) -> Option<TimeStampedPrice> {
+        ParallelOracle::get(key)
+    }
+}
+
+impl pallet_prices::Config for Runtime {
+    type Event = Event;
+    type Source = AggregatedDataProvider;
+    type GetStableCurrencyId = GetStableCurrencyId;
+    type StableCurrencyFixedPrice = StableCurrencyFixedPrice;
+    type FeederOrigin = EnsureRoot<AccountId>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -556,9 +595,11 @@ construct_runtime!(
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
         OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
+        ParallelOracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Config<T>, Event<T>},
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
         Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},
         Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},
+        Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
     }
 );
 

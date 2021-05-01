@@ -118,3 +118,10 @@ pub type Rate = FixedU128;
 pub type Ratio = Permill;
 
 pub type Multiplier = FixedU128;
+
+pub type OraclePrice = FixedU128;
+
+pub trait EmergencyPriceFeeder<CurrencyId, OraclePrice> {
+    fn set_emergency_price(currency_id: CurrencyId, price: OraclePrice);
+    fn reset_emergency_price(currency_id: CurrencyId);
+}

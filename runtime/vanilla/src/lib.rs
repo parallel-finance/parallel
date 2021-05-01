@@ -9,7 +9,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 use codec::Encode;
 use frame_support::PalletId;
 use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::parameter_type_with_key;
+use orml_traits::{parameter_type_with_key, DataProvider};
 use pallet_grandpa::fg_primitives;
 use pallet_grandpa::{AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use primitives::{Amount, Balance, CurrencyId, Price};
@@ -44,6 +44,7 @@ pub use frame_support::{
     },
     StorageValue,
 };
+use frame_system::EnsureRoot;
 use pallet_transaction_payment::CurrencyAdapter;
 pub use primitives::*;
 #[cfg(any(feature = "std", test))]
@@ -287,7 +288,7 @@ impl pallet_loans::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
     type PalletId = LoansPalletId;
-    type PriceFeeder = OcwOracle;
+    type PriceFeeder = Prices;
 }
 
 impl pallet_staking::Config for Runtime {
@@ -311,7 +312,7 @@ impl pallet_liquidate::Config for Runtime {
     type AuthorityId = pallet_liquidate::crypto::TestAuthId;
     type Call = Call;
     type Event = Event;
-    type PriceFeeder = OcwOracle;
+    type PriceFeeder = Prices;
 }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
@@ -374,6 +375,41 @@ where
     type Extrinsic = UncheckedExtrinsic;
 }
 
+parameter_types! {
+      pub const MinimumCount: u32 = 1;
+      pub const ExpiresIn: Moment = 1000 * 60 * 60; // 60 mins
+      pub ZeroAccountId: AccountId = AccountId::from([0u8; 32]);
+}
+
+type ParallelDataProvider = orml_oracle::Instance1;
+impl orml_oracle::Config<ParallelDataProvider> for Runtime {
+    type Event = Event;
+    type OnNewData = ();
+    type CombineData =
+        orml_oracle::DefaultCombineData<Runtime, MinimumCount, ExpiresIn, ParallelDataProvider>;
+    type Time = Timestamp;
+    type OracleKey = CurrencyId;
+    type OracleValue = OraclePrice;
+    type RootOperatorAccountId = ZeroAccountId;
+    type WeightInfo = ();
+}
+
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<OraclePrice, Moment>;
+pub struct AggregatedDataProvider;
+impl DataProvider<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
+    fn get(key: &CurrencyId) -> Option<TimeStampedPrice> {
+        VanillaOracle::get(key)
+    }
+}
+
+impl pallet_prices::Config for Runtime {
+    type Event = Event;
+    type Source = AggregatedDataProvider;
+    type GetStableCurrencyId = GetStableCurrencyId;
+    type StableCurrencyFixedPrice = StableCurrencyFixedPrice;
+    type FeederOrigin = EnsureRoot<AccountId>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -396,7 +432,9 @@ construct_runtime!(
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
         Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},
         OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
+        VanillaOracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Config<T>, Event<T>},
         Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},
+        Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
     }
 );
 

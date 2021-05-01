@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use cumulus_primitives_core::ParaId;
+use parallel_runtime::ParallelOracleConfig;
 use primitives::*;
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::ChainType;
@@ -174,6 +175,10 @@ fn testnet_genesis(
         },
         pallet_sudo: parallel_runtime::SudoConfig { key: root_key },
         parachain_info: parallel_runtime::ParachainInfoConfig { parachain_id: id },
+        orml_oracle_Instance1: ParallelOracleConfig {
+            members: endowed_accounts.clone().into(),
+            phantom: Default::default(),
+        },
         orml_tokens: parallel_runtime::TokensConfig {
             endowed_accounts: endowed_accounts
                 .iter()
