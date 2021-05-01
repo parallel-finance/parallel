@@ -40,14 +40,6 @@ pub mod module {
         /// The data source, such as Oracle.
         type Source: DataProvider<CurrencyId, TimeStampedPrice>;
 
-        /// The stable currency id, it should be USDT in Parallel.
-        #[pallet::constant]
-        type GetStableCurrencyId: Get<CurrencyId>;
-
-        /// The fixed prices of stable currency, it should be 1 USD in Parallel.
-        #[pallet::constant]
-        type StableCurrencyFixedPrice: Get<OraclePrice>;
-
         /// The origin which may set prices feed to system.
         type FeederOrigin: EnsureOrigin<Self::Origin>;
     }
@@ -119,19 +111,14 @@ impl<T: Config> Pallet<T> {
 }
 
 impl<T: Config> PriceFeeder for Pallet<T> {
-    /// Get price and timestamp by currency_id
-    /// Timestamp is zero and the currency is not stable currency means the price is emergency price
+    /// Get price and timestamp by currency id
+    /// Timestamp is zero means the price is emergency price
     fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
-        // if is stable currency, return fixed price
-        if *currency_id == T::GetStableCurrencyId::get() {
-            Some((T::StableCurrencyFixedPrice::get().into_inner(), 0))
-        } else {
-            // if emergency price exists, return it, otherwise return latest price from oracle.
-            Self::get_emergency_price(currency_id).or_else(|| {
-                T::Source::get(&currency_id)
-                    .and_then(|price| Some((price.value.into_inner(), price.timestamp)))
-            })
-        }
+        // if emergency price exists, return it, otherwise return latest price from oracle.
+        Self::get_emergency_price(currency_id).or_else(|| {
+            T::Source::get(&currency_id)
+                .and_then(|price| Some((price.value.into_inner(), price.timestamp)))
+        })
     }
 }
 
