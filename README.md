@@ -1,6 +1,5 @@
 ![image](https://user-images.githubusercontent.com/40745291/116624086-ea44a100-a90c-11eb-9393-3036a39321da.png)
 
-
 [![GitHub last commit](https://img.shields.io/github/last-commit/parallel-finance/parallel)](https://github.com/parallel-finance/parallel/commits/master)
 [![CI](https://github.com/parallel-finance/parallel/workflows/CI/badge.svg)](https://github.com/parallel-finance/parallel/actions)
 [![Discord chat][discord-badge]][discord-url]
@@ -37,29 +36,20 @@ Once the development environment is set up, build the node template. This comman
 cargo build --release
 ```
 
-### Others available commands
+### Available commands
 
 ```
-build
-check
-purge
-restart
-run
-test
-bench
-lint
-fmt
-help
+make help
 ```
 
 ## Run
 
 ### Local Testnet
 
-Polkadot (rococo-v1 branch, better use commit hash: `f3e2cbf49f179104d20b9f1b54830710ddac8be3`):
+Polkadot (rococo-v1 branch)
 
 ```
-cargo build --release --features real-overseer
+cargo build --release
 
 ./target/release/polkadot build-spec --chain rococo-local --raw --disable-default-bootnode > rococo_local.json
 

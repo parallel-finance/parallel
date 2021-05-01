@@ -4504,7 +4504,7 @@ dependencies = [
 [[package]]
 name = "orml-currencies"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#5f74630d0742b12a3bd363d1634b877ba61d773b"
+source = "git+https://github.com/GopherJ/open-runtime-module-library.git#8d32719e37d6a0c00bceb68368ba53ea94be3e80"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -4520,7 +4520,7 @@ dependencies = [
 [[package]]
 name = "orml-oracle"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#ae67850c7b48afeb521ab0b6f25d2cd73639fede"
+source = "git+https://github.com/GopherJ/open-runtime-module-library.git#8d32719e37d6a0c00bceb68368ba53ea94be3e80"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -4537,7 +4537,7 @@ dependencies = [
 [[package]]
 name = "orml-tokens"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#5f74630d0742b12a3bd363d1634b877ba61d773b"
+source = "git+https://github.com/GopherJ/open-runtime-module-library.git#8d32719e37d6a0c00bceb68368ba53ea94be3e80"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -4551,7 +4551,7 @@ dependencies = [
 [[package]]
 name = "orml-traits"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#5f74630d0742b12a3bd363d1634b877ba61d773b"
+source = "git+https://github.com/GopherJ/open-runtime-module-library.git#8d32719e37d6a0c00bceb68368ba53ea94be3e80"
 dependencies = [
  "frame-support",
  "impl-trait-for-tuples",
@@ -4566,9 +4566,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "orml-unknown-tokens"
+version = "0.4.1-dev"
+source = "git+https://github.com/GopherJ/open-runtime-module-library.git#8d32719e37d6a0c00bceb68368ba53ea94be3e80"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "orml-xcm-support",
+ "parity-scale-codec",
+ "sp-std",
+ "xcm",
+]
+
+[[package]]
 name = "orml-utilities"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#5f74630d0742b12a3bd363d1634b877ba61d773b"
+source = "git+https://github.com/GopherJ/open-runtime-module-library.git#8d32719e37d6a0c00bceb68368ba53ea94be3e80"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -4576,6 +4589,39 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "orml-xcm-support"
+version = "0.4.1-dev"
+source = "git+https://github.com/GopherJ/open-runtime-module-library.git#8d32719e37d6a0c00bceb68368ba53ea94be3e80"
+dependencies = [
+ "frame-support",
+ "orml-traits",
+ "parity-scale-codec",
+ "sp-runtime",
+ "sp-std",
+ "xcm",
+ "xcm-executor",
+]
+
+[[package]]
+name = "orml-xtokens"
+version = "0.4.1-dev"
+source = "git+https://github.com/GopherJ/open-runtime-module-library.git#8d32719e37d6a0c00bceb68368ba53ea94be3e80"
+dependencies = [
+ "cumulus-primitives-core",
+ "cumulus-primitives-utility",
+ "frame-support",
+ "frame-system",
+ "orml-traits",
+ "orml-xcm-support",
+ "parity-scale-codec",
+ "serde",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "xcm",
 ]
 
 [[package]]
@@ -5483,7 +5529,10 @@ dependencies = [
  "orml-oracle",
  "orml-tokens",
  "orml-traits",
+ "orml-unknown-tokens",
  "orml-utilities",
+ "orml-xcm-support",
+ "orml-xtokens",
  "pallet-balances",
  "pallet-collective",
  "pallet-liquidate",
@@ -10693,7 +10742,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04f8ab788026715fa63b31960869617cba39117e520eb415b0139543e325ab59"
 dependencies = [
  "cfg-if 0.1.10",
- "rand 0.7.3",
+ "rand 0.3.23",
  "static_assertions",
 ]
 

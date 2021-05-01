@@ -35,11 +35,11 @@ frame-support                              = { git = 'https://github.com/parityt
 frame-system                               = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
 frame-system-benchmarking                  = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false, optional = true }
 frame-system-rpc-runtime-api               = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
-orml-currencies                            = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-oracle                                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-tokens                                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-traits                                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-utilities                             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-currencies                            = { git = 'https://github.com/GopherJ/open-runtime-module-library.git', default-features = false }
+orml-oracle                                = { git = 'https://github.com/GopherJ/open-runtime-module-library.git', default-features = false }
+orml-tokens                                = { git = 'https://github.com/GopherJ/open-runtime-module-library.git', default-features = false }
+orml-traits                                = { git = 'https://github.com/GopherJ/open-runtime-module-library.git', default-features = false }
+orml-utilities                             = { git = 'https://github.com/GopherJ/open-runtime-module-library.git', default-features = false }
 pallet-aura                                = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
 pallet-balances                            = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
 pallet-collective                          = { git = "https://github.com/paritytech/substrate.git", version = '3.0.0', branch = "rococo-v1", default-features = false }

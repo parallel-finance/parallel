@@ -11,8 +11,8 @@ sp-runtime    = { git = "https://github.com/paritytech/substrate", branch = "roc
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 frame-system  = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 sp-std        = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
-orml-traits   = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-oracle   = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-traits   = { git = 'https://github.com/GopherJ/open-runtime-module-library.git', default-features = false }
+orml-oracle   = { git = 'https://github.com/GopherJ/open-runtime-module-library.git', default-features = false }
 primitives    = { package = "parallel-primitives", path = "../../primitives", default-features = false }
 
 [dev-dependencies]
