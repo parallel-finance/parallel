@@ -70,9 +70,9 @@ jobs:
           path: target
           key: ${{ matrix.os }}-${{ matrix.rust }}-cargo-build-target-${{ hashFiles('**/Cargo.toml') }}-${{ secrets.CACHE_VERSION }}
 
-      # - name: Check Build
-      #  run: |
-      #    SKIP_WASM_BUILD=1 cargo check --release
+      - name: Check Build
+        run: |
+          SKIP_WASM_BUILD= cargo check --all-targets
 
       # - name: Check Wasm
       #   run: |
