@@ -1,5 +1,18 @@
 # CHANGE LOG
 
+## 2021.05.01
+- Add prices pallet(#73)
+- Add new types :
+```
+"OracleKey": "CurrencyId",
+"OracleValue": "FixedU128",
+"OraclePrice": "FixedU128",
+"TimestampedValueOf": {
+    "value": "FixedU128",
+    "timestamp": "u64"
+}
+```
+
 ## 2021.04.29
 - Add parallel-dev bin to speed up compilation (#80)
 

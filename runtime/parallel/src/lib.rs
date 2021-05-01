@@ -329,11 +329,6 @@ impl pallet_ocw_oracle::Config for Runtime {
     type PricePrecision = PricePrecision;
 }
 
-parameter_types! {
-    pub const GetStableCurrencyId: CurrencyId = CurrencyId::USDT;
-    pub StableCurrencyFixedPrice: Price = 1;
-}
-
 impl pallet_loans::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
@@ -569,8 +564,6 @@ impl DataProvider<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
 impl pallet_prices::Config for Runtime {
     type Event = Event;
     type Source = AggregatedDataProvider;
-    type GetStableCurrencyId = GetStableCurrencyId;
-    type StableCurrencyFixedPrice = StableCurrencyFixedPrice;
     type FeederOrigin = EnsureRoot<AccountId>;
 }
 

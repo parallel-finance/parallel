@@ -32,12 +32,6 @@ fn get_price_from_oracle() {
 
         // currency not exist
         assert_eq!(PricesPallet::get_price(&KSM), None);
-
-        // stable currency
-        assert_eq!(
-            PricesPallet::get_price(&USD),
-            Some((OraclePrice::saturating_from_integer(1).into_inner(), 0))
-        );
     });
 }
 

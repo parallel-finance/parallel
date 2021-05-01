@@ -19,7 +19,6 @@
 use super::*;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types};
 use frame_system::EnsureSignedBy;
-use orml_traits::DataFeeder;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, FixedPointNumber};
 
@@ -32,7 +31,6 @@ mod prices {
 
 pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const KSM: CurrencyId = CurrencyId::KSM;
-pub const USD: CurrencyId = CurrencyId::USDT;
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
@@ -64,18 +62,10 @@ impl frame_system::Config for Runtime {
     type OnSetCode = ();
 }
 
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<OraclePrice, Moment>;
 pub struct MockDataProvider;
-impl DataProvider<CurrencyId, OraclePrice> for MockDataProvider {
-    fn get(currency_id: &CurrencyId) -> Option<OraclePrice> {
-        match *currency_id {
-            DOT => Some(OraclePrice::saturating_from_integer(100)),
-            _ => None,
-        }
-    }
-}
-
-impl DataProviderExtended<CurrencyId, TimeStampedPrice> for MockDataProvider {
-    fn get_no_op(currency_id: &CurrencyId) -> Option<TimeStampedPrice> {
+impl DataProvider<CurrencyId, TimeStampedPrice> for MockDataProvider {
+    fn get(currency_id: &CurrencyId) -> Option<TimeStampedPrice> {
         match *currency_id {
             DOT => Some(TimeStampedPrice {
                 value: OraclePrice::saturating_from_integer(100),
@@ -83,16 +73,6 @@ impl DataProviderExtended<CurrencyId, TimeStampedPrice> for MockDataProvider {
             }),
             _ => None,
         }
-    }
-
-    fn get_all_values() -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
-        vec![]
-    }
-}
-
-impl DataFeeder<CurrencyId, OraclePrice, AccountId> for MockDataProvider {
-    fn feed_value(_: AccountId, _: CurrencyId, _: OraclePrice) -> sp_runtime::DispatchResult {
-        Ok(())
     }
 }
 
@@ -108,8 +88,6 @@ parameter_types! {
 impl Config for Runtime {
     type Event = Event;
     type Source = MockDataProvider;
-    type GetStableCurrencyId = GetStableCurrencyId;
-    type StableCurrencyFixedPrice = StableCurrencyFixedPrice;
     type FeederOrigin = EnsureSignedBy<One, AccountId>;
 }
 
