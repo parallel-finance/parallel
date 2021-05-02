@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches: [master]
+    branches: [heiko]
 
 jobs:
   deploy:
@@ -49,20 +49,20 @@ jobs:
       - name: Copy File Via Ssh Password
         uses: appleboy/scp-action@master
         with:
-          host: ${{ secrets.TESTNET_SSH_HOST }}
-          username: ${{ secrets.TESTNET_SSH_USERNAME }}
-          key: ${{ secrets.TESTNET_SSH_PRIVKEY }}
-          port: ${{ secrets.TESTNET_SSH_PORT }}
+          host: ${{ secrets.HEIKO_SSH_HOST }}
+          username: ${{ secrets.HEIKO_SSH_USERNAME }}
+          key: ${{ secrets.HEIKO_SSH_PRIVKEY }}
+          port: ${{ secrets.HEIKO_SSH_PORT }}
           source: "*.tar.xz"
           target: "~"
 
       - name: Deploy
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.TESTNET_SSH_HOST }}
-          username: ${{ secrets.TESTNET_SSH_USERNAME }}
-          key: ${{ secrets.TESTNET_SSH_PRIVKEY }}
-          port: ${{ secrets.TESTNET_SSH_PORT }}
+          host: ${{ secrets.HEIKO_SSH_HOST }}
+          username: ${{ secrets.HEIKO_SSH_USERNAME }}
+          key: ${{ secrets.HEIKO_SSH_PRIVKEY }}
+          port: ${{ secrets.HEIKO_SSH_PORT }}
           script: |
             if [ -d parallel ]; then cd parallel && ./setup.sh --undaemonize && cd ..; fi
             rm -fr parallel
