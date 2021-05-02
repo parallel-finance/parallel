@@ -396,7 +396,9 @@ pub mod module {
                     <Error<T>>::ParsingToF64Error
                 })?;
 
-            let price = (val_f64 * 10f64.powi(T::PricePrecision::get() as i32)).round() as Price;
+            let price: Price = Price::from_inner(
+                (val_f64 * 10f64.powi(T::PricePrecision::get() as i32)).round() as u128,
+            );
             Ok(price)
         }
     }

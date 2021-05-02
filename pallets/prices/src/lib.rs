@@ -20,14 +20,13 @@ use frame_system::pallet_prelude::*;
 pub use module::*;
 use orml_traits::DataProvider;
 use primitives::*;
-use sp_runtime::FixedPointNumber;
 
 mod mock;
 mod tests;
 
 pub const CURRENCY_DECIMAL: u32 = 18;
 
-pub type TimeStampedPrice = orml_oracle::TimestampedValue<OraclePrice, Moment>;
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 
 #[frame_support::pallet]
 pub mod module {
@@ -48,7 +47,7 @@ pub mod module {
     #[pallet::generate_deposit(pub(crate) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Set emergency price. \[currency_id, price_detail\]
-        SetPrice(CurrencyId, OraclePrice),
+        SetPrice(CurrencyId, Price),
         /// Reset emergency price. \[currency_id\]
         ResetPrice(CurrencyId),
     }
@@ -57,7 +56,7 @@ pub mod module {
     #[pallet::storage]
     #[pallet::getter(fn emergency_price)]
     pub type EmergencyPrice<T: Config> =
-        StorageMap<_, Twox64Concat, CurrencyId, OraclePrice, OptionQuery>;
+        StorageMap<_, Twox64Concat, CurrencyId, Price, OptionQuery>;
 
     #[pallet::pallet]
     pub struct Pallet<T>(PhantomData<T>);
@@ -73,10 +72,10 @@ pub mod module {
         pub fn set_price(
             origin: OriginFor<T>,
             currency_id: CurrencyId,
-            price: OraclePrice,
+            price: Price,
         ) -> DispatchResultWithPostInfo {
             T::FeederOrigin::ensure_origin(origin)?;
-            <Pallet<T> as EmergencyPriceFeeder<CurrencyId, OraclePrice>>::set_emergency_price(
+            <Pallet<T> as EmergencyPriceFeeder<CurrencyId, Price>>::set_emergency_price(
                 currency_id,
                 price,
             );
@@ -91,7 +90,7 @@ pub mod module {
             currency_id: CurrencyId,
         ) -> DispatchResultWithPostInfo {
             T::FeederOrigin::ensure_origin(origin)?;
-            <Pallet<T> as EmergencyPriceFeeder<CurrencyId, OraclePrice>>::reset_emergency_price(
+            <Pallet<T> as EmergencyPriceFeeder<CurrencyId, Price>>::reset_emergency_price(
                 currency_id,
             );
             Ok(().into())
@@ -102,14 +101,7 @@ pub mod module {
 impl<T: Config> Pallet<T> {
     // get emergency price, the timestamp is zero
     fn get_emergency_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
-        if let Some(price) = Self::emergency_price(currency_id) {
-            price
-                .into_inner()
-                .checked_div(1_000_000_000_000_000)
-                .and_then(|r| Some((r, 0)))
-        } else {
-            None
-        }
+        Self::emergency_price(currency_id).and_then(|price| Some((price, 0)))
     }
 }
 
@@ -119,20 +111,14 @@ impl<T: Config> PriceFeeder for Pallet<T> {
     fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
         // if emergency price exists, return it, otherwise return latest price from oracle.
         Self::get_emergency_price(currency_id).or_else(|| {
-            T::Source::get(&currency_id).and_then(|price| {
-                price
-                    .value
-                    .into_inner()
-                    .checked_div(1_000_000_000_000_000)
-                    .and_then(|r| Some((r, price.timestamp)))
-            })
+            T::Source::get(&currency_id).and_then(|price| Some((price.value, price.timestamp)))
         })
     }
 }
 
-impl<T: Config> EmergencyPriceFeeder<CurrencyId, OraclePrice> for Pallet<T> {
+impl<T: Config> EmergencyPriceFeeder<CurrencyId, Price> for Pallet<T> {
     /// Set emergency price
-    fn set_emergency_price(currency_id: CurrencyId, price: OraclePrice) {
+    fn set_emergency_price(currency_id: CurrencyId, price: Price) {
         // set price direct
         EmergencyPrice::<T>::insert(currency_id, price.clone());
         <Pallet<T>>::deposit_event(Event::SetPrice(currency_id, price));

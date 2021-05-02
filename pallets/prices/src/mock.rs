@@ -62,13 +62,13 @@ impl frame_system::Config for Runtime {
     type OnSetCode = ();
 }
 
-pub type TimeStampedPrice = orml_oracle::TimestampedValue<OraclePrice, Moment>;
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 pub struct MockDataProvider;
 impl DataProvider<CurrencyId, TimeStampedPrice> for MockDataProvider {
     fn get(currency_id: &CurrencyId) -> Option<TimeStampedPrice> {
         match *currency_id {
             DOT => Some(TimeStampedPrice {
-                value: OraclePrice::saturating_from_integer(100),
+                value: Price::saturating_from_integer(100),
                 timestamp: 0,
             }),
             _ => None,
@@ -82,7 +82,7 @@ ord_parameter_types! {
 
 parameter_types! {
     pub const GetStableCurrencyId: CurrencyId = CurrencyId::USDT;
-    pub StableCurrencyFixedPrice: Price = 1;
+    pub StableCurrencyFixedPrice: Price = Price::saturating_from_rational(1, 1);
 }
 
 impl Config for Runtime {

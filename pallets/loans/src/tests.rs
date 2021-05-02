@@ -227,7 +227,7 @@ fn liquidate_borrow_works() {
         // Alice borrows 100 KSM
         assert_ok!(Loans::borrow(Origin::signed(ALICE), KSM, dollar(100)));
         // adjust KSM price to make ALICE generate shortfall
-        MOCK_PRICE_FEEDER::set_price(KSM, 2);
+        MOCK_PRICE_FEEDER::set_price(KSM, 2.into());
         // BOB repay the KSM borrow balance and get DOT from ALICE
         assert_ok!(Loans::liquidate_borrow(
             Origin::signed(BOB),
