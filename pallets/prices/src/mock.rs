@@ -29,7 +29,7 @@ mod prices {
     pub use super::super::*;
 }
 
-pub const DOT: CurrencyId = CurrencyId::DOT;
+pub const USDT: CurrencyId = CurrencyId::USDT;
 pub const KSM: CurrencyId = CurrencyId::KSM;
 
 parameter_types! {
@@ -67,7 +67,7 @@ pub struct MockDataProvider;
 impl DataProvider<CurrencyId, TimeStampedPrice> for MockDataProvider {
     fn get(currency_id: &CurrencyId) -> Option<TimeStampedPrice> {
         match *currency_id {
-            DOT => Some(TimeStampedPrice {
+            KSM => Some(TimeStampedPrice {
                 value: OraclePrice::saturating_from_integer(100),
                 timestamp: 0,
             }),

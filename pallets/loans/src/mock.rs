@@ -85,10 +85,9 @@ pub type BlockNumber = u64;
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 
-pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const KSM: CurrencyId = CurrencyId::KSM;
 pub const USDT: CurrencyId = CurrencyId::USDT;
-pub const XDOT: CurrencyId = CurrencyId::xDOT;
+pub const XKSM: CurrencyId = CurrencyId::xKSM;
 pub const NATIVE: CurrencyId = CurrencyId::Native;
 
 parameter_type_with_key! {
@@ -138,7 +137,7 @@ impl pallet_balances::Config for Runtime {
 lazy_static! {
     pub static ref MOCK_PRICE_FEEDER: Mutex<HashMap<CurrencyId, Option<PriceDetail>>> = {
         Mutex::new(
-            vec![DOT, KSM, USDT, XDOT]
+            vec![KSM, USDT, XKSM]
                 .iter()
                 .map(|&x| (x, Some((1, 1))))
                 .collect(),
@@ -186,10 +185,8 @@ impl Default for ExtBuilder {
     fn default() -> Self {
         Self {
             endowed_accounts: vec![
-                (ALICE, DOT, dollar(1000)),
                 (ALICE, KSM, dollar(1000)),
                 (ALICE, USDT, dollar(1000)),
-                (BOB, DOT, dollar(1000)),
                 (BOB, KSM, dollar(1000)),
                 (BOB, USDT, dollar(1000)),
             ],
@@ -210,12 +207,7 @@ impl ExtBuilder {
         .unwrap();
 
         loans::GenesisConfig {
-            currencies: vec![
-                CurrencyId::DOT,
-                CurrencyId::KSM,
-                CurrencyId::USDT,
-                CurrencyId::xDOT,
-            ],
+            currencies: vec![CurrencyId::KSM, CurrencyId::USDT, CurrencyId::xKSM],
             borrow_index: Rate::one(),                                  // 1
             exchange_rate: Rate::saturating_from_rational(2, 100),      // 0.02
             base_rate_per_year: Rate::saturating_from_rational(2, 100), // 0.02
@@ -223,28 +215,25 @@ impl ExtBuilder {
             jump_multiplier_per_year: Multiplier::saturating_from_rational(11, 10), // 1.1
             kink: Ratio::from_percent(80),                              // 0.8
             collateral_factor: vec![
-                (CurrencyId::DOT, Ratio::from_percent(50)),
                 (CurrencyId::KSM, Ratio::from_percent(50)),
                 (CurrencyId::USDT, Ratio::from_percent(50)),
-                (CurrencyId::xDOT, Ratio::from_percent(50)),
+                (CurrencyId::xKSM, Ratio::from_percent(50)),
             ],
             liquidation_incentive: vec![
-                (CurrencyId::DOT, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::KSM, 9 * RATE_DECIMAL / 10),
                 (CurrencyId::USDT, 9 * RATE_DECIMAL / 10),
-                (CurrencyId::xDOT, 9 * RATE_DECIMAL / 10),
+                (CurrencyId::xKSM, 9 * RATE_DECIMAL / 10),
             ],
             liquidation_threshold: vec![
-                (CurrencyId::DOT, 8 * RATE_DECIMAL / 10),
                 (CurrencyId::KSM, 8 * RATE_DECIMAL / 10),
                 (CurrencyId::USDT, 9 * RATE_DECIMAL / 10),
-                (CurrencyId::xDOT, 8 * RATE_DECIMAL / 10),
+                (CurrencyId::xKSM, 8 * RATE_DECIMAL / 10),
             ],
             close_factor: vec![
-                (CurrencyId::DOT, Ratio::from_percent(50)),
+                (CurrencyId::KSM, Ratio::from_percent(50)),
                 (CurrencyId::KSM, Ratio::from_percent(50)),
                 (CurrencyId::USDT, Ratio::from_percent(50)),
-                (CurrencyId::xDOT, Ratio::from_percent(50)),
+                (CurrencyId::xKSM, Ratio::from_percent(50)),
             ],
         }
         .assimilate_storage::<Runtime>(&mut t)

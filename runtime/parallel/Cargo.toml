@@ -26,15 +26,16 @@ frame-system                               = { git = 'https://github.com/parityt
 frame-system-benchmarking                  = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false, optional = true }
 frame-system-rpc-runtime-api               = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
 hex-literal                                = { version = '0.3.1', optional = true }
-orml-oracle                                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false}
 orml-currencies                            = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-oracle                                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-tokens                                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-traits                                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-utilities                             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 pallet-balances                            = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
+pallet-collective                          = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = "rococo-v1", default-features = false }
 pallet-liquidate                           = { path = '../../pallets/liquidate', default-features = false }
 pallet-loans                               = { path = '../../pallets/loans', default-features = false }
-pallet-ocw-oracle                          = { path = '../../pallets/ocw-oracle', default-features = false }
+pallet-prices                              = { path = "../../pallets/prices", default-features = false }
 pallet-randomness-collective-flip          = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
 pallet-staking                             = { path = '../../pallets/staking', default-features = false }
 pallet-sudo                                = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
@@ -42,8 +43,6 @@ pallet-timestamp                           = { git = 'https://github.com/parityt
 pallet-transaction-payment                 = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
 pallet-xcm                                 = { git = 'https://github.com/paritytech/polkadot.git', branch = 'rococo-v1', default-features = false }
-pallet-collective                          = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = "rococo-v1", default-features = false }
-pallet-prices                              = { path = "../../pallets/prices", default-features = false }
 parachain-info                             = { git = 'https://github.com/paritytech/cumulus.git', version = '0.1.0', branch = 'rococo-v1', default-features = false }
 polkadot-parachain                         = { git = 'https://github.com/paritytech/polkadot.git', branch = 'rococo-v1', default-features = false }
 primitives                                 = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
@@ -122,7 +121,6 @@ std                = [
   'primitives/std',
   'pallet-loans/std',
   'pallet-staking/std',
-  'pallet-ocw-oracle/std',
   'pallet-liquidate/std',
   'pallet-collective/std',
   'pallet-prices/std',

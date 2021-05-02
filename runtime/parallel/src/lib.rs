@@ -61,7 +61,6 @@ use xcm_executor::{Config, XcmExecutor};
 // re-exports
 pub use pallet_liquidate;
 pub use pallet_loans;
-pub use pallet_ocw_oracle;
 pub use pallet_prices;
 pub use pallet_staking;
 
@@ -316,17 +315,6 @@ where
 {
     type OverarchingCall = Call;
     type Extrinsic = UncheckedExtrinsic;
-}
-
-parameter_types! {
-    pub const PricePrecision: u8 = 3;
-}
-
-impl pallet_ocw_oracle::Config for Runtime {
-    type AuthorityId = pallet_ocw_oracle::crypto::TestAuthId;
-    type Call = Call;
-    type Event = Event;
-    type PricePrecision = PricePrecision;
 }
 
 impl pallet_loans::Config for Runtime {
@@ -587,7 +575,6 @@ construct_runtime!(
         CumulusXcm: cumulus_pallet_xcm::{Pallet, Origin},
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
-        OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
         ParallelOracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Config<T>, Event<T>},
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
         Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},

@@ -89,11 +89,10 @@ pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
 pub enum CurrencyId {
-    DOT,
     KSM,
     USDT,
     #[allow(non_camel_case_types)]
-    xDOT,
+    xKSM,
     Native,
 }
 

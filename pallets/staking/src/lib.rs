@@ -87,7 +87,7 @@ pub mod module {
     impl<T: Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
             T::Currency::update_balance(
-                CurrencyId::xDOT,
+                CurrencyId::xKSM,
                 &Pallet::<T>::account_id(),
                 1_000_000_000_000_000_000_000_000_000,
             )
