@@ -103,7 +103,10 @@ impl<T: Config> Pallet<T> {
     // get emergency price, the timestamp is zero
     fn get_emergency_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
         if let Some(price) = Self::emergency_price(currency_id) {
-            Some((price.into_inner(), 0))
+            price
+                .into_inner()
+				.checked_div(1_000_000_000_000_000)
+				.and_then(|r| Some((r, 0)))
         } else {
             None
         }
@@ -116,8 +119,13 @@ impl<T: Config> PriceFeeder for Pallet<T> {
     fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
         // if emergency price exists, return it, otherwise return latest price from oracle.
         Self::get_emergency_price(currency_id).or_else(|| {
-            T::Source::get(&currency_id)
-                .and_then(|price| Some((price.value.into_inner(), price.timestamp)))
+            T::Source::get(&currency_id).and_then(|price| {
+                price
+                    .value
+                    .into_inner()
+                    .checked_div(1_000_000_000_000_000)
+                    .and_then(|r| Some((r, price.timestamp)))
+            })
         })
     }
 }
