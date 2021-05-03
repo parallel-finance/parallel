@@ -25,10 +25,7 @@ use sp_runtime::{traits::BadOrigin, FixedPointNumber};
 fn get_price_from_oracle() {
     ExtBuilder::default().build().execute_with(|| {
         // currency exist
-        assert_eq!(
-            PricesPallet::get_price(&DOT),
-            Some((OraclePrice::saturating_from_integer(100).into_inner(), 0))
-        );
+        assert_eq!(PricesPallet::get_price(&DOT), Some((100_000, 0)));
 
         // currency not exist
         assert_eq!(PricesPallet::get_price(&KSM), None);
@@ -38,39 +35,24 @@ fn get_price_from_oracle() {
 #[test]
 fn set_price_work() {
     ExtBuilder::default().build().execute_with(|| {
-        assert_eq!(
-            PricesPallet::get_price(&DOT),
-            Some((OraclePrice::saturating_from_integer(100).into_inner(), 0))
-        );
+        assert_eq!(PricesPallet::get_price(&DOT), Some((100_000, 0)));
         // set DOT price
         EmergencyPrice::<Runtime>::insert(DOT, OraclePrice::saturating_from_integer(99));
-        assert_eq!(
-            PricesPallet::get_price(&DOT),
-            Some((OraclePrice::saturating_from_integer(99).into_inner(), 0))
-        );
+        assert_eq!(PricesPallet::get_price(&DOT), Some((99_000, 0)));
     });
 }
 
 #[test]
 fn reset_price_work() {
     ExtBuilder::default().build().execute_with(|| {
-        assert_eq!(
-            PricesPallet::get_price(&DOT),
-            Some((OraclePrice::saturating_from_integer(100).into_inner(), 0))
-        );
+        assert_eq!(PricesPallet::get_price(&DOT), Some((100_000, 0)));
         // set DOT price
         EmergencyPrice::<Runtime>::insert(DOT, OraclePrice::saturating_from_integer(99));
-        assert_eq!(
-            PricesPallet::get_price(&DOT),
-            Some((OraclePrice::saturating_from_integer(99).into_inner(), 0))
-        );
+        assert_eq!(PricesPallet::get_price(&DOT), Some((99_000, 0)));
 
         // reset DOT price
         EmergencyPrice::<Runtime>::remove(DOT);
-        assert_eq!(
-            PricesPallet::get_price(&DOT),
-            Some((OraclePrice::saturating_from_integer(100).into_inner(), 0))
-        );
+        assert_eq!(PricesPallet::get_price(&DOT), Some((100_000, 0)));
     });
 }
 
@@ -80,10 +62,7 @@ fn set_price_call_work() {
         System::set_block_number(1);
 
         // set emergency price from 100 to 90
-        assert_eq!(
-            PricesPallet::get_price(&DOT),
-            Some((OraclePrice::saturating_from_integer(100).into_inner(), 0))
-        );
+        assert_eq!(PricesPallet::get_price(&DOT), Some((100_000, 0)));
         assert_noop!(
             PricesPallet::set_price(
                 Origin::signed(2),
@@ -97,10 +76,7 @@ fn set_price_call_work() {
             DOT,
             OraclePrice::saturating_from_integer(90)
         ));
-        assert_eq!(
-            PricesPallet::get_price(&DOT),
-            Some((OraclePrice::saturating_from_integer(90).into_inner(), 0))
-        );
+        assert_eq!(PricesPallet::get_price(&DOT), Some((90_000, 0)));
 
         // check the event
         let set_price_event = Event::prices(crate::Event::SetPrice(
@@ -127,29 +103,20 @@ fn reset_price_call_work() {
         System::set_block_number(1);
 
         // set emergency price from 100 to 90
-        assert_eq!(
-            PricesPallet::get_price(&DOT),
-            Some((OraclePrice::saturating_from_integer(100).into_inner(), 0))
-        );
+        assert_eq!(PricesPallet::get_price(&DOT), Some((100_000, 0)));
         assert_ok!(PricesPallet::set_price(
             Origin::signed(1),
             DOT,
             OraclePrice::saturating_from_integer(90)
         ));
-        assert_eq!(
-            PricesPallet::get_price(&DOT),
-            Some((OraclePrice::saturating_from_integer(90).into_inner(), 0))
-        );
+        assert_eq!(PricesPallet::get_price(&DOT), Some((90_000, 0)));
 
         // try reset price
         assert_noop!(PricesPallet::reset_price(Origin::signed(2), DOT), BadOrigin);
         assert_ok!(PricesPallet::reset_price(Origin::signed(1), DOT));
 
         // price need to be 100 after reset_price
-        assert_eq!(
-            PricesPallet::get_price(&DOT),
-            Some((OraclePrice::saturating_from_integer(100).into_inner(), 0))
-        );
+        assert_eq!(PricesPallet::get_price(&DOT), Some((100_000, 0)));
 
         // check the event
         let reset_price_event = Event::prices(crate::Event::ResetPrice(DOT));
