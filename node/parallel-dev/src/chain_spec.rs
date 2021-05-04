@@ -200,17 +200,17 @@ fn testnet_genesis(
                 (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
             liquidation_incentive: vec![
-                (CurrencyId::DOT, Rate::from_inner(9 * RATE_DECIMAL / 10)),
-                (CurrencyId::KSM, Rate::from_inner(9 * RATE_DECIMAL / 10)),
-                (CurrencyId::USDT, Rate::from_inner(9 * RATE_DECIMAL / 10)),
-                (CurrencyId::xDOT, Rate::from_inner(9 * RATE_DECIMAL / 10)),
+                (CurrencyId::DOT, Ratio::from_percent(90)),
+                (CurrencyId::KSM, Ratio::from_percent(90)),
+                (CurrencyId::USDT, Ratio::from_percent(90)),
+                (CurrencyId::xDOT, Ratio::from_percent(90)),
             ],
             //TODO : please refer to https://github.com/parallel-finance/parallel/issues/46
             liquidation_threshold: vec![
-                (CurrencyId::DOT, Rate::from_inner(90 * RATE_DECIMAL / 100)),
-                (CurrencyId::KSM, Rate::from_inner(90 * RATE_DECIMAL / 100)),
-                (CurrencyId::USDT, Rate::from_inner(90 * RATE_DECIMAL / 100)),
-                (CurrencyId::xDOT, Rate::from_inner(90 * RATE_DECIMAL / 100)),
+                (CurrencyId::DOT, Ratio::from_percent(90)),
+                (CurrencyId::KSM, Ratio::from_percent(90)),
+                (CurrencyId::USDT, Ratio::from_percent(90)),
+                (CurrencyId::xDOT, Ratio::from_percent(90)),
             ],
             close_factor: vec![
                 (CurrencyId::DOT, Ratio::from_percent(50)),

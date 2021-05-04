@@ -27,7 +27,7 @@ use sp_core::crypto::KeyTypeId;
 use sp_runtime::{
     offchain as rt_offchain,
     offchain::storage_lock::{BlockAndTime, StorageLock},
-    traits::{CheckedAdd, CheckedDiv, CheckedMul},
+    traits::{CheckedAdd, CheckedMul},
     FixedPointNumber, FixedU128, RuntimeDebug,
 };
 use sp_std::prelude::*;
@@ -37,7 +37,7 @@ pub const LOCK_TIMEOUT_EXPIRATION: u64 = 20000; // in milli-seconds
 pub const LOCK_BLOCK_EXPIRATION: u32 = 10; // in block number
 
 type TotalSumPirce = Price;
-type LiquidationThreshold = Price;
+type LiquidationThreshold = Ratio;
 type DebtAccountBook = (CurrencyId, Balance, Price, TotalSumPirce);
 type CollateralsAccountBook = (
     CurrencyId,
@@ -296,8 +296,7 @@ pub mod module {
                         |acc,&(_,_,_,total_sum_price,liquidation_threshold)|
 							// acc + total_sum_price * liquidation_threshold
 							match total_sum_price
-								.checked_mul(&liquidation_threshold)
-								.and_then(|r| r.checked_div(&FixedU128::from_inner(RATE_DECIMAL)))
+								.checked_mul(&FixedU128::from_inner(liquidation_threshold.deconstruct().into()))
 								.and_then(|r| r.checked_add(&acc.into()))
 								.ok_or(Error::<T>::CaculateError)
 							{

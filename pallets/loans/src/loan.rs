@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use primitives::{Balance, CurrencyId, RATE_DECIMAL};
+use primitives::{Balance, CurrencyId, Ratio};
 use sp_runtime::{
-    traits::{CheckedSub, Zero},
-    DispatchResult, FixedU128,
+    traits::{CheckedSub, Saturating, Zero},
+    DispatchResult, FixedPointNumber, FixedU128,
 };
 use sp_std::prelude::*;
 use sp_std::result;
 
-use crate::{util::*, *};
+use crate::*;
 
 impl<T: Config> Pallet<T> {
     /// Sender supplies assets into the market and receives cTokens in exchange
@@ -425,14 +425,9 @@ impl<T: Config> Pallet<T> {
 
         // the incentive for liquidator and punishment for the borrower
         let liquidation_incentive = LiquidationIncentive::<T>::get(liquidate_currency_id);
-        let discd_collateral_value = mul_then_div(
-            collateral_value,
-            liquidation_incentive,
-            FixedU128::from_inner(RATE_DECIMAL),
-        )
-        .ok_or(Error::<T>::CalcDiscdCollateralValueFailed)?;
+        let discd_collateral_value = liquidation_incentive * collateral_value.into_inner();
 
-        if discd_collateral_value < liquidate_value {
+        if discd_collateral_value < liquidate_value.into_inner() {
             return Err(Error::<T>::RepayValueGreaterThanCollateral.into());
         }
 
@@ -441,12 +436,17 @@ impl<T: Config> Pallet<T> {
             .checked_div(&collateral_token_price)
             .ok_or(Error::<T>::EquivalentCollateralAmountOverflow)?;
 
-        let real_collateral_underlying_amount = mul_then_div(
-            equivalent_collateral_amount,
-            FixedU128::from_inner(RATE_DECIMAL),
-            liquidation_incentive,
-        )
-        .ok_or(Error::<T>::RealCollateralAmountOverflow)?;
+        // TODO make it easier
+        let price_one = FixedU128::saturating_from_integer(1);
+        let liquidation_incentive_n = price_one.saturating_mul(liquidation_incentive.into());
+        let liquidation_incentive_m = price_one.saturating_mul(Ratio::one().into());
+        let liquidation_incentive_rate = liquidation_incentive_n
+            .checked_div(&liquidation_incentive_m)
+            .ok_or(Error::<T>::RealCollateralAmountOverflow)?;
+
+        let real_collateral_underlying_amount = equivalent_collateral_amount
+            .checked_div(&liquidation_incentive_rate)
+            .ok_or(Error::<T>::RealCollateralAmountOverflow)?;
 
         //inside transfer token
         Self::liquidate_repay_borrow_internal(

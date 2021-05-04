@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use primitives::{Amount, Balance, Price};
-use sp_runtime::traits::{CheckedDiv, CheckedMul};
+use primitives::{Amount, Balance};
 use sp_std::{convert::TryInto, result};
 
 use crate::module::*;
@@ -29,12 +28,6 @@ impl<T: Config> Pallet<T> {
         TryInto::<Balance>::try_into(a.saturating_abs())
             .map_err(|_| Error::<T>::AmountConvertFailed)
     }
-}
-
-pub fn mul_then_div(multiplier_l: Price, multiplier_r: Price, divisor: Price) -> Option<Price> {
-    multiplier_l
-        .checked_mul(&multiplier_r)
-        .and_then(|r| r.checked_div(&divisor))
 }
 
 pub fn add_then_sub(addend_a: u128, addend_b: u128, subtrahend: u128) -> Option<u128> {

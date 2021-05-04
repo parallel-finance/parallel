@@ -23,8 +23,7 @@ use frame_system::EnsureRoot;
 use lazy_static::lazy_static;
 use orml_traits::parameter_type_with_key;
 use primitives::{
-    Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate, Ratio, RATE_DECIMAL,
-    TOKEN_DECIMAL,
+    Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate, Ratio, TOKEN_DECIMAL,
 };
 use sp_core::H256;
 use sp_runtime::traits::One;
@@ -231,16 +230,16 @@ impl ExtBuilder {
                 (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
             liquidation_incentive: vec![
-                (CurrencyId::DOT, Rate::from_inner(9 * RATE_DECIMAL / 10)),
-                (CurrencyId::KSM, Rate::from_inner(9 * RATE_DECIMAL / 10)),
-                (CurrencyId::USDT, Rate::from_inner(9 * RATE_DECIMAL / 10)),
-                (CurrencyId::xDOT, Rate::from_inner(9 * RATE_DECIMAL / 10)),
+                (CurrencyId::DOT, Ratio::from_percent(90)),
+                (CurrencyId::KSM, Ratio::from_percent(90)),
+                (CurrencyId::USDT, Ratio::from_percent(90)),
+                (CurrencyId::xDOT, Ratio::from_percent(90)),
             ],
             liquidation_threshold: vec![
-                (CurrencyId::DOT, Rate::from_inner(8 * RATE_DECIMAL / 10)),
-                (CurrencyId::KSM, Rate::from_inner(8 * RATE_DECIMAL / 10)),
-                (CurrencyId::USDT, Rate::from_inner(9 * RATE_DECIMAL / 10)),
-                (CurrencyId::xDOT, Rate::from_inner(8 * RATE_DECIMAL / 10)),
+                (CurrencyId::DOT, Ratio::from_percent(80)),
+                (CurrencyId::KSM, Ratio::from_percent(80)),
+                (CurrencyId::USDT, Ratio::from_percent(90)),
+                (CurrencyId::xDOT, Ratio::from_percent(80)),
             ],
             close_factor: vec![
                 (CurrencyId::DOT, Ratio::from_percent(50)),
