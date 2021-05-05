@@ -15,16 +15,16 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-use frame_support::{pallet_prelude::*, transactional};
+use frame_support::{pallet_prelude::*, sp_runtime::FixedPointNumber, transactional};
 use frame_system::pallet_prelude::*;
 pub use module::*;
-use orml_traits::DataProvider;
+use orml_traits::{arithmetic::CheckedDiv, DataProvider};
 use primitives::*;
 
 mod mock;
 mod tests;
 
-pub const CURRENCY_DECIMAL: u32 = 18;
+pub const CURRENCY_DECIMAL: u32 = 12;
 
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 
@@ -110,9 +110,18 @@ impl<T: Config> PriceFeeder for Pallet<T> {
     /// Timestamp is zero means the price is emergency price
     fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
         // if emergency price exists, return it, otherwise return latest price from oracle.
-        Self::get_emergency_price(currency_id).or_else(|| {
+        let origin_price = Self::get_emergency_price(currency_id).or_else(|| {
             T::Source::get(&currency_id).and_then(|price| Some((price.value, price.timestamp)))
-        })
+        });
+        if let (Some((price, timestamp)), Some(decimal)) =
+            (origin_price, 10u128.checked_pow(CURRENCY_DECIMAL))
+        {
+            price
+                .checked_div(&Price::saturating_from_integer(decimal))
+                .and_then(|p| Some((p, timestamp)))
+        } else {
+            None
+        }
     }
 }
 

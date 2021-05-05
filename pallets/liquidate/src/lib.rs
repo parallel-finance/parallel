@@ -27,8 +27,8 @@ use sp_core::crypto::KeyTypeId;
 use sp_runtime::{
     offchain as rt_offchain,
     offchain::storage_lock::{BlockAndTime, StorageLock},
-    traits::{CheckedAdd, CheckedMul},
-    FixedPointNumber, FixedU128, RuntimeDebug,
+    traits::{CheckedAdd, CheckedDiv, CheckedMul, Saturating},
+    FixedPointNumber, RuntimeDebug,
 };
 use sp_std::prelude::*;
 
@@ -223,8 +223,10 @@ pub mod module {
                             if currency_price == MIN_PRICE {
                                 continue 'outer;
                             }
-                            let borrow_currency_sum_price = match borrow_currency_amount
-                                .checked_mul(currency_price.into_inner())
+                            let borrow_currency_sum_price = match currency_price
+                                .checked_mul(&Price::saturating_from_integer(
+                                    borrow_currency_amount,
+                                ))
                                 .ok_or(Error::<T>::CaculateError)
                             {
                                 Ok(v) => v,
@@ -238,7 +240,7 @@ pub mod module {
                                 *currency_id,
                                 borrow_currency_amount,
                                 currency_price,
-                                Price::from_inner(borrow_currency_sum_price),
+                                borrow_currency_sum_price,
                             ));
                         }
 
@@ -261,10 +263,11 @@ pub mod module {
                                     continue 'outer;
                                 }
                             };
-
                             //the total price of borrower's collateral token
-                            let collateral_currency_sum_price = match collateral_currency_amount
-                                .checked_mul(currency_price.into_inner())
+                            let collateral_currency_sum_price = match currency_price
+                                .checked_mul(&Price::saturating_from_integer(
+                                    collateral_currency_amount,
+                                ))
                                 .ok_or(Error::<T>::CaculateError)
                             {
                                 Ok(v) => v,
@@ -279,7 +282,7 @@ pub mod module {
                                 *currency_id,
                                 collateral_currency_amount,
                                 currency_price,
-                                Price::from_inner(collateral_currency_sum_price),
+                                collateral_currency_sum_price,
                                 liquidation_threshold,
                             ));
                         }
@@ -295,17 +298,16 @@ pub mod module {
                         MIN_PRICE,
                         |acc,&(_,_,_,total_sum_price,liquidation_threshold)|
 							// acc + total_sum_price * liquidation_threshold
-							match total_sum_price
-								.checked_mul(&FixedU128::from_inner(liquidation_threshold.deconstruct().into()))
-								.and_then(|r| r.checked_add(&acc.into()))
-								.ok_or(Error::<T>::CaculateError)
-							{
-								Ok(v) => v,
-								Err(e) => {
-									log::error!("error calculate liquidation threshold: {:?}",e);
-									processing = false;
-									acc
-								}
+								match total_sum_price.saturating_mul(liquidation_threshold.into())
+									.checked_add(&acc.into())
+									.ok_or(Error::<T>::CaculateError)
+								{
+									Ok(v) => v,
+									Err(e) => {
+										log::error!("error calculate liquidation threshold: {:?}",e);
+										processing = false;
+										acc
+									 }
 							},
                     );
                     if !processing {
@@ -375,13 +377,10 @@ pub mod module {
                             classify_collaterals.iter()
                         {
                             // let repay_amount = (single_collateral_total_sum_pirce / collateral_total_value) * (debt_repay_amount * close_factor);
-                            let m: u128 = 100;
-                            let repay_amount = match (close_factor
-                                * single_collateral_total_sum_pirce.into_inner())
-                            .checked_mul(m)
-                            .and_then(|r| r.checked_div(collateral_total_value.into_inner()))
-                            .and_then(|r| r.checked_mul(debt_repay_amount))
-                            .and_then(|r| r.checked_div(m))
+                            let repay_amount = match (single_collateral_total_sum_pirce
+                                .saturating_mul(close_factor.into()))
+                            .checked_div(&collateral_total_value)
+                            .and_then(|r| r.checked_mul_int(debt_repay_amount))
                             .ok_or(Error::<T>::CaculateError)
                             {
                                 Ok(v) => v,
@@ -420,6 +419,9 @@ pub mod module {
             // Get signer from ocw
             //TODO get special pool account
             let signer = Signer::<T, <T as module::Config>::AuthorityId>::any_account();
+            if !signer.can_sign() {
+                log::error!("failure: offchain_signed_tx no signer");
+            }
             let result = signer.send_signed_transaction(|_acct|
 				// This is the on-chain function
 				Call::execute_liquidation(waiting_for_liquidation_vec.clone()));

@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use primitives::{Balance, CurrencyId, Ratio};
+use primitives::{Balance, CurrencyId};
 use sp_runtime::{
-    traits::{CheckedSub, Saturating, Zero},
+    traits::{CheckedSub, One, Saturating, Zero},
     DispatchResult, FixedPointNumber, FixedU128,
 };
 use sp_std::prelude::*;
@@ -230,7 +230,7 @@ impl<T: Config> Pallet<T> {
             currency_id,
             borrower,
             BorrowSnapshot {
-                principal: account_borrows_new,
+                principal: account_borrows_new.clone(),
                 borrow_index: Self::borrow_index(currency_id),
             },
         );
@@ -436,14 +436,8 @@ impl<T: Config> Pallet<T> {
             .checked_div(&collateral_token_price)
             .ok_or(Error::<T>::EquivalentCollateralAmountOverflow)?;
 
-        // TODO make it easier
-        let price_one = FixedU128::saturating_from_integer(1);
-        let liquidation_incentive_n = price_one.saturating_mul(liquidation_incentive.into());
-        let liquidation_incentive_m = price_one.saturating_mul(Ratio::one().into());
-        let liquidation_incentive_rate = liquidation_incentive_n
-            .checked_div(&liquidation_incentive_m)
-            .ok_or(Error::<T>::RealCollateralAmountOverflow)?;
-
+        let liquidation_incentive_rate =
+            FixedU128::one().saturating_mul(liquidation_incentive.into());
         let real_collateral_underlying_amount = equivalent_collateral_amount
             .checked_div(&liquidation_incentive_rate)
             .ok_or(Error::<T>::RealCollateralAmountOverflow)?;

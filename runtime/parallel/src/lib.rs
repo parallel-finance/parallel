@@ -319,7 +319,7 @@ where
 }
 
 parameter_types! {
-    pub const PricePrecision: u8 = 3;
+    pub const PricePrecision: u8 = 6; // 18 - 12
 }
 
 impl pallet_ocw_oracle::Config for Runtime {
