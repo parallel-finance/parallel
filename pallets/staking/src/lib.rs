@@ -72,13 +72,16 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
+        /// ExchangeRate is invalid
         InvalidExchangeRate,
+        /// Calculation overflow
         Overflow,
     }
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
+        /// The assets get staked successfully
         Staked(T::AccountId, Balance),
     }
 
@@ -98,44 +101,21 @@ pub mod pallet {
     pub type TotalVoucher<T: Config> = StorageValue<_, Balance, ValueQuery>;
 
     #[pallet::genesis_config]
-    pub struct GenesisConfig {}
+    pub struct GenesisConfig {
+        pub exchange_rate: Rate,
+    }
 
     #[cfg(feature = "std")]
     impl Default for GenesisConfig {
         fn default() -> Self {
-            GenesisConfig {}
+            Self { exchange_rate: Rate::default() }
         }
     }
 
     #[pallet::genesis_build]
     impl<T: Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
-            T::Currency::update_balance(
-                CurrencyId::xDOT,
-                &Pallet::<T>::account_id(),
-                1_000_000_000_000_000_000_000_000_000,
-            )
-            .unwrap();
-        }
-    }
-
-    #[cfg(feature = "std")]
-    impl GenesisConfig {
-        /// Direct implementation of `GenesisBuild::build_storage`.
-        ///
-        /// Kept in order not to break dependency.
-        pub fn build_storage<T: Config>(&self) -> Result<sp_runtime::Storage, String> {
-            <Self as frame_support::traits::GenesisBuild<T>>::build_storage(self)
-        }
-
-        /// Direct implementation of `GenesisBuild::assimilate_storage`.
-        ///
-        /// Kept in order not to break dependency.
-        pub fn assimilate_storage<T: Config>(
-            &self,
-            storage: &mut sp_runtime::Storage,
-        ) -> Result<(), String> {
-            <Self as frame_support::traits::GenesisBuild<T>>::assimilate_storage(self, storage)
+            ExchangeRate::<T>::put(self.exchange_rate);
         }
     }
 
