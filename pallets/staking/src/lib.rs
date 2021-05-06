@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! # Liquid staking pallet
+//!
+//! This pallet manages the NPoS operations for relay chain assets.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 #![allow(clippy::collapsible_if)]
@@ -21,9 +25,10 @@ use frame_support::{pallet_prelude::*, PalletId};
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 use primitives::{Amount, Balance, CurrencyId};
-use sp_runtime::{traits::AccountIdConversion, RuntimeDebug};
+use sp_runtime::{traits::AccountIdConversion, RuntimeDebug, FixedPointNumber};
 use sp_std::convert::TryInto;
 use sp_std::vec::Vec;
+use primitives::Rate;
 
 pub use module::*;
 
@@ -42,6 +47,7 @@ pub mod module {
 
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_timestamp::Config {
+        /// The overarching event type.
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Currency type for deposit/withdraw collateral assets to/from loans
@@ -53,13 +59,21 @@ pub mod module {
             Amount = Amount,
         >;
 
-        /// The loan's module id, keep all collaterals of CDPs.
+        /// Currency used for staking
+        type StakingCurrency: CurrencyId;
+
+        /// Currency used for liquid voucher
+        type LiquidCurrency: CurrencyId;
+
+        /// The pallet id of liquid staking, keeps all the staking assets.
         #[pallet::constant]
         type PalletId: Get<PalletId>;
     }
 
     #[pallet::error]
     pub enum Error<T> {
+        InvalidExchangeRate,
+        Overflow,
         IndexConvertFailed,
         IndexOverflow,
         NoPendingBalance,
@@ -68,10 +82,45 @@ pub mod module {
     #[pallet::event]
     pub enum Event<T: Config> {}
 
+    /// The exchange rate converts staking native token to voucher.
     #[pallet::storage]
-    #[pallet::getter(fn account_pending_balance)]
-    pub type AccountPendingBalance<T: Config> =
-        StorageMap<_, Twox64Concat, T::AccountId, Vec<PendingBalance<T::Moment>>, ValueQuery>;
+    #[pallet::getter(fn exchange_rate)]
+    pub type ExchangeRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Rate, ValueQuery>;
+
+    /// The total amount of a staking asset.
+    #[pallet::storage]
+    #[pallet::getter(fn total_staking)]
+    pub type TotalStaking<T: Config> = StorageMap<
+        _,
+        Twox64Concat,
+        CurrencyId,
+        Balance,
+        ValueQuery,
+    >;
+
+    /// The total amount of staking voucher.
+    #[pallet::storage]
+    #[pallet::getter(fn total_voucher)]
+    pub type TotalVoucher<T: Config> = StorageMap<
+        _,
+        Twox64Concat,
+        CurrencyId,
+        Balance,
+        ValueQuery,    
+    >;
+
+    /// Account's balance of voucher.
+    #[pallet::storage]
+    #[pallet::getter(fn account_voucher)]
+    pub type AccountVoucher<T: Config> = StorageDoubleMap<
+        _,
+        Twox64Concat,
+        T::AccountId,
+        Twox64Concat,
+        CurrencyId,
+        Balance,
+        ValueQuery,
+    >;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig {}
@@ -125,41 +174,39 @@ pub mod module {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        /// Put assets under staking, 
+        /// * the native assets will be transferred to the account owned by the pallet,
+        /// * user receive voucher in return, such vocher can be further used in loans pallet. 
+        ///
+        /// Ensured atomic.
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn stake(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
-            Self::stake_internal(&who, amount)?;
-
-            Ok(().into())
-        }
-
-        #[pallet::weight(10_000)]
-        #[transactional]
-        pub fn unstake(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
-            Self::unstake_internal(&who, amount)?;
-
-            Ok(().into())
-        }
-
-        #[pallet::weight(10_000)]
-        #[transactional]
-        pub fn return_pending_balance(
+        pub fn stake(
             origin: OriginFor<T>,
-            nominator: T::AccountId,
-            index: u64,
+            amount: Balance
         ) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
-            Self::return_pending_balance_internal(
-                &who,
-                &nominator,
-                index.try_into().unwrap(),
-                // index.try_into().map_err(|_| Error::<T>::IndexConvertFailed),
-            )?;
+            let sender = ensure_signed(origin)?;
+
+            let exchange_rate = ExchangeRate::<T>::get(currency_id);
+            let voucher_amount = exchange_rate
+                .reciprocal()
+                .and_then(|r| r.checked_mul_int(amount))
+                .ok_or(Error::<T>::InvalidExchangeRate)?;
+
+            T::Currency::transfer(T::StakingCurrency, &sender, &Self::account_id(), amount)?;
+            T::Currency::deposit(T::LiquidCurrency, &sender, voucher_amount)?;
+            TotalVoucher::<T>::try_mutate(currency_id, |b| -> DispatchResult {
+                b.checked_add(voucher_amount).ok_or(Error::<T>::Overflow)?;
+                Ok(())
+            })?;
+            TotalStaking::<T>::mutate(currency_id, |b| -> DispatchResult {
+                b.checked_add(amount).ok_or(Error::<T>::Overfow)?;
+                Ok(())
+            });
 
             Ok(().into())
         }
+
     }
 }
 
