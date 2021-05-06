@@ -174,6 +174,12 @@ pub mod module {
     #[pallet::getter(fn total_borrows)]
     pub type TotalBorrows<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Balance, ValueQuery>;
 
+    /// Total amount of reserves of the underlying held in this market
+    /// CurrencyType -> Balance
+    #[pallet::storage]
+    #[pallet::getter(fn total_reserves)]
+    pub type TotalReserves<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Balance, ValueQuery>;
+
     /// Mapping of account addresses to outstanding borrow balances
     /// CurrencyType -> Owner -> BorrowSnapshot
     #[pallet::storage]
@@ -203,7 +209,7 @@ pub mod module {
     >;
 
     /// Mapping of account addresses to total deposit interest accrual
-    /// CurrencyType -> Owner -> BorrowSnapshot
+    /// CurrencyType -> Owner -> EarnedSnapshot
     #[pallet::storage]
     #[pallet::getter(fn account_earned)]
     pub type AccountEarned<T: Config> = StorageDoubleMap<
@@ -267,6 +273,12 @@ pub mod module {
     pub type CollateralFactor<T: Config> =
         StorageMap<_, Twox64Concat, CurrencyId, Ratio, ValueQuery>;
 
+    /// Fraction of interest currently set aside for reserves
+    #[pallet::storage]
+    #[pallet::getter(fn reserve_factor)]
+    pub type ReserveFactor<T: Config> =
+    StorageMap<_, Twox64Concat, CurrencyId, Ratio, ValueQuery>;
+
     /// Liquidation incentive ratio
     #[pallet::storage]
     #[pallet::getter(fn liquidation_incentive)]
@@ -298,6 +310,7 @@ pub mod module {
         pub liquidation_incentive: Vec<(CurrencyId, u128)>,
         pub liquidation_threshold: Vec<(CurrencyId, u128)>,
         pub close_factor: Vec<(CurrencyId, Ratio)>,
+        pub reserve_factor: Vec<(CurrencyId, Ratio)>,
     }
 
     #[cfg(feature = "std")]
@@ -315,6 +328,7 @@ pub mod module {
                 liquidation_incentive: vec![],
                 liquidation_threshold: vec![],
                 close_factor: vec![],
+                reserve_factor: vec![],
             }
         }
     }
@@ -353,6 +367,11 @@ pub mod module {
                 .iter()
                 .for_each(|(currency_id, close_factor)| {
                     CloseFactor::<T>::insert(currency_id, close_factor);
+                });
+            self.reserve_factor
+                .iter()
+                .for_each(|(currency_id, reserve_factor)| {
+                    ReserveFactor::<T>::insert(currency_id, reserve_factor);
                 });
             Currencies::<T>::put(self.currencies.clone());
         }
@@ -527,16 +546,17 @@ impl<T: Config> Pallet<T> {
         for currency_id in Self::currencies() {
             let total_cash = Self::get_total_cash(currency_id);
             let total_borrows = Self::total_borrows(currency_id);
-            let util = Self::calc_utilization_ratio(total_cash, total_borrows, Zero::zero())?;
-            UtilizationRatio::<T>::insert(currency_id, util);
+            let total_reserves = Self::total_reserves(currency_id);
+            let util = Self::calc_utilization_ratio(total_cash, total_borrows, total_reserves)?;
 
             let interest_model = Self::currency_interest_model(currency_id);
             let borrow_rate = interest_model
                 .get_borrow_rate(util)
                 .ok_or(Error::<T>::CollateralOverflow)?;
-            let supply_rate = InterestRateModel::get_supply_rate(borrow_rate, util, Ratio::zero())
+            let supply_rate = InterestRateModel::get_supply_rate(borrow_rate, util, Self::reserve_factor(currency_id))
                 .ok_or(Error::<T>::CollateralOverflow)?;
 
+            UtilizationRatio::<T>::insert(currency_id, util);
             BorrowRate::<T>::insert(currency_id, &borrow_rate);
             SupplyRate::<T>::insert(currency_id, supply_rate);
 
@@ -549,12 +569,14 @@ impl<T: Config> Pallet<T> {
 
     pub fn update_exchange_rate(currency_id: CurrencyId) -> DispatchResult {
         // exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
-        let total_borrows = Self::total_borrows(currency_id);
-        let total_supply = Self::total_supply(currency_id);
         let total_cash = Self::get_total_cash(currency_id);
+        let total_borrows = Self::total_borrows(currency_id);
+        let total_reserves = Self::total_reserves(currency_id);
+        let total_supply = Self::total_supply(currency_id);
 
         let cash_plus_borrows = total_cash
             .checked_add(total_borrows)
+            .and_then(|r| r.checked_sub(total_reserves))
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
         let exchange_rate = Rate::checked_from_rational(cash_plus_borrows, total_supply)
             .ok_or(Error::<T>::CalcExchangeRateFailed)?;
@@ -581,24 +603,33 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn update_borrow_index(
-        borrow_rate_per_block: Rate,
+        borrow_rate: Rate,
         currency_id: CurrencyId,
     ) -> DispatchResult {
-        // borrowIndex = borrowIndex * borrowRate + borrowIndex
+        // interestAccumulated = totalBorrows * borrowRate
+        // totalBorrows = interestAccumulated + totalBorrows
+        // totalReserves = interestAccumulated * reserveFactor + totalReserves
+        // borrowIndex = borrowIndex * (1 + borrowRate)
         let borrows_prior = Self::total_borrows(currency_id);
-        let interest_accumulated = borrow_rate_per_block
+        let reserve_prior = Self::total_reserves(currency_id);
+        let reserve_factor = Self::reserve_factor(currency_id);
+        let interest_accumulated = borrow_rate
             .checked_mul_int(borrows_prior)
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
         let total_borrows_new = interest_accumulated
             .checked_add(borrows_prior)
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
+        let total_reserves_new = reserve_factor.mul_floor(interest_accumulated)
+            .checked_add(reserve_prior)
+            .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
         let borrow_index = Self::borrow_index(currency_id);
         let borrow_index_new = borrow_index
-            .checked_mul(&borrow_rate_per_block)
+            .checked_mul(&borrow_rate)
             .and_then(|r| r.checked_add(&borrow_index))
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
 
         TotalBorrows::<T>::insert(currency_id, total_borrows_new);
+        TotalReserves::<T>::insert(currency_id, total_reserves_new);
         BorrowIndex::<T>::insert(currency_id, borrow_index_new);
 
         Ok(())

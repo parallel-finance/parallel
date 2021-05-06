@@ -246,6 +246,12 @@ impl ExtBuilder {
                 (CurrencyId::USDT, Ratio::from_percent(50)),
                 (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
+            reserve_factor: vec![
+                (CurrencyId::DOT, Ratio::from_percent(15)),
+                (CurrencyId::KSM, Ratio::from_percent(15)),
+                (CurrencyId::USDT, Ratio::from_percent(15)),
+                (CurrencyId::xDOT, Ratio::from_percent(15)),
+            ],
         }
         .assimilate_storage::<Runtime>(&mut t)
         .unwrap();
