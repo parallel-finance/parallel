@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::*;
 use primitives::{Balance, CurrencyId};
 use sp_runtime::{
     traits::{CheckedSub, One, Saturating, Zero},
@@ -19,8 +20,6 @@ use sp_runtime::{
 };
 use sp_std::prelude::*;
 use sp_std::result;
-
-use crate::*;
 
 impl<T: Config> Pallet<T> {
     /// Sender supplies assets into the market and receives cTokens in exchange
@@ -102,8 +101,8 @@ impl<T: Config> Pallet<T> {
 
     pub(crate) fn total_borrowed_value(
         borrower: &T::AccountId,
-    ) -> result::Result<Balance, Error<T>> {
-        let mut total_borrow_value: Balance = 0_u128;
+    ) -> result::Result<FixedU128, Error<T>> {
+        let mut total_borrow_value: FixedU128 = FixedU128::zero();
 
         for currency_id in Currencies::<T>::get().iter() {
             let currency_borrow_amount = Self::borrow_balance_stored(borrower, currency_id)?;
@@ -117,9 +116,9 @@ impl<T: Config> Pallet<T> {
                 return Err(Error::<T>::OracleCurrencyPriceNotReady);
             }
 
-            total_borrow_value = currency_borrow_amount
-                .checked_mul(borrow_currency_price.into_inner())
-                .and_then(|r| r.checked_add(total_borrow_value))
+            total_borrow_value = borrow_currency_price
+                .checked_mul(&FixedU128::saturating_from_integer(currency_borrow_amount))
+                .and_then(|r| r.checked_add(&total_borrow_value))
                 .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
         }
 
@@ -130,15 +129,15 @@ impl<T: Config> Pallet<T> {
         borrower: &T::AccountId,
         borrow_currency_id: &CurrencyId,
         borrow_amount: Balance,
-    ) -> result::Result<Balance, Error<T>> {
+    ) -> result::Result<FixedU128, Error<T>> {
         let (borrow_currency_price, _) = T::PriceFeeder::get_price(borrow_currency_id)
             .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
-        let mut total_borrow_value = borrow_amount
-            .checked_mul(borrow_currency_price.into_inner())
+        let mut total_borrow_value = borrow_currency_price
+            .checked_mul(&FixedU128::saturating_from_integer(borrow_amount))
             .ok_or(Error::<T>::CollateralOverflow)?;
 
         total_borrow_value = total_borrow_value
-            .checked_add(Self::total_borrowed_value(borrower)?)
+            .checked_add(&Self::total_borrowed_value(borrower)?)
             .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
 
         Ok(total_borrow_value)
@@ -147,10 +146,10 @@ impl<T: Config> Pallet<T> {
     pub(crate) fn collateral_asset_value(
         borrower: &T::AccountId,
         currency_id: &CurrencyId,
-    ) -> result::Result<Balance, Error<T>> {
+    ) -> result::Result<FixedU128, Error<T>> {
         let collateral = AccountCollateral::<T>::get(currency_id, borrower);
         if collateral.is_zero() {
-            return Ok(0_u128);
+            return Ok(FixedU128::zero());
         }
 
         let collateral_factor = CollateralFactor::<T>::get(currency_id);
@@ -162,24 +161,27 @@ impl<T: Config> Pallet<T> {
             return Err(Error::<T>::OracleCurrencyPriceNotReady);
         }
 
-        exchange_rate
+        let collateral_amount = exchange_rate
             .checked_mul_int(collateral_factor * collateral)
-            .and_then(|r| r.checked_mul(currency_price.into_inner()))
+            .ok_or(Error::<T>::CollateralOverflow)?;
+
+        currency_price
+            .checked_mul(&FixedU128::saturating_from_integer(collateral_amount))
             .ok_or(Error::<T>::CollateralOverflow)
     }
 
     pub(crate) fn total_collateral_asset_value(
         borrower: &T::AccountId,
-    ) -> result::Result<Balance, Error<T>> {
+    ) -> result::Result<FixedU128, Error<T>> {
         let collateral_assets = AccountCollateralAssets::<T>::get(borrower);
         if collateral_assets.is_empty() {
             return Err(Error::<T>::NoCollateralAsset);
         }
 
-        let mut total_asset_value: Balance = 0_u128;
+        let mut total_asset_value: FixedU128 = FixedU128::zero();
         for currency_id in collateral_assets.iter() {
             total_asset_value = total_asset_value
-                .checked_add(Self::collateral_asset_value(borrower, currency_id)?)
+                .checked_add(&Self::collateral_asset_value(borrower, currency_id)?)
                 .ok_or(Error::<T>::CollateralOverflow)?;
         }
 
@@ -230,7 +232,7 @@ impl<T: Config> Pallet<T> {
             currency_id,
             borrower,
             BorrowSnapshot {
-                principal: account_borrows_new.clone(),
+                principal: account_borrows_new,
                 borrow_index: Self::borrow_index(currency_id),
             },
         );
@@ -305,7 +307,7 @@ impl<T: Config> Pallet<T> {
 
                 if total_collateral_asset_value
                     > total_borrowed_value
-                        .checked_add(collateral_asset_value)
+                        .checked_add(&collateral_asset_value)
                         .ok_or(Error::<T>::CollateralOverflow)?
                 {
                     collateral_assets.remove(index);
@@ -425,9 +427,9 @@ impl<T: Config> Pallet<T> {
 
         // the incentive for liquidator and punishment for the borrower
         let liquidation_incentive = LiquidationIncentive::<T>::get(liquidate_currency_id);
-        let discd_collateral_value = liquidation_incentive * collateral_value.into_inner();
+        let discd_collateral_value = collateral_value.saturating_mul(liquidation_incentive.into());
 
-        if discd_collateral_value < liquidate_value.into_inner() {
+        if discd_collateral_value < liquidate_value {
             return Err(Error::<T>::RepayValueGreaterThanCollateral.into());
         }
 

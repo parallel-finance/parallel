@@ -24,8 +24,6 @@ use primitives::*;
 mod mock;
 mod tests;
 
-pub const CURRENCY_DECIMAL: u32 = 12;
-
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 
 #[frame_support::pallet]
@@ -113,11 +111,9 @@ impl<T: Config> PriceFeeder for Pallet<T> {
         let origin_price = Self::get_emergency_price(currency_id).or_else(|| {
             T::Source::get(&currency_id).and_then(|price| Some((price.value, price.timestamp)))
         });
-        if let (Some((price, timestamp)), Some(decimal)) =
-            (origin_price, 10u128.checked_pow(CURRENCY_DECIMAL))
-        {
+        if let Some((price, timestamp)) = origin_price {
             price
-                .checked_div(&Price::saturating_from_integer(decimal))
+                .checked_div(&Price::saturating_from_integer(CURRENCY_DECIMAL))
                 .and_then(|p| Some((p, timestamp)))
         } else {
             None
