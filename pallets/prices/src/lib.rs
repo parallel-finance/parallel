@@ -105,8 +105,8 @@ impl<T: Config> Pallet<T> {
         if let Some(price) = Self::emergency_price(currency_id) {
             price
                 .into_inner()
-				.checked_div(1_000_000_000_000_000)
-				.and_then(|r| Some((r, 0)))
+                .checked_div(1_000_000_000_000_000)
+                .and_then(|r| Some((r, 0)))
         } else {
             None
         }

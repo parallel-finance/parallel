@@ -20,6 +20,7 @@ use crate::rate::InterestRateModel;
 use crate::util::*;
 use frame_support::{pallet_prelude::*, transactional, PalletId};
 use frame_system::pallet_prelude::*;
+use frame_system::{ensure_root, RawOrigin};
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 use primitives::{Amount, Balance, CurrencyId, Multiplier, PriceFeeder, Rate, Ratio};
 use sp_runtime::{
@@ -134,6 +135,8 @@ pub mod module {
         EquivalentCollateralAmountOverflow,
         /// Real collateral amount overflow
         RealCollateralAmountOverflow,
+        /// Reduce reserves failed
+        ReduceReservesFailed,
     }
 
     #[pallet::event]
@@ -160,6 +163,12 @@ pub mod module {
             Balance,
             Balance,
         ),
+        /// Event emitted when the reserves are reduced
+        /// [admin, currency_id, reduced_amount, total_reserves]
+        ReservesReduced(T::AccountId, CurrencyId, Balance, Balance),
+        /// Event emitted when the reserves are added
+        /// [admin, currency_id, added_amount, total_reserves]
+        ReservesAdded(T::AccountId, CurrencyId, Balance, Balance),
     }
 
     /// Total number of collateral tokens in circulation
@@ -178,7 +187,8 @@ pub mod module {
     /// CurrencyType -> Balance
     #[pallet::storage]
     #[pallet::getter(fn total_reserves)]
-    pub type TotalReserves<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Balance, ValueQuery>;
+    pub type TotalReserves<T: Config> =
+        StorageMap<_, Twox64Concat, CurrencyId, Balance, ValueQuery>;
 
     /// Mapping of account addresses to outstanding borrow balances
     /// CurrencyType -> Owner -> BorrowSnapshot
@@ -276,8 +286,7 @@ pub mod module {
     /// Fraction of interest currently set aside for reserves
     #[pallet::storage]
     #[pallet::getter(fn reserve_factor)]
-    pub type ReserveFactor<T: Config> =
-    StorageMap<_, Twox64Concat, CurrencyId, Ratio, ValueQuery>;
+    pub type ReserveFactor<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Ratio, ValueQuery>;
 
     /// Liquidation incentive ratio
     #[pallet::storage]
@@ -534,6 +543,30 @@ pub mod module {
             )?;
             Ok(().into())
         }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn add_reserves(
+            origin: OriginFor<T>,
+            currency_id: CurrencyId,
+            add_amount: Balance,
+        ) -> DispatchResultWithPostInfo {
+            let root = ensure_signed(origin)?;
+            Self::add_reserves_internal(root, currency_id, add_amount)?;
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn reduce_reserves(
+            origin: OriginFor<T>,
+            currency_id: CurrencyId,
+            reduce_amount: Balance,
+        ) -> DispatchResultWithPostInfo {
+            let root = ensure_signed(origin)?;
+            Self::reduce_reserves_internal(root, currency_id, reduce_amount)?;
+            Ok(().into())
+        }
     }
 }
 
@@ -553,8 +586,12 @@ impl<T: Config> Pallet<T> {
             let borrow_rate = interest_model
                 .get_borrow_rate(util)
                 .ok_or(Error::<T>::CollateralOverflow)?;
-            let supply_rate = InterestRateModel::get_supply_rate(borrow_rate, util, Self::reserve_factor(currency_id))
-                .ok_or(Error::<T>::CollateralOverflow)?;
+            let supply_rate = InterestRateModel::get_supply_rate(
+                borrow_rate,
+                util,
+                Self::reserve_factor(currency_id),
+            )
+            .ok_or(Error::<T>::CollateralOverflow)?;
 
             UtilizationRatio::<T>::insert(currency_id, util);
             BorrowRate::<T>::insert(currency_id, &borrow_rate);
@@ -602,10 +639,7 @@ impl<T: Config> Pallet<T> {
         Ok(Ratio::from_rational(borrows, total))
     }
 
-    pub fn update_borrow_index(
-        borrow_rate: Rate,
-        currency_id: CurrencyId,
-    ) -> DispatchResult {
+    pub fn update_borrow_index(borrow_rate: Rate, currency_id: CurrencyId) -> DispatchResult {
         // interestAccumulated = totalBorrows * borrowRate
         // totalBorrows = interestAccumulated + totalBorrows
         // totalReserves = interestAccumulated * reserveFactor + totalReserves
@@ -619,7 +653,8 @@ impl<T: Config> Pallet<T> {
         let total_borrows_new = interest_accumulated
             .checked_add(borrows_prior)
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
-        let total_reserves_new = reserve_factor.mul_floor(interest_accumulated)
+        let total_reserves_new = reserve_factor
+            .mul_floor(interest_accumulated)
             .checked_add(reserve_prior)
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
         let borrow_index = Self::borrow_index(currency_id);
