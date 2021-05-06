@@ -76,6 +76,8 @@ pub mod pallet {
         InvalidExchangeRate,
         /// Calculation overflow
         Overflow,
+        /// Calculation underflow
+        Underflow,
     }
 
     #[pallet::event]
@@ -83,6 +85,8 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// The assets get staked successfully
         Staked(T::AccountId, Balance),
+        /// The voucher get unstaked successfully
+        Unstaked(T::AccountId, Balance),
     }
 
     /// The exchange rate converts staking native token to voucher.
@@ -133,7 +137,7 @@ pub mod pallet {
         #[transactional]
         pub fn stake(
             origin: OriginFor<T>,
-            amount: Balance
+            amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
 
@@ -155,6 +159,37 @@ pub mod pallet {
             })?;
 
             Self::deposit_event(Event::Staked(sender, amount));
+            Ok(().into())
+        }
+
+        /// Unstake by exchange voucher for assets
+        ///
+        /// - `amount`: the amount of unstaking voucher
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn unstake(
+            origin: OriginFor<T>,
+            amount: Balance,
+        ) -> DispatchResultWithPostInfo {
+            let sender = ensure_signed(origin)?;
+
+            let exchange_rate = ExchangeRate::<T>::get();
+            let asset_amount = exchange_rate
+                .checked_mul_int(amount)
+                .ok_or(Error::<T>::InvalidExchangeRate)?;
+
+            T::Currency::transfer(T::StakingCurrency::get(), &Self::account_id(), &sender, asset_amount)?;
+            T::Currency::withdraw(T::LiquidCurrency::get(), &sender, amount)?;
+            TotalVoucher::<T>::try_mutate(|b| -> DispatchResult {
+                b.checked_sub(amount).ok_or(Error::<T>::Underflow)?;
+                Ok(())
+            })?;
+            TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
+                b.checked_sub(asset_amount).ok_or(Error::<T>::Underflow)?;
+                Ok(())
+            })?;
+
+            Self::deposit_event(Event::Unstaked(sender, amount));
             Ok(().into())
         }
 
