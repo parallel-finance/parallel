@@ -42,8 +42,6 @@ impl<T: Config> Pallet<T> {
 		// TODO add lock
 
 		let prices = Prices::get();
-		let currencies = pallet_loans::Currencies::<T>::get();
-		let account_borrows = pallet_loans::AccountBorrows::<T>::get();
 
 		let aggregated_account_borrows = pallet_loans::AccountBorrows::<T>::iter()
 			.fold(BTreeMap::new(), |acc, (k1, k2, balance)| {
@@ -71,12 +69,13 @@ impl<T: Config> Pallet<T> {
 			})
 			.map(|account, (total_loans_value, loans_detail)| {
 				// TODO change to 0.5, configurable by runners
+				// TODO shortfall <> 0.5 * max
 				let liquidation_value = total_loans_value * 0.2;
 				let liquidation_loan = loans_detail.find(|(currency, balance)| balance * prices.get(currency) > liquidation_value);
 				let liquidation_collatoral = 
 					aggregated_account_collatoral
 					.get(account)
-					.unwarp()
+					.unwarp() // TODO several assets to liquidation
 					._2
 					.find(|(currency, balance)| balance * prices.get(currency))
 				(
