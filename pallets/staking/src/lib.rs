@@ -14,25 +14,20 @@
 
 //! # Liquid staking pallet
 //!
-//! This pallet manages the NPoS operations for relay chain assets.
+//! This pallet manages the NPoS operations for relay chain asset.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![allow(clippy::unused_unit)]
-#![allow(clippy::collapsible_if)]
 
-use frame_support::transactional;
-use frame_support::{pallet_prelude::*, PalletId};
+use frame_support::{
+    pallet_prelude::*, PalletId, transactional,
+};
 use frame_system::pallet_prelude::*;
+use primitives::{Amount, Balance, CurrencyId, Rate};
+use sp_runtime::{
+    traits::AccountIdConversion, RuntimeDebug, FixedPointNumber,
+};
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
-use primitives::{Amount, Balance, CurrencyId};
-use sp_runtime::{traits::AccountIdConversion, RuntimeDebug, FixedPointNumber};
-use sp_std::convert::TryInto;
-use sp_std::vec::Vec;
-use primitives::Rate;
-
-pub use module::*;
-
-mod staking;
+pub use pallet::*;
 
 /// Container for pending balance information
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
@@ -42,16 +37,19 @@ pub struct PendingBalance<Moment> {
 }
 
 #[frame_support::pallet]
-pub mod module {
+pub mod pallet {
     use super::*;
 
+    #[pallet::pallet]
+    #[pallet::generate_store(pub(super) trait Store)]
+    pub struct Pallet<T>(_);
+
     #[pallet::config]
-    pub trait Config: frame_system::Config + pallet_timestamp::Config {
+    pub trait Config: frame_system::Config {
         /// The overarching event type.
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-        /// Currency type for deposit/withdraw collateral assets to/from loans
-        /// module
+        /// Currency type used for staking and liquid assets
         type Currency: MultiCurrencyExtended<
             Self::AccountId,
             CurrencyId = CurrencyId,
@@ -79,7 +77,10 @@ pub mod module {
     }
 
     #[pallet::event]
-    pub enum Event<T: Config> {}
+    #[pallet::generate_deposit(pub(super) fn deposit_event)]
+    pub enum Event<T: Config> {
+        Staked(T::AccountId, Balance),
+    }
 
     /// The exchange rate converts staking native token to voucher.
     #[pallet::storage]
@@ -89,7 +90,7 @@ pub mod module {
     /// The total amount of a staking asset.
     #[pallet::storage]
     #[pallet::getter(fn total_staking)]
-    pub type TotalStaking<T: Config> = StorageValue<_, Balance, ValueQuery>;
+    pub type TotalStakingAsset<T: Config> = StorageValue<_, Balance, ValueQuery>;
 
     /// The total amount of staking voucher.
     #[pallet::storage]
@@ -138,21 +139,16 @@ pub mod module {
         }
     }
 
-    #[pallet::pallet]
-    pub struct Pallet<T>(PhantomData<T>);
-
     #[pallet::hooks]
-    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-        fn on_finalize(_now: T::BlockNumber) {}
-    }
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Put assets under staking, 
-        /// * the native assets will be transferred to the account owned by the pallet,
-        /// * user receive voucher in return, such vocher can be further used in loans pallet. 
+        /// Put assets under staking, the native assets will be transferred to the account
+        /// owned by the pallet, user receive voucher in return, such vocher can be further
+        /// used as collateral for lending. 
         ///
-        /// Ensured atomic.
+        /// - `amount`: the amount of staking assets
         #[pallet::weight(10_000)]
         #[transactional]
         pub fn stake(
@@ -173,11 +169,12 @@ pub mod module {
                 b.checked_add(voucher_amount).ok_or(Error::<T>::Overflow)?;
                 Ok(())
             })?;
-            TotalStaking::<T>::mutate(|b| -> DispatchResult {
+            TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
                 b.checked_add(amount).ok_or(Error::<T>::Overflow)?;
                 Ok(())
-            });
+            })?;
 
+            Self::deposit_event(Event::Staked(sender, amount));
             Ok(().into())
         }
 
