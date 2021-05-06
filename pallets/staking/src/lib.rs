@@ -60,10 +60,12 @@ pub mod module {
         >;
 
         /// Currency used for staking
-        type StakingCurrency: CurrencyId;
+        #[pallet::constant]
+        type StakingCurrency: Get<CurrencyId>;
 
         /// Currency used for liquid voucher
-        type LiquidCurrency: CurrencyId;
+        #[pallet::constant]
+        type LiquidCurrency: Get<CurrencyId>;
 
         /// The pallet id of liquid staking, keeps all the staking assets.
         #[pallet::constant]
@@ -74,9 +76,6 @@ pub mod module {
     pub enum Error<T> {
         InvalidExchangeRate,
         Overflow,
-        IndexConvertFailed,
-        IndexOverflow,
-        NoPendingBalance,
     }
 
     #[pallet::event]
@@ -85,42 +84,17 @@ pub mod module {
     /// The exchange rate converts staking native token to voucher.
     #[pallet::storage]
     #[pallet::getter(fn exchange_rate)]
-    pub type ExchangeRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Rate, ValueQuery>;
+    pub type ExchangeRate<T: Config> = StorageValue<_, Rate, ValueQuery>;
 
     /// The total amount of a staking asset.
     #[pallet::storage]
     #[pallet::getter(fn total_staking)]
-    pub type TotalStaking<T: Config> = StorageMap<
-        _,
-        Twox64Concat,
-        CurrencyId,
-        Balance,
-        ValueQuery,
-    >;
+    pub type TotalStaking<T: Config> = StorageValue<_, Balance, ValueQuery>;
 
     /// The total amount of staking voucher.
     #[pallet::storage]
     #[pallet::getter(fn total_voucher)]
-    pub type TotalVoucher<T: Config> = StorageMap<
-        _,
-        Twox64Concat,
-        CurrencyId,
-        Balance,
-        ValueQuery,    
-    >;
-
-    /// Account's balance of voucher.
-    #[pallet::storage]
-    #[pallet::getter(fn account_voucher)]
-    pub type AccountVoucher<T: Config> = StorageDoubleMap<
-        _,
-        Twox64Concat,
-        T::AccountId,
-        Twox64Concat,
-        CurrencyId,
-        Balance,
-        ValueQuery,
-    >;
+    pub type TotalVoucher<T: Config> = StorageValue<_, Balance, ValueQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig {}
@@ -187,20 +161,20 @@ pub mod module {
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
 
-            let exchange_rate = ExchangeRate::<T>::get(currency_id);
+            let exchange_rate = ExchangeRate::<T>::get();
             let voucher_amount = exchange_rate
                 .reciprocal()
                 .and_then(|r| r.checked_mul_int(amount))
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
 
-            T::Currency::transfer(T::StakingCurrency, &sender, &Self::account_id(), amount)?;
-            T::Currency::deposit(T::LiquidCurrency, &sender, voucher_amount)?;
-            TotalVoucher::<T>::try_mutate(currency_id, |b| -> DispatchResult {
+            T::Currency::transfer(T::StakingCurrency::get(), &sender, &Self::account_id(), amount)?;
+            T::Currency::deposit(T::LiquidCurrency::get(), &sender, voucher_amount)?;
+            TotalVoucher::<T>::try_mutate(|b| -> DispatchResult {
                 b.checked_add(voucher_amount).ok_or(Error::<T>::Overflow)?;
                 Ok(())
             })?;
-            TotalStaking::<T>::mutate(currency_id, |b| -> DispatchResult {
-                b.checked_add(amount).ok_or(Error::<T>::Overfow)?;
+            TotalStaking::<T>::mutate(|b| -> DispatchResult {
+                b.checked_add(amount).ok_or(Error::<T>::Overflow)?;
                 Ok(())
             });
 
