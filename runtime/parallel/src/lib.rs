@@ -266,7 +266,7 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                 },
                 GeneralKey(b"xKSM".to_vec()),
             )),
-            // TODO: statemint
+            // TODO: statemine
             _ => None,
         }
     }
