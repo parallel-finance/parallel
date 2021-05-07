@@ -388,7 +388,7 @@ fn reduce_reserves_works() {
         // Add 100 DOT reserves
         assert_ok!(Loans::add_reserves(Origin::root(), ALICE, DOT, dollar(100)));
 
-        // Add 20 DOT reserves
+        // Reduce 20 DOT reserves
         assert_ok!(Loans::reduce_reserves(
             Origin::root(),
             ALICE,

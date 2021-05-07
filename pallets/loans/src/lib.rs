@@ -651,12 +651,13 @@ impl<T: Config> Pallet<T> {
         let total_reserves = Self::total_reserves(currency_id);
         let total_supply = Self::total_supply(currency_id);
 
-        let cash_plus_borrows = total_cash
+        let cash_plus_borrows_minus_reserves = total_cash
             .checked_add(total_borrows)
             .and_then(|r| r.checked_sub(total_reserves))
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
-        let exchange_rate = Rate::checked_from_rational(cash_plus_borrows, total_supply)
-            .ok_or(Error::<T>::CalcExchangeRateFailed)?;
+        let exchange_rate =
+            Rate::checked_from_rational(cash_plus_borrows_minus_reserves, total_supply)
+                .ok_or(Error::<T>::CalcExchangeRateFailed)?;
 
         ExchangeRate::<T>::insert(currency_id, exchange_rate);
 
