@@ -198,10 +198,7 @@ pub mod module {
                             match <T as module::Config>::PriceFeeder::get_price(currency_id)
                                 .ok_or(Error::<T>::OracleCurrencyPriceNotReady)
                             {
-                                Ok((v, _)) => {
-                                    log::info!("{:?}, price: {:?}", currency_id, v);
-                                    v
-                                }
+                                Ok((v, _)) => v,
                                 Err(e) => {
                                     log::error!("error msg: {:?}", e);
                                     MIN_PRICE
