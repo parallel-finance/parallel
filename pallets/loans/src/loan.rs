@@ -538,60 +538,6 @@ impl<T: Config> Pallet<T> {
 
         Ok(())
     }
-
-    pub fn reduce_reserves_internal(
-        admin: T::AccountId,
-        currency_id: CurrencyId,
-        reduce_amount: Balance,
-    ) -> DispatchResult {
-        let total_reserves = Self::total_reserves(currency_id);
-        if reduce_amount > total_reserves {
-            return Err(Error::<T>::ReduceReservesFailed.into());
-        }
-
-        let total_reserves_new = total_reserves - reduce_amount;
-        if total_reserves_new > total_reserves {
-            return Err(Error::<T>::ReduceReservesFailed.into());
-        }
-        T::Currency::transfer(
-            currency_id.clone(),
-            &Self::account_id(),
-            &admin,
-            reduce_amount,
-        )?;
-
-        TotalReserves::<T>::insert(currency_id, total_reserves_new);
-        Self::deposit_event(Event::<T>::ReservesReduced(
-            admin,
-            currency_id,
-            reduce_amount,
-            total_reserves_new,
-        ));
-
-        Ok(())
-    }
-
-    pub fn add_reserves_internal(
-        admin: T::AccountId,
-        currency_id: CurrencyId,
-        add_amount: Balance,
-    ) -> DispatchResult {
-        T::Currency::transfer(currency_id.clone(), &admin, &Self::account_id(), add_amount)?;
-
-        let total_reserves = Self::total_reserves(currency_id);
-        let total_reserves_new = total_reserves + add_amount;
-
-        TotalReserves::<T>::insert(currency_id, total_reserves_new);
-
-        Self::deposit_event(Event::<T>::ReservesAdded(
-            Self::account_id().clone(),
-            currency_id,
-            add_amount,
-            total_reserves_new,
-        ));
-
-        Ok(())
-    }
 }
 
 pub fn calc_collateral_amount(underlying_amount: u128, exchange_rate: Rate) -> Option<u128> {

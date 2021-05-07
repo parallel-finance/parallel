@@ -368,12 +368,16 @@ fn interest_rate_model_works() {
 fn add_reserves_works() {
     ExtBuilder::default().build().execute_with(|| {
         // Add 100 DOT reserves
-        assert_ok!(Loans::add_reserves(Origin::signed(ALICE), DOT, dollar(100)));
+        assert_ok!(Loans::add_reserves(Origin::root(), ALICE, DOT, dollar(100)));
 
         assert_eq!(Loans::total_reserves(DOT), dollar(100));
         assert_eq!(
             <Runtime as Config>::Currency::free_balance(DOT, &Loans::account_id()),
             dollar(100),
+        );
+        assert_eq!(
+            <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
+            dollar(900),
         );
     })
 }
@@ -382,11 +386,12 @@ fn add_reserves_works() {
 fn reduce_reserves_works() {
     ExtBuilder::default().build().execute_with(|| {
         // Add 100 DOT reserves
-        assert_ok!(Loans::add_reserves(Origin::signed(ALICE), DOT, dollar(100)));
+        assert_ok!(Loans::add_reserves(Origin::root(), ALICE, DOT, dollar(100)));
 
         // Add 20 DOT reserves
         assert_ok!(Loans::reduce_reserves(
-            Origin::signed(ALICE),
+            Origin::root(),
+            ALICE,
             DOT,
             dollar(20)
         ));
@@ -395,6 +400,10 @@ fn reduce_reserves_works() {
         assert_eq!(
             <Runtime as Config>::Currency::free_balance(DOT, &Loans::account_id()),
             dollar(80),
+        );
+        assert_eq!(
+            <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
+            dollar(920),
         );
     })
 }

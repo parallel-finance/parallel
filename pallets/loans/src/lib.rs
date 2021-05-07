@@ -19,12 +19,12 @@
 use crate::rate::InterestRateModel;
 use crate::util::*;
 use frame_support::{pallet_prelude::*, transactional, PalletId};
+use frame_system::ensure_root;
 use frame_system::pallet_prelude::*;
-use frame_system::{ensure_root, RawOrigin};
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 use primitives::{Amount, Balance, CurrencyId, Multiplier, PriceFeeder, Rate, Ratio};
 use sp_runtime::{
-    traits::{AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, Zero},
+    traits::{AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, StaticLookup, Zero},
     FixedPointNumber,
 };
 use sp_std::vec::Vec;
@@ -135,8 +135,8 @@ pub mod module {
         EquivalentCollateralAmountOverflow,
         /// Real collateral amount overflow
         RealCollateralAmountOverflow,
-        /// Reduce reserves failed
-        ReduceReservesFailed,
+        /// Insufficient reserves
+        InsufficientReserves,
     }
 
     #[pallet::event]
@@ -548,11 +548,30 @@ pub mod module {
         #[transactional]
         pub fn add_reserves(
             origin: OriginFor<T>,
+            reserve_account: <T::Lookup as StaticLookup>::Source,
             currency_id: CurrencyId,
             add_amount: Balance,
         ) -> DispatchResultWithPostInfo {
-            let root = ensure_signed(origin)?;
-            Self::add_reserves_internal(root, currency_id, add_amount)?;
+            ensure_root(origin)?;
+            let reserve_account = T::Lookup::lookup(reserve_account)?;
+
+            T::Currency::transfer(
+                currency_id.clone(),
+                &reserve_account,
+                &Self::account_id(),
+                add_amount,
+            )?;
+            let total_reserves = Self::total_reserves(currency_id);
+            let total_reserves_new = total_reserves + add_amount;
+            TotalReserves::<T>::insert(currency_id, total_reserves_new);
+
+            Self::deposit_event(Event::<T>::ReservesAdded(
+                Self::account_id().clone(),
+                currency_id,
+                add_amount,
+                total_reserves_new,
+            ));
+
             Ok(().into())
         }
 
@@ -560,11 +579,32 @@ pub mod module {
         #[transactional]
         pub fn reduce_reserves(
             origin: OriginFor<T>,
+            reserve_account: <T::Lookup as StaticLookup>::Source,
             currency_id: CurrencyId,
             reduce_amount: Balance,
         ) -> DispatchResultWithPostInfo {
-            let root = ensure_signed(origin)?;
-            Self::reduce_reserves_internal(root, currency_id, reduce_amount)?;
+            ensure_root(origin)?;
+            let reserve_account = T::Lookup::lookup(reserve_account)?;
+
+            let total_reserves = Self::total_reserves(currency_id);
+            if reduce_amount > total_reserves {
+                return Err(Error::<T>::InsufficientReserves.into());
+            }
+            let total_reserves_new = total_reserves - reduce_amount;
+            T::Currency::transfer(
+                currency_id.clone(),
+                &Self::account_id(),
+                &reserve_account,
+                reduce_amount,
+            )?;
+            TotalReserves::<T>::insert(currency_id, total_reserves_new);
+            Self::deposit_event(Event::<T>::ReservesReduced(
+                reserve_account,
+                currency_id,
+                reduce_amount,
+                total_reserves_new,
+            ));
+
             Ok(().into())
         }
     }
