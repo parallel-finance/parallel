@@ -364,8 +364,8 @@ pub mod module {
                         {
                             // let repay_amount = (single_collateral_total_value / collateral_total_value) * (debt_repay_amount * close_factor);
                             let repay_amount = match (close_factor * single_collateral_total_value)
-                                .checked_div(collateral_total_value)
-                                .and_then(|r| r.checked_mul(debt_repay_amount))
+                                .checked_mul(debt_repay_amount)
+                                .and_then(|r| r.checked_div(collateral_total_value))
                                 .ok_or(Error::<T>::CaculateError)
                             {
                                 Ok(v) => v,

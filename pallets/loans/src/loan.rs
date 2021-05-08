@@ -16,7 +16,7 @@ use crate::*;
 use primitives::{Balance, CurrencyId};
 use sp_runtime::{
     traits::{CheckedSub, Zero},
-    DispatchResult, FixedPointNumber,
+    DispatchResult, FixedPointNumber, FixedU128,
 };
 use sp_std::prelude::*;
 use sp_std::result;
@@ -432,13 +432,18 @@ impl<T: Config> Pallet<T> {
         }
 
         // calculate the collateral will get
-        let equivalent_collateral_amount = collateral_token_price
-            .reciprocal()
-            .and_then(|r| r.checked_mul_int(liquidate_value))
+        //
+        // amount: 1 Unit = 10^12 pico
+        // price is for 1 pico: 1$ = FixedU128::saturating_from_rational(1, 10^12)
+        // if price is N($) and amount is M(Unit):
+        // liquidate_value = price * amount = (N / 10^12) * (M * 10^12) = N * M
+        // if liquidate_value >= 340282366920938463463.374607431768211455,
+        // FixedU128::saturating_from_integer(liquidate_value) will overflow, so we use form_inner
+        // instead of saturating_from_integer, and after calculation use into_inner to get final value.
+        let real_collateral_underlying_amount = FixedU128::from_inner(liquidate_value)
+            .checked_div(&collateral_token_price)
+            .and_then(|a| a.checked_div(&liquidation_incentive.into()))
             .ok_or(Error::<T>::EquivalentCollateralAmountOverflow)?;
-
-        let real_collateral_underlying_amount =
-            liquidation_incentive.saturating_reciprocal_mul(equivalent_collateral_amount);
 
         //inside transfer token
         Self::liquidate_repay_borrow_internal(
@@ -447,7 +452,7 @@ impl<T: Config> Pallet<T> {
             &liquidate_currency_id,
             &collateral_currency_id,
             repay_amount,
-            real_collateral_underlying_amount,
+            real_collateral_underlying_amount.into_inner(),
         )?;
 
         Ok(())
