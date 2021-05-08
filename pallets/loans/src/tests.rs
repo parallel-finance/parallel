@@ -311,7 +311,7 @@ fn interest_rate_model_works() {
 
         let mut borrow_index = Rate::one();
         let mut total_borrows = borrow_snapshot.principal;
-        let total_reserves = 0;
+        let mut total_reserves: u128 = 0;
 
         // Finalized block from 1 to 49
         for i in 2..50 {
@@ -323,8 +323,12 @@ fn interest_rate_model_works() {
             let borrow_rate_per_block =
                 multiplier_per_block.saturating_mul(util_ratio.into()) + base_rate_per_block;
             assert_eq!(borrow_rate_per_block, Rate::from_inner(13318112633));
-            total_borrows = borrow_rate_per_block.saturating_mul_int(total_borrows) + total_borrows;
+            let interest_accumulated = borrow_rate_per_block.saturating_mul_int(total_borrows);
+            total_borrows = interest_accumulated + total_borrows;
             assert_eq!(Loans::total_borrows(DOT), total_borrows);
+            total_reserves =
+                Loans::reserve_factor(DOT).mul_floor(interest_accumulated) + total_reserves;
+            assert_eq!(Loans::total_reserves(DOT), total_reserves);
 
             // exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
             assert_eq!(
@@ -336,10 +340,12 @@ fn interest_rate_model_works() {
             assert_eq!(Loans::borrow_index(DOT), borrow_index);
         }
         assert_eq!(total_borrows, 100000063926960645957);
+        assert_eq!(total_reserves, 9589044096872);
         assert_eq!(borrow_index, Rate::from_inner(1000000639269606437));
         assert_eq!(
             Loans::exchange_rate(DOT),
-            Rate::from_inner(20000006392696064)
+            // Rate::from_inner(20000006392696064) // before reserve
+            Rate::from_inner(20000005433791654)
         );
 
         // Calculate borrow accrued interest
@@ -347,12 +353,57 @@ fn interest_rate_model_works() {
             .saturating_mul_int(borrow_snapshot.principal);
         let supply_interest =
             Loans::exchange_rate(DOT).saturating_mul_int(total_supply) - dollar(200);
-        assert_eq!(supply_interest, 63926960640000);
+        // assert_eq!(supply_interest, 63926960640000); // before reserve
+        assert_eq!(supply_interest, 54337916540000);
         assert_eq!(borrow_principal, 100000063926960643700);
         assert_eq!(total_borrows / 10000, borrow_principal / 10000);
         assert_eq!(
-            (total_borrows - dollar(100)) / 10000,
+            (total_borrows - dollar(100) - total_reserves) / 10000,
             supply_interest / 10000
+        );
+    })
+}
+
+#[test]
+fn add_reserves_works() {
+    ExtBuilder::default().build().execute_with(|| {
+        // Add 100 DOT reserves
+        assert_ok!(Loans::add_reserves(Origin::root(), ALICE, DOT, dollar(100)));
+
+        assert_eq!(Loans::total_reserves(DOT), dollar(100));
+        assert_eq!(
+            <Runtime as Config>::Currency::free_balance(DOT, &Loans::account_id()),
+            dollar(100),
+        );
+        assert_eq!(
+            <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
+            dollar(900),
+        );
+    })
+}
+
+#[test]
+fn reduce_reserves_works() {
+    ExtBuilder::default().build().execute_with(|| {
+        // Add 100 DOT reserves
+        assert_ok!(Loans::add_reserves(Origin::root(), ALICE, DOT, dollar(100)));
+
+        // Reduce 20 DOT reserves
+        assert_ok!(Loans::reduce_reserves(
+            Origin::root(),
+            ALICE,
+            DOT,
+            dollar(20)
+        ));
+
+        assert_eq!(Loans::total_reserves(DOT), dollar(80));
+        assert_eq!(
+            <Runtime as Config>::Currency::free_balance(DOT, &Loans::account_id()),
+            dollar(80),
+        );
+        assert_eq!(
+            <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
+            dollar(920),
         );
     })
 }

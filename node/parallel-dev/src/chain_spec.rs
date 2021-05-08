@@ -61,9 +61,7 @@ pub fn development_config() -> Result<VanillaChainSpec, String> {
         move || {
             testnet_genesis(
                 wasm_binary,
-                "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                    .parse()
-                    .unwrap(),
+                get_account_id_from_seed::<sr25519::Public>("Alice"),
                 vec![authority_keys_from_seed("Alice")],
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Alice"),
@@ -219,6 +217,12 @@ fn testnet_genesis(
                 (CurrencyId::KSM, Ratio::from_percent(50)),
                 (CurrencyId::USDT, Ratio::from_percent(50)),
                 (CurrencyId::xDOT, Ratio::from_percent(50)),
+            ],
+            reserve_factor: vec![
+                (CurrencyId::DOT, Ratio::from_percent(15)),
+                (CurrencyId::KSM, Ratio::from_percent(15)),
+                (CurrencyId::USDT, Ratio::from_percent(15)),
+                (CurrencyId::xDOT, Ratio::from_percent(15)),
             ],
         },
         pallet_staking: vanilla_runtime::StakingConfig {},
