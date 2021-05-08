@@ -30,6 +30,7 @@ use sp_std::vec::Vec;
 
 pub use module::*;
 
+#[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 mod loan;
 #[cfg(test)]
