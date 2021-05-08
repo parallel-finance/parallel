@@ -19,7 +19,7 @@ mod loans {
 use loans::*;
 
 use frame_support::{construct_runtime, parameter_types, PalletId};
-
+use frame_system::EnsureRoot;
 use lazy_static::lazy_static;
 use orml_traits::parameter_type_with_key;
 use primitives::{
@@ -172,6 +172,7 @@ impl Config for Runtime {
     type Currency = Currencies;
     type PalletId = LoansPalletId;
     type PriceFeeder = MOCK_PRICE_FEEDER;
+    type ReserveOrigin = EnsureRoot<AccountId>;
 }
 
 parameter_types! {

@@ -334,6 +334,7 @@ impl pallet_loans::Config for Runtime {
     type Currency = Currencies;
     type PalletId = LoansPalletId;
     type PriceFeeder = Prices;
+    type ReserveOrigin = EnsureRoot<AccountId>;
 }
 
 impl pallet_staking::Config for Runtime {

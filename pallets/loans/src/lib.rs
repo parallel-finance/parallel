@@ -19,7 +19,6 @@
 use crate::rate::InterestRateModel;
 use crate::util::*;
 use frame_support::{pallet_prelude::*, transactional, PalletId};
-use frame_system::ensure_root;
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 use primitives::{Amount, Balance, CurrencyId, Multiplier, PriceFeeder, Rate, Ratio};
@@ -81,6 +80,9 @@ pub mod module {
         /// The loan's module id, keep all collaterals of CDPs.
         #[pallet::constant]
         type PalletId: Get<PalletId>;
+
+        /// The origin which can add/reduce reserves.
+        type ReserveOrigin: EnsureOrigin<Self::Origin>;
     }
 
     #[pallet::error]
@@ -548,19 +550,14 @@ pub mod module {
         #[transactional]
         pub fn add_reserves(
             origin: OriginFor<T>,
-            reserve_account: <T::Lookup as StaticLookup>::Source,
+            payer: <T::Lookup as StaticLookup>::Source,
             currency_id: CurrencyId,
             add_amount: Balance,
         ) -> DispatchResultWithPostInfo {
-            ensure_root(origin)?;
-            let reserve_account = T::Lookup::lookup(reserve_account)?;
+            T::ReserveOrigin::ensure_origin(origin)?;
+            let payer = T::Lookup::lookup(payer)?;
 
-            T::Currency::transfer(
-                currency_id.clone(),
-                &reserve_account,
-                &Self::account_id(),
-                add_amount,
-            )?;
+            T::Currency::transfer(currency_id.clone(), &payer, &Self::account_id(), add_amount)?;
             let total_reserves = Self::total_reserves(currency_id);
             let total_reserves_new = total_reserves + add_amount;
             TotalReserves::<T>::insert(currency_id, total_reserves_new);
@@ -579,12 +576,12 @@ pub mod module {
         #[transactional]
         pub fn reduce_reserves(
             origin: OriginFor<T>,
-            reserve_account: <T::Lookup as StaticLookup>::Source,
+            receiver: <T::Lookup as StaticLookup>::Source,
             currency_id: CurrencyId,
             reduce_amount: Balance,
         ) -> DispatchResultWithPostInfo {
-            ensure_root(origin)?;
-            let reserve_account = T::Lookup::lookup(reserve_account)?;
+            T::ReserveOrigin::ensure_origin(origin)?;
+            let receiver = T::Lookup::lookup(receiver)?;
 
             let total_reserves = Self::total_reserves(currency_id);
             if reduce_amount > total_reserves {
@@ -594,12 +591,12 @@ pub mod module {
             T::Currency::transfer(
                 currency_id.clone(),
                 &Self::account_id(),
-                &reserve_account,
+                &receiver,
                 reduce_amount,
             )?;
             TotalReserves::<T>::insert(currency_id, total_reserves_new);
             Self::deposit_event(Event::<T>::ReservesReduced(
-                reserve_account,
+                receiver,
                 currency_id,
                 reduce_amount,
                 total_reserves_new,
