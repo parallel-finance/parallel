@@ -22,12 +22,20 @@ use frame_support::{
     pallet_prelude::*, PalletId, transactional,
 };
 use frame_system::pallet_prelude::*;
-use primitives::{Amount, Balance, CurrencyId, Rate};
 use sp_runtime::{
     traits::AccountIdConversion, RuntimeDebug, FixedPointNumber,
 };
+
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
+
+use primitives::{Amount, Balance, CurrencyId, Rate};
 pub use pallet::*;
+
+#[cfg(test)]
+mod mock;
+
+#[cfg(test)]
+mod tests;
 
 /// Container for pending balance information
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
@@ -123,6 +131,26 @@ pub mod pallet {
         }
     }
 
+    #[cfg(feature = "std")]
+    impl GenesisConfig {
+        /// Direct implementation of `GenesisBuild::build_storage`.
+        ///
+        /// Kept in order not to break dependency.
+        pub fn build_storage<T: Config>(&self) -> Result<sp_runtime::Storage, String> {
+            <Self as GenesisBuild<T>>::build_storage(self)
+        }
+
+        /// Direct implementation of `GenesisBuild::assimilate_storage`.
+        ///
+        /// Kept in order not to break dependency.
+        pub fn assimilate_storage<T: Config>(
+            &self,
+            storage: &mut sp_runtime::Storage
+        ) -> Result<(), String> {
+            <Self as GenesisBuild<T>>::assimilate_storage(self, storage)
+        }
+    }
+
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
@@ -150,11 +178,11 @@ pub mod pallet {
             T::Currency::transfer(T::StakingCurrency::get(), &sender, &Self::account_id(), amount)?;
             T::Currency::deposit(T::LiquidCurrency::get(), &sender, voucher_amount)?;
             TotalVoucher::<T>::try_mutate(|b| -> DispatchResult {
-                b.checked_add(voucher_amount).ok_or(Error::<T>::Overflow)?;
+                *b = b.checked_add(voucher_amount).ok_or(Error::<T>::Overflow)?;
                 Ok(())
             })?;
             TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
-                b.checked_add(amount).ok_or(Error::<T>::Overflow)?;
+                *b = b.checked_add(amount).ok_or(Error::<T>::Overflow)?;
                 Ok(())
             })?;
 
