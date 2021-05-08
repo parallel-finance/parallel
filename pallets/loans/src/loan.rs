@@ -434,7 +434,7 @@ impl<T: Config> Pallet<T> {
         // calculate the collateral will get
         let equivalent_collateral_amount = collateral_token_price
             .reciprocal()
-            .and_then(|price| price.checked_mul_int(liquidate_value))
+            .and_then(|r| r.checked_mul_int(liquidate_value))
             .ok_or(Error::<T>::EquivalentCollateralAmountOverflow)?;
 
         let real_collateral_underlying_amount =

@@ -80,11 +80,6 @@ ord_parameter_types! {
     pub const One: AccountId = 1;
 }
 
-parameter_types! {
-    pub const GetStableCurrencyId: CurrencyId = CurrencyId::USDT;
-    pub StableCurrencyFixedPrice: Price = Price::saturating_from_rational(1, 1);
-}
-
 impl Config for Runtime {
     type Event = Event;
     type Source = MockDataProvider;
