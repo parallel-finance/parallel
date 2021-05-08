@@ -17,6 +17,7 @@
 use frame_support::{assert_noop, assert_ok};
 use primitives::{BLOCK_PER_YEAR, RATE_DECIMAL};
 use sp_runtime::traits::{CheckedDiv, One, Saturating};
+use sp_runtime::{FixedU128, Permill};
 
 use super::*;
 
@@ -405,5 +406,102 @@ fn reduce_reserves_works() {
             <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
             dollar(920),
         );
+    })
+}
+
+#[test]
+fn ratio_and_rate_works() {
+    ExtBuilder::default().build().execute_with(|| {
+        // Permill to FixedU128
+        let ratio = Permill::from_percent(50);
+        let rate: FixedU128 = ratio.into();
+        assert_eq!(rate, FixedU128::saturating_from_rational(1, 2));
+
+        // Permill  (one = 1_000_000)
+        let permill = Permill::from_percent(50);
+        assert_eq!(permill * 100_u128, 50_u128);
+
+        // FixedU128 (one = 1_000_000_000_000_000_000_000)
+        let value1 = FixedU128::saturating_from_integer(100);
+        let value2 = FixedU128::saturating_from_integer(10);
+        assert_eq!(
+            value1.checked_mul(&value2),
+            Some(FixedU128::saturating_from_integer(1000))
+        );
+        assert_eq!(
+            value1.checked_div(&value2),
+            Some(FixedU128::saturating_from_integer(10))
+        );
+        assert_eq!(
+            value1.saturating_mul(permill.into()),
+            FixedU128::saturating_from_integer(50)
+        );
+
+        let value1 = FixedU128::saturating_from_rational(9, 10);
+        let value2 = 10_u128;
+        let value3 = FixedU128::saturating_from_integer(10_u128);
+        assert_eq!(
+            value1.reciprocal(),
+            Some(FixedU128::saturating_from_rational(10, 9))
+        );
+        // u128 div FixedU128
+        assert_eq!(
+            FixedU128::saturating_from_integer(value2).checked_div(&value1),
+            Some(FixedU128::saturating_from_rational(100, 9))
+        );
+
+        // FixedU128 div u128
+        assert_eq!(
+            value1.reciprocal().and_then(|r| r.checked_mul_int(value2)),
+            Some(11)
+        );
+        assert_eq!(
+            FixedU128::from_inner(17_777_777_777_777_777_777).checked_div_int(value2),
+            Some(1)
+        );
+        // FixedU128 mul u128
+        assert_eq!(
+            FixedU128::from_inner(17_777_777_777_777_777_777).checked_mul_int(value2),
+            Some(177)
+        );
+
+        // reciprocal
+        assert_eq!(
+            FixedU128::saturating_from_integer(value2).checked_div(&value1),
+            Some(FixedU128::saturating_from_rational(100, 9))
+        );
+        assert_eq!(
+            value1
+                .reciprocal()
+                .and_then(|r| r.checked_mul(&FixedU128::saturating_from_integer(value2))),
+            Some(FixedU128::from_inner(11_111_111_111_111_111_110))
+        );
+        assert_eq!(
+            FixedU128::saturating_from_integer(value2)
+                .checked_mul(&value3)
+                .and_then(|v| v.checked_div(&value1)),
+            Some(FixedU128::saturating_from_rational(1000, 9))
+        );
+        assert_eq!(
+            FixedU128::saturating_from_integer(value2)
+                .checked_div(&value1)
+                .and_then(|v| v.checked_mul(&value3)),
+            Some(FixedU128::from_inner(111_111_111_111_111_111_110))
+        );
+
+        // FixedU128 div Permill
+        let value1 = Permill::from_percent(30);
+        let value2 = FixedU128::saturating_from_integer(10);
+        assert_eq!(
+            value2.checked_div(&value1.into()),
+            Some(FixedU128::saturating_from_rational(100, 3)) // 10/0.3
+        );
+
+        // u128 div Permill
+        assert_eq!(value1.saturating_reciprocal_mul(5_u128), 17); // (1/0.3) * 5
+        assert_eq!(value1.saturating_reciprocal_mul_floor(5_u128), 16); // (1/0.3) * 5
+
+        // Permill * u128
+        assert_eq!(value1 * 5_u128, 1); // 0.3 * 5
     })
 }
