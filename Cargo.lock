@@ -4867,6 +4867,7 @@ dependencies = [
  "orml-traits",
  "orml-utilities",
  "pallet-balances",
+ "pallet-prices",
  "parallel-primitives",
  "parity-scale-codec",
  "serde",

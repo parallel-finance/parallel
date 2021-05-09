@@ -5,6 +5,8 @@ use crate::Pallet as Loans;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::assert_ok;
 use frame_system::RawOrigin as SystemOrigin;
+use pallet_prices::EmergencyPrice;
+use sp_runtime::FixedU128;
 
 pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const INITIAL_AMOUNT: u128 = 10000;
@@ -33,6 +35,7 @@ benchmarks! {
         let borrowed_amount = 100;
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, amount));
         assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(caller.clone()).into(), DOT, true));
+        <EmergencyPrice<T>>::insert(DOT, FixedU128::from(2_000_000_000_000_000u128));
     }: _(SystemOrigin::Signed(caller.clone()), DOT, borrowed_amount)
     verify {
         assert_eq!(

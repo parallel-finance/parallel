@@ -63,7 +63,7 @@ pub mod module {
     use super::*;
 
     #[pallet::config]
-    pub trait Config: frame_system::Config {
+    pub trait Config: frame_system::Config + pallet_prices::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Currency type for deposit/withdraw collateral assets to/from loans
