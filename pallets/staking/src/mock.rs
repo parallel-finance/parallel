@@ -1,6 +1,6 @@
 use crate as pallet_liquid_staking;
 use sp_core::H256;
-use frame_support::{PalletId, parameter_types, traits::{Currency, GenesisBuild}};
+use frame_support::{PalletId, parameter_types, traits::GenesisBuild};
 use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup}, testing::Header, FixedPointNumber,
 };

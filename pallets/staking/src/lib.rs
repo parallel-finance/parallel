@@ -39,9 +39,9 @@ mod tests;
 
 /// Container for pending balance information
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
-pub struct PendingBalance<Moment> {
-    pub balance: Balance,
-    pub timestamp: Moment,
+pub struct UnstakeInfo<BlockNumber> {
+    pub amount: Balance,
+    pub block_number: BlockNumber,
 }
 
 #[frame_support::pallet]
@@ -112,6 +112,26 @@ pub mod pallet {
     #[pallet::getter(fn total_voucher)]
     pub type TotalVoucher<T: Config> = StorageValue<_, Balance, ValueQuery>;
 
+    /// The queue stores all the pending unstaking requests.
+    #[pallet::storage]
+    #[pallet::getter(fn account_pending_unstake)]
+    pub type AccountPendingUnstake<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        UnstakeInfo<T::BlockNumber>,
+    >;
+
+    // /// The queue stores all the unstaking requests in processing.
+    // #[pallet::storage]
+    // #[pallet::getter(fn unstaking_processing_queue)]
+    // pub type UnstakingProcessingQueue<T: Config> = StorageValue<_, Vec<UnstakingInfo>, ValueQuery>;
+
+    // /// The queue stroes all the processed unstaking requests and wait for redeeming.
+    // #[pallet::storage]
+    // #[pallet::getter(fn unstaking_redeeming_queue)]
+    // pub type UnstakingRedeemingQueue<T: Config> = StorageValue<_, Vec<UnstakingInfo>, ValueQuery>;
+
     #[pallet::genesis_config]
     pub struct GenesisConfig {
         pub exchange_rate: Rate,
@@ -175,7 +195,12 @@ pub mod pallet {
                 .and_then(|r| r.checked_mul_int(amount))
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
 
-            T::Currency::transfer(T::StakingCurrency::get(), &sender, &Self::account_id(), amount)?;
+            T::Currency::transfer(
+                T::StakingCurrency::get(),
+                &sender,
+                &Self::account_id(),
+                amount
+            )?;
             T::Currency::deposit(T::LiquidCurrency::get(), &sender, voucher_amount)?;
             TotalVoucher::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b.checked_add(voucher_amount).ok_or(Error::<T>::Overflow)?;
@@ -190,7 +215,9 @@ pub mod pallet {
             Ok(().into())
         }
 
-        /// Unstake by exchange voucher for assets
+        /// Unstake by exchange voucher for assets, the assets will not be avaliable immediately.
+        /// Instead, the request is recorded and pending for the nomination accounts in relay
+        /// chain to do the `unbond` operation.
         ///
         /// - `amount`: the amount of unstaking voucher
         #[pallet::weight(10_000)]
@@ -206,14 +233,27 @@ pub mod pallet {
                 .checked_mul_int(amount)
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
 
-            T::Currency::transfer(T::StakingCurrency::get(), &Self::account_id(), &sender, asset_amount)?;
-            T::Currency::withdraw(T::LiquidCurrency::get(), &sender, amount)?;
-            TotalVoucher::<T>::try_mutate(|b| -> DispatchResult {
-                b.checked_sub(amount).ok_or(Error::<T>::Underflow)?;
+            AccountPendingUnstake::<T>::try_mutate(&sender, |info| -> DispatchResult {
+                let block_number = frame_system::Pallet::<T>::block_number();
+                let new_info = info.map_or::<Result<_, Error<T>>, _>(
+                    Ok(UnstakeInfo { amount: asset_amount, block_number }),
+                    |mut v| {
+                        v.amount = v.amount.checked_add(asset_amount).ok_or(Error::<T>::Overflow)?;
+                        v.block_number = block_number;
+                        Ok(v)
+                    }
+                )?;
+                *info = Some(new_info);
                 Ok(())
             })?;
+            T::Currency::withdraw(T::LiquidCurrency::get(), &sender, amount)?;
+            TotalVoucher::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_sub(amount).ok_or(Error::<T>::Underflow)?;
+                Ok(())
+            })?;
+            // TODO should it update after applied onbond operation?
             TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
-                b.checked_sub(asset_amount).ok_or(Error::<T>::Underflow)?;
+                *b = b.checked_sub(asset_amount).ok_or(Error::<T>::Underflow)?;
                 Ok(())
             })?;
 
