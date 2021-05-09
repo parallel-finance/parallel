@@ -28,6 +28,10 @@ jobs:
           command: doc
           args: --all --no-deps
 
+      - name: Use Custom Domain
+        run: |
+          echo "api-docs.parallel.fi" > CNAME
+
       - name: Deploy Documentation
         uses: peaceiris/actions-gh-pages@v3
         with:
