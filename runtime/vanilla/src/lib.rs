@@ -287,6 +287,7 @@ parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/stak");
     pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
+    pub const MaxWithdrawAmount: Balance = 1000;
 }
 
 impl pallet_staking::Config for Runtime {
@@ -295,6 +296,8 @@ impl pallet_staking::Config for Runtime {
     type PalletId = StakingPalletId;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
+    type WithdrawOrigin = EnsureRoot<AccountId>;
+    type MaxWithdrawAmount = MaxWithdrawAmount;
 }
 
 parameter_types! {

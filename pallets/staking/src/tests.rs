@@ -1,5 +1,6 @@
 use crate::{Error, mock::*};
 use frame_support::{assert_ok, assert_noop};
+use sp_runtime::traits::BadOrigin;
 use super::*;
 
 #[test]
@@ -20,6 +21,46 @@ fn stake_should_work() {
                 CurrencyId::DOT, &LiquidStaking::account_id()
             ),
             10
+        );
+    })
+}
+
+#[test]
+fn withdraw_should_work() {
+    new_test_ext().execute_with(|| {
+        let _ = LiquidStaking::stake(Origin::signed(1), 10);
+        assert_ok!(LiquidStaking::withdraw(Origin::signed(6), 2, 10));
+
+        // Check balance is correct
+        assert_eq!(<Test as Config>::Currency::free_balance(CurrencyId::DOT, &1), 90);
+        assert_eq!(<Test as Config>::Currency::free_balance(CurrencyId::DOT, &2), 10);
+        assert_eq!(
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::DOT, &LiquidStaking::account_id()
+            ),
+            0
+        );
+    })
+}
+
+#[test]
+fn withdraw_from_invalid_origin_should_fail() {
+    new_test_ext().execute_with(|| {
+        let _ = LiquidStaking::stake(Origin::signed(1), 10);
+        assert_noop!(
+            LiquidStaking::withdraw(Origin::signed(1), 2, 11),
+            BadOrigin,
+        );
+    })
+}
+
+#[test]
+fn withdraw_too_much_should_fail() {
+    new_test_ext().execute_with(|| {
+        let _ = LiquidStaking::stake(Origin::signed(1), 10);
+        assert_noop!(
+            LiquidStaking::withdraw(Origin::signed(6), 2, 11),
+            Error::<Test>::ExcessWithdraw,
         );
     })
 }

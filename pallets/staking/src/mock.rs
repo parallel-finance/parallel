@@ -1,10 +1,12 @@
 use crate as pallet_liquid_staking;
 use sp_core::H256;
-use frame_support::{PalletId, parameter_types, traits::GenesisBuild};
+use frame_support::{
+	PalletId, parameter_types, ord_parameter_types, traits::GenesisBuild,
+};
 use sp_runtime::{
 	traits::{BlakeTwo256, IdentityLookup}, testing::Header, FixedPointNumber,
 };
-use frame_system as system;
+use frame_system::{self as system, EnsureSignedBy};
 
 use orml_traits::parameter_type_with_key;
 
@@ -109,10 +111,15 @@ impl orml_currencies::Config for Test {
 	type WeightInfo = ();
 }
 
+ord_parameter_types! {
+	pub const Six: u64 = 6;
+}
+
 parameter_types! {
 	pub const LiquidStakingPalletId: PalletId = PalletId(*b"par/liqu");
 	pub const StakingCurrency: CurrencyId = DOT;
 	pub const LiquidCurrency: CurrencyId = XDOT;
+	pub const MaxWithdrawAmount: Balance = 10;
 }
 
 impl pallet_liquid_staking::Config for Test {
@@ -121,6 +128,8 @@ impl pallet_liquid_staking::Config for Test {
 	type PalletId = LiquidStakingPalletId;
 	type StakingCurrency = StakingCurrency;
 	type LiquidCurrency = LiquidCurrency;
+	type WithdrawOrigin = EnsureSignedBy<Six, u64>;
+	type MaxWithdrawAmount = MaxWithdrawAmount;
 }
 
 // BUild genesis storage according to the mock runtime.

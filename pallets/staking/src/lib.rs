@@ -76,6 +76,13 @@ pub mod pallet {
         /// The pallet id of liquid staking, keeps all the staking assets.
         #[pallet::constant]
         type PalletId: Get<PalletId>;
+
+        /// The origin which can withdraw staking assets.
+        type WithdrawOrigin: EnsureOrigin<Self::Origin>;
+
+        /// The maximum assets can be withdrawed to a multisig account.
+        #[pallet::constant]
+        type MaxWithdrawAmount: Get<Balance>;
     }
 
     #[pallet::error]
@@ -86,6 +93,8 @@ pub mod pallet {
         Overflow,
         /// Calculation underflow
         Underflow,
+        /// The withdraw assets exceed the threshold
+        ExcessWithdraw,
     }
 
     #[pallet::event]
@@ -95,6 +104,8 @@ pub mod pallet {
         Staked(T::AccountId, Balance),
         /// The voucher get unstaked successfully
         Unstaked(T::AccountId, Balance),
+        /// The withdraw request is successful
+        WithdrawSuccess(T::AccountId, Balance),
     }
 
     /// The exchange rate converts staking native token to voucher.
@@ -212,6 +223,33 @@ pub mod pallet {
             })?;
 
             Self::deposit_event(Event::Staked(sender, amount));
+            Ok(().into())
+        }
+
+        /// Withdraw assets from liquid staking pool for offchain relay chain nomination.
+        ///
+        /// May only be called from `T::WithdrawOrigin`.
+        ///
+        /// - `agent`: the multisig account of relay chain.
+        /// - `amount`: the requested assets.
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn withdraw(
+            origin: OriginFor<T>,
+            agent: T::AccountId,
+            amount: Balance,
+        ) -> DispatchResultWithPostInfo {
+            T::WithdrawOrigin::ensure_origin(origin)?;
+            ensure!(amount <= T::MaxWithdrawAmount::get(), Error::<T>::ExcessWithdraw);
+            
+            T::Currency::transfer(
+                T::StakingCurrency::get(),
+                &Self::account_id(),
+                &agent,
+                amount,
+            )?;
+
+            Self::deposit_event(Event::WithdrawSuccess(agent, amount));
             Ok(().into())
         }
 
