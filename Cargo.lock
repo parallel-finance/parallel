@@ -4863,6 +4863,7 @@ dependencies = [
  "frame-system",
  "lazy_static",
  "orml-currencies",
+ "orml-oracle",
  "orml-tokens",
  "orml-traits",
  "orml-utilities",

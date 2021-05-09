@@ -27,6 +27,7 @@ sp-std             = { git = 'https://github.com/paritytech/substrate.git', bran
 lazy_static = { version = "1.4.0" }
 sp-core     = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
 sp-io       = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
+orml-oracle = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false}
 
 [features]
 default = ['std']

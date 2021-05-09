@@ -18,12 +18,14 @@ mod loans {
 
 use loans::*;
 
-use frame_support::{construct_runtime, parameter_types, PalletId};
-use frame_system::EnsureRoot;
+use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
+use frame_system::{EnsureRoot, EnsureSignedBy};
 use lazy_static::lazy_static;
 use orml_traits::parameter_type_with_key;
+use orml_traits::DataProvider;
 use primitives::{
-    Amount, Balance, CurrencyId, PriceDetail, PriceFeeder, Rate, Ratio, RATE_DECIMAL, TOKEN_DECIMAL,
+    Amount, Balance, CurrencyId, Moment, OraclePrice, PriceDetail, PriceFeeder, Rate, Ratio,
+    RATE_DECIMAL, TOKEN_DECIMAL,
 };
 use sp_core::H256;
 use sp_runtime::traits::One;
@@ -44,6 +46,7 @@ construct_runtime!(
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
+        PricesPallet: pallet_prices::{Pallet, Storage, Call, Event<T>},
         Loans: loans::{Pallet, Storage, Call, Config, Event<T>},
     }
 );
@@ -133,6 +136,30 @@ impl pallet_balances::Config for Runtime {
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
+}
+
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<OraclePrice, Moment>;
+pub struct MockDataProvider;
+impl DataProvider<CurrencyId, TimeStampedPrice> for MockDataProvider {
+    fn get(currency_id: &CurrencyId) -> Option<TimeStampedPrice> {
+        match *currency_id {
+            DOT => Some(TimeStampedPrice {
+                value: OraclePrice::saturating_from_integer(100),
+                timestamp: 0,
+            }),
+            _ => None,
+        }
+    }
+}
+
+ord_parameter_types! {
+    pub const Two: AccountId = 2;
+}
+
+impl pallet_prices::Config for Runtime {
+    type Event = Event;
+    type Source = MockDataProvider;
+    type FeederOrigin = EnsureSignedBy<Two, AccountId>;
 }
 
 lazy_static! {
