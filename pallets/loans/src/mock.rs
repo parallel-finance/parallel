@@ -18,7 +18,7 @@ mod loans {
 
 use loans::*;
 
-use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
+use frame_support::{construct_runtime, parameter_types, PalletId, traits::SortedMembers};
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use lazy_static::lazy_static;
 use orml_traits::parameter_type_with_key;
@@ -152,14 +152,17 @@ impl DataProvider<CurrencyId, TimeStampedPrice> for MockDataProvider {
     }
 }
 
-ord_parameter_types! {
-    pub const Two: AccountId = 2;
+pub struct OneToFive;
+impl SortedMembers<AccountId> for OneToFive {
+	fn sorted_members() -> Vec<AccountId> {
+		vec![1, 2, 3, 4, 5]
+	}
 }
 
 impl pallet_prices::Config for Runtime {
     type Event = Event;
     type Source = MockDataProvider;
-    type FeederOrigin = EnsureSignedBy<Two, AccountId>;
+    type FeederOrigin = EnsureSignedBy<OneToFive, AccountId>;
 }
 
 lazy_static! {
