@@ -1,5 +1,9 @@
 # CHANGE LOG
 
+## 2021.05.07
+- Add TotalReserves storage (#92)
+- Add `add_reserves` and `reduce_reserves` dispatchables.
+
 ## 2021.05.01
 - Add prices pallet(#73)
 - Add new types :
