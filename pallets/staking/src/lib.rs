@@ -18,18 +18,14 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{
-    pallet_prelude::*, PalletId, transactional,
-};
+use frame_support::{pallet_prelude::*, transactional, PalletId};
 use frame_system::pallet_prelude::*;
-use sp_runtime::{
-    traits::AccountIdConversion, RuntimeDebug, FixedPointNumber,
-};
+use sp_runtime::{traits::AccountIdConversion, FixedPointNumber, RuntimeDebug};
 
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 
-use primitives::{Amount, Balance, CurrencyId, Rate};
 pub use pallet::*;
+use primitives::{Amount, Balance, CurrencyId, Rate};
 
 #[cfg(test)]
 mod mock;
@@ -128,12 +124,8 @@ pub mod pallet {
     /// The queue stores all the pending unstaking requests.
     #[pallet::storage]
     #[pallet::getter(fn account_pending_unstake)]
-    pub type AccountPendingUnstake<T: Config> = StorageMap<
-        _,
-        Blake2_128Concat,
-        T::AccountId,
-        UnstakeInfo<T::BlockNumber>,
-    >;
+    pub type AccountPendingUnstake<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, UnstakeInfo<T::BlockNumber>>;
 
     // /// The queue stores all the unstaking requests in processing.
     // #[pallet::storage]
@@ -153,7 +145,9 @@ pub mod pallet {
     #[cfg(feature = "std")]
     impl Default for GenesisConfig {
         fn default() -> Self {
-            Self { exchange_rate: Rate::default() }
+            Self {
+                exchange_rate: Rate::default(),
+            }
         }
     }
 
@@ -178,7 +172,7 @@ pub mod pallet {
         /// Kept in order not to break dependency.
         pub fn assimilate_storage<T: Config>(
             &self,
-            storage: &mut sp_runtime::Storage
+            storage: &mut sp_runtime::Storage,
         ) -> Result<(), String> {
             <Self as GenesisBuild<T>>::assimilate_storage(self, storage)
         }
@@ -191,15 +185,12 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// Put assets under staking, the native assets will be transferred to the account
         /// owned by the pallet, user receive voucher in return, such vocher can be further
-        /// used as collateral for lending. 
+        /// used as collateral for lending.
         ///
         /// - `amount`: the amount of staking assets
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn stake(
-            origin: OriginFor<T>,
-            amount: Balance,
-        ) -> DispatchResultWithPostInfo {
+        pub fn stake(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
 
             let exchange_rate = ExchangeRate::<T>::get();
@@ -212,7 +203,7 @@ pub mod pallet {
                 T::StakingCurrency::get(),
                 &sender,
                 &Self::account_id(),
-                amount
+                amount,
             )?;
             T::Currency::deposit(T::LiquidCurrency::get(), &sender, voucher_amount)?;
             TotalVoucher::<T>::try_mutate(|b| -> DispatchResult {
@@ -242,8 +233,11 @@ pub mod pallet {
             amount: Balance,
         ) -> DispatchResultWithPostInfo {
             T::WithdrawOrigin::ensure_origin(origin)?;
-            ensure!(amount <= T::MaxWithdrawAmount::get(), Error::<T>::ExcessWithdraw);
-            
+            ensure!(
+                amount <= T::MaxWithdrawAmount::get(),
+                Error::<T>::ExcessWithdraw
+            );
+
             T::Currency::transfer(
                 T::StakingCurrency::get(),
                 &Self::account_id(),
@@ -269,7 +263,7 @@ pub mod pallet {
             amount: Balance,
         ) -> DispatchResultWithPostInfo {
             T::WithdrawOrigin::ensure_origin(origin)?;
-            
+
             TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b.checked_add(amount).ok_or(Error::<T>::Overflow)?;
                 Ok(())
@@ -277,7 +271,8 @@ pub mod pallet {
             let exchange_rate = Rate::checked_from_rational(
                 TotalStakingAsset::<T>::get(),
                 TotalVoucher::<T>::get(),
-            ).ok_or(Error::<T>::InvalidExchangeRate)?;
+            )
+            .ok_or(Error::<T>::InvalidExchangeRate)?;
             ExchangeRate::<T>::put(exchange_rate);
 
             Self::deposit_event(Event::RewardsRecorded(agent, amount));
@@ -291,10 +286,7 @@ pub mod pallet {
         /// - `amount`: the amount of unstaking voucher
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn unstake(
-            origin: OriginFor<T>,
-            amount: Balance,
-        ) -> DispatchResultWithPostInfo {
+        pub fn unstake(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
 
             let exchange_rate = ExchangeRate::<T>::get();
@@ -305,12 +297,18 @@ pub mod pallet {
             AccountPendingUnstake::<T>::try_mutate(&sender, |info| -> DispatchResult {
                 let block_number = frame_system::Pallet::<T>::block_number();
                 let new_info = info.map_or::<Result<_, Error<T>>, _>(
-                    Ok(UnstakeInfo { amount: asset_amount, block_number }),
+                    Ok(UnstakeInfo {
+                        amount: asset_amount,
+                        block_number,
+                    }),
                     |mut v| {
-                        v.amount = v.amount.checked_add(asset_amount).ok_or(Error::<T>::Overflow)?;
+                        v.amount = v
+                            .amount
+                            .checked_add(asset_amount)
+                            .ok_or(Error::<T>::Overflow)?;
                         v.block_number = block_number;
                         Ok(v)
-                    }
+                    },
                 )?;
                 *info = Some(new_info);
                 Ok(())
@@ -329,7 +327,6 @@ pub mod pallet {
             Self::deposit_event(Event::Unstaked(sender, amount));
             Ok(().into())
         }
-
     }
 }
 
