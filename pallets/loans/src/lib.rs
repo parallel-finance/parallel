@@ -85,6 +85,10 @@ pub mod module {
         /// The origin which can add/reduce reserves.
         type ReserveOrigin: EnsureOrigin<Self::Origin>;
 
+        /// The origin which can update rate model, liquidate incentive and
+        /// add/reduce reserves. Root can always do this.
+        type UpdateOrigin: EnsureOrigin<Self::Origin>;
+
         /// Weight information for extrinsics in this pallet.
         type WeightInfo: WeightInfo;
     }
@@ -424,6 +428,7 @@ pub mod module {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        /// Sender supplies assets into the market and receives internal supplies in exchange.
         #[pallet::weight(T::WeightInfo::mint())]
         #[transactional]
         pub fn mint(
@@ -437,6 +442,7 @@ pub mod module {
             Ok(().into())
         }
 
+        /// Sender redeems some of internal supplies in exchange for the underlying asset.
         #[pallet::weight(T::WeightInfo::redeem())]
         #[transactional]
         pub fn redeem(
@@ -450,6 +456,7 @@ pub mod module {
             Ok(().into())
         }
 
+        /// Sender redeems all of internal supplies in exchange for the underlying asset.
         #[pallet::weight(T::WeightInfo::redeem_all())]
         #[transactional]
         pub fn redeem_all(
@@ -467,6 +474,7 @@ pub mod module {
             Ok(().into())
         }
 
+        /// Sender borrows assets from the protocol to their own address.
         #[pallet::weight(T::WeightInfo::borrow())]
         #[transactional]
         pub fn borrow(
@@ -479,6 +487,7 @@ pub mod module {
             Ok(().into())
         }
 
+        /// Sender repays some of their debts.
         #[pallet::weight(T::WeightInfo::repay_borrow())]
         #[transactional]
         pub fn repay_borrow(
@@ -491,6 +500,7 @@ pub mod module {
             Ok(().into())
         }
 
+        /// Sender repays all of their debts.
         #[pallet::weight(T::WeightInfo::repay_borrow_all())]
         #[transactional]
         pub fn repay_borrow_all(
@@ -530,6 +540,7 @@ pub mod module {
             Ok(().into())
         }
 
+        /// The sender liquidates the borrowers collateral.
         #[pallet::weight(T::WeightInfo::liquidate_borrow())]
         #[transactional]
         pub fn liquidate_borrow(
@@ -550,7 +561,26 @@ pub mod module {
             Ok(().into())
         }
 
+        /// Update the interest rate model for a given asset.
         #[pallet::weight(T::WeightInfo::add_reserves())]
+        #[transactional]
+        pub fn set_rate_model(
+            origin: OriginFor<T>,
+            currency_id: CurrencyId,
+            new_model: InterestRateModel,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+
+            CurrencyInterestModel::<T>::try_mutate(currency_id, |model| -> DispatchResult {
+                *model = new_model;
+                Ok(())
+            })?;
+
+            Ok(().into())
+        }
+
+        /// Add reserves by transferring from payer.
+        #[pallet::weight(10_000)]
         #[transactional]
         pub fn add_reserves(
             origin: OriginFor<T>,
@@ -576,6 +606,7 @@ pub mod module {
             Ok(().into())
         }
 
+        /// Reduces reserves by transferring to receiver.
         #[pallet::weight(T::WeightInfo::reduce_reserves())]
         #[transactional]
         pub fn reduce_reserves(

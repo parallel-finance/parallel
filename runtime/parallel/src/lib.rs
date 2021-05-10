@@ -335,6 +335,7 @@ impl pallet_loans::Config for Runtime {
     type PalletId = LoansPalletId;
     type PriceFeeder = Prices;
     type ReserveOrigin = EnsureRoot<AccountId>;
+    type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = pallet_loans::weights::SubstrateWeight<Runtime>;
 }
 
