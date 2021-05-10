@@ -21,7 +21,7 @@ use crate::util::*;
 use frame_support::{pallet_prelude::*, transactional, PalletId};
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
-use primitives::{Amount, Balance, CurrencyId, Multiplier, PriceFeeder, Rate, Ratio};
+use primitives::{Amount, Balance, CurrencyId, Multiplier, PriceDetail, PriceFeeder, Rate, Ratio};
 use sp_runtime::{
     traits::{AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, StaticLookup, Zero},
     FixedPointNumber,
@@ -65,7 +65,7 @@ pub mod module {
     use super::*;
 
     #[pallet::config]
-    pub trait Config: frame_system::Config + pallet_prices::Config {
+    pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Currency type for deposit/withdraw collateral assets to/from loans
@@ -313,6 +313,12 @@ pub mod module {
     #[pallet::storage]
     #[pallet::getter(fn close_factor)]
     pub type CloseFactor<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Ratio, ValueQuery>;
+
+    /// Price against currencyId
+    #[pallet::storage]
+    #[pallet::getter(fn currency_id_price)]
+    pub(crate) type CurrencyIdPrice<T: Config> =
+        StorageMap<_, Twox64Concat, CurrencyId, PriceDetail, OptionQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig {
