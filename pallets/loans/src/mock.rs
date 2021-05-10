@@ -46,7 +46,7 @@ construct_runtime!(
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
-        PricesPallet: pallet_prices::{Pallet, Storage, Call, Event<T>},
+        Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
         Loans: loans::{Pallet, Storage, Call, Config, Event<T>},
     }
 );
