@@ -419,7 +419,7 @@ fn ratio_and_rate_works() {
 
         // Permill  (one = 1_000_000)
         let permill = Permill::from_percent(50);
-        assert_eq!(permill * 100_u128, 50_u128);
+        assert_eq!(permill.mul_floor(100_u128), 50_u128);
 
         // FixedU128 (one = 1_000_000_000_000_000_000_000)
         let value1 = FixedU128::saturating_from_integer(100);
@@ -491,17 +491,27 @@ fn ratio_and_rate_works() {
 
         // FixedU128 div Permill
         let value1 = Permill::from_percent(30);
-        let value2 = FixedU128::saturating_from_integer(10);
+        let value2 = Permill::from_percent(40);
+        let value3 = FixedU128::saturating_from_integer(10);
         assert_eq!(
-            value2.checked_div(&value1.into()),
+            value3.checked_div(&value1.into()),
             Some(FixedU128::saturating_from_rational(100, 3)) // 10/0.3
         );
 
         // u128 div Permill
-        assert_eq!(value1.saturating_reciprocal_mul(5_u128), 17); // (1/0.3) * 5
-        assert_eq!(value1.saturating_reciprocal_mul_floor(5_u128), 16); // (1/0.3) * 5
+        assert_eq!(value1.saturating_reciprocal_mul(5_u128), 17); // (1/0.3) * 5 = 16.66666666..
+        assert_eq!(value1.saturating_reciprocal_mul_floor(5_u128), 16); // (1/0.3) * 5 = 16.66666666..
+        assert_eq!(value2.saturating_reciprocal_mul(5_u128), 12); // (1/0.4) * 5 = 12.5
 
         // Permill * u128
-        assert_eq!(value1 * 5_u128, 1); // 0.3 * 5
+        let value1 = Permill::from_percent(34);
+        let value2 = Permill::from_percent(36);
+        let value3 = Permill::from_percent(30);
+        let value4 = Permill::from_percent(20);
+        assert_eq!(value1 * 10_u64, 3); // 0.34 * 10
+        assert_eq!(value2 * 10_u64, 4); // 0.36 * 10
+        assert_eq!(value3 * 5_u64, 1); // 0.3 * 5
+        assert_eq!(value4 * 8_u64, 2); // 0.2 * 8
+        assert_eq!(value4.mul_floor(8_u64), 1); // 0.2 mul_floor 8
     })
 }

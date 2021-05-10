@@ -160,7 +160,7 @@ impl<T: Config> Pallet<T> {
         }
 
         let collateral_amount = exchange_rate
-            .checked_mul_int(collateral_factor * collateral)
+            .checked_mul_int(collateral_factor.mul_floor(collateral))
             .ok_or(Error::<T>::CollateralOverflow)?;
 
         currency_price
@@ -393,7 +393,7 @@ impl<T: Config> Pallet<T> {
 
         // we can only liquidate 50% of the borrows
         let close_factor = CloseFactor::<T>::get(liquidate_currency_id);
-        if close_factor * account_borrows < repay_amount {
+        if close_factor.mul_floor(account_borrows) < repay_amount {
             return Err(Error::<T>::RepayAmountTooBig.into());
         }
 
@@ -425,7 +425,7 @@ impl<T: Config> Pallet<T> {
 
         // the incentive for liquidator and punishment for the borrower
         let liquidation_incentive = LiquidationIncentive::<T>::get(liquidate_currency_id);
-        let discd_collateral_value = liquidation_incentive * collateral_value;
+        let discd_collateral_value = liquidation_incentive.mul_floor(collateral_value);
 
         if discd_collateral_value < liquidate_value {
             return Err(Error::<T>::RepayValueGreaterThanCollateral.into());
