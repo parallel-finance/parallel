@@ -6,31 +6,41 @@ on:
       - master
 
 jobs:
-  release:
+  docs:
     name: GitHub Pages
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-18.04]
+        rust: [nightly]
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v1
 
-      - name: Install Rust toolchain
+      - name: Install Rust toolchain ${{ matrix.rust }}
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
           profile: minimal
+          toolchain: ${{ matrix.rust }}
           override: true
-          components: rustfmt, rust-src
+
+      - name: Install wasm32-unknown-unknown for ${{ matrix.rust }}
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          target: wasm32-unknown-unknown
+          override: true
 
       - name: Build Documentation
         uses: actions-rs/cargo@v1
         with:
           command: doc
-          args: --all --no-deps
+          args: --workspace --no-deps
 
       - name: Use Custom Domain
         run: |
-          echo "api-docs.parallel.fi" > CNAME
+          echo "api-docs.parallel.fi" > target/doc/CNAME
 
       - name: Deploy Documentation
         uses: peaceiris/actions-gh-pages@v3
