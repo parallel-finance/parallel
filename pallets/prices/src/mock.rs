@@ -76,6 +76,13 @@ impl DataProvider<CurrencyId, TimeStampedPrice> for MockDataProvider {
     }
 }
 
+impl DataFeeder<CurrencyId, OraclePrice, AccountId> for AggregatedDataProvider {
+    fn feed_value(_: AccountId, _: CurrencyId, _: OraclePrice) -> DispatchResult {
+        // do nothing
+        Ok(())
+    }
+}
+
 ord_parameter_types! {
     pub const One: AccountId = 1;
 }

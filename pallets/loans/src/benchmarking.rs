@@ -1,17 +1,24 @@
 //! Benchmarking setup for pallet-template
 use super::*;
 
-use crate::module::CurrencyIdPrice;
 use crate::Pallet as Loans;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::assert_ok;
 use frame_system::RawOrigin as SystemOrigin;
+use primitives::AccountId;
+use sp_runtime::FixedU128;
 
 pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const INITIAL_AMOUNT: u128 = 10000;
 
 fn initial_set_up<T: Config>(caller: T::AccountId) {
     T::Currency::deposit(DOT, &caller, INITIAL_AMOUNT).unwrap();
+    T::PriceFeeder::set_price(
+        AccountId::from([0u8; 32]), // orml_oralce RootOperatorAccountId
+        DOT,
+        FixedU128::saturating_from_integer(100),
+    )
+    .unwrap()
 }
 
 benchmarks! {
@@ -34,8 +41,6 @@ benchmarks! {
         let borrowed_amount = 100;
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, amount));
         assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(caller.clone()).into(), DOT, true));
-        let price_detail: PriceDetail = (1_000_000_000_000_000_000u128, 12345u64);
-        <CurrencyIdPrice<T>>::insert(DOT, price_detail);
 
     }: _(SystemOrigin::Signed(caller.clone()), DOT, borrowed_amount)
     verify {

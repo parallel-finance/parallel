@@ -20,7 +20,7 @@ use codec::{Decode, Encode};
 use sp_runtime::{
     generic,
     traits::{BlakeTwo256, IdentifyAccount, Verify},
-    FixedU128, MultiSignature, Permill, RuntimeDebug,
+    DispatchResult, FixedU128, MultiSignature, Permill, RuntimeDebug,
 };
 use sp_std::{convert::Into, prelude::*};
 
@@ -111,6 +111,9 @@ pub type PriceDetail = (Price, Timestamp);
 
 pub trait PriceFeeder {
     fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail>;
+
+	// todo: add cfg!(feature = "runtime-benchmarks")
+    fn set_price(who: AccountId, currency_id: CurrencyId, price: OraclePrice) -> DispatchResult;
 }
 
 pub type Rate = FixedU128;

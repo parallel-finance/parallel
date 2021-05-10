@@ -18,7 +18,7 @@
 use frame_support::{pallet_prelude::*, transactional};
 use frame_system::pallet_prelude::*;
 pub use module::*;
-use orml_traits::DataProvider;
+use orml_traits::{DataFeeder, DataProvider};
 use primitives::*;
 use sp_runtime::FixedPointNumber;
 
@@ -39,6 +39,9 @@ pub mod module {
 
         /// The data source, such as Oracle.
         type Source: DataProvider<CurrencyId, TimeStampedPrice>;
+
+        /// The price feeder.
+        type Feeder: DataFeeder<CurrencyId, OraclePrice, AccountId>;
 
         /// The origin which may set prices feed to system.
         type FeederOrigin: EnsureOrigin<Self::Origin>;
@@ -127,6 +130,11 @@ impl<T: Config> PriceFeeder for Pallet<T> {
                     .and_then(|r| Some((r, price.timestamp)))
             })
         })
+    }
+
+    // for benchmark
+    fn set_price(who: AccountId, currency_id: CurrencyId, price: OraclePrice) -> DispatchResult {
+        T::Feeder::feed_value(who, currency_id, price)
     }
 }
 

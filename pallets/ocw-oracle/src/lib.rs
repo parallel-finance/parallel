@@ -440,4 +440,9 @@ impl<T: Config> PriceFeeder for Pallet<T> {
     fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
         Self::get_price(currency_id)
     }
+
+    fn set_price(_: AccountId, _: CurrencyId, _: OraclePrice) -> DispatchResult {
+        // do nothing
+        Ok(())
+    }
 }

@@ -9,7 +9,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 use codec::Encode;
 use frame_support::PalletId;
 use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::{parameter_type_with_key, DataProvider};
+use orml_traits::{parameter_type_with_key, DataFeeder, DataProvider};
 use pallet_grandpa::fg_primitives;
 use pallet_grandpa::{AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use sp_api::impl_runtime_apis;
@@ -20,7 +20,7 @@ use sp_runtime::traits::{self, AccountIdLookup, BlakeTwo256, Block as BlockT, Nu
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, SaturatedConversion,
+    ApplyExtrinsicResult, DispatchResult, SaturatedConversion,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -398,9 +398,24 @@ impl DataProvider<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
     }
 }
 
+pub struct PriceFeeder;
+impl DataProvider<CurrencyId, OraclePrice> for PriceFeeder {
+    fn get(_key: &CurrencyId) -> Option<OraclePrice> {
+        // nothing
+        None
+    }
+}
+
+impl DataFeeder<CurrencyId, OraclePrice, AccountId> for PriceFeeder {
+    fn feed_value(who: AccountId, currency_id: CurrencyId, price: OraclePrice) -> DispatchResult {
+        VanillaOracle::feed_value(who, currency_id, price)
+    }
+}
+
 impl pallet_prices::Config for Runtime {
     type Event = Event;
     type Source = AggregatedDataProvider;
+    type Feeder = PriceFeeder;
     type FeederOrigin = EnsureRoot<AccountId>;
 }
 

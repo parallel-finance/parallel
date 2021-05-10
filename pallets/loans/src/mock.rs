@@ -165,6 +165,11 @@ impl PriceFeeder for MOCK_PRICE_FEEDER {
     fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
         *MOCK_PRICE_FEEDER.lock().unwrap().get(currency_id).unwrap()
     }
+
+    fn set_price(_: AccountId, _: CurrencyId, _: OraclePrice) -> DispatchResult {
+        // do nothing
+        Ok(())
+    }
 }
 
 impl Config for Runtime {
