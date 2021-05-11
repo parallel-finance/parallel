@@ -28,6 +28,7 @@ use frame_system::{
 pub use module::*;
 #[allow(unused_imports)]
 use num_traits::float::FloatCore;
+use num_traits::CheckedDiv;
 use primitives::*;
 use serde::{Deserialize, Deserializer};
 use sp_core::crypto::KeyTypeId;
@@ -37,7 +38,7 @@ use sp_runtime::{
     transaction_validity::{
         InvalidTransaction, TransactionSource, TransactionValidity, ValidTransaction,
     },
-    RuntimeDebug,
+    FixedPointNumber, RuntimeDebug,
 };
 use sp_std::{prelude::*, str};
 
@@ -396,7 +397,9 @@ pub mod module {
                     <Error<T>>::ParsingToF64Error
                 })?;
 
-            let price = (val_f64 * 10f64.powi(T::PricePrecision::get() as i32)).round() as Price;
+            let price: Price = Price::from_inner(
+                (val_f64 * 10f64.powi(T::PricePrecision::get() as i32)).round() as u128,
+            );
             Ok(price)
         }
     }
@@ -438,6 +441,10 @@ impl<T: Config> rt_offchain::storage_lock::BlockNumberProvider for Pallet<T> {
 
 impl<T: Config> PriceFeeder for Pallet<T> {
     fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
-        Self::get_price(currency_id)
+        Self::get_price(currency_id).and_then(|(price, timestamp)| {
+            price
+                .checked_div(&Price::saturating_from_integer(CURRENCY_DECIMAL))
+                .and_then(|price| Some((price, timestamp)))
+        })
     }
 }
