@@ -319,7 +319,7 @@ where
 }
 
 parameter_types! {
-    pub const PricePrecision: u8 = 3;
+    pub const PricePrecision: u8 = 18;
 }
 
 impl pallet_ocw_oracle::Config for Runtime {
@@ -549,12 +549,12 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
         orml_oracle::DefaultCombineData<Runtime, MinimumCount, ExpiresIn, ParallelDataProvider>;
     type Time = Timestamp;
     type OracleKey = CurrencyId;
-    type OracleValue = OraclePrice;
+    type OracleValue = Price;
     type RootOperatorAccountId = ZeroAccountId;
     type WeightInfo = ();
 }
 
-pub type TimeStampedPrice = orml_oracle::TimestampedValue<OraclePrice, Moment>;
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 pub struct AggregatedDataProvider;
 impl DataProvider<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
     fn get(key: &CurrencyId) -> Option<TimeStampedPrice> {

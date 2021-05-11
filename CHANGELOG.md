@@ -1,5 +1,12 @@
 # CHANGE LOG
 
+## 2021.05.10
+- Change price from u128 to FixedU128 (#89)
+- Change LiquidationIncentive from u128 to Ratio (#89)
+- Change LiquidationThreshold from u128 to Ratio (#89)
+- Remove types `OraclePrice`. (#89)
+- Modify types `Price` from `u128` to `FixedU128` (#89)
+
 ## 2021.05.07
 - Add TotalReserves storage (#92)
 - Add `add_reserves` and `reduce_reserves` dispatchables.

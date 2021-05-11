@@ -295,13 +295,13 @@ pub mod module {
     #[pallet::storage]
     #[pallet::getter(fn liquidation_incentive)]
     pub type LiquidationIncentive<T: Config> =
-        StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+        StorageMap<_, Twox64Concat, CurrencyId, Ratio, ValueQuery>;
 
     /// The collateral utilization ratio will triggering the liquidation
     #[pallet::storage]
     #[pallet::getter(fn liquidation_threshold)]
     pub type LiquidationThreshold<T: Config> =
-        StorageMap<_, Twox64Concat, CurrencyId, u128, ValueQuery>;
+        StorageMap<_, Twox64Concat, CurrencyId, Ratio, ValueQuery>;
 
     /// The percent, ranging from 0% to 100%, of a liquidatable account's
     /// borrow that can be repaid in a single liquidate transaction.
@@ -319,8 +319,8 @@ pub mod module {
         pub jump_multiplier_per_year: Multiplier,
         pub kink: Ratio,
         pub collateral_factor: Vec<(CurrencyId, Ratio)>,
-        pub liquidation_incentive: Vec<(CurrencyId, u128)>,
-        pub liquidation_threshold: Vec<(CurrencyId, u128)>,
+        pub liquidation_incentive: Vec<(CurrencyId, Ratio)>,
+        pub liquidation_threshold: Vec<(CurrencyId, Ratio)>,
         pub close_factor: Vec<(CurrencyId, Ratio)>,
         pub reserve_factor: Vec<(CurrencyId, Ratio)>,
     }

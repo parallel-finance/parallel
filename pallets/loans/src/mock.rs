@@ -23,7 +23,7 @@ use frame_system::EnsureRoot;
 use lazy_static::lazy_static;
 use orml_traits::parameter_type_with_key;
 use primitives::{
-    Amount, Balance, CurrencyId, PriceDetail, PriceFeeder, Rate, Ratio, RATE_DECIMAL, TOKEN_DECIMAL,
+    Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate, Ratio, TOKEN_DECIMAL,
 };
 use sp_core::H256;
 use sp_runtime::traits::One;
@@ -140,14 +140,14 @@ lazy_static! {
         Mutex::new(
             vec![DOT, KSM, USDT, XDOT]
                 .iter()
-                .map(|&x| (x, Some((1, 1))))
+                .map(|&x| (x, Some((Price::saturating_from_integer(1), 1))))
                 .collect(),
         )
     };
 }
 
 impl MOCK_PRICE_FEEDER {
-    pub fn set_price(currency_id: CurrencyId, price: u128) {
+    pub fn set_price(currency_id: CurrencyId, price: Price) {
         MOCK_PRICE_FEEDER
             .lock()
             .unwrap()
@@ -156,7 +156,7 @@ impl MOCK_PRICE_FEEDER {
 
     pub fn reset() {
         for (_, val) in MOCK_PRICE_FEEDER.lock().unwrap().iter_mut() {
-            *val = Some((1, 1u64));
+            *val = Some((Price::saturating_from_integer(1), 1u64));
         }
     }
 }
@@ -230,16 +230,16 @@ impl ExtBuilder {
                 (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
             liquidation_incentive: vec![
-                (CurrencyId::DOT, 9 * RATE_DECIMAL / 10),
-                (CurrencyId::KSM, 9 * RATE_DECIMAL / 10),
-                (CurrencyId::USDT, 9 * RATE_DECIMAL / 10),
-                (CurrencyId::xDOT, 9 * RATE_DECIMAL / 10),
+                (CurrencyId::DOT, Ratio::from_percent(90)),
+                (CurrencyId::KSM, Ratio::from_percent(90)),
+                (CurrencyId::USDT, Ratio::from_percent(90)),
+                (CurrencyId::xDOT, Ratio::from_percent(90)),
             ],
             liquidation_threshold: vec![
-                (CurrencyId::DOT, 8 * RATE_DECIMAL / 10),
-                (CurrencyId::KSM, 8 * RATE_DECIMAL / 10),
-                (CurrencyId::USDT, 9 * RATE_DECIMAL / 10),
-                (CurrencyId::xDOT, 8 * RATE_DECIMAL / 10),
+                (CurrencyId::DOT, Ratio::from_percent(80)),
+                (CurrencyId::KSM, Ratio::from_percent(80)),
+                (CurrencyId::USDT, Ratio::from_percent(90)),
+                (CurrencyId::xDOT, Ratio::from_percent(80)),
             ],
             close_factor: vec![
                 (CurrencyId::DOT, Ratio::from_percent(50)),

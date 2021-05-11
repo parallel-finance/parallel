@@ -101,9 +101,13 @@ pub const TOKEN_DECIMAL: u128 = 1_000_000_000_000_000_000;
 
 pub const RATE_DECIMAL: u128 = 1_000_000_000_000_000_000;
 
+pub const CURRENCY_DECIMAL: u128 = 1_000_000_000_000;
+
 pub const BLOCK_PER_YEAR: u128 = 5256000;
 
-pub type Price = u128;
+pub const MIN_PRICE: FixedU128 = FixedU128::from_inner(u128::MIN);
+
+pub type Price = FixedU128;
 
 pub type Timestamp = u64;
 
@@ -119,9 +123,7 @@ pub type Ratio = Permill;
 
 pub type Multiplier = FixedU128;
 
-pub type OraclePrice = FixedU128;
-
-pub trait EmergencyPriceFeeder<CurrencyId, OraclePrice> {
-    fn set_emergency_price(currency_id: CurrencyId, price: OraclePrice);
+pub trait EmergencyPriceFeeder<CurrencyId, Price> {
+    fn set_emergency_price(currency_id: CurrencyId, price: Price);
     fn reset_emergency_price(currency_id: CurrencyId);
 }
