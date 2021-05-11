@@ -57,6 +57,23 @@ benchmarks! {
             INITIAL_AMOUNT - amount,
         );
     }
+
+	redeem_all {
+        let caller: T::AccountId = whitelisted_caller();
+        initial_set_up::<T>(caller.clone());
+        <AccountCollateral<T>>::insert(DOT, caller.clone(), INITIAL_AMOUNT);
+        <TotalSupply<T>>::insert(DOT, INITIAL_AMOUNT);
+		let exchange_rate = Loans::<T>::exchange_rate(DOT);
+		let redeem_amount = exchange_rate
+                .checked_mul_int(INITIAL_AMOUNT)
+                .ok_or(Error::<T>::CollateralOverflow)?;
+    }: _(SystemOrigin::Signed(caller.clone()), DOT)
+    verify {
+        assert_eq!(
+            <T as Config>::Currency::free_balance(DOT, &Loans::<T>::account_id()),
+            INITIAL_AMOUNT - redeem_amount,
+        );
+    }
 }
 
 impl_benchmark_test_suite!(
