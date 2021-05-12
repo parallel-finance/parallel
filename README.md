@@ -1,8 +1,8 @@
 ![image](https://user-images.githubusercontent.com/40745291/116624086-ea44a100-a90c-11eb-9393-3036a39321da.png)
 
-
 [![GitHub last commit](https://img.shields.io/github/last-commit/parallel-finance/parallel)](https://github.com/parallel-finance/parallel/commits/master)
 [![CI](https://github.com/parallel-finance/parallel/workflows/CI/badge.svg)](https://github.com/parallel-finance/parallel/actions)
+[![Codecov](https://codecov.io/gh/parallel-finance/parallel/branch/master/graph/badge.svg)](https://codecov.io/gh/parallel-finance/parallel)
 [![Discord chat][discord-badge]][discord-url]
 [![Dependency Status](https://deps.rs/repo/github/parallel-finance/parallel/status.svg)](https://deps.rs/repo/github/parallel-finance/parallel)
 
