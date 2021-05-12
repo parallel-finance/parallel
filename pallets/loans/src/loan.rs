@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use crate::*;
-use primitives::{Balance, CurrencyId, PriceDetail};
+use primitives::{Balance, CurrencyId};
 use sp_runtime::{
     traits::{CheckedSub, Zero},
     DispatchResult, FixedPointNumber, FixedU128,
@@ -108,8 +108,8 @@ impl<T: Config> Pallet<T> {
                 continue;
             }
 
-            let (borrow_currency_price, _) =
-                Self::get_price(currency_id).ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
+            let (borrow_currency_price, _) = T::PriceFeeder::get_price(currency_id)
+                .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
             if borrow_currency_price.is_zero() {
                 return Err(Error::<T>::OracleCurrencyPriceNotReady);
             }
@@ -128,8 +128,8 @@ impl<T: Config> Pallet<T> {
         borrow_currency_id: &CurrencyId,
         borrow_amount: Balance,
     ) -> result::Result<Balance, Error<T>> {
-        let (borrow_currency_price, _) =
-            Self::get_price(borrow_currency_id).ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
+        let (borrow_currency_price, _) = T::PriceFeeder::get_price(borrow_currency_id)
+            .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
         let mut total_borrow_value = borrow_currency_price
             .checked_mul_int(borrow_amount)
             .ok_or(Error::<T>::CollateralOverflow)?;
@@ -153,8 +153,8 @@ impl<T: Config> Pallet<T> {
         let collateral_factor = CollateralFactor::<T>::get(currency_id);
         let exchange_rate = ExchangeRate::<T>::get(currency_id);
 
-        let (currency_price, _) =
-            Self::get_price(currency_id).ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
+        let (currency_price, _) = T::PriceFeeder::get_price(currency_id)
+            .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
         if currency_price.is_zero() {
             return Err(Error::<T>::OracleCurrencyPriceNotReady);
         }
@@ -407,7 +407,7 @@ impl<T: Config> Pallet<T> {
             .checked_mul_int(collateral_ctoken_amount)
             .ok_or(Error::<T>::CollateralOverflow)?;
 
-        let (collateral_token_price, _) = Self::get_price(&collateral_currency_id)
+        let (collateral_token_price, _) = T::PriceFeeder::get_price(&collateral_currency_id)
             .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
 
         //the total value of borrower's collateral token
@@ -416,7 +416,7 @@ impl<T: Config> Pallet<T> {
             .ok_or(Error::<T>::CollateralOverflow)?;
 
         //calculate liquidate_token_sum
-        let (liquidate_token_price, _) = Self::get_price(&liquidate_currency_id)
+        let (liquidate_token_price, _) = T::PriceFeeder::get_price(&liquidate_currency_id)
             .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
 
         let liquidate_value = liquidate_token_price
@@ -537,14 +537,6 @@ impl<T: Config> Pallet<T> {
         ));
 
         Ok(())
-    }
-
-    pub(crate) fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
-        if let Some(price_detail) = Self::currency_id_price(currency_id) {
-            Some(price_detail)
-        } else {
-            T::PriceFeeder::get_price(&currency_id)
-        }
     }
 }
 

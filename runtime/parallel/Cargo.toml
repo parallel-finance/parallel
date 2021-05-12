@@ -34,6 +34,7 @@ orml-utilities                             = { git = 'https://github.com/open-we
 pallet-balances                            = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
 pallet-liquidate                           = { path = '../../pallets/liquidate', default-features = false }
 pallet-loans                               = { path = '../../pallets/loans', default-features = false }
+pallet-loans-benchmarking                  = { path = '../../pallets/loans/benchmarking', default-features = false, optional = true }
 pallet-ocw-oracle                          = { path = '../../pallets/ocw-oracle', default-features = false }
 pallet-randomness-collective-flip          = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
 pallet-staking                             = { path = '../../pallets/staking', default-features = false }
@@ -78,7 +79,7 @@ runtime-benchmarks = [
   'frame-system/runtime-benchmarks',
   'pallet-balances/runtime-benchmarks',
   'pallet-timestamp/runtime-benchmarks',
-  'pallet-loans/runtime-benchmarks',
+  'pallet-loans-benchmarking',
   'pallet-xcm/runtime-benchmarks',
   'xcm-builder/runtime-benchmarks',
 ]
