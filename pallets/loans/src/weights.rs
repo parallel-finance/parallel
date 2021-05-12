@@ -35,44 +35,46 @@
 // --template=./.maintain/frame-weight-template.hbs
 // --output=./pallets/loans/src/weights.rs
 
-
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 
-use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
+use frame_support::{
+    traits::Get,
+    weights::{constants::RocksDbWeight, Weight},
+};
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_loans.
 pub trait WeightInfo {
-	fn mint() -> Weight;
-	fn borrow() -> Weight;
+    fn mint() -> Weight;
+    fn borrow() -> Weight;
 }
 
 /// Weights for pallet_loans using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
-	fn mint() -> Weight {
-		(63_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(6 as Weight))
-			.saturating_add(T::DbWeight::get().writes(5 as Weight))
-	}
-	fn borrow() -> Weight {
-		(186_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(32 as Weight))
-			.saturating_add(T::DbWeight::get().writes(6 as Weight))
-	}
+    fn mint() -> Weight {
+        (63_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(6 as Weight))
+            .saturating_add(T::DbWeight::get().writes(5 as Weight))
+    }
+    fn borrow() -> Weight {
+        (186_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(32 as Weight))
+            .saturating_add(T::DbWeight::get().writes(6 as Weight))
+    }
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
-	fn mint() -> Weight {
-		(63_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(6 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(5 as Weight))
-	}
-	fn borrow() -> Weight {
-		(186_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(32 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(6 as Weight))
-	}
+    fn mint() -> Weight {
+        (63_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(6 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(5 as Weight))
+    }
+    fn borrow() -> Weight {
+        (186_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(32 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(6 as Weight))
+    }
 }
