@@ -265,9 +265,7 @@ impl orml_tokens::Config for Runtime {
 
 parameter_types! {
     pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Native;
-
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
-    pub const StakingPalletId: PalletId = PalletId(*b"par/stak");
 }
 
 impl orml_currencies::Config for Runtime {
@@ -286,10 +284,21 @@ impl pallet_loans::Config for Runtime {
     type ReserveOrigin = EnsureRoot<AccountId>;
 }
 
+parameter_types! {
+    pub const StakingPalletId: PalletId = PalletId(*b"par/stak");
+    pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
+    pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
+    pub const MaxWithdrawAmount: Balance = 1000;
+}
+
 impl pallet_staking::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
     type PalletId = StakingPalletId;
+    type StakingCurrency = StakingCurrency;
+    type LiquidCurrency = LiquidCurrency;
+    type WithdrawOrigin = EnsureRoot<AccountId>;
+    type MaxWithdrawAmount = MaxWithdrawAmount;
 }
 
 parameter_types! {
