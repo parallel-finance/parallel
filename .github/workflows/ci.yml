@@ -80,11 +80,11 @@ jobs:
 
       # - name: Check Clippy Warnings
       #  run: |
-      #    SKIP_WASM_BUILD=1 cargo clippy
+      #    SKIP_WASM_BUILD= cargo clippy
 
       - name: Check Format
         run: |
-          SKIP_WASM_BUILD=1 cargo fmt --all -- --check
+          SKIP_WASM_BUILD= cargo fmt --all -- --check
 
       - name: Check Test
         run: |
