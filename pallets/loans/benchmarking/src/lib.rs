@@ -81,7 +81,7 @@ benchmarks! {
         let borrowed_amount = 100_000_000;
         let currency_id: <T as ORMOracleConfig<Instance1>>::OracleKey = T::convert(DOT);
         let price: <T as ORMOracleConfig<Instance1>>::OracleValue = T::convert_price(FixedU128::from(100_000));
-        assert_ok!(ORMOracle::<T, _>::feed_values(SystemOrigin::Signed(caller.clone()).into(),
+        assert_ok!(ORMOracle::<T, _>::feed_values(SystemOrigin::Root.into(),
             vec![(currency_id, price)]));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, amount));
         assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(caller.clone()).into(), DOT, true));
