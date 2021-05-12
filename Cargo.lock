@@ -10908,6 +10908,7 @@ dependencies = [
  "pallet-grandpa",
  "pallet-liquidate",
  "pallet-loans",
+ "pallet-loans-benchmarking",
  "pallet-ocw-oracle",
  "pallet-prices",
  "pallet-randomness-collective-flip",
