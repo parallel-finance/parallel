@@ -38,6 +38,7 @@ frame-system                               = { git = 'https://github.com/parityt
 frame-system-benchmarking                  = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false, optional = true }
 frame-system-rpc-runtime-api               = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
 orml-oracle                                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-oracle-rpc-runtime-api                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-currencies                            = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-tokens                                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-traits                                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
@@ -107,6 +108,7 @@ std                = [
   'sp-transaction-pool/std',
   'sp-version/std',
   'orml-oracle/std',
+  'orml-oracle-rpc-runtime-api/std',
   'orml-currencies/std',
   'orml-tokens/std',
   'orml-traits/std',

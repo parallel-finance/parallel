@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use primitives::{AccountId, Balance, Index};
+use primitives::{AccountId, Balance, CurrencyId, DataProviderId, Index, TimeStampedPrice};
 pub use sc_rpc_api::DenyUnsafe;
 use sp_api::ProvideRuntimeApi;
 use sp_block_builder::BlockBuilder;
@@ -28,9 +28,11 @@ where
     C: Send + Sync + 'static,
     C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
     C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
+    C::Api: orml_oracle_rpc::OracleRuntimeApi<Block, DataProviderId, CurrencyId, TimeStampedPrice>,
     C::Api: BlockBuilder<Block>,
     P: TransactionPool + 'static,
 {
+    use orml_oracle_rpc::{Oracle, OracleApi};
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
     use substrate_frame_rpc_system::{FullSystem, SystemApi};
 
@@ -55,6 +57,7 @@ where
     // `YourRpcStruct` should have a reference to a client, which is needed
     // to call into the runtime.
     // `io.extend_with(YourRpcTrait::to_delegate(YourRpcStruct::new(ReferenceToClient, ...)));`
+    io.extend_with(OracleApi::to_delegate(Oracle::new(client.clone())));
 
     io
 }

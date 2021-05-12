@@ -126,7 +126,7 @@ std                = [
   'pallet-ocw-oracle/std',
   'pallet-liquidate/std',
   'pallet-prices/std',
-   'pallet-multisig/std',
+  'pallet-multisig/std',
   'orml-oracle/std',
   'orml-currencies/std',
   'orml-tokens/std',
