@@ -1,7 +1,7 @@
 [package]
 authors = ['Parallel Team']
 edition = '2018'
-name    = 'pallet-loans'
+name    = 'pallet-loans-benchmarking'
 version = '1.0.0'
 
 [package.metadata.docs.rs]
@@ -9,15 +9,16 @@ targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
 codec              = { package = 'parity-scale-codec', version = '2.0.0', default-features = false }
+frame-benchmarking = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', default-features = false, version = '3.0.0' }
 frame-support      = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', default-features = false, version = '3.0.0' }
 frame-system       = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', default-features = false, version = '3.0.0' }
 orml-currencies    = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-oracle        = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-tokens        = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-traits        = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-utilities     = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 pallet-balances    = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
-primitives         = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
-serde              = { version = '1', features = ['derive'] }
+primitives         = { package = 'parallel-primitives', path = '../../../primitives', default-features = false }
+pallet-loans       = { version = "1.0.0", default-features = false, features = ["runtime-benchmarks"], path = "../../loans" }
 sp-runtime         = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
 sp-std             = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
 
@@ -29,16 +30,20 @@ sp-io       = { git = 'https://github.com/paritytech/substrate.git', branch = 'r
 [features]
 default = ['std']
 std     = [
-  'codec/std',
-  'frame-support/std',
-  'frame-system/std',
-  'orml-currencies/std',
-  'orml-tokens/std',
-  'orml-traits/std',
-  'orml-utilities/std',
-  'primitives/std',
-  'sp-runtime/std',
-  'sp-std/std',
-  'pallet-balances/std',
+    'codec/std',
+    'frame-benchmarking/std',
+    'frame-support/std',
+    'frame-system/std',
+    'orml-currencies/std',
+    'orml-oracle/std',
+    'orml-tokens/std',
+    'orml-traits/std',
+    'pallet-balances/std',
+    'primitives/std',
+    'pallet-loans/std',
+    'primitives/std',
+    'sp-runtime/std',
+    'sp-std/std',
+
 ]
-runtime-benchmarks = []
+
