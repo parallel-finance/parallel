@@ -7,6 +7,7 @@ mod mock;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::assert_ok;
 use frame_system::RawOrigin as SystemOrigin;
+use orml_oracle::Instance1;
 use orml_oracle::{Config as ORMOracleConfig, Pallet as ORMOracle};
 use orml_traits::MultiCurrency;
 use pallet_loans::{Config as LoansConfig, Pallet as Loans};
@@ -16,8 +17,36 @@ use sp_std::prelude::*;
 use sp_std::vec;
 
 pub struct Pallet<T: Config>(Loans<T>);
+pub trait Config:
+    LoansConfig + ORMOracleConfig<Instance1> + CurrencyIdConvert<Self> + FixedU128Convert<Self>
+{
+}
 
-pub trait Config: LoansConfig + ORMOracleConfig {}
+pub trait CurrencyIdConvert<T: ORMOracleConfig<Instance1>> {
+    fn convert(currency_id: CurrencyId) -> <T as ORMOracleConfig<Instance1>>::OracleKey;
+}
+
+impl<T: ORMOracleConfig<Instance1>> CurrencyIdConvert<T> for T
+where
+    <T as ORMOracleConfig<Instance1>>::OracleKey: From<CurrencyId>,
+{
+    fn convert(currency_id: CurrencyId) -> <T as ORMOracleConfig<Instance1>>::OracleKey {
+        currency_id.into()
+    }
+}
+
+pub trait FixedU128Convert<T: ORMOracleConfig<Instance1>> {
+    fn convert_price(price: FixedU128) -> <T as ORMOracleConfig<Instance1>>::OracleValue;
+}
+
+impl<T: ORMOracleConfig<Instance1>> FixedU128Convert<T> for T
+where
+    <T as ORMOracleConfig<Instance1>>::OracleValue: From<FixedU128>,
+{
+    fn convert_price(price: FixedU128) -> <T as ORMOracleConfig<Instance1>>::OracleValue {
+        price.into()
+    }
+}
 
 const DOT: CurrencyId = CurrencyId::DOT;
 const INITIAL_AMOUNT: u128 = 100_000_000_000;
@@ -50,8 +79,10 @@ benchmarks! {
         initial_set_up::<T>(caller.clone());
         let amount = 200_000_000;
         let borrowed_amount = 100_000_000;
-        ORMOracle::<T>::feed_values(SystemOrigin::Signed(caller.clone()).into(),
-            vec![(DOT as <T as ORMOracleConfig>::OracleKey, FixedU128::from(100_000) as <T as ORMOracleConfig>::OracleValue)]);
+        let currency_id: <T as ORMOracleConfig<Instance1>>::OracleKey = T::convert(DOT);
+        let price: <T as ORMOracleConfig<Instance1>>::OracleValue = T::convert_price(FixedU128::from(100_000));
+        assert_ok!(ORMOracle::<T, _>::feed_values(SystemOrigin::Signed(caller.clone()).into(),
+            vec![(currency_id, price)]));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, amount));
         assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(caller.clone()).into(), DOT, true));
     }: {

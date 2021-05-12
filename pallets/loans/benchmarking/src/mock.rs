@@ -17,15 +17,18 @@
 
 use super::*;
 
+use frame_support::traits::Time;
 use frame_support::{construct_runtime, parameter_types, PalletId};
 use frame_system::EnsureRoot;
 use lazy_static::lazy_static;
+use orml_oracle::DefaultCombineData;
 use orml_traits::parameter_type_with_key;
 use primitives::{Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder};
 use sp_core::H256;
 use sp_runtime::FixedPointNumber;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 use sp_std::vec::Vec;
+use std::cell::RefCell;
 use std::{collections::HashMap, sync::Mutex};
 
 pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
@@ -42,6 +45,7 @@ construct_runtime!(
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Loans: pallet_loans::{Pallet, Storage, Call, Config, Event<T>},
+        Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Config<T>, Event<T>},
     }
 );
 
@@ -159,6 +163,42 @@ impl PriceFeeder for MOCK_PRICE_FEEDER {
     fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
         *MOCK_PRICE_FEEDER.lock().unwrap().get(currency_id).unwrap()
     }
+}
+
+thread_local! {
+    static TIME: RefCell<u32> = RefCell::new(0);
+}
+
+pub struct Timestamp;
+impl Time for Timestamp {
+    type Moment = u32;
+
+    fn now() -> Self::Moment {
+        TIME.with(|v| *v.borrow())
+    }
+}
+
+impl Timestamp {
+    pub fn set_timestamp(val: u32) {
+        TIME.with(|v| *v.borrow_mut() = val);
+    }
+}
+
+parameter_types! {
+    pub const MinimumCount: u32 = 3;
+    pub const ExpiresIn: u32 = 600;
+    pub const RootOperatorAccountId: AccountId = 4;
+}
+
+impl orml_oracle::Config<Instance1> for Test {
+    type Event = Event;
+    type OnNewData = ();
+    type CombineData = DefaultCombineData<Self, MinimumCount, ExpiresIn, Instance1>;
+    type Time = Timestamp;
+    type OracleKey = CurrencyId;
+    type OracleValue = FixedU128;
+    type RootOperatorAccountId = RootOperatorAccountId;
+    type WeightInfo = ();
 }
 
 impl pallet_loans::Config for Test {
