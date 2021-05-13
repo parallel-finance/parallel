@@ -12,6 +12,7 @@ use orml_oracle::{Config as ORMOracleConfig, Pallet as ORMOracle};
 use orml_traits::MultiCurrency;
 use pallet_loans::{Config as LoansConfig, Pallet as Loans};
 use primitives::{CurrencyId, Rate, Ratio};
+use sp_runtime::traits::One;
 use sp_runtime::{FixedPointNumber, FixedU128};
 use sp_std::prelude::*;
 use sp_std::vec;
@@ -54,6 +55,7 @@ const INITIAL_AMOUNT: u128 = 100_000_000_000;
 fn initial_set_up<T: Config>(caller: T::AccountId) {
     let account_id = Loans::<T>::account_id();
     pallet_loans::ExchangeRate::<T>::insert(DOT, Rate::saturating_from_rational(2, 100));
+    pallet_loans::BorrowIndex::<T>::insert(DOT, Rate::one());
     pallet_loans::CollateralFactor::<T>::insert(DOT, Ratio::from_percent(50));
     <T as LoansConfig>::Currency::deposit(DOT, &caller, INITIAL_AMOUNT).unwrap();
     <T as LoansConfig>::Currency::deposit(DOT, &account_id, INITIAL_AMOUNT).unwrap();
@@ -94,6 +96,66 @@ benchmarks! {
             INITIAL_AMOUNT - amount + borrowed_amount,
         );
         assert_eq!(Loans::<T>::account_borrows(DOT, caller).principal, borrowed_amount);
+    }
+
+    redeem {
+        let caller: T::AccountId = whitelisted_caller();
+        initial_set_up::<T>(caller.clone());
+        assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, 100_000_000));
+        let amount = 100_000;
+        let initial_balance = <T as LoansConfig>::Currency::free_balance(DOT, &Loans::<T>::account_id());
+    }: {
+         let _ = Loans::<T>::redeem(SystemOrigin::Signed(caller.clone()).into(), DOT, amount);
+    }
+    verify {
+        assert_eq!(
+            <T as LoansConfig>::Currency::free_balance(DOT, &Loans::<T>::account_id()),
+            initial_balance - amount,
+        );
+    }
+
+    redeem_all {
+        let caller: T::AccountId = whitelisted_caller();
+        initial_set_up::<T>(caller.clone());
+        assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, 100_000_000));
+        let collateral = Loans::<T>::account_collateral(DOT, caller.clone());
+        let exchange_rate = Loans::<T>::exchange_rate(DOT);
+        let redeem_amount = exchange_rate
+            .checked_mul_int(collateral)
+            .ok_or(pallet_loans::Error::<T>::CollateralOverflow)?;
+        let initial_balance = <T as LoansConfig>::Currency::free_balance(DOT, &Loans::<T>::account_id());
+    }: {
+         let _ = Loans::<T>::redeem_all(SystemOrigin::Signed(caller.clone()).into(), DOT);
+    }
+    verify {
+        assert_eq!(
+            <T as LoansConfig>::Currency::free_balance(DOT, &Loans::<T>::account_id()),
+            initial_balance - redeem_amount,
+        );
+    }
+
+    repay_borrow {
+        let caller: T::AccountId = whitelisted_caller();
+        initial_set_up::<T>(caller.clone());
+        let amount = 200_000_000;
+        let borrowed_amount = 100_000_000;
+        let repay_amount = 100;
+        let currency_id: <T as ORMOracleConfig<Instance1>>::OracleKey = T::convert(DOT);
+        let price: <T as ORMOracleConfig<Instance1>>::OracleValue = T::convert_price(FixedU128::from(100_000));
+        assert_ok!(ORMOracle::<T, _>::feed_values(SystemOrigin::Root.into(),
+            vec![(currency_id, price)]));
+        assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, INITIAL_AMOUNT));
+        assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(caller.clone()).into(), DOT, true));
+        assert_ok!(Loans::<T>::borrow(SystemOrigin::Signed(caller.clone()).into(), DOT, borrowed_amount));
+        let total_borrows = Loans::<T>::total_borrows(DOT);
+    }: {
+         let _ = Loans::<T>::repay_borrow(SystemOrigin::Signed(caller.clone()).into(), DOT, repay_amount);
+    }
+    verify {
+        assert_eq!(
+            Loans::<T>::total_borrows(DOT),
+            total_borrows - repay_amount,
+        );
     }
 }
 
