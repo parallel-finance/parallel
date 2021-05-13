@@ -7,10 +7,10 @@ version = '1.0.0'
 [dependencies]
 codec      = { package = 'parity-scale-codec', version = '2.0.0', default-features = false }
 serde      = { version = '1', optional = true }
-sp-core    = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
-sp-io      = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
-sp-runtime = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
-sp-std     = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
+sp-core    = { git = 'https://github.com/paritytech/substrate.git', branch = 'statemint', version = '3.0.0', default-features = false }
+sp-io      = { git = 'https://github.com/paritytech/substrate.git', branch = 'statemint', version = '3.0.0', default-features = false }
+sp-runtime = { git = 'https://github.com/paritytech/substrate.git', branch = 'statemint', version = '3.0.0', default-features = false }
+sp-std     = { git = 'https://github.com/paritytech/substrate.git', branch = 'statemint', version = '3.0.0', default-features = false }
 
 [features]
 default = ['std']

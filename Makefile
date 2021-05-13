@@ -38,11 +38,11 @@ check-debug:
 	RUSTFLAGS="-Z macro-backtrace" SKIP_WASM_BUILD= cargo +nightly check
 
 .PHONY: test
-test: test-dev test-parallel
+test: purge test-dev test-parallel
 
 .PHONY: test-dev
 test-dev:
-	SKIP_WASM_BUILD= cargo test --manifest-path node/parallel-dev/Cargo.toml -p pallet-loans -p pallet-liquidate -p pallet-ocw-oracle -p pallet-staking
+	SKIP_WASM_BUILD= cargo test --manifest-path node/parallel-dev/Cargo.toml -p pallet-loans -p pallet-liquidate -p pallet-staking
 
 .PHONY: test-parallel
 test-parallel:
@@ -69,6 +69,11 @@ purge:
 
 .PHONY: restart
 restart: purge run
+
+.PHONY: resources
+resources:
+	target/release/parallel export-genesis-state --parachain-id 200 > ./resources/para-200-genesis
+	target/release/parallel export-genesis-wasm > ./resources/para-200.wasm
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?' Makefile | cut -d: -f1 | sort

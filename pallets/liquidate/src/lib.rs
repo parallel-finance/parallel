@@ -403,7 +403,7 @@ pub mod module {
             waiting_for_liquidation_vec: Vec<WaitingForLiquidation<T::AccountId>>,
         ) {
             // Get signer from ocw
-            //TODO get special pool account
+            // TODO : get special pool account
             let signer = Signer::<T, <T as module::Config>::AuthorityId>::any_account();
             if !signer.can_sign() {
                 log::error!("failure: offchain_signed_tx no signer");

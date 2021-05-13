@@ -275,7 +275,7 @@ pub mod module {
                 rt_offchain::Duration::from_millis(LOCK_TIMEOUT_EXPIRATION),
             );
             if let Ok(_guard) = lock.try_lock() {
-                //TODO async http
+                // TODO : async http
                 let mut res = Vec::new();
                 for (currency_id, url) in urls.into_iter() {
                     if let Ok(json) = Self::fetch_n_parse(url) {
