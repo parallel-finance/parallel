@@ -437,7 +437,7 @@ pub mod module {
             Ok(().into())
         }
 
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::redeem())]
         #[transactional]
         pub fn redeem(
             origin: OriginFor<T>,
@@ -450,7 +450,7 @@ pub mod module {
             Ok(().into())
         }
 
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::redeem_all())]
         #[transactional]
         pub fn redeem_all(
             origin: OriginFor<T>,
@@ -479,7 +479,7 @@ pub mod module {
             Ok(().into())
         }
 
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::repay_borrow())]
         #[transactional]
         pub fn repay_borrow(
             origin: OriginFor<T>,
