@@ -155,24 +155,16 @@ pub fn new_partial(
 ///
 /// This is the actual implementation that is abstract over the executor and the runtime api.
 #[sc_tracing::logging::prefix_logs_with("Parachain")]
-async fn start_node_impl<RB>(
+async fn start_node_impl(
     parachain_config: Configuration,
     collator_key: CollatorPair,
     polkadot_config: Configuration,
     id: ParaId,
     validator: bool,
-    _rpc_ext_builder: RB,
 ) -> sc_service::error::Result<(
     TaskManager,
     Arc<TFullClient<ParallelBlock, ParallelRuntimeApi, Executor>>,
-)>
-where
-    RB: Fn(
-            Arc<TFullClient<ParallelBlock, ParallelRuntimeApi, Executor>>,
-        ) -> jsonrpc_core::IoHandler<sc_rpc::Metadata>
-        + Send
-        + 'static,
-{
+)> {
     if matches!(parachain_config.role, Role::Light) {
         return Err("Light client not supported!".into());
     }
@@ -332,7 +324,6 @@ pub async fn start_node(
         polkadot_config,
         id,
         validator,
-        |_| Default::default(),
     )
     .await
 }
