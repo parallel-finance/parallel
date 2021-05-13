@@ -648,7 +648,7 @@ impl_runtime_apis! {
     > for Runtime {
         fn get_value(provider_id: DataProviderId, key: CurrencyId) -> Option<TimeStampedPrice> {
             match provider_id {
-                VanillaOracle::get_no_op(&key)
+                DataProviderId::Aggregated => VanillaOracle::get_no_op(&key)
             }
         }
 

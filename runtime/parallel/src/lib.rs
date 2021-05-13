@@ -768,6 +768,25 @@ impl_runtime_apis! {
         }
     }
 
+    impl orml_oracle_rpc_runtime_api::OracleApi<
+        Block,
+        DataProviderId,
+        CurrencyId,
+        TimeStampedPrice,
+    > for Runtime {
+        fn get_value(provider_id: DataProviderId, key: CurrencyId) -> Option<TimeStampedPrice> {
+            match provider_id {
+                DataProviderId::Aggregated => ParallelOracle::get_no_op(&key)
+            }
+        }
+
+        fn get_all_values(provider_id: DataProviderId) -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
+            match provider_id {
+                DataProviderId::Aggregated => ParallelOracle::get_all_values()
+            }
+        }
+    }
+
     #[cfg(feature = "runtime-benchmarks")]
     impl frame_benchmarking::Benchmark<Block> for Runtime {
         fn dispatch_benchmark(
