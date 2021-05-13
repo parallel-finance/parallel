@@ -251,7 +251,6 @@ parameter_types! {
     pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Native;
 
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
-    pub const StakingPalletId: PalletId = PalletId(*b"par/stak");
 }
 
 impl orml_currencies::Config for Runtime {
@@ -335,12 +334,24 @@ impl pallet_loans::Config for Runtime {
     type PalletId = LoansPalletId;
     type PriceFeeder = Prices;
     type ReserveOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = pallet_loans::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+    pub const StakingPalletId: PalletId = PalletId(*b"par/stak");
+    pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
+    pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
+    pub const MaxWithdrawAmount: Balance = 1000;
 }
 
 impl pallet_staking::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
     type PalletId = StakingPalletId;
+    type StakingCurrency = StakingCurrency;
+    type LiquidCurrency = LiquidCurrency;
+    type WithdrawOrigin = EnsureRoot<AccountId>;
+    type MaxWithdrawAmount = MaxWithdrawAmount;
 }
 
 impl pallet_liquidate::Config for Runtime {
@@ -733,7 +744,10 @@ impl_runtime_apis! {
         ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
             use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark, TrackedStorageKey};
 
+            use pallet_loans_benchmarking::Pallet as LoansBench;
             use frame_system_benchmarking::Pallet as SystemBench;
+
+            impl pallet_loans_benchmarking::Config for Runtime {}
             impl frame_system_benchmarking::Config for Runtime {}
 
             let whitelist: Vec<TrackedStorageKey> = vec![
@@ -755,7 +769,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, frame_system, SystemBench::<Runtime>);
             add_benchmark!(params, batches, pallet_balances, Balances);
             add_benchmark!(params, batches, pallet_timestamp, Timestamp);
-            add_benchmark!(params, batches, pallet_loans, Loans);
+            add_benchmark!(params, batches, pallet_loans, LoansBench::<Runtime>);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)

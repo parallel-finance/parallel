@@ -1,0 +1,52 @@
+{
+    "Address": "MultiAddress",
+    "LookupSource": "MultiAddress",
+    "CurrencyId": {
+        "_enum": ["DOT", "KSM", "USDT", "xDOT", "Native"]
+    },
+    "CurrencyIdOf": "CurrencyId",
+    "Amount": "i128",
+    "AmountOf": "Amount",
+    "Price": "FixedU128",
+    "Timestamp": "u64",
+    "Public": "AccountId",
+    "PriceDetail": "(Price, Timestamp)",
+    "PalletId": "MultiAddress",
+    "Rate": "FixedU128",
+    "Ratio": "Permill",
+    "Multiplier": "FixedU128",
+    "Payload": {
+        "list": "Vec<PayloadDetail>",
+        "public": "Public"
+    },
+    "PayloadDetail": {
+        "price": "Price",
+        "symbol": "CurrencyId",
+        "timestamp": "Moment"
+    },
+    "BorrowSnapshot": {
+        "principal": "Balance",
+        "borrowIndex": "u128"
+    },
+    "EarnedSnapshot": {
+        "totalEarnedPrior": "Balance",
+        "exchangeRatePrior": "u128"
+    },
+    "PendingBalance": {
+        "balance": "Balance",
+        "timestamp": "Moment"
+    },
+    "WaitingForLiquidation": {
+        "accountId": "Address",
+        "liquidateToken": "CurrencyId",
+        "collateralToken": "CurrencyId",
+        "repayAmount": "Balance"
+    },
+    "OracleKey": "CurrencyId",
+    "OracleValue": "FixedU128",
+    "MomentOf": "Moment",
+    "TimestampedValueOf": {
+        "value": "FixedU128",
+        "timestamp": "u64"
+    }
+}

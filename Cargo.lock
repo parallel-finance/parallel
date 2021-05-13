@@ -4858,7 +4858,6 @@ dependencies = [
 name = "pallet-loans"
 version = "1.0.0"
 dependencies = [
- "frame-benchmarking",
  "frame-support",
  "frame-system",
  "lazy_static",
@@ -4870,6 +4869,28 @@ dependencies = [
  "parallel-primitives",
  "parity-scale-codec",
  "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-loans-benchmarking"
+version = "1.0.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "lazy_static",
+ "orml-currencies",
+ "orml-oracle",
+ "orml-tokens",
+ "orml-traits",
+ "pallet-balances",
+ "pallet-loans",
+ "parallel-primitives",
+ "parity-scale-codec",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -5502,6 +5523,7 @@ dependencies = [
  "pallet-balances",
  "pallet-liquidate",
  "pallet-loans",
+ "pallet-loans-benchmarking",
  "pallet-ocw-oracle",
  "pallet-prices",
  "pallet-randomness-collective-flip",
@@ -10886,6 +10908,7 @@ dependencies = [
  "pallet-grandpa",
  "pallet-liquidate",
  "pallet-loans",
+ "pallet-loans-benchmarking",
  "pallet-ocw-oracle",
  "pallet-prices",
  "pallet-randomness-collective-flip",

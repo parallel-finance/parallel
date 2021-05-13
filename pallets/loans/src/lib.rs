@@ -30,8 +30,8 @@ use sp_std::vec::Vec;
 
 pub use module::*;
 
-#[cfg(feature = "runtime-benchmarks")]
-mod benchmarking;
+pub mod weights;
+pub use weights::WeightInfo;
 mod loan;
 #[cfg(test)]
 mod mock;
@@ -84,6 +84,9 @@ pub mod module {
 
         /// The origin which can add/reduce reserves.
         type ReserveOrigin: EnsureOrigin<Self::Origin>;
+
+        /// Weight information for extrinsics in this pallet.
+        type WeightInfo: WeightInfo;
     }
 
     #[pallet::error]
@@ -421,7 +424,7 @@ pub mod module {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::mint())]
         #[transactional]
         pub fn mint(
             origin: OriginFor<T>,
@@ -464,7 +467,7 @@ pub mod module {
             Ok(().into())
         }
 
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::borrow())]
         #[transactional]
         pub fn borrow(
             origin: OriginFor<T>,

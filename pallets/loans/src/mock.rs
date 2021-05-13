@@ -173,6 +173,7 @@ impl Config for Runtime {
     type PalletId = LoansPalletId;
     type PriceFeeder = MOCK_PRICE_FEEDER;
     type ReserveOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = ();
 }
 
 parameter_types! {

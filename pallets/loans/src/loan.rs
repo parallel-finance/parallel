@@ -127,7 +127,7 @@ impl<T: Config> Pallet<T> {
         borrower: &T::AccountId,
         borrow_currency_id: &CurrencyId,
         borrow_amount: Balance,
-    ) -> result::Result<u128, Error<T>> {
+    ) -> result::Result<Balance, Error<T>> {
         let (borrow_currency_price, _) = T::PriceFeeder::get_price(borrow_currency_id)
             .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
         let mut total_borrow_value = borrow_currency_price
