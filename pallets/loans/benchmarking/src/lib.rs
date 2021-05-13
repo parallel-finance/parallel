@@ -4,7 +4,7 @@
 
 mod mock;
 
-use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
+use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::assert_ok;
 use frame_system::RawOrigin as SystemOrigin;
 use orml_oracle::Instance1;
@@ -51,6 +51,7 @@ where
 
 const DOT: CurrencyId = CurrencyId::DOT;
 const INITIAL_AMOUNT: u128 = 100_000_000_000;
+const SEED: u32 = 0;
 
 fn initial_set_up<T: Config>(caller: T::AccountId) {
     let account_id = Loans::<T>::account_id();
@@ -62,6 +63,7 @@ fn initial_set_up<T: Config>(caller: T::AccountId) {
 }
 
 benchmarks! {
+
     mint {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T>(caller.clone());
@@ -155,6 +157,61 @@ benchmarks! {
         assert_eq!(
             Loans::<T>::total_borrows(DOT),
             total_borrows - repay_amount,
+        );
+    }
+
+    repay_borrow_all {
+        let caller: T::AccountId = whitelisted_caller();
+        initial_set_up::<T>(caller.clone());
+        let amount = 200_000_000;
+        let borrowed_amount = 100_000_000;
+        let currency_id: <T as ORMOracleConfig<Instance1>>::OracleKey = T::convert(DOT);
+        let price: <T as ORMOracleConfig<Instance1>>::OracleValue = T::convert_price(FixedU128::from(100_000));
+        assert_ok!(ORMOracle::<T, _>::feed_values(SystemOrigin::Root.into(),
+            vec![(currency_id, price)]));
+        assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, INITIAL_AMOUNT));
+        assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(caller.clone()).into(), DOT, true));
+        assert_ok!(Loans::<T>::borrow(SystemOrigin::Signed(caller.clone()).into(), DOT, borrowed_amount));
+        let repay_amount = Loans::<T>::borrow_balance_stored(&caller.clone(), &DOT)?;
+        let total_borrows = Loans::<T>::total_borrows(DOT);
+    }: {
+         let _ = Loans::<T>::repay_borrow_all(SystemOrigin::Signed(caller.clone()).into(), DOT);
+    }
+    verify {
+        assert_eq!(
+            Loans::<T>::total_borrows(DOT),
+            total_borrows - repay_amount,
+        );
+    }
+
+    transfer_token {
+        let caller: T::AccountId = whitelisted_caller();
+        initial_set_up::<T>(caller.clone());
+        let to: T::AccountId = account("Sample", 100, SEED);
+        let amount = 200_000_000;
+        let initial_balance = <T as LoansConfig>::Currency::free_balance(DOT, &caller.clone());
+    }: {
+         let _ = Loans::<T>::transfer_token(SystemOrigin::Signed(caller.clone()).into(), to, DOT, amount);
+    }
+    verify {
+        assert_eq!(
+            <T as LoansConfig>::Currency::free_balance(DOT, &caller),
+            initial_balance - amount,
+        );
+    }
+
+    collateral_asset {
+        let caller: T::AccountId = whitelisted_caller();
+        initial_set_up::<T>(caller.clone());
+        assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, INITIAL_AMOUNT));
+        let collateral_assets = pallet_loans::AccountCollateralAssets::<T>::get(&caller.clone());
+    }: {
+         let _ = Loans::<T>::collateral_asset(SystemOrigin::Signed(caller.clone()).into(), DOT, true);
+    }
+    verify {
+        assert_eq!(
+            pallet_loans::AccountCollateralAssets::<T>::get(&caller.clone()).len(),
+            collateral_assets.len() + 1 as usize,
         );
     }
 }
