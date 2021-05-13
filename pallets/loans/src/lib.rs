@@ -491,7 +491,7 @@ pub mod module {
             Ok(().into())
         }
 
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::repay_borrow_all())]
         #[transactional]
         pub fn repay_borrow_all(
             origin: OriginFor<T>,
@@ -503,7 +503,7 @@ pub mod module {
             Ok(().into())
         }
 
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::transfer_token())]
         #[transactional]
         pub fn transfer_token(
             origin: OriginFor<T>,
@@ -517,7 +517,7 @@ pub mod module {
             Ok(().into())
         }
 
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::collateral_asset())]
         #[transactional]
         pub fn collateral_asset(
             origin: OriginFor<T>,
