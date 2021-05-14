@@ -13,6 +13,7 @@ use orml_traits::MultiCurrency;
 use pallet_loans::{Config as LoansConfig, Pallet as Loans};
 use primitives::{CurrencyId, Rate, Ratio};
 use sp_runtime::traits::One;
+use sp_runtime::traits::StaticLookup;
 use sp_runtime::{FixedPointNumber, FixedU128};
 use sp_std::prelude::*;
 use sp_std::vec;
@@ -238,6 +239,22 @@ benchmarks! {
         assert_eq!(
             pallet_loans::TotalBorrows::<T>::get(DOT),
             total_borrows - repay_amount,
+        );
+    }
+
+    add_reserves {
+        let caller: T::AccountId = whitelisted_caller();
+        let payer = T::Lookup::unlookup(caller.clone());
+        initial_set_up::<T>(caller.clone());
+        let amount = 2000;
+        let total_reserves = Loans::<T>::total_reserves(DOT);
+    }: {
+         let _ = Loans::<T>::add_reserves(SystemOrigin::Root.into(), payer, DOT, amount);
+    }
+    verify {
+        assert_eq!(
+            Loans::<T>::total_reserves(DOT),
+            total_reserves + amount,
         );
     }
 }
