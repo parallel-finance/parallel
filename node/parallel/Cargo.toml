@@ -44,6 +44,7 @@ serde     = { version = '1.0.119', features = ['derive'] }
 structopt = '0.3.8'
 
 substrate-frame-rpc-system = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
+orml-oracle-rpc            = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 
 sp-api              = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }
 sp-block-builder    = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1' }

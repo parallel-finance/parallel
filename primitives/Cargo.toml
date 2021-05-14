@@ -5,12 +5,13 @@ name    = 'parallel-primitives'
 version = '1.0.0'
 
 [dependencies]
-codec      = { package = 'parity-scale-codec', version = '2.0.0', default-features = false }
-serde      = { version = '1', optional = true }
-sp-core    = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
-sp-io      = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
-sp-runtime = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
-sp-std     = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
+codec       = { package = 'parity-scale-codec', version = '2.0.0', default-features = false }
+serde       = { version = '1', optional = true }
+sp-core     = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
+sp-io       = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
+sp-runtime  = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
+sp-std      = { git = 'https://github.com/paritytech/substrate.git', branch = 'rococo-v1', version = '3.0.0', default-features = false }
+orml-oracle = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 
 [features]
 default = ['std']
@@ -21,4 +22,5 @@ std     = [
   'sp-core/std',
   'sp-std/std',
   'sp-io/std',
+  'orml-oracle/std'
 ]

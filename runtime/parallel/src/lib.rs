@@ -61,6 +61,7 @@ use xcm_executor::{Config, XcmExecutor};
 // re-exports
 pub use pallet_liquidate;
 pub use pallet_loans;
+pub use pallet_multisig;
 pub use pallet_ocw_oracle;
 pub use pallet_prices;
 pub use pallet_staking;
@@ -579,6 +580,35 @@ impl pallet_prices::Config for Runtime {
     type FeederOrigin = EnsureRoot<AccountId>;
 }
 
+pub mod currency {
+    type Balance = u128;
+    pub const MILLICENTS: Balance = 1_000_000_000;
+    pub const CENTS: Balance = 1_000 * MILLICENTS; // assume this is worth about a cent.
+    pub const DOLLARS: Balance = 100 * CENTS;
+
+    pub const fn deposit(items: u32, bytes: u32) -> Balance {
+        items as Balance * 15 * CENTS + (bytes as Balance) * 6 * CENTS
+    }
+}
+
+parameter_types! {
+    // One storage item; key size is 32; value is size 4+4+16+32 bytes = 56 bytes.
+    pub const DepositBase: Balance = currency::deposit(1, 88);
+    // Additional storage item size of 32 bytes.
+    pub const DepositFactor: Balance = currency::deposit(0, 32);
+    pub const MaxSignatories: u16 = 100;
+}
+
+impl pallet_multisig::Config for Runtime {
+    type Event = Event;
+    type Call = Call;
+    type Currency = Balances;
+    type DepositBase = DepositBase;
+    type DepositFactor = DepositFactor;
+    type MaxSignatories = MaxSignatories;
+    type WeightInfo = ();
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -605,6 +635,7 @@ construct_runtime!(
         Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},
         Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
+        Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>},
     }
 );
 
@@ -734,6 +765,25 @@ impl_runtime_apis! {
             len: u32,
         ) -> pallet_transaction_payment::FeeDetails<Balance> {
             TransactionPayment::query_fee_details(uxt, len)
+        }
+    }
+
+    impl orml_oracle_rpc_runtime_api::OracleApi<
+        Block,
+        DataProviderId,
+        CurrencyId,
+        TimeStampedPrice,
+    > for Runtime {
+        fn get_value(provider_id: DataProviderId, key: CurrencyId) -> Option<TimeStampedPrice> {
+            match provider_id {
+                DataProviderId::Aggregated => ParallelOracle::get_no_op(&key)
+            }
+        }
+
+        fn get_all_values(provider_id: DataProviderId) -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
+            match provider_id {
+                DataProviderId::Aggregated => ParallelOracle::get_all_values()
+            }
         }
     }
 
