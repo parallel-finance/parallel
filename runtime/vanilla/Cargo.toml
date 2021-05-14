@@ -38,6 +38,7 @@ frame-system                               = { git = 'https://github.com/parityt
 frame-system-benchmarking                  = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false, optional = true }
 frame-system-rpc-runtime-api               = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
 orml-oracle                                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-oracle-rpc-runtime-api                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-currencies                            = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-tokens                                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-traits                                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
@@ -51,6 +52,7 @@ pallet-timestamp                           = { git = 'https://github.com/parityt
 pallet-transaction-payment                 = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
 pallet-utility                             = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
+pallet-multisig                            = { git = "https://github.com/paritytech/substrate.git", version = '3.0.0', branch = 'rococo-v1', default-features = false}
 primitives                                 = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 sp-api                                     = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
 sp-block-builder                           = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'rococo-v1', default-features = false }
@@ -92,7 +94,8 @@ std                = [
   'pallet-timestamp/std',
   'pallet-transaction-payment/std',
   'pallet-transaction-payment-rpc-runtime-api/std',
-  "pallet-utility/std",
+  'pallet-utility/std',
+  'pallet-multisig/std',
   'sp-api/std',
   'sp-block-builder/std',
   'sp-consensus-aura/std',
@@ -105,6 +108,7 @@ std                = [
   'sp-transaction-pool/std',
   'sp-version/std',
   'orml-oracle/std',
+  'orml-oracle-rpc-runtime-api/std',
   'orml-currencies/std',
   'orml-tokens/std',
   'orml-traits/std',

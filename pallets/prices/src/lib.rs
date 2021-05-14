@@ -24,8 +24,6 @@ use primitives::*;
 mod mock;
 mod tests;
 
-pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
-
 #[frame_support::pallet]
 pub mod module {
     use super::*;

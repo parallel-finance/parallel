@@ -127,3 +127,11 @@ pub trait EmergencyPriceFeeder<CurrencyId, Price> {
     fn set_emergency_price(currency_id: CurrencyId, price: Price);
     fn reset_emergency_price(currency_id: CurrencyId);
 }
+
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
+
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum DataProviderId {
+    Aggregated = 0,
+}

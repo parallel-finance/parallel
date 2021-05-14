@@ -8,6 +8,7 @@ on:
 
 jobs:
   coverage:
+    if: github.repository == 'parallel-finance/parallel'
     name: Auto Codecov Coverage
     runs-on: ${{ matrix.os }}
     strategy:

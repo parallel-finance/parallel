@@ -1,10 +1,15 @@
 # CHANGE LOG
 
+
 ## 2021.05.14
 - Benchmark the dispatchables in loans pallet (#114)
 
 ## 2021.05.12
 - Fix oracle price benchmarking issue (#100)
+
+## 2021.5.13
+- Add multisig pallet (#112)
+- Add rpc to get price from orml_oracle (#112)
 
 ## 2021.05.10
 - Change price from u128 to FixedU128 (#89)
