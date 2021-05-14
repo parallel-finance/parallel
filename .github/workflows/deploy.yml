@@ -6,6 +6,7 @@ on:
 
 jobs:
   deploy:
+    if: github.repository == 'parallel-finance/parallel'
     name: Auto Deploy
     runs-on: ${{ matrix.os }}
     strategy:

@@ -1,5 +1,9 @@
 # CHANGE LOG
 
+## 2021.5.13
+- Add multisig pallet (#112)
+- Add rpc to get price from orml_oracle (#112)
+
 ## 2021.05.10
 - Change price from u128 to FixedU128 (#89)
 - Change LiquidationIncentive from u128 to Ratio (#89)

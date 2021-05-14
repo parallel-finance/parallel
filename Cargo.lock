@@ -4611,6 +4611,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "orml-oracle-rpc"
+version = "0.4.1-dev"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#d51f7fcb4407f3fff3d366cb678a1b568cffc72e"
+dependencies = [
+ "jsonrpc-core",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "orml-oracle-rpc-runtime-api",
+ "parity-scale-codec",
+ "sp-api",
+ "sp-blockchain",
+ "sp-runtime",
+]
+
+[[package]]
+name = "orml-oracle-rpc-runtime-api"
+version = "0.4.1-dev"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#d51f7fcb4407f3fff3d366cb678a1b568cffc72e"
+dependencies = [
+ "parity-scale-codec",
+ "sp-api",
+ "sp-std",
+]
+
+[[package]]
 name = "orml-tokens"
 version = "0.4.1-dev"
 source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#b1cc35e4b753a9aaf2e867ff52016fa4dd391a59"
@@ -5501,6 +5526,7 @@ dependencies = [
  "hex-literal 0.2.1",
  "jsonrpc-core",
  "log",
+ "orml-oracle-rpc",
  "pallet-transaction-payment-rpc",
  "parallel-primitives",
  "parallel-runtime",
@@ -5550,6 +5576,7 @@ dependencies = [
  "hex-literal 0.2.1",
  "jsonrpc-core",
  "log",
+ "orml-oracle-rpc",
  "pallet-transaction-payment-rpc",
  "parallel-primitives",
  "parity-scale-codec",
@@ -5592,6 +5619,7 @@ dependencies = [
 name = "parallel-primitives"
 version = "1.0.0"
 dependencies = [
+ "orml-oracle",
  "parity-scale-codec",
  "serde",
  "sp-core",
@@ -5619,6 +5647,7 @@ dependencies = [
  "hex-literal 0.3.1",
  "orml-currencies",
  "orml-oracle",
+ "orml-oracle-rpc-runtime-api",
  "orml-tokens",
  "orml-traits",
  "orml-utilities",
@@ -5626,6 +5655,7 @@ dependencies = [
  "pallet-liquidate",
  "pallet-loans",
  "pallet-loans-benchmarking",
+ "pallet-multisig",
  "pallet-ocw-oracle",
  "pallet-prices",
  "pallet-randomness-collective-flip",
@@ -11045,6 +11075,7 @@ dependencies = [
  "hex-literal 0.3.1",
  "orml-currencies",
  "orml-oracle",
+ "orml-oracle-rpc-runtime-api",
  "orml-tokens",
  "orml-traits",
  "orml-utilities",
@@ -11054,6 +11085,7 @@ dependencies = [
  "pallet-liquidate",
  "pallet-loans",
  "pallet-loans-benchmarking",
+ "pallet-multisig",
  "pallet-ocw-oracle",
  "pallet-prices",
  "pallet-randomness-collective-flip",
