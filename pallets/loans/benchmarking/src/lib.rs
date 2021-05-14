@@ -58,6 +58,8 @@ fn initial_set_up<T: Config>(caller: T::AccountId) {
     pallet_loans::ExchangeRate::<T>::insert(DOT, Rate::saturating_from_rational(2, 100));
     pallet_loans::BorrowIndex::<T>::insert(DOT, Rate::one());
     pallet_loans::CollateralFactor::<T>::insert(DOT, Ratio::from_percent(50));
+    pallet_loans::CloseFactor::<T>::insert(DOT, Ratio::from_percent(50));
+    pallet_loans::LiquidationIncentive::<T>::insert(DOT, Ratio::from_percent(90));
     <T as LoansConfig>::Currency::deposit(DOT, &caller, INITIAL_AMOUNT).unwrap();
     <T as LoansConfig>::Currency::deposit(DOT, &account_id, INITIAL_AMOUNT).unwrap();
 }
@@ -163,7 +165,6 @@ benchmarks! {
     repay_borrow_all {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T>(caller.clone());
-        let amount = 200_000_000;
         let borrowed_amount = 100_000_000;
         let currency_id: <T as ORMOracleConfig<Instance1>>::OracleKey = T::convert(DOT);
         let price: <T as ORMOracleConfig<Instance1>>::OracleValue = T::convert_price(FixedU128::from(100_000));
@@ -212,6 +213,31 @@ benchmarks! {
         assert_eq!(
             pallet_loans::AccountCollateralAssets::<T>::get(&caller.clone()).len(),
             collateral_assets.len() + 1 as usize,
+        );
+    }
+
+    liquidate_borrow {
+        let borrower: T::AccountId = whitelisted_caller();
+        initial_set_up::<T>(borrower.clone());
+        let caller: T::AccountId = account("Sample", 100, SEED);
+        <T as LoansConfig>::Currency::deposit(DOT, &caller.clone(), INITIAL_AMOUNT).unwrap();
+        let repay_amount = 2000;
+        let borrowed_amount = 100_000_000;
+        let currency_id: <T as ORMOracleConfig<Instance1>>::OracleKey = T::convert(DOT);
+        let price: <T as ORMOracleConfig<Instance1>>::OracleValue = T::convert_price(FixedU128::from(100_000));
+        assert_ok!(ORMOracle::<T, _>::feed_values(SystemOrigin::Root.into(),
+            vec![(currency_id, price)]));
+        assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(borrower.clone()).into(), DOT, INITIAL_AMOUNT));
+        assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(borrower.clone()).into(), DOT, true));
+        assert_ok!(Loans::<T>::borrow(SystemOrigin::Signed(borrower.clone()).into(), DOT, borrowed_amount));
+        let total_borrows = pallet_loans::TotalBorrows::<T>::get(DOT);
+    }: {
+         let _ = Loans::<T>::liquidate_borrow(SystemOrigin::Signed(caller.clone()).into(), borrower, DOT, repay_amount, DOT);
+    }
+    verify {
+        assert_eq!(
+            pallet_loans::TotalBorrows::<T>::get(DOT),
+            total_borrows - repay_amount,
         );
     }
 }
