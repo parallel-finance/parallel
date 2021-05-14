@@ -257,6 +257,24 @@ benchmarks! {
             total_reserves + amount,
         );
     }
+
+    reduce_reserves {
+        let caller: T::AccountId = whitelisted_caller();
+        let payer = T::Lookup::unlookup(caller.clone());
+        initial_set_up::<T>(caller.clone());
+        let amount = 2000;
+        let amount1 = 1000;
+        assert_ok!(Loans::<T>::add_reserves(SystemOrigin::Root.into(), payer.clone(), DOT, amount));
+        let total_reserves = Loans::<T>::total_reserves(DOT);
+    }: {
+         let _ = Loans::<T>::reduce_reserves(SystemOrigin::Root.into(), payer, DOT, amount1);
+    }
+    verify {
+        assert_eq!(
+            Loans::<T>::total_reserves(DOT),
+            total_reserves - amount1,
+        );
+    }
 }
 
 impl_benchmark_test_suite!(Pallet, crate::mock::new_test_ext(), crate::mock::Test,);
