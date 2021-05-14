@@ -1,11 +1,20 @@
 # CHANGE LOG
 
+## 2021.05.14
+- Benchmark the dispatchables in loans pallet (#114)
+
+## 2021.05.12
+- Fix oracle price benchmarking issue (#100)
+
 ## 2021.05.10
 - Change price from u128 to FixedU128 (#89)
 - Change LiquidationIncentive from u128 to Ratio (#89)
 - Change LiquidationThreshold from u128 to Ratio (#89)
 - Remove types `OraclePrice`. (#89)
 - Modify types `Price` from `u128` to `FixedU128` (#89)
+
+## 2021.05.09
+- Remove unnecessary dependencies to fix benchmarking (#94)
 
 ## 2021.05.07
 - Add TotalReserves storage (#92)
@@ -26,6 +35,7 @@
 
 ## 2021.04.29
 - Add parallel-dev bin to speed up compilation (#80)
+- Add Benchmarking Infrastructure and Implemented Benchmarking for mint and borrow of pallet-loans (#62)
 
 ## 2021.04.28
 - Modify storage type `SupplyRate` from `u128` to `Rate`. (#82)
