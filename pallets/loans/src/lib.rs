@@ -550,7 +550,7 @@ pub mod module {
             Ok(().into())
         }
 
-        #[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::liquidate_borrow())]
         #[transactional]
         pub fn add_reserves(
             origin: OriginFor<T>,
