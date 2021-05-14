@@ -8,7 +8,7 @@ use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whiteli
 use frame_support::assert_ok;
 use frame_system::RawOrigin as SystemOrigin;
 use orml_oracle::Instance1;
-use orml_oracle::{Config as ORMOracleConfig, Pallet as ORMOracle};
+use orml_oracle::{Config as ORMLOracleConfig, Pallet as ORMLOracle};
 use orml_traits::MultiCurrency;
 use pallet_loans::{Config as LoansConfig, Pallet as Loans};
 use primitives::{CurrencyId, Rate, Ratio};
@@ -20,32 +20,32 @@ use sp_std::vec;
 
 pub struct Pallet<T: Config>(Loans<T>);
 pub trait Config:
-    LoansConfig + ORMOracleConfig<Instance1> + CurrencyIdConvert<Self> + FixedU128Convert<Self>
+    LoansConfig + ORMLOracleConfig<Instance1> + CurrencyIdConvert<Self> + FixedU128Convert<Self>
 {
 }
 
-pub trait CurrencyIdConvert<T: ORMOracleConfig<Instance1>> {
-    fn convert(currency_id: CurrencyId) -> <T as ORMOracleConfig<Instance1>>::OracleKey;
+pub trait CurrencyIdConvert<T: ORMLOracleConfig<Instance1>> {
+    fn convert(currency_id: CurrencyId) -> <T as ORMLOracleConfig<Instance1>>::OracleKey;
 }
 
-impl<T: ORMOracleConfig<Instance1>> CurrencyIdConvert<T> for T
+impl<T: ORMLOracleConfig<Instance1>> CurrencyIdConvert<T> for T
 where
-    <T as ORMOracleConfig<Instance1>>::OracleKey: From<CurrencyId>,
+    <T as ORMLOracleConfig<Instance1>>::OracleKey: From<CurrencyId>,
 {
-    fn convert(currency_id: CurrencyId) -> <T as ORMOracleConfig<Instance1>>::OracleKey {
+    fn convert(currency_id: CurrencyId) -> <T as ORMLOracleConfig<Instance1>>::OracleKey {
         currency_id.into()
     }
 }
 
-pub trait FixedU128Convert<T: ORMOracleConfig<Instance1>> {
-    fn convert_price(price: FixedU128) -> <T as ORMOracleConfig<Instance1>>::OracleValue;
+pub trait FixedU128Convert<T: ORMLOracleConfig<Instance1>> {
+    fn convert_price(price: FixedU128) -> <T as ORMLOracleConfig<Instance1>>::OracleValue;
 }
 
-impl<T: ORMOracleConfig<Instance1>> FixedU128Convert<T> for T
+impl<T: ORMLOracleConfig<Instance1>> FixedU128Convert<T> for T
 where
-    <T as ORMOracleConfig<Instance1>>::OracleValue: From<FixedU128>,
+    <T as ORMLOracleConfig<Instance1>>::OracleValue: From<FixedU128>,
 {
-    fn convert_price(price: FixedU128) -> <T as ORMOracleConfig<Instance1>>::OracleValue {
+    fn convert_price(price: FixedU128) -> <T as ORMLOracleConfig<Instance1>>::OracleValue {
         price.into()
     }
 }
@@ -86,9 +86,9 @@ benchmarks! {
         initial_set_up::<T>(caller.clone());
         let amount = 200_000_000;
         let borrowed_amount = 100_000_000;
-        let currency_id: <T as ORMOracleConfig<Instance1>>::OracleKey = T::convert(DOT);
-        let price: <T as ORMOracleConfig<Instance1>>::OracleValue = T::convert_price(FixedU128::from(100_000));
-        assert_ok!(ORMOracle::<T, _>::feed_values(SystemOrigin::Root.into(),
+        let currency_id: <T as ORMLOracleConfig<Instance1>>::OracleKey = T::convert(DOT);
+        let price: <T as ORMLOracleConfig<Instance1>>::OracleValue = T::convert_price(FixedU128::from(100_000));
+        assert_ok!(ORMLOracle::<T, _>::feed_values(SystemOrigin::Root.into(),
             vec![(currency_id, price)]));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, amount));
         assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(caller.clone()).into(), DOT, true));
@@ -145,9 +145,9 @@ benchmarks! {
         let amount = 200_000_000;
         let borrowed_amount = 100_000_000;
         let repay_amount = 100;
-        let currency_id: <T as ORMOracleConfig<Instance1>>::OracleKey = T::convert(DOT);
-        let price: <T as ORMOracleConfig<Instance1>>::OracleValue = T::convert_price(FixedU128::from(100_000));
-        assert_ok!(ORMOracle::<T, _>::feed_values(SystemOrigin::Root.into(),
+        let currency_id: <T as ORMLOracleConfig<Instance1>>::OracleKey = T::convert(DOT);
+        let price: <T as ORMLOracleConfig<Instance1>>::OracleValue = T::convert_price(FixedU128::from(100_000));
+        assert_ok!(ORMLOracle::<T, _>::feed_values(SystemOrigin::Root.into(),
             vec![(currency_id, price)]));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, INITIAL_AMOUNT));
         assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(caller.clone()).into(), DOT, true));
@@ -167,9 +167,9 @@ benchmarks! {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T>(caller.clone());
         let borrowed_amount = 100_000_000;
-        let currency_id: <T as ORMOracleConfig<Instance1>>::OracleKey = T::convert(DOT);
-        let price: <T as ORMOracleConfig<Instance1>>::OracleValue = T::convert_price(FixedU128::from(100_000));
-        assert_ok!(ORMOracle::<T, _>::feed_values(SystemOrigin::Root.into(),
+        let currency_id: <T as ORMLOracleConfig<Instance1>>::OracleKey = T::convert(DOT);
+        let price: <T as ORMLOracleConfig<Instance1>>::OracleValue = T::convert_price(FixedU128::from(100_000));
+        assert_ok!(ORMLOracle::<T, _>::feed_values(SystemOrigin::Root.into(),
             vec![(currency_id, price)]));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, INITIAL_AMOUNT));
         assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(caller.clone()).into(), DOT, true));
@@ -224,9 +224,9 @@ benchmarks! {
         <T as LoansConfig>::Currency::deposit(DOT, &caller.clone(), INITIAL_AMOUNT).unwrap();
         let repay_amount = 2000;
         let borrowed_amount = 100_000_000;
-        let currency_id: <T as ORMOracleConfig<Instance1>>::OracleKey = T::convert(DOT);
-        let price: <T as ORMOracleConfig<Instance1>>::OracleValue = T::convert_price(FixedU128::from(100_000));
-        assert_ok!(ORMOracle::<T, _>::feed_values(SystemOrigin::Root.into(),
+        let currency_id: <T as ORMLOracleConfig<Instance1>>::OracleKey = T::convert(DOT);
+        let price: <T as ORMLOracleConfig<Instance1>>::OracleValue = T::convert_price(FixedU128::from(100_000));
+        assert_ok!(ORMLOracle::<T, _>::feed_values(SystemOrigin::Root.into(),
             vec![(currency_id, price)]));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(borrower.clone()).into(), DOT, INITIAL_AMOUNT));
         assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(borrower.clone()).into(), DOT, true));
