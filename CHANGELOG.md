@@ -3,6 +3,7 @@
 
 ## 2021.05.14
 - Benchmark the dispatchables in loans pallet (#114)
+- Add `APR` struct and refactor rate model (#115)
 
 ## 2021.05.12
 - Fix oracle price benchmarking issue (#100)

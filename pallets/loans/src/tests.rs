@@ -294,10 +294,6 @@ fn interest_rate_model_works() {
         let multiplier_per_block = multiplier_per_year
             .checked_div(&Rate::saturating_from_integer(BLOCK_PER_YEAR))
             .unwrap();
-        assert_eq!(
-            multiplier_per_block,
-            Loans::currency_interest_model(DOT).multiplier_per_block
-        );
         assert_eq!(multiplier_per_block, Rate::from_inner(19025875190));
 
         let borrow_snapshot = Loans::account_borrows(DOT, ALICE);
@@ -513,5 +509,117 @@ fn ratio_and_rate_works() {
         assert_eq!(value3 * 5_u64, 1); // 0.3 * 5
         assert_eq!(value4 * 8_u64, 2); // 0.2 * 8
         assert_eq!(value4.mul_floor(8_u64), 1); // 0.2 mul_floor 8
+    })
+}
+
+#[test]
+fn set_rate_model_works() {
+    ExtBuilder::default().build().execute_with(|| {
+        // Check genesis rate model
+        assert_eq!(
+            Loans::currency_interest_model(DOT),
+            rate::InterestRateModel {
+                base_rate: Rate::saturating_from_rational(2, 100).into(),
+                kink_rate: Rate::saturating_from_rational(10, 100).into(),
+                full_rate: Rate::saturating_from_rational(32, 100).into(),
+                kink_utilization: Ratio::from_percent(80).into(),
+            }
+        );
+        // Set new rate model
+        assert_ok!(Loans::set_rate_model(
+            Origin::root(),
+            DOT,
+            rate::InterestRateModel {
+                base_rate: Rate::saturating_from_rational(5, 100).into(),
+                kink_rate: Rate::saturating_from_rational(15, 100).into(),
+                full_rate: Rate::saturating_from_rational(35, 100).into(),
+                kink_utilization: Ratio::from_percent(80).into(),
+            }
+        ));
+        assert_eq!(
+            Loans::currency_interest_model(DOT),
+            rate::InterestRateModel {
+                base_rate: Rate::saturating_from_rational(5, 100).into(),
+                kink_rate: Rate::saturating_from_rational(15, 100).into(),
+                full_rate: Rate::saturating_from_rational(35, 100).into(),
+                kink_utilization: Ratio::from_percent(80).into(),
+            }
+        );
+    })
+}
+
+#[test]
+fn set_rate_model_failed_by_error_param() {
+    ExtBuilder::default().build().execute_with(|| {
+        // Invalid base_rate
+        assert_noop!(
+            Loans::set_rate_model(
+                Origin::root(),
+                DOT,
+                rate::InterestRateModel {
+                    base_rate: Rate::saturating_from_rational(36, 100).into(),
+                    kink_rate: Rate::saturating_from_rational(15, 100).into(),
+                    full_rate: Rate::saturating_from_rational(35, 100).into(),
+                    kink_utilization: Ratio::from_percent(80).into(),
+                }
+            ),
+            Error::<Runtime>::InvalidRateModelParam
+        );
+        // Invalid kink_rate
+        assert_noop!(
+            Loans::set_rate_model(
+                Origin::root(),
+                DOT,
+                rate::InterestRateModel {
+                    base_rate: Rate::saturating_from_rational(5, 100).into(),
+                    kink_rate: Rate::saturating_from_rational(36, 100).into(),
+                    full_rate: Rate::saturating_from_rational(37, 100).into(),
+                    kink_utilization: Ratio::from_percent(80).into(),
+                }
+            ),
+            Error::<Runtime>::InvalidRateModelParam
+        );
+        // Invalid full_rate
+        assert_noop!(
+            Loans::set_rate_model(
+                Origin::root(),
+                DOT,
+                rate::InterestRateModel {
+                    base_rate: Rate::saturating_from_rational(5, 100).into(),
+                    kink_rate: Rate::saturating_from_rational(15, 100).into(),
+                    full_rate: Rate::saturating_from_rational(37, 100).into(),
+                    kink_utilization: Ratio::from_percent(80).into(),
+                }
+            ),
+            Error::<Runtime>::InvalidRateModelParam
+        );
+        // base_rate greater than kink_rate
+        assert_noop!(
+            Loans::set_rate_model(
+                Origin::root(),
+                DOT,
+                rate::InterestRateModel {
+                    base_rate: Rate::saturating_from_rational(10, 100).into(),
+                    kink_rate: Rate::saturating_from_rational(9, 100).into(),
+                    full_rate: Rate::saturating_from_rational(14, 100).into(),
+                    kink_utilization: Ratio::from_percent(80).into(),
+                }
+            ),
+            Error::<Runtime>::InvalidRateModelParam
+        );
+        // kink_rate greater than full_rate
+        assert_noop!(
+            Loans::set_rate_model(
+                Origin::root(),
+                DOT,
+                rate::InterestRateModel {
+                    base_rate: Rate::saturating_from_rational(5, 100).into(),
+                    kink_rate: Rate::saturating_from_rational(15, 100).into(),
+                    full_rate: Rate::saturating_from_rational(14, 100).into(),
+                    kink_utilization: Ratio::from_percent(80).into(),
+                }
+            ),
+            Error::<Runtime>::InvalidRateModelParam
+        );
     })
 }

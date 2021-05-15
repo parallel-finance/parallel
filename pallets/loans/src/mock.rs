@@ -173,6 +173,7 @@ impl Config for Runtime {
     type PalletId = LoansPalletId;
     type PriceFeeder = MOCK_PRICE_FEEDER;
     type ReserveOrigin = EnsureRoot<AccountId>;
+    type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
 }
 
@@ -218,12 +219,12 @@ impl ExtBuilder {
                 CurrencyId::USDT,
                 CurrencyId::xDOT,
             ],
-            borrow_index: Rate::one(),                                  // 1
-            exchange_rate: Rate::saturating_from_rational(2, 100),      // 0.02
-            base_rate_per_year: Rate::saturating_from_rational(2, 100), // 0.02
-            multiplier_per_year: Multiplier::saturating_from_rational(1, 10), // 0.1
-            jump_multiplier_per_year: Multiplier::saturating_from_rational(11, 10), // 1.1
-            kink: Ratio::from_percent(80),                              // 0.8
+            borrow_index: Rate::one(),                             // 1
+            exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
+            base_rate: Rate::saturating_from_rational(2, 100),     // 2%
+            kink_rate: Rate::saturating_from_rational(10, 100),    // 10%
+            full_rate: Rate::saturating_from_rational(32, 100),    // 32%
+            kink_utilization: Ratio::from_percent(80),             // 80%
             collateral_factor: vec![
                 (CurrencyId::DOT, Ratio::from_percent(50)),
                 (CurrencyId::KSM, Ratio::from_percent(50)),

@@ -16,12 +16,13 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::collapsible_if)]
 
-use crate::rate::InterestRateModel;
+pub use crate::rate::InterestRateModel;
 use crate::util::*;
 use frame_support::{pallet_prelude::*, transactional, PalletId};
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 use primitives::{Amount, Balance, CurrencyId, Multiplier, PriceFeeder, Rate, Ratio};
+use rate::APR;
 use sp_runtime::{
     traits::{AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, StaticLookup, Zero},
     FixedPointNumber,
@@ -85,6 +86,10 @@ pub mod module {
         /// The origin which can add/reduce reserves.
         type ReserveOrigin: EnsureOrigin<Self::Origin>;
 
+        /// The origin which can update rate model, liquidate incentive and
+        /// add/reduce reserves. Root can always do this.
+        type UpdateOrigin: EnsureOrigin<Self::Origin>;
+
         /// Weight information for extrinsics in this pallet.
         type WeightInfo: WeightInfo;
     }
@@ -143,14 +148,16 @@ pub mod module {
         RealCollateralAmountOverflow,
         /// Insufficient reserves
         InsufficientReserves,
+        /// Invalid rate model params
+        InvalidRateModelParam,
     }
 
     #[pallet::event]
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Initialize the interest rate parameter
-        /// [base_rate, multiplier_per_block, jump_multiplier_per_block]
-        InitInterestRateModel(Rate, Multiplier, Multiplier),
+        /// [base_rate, kink_rate, full_rate, kink_utilization]
+        InitInterestRateModel(Rate, Rate, Rate, Ratio),
         /// Enable collateral for certain asset
         /// [sender, currency_id]
         CollateralAssetAdded(T::AccountId, CurrencyId),
@@ -317,10 +324,10 @@ pub mod module {
         pub currencies: Vec<CurrencyId>,
         pub borrow_index: Rate,
         pub exchange_rate: Rate,
-        pub base_rate_per_year: Rate,
-        pub multiplier_per_year: Multiplier,
-        pub jump_multiplier_per_year: Multiplier,
-        pub kink: Ratio,
+        pub base_rate: Rate,
+        pub kink_rate: Multiplier,
+        pub full_rate: Multiplier,
+        pub kink_utilization: Ratio,
         pub collateral_factor: Vec<(CurrencyId, Ratio)>,
         pub liquidation_incentive: Vec<(CurrencyId, Ratio)>,
         pub liquidation_threshold: Vec<(CurrencyId, Ratio)>,
@@ -335,10 +342,10 @@ pub mod module {
                 currencies: vec![],
                 borrow_index: Rate::zero(),
                 exchange_rate: Rate::zero(),
-                base_rate_per_year: Rate::zero(),
-                multiplier_per_year: Multiplier::zero(),
-                jump_multiplier_per_year: Multiplier::zero(),
-                kink: Ratio::zero(),
+                base_rate: Rate::zero(),
+                kink_rate: Multiplier::zero(),
+                full_rate: Multiplier::zero(),
+                kink_utilization: Ratio::zero(),
                 collateral_factor: vec![],
                 liquidation_incentive: vec![],
                 liquidation_threshold: vec![],
@@ -352,13 +359,13 @@ pub mod module {
     impl<T: Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
             self.currencies.iter().for_each(|currency_id| {
-                let interest_model = InterestRateModel::init_model(
-                    self.base_rate_per_year,
-                    self.multiplier_per_year,
-                    self.jump_multiplier_per_year,
-                    self.kink,
-                )
-                .unwrap();
+                let interest_model = InterestRateModel::new_model(
+                    self.base_rate,
+                    self.kink_rate,
+                    self.full_rate,
+                    self.kink_utilization,
+                );
+                interest_model.check_parameters().unwrap();
                 CurrencyInterestModel::<T>::insert(currency_id, interest_model);
                 ExchangeRate::<T>::insert(currency_id, self.exchange_rate);
                 BorrowIndex::<T>::insert(currency_id, self.borrow_index);
@@ -424,6 +431,7 @@ pub mod module {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        /// Sender supplies assets into the market and receives internal supplies in exchange.
         #[pallet::weight(T::WeightInfo::mint())]
         #[transactional]
         pub fn mint(
@@ -437,6 +445,7 @@ pub mod module {
             Ok(().into())
         }
 
+        /// Sender redeems some of internal supplies in exchange for the underlying asset.
         #[pallet::weight(T::WeightInfo::redeem())]
         #[transactional]
         pub fn redeem(
@@ -450,6 +459,7 @@ pub mod module {
             Ok(().into())
         }
 
+        /// Sender redeems all of internal supplies in exchange for the underlying asset.
         #[pallet::weight(T::WeightInfo::redeem_all())]
         #[transactional]
         pub fn redeem_all(
@@ -467,6 +477,7 @@ pub mod module {
             Ok(().into())
         }
 
+        /// Sender borrows assets from the protocol to their own address.
         #[pallet::weight(T::WeightInfo::borrow())]
         #[transactional]
         pub fn borrow(
@@ -479,6 +490,7 @@ pub mod module {
             Ok(().into())
         }
 
+        /// Sender repays some of their debts.
         #[pallet::weight(T::WeightInfo::repay_borrow())]
         #[transactional]
         pub fn repay_borrow(
@@ -491,6 +503,7 @@ pub mod module {
             Ok(().into())
         }
 
+        /// Sender repays all of their debts.
         #[pallet::weight(T::WeightInfo::repay_borrow_all())]
         #[transactional]
         pub fn repay_borrow_all(
@@ -530,6 +543,7 @@ pub mod module {
             Ok(().into())
         }
 
+        /// The sender liquidates the borrowers collateral.
         #[pallet::weight(T::WeightInfo::liquidate_borrow())]
         #[transactional]
         pub fn liquidate_borrow(
@@ -550,7 +564,26 @@ pub mod module {
             Ok(().into())
         }
 
-        #[pallet::weight(T::WeightInfo::add_reserves())]
+        /// Update the interest rate model for a given asset.
+        #[pallet::weight(T::WeightInfo::set_rate_model())]
+        #[transactional]
+        pub fn set_rate_model(
+            origin: OriginFor<T>,
+            currency_id: CurrencyId,
+            new_model: InterestRateModel,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+
+            new_model
+                .check_parameters()
+                .map_err(|_| Error::<T>::InvalidRateModelParam)?;
+            CurrencyInterestModel::<T>::insert(currency_id, new_model);
+
+            Ok(().into())
+        }
+
+        /// Add reserves by transferring from payer.
+        #[pallet::weight(10_000)]
         #[transactional]
         pub fn add_reserves(
             origin: OriginFor<T>,
@@ -576,6 +609,7 @@ pub mod module {
             Ok(().into())
         }
 
+        /// Reduces reserves by transferring to receiver.
         #[pallet::weight(T::WeightInfo::reduce_reserves())]
         #[transactional]
         pub fn reduce_reserves(
@@ -626,19 +660,22 @@ impl<T: Config> Pallet<T> {
             let interest_model = Self::currency_interest_model(currency_id);
             let borrow_rate = interest_model
                 .get_borrow_rate(util)
-                .ok_or(Error::<T>::CollateralOverflow)?;
+                .map_err(|_| Error::<T>::CollateralOverflow)?;
             let supply_rate = InterestRateModel::get_supply_rate(
                 borrow_rate,
                 util,
                 Self::reserve_factor(currency_id),
             )
-            .ok_or(Error::<T>::CollateralOverflow)?;
+            .map_err(|_| Error::<T>::CollateralOverflow)?;
 
             UtilizationRatio::<T>::insert(currency_id, util);
-            BorrowRate::<T>::insert(currency_id, &borrow_rate);
-            SupplyRate::<T>::insert(currency_id, supply_rate);
+            BorrowRate::<T>::insert(currency_id, &borrow_rate.0);
+            SupplyRate::<T>::insert(currency_id, supply_rate.0);
 
-            Self::update_borrow_index(borrow_rate, currency_id)?;
+            let borrow_rate_per_block = APR::from(borrow_rate)
+                .rate_per_block()
+                .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
+            Self::update_borrow_index(borrow_rate_per_block, currency_id)?;
             Self::update_exchange_rate(currency_id)?;
         }
 
@@ -681,7 +718,10 @@ impl<T: Config> Pallet<T> {
         Ok(Ratio::from_rational(borrows, total))
     }
 
-    pub fn update_borrow_index(borrow_rate: Rate, currency_id: CurrencyId) -> DispatchResult {
+    pub fn update_borrow_index(
+        borrow_rate_per_block: Rate,
+        currency_id: CurrencyId,
+    ) -> DispatchResult {
         // interestAccumulated = totalBorrows * borrowRate
         // totalBorrows = interestAccumulated + totalBorrows
         // totalReserves = interestAccumulated * reserveFactor + totalReserves
@@ -689,7 +729,7 @@ impl<T: Config> Pallet<T> {
         let borrows_prior = Self::total_borrows(currency_id);
         let reserve_prior = Self::total_reserves(currency_id);
         let reserve_factor = Self::reserve_factor(currency_id);
-        let interest_accumulated = borrow_rate
+        let interest_accumulated = borrow_rate_per_block
             .checked_mul_int(borrows_prior)
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
         let total_borrows_new = interest_accumulated
@@ -701,7 +741,7 @@ impl<T: Config> Pallet<T> {
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
         let borrow_index = Self::borrow_index(currency_id);
         let borrow_index_new = borrow_index
-            .checked_mul(&borrow_rate)
+            .checked_mul(&borrow_rate_per_block)
             .and_then(|r| r.checked_add(&borrow_index))
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
 
