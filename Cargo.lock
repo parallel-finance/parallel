@@ -1304,6 +1304,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "cumulus-client-cli"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/cumulus.git?branch=polkadot-v0.9.1#95d81d499927e508769690fc43a480f00ddd131e"
+dependencies = [
+ "sc-cli",
+ "sc-service",
+ "structopt",
+]
+
+[[package]]
 name = "cumulus-client-collator"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/cumulus.git?branch=polkadot-v0.9.1#95d81d499927e508769690fc43a480f00ddd131e"
@@ -1324,6 +1334,36 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-state-machine",
+ "tracing",
+]
+
+[[package]]
+name = "cumulus-client-consensus-aura"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/cumulus.git?branch=polkadot-v0.9.1#95d81d499927e508769690fc43a480f00ddd131e"
+dependencies = [
+ "async-trait",
+ "cumulus-client-consensus-common",
+ "cumulus-primitives-core",
+ "futures 0.3.15",
+ "parity-scale-codec",
+ "parking_lot 0.9.0",
+ "polkadot-service",
+ "sc-client-api",
+ "sc-consensus-aura",
+ "sc-consensus-slots",
+ "sc-telemetry",
+ "sp-api",
+ "sp-application-crypto",
+ "sp-block-builder",
+ "sp-blockchain",
+ "sp-consensus",
+ "sp-consensus-aura",
+ "sp-core",
+ "sp-inherents",
+ "sp-keystore",
+ "sp-runtime",
+ "substrate-prometheus-endpoint",
  "tracing",
 ]
 
@@ -1349,30 +1389,6 @@ dependencies = [
  "sp-trie",
  "substrate-prometheus-endpoint",
  "tokio 0.1.22",
- "tracing",
-]
-
-[[package]]
-name = "cumulus-client-consensus-relay-chain"
-version = "0.1.0"
-source = "git+https://github.com/paritytech/cumulus.git?branch=polkadot-v0.9.1#95d81d499927e508769690fc43a480f00ddd131e"
-dependencies = [
- "async-trait",
- "cumulus-client-consensus-common",
- "cumulus-primitives-core",
- "futures 0.3.15",
- "parity-scale-codec",
- "parking_lot 0.9.0",
- "polkadot-service",
- "sc-client-api",
- "sp-api",
- "sp-block-builder",
- "sp-blockchain",
- "sp-consensus",
- "sp-core",
- "sp-inherents",
- "sp-runtime",
- "substrate-prometheus-endpoint",
  "tracing",
 ]
 
@@ -1423,6 +1439,23 @@ dependencies = [
  "sp-core",
  "sp-runtime",
  "tracing",
+]
+
+[[package]]
+name = "cumulus-pallet-aura-ext"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/cumulus.git?branch=polkadot-v0.9.1#95d81d499927e508769690fc43a480f00ddd131e"
+dependencies = [
+ "frame-executive",
+ "frame-support",
+ "frame-system",
+ "pallet-aura",
+ "parity-scale-codec",
+ "serde",
+ "sp-application-crypto",
+ "sp-consensus-aura",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -5516,11 +5549,13 @@ dependencies = [
 name = "parallel"
 version = "1.0.0"
 dependencies = [
+ "cumulus-client-cli",
  "cumulus-client-collator",
- "cumulus-client-consensus-relay-chain",
+ "cumulus-client-consensus-aura",
  "cumulus-client-network",
  "cumulus-client-service",
  "cumulus-primitives-core",
+ "cumulus-primitives-parachain-inherent",
  "derive_more 0.15.0",
  "frame-benchmarking",
  "frame-benchmarking-cli",
@@ -5555,6 +5590,7 @@ dependencies = [
  "sp-block-builder",
  "sp-blockchain",
  "sp-consensus",
+ "sp-consensus-aura",
  "sp-core",
  "sp-inherents",
  "sp-keystore",
@@ -5623,6 +5659,7 @@ dependencies = [
  "orml-oracle",
  "parity-scale-codec",
  "serde",
+ "sp-consensus-aura",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -5633,6 +5670,7 @@ dependencies = [
 name = "parallel-runtime"
 version = "0.0.1"
 dependencies = [
+ "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcm",
@@ -5652,6 +5690,7 @@ dependencies = [
  "orml-tokens",
  "orml-traits",
  "orml-utilities",
+ "pallet-aura",
  "pallet-balances",
  "pallet-liquidate",
  "pallet-loans",
@@ -5671,6 +5710,7 @@ dependencies = [
  "serde",
  "sp-api",
  "sp-block-builder",
+ "sp-consensus-aura",
  "sp-core",
  "sp-inherents",
  "sp-io",

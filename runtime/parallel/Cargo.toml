@@ -14,6 +14,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 codec                           = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
+cumulus-pallet-aura-ext         = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.1", default-features = false }
 cumulus-pallet-dmp-queue        = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.1", default-features = false }
 cumulus-pallet-parachain-system = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.1", default-features = false }
 cumulus-pallet-xcm              = { git = "https://github.com/paritytech/cumulus.git", branch = "polkadot-v0.9.1", default-features = false }
@@ -33,6 +34,7 @@ orml-oracle-rpc-runtime-api     = { git = "https://github.com/open-web3-stack/op
 orml-tokens                     = { git = "https://github.com/open-web3-stack/open-runtime-module-library.git", default-features = false }
 orml-traits                     = { git = "https://github.com/open-web3-stack/open-runtime-module-library.git", default-features = false }
 orml-utilities                  = { git = "https://github.com/open-web3-stack/open-runtime-module-library.git", default-features = false }
+pallet-aura                     = { git = "https://github.com/paritytech/substrate.git", version = "3.0.0", branch = "polkadot-v0.9.1", default-features = false }
 pallet-balances                 = { git = "https://github.com/paritytech/substrate.git", version = "3.0.0", branch = "polkadot-v0.9.1", default-features = false }
 pallet-liquidate                = { path = "../../pallets/liquidate", default-features = false }
 pallet-loans                    = { path = "../../pallets/loans", default-features = false }
@@ -52,6 +54,7 @@ primitives                                 = { package = "parallel-primitives", 
 serde                                      = { version = "1", features = ["derive"], optional = true }
 sp-api                                     = { git = "https://github.com/paritytech/substrate.git", version = "3.0.0", branch = "polkadot-v0.9.1", default-features = false }
 sp-block-builder                           = { git = "https://github.com/paritytech/substrate.git", version = "3.0.0", branch = "polkadot-v0.9.1", default-features = false }
+sp-consensus-aura                          = { git = "https://github.com/paritytech/substrate.git", version = "0.9.0", branch = "polkadot-v0.9.1", default-features = false }
 sp-core                                    = { git = "https://github.com/paritytech/substrate.git", version = "3.0.0", branch = "polkadot-v0.9.1", default-features = false }
 sp-inherents                               = { git = "https://github.com/paritytech/substrate.git", version = "3.0.0", branch = "polkadot-v0.9.1", default-features = false }
 sp-io                                      = { git = "https://github.com/paritytech/substrate.git", version = "3.0.0", branch = "polkadot-v0.9.1", default-features = false }
@@ -99,6 +102,7 @@ std                = [
   "sp-block-builder/std",
   "sp-transaction-pool/std",
   "sp-inherents/std",
+  "sp-consensus-aura/std",
   "frame-support/std",
   "frame-executive/std",
   "frame-system/std",
@@ -117,16 +121,18 @@ std                = [
   "cumulus-primitives-utility/std",
   "cumulus-pallet-xcmp-queue/std",
   "cumulus-pallet-dmp-queue/std",
+  "cumulus-pallet-aura-ext/std",
+  "cumulus-pallet-xcm/std",
   "xcm/std",
   "xcm-builder/std",
   "xcm-executor/std",
-  "cumulus-pallet-xcm/std",
   "primitives/std",
   "pallet-loans/std",
   "pallet-staking/std",
   "pallet-liquidate/std",
   "pallet-prices/std",
   "pallet-multisig/std",
+  "pallet-aura/std",
   "orml-oracle/std",
   "orml-oracle-rpc-runtime-api/std",
   "orml-currencies/std",
