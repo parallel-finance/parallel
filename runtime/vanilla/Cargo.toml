@@ -26,9 +26,9 @@ serde       = { version = "1", features = ["derive"], optional = true }
 pallet-liquidate          = { path = "../../pallets/liquidate", default-features = false }
 pallet-loans              = { path = "../../pallets/loans", default-features = false }
 pallet-loans-benchmarking = { path = "../../pallets/loans/benchmarking", default-features = false, optional = true }
-pallet-ocw-oracle         = { path = "../../pallets/ocw-oracle", default-features = false }
-pallet-prices             = { path = "../../pallets/prices", default-features = false }
-pallet-staking            = { path = "../../pallets/staking", default-features = false }
+# pallet-ocw-oracle         = { path = "../../pallets/ocw-oracle", default-features = false }
+pallet-prices  = { path = "../../pallets/prices", default-features = false }
+pallet-staking = { path = "../../pallets/staking", default-features = false }
 
 # Substrate dependencies
 frame-benchmarking                         = { git = "https://github.com/paritytech/substrate.git", version = "3.0.0", branch = "polkadot-v0.9.1", default-features = false, optional = true }
@@ -113,7 +113,6 @@ std                = [
   "orml-utilities/std",
   "pallet-loans/std",
   "pallet-staking/std",
-  "pallet-ocw-oracle/std",
   "pallet-liquidate/std",
   "pallet-prices/std",
-]
+] # "pallet-ocw-oracle/std",
