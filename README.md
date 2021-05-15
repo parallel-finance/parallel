@@ -65,7 +65,7 @@ Substrate Parachain Template:
 
 ```
 # this command assumes the chain spec is in a directory named polkadot that is a sibling of the working directory
-./target/release/parallel -d local-test --collator --alice --ws-port 9915 --parachain-id 200 -- --chain ../polkadot/rococo_local.json \
+./target/release/parallel -d local-test --collator -laura=debug --force-authoring --alice --ws-port 9915 --parachain-id 200 -- --chain ../polkadot/rococo_local.json \
         --bootnodes /ip4/127.0.0.1/tcp/50555/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp
 ```
 
