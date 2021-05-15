@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use cumulus_primitives_core::ParaId;
-use parallel_runtime::{ParallelOracleConfig, AuraConfig};
+use parallel_runtime::{AuraConfig, ParallelOracleConfig};
 use primitives::*;
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::ChainType;
@@ -39,10 +39,10 @@ pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Pu
 
 /// Generate an Aura authority key
 pub fn get_authority_keys_from_seed(seed: &str) -> (AccountId, AuraId) {
-	(
-		get_account_id_from_seed::<sr25519::Public>(seed),
-		get_from_seed::<AuraId>(seed),
-	)
+    (
+        get_account_id_from_seed::<sr25519::Public>(seed),
+        get_from_seed::<AuraId>(seed),
+    )
 }
 
 /// The extensions for the [`ChainSpec`].
