@@ -16,7 +16,7 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::collapsible_if)]
 
-use crate::rate::InterestRateModel;
+pub use crate::rate::InterestRateModel;
 use crate::util::*;
 use frame_support::{pallet_prelude::*, transactional, PalletId};
 use frame_system::pallet_prelude::*;
@@ -565,7 +565,7 @@ pub mod module {
         }
 
         /// Update the interest rate model for a given asset.
-        #[pallet::weight(T::WeightInfo::add_reserves())]
+        #[pallet::weight(T::WeightInfo::set_rate_model())]
         #[transactional]
         pub fn set_rate_model(
             origin: OriginFor<T>,

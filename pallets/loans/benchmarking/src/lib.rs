@@ -10,7 +10,7 @@ use frame_system::RawOrigin as SystemOrigin;
 use orml_oracle::Instance1;
 use orml_oracle::{Config as ORMLOracleConfig, Pallet as ORMLOracle};
 use orml_traits::MultiCurrency;
-use pallet_loans::{Config as LoansConfig, Pallet as Loans};
+use pallet_loans::{Config as LoansConfig, InterestRateModel, Pallet as Loans};
 use primitives::{CurrencyId, Rate, Ratio};
 use sp_runtime::traits::One;
 use sp_runtime::traits::StaticLookup;
@@ -273,6 +273,32 @@ benchmarks! {
         assert_eq!(
             Loans::<T>::total_reserves(DOT),
             total_reserves - amount1,
+        );
+    }
+
+    set_rate_model {
+        let caller: T::AccountId = whitelisted_caller();
+    }: {
+         let _ = Loans::<T>::set_rate_model(
+            SystemOrigin::Root.into(),
+            DOT,
+            InterestRateModel {
+                base_rate: Rate::saturating_from_rational(5, 100).into(),
+                kink_rate: Rate::saturating_from_rational(15, 100).into(),
+                full_rate: Rate::saturating_from_rational(35, 100).into(),
+                kink_utilization: Ratio::from_percent(80).into(),
+            }
+         );
+    }
+    verify {
+        assert_eq!(
+            Loans::<T>::currency_interest_model(DOT),
+            InterestRateModel {
+                base_rate: Rate::saturating_from_rational(5, 100).into(),
+                kink_rate: Rate::saturating_from_rational(15, 100).into(),
+                full_rate: Rate::saturating_from_rational(35, 100).into(),
+                kink_utilization: Ratio::from_percent(80).into(),
+            }
         );
     }
 }

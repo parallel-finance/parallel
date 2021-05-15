@@ -206,6 +206,7 @@ impl pallet_loans::Config for Test {
     type Currency = Currencies;
     type PalletId = LoansPalletId;
     type PriceFeeder = MOCK_PRICE_FEEDER;
+    type ReserveOrigin = EnsureRoot<AccountId>;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
 }
