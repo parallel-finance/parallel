@@ -26,7 +26,6 @@ pub use sc_executor::NativeExecutor;
 use sc_service::{Configuration, PartialComponents, Role, TFullClient, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker, TelemetryWorkerHandle};
 
-
 use sp_runtime::traits::BlakeTwo256;
 use sp_trie::PrefixedMemoryDB;
 

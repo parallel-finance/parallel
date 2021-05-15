@@ -22,7 +22,6 @@ use sc_telemetry::{Telemetry, TelemetryWorker};
 use sp_consensus::SlotData;
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 
-
 use std::sync::Arc;
 use std::time::Duration;
 use vanilla_runtime::{self, opaque::Block, RuntimeApi};
