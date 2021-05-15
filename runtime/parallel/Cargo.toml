@@ -40,7 +40,6 @@ pallet-loans-benchmarking                  = { path = "../../pallets/loans/bench
 pallet-multisig                            = { git = "https://github.com/paritytech/substrate.git", version = "3.0.0", branch = "polkadot-v0.9.1", default-features = false }
 pallet-ocw-oracle                          = { path = "../../pallets/ocw-oracle", default-features = false }
 pallet-prices                              = { path = "../../pallets/prices", default-features = false }
-pallet-randomness-collective-flip          = { git = "https://github.com/paritytech/substrate.git", version = "3.0.0", branch = "polkadot-v0.9.1", default-features = false }
 pallet-staking                             = { path = "../../pallets/staking", default-features = false }
 pallet-sudo                                = { git = "https://github.com/paritytech/substrate.git", version = "3.0.0", branch = "polkadot-v0.9.1", default-features = false }
 pallet-timestamp                           = { git = "https://github.com/paritytech/substrate.git", version = "3.0.0", branch = "polkadot-v0.9.1", default-features = false }
@@ -107,7 +106,6 @@ std                = [
   "frame-system-rpc-runtime-api/std",
   "pallet-balances/std",
   "pallet-xcm/std",
-  "pallet-randomness-collective-flip/std",
   "pallet-timestamp/std",
   "pallet-sudo/std",
   "pallet-transaction-payment/std",
