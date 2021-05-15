@@ -57,6 +57,7 @@ pub trait WeightInfo {
     fn liquidate_borrow() -> Weight;
     fn add_reserves() -> Weight;
     fn reduce_reserves() -> Weight;
+    fn set_rate_model() -> Weight;
 }
 
 /// Weights for pallet_loans using the Substrate node and recommended hardware.
@@ -117,6 +118,9 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().reads(3 as Weight))
             .saturating_add(T::DbWeight::get().writes(3 as Weight))
     }
+    fn set_rate_model() -> Weight {
+        (8_000_000 as Weight).saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
 }
 
 // For backwards compatibility and tests
@@ -175,5 +179,8 @@ impl WeightInfo for () {
         (49_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(3 as Weight))
             .saturating_add(RocksDbWeight::get().writes(3 as Weight))
+    }
+    fn set_rate_model() -> Weight {
+        (8_000_000 as Weight).saturating_add(RocksDbWeight::get().writes(1 as Weight))
     }
 }

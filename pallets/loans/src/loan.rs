@@ -22,9 +22,6 @@ use sp_std::prelude::*;
 use sp_std::result;
 
 impl<T: Config> Pallet<T> {
-    /// Sender supplies assets into the market and receives cTokens in exchange
-    ///
-    /// Ensured atomic.
     #[transactional]
     pub fn mint_internal(
         who: &T::AccountId,
@@ -60,9 +57,6 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    /// Sender redeems cTokens in exchange for the underlying asset
-    ///
-    /// Ensured atomic.
     #[transactional]
     pub fn redeem_internal(
         who: &T::AccountId,
@@ -203,9 +197,6 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    /// Sender borrows assets from the protocol to their own address
-    ///
-    /// Ensured atomic.
     #[transactional]
     pub fn borrow_internal(
         borrower: &T::AccountId,
@@ -240,9 +231,6 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    /// Sender repays their own borrow
-    ///
-    /// Ensured atomic.
     #[transactional]
     pub fn repay_borrow_internal(
         borrower: &T::AccountId,

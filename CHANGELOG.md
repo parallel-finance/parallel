@@ -1,11 +1,13 @@
 # CHANGE LOG
 
-
 ## 2021.05.14
-- Benchmark the dispatchables in loans pallet (#114)
+
+-   Benchmark the dispatchables in loans pallet (#114)
+-   Add `APR` struct and refactor rate model (#115)
 
 ## 2021.05.12
-- Fix oracle price benchmarking issue (#100)
+
+-   Fix oracle price benchmarking issue (#100)
 
 ## 2021.5.13
 
@@ -22,7 +24,8 @@
 -   Modify types `Price` from `u128` to `FixedU128` (#89)
 
 ## 2021.05.09
-- Remove unnecessary dependencies to fix benchmarking (#94)
+
+-   Remove unnecessary dependencies to fix benchmarking (#94)
 
 ## 2021.05.07
 
@@ -47,8 +50,8 @@
 ## 2021.04.29
 
 -   Add parallel-dev bin to speed up compilation (#80)
-- Add parallel-dev bin to speed up compilation (#80)
-- Add Benchmarking Infrastructure and Implemented Benchmarking for mint and borrow of pallet-loans (#62)
+-   Add parallel-dev bin to speed up compilation (#80)
+-   Add Benchmarking Infrastructure and Implemented Benchmarking for mint and borrow of pallet-loans (#62)
 
 ## 2021.04.28
 
