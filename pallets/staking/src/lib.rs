@@ -250,7 +250,7 @@ pub mod pallet {
         }
 
         /// Record the staking rewards, no real transfer.
-        /// TODO restrict the times an account can report in one day and max rewards.
+        /// TODO : restrict the times an account can report in one day and max rewards.
         ///
         /// May only be called from `T::WithdrawOrigin`.
         ///
@@ -318,7 +318,7 @@ pub mod pallet {
                 *b = b.checked_sub(amount).ok_or(Error::<T>::Underflow)?;
                 Ok(())
             })?;
-            // TODO should it update after applied onbond operation?
+            // TODO : should it update after applied onbond operation?
             TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b.checked_sub(asset_amount).ok_or(Error::<T>::Underflow)?;
                 Ok(())

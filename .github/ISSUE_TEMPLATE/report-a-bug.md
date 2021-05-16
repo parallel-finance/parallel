@@ -1,9 +1,9 @@
 ---
 name: Report a Bug
-about: Report a problem with this template.
-title: ""
+about: Report a problem.
+title: ''
 labels: bug
-assignees: ""
+assignees: ''
 ---
 
 **Description**
@@ -32,9 +32,9 @@ actually happened?_
 _Describe the environment in which you encountered this bug. Use the list below as a starting point
 and add additional information if you think it's relevant._
 
-- Operating system:
-- Template version/tag:
-- Rust version (run `rustup show`):
+-   Operating system:
+-   Template version/tag:
+-   Rust version (run `rustup show`):
 
 **Logs, Errors or Screenshots**
 

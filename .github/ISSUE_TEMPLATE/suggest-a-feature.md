@@ -1,9 +1,9 @@
 ---
 name: Suggest a Feature
-about: Suggest a new feature or an improvement to an existing feature for this template.
-title: ""
+about: Suggest a new feature or an improvement to an existing feature.
+title: ''
 labels: enhancement
-assignees: ""
+assignees: ''
 ---
 
 **Motivation**

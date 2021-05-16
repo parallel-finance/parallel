@@ -19,10 +19,9 @@ use sc_finality_grandpa::SharedVoterState;
 use sc_keystore::LocalKeystore;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
+use sp_consensus::SlotData;
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
-use sp_core::Pair;
-use sp_inherents::InherentDataProviders;
-use sp_keystore::SyncCryptoStore;
+
 use std::sync::Arc;
 use std::time::Duration;
 use vanilla_runtime::{self, opaque::Block, RuntimeApi};
@@ -71,7 +70,6 @@ pub fn new_partial(
             "Remote Keystores are not supported."
         )));
     }
-    let inherent_data_providers = InherentDataProviders::new();
 
     let telemetry = config
         .telemetry_endpoints
@@ -92,30 +90,30 @@ pub fn new_partial(
     let client = Arc::new(client);
 
     // PAI-NOTE: For inserting key be used in ocw
-    let secret_uri = "//Alice";
-    let key_pair = vanilla_runtime::pallet_ocw_oracle::crypto::Pair::from_string(secret_uri, None)
-        .expect("Generates key pair");
-    let keystore = keystore_container.sync_keystore();
-    SyncCryptoStore::insert_unknown(
-        &*keystore,
-        vanilla_runtime::pallet_ocw_oracle::KEY_TYPE,
-        secret_uri,
-        key_pair.public().as_ref(),
-    )
-    .expect("Insert key should succeed");
+    // let secret_uri = "//Alice";
+    // let key_pair = vanilla_runtime::pallet_ocw_oracle::crypto::Pair::from_string(secret_uri, None)
+    //     .expect("Generates key pair");
+    // let keystore = keystore_container.sync_keystore();
+    // SyncCryptoStore::insert_unknown(
+    //     &*keystore,
+    //     vanilla_runtime::pallet_ocw_oracle::KEY_TYPE,
+    //     secret_uri,
+    //     key_pair.public().as_ref(),
+    // )
+    // .expect("Insert key should succeed");
 
-    //TODO please refer to https://github.com/parallel-finance/parallel/issues/47
-    let secret_uri = "//Pool";
-    let key_pair = vanilla_runtime::pallet_liquidate::crypto::Pair::from_string(secret_uri, None)
-        .expect("Generates key pair");
-    let keystore = keystore_container.sync_keystore();
-    SyncCryptoStore::insert_unknown(
-        &*keystore,
-        vanilla_runtime::pallet_liquidate::KEY_TYPE,
-        secret_uri,
-        key_pair.public().as_ref(),
-    )
-    .expect("Insert key should succeed");
+    // TODO : please refer to https://github.com/parallel-finance/parallel/issues/47
+    // let secret_uri = "//Pool";
+    // let key_pair = vanilla_runtime::pallet_liquidate::crypto::Pair::from_string(secret_uri, None)
+    //     .expect("Generates key pair");
+    // let keystore = keystore_container.sync_keystore();
+    // SyncCryptoStore::insert_unknown(
+    //     &*keystore,
+    //     vanilla_runtime::pallet_liquidate::KEY_TYPE,
+    //     secret_uri,
+    //     key_pair.public().as_ref(),
+    // )
+    // .expect("Insert key should succeed");
 
     let telemetry = telemetry.map(|(worker, telemetry)| {
         task_manager.spawn_handle().spawn("telemetry", worker.run());
@@ -143,18 +141,28 @@ pub fn new_partial(
         grandpa_block_import.clone(),
         client.clone(),
     );
+    let slot_duration = sc_consensus_aura::slot_duration(&*client)?.slot_duration();
 
     let import_queue =
-        sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _>(ImportQueueParams {
+        sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _, _>(ImportQueueParams {
             block_import: aura_block_import.clone(),
             justification_import: Some(Box::new(grandpa_block_import.clone())),
             client: client.clone(),
-            inherent_data_providers: inherent_data_providers.clone(),
+            create_inherent_data_providers: move |_, ()| async move {
+                let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
+
+                let slot =
+                    sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_duration(
+                        *timestamp,
+                        slot_duration,
+                    );
+
+                Ok((timestamp, slot))
+            },
             spawner: &task_manager.spawn_essential_handle(),
             can_author_with: sp_consensus::CanAuthorWithNativeVersion::new(
                 client.executor().clone(),
             ),
-            slot_duration: sc_consensus_aura::slot_duration(&*client)?,
             registry: config.prometheus_registry(),
             check_for_equivocation: Default::default(),
             telemetry: telemetry.as_ref().map(|x| x.handle()),
@@ -168,7 +176,6 @@ pub fn new_partial(
         keystore_container,
         select_chain,
         transaction_pool,
-        inherent_data_providers,
         other: (aura_block_import, grandpa_link, telemetry),
     })
 }
@@ -190,7 +197,6 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
         mut keystore_container,
         select_chain,
         transaction_pool,
-        inherent_data_providers,
         other: (block_import, grandpa_link, mut telemetry),
     } = new_partial(&config)?;
 
@@ -281,14 +287,26 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
         let can_author_with =
             sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
 
-        let aura = sc_consensus_aura::start_aura::<AuraPair, _, _, _, _, _, _, _, _, _>(
+        let slot_duration = sc_consensus_aura::slot_duration(&*client)?.slot_duration();
+
+        let aura = sc_consensus_aura::start_aura::<AuraPair, _, _, _, _, _, _, _, _, _, _>(
             StartAuraParams {
                 slot_duration: sc_consensus_aura::slot_duration(&*client)?,
                 client: client.clone(),
                 select_chain,
                 block_import,
                 proposer_factory,
-                inherent_data_providers: inherent_data_providers.clone(),
+                create_inherent_data_providers: move |_, ()| async move {
+                    let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
+
+                    let slot =
+						sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_duration(
+							*timestamp,
+							slot_duration,
+						);
+
+                    Ok((timestamp, slot))
+                },
                 force_authoring,
                 backoff_authoring_blocks,
                 keystore: keystore_container.sync_keystore(),
@@ -404,16 +422,26 @@ pub fn new_light(mut config: Configuration) -> Result<TaskManager, ServiceError>
         grandpa_block_import.clone(),
         client.clone(),
     );
+    let slot_duration = sc_consensus_aura::slot_duration(&*client)?.slot_duration();
 
     let import_queue =
-        sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _>(ImportQueueParams {
+        sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _, _>(ImportQueueParams {
             block_import: aura_block_import.clone(),
             justification_import: Some(Box::new(grandpa_block_import.clone())),
             client: client.clone(),
-            inherent_data_providers: InherentDataProviders::new(),
+            create_inherent_data_providers: move |_, ()| async move {
+                let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
+
+                let slot =
+                    sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_duration(
+                        *timestamp,
+                        slot_duration,
+                    );
+
+                Ok((timestamp, slot))
+            },
             spawner: &task_manager.spawn_essential_handle(),
             can_author_with: sp_consensus::NeverCanAuthor,
-            slot_duration: sc_consensus_aura::slot_duration(&*client)?,
             registry: config.prometheus_registry(),
             check_for_equivocation: Default::default(),
             telemetry: telemetry.as_ref().map(|x| x.handle()),

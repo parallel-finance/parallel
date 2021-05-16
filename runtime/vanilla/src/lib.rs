@@ -30,7 +30,7 @@ use sp_version::NativeVersion;
 pub use pallet_liquidate;
 pub use pallet_loans;
 pub use pallet_multisig;
-pub use pallet_ocw_oracle;
+// pub use pallet_ocw_oracle;
 pub use pallet_staking;
 
 use sp_version::RuntimeVersion;
@@ -94,6 +94,8 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 /// Change this to adjust the block time.
 pub const MILLISECS_PER_BLOCK: u64 = 6000;
 
+// NOTE: Currently it is not possible to change the slot duration after the chain has started.
+//       Attempting to do so will brick block production.
 pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
 
 // Time is measured by number of blocks.
@@ -305,16 +307,16 @@ impl pallet_staking::Config for Runtime {
     type MaxWithdrawAmount = MaxWithdrawAmount;
 }
 
-parameter_types! {
-    pub const PricePrecision: u8 = 18;
-}
+// parameter_types! {
+//     pub const PricePrecision: u8 = 18;
+// }
 
-impl pallet_ocw_oracle::Config for Runtime {
-    type AuthorityId = pallet_ocw_oracle::crypto::TestAuthId;
-    type Call = Call;
-    type Event = Event;
-    type PricePrecision = PricePrecision;
-}
+// impl pallet_ocw_oracle::Config for Runtime {
+//     type AuthorityId = pallet_ocw_oracle::crypto::TestAuthId;
+//     type Call = Call;
+//     type Event = Event;
+//     type PricePrecision = PricePrecision;
+// }
 
 impl pallet_liquidate::Config for Runtime {
     type AuthorityId = pallet_liquidate::crypto::TestAuthId;
@@ -453,7 +455,6 @@ construct_runtime!(
         UncheckedExtrinsic = UncheckedExtrinsic
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-        RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Call, Storage},
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
         Aura: pallet_aura::{Pallet, Config<T>},
         Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
@@ -467,7 +468,7 @@ construct_runtime!(
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
         Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},
-        OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
+        // OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
         VanillaOracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Config<T>, Event<T>},
         Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
@@ -549,10 +550,6 @@ impl_runtime_apis! {
             data: sp_inherents::InherentData,
         ) -> sp_inherents::CheckInherentsResult {
             data.check_extrinsics(&block)
-        }
-
-        fn random_seed() -> <Block as BlockT>::Hash {
-            RandomnessCollectiveFlip::random_seed().0
         }
     }
 

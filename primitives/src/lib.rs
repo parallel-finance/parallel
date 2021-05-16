@@ -135,3 +135,5 @@ pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 pub enum DataProviderId {
     Aggregated = 0,
 }
+
+pub type AuraId = sp_consensus_aura::sr25519::AuthorityId;

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use cumulus_primitives_core::ParaId;
-use parallel_runtime::ParallelOracleConfig;
+use parallel_runtime::{AuraConfig, ParallelOracleConfig};
 use primitives::*;
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::ChainType;
@@ -35,6 +35,14 @@ pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Pu
     TPublic::Pair::from_string(&format!("//{}", seed), None)
         .expect("static values are valid; qed")
         .public()
+}
+
+/// Generate an Aura authority key
+pub fn get_authority_keys_from_seed(seed: &str) -> (AccountId, AuraId) {
+    (
+        get_account_id_from_seed::<sr25519::Public>(seed),
+        get_from_seed::<AuraId>(seed),
+    )
 }
 
 /// The extensions for the [`ChainSpec`].
@@ -78,6 +86,11 @@ pub fn development_config(id: ParaId) -> ParallelChainSpec {
                 "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
                     .parse()
                     .unwrap(),
+                vec![
+                    get_authority_keys_from_seed("Alice"),
+                    get_authority_keys_from_seed("Bob"),
+                    get_authority_keys_from_seed("Charlie"),
+                ],
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Alice"),
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -123,6 +136,11 @@ pub fn local_testnet_config(id: ParaId) -> ParallelChainSpec {
                     .parse()
                     .unwrap(),
                 vec![
+                    get_authority_keys_from_seed("Alice"),
+                    get_authority_keys_from_seed("Bob"),
+                    get_authority_keys_from_seed("Charlie"),
+                ],
+                vec![
                     get_account_id_from_seed::<sr25519::Public>("Alice"),
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
                     get_account_id_from_seed::<sr25519::Public>("Charlie"),
@@ -156,6 +174,7 @@ pub fn local_testnet_config(id: ParaId) -> ParallelChainSpec {
 
 fn testnet_genesis(
     root_key: AccountId,
+    initial_authorities: Vec<(AccountId, AuraId)>,
     endowed_accounts: Vec<AccountId>,
     id: ParaId,
 ) -> parallel_runtime::GenesisConfig {
@@ -173,6 +192,11 @@ fn testnet_genesis(
                 .map(|k| (k, 1 << 60))
                 .collect(),
         },
+        // TODO : collateral selection
+        pallet_aura: AuraConfig {
+            authorities: initial_authorities.iter().map(|x| (x.1.clone())).collect(),
+        },
+        cumulus_pallet_aura_ext: Default::default(),
         pallet_sudo: parallel_runtime::SudoConfig { key: root_key },
         parachain_info: parallel_runtime::ParachainInfoConfig { parachain_id: id },
         orml_oracle_Instance1: ParallelOracleConfig {
@@ -217,7 +241,7 @@ fn testnet_genesis(
                 (CurrencyId::USDT, Ratio::from_percent(90)),
                 (CurrencyId::xDOT, Ratio::from_percent(90)),
             ],
-            //TODO : please refer to https://github.com/parallel-finance/parallel/issues/46
+            // TODO : please refer to https://github.com/parallel-finance/parallel/issues/46
             liquidation_threshold: vec![
                 (CurrencyId::DOT, Ratio::from_percent(90)),
                 (CurrencyId::KSM, Ratio::from_percent(90)),
