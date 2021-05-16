@@ -38,11 +38,11 @@ check-debug:
 	RUSTFLAGS="-Z macro-backtrace" SKIP_WASM_BUILD= cargo +nightly check
 
 .PHONY: test
-test: purge test-dev test-parallel
+test: test-dev test-parallel
 
 .PHONY: test-dev
 test-dev:
-	SKIP_WASM_BUILD= cargo test --manifest-path node/parallel-dev/Cargo.toml -p pallet-loans -p pallet-liquidate -p pallet-staking
+	SKIP_WASM_BUILD= cargo test --manifest-path node/parallel-dev/Cargo.toml -p pallet-loans -p pallet-liquidate -p pallet-staking -p pallet-prices
 
 .PHONY: test-parallel
 test-parallel:
