@@ -154,11 +154,6 @@ pub mod pallet {
         Vec<UnstakeInfo<T::BlockNumber>>,
     >;
 
-    // /// The queue stroes all the processed unstaking requests and wait for redeeming.
-    // #[pallet::storage]
-    // #[pallet::getter(fn unstaking_redeeming_queue)]
-    // pub type UnstakingRedeemingQueue<T: Config> = StorageValue<_, Vec<UnstakingInfo>, ValueQuery>;
-
     #[pallet::genesis_config]
     pub struct GenesisConfig {
         pub exchange_rate: Rate,
@@ -367,11 +362,10 @@ pub mod pallet {
             amount: Balance,
         ) -> DispatchResultWithPostInfo {
             T::WithdrawOrigin::ensure_origin(origin)?;
-            ensure!(AccountPendingUnstake::<T>::contains_key(&owner), Error::<T>::NoPendingUnstake);
             
             AccountPendingUnstake::<T>::try_mutate_exists(&owner, |info| -> DispatchResult {
                 let new_info = info.map_or(
-                    Err(Error::<T>::InvalidUnstakeAmount),
+                    Err(Error::<T>::NoPendingUnstake),
                     |mut v| {
                         if amount > v.amount {
                             return Err(Error::<T>::InvalidUnstakeAmount)
@@ -426,10 +420,6 @@ pub mod pallet {
             amount: Balance,
         ) -> DispatchResultWithPostInfo {
             T::WithdrawOrigin::ensure_origin(origin)?;
-            ensure!(
-                AccountProcessingUnstake::<T>::contains_key(&agent, &owner),
-                Error::<T>::NoProcessingUnstake
-            );
 
             // TODO use BoundedVec to restrict the size.
             AccountProcessingUnstake::<T>::try_mutate_exists(&agent, &owner, |info| -> DispatchResult {
