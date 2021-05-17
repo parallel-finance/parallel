@@ -21,6 +21,7 @@
 use frame_support::{pallet_prelude::*, transactional, PalletId};
 use frame_system::pallet_prelude::*;
 use sp_runtime::{traits::AccountIdConversion, FixedPointNumber, RuntimeDebug};
+use sp_std::prelude::*;
 
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 
@@ -91,6 +92,10 @@ pub mod pallet {
         Underflow,
         /// The withdraw assets exceed the threshold
         ExcessWithdraw,
+        /// The account don't have any pending unstake
+        NoPendingUnstake,
+        /// The agent process invalid amount of unstake asset
+        InvalidUnstakeAmount,
     }
 
     #[pallet::event]
@@ -127,10 +132,17 @@ pub mod pallet {
     pub type AccountPendingUnstake<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, UnstakeInfo<T::BlockNumber>>;
 
-    // /// The queue stores all the unstaking requests in processing.
-    // #[pallet::storage]
-    // #[pallet::getter(fn unstaking_processing_queue)]
-    // pub type UnstakingProcessingQueue<T: Config> = StorageValue<_, Vec<UnstakingInfo>, ValueQuery>;
+    /// The queue stores all the unstaking requests in process.
+    #[pallet::storage]
+    #[pallet::getter(fn unstaking_processing_queue)]
+    pub type AccountProcessingUnstake<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        Blake2_128Concat,
+        T::AccountId,
+        Vec<UnstakeInfo<T::BlockNumber>>,
+    >;
 
     // /// The queue stroes all the processed unstaking requests and wait for redeeming.
     // #[pallet::storage]
@@ -254,6 +266,7 @@ pub mod pallet {
         ///
         /// May only be called from `T::WithdrawOrigin`.
         ///
+        /// - `agent`: the multisig account of relay chain.
         /// - `amount`: the rewarded assets.
         #[pallet::weight(10_000)]
         #[transactional]
@@ -327,6 +340,64 @@ pub mod pallet {
             Self::deposit_event(Event::Unstaked(sender, amount));
             Ok(().into())
         }
+
+        /// Relay chain accounts process the pending unstake by unbonding assets.
+        ///
+        /// May only be called from `T::WithdrawOrigin`.
+        ///
+        /// - `agent`: the multisig account of relay chain.
+        /// - `owner`: the account which performs `unstake` operation
+        /// - `amount`: the assets can be unbond for the owner's unstaking request.
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn process_pending_unstake(
+            origin: OriginFor<T>,
+            agent: T::AccountId,
+            owner: T::AccountId,
+            amount: Balance,
+        ) -> DispatchResultWithPostInfo {
+            T::WithdrawOrigin::ensure_origin(origin)?;
+            ensure!(AccountPendingUnstake::<T>::contains_key(&owner), Error::<T>::NoPendingUnstake);
+            
+            AccountPendingUnstake::<T>::try_mutate_exists(&owner, |info| -> DispatchResult {
+                let new_info = info.map_or(
+                    Err(Error::<T>::InvalidUnstakeAmount),
+                    |mut v| {
+                        if amount > v.amount {
+                            return Err(Error::<T>::InvalidUnstakeAmount)
+                        }
+                        v.amount = v
+                            .amount
+                            .checked_sub(amount)
+                            .ok_or(Error::<T>::Underflow)?;
+                        Ok(v)
+                    },
+                )?;
+                *info = match new_info.amount {
+                    0 => None,
+                    _ => Some(new_info),
+                };
+                Ok(())
+            })?;
+
+            let processing_unstake = AccountProcessingUnstake::<T>::get(&agent, &owner);
+            let block_number = frame_system::Pallet::<T>::block_number();
+            let new_unstake = UnstakeInfo {
+                amount,
+                block_number,
+            };
+            let new_processing_unstake = match processing_unstake {
+                None => vec![new_unstake],
+                Some(mut unstake_list) => {
+                    unstake_list.push(new_unstake);
+                    unstake_list
+                },
+            };
+            AccountProcessingUnstake::<T>::insert(&agent, &owner, new_processing_unstake);
+
+            Ok(().into())
+        }
+
     }
 }
 
