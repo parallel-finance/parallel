@@ -33,16 +33,16 @@ orml-oracle                     = { git = 'https://github.com/open-web3-stack/op
 orml-oracle-rpc-runtime-api     = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-tokens                     = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-traits                     = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-unknown-tokens             = { git = 'https://github.com/GopherJ/open-runtime-module-library.git', default-features = false }
-orml-utilities                  = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-xcm-support                = { git = 'https://github.com/GopherJ/open-runtime-module-library.git', default-features = false }
-orml-xtokens                    = { git = 'https://github.com/GopherJ/open-runtime-module-library.git', default-features = false }
-pallet-aura                     = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
-pallet-balances                 = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
-pallet-liquidate                = { path = '../../pallets/liquidate', default-features = false }
-pallet-loans                    = { path = '../../pallets/loans', default-features = false }
-pallet-loans-benchmarking       = { path = '../../pallets/loans/benchmarking', default-features = false, optional = true }
-pallet-multisig                 = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
+# orml-unknown-tokens             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-utilities = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+# orml-xcm-support                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+# orml-xtokens                    = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+pallet-aura               = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
+pallet-balances           = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
+pallet-liquidate          = { path = '../../pallets/liquidate', default-features = false }
+pallet-loans              = { path = '../../pallets/loans', default-features = false }
+pallet-loans-benchmarking = { path = '../../pallets/loans/benchmarking', default-features = false, optional = true }
+pallet-multisig           = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 # pallet-ocw-oracle                          = { path = '../../pallets/ocw-oracle', default-features = false }
 pallet-prices                              = { path = '../../pallets/prices', default-features = false }
 pallet-staking                             = { path = '../../pallets/staking', default-features = false }
@@ -142,7 +142,7 @@ std                = [
   'orml-tokens/std',
   'orml-traits/std',
   'orml-utilities/std',
-  'orml-unknown-tokens/std',
-  'orml-xtokens/std',
-  'orml-xcm-support/std',
+  # 'orml-unknown-tokens/std',
+  # 'orml-xtokens/std',
+  # 'orml-xcm-support/std',
 ] # 'pallet-ocw-oracle/std',
