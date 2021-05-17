@@ -101,6 +101,33 @@ fn record_rewards_from_invalid_origin_should_fail() {
 }
 
 #[test]
+fn record_slash_should_work() {
+    new_test_ext().execute_with(|| {
+        let _ = LiquidStaking::stake(Origin::signed(1), 10);
+        assert_ok!(LiquidStaking::record_slash(Origin::signed(6), 2, 5));
+
+        // Check storage is correct
+        assert_eq!(
+            ExchangeRate::<Test>::get(),
+            Rate::saturating_from_rational(1, 100)
+        );
+        assert_eq!(TotalStakingAsset::<Test>::get(), 5);
+        assert_eq!(TotalVoucher::<Test>::get(), 500);
+    })
+}
+
+#[test]
+fn record_slash_from_invalid_origin_should_fail() {
+    new_test_ext().execute_with(|| {
+        let _ = LiquidStaking::stake(Origin::signed(1), 10);
+        assert_noop!(
+            LiquidStaking::record_slash(Origin::signed(1), 2, 5),
+            BadOrigin,
+        );
+    })
+}
+
+#[test]
 fn unstake_should_work() {
     new_test_ext().execute_with(|| {
         let _ = LiquidStaking::stake(Origin::signed(1), 10);

@@ -111,8 +111,10 @@ pub mod pallet {
         Unstaked(T::AccountId, Balance),
         /// The withdraw request is successful
         WithdrawSuccess(T::AccountId, Balance),
-        /// The rewards are recorded successfully
+        /// The rewards are recorded
         RewardsRecorded(T::AccountId, Balance),
+        /// The slash is recorded
+        SlashRecorded(T::AccountId, Balance),
         /// The unstake request is processed
         UnstakeProcessed(T::AccountId, T::AccountId, Balance),
         /// The unstake reuqest is under processing by multisig account
@@ -294,6 +296,37 @@ pub mod pallet {
             ExchangeRate::<T>::put(exchange_rate);
 
             Self::deposit_event(Event::RewardsRecorded(agent, amount));
+            Ok(().into())
+        }
+
+        /// Record the staking slash event, no real transfer happened.
+        /// TODO restrict the times an account can report in one day and max slash.
+        ///
+        /// May only be called from `T::WithdrawOrigin`.
+        ///
+        /// - `agent`: the multisig account of relay chain.
+        /// - `amount`: the rewarded assets.
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn record_slash(
+            origin: OriginFor<T>,
+            agent: T::AccountId,
+            amount: Balance,
+        ) -> DispatchResultWithPostInfo {
+            T::WithdrawOrigin::ensure_origin(origin)?;
+
+            TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_sub(amount).ok_or(Error::<T>::Underflow)?;
+                Ok(())
+            })?;
+            let exchange_rate = Rate::checked_from_rational(
+                TotalStakingAsset::<T>::get(),
+                TotalVoucher::<T>::get(),
+            )
+            .ok_or(Error::<T>::InvalidExchangeRate)?;
+            ExchangeRate::<T>::put(exchange_rate);
+
+            Self::deposit_event(Event::SlashRecorded(agent, amount));
             Ok(().into())
         }
 
