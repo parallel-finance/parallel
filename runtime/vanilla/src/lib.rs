@@ -29,8 +29,10 @@ use sp_version::NativeVersion;
 // re-exports
 pub use pallet_liquidate;
 pub use pallet_loans;
-pub use pallet_ocw_oracle;
+pub use pallet_multisig;
+// pub use pallet_ocw_oracle;
 pub use pallet_staking;
+
 use sp_version::RuntimeVersion;
 
 // A few exports that help ease life for downstream crates.
@@ -92,6 +94,8 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 /// Change this to adjust the block time.
 pub const MILLISECS_PER_BLOCK: u64 = 6000;
 
+// NOTE: Currently it is not possible to change the slot duration after the chain has started.
+//       Attempting to do so will brick block production.
 pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
 
 // Time is measured by number of blocks.
@@ -282,6 +286,15 @@ impl pallet_loans::Config for Runtime {
     type PalletId = LoansPalletId;
     type PriceFeeder = Prices;
     type ReserveOrigin = EnsureRoot<AccountId>;
+    type UpdateOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = pallet_loans::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+    pub const StakingPalletId: PalletId = PalletId(*b"par/stak");
+    pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
+    pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
+    pub const MaxWithdrawAmount: Balance = 1000;
 }
 
 parameter_types! {
@@ -301,16 +314,16 @@ impl pallet_staking::Config for Runtime {
     type MaxWithdrawAmount = MaxWithdrawAmount;
 }
 
-parameter_types! {
-    pub const PricePrecision: u8 = 3;
-}
+// parameter_types! {
+//     pub const PricePrecision: u8 = 18;
+// }
 
-impl pallet_ocw_oracle::Config for Runtime {
-    type AuthorityId = pallet_ocw_oracle::crypto::TestAuthId;
-    type Call = Call;
-    type Event = Event;
-    type PricePrecision = PricePrecision;
-}
+// impl pallet_ocw_oracle::Config for Runtime {
+//     type AuthorityId = pallet_ocw_oracle::crypto::TestAuthId;
+//     type Call = Call;
+//     type Event = Event;
+//     type PricePrecision = PricePrecision;
+// }
 
 impl pallet_liquidate::Config for Runtime {
     type AuthorityId = pallet_liquidate::crypto::TestAuthId;
@@ -393,12 +406,12 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
         orml_oracle::DefaultCombineData<Runtime, MinimumCount, ExpiresIn, ParallelDataProvider>;
     type Time = Timestamp;
     type OracleKey = CurrencyId;
-    type OracleValue = OraclePrice;
+    type OracleValue = Price;
     type RootOperatorAccountId = ZeroAccountId;
     type WeightInfo = ();
 }
 
-pub type TimeStampedPrice = orml_oracle::TimestampedValue<OraclePrice, Moment>;
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 pub struct AggregatedDataProvider;
 impl DataProvider<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
     fn get(key: &CurrencyId) -> Option<TimeStampedPrice> {
@@ -412,6 +425,35 @@ impl pallet_prices::Config for Runtime {
     type FeederOrigin = EnsureRoot<AccountId>;
 }
 
+pub mod currency {
+    type Balance = u128;
+    pub const MILLICENTS: Balance = 1_000_000_000;
+    pub const CENTS: Balance = 1_000 * MILLICENTS; // assume this is worth about a cent.
+    pub const DOLLARS: Balance = 100 * CENTS;
+
+    pub const fn deposit(items: u32, bytes: u32) -> Balance {
+        items as Balance * 15 * CENTS + (bytes as Balance) * 6 * CENTS
+    }
+}
+
+parameter_types! {
+    // One storage item; key size is 32; value is size 4+4+16+32 bytes = 56 bytes.
+    pub const DepositBase: Balance = currency::deposit(1, 88);
+    // Additional storage item size of 32 bytes.
+    pub const DepositFactor: Balance = currency::deposit(0, 32);
+    pub const MaxSignatories: u16 = 100;
+}
+
+impl pallet_multisig::Config for Runtime {
+    type Event = Event;
+    type Call = Call;
+    type Currency = Balances;
+    type DepositBase = DepositBase;
+    type DepositFactor = DepositFactor;
+    type MaxSignatories = MaxSignatories;
+    type WeightInfo = ();
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -420,7 +462,6 @@ construct_runtime!(
         UncheckedExtrinsic = UncheckedExtrinsic
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-        RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Call, Storage},
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
         Aura: pallet_aura::{Pallet, Config<T>},
         Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
@@ -428,12 +469,13 @@ construct_runtime!(
         TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
         Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
         Utility: pallet_utility::{Pallet, Call, Event},
+        Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>},
 
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
         Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},
-        OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
+        // OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
         VanillaOracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Config<T>, Event<T>},
         Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
@@ -515,10 +557,6 @@ impl_runtime_apis! {
             data: sp_inherents::InherentData,
         ) -> sp_inherents::CheckInherentsResult {
             data.check_extrinsics(&block)
-        }
-
-        fn random_seed() -> <Block as BlockT>::Hash {
-            RandomnessCollectiveFlip::random_seed().0
         }
     }
 
@@ -607,6 +645,25 @@ impl_runtime_apis! {
         }
     }
 
+    impl orml_oracle_rpc_runtime_api::OracleApi<
+        Block,
+        DataProviderId,
+        CurrencyId,
+        TimeStampedPrice,
+    > for Runtime {
+        fn get_value(provider_id: DataProviderId, key: CurrencyId) -> Option<TimeStampedPrice> {
+            match provider_id {
+                DataProviderId::Aggregated => VanillaOracle::get_no_op(&key)
+            }
+        }
+
+        fn get_all_values(provider_id: DataProviderId) -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
+            match provider_id {
+                DataProviderId::Aggregated => VanillaOracle::get_all_values()
+            }
+        }
+    }
+
     #[cfg(feature = "runtime-benchmarks")]
     impl frame_benchmarking::Benchmark<Block> for Runtime {
         fn dispatch_benchmark(
@@ -614,7 +671,10 @@ impl_runtime_apis! {
         ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
             use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark, TrackedStorageKey};
 
+            use pallet_loans_benchmarking::Pallet as LoansBench;
             use frame_system_benchmarking::Pallet as SystemBench;
+
+            impl pallet_loans_benchmarking::Config for Runtime {}
             impl frame_system_benchmarking::Config for Runtime {}
 
             let whitelist: Vec<TrackedStorageKey> = vec![
@@ -641,7 +701,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, frame_system, SystemBench::<Runtime>);
             add_benchmark!(params, batches, pallet_balances, Balances);
             add_benchmark!(params, batches, pallet_timestamp, Timestamp);
-            add_benchmark!(params, batches, pallet_loans, Loans);
+            add_benchmark!(params, batches, pallet_loans, LoansBench::<Runtime>);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)

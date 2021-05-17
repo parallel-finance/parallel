@@ -1,34 +1,34 @@
 [package]
-name = "pallet-prices"
 authors = ['Parallel Team']
 edition = '2018'
+name    = 'pallet-prices'
 version = '1.0.0'
 
 [dependencies]
-serde         = { version = "1.0.124", optional = true }
-codec         = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
-sp-runtime    = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
-frame-system  = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
-sp-std        = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
-orml-traits   = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+codec         = { package = 'parity-scale-codec', version = '2.0.0', default-features = false }
+frame-support = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.1', default-features = false }
+frame-system  = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.1', default-features = false }
 orml-oracle   = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-primitives    = { package = "parallel-primitives", path = "../../primitives", default-features = false }
+orml-traits   = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+primitives    = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
+serde         = { version = '1.0.124', optional = true }
+sp-runtime    = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.1', default-features = false }
+sp-std        = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.1', default-features = false }
 
 [dev-dependencies]
-sp-core     = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
-sp-io       = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
+sp-core = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.1', default-features = false }
+sp-io   = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.1', default-features = false }
 
 [features]
-default = ["std"]
-std = [
-	"serde",
-	"codec/std",
-	"sp-runtime/std",
-	"frame-support/std",
-	"frame-system/std",
-	"sp-std/std",
-	"orml-traits/std",
-	"orml-oracle/std",
-	"primitives/std",
+default = ['std']
+std     = [
+  'serde',
+  'codec/std',
+  'sp-runtime/std',
+  'frame-support/std',
+  'frame-system/std',
+  'sp-std/std',
+  'orml-traits/std',
+  'orml-oracle/std',
+  'primitives/std',
 ]
