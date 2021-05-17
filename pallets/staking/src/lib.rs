@@ -96,6 +96,10 @@ pub mod pallet {
         NoPendingUnstake,
         /// The agent process invalid amount of unstake asset
         InvalidUnstakeAmount,
+        /// There is no unstake in progress
+        NoProcessingUnstake,
+        /// There is no unstake in progress with input amount
+        InvalidProcessedUnstakeAmount,
     }
 
     #[pallet::event]
@@ -109,6 +113,10 @@ pub mod pallet {
         WithdrawSuccess(T::AccountId, Balance),
         /// The rewards are recorded successfully
         RewardsRecorded(T::AccountId, Balance),
+        /// The unstake request is processed
+        UnstakeProcessed(T::AccountId, T::AccountId, Balance),
+        /// The unstake reuqest is under processing by multisig account
+        UnstakeProcessing(T::AccountId, T::AccountId, Balance),
     }
 
     /// The exchange rate converts staking native token to voucher.
@@ -127,12 +135,14 @@ pub mod pallet {
     pub type TotalVoucher<T: Config> = StorageValue<_, Balance, ValueQuery>;
 
     /// The queue stores all the pending unstaking requests.
+    /// Key is the owner of assets.
     #[pallet::storage]
     #[pallet::getter(fn account_pending_unstake)]
     pub type AccountPendingUnstake<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, UnstakeInfo<T::BlockNumber>>;
 
     /// The queue stores all the unstaking requests in process.
+    /// Key1 is the mutilsig agent in relaychain, key2 is the owner of assets.
     #[pallet::storage]
     #[pallet::getter(fn unstaking_processing_queue)]
     pub type AccountProcessingUnstake<T: Config> = StorageDoubleMap<
@@ -395,6 +405,61 @@ pub mod pallet {
             };
             AccountProcessingUnstake::<T>::insert(&agent, &owner, new_processing_unstake);
 
+            Self::deposit_event(Event::UnstakeProcessing(agent, owner, amount));
+            Ok(().into())
+        }
+
+        /// The unbond waiting period is finished, relay chain accounts transfer the free assets
+        /// to Parallel, and finish the owner's unstake operation by transfer assets back to owner.
+        ///
+        /// May only be called from `T::WithdrawOrigin`.
+        ///
+        /// - `agent`: the multisig account of relay chain.
+        /// - `owner`: the account which performs `unstake` operation
+        /// - `amount`: the assets already unbond for the owner's unstaking request.
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn finish_processed_unstake(
+            origin: OriginFor<T>,
+            agent: T::AccountId,
+            owner: T::AccountId,
+            amount: Balance,
+        ) -> DispatchResultWithPostInfo {
+            T::WithdrawOrigin::ensure_origin(origin)?;
+            ensure!(
+                AccountProcessingUnstake::<T>::contains_key(&agent, &owner),
+                Error::<T>::NoProcessingUnstake
+            );
+
+            // TODO use BoundedVec to restrict the size.
+            AccountProcessingUnstake::<T>::try_mutate_exists(&agent, &owner, |info| -> DispatchResult {
+                let new_info = info.as_mut().map_or(
+                    Err(Error::<T>::NoProcessingUnstake),
+                    |v| {
+                        match v.iter().position(|i| i.amount == amount) {
+                            None => return Err(Error::<T>::InvalidProcessedUnstakeAmount),
+                            Some(p) => {
+                                v.remove(p);
+                                Ok(v)
+                            }
+                        }
+                    }
+                )?;
+                *info = match new_info.len() {
+                    0 => None,
+                    _ => Some(new_info.to_vec()),
+                };
+                Ok(())
+            })?;
+
+            T::Currency::transfer(
+                T::StakingCurrency::get(),
+                &Self::account_id(),
+                &owner,
+                amount,
+            )?;
+
+            Self::deposit_event(Event::UnstakeProcessed(agent, owner, amount));
             Ok(().into())
         }
 
