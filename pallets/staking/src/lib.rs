@@ -395,21 +395,15 @@ pub mod pallet {
             amount: Balance,
         ) -> DispatchResultWithPostInfo {
             T::WithdrawOrigin::ensure_origin(origin)?;
-            
+
             AccountPendingUnstake::<T>::try_mutate_exists(&owner, |info| -> DispatchResult {
-                let new_info = info.map_or(
-                    Err(Error::<T>::NoPendingUnstake),
-                    |mut v| {
-                        if amount > v.amount {
-                            return Err(Error::<T>::InvalidUnstakeAmount)
-                        }
-                        v.amount = v
-                            .amount
-                            .checked_sub(amount)
-                            .ok_or(Error::<T>::Underflow)?;
-                        Ok(v)
-                    },
-                )?;
+                let new_info = info.map_or(Err(Error::<T>::NoPendingUnstake), |mut v| {
+                    if amount > v.amount {
+                        return Err(Error::<T>::InvalidUnstakeAmount);
+                    }
+                    v.amount = v.amount.checked_sub(amount).ok_or(Error::<T>::Underflow)?;
+                    Ok(v)
+                })?;
                 *info = match new_info.amount {
                     0 => None,
                     _ => Some(new_info),
@@ -428,7 +422,7 @@ pub mod pallet {
                 Some(mut unstake_list) => {
                     unstake_list.push(new_unstake);
                     unstake_list
-                },
+                }
             };
             AccountProcessingUnstake::<T>::insert(&agent, &owner, new_processing_unstake);
 
@@ -455,25 +449,28 @@ pub mod pallet {
             T::WithdrawOrigin::ensure_origin(origin)?;
 
             // TODO use BoundedVec to restrict the size.
-            AccountProcessingUnstake::<T>::try_mutate_exists(&agent, &owner, |info| -> DispatchResult {
-                let new_info = info.as_mut().map_or(
-                    Err(Error::<T>::NoProcessingUnstake),
-                    |v| {
-                        match v.iter().position(|i| i.amount == amount) {
-                            None => return Err(Error::<T>::InvalidProcessedUnstakeAmount),
-                            Some(p) => {
-                                v.remove(p);
-                                Ok(v)
-                            }
-                        }
-                    }
-                )?;
-                *info = match new_info.len() {
-                    0 => None,
-                    _ => Some(new_info.to_vec()),
-                };
-                Ok(())
-            })?;
+            AccountProcessingUnstake::<T>::try_mutate_exists(
+                &agent,
+                &owner,
+                |info| -> DispatchResult {
+                    let new_info =
+                        info.as_mut()
+                            .map_or(Err(Error::<T>::NoProcessingUnstake), |v| {
+                                match v.iter().position(|i| i.amount == amount) {
+                                    None => return Err(Error::<T>::InvalidProcessedUnstakeAmount),
+                                    Some(p) => {
+                                        v.remove(p);
+                                        Ok(v)
+                                    }
+                                }
+                            })?;
+                    *info = match new_info.len() {
+                        0 => None,
+                        _ => Some(new_info.to_vec()),
+                    };
+                    Ok(())
+                },
+            )?;
 
             T::Currency::transfer(
                 T::StakingCurrency::get(),
@@ -485,7 +482,6 @@ pub mod pallet {
             Self::deposit_event(Event::UnstakeProcessed(agent, owner, amount));
             Ok(().into())
         }
-
     }
 }
 
