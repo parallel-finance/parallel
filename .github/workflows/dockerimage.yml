@@ -6,7 +6,6 @@ on:
 
 jobs:
   dockerimage:
-    if: github.repository == 'parallel-finance/parallel'
     runs-on: ubuntu-latest
     steps:
       - name: Set up QEMU
