@@ -145,9 +145,9 @@ fn testnet_genesis(
     initial_authorities: Vec<(AuraId, GrandpaId)>,
     endowed_accounts: Vec<AccountId>,
 ) -> vanilla_runtime::GenesisConfig {
-	let num_endowed_accounts = endowed_accounts.len();
-	const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
-	const STASH: Balance = ENDOWMENT / 1000;
+    let num_endowed_accounts = endowed_accounts.len();
+    const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
+    const STASH: Balance = ENDOWMENT / 1000;
     vanilla_runtime::GenesisConfig {
         frame_system: vanilla_runtime::SystemConfig {
             code: wasm_binary.to_vec(),
