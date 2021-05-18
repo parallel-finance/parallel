@@ -5,7 +5,7 @@ on:
     branches: [master]
 
 jobs:
-  image:
+  dockerimage:
     if: github.repository == 'parallel-finance/parallel'
     runs-on: ubuntu-latest
     steps:
@@ -22,6 +22,7 @@ jobs:
         id: docker_build
         uses: docker/build-push-action@v2
         with:
+          file: Dockerfile.release
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/parallel:latest
       - name: Image digest
