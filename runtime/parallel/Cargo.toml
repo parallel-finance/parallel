@@ -39,9 +39,13 @@ orml-xcm-support                = { git = 'https://github.com/GopherJ/open-runti
 orml-xtokens                    = { git = 'https://github.com/GopherJ/open-runtime-module-library.git', default-features = false }
 pallet-aura                     = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 pallet-balances                 = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
+pallet-collective               = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
+pallet-democracy                = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
+pallet-elections-phragmen       = { git = 'https://github.com/paritytech/substrate.git', version = '4.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 pallet-liquidate                = { path = '../../pallets/liquidate', default-features = false }
 pallet-loans                    = { path = '../../pallets/loans', default-features = false }
 pallet-loans-benchmarking       = { path = '../../pallets/loans/benchmarking', default-features = false, optional = true }
+pallet-membership               = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 pallet-multisig                 = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 # pallet-ocw-oracle                          = { path = '../../pallets/ocw-oracle', default-features = false }
 pallet-prices                              = { path = '../../pallets/prices', default-features = false }
@@ -50,6 +54,7 @@ pallet-sudo                                = { git = 'https://github.com/parityt
 pallet-timestamp                           = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 pallet-transaction-payment                 = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
+pallet-treasury                            = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 pallet-xcm                                 = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.1', default-features = false }
 parachain-info                             = { git = 'https://github.com/paritytech/cumulus.git', version = '0.1.0', branch = 'polkadot-v0.9.1', default-features = false }
 polkadot-parachain                         = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.1', default-features = false }
@@ -145,4 +150,9 @@ std                = [
   'orml-unknown-tokens/std',
   'orml-xtokens/std',
   'orml-xcm-support/std',
+  'pallet-treasury/std',
+  'pallet-collective/std',
+  'pallet-elections-phragmen/std',
+  'pallet-membership/std',
+  'pallet-democracy/std',
 ] # 'pallet-ocw-oracle/std',
