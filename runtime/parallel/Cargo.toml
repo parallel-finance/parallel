@@ -73,6 +73,7 @@ sp-session                                 = { git = 'https://github.com/parityt
 sp-std                                     = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 sp-transaction-pool                        = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 sp-version                                 = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
+static_assertions                          = "1.1.0"
 xcm                                        = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.1', default-features = false }
 xcm-builder                                = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.1', default-features = false }
 xcm-executor                               = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.1', default-features = false }

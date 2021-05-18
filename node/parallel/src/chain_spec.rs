@@ -13,8 +13,10 @@
 // limitations under the License.
 
 use cumulus_primitives_core::ParaId;
+use parallel_runtime::currency::DOLLARS;
 use parallel_runtime::{
-    AuraConfig, CouncilConfig, DemocracyConfig, ParallelOracleConfig, TechnicalCommitteeConfig,
+    AuraConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, ParallelOracleConfig,
+    TechnicalCommitteeConfig,
 };
 use primitives::*;
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
@@ -181,6 +183,8 @@ fn testnet_genesis(
     id: ParaId,
 ) -> parallel_runtime::GenesisConfig {
     let num_endowed_accounts = endowed_accounts.len();
+    const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
+    const STASH: Balance = ENDOWMENT / 1000;
     parallel_runtime::GenesisConfig {
         frame_system: parallel_runtime::SystemConfig {
             code: parallel_runtime::WASM_BINARY
@@ -268,6 +272,14 @@ fn testnet_genesis(
             exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
         },
         pallet_democracy: DemocracyConfig::default(),
+        pallet_elections_phragmen: ElectionsConfig {
+            members: endowed_accounts
+                .iter()
+                .take((num_endowed_accounts + 1) / 2)
+                .cloned()
+                .map(|member| (member, STASH))
+                .collect(),
+        },
         pallet_collective_Instance1: CouncilConfig::default(),
         pallet_collective_Instance2: TechnicalCommitteeConfig {
             members: endowed_accounts
@@ -277,6 +289,7 @@ fn testnet_genesis(
                 .collect(),
             phantom: Default::default(),
         },
+        pallet_membership_Instance1: Default::default(),
         pallet_treasury: Default::default(),
     }
 }
