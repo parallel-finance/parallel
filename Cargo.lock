@@ -5692,7 +5692,6 @@ dependencies = [
  "orml-utilities",
  "pallet-aura",
  "pallet-balances",
- "pallet-bounties",
  "pallet-collective",
  "pallet-democracy",
  "pallet-elections-phragmen",
