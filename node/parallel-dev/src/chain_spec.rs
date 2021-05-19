@@ -22,7 +22,11 @@ use sp_runtime::{
     traits::{IdentifyAccount, One, Verify},
     FixedPointNumber,
 };
-use vanilla_runtime::{AuraConfig, GrandpaConfig, VanillaOracleConfig, WASM_BINARY};
+use vanilla_runtime::currency::DOLLARS;
+use vanilla_runtime::{
+    AuraConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig,
+    TechnicalCommitteeConfig, VanillaOracleConfig, WASM_BINARY,
+};
 
 pub type VanillaChainSpec = sc_service::GenericChainSpec<vanilla_runtime::GenesisConfig>;
 
@@ -141,6 +145,9 @@ fn testnet_genesis(
     initial_authorities: Vec<(AuraId, GrandpaId)>,
     endowed_accounts: Vec<AccountId>,
 ) -> vanilla_runtime::GenesisConfig {
+    let num_endowed_accounts = endowed_accounts.len();
+    const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
+    const STASH: Balance = ENDOWMENT / 1000;
     vanilla_runtime::GenesisConfig {
         frame_system: vanilla_runtime::SystemConfig {
             code: wasm_binary.to_vec(),
@@ -228,5 +235,25 @@ fn testnet_genesis(
         pallet_staking: vanilla_runtime::StakingConfig {
             exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
         },
+        pallet_democracy: DemocracyConfig::default(),
+        pallet_elections_phragmen: ElectionsConfig {
+            members: endowed_accounts
+                .iter()
+                .take((num_endowed_accounts + 1) / 2)
+                .cloned()
+                .map(|member| (member, STASH))
+                .collect(),
+        },
+        pallet_collective_Instance1: CouncilConfig::default(),
+        pallet_collective_Instance2: TechnicalCommitteeConfig {
+            members: endowed_accounts
+                .iter()
+                .take((num_endowed_accounts + 1) / 2)
+                .cloned()
+                .collect(),
+            phantom: Default::default(),
+        },
+        pallet_membership_Instance1: Default::default(),
+        pallet_treasury: Default::default(),
     }
 }

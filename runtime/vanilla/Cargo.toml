@@ -18,9 +18,10 @@ git     = 'https://github.com/paritytech/substrate.git'
 version = '4.0.0'
 
 [dependencies]
-codec       = { package = 'parity-scale-codec', version = '2.0.0', default-features = false, features = ['derive'] }
-hex-literal = { version = '0.3.1', optional = true }
-serde       = { version = '1', features = ['derive'], optional = true }
+codec                     = { package = 'parity-scale-codec', version = '2.0.0', default-features = false, features = ['derive'] }
+hex-literal               = { version = '0.3.1', optional = true }
+serde                     = { version = '1', features = ['derive'], optional = true }
+static_assertions         = '1.1.0'
 
 # local dependencies
 pallet-liquidate          = { path = '../../pallets/liquidate', default-features = false }
@@ -45,12 +46,18 @@ orml-traits                                = { git = 'https://github.com/open-we
 orml-utilities                             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 pallet-aura                                = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 pallet-balances                            = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
+pallet-collective                          = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
+pallet-democracy                           = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
+pallet-elections-phragmen                  = { git = 'https://github.com/paritytech/substrate.git', version = '4.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 pallet-grandpa                             = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
+pallet-membership                          = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 pallet-multisig                            = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
+pallet-scheduler                           = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 pallet-sudo                                = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 pallet-timestamp                           = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 pallet-transaction-payment                 = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
+pallet-treasury                            = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 pallet-utility                             = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 primitives                                 = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 sp-api                                     = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
@@ -115,4 +122,10 @@ std                = [
   'pallet-staking/std',
   'pallet-liquidate/std',
   'pallet-prices/std',
+  'pallet-treasury/std',
+  'pallet-collective/std',
+  'pallet-elections-phragmen/std',
+  'pallet-membership/std',
+  'pallet-democracy/std',
+  'pallet-scheduler/std',
 ] # 'pallet-ocw-oracle/std',
