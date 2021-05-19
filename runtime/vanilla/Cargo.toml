@@ -46,7 +46,6 @@ orml-traits                                = { git = 'https://github.com/open-we
 orml-utilities                             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 pallet-aura                                = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 pallet-balances                            = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
-pallet-bounties                            = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 pallet-collective                          = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 pallet-democracy                           = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 pallet-elections-phragmen                  = { git = 'https://github.com/paritytech/substrate.git', version = '4.0.0', branch = 'polkadot-v0.9.1', default-features = false }
@@ -129,5 +128,4 @@ std                = [
   'pallet-membership/std',
   'pallet-democracy/std',
   'pallet-scheduler/std',
-  'pallet-bounties/std',
 ] # 'pallet-ocw-oracle/std',
