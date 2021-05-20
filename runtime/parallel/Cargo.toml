@@ -99,6 +99,7 @@ runtime-benchmarks = [
   'pallet-loans-benchmarking',
   'pallet-xcm/runtime-benchmarks',
   'xcm-builder/runtime-benchmarks',
+  'pallet-collective/runtime-benchmarks',
 ]
 std                = [
   'codec/std',
