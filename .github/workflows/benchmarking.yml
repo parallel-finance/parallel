@@ -8,9 +8,13 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
     if: github.repository == 'parallel-finance/parallel'
     name: Auto Build CI
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        rust: [stable]
 
     steps:
       - name: Checkout repo
@@ -18,14 +22,20 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
         
-      - name: Install toolchain
+      - name: Install Rust toolchain ${{ matrix.rust }}
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          components: rustfmt, clippy
+          override: true
+
+      - name: Install wasm32-unknown-unknown for ${{ matrix.rust }}
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
           target: wasm32-unknown-unknown
           override: true
-          default: true
-          components: rustfmt, clippy
        
       - name: Check Benchmarking
         run: |
