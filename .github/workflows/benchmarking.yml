@@ -1,0 +1,43 @@
+name: Benchmarking
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: github.repository == 'parallel-finance/parallel'
+    name: Auto Build CI
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+        
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          target: wasm32-unknown-unknown
+          override: true
+          default: true
+          components: rustfmt, clippy
+       
+      - name: Check Benchmarking
+        run: |
+          cargo build --release --features runtime-benchmarks
+          
+      - name: Update Weights
+        run: |
+          ./target/release/parallel-dev benchmark --chain=dev --execution=wasm --wasm-execution=compiled --pallet=pallet_loans --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/loans/src/weights.rs
+          
+      - name: Commit changes
+        uses: EndBug/add-and-commit@v7
+        with:
+          default_author: github_actor
+          message: 'Updated weights'
+          add: '*.rs'
