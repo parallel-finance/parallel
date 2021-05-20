@@ -190,7 +190,27 @@ pub fn run() -> Result<()> {
         }
         Some(Subcommand::PurgeChain(cmd)) => {
             let runner = cli.create_runner(cmd)?;
-            runner.sync_run(|config| cmd.run(config.database))
+            runner.sync_run(|config| {
+                let extension = chain_spec::Extensions::try_get(&*config.chain_spec);
+                let relay_chain_id = extension.map(|e| e.relay_chain.clone());
+
+                let polkadot_cli = RelayChainCli::new(
+                    config.base_path.as_ref().map(|x| x.path().join("polkadot")),
+                    relay_chain_id,
+                    [RelayChainCli::executable_name().to_string()]
+                        .iter()
+                        .chain(cli.relaychain_args.iter()),
+                );
+
+                let polkadot_config = SubstrateCli::create_configuration(
+                    &polkadot_cli,
+                    &polkadot_cli,
+                    config.task_executor.clone(),
+                )
+                .map_err(|err| format!("Relay chain argument error: {}", err))?;
+
+                cmd.run(config, polkadot_config)
+            })
         }
         Some(Subcommand::Revert(cmd)) => {
             let runner = cli.create_runner(cmd)?;
@@ -261,10 +281,9 @@ pub fn run() -> Result<()> {
             Ok(())
         }
         None => {
-            let runner = cli.create_runner(&*cli.run)?;
+            let runner = cli.create_runner(&cli.run.normalize())?;
 
             runner.run_node_until_exit(|config| async move {
-                // TODO
                 let key = sp_core::Pair::generate().0;
 
                 let extension = chain_spec::Extensions::try_get(&*config.chain_spec);
@@ -294,14 +313,20 @@ pub fn run() -> Result<()> {
                     config.task_executor.clone(),
                 )
                 .map_err(|err| format!("Relay chain argument error: {}", err))?;
-                let collator = cli.run.base.validator || cli.collator;
 
                 info!("Parachain id: {:?}", id);
                 info!("Parachain Account: {}", parachain_account);
                 info!("Parachain genesis state: {}", genesis_state);
-                info!("Is collating: {}", if collator { "yes" } else { "no" });
+                info!(
+                    "Is collating: {}",
+                    if config.role.is_authority() {
+                        "yes"
+                    } else {
+                        "no"
+                    }
+                );
 
-                crate::service::start_node(config, key, polkadot_config, id, collator)
+                crate::service::start_node(config, key, polkadot_config, id)
                     .await
                     .map(|r| r.0)
                     .map_err(Into::into)

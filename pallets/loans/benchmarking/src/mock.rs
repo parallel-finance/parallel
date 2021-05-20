@@ -12,30 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod loans {
-    pub use super::super::*;
-}
+//! Mock file for loans benchmarking.
+#![cfg(test)]
 
-use loans::*;
+use super::*;
 
+use frame_support::traits::Time;
 use frame_support::{construct_runtime, parameter_types, PalletId};
 use frame_system::EnsureRoot;
 use lazy_static::lazy_static;
+use orml_oracle::DefaultCombineData;
 use orml_traits::parameter_type_with_key;
-use primitives::{
-    Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate, Ratio, TOKEN_DECIMAL,
-};
+use primitives::{Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder};
 use sp_core::H256;
-use sp_runtime::traits::One;
+use sp_runtime::FixedPointNumber;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 use sp_std::vec::Vec;
+use std::cell::RefCell;
 use std::{collections::HashMap, sync::Mutex};
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
-type Block = frame_system::mocking::MockBlock<Runtime>;
+pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
+pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<u32, Call, u64, ()>;
 
 construct_runtime!(
-    pub enum Runtime where
+    pub enum Test where
         Block = Block,
         NodeBlock = Block,
         UncheckedExtrinsic = UncheckedExtrinsic,
@@ -44,7 +44,8 @@ construct_runtime!(
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
-        Loans: loans::{Pallet, Storage, Call, Config, Event<T>},
+        Loans: pallet_loans::{Pallet, Storage, Call, Config, Event<T>},
+        Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Config<T>, Event<T>},
     }
 );
 
@@ -53,7 +54,7 @@ parameter_types! {
     pub const SS58Prefix: u8 = 42;
 }
 
-impl frame_system::Config for Runtime {
+impl frame_system::Config for Test {
     type BaseCallFilter = ();
     type BlockWeights = ();
     type BlockLength = ();
@@ -82,9 +83,6 @@ impl frame_system::Config for Runtime {
 pub type AccountId = u128;
 pub type BlockNumber = u64;
 
-pub const ALICE: AccountId = 1;
-pub const BOB: AccountId = 2;
-
 pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const KSM: CurrencyId = CurrencyId::KSM;
 pub const USDT: CurrencyId = CurrencyId::USDT;
@@ -97,7 +95,7 @@ parameter_type_with_key! {
     };
 }
 
-impl orml_tokens::Config for Runtime {
+impl orml_tokens::Config for Test {
     type Event = Event;
     type Balance = Balance;
     type Amount = Amount;
@@ -111,11 +109,11 @@ parameter_types! {
     pub const GetNativeCurrencyId: CurrencyId = NATIVE;
 }
 
-impl orml_currencies::Config for Runtime {
+impl orml_currencies::Config for Test {
     type Event = Event;
     type MultiCurrency = Tokens;
     type NativeCurrency =
-        orml_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+        orml_currencies::BasicCurrencyAdapter<Test, Balances, Amount, BlockNumber>;
     type GetNativeCurrencyId = GetNativeCurrencyId;
     type WeightInfo = ();
 }
@@ -125,14 +123,14 @@ parameter_types! {
     pub const MaxLocks: u32 = 50;
 }
 
-impl pallet_balances::Config for Runtime {
+impl pallet_balances::Config for Test {
     type MaxLocks = MaxLocks;
     type Balance = Balance;
     type Event = Event;
     type DustRemoval = ();
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
-    type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = ();
 }
 
 lazy_static! {
@@ -167,7 +165,43 @@ impl PriceFeeder for MOCK_PRICE_FEEDER {
     }
 }
 
-impl Config for Runtime {
+thread_local! {
+    static TIME: RefCell<u32> = RefCell::new(0);
+}
+
+pub struct Timestamp;
+impl Time for Timestamp {
+    type Moment = u32;
+
+    fn now() -> Self::Moment {
+        TIME.with(|v| *v.borrow())
+    }
+}
+
+impl Timestamp {
+    pub fn set_timestamp(val: u32) {
+        TIME.with(|v| *v.borrow_mut() = val);
+    }
+}
+
+parameter_types! {
+    pub const MinimumCount: u32 = 3;
+    pub const ExpiresIn: u32 = 600;
+    pub const RootOperatorAccountId: AccountId = 4;
+}
+
+impl orml_oracle::Config<Instance1> for Test {
+    type Event = Event;
+    type OnNewData = ();
+    type CombineData = DefaultCombineData<Self, MinimumCount, ExpiresIn, Instance1>;
+    type Time = Timestamp;
+    type OracleKey = CurrencyId;
+    type OracleValue = FixedU128;
+    type RootOperatorAccountId = RootOperatorAccountId;
+    type WeightInfo = ();
+}
+
+impl pallet_loans::Config for Test {
     type Event = Event;
     type Currency = Currencies;
     type PalletId = LoansPalletId;
@@ -177,108 +211,15 @@ impl Config for Runtime {
     type WeightInfo = ();
 }
 
+impl crate::Config for Test {}
+
 parameter_types! {
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
 }
 
-pub struct ExtBuilder {
-    endowed_accounts: Vec<(AccountId, CurrencyId, Balance)>,
-}
-
-impl Default for ExtBuilder {
-    fn default() -> Self {
-        Self {
-            endowed_accounts: vec![
-                (ALICE, DOT, dollar(1000)),
-                (ALICE, KSM, dollar(1000)),
-                (ALICE, USDT, dollar(1000)),
-                (BOB, DOT, dollar(1000)),
-                (BOB, KSM, dollar(1000)),
-                (BOB, USDT, dollar(1000)),
-            ],
-        }
-    }
-}
-
-impl ExtBuilder {
-    pub fn build(self) -> sp_io::TestExternalities {
-        let mut t = frame_system::GenesisConfig::default()
-            .build_storage::<Runtime>()
-            .unwrap();
-
-        orml_tokens::GenesisConfig::<Runtime> {
-            endowed_accounts: self.endowed_accounts.clone(),
-        }
-        .assimilate_storage(&mut t)
+pub fn new_test_ext() -> sp_io::TestExternalities {
+    let t = frame_system::GenesisConfig::default()
+        .build_storage::<Test>()
         .unwrap();
-
-        loans::GenesisConfig {
-            currencies: vec![
-                CurrencyId::DOT,
-                CurrencyId::KSM,
-                CurrencyId::USDT,
-                CurrencyId::xDOT,
-            ],
-            borrow_index: Rate::one(),                             // 1
-            exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
-            base_rate: Rate::saturating_from_rational(2, 100),     // 2%
-            kink_rate: Rate::saturating_from_rational(10, 100),    // 10%
-            full_rate: Rate::saturating_from_rational(32, 100),    // 32%
-            kink_utilization: Ratio::from_percent(80),             // 80%
-            collateral_factor: vec![
-                (CurrencyId::DOT, Ratio::from_percent(50)),
-                (CurrencyId::KSM, Ratio::from_percent(50)),
-                (CurrencyId::USDT, Ratio::from_percent(50)),
-                (CurrencyId::xDOT, Ratio::from_percent(50)),
-            ],
-            liquidation_incentive: vec![
-                (CurrencyId::DOT, Ratio::from_percent(90)),
-                (CurrencyId::KSM, Ratio::from_percent(90)),
-                (CurrencyId::USDT, Ratio::from_percent(90)),
-                (CurrencyId::xDOT, Ratio::from_percent(90)),
-            ],
-            liquidation_threshold: vec![
-                (CurrencyId::DOT, Ratio::from_percent(80)),
-                (CurrencyId::KSM, Ratio::from_percent(80)),
-                (CurrencyId::USDT, Ratio::from_percent(90)),
-                (CurrencyId::xDOT, Ratio::from_percent(80)),
-            ],
-            close_factor: vec![
-                (CurrencyId::DOT, Ratio::from_percent(50)),
-                (CurrencyId::KSM, Ratio::from_percent(50)),
-                (CurrencyId::USDT, Ratio::from_percent(50)),
-                (CurrencyId::xDOT, Ratio::from_percent(50)),
-            ],
-            reserve_factor: vec![
-                (CurrencyId::DOT, Ratio::from_percent(15)),
-                (CurrencyId::KSM, Ratio::from_percent(15)),
-                (CurrencyId::USDT, Ratio::from_percent(15)),
-                (CurrencyId::xDOT, Ratio::from_percent(15)),
-            ],
-        }
-        .assimilate_storage::<Runtime>(&mut t)
-        .unwrap();
-
-        MOCK_PRICE_FEEDER::reset();
-
-        // t.into()
-        let mut ext = sp_io::TestExternalities::new(t);
-        ext.execute_with(|| System::set_block_number(1));
-        ext
-    }
-}
-
-/// Progress to the given block, and then finalize the block.
-pub(crate) fn run_to_block(n: BlockNumber) {
-    Loans::on_finalize(System::block_number());
-    for b in (System::block_number() + 1)..=n {
-        System::set_block_number(b);
-        if b != n {
-            Loans::on_finalize(System::block_number());
-        }
-    }
-}
-
-pub fn dollar(d: u128) -> u128 {
-    d.saturating_mul(TOKEN_DECIMAL)
+    sp_io::TestExternalities::new(t)
 }

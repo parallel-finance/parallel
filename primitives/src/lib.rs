@@ -101,9 +101,13 @@ pub const TOKEN_DECIMAL: u128 = 1_000_000_000_000_000_000;
 
 pub const RATE_DECIMAL: u128 = 1_000_000_000_000_000_000;
 
+pub const CURRENCY_DECIMAL: u128 = 1_000_000_000_000;
+
 pub const BLOCK_PER_YEAR: u128 = 5256000;
 
-pub type Price = u128;
+pub const MIN_PRICE: FixedU128 = FixedU128::from_inner(u128::MIN);
+
+pub type Price = FixedU128;
 
 pub type Timestamp = u64;
 
@@ -118,3 +122,18 @@ pub type Rate = FixedU128;
 pub type Ratio = Permill;
 
 pub type Multiplier = FixedU128;
+
+pub trait EmergencyPriceFeeder<CurrencyId, Price> {
+    fn set_emergency_price(currency_id: CurrencyId, price: Price);
+    fn reset_emergency_price(currency_id: CurrencyId);
+}
+
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
+
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum DataProviderId {
+    Aggregated = 0,
+}
+
+pub type AuraId = sp_consensus_aura::sr25519::AuthorityId;

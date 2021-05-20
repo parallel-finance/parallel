@@ -7,6 +7,7 @@ on:
 
 jobs:
   release:
+    if: github.repository == 'parallel-finance/parallel'
     name: Auto Release
     runs-on: ${{ matrix.os }}
     strategy:

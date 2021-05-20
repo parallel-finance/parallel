@@ -1,7 +1,8 @@
-# <div style="display:flex;align-items:center;"><img src="https://user-images.githubusercontent.com/40745291/113244934-d143c400-926a-11eb-9f2b-dc8350e11a58.png" width="40px" style="border-radius:50%;margin-right:10px;"><span style="transform: translateY(5px);">Parallel Finance</span></div>
+![image](https://user-images.githubusercontent.com/40745291/116624086-ea44a100-a90c-11eb-9393-3036a39321da.png)
 
 [![GitHub last commit](https://img.shields.io/github/last-commit/parallel-finance/parallel)](https://github.com/parallel-finance/parallel/commits/master)
 [![CI](https://github.com/parallel-finance/parallel/workflows/CI/badge.svg)](https://github.com/parallel-finance/parallel/actions)
+[![Codecov](https://codecov.io/gh/parallel-finance/parallel/branch/master/graph/badge.svg)](https://codecov.io/gh/parallel-finance/parallel)
 [![Discord chat][discord-badge]][discord-url]
 [![Dependency Status](https://deps.rs/repo/github/parallel-finance/parallel/status.svg)](https://deps.rs/repo/github/parallel-finance/parallel)
 
@@ -36,44 +37,36 @@ Once the development environment is set up, build the node template. This comman
 cargo build --release
 ```
 
-### Others available commands
+### Available commands
 
 ```
-build
-check
-purge
-restart
-run
-test
-bench
-lint
-fmt
-help
+make help
 ```
 
 ## Run
 
 ### Local Testnet
 
-Polkadot (rococo-v1 branch, better use commit hash: `f3e2cbf49f179104d20b9f1b54830710ddac8be3`):
+Polkadot (release-v0.9.1 branch)
 
 ```
-cargo build --release --features real-overseer
+cargo build --release
 
 ./target/release/polkadot build-spec --chain rococo-local --raw --disable-default-bootnode > rococo_local.json
 
-./target/release/polkadot --chain ./rococo_local.json -d cumulus_relay0 --validator --alice --port 50555
+./target/release/polkadot --chain ./rococo_local.json -d cumulus_relay0 --validator --alice --port 50555 --node-key 0000000000000000000000000000000000000000000000000000000000000001
+
 
 ./target/release/polkadot --chain ./rococo_local.json -d cumulus_relay1 --validator --bob --port 50556 \
-        --bootnodes /ip4/127.0.0.1/tcp/50555/p2p/<ALICE's peer id>
+        --bootnodes /ip4/127.0.0.1/tcp/50555/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp
 ```
 
 Substrate Parachain Template:
 
 ```
 # this command assumes the chain spec is in a directory named polkadot that is a sibling of the working directory
-./target/release/parallel -d local-test --collator --alice --ws-port 9915 --parachain-id 200 -- --chain ../polkadot/rococo_local.json \
-        --bootnodes /ip4/127.0.0.1/tcp/50555/p2p/<ALICE's peer id>
+./target/release/parallel -d local-test --collator -laura=debug --force-authoring --alice --ws-port 9915 --parachain-id 200 -- --chain ../polkadot/rococo_local.json \
+        --bootnodes /ip4/127.0.0.1/tcp/50555/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp
 ```
 
 ### Registering on Local Relay Chain

@@ -12,122 +12,185 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use primitives::{Multiplier, Rate, Ratio, BLOCK_PER_YEAR};
-use sp_runtime::traits::{CheckedAdd, CheckedDiv, Saturating};
+use primitives::{Rate, Ratio, BLOCK_PER_YEAR};
+use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedSub, Saturating};
 
 use crate::*;
+
+/// Error enum for interest rates
+#[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
+pub enum RatesError {
+    ModelRateOutOfBounds,
+    BaseAboveKink,
+    KinkAboveFull,
+    KinkUtilizationTooHigh,
+    Overflowed,
+}
+
+/// Annualized interest rate
+#[derive(Encode, Decode, Eq, PartialEq, PartialOrd, Copy, Clone, RuntimeDebug, Default)]
+pub struct APR(pub Rate);
+
+impl From<Rate> for APR {
+    fn from(x: Rate) -> Self {
+        APR(x)
+    }
+}
+
+impl APR {
+    pub const MAX: Rate = Rate::from_inner(350_000_000_000_000_000); // 35%
+
+    pub fn rate_per_block(&self) -> Option<Rate> {
+        self.0
+            .checked_div(&Rate::saturating_from_integer(BLOCK_PER_YEAR))
+    }
+}
 
 /// Parallel interest rate model
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
 pub struct InterestRateModel {
     /// The base interest rate which is the y-intercept when utilization rate is 0
-    pub base_rate_per_block: Rate,
+    pub base_rate: APR,
     /// The multiplier of utilization rate that gives the slope of the interest rate
-    pub multiplier_per_block: Multiplier,
-    /// The multiplierPerBlock after hitting a specified utilization point
-    pub jump_multiplier_per_block: Multiplier,
-    /// The utilization point at which the jump multiplier is applied
-    pub kink: Ratio,
+    pub kink_rate: APR,
+    /// The multiplier after hitting a specified utilization point
+    pub full_rate: APR,
+    /// The utilization point at which the full_rate is applied
+    pub kink_utilization: Ratio,
 }
 
 impl InterestRateModel {
-    /// Initialize the interest rate model
-    pub fn init_model(
-        base_rate_per_year: Rate,
-        multiplier_per_year: Multiplier,
-        jump_multiplier_per_year: Multiplier,
-        kink: Ratio,
-    ) -> Option<InterestRateModel> {
-        let base_rate_per_block =
-            base_rate_per_year.checked_div(&Rate::saturating_from_integer(BLOCK_PER_YEAR))?;
-        let multiplier_per_block =
-            multiplier_per_year.checked_div(&Rate::saturating_from_integer(BLOCK_PER_YEAR))?;
-        let jump_multiplier_per_block =
-            jump_multiplier_per_year.checked_div(&Rate::saturating_from_integer(BLOCK_PER_YEAR))?;
-
-        Some(Self {
-            base_rate_per_block,
-            multiplier_per_block,
-            jump_multiplier_per_block,
-            kink,
-        })
-    }
-
-    /// Calculates the current borrow interest rate per block
-    pub fn get_borrow_rate(&self, util: Ratio) -> Option<Rate> {
-        if util <= self.kink {
-            // borrowRate = multiplier * utilizationRatio + baseRate
-            self.multiplier_per_block
-                .saturating_mul(util.into())
-                .checked_add(&self.base_rate_per_block)
-        } else {
-            // borrowRate = (multiplier * kink + baseRate) + (jumpMultiplier * (utilizationRatio - kink))
-            let normal_rate = self
-                .multiplier_per_block
-                .saturating_mul(self.kink.into())
-                .checked_add(&self.base_rate_per_block)?;
-            let excess_util = util.saturating_sub(self.kink);
-
-            self.jump_multiplier_per_block
-                .saturating_mul(excess_util.into())
-                .checked_add(&normal_rate)
+    /// Create a new rate model
+    pub fn new_model(
+        base_rate: Rate,
+        kink_rate: Rate,
+        full_rate: Rate,
+        kink_utilization: Ratio,
+    ) -> InterestRateModel {
+        Self {
+            base_rate: base_rate.into(),
+            kink_rate: kink_rate.into(),
+            full_rate: full_rate.into(),
+            kink_utilization,
         }
     }
 
-    /// Calculates the current supply interest rate per block
-    pub fn get_supply_rate(borrow_rate: Rate, util: Ratio, reserve_factor: Ratio) -> Option<Rate> {
-        // supplyRate = ((1 - reserveFactor) * borrowRate) * utilizationRatio
-        let one_minus_reserve_factor = Ratio::one().saturating_sub(reserve_factor);
-        let rate_to_pool = borrow_rate.saturating_mul(one_minus_reserve_factor.into());
+    /// Check the model parameters for sanity
+    pub fn check_parameters(&self) -> Result<(), RatesError> {
+        if self.base_rate.0 > APR::MAX || self.kink_rate.0 > APR::MAX || self.full_rate.0 > APR::MAX
+        {
+            return Err(RatesError::ModelRateOutOfBounds);
+        }
+        if self.base_rate.0 >= self.kink_rate.0 {
+            return Err(RatesError::BaseAboveKink);
+        }
+        if self.kink_rate.0 >= self.full_rate.0 {
+            return Err(RatesError::KinkAboveFull);
+        }
+        if self.kink_utilization >= Ratio::one() {
+            return Err(RatesError::KinkUtilizationTooHigh);
+        }
 
-        Some(rate_to_pool.saturating_mul(util.into()))
+        Ok(())
+    }
+
+    /// The borrow rate when utilization is between 0 and kink_utilization.
+    fn base_to_kink(&self, utilization: Ratio) -> Option<APR> {
+        // utilization * (kink_rate - zero_rate) / kink_utilization + zero_rate
+        let result = self
+            .kink_rate
+            .0
+            .checked_sub(&self.base_rate.0)?
+            .saturating_mul(utilization.into())
+            .checked_div(&self.kink_utilization.into())?
+            .checked_add(&self.base_rate.0)?;
+
+        Some(result.into())
+    }
+
+    /// The borrow rate when utilization is between kink_utilization and 100%.
+    fn kink_to_full(&self, utilization: Ratio) -> Option<APR> {
+        // (utilization - kink_utilization)*(full_rate - kink_rate) / ( 1 - kink_utilization) + kink_rate
+        let excess_util = utilization.saturating_sub(self.kink_utilization);
+        let result = self
+            .full_rate
+            .0
+            .checked_sub(&self.kink_rate.0)?
+            .saturating_mul(excess_util.into())
+            .checked_div(&(Ratio::one().saturating_sub(self.kink_utilization).into()))?
+            .checked_add(&self.kink_rate.0)?;
+
+        Some(result.into())
+    }
+
+    /// Calculates the current borrow APR
+    pub fn get_borrow_rate(&self, utilization: Ratio) -> Result<APR, RatesError> {
+        if utilization <= self.kink_utilization {
+            let result = self
+                .base_to_kink(utilization)
+                .ok_or(RatesError::Overflowed)?;
+
+            Ok(result.into())
+        } else {
+            let result = self
+                .kink_to_full(utilization)
+                .ok_or(RatesError::Overflowed)?;
+
+            Ok(result.into())
+        }
+    }
+
+    /// Calculates the current supply APR
+    pub fn get_supply_rate(
+        borrow_rate: APR,
+        util: Ratio,
+        reserve_factor: Ratio,
+    ) -> Result<APR, RatesError> {
+        // ((1 - reserve_factor) * borrow_rate) * utilization
+        let one_minus_reserve_factor = Ratio::one().saturating_sub(reserve_factor);
+        let rate_to_pool = borrow_rate
+            .0
+            .checked_mul(&(one_minus_reserve_factor.into()))
+            .ok_or(RatesError::Overflowed)?;
+
+        Ok(APR::from(rate_to_pool.saturating_mul(util.into())))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use frame_support::assert_ok;
+    use sp_runtime::FixedU128;
 
     #[test]
     fn init_model_works() {
-        let base_rate_per_year = Rate::saturating_from_rational(2, 100);
-        let multiplier_per_year = Multiplier::saturating_from_rational(1, 10);
-        let jump_multiplier_per_year = Multiplier::saturating_from_rational(11, 10);
-        let kink = Ratio::from_percent(80);
+        let base_rate = Rate::saturating_from_rational(2, 100);
+        let kink_rate = Rate::saturating_from_rational(10, 100);
+        let full_rate = Rate::saturating_from_rational(32, 100);
+        let kink_utilization = Ratio::from_percent(80);
 
         assert_eq!(
-            InterestRateModel::init_model(
-                base_rate_per_year,
-                multiplier_per_year,
-                jump_multiplier_per_year,
-                kink
-            ),
-            Some(InterestRateModel {
-                base_rate_per_block: Rate::saturating_from_rational(2, 100 * BLOCK_PER_YEAR),
-                multiplier_per_block: Multiplier::saturating_from_rational(1, 10 * BLOCK_PER_YEAR),
-                jump_multiplier_per_block: Multiplier::saturating_from_rational(
-                    11,
-                    10 * BLOCK_PER_YEAR
-                ),
-                kink: Ratio::from_percent(80),
-            })
+            InterestRateModel::new_model(base_rate, kink_rate, full_rate, kink_utilization),
+            InterestRateModel {
+                base_rate: Rate::from_inner(20_000_000_000_000_000).into(),
+                kink_rate: Rate::from_inner(100_000_000_000_000_000).into(),
+                full_rate: Rate::from_inner(320_000_000_000_000_000).into(),
+                kink_utilization: Ratio::from_percent(80),
+            }
         );
     }
 
     #[test]
     fn get_borrow_rate_works() {
         // init
-        let base_rate_per_year = Rate::saturating_from_rational(2, 100);
-        let multiplier_per_year = Multiplier::saturating_from_rational(1, 10);
-        let jump_multiplier_per_year = Multiplier::saturating_from_rational(11, 10);
-        let kink = Ratio::from_percent(80);
-        let interest_model = InterestRateModel::init_model(
-            base_rate_per_year,
-            multiplier_per_year,
-            jump_multiplier_per_year,
-            kink,
-        )
-        .unwrap();
+        let base_rate = Rate::saturating_from_rational(2, 100);
+        let kink_rate = Rate::saturating_from_rational(10, 100);
+        let full_rate = Rate::saturating_from_rational(32, 100);
+        let kink_utilization = Ratio::from_percent(80);
+        let interest_model =
+            InterestRateModel::new_model(base_rate, kink_rate, full_rate, kink_utilization);
+        assert_ok!(interest_model.check_parameters());
 
         // normal rate
         let mut cash: u128 = 500;
@@ -136,10 +199,9 @@ mod tests {
         let borrow_rate = interest_model.get_borrow_rate(util).unwrap();
         assert_eq!(
             borrow_rate,
-            interest_model
-                .multiplier_per_block
-                .saturating_mul(util.into())
-                + interest_model.base_rate_per_block,
+            APR::from(
+                interest_model.kink_rate.0.saturating_mul(util.into()) + interest_model.base_rate.0
+            ),
         );
 
         // jump rate
@@ -147,30 +209,36 @@ mod tests {
         let util = Ratio::from_rational(borrows, cash + borrows);
         let borrow_rate = interest_model.get_borrow_rate(util).unwrap();
         let normal_rate = interest_model
-            .multiplier_per_block
-            .saturating_mul(kink.into())
-            + interest_model.base_rate_per_block;
-        let excess_util = util.saturating_sub(kink);
+            .kink_rate
+            .0
+            .saturating_mul(kink_utilization.into())
+            + interest_model.base_rate.0;
+        let excess_util = util.saturating_sub(kink_utilization);
         assert_eq!(
             borrow_rate,
-            interest_model
-                .jump_multiplier_per_block
-                .saturating_mul(excess_util.into())
-                + normal_rate,
+            APR::from(
+                (interest_model.full_rate.0 - interest_model.kink_rate.0)
+                    .saturating_mul(excess_util.into())
+                    / FixedU128::saturating_from_rational(20, 100)
+                    + normal_rate
+            ),
         );
     }
 
     #[test]
     fn get_supply_rate_works() {
-        let borrow_rate = Rate::saturating_from_rational(2, 100 * BLOCK_PER_YEAR);
+        let borrow_rate = APR::from(Rate::saturating_from_rational(2, 100 * BLOCK_PER_YEAR));
         let util = Ratio::from_percent(50);
         let reserve_factor = Ratio::zero();
         let supply_rate =
             InterestRateModel::get_supply_rate(borrow_rate, util, reserve_factor).unwrap();
         assert_eq!(
             supply_rate,
-            borrow_rate
-                .saturating_mul(((Ratio::one().saturating_sub(reserve_factor)) * util).into()),
+            APR::from(
+                borrow_rate
+                    .0
+                    .saturating_mul(((Ratio::one().saturating_sub(reserve_factor)) * util).into())
+            ),
         );
     }
 }
