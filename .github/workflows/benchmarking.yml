@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        rust: [stable]
+        rust: [nightly-2021-03-24]
 
     steps:
       - name: Checkout repo
@@ -22,24 +22,24 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
         
-      - name: Install Rust toolchain ${{ matrix.rust }}
+      - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: ${{ matrix.rust }}
-          components: rustfmt, clippy
           override: true
 
-      - name: Install wasm32-unknown-unknown for ${{ matrix.rust }}
+      - name: Install wasm32-unknown-unknown
         uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ matrix.rust }}
           target: wasm32-unknown-unknown
           override: true
+
        
       - name: Check Benchmarking
         run: |
-          cargo build --release --features runtime-benchmarks
+          cargo +nightly-2021-03-24 build --release --features runtime-benchmarks
           
       - name: Update Weights
         run: |
