@@ -60,16 +60,19 @@ jobs:
 #             cd parallel && ./parallel benchmark --chain=dev --execution=wasm --wasm-execution=compiled --pallet=pallet_loans --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./frame-weight-template.hbs --output=weights.rs
       
       - name: Download weight via SSH
-        uses: nicklasfrahm/scp-action@main
-        with:
-          direction: download
-          host: ${{ secrets.WEIGHTS_SSH_HOST }}
-          fingerprint: ${{ secrets.WEIGHTS_SSH_FINGERPRINT }}
-          username: ${{ secrets.WEIGHTS_SSH_USERNAME }}
-          key: ${{ secrets.WEIGHTS_SSH_PRIVKEY }}
-          port: ${{ secrets.WEIGHTS_SSH_PORT }}
-          source: parallel/weights.rs
-          target: ./pallets/loans/src/weights.rs        
+        run: |
+          (mkdir ~/.ssh || true) && ssh-keyscan -H ${{ secrets.WEIGHTS_SSH_HOST }} >> ~/.ssh/known_hosts
+          scp ${{ secrets.WEIGHTS_SSH_USERNAME }}@${{ secrets.WEIGHTS_SSH_HOST }}:parallel/weights.rs ./pallets/loans/src/weights.rs
+#         uses: nicklasfrahm/scp-action@main
+#         with:
+#           direction: download
+#           host: ${{ secrets.WEIGHTS_SSH_HOST }}
+#           fingerprint: ${{ secrets.WEIGHTS_SSH_FINGERPRINT }}
+#           username: ${{ secrets.WEIGHTS_SSH_USERNAME }}
+#           key: ${{ secrets.WEIGHTS_SSH_PRIVKEY }}
+#           port: ${{ secrets.WEIGHTS_SSH_PORT }}
+#           source: parallel/weights.rs
+#           target: ./pallets/loans/src/weights.rs        
           
       - name: Commit changes
         uses: EndBug/add-and-commit@v7
