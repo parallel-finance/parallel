@@ -1,5 +1,18 @@
 # CHANGE LOG
 
+## 2021.05.21
+
+-   Add types.json update bot (#130)
+
+## 2021.05.19
+
+-   Add governance support (#126)
+
+## 2021.05.18
+
+-   Add polkadot-launch (#119)
+-   Add dockerfile & Docker image build (#125)
+
 ## 2021.05.14
 
 -   Benchmark the dispatchables in loans pallet (#114)
