@@ -17,7 +17,8 @@
 //! This pallets provides offchain worker to call the liquidate_borrow operation in loans pallet.
 //! The collator may opt-in with a pre-funded account. The liquidate strategy is:
 //! - find the unhealthy account which has excessed loans
-//! - liquidate the currency with higher loans with any affordable collateral
+//! - liquidate the currency with higher loans
+//! - liquidator gets anyone of the affordable collaterals
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -35,9 +36,7 @@ use sp_runtime::{
 use sp_std::collections::btree_map::BTreeMap;
 use sp_std::prelude::*;
 use frame_support::{
-	// dispatch::DispatchResultWithPostInfo,
-	pallet_prelude::*,
-	log,
+	pallet_prelude::*, log,
 };
 use frame_system::offchain::{
 	AppCrypto, CreateSignedTransaction, SendSignedTransaction,
@@ -60,23 +59,32 @@ pub mod crypto {
 	use super::KEY_TYPE;
 	use sp_runtime::{
 		app_crypto::{app_crypto, sr25519},
-		traits::Verify,
 		MultiSignature, MultiSigner,
 	};
-	use sp_core::sr25519::Signature as Sr25519Signature;
 	app_crypto!(sr25519, KEY_TYPE);
 
 	pub struct AuthId;
-	impl frame_system::offchain::AppCrypto<<Sr25519Signature as Verify>::Signer, Sr25519Signature> for AuthId {
-		type RuntimeAppPublic = Public;
-		type GenericSignature = sp_core::sr25519::Signature;
-		type GenericPublic = sp_core::sr25519::Public;
-	}
 	impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for AuthId {
 		type RuntimeAppPublic = Public;
 		type GenericSignature = sp_core::sr25519::Signature;
 		type GenericPublic = sp_core::sr25519::Public;
 	}
+}
+
+/// The miscellaneous information when transforming borrow records.
+#[derive(Clone)]
+struct BorrowMisc {
+	currency: CurrencyId,
+	amount: Balance,
+	value: Balance,
+}
+
+/// The miscellaneous information when transforming collateral records.
+#[derive(Clone)]
+struct CollateralMisc {
+	currency: CurrencyId,
+	amount: Balance,
+	value: Balance,
 }
 
 #[frame_support::pallet]
@@ -101,6 +109,7 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+
 		#[pallet::weight(10_000)]
         fn liquidate_borrow(
             origin: OriginFor<T>,
@@ -137,7 +146,7 @@ impl<T: Config> Pallet<T> {
 
 		// TODO
 		// Only liquidate the currencies the collator allows,
-		// also need to check if the accounts has enough free balances.
+		// also check if the accounts has enough free balances.
 
 		let signer = Signer::<T, T::AuthorityId>::all_accounts();
 		if !signer.can_sign() {
@@ -146,24 +155,32 @@ impl<T: Config> Pallet<T> {
 		}
 
 		let aggregated_account_borrows = pallet_loans::AccountBorrows::<T>::iter()
-			.fold(BTreeMap::<T::AccountId, (Balance, Vec<(CurrencyId, Balance, Balance)>)>::new(), |mut acc, (k1, k2, snapshot)| {
+			.fold(BTreeMap::<T::AccountId, (Balance, Vec<BorrowMisc>)>::new(), |mut acc, (k1, k2, snapshot)| {
 				let loans_value = T::PriceFeeder::get_price(&k1).unwrap().0.checked_mul_int(snapshot.principal).unwrap();
 				let existing = acc.get(&k2).unwrap();
 				let total_loans_value = existing.0 + loans_value;
 				let mut loans_detail = existing.1.clone();
-				loans_detail.push((k1, snapshot.principal, loans_value));
+				loans_detail.push(BorrowMisc {
+					currency: k1,
+					amount: snapshot.principal,
+					value: loans_value,
+				});
 				acc.insert(k2, (total_loans_value, loans_detail));
 				acc
 			});
 
 		let aggregated_account_collatoral = pallet_loans::AccountCollateral::<T>::iter()
-			.fold(BTreeMap::<T::AccountId, (Balance, Vec<(CurrencyId, Balance, Balance)>)>::new(), |mut acc, (k1, k2, balance)| {
+			.fold(BTreeMap::<T::AccountId, (Balance, Vec<CollateralMisc>)>::new(), |mut acc, (k1, k2, balance)| {
 				let collateral_value = T::PriceFeeder::get_price(&k1).unwrap().0.checked_mul_int(balance).unwrap();
 				let under_collatoral_value = pallet_loans::CollateralFactor::<T>::get(&k1).mul_floor(collateral_value);
 				let existing = acc.get(&k2).unwrap();
 				let totoal_under_collatoral_value = existing.0 + under_collatoral_value;
 				let mut collatoral_detail = existing.1.clone();
-				collatoral_detail.push((k1, balance, collateral_value));
+				collatoral_detail.push(CollateralMisc {
+					currency: k1,
+					amount: balance,
+					value: collateral_value
+				});
 				acc.insert(k2, (totoal_under_collatoral_value, collatoral_detail));
 				acc
 			});
@@ -177,24 +194,21 @@ impl<T: Config> Pallet<T> {
 				// TODO shortfall compare with 0.5 * max
 				// let liquidation_value = LIQUIDATE_FACTOR.mul_floor(*total_loans_value);
 				let mut new_loans_detail = loans_detail.clone();
-				new_loans_detail.sort_by(|a, b| a.2.cmp(&b.2));
-				let (loan_currency, loans_balance, loans_value) = new_loans_detail[0];
-				// let liquidation_loan = (*loans_detail).find(
-				// 	|(currency, balance)| T::PriceFeeder::get_price(currency).unwrap().0.checked_mul_int(balance) >= liquidation_value
-				// );
+				new_loans_detail.sort_by(|a, b| a.value.cmp(&b.value));
+				let liquidate_loans = &new_loans_detail[0];
 				let liquidation_collatoral = 
 					aggregated_account_collatoral
 					.get(account)
 					.unwrap()
 					.1
-					.iter().find(|(_currency, _balance, collateral_value)| 
-						collateral_value >= &LIQUIDATE_FACTOR.mul_floor(loans_value)
+					.iter().find(|collateral_item| 
+						collateral_item.value >= LIQUIDATE_FACTOR.mul_floor(liquidate_loans.value)
 					).unwrap();
 				(
 					account,
-					loan_currency,
-					LIQUIDATE_FACTOR.mul_floor(loans_balance),
-					liquidation_collatoral.0, 
+					liquidate_loans.currency,
+					LIQUIDATE_FACTOR.mul_floor(liquidate_loans.amount),
+					liquidation_collatoral.currency, 
 				)
 			})
 			.for_each(|(borrower, loan_currency, repay_amount, collateral_currency)| {
@@ -233,10 +247,3 @@ impl<T: Config> Pallet<T> {
 
 	// }
 }
-
-// impl<T: Config> BlockNumberProvider for Pallet<T> {
-// 	type BlockNumber = T::BlockNumber;
-// 	fn current_block_number() -> Self::BlockNumber {
-// 		<frame_system::Pallet<T>>::block_number()
-// 	}
-// }
