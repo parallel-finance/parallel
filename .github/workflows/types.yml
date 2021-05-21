@@ -14,15 +14,16 @@ jobs:
         repo: [parallel-dapp]
 
     steps:
+      - uses: actions/checkout@v2
+        with:
+          repository: parallel-finance/${{matrix.repo}}
+          ref: ${{matrix.branch}}
+          token: ${{secrets.PAT}}
       - name: Pull latest types.json
         run: |
-          git clone git@github.com:parallel-finance/${{matrix.repo}}
-          cd ${{matrix.repo}}
-          git checkout ${{ matrix.branch }}
           curl -fLo src/config/types.json https://raw.githubusercontent.com/parallel-finance/parallel/master/resources/types.json
       - name: Check for modified files
         id: modified_check
-        working-directory: ${{matrix.repo}}
         run: echo ::set-output name=modified::$([ -z "`git status --porcelain`" ] && echo "false" || echo "true")
       - name: Push latest changes
         if: steps.modified_check.outputs.modified == 'true'
@@ -30,7 +31,6 @@ jobs:
           set -x
           git config --global user.name "Github Actions"
           git config --global user.email "Github Actions"
-          cd ${{matrix.repo}}
           if [ -z "$(git status --porcelain)" ]
           then
               echo "nothing to update."
@@ -49,15 +49,16 @@ jobs:
         repo: [faucet-bot]
 
     steps:
+      - uses: actions/checkout@v2
+        with:
+          repository: parallel-finance/${{matrix.repo}}
+          ref: ${{matrix.branch}}
+          token: ${{secrets.PAT}}
       - name: Pull latest types.json
         run: |
-          git clone git@github.com:parallel-finance/${{matrix.repo}}
-          cd ${{matrix.repo}}
-          git checkout ${{ matrix.branch }}
           curl -fLo src/config/types.json https://raw.githubusercontent.com/parallel-finance/parallel/master/resources/types.json
       - name: Check for modified files
         id: modified_check
-        working-directory: ${{matrix.repo}}
         run: echo ::set-output name=modified::$([ -z "`git status --porcelain`" ] && echo "false" || echo "true")
       - name: Push latest changes
         if: steps.modified_check.outputs.modified == 'true'
@@ -65,7 +66,6 @@ jobs:
           set -x
           git config --global user.name "Github Actions"
           git config --global user.email "Github Actions"
-          cd ${{matrix.repo}}
           if [ -z "$(git status --porcelain)" ]
           then
               echo "nothing to update."
