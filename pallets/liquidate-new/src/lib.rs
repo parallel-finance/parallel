@@ -38,10 +38,7 @@ use sp_std::prelude::*;
 use frame_support::{
 	pallet_prelude::*, log,
 };
-use frame_system::offchain::{
-	AppCrypto, CreateSignedTransaction, SendSignedTransaction,
-	Signer,
-};
+use frame_system::offchain::{AppCrypto, CreateSignedTransaction, ForAll, SendSignedTransaction, Signer};
 use frame_system::pallet_prelude::*;
 
 use primitives::{Balance, CurrencyId, PriceFeeder};
@@ -51,10 +48,6 @@ pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"liqu");
 pub const LOCK_PERIOD: u64 = 20000; // in milli-seconds
 pub const LIQUIDATE_FACTOR: Percent = Percent::from_percent(50); // 0.5
 
-pub enum Error {
-	/// There is no pre-configured currencies
-	NoCurrencies,
-}
 pub mod crypto {
 	use super::KEY_TYPE;
 	use sp_runtime::{
@@ -69,6 +62,11 @@ pub mod crypto {
 		type GenericSignature = sp_core::sr25519::Signature;
 		type GenericPublic = sp_core::sr25519::Public;
 	}
+}
+
+pub enum Error {
+	/// There is no pre-configured currencies
+	NoCurrencies,
 }
 
 /// The miscellaneous information when transforming borrow records.
@@ -211,39 +209,35 @@ impl<T: Config> Pallet<T> {
 					liquidation_collatoral.currency, 
 				)
 			})
-			.for_each(|(borrower, loan_currency, repay_amount, collateral_currency)| {
-				// submit_liquidation(llc, llb, lcc, lcb);
-				// pallet_loans::liquidate_borrow(loan_currency, loan_amount, collatoral_currency, collatoral_amount)
-				let results = signer.send_signed_transaction(
-					|_account| {
-						Call::liquidate_borrow(
-							borrower.clone(),
-							loan_currency.clone(),
-							repay_amount.clone(),
-							collateral_currency.clone(),
-						)
-					}
-				);
-				for (acc, res) in &results {
-					match res {
-						Ok(()) => log::info!("[{:?}] Submitted liquidate borrow, borrower: {:?}", acc.id, borrower),
-						Err(e) => log::error!("[{:?}] Failed to submit transaction: {:?}", acc.id, e),
-					}
-				}
-				log::info!("new transaction needs to be submitted");
+			.for_each(|(borrower, loan_currency, liquidation_value, collateral_currency)| {
+				Self::submit_liquidate_transaction(&signer, borrower.clone(), loan_currency, liquidation_value, collateral_currency);
 			});
-
-	
-
 	}
 
-	// fn submit_liquidation(
-	// 	borrower: T::AccountId,
-	// 	loan_currency: CurrencyId,
-	// 	collatoral_currency: CurrencyId,
-	// 	liquidation_value: Balance
-	// ) {
-	// 	// 
+	fn submit_liquidate_transaction(
+		signer: &Signer<T, <T as Config>::AuthorityId, ForAll>,
+		borrower: T::AccountId,
+		loan_currency: CurrencyId,
+		liquidation_value: Balance,
+		collateral_currency: CurrencyId,
+	) {
+		let results = signer.send_signed_transaction(
+			|_account| {
+				Call::liquidate_borrow(
+					borrower.clone(),
+					loan_currency.clone(),
+					liquidation_value.clone(),
+					collateral_currency.clone(),
+				)
+			}
+		);
+		for (acc, res) in &results {
+			match res {
+				Ok(()) => log::info!("[{:?}] Submitted liquidate borrow, borrower: {:?}", acc.id, borrower),
+				Err(e) => log::error!("[{:?}] Failed to submit transaction: {:?}", acc.id, e),
+			}
+		}
+		log::info!("new transaction needs to be submitted");
+	}
 
-	// }
 }
