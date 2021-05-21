@@ -32,7 +32,7 @@ jobs:
           cargo build --bin parallel-dev --release --features runtime-benchmarks
           rm -fr dist || true
           mkdir dist || true
-          cp README.md dist
+          cp .maintain/frame-weight-template.hbs dist
           cp target/release/parallel-dev dist/parallel
           tar -cvJf parallel.tar.xz dist --transform 's|dist|parallel|'
           
@@ -56,7 +56,7 @@ jobs:
           script: |
             rm -fr parallel
             tar -Jxf parallel.tar.xz
-            cd parallel && ./parallel benchmark --chain=dev --execution=wasm --wasm-execution=compiled --pallet=pallet_loans --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=~/weights/weights.rs
+            cd parallel && ./parallel benchmark --chain=dev --execution=wasm --wasm-execution=compiled --pallet=pallet_loans --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./../frame-weight-template.hbs --output=weights.rs
       
       - name: Download weight via SSH
         uses: nicklasfrahm/scp-action@main
@@ -70,7 +70,7 @@ jobs:
           proxy_port: ${{ secrets.WEIGHTS_SSH_PORT }}
           proxy_username: ${{ secrets.WEIGHTS_SSH_USERNAME }}
           proxy_key: ${{ secrets.WEIGHTS_SSH_PRIVKEY }}
-          source: ~/weights/weights.rs
+          source: parallel/weights.rs
           target: ./pallets/loans/src/weights.rs        
           
       - name: Commit changes
