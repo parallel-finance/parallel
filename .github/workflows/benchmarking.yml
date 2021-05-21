@@ -62,7 +62,7 @@ jobs:
       - name: Download weight via SSH
         uses: nicklasfrahm/scp-action@main
         with:
-          action: download
+          direction: download
           host: ${{ secrets.WEIGHTS_SSH_HOST }}
           username: ${{ secrets.WEIGHTS_SSH_USERNAME }}
           key: ${{ secrets.WEIGHTS_SSH_PRIVKEY }}
