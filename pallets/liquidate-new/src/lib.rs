@@ -14,8 +14,10 @@
 
 //! Liquidate pallet
 //!
-//! This pallets provides offchain worker to call the liquidate operation in loans pallet.
-//! The collator may opt-in with a pre-funded account.
+//! This pallets provides offchain worker to call the liquidate_borrow operation in loans pallet.
+//! The collator may opt-in with a pre-funded account. The liquidate strategy is:
+//! - find the unhealthy account which has excessed loans
+//! - liquidate the currency with higher loans with any affordable collateral
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -37,6 +39,10 @@ use frame_support::{
 	pallet_prelude::*,
 	log,
 };
+use frame_system::offchain::{
+	AppCrypto, CreateSignedTransaction, SendSignedTransaction,
+	Signer,
+};
 use frame_system::pallet_prelude::*;
 
 use primitives::{Balance, CurrencyId, PriceFeeder};
@@ -54,17 +60,23 @@ pub mod crypto {
 	use super::KEY_TYPE;
 	use sp_runtime::{
 		app_crypto::{app_crypto, sr25519},
-		// traits::Verify,
+		traits::Verify,
+		MultiSignature, MultiSigner,
 	};
-	// use sp_core::sr25519::Signature as Sr25519Signature;
+	use sp_core::sr25519::Signature as Sr25519Signature;
 	app_crypto!(sr25519, KEY_TYPE);
 
-	// pub sturct TestAuthId;
-	// impl frame_system::offchain::AppCrypto<<Sr25519Signature as Verify>::Signer, Sr25519Signature> for TestAuthId {
-	// 	type RuntimeAppPublic = Public;
-	// 	type GenericSignature = sp_core::sr25519::Signature;
-	// 	type GenericPUblic = sp_core::sr25519::Public;
-	// }
+	pub struct AuthId;
+	impl frame_system::offchain::AppCrypto<<Sr25519Signature as Verify>::Signer, Sr25519Signature> for AuthId {
+		type RuntimeAppPublic = Public;
+		type GenericSignature = sp_core::sr25519::Signature;
+		type GenericPublic = sp_core::sr25519::Public;
+	}
+	impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for AuthId {
+		type RuntimeAppPublic = Public;
+		type GenericSignature = sp_core::sr25519::Signature;
+		type GenericPublic = sp_core::sr25519::Public;
+	}
 }
 
 #[frame_support::pallet]
@@ -72,7 +84,8 @@ pub mod pallet {
 	use super::*;
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config + pallet_loans::Config {
+	pub trait Config: CreateSignedTransaction<Call<Self>> + frame_system::Config + pallet_loans::Config {
+		type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
 	}
 
 	#[pallet::pallet]
@@ -87,7 +100,27 @@ pub mod pallet {
 	}
 
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {}
+	impl<T: Config> Pallet<T> {
+		#[pallet::weight(10_000)]
+        fn liquidate_borrow(
+            origin: OriginFor<T>,
+            borrower: T::AccountId,
+            liquidate_currency: CurrencyId,
+            repay_amount: Balance,
+            collateral_currency: CurrencyId,
+        ) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+            pallet_loans::Pallet::<T>::liquidate_borrow_internal(
+                who,
+                borrower,
+                liquidate_currency,
+                repay_amount,
+                collateral_currency,
+            )?;
+
+            Ok(().into())
+        }
+	}
 }
 
 impl<T: Config> Pallet<T> {
@@ -102,12 +135,15 @@ impl<T: Config> Pallet<T> {
 			return
 		}
 
-		// The currencies collator want to liquidate
-		// let currencies: Vec<CurrencyId> = StorageValueRef::persistent(b"liquidate::currencies")
-		// 	.get()
-		// 	.flattan()
-		// 	.ok_or(Error::NoCurrencies);
-		
+		// TODO
+		// Only liquidate the currencies the collator allows,
+		// also need to check if the accounts has enough free balances.
+
+		let signer = Signer::<T, T::AuthorityId>::all_accounts();
+		if !signer.can_sign() {
+			log::error!("liquidate error: no available accounts, consider adding one via `author_insertKey` RPC.");
+			return
+		}
 
 		let aggregated_account_borrows = pallet_loans::AccountBorrows::<T>::iter()
 			.fold(BTreeMap::<T::AccountId, (Balance, Vec<(CurrencyId, Balance, Balance)>)>::new(), |mut acc, (k1, k2, snapshot)| {
@@ -132,11 +168,11 @@ impl<T: Config> Pallet<T> {
 				acc
 			});
 
-		let underwater_account_borrows = aggregated_account_borrows.iter()
+		let _underwater_account_borrows = aggregated_account_borrows.iter()
 			.filter(|(account, (total_loans_value, _))| {
 				total_loans_value > &aggregated_account_collatoral.get(account).unwrap().0
 			})
-			.map(|(account, (total_loans_value, loans_detail))| {
+			.map(|(account, (_total_loans_value, loans_detail))| {
 				// TODO change to 0.5, configurable by runners
 				// TODO shortfall compare with 0.5 * max
 				// let liquidation_value = LIQUIDATE_FACTOR.mul_floor(*total_loans_value);
@@ -151,7 +187,7 @@ impl<T: Config> Pallet<T> {
 					.get(account)
 					.unwrap()
 					.1
-					.iter().find(|(currency, balance, collateral_value)| 
+					.iter().find(|(_currency, _balance, collateral_value)| 
 						collateral_value >= &LIQUIDATE_FACTOR.mul_floor(loans_value)
 					).unwrap();
 				(
@@ -164,6 +200,22 @@ impl<T: Config> Pallet<T> {
 			.for_each(|(borrower, loan_currency, repay_amount, collateral_currency)| {
 				// submit_liquidation(llc, llb, lcc, lcb);
 				// pallet_loans::liquidate_borrow(loan_currency, loan_amount, collatoral_currency, collatoral_amount)
+				let results = signer.send_signed_transaction(
+					|_account| {
+						Call::liquidate_borrow(
+							borrower.clone(),
+							loan_currency.clone(),
+							repay_amount.clone(),
+							collateral_currency.clone(),
+						)
+					}
+				);
+				for (acc, res) in &results {
+					match res {
+						Ok(()) => log::info!("[{:?}] Submitted liquidate borrow, borrower: {:?}", acc.id, borrower),
+						Err(e) => log::error!("[{:?}] Failed to submit transaction: {:?}", acc.id, e),
+					}
+				}
 				log::info!("new transaction needs to be submitted");
 			});
 
