@@ -43,6 +43,7 @@ pallet-collective               = { git = 'https://github.com/paritytech/substra
 pallet-democracy                = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 pallet-elections-phragmen       = { git = 'https://github.com/paritytech/substrate.git', version = '4.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 pallet-liquidate                = { path = '../../pallets/liquidate', default-features = false }
+pallet-liquidate-new                = { path = '../../pallets/liquidate-new', default-features = false }
 pallet-loans                    = { path = '../../pallets/loans', default-features = false }
 pallet-loans-benchmarking       = { path = '../../pallets/loans/benchmarking', default-features = false, optional = true }
 pallet-membership               = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
@@ -141,6 +142,7 @@ std                = [
   'pallet-loans/std',
   'pallet-staking/std',
   'pallet-liquidate/std',
+  'pallet-liquidate-new/std',
   'pallet-prices/std',
   'pallet-multisig/std',
   'pallet-aura/std',

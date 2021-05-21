@@ -331,6 +331,13 @@ impl pallet_liquidate::Config for Runtime {
     type PriceFeeder = Prices;
 }
 
+impl pallet_liquidate_new::Config for Runtime {
+    // type AuthorityId = pallet_liquidate_new::crypto::TestAuthId;
+    // type Call = Call;
+    // type Event = Event;
+    type PriceFeeder = Prices;
+}
+
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
 where
     Call: From<LocalCall>,
@@ -685,6 +692,7 @@ construct_runtime!(
         // OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
         VanillaOracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Config<T>, Event<T>},
         Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},
+        LiquidateNew: pallet_liquidate_new::{Pallet, Call},
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
         Democracy: pallet_democracy::{Pallet, Call, Storage, Config, Event<T>},
         Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},

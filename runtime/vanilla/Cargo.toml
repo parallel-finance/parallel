@@ -25,6 +25,7 @@ static_assertions         = '1.1.0'
 
 # local dependencies
 pallet-liquidate          = { path = '../../pallets/liquidate', default-features = false }
+pallet-liquidate-new          = { path = '../../pallets/liquidate-new', default-features = false }
 pallet-loans              = { path = '../../pallets/loans', default-features = false }
 pallet-loans-benchmarking = { path = '../../pallets/loans/benchmarking', default-features = false, optional = true }
 # pallet-ocw-oracle         = { path = '../../pallets/ocw-oracle', default-features = false }
@@ -121,6 +122,7 @@ std                = [
   'pallet-loans/std',
   'pallet-staking/std',
   'pallet-liquidate/std',
+  'pallet-liquidate-new/std',
   'pallet-prices/std',
   'pallet-treasury/std',
   'pallet-collective/std',
