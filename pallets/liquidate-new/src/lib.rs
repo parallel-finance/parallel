@@ -31,6 +31,7 @@ use sp_runtime::{
 	}
 };
 use sp_std::collections::btree_map::BTreeMap;
+use sp_std::prelude::*;
 use frame_support::{
 	// dispatch::DispatchResultWithPostInfo,
 	pallet_prelude::*,
@@ -109,26 +110,25 @@ impl<T: Config> Pallet<T> {
 		
 
 		let aggregated_account_borrows = pallet_loans::AccountBorrows::<T>::iter()
-			.fold(BTreeMap::<T::AccountId, (Balance, Vec<(CurrencyId, Balance)>)>::new(), |acc, (k1, k2, snapshot)| {
+			.fold(BTreeMap::<T::AccountId, (Balance, Vec<(CurrencyId, Balance, Balance)>)>::new(), |mut acc, (k1, k2, snapshot)| {
 				let loans_value = T::PriceFeeder::get_price(&k1).unwrap().0.checked_mul_int(snapshot.principal).unwrap();
 				let existing = acc.get(&k2).unwrap();
 				let total_loans_value = existing.0 + loans_value;
-				let mut loans_detail = existing.1;
-				loans_detail.push((k1, snapshot.principal));
+				let mut loans_detail = existing.1.clone();
+				loans_detail.push((k1, snapshot.principal, loans_value));
 				acc.insert(k2, (total_loans_value, loans_detail));
 				acc
 			});
 
 		let aggregated_account_collatoral = pallet_loans::AccountCollateral::<T>::iter()
-			.fold(BTreeMap::<T::AccountId, (Balance, Vec<(CurrencyId, Balance)>)>::new(), |acc, (k1, k2, balance)| {
-				let collatoral_value = pallet_loans::CollateralFactor::<T>::get(&k1).mul_floor(
-					T::PriceFeeder::get_price(&k1).unwrap().0.checked_mul_int(balance).unwrap()
-				);
+			.fold(BTreeMap::<T::AccountId, (Balance, Vec<(CurrencyId, Balance, Balance)>)>::new(), |mut acc, (k1, k2, balance)| {
+				let collateral_value = T::PriceFeeder::get_price(&k1).unwrap().0.checked_mul_int(balance).unwrap();
+				let under_collatoral_value = pallet_loans::CollateralFactor::<T>::get(&k1).mul_floor(collateral_value);
 				let existing = acc.get(&k2).unwrap();
-				let totoal_collatoral_value = existing.0 + collatoral_value;
-				let mut collatoral_detail = existing.1;
-				collatoral_detail.push((k1, balance));
-				acc.insert(k2, (totoal_collatoral_value, collatoral_detail));
+				let totoal_under_collatoral_value = existing.0 + under_collatoral_value;
+				let mut collatoral_detail = existing.1.clone();
+				collatoral_detail.push((k1, balance, collateral_value));
+				acc.insert(k2, (totoal_under_collatoral_value, collatoral_detail));
 				acc
 			});
 
@@ -139,26 +139,29 @@ impl<T: Config> Pallet<T> {
 			.map(|(account, (total_loans_value, loans_detail))| {
 				// TODO change to 0.5, configurable by runners
 				// TODO shortfall compare with 0.5 * max
-				let liquidation_value = LIQUIDATE_FACTOR.mul_floor(*total_loans_value);
-				let liquidation_loan = (*loans_detail).find(
-					|(currency, balance)| T::PriceFeeder::get_price(currency).unwrap().0.checked_mul_int(balance) >= liquidation_value
-				);
+				// let liquidation_value = LIQUIDATE_FACTOR.mul_floor(*total_loans_value);
+				let mut new_loans_detail = loans_detail.clone();
+				new_loans_detail.sort_by(|a, b| a.2.cmp(&b.2));
+				let (loan_currency, loans_balance, loans_value) = new_loans_detail[0];
+				// let liquidation_loan = (*loans_detail).find(
+				// 	|(currency, balance)| T::PriceFeeder::get_price(currency).unwrap().0.checked_mul_int(balance) >= liquidation_value
+				// );
 				let liquidation_collatoral = 
 					aggregated_account_collatoral
 					.get(account)
-					.unwarp() // TODO several assets to liquidation
+					.unwrap()
 					.1
-					.find(|(currency, balance)| 
-						T::PriceFeeder::get_price(currency).unwrap().0.checked_mul_int(balance) >= liquidation_loan
-					);
+					.iter().find(|(currency, balance, collateral_value)| 
+						collateral_value >= &LIQUIDATE_FACTOR.mul_floor(loans_value)
+					).unwrap();
 				(
 					account,
-					liquidation_loan.unwrap().0,
-					liquidation_collatoral.unwrap().0, 
-					liquidation_value,
+					loan_currency,
+					LIQUIDATE_FACTOR.mul_floor(loans_balance),
+					liquidation_collatoral.0, 
 				)
 			})
-			.for_each(|llc, llb, lcc, lcb| {
+			.for_each(|(borrower, loan_currency, repay_amount, collateral_currency)| {
 				// submit_liquidation(llc, llb, lcc, lcb);
 				// pallet_loans::liquidate_borrow(loan_currency, loan_amount, collatoral_currency, collatoral_amount)
 				log::info!("new transaction needs to be submitted");

@@ -335,7 +335,6 @@ impl pallet_liquidate_new::Config for Runtime {
     // type AuthorityId = pallet_liquidate_new::crypto::TestAuthId;
     // type Call = Call;
     // type Event = Event;
-    type PriceFeeder = Prices;
 }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
