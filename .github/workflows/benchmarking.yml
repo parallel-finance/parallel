@@ -16,7 +16,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT }}
         
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
@@ -27,14 +27,51 @@ jobs:
           default: true
           components: rustfmt, clippy
 
-       
-      - name: Check Benchmarking
+      - name: Build Benchmarking Release And Package
         run: |
-          cargo build --release --features runtime-benchmarks
+          cargo build --bin parallel-dev --release --features runtime-benchmarks
+          rm -fr dist || true
+          mkdir dist || true
+          cp README.md dist
+          cp target/release/parallel-dev dist/parallel
+          tar -cvJf parallel.tar.xz dist --transform 's|dist|parallel|'
           
-      - name: Update Weights
-        run: |
-          ./target/release/parallel-dev benchmark --chain=dev --execution=wasm --wasm-execution=compiled --pallet=pallet_loans --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/loans/src/weights.rs
+      - name: Copy File Via Ssh Password
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.WEIGHTS_SSH_HOST }}
+          username: ${{ secrets.WEIGHTS_SSH_USERNAME }}
+          key: ${{ secrets.WEIGHTS_SSH_PRIVKEY }}
+          port: ${{ secrets.WEIGHTS_SSH_PORT }}
+          source: "*.tar.xz"
+          target: "~"
+          
+      - name: Calculate Weights
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.WEIGHTS_SSH_HOST }}
+          username: ${{ secrets.WEIGHTS_SSH_USERNAME }}
+          key: ${{ secrets.WEIGHTS_SSH_PRIVKEY }}
+          port: ${{ secrets.WEIGHTS_SSH_PORT }}
+          script: |
+            rm -fr parallel
+            tar -Jxf parallel.tar.xz
+            cd parallel && ./parallel-dev benchmark --chain=dev --execution=wasm --wasm-execution=compiled --pallet=pallet_loans --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=~/weights/weights.rs
+      
+      - name: Download weight via SSH
+        uses: nicklasfrahm/scp-action@main
+        with:
+          action: download
+          host: ${{ secrets.WEIGHTS_SSH_HOST }}
+          username: ${{ secrets.WEIGHTS_SSH_USERNAME }}
+          key: ${{ secrets.WEIGHTS_SSH_PRIVKEY }}
+          port: ${{ secrets.WEIGHTS_SSH_PORT }}
+          proxy_host: ${{ secrets.WEIGHTS_SSH_HOST }}
+          proxy_port: ${{ secrets.WEIGHTS_SSH_PORT }}
+          proxy_username: ${{ secrets.WEIGHTS_SSH_USERNAME }}
+          proxy_key: ${{ secrets.WEIGHTS_SSH_PRIVKEY }}
+          source: ~/weights/weights.rs
+          target: ./pallets/loans/src/weights.rs        
           
       - name: Commit changes
         uses: EndBug/add-and-commit@v7
