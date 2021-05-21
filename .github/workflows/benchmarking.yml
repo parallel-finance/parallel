@@ -27,43 +27,44 @@ jobs:
           default: true
           components: rustfmt, clippy
 
-      - name: Build Benchmarking Release And Package
-        run: |
-          cargo build --bin parallel-dev --release --features runtime-benchmarks
-          rm -fr dist || true
-          mkdir dist || true
-          cp .maintain/frame-weight-template.hbs dist
-          cp target/release/parallel-dev dist/parallel
-          tar -cvJf parallel.tar.xz dist --transform 's|dist|parallel|'
+#       - name: Build Benchmarking Release And Package
+#         run: |
+#           cargo build --bin parallel-dev --release --features runtime-benchmarks
+#           rm -fr dist || true
+#           mkdir dist || true
+#           cp .maintain/frame-weight-template.hbs dist
+#           cp target/release/parallel-dev dist/parallel
+#           tar -cvJf parallel.tar.xz dist --transform 's|dist|parallel|'
           
-      - name: Copy File Via Ssh Password
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.WEIGHTS_SSH_HOST }}
-          username: ${{ secrets.WEIGHTS_SSH_USERNAME }}
-          key: ${{ secrets.WEIGHTS_SSH_PRIVKEY }}
-          port: ${{ secrets.WEIGHTS_SSH_PORT }}
-          source: "*.tar.xz"
-          target: "~"
+#       - name: Copy File Via Ssh Password
+#         uses: appleboy/scp-action@master
+#         with:
+#           host: ${{ secrets.WEIGHTS_SSH_HOST }}
+#           username: ${{ secrets.WEIGHTS_SSH_USERNAME }}
+#           key: ${{ secrets.WEIGHTS_SSH_PRIVKEY }}
+#           port: ${{ secrets.WEIGHTS_SSH_PORT }}
+#           source: "*.tar.xz"
+#           target: "~"
           
-      - name: Calculate Weights
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.WEIGHTS_SSH_HOST }}
-          username: ${{ secrets.WEIGHTS_SSH_USERNAME }}
-          key: ${{ secrets.WEIGHTS_SSH_PRIVKEY }}
-          port: ${{ secrets.WEIGHTS_SSH_PORT }}
-          script: |
-            rm -fr parallel
-            tar -Jxf parallel.tar.xz
-            ls
-            cd parallel && ./parallel benchmark --chain=dev --execution=wasm --wasm-execution=compiled --pallet=pallet_loans --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./frame-weight-template.hbs --output=weights.rs
+#       - name: Calculate Weights
+#         uses: appleboy/ssh-action@master
+#         with:
+#           host: ${{ secrets.WEIGHTS_SSH_HOST }}
+#           username: ${{ secrets.WEIGHTS_SSH_USERNAME }}
+#           key: ${{ secrets.WEIGHTS_SSH_PRIVKEY }}
+#           port: ${{ secrets.WEIGHTS_SSH_PORT }}
+#           script: |
+#             rm -fr parallel
+#             tar -Jxf parallel.tar.xz
+#             ls
+#             cd parallel && ./parallel benchmark --chain=dev --execution=wasm --wasm-execution=compiled --pallet=pallet_loans --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./frame-weight-template.hbs --output=weights.rs
       
       - name: Download weight via SSH
         uses: nicklasfrahm/scp-action@main
         with:
           direction: download
           host: ${{ secrets.WEIGHTS_SSH_HOST }}
+          fingerprint: ${{ secrets.WEIGHTS_SSH_FINGERPRINT }}
           username: ${{ secrets.WEIGHTS_SSH_USERNAME }}
           key: ${{ secrets.WEIGHTS_SSH_PRIVKEY }}
           port: ${{ secrets.WEIGHTS_SSH_PORT }}
