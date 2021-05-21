@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Pull latest types.json
         run: |
-          git clone https://github.com/parallel-finance/${{matrix.repo}}
+          git clone git@github.com:parallel-finance/${{matrix.repo}}
           cd ${{matrix.repo}}
           git checkout ${{ matrix.branch }}
           curl -fLo src/config/types.json https://raw.githubusercontent.com/parallel-finance/parallel/master/resources/types.json
@@ -35,7 +35,8 @@ jobs:
           then
               echo "nothing to update."
           else
-              git commit -am "update types.json"
+              git add src/config/types.json
+              git commit -m "update types.json"
           fi
           git push "https://${{ secrets.PAT }}@github.com/parallel-finance/${{matrix.repo}}.git" HEAD:${{matrix.branch}}
 
@@ -50,7 +51,7 @@ jobs:
     steps:
       - name: Pull latest types.json
         run: |
-          git clone https://github.com/parallel-finance/${{matrix.repo}}
+          git clone git@github.com:parallel-finance/${{matrix.repo}}
           cd ${{matrix.repo}}
           git checkout ${{ matrix.branch }}
           curl -fLo src/config/types.json https://raw.githubusercontent.com/parallel-finance/parallel/master/resources/types.json
@@ -69,6 +70,7 @@ jobs:
           then
               echo "nothing to update."
           else
-              git commit -am "update types.json"
+              git add src/config/types.json
+              git commit -m "update types.json"
           fi
           git push "https://${{ secrets.PAT }}@github.com/parallel-finance/${{matrix.repo}}.git" HEAD:${{matrix.branch}}
