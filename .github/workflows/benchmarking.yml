@@ -61,7 +61,7 @@ jobs:
       
       - name: Download weight via SSH
         run: |
-          scp ${{ secrets.WEIGHTS_SSH_USERNAME }}@${{ secrets.WEIGHTS_SSH_HOST }}:parallel/weights.rs ./pallets/loans/src/weights.rs
+          scp -i ${{ secrets.WEIGHTS_SSH_PRIVKEY }} ${{ secrets.WEIGHTS_SSH_USERNAME }}@${{ secrets.WEIGHTS_SSH_HOST }}:parallel/weights.rs ./pallets/loans/src/weights.rs
 #         uses: nicklasfrahm/scp-action@main
 #         with:
 #           direction: download
