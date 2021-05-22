@@ -16,14 +16,14 @@ use cumulus_primitives_core::ParaId;
 #[cfg(feature = "runtime-heiko")]
 use heiko_runtime::{
     currency::DOLLARS, AuraConfig, BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig,
-    GenesisConfig, LoansConfig, ParachainInfoConfig, OracleConfig, StakingConfig,
-    SudoConfig, SystemConfig, TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
+    GenesisConfig, LoansConfig, OracleConfig, ParachainInfoConfig, StakingConfig, SudoConfig,
+    SystemConfig, TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
 };
 #[cfg(feature = "runtime-parallel")]
 use parallel_runtime::{
     currency::DOLLARS, AuraConfig, BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig,
-    GenesisConfig, LoansConfig, ParachainInfoConfig, OracleConfig, StakingConfig,
-    SudoConfig, SystemConfig, TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
+    GenesisConfig, LoansConfig, OracleConfig, ParachainInfoConfig, StakingConfig, SudoConfig,
+    SystemConfig, TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
 };
 use primitives::*;
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
@@ -182,6 +182,7 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
     )
 }
 
+#[cfg(feature = "runtime-parallel")]
 fn testnet_genesis(
     root_key: AccountId,
     initial_authorities: Vec<(AccountId, AuraId)>,
@@ -222,7 +223,6 @@ fn testnet_genesis(
                 .flat_map(|x| {
                     vec![
                         (x.clone(), CurrencyId::DOT, 1_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::KSM, 1_000 * TOKEN_DECIMAL),
                         (x.clone(), CurrencyId::USDT, 1_000 * TOKEN_DECIMAL),
                         (x.clone(), CurrencyId::xDOT, 1_000 * TOKEN_DECIMAL),
                     ]
@@ -230,12 +230,7 @@ fn testnet_genesis(
                 .collect(),
         },
         pallet_loans: LoansConfig {
-            currencies: vec![
-                CurrencyId::DOT,
-                CurrencyId::KSM,
-                CurrencyId::USDT,
-                CurrencyId::xDOT,
-            ],
+            currencies: vec![CurrencyId::DOT, CurrencyId::USDT, CurrencyId::xDOT],
             borrow_index: Rate::one(),                             // 1
             exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
             base_rate: Rate::saturating_from_rational(2, 100),     // 2%
@@ -244,34 +239,137 @@ fn testnet_genesis(
             kink_utilization: Ratio::from_percent(80),             // 80%
             collateral_factor: vec![
                 (CurrencyId::DOT, Ratio::from_percent(50)),
-                (CurrencyId::KSM, Ratio::from_percent(50)),
                 (CurrencyId::USDT, Ratio::from_percent(50)),
                 (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
             liquidation_incentive: vec![
                 (CurrencyId::DOT, Ratio::from_percent(90)),
-                (CurrencyId::KSM, Ratio::from_percent(90)),
                 (CurrencyId::USDT, Ratio::from_percent(90)),
                 (CurrencyId::xDOT, Ratio::from_percent(90)),
             ],
             // TODO : please refer to https://github.com/parallel-finance/parallel/issues/46
             liquidation_threshold: vec![
                 (CurrencyId::DOT, Ratio::from_percent(90)),
-                (CurrencyId::KSM, Ratio::from_percent(90)),
                 (CurrencyId::USDT, Ratio::from_percent(90)),
                 (CurrencyId::xDOT, Ratio::from_percent(90)),
             ],
             close_factor: vec![
                 (CurrencyId::DOT, Ratio::from_percent(50)),
-                (CurrencyId::KSM, Ratio::from_percent(50)),
                 (CurrencyId::USDT, Ratio::from_percent(50)),
                 (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
             reserve_factor: vec![
                 (CurrencyId::DOT, Ratio::from_percent(15)),
-                (CurrencyId::KSM, Ratio::from_percent(15)),
                 (CurrencyId::USDT, Ratio::from_percent(15)),
                 (CurrencyId::xDOT, Ratio::from_percent(15)),
+            ],
+        },
+        pallet_staking: StakingConfig {
+            exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
+        },
+        pallet_democracy: DemocracyConfig::default(),
+        pallet_elections_phragmen: ElectionsConfig {
+            members: endowed_accounts
+                .iter()
+                .take((num_endowed_accounts + 1) / 2)
+                .cloned()
+                .map(|member| (member, STASH))
+                .collect(),
+        },
+        pallet_collective_Instance1: CouncilConfig::default(),
+        pallet_collective_Instance2: TechnicalCommitteeConfig {
+            members: endowed_accounts
+                .iter()
+                .take((num_endowed_accounts + 1) / 2)
+                .cloned()
+                .collect(),
+            phantom: Default::default(),
+        },
+        pallet_membership_Instance1: Default::default(),
+        pallet_treasury: Default::default(),
+    }
+}
+
+#[cfg(feature = "runtime-heiko")]
+fn testnet_genesis(
+    root_key: AccountId,
+    initial_authorities: Vec<(AccountId, AuraId)>,
+    endowed_accounts: Vec<AccountId>,
+    id: ParaId,
+) -> GenesisConfig {
+    let num_endowed_accounts = endowed_accounts.len();
+    const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
+    const STASH: Balance = ENDOWMENT / 1000;
+    GenesisConfig {
+        frame_system: SystemConfig {
+            code: WASM_BINARY
+                .expect("WASM binary was not build, please build it!")
+                .to_vec(),
+            changes_trie_config: Default::default(),
+        },
+        pallet_balances: BalancesConfig {
+            balances: endowed_accounts
+                .iter()
+                .cloned()
+                .map(|k| (k, 1 << 60))
+                .collect(),
+        },
+        // TODO : collateral selection using session
+        pallet_aura: AuraConfig {
+            authorities: initial_authorities.iter().map(|x| (x.1.clone())).collect(),
+        },
+        cumulus_pallet_aura_ext: Default::default(),
+        pallet_sudo: SudoConfig { key: root_key },
+        parachain_info: ParachainInfoConfig { parachain_id: id },
+        orml_oracle_Instance1: OracleConfig {
+            members: endowed_accounts.clone().into(),
+            phantom: Default::default(),
+        },
+        orml_tokens: TokensConfig {
+            endowed_accounts: endowed_accounts
+                .iter()
+                .flat_map(|x| {
+                    vec![
+                        (x.clone(), CurrencyId::KSM, 1_000 * TOKEN_DECIMAL),
+                        (x.clone(), CurrencyId::USDT, 1_000 * TOKEN_DECIMAL),
+                        (x.clone(), CurrencyId::xKSM, 1_000 * TOKEN_DECIMAL),
+                    ]
+                })
+                .collect(),
+        },
+        pallet_loans: LoansConfig {
+            currencies: vec![CurrencyId::KSM, CurrencyId::USDT, CurrencyId::xKSM],
+            borrow_index: Rate::one(),                             // 1
+            exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
+            base_rate: Rate::saturating_from_rational(2, 100),     // 2%
+            kink_rate: Rate::saturating_from_rational(10, 100),    // 10%
+            full_rate: Rate::saturating_from_rational(32, 100),    // 32%
+            kink_utilization: Ratio::from_percent(80),             // 80%
+            collateral_factor: vec![
+                (CurrencyId::KSM, Ratio::from_percent(50)),
+                (CurrencyId::USDT, Ratio::from_percent(50)),
+                (CurrencyId::xKSM, Ratio::from_percent(50)),
+            ],
+            liquidation_incentive: vec![
+                (CurrencyId::KSM, Ratio::from_percent(90)),
+                (CurrencyId::USDT, Ratio::from_percent(90)),
+                (CurrencyId::xKSM, Ratio::from_percent(90)),
+            ],
+            // TODO : please refer to https://github.com/parallel-finance/parallel/issues/46
+            liquidation_threshold: vec![
+                (CurrencyId::KSM, Ratio::from_percent(90)),
+                (CurrencyId::USDT, Ratio::from_percent(90)),
+                (CurrencyId::xKSM, Ratio::from_percent(90)),
+            ],
+            close_factor: vec![
+                (CurrencyId::KSM, Ratio::from_percent(50)),
+                (CurrencyId::USDT, Ratio::from_percent(50)),
+                (CurrencyId::xKSM, Ratio::from_percent(50)),
+            ],
+            reserve_factor: vec![
+                (CurrencyId::KSM, Ratio::from_percent(15)),
+                (CurrencyId::USDT, Ratio::from_percent(15)),
+                (CurrencyId::xKSM, Ratio::from_percent(15)),
             ],
         },
         pallet_staking: StakingConfig {
