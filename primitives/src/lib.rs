@@ -16,6 +16,8 @@
 #![allow(clippy::unnecessary_cast)]
 #![allow(clippy::upper_case_acronyms)]
 
+mod currency;
+
 use codec::{Decode, Encode};
 use sp_runtime::{
     generic,
@@ -88,19 +90,6 @@ pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 
 pub type AuraId = sp_consensus_aura::sr25519::AuthorityId;
 
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
-pub enum CurrencyId {
-    DOT,
-    KSM,
-    USDT,
-    #[allow(non_camel_case_types)]
-    xDOT,
-    #[allow(non_camel_case_types)]
-    xKSM,
-    Native,
-}
-
 pub const TOKEN_DECIMAL: u128 = 1_000_000_000_000_000_000;
 
 pub const RATE_DECIMAL: u128 = 1_000_000_000_000_000_000;
@@ -122,6 +111,8 @@ pub type Ratio = Permill;
 pub type Multiplier = FixedU128;
 
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
+
+pub use currency::CurrencyId;
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
