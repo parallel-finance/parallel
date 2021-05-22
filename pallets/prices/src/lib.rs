@@ -21,7 +21,9 @@ pub use module::*;
 use orml_traits::{arithmetic::CheckedDiv, DataProvider};
 use primitives::*;
 
+#[cfg(test)]
 mod mock;
+#[cfg(test)]
 mod tests;
 
 #[frame_support::pallet]

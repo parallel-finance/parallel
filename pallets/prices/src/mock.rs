@@ -14,8 +14,6 @@
 
 //! Mocks for the prices module.
 
-#![cfg(test)]
-
 use super::*;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types};
 use frame_system::EnsureSignedBy;
