@@ -63,7 +63,7 @@ jobs:
 #         run: |
 #           (mkdir ~/.ssh || true) && ssh-keyscan -H ${{ secrets.WEIGHTS_SSH_HOST }} >> ~/.ssh/known_hosts
 #           scp ${{ secrets.WEIGHTS_SSH_USERNAME }}@${{ secrets.WEIGHTS_SSH_HOST }}:parallel/weights.rs ./pallets/loans/src/weights.rs
-#         uses: nicklasfrahm/scp-action@main
+        uses: nicklasfrahm/scp-action@main
         with:
           direction: download
           host: ${{ secrets.WEIGHTS_SSH_HOST }}
