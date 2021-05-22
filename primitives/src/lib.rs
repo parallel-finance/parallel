@@ -112,7 +112,7 @@ pub type Multiplier = FixedU128;
 
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 
-pub use currency::CurrencyId;
+pub use currency::{CurrencyId, CurrencyInfo};
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
