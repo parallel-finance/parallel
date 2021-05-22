@@ -83,6 +83,10 @@ pub mod module {
         #[pallet::constant]
         type PalletId: Get<PalletId>;
 
+        /// The block per year of relay chain
+        #[pallet::constant]
+        type BlockPerYear: Get<u128>;
+
         /// The origin which can add/reduce reserves.
         type ReserveOrigin: EnsureOrigin<Self::Origin>;
 
@@ -673,7 +677,7 @@ impl<T: Config> Pallet<T> {
             SupplyRate::<T>::insert(currency_id, supply_rate.0);
 
             let borrow_rate_per_block = APR::from(borrow_rate)
-                .rate_per_block()
+                .rate_per_block(T::BlockPerYear::get())
                 .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
             Self::update_borrow_index(borrow_rate_per_block, currency_id)?;
             Self::update_exchange_rate(currency_id)?;

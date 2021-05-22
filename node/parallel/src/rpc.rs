@@ -2,6 +2,9 @@
 
 use std::sync::Arc;
 
+#[cfg(feature = "runtime-heiko")]
+use heiko_runtime::opaque::Block;
+#[cfg(feature = "runtime-parallel")]
 use parallel_runtime::opaque::Block;
 use primitives::{AccountId, Balance, CurrencyId, DataProviderId, Index, TimeStampedPrice};
 pub use sc_rpc_api::DenyUnsafe;

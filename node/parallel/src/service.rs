@@ -33,6 +33,7 @@ use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 use std::sync::Arc;
 
 // Native executor instance.
+#[cfg(feature = "runtime-parallel")]
 native_executor_instance!(
     pub Executor,
     parallel_runtime::api::dispatch,
@@ -40,10 +41,24 @@ native_executor_instance!(
     frame_benchmarking::benchmarking::HostFunctions,
 );
 
-type ParallelBlock = parallel_runtime::opaque::Block;
-type ParallelRuntimeApi = parallel_runtime::RuntimeApi;
-type ParallelFullClient = sc_service::TFullClient<ParallelBlock, ParallelRuntimeApi, Executor>;
-type ParallelFullBackend = sc_service::TFullBackend<ParallelBlock>;
+#[cfg(feature = "runtime-heiko")]
+native_executor_instance!(
+    pub Executor,
+    heiko_runtime::api::dispatch,
+    heiko_runtime::native_version,
+    frame_benchmarking::benchmarking::HostFunctions,
+);
+
+#[cfg(feature = "runtime-parallel")]
+type RuntimeBlock = parallel_runtime::opaque::Block;
+#[cfg(feature = "runtime-heiko")]
+type RuntimeBlock = heiko_runtime::opaque::Block;
+#[cfg(feature = "runtime-parallel")]
+type RuntimeApi = parallel_runtime::RuntimeApi;
+#[cfg(feature = "runtime-heiko")]
+type RuntimeApi = heiko_runtime::RuntimeApi;
+type RuntimeFullClient = sc_service::TFullClient<RuntimeBlock, RuntimeApi, Executor>;
+type RuntimeFullBackend = sc_service::TFullBackend<RuntimeBlock>;
 
 /// Starts a `ServiceBuilder` for a full service.
 ///
@@ -53,11 +68,11 @@ pub fn new_partial(
     config: &Configuration,
 ) -> Result<
     PartialComponents<
-        ParallelFullClient,
-        ParallelFullBackend,
+        RuntimeFullClient,
+        RuntimeFullBackend,
         (),
-        sp_consensus::DefaultImportQueue<ParallelBlock, ParallelFullClient>,
-        sc_transaction_pool::FullPool<ParallelBlock, ParallelFullClient>,
+        sp_consensus::DefaultImportQueue<RuntimeBlock, RuntimeFullClient>,
+        sc_transaction_pool::FullPool<RuntimeBlock, RuntimeFullClient>,
         (Option<Telemetry>, Option<TelemetryWorkerHandle>),
     >,
     sc_service::Error,
@@ -74,7 +89,7 @@ pub fn new_partial(
         .transpose()?;
 
     let (client, backend, keystore_container, task_manager) =
-        sc_service::new_full_parts::<ParallelBlock, ParallelRuntimeApi, Executor>(
+        sc_service::new_full_parts::<RuntimeBlock, RuntimeApi, Executor>(
             &config,
             telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
         )?;
@@ -185,7 +200,7 @@ async fn start_node_impl(
     collator_key: CollatorPair,
     polkadot_config: Configuration,
     id: ParaId,
-) -> sc_service::error::Result<(TaskManager, Arc<ParallelFullClient>)> {
+) -> sc_service::error::Result<(TaskManager, Arc<RuntimeFullClient>)> {
     if matches!(parachain_config.role, Role::Light) {
         return Err("Light client not supported!".into());
     }
@@ -383,7 +398,7 @@ pub async fn start_node(
     id: ParaId,
 ) -> sc_service::error::Result<(
     TaskManager,
-    Arc<TFullClient<ParallelBlock, ParallelRuntimeApi, Executor>>,
+    Arc<TFullClient<RuntimeBlock, RuntimeApi, Executor>>,
 )> {
     start_node_impl(parachain_config, collator_key, polkadot_config, id).await
 }

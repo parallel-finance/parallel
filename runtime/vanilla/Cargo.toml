@@ -18,10 +18,10 @@ git     = 'https://github.com/paritytech/substrate.git'
 version = '4.0.0'
 
 [dependencies]
-codec                     = { package = 'parity-scale-codec', version = '2.0.0', default-features = false, features = ['derive'] }
-hex-literal               = { version = '0.3.1', optional = true }
-serde                     = { version = '1', features = ['derive'], optional = true }
-static_assertions         = '1.1.0'
+codec             = { package = 'parity-scale-codec', version = '2.0.0', default-features = false, features = ['derive'] }
+hex-literal       = { version = '0.3.1', optional = true }
+serde             = { version = '1', features = ['derive'], optional = true }
+static_assertions = '1.1.0'
 
 # local dependencies
 pallet-liquidate          = { path = '../../pallets/liquidate', default-features = false }
@@ -73,7 +73,6 @@ sp-transaction-pool                        = { git = 'https://github.com/parityt
 sp-version                                 = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.1', default-features = false }
 
 [features]
-default            = ['std']
 runtime-benchmarks = [
   'hex-literal',
   'frame-benchmarking',
@@ -84,6 +83,7 @@ runtime-benchmarks = [
   'pallet-timestamp/runtime-benchmarks',
   'sp-runtime/runtime-benchmarks',
   'pallet-loans-benchmarking',
+  'pallet-collective/runtime-benchmarks',
 ]
 std                = [
   'codec/std',
@@ -128,4 +128,6 @@ std                = [
   'pallet-membership/std',
   'pallet-democracy/std',
   'pallet-scheduler/std',
-] # 'pallet-ocw-oracle/std',
+]
+# 'pallet-ocw-oracle/std',
+default = ['std']

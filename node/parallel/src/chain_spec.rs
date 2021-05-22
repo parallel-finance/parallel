@@ -13,10 +13,17 @@
 // limitations under the License.
 
 use cumulus_primitives_core::ParaId;
-use parallel_runtime::currency::DOLLARS;
+#[cfg(feature = "runtime-heiko")]
+use heiko_runtime::{
+    currency::DOLLARS, AuraConfig, BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig,
+    GenesisConfig, LoansConfig, ParachainInfoConfig, ParallelOracleConfig, StakingConfig,
+    SudoConfig, SystemConfig, TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
+};
+#[cfg(feature = "runtime-parallel")]
 use parallel_runtime::{
-    AuraConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, ParallelOracleConfig,
-    TechnicalCommitteeConfig,
+    currency::DOLLARS, AuraConfig, BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig,
+    GenesisConfig, LoansConfig, ParachainInfoConfig, ParallelOracleConfig, StakingConfig,
+    SudoConfig, SystemConfig, TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
 };
 use primitives::*;
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
@@ -30,8 +37,7 @@ use sp_runtime::{
 };
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
-pub type ParallelChainSpec =
-    sc_service::GenericChainSpec<parallel_runtime::GenesisConfig, Extensions>;
+pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
 
 #[allow(dead_code)]
 /// Helper function to generate a crypto pair from seed
@@ -78,8 +84,8 @@ where
     AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
 
-pub fn development_config(id: ParaId) -> ParallelChainSpec {
-    ParallelChainSpec::from_genesis(
+pub fn development_config(id: ParaId) -> ChainSpec {
+    ChainSpec::from_genesis(
         // Name
         "Development",
         // ID
@@ -127,8 +133,8 @@ pub fn development_config(id: ParaId) -> ParallelChainSpec {
     )
 }
 
-pub fn local_testnet_config(id: ParaId) -> ParallelChainSpec {
-    ParallelChainSpec::from_genesis(
+pub fn local_testnet_config(id: ParaId) -> ChainSpec {
+    ChainSpec::from_genesis(
         // Name
         "Local Testnet",
         // ID
@@ -181,36 +187,36 @@ fn testnet_genesis(
     initial_authorities: Vec<(AccountId, AuraId)>,
     endowed_accounts: Vec<AccountId>,
     id: ParaId,
-) -> parallel_runtime::GenesisConfig {
+) -> GenesisConfig {
     let num_endowed_accounts = endowed_accounts.len();
     const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
     const STASH: Balance = ENDOWMENT / 1000;
-    parallel_runtime::GenesisConfig {
-        frame_system: parallel_runtime::SystemConfig {
-            code: parallel_runtime::WASM_BINARY
+    GenesisConfig {
+        frame_system: SystemConfig {
+            code: WASM_BINARY
                 .expect("WASM binary was not build, please build it!")
                 .to_vec(),
             changes_trie_config: Default::default(),
         },
-        pallet_balances: parallel_runtime::BalancesConfig {
+        pallet_balances: BalancesConfig {
             balances: endowed_accounts
                 .iter()
                 .cloned()
                 .map(|k| (k, 1 << 60))
                 .collect(),
         },
-        // TODO : collateral selection
+        // TODO : collateral selection using session
         pallet_aura: AuraConfig {
             authorities: initial_authorities.iter().map(|x| (x.1.clone())).collect(),
         },
         cumulus_pallet_aura_ext: Default::default(),
-        pallet_sudo: parallel_runtime::SudoConfig { key: root_key },
-        parachain_info: parallel_runtime::ParachainInfoConfig { parachain_id: id },
+        pallet_sudo: SudoConfig { key: root_key },
+        parachain_info: ParachainInfoConfig { parachain_id: id },
         orml_oracle_Instance1: ParallelOracleConfig {
             members: endowed_accounts.clone().into(),
             phantom: Default::default(),
         },
-        orml_tokens: parallel_runtime::TokensConfig {
+        orml_tokens: TokensConfig {
             endowed_accounts: endowed_accounts
                 .iter()
                 .flat_map(|x| {
@@ -223,7 +229,7 @@ fn testnet_genesis(
                 })
                 .collect(),
         },
-        pallet_loans: parallel_runtime::LoansConfig {
+        pallet_loans: LoansConfig {
             currencies: vec![
                 CurrencyId::DOT,
                 CurrencyId::KSM,
@@ -268,7 +274,7 @@ fn testnet_genesis(
                 (CurrencyId::xDOT, Ratio::from_percent(15)),
             ],
         },
-        pallet_staking: parallel_runtime::StakingConfig {
+        pallet_staking: StakingConfig {
             exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
         },
         pallet_democracy: DemocracyConfig::default(),

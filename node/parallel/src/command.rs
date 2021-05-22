@@ -19,8 +19,12 @@ use crate::{
 use codec::Encode;
 use cumulus_client_service::genesis::generate_genesis_block;
 use cumulus_primitives_core::ParaId;
+#[cfg(feature = "runtime-heiko")]
+use heiko_runtime::{Block, VERSION};
 use log::info;
-use parallel_runtime::Block;
+#[cfg(feature = "runtime-parallel")]
+use parallel_runtime::{Block, VERSION};
+
 use polkadot_parachain::primitives::AccountIdConversion;
 use sc_cli::{
     ChainSpec, CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams,
@@ -43,7 +47,7 @@ fn load_spec(
     Ok(match id {
         "dev" => Box::new(chain_spec::development_config(para_id)),
         "" | "local" => Box::new(chain_spec::local_testnet_config(para_id)),
-        path => Box::new(chain_spec::ParallelChainSpec::from_json_file(
+        path => Box::new(chain_spec::ChainSpec::from_json_file(
             std::path::PathBuf::from(path),
         )?),
     })
@@ -79,7 +83,7 @@ impl SubstrateCli for Cli {
     }
 
     fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-        &parallel_runtime::VERSION
+        &VERSION
     }
 }
 

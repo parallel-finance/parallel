@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use primitives::{Rate, Ratio, BLOCK_PER_YEAR};
+use primitives::{Rate, Ratio};
 use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedSub, Saturating};
 
 use crate::*;
@@ -40,9 +40,9 @@ impl From<Rate> for APR {
 impl APR {
     pub const MAX: Rate = Rate::from_inner(350_000_000_000_000_000); // 35%
 
-    pub fn rate_per_block(&self) -> Option<Rate> {
+    pub fn rate_per_block(&self, block_per_year: u128) -> Option<Rate> {
         self.0
-            .checked_div(&Rate::saturating_from_integer(BLOCK_PER_YEAR))
+            .checked_div(&Rate::saturating_from_integer(block_per_year))
     }
 }
 
@@ -227,7 +227,9 @@ mod tests {
 
     #[test]
     fn get_supply_rate_works() {
-        let borrow_rate = APR::from(Rate::saturating_from_rational(2, 100 * BLOCK_PER_YEAR));
+        // DOT's block per year
+        let block_per_year: u128 = 5256000;
+        let borrow_rate = APR::from(Rate::saturating_from_rational(2, 100 * block_per_year));
         let util = Ratio::from_percent(50);
         let reserve_factor = Ratio::zero();
         let supply_rate =

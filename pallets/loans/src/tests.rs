@@ -15,7 +15,7 @@
 //! Unit tests for the loans module.
 
 use frame_support::{assert_noop, assert_ok};
-use primitives::{BLOCK_PER_YEAR, RATE_DECIMAL};
+use primitives::RATE_DECIMAL;
 use sp_runtime::traits::{CheckedDiv, One, Saturating};
 use sp_runtime::{FixedU128, Permill};
 
@@ -292,7 +292,9 @@ fn interest_rate_model_works() {
 
         let multiplier_per_year = Multiplier::saturating_from_rational(1, 10);
         let multiplier_per_block = multiplier_per_year
-            .checked_div(&Rate::saturating_from_integer(BLOCK_PER_YEAR))
+            .checked_div(&Rate::saturating_from_integer(
+                <Runtime as Config>::BlockPerYear::get(),
+            ))
             .unwrap();
         assert_eq!(multiplier_per_block, Rate::from_inner(19025875190));
 
@@ -302,7 +304,9 @@ fn interest_rate_model_works() {
 
         let base_rate_per_year = Rate::saturating_from_rational(2, 100);
         let base_rate_per_block = base_rate_per_year
-            .checked_div(&Rate::saturating_from_integer(BLOCK_PER_YEAR))
+            .checked_div(&Rate::saturating_from_integer(
+                <Runtime as Config>::BlockPerYear::get(),
+            ))
             .unwrap();
         assert_eq!(base_rate_per_block, Rate::from_inner(3805175038));
 

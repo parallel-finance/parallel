@@ -5,7 +5,7 @@ description = 'A decentralized lending protocol which allow users to earn "doubl
 edition     = '2018'
 homepage    = 'https://parallel.fi'
 license     = 'Apache'
-name        = 'parallel-runtime'
+name        = 'heiko-runtime'
 repository  = 'https://github.com/parallel-finance/parallel'
 version     = '0.0.1'
 
@@ -159,6 +159,6 @@ std                = [
   'pallet-scheduler/std',
 ]
 # 'pallet-ocw-oracle/std',
-# 'orml-unknown-tokens/std',
 # 'orml-xtokens/std',
 # 'orml-xcm-support/std',
+# 'orml-unknown-tokens/std',

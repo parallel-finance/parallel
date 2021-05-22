@@ -73,7 +73,9 @@ jobs:
 
       - name: Check Build
         run: |
-          SKIP_WASM_BUILD= cargo check --all-targets --all-features
+          SKIP_WASM_BUILD= cargo check --bin parallel-dev --features runtime-benchmarks
+          SKIP_WASM_BUILD= cargo check --bin parallel --features runtime-benchmarks
+          SKIP_WASM_BUILD= cargo check --bin parallel --no-default-features --features runtime-parallel --features runtime-benchmarks
 
       # - name: Check Wasm
       #   run: |
