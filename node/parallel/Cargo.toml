@@ -81,7 +81,7 @@ substrate-build-script-utils = { version = '3.0.0', git = 'https://github.com/pa
 name = 'parallel'
 
 [features]
-default            = ['runtime-heiko']
+default            = ['runtime-parallel']
 runtime-benchmarks = [
   'heiko-runtime/runtime-benchmarks',
   'parallel-runtime/runtime-benchmarks',
