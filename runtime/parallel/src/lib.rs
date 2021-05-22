@@ -600,7 +600,7 @@ pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 pub struct AggregatedDataProvider;
 impl DataProvider<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
     fn get(key: &CurrencyId) -> Option<TimeStampedPrice> {
-        ParallelOracle::get(key)
+        Oracle::get(key)
     }
 }
 
@@ -870,7 +870,7 @@ construct_runtime!(
         Aura: pallet_aura::{Pallet, Config<T>},
         AuraExt: cumulus_pallet_aura_ext::{Pallet, Config},
         // OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
-        ParallelOracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Config<T>, Event<T>},
+        Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Config<T>, Event<T>},
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
         Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},
         Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},
@@ -1029,13 +1029,13 @@ impl_runtime_apis! {
     > for Runtime {
         fn get_value(provider_id: DataProviderId, key: CurrencyId) -> Option<TimeStampedPrice> {
             match provider_id {
-                DataProviderId::Aggregated => ParallelOracle::get_no_op(&key)
+                DataProviderId::Aggregated => Oracle::get_no_op(&key)
             }
         }
 
         fn get_all_values(provider_id: DataProviderId) -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
             match provider_id {
-                DataProviderId::Aggregated => ParallelOracle::get_all_values()
+                DataProviderId::Aggregated => Oracle::get_all_values()
             }
         }
     }

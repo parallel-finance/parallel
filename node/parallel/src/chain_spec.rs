@@ -16,13 +16,13 @@ use cumulus_primitives_core::ParaId;
 #[cfg(feature = "runtime-heiko")]
 use heiko_runtime::{
     currency::DOLLARS, AuraConfig, BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig,
-    GenesisConfig, LoansConfig, ParachainInfoConfig, ParallelOracleConfig, StakingConfig,
+    GenesisConfig, LoansConfig, ParachainInfoConfig, OracleConfig, StakingConfig,
     SudoConfig, SystemConfig, TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
 };
 #[cfg(feature = "runtime-parallel")]
 use parallel_runtime::{
     currency::DOLLARS, AuraConfig, BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig,
-    GenesisConfig, LoansConfig, ParachainInfoConfig, ParallelOracleConfig, StakingConfig,
+    GenesisConfig, LoansConfig, ParachainInfoConfig, OracleConfig, StakingConfig,
     SudoConfig, SystemConfig, TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
 };
 use primitives::*;
@@ -212,7 +212,7 @@ fn testnet_genesis(
         cumulus_pallet_aura_ext: Default::default(),
         pallet_sudo: SudoConfig { key: root_key },
         parachain_info: ParachainInfoConfig { parachain_id: id },
-        orml_oracle_Instance1: ParallelOracleConfig {
+        orml_oracle_Instance1: OracleConfig {
             members: endowed_accounts.clone().into(),
             phantom: Default::default(),
         },

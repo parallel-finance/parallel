@@ -26,7 +26,7 @@ use sp_runtime::{
 use vanilla_runtime::currency::DOLLARS;
 use vanilla_runtime::{
     AuraConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig,
-    TechnicalCommitteeConfig, VanillaOracleConfig, WASM_BINARY,
+    TechnicalCommitteeConfig, OracleConfig, WASM_BINARY,
 };
 
 pub type VanillaChainSpec = sc_service::GenericChainSpec<vanilla_runtime::GenesisConfig>;
@@ -177,7 +177,7 @@ fn testnet_genesis(
                 .collect(),
         },
         pallet_sudo: vanilla_runtime::SudoConfig { key: root_key },
-        orml_oracle_Instance1: VanillaOracleConfig {
+        orml_oracle_Instance1: OracleConfig {
             members: endowed_accounts.clone().into(),
             phantom: Default::default(),
         },
