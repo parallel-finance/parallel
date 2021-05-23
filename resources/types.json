@@ -45,8 +45,24 @@
     "OracleKey": "CurrencyId",
     "OracleValue": "FixedU128",
     "MomentOf": "Moment",
-    "TimestampedValueOf": {
-        "value": "FixedU128",
-        "timestamp": "u64"
+    "TimestampedValue": {
+        "value": "OracleValue",
+        "timestamp": "Moment"
+    },
+    "TimestampedValueOf": "TimestampedValue",
+    "RpcDataProviderId": "Text",
+    "DataProviderId": {
+        "_enum": ["Aggregated"]
+    },
+    "OrderedSet": "Vec<AccountId>",
+    "InterestRateModel": {
+        "baseRatePerBlock": "Rate",
+        "multiplier_perBlock": "Multiplier",
+        "jumpMultiplierPerBlock": "Multiplier",
+        "kink": "Ratio"
+    },
+    "UnstakeInfo": {
+        "amount": "u128",
+        "blockNumber": "u64"
     }
 }
