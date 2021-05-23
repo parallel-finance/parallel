@@ -1,5 +1,9 @@
 # CHANGE LOG
 
+## 2021.05.23
+
+-   Add RpcDataProviderId & AccountData to types.json (#135)
+
 ## 2021.05.21
 
 -   Add types.json update bot (#130)
