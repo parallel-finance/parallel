@@ -64,5 +64,10 @@
     "UnstakeInfo": {
         "amount": "u128",
         "blockNumber": "u64"
+    },
+    "AccountData": {
+        "free": "Balance",
+        "reserved": "Balance",
+        "frozen": "Balance"
     }
 }
