@@ -71,10 +71,6 @@ jobs:
           username: ${{ secrets.WEIGHTS_SSH_USERNAME }}
           key: ${{ secrets.WEIGHTS_SSH_PRIVKEY }}
           port: ${{ secrets.WEIGHTS_SSH_PORT }}
-          proxy_host: ${{ secrets.SSH_PROXY_HOST }}
-          proxy_fingerprint: ${{ secrets.SSH_PROXY_FINGERPRINT }}
-          proxy_username: ${{ secrets.SSH_USER }}
-          proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: parallel/weights.rs
           target: ./pallets/loans/src/weights.rs        
           
