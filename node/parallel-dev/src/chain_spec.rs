@@ -27,6 +27,7 @@ use vanilla_runtime::{
     AuraConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig,
     TechnicalCommitteeConfig, VanillaOracleConfig, WASM_BINARY,
 };
+use serde_json::map::Map;
 
 pub type VanillaChainSpec = sc_service::GenericChainSpec<vanilla_runtime::GenesisConfig>;
 
@@ -55,6 +56,9 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
 
 pub fn development_config() -> Result<VanillaChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
+    let mut properties = Map::new();
+    // properties.insert("tokenSymbol".into(), "PARA".into());
+    properties.insert("tokenDecimals".into(), 18.into());
 
     Ok(VanillaChainSpec::from_genesis(
         // Name
@@ -97,6 +101,9 @@ pub fn development_config() -> Result<VanillaChainSpec, String> {
 
 pub fn local_testnet_config() -> Result<VanillaChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Testnet wasm not available".to_string())?;
+    let mut properties = Map::new();
+    // properties.insert("tokenSymbol".into(), "PARA".into());
+    properties.insert("tokenDecimals".into(), 18.into());
 
     Ok(VanillaChainSpec::from_genesis(
         // Name
