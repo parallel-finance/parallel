@@ -11,7 +11,7 @@
 
 ## 2021.05.22
 
--   Add xKSM & heiko-runtime (#134)
+-   Add xKSM, heiko-runtime and impl_currency_id macro (#134)
 
 ## 2021.05.21
 

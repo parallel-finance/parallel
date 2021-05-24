@@ -51,9 +51,9 @@ impl_currency_id! {
         KSM("Kusama", 12),
         USDT("Tether", 6),
         #[allow(non_camel_case_types)]
-        xDOT("Liquid DOT", 18),
+        xDOT("Liquid DOT", 10),
         #[allow(non_camel_case_types)]
-        xKSM("Liquid KSM", 18),
+        xKSM("Liquid KSM", 12),
         Native("Native", 18),
     }
 }
