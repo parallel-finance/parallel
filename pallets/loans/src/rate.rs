@@ -44,6 +44,16 @@ impl APR {
         self.0
             .checked_div(&Rate::saturating_from_integer(BLOCK_PER_YEAR))
     }
+
+    pub fn accrued_interest_per_block(&self, amount: u128) -> Option<u128> {
+        self.0.checked_mul_int(amount)?.checked_div(BLOCK_PER_YEAR)
+    }
+
+    pub fn increment_index_per_block(&self, index: Rate) -> Option<Rate> {
+        self.0
+            .checked_mul(&index)?
+            .checked_div(&Rate::saturating_from_integer(BLOCK_PER_YEAR))
+    }
 }
 
 /// Parallel interest rate model
