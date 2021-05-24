@@ -64,6 +64,7 @@ pub mod crypto {
 	}
 }
 
+#[derive(RuntimeDebug)]
 pub enum Error {
 	/// There is no pre-configured currencies
 	NoCurrencies,
@@ -152,7 +153,15 @@ impl<T: Config> Pallet<T> {
 			return
 		}
 
-		let aggregated_account_borrows = pallet_loans::AccountBorrows::<T>::iter()
+		let aggregated_account_borrows = Self::transform_account_borrows().unwrap();
+
+		let aggregated_account_collatoral = Self::transform_account_collateral().unwrap();
+
+		let _underwater_account_borrows = Self::liquidate_underwater_loans(&signer, aggregated_account_borrows, aggregated_account_collatoral).unwrap();
+	}
+
+	fn transform_account_borrows() -> Result<BTreeMap<T::AccountId, (Balance, Vec<BorrowMisc>)>, Error> {
+		let result = pallet_loans::AccountBorrows::<T>::iter()
 			.fold(BTreeMap::<T::AccountId, (Balance, Vec<BorrowMisc>)>::new(), |mut acc, (k1, k2, snapshot)| {
 				let loans_value = T::PriceFeeder::get_price(&k1).unwrap().0.checked_mul_int(snapshot.principal).unwrap();
 				let existing = acc.get(&k2).unwrap();
@@ -167,7 +176,11 @@ impl<T: Config> Pallet<T> {
 				acc
 			});
 
-		let aggregated_account_collatoral = pallet_loans::AccountCollateral::<T>::iter()
+		Ok(result)
+	}
+
+	fn transform_account_collateral() -> Result<BTreeMap<T::AccountId, (Balance, Vec<CollateralMisc>)>, Error> {
+		let result = pallet_loans::AccountCollateral::<T>::iter()
 			.fold(BTreeMap::<T::AccountId, (Balance, Vec<CollateralMisc>)>::new(), |mut acc, (k1, k2, balance)| {
 				let collateral_value = T::PriceFeeder::get_price(&k1).unwrap().0.checked_mul_int(balance).unwrap();
 				let under_collatoral_value = pallet_loans::CollateralFactor::<T>::get(&k1).mul_floor(collateral_value);
@@ -183,35 +196,45 @@ impl<T: Config> Pallet<T> {
 				acc
 			});
 
-		let _underwater_account_borrows = aggregated_account_borrows.iter()
-			.filter(|(account, (total_loans_value, _))| {
-				total_loans_value > &aggregated_account_collatoral.get(account).unwrap().0
-			})
-			.map(|(account, (_total_loans_value, loans_detail))| {
-				// TODO change to 0.5, configurable by runners
-				// TODO shortfall compare with 0.5 * max
-				// let liquidation_value = LIQUIDATE_FACTOR.mul_floor(*total_loans_value);
-				let mut new_loans_detail = loans_detail.clone();
-				new_loans_detail.sort_by(|a, b| a.value.cmp(&b.value));
-				let liquidate_loans = &new_loans_detail[0];
-				let liquidation_collatoral = 
-					aggregated_account_collatoral
-					.get(account)
-					.unwrap()
-					.1
-					.iter().find(|collateral_item| 
-						collateral_item.value >= LIQUIDATE_FACTOR.mul_floor(liquidate_loans.value)
-					).unwrap();
-				(
-					account,
-					liquidate_loans.currency,
-					LIQUIDATE_FACTOR.mul_floor(liquidate_loans.amount),
-					liquidation_collatoral.currency, 
-				)
-			})
-			.for_each(|(borrower, loan_currency, liquidation_value, collateral_currency)| {
-				Self::submit_liquidate_transaction(&signer, borrower.clone(), loan_currency, liquidation_value, collateral_currency);
-			});
+		Ok(result)
+	}
+
+	fn liquidate_underwater_loans(
+		signer: &Signer<T, <T as Config>::AuthorityId, ForAll>,
+		aggregated_account_borrows: BTreeMap<T::AccountId, (Balance, Vec<BorrowMisc>)>,
+		aggregated_account_collatoral: BTreeMap<T::AccountId, (Balance, Vec<CollateralMisc>)>,
+	) -> Result<(), Error> {
+		aggregated_account_borrows.iter()
+		.filter(|(account, (total_loans_value, _))| {
+			total_loans_value > &aggregated_account_collatoral.get(account).unwrap().0
+		})
+		.map(|(account, (_total_loans_value, loans_detail))| {
+			// TODO change to 0.5, configurable by runners
+			// TODO shortfall compare with 0.5 * max
+			// let liquidation_value = LIQUIDATE_FACTOR.mul_floor(*total_loans_value);
+			let mut new_loans_detail = loans_detail.clone();
+			new_loans_detail.sort_by(|a, b| a.value.cmp(&b.value));
+			let liquidate_loans = &new_loans_detail[0];
+			let liquidation_collatoral = 
+				aggregated_account_collatoral
+				.get(account)
+				.unwrap()
+				.1
+				.iter().find(|collateral_item| 
+					collateral_item.value >= LIQUIDATE_FACTOR.mul_floor(liquidate_loans.value)
+				).unwrap();
+			(
+				account,
+				liquidate_loans.currency,
+				LIQUIDATE_FACTOR.mul_floor(liquidate_loans.amount),
+				liquidation_collatoral.currency, 
+			)
+		})
+		.for_each(|(borrower, loan_currency, liquidation_value, collateral_currency)| {
+			Self::submit_liquidate_transaction(signer, borrower.clone(), loan_currency, liquidation_value, collateral_currency);
+		});
+		
+		Ok(())
 	}
 
 	fn submit_liquidate_transaction(
