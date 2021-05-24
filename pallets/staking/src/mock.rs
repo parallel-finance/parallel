@@ -95,6 +95,7 @@ impl orml_tokens::Config for Test {
     type OnDust = ();
     type ExistentialDeposits = ExistentialDeposits;
     type WeightInfo = ();
+    type MaxLocks = MaxLocks;
 }
 
 parameter_types! {

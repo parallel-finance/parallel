@@ -22,7 +22,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use codec::Encode;
 use frame_support::{
-    traits::{All, IsInVec, LockIdentifier, U128CurrencyToVote},
+    traits::{All, IsInVec, LockIdentifier, SortedMembers, U128CurrencyToVote},
     PalletId,
 };
 use orml_currencies::BasicCurrencyAdapter;
@@ -255,6 +255,7 @@ impl orml_tokens::Config for Runtime {
     type OnDust = ();
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
+    type MaxLocks = MaxLocks;
 }
 
 parameter_types! {
@@ -445,6 +446,7 @@ impl pallet_xcm::Config for Runtime {
     type XcmRouter = XcmRouter;
     type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
     type XcmExecuteFilter = All<(MultiLocation, Xcm<Call>)>;
+    type XcmReserveTransferFilter = ();
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type XcmTeleportFilter = All<(MultiLocation, Vec<MultiAsset>)>;
     type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
@@ -579,6 +581,15 @@ parameter_types! {
       pub const MinimumCount: u32 = 1;
       pub const ExpiresIn: Moment = 1000 * 60 * 60; // 60 mins
       pub ZeroAccountId: AccountId = AccountId::from([0u8; 32]);
+    pub  OracleMembers: Vec<AccountId> = vec![];
+}
+
+pub struct Members;
+
+impl SortedMembers<AccountId> for Members {
+    fn sorted_members() -> Vec<AccountId> {
+        OracleMembers::get()
+    }
 }
 
 type ParallelDataProvider = orml_oracle::Instance1;
@@ -592,6 +603,7 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
     type OracleValue = Price;
     type RootOperatorAccountId = ZeroAccountId;
     type WeightInfo = ();
+    type Members = Members;
 }
 
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
@@ -868,7 +880,7 @@ construct_runtime!(
         Aura: pallet_aura::{Pallet, Config<T>},
         AuraExt: cumulus_pallet_aura_ext::{Pallet, Config},
         // OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
-        ParallelOracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Config<T>, Event<T>},
+        ParallelOracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
         Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},
         Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},

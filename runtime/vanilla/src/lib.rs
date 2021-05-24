@@ -43,7 +43,7 @@ use sp_version::RuntimeVersion;
 use currency::*;
 pub use frame_support::{
     construct_runtime, log, parameter_types,
-    traits::{KeyOwnerProofSystem, LockIdentifier, Randomness, U128CurrencyToVote},
+    traits::{KeyOwnerProofSystem, LockIdentifier, Randomness, SortedMembers, U128CurrencyToVote},
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
         DispatchClass, IdentityFee, Weight,
@@ -271,6 +271,7 @@ impl orml_tokens::Config for Runtime {
     type OnDust = ();
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
+    type MaxLocks = MaxLocks;
 }
 
 parameter_types! {
@@ -407,6 +408,15 @@ parameter_types! {
       pub const MinimumCount: u32 = 1;
       pub const ExpiresIn: Moment = 1000 * 60 * 60; // 60 mins
       pub ZeroAccountId: AccountId = AccountId::from([0u8; 32]);
+      pub  OracleMembers: Vec<AccountId> = vec![];
+}
+
+pub struct Members;
+
+impl SortedMembers<AccountId> for Members {
+    fn sorted_members() -> Vec<AccountId> {
+        OracleMembers::get()
+    }
 }
 
 type ParallelDataProvider = orml_oracle::Instance1;
@@ -420,6 +430,7 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
     type OracleValue = Price;
     type RootOperatorAccountId = ZeroAccountId;
     type WeightInfo = ();
+    type Members = Members;
 }
 
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
@@ -695,7 +706,7 @@ construct_runtime!(
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
         Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},
         // OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
-        VanillaOracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Config<T>, Event<T>},
+        VanillaOracle: orml_oracle::<Instance1>::{Pallet, Storage, Call,  Event<T>},
         Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},
         LiquidateNew: pallet_liquidate_new::{Pallet, Call},
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},

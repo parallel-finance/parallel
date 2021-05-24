@@ -15,7 +15,11 @@
 use cumulus_primitives_core::ParaId;
 use parallel_runtime::currency::DOLLARS;
 use parallel_runtime::{
-    AuraConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, ParallelOracleConfig,
+    AuraConfig,
+    CouncilConfig,
+    DemocracyConfig,
+    ElectionsConfig,
+    // ParallelOracleConfig,
     TechnicalCommitteeConfig,
 };
 use primitives::*;
@@ -212,10 +216,10 @@ fn testnet_genesis(
         cumulus_pallet_aura_ext: Default::default(),
         pallet_sudo: parallel_runtime::SudoConfig { key: root_key },
         parachain_info: parallel_runtime::ParachainInfoConfig { parachain_id: id },
-        orml_oracle_Instance1: ParallelOracleConfig {
-            members: endowed_accounts.clone().into(),
-            phantom: Default::default(),
-        },
+        // orml_oracle_Instance1: ParallelOracleConfig {
+        //     members: endowed_accounts.clone().into(),
+        //     phantom: Default::default(),
+        // },
         orml_tokens: parallel_runtime::TokensConfig {
             endowed_accounts: endowed_accounts
                 .iter()
