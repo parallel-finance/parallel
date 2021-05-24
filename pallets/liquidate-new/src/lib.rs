@@ -64,12 +64,6 @@ pub mod crypto {
 	}
 }
 
-#[derive(RuntimeDebug)]
-pub enum Error {
-	/// There is no pre-configured currencies
-	NoCurrencies,
-}
-
 /// The miscellaneous information when transforming borrow records.
 #[derive(Clone)]
 struct BorrowMisc {
@@ -99,10 +93,23 @@ pub mod pallet {
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
+	#[pallet::error]
+    pub enum Error<T> {
+		/// There is no pre-configured currencies
+		NoCurrencies,
+		/// Failed to get lock to run offchain worker
+		GetLockFailed,
+		/// No signer available for liquidation, consider adding one via `author_insertKey` RPC.
+		NoAvailableAccount,
+    }
+
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn offchain_worker(block_number: T::BlockNumber) {
-			Self::liquidate(block_number);
+			match Self::liquidate(block_number) {
+				Err(e) => log::error!("Failed to run offchain liquidation: {:?}", e),
+				Ok(_) => log::info!("offchain liquidation processed successfully"),
+			};
 		}
 	}
 
@@ -132,39 +139,45 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
-	fn liquidate(_block_number: T::BlockNumber) {
+	fn liquidate(_block_number: T::BlockNumber) -> Result<(), Error<T>> {
 		let mut lock = StorageLock::<Time>::with_deadline(
 			b"liquidate::lock",
 			Duration::from_millis(LOCK_PERIOD),
 		);
-
 		if let Err(_) = lock.try_lock() {
-			log::error!("liquidate error: get lock failed");
-			return
+			return Err(Error::<T>::GetLockFailed);
 		}
 
 		// TODO
 		// Only liquidate the currencies the collator allows,
 		// also check if the accounts has enough free balances.
 
-		let signer = Signer::<T, T::AuthorityId>::all_accounts();
+		let signer = Signer::<T, T::AuthorityId>::all_accounts(); // TODO use any_account
 		if !signer.can_sign() {
-			log::error!("liquidate error: no available accounts, consider adding one via `author_insertKey` RPC.");
-			return
+			return Err(Error::<T>::NoAvailableAccount);
 		}
 
-		let aggregated_account_borrows = Self::transform_account_borrows().unwrap();
+		let aggregated_account_borrows = Self::transform_account_borrows()?;
 
-		let aggregated_account_collatoral = Self::transform_account_collateral().unwrap();
+		let aggregated_account_collatoral = Self::transform_account_collateral()?;
 
-		let _underwater_account_borrows = Self::liquidate_underwater_loans(&signer, aggregated_account_borrows, aggregated_account_collatoral).unwrap();
+		Self::liquidate_underwater_accounts(&signer, aggregated_account_borrows, aggregated_account_collatoral)?;
+
+		Ok(())
 	}
 
-	fn transform_account_borrows() -> Result<BTreeMap<T::AccountId, (Balance, Vec<BorrowMisc>)>, Error> {
+	fn transform_account_borrows() -> Result<BTreeMap<T::AccountId, (Balance, Vec<BorrowMisc>)>, Error<T>> {
 		let result = pallet_loans::AccountBorrows::<T>::iter()
 			.fold(BTreeMap::<T::AccountId, (Balance, Vec<BorrowMisc>)>::new(), |mut acc, (k1, k2, snapshot)| {
-				let loans_value = T::PriceFeeder::get_price(&k1).unwrap().0.checked_mul_int(snapshot.principal).unwrap();
-				let existing = acc.get(&k2).unwrap();
+				let loans_value = match T::PriceFeeder::get_price(&k1).and_then(|price_info| price_info.0.checked_mul_int(snapshot.principal)) {
+					None => {
+						acc.remove(&k2);
+						return acc;
+					},
+					Some(v) => v,
+				};
+				let default = (0, Vec::new());
+				let existing = acc.get(&k2).unwrap_or(&default);
 				let total_loans_value = existing.0 + loans_value;
 				let mut loans_detail = existing.1.clone();
 				loans_detail.push(BorrowMisc {
@@ -179,12 +192,19 @@ impl<T: Config> Pallet<T> {
 		Ok(result)
 	}
 
-	fn transform_account_collateral() -> Result<BTreeMap<T::AccountId, (Balance, Vec<CollateralMisc>)>, Error> {
+	fn transform_account_collateral() -> Result<BTreeMap<T::AccountId, (Balance, Vec<CollateralMisc>)>, Error<T>> {
 		let result = pallet_loans::AccountCollateral::<T>::iter()
 			.fold(BTreeMap::<T::AccountId, (Balance, Vec<CollateralMisc>)>::new(), |mut acc, (k1, k2, balance)| {
-				let collateral_value = T::PriceFeeder::get_price(&k1).unwrap().0.checked_mul_int(balance).unwrap();
+				let collateral_value = match T::PriceFeeder::get_price(&k1).and_then(|price_info| price_info.0.checked_mul_int(balance)) {
+					None => {
+						acc.remove(&k2);
+						return acc;
+					},
+					Some(v) => v,
+				};
 				let under_collatoral_value = pallet_loans::CollateralFactor::<T>::get(&k1).mul_floor(collateral_value);
-				let existing = acc.get(&k2).unwrap();
+				let default = (0, Vec::new());
+				let existing = acc.get(&k2).unwrap_or(&default);
 				let totoal_under_collatoral_value = existing.0 + under_collatoral_value;
 				let mut collatoral_detail = existing.1.clone();
 				collatoral_detail.push(CollateralMisc {
@@ -199,39 +219,37 @@ impl<T: Config> Pallet<T> {
 		Ok(result)
 	}
 
-	fn liquidate_underwater_loans(
+	fn liquidate_underwater_accounts(
 		signer: &Signer<T, <T as Config>::AuthorityId, ForAll>,
 		aggregated_account_borrows: BTreeMap<T::AccountId, (Balance, Vec<BorrowMisc>)>,
 		aggregated_account_collatoral: BTreeMap<T::AccountId, (Balance, Vec<CollateralMisc>)>,
-	) -> Result<(), Error> {
+	) -> Result<(), Error<T>> {
 		aggregated_account_borrows.iter()
-		.filter(|(account, (total_loans_value, _))| {
-			total_loans_value > &aggregated_account_collatoral.get(account).unwrap().0
-		})
-		.map(|(account, (_total_loans_value, loans_detail))| {
-			// TODO change to 0.5, configurable by runners
-			// TODO shortfall compare with 0.5 * max
-			// let liquidation_value = LIQUIDATE_FACTOR.mul_floor(*total_loans_value);
+		.for_each(|(account, (total_loans_value, loans_detail))| {
+			let collateral = match aggregated_account_collatoral.get(account) {
+				None => return,
+				Some(v) => v
+			};
+
+			if total_loans_value < &collateral.0 {
+				return;
+			}
+
 			let mut new_loans_detail = loans_detail.clone();
 			new_loans_detail.sort_by(|a, b| a.value.cmp(&b.value));
 			let liquidate_loans = &new_loans_detail[0];
-			let liquidation_collatoral = 
-				aggregated_account_collatoral
-				.get(account)
-				.unwrap()
-				.1
-				.iter().find(|collateral_item| 
-					collateral_item.value >= LIQUIDATE_FACTOR.mul_floor(liquidate_loans.value)
-				).unwrap();
-			(
-				account,
-				liquidate_loans.currency,
-				LIQUIDATE_FACTOR.mul_floor(liquidate_loans.amount),
-				liquidation_collatoral.currency, 
-			)
-		})
-		.for_each(|(borrower, loan_currency, liquidation_value, collateral_currency)| {
-			Self::submit_liquidate_transaction(signer, borrower.clone(), loan_currency, liquidation_value, collateral_currency);
+			
+			if let Some(item) = collateral.1.iter().find(|collateral_item| 
+				collateral_item.value >= LIQUIDATE_FACTOR.mul_floor(liquidate_loans.value)
+			) {
+				Self::submit_liquidate_transaction(
+					signer,
+					account.clone(),
+					liquidate_loans.currency,
+					LIQUIDATE_FACTOR.mul_floor(liquidate_loans.amount),
+					item.currency,
+				);
+			}
 		});
 		
 		Ok(())
@@ -260,7 +278,6 @@ impl<T: Config> Pallet<T> {
 				Err(e) => log::error!("[{:?}] Failed to submit transaction: {:?}", acc.id, e),
 			}
 		}
-		log::info!("new transaction needs to be submitted");
 	}
 
 }
