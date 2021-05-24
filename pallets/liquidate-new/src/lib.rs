@@ -38,7 +38,7 @@ use sp_std::prelude::*;
 use frame_support::{
 	pallet_prelude::*, log,
 };
-use frame_system::offchain::{AppCrypto, CreateSignedTransaction, ForAll, SendSignedTransaction, Signer};
+use frame_system::offchain::{AppCrypto, CreateSignedTransaction, ForAny, SendSignedTransaction, Signer};
 use frame_system::pallet_prelude::*;
 
 use primitives::{Balance, CurrencyId, PriceFeeder};
@@ -152,7 +152,7 @@ impl<T: Config> Pallet<T> {
 		// Only liquidate the currencies the collator allows,
 		// also check if the accounts has enough free balances.
 
-		let signer = Signer::<T, T::AuthorityId>::all_accounts(); // TODO use any_account
+		let signer = Signer::<T, T::AuthorityId>::any_account();
 		if !signer.can_sign() {
 			return Err(Error::<T>::NoAvailableAccount);
 		}
@@ -220,7 +220,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn liquidate_underwater_accounts(
-		signer: &Signer<T, <T as Config>::AuthorityId, ForAll>,
+		signer: &Signer<T, <T as Config>::AuthorityId, ForAny>,
 		aggregated_account_borrows: BTreeMap<T::AccountId, (Balance, Vec<BorrowMisc>)>,
 		aggregated_account_collatoral: BTreeMap<T::AccountId, (Balance, Vec<CollateralMisc>)>,
 	) -> Result<(), Error<T>> {
@@ -256,13 +256,13 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn submit_liquidate_transaction(
-		signer: &Signer<T, <T as Config>::AuthorityId, ForAll>,
+		signer: &Signer<T, <T as Config>::AuthorityId, ForAny>,
 		borrower: T::AccountId,
 		loan_currency: CurrencyId,
 		liquidation_value: Balance,
 		collateral_currency: CurrencyId,
 	) {
-		let results = signer.send_signed_transaction(
+		match signer.send_signed_transaction(
 			|_account| {
 				Call::liquidate_borrow(
 					borrower.clone(),
@@ -271,13 +271,10 @@ impl<T: Config> Pallet<T> {
 					collateral_currency.clone(),
 				)
 			}
-		);
-		for (acc, res) in &results {
-			match res {
-				Ok(()) => log::info!("[{:?}] Submitted liquidate borrow, borrower: {:?}", acc.id, borrower),
-				Err(e) => log::error!("[{:?}] Failed to submit transaction: {:?}", acc.id, e),
-			}
+		) {
+			None => log::info!("No available accounts for liquidation"),
+			Some((acc, Ok(()))) => log::info!("[{:?}] Submitted liquidate borrow, borrower: {:?}", acc.id, borrower),
+			Some((acc, Err(e))) => log::error!("[{:?}] Failed to submit transaction: {:?}", acc.id, e),
 		}
 	}
-
 }
