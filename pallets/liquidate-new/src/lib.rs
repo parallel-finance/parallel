@@ -18,7 +18,7 @@
 //! The collator may opt-in with a pre-funded account. The liquidate strategy is:
 //! - find the unhealthy account which has excessed loans
 //! - liquidate the currency with higher loans
-//! - liquidator gets anyone of the affordable collaterals
+//! - liquidator gets any of the affordable collaterals.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -45,8 +45,6 @@ use primitives::{Balance, CurrencyId, PriceFeeder};
 pub use pallet::*;
 
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"liqu");
-pub const LOCK_PERIOD: u64 = 20000; // in milli-seconds
-pub const LIQUIDATE_FACTOR: Percent = Percent::from_percent(50); // 0.5
 
 pub mod crypto {
 	use super::KEY_TYPE;
@@ -86,7 +84,16 @@ pub mod pallet {
 
 	#[pallet::config]
 	pub trait Config: CreateSignedTransaction<Call<Self>> + frame_system::Config + pallet_loans::Config {
+		/// The account type to perform liquidation
 		type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
+
+		/// The lockdown time when running offchain worker
+		#[pallet::constant]
+		type LockPeriod: Get<u64>;
+
+		/// The maximum value when liquidate a loan, may different with the loans pallet.
+		#[pallet::constant]
+		type LiquidateFactor: Get<Percent>;
 	}
 
 	#[pallet::pallet]
@@ -115,7 +122,12 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-
+		/// The same liquidate_borrow call in loans pallet.
+        ///
+        /// - `borrower`: the owner of a loan
+        /// - `liquidate_currency`: the currency of a loan
+        /// - `repay_amount`: the amount will be liquidated
+        /// - `collateral_currency`: the currency that liquidator want to get after liquidation.
 		#[pallet::weight(10_000)]
         fn liquidate_borrow(
             origin: OriginFor<T>,
@@ -142,15 +154,11 @@ impl<T: Config> Pallet<T> {
 	fn liquidate(_block_number: T::BlockNumber) -> Result<(), Error<T>> {
 		let mut lock = StorageLock::<Time>::with_deadline(
 			b"liquidate::lock",
-			Duration::from_millis(LOCK_PERIOD),
+			Duration::from_millis(T::LockPeriod::get()),
 		);
 		if let Err(_) = lock.try_lock() {
 			return Err(Error::<T>::GetLockFailed);
 		}
-
-		// TODO
-		// Only liquidate the currencies the collator allows,
-		// also check if the accounts has enough free balances.
 
 		let signer = Signer::<T, T::AuthorityId>::any_account();
 		if !signer.can_sign() {
@@ -231,6 +239,7 @@ impl<T: Config> Pallet<T> {
 				Some(v) => v
 			};
 
+			// Borrower should not be liquidated if health factor is higger than 1
 			if total_loans_value < &collateral.0 {
 				return;
 			}
@@ -240,13 +249,13 @@ impl<T: Config> Pallet<T> {
 			let liquidate_loans = &new_loans_detail[0];
 			
 			if let Some(item) = collateral.1.iter().find(|collateral_item| 
-				collateral_item.value >= LIQUIDATE_FACTOR.mul_floor(liquidate_loans.value)
+				collateral_item.value >= T::LiquidateFactor::get().mul_floor(liquidate_loans.value)
 			) {
 				Self::submit_liquidate_transaction(
 					signer,
 					account.clone(),
 					liquidate_loans.currency,
-					LIQUIDATE_FACTOR.mul_floor(liquidate_loans.amount),
+					T::LiquidateFactor::get().mul_floor(liquidate_loans.amount),
 					item.currency,
 				);
 			}

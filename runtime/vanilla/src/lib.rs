@@ -331,11 +331,14 @@ impl pallet_liquidate::Config for Runtime {
     type PriceFeeder = Prices;
 }
 
+parameter_types! {
+    pub const LockPeriod: u64 = 20000; // in milli-seconds
+    pub const LiquidateFactor: Percent = Percent::from_percent(50);
+}
 impl pallet_liquidate_new::Config for Runtime {
-    // type AuthorityId = pallet_liquidate_new::crypto::TestAuthId;
-    // type Call = Call;
-    // type Event = Event;
     type AuthorityId = pallet_liquidate_new::crypto::AuthId;
+    type LockPeriod = LockPeriod;
+    type LiquidateFactor = LiquidateFactor;
 }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
