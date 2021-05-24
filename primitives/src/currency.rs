@@ -43,6 +43,7 @@ macro_rules! impl_currency_id {
     }
 }
 
+// TODO: use decimals
 impl_currency_id! {
     #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
     #[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
