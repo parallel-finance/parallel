@@ -261,7 +261,7 @@ parameter_types! {
     pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Native;
 
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
-    pub const BlockPerYear: u128 = 21024000;
+    pub const BlockPerYear: u128 = 5256000;
 }
 
 impl orml_currencies::Config for Runtime {
