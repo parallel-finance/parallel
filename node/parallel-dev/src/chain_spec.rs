@@ -14,6 +14,7 @@
 
 use primitives::*;
 use sc_service::ChainType;
+use serde_json::map::Map;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 #[allow(unused_imports)]
 use sp_core::{sr25519, Pair, Public};
@@ -27,7 +28,6 @@ use vanilla_runtime::{
     AuraConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig,
     TechnicalCommitteeConfig, VanillaOracleConfig, WASM_BINARY,
 };
-use serde_json::map::Map;
 
 pub type VanillaChainSpec = sc_service::GenericChainSpec<vanilla_runtime::GenesisConfig>;
 
