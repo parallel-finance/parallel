@@ -353,6 +353,7 @@ parameter_types! {
     pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
     pub const MaxWithdrawAmount: Balance = 1000;
+    pub const MaxAccountProcessingUnstake: u32 = 5;
 }
 
 impl pallet_staking::Config for Runtime {
@@ -363,6 +364,7 @@ impl pallet_staking::Config for Runtime {
     type LiquidCurrency = LiquidCurrency;
     type WithdrawOrigin = EnsureRoot<AccountId>;
     type MaxWithdrawAmount = MaxWithdrawAmount;
+    type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
 }
 
 impl pallet_liquidate::Config for Runtime {

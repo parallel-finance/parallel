@@ -119,6 +119,7 @@ parameter_types! {
     pub const StakingCurrency: CurrencyId = DOT;
     pub const LiquidCurrency: CurrencyId = XDOT;
     pub const MaxWithdrawAmount: Balance = 10;
+    pub const MaxAccountProcessingUnstake: u32 = 5;
 }
 
 impl pallet_liquid_staking::Config for Test {
@@ -129,6 +130,7 @@ impl pallet_liquid_staking::Config for Test {
     type LiquidCurrency = LiquidCurrency;
     type WithdrawOrigin = EnsureSignedBy<Six, u64>;
     type MaxWithdrawAmount = MaxWithdrawAmount;
+    type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
 }
 
 // BUild genesis storage according to the mock runtime.
