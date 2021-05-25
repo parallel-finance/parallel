@@ -5005,6 +5005,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-liquidate-new"
+version = "3.0.0"
+dependencies = [
+ "alt_serde",
+ "alt_serde_json",
+ "frame-support",
+ "frame-system",
+ "pallet-loans",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "sp-core",
+ "sp-io",
+ "sp-keystore",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-loans"
 version = "1.0.0"
 dependencies = [
@@ -5697,6 +5715,7 @@ dependencies = [
  "pallet-democracy",
  "pallet-elections-phragmen",
  "pallet-liquidate",
+ "pallet-liquidate-new",
  "pallet-loans",
  "pallet-loans-benchmarking",
  "pallet-membership",
@@ -11133,6 +11152,7 @@ dependencies = [
  "pallet-elections-phragmen",
  "pallet-grandpa",
  "pallet-liquidate",
+ "pallet-liquidate-new",
  "pallet-loans",
  "pallet-loans-benchmarking",
  "pallet-membership",
