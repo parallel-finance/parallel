@@ -1,5 +1,9 @@
 # CHANGE LOG
 
+## 2021.05.25
+
+-   Change hasher to Blake2_128Concat for T::AccountId (#141)
+
 ## 2021.05.23
 
 -   Add RpcDataProviderId & AccountData to types.json (#135)
