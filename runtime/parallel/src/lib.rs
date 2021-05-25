@@ -581,15 +581,6 @@ parameter_types! {
       pub const MinimumCount: u32 = 1;
       pub const ExpiresIn: Moment = 1000 * 60 * 60; // 60 mins
       pub ZeroAccountId: AccountId = AccountId::from([0u8; 32]);
-    pub  OracleMembers: Vec<AccountId> = vec![];
-}
-
-pub struct Members;
-
-impl SortedMembers<AccountId> for Members {
-    fn sorted_members() -> Vec<AccountId> {
-        OracleMembers::get()
-    }
 }
 
 type ParallelDataProvider = orml_oracle::Instance1;
@@ -603,7 +594,7 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
     type OracleValue = Price;
     type RootOperatorAccountId = ZeroAccountId;
     type WeightInfo = ();
-    type Members = Members;
+    type Members = OperatorMembership;
 }
 
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
@@ -857,6 +848,25 @@ impl pallet_treasury::Config for Runtime {
     type MaxApprovals = MaxApprovals;
 }
 
+parameter_types! {
+	// TODO: update
+	pub const OracleMaxMembers: u32 = 100;
+}
+
+type OperatorMembershipInstance = pallet_membership::Instance2;
+impl pallet_membership::Config<OperatorMembershipInstance> for Runtime {
+    type Event = Event;
+    type AddOrigin = EnsureRoot<AccountId>;
+    type RemoveOrigin = EnsureRoot<AccountId>;
+    type SwapOrigin = EnsureRoot<AccountId>;
+    type ResetOrigin = EnsureRoot<AccountId>;
+    type PrimeOrigin = EnsureRoot<AccountId>;
+    type MembershipInitialized = ();
+    type MembershipChanged = ();
+    type MaxMembers = OracleMaxMembers;
+    type WeightInfo = ();
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -893,6 +903,7 @@ construct_runtime!(
         Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
         Elections: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>},
         TechnicalMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>},
+        OperatorMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>},
     }
 );
 
@@ -1047,6 +1058,12 @@ impl_runtime_apis! {
             match provider_id {
                 DataProviderId::Aggregated => ParallelOracle::get_all_values()
             }
+        }
+    }
+
+    impl cumulus_primitives_core::CollectCollationInfo<Block> for Runtime {
+        fn collect_collation_info() -> cumulus_primitives_core::CollationInfo {
+            ParachainSystem::collect_collation_info()
         }
     }
 

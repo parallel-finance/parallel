@@ -33,6 +33,7 @@ use vanilla_runtime::{
     TechnicalCommitteeConfig,
     // VanillaOracleConfig
     WASM_BINARY,
+    OperatorMembershipConfig,
 };
 
 pub type VanillaChainSpec = sc_service::GenericChainSpec<vanilla_runtime::GenesisConfig>;
@@ -274,5 +275,9 @@ fn testnet_genesis(
         },
         pallet_membership_Instance1: Default::default(),
         pallet_treasury: Default::default(),
+        pallet_membership_Instance2: OperatorMembershipConfig {
+            members: endowed_accounts.clone(),
+            phantom: Default::default(),
+        },
     }
 }

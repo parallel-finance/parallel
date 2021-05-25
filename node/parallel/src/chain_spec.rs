@@ -21,6 +21,7 @@ use parallel_runtime::{
     ElectionsConfig,
     // ParallelOracleConfig,
     TechnicalCommitteeConfig,
+    OperatorMembershipConfig,
 };
 use primitives::*;
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
@@ -301,5 +302,9 @@ fn testnet_genesis(
         },
         pallet_membership_Instance1: Default::default(),
         pallet_treasury: Default::default(),
+        pallet_membership_Instance2: OperatorMembershipConfig {
+            members: endowed_accounts.clone(),
+            phantom: Default::default(),
+        },
     }
 }
