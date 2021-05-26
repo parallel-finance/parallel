@@ -100,6 +100,9 @@ pub fn development_config(id: ParaId) -> ParallelChainSpec {
                     get_authority_keys_from_seed("Bob"),
                     get_authority_keys_from_seed("Charlie"),
                 ],
+                vec!["5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
+                    .parse()
+                    .unwrap()],
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Alice"),
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -113,9 +116,6 @@ pub fn development_config(id: ParaId) -> ParallelChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-                    "5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
-                        .parse()
-                        .unwrap(),
                     // Parallel team accounts
                     "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
                         .parse()
@@ -152,6 +152,9 @@ pub fn local_testnet_config(id: ParaId) -> ParallelChainSpec {
                     get_authority_keys_from_seed("Bob"),
                     get_authority_keys_from_seed("Charlie"),
                 ],
+                vec!["5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
+                    .parse()
+                    .unwrap()],
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Alice"),
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -165,9 +168,6 @@ pub fn local_testnet_config(id: ParaId) -> ParallelChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-                    "5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
-                        .parse()
-                        .unwrap(),
                     // Parallel team accounts
                     "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
                         .parse()
@@ -190,6 +190,7 @@ pub fn local_testnet_config(id: ParaId) -> ParallelChainSpec {
 fn testnet_genesis(
     root_key: AccountId,
     initial_authorities: Vec<(AccountId, AuraId)>,
+    oracle_accounts: Vec<AccountId>,
     endowed_accounts: Vec<AccountId>,
     id: ParaId,
 ) -> parallel_runtime::GenesisConfig {
@@ -303,7 +304,7 @@ fn testnet_genesis(
         pallet_membership_Instance1: Default::default(),
         pallet_treasury: Default::default(),
         pallet_membership_Instance2: OperatorMembershipConfig {
-            members: endowed_accounts.clone(),
+            members: oracle_accounts,
             phantom: Default::default(),
         },
     }
