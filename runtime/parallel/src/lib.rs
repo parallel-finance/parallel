@@ -22,7 +22,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use codec::Encode;
 use frame_support::{
-    traits::{All, IsInVec, LockIdentifier, SortedMembers, U128CurrencyToVote},
+    traits::{All, IsInVec, LockIdentifier, U128CurrencyToVote},
     PalletId,
 };
 use orml_currencies::BasicCurrencyAdapter;

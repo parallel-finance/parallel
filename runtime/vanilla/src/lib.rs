@@ -43,7 +43,7 @@ use sp_version::RuntimeVersion;
 use currency::*;
 pub use frame_support::{
     construct_runtime, log, parameter_types,
-    traits::{KeyOwnerProofSystem, LockIdentifier, Randomness, SortedMembers, U128CurrencyToVote},
+    traits::{KeyOwnerProofSystem, LockIdentifier, Randomness, U128CurrencyToVote},
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
         DispatchClass, IdentityFee, Weight,
@@ -910,6 +910,12 @@ impl_runtime_apis! {
             match provider_id {
                 DataProviderId::Aggregated => VanillaOracle::get_all_values()
             }
+        }
+    }
+
+    impl cumulus_primitives_core::CollectCollationInfo<Block> for Runtime {
+        fn collect_collation_info() -> cumulus_primitives_core::CollationInfo {
+            ParachainSystem::collect_collation_info()
         }
     }
 
