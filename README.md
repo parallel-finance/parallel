@@ -95,7 +95,7 @@ cargo build --release
 ### Embedded Docs
 
 Once the project has been built, the following command can be used to explore all parameters and
-subcommands:
+subcommands: 
 
 ```sh
 ./target/release/parallel -h
