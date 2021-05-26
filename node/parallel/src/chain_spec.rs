@@ -19,9 +19,9 @@ use parallel_runtime::{
     CouncilConfig,
     DemocracyConfig,
     ElectionsConfig,
+    OperatorMembershipConfig,
     // ParallelOracleConfig,
     TechnicalCommitteeConfig,
-    OperatorMembershipConfig,
 };
 use primitives::*;
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};

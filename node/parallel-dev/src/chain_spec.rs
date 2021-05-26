@@ -30,10 +30,10 @@ use vanilla_runtime::{
     DemocracyConfig,
     ElectionsConfig,
     GrandpaConfig,
+    OperatorMembershipConfig,
     TechnicalCommitteeConfig,
     // VanillaOracleConfig
     WASM_BINARY,
-    OperatorMembershipConfig,
 };
 
 pub type VanillaChainSpec = sc_service::GenericChainSpec<vanilla_runtime::GenesisConfig>;
