@@ -15,10 +15,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-use frame_support::{pallet_prelude::*, sp_runtime::FixedPointNumber, transactional};
+use frame_support::{pallet_prelude::*, transactional};
 use frame_system::pallet_prelude::*;
 pub use module::*;
-use orml_traits::{arithmetic::CheckedDiv, DataProvider};
+use orml_traits::DataProvider;
 use primitives::*;
 
 mod mock;
@@ -106,16 +106,9 @@ impl<T: Config> PriceFeeder for Pallet<T> {
     /// Timestamp is zero means the price is emergency price
     fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
         // if emergency price exists, return it, otherwise return latest price from oracle.
-        let origin_price = Self::get_emergency_price(currency_id).or_else(|| {
+        Self::get_emergency_price(currency_id).or_else(|| {
             T::Source::get(&currency_id).and_then(|price| Some((price.value, price.timestamp)))
-        });
-        if let Some((price, timestamp)) = origin_price {
-            price
-                .checked_div(&Price::saturating_from_integer(CURRENCY_DECIMAL))
-                .and_then(|p| Some((p, timestamp)))
-        } else {
-            None
-        }
+        })
     }
 }
 
