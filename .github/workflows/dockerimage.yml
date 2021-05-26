@@ -24,6 +24,6 @@ jobs:
         with:
           file: Dockerfile.release
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/parallel:latest
+          tags: ${{ secrets.DOCKERHUB_REPO }}:latest
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}

@@ -211,7 +211,7 @@ pub mod module {
         _,
         Twox64Concat,
         CurrencyId,
-        Twox64Concat,
+        Blake2_128Concat,
         T::AccountId,
         BorrowSnapshot,
         ValueQuery,
@@ -225,7 +225,7 @@ pub mod module {
         _,
         Twox64Concat,
         CurrencyId,
-        Twox64Concat,
+        Blake2_128Concat,
         T::AccountId,
         Balance,
         ValueQuery,
@@ -239,7 +239,7 @@ pub mod module {
         _,
         Twox64Concat,
         CurrencyId,
-        Twox64Concat,
+        Blake2_128Concat,
         T::AccountId,
         EarnedSnapshot,
         ValueQuery,
@@ -250,7 +250,7 @@ pub mod module {
     #[pallet::storage]
     #[pallet::getter(fn account_collateral_assets)]
     pub type AccountCollateralAssets<T: Config> =
-        StorageMap<_, Twox64Concat, T::AccountId, Vec<CurrencyId>, ValueQuery>;
+        StorageMap<_, Blake2_128Concat, T::AccountId, Vec<CurrencyId>, ValueQuery>;
 
     /// Accumulator of the total earned interest rate since the opening of the market
     /// CurrencyType -> u128
@@ -583,7 +583,7 @@ pub mod module {
         }
 
         /// Add reserves by transferring from payer.
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::add_reserves())]
         #[transactional]
         pub fn add_reserves(
             origin: OriginFor<T>,

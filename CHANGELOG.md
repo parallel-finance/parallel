@@ -1,5 +1,27 @@
 # CHANGE LOG
 
+## 2021.05.25
+
+-   Change hasher to Blake2_128Concat for T::AccountId (#142)
+-   Use BoundedVec for AccountProcessUnstake (#143)
+
+## 2021.05.23
+
+-   Add RpcDataProviderId & AccountData to types.json (#136)
+
+## 2021.05.21
+
+-   Add types.json update bot (#130)
+
+## 2021.05.19
+
+-   Add governance support (#126)
+
+## 2021.05.18
+
+-   Add polkadot-launch (#119)
+-   Add dockerfile & Docker image build (#125)
+
 ## 2021.05.14
 
 -   Benchmark the dispatchables in loans pallet (#114)

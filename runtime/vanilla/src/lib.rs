@@ -31,7 +31,7 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 
 // re-exports
-pub use pallet_liquidate;
+pub use pallet_liquidate_new;
 pub use pallet_loans;
 pub use pallet_multisig;
 // pub use pallet_ocw_oracle;
@@ -301,6 +301,7 @@ parameter_types! {
     pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
     pub const MaxWithdrawAmount: Balance = 1000;
+    pub const MaxAccountProcessingUnstake: u32 = 5;
 }
 
 impl pallet_staking::Config for Runtime {
@@ -311,6 +312,7 @@ impl pallet_staking::Config for Runtime {
     type LiquidCurrency = LiquidCurrency;
     type WithdrawOrigin = EnsureRoot<AccountId>;
     type MaxWithdrawAmount = MaxWithdrawAmount;
+    type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
 }
 
 // parameter_types! {
@@ -324,11 +326,14 @@ impl pallet_staking::Config for Runtime {
 //     type PricePrecision = PricePrecision;
 // }
 
-impl pallet_liquidate::Config for Runtime {
-    type AuthorityId = pallet_liquidate::crypto::TestAuthId;
-    type Call = Call;
-    type Event = Event;
-    type PriceFeeder = Prices;
+parameter_types! {
+    pub const LockPeriod: u64 = 20000; // in milli-seconds
+    pub const LiquidateFactor: Percent = Percent::from_percent(50);
+}
+impl pallet_liquidate_new::Config for Runtime {
+    type AuthorityId = pallet_liquidate_new::crypto::AuthId;
+    type LockPeriod = LockPeriod;
+    type LiquidateFactor = LiquidateFactor;
 }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
@@ -684,7 +689,7 @@ construct_runtime!(
         Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},
         // OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
         VanillaOracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Config<T>, Event<T>},
-        Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},
+        LiquidateNew: pallet_liquidate_new::{Pallet, Call},
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
         Democracy: pallet_democracy::{Pallet, Call, Storage, Config, Event<T>},
         Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},

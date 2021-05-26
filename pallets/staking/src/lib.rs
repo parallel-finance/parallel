@@ -18,9 +18,10 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{pallet_prelude::*, transactional, PalletId};
+use frame_support::{pallet_prelude::*, transactional, BoundedVec, PalletId};
 use frame_system::pallet_prelude::*;
 use sp_runtime::{traits::AccountIdConversion, FixedPointNumber, RuntimeDebug};
+use sp_std::convert::TryInto;
 use sp_std::prelude::*;
 
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
@@ -80,6 +81,10 @@ pub mod pallet {
         /// The maximum assets can be withdrawed to a multisig account.
         #[pallet::constant]
         type MaxWithdrawAmount: Get<Balance>;
+
+        /// The maximum size of AccountProcessingUnstake
+        #[pallet::constant]
+        type MaxAccountProcessingUnstake: Get<u32>;
     }
 
     #[pallet::error]
@@ -100,6 +105,8 @@ pub mod pallet {
         NoProcessingUnstake,
         /// There is no unstake in progress with input amount
         InvalidProcessedUnstakeAmount,
+        /// The maximum account processing unstake reuqest exceeded
+        MaxAccountProcessingUnstakeExceeded,
     }
 
     #[pallet::event]
@@ -153,7 +160,7 @@ pub mod pallet {
         T::AccountId,
         Blake2_128Concat,
         T::AccountId,
-        Vec<UnstakeInfo<T::BlockNumber>>,
+        BoundedVec<UnstakeInfo<T::BlockNumber>, T::MaxAccountProcessingUnstake>,
     >;
 
     #[pallet::genesis_config]
@@ -418,9 +425,13 @@ pub mod pallet {
                 block_number,
             };
             let new_processing_unstake = match processing_unstake {
-                None => vec![new_unstake],
+                None => vec![new_unstake]
+                    .try_into()
+                    .map_err(|_| Error::<T>::MaxAccountProcessingUnstakeExceeded)?,
                 Some(mut unstake_list) => {
-                    unstake_list.push(new_unstake);
+                    unstake_list
+                        .try_push(new_unstake)
+                        .map_err(|_| Error::<T>::MaxAccountProcessingUnstakeExceeded)?;
                     unstake_list
                 }
             };
@@ -448,7 +459,6 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::WithdrawOrigin::ensure_origin(origin)?;
 
-            // TODO use BoundedVec to restrict the size.
             AccountProcessingUnstake::<T>::try_mutate_exists(
                 &agent,
                 &owner,
@@ -466,7 +476,7 @@ pub mod pallet {
                             })?;
                     *info = match new_info.len() {
                         0 => None,
-                        _ => Some(new_info.to_vec()),
+                        _ => Some(new_info.clone()),
                     };
                     Ok(())
                 },

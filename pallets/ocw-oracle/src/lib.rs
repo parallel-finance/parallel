@@ -28,7 +28,6 @@ use frame_system::{
 pub use module::*;
 #[allow(unused_imports)]
 use num_traits::float::FloatCore;
-use num_traits::CheckedDiv;
 use primitives::*;
 use serde::{Deserialize, Deserializer};
 use sp_core::crypto::KeyTypeId;
@@ -38,7 +37,7 @@ use sp_runtime::{
     transaction_validity::{
         InvalidTransaction, TransactionSource, TransactionValidity, ValidTransaction,
     },
-    FixedPointNumber, RuntimeDebug,
+    RuntimeDebug,
 };
 use sp_std::{prelude::*, str};
 
@@ -441,10 +440,6 @@ impl<T: Config> rt_offchain::storage_lock::BlockNumberProvider for Pallet<T> {
 
 impl<T: Config> PriceFeeder for Pallet<T> {
     fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
-        Self::get_price(currency_id).and_then(|(price, timestamp)| {
-            price
-                .checked_div(&Price::saturating_from_integer(CURRENCY_DECIMAL))
-                .and_then(|price| Some((price, timestamp)))
-        })
+        Self::get_price(currency_id)
     }
 }

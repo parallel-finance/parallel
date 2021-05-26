@@ -14,6 +14,7 @@
 
 use primitives::*;
 use sc_service::ChainType;
+use serde_json::map::Map;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 #[allow(unused_imports)]
 use sp_core::{sr25519, Pair, Public};
@@ -55,6 +56,9 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
 
 pub fn development_config() -> Result<VanillaChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
+    let mut properties = Map::new();
+    // properties.insert("tokenSymbol".into(), "PARA".into());
+    properties.insert("tokenDecimals".into(), 18.into());
 
     Ok(VanillaChainSpec::from_genesis(
         // Name
@@ -80,6 +84,9 @@ pub fn development_config() -> Result<VanillaChainSpec, String> {
                     get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+                    "5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
+                        .parse()
+                        .unwrap(),
                     // Parallel team accounts
                     "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
                         .parse()
@@ -97,6 +104,9 @@ pub fn development_config() -> Result<VanillaChainSpec, String> {
 
 pub fn local_testnet_config() -> Result<VanillaChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Testnet wasm not available".to_string())?;
+    let mut properties = Map::new();
+    // properties.insert("tokenSymbol".into(), "PARA".into());
+    properties.insert("tokenDecimals".into(), 18.into());
 
     Ok(VanillaChainSpec::from_genesis(
         // Name
@@ -124,6 +134,9 @@ pub fn local_testnet_config() -> Result<VanillaChainSpec, String> {
                     get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+                    "5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
+                        .parse()
+                        .unwrap(),
                     // Parallel team accounts
                     "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
                         .parse()
