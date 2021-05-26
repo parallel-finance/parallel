@@ -63,7 +63,7 @@ use xcm_builder::{
 use xcm_executor::{Config, XcmExecutor};
 
 // re-exports
-pub use pallet_liquidate;
+pub use pallet_liquidate_new;
 pub use pallet_loans;
 pub use pallet_multisig;
 // pub use pallet_ocw_oracle;
@@ -368,11 +368,68 @@ impl pallet_staking::Config for Runtime {
     type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
 }
 
-impl pallet_liquidate::Config for Runtime {
-    type AuthorityId = pallet_liquidate::crypto::TestAuthId;
-    type Call = Call;
-    type Event = Event;
-    type PriceFeeder = Prices;
+// impl pallet_liquidate::Config for Runtime {
+//     type AuthorityId = pallet_liquidate::crypto::TestAuthId;
+//     type Call = Call;
+//     type Event = Event;
+//     type PriceFeeder = Prices;
+// }
+
+parameter_types! {
+    pub const LockPeriod: u64 = 20000; // in milli-seconds
+    pub const LiquidateFactor: Percent = Percent::from_percent(50);
+}
+impl pallet_liquidate_new::Config for Runtime {
+    type AuthorityId = pallet_liquidate_new::crypto::AuthId;
+    type LockPeriod = LockPeriod;
+    type LiquidateFactor = LiquidateFactor;
+}
+
+impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
+where
+    Call: From<LocalCall>,
+{
+    fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
+        call: Call,
+        public: <Signature as traits::Verify>::Signer,
+        account: AccountId,
+        index: Index,
+    ) -> Option<(
+        Call,
+        <UncheckedExtrinsic as traits::Extrinsic>::SignaturePayload,
+    )> {
+        let period = BlockHashCount::get() as u64;
+        let current_block = System::block_number()
+            .saturated_into::<u64>()
+            .saturating_sub(1);
+        let tip = 0;
+        let extra: SignedExtra = (
+            frame_system::CheckSpecVersion::<Runtime>::new(),
+            frame_system::CheckTxVersion::<Runtime>::new(),
+            frame_system::CheckGenesis::<Runtime>::new(),
+            frame_system::CheckEra::<Runtime>::from(generic::Era::mortal(period, current_block)),
+            frame_system::CheckNonce::<Runtime>::from(index),
+            frame_system::CheckWeight::<Runtime>::new(),
+            pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
+        );
+
+        let raw_payload = SignedPayload::new(call, extra)
+            .map_err(|e| {
+                log::error!("SignedPayload error: {:?}", e);
+            })
+            .ok()?;
+        let signature = raw_payload.using_encoded(|payload| C::sign(payload, public))?;
+        let address = account;
+        let (call, extra, _) = raw_payload.deconstruct();
+        Some((
+            call,
+            (
+                sp_runtime::MultiAddress::Id(address),
+                signature.into(),
+                extra,
+            ),
+        ))
+    }
 }
 
 parameter_types! {
@@ -893,7 +950,7 @@ construct_runtime!(
         ParallelOracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
         Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},
-        Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},
+        // Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
         Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>},
         Democracy: pallet_democracy::{Pallet, Call, Storage, Config, Event<T>},
