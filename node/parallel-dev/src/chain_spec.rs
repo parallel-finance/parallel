@@ -205,6 +205,7 @@ fn testnet_genesis(
                         (x.clone(), CurrencyId::KSM, 1_000 * TOKEN_DECIMAL),
                         (x.clone(), CurrencyId::USDT, 1_000 * TOKEN_DECIMAL),
                         (x.clone(), CurrencyId::xDOT, 1_000 * TOKEN_DECIMAL),
+                        (x.clone(), CurrencyId::xKSM, 1_000 * TOKEN_DECIMAL),
                     ]
                 })
                 .collect(),
@@ -215,6 +216,7 @@ fn testnet_genesis(
                 CurrencyId::KSM,
                 CurrencyId::USDT,
                 CurrencyId::xDOT,
+                CurrencyId::xKSM,
             ],
             borrow_index: Rate::one(),                             // 1
             exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
@@ -233,6 +235,7 @@ fn testnet_genesis(
                 (CurrencyId::KSM, Ratio::from_percent(90)),
                 (CurrencyId::USDT, Ratio::from_percent(90)),
                 (CurrencyId::xDOT, Ratio::from_percent(90)),
+                (CurrencyId::xKSM, Ratio::from_percent(90)),
             ],
             // TODO : please refer to https://github.com/parallel-finance/parallel/issues/46
             liquidation_threshold: vec![
@@ -240,18 +243,21 @@ fn testnet_genesis(
                 (CurrencyId::KSM, Ratio::from_percent(90)),
                 (CurrencyId::USDT, Ratio::from_percent(90)),
                 (CurrencyId::xDOT, Ratio::from_percent(90)),
+                (CurrencyId::xKSM, Ratio::from_percent(90)),
             ],
             close_factor: vec![
                 (CurrencyId::DOT, Ratio::from_percent(50)),
                 (CurrencyId::KSM, Ratio::from_percent(50)),
                 (CurrencyId::USDT, Ratio::from_percent(50)),
                 (CurrencyId::xDOT, Ratio::from_percent(50)),
+                (CurrencyId::xKSM, Ratio::from_percent(50)),
             ],
             reserve_factor: vec![
                 (CurrencyId::DOT, Ratio::from_percent(15)),
                 (CurrencyId::KSM, Ratio::from_percent(15)),
                 (CurrencyId::USDT, Ratio::from_percent(15)),
                 (CurrencyId::xDOT, Ratio::from_percent(15)),
+                (CurrencyId::xKSM, Ratio::from_percent(15)),
             ],
         },
         pallet_liquid_staking: vanilla_runtime::LiquidStakingConfig {

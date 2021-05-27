@@ -149,6 +149,8 @@ pub mod module {
         InsufficientReserves,
         /// Invalid rate model params
         InvalidRateModelParam,
+        /// Currency not enabled
+        CurrencyNotEnabled,
     }
 
     #[pallet::event]
@@ -452,6 +454,9 @@ pub mod module {
             mint_amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+
+            Self::ensure_currency(&currency_id)?;
+
             Self::update_earned_stored(&who, &currency_id)?;
             Self::mint_internal(&who, &currency_id, mint_amount)?;
             Ok(().into())
@@ -466,6 +471,9 @@ pub mod module {
             redeem_amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+
+            Self::ensure_currency(&currency_id)?;
+
             Self::update_earned_stored(&who, &currency_id)?;
             Self::redeem_internal(&who, &currency_id, redeem_amount)?;
             Ok(().into())
@@ -479,6 +487,9 @@ pub mod module {
             currency_id: CurrencyId,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+
+            Self::ensure_currency(&currency_id)?;
+
             Self::update_earned_stored(&who, &currency_id)?;
             let collateral = AccountCollateral::<T>::get(&currency_id, &who);
             let exchange_rate = Self::exchange_rate(currency_id);
@@ -498,6 +509,9 @@ pub mod module {
             borrow_amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+
+            Self::ensure_currency(&currency_id)?;
+
             Self::borrow_internal(&who, &currency_id, borrow_amount)?;
             Ok(().into())
         }
@@ -511,6 +525,9 @@ pub mod module {
             repay_amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+
+            Self::ensure_currency(&currency_id)?;
+
             Self::repay_borrow_internal(&who, &currency_id, repay_amount)?;
             Ok(().into())
         }
@@ -523,6 +540,9 @@ pub mod module {
             currency_id: CurrencyId,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+
+            Self::ensure_currency(&currency_id)?;
+
             let account_borrows = Self::borrow_balance_stored(&who, &currency_id)?;
             Self::repay_borrow_internal(&who, &currency_id, account_borrows)?;
             Ok(().into())
@@ -537,6 +557,9 @@ pub mod module {
             amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+
+            Self::ensure_currency(&currency_id)?;
+
             T::Currency::transfer(currency_id, &who, &to, amount)?;
 
             Ok(().into())
@@ -550,6 +573,9 @@ pub mod module {
             enable: bool,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+
+            Self::ensure_currency(&currency_id)?;
+
             Self::collateral_asset_internal(who, currency_id, enable)?;
 
             Ok(().into())
@@ -566,6 +592,9 @@ pub mod module {
             collateral_token: CurrencyId,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+
+            Self::ensure_currency(&liquidate_token)?;
+
             Self::liquidate_borrow_internal(
                 who,
                 borrower,
@@ -586,6 +615,8 @@ pub mod module {
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
 
+            Self::ensure_currency(&currency_id)?;
+
             new_model
                 .check_parameters()
                 .map_err(|_| Error::<T>::InvalidRateModelParam)?;
@@ -605,6 +636,8 @@ pub mod module {
         ) -> DispatchResultWithPostInfo {
             T::ReserveOrigin::ensure_origin(origin)?;
             let payer = T::Lookup::lookup(payer)?;
+
+            Self::ensure_currency(&currency_id)?;
 
             T::Currency::transfer(currency_id, &payer, &Self::account_id(), add_amount)?;
             let total_reserves = Self::total_reserves(currency_id);
@@ -633,6 +666,8 @@ pub mod module {
             T::ReserveOrigin::ensure_origin(origin)?;
             let receiver = T::Lookup::lookup(receiver)?;
 
+            Self::ensure_currency(&currency_id)?;
+
             let total_reserves = Self::total_reserves(currency_id);
             if reduce_amount > total_reserves {
                 return Err(Error::<T>::InsufficientReserves.into());
@@ -655,6 +690,17 @@ pub mod module {
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> T::AccountId {
         T::PalletId::get().into_account()
+    }
+
+    fn ensure_currency(currency_id: &CurrencyId) -> DispatchResult {
+        if Self::currencies()
+            .iter()
+            .any(|currency| currency == currency_id)
+        {
+            Ok(())
+        } else {
+            Err(<Error<T>>::CurrencyNotEnabled.into())
+        }
     }
 
     fn accrue_interest() -> DispatchResult {
