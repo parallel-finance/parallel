@@ -229,8 +229,62 @@ parameter_types! {
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-    let t = frame_system::GenesisConfig::default()
+    let mut t = frame_system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap();
+
+    pallet_loans::GenesisConfig {
+        currencies: vec![
+            CurrencyId::DOT,
+            CurrencyId::KSM,
+            CurrencyId::USDT,
+            CurrencyId::xDOT,
+            CurrencyId::xKSM,
+        ],
+        borrow_index: Rate::one(),                             // 1
+        exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
+        base_rate: Rate::saturating_from_rational(2, 100),     // 2%
+        kink_rate: Rate::saturating_from_rational(10, 100),    // 10%
+        full_rate: Rate::saturating_from_rational(32, 100),    // 32%
+        kink_utilization: Ratio::from_percent(80),             // 80%
+        collateral_factor: vec![
+            (CurrencyId::DOT, Ratio::from_percent(50)),
+            (CurrencyId::KSM, Ratio::from_percent(50)),
+            (CurrencyId::USDT, Ratio::from_percent(50)),
+            (CurrencyId::xDOT, Ratio::from_percent(50)),
+            (CurrencyId::xKSM, Ratio::from_percent(50)),
+        ],
+        liquidation_incentive: vec![
+            (CurrencyId::DOT, Ratio::from_percent(90)),
+            (CurrencyId::KSM, Ratio::from_percent(90)),
+            (CurrencyId::USDT, Ratio::from_percent(90)),
+            (CurrencyId::xDOT, Ratio::from_percent(90)),
+            (CurrencyId::xKSM, Ratio::from_percent(90)),
+        ],
+        liquidation_threshold: vec![
+            (CurrencyId::DOT, Ratio::from_percent(80)),
+            (CurrencyId::KSM, Ratio::from_percent(80)),
+            (CurrencyId::USDT, Ratio::from_percent(90)),
+            (CurrencyId::xDOT, Ratio::from_percent(80)),
+            (CurrencyId::xKSM, Ratio::from_percent(80)),
+        ],
+        close_factor: vec![
+            (CurrencyId::DOT, Ratio::from_percent(50)),
+            (CurrencyId::KSM, Ratio::from_percent(50)),
+            (CurrencyId::USDT, Ratio::from_percent(50)),
+            (CurrencyId::xDOT, Ratio::from_percent(50)),
+            (CurrencyId::xKSM, Ratio::from_percent(50)),
+        ],
+        reserve_factor: vec![
+            (CurrencyId::DOT, Ratio::from_percent(15)),
+            (CurrencyId::KSM, Ratio::from_percent(15)),
+            (CurrencyId::USDT, Ratio::from_percent(15)),
+            (CurrencyId::xDOT, Ratio::from_percent(15)),
+            (CurrencyId::xKSM, Ratio::from_percent(15)),
+        ],
+    }
+    .assimilate_storage::<Test>(&mut t)
+    .unwrap();
+
     sp_io::TestExternalities::new(t)
 }
