@@ -353,7 +353,7 @@ async fn start_node_impl(
             collator_key,
             relay_chain_full_node: polkadot_full_node,
             spawner,
-            backend,
+            // backend,
             parachain_consensus,
         };
 
