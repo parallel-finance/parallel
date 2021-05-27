@@ -184,11 +184,12 @@ fn testnet_genesis(
                 .collect(),
         },
         pallet_balances: vanilla_runtime::BalancesConfig {
-            balances: endowed_accounts
-                .iter()
-                .cloned()
-                .map(|k| (k, 1 << 60))
-                .collect(),
+            balances: {
+                let mut endowed_accounts = endowed_accounts.clone();
+                endowed_accounts.extend_from_slice(&oracle_accounts);
+
+                endowed_accounts.into_iter().map(|k| (k, 1 << 60)).collect()
+            },
         },
         pallet_sudo: vanilla_runtime::SudoConfig { key: root_key },
         // orml_oracle_Instance1: VanillaOracleConfig {
