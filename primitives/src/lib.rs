@@ -73,12 +73,14 @@ pub type Multiplier = FixedU128;
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
 pub enum CurrencyId {
-    DOT,
-    KSM,
-    USDT,
+    DOT = 0,
+    KSM = 1,
+    USDT = 2,
     #[allow(non_camel_case_types)]
-    xDOT,
-    Native,
+    xDOT = 3,
+    #[allow(non_camel_case_types)]
+    xKSM = 4,
+    Native = 5,
 }
 
 pub const TOKEN_DECIMAL: u128 = 1_000_000_000_000_000_000;
@@ -97,6 +99,14 @@ pub type Timestamp = u64;
 
 pub type PriceDetail = (Price, Timestamp);
 
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
+
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum DataProviderId {
+    Aggregated = 0,
+}
+
 pub trait PriceFeeder {
     fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail>;
 }
@@ -104,12 +114,4 @@ pub trait PriceFeeder {
 pub trait EmergencyPriceFeeder<CurrencyId, Price> {
     fn set_emergency_price(currency_id: CurrencyId, price: Price);
     fn reset_emergency_price(currency_id: CurrencyId);
-}
-
-pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
-
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub enum DataProviderId {
-    Aggregated = 0,
 }

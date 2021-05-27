@@ -22,7 +22,6 @@ use frame_support::{log, pallet_prelude::*, transactional, PalletId};
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 use primitives::{Amount, Balance, CurrencyId, Multiplier, PriceFeeder, Rate, Ratio};
-use rate::APR;
 use sp_runtime::{
     traits::{AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, StaticLookup, Zero},
     FixedPointNumber,
