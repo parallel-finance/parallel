@@ -4987,24 +4987,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-liquidate"
-version = "1.0.0"
-dependencies = [
- "alt_serde",
- "alt_serde_json",
- "frame-support",
- "frame-system",
- "pallet-loans",
- "parallel-primitives",
- "parity-scale-codec",
- "sp-core",
- "sp-io",
- "sp-keystore",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
 name = "pallet-liquidate-new"
 version = "3.0.0"
 dependencies = [
@@ -5154,23 +5136,6 @@ dependencies = [
  "frame-support",
  "frame-system",
  "parity-scale-codec",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "pallet-ocw-oracle"
-version = "1.0.0"
-dependencies = [
- "alt_serde",
- "alt_serde_json",
- "frame-support",
- "frame-system",
- "num-traits",
- "parallel-primitives",
- "parity-scale-codec",
- "sp-core",
  "sp-io",
  "sp-runtime",
  "sp-std",
@@ -5714,7 +5679,6 @@ dependencies = [
  "pallet-collective",
  "pallet-democracy",
  "pallet-elections-phragmen",
- "pallet-liquidate",
  "pallet-liquidate-new",
  "pallet-loans",
  "pallet-loans-benchmarking",

@@ -27,7 +27,6 @@ static_assertions         = '1.1.0'
 pallet-liquidate-new          = { path = '../../pallets/liquidate-new', default-features = false }
 pallet-loans              = { path = '../../pallets/loans', default-features = false }
 pallet-loans-benchmarking = { path = '../../pallets/loans/benchmarking', default-features = false, optional = true }
-# pallet-ocw-oracle         = { path = '../../pallets/ocw-oracle', default-features = false }
 pallet-prices  = { path = '../../pallets/prices', default-features = false }
 pallet-staking = { path = '../../pallets/staking', default-features = false }
 
@@ -128,4 +127,4 @@ std                = [
   'pallet-membership/std',
   'pallet-democracy/std',
   'pallet-scheduler/std',
-] # 'pallet-ocw-oracle/std',
+]
