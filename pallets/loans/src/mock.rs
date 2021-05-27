@@ -105,6 +105,7 @@ impl orml_tokens::Config for Runtime {
     type WeightInfo = ();
     type OnDust = ();
     type ExistentialDeposits = ExistentialDeposits;
+    type MaxLocks = MaxLocks;
 }
 
 parameter_types! {

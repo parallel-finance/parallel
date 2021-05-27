@@ -17,7 +17,7 @@
 
 use super::*;
 
-use frame_support::traits::Time;
+use frame_support::traits::{SortedMembers, Time};
 use frame_support::{construct_runtime, parameter_types, PalletId};
 use frame_system::EnsureRoot;
 use lazy_static::lazy_static;
@@ -45,7 +45,7 @@ construct_runtime!(
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Loans: pallet_loans::{Pallet, Storage, Call, Config, Event<T>},
-        Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Config<T>, Event<T>},
+        Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
     }
 );
 
@@ -103,6 +103,7 @@ impl orml_tokens::Config for Test {
     type WeightInfo = ();
     type OnDust = ();
     type ExistentialDeposits = ExistentialDeposits;
+    type MaxLocks = MaxLocks;
 }
 
 parameter_types! {
@@ -188,6 +189,15 @@ parameter_types! {
     pub const MinimumCount: u32 = 3;
     pub const ExpiresIn: u32 = 600;
     pub const RootOperatorAccountId: AccountId = 4;
+    pub static OracleMembers: Vec<AccountId> = vec![1, 2, 3];
+}
+
+pub struct Members;
+
+impl SortedMembers<AccountId> for Members {
+    fn sorted_members() -> Vec<AccountId> {
+        OracleMembers::get()
+    }
 }
 
 impl orml_oracle::Config<Instance1> for Test {
@@ -199,6 +209,7 @@ impl orml_oracle::Config<Instance1> for Test {
     type OracleValue = FixedU128;
     type RootOperatorAccountId = RootOperatorAccountId;
     type WeightInfo = ();
+    type Members = Members;
 }
 
 impl pallet_loans::Config for Test {

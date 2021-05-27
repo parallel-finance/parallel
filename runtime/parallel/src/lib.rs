@@ -63,7 +63,7 @@ use xcm_builder::{
 use xcm_executor::{Config, XcmExecutor};
 
 // re-exports
-pub use pallet_liquidate;
+pub use pallet_liquidate_new;
 pub use pallet_loans;
 pub use pallet_multisig;
 // pub use pallet_ocw_oracle;
@@ -255,6 +255,7 @@ impl orml_tokens::Config for Runtime {
     type OnDust = ();
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
+    type MaxLocks = MaxLocks;
 }
 
 parameter_types! {
@@ -269,6 +270,63 @@ impl orml_currencies::Config for Runtime {
     type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
     type GetNativeCurrencyId = GetNativeCurrencyId;
     type WeightInfo = ();
+}
+
+// parameter_types! {
+//     pub const PricePrecision: u8 = 18;
+// }
+
+// impl pallet_ocw_oracle::Config for Runtime {
+//     type AuthorityId = pallet_ocw_oracle::crypto::TestAuthId;
+//     type Call = Call;
+//     type Event = Event;
+//     type PricePrecision = PricePrecision;
+// }
+
+impl pallet_loans::Config for Runtime {
+    type Event = Event;
+    type Currency = Currencies;
+    type PalletId = LoansPalletId;
+    type PriceFeeder = Prices;
+    type ReserveOrigin = EnsureRoot<AccountId>;
+    type UpdateOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = pallet_loans::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+    pub const StakingPalletId: PalletId = PalletId(*b"par/stak");
+    pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
+    pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
+    pub const MaxWithdrawAmount: Balance = 1000;
+    pub const MaxAccountProcessingUnstake: u32 = 5;
+}
+
+impl pallet_staking::Config for Runtime {
+    type Event = Event;
+    type Currency = Currencies;
+    type PalletId = StakingPalletId;
+    type StakingCurrency = StakingCurrency;
+    type LiquidCurrency = LiquidCurrency;
+    type WithdrawOrigin = EnsureRoot<AccountId>;
+    type MaxWithdrawAmount = MaxWithdrawAmount;
+    type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
+}
+
+// impl pallet_liquidate::Config for Runtime {
+//     type AuthorityId = pallet_liquidate::crypto::TestAuthId;
+//     type Call = Call;
+//     type Event = Event;
+//     type PriceFeeder = Prices;
+// }
+
+parameter_types! {
+    pub const LockPeriod: u64 = 20000; // in milli-seconds
+    pub const LiquidateFactor: Percent = Percent::from_percent(50);
+}
+impl pallet_liquidate_new::Config for Runtime {
+    type AuthorityId = pallet_liquidate_new::crypto::AuthId;
+    type LockPeriod = LockPeriod;
+    type LiquidateFactor = LiquidateFactor;
 }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
@@ -325,53 +383,6 @@ where
 {
     type OverarchingCall = Call;
     type Extrinsic = UncheckedExtrinsic;
-}
-
-// parameter_types! {
-//     pub const PricePrecision: u8 = 18;
-// }
-
-// impl pallet_ocw_oracle::Config for Runtime {
-//     type AuthorityId = pallet_ocw_oracle::crypto::TestAuthId;
-//     type Call = Call;
-//     type Event = Event;
-//     type PricePrecision = PricePrecision;
-// }
-
-impl pallet_loans::Config for Runtime {
-    type Event = Event;
-    type Currency = Currencies;
-    type PalletId = LoansPalletId;
-    type PriceFeeder = Prices;
-    type ReserveOrigin = EnsureRoot<AccountId>;
-    type UpdateOrigin = EnsureRoot<AccountId>;
-    type WeightInfo = pallet_loans::weights::SubstrateWeight<Runtime>;
-}
-
-parameter_types! {
-    pub const StakingPalletId: PalletId = PalletId(*b"par/stak");
-    pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
-    pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
-    pub const MaxWithdrawAmount: Balance = 1000;
-    pub const MaxAccountProcessingUnstake: u32 = 5;
-}
-
-impl pallet_staking::Config for Runtime {
-    type Event = Event;
-    type Currency = Currencies;
-    type PalletId = StakingPalletId;
-    type StakingCurrency = StakingCurrency;
-    type LiquidCurrency = LiquidCurrency;
-    type WithdrawOrigin = EnsureRoot<AccountId>;
-    type MaxWithdrawAmount = MaxWithdrawAmount;
-    type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
-}
-
-impl pallet_liquidate::Config for Runtime {
-    type AuthorityId = pallet_liquidate::crypto::TestAuthId;
-    type Call = Call;
-    type Event = Event;
-    type PriceFeeder = Prices;
 }
 
 parameter_types! {
@@ -445,6 +456,7 @@ impl pallet_xcm::Config for Runtime {
     type XcmRouter = XcmRouter;
     type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
     type XcmExecuteFilter = All<(MultiLocation, Xcm<Call>)>;
+    type XcmReserveTransferFilter = ();
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type XcmTeleportFilter = All<(MultiLocation, Vec<MultiAsset>)>;
     type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
@@ -592,13 +604,14 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
     type OracleValue = Price;
     type RootOperatorAccountId = ZeroAccountId;
     type WeightInfo = ();
+    type Members = OracleMembership;
 }
 
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 pub struct AggregatedDataProvider;
 impl DataProvider<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
     fn get(key: &CurrencyId) -> Option<TimeStampedPrice> {
-        ParallelOracle::get(key)
+        Oracle::get(key)
     }
 }
 
@@ -845,6 +858,25 @@ impl pallet_treasury::Config for Runtime {
     type MaxApprovals = MaxApprovals;
 }
 
+parameter_types! {
+    // TODO: update
+    pub const OracleMaxMembers: u32 = 100;
+}
+
+type OracleMembershipInstance = pallet_membership::Instance2;
+impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
+    type Event = Event;
+    type AddOrigin = EnsureRoot<AccountId>;
+    type RemoveOrigin = EnsureRoot<AccountId>;
+    type SwapOrigin = EnsureRoot<AccountId>;
+    type ResetOrigin = EnsureRoot<AccountId>;
+    type PrimeOrigin = EnsureRoot<AccountId>;
+    type MembershipInitialized = ();
+    type MembershipChanged = ();
+    type MaxMembers = OracleMaxMembers;
+    type WeightInfo = ();
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -868,10 +900,11 @@ construct_runtime!(
         Aura: pallet_aura::{Pallet, Config<T>},
         AuraExt: cumulus_pallet_aura_ext::{Pallet, Config},
         // OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
-        ParallelOracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Config<T>, Event<T>},
+        Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
         Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},
-        Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},
+        // Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},
+        LiquidateNew: pallet_liquidate_new::{Pallet, Call},
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
         Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>},
         Democracy: pallet_democracy::{Pallet, Call, Storage, Config, Event<T>},
@@ -881,6 +914,7 @@ construct_runtime!(
         Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
         Elections: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>},
         TechnicalMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>},
+        OracleMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>},
     }
 );
 
@@ -1027,14 +1061,20 @@ impl_runtime_apis! {
     > for Runtime {
         fn get_value(provider_id: DataProviderId, key: CurrencyId) -> Option<TimeStampedPrice> {
             match provider_id {
-                DataProviderId::Aggregated => ParallelOracle::get_no_op(&key)
+                DataProviderId::Aggregated => Oracle::get_no_op(&key)
             }
         }
 
         fn get_all_values(provider_id: DataProviderId) -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
             match provider_id {
-                DataProviderId::Aggregated => ParallelOracle::get_all_values()
+                DataProviderId::Aggregated => Oracle::get_all_values()
             }
+        }
+    }
+
+    impl cumulus_primitives_core::CollectCollationInfo<Block> for Runtime {
+        fn collect_collation_info() -> cumulus_primitives_core::CollationInfo {
+            ParachainSystem::collect_collation_info()
         }
     }
 

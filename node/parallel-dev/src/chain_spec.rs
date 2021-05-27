@@ -25,8 +25,15 @@ use sp_runtime::{
 };
 use vanilla_runtime::currency::DOLLARS;
 use vanilla_runtime::{
-    AuraConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig,
-    TechnicalCommitteeConfig, VanillaOracleConfig, WASM_BINARY,
+    AuraConfig,
+    CouncilConfig,
+    DemocracyConfig,
+    ElectionsConfig,
+    GrandpaConfig,
+    OracleMembershipConfig,
+    TechnicalCommitteeConfig,
+    // VanillaOracleConfig
+    WASM_BINARY,
 };
 
 pub type VanillaChainSpec = sc_service::GenericChainSpec<vanilla_runtime::GenesisConfig>;
@@ -71,6 +78,9 @@ pub fn development_config() -> Result<VanillaChainSpec, String> {
                 wasm_binary,
                 get_account_id_from_seed::<sr25519::Public>("Alice"),
                 vec![authority_keys_from_seed("Alice")],
+                vec!["5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
+                    .parse()
+                    .unwrap()],
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Alice"),
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -84,9 +94,6 @@ pub fn development_config() -> Result<VanillaChainSpec, String> {
                     get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-                    "5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
-                        .parse()
-                        .unwrap(),
                     // Parallel team accounts
                     "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
                         .parse()
@@ -121,6 +128,9 @@ pub fn local_testnet_config() -> Result<VanillaChainSpec, String> {
                     .parse()
                     .unwrap(),
                 vec![authority_keys_from_seed("Alice")],
+                vec!["5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
+                    .parse()
+                    .unwrap()],
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Alice"),
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -134,9 +144,6 @@ pub fn local_testnet_config() -> Result<VanillaChainSpec, String> {
                     get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-                    "5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
-                        .parse()
-                        .unwrap(),
                     // Parallel team accounts
                     "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
                         .parse()
@@ -156,6 +163,7 @@ fn testnet_genesis(
     wasm_binary: &[u8],
     root_key: AccountId,
     initial_authorities: Vec<(AuraId, GrandpaId)>,
+    oracle_accounts: Vec<AccountId>,
     endowed_accounts: Vec<AccountId>,
 ) -> vanilla_runtime::GenesisConfig {
     let num_endowed_accounts = endowed_accounts.len();
@@ -183,10 +191,10 @@ fn testnet_genesis(
                 .collect(),
         },
         pallet_sudo: vanilla_runtime::SudoConfig { key: root_key },
-        orml_oracle_Instance1: VanillaOracleConfig {
-            members: endowed_accounts.clone().into(),
-            phantom: Default::default(),
-        },
+        // orml_oracle_Instance1: VanillaOracleConfig {
+        //     members: endowed_accounts.clone().into(),
+        //     phantom: Default::default(),
+        // },
         orml_tokens: vanilla_runtime::TokensConfig {
             endowed_accounts: endowed_accounts
                 .iter()
@@ -268,5 +276,9 @@ fn testnet_genesis(
         },
         pallet_membership_Instance1: Default::default(),
         pallet_treasury: Default::default(),
+        pallet_membership_Instance2: OracleMembershipConfig {
+            members: oracle_accounts,
+            phantom: Default::default(),
+        },
     }
 }
