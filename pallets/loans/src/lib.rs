@@ -607,13 +607,13 @@ pub mod module {
             T::ReserveOrigin::ensure_origin(origin)?;
             let payer = T::Lookup::lookup(payer)?;
 
-            T::Currency::transfer(currency_id.clone(), &payer, &Self::account_id(), add_amount)?;
+            T::Currency::transfer(currency_id, &payer, &Self::account_id(), add_amount)?;
             let total_reserves = Self::total_reserves(currency_id);
             let total_reserves_new = total_reserves + add_amount;
             TotalReserves::<T>::insert(currency_id, total_reserves_new);
 
             Self::deposit_event(Event::<T>::ReservesAdded(
-                Self::account_id().clone(),
+                Self::account_id(),
                 currency_id,
                 add_amount,
                 total_reserves_new,
@@ -639,12 +639,7 @@ pub mod module {
                 return Err(Error::<T>::InsufficientReserves.into());
             }
             let total_reserves_new = total_reserves - reduce_amount;
-            T::Currency::transfer(
-                currency_id.clone(),
-                &Self::account_id(),
-                &receiver,
-                reduce_amount,
-            )?;
+            T::Currency::transfer(currency_id, &Self::account_id(), &receiver, reduce_amount)?;
             TotalReserves::<T>::insert(currency_id, total_reserves_new);
             Self::deposit_event(Event::<T>::ReservesReduced(
                 receiver,
