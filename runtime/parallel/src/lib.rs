@@ -604,14 +604,14 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
     type OracleValue = Price;
     type RootOperatorAccountId = ZeroAccountId;
     type WeightInfo = ();
-    type Members = OperatorMembership;
+    type Members = OracleMembership;
 }
 
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 pub struct AggregatedDataProvider;
 impl DataProvider<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
     fn get(key: &CurrencyId) -> Option<TimeStampedPrice> {
-        ParallelOracle::get(key)
+        Oracle::get(key)
     }
 }
 
@@ -863,8 +863,8 @@ parameter_types! {
     pub const OracleMaxMembers: u32 = 100;
 }
 
-type OperatorMembershipInstance = pallet_membership::Instance2;
-impl pallet_membership::Config<OperatorMembershipInstance> for Runtime {
+type OracleMembershipInstance = pallet_membership::Instance2;
+impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
     type Event = Event;
     type AddOrigin = EnsureRoot<AccountId>;
     type RemoveOrigin = EnsureRoot<AccountId>;
@@ -900,7 +900,7 @@ construct_runtime!(
         Aura: pallet_aura::{Pallet, Config<T>},
         AuraExt: cumulus_pallet_aura_ext::{Pallet, Config},
         // OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
-        ParallelOracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
+        Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
         Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},
         // Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},
@@ -914,7 +914,7 @@ construct_runtime!(
         Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
         Elections: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>},
         TechnicalMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>},
-        OperatorMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>},
+        OracleMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>},
     }
 );
 
@@ -1061,13 +1061,13 @@ impl_runtime_apis! {
     > for Runtime {
         fn get_value(provider_id: DataProviderId, key: CurrencyId) -> Option<TimeStampedPrice> {
             match provider_id {
-                DataProviderId::Aggregated => ParallelOracle::get_no_op(&key)
+                DataProviderId::Aggregated => Oracle::get_no_op(&key)
             }
         }
 
         fn get_all_values(provider_id: DataProviderId) -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
             match provider_id {
-                DataProviderId::Aggregated => ParallelOracle::get_all_values()
+                DataProviderId::Aggregated => Oracle::get_all_values()
             }
         }
     }

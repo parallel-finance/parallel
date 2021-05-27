@@ -1,5 +1,9 @@
 # CHANGE LOG
 
+## 2021.05.27
+
+-   upgrade to polkadot-v0.9.2 (#147)
+
 ## 2021.05.25
 
 -   Change hasher to Blake2_128Concat for T::AccountId (#142)
@@ -26,7 +30,7 @@
 
 -   Benchmark the dispatchables in loans pallet (#114)
 -   Add `APR` struct and refactor rate model (#115)
--   upgrade to polkadot-v0.9.2 (#113)
+-   upgrade to polkadot-v0.9.1 (#113)
 
 ## 2021.05.12
 
