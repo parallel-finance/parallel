@@ -169,15 +169,6 @@ impl<T: Config> Pallet<T> {
 
         let aggregated_account_collatoral = Self::transform_account_collateral()?;
 
-        log::info!(
-            "aggregated_account_borrows:{:?}",
-            aggregated_account_borrows
-        );
-        log::info!(
-            "aggregated_account_collatoral:{:?}",
-            aggregated_account_collatoral
-        );
-
         Self::liquidate_underwater_accounts(
             &signer,
             aggregated_account_borrows,

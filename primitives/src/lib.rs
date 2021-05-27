@@ -18,8 +18,7 @@
 
 use codec::{Decode, Encode};
 use sp_runtime::{
-    generic,
-    traits::{BlakeTwo256, IdentifyAccount, Verify},
+    traits::{IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
 };
 use sp_std::{convert::Into, prelude::*};
@@ -53,14 +52,8 @@ pub type Index = u32;
 /// A hash of some data used by the chain.
 pub type Hash = sp_core::H256;
 
-/// Digest item type.
-pub type DigestItem = generic::DigestItem<Hash>;
-
 /// An instant or duration in time.
 pub type Moment = u64;
-
-/// Counter for the number of eras that have passed.
-pub type EraIndex = u32;
 
 /// Balance of an account.
 pub type Balance = u128;
@@ -68,23 +61,14 @@ pub type Balance = u128;
 /// Signed version of Balance
 pub type Amount = i128;
 
-/// Auction ID
-pub type AuctionId = u32;
+/// The fixed point number
+pub type Rate = FixedU128;
 
-/// Share type
-pub type Share = u128;
+/// The fixed point number, range from 0 to 1.
+pub type Ratio = Permill;
 
-/// Header type.
-pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
-
-/// Block type.
-pub type Block = generic::Block<Header, UncheckedExtrinsic>;
-
-/// Block ID.
-pub type BlockId = generic::BlockId<Block>;
-
-/// Opaque, encoded, unchecked extrinsic.
-pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
+/// The fixed point number used in loans pallet.
+pub type Multiplier = FixedU128;
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
@@ -117,12 +101,6 @@ pub trait PriceFeeder {
     fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail>;
 }
 
-pub type Rate = FixedU128;
-
-pub type Ratio = Permill;
-
-pub type Multiplier = FixedU128;
-
 pub trait EmergencyPriceFeeder<CurrencyId, Price> {
     fn set_emergency_price(currency_id: CurrencyId, price: Price);
     fn reset_emergency_price(currency_id: CurrencyId);
@@ -135,5 +113,3 @@ pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 pub enum DataProviderId {
     Aggregated = 0,
 }
-
-pub type AuraId = sp_consensus_aura::sr25519::AuthorityId;

@@ -2,7 +2,7 @@
 authors = ['Parallel Team']
 edition = '2018'
 name    = 'pallet-loans-benchmarking'
-version = '1.0.0'
+version = '3.0.0'
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']
@@ -17,7 +17,7 @@ orml-oracle        = { git = 'https://github.com/open-web3-stack/open-runtime-mo
 orml-tokens        = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-traits        = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 pallet-balances    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.2', version = '3.0.0', default-features = false }
-pallet-loans       = { version = "1.0.0", default-features = false, features = ["runtime-benchmarks"], path = "../../loans" }
+pallet-loans       = { path = '../../loans', default-features = false, features = ['runtime-benchmarks'] }
 primitives         = { package = 'parallel-primitives', path = '../../../primitives', default-features = false }
 sp-runtime         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.2', version = '3.0.0', default-features = false }
 sp-std             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.2', version = '3.0.0', default-features = false }

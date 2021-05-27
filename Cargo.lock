@@ -5119,7 +5119,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-liquid-staking"
-version = "1.0.0"
+version = "3.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5158,7 +5158,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-loans"
-version = "1.0.0"
+version = "3.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5179,7 +5179,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-loans-benchmarking"
-version = "1.0.0"
+version = "3.0.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5333,7 +5333,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-prices"
-version = "1.0.0"
+version = "3.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5774,7 +5774,6 @@ dependencies = [
  "orml-oracle",
  "parity-scale-codec",
  "serde",
- "sp-consensus-aura",
  "sp-core",
  "sp-io",
  "sp-runtime",

@@ -7,39 +7,10 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use codec::Encode;
+use static_assertions::const_assert;
+
+// Import Substrate dependencies
 use frame_support::PalletId;
-use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::{parameter_type_with_key, DataProvider};
-use pallet_grandpa::fg_primitives;
-use pallet_grandpa::{AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
-use sp_api::impl_runtime_apis;
-use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_consensus_aura::SlotDuration;
-use sp_core::{
-    crypto::KeyTypeId,
-    u32_trait::{_1, _2, _3, _4, _5},
-    OpaqueMetadata,
-};
-use sp_runtime::traits::{self, AccountIdLookup, BlakeTwo256, Block as BlockT, NumberFor};
-use sp_runtime::{
-    create_runtime_str, generic, impl_opaque_keys,
-    transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, Percent, SaturatedConversion,
-};
-use sp_std::prelude::*;
-#[cfg(feature = "std")]
-use sp_version::NativeVersion;
-
-// re-exports
-pub use pallet_liquid_staking;
-pub use pallet_liquidation;
-pub use pallet_loans;
-pub use pallet_multisig;
-
-use sp_version::RuntimeVersion;
-
-// A few exports that help ease life for downstream crates.
-use currency::*;
 pub use frame_support::{
     construct_runtime, log, parameter_types,
     traits::{KeyOwnerProofSystem, LockIdentifier, Randomness, U128CurrencyToVote},
@@ -50,12 +21,45 @@ pub use frame_support::{
     StorageValue,
 };
 use frame_system::{EnsureOneOf, EnsureRoot};
+use pallet_grandpa::{
+    fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
+};
 use pallet_transaction_payment::CurrencyAdapter;
-pub use primitives::*;
+use sp_api::impl_runtime_apis;
+use sp_consensus_aura::{sr25519::AuthorityId as AuraId, SlotDuration};
+use sp_core::{
+    crypto::KeyTypeId,
+    u32_trait::{_1, _2, _3, _4, _5},
+    OpaqueMetadata,
+};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
+use sp_runtime::{
+    create_runtime_str, generic, impl_opaque_keys,
+    traits::{self, AccountIdLookup, BlakeTwo256, Block as BlockT, NumberFor},
+    transaction_validity::{TransactionSource, TransactionValidity},
+    ApplyExtrinsicResult, Percent, SaturatedConversion,
+};
 pub use sp_runtime::{Perbill, Permill};
-use static_assertions::const_assert;
+use sp_std::prelude::*;
+#[cfg(feature = "std")]
+use sp_version::NativeVersion;
+use sp_version::RuntimeVersion;
+
+// Import ORML dependcies
+use orml_currencies::BasicCurrencyAdapter;
+use orml_traits::{parameter_type_with_key, DataProvider};
+
+// Import Parallel dependencies
+pub use pallet_liquid_staking;
+pub use pallet_liquidation;
+pub use pallet_loans;
+pub use pallet_multisig;
+use primitives::*;
+
+/// Constant values used within the runtime.
+pub mod constants;
+pub use constants::{currency::*, time::*};
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -91,23 +95,6 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     transaction_version: 1,
 };
 
-/// This determines the average expected block time that we are targeting.
-/// Blocks will be produced at a minimum duration defined by `SLOT_DURATION`.
-/// `SLOT_DURATION` is picked up by `pallet_timestamp` which is in turn picked
-/// up by `pallet_aura` to implement `fn slot_duration()`.
-///
-/// Change this to adjust the block time.
-pub const MILLISECS_PER_BLOCK: u64 = 6000;
-
-// NOTE: Currently it is not possible to change the slot duration after the chain has started.
-//       Attempting to do so will brick block production.
-pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
-
-// Time is measured by number of blocks.
-pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
-pub const HOURS: BlockNumber = MINUTES * 60;
-pub const DAYS: BlockNumber = HOURS * 24;
-
 /// The version information used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
 pub fn native_version() -> NativeVersion {
@@ -117,8 +104,9 @@ pub fn native_version() -> NativeVersion {
     }
 }
 
-const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
+// Configure Substrate build-in pallets to include in runtime.
 
+const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 parameter_types! {
     pub const Version: RuntimeVersion = VERSION;
     pub const BlockHashCount: BlockNumber = 2400;
@@ -129,9 +117,6 @@ parameter_types! {
         ::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
     pub const SS58Prefix: u8 = 42;
 }
-
-// Configure FRAME pallets to include in runtime.
-
 impl frame_system::Config for Runtime {
     /// The basic call filter to use in dispatchable.
     type BaseCallFilter = ();
@@ -211,7 +196,7 @@ parameter_types! {
 
 impl pallet_timestamp::Config for Runtime {
     /// A timestamp: milliseconds since the unix epoch.
-    type Moment = u64;
+    type Moment = Moment;
     type OnTimestampSet = Aura;
     type MinimumPeriod = MinimumPeriod;
     type WeightInfo = ();
@@ -256,185 +241,11 @@ impl pallet_utility::Config for Runtime {
     type WeightInfo = pallet_utility::weights::SubstrateWeight<Runtime>;
 }
 
-parameter_type_with_key! {
-    pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
-        Default::default()
-    };
-}
-
-impl orml_tokens::Config for Runtime {
-    type Event = Event;
-    type Balance = Balance;
-    type Amount = Amount;
-    type CurrencyId = CurrencyId;
-    type OnDust = ();
-    type WeightInfo = ();
-    type ExistentialDeposits = ExistentialDeposits;
-    type MaxLocks = MaxLocks;
-}
-
-parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Native;
-    pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
-}
-
-impl orml_currencies::Config for Runtime {
-    type Event = Event;
-    type MultiCurrency = Tokens;
-    type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
-    type GetNativeCurrencyId = GetNativeCurrencyId;
-    type WeightInfo = ();
-}
-
-impl pallet_loans::Config for Runtime {
-    type Event = Event;
-    type Currency = Currencies;
-    type PalletId = LoansPalletId;
-    type PriceFeeder = Prices;
-    type ReserveOrigin = EnsureRoot<AccountId>;
-    type UpdateOrigin = EnsureRoot<AccountId>;
-    type WeightInfo = pallet_loans::weights::SubstrateWeight<Runtime>;
-}
-
-parameter_types! {
-    pub const StakingPalletId: PalletId = PalletId(*b"par/stak");
-    pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
-    pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
-    pub const MaxWithdrawAmount: Balance = 1000;
-    pub const MaxAccountProcessingUnstake: u32 = 5;
-}
-
-impl pallet_liquid_staking::Config for Runtime {
-    type Event = Event;
-    type Currency = Currencies;
-    type PalletId = StakingPalletId;
-    type StakingCurrency = StakingCurrency;
-    type LiquidCurrency = LiquidCurrency;
-    type WithdrawOrigin = EnsureRoot<AccountId>;
-    type MaxWithdrawAmount = MaxWithdrawAmount;
-    type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
-}
-
-parameter_types! {
-    pub const LockPeriod: u64 = 20000; // in milli-seconds
-    pub const LiquidateFactor: Percent = Percent::from_percent(50);
-}
-impl pallet_liquidation::Config for Runtime {
-    type AuthorityId = pallet_liquidation::crypto::AuthId;
-    type LockPeriod = LockPeriod;
-    type LiquidateFactor = LiquidateFactor;
-}
-
-impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
-where
-    Call: From<LocalCall>,
-{
-    fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
-        call: Call,
-        public: <Signature as traits::Verify>::Signer,
-        account: AccountId,
-        index: Index,
-    ) -> Option<(
-        Call,
-        <UncheckedExtrinsic as traits::Extrinsic>::SignaturePayload,
-    )> {
-        let period = BlockHashCount::get() as u64;
-        let current_block = System::block_number()
-            .saturated_into::<u64>()
-            .saturating_sub(1);
-        let tip = 0;
-        let extra: SignedExtra = (
-            frame_system::CheckSpecVersion::<Runtime>::new(),
-            frame_system::CheckTxVersion::<Runtime>::new(),
-            frame_system::CheckGenesis::<Runtime>::new(),
-            frame_system::CheckEra::<Runtime>::from(generic::Era::mortal(period, current_block)),
-            frame_system::CheckNonce::<Runtime>::from(index),
-            frame_system::CheckWeight::<Runtime>::new(),
-            pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
-        );
-
-        let raw_payload = SignedPayload::new(call, extra)
-            .map_err(|e| {
-                log::error!("SignedPayload error: {:?}", e);
-            })
-            .ok()?;
-        let signature = raw_payload.using_encoded(|payload| C::sign(payload, public))?;
-        let address = account;
-        let (call, extra, _) = raw_payload.deconstruct();
-        Some((
-            call,
-            (
-                sp_runtime::MultiAddress::Id(address),
-                signature.into(),
-                extra,
-            ),
-        ))
-    }
-}
-
-impl frame_system::offchain::SigningTypes for Runtime {
-    type Public = <Signature as traits::Verify>::Signer;
-    type Signature = Signature;
-}
-
-impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
-where
-    Call: From<C>,
-{
-    type OverarchingCall = Call;
-    type Extrinsic = UncheckedExtrinsic;
-}
-
-parameter_types! {
-      pub const MinimumCount: u32 = 1;
-      pub const ExpiresIn: Moment = 1000 * 60 * 60; // 60 mins
-      pub ZeroAccountId: AccountId = AccountId::from([0u8; 32]);
-}
-
-type ParallelDataProvider = orml_oracle::Instance1;
-impl orml_oracle::Config<ParallelDataProvider> for Runtime {
-    type Event = Event;
-    type OnNewData = ();
-    type CombineData =
-        orml_oracle::DefaultCombineData<Runtime, MinimumCount, ExpiresIn, ParallelDataProvider>;
-    type Time = Timestamp;
-    type OracleKey = CurrencyId;
-    type OracleValue = Price;
-    type RootOperatorAccountId = ZeroAccountId;
-    type WeightInfo = ();
-    type Members = OracleMembership;
-}
-
-pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
-pub struct AggregatedDataProvider;
-impl DataProvider<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
-    fn get(key: &CurrencyId) -> Option<TimeStampedPrice> {
-        Oracle::get(key)
-    }
-}
-
-impl pallet_prices::Config for Runtime {
-    type Event = Event;
-    type Source = AggregatedDataProvider;
-    type FeederOrigin = EnsureRoot<AccountId>;
-}
-
-pub mod currency {
-    type Balance = u128;
-    pub const MILLICENTS: Balance = 1_000_000_000;
-    pub const CENTS: Balance = 1_000 * MILLICENTS; // assume this is worth about a cent.
-    pub const DOLLARS: Balance = 100 * CENTS;
-
-    pub const fn deposit(items: u32, bytes: u32) -> Balance {
-        items as Balance * 15 * CENTS + (bytes as Balance) * 6 * CENTS
-    }
-}
-
 parameter_types! {
     // One storage item; key size is 32; value is size 4+4+16+32 bytes = 56 bytes.
-    pub const DepositBase: Balance = currency::deposit(1, 88);
+    pub const DepositBase: Balance = deposit(1, 88);
     // Additional storage item size of 32 bytes.
-    pub const DepositFactor: Balance = currency::deposit(0, 32);
+    pub const DepositFactor: Balance = deposit(0, 32);
     pub const MaxSignatories: u16 = 100;
 }
 
@@ -675,6 +486,171 @@ impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
     type WeightInfo = ();
 }
 
+// Configure ORML pallets to include in runtime.
+
+parameter_type_with_key! {
+    pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
+        Default::default()
+    };
+}
+impl orml_tokens::Config for Runtime {
+    type Event = Event;
+    type Balance = Balance;
+    type Amount = Amount;
+    type CurrencyId = CurrencyId;
+    type OnDust = ();
+    type WeightInfo = ();
+    type ExistentialDeposits = ExistentialDeposits;
+    type MaxLocks = MaxLocks;
+}
+
+parameter_types! {
+    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Native;
+}
+impl orml_currencies::Config for Runtime {
+    type Event = Event;
+    type MultiCurrency = Tokens;
+    type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+    type GetNativeCurrencyId = GetNativeCurrencyId;
+    type WeightInfo = ();
+}
+
+parameter_types! {
+    pub const MinimumCount: u32 = 1;
+    pub const ExpiresIn: Moment = 1000 * 60 * 60; // 60 mins
+    pub ZeroAccountId: AccountId = AccountId::from([0u8; 32]);
+}
+type ParallelDataProvider = orml_oracle::Instance1;
+impl orml_oracle::Config<ParallelDataProvider> for Runtime {
+    type Event = Event;
+    type OnNewData = ();
+    type CombineData =
+        orml_oracle::DefaultCombineData<Runtime, MinimumCount, ExpiresIn, ParallelDataProvider>;
+    type Time = Timestamp;
+    type OracleKey = CurrencyId;
+    type OracleValue = Price;
+    type RootOperatorAccountId = ZeroAccountId;
+    type WeightInfo = ();
+    type Members = OracleMembership;
+}
+
+// Configure Parallel pallets to include in runtime.
+
+parameter_types! {
+    pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
+}
+impl pallet_loans::Config for Runtime {
+    type Event = Event;
+    type Currency = Currencies;
+    type PalletId = LoansPalletId;
+    type PriceFeeder = Prices;
+    type ReserveOrigin = EnsureRoot<AccountId>;
+    type UpdateOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = pallet_loans::weights::SubstrateWeight<Runtime>;
+}
+
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
+pub struct AggregatedDataProvider;
+impl DataProvider<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
+    fn get(key: &CurrencyId) -> Option<TimeStampedPrice> {
+        Oracle::get(key)
+    }
+}
+impl pallet_prices::Config for Runtime {
+    type Event = Event;
+    type Source = AggregatedDataProvider;
+    type FeederOrigin = EnsureRoot<AccountId>;
+}
+
+parameter_types! {
+    pub const LockPeriod: u64 = 20000; // in milli-seconds
+    pub const LiquidateFactor: Percent = Percent::from_percent(50);
+}
+impl pallet_liquidation::Config for Runtime {
+    type AuthorityId = pallet_liquidation::crypto::AuthId;
+    type LockPeriod = LockPeriod;
+    type LiquidateFactor = LiquidateFactor;
+}
+
+parameter_types! {
+    pub const StakingPalletId: PalletId = PalletId(*b"par/stak");
+    pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
+    pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
+    pub const MaxWithdrawAmount: Balance = 1000;
+    pub const MaxAccountProcessingUnstake: u32 = 5;
+}
+
+impl pallet_liquid_staking::Config for Runtime {
+    type Event = Event;
+    type Currency = Currencies;
+    type PalletId = StakingPalletId;
+    type StakingCurrency = StakingCurrency;
+    type LiquidCurrency = LiquidCurrency;
+    type WithdrawOrigin = EnsureRoot<AccountId>;
+    type MaxWithdrawAmount = MaxWithdrawAmount;
+    type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
+}
+
+impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
+where
+    Call: From<LocalCall>,
+{
+    fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
+        call: Call,
+        public: <Signature as traits::Verify>::Signer,
+        account: AccountId,
+        index: Index,
+    ) -> Option<(
+        Call,
+        <UncheckedExtrinsic as traits::Extrinsic>::SignaturePayload,
+    )> {
+        let period = BlockHashCount::get() as u64;
+        let current_block = System::block_number()
+            .saturated_into::<u64>()
+            .saturating_sub(1);
+        let tip = 0;
+        let extra: SignedExtra = (
+            frame_system::CheckSpecVersion::<Runtime>::new(),
+            frame_system::CheckTxVersion::<Runtime>::new(),
+            frame_system::CheckGenesis::<Runtime>::new(),
+            frame_system::CheckEra::<Runtime>::from(generic::Era::mortal(period, current_block)),
+            frame_system::CheckNonce::<Runtime>::from(index),
+            frame_system::CheckWeight::<Runtime>::new(),
+            pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
+        );
+
+        let raw_payload = SignedPayload::new(call, extra)
+            .map_err(|e| {
+                log::error!("SignedPayload error: {:?}", e);
+            })
+            .ok()?;
+        let signature = raw_payload.using_encoded(|payload| C::sign(payload, public))?;
+        let address = account;
+        let (call, extra, _) = raw_payload.deconstruct();
+        Some((
+            call,
+            (
+                sp_runtime::MultiAddress::Id(address),
+                signature.into(),
+                extra,
+            ),
+        ))
+    }
+}
+
+impl frame_system::offchain::SigningTypes for Runtime {
+    type Public = <Signature as traits::Verify>::Signer;
+    type Signature = Signature;
+}
+
+impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
+where
+    Call: From<C>,
+{
+    type OverarchingCall = Call;
+    type Extrinsic = UncheckedExtrinsic;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -682,23 +658,20 @@ construct_runtime!(
         NodeBlock = opaque::Block,
         UncheckedExtrinsic = UncheckedExtrinsic
     {
+        // Substrate pallets
+        // Utility
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-        Aura: pallet_aura::{Pallet, Config<T>},
-        Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
-        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-        TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
-        Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
         Utility: pallet_utility::{Pallet, Call, Event},
         Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>},
-
-        Currencies: orml_currencies::{Pallet, Call, Event<T>},
-        Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
-        Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
-        LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config},
-        Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call,  Event<T>},
-        Liquidation: pallet_liquidation::{Pallet, Call},
-        Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
+        // Consensus
+        Aura: pallet_aura::{Pallet, Config<T>},
+        Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
+        // Currencies
+        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+        TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
+        // Governance
+        Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
         Democracy: pallet_democracy::{Pallet, Call, Storage, Config, Event<T>},
         Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
         TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
@@ -706,7 +679,19 @@ construct_runtime!(
         Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
         Elections: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>},
         TechnicalMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>},
+        // Oracles
         OracleMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>},
+
+        // ORML pallets
+        Currencies: orml_currencies::{Pallet, Call, Event<T>},
+        Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
+        Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call,  Event<T>},
+
+        // Parallel pallets
+        Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
+        Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
+        Liquidation: pallet_liquidation::{Pallet, Call},
+        LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config},
     }
 );
 

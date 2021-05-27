@@ -27,6 +27,7 @@ use primitives::*;
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::ChainType;
 use serde::{Deserialize, Serialize};
+use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 #[allow(unused_imports)]
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::{
