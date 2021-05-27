@@ -89,4 +89,4 @@ jobs:
 
       - name: Check Test
         run: |
-          SKIP_WASM_BUILD= cargo test --manifest-path node/parallel-dev/Cargo.toml -p pallet-loans -p pallet-liquidate -p pallet-ocw-oracle -p pallet-staking
+          SKIP_WASM_BUILD= cargo test --manifest-path node/parallel-dev/Cargo.toml -p pallet-loans -p pallet-liquidate-new -p pallet-staking
