@@ -30,7 +30,7 @@ use vanilla_runtime::{
     DemocracyConfig,
     ElectionsConfig,
     GrandpaConfig,
-    OperatorMembershipConfig,
+    OracleMembershipConfig,
     TechnicalCommitteeConfig,
     // VanillaOracleConfig
     WASM_BINARY,
@@ -276,7 +276,7 @@ fn testnet_genesis(
         },
         pallet_membership_Instance1: Default::default(),
         pallet_treasury: Default::default(),
-        pallet_membership_Instance2: OperatorMembershipConfig {
+        pallet_membership_Instance2: OracleMembershipConfig {
             members: oracle_accounts,
             phantom: Default::default(),
         },

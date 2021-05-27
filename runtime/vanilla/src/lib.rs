@@ -421,7 +421,7 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
     type OracleValue = Price;
     type RootOperatorAccountId = ZeroAccountId;
     type WeightInfo = ();
-    type Members = OperatorMembership;
+    type Members = OracleMembership;
 }
 
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
@@ -680,8 +680,8 @@ parameter_types! {
     pub const OracleMaxMembers: u32 = 100;
 }
 
-type OperatorMembershipInstance = pallet_membership::Instance2;
-impl pallet_membership::Config<OperatorMembershipInstance> for Runtime {
+type OracleMembershipInstance = pallet_membership::Instance2;
+impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
     type Event = Event;
     type AddOrigin = EnsureRoot<AccountId>;
     type RemoveOrigin = EnsureRoot<AccountId>;
@@ -727,7 +727,7 @@ construct_runtime!(
         Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
         Elections: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>},
         TechnicalMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>},
-        OperatorMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>},
+        OracleMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>},
     }
 );
 
