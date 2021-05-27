@@ -122,7 +122,6 @@ std                = [
   'orml-utilities/std',
   'pallet-loans/std',
   'pallet-staking/std',
-  
   'pallet-liquidate-new/std',
   'pallet-prices/std',
   'pallet-treasury/std',
