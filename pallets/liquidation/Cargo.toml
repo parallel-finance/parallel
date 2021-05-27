@@ -1,7 +1,7 @@
 [package]
 authors = ['Parallel Team']
 edition = '2018'
-name    = 'pallet-liquidate-new'
+name    = 'pallet-liquidation'
 version = '3.0.0'
 
 [package.metadata.docs.rs]

@@ -24,7 +24,7 @@ serde             = { version = '1', features = ['derive'], optional = true }
 static_assertions = '1.1.0'
 
 # local dependencies
-pallet-liquidate-new      = { path = '../../pallets/liquidate-new', default-features = false }
+pallet-liquidation      = { path = '../../pallets/liquidation', default-features = false }
 pallet-loans              = { path = '../../pallets/loans', default-features = false }
 pallet-loans-benchmarking = { path = '../../pallets/loans/benchmarking', default-features = false, optional = true }
 pallet-prices  = { path = '../../pallets/prices', default-features = false }
@@ -120,7 +120,7 @@ std                = [
   'orml-utilities/std',
   'pallet-loans/std',
   'pallet-staking/std',
-  'pallet-liquidate-new/std',
+  'pallet-liquidation/std',
   'pallet-prices/std',
   'pallet-treasury/std',
   'pallet-collective/std',

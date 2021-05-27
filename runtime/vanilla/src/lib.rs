@@ -31,7 +31,7 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 
 // re-exports
-pub use pallet_liquidate_new;
+pub use pallet_liquidation;
 pub use pallet_loans;
 pub use pallet_multisig;
 pub use pallet_staking;
@@ -319,8 +319,8 @@ parameter_types! {
     pub const LockPeriod: u64 = 20000; // in milli-seconds
     pub const LiquidateFactor: Percent = Percent::from_percent(50);
 }
-impl pallet_liquidate_new::Config for Runtime {
-    type AuthorityId = pallet_liquidate_new::crypto::AuthId;
+impl pallet_liquidation::Config for Runtime {
+    type AuthorityId = pallet_liquidation::crypto::AuthId;
     type LockPeriod = LockPeriod;
     type LiquidateFactor = LiquidateFactor;
 }
@@ -697,7 +697,7 @@ construct_runtime!(
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
         Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},
         Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call,  Event<T>},
-        LiquidateNew: pallet_liquidate_new::{Pallet, Call},
+        Liquidation: pallet_liquidation::{Pallet, Call},
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
         Democracy: pallet_democracy::{Pallet, Call, Storage, Config, Event<T>},
         Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
