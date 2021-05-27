@@ -253,7 +253,7 @@ fn testnet_genesis(
                 (CurrencyId::xDOT, Ratio::from_percent(15)),
             ],
         },
-        pallet_staking: vanilla_runtime::StakingConfig {
+        pallet_liquid_staking: vanilla_runtime::LiquidStakingConfig {
             exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
         },
         pallet_democracy: DemocracyConfig::default(),

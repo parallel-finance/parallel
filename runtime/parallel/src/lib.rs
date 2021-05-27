@@ -63,12 +63,11 @@ use xcm_builder::{
 use xcm_executor::{Config, XcmExecutor};
 
 // re-exports
-pub use pallet_liquidate_new;
+pub use pallet_liquid_staking;
+pub use pallet_liquidation;
 pub use pallet_loans;
 pub use pallet_multisig;
-// pub use pallet_ocw_oracle;
 pub use pallet_prices;
-pub use pallet_staking;
 
 // A few exports that help ease life for downstream crates.
 use currency::*;
@@ -272,17 +271,6 @@ impl orml_currencies::Config for Runtime {
     type WeightInfo = ();
 }
 
-// parameter_types! {
-//     pub const PricePrecision: u8 = 18;
-// }
-
-// impl pallet_ocw_oracle::Config for Runtime {
-//     type AuthorityId = pallet_ocw_oracle::crypto::TestAuthId;
-//     type Call = Call;
-//     type Event = Event;
-//     type PricePrecision = PricePrecision;
-// }
-
 impl pallet_loans::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
@@ -301,7 +289,7 @@ parameter_types! {
     pub const MaxAccountProcessingUnstake: u32 = 5;
 }
 
-impl pallet_staking::Config for Runtime {
+impl pallet_liquid_staking::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
     type PalletId = StakingPalletId;
@@ -312,19 +300,12 @@ impl pallet_staking::Config for Runtime {
     type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
 }
 
-// impl pallet_liquidate::Config for Runtime {
-//     type AuthorityId = pallet_liquidate::crypto::TestAuthId;
-//     type Call = Call;
-//     type Event = Event;
-//     type PriceFeeder = Prices;
-// }
-
 parameter_types! {
     pub const LockPeriod: u64 = 20000; // in milli-seconds
     pub const LiquidateFactor: Percent = Percent::from_percent(50);
 }
-impl pallet_liquidate_new::Config for Runtime {
-    type AuthorityId = pallet_liquidate_new::crypto::AuthId;
+impl pallet_liquidation::Config for Runtime {
+    type AuthorityId = pallet_liquidation::crypto::AuthId;
     type LockPeriod = LockPeriod;
     type LiquidateFactor = LiquidateFactor;
 }
@@ -899,12 +880,10 @@ construct_runtime!(
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
         Aura: pallet_aura::{Pallet, Config<T>},
         AuraExt: cumulus_pallet_aura_ext::{Pallet, Config},
-        // OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
         Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
-        Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},
-        // Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},
-        LiquidateNew: pallet_liquidate_new::{Pallet, Call},
+        LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config},
+        Liquidation: pallet_liquidation::{Pallet, Call},
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
         Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>},
         Democracy: pallet_democracy::{Pallet, Call, Storage, Config, Event<T>},
