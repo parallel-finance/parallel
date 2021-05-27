@@ -42,14 +42,14 @@ pallet-balances           = { git = 'https://github.com/paritytech/substrate.git
 pallet-collective         = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.2', default-features = false }
 pallet-democracy          = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.2', default-features = false }
 pallet-elections-phragmen = { git = 'https://github.com/paritytech/substrate.git', version = '4.0.0', branch = 'polkadot-v0.9.2', default-features = false }
-pallet-liquidate-new      = { path = '../../pallets/liquidate-new', default-features = false }
+pallet-liquidation      = { path = '../../pallets/liquidation', default-features = false }
 pallet-loans              = { path = '../../pallets/loans', default-features = false }
 pallet-loans-benchmarking = { path = '../../pallets/loans/benchmarking', default-features = false, optional = true }
 pallet-membership         = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.2', default-features = false }
 pallet-multisig           = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.2', default-features = false }
 pallet-prices                              = { path = '../../pallets/prices', default-features = false }
 pallet-scheduler                           = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.2', default-features = false }
-pallet-staking                             = { path = '../../pallets/staking', default-features = false }
+pallet-liquid-staking                             = { path = '../../pallets/liquid-staking', default-features = false }
 pallet-sudo                                = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.2', default-features = false }
 pallet-timestamp                           = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.2', default-features = false }
 pallet-transaction-payment                 = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.2', default-features = false }
@@ -139,8 +139,8 @@ std                = [
   'xcm-executor/std',
   'primitives/std',
   'pallet-loans/std',
-  'pallet-staking/std',
-  'pallet-liquidate-new/std',
+  'pallet-liquid-staking/std',
+  'pallet-liquidation/std',
   'pallet-prices/std',
   'pallet-multisig/std',
   'pallet-aura/std',
