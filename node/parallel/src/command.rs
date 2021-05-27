@@ -228,7 +228,7 @@ pub fn run() -> Result<()> {
             if cfg!(feature = "runtime-benchmarks") {
                 let runner = cli.create_runner(cmd)?;
 
-                runner.sync_run(|config| cmd.run::<Block, crate::service::Executor>(config))
+                runner.sync_run(|config| cmd.run::<Block, crate::service::ParallelExecutor>(config))
             } else {
                 Err("Benchmarking wasn't enabled when building the node. \
 				You can enable it with `--features runtime-benchmarks`."

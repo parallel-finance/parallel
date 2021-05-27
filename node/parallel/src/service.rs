@@ -34,7 +34,7 @@ use std::sync::Arc;
 
 // Native executor instance.
 native_executor_instance!(
-    pub Executor,
+    pub ParallelExecutor,
     parallel_runtime::api::dispatch,
     parallel_runtime::native_version,
     frame_benchmarking::benchmarking::HostFunctions,
@@ -42,7 +42,8 @@ native_executor_instance!(
 
 type ParallelBlock = parallel_runtime::opaque::Block;
 type ParallelRuntimeApi = parallel_runtime::RuntimeApi;
-type ParallelFullClient = sc_service::TFullClient<ParallelBlock, ParallelRuntimeApi, Executor>;
+type ParallelFullClient =
+    sc_service::TFullClient<ParallelBlock, ParallelRuntimeApi, ParallelExecutor>;
 type ParallelFullBackend = sc_service::TFullBackend<ParallelBlock>;
 
 /// Starts a `ServiceBuilder` for a full service.
@@ -74,7 +75,7 @@ pub fn new_partial(
         .transpose()?;
 
     let (client, backend, keystore_container, task_manager) =
-        sc_service::new_full_parts::<ParallelBlock, ParallelRuntimeApi, Executor>(
+        sc_service::new_full_parts::<ParallelBlock, ParallelRuntimeApi, ParallelExecutor>(
             &config,
             telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
         )?;
@@ -349,7 +350,7 @@ pub async fn start_node(
     id: ParaId,
 ) -> sc_service::error::Result<(
     TaskManager,
-    Arc<TFullClient<ParallelBlock, ParallelRuntimeApi, Executor>>,
+    Arc<TFullClient<ParallelBlock, ParallelRuntimeApi, ParallelExecutor>>,
 )> {
     start_node_impl(parachain_config, collator_key, polkadot_config, id).await
 }
