@@ -27,7 +27,8 @@ use sp_core::crypto::KeyTypeId;
 use sp_runtime::{
     offchain as rt_offchain,
     offchain::storage_lock::{BlockAndTime, StorageLock},
-    FixedPointNumber, RuntimeDebug,
+    traits::{CheckedAdd, CheckedDiv, CheckedMul},
+    FixedPointNumber, FixedU128, RuntimeDebug,
 };
 use sp_std::prelude::*;
 
@@ -35,7 +36,7 @@ pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"pool");
 pub const LOCK_TIMEOUT_EXPIRATION: u64 = 20000; // in milli-seconds
 pub const LOCK_BLOCK_EXPIRATION: u32 = 10; // in block number
 
-type TotalValue = u128;
+type TotalValue = FixedU128;
 type LiquidationThreshold = Ratio;
 type DebtAccountBook = (CurrencyId, Balance, Price, TotalValue);
 type CollateralsAccountBook = (CurrencyId, Balance, Price, TotalValue, LiquidationThreshold);
@@ -214,7 +215,7 @@ pub mod module {
                                 continue 'outer;
                             }
                             let borrow_currency_value = match currency_price
-                                .checked_mul_int(borrow_currency_amount)
+                                .checked_mul(&FixedU128::from_inner(borrow_currency_amount))
                                 .ok_or(Error::<T>::CaculateError)
                             {
                                 Ok(v) => v,
@@ -253,7 +254,7 @@ pub mod module {
                             };
                             //the total price of borrower's collateral token
                             let collateral_currency_value = match currency_price
-                                .checked_mul_int(collateral_currency_amount)
+                                .checked_mul(&FixedU128::from_inner(collateral_currency_amount))
                                 .ok_or(Error::<T>::CaculateError)
                             {
                                 Ok(v) => v,
@@ -281,11 +282,11 @@ pub mod module {
                     // if (collateral_total_value * liquidation_threshold)/(debt_total_value) < 1 ,execute liquidation
                     let mut processing = true;
                     let collateral_liquidation_threshold_value = classify_collaterals.iter().fold(
-                        MIN_PRICE.into_inner(),
+                        MIN_PRICE,
                         |acc,&(_,_,_, total_value,liquidation_threshold)|
 							// acc + total_value * liquidation_threshold
-								match (liquidation_threshold.mul_floor(total_value))
-									.checked_add(acc)
+								match total_value.checked_mul(&liquidation_threshold.into())
+									.and_then(|v| v.checked_add(&acc))
 									.ok_or(Error::<T>::CaculateError)
 								{
 									Ok(v) => v,
@@ -301,11 +302,11 @@ pub mod module {
                     }
 
                     let debt_total_value = classify_debts.iter().fold(
-                        MIN_PRICE.into_inner(),
+                        MIN_PRICE,
                         |acc, &(_,_,_, total_value)|
 							// acc + total_value
 							match acc
-								.checked_add(total_value)
+								.checked_add(&total_value)
 								.ok_or(Error::<T>::CaculateError)
 							{
 								Ok(v) => v,
@@ -336,11 +337,11 @@ pub mod module {
                         vec![];
 
                     let collateral_total_value = classify_collaterals.iter().fold(
-                        MIN_PRICE.into_inner(),
+                        MIN_PRICE,
                         |acc,&(_,_,_, total_value,_)|
 							// acc + total_value
 							match acc
-								.checked_add(total_value)
+								.checked_add(&total_value)
 								.ok_or(Error::<T>::CaculateError)
 							{
 								Ok(v) => v,
@@ -363,11 +364,11 @@ pub mod module {
                             classify_collaterals.iter()
                         {
                             // let repay_amount = (single_collateral_total_value / collateral_total_value) * (debt_repay_amount * close_factor);
-                            let repay_amount = match (close_factor
-                                .mul_floor(single_collateral_total_value))
-                            .checked_mul(debt_repay_amount)
-                            .and_then(|r| r.checked_div(collateral_total_value))
-                            .ok_or(Error::<T>::CaculateError)
+                            let repay_amount = match single_collateral_total_value
+                                .checked_mul(&close_factor.into())
+                                .and_then(|r| r.checked_div(&collateral_total_value))
+                                .and_then(|a| a.checked_mul_int(debt_repay_amount))
+                                .ok_or(Error::<T>::CaculateError)
                             {
                                 Ok(v) => v,
                                 Err(e) => {
