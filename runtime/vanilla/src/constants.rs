@@ -24,16 +24,16 @@ pub mod currency {
 }
 
 pub mod time {
-	use primitives::{Moment, BlockNumber};
-	/// Change this to adjust the block time.
-	pub const MILLISECS_PER_BLOCK: Moment = 6000;
+    use primitives::{BlockNumber, Moment};
+    /// Change this to adjust the block time.
+    pub const MILLISECS_PER_BLOCK: Moment = 6000;
 
-	// NOTE: Currently it is not possible to change the slot duration after the chain has started.
-	//       Attempting to do so will brick block production.
-	pub const SLOT_DURATION: Moment = MILLISECS_PER_BLOCK;
+    // NOTE: Currently it is not possible to change the slot duration after the chain has started.
+    //       Attempting to do so will brick block production.
+    pub const SLOT_DURATION: Moment = MILLISECS_PER_BLOCK;
 
-	// Time is measured by number of blocks.
-	pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
-	pub const HOURS: BlockNumber = MINUTES * 60;
-	pub const DAYS: BlockNumber = HOURS * 24;
+    // Time is measured by number of blocks.
+    pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
+    pub const HOURS: BlockNumber = MINUTES * 60;
+    pub const DAYS: BlockNumber = HOURS * 24;
 }

@@ -5774,7 +5774,6 @@ dependencies = [
  "orml-oracle",
  "parity-scale-codec",
  "serde",
- "sp-consensus-aura",
  "sp-core",
  "sp-io",
  "sp-runtime",
