@@ -31,10 +31,10 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 
 // re-exports
+pub use pallet_liquid_staking;
 pub use pallet_liquidation;
 pub use pallet_loans;
 pub use pallet_multisig;
-pub use pallet_staking;
 
 use sp_version::RuntimeVersion;
 
@@ -304,7 +304,7 @@ parameter_types! {
     pub const MaxAccountProcessingUnstake: u32 = 5;
 }
 
-impl pallet_staking::Config for Runtime {
+impl pallet_liquid_staking::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
     type PalletId = StakingPalletId;
@@ -695,7 +695,7 @@ construct_runtime!(
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
-        Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},
+        LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config},
         Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call,  Event<T>},
         Liquidation: pallet_liquidation::{Pallet, Call},
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},

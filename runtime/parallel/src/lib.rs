@@ -63,11 +63,11 @@ use xcm_builder::{
 use xcm_executor::{Config, XcmExecutor};
 
 // re-exports
+pub use pallet_liquid_staking;
 pub use pallet_liquidation;
 pub use pallet_loans;
 pub use pallet_multisig;
 pub use pallet_prices;
-pub use pallet_staking;
 
 // A few exports that help ease life for downstream crates.
 use currency::*;
@@ -289,7 +289,7 @@ parameter_types! {
     pub const MaxAccountProcessingUnstake: u32 = 5;
 }
 
-impl pallet_staking::Config for Runtime {
+impl pallet_liquid_staking::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
     type PalletId = StakingPalletId;
@@ -882,7 +882,7 @@ construct_runtime!(
         AuraExt: cumulus_pallet_aura_ext::{Pallet, Config},
         Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
-        Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},
+        LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config},
         Liquidation: pallet_liquidation::{Pallet, Call},
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
         Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>},
