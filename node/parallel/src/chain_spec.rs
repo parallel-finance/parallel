@@ -205,11 +205,12 @@ fn testnet_genesis(
             changes_trie_config: Default::default(),
         },
         pallet_balances: parallel_runtime::BalancesConfig {
-            balances: endowed_accounts
-                .iter()
-                .cloned()
-                .map(|k| (k, 1 << 60))
-                .collect(),
+            balances: {
+                let mut endowed_accounts = endowed_accounts.clone();
+                endowed_accounts.extend_from_slice(&oracle_accounts);
+
+                endowed_accounts.into_iter().map(|k| (k, 1 << 60)).collect()
+            },
         },
         // TODO : collateral selection
         pallet_aura: AuraConfig {
