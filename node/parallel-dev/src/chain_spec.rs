@@ -23,7 +23,7 @@ use sp_runtime::{
     traits::{IdentifyAccount, One, Verify},
     FixedPointNumber,
 };
-use vanilla_runtime::currency::DOLLARS;
+use vanilla_runtime::constants::currency::DOLLARS;
 use vanilla_runtime::{
     AuraConfig,
     CouncilConfig,

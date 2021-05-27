@@ -33,6 +33,7 @@ use sp_runtime::{
     traits::{IdentifyAccount, One, Verify},
     FixedPointNumber,
 };
+use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ParallelChainSpec =
