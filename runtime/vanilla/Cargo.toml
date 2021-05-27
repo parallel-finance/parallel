@@ -59,19 +59,19 @@ sp-transaction-pool                        = { git = 'https://github.com/parityt
 sp-version                                 = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.2', default-features = false }
 
 # ORML dependencies
-orml-currencies                            = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-oracle                                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-oracle-rpc-runtime-api                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-tokens                                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-traits                                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-utilities                             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-currencies             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-oracle                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-oracle-rpc-runtime-api = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-tokens                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-traits                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-utilities              = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 
 # Parallel dependencies
-pallet-liquidation      = { path = '../../pallets/liquidation', default-features = false }
+pallet-liquid-staking     = { path = '../../pallets/liquid-staking', default-features = false }
+pallet-liquidation        = { path = '../../pallets/liquidation', default-features = false }
 pallet-loans              = { path = '../../pallets/loans', default-features = false }
 pallet-loans-benchmarking = { path = '../../pallets/loans/benchmarking', default-features = false, optional = true }
-pallet-prices  = { path = '../../pallets/prices', default-features = false }
-pallet-liquid-staking = { path = '../../pallets/liquid-staking', default-features = false }
+pallet-prices             = { path = '../../pallets/prices', default-features = false }
 
 [features]
 default            = ['std']
