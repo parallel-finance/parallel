@@ -34,7 +34,6 @@ use sp_version::NativeVersion;
 pub use pallet_liquidate_new;
 pub use pallet_loans;
 pub use pallet_multisig;
-// pub use pallet_ocw_oracle;
 pub use pallet_staking;
 
 use sp_version::RuntimeVersion;
@@ -315,24 +314,6 @@ impl pallet_staking::Config for Runtime {
     type MaxWithdrawAmount = MaxWithdrawAmount;
     type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
 }
-
-// parameter_types! {
-//     pub const PricePrecision: u8 = 18;
-// }
-
-// impl pallet_ocw_oracle::Config for Runtime {
-//     type AuthorityId = pallet_ocw_oracle::crypto::TestAuthId;
-//     type Call = Call;
-//     type Event = Event;
-//     type PricePrecision = PricePrecision;
-// }
-
-// impl pallet_liquidate::Config for Runtime {
-//     type AuthorityId = pallet_liquidate::crypto::TestAuthId;
-//     type Call = Call;
-//     type Event = Event;
-//     type PriceFeeder = Prices;
-// }
 
 parameter_types! {
     pub const LockPeriod: u64 = 20000; // in milli-seconds
@@ -715,9 +696,7 @@ construct_runtime!(
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
         Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config},
-        // OcwOracle: pallet_ocw_oracle::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
         Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call,  Event<T>},
-        // Liquidate: pallet_liquidate::{Pallet, Call, Event<T>},
         LiquidateNew: pallet_liquidate_new::{Pallet, Call},
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
         Democracy: pallet_democracy::{Pallet, Call, Storage, Config, Event<T>},
