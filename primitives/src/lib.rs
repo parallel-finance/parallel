@@ -30,16 +30,16 @@ use serde::{Deserialize, Serialize};
 /// An index to a block.
 pub type BlockNumber = u32;
 
-/// Opaque, encoded, unchecked extrinsic.
-pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
-
 /// Header type.
+/// TODO: remove this or other alias
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
 
 /// Block type.
-pub type Block = generic::Block<Header, UncheckedExtrinsic>;
+/// TODO: remove this or other alias
+pub type Block = generic::Block<Header, sp_runtime::OpaqueExtrinsic>;
 
 /// Block ID.
+/// TODO: remove this or other alias
 pub type BlockId = generic::BlockId<Block>;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on
