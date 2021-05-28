@@ -34,7 +34,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
         // Name
         "Development",
         // ID
-        "dev",
+        "parallel-dev",
         ChainType::Development,
         move || {
             testnet_genesis(
@@ -86,7 +86,7 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
         // Name
         "Local Testnet",
         // ID
-        "local_testnet",
+        "parallel-local",
         ChainType::Local,
         move || {
             testnet_genesis(
