@@ -109,6 +109,7 @@ pub trait ClientHandle {
     fn execute_with<T: ExecuteWithClient>(&self, t: T) -> T::Output;
 }
 
+#[allow(dead_code)]
 #[derive(Clone)]
 pub enum Client {
     Parallel(
