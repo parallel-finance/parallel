@@ -90,5 +90,6 @@ name = 'parallel'
 default            = []
 runtime-benchmarks = [
   'parallel-runtime/runtime-benchmarks',
+  'heiko-runtime/runtime-benchmarks',
   'polkadot-service/runtime-benchmarks',
 ]

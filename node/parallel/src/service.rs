@@ -59,7 +59,7 @@ pub trait IdentifyVariant {
     fn is_heiko(&self) -> bool;
 }
 
-impl<T: sc_service::ChainSpec> IdentifyVariant for T {
+impl IdentifyVariant for Box<dyn sc_service::ChainSpec> {
     fn is_parallel(&self) -> bool {
         self.id().starts_with("parallel")
     }

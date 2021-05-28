@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::service::IdentifyVariant;
 use crate::{
     chain_spec,
     cli::{Cli, RelayChainCli, Subcommand},
@@ -31,6 +32,7 @@ use sc_service::{
 };
 use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::Block as BlockT;
+
 use std::{io::Write, net::SocketAddr};
 
 const CHAIN_NAME: &str = "Parallel";
@@ -95,8 +97,14 @@ impl SubstrateCli for Cli {
         load_spec(id, self.run.parachain_id.unwrap_or(200).into())
     }
 
-    fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-        &parallel_runtime::VERSION
+    fn native_runtime_version(chain_spec: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
+        if chain_spec.is_parallel() {
+            &parallel_runtime::VERSION
+        } else if chain_spec.is_heiko() {
+            &heiko_runtime::VERSION
+        } else {
+            unreachable!()
+        }
     }
 }
 
