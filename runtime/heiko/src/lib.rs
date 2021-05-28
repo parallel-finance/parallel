@@ -28,7 +28,6 @@ use frame_support::{
 use orml_currencies::BasicCurrencyAdapter;
 use orml_traits::{parameter_type_with_key, DataProvider};
 use sp_api::impl_runtime_apis;
-use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{
     u32_trait::{_1, _2, _3, _4, _5},
     OpaqueMetadata,

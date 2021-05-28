@@ -18,7 +18,8 @@
 
 use codec::{Decode, Encode};
 use sp_runtime::{
-    traits::{IdentifyAccount, Verify},
+    generic,
+    traits::{BlakeTwo256, IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
 };
 use sp_std::{convert::Into, prelude::*};
@@ -28,6 +29,18 @@ use serde::{Deserialize, Serialize};
 
 /// An index to a block.
 pub type BlockNumber = u32;
+
+/// Opaque, encoded, unchecked extrinsic.
+pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
+
+/// Header type.
+pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
+
+/// Block type.
+pub type Block = generic::Block<Header, UncheckedExtrinsic>;
+
+/// Block ID.
+pub type BlockId = generic::BlockId<Block>;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on
 /// the chain.
@@ -100,6 +113,8 @@ pub type Timestamp = u64;
 pub type PriceDetail = (Price, Timestamp);
 
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
+
+pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
