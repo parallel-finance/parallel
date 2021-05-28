@@ -68,4 +68,5 @@ jobs:
             if [ -d parallel ]; then cd parallel && ./setup.sh --undaemonize && cd ..; fi
             rm -fr parallel
             tar -Jxf parallel.tar.xz
+            rm -fr parallel.tar.xz || true
             cd parallel && ./setup.sh --daemonize
