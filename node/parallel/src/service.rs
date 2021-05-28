@@ -21,47 +21,79 @@ use cumulus_client_service::{
 };
 use cumulus_primitives_core::ParaId;
 use polkadot_primitives::v0::CollatorPair;
+use polkadot_service::ConstructRuntimeApi;
 use sc_client_api::call_executor::ExecutorProvider;
 use sc_executor::native_executor_instance;
-pub use sc_executor::NativeExecutor;
-use sc_service::{Configuration, PartialComponents, Role, TFullClient, TaskManager};
+use sc_service::{Configuration, PartialComponents, Role, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker, TelemetryWorkerHandle};
 
+use primitives::*;
 use sp_consensus::SlotData;
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 
 use std::sync::Arc;
 
+pub use sc_executor::{NativeExecutionDispatch, NativeExecutor};
+
 // Native executor instance.
 native_executor_instance!(
-    pub Executor,
+    pub ParallelExecutor,
     parallel_runtime::api::dispatch,
     parallel_runtime::native_version,
     frame_benchmarking::benchmarking::HostFunctions,
 );
 
-type ParallelBlock = parallel_runtime::opaque::Block;
-type ParallelRuntimeApi = parallel_runtime::RuntimeApi;
-type ParallelFullClient = sc_service::TFullClient<ParallelBlock, ParallelRuntimeApi, Executor>;
-type ParallelFullBackend = sc_service::TFullBackend<ParallelBlock>;
+native_executor_instance!(
+    pub HeikoExecutor,
+    heiko_runtime::api::dispatch,
+    heiko_runtime::native_version,
+    frame_benchmarking::benchmarking::HostFunctions,
+);
+
+pub type FullBackend = sc_service::TFullBackend<Block>;
+pub type FullClient<RuntimeApi, Executor> = sc_service::TFullClient<Block, RuntimeApi, Executor>;
+
+pub trait IdentifyVariant {
+    fn is_parallel(&self) -> bool;
+
+    fn is_heiko(&self) -> bool;
+}
+
+impl IdentifyVariant for Box<dyn sc_service::ChainSpec> {
+    fn is_parallel(&self) -> bool {
+        self.id().starts_with("parallel")
+    }
+
+    fn is_heiko(&self) -> bool {
+        self.id().starts_with("heiko")
+    }
+}
 
 /// Starts a `ServiceBuilder` for a full service.
 ///
 /// Use this macro if you don't actually need the full service, but just the builder in order to
 /// be able to perform chain operations.
-pub fn new_partial(
+pub fn new_partial<RuntimeApi, Executor>(
     config: &Configuration,
 ) -> Result<
     PartialComponents<
-        ParallelFullClient,
-        ParallelFullBackend,
+        FullClient<RuntimeApi, Executor>,
+        FullBackend,
         (),
-        sp_consensus::DefaultImportQueue<ParallelBlock, ParallelFullClient>,
-        sc_transaction_pool::FullPool<ParallelBlock, ParallelFullClient>,
+        sp_consensus::DefaultImportQueue<Block, FullClient<RuntimeApi, Executor>>,
+        sc_transaction_pool::FullPool<Block, FullClient<RuntimeApi, Executor>>,
         (Option<Telemetry>, Option<TelemetryWorkerHandle>),
     >,
     sc_service::Error,
-> {
+>
+where
+    RuntimeApi:
+        ConstructRuntimeApi<Block, FullClient<RuntimeApi, Executor>> + Send + Sync + 'static,
+    RuntimeApi::RuntimeApi: crate::client::RuntimeApiCollection<
+        StateBackend = sc_client_api::StateBackendFor<FullBackend, Block>,
+    >,
+    Executor: NativeExecutionDispatch + 'static,
+{
     let telemetry = config
         .telemetry_endpoints
         .clone()
@@ -74,7 +106,7 @@ pub fn new_partial(
         .transpose()?;
 
     let (client, backend, keystore_container, task_manager) =
-        sc_service::new_full_parts::<ParallelBlock, ParallelRuntimeApi, Executor>(
+        sc_service::new_full_parts::<Block, RuntimeApi, Executor>(
             &config,
             telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
         )?;
@@ -128,14 +160,6 @@ pub fn new_partial(
         telemetry: telemetry.as_ref().map(|telemetry| telemetry.handle()),
     })?;
 
-    // let import_queue = cumulus_client_consensus_relay_chain::import_queue(
-    //     client.clone(),
-    //     client.clone(),
-    //     |_, _| async { Ok(sp_timestamp::InherentDataProvider::from_system_time()) },
-    //     &task_manager.spawn_essential_handle(),
-    //     registry,
-    // )?;
-
     let params = PartialComponents {
         backend,
         client,
@@ -154,12 +178,20 @@ pub fn new_partial(
 ///
 /// This is the actual implementation that is abstract over the executor and the runtime api.
 #[sc_tracing::logging::prefix_logs_with("Parachain")]
-async fn start_node_impl(
+async fn start_node_impl<RuntimeApi, Executor>(
     parachain_config: Configuration,
     collator_key: CollatorPair,
     polkadot_config: Configuration,
     id: ParaId,
-) -> sc_service::error::Result<(TaskManager, Arc<ParallelFullClient>)> {
+) -> sc_service::error::Result<(TaskManager, Arc<FullClient<RuntimeApi, Executor>>)>
+where
+    RuntimeApi:
+        ConstructRuntimeApi<Block, FullClient<RuntimeApi, Executor>> + Send + Sync + 'static,
+    RuntimeApi::RuntimeApi: crate::client::RuntimeApiCollection<
+        StateBackend = sc_client_api::StateBackendFor<FullBackend, Block>,
+    >,
+    Executor: NativeExecutionDispatch + 'static,
+{
     if matches!(parachain_config.role, Role::Light) {
         return Err("Light client not supported!".into());
     }
@@ -327,7 +359,6 @@ async fn start_node_impl(
             collator_key,
             relay_chain_full_node: polkadot_full_node,
             spawner,
-            // backend,
             parachain_consensus,
         };
 
@@ -350,14 +381,20 @@ async fn start_node_impl(
 }
 
 /// Start a normal parachain node.
-pub async fn start_node(
+pub async fn start_node<RuntimeApi, Executor>(
     parachain_config: Configuration,
     collator_key: CollatorPair,
     polkadot_config: Configuration,
     id: ParaId,
-) -> sc_service::error::Result<(
-    TaskManager,
-    Arc<TFullClient<ParallelBlock, ParallelRuntimeApi, Executor>>,
-)> {
+) -> sc_service::error::Result<(TaskManager, Arc<FullClient<RuntimeApi, Executor>>)>
+where
+    RuntimeApi:
+        ConstructRuntimeApi<Block, FullClient<RuntimeApi, Executor>> + Send + Sync + 'static,
+    RuntimeApi::RuntimeApi: crate::client::RuntimeApiCollection<
+        StateBackend = sc_client_api::StateBackendFor<FullBackend, Block>,
+    >,
+    RuntimeApi::RuntimeApi: sp_consensus_aura::AuraApi<Block, AuraId>,
+    Executor: NativeExecutionDispatch + 'static,
+{
     start_node_impl(parachain_config, collator_key, polkadot_config, id).await
 }

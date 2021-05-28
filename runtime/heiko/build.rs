@@ -12,16 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![warn(unused_extern_crates)]
+use substrate_wasm_builder::WasmBuilder;
 
-mod chain_spec;
-#[macro_use]
-mod service;
-mod cli;
-mod client;
-mod command;
-mod rpc;
-
-fn main() -> sc_cli::Result<()> {
-    command::run()
+fn main() {
+    WasmBuilder::new()
+        .with_current_project()
+        .export_heap_base()
+        .import_memory()
+        .build()
 }

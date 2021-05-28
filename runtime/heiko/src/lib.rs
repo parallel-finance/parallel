@@ -183,7 +183,7 @@ parameter_types! {
         })
         .avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
         .build_or_panic();
-    // TODO: register heiko's SS58Prefix
+    // TODO: register parallel's SS58Prefix
     pub const SS58Prefix: u8 = 42;
 }
 

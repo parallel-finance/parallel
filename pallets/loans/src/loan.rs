@@ -287,26 +287,24 @@ impl<T: Config> Pallet<T> {
             } else {
                 return Err(Error::<T>::AlreadyEnabledCollateral);
             }
-        } else {
-            if let Some(index) = collateral_assets.iter().position(|c| c == &currency_id) {
-                let total_collateral_asset_value = Self::total_collateral_asset_value(&who)?;
-                let collateral_asset_value = Self::collateral_asset_value(&who, &currency_id)?;
-                let total_borrowed_value = Self::total_borrowed_value(&who)?;
+        } else if let Some(index) = collateral_assets.iter().position(|c| c == &currency_id) {
+            let total_collateral_asset_value = Self::total_collateral_asset_value(&who)?;
+            let collateral_asset_value = Self::collateral_asset_value(&who, &currency_id)?;
+            let total_borrowed_value = Self::total_borrowed_value(&who)?;
 
-                if total_collateral_asset_value
-                    > total_borrowed_value
-                        .checked_add(&collateral_asset_value)
-                        .ok_or(Error::<T>::CollateralOverflow)?
-                {
-                    collateral_assets.remove(index);
-                    AccountCollateralAssets::<T>::insert(who.clone(), collateral_assets);
-                    Self::deposit_event(Event::<T>::CollateralAssetRemoved(who, currency_id));
-                } else {
-                    return Err(Error::<T>::CollateralDisableActionDenied);
-                }
+            if total_collateral_asset_value
+                > total_borrowed_value
+                    .checked_add(&collateral_asset_value)
+                    .ok_or(Error::<T>::CollateralOverflow)?
+            {
+                collateral_assets.remove(index);
+                AccountCollateralAssets::<T>::insert(who.clone(), collateral_assets);
+                Self::deposit_event(Event::<T>::CollateralAssetRemoved(who, currency_id));
             } else {
-                return Err(Error::<T>::AlreadyDisabledCollateral);
+                return Err(Error::<T>::CollateralDisableActionDenied);
             }
+        } else {
+            return Err(Error::<T>::AlreadyDisabledCollateral);
         }
 
         Ok(())

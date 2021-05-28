@@ -18,7 +18,8 @@
 
 use codec::{Decode, Encode};
 use sp_runtime::{
-    traits::{IdentifyAccount, Verify},
+    generic,
+    traits::{BlakeTwo256, IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
 };
 use sp_std::{convert::Into, prelude::*};
@@ -28,6 +29,18 @@ use serde::{Deserialize, Serialize};
 
 /// An index to a block.
 pub type BlockNumber = u32;
+
+/// Header type.
+/// TODO: remove this or other alias
+pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
+
+/// Block type.
+/// TODO: remove this or other alias
+pub type Block = generic::Block<Header, sp_runtime::OpaqueExtrinsic>;
+
+/// Block ID.
+/// TODO: remove this or other alias
+pub type BlockId = generic::BlockId<Block>;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on
 /// the chain.
@@ -73,12 +86,14 @@ pub type Multiplier = FixedU128;
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
 pub enum CurrencyId {
-    DOT,
-    KSM,
-    USDT,
+    DOT = 0,
+    KSM = 1,
+    USDT = 2,
     #[allow(non_camel_case_types)]
-    xDOT,
-    Native,
+    xDOT = 3,
+    #[allow(non_camel_case_types)]
+    xKSM = 4,
+    Native = 5,
 }
 
 pub const TOKEN_DECIMAL: u128 = 1_000_000_000_000_000_000;
@@ -97,6 +112,16 @@ pub type Timestamp = u64;
 
 pub type PriceDetail = (Price, Timestamp);
 
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
+
+pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum DataProviderId {
+    Aggregated = 0,
+}
+
 pub trait PriceFeeder {
     fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail>;
 }
@@ -104,12 +129,4 @@ pub trait PriceFeeder {
 pub trait EmergencyPriceFeeder<CurrencyId, Price> {
     fn set_emergency_price(currency_id: CurrencyId, price: Price);
     fn reset_emergency_price(currency_id: CurrencyId);
-}
-
-pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
-
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub enum DataProviderId {
-    Aggregated = 0,
 }

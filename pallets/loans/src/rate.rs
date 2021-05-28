@@ -29,6 +29,7 @@ pub enum RatesError {
 
 /// Annualized interest rate
 #[derive(Encode, Decode, Eq, PartialEq, PartialOrd, Copy, Clone, RuntimeDebug, Default)]
+#[allow(clippy::upper_case_acronyms)]
 pub struct APR(pub Rate);
 
 impl From<Rate> for APR {
@@ -140,13 +141,13 @@ impl InterestRateModel {
                 .base_to_kink(utilization)
                 .ok_or(RatesError::Overflowed)?;
 
-            Ok(result.into())
+            Ok(result)
         } else {
             let result = self
                 .kink_to_full(utilization)
                 .ok_or(RatesError::Overflowed)?;
 
-            Ok(result.into())
+            Ok(result)
         }
     }
 

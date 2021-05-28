@@ -75,8 +75,8 @@ resources:
 	target/release/parallel export-genesis-state --parachain-id 200 > ./resources/para-200-genesis
 	target/release/parallel export-genesis-wasm > ./resources/para-200.wasm
 
-.PHONY: launch
-launch:
+.PHONY: launch-heiko
+launch-heiko:
 	polkadot-launch config.json
 
 help:
