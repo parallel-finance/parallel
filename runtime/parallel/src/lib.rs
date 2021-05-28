@@ -110,8 +110,8 @@ pub mod opaque {
 }
 
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-    spec_name: create_runtime_str!("parallel"),
-    impl_name: create_runtime_str!("parallel"),
+    spec_name: create_runtime_str!("heiko"),
+    impl_name: create_runtime_str!("heiko"),
     authoring_version: 1,
     spec_version: 100,
     impl_version: 1,
@@ -184,7 +184,7 @@ parameter_types! {
         })
         .avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
         .build_or_panic();
-    // TODO: register parallel's SS58Prefix
+    // TODO: register heiko's SS58Prefix
     pub const SS58Prefix: u8 = 42;
 }
 
