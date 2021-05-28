@@ -46,7 +46,7 @@ make help
 ## Run Heiko Node (via polkadot-launch)
 
 ```
-make launch-heiko
+make launch
 ```
 
 ## Run Heiko Node (manually)

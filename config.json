@@ -28,6 +28,7 @@
             "bin": "./target/release/parallel",
             "id": "200",
             "balance": "1000000000000000000000",
+            "chain": "heiko",
             "nodes": [
                 {
                     "wsPort": 9988,

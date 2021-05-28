@@ -75,9 +75,10 @@ resources:
 	target/release/parallel export-genesis-state --parachain-id 200 > ./resources/para-200-genesis
 	target/release/parallel export-genesis-wasm > ./resources/para-200.wasm
 
-.PHONY: launch-heiko
-launch-heiko:
+.PHONY: launch
+launch:
 	polkadot-launch config.json
+
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?' Makefile | cut -d: -f1 | sort
