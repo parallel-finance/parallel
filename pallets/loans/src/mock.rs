@@ -273,6 +273,7 @@ impl ExtBuilder {
 pub(crate) fn run_to_block(n: BlockNumber) {
     Loans::on_finalize(System::block_number());
     for b in (System::block_number() + 1)..=n {
+        Loans::on_initialize(System::block_number());
         System::set_block_number(b);
         if b != n {
             Loans::on_finalize(System::block_number());

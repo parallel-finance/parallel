@@ -317,7 +317,7 @@ impl<T: Config> Pallet<T> {
         currency_id: &CurrencyId,
     ) -> result::Result<Balance, Error<T>> {
         let snapshot: BorrowSnapshot = Self::account_borrows(currency_id, who);
-        if snapshot.principal == 0 || snapshot.borrow_index.is_zero() {
+        if snapshot.principal.is_zero() || snapshot.borrow_index.is_zero() {
             return Ok(0);
         }
         // Calculate new borrow balance using the interest index:
@@ -377,7 +377,7 @@ impl<T: Config> Pallet<T> {
         }
 
         let account_borrows = Self::borrow_balance_stored(&borrower, &liquidate_currency_id)?;
-        if account_borrows == 0 {
+        if account_borrows.is_zero() {
             return Err(Error::<T>::NoBorrowBalance.into());
         }
 
