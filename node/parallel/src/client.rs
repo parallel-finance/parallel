@@ -18,7 +18,7 @@ use sp_blockchain::HeaderBackend;
 use sp_consensus::BlockStatus;
 use sp_runtime::{
     generic::{self, SignedBlock},
-    traits::{BlakeTwo256, IdentifyAccount, Verify, Block as BlockT},
+    traits::{BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
     FixedU128, Justifications, MultiSignature, Permill, RuntimeDebug,
 };
 use sp_storage::{ChildInfo, PrefixedStorageKey, StorageData, StorageKey};

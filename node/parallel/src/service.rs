@@ -73,8 +73,9 @@ pub fn new_partial<RuntimeApi, Executor>(
 where
     RuntimeApi:
         ConstructRuntimeApi<Block, FullClient<RuntimeApi, Executor>> + Send + Sync + 'static,
-    RuntimeApi::RuntimeApi:
-        crate::client::RuntimeApiCollection<StateBackend = sc_client_api::StateBackendFor<FullBackend, Block>>,
+    RuntimeApi::RuntimeApi: crate::client::RuntimeApiCollection<
+        StateBackend = sc_client_api::StateBackendFor<FullBackend, Block>,
+    >,
     Executor: NativeExecutionDispatch + 'static,
 {
     let telemetry = config
@@ -166,7 +167,15 @@ async fn start_node_impl<RuntimeApi, Executor>(
     collator_key: CollatorPair,
     polkadot_config: Configuration,
     id: ParaId,
-) -> sc_service::error::Result<(TaskManager, Arc<FullClient<RuntimeApi, Executor>>)> {
+) -> sc_service::error::Result<(TaskManager, Arc<FullClient<RuntimeApi, Executor>>)>
+where
+    RuntimeApi:
+        ConstructRuntimeApi<Block, FullClient<RuntimeApi, Executor>> + Send + Sync + 'static,
+    RuntimeApi::RuntimeApi: crate::client::RuntimeApiCollection<
+        StateBackend = sc_client_api::StateBackendFor<FullBackend, Block>,
+    >,
+    Executor: NativeExecutionDispatch + 'static,
+{
     if matches!(parachain_config.role, Role::Light) {
         return Err("Light client not supported!".into());
     }
@@ -366,8 +375,9 @@ pub async fn start_node<RuntimeApi, Executor>(
 where
     RuntimeApi:
         ConstructRuntimeApi<Block, FullClient<RuntimeApi, Executor>> + Send + Sync + 'static,
-    RuntimeApi::RuntimeApi:
-        crate::client::RuntimeApiCollection<StateBackend = sc_client_api::StateBackendFor<FullBackend, Block>>,
+    RuntimeApi::RuntimeApi: crate::client::RuntimeApiCollection<
+        StateBackend = sc_client_api::StateBackendFor<FullBackend, Block>,
+    >,
     RuntimeApi::RuntimeApi: sp_consensus_aura::AuraApi<Block, AuraId>,
     Executor: NativeExecutionDispatch + 'static,
 {
