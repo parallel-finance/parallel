@@ -24,6 +24,7 @@ use sp_runtime::{
 use sp_storage::{ChildInfo, PrefixedStorageKey, StorageData, StorageKey};
 use std::sync::Arc;
 
+/// A set of APIs that parallel-like runtimes must implement.
 pub trait RuntimeApiCollection:
     sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block>
     + sp_api::ApiExt<Block>
@@ -58,6 +59,9 @@ where
 {
 }
 
+/// Trait that abstracts over all available client implementations.
+///
+/// For a concrete type there exists [`Client`].
 pub trait AbstractClient<Block, Backend>:
     BlockchainEvents<Block>
     + Sized
@@ -90,6 +94,17 @@ where
 {
 }
 
+/// Execute something with the client instance.
+///
+/// As there exist multiple chains inside Parallel, like Parallel itself, Heiko etc,
+/// there can exist different kinds of client types. As these client types differ in the generics
+/// that are being used, we can not easily return them from a function. For returning them from a
+/// function there exists [`Client`]. However, the problem on how to use this client instance still
+/// exists. This trait "solves" it in a dirty way. It requires a type to implement this trait and
+/// than the [`execute_with_client`](ExecuteWithClient::execute_with_client) function can be called
+/// with any possible client instance.
+///
+/// In a perfect world, we could make a closure work in this way.
 pub trait ExecuteWithClient {
     /// The return type when calling this instance.
     type Output;
@@ -104,11 +119,22 @@ pub trait ExecuteWithClient {
         Client: AbstractClient<Block, Backend, Api = Api> + 'static;
 }
 
+/// A handle to a Parallel client instance.
+///
+/// The Parallel service supports multiple different runtimes (Heiko, Parallel itself, etc). As each runtime has a
+/// specialized client, we need to hide them behind a trait. This is this trait.
+///
+/// When wanting to work with the inner client, you need to use `execute_with`.
+///
+/// See [`ExecuteWithClient`](trait.ExecuteWithClient.html) for more information.
 pub trait ClientHandle {
     /// Execute the given something with the client.
     fn execute_with<T: ExecuteWithClient>(&self, t: T) -> T::Output;
 }
 
+/// A client instance of Parallel.
+///
+/// See [`ExecuteWithClient`] for more information.
 #[allow(dead_code)]
 #[derive(Clone)]
 pub enum Client {

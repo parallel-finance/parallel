@@ -359,7 +359,6 @@ where
             collator_key,
             relay_chain_full_node: polkadot_full_node,
             spawner,
-            // backend,
             parachain_consensus,
         };
 
