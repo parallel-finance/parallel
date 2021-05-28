@@ -150,7 +150,10 @@ pub fn run() -> Result<()> {
                     task_manager,
                     import_queue,
                     ..
-                } = crate::service::new_partial(&config)?;
+                } = crate::service::new_partial::<
+                    parallel_runtime::RuntimeApi,
+                    crate::service::ParallelExecutor,
+                >(&config)?;
                 Ok((cmd.run(client, import_queue), task_manager))
             })
         }
@@ -161,7 +164,10 @@ pub fn run() -> Result<()> {
                     client,
                     task_manager,
                     ..
-                } = crate::service::new_partial(&config)?;
+                } = crate::service::new_partial::<
+                    parallel_runtime::RuntimeApi,
+                    crate::service::ParallelExecutor,
+                >(&config)?;
                 Ok((cmd.run(client, config.database), task_manager))
             })
         }
@@ -172,7 +178,10 @@ pub fn run() -> Result<()> {
                     client,
                     task_manager,
                     ..
-                } = crate::service::new_partial(&config)?;
+                } = crate::service::new_partial::<
+                    parallel_runtime::RuntimeApi,
+                    crate::service::ParallelExecutor,
+                >(&config)?;
                 Ok((cmd.run(client, config.chain_spec), task_manager))
             })
         }
@@ -184,7 +193,10 @@ pub fn run() -> Result<()> {
                     task_manager,
                     import_queue,
                     ..
-                } = crate::service::new_partial(&config)?;
+                } = crate::service::new_partial::<
+                    parallel_runtime::RuntimeApi,
+                    crate::service::ParallelExecutor,
+                >(&config)?;
                 Ok((cmd.run(client, import_queue), task_manager))
             })
         }
@@ -220,7 +232,10 @@ pub fn run() -> Result<()> {
                     task_manager,
                     backend,
                     ..
-                } = crate::service::new_partial(&config)?;
+                } = crate::service::new_partial::<
+                    parallel_runtime::RuntimeApi,
+                    crate::service::ParallelExecutor,
+                >(&config)?;
                 Ok((cmd.run(client, backend), task_manager))
             })
         }
@@ -326,10 +341,13 @@ pub fn run() -> Result<()> {
                     }
                 );
 
-                crate::service::start_node(config, key, polkadot_config, id)
-                    .await
-                    .map(|r| r.0)
-                    .map_err(Into::into)
+                crate::service::start_node::<
+                    parallel_runtime::RuntimeApi,
+                    crate::service::ParallelExecutor,
+                >(config, key, polkadot_config, id)
+                .await
+                .map(|r| r.0)
+                .map_err(Into::into)
             })
         }
     }
