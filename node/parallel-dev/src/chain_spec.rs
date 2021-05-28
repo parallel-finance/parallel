@@ -109,7 +109,7 @@ pub fn development_config() -> Result<VanillaChainSpec, String> {
     ))
 }
 
-pub fn local_testnet_config() -> Result<VanillaChainSpec, String> {
+pub fn testnet_config() -> Result<VanillaChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Testnet wasm not available".to_string())?;
     let mut properties = Map::new();
     // properties.insert("tokenSymbol".into(), "PARA".into());
@@ -117,35 +117,40 @@ pub fn local_testnet_config() -> Result<VanillaChainSpec, String> {
 
     Ok(VanillaChainSpec::from_genesis(
         // Name
-        "Local Testnet",
+        "Parallel Testnet",
         // ID
-        "local_testnet",
-        ChainType::Local,
+        "parallel-testnet",
+        ChainType::Development,
         move || {
             testnet_genesis(
                 wasm_binary,
-                "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                    .parse()
-                    .unwrap(),
+                get_account_id_from_seed::<sr25519::Public>("Alice"),
                 vec![authority_keys_from_seed("Alice")],
                 vec!["5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
                     .parse()
                     .unwrap()],
                 vec![
-                    get_account_id_from_seed::<sr25519::Public>("Alice"),
-                    get_account_id_from_seed::<sr25519::Public>("Bob"),
-                    get_account_id_from_seed::<sr25519::Public>("Charlie"),
-                    get_account_id_from_seed::<sr25519::Public>("Dave"),
-                    get_account_id_from_seed::<sr25519::Public>("Eve"),
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-                    get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                     // Parallel team accounts
                     "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                        .parse()
+                        .unwrap(),
+                    // Team members accounts
+                    "5G4fc9GN6DeFQm4h2HKq3d9hBTsBJWSLWkyuk35cKHh2sqEz"
+                        .parse()
+                        .unwrap(),
+                    "5DstmiUjymBw5S53vkcWaT6eCjqQKhRX7nXTQVFDCAL3Mscg"
+                        .parse()
+                        .unwrap(),
+                    "5GBykvvrUz3vwTttgHzUEPdm7G1FND1reBfddQLdiaCbhoMd"
+                        .parse()
+                        .unwrap(),
+                    "5G3f6iLDU6mbyEiJH8icoLhFy4RZ6TvWUZSkDwtg1nXTV3QK"
+                        .parse()
+                        .unwrap(),
+                    "5G97JLuuT1opraWvfS6Smt4jaAZuyDquP9GjamKVcPC366qU"
+                        .parse()
+                        .unwrap(),
+                    "1Gu7GSgLSPrhc1Wci9wAGP6nvzQfaUCYqbfXxjYjMG9bob6"
                         .parse()
                         .unwrap(),
                 ],
