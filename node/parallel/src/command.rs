@@ -20,7 +20,6 @@ use codec::Encode;
 use cumulus_client_service::genesis::generate_genesis_block;
 use cumulus_primitives_core::ParaId;
 use log::info;
-use parallel_runtime::Block;
 use polkadot_parachain::primitives::AccountIdConversion;
 use sc_cli::{
     ChainSpec, CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams,
@@ -41,9 +40,14 @@ fn load_spec(
     para_id: ParaId,
 ) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
     Ok(match id {
-        "dev" => Box::new(chain_spec::development_config(para_id)),
-        "" | "local" => Box::new(chain_spec::local_testnet_config(para_id)),
-        path => Box::new(chain_spec::ParallelChainSpec::from_json_file(
+        "heiko-dev" => Box::new(chain_spec::heiko::development_config(para_id)),
+        "parallel-dev" => Box::new(chain_spec::parallel::development_config(para_id)),
+        "heiko" | "heiko-local" => Box::new(chain_spec::heiko::local_testnet_config(para_id)),
+        "parallel" | "parallel-local" => {
+            Box::new(chain_spec::parallel::local_testnet_config(para_id))
+        }
+        // TODO: make it works with heiko
+        path => Box::new(chain_spec::parallel::ChainSpec::from_json_file(
             std::path::PathBuf::from(path),
         )?),
     })
@@ -243,7 +247,9 @@ pub fn run() -> Result<()> {
             if cfg!(feature = "runtime-benchmarks") {
                 let runner = cli.create_runner(cmd)?;
 
-                runner.sync_run(|config| cmd.run::<Block, crate::service::ParallelExecutor>(config))
+                runner.sync_run(|config| {
+                    cmd.run::<parallel_runtime::Block, crate::service::ParallelExecutor>(config)
+                })
             } else {
                 Err("Benchmarking wasn't enabled when building the node. \
 				You can enable it with `--features runtime-benchmarks`."
@@ -255,7 +261,7 @@ pub fn run() -> Result<()> {
             builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
             let _ = builder.init();
 
-            let block: Block = generate_genesis_block(&load_spec(
+            let block: parallel_runtime::Block = generate_genesis_block(&load_spec(
                 &params.chain.clone().unwrap_or_default(),
                 params.parachain_id.into(),
             )?)?;
@@ -318,7 +324,7 @@ pub fn run() -> Result<()> {
                 let parachain_account =
                     AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(&id);
 
-                let block: Block =
+                let block: parallel_runtime::Block =
                     generate_genesis_block(&config.chain_spec).map_err(|e| format!("{:?}", e))?;
                 let genesis_state = format!("0x{:?}", HexDisplay::from(&block.header().encode()));
 
