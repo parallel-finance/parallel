@@ -188,7 +188,7 @@ fn testnet_genesis(
                 let mut endowed_accounts = endowed_accounts.clone();
                 endowed_accounts.extend_from_slice(&oracle_accounts);
 
-                endowed_accounts.into_iter().map(|k| (k, 1 << 60)).collect()
+                endowed_accounts.into_iter().map(|k| (k, 1 << 90)).collect()
             },
         },
         pallet_sudo: vanilla_runtime::SudoConfig { key: root_key },
@@ -201,11 +201,11 @@ fn testnet_genesis(
                 .iter()
                 .flat_map(|x| {
                     vec![
-                        (x.clone(), CurrencyId::DOT, 1_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::KSM, 1_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::USDT, 1_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::xDOT, 1_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::xKSM, 1_000 * TOKEN_DECIMAL),
+                        (x.clone(), CurrencyId::DOT, 1_000_000_000 * TOKEN_DECIMAL),
+                        (x.clone(), CurrencyId::KSM, 1_000_000_000 * TOKEN_DECIMAL),
+                        (x.clone(), CurrencyId::USDT, 1_000_000_000 * TOKEN_DECIMAL),
+                        (x.clone(), CurrencyId::xDOT, 1_000_000_000 * TOKEN_DECIMAL),
+                        (x.clone(), CurrencyId::xKSM, 1_000_000_000 * TOKEN_DECIMAL),
                     ]
                 })
                 .collect(),
