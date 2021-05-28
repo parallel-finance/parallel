@@ -1,8 +1,12 @@
 # CHANGE LOG
 
+## 2021.05.28
+
+-   Add xKSM & heiko runtime (#152)
+
 ## 2021.05.27
 
--   upgrade to polkadot-v0.9.2 (#147)
+-   Upgrade to polkadot-v0.9.2 (#147)
 
 ## 2021.05.25
 
