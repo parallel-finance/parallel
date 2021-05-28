@@ -54,19 +54,19 @@ pub type FullBackend = sc_service::TFullBackend<Block>;
 pub type FullClient<RuntimeApi, Executor> = sc_service::TFullClient<Block, RuntimeApi, Executor>;
 
 pub trait IdentifyVariant {
-	fn is_parallel(&self) -> bool;
+    fn is_parallel(&self) -> bool;
 
-	fn is_heiko(&self) -> bool;
+    fn is_heiko(&self) -> bool;
 }
 
 impl<T: sc_service::ChainSpec> IdentifyVariant for T {
-	fn is_parallel(&self) -> bool {
-		self.id().starts_with("parallel")
-	}
+    fn is_parallel(&self) -> bool {
+        self.id().starts_with("parallel")
+    }
 
-	fn is_heiko(&self) -> bool {
-		self.id().starts_with("heiko")
-	}
+    fn is_heiko(&self) -> bool {
+        self.id().starts_with("heiko")
+    }
 }
 
 /// Starts a `ServiceBuilder` for a full service.
