@@ -17,9 +17,9 @@ use sp_api::{CallApiAt, NumberFor, ProvideRuntimeApi};
 use sp_blockchain::HeaderBackend;
 use sp_consensus::BlockStatus;
 use sp_runtime::{
-    generic::{self, SignedBlock},
-    traits::{BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
-    FixedU128, Justifications, MultiSignature, Permill, RuntimeDebug,
+    generic::SignedBlock,
+    traits::{BlakeTwo256, Block as BlockT},
+    Justifications,
 };
 use sp_storage::{ChildInfo, PrefixedStorageKey, StorageData, StorageKey};
 use std::sync::Arc;
@@ -31,6 +31,7 @@ pub trait RuntimeApiCollection:
     + frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index>
     + pallet_transaction_payment_rpc_runtime_api::TransactionPaymentApi<Block, Balance>
     + orml_oracle_rpc::OracleRuntimeApi<Block, DataProviderId, CurrencyId, TimeStampedPrice>
+    + sp_consensus_aura::AuraApi<Block, AuraId>
     + sp_api::Metadata<Block>
     + sp_offchain::OffchainWorkerApi<Block>
     + sp_session::SessionKeys<Block>
@@ -48,6 +49,7 @@ where
         + frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index>
         + pallet_transaction_payment_rpc_runtime_api::TransactionPaymentApi<Block, Balance>
         + orml_oracle_rpc::OracleRuntimeApi<Block, DataProviderId, CurrencyId, TimeStampedPrice>
+        + sp_consensus_aura::AuraApi<Block, AuraId>
         + sp_api::Metadata<Block>
         + sp_offchain::OffchainWorkerApi<Block>
         + sp_session::SessionKeys<Block>
