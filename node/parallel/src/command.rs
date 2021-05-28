@@ -157,6 +157,28 @@ fn extract_genesis_wasm(chain_spec: &Box<dyn sc_service::ChainSpec>) -> Result<V
         .ok_or_else(|| "Could not find wasm file in genesis state!".into())
 }
 
+macro_rules! switch_runtime {
+    ($chain_spec:expr, { $( $code:tt )* }) => {
+        if $chain_spec.is_parallel() {
+			#[allow(unused_imports)]
+            use crate::service::ParallelExecutor as Executor;
+			#[allow(unused_imports)]
+            use parallel_runtime::{RuntimeApi, Block};
+
+			$( $code )*
+        } else if $chain_spec.is_heiko() {
+			#[allow(unused_imports)]
+            use crate::service::HeikoExecutor as Executor;
+			#[allow(unused_imports)]
+            use heiko_runtime::{RuntimeApi, Block};
+
+			$( $code )*
+        } else {
+            unreachable!();
+        }
+    };
+}
+
 /// Parse command line arguments into service configuration.
 pub fn run() -> Result<()> {
     let cli = Cli::from_args();
@@ -171,137 +193,63 @@ pub fn run() -> Result<()> {
             let runner = cli.create_runner(cmd)?;
             let chain_spec = &runner.config().chain_spec;
 
-            if chain_spec.is_parallel() {
+            switch_runtime!(chain_spec, {
                 runner.async_run(|config| {
                     let PartialComponents {
                         client,
                         task_manager,
                         import_queue,
                         ..
-                    } = crate::service::new_partial::<
-                        parallel_runtime::RuntimeApi,
-                        crate::service::ParallelExecutor,
-                    >(&config)?;
+                    } = crate::service::new_partial::<RuntimeApi, Executor>(&config)?;
                     Ok((cmd.run(client, import_queue), task_manager))
                 })
-            } else if chain_spec.is_heiko() {
-                runner.async_run(|config| {
-                    let PartialComponents {
-                        client,
-                        task_manager,
-                        import_queue,
-                        ..
-                    } = crate::service::new_partial::<
-                        heiko_runtime::RuntimeApi,
-                        crate::service::HeikoExecutor,
-                    >(&config)?;
-                    Ok((cmd.run(client, import_queue), task_manager))
-                })
-            } else {
-                // TODO: replace unreachable by an error
-                unreachable!()
-            }
+            })
         }
         Some(Subcommand::ExportBlocks(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             let chain_spec = &runner.config().chain_spec;
 
-            if chain_spec.is_parallel() {
+            switch_runtime!(chain_spec, {
                 runner.async_run(|config| {
                     let PartialComponents {
                         client,
                         task_manager,
                         ..
-                    } = crate::service::new_partial::<
-                        parallel_runtime::RuntimeApi,
-                        crate::service::ParallelExecutor,
-                    >(&config)?;
+                    } = crate::service::new_partial::<RuntimeApi, Executor>(&config)?;
                     Ok((cmd.run(client, config.database), task_manager))
                 })
-            } else if chain_spec.is_heiko() {
-                runner.async_run(|config| {
-                    let PartialComponents {
-                        client,
-                        task_manager,
-                        ..
-                    } = crate::service::new_partial::<
-                        heiko_runtime::RuntimeApi,
-                        crate::service::HeikoExecutor,
-                    >(&config)?;
-                    Ok((cmd.run(client, config.database), task_manager))
-                })
-            } else {
-                // TODO: replace unreachable by an error
-                unreachable!()
-            }
+            })
         }
         Some(Subcommand::ExportState(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             let chain_spec = &runner.config().chain_spec;
 
-            if chain_spec.is_parallel() {
+            switch_runtime!(chain_spec, {
                 runner.async_run(|config| {
                     let PartialComponents {
                         client,
                         task_manager,
                         ..
-                    } = crate::service::new_partial::<
-                        parallel_runtime::RuntimeApi,
-                        crate::service::ParallelExecutor,
-                    >(&config)?;
+                    } = crate::service::new_partial::<RuntimeApi, Executor>(&config)?;
                     Ok((cmd.run(client, config.chain_spec), task_manager))
                 })
-            } else if chain_spec.is_heiko() {
-                runner.async_run(|config| {
-                    let PartialComponents {
-                        client,
-                        task_manager,
-                        ..
-                    } = crate::service::new_partial::<
-                        heiko_runtime::RuntimeApi,
-                        crate::service::HeikoExecutor,
-                    >(&config)?;
-                    Ok((cmd.run(client, config.chain_spec), task_manager))
-                })
-            } else {
-                // TODO: replace unreachable by an error
-                unreachable!()
-            }
+            })
         }
         Some(Subcommand::ImportBlocks(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             let chain_spec = &runner.config().chain_spec;
 
-            if chain_spec.is_parallel() {
+            switch_runtime!(chain_spec, {
                 runner.async_run(|config| {
                     let PartialComponents {
                         client,
                         task_manager,
                         import_queue,
                         ..
-                    } = crate::service::new_partial::<
-                        parallel_runtime::RuntimeApi,
-                        crate::service::ParallelExecutor,
-                    >(&config)?;
+                    } = crate::service::new_partial::<RuntimeApi, Executor>(&config)?;
                     Ok((cmd.run(client, import_queue), task_manager))
                 })
-            } else if chain_spec.is_heiko() {
-                runner.async_run(|config| {
-                    let PartialComponents {
-                        client,
-                        task_manager,
-                        import_queue,
-                        ..
-                    } = crate::service::new_partial::<
-                        heiko_runtime::RuntimeApi,
-                        crate::service::HeikoExecutor,
-                    >(&config)?;
-                    Ok((cmd.run(client, import_queue), task_manager))
-                })
-            } else {
-                // TODO: replace unreachable by an error
-                unreachable!()
-            }
+            })
         }
         Some(Subcommand::PurgeChain(cmd)) => {
             let runner = cli.create_runner(cmd)?;
@@ -330,54 +278,26 @@ pub fn run() -> Result<()> {
         Some(Subcommand::Revert(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             let chain_spec = &runner.config().chain_spec;
-            if chain_spec.is_parallel() {
+            switch_runtime!(chain_spec, {
                 runner.async_run(|config| {
                     let PartialComponents {
                         client,
                         task_manager,
                         backend,
                         ..
-                    } = crate::service::new_partial::<
-                        parallel_runtime::RuntimeApi,
-                        crate::service::ParallelExecutor,
-                    >(&config)?;
+                    } = crate::service::new_partial::<RuntimeApi, Executor>(&config)?;
                     Ok((cmd.run(client, backend), task_manager))
                 })
-            } else if chain_spec.is_heiko() {
-                runner.async_run(|config| {
-                    let PartialComponents {
-                        client,
-                        task_manager,
-                        backend,
-                        ..
-                    } = crate::service::new_partial::<
-                        heiko_runtime::RuntimeApi,
-                        crate::service::HeikoExecutor,
-                    >(&config)?;
-                    Ok((cmd.run(client, backend), task_manager))
-                })
-            } else {
-                // TODO: replace unreachable by an error
-                unreachable!()
-            }
+            })
         }
         Some(Subcommand::Benchmark(cmd)) => {
             if cfg!(feature = "runtime-benchmarks") {
                 let runner = cli.create_runner(cmd)?;
                 let chain_spec = &runner.config().chain_spec;
 
-                if chain_spec.is_parallel() {
-                    runner.sync_run(|config| {
-                        cmd.run::<parallel_runtime::Block, crate::service::ParallelExecutor>(config)
-                    })
-                } else if chain_spec.is_heiko() {
-                    runner.sync_run(|config| {
-                        cmd.run::<heiko_runtime::Block, crate::service::HeikoExecutor>(config)
-                    })
-                } else {
-                    // TODO: replace unreachable by an error
-                    unreachable!()
-                }
+                switch_runtime!(chain_spec, {
+                    runner.sync_run(|config| cmd.run::<Block, Executor>(config))
+                })
             } else {
                 Err("Benchmarking wasn't enabled when building the node. \
 				You can enable it with `--features runtime-benchmarks`."
@@ -394,8 +314,8 @@ pub fn run() -> Result<()> {
                 params.parachain_id.into(),
             )?;
 
-            if chain_spec.is_parallel() {
-                let block: parallel_runtime::Block = generate_genesis_block(chain_spec)?;
+            switch_runtime!(chain_spec, {
+                let block: Block = generate_genesis_block(chain_spec)?;
                 let raw_header = block.header().encode();
                 let output_buf = if params.raw {
                     raw_header
@@ -408,24 +328,7 @@ pub fn run() -> Result<()> {
                 } else {
                     std::io::stdout().write_all(&output_buf)?;
                 }
-            } else if chain_spec.is_heiko() {
-                let block: heiko_runtime::Block = generate_genesis_block(chain_spec)?;
-                let raw_header = block.header().encode();
-                let output_buf = if params.raw {
-                    raw_header
-                } else {
-                    format!("0x{:?}", HexDisplay::from(&block.header().encode())).into_bytes()
-                };
-
-                if let Some(output) = &params.output {
-                    std::fs::write(output, output_buf)?;
-                } else {
-                    std::io::stdout().write_all(&output_buf)?;
-                }
-            } else {
-                // TODO: replace unreachable by an error
-                unreachable!()
-            }
+            });
 
             Ok(())
         }
@@ -454,7 +357,7 @@ pub fn run() -> Result<()> {
             let runner = cli.create_runner(&cli.run.normalize())?;
             let chain_spec = &runner.config().chain_spec;
 
-            if chain_spec.is_parallel() {
+            switch_runtime!(chain_spec, {
                 runner.run_node_until_exit(|config| async move {
                     let key = sp_core::Pair::generate().0;
 
@@ -477,7 +380,7 @@ pub fn run() -> Result<()> {
                             &id,
                         );
 
-                    let block: parallel_runtime::Block = generate_genesis_block(&config.chain_spec)
+                    let block: Block = generate_genesis_block(&config.chain_spec)
                         .map_err(|e| format!("{:?}", e))?;
                     let genesis_state =
                         format!("0x{:?}", HexDisplay::from(&block.header().encode()));
@@ -501,73 +404,17 @@ pub fn run() -> Result<()> {
                         }
                     );
 
-                    crate::service::start_node::<
-                        parallel_runtime::RuntimeApi,
-                        crate::service::ParallelExecutor,
-                    >(config, key, polkadot_config, id)
-                    .await
-                    .map(|r| r.0)
-                    .map_err(Into::into)
-                })
-            } else if chain_spec.is_heiko() {
-                runner.run_node_until_exit(|config| async move {
-                    let key = sp_core::Pair::generate().0;
-
-                    let extension = chain_spec::Extensions::try_get(&*config.chain_spec);
-                    let relay_chain_id = extension.map(|e| e.relay_chain.clone());
-                    let para_id = extension.map(|e| e.para_id);
-
-                    let polkadot_cli = RelayChainCli::new(
-                        config.base_path.as_ref().map(|x| x.path().join("polkadot")),
-                        relay_chain_id,
-                        [RelayChainCli::executable_name()]
-                            .iter()
-                            .chain(cli.relaychain_args.iter()),
-                    );
-
-                    let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(200));
-
-                    let parachain_account =
-                        AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(
-                            &id,
-                        );
-
-                    let block: heiko_runtime::Block = generate_genesis_block(&config.chain_spec)
-                        .map_err(|e| format!("{:?}", e))?;
-                    let genesis_state =
-                        format!("0x{:?}", HexDisplay::from(&block.header().encode()));
-
-                    let polkadot_config = SubstrateCli::create_configuration(
-                        &polkadot_cli,
-                        &polkadot_cli,
-                        config.task_executor.clone(),
+                    crate::service::start_node::<RuntimeApi, Executor>(
+                        config,
+                        key,
+                        polkadot_config,
+                        id,
                     )
-                    .map_err(|err| format!("Relay chain argument error: {}", err))?;
-
-                    info!("Parachain id: {:?}", id);
-                    info!("Parachain Account: {}", parachain_account);
-                    info!("Parachain genesis state: {}", genesis_state);
-                    info!(
-                        "Is collating: {}",
-                        if config.role.is_authority() {
-                            "yes"
-                        } else {
-                            "no"
-                        }
-                    );
-
-                    crate::service::start_node::<
-                        heiko_runtime::RuntimeApi,
-                        crate::service::HeikoExecutor,
-                    >(config, key, polkadot_config, id)
                     .await
                     .map(|r| r.0)
                     .map_err(Into::into)
                 })
-            } else {
-                // TODO: replace unreachable by an error
-                unreachable!()
-            }
+            })
         }
     }
 }
