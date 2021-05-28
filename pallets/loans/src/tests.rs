@@ -623,3 +623,73 @@ fn set_rate_model_failed_by_error_param() {
         );
     })
 }
+
+#[test]
+fn update_exchange_rate_works() {
+    ExtBuilder::default().build().execute_with(|| {
+        // Initialize value of exchange rate is 0.02
+        assert_eq!(
+            Loans::exchange_rate(DOT),
+            Rate::saturating_from_rational(2, 100)
+        );
+
+        // total_supply = 0
+        TotalSupply::<Runtime>::insert(DOT, 0);
+        assert_ok!(Loans::update_exchange_rate(DOT));
+        assert_eq!(
+            Loans::exchange_rate(DOT),
+            Rate::saturating_from_rational(2, 100)
+        );
+
+        // total_cash + total_borrows - total_reverse / total_supply
+        // 10 + 5 - 1 / 500
+        // total_cash = 10, total_supply = 500
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(10)));
+        TotalBorrows::<Runtime>::insert(DOT, dollar(5));
+        TotalReserves::<Runtime>::insert(DOT, dollar(1));
+        assert_ok!(Loans::update_exchange_rate(DOT));
+        assert_eq!(
+            Loans::exchange_rate(DOT),
+            Rate::saturating_from_rational(14, 500)
+        );
+    })
+}
+
+#[test]
+fn borrow_balance_stored_works() {
+    ExtBuilder::default().build().execute_with(|| {
+        // snapshot.principal = 0
+        AccountBorrows::<Runtime>::insert(
+            DOT,
+            ALICE,
+            BorrowSnapshot {
+                principal: 0,
+                borrow_index: Rate::one(),
+            },
+        );
+        assert_eq!(Loans::borrow_balance_stored(&ALICE, &DOT).unwrap(), 0);
+
+        // snapshot.borrow_index = 0
+        AccountBorrows::<Runtime>::insert(
+            DOT,
+            ALICE,
+            BorrowSnapshot {
+                principal: 100,
+                borrow_index: Rate::zero(),
+            },
+        );
+        assert_eq!(Loans::borrow_balance_stored(&ALICE, &DOT).unwrap(), 0);
+
+        // borrow_index = 1.2, snapshot.borrow_index = 1, snapshot.principal = 100
+        BorrowIndex::<Runtime>::insert(DOT, Rate::saturating_from_rational(12, 10));
+        AccountBorrows::<Runtime>::insert(
+            DOT,
+            ALICE,
+            BorrowSnapshot {
+                principal: 100,
+                borrow_index: Rate::one(),
+            },
+        );
+        assert_eq!(Loans::borrow_balance_stored(&ALICE, &DOT).unwrap(), 120);
+    })
+}

@@ -18,7 +18,7 @@
 
 pub use crate::rate::InterestRateModel;
 use crate::util::*;
-use frame_support::{pallet_prelude::*, transactional, PalletId};
+use frame_support::{log, pallet_prelude::*, transactional, PalletId};
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 use primitives::{Amount, Balance, CurrencyId, Multiplier, PriceFeeder, Rate, Ratio};
@@ -217,7 +217,7 @@ pub mod module {
         ValueQuery,
     >;
 
-    /// Mapping of account addresses to collateral tokens balances
+    /// Mapping of account addresses to deposit details
     /// CollateralType -> Owner -> Balance
     #[pallet::storage]
     #[pallet::getter(fn account_collateral)]
@@ -424,8 +424,21 @@ pub mod module {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-        fn on_finalize(_now: T::BlockNumber) {
-            let _ = <Pallet<T>>::accrue_interest();
+        /// Called by substrate on block initialization.
+        /// Our initialization function is fallible, but that's not allowed.
+        fn on_initialize(block_number: T::BlockNumber) -> frame_support::weights::Weight {
+            match <Pallet<T>>::accrue_interest() {
+                Ok(()) => 0,
+                Err(err) => {
+                    // This should never happen...
+                    log::info!(
+                        "Could not initialize block!!! {:#?} {:#?}",
+                        block_number,
+                        err
+                    );
+                    0
+                }
+            }
         }
     }
 
@@ -684,15 +697,18 @@ impl<T: Config> Pallet<T> {
 
     pub fn update_exchange_rate(currency_id: CurrencyId) -> DispatchResult {
         // exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
+        let total_supply = Self::total_supply(currency_id);
+        if total_supply.is_zero() {
+            return Ok(());
+        }
         let total_cash = Self::get_total_cash(currency_id);
         let total_borrows = Self::total_borrows(currency_id);
         let total_reserves = Self::total_reserves(currency_id);
-        let total_supply = Self::total_supply(currency_id);
 
         let cash_plus_borrows_minus_reserves = total_cash
             .checked_add(total_borrows)
             .and_then(|r| r.checked_sub(total_reserves))
-            .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
+            .ok_or(Error::<T>::CalcExchangeRateFailed)?;
         let exchange_rate =
             Rate::checked_from_rational(cash_plus_borrows_minus_reserves, total_supply)
                 .ok_or(Error::<T>::CalcExchangeRateFailed)?;
