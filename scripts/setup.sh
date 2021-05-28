@@ -82,7 +82,7 @@ function daemonize-all-service {
         rm $SERVICE_FILE
     fi
     touch $"$SERVICE.service"
-    printf "[Unit]\nDescription=Parallel Vanilla Node\nRequires=network.target\nAfter=multi-user.target graphical.target network.target syslog.target\nWants=network.target\n\n[Service]\nUser=${CURR_USER}\nRestart=always\nRestartSec=5\nWorkingDirectory=${FULL_DIR_PATH}\nExecStart=${FULL_DIR_PATH}/parallel -d parallel-chain --dev --ws-external\n\n[Install]\nWantedBy=multi-user.target\n" > $SERVICE_FILE
+    printf "[Unit]\nDescription=Parallel Vanilla Node\nRequires=network.target\nAfter=multi-user.target graphical.target network.target syslog.target\nWants=network.target\n\n[Service]\nUser=${CURR_USER}\nRestart=always\nRestartSec=5\nWorkingDirectory=${FULL_DIR_PATH}\nExecStart=${FULL_DIR_PATH}/parallel -d parallel-chain --chain testnet --alice --ws-external\n\n[Install]\nWantedBy=multi-user.target\n" > $SERVICE_FILE
     daemonize-service $SERVICE
 }
 
