@@ -46,10 +46,23 @@ fn load_spec(
         "parallel" | "parallel-local" => {
             Box::new(chain_spec::parallel::local_testnet_config(para_id))
         }
-        // TODO: make it works with heiko
-        path => Box::new(chain_spec::parallel::ChainSpec::from_json_file(
-            std::path::PathBuf::from(path),
-        )?),
+        path => {
+            let path = std::path::PathBuf::from(path);
+            let starts_with = |prefix: &str| {
+                path.file_name()
+                    .map(|f| f.to_str().map(|s| s.starts_with(&prefix)))
+                    .flatten()
+                    .unwrap_or(false)
+            };
+
+            if starts_with("parallel") {
+                Box::new(chain_spec::parallel::ChainSpec::from_json_file(path)?)
+            } else if starts_with("heiko") {
+                Box::new(chain_spec::heiko::ChainSpec::from_json_file(path)?)
+            } else {
+                return Err("chain_spec's filename must start with parallel or heiko".into());
+            }
+        }
     })
 }
 
