@@ -685,10 +685,7 @@ impl<T: Config> Pallet<T> {
             BorrowRate::<T>::insert(currency_id, &borrow_rate.0);
             SupplyRate::<T>::insert(currency_id, supply_rate.0);
 
-            let borrow_rate_per_block = APR::from(borrow_rate)
-                .rate_per_block()
-                .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
-            Self::update_borrow_index(borrow_rate_per_block, currency_id)?;
+            Self::update_borrow_index(APR::from(borrow_rate), currency_id)?;
             Self::update_exchange_rate(currency_id)?;
         }
 
@@ -734,10 +731,7 @@ impl<T: Config> Pallet<T> {
         Ok(Ratio::from_rational(borrows, total))
     }
 
-    pub fn update_borrow_index(
-        borrow_rate_per_block: Rate,
-        currency_id: CurrencyId,
-    ) -> DispatchResult {
+    pub fn update_borrow_index(borrow_apr: APR, currency_id: CurrencyId) -> DispatchResult {
         // interestAccumulated = totalBorrows * borrowRate
         // totalBorrows = interestAccumulated + totalBorrows
         // totalReserves = interestAccumulated * reserveFactor + totalReserves
@@ -745,8 +739,8 @@ impl<T: Config> Pallet<T> {
         let borrows_prior = Self::total_borrows(currency_id);
         let reserve_prior = Self::total_reserves(currency_id);
         let reserve_factor = Self::reserve_factor(currency_id);
-        let interest_accumulated = borrow_rate_per_block
-            .checked_mul_int(borrows_prior)
+        let interest_accumulated = borrow_apr
+            .accrued_interest_per_block(borrows_prior)
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
         let total_borrows_new = interest_accumulated
             .checked_add(borrows_prior)
@@ -756,8 +750,8 @@ impl<T: Config> Pallet<T> {
             .checked_add(reserve_prior)
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
         let borrow_index = Self::borrow_index(currency_id);
-        let borrow_index_new = borrow_index
-            .checked_mul(&borrow_rate_per_block)
+        let borrow_index_new = borrow_apr
+            .increment_index_per_block(borrow_index)
             .and_then(|r| r.checked_add(&borrow_index))
             .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
 
