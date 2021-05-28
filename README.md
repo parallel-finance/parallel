@@ -43,7 +43,13 @@ cargo build --release
 make help
 ```
 
-## Run
+## Run Heiko Node (via polkadot-launch)
+
+```
+make launch-heiko
+```
+
+## Run Heiko Node (manually)
 
 ### Local Testnet
 
