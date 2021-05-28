@@ -1,92 +1,84 @@
 {
-  "types": {
-    "Address": "MultiAddress",
-    "LookupSource": "MultiAddress",
-    "CurrencyId": {
-      "_enum": [
-        "DOT",
-        "KSM",
-        "USDT",
-        "xDOT",
-        "Native"
-      ]
+    "types": {
+        "Address": "MultiAddress",
+        "LookupSource": "MultiAddress",
+        "CurrencyId": {
+            "_enum": ["DOT", "KSM", "USDT", "xDOT", "xKSM", "Native"]
+        },
+        "CurrencyIdOf": "CurrencyId",
+        "Amount": "i128",
+        "AmountOf": "Amount",
+        "Price": "FixedU128",
+        "Timestamp": "u64",
+        "Public": "AccountId",
+        "PriceDetail": "(Price, Timestamp)",
+        "PalletId": "MultiAddress",
+        "Rate": "FixedU128",
+        "Ratio": "Permill",
+        "Payload": {
+            "list": "Vec<PayloadDetail>",
+            "public": "Public"
+        },
+        "PayloadDetail": {
+            "price": "Price",
+            "symbol": "CurrencyId",
+            "timestamp": "Moment"
+        },
+        "BorrowSnapshot": {
+            "principal": "Balance",
+            "borrowIndex": "u128"
+        },
+        "EarnedSnapshot": {
+            "totalEarnedPrior": "Balance",
+            "exchangeRatePrior": "u128"
+        },
+        "PendingBalance": {
+            "balance": "Balance",
+            "timestamp": "Moment"
+        },
+        "WaitingForLiquidation": {
+            "accountId": "Address",
+            "liquidateToken": "CurrencyId",
+            "collateralToken": "CurrencyId",
+            "repayAmount": "Balance"
+        },
+        "OracleKey": "CurrencyId",
+        "OracleValue": "FixedU128",
+        "MomentOf": "Moment",
+        "TimestampedValue": {
+            "value": "OracleValue",
+            "timestamp": "Moment"
+        },
+        "TimestampedValueOf": "TimestampedValue",
+        "RpcDataProviderId": "Text",
+        "DataProviderId": {
+            "_enum": ["Aggregated"]
+        },
+        "OrderedSet": "Vec<AccountId>",
+        "InterestRateModel": {
+            "baseRate": "Rate",
+            "kinkRate": "Rate",
+            "fullRate": "Rate",
+            "kinkUtilization": "Ratio"
+        },
+        "UnstakeInfo": {
+            "amount": "u128",
+            "blockNumber": "u64"
+        },
+        "OrmlAccountData": {
+            "free": "Balance",
+            "frozen": "Balance",
+            "reserved": "Balance"
+        },
+        "OrmlBalanceLock": {
+            "amount": "Balance",
+            "id": "LockIdentifier"
+        }
     },
-    "CurrencyIdOf": "CurrencyId",
-    "Amount": "i128",
-    "AmountOf": "Amount",
-    "Price": "FixedU128",
-    "Timestamp": "u64",
-    "Public": "AccountId",
-    "PriceDetail": "(Price, Timestamp)",
-    "PalletId": "MultiAddress",
-    "Rate": "FixedU128",
-    "Ratio": "Permill",
-    "Payload": {
-      "list": "Vec<PayloadDetail>",
-      "public": "Public"
-    },
-    "PayloadDetail": {
-      "price": "Price",
-      "symbol": "CurrencyId",
-      "timestamp": "Moment"
-    },
-    "BorrowSnapshot": {
-      "principal": "Balance",
-      "borrowIndex": "u128"
-    },
-    "EarnedSnapshot": {
-      "totalEarnedPrior": "Balance",
-      "exchangeRatePrior": "u128"
-    },
-    "PendingBalance": {
-      "balance": "Balance",
-      "timestamp": "Moment"
-    },
-    "WaitingForLiquidation": {
-      "accountId": "Address",
-      "liquidateToken": "CurrencyId",
-      "collateralToken": "CurrencyId",
-      "repayAmount": "Balance"
-    },
-    "OracleKey": "CurrencyId",
-    "OracleValue": "FixedU128",
-    "MomentOf": "Moment",
-    "TimestampedValue": {
-      "value": "OracleValue",
-      "timestamp": "Moment"
-    },
-    "TimestampedValueOf": "TimestampedValue",
-    "RpcDataProviderId": "Text",
-    "DataProviderId": {
-      "_enum": [
-        "Aggregated"
-      ]
-    },
-    "OrderedSet": "Vec<AccountId>",
-    "InterestRateModel": {
-      "baseRate": "Rate",
-      "kinkRate": "Rate",
-      "fullRate": "Rate",
-      "kinkUtilization": "Ratio"
-    },
-    "UnstakeInfo": {
-      "amount": "u128",
-      "blockNumber": "u64"
-    },
-    "OrmlAccountData": {
-      "free": "Balance",
-      "frozen": "Balance",
-      "reserved": "Balance"
-    },
-    "OrmlBalanceLock": {
-      "amount": "Balance",
-      "id": "LockIdentifier"
+    "typesAlias": {
+        "tokens": {
+            "AccountData": "OrmlAccountData",
+            "BalanceLock": "OrmlBalanceLock"
+        }
     }
-  },
-  "typesAlias": {
-    "tokens": {
-      "AccountData": "OrmlAccountData",
-      "BalanceLock": "OrmlBalanceLock"
-    }
-  }
 }
