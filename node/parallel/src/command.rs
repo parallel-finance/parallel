@@ -44,7 +44,7 @@ fn load_spec(
     Ok(match id {
         "heiko-dev" => Box::new(chain_spec::heiko::development_config(para_id)),
         "parallel-dev" => Box::new(chain_spec::parallel::development_config(para_id)),
-         "" | "heiko" | "heiko-local" => Box::new(chain_spec::heiko::local_testnet_config(para_id)),
+        "" | "heiko" | "heiko-local" => Box::new(chain_spec::heiko::local_testnet_config(para_id)),
         "parallel" | "parallel-local" => {
             Box::new(chain_spec::parallel::local_testnet_config(para_id))
         }
