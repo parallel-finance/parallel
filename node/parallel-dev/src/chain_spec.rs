@@ -208,23 +208,15 @@ fn testnet_genesis(
                 .iter()
                 .flat_map(|x| {
                     vec![
-                        (x.clone(), CurrencyId::DOT, 1_000_000_000 * TOKEN_DECIMAL),
                         (x.clone(), CurrencyId::KSM, 1_000_000_000 * TOKEN_DECIMAL),
                         (x.clone(), CurrencyId::USDT, 1_000_000_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::xDOT, 1_000_000_000 * TOKEN_DECIMAL),
                         (x.clone(), CurrencyId::xKSM, 1_000_000_000 * TOKEN_DECIMAL),
                     ]
                 })
                 .collect(),
         },
         pallet_loans: vanilla_runtime::LoansConfig {
-            currencies: vec![
-                CurrencyId::DOT,
-                CurrencyId::KSM,
-                CurrencyId::USDT,
-                CurrencyId::xDOT,
-                CurrencyId::xKSM,
-            ],
+            currencies: vec![CurrencyId::KSM, CurrencyId::USDT, CurrencyId::xKSM],
             borrow_index: Rate::one(),                             // 1
             exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
             base_rate: Rate::saturating_from_rational(2, 100),     // 2%
@@ -232,38 +224,29 @@ fn testnet_genesis(
             full_rate: Rate::saturating_from_rational(32, 100),    // 32%
             kink_utilization: Ratio::from_percent(80),             // 80%
             collateral_factor: vec![
-                (CurrencyId::DOT, Ratio::from_percent(50)),
                 (CurrencyId::KSM, Ratio::from_percent(50)),
                 (CurrencyId::USDT, Ratio::from_percent(50)),
-                (CurrencyId::xDOT, Ratio::from_percent(50)),
+                (CurrencyId::xKSM, Ratio::from_percent(90)),
             ],
             liquidation_incentive: vec![
-                (CurrencyId::DOT, Ratio::from_percent(90)),
                 (CurrencyId::KSM, Ratio::from_percent(90)),
                 (CurrencyId::USDT, Ratio::from_percent(90)),
-                (CurrencyId::xDOT, Ratio::from_percent(90)),
                 (CurrencyId::xKSM, Ratio::from_percent(90)),
             ],
             // TODO : please refer to https://github.com/parallel-finance/parallel/issues/46
             liquidation_threshold: vec![
-                (CurrencyId::DOT, Ratio::from_percent(90)),
                 (CurrencyId::KSM, Ratio::from_percent(90)),
                 (CurrencyId::USDT, Ratio::from_percent(90)),
-                (CurrencyId::xDOT, Ratio::from_percent(90)),
                 (CurrencyId::xKSM, Ratio::from_percent(90)),
             ],
             close_factor: vec![
-                (CurrencyId::DOT, Ratio::from_percent(50)),
                 (CurrencyId::KSM, Ratio::from_percent(50)),
                 (CurrencyId::USDT, Ratio::from_percent(50)),
-                (CurrencyId::xDOT, Ratio::from_percent(50)),
                 (CurrencyId::xKSM, Ratio::from_percent(50)),
             ],
             reserve_factor: vec![
-                (CurrencyId::DOT, Ratio::from_percent(15)),
                 (CurrencyId::KSM, Ratio::from_percent(15)),
                 (CurrencyId::USDT, Ratio::from_percent(15)),
-                (CurrencyId::xDOT, Ratio::from_percent(15)),
                 (CurrencyId::xKSM, Ratio::from_percent(15)),
             ],
         },
