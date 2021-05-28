@@ -124,7 +124,9 @@ pub fn testnet_config() -> Result<VanillaChainSpec, String> {
         move || {
             testnet_genesis(
                 wasm_binary,
-                get_account_id_from_seed::<sr25519::Public>("Alice"),
+                "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                    .parse()
+                    .unwrap(),
                 vec![authority_keys_from_seed("Alice")],
                 vec!["5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
                     .parse()
