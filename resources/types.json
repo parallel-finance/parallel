@@ -1,8 +1,15 @@
 {
+  "types": {
     "Address": "MultiAddress",
     "LookupSource": "MultiAddress",
     "CurrencyId": {
-        "_enum": ["DOT", "KSM", "USDT", "xDOT", "Native"]
+      "_enum": [
+        "DOT",
+        "KSM",
+        "USDT",
+        "xDOT",
+        "Native"
+      ]
     },
     "CurrencyIdOf": "CurrencyId",
     "Amount": "i128",
@@ -14,60 +21,72 @@
     "PalletId": "MultiAddress",
     "Rate": "FixedU128",
     "Ratio": "Permill",
-    "Multiplier": "FixedU128",
     "Payload": {
-        "list": "Vec<PayloadDetail>",
-        "public": "Public"
+      "list": "Vec<PayloadDetail>",
+      "public": "Public"
     },
     "PayloadDetail": {
-        "price": "Price",
-        "symbol": "CurrencyId",
-        "timestamp": "Moment"
+      "price": "Price",
+      "symbol": "CurrencyId",
+      "timestamp": "Moment"
     },
     "BorrowSnapshot": {
-        "principal": "Balance",
-        "borrowIndex": "u128"
+      "principal": "Balance",
+      "borrowIndex": "u128"
     },
     "EarnedSnapshot": {
-        "totalEarnedPrior": "Balance",
-        "exchangeRatePrior": "u128"
+      "totalEarnedPrior": "Balance",
+      "exchangeRatePrior": "u128"
     },
     "PendingBalance": {
-        "balance": "Balance",
-        "timestamp": "Moment"
+      "balance": "Balance",
+      "timestamp": "Moment"
     },
     "WaitingForLiquidation": {
-        "accountId": "Address",
-        "liquidateToken": "CurrencyId",
-        "collateralToken": "CurrencyId",
-        "repayAmount": "Balance"
+      "accountId": "Address",
+      "liquidateToken": "CurrencyId",
+      "collateralToken": "CurrencyId",
+      "repayAmount": "Balance"
     },
     "OracleKey": "CurrencyId",
     "OracleValue": "FixedU128",
     "MomentOf": "Moment",
     "TimestampedValue": {
-        "value": "OracleValue",
-        "timestamp": "Moment"
+      "value": "OracleValue",
+      "timestamp": "Moment"
     },
     "TimestampedValueOf": "TimestampedValue",
     "RpcDataProviderId": "Text",
     "DataProviderId": {
-        "_enum": ["Aggregated"]
+      "_enum": [
+        "Aggregated"
+      ]
     },
     "OrderedSet": "Vec<AccountId>",
     "InterestRateModel": {
-        "baseRatePerBlock": "Rate",
-        "multiplier_perBlock": "Multiplier",
-        "jumpMultiplierPerBlock": "Multiplier",
-        "kink": "Ratio"
+      "baseRate": "Rate",
+      "kinkRate": "Rate",
+      "fullRate": "Rate",
+      "kinkUtilization": "Ratio"
     },
     "UnstakeInfo": {
-        "amount": "u128",
-        "blockNumber": "u64"
+      "amount": "u128",
+      "blockNumber": "u64"
     },
-    "AccountData": {
-        "free": "Balance",
-        "reserved": "Balance",
-        "frozen": "Balance"
+    "OrmlAccountData": {
+      "free": "Balance",
+      "frozen": "Balance",
+      "reserved": "Balance"
+    },
+    "OrmlBalanceLock": {
+      "amount": "Balance",
+      "id": "LockIdentifier"
     }
+  },
+  "typesAlias": {
+    "tokens": {
+      "AccountData": "OrmlAccountData",
+      "BalanceLock": "OrmlBalanceLock"
+    }
+  }
 }
