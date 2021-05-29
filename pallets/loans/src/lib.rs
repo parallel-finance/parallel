@@ -426,6 +426,7 @@ pub mod module {
         fn on_initialize(block_number: T::BlockNumber) -> frame_support::weights::Weight {
             with_transaction(|| {
                 match <Pallet<T>>::accrue_interest() {
+                    // TODO: add weights
                     Ok(()) => TransactionOutcome::Commit(1000),
                     Err(err) => {
                         // This should never happen...
@@ -681,7 +682,6 @@ pub mod module {
         ) -> DispatchResultWithPostInfo {
             T::ReserveOrigin::ensure_origin(origin)?;
             let payer = T::Lookup::lookup(payer)?;
-            Self::ensure_currency(&currency_id)?;
 
             T::Currency::transfer(currency_id, &payer, &Self::account_id(), add_amount)?;
             let total_reserves = Self::total_reserves(currency_id);
@@ -709,7 +709,6 @@ pub mod module {
         ) -> DispatchResultWithPostInfo {
             T::ReserveOrigin::ensure_origin(origin)?;
             let receiver = T::Lookup::lookup(receiver)?;
-            Self::ensure_currency(&currency_id)?;
 
             let total_reserves = Self::total_reserves(currency_id);
             if reduce_amount > total_reserves {
