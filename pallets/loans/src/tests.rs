@@ -21,7 +21,6 @@ use sp_runtime::{FixedU128, Permill};
 
 use super::*;
 
-use crate::loan::calc_collateral_amount;
 use mock::*;
 
 #[test]
@@ -782,4 +781,11 @@ fn with_transaction_rollback_works() {
         assert_eq!(Loans::exchange_rate(DOT).into_inner(), 20000000000000000);
         assert_eq!(Loans::borrow_index(DOT), Rate::one());
     })
+}
+
+#[test]
+fn calc_collateral_amount_works() {
+    let amount: u128 = 1000;
+    let exchange_rate = Rate::saturating_from_rational(3, 10);
+    assert_eq!(calc_collateral_amount(amount, exchange_rate).unwrap(), 3333);
 }
