@@ -18,7 +18,12 @@
 
 pub use crate::rate::{InterestRateModel, APR};
 use crate::util::*;
-use frame_support::{log, pallet_prelude::*, transactional, PalletId};
+use frame_support::{
+    log,
+    pallet_prelude::*,
+    storage::{with_transaction, TransactionOutcome},
+    transactional, PalletId,
+};
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 use primitives::{Amount, Balance, CurrencyId, Multiplier, PriceFeeder, Rate, Ratio};
@@ -428,18 +433,20 @@ pub mod module {
         /// Called by substrate on block initialization.
         /// Our initialization function is fallible, but that's not allowed.
         fn on_initialize(block_number: T::BlockNumber) -> frame_support::weights::Weight {
-            match <Pallet<T>>::accrue_interest() {
-                Ok(()) => 0,
-                Err(err) => {
-                    // This should never happen...
-                    log::info!(
-                        "Could not initialize block!!! {:#?} {:#?}",
-                        block_number,
-                        err
-                    );
-                    0
+            with_transaction(|| {
+                match <Pallet<T>>::accrue_interest() {
+                    Ok(()) => TransactionOutcome::Commit(1000),
+                    Err(err) => {
+                        // This should never happen...
+                        log::info!(
+                            "Could not initialize block!!! {:#?} {:#?}",
+                            block_number,
+                            err
+                        );
+                        TransactionOutcome::Rollback(0)
+                    }
                 }
-            }
+            })
         }
     }
 
