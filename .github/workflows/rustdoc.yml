@@ -35,9 +35,12 @@ jobs:
 
       - name: Build Documentation
         uses: actions-rs/cargo@v1
+        env:
+          RUSTDOCFLAGS: "--enable-index-page -Zunstable-options"
         with:
+          toolchain: ${{ matrix.rust }}
           command: doc
-          args: --workspace --no-deps
+          args: --workspace --exclude heiko-runtime --exclude parallel-runtime --exclude vanilla-runtime --exclude parallel --exclude parallel-dev --exclude pallet-loans-benchmarking --no-deps
 
       - name: Use Custom Domain
         run: |
