@@ -428,7 +428,7 @@ impl<T: Config> Pallet<T> {
         // if price is N($) and amount is M(Unit):
         // liquidate_value = price * amount = (N / 10^12) * (M * 10^12) = N * M
         // if liquidate_value >= 340282366920938463463.374607431768211455,
-        // FixedU128::saturating_from_integer(liquidate_value) will overflow, so we use form_inner
+        // FixedU128::saturating_from_integer(liquidate_value) will overflow, so we use from_inner
         // instead of saturating_from_integer, and after calculation use into_inner to get final value.
         let real_collateral_underlying_amount = liquidate_value
             .checked_div(&collateral_token_price)
@@ -531,7 +531,19 @@ impl<T: Config> Pallet<T> {
 }
 
 pub fn calc_collateral_amount(underlying_amount: u128, exchange_rate: Rate) -> Option<u128> {
-    exchange_rate
-        .reciprocal()
-        .and_then(|r| r.checked_mul_int(underlying_amount))
+    FixedU128::from_inner(underlying_amount)
+        .checked_div(&exchange_rate)
+        .map(|r| r.into_inner())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn calc_collateral_amount_works() {
+        let amount: u128 = 1000;
+        let exchange_rate = Rate::saturating_from_rational(3, 10);
+        assert_eq!(calc_collateral_amount(amount, exchange_rate).unwrap(), 3333);
+    }
 }

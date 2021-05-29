@@ -703,3 +703,83 @@ fn borrow_balance_stored_works() {
         assert_eq!(Loans::borrow_balance_stored(&ALICE, &DOT).unwrap(), 120);
     })
 }
+
+#[test]
+fn with_transaction_commit_works() {
+    ExtBuilder::default().build().execute_with(|| {
+        // Deposit 200 DOT and borrow 100 DOT
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(200)));
+        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
+        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, dollar(100)));
+
+        // let total_cash = dollar(200) - dollar(100);
+        let total_supply = calc_collateral_amount(dollar(200), Loans::exchange_rate(DOT)).unwrap();
+        assert_eq!(Loans::total_supply(DOT), total_supply);
+
+        let borrow_snapshot = Loans::account_borrows(DOT, ALICE);
+        assert_eq!(borrow_snapshot.principal, dollar(100));
+        assert_eq!(borrow_snapshot.borrow_index, Rate::one());
+
+        // block 1
+        assert_eq!(Loans::utilization_ratio(DOT), Ratio::from_percent(0));
+        assert_eq!(Loans::total_borrows(DOT), dollar(100));
+        assert_eq!(Loans::total_reserves(DOT), 0);
+        assert_eq!(Loans::exchange_rate(DOT).into_inner(), 20000000000000000);
+        assert_eq!(Loans::borrow_index(DOT), Rate::one());
+
+        run_to_block(2);
+
+        // block 2
+        assert_eq!(Loans::utilization_ratio(DOT), Ratio::from_percent(50));
+        assert_eq!(Loans::total_borrows(DOT), 100000001331811263318);
+        assert_eq!(Loans::total_reserves(DOT), 199771689497);
+        assert_eq!(Loans::exchange_rate(DOT).into_inner(), 20000000113203957);
+        assert_eq!(
+            Loans::borrow_index(DOT),
+            Rate::from_inner(1000000013318112633)
+        );
+    })
+}
+
+#[test]
+fn with_transaction_rollback_works() {
+    ExtBuilder::default().build().execute_with(|| {
+        // Deposit 200 DOT and borrow 100 DOT
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(200)));
+        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
+        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, dollar(100)));
+
+        // let total_cash = dollar(200) - dollar(100);
+        let total_supply = calc_collateral_amount(dollar(200), Loans::exchange_rate(DOT)).unwrap();
+        assert_eq!(Loans::total_supply(DOT), total_supply);
+
+        let borrow_snapshot = Loans::account_borrows(DOT, ALICE);
+        assert_eq!(borrow_snapshot.principal, dollar(100));
+        assert_eq!(borrow_snapshot.borrow_index, Rate::one());
+
+        // block 1
+        assert_eq!(Loans::utilization_ratio(DOT), Ratio::from_percent(0));
+        assert_eq!(Loans::total_borrows(DOT), dollar(100));
+        assert_eq!(Loans::total_reserves(DOT), 0);
+        assert_eq!(Loans::exchange_rate(DOT).into_inner(), 20000000000000000);
+        assert_eq!(Loans::borrow_index(DOT), Rate::one());
+
+        // Set an error rate model to trigger an Error Result when accruing interest.
+        let error_model = InterestRateModel {
+            base_rate: Rate::zero().into(),
+            kink_rate: Rate::one().into(),
+            full_rate: Rate::zero().into(),
+            kink_utilization: Ratio::from_percent(0),
+        };
+        CurrencyInterestModel::<Runtime>::insert(DOT, error_model);
+        run_to_block(2);
+
+        // block 2
+        // No storage has been changed
+        assert_eq!(Loans::utilization_ratio(DOT), Ratio::from_percent(0));
+        assert_eq!(Loans::total_borrows(DOT), dollar(100));
+        assert_eq!(Loans::total_reserves(DOT), 0);
+        assert_eq!(Loans::exchange_rate(DOT).into_inner(), 20000000000000000);
+        assert_eq!(Loans::borrow_index(DOT), Rate::one());
+    })
+}
