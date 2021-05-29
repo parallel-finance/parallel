@@ -120,8 +120,8 @@ pub trait PriceFeeder {
     fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail>;
 }
 
-pub trait EmergencyPriceFeeder<CurrencyId, Price> {
-    fn set_emergency_price(currency_id: CurrencyId, price: Price);
+pub trait EmergencyPriceFeeder<CurrencyId, PriceWithDecimal> {
+    fn set_emergency_price(currency_id: CurrencyId, price: PriceWithDecimal);
     fn reset_emergency_price(currency_id: CurrencyId);
 }
 

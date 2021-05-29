@@ -20,7 +20,7 @@ use frame_system::pallet_prelude::*;
 pub use module::*;
 use orml_traits::DataProvider;
 use primitives::*;
-use sp_runtime::traits::CheckedDiv;
+use sp_runtime::{traits::CheckedDiv, FixedU128};
 
 #[cfg(test)]
 mod mock;
@@ -46,7 +46,7 @@ pub mod module {
     #[pallet::generate_deposit(pub(crate) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Set emergency price. \[currency_id, price_detail\]
-        SetPrice(CurrencyId, Price),
+        SetPrice(CurrencyId, PriceWithDecimal),
         /// Reset emergency price. \[currency_id\]
         ResetPrice(CurrencyId),
     }
@@ -55,7 +55,7 @@ pub mod module {
     #[pallet::storage]
     #[pallet::getter(fn emergency_price)]
     pub type EmergencyPrice<T: Config> =
-        StorageMap<_, Twox64Concat, CurrencyId, Price, OptionQuery>;
+        StorageMap<_, Twox64Concat, CurrencyId, PriceWithDecimal, OptionQuery>;
 
     #[pallet::pallet]
     pub struct Pallet<T>(PhantomData<T>);
@@ -71,10 +71,10 @@ pub mod module {
         pub fn set_price(
             origin: OriginFor<T>,
             currency_id: CurrencyId,
-            price: Price,
+            price: PriceWithDecimal,
         ) -> DispatchResultWithPostInfo {
             T::FeederOrigin::ensure_origin(origin)?;
-            <Pallet<T> as EmergencyPriceFeeder<CurrencyId, Price>>::set_emergency_price(
+            <Pallet<T> as EmergencyPriceFeeder<CurrencyId, PriceWithDecimal>>::set_emergency_price(
                 currency_id,
                 price,
             );
@@ -89,7 +89,7 @@ pub mod module {
             currency_id: CurrencyId,
         ) -> DispatchResultWithPostInfo {
             T::FeederOrigin::ensure_origin(origin)?;
-            <Pallet<T> as EmergencyPriceFeeder<CurrencyId, Price>>::reset_emergency_price(
+            <Pallet<T> as EmergencyPriceFeeder<CurrencyId, PriceWithDecimal>>::reset_emergency_price(
                 currency_id,
             );
             Ok(().into())
@@ -100,7 +100,13 @@ pub mod module {
 impl<T: Config> Pallet<T> {
     // get emergency price, the timestamp is zero
     fn get_emergency_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
-        Self::emergency_price(currency_id).map(|price| (price, 0))
+        Self::emergency_price(currency_id).and_then(|p| {
+            10u128.checked_pow(p.decimal.into()).and_then(|d| {
+                p.price
+                    .checked_div(&FixedU128::from_inner(d))
+                    .and_then(|price| Some((price, 0)))
+            })
+        })
     }
 }
 
@@ -114,7 +120,7 @@ impl<T: Config> PriceFeeder for Pallet<T> {
                 10u128.checked_pow(p.value.decimal.into()).and_then(|d| {
                     p.value
                         .price
-                        .checked_div(&Price::from_inner(d))
+                        .checked_div(&FixedU128::from_inner(d))
                         .and_then(|price| Some((price, p.timestamp)))
                 })
             })
@@ -122,9 +128,9 @@ impl<T: Config> PriceFeeder for Pallet<T> {
     }
 }
 
-impl<T: Config> EmergencyPriceFeeder<CurrencyId, Price> for Pallet<T> {
+impl<T: Config> EmergencyPriceFeeder<CurrencyId, PriceWithDecimal> for Pallet<T> {
     /// Set emergency price
-    fn set_emergency_price(currency_id: CurrencyId, price: Price) {
+    fn set_emergency_price(currency_id: CurrencyId, price: PriceWithDecimal) {
         // set price direct
         EmergencyPrice::<T>::insert(currency_id, price);
         <Pallet<T>>::deposit_event(Event::SetPrice(currency_id, price));

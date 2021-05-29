@@ -190,7 +190,6 @@ parameter_types! {
     pub const ExpiresIn: u32 = 600;
     pub const RootOperatorAccountId: AccountId = 4;
     pub static OracleMembers: Vec<AccountId> = vec![1, 2, 3];
-    pub static OraclePriceDecimal: u8 = 18;
 }
 
 pub struct Members;
@@ -210,7 +209,6 @@ impl orml_oracle::Config<Instance1> for Test {
     type OracleValue = FixedU128;
     type RootOperatorAccountId = RootOperatorAccountId;
     type WeightInfo = ();
-    type Decimal = OraclePriceDecimal;
     type Members = Members;
 }
 
