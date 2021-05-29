@@ -284,7 +284,7 @@ impl<T: Config> Pallet<T> {
                 }
 
                 let mut new_loans_detail = loans_detail.clone();
-                new_loans_detail.sort_by(|a, b| a.value.into_inner().cmp(&b.value.into_inner()));
+                new_loans_detail.sort_by(|a, b| a.value.cmp(&b.value));
                 let liquidate_loans = &new_loans_detail[0];
 
                 if let Some(item) = collateral.1.iter().find(|collateral_item| {

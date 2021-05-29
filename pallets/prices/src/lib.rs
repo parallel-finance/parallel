@@ -20,6 +20,7 @@ use frame_system::pallet_prelude::*;
 pub use module::*;
 use orml_traits::DataProvider;
 use primitives::*;
+use sp_runtime::traits::CheckedDiv;
 
 #[cfg(test)]
 mod mock;
@@ -108,8 +109,16 @@ impl<T: Config> PriceFeeder for Pallet<T> {
     /// Timestamp is zero means the price is emergency price
     fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
         // if emergency price exists, return it, otherwise return latest price from oracle.
-        Self::get_emergency_price(currency_id)
-            .or_else(|| T::Source::get(&currency_id).map(|price| (price.value, price.timestamp)))
+        Self::get_emergency_price(currency_id).or_else(|| {
+            T::Source::get(&currency_id).and_then(|p| {
+                10u128.checked_pow(p.value.decimal.into()).and_then(|d| {
+                    p.value
+                        .price
+                        .checked_div(&Price::from_inner(d))
+                        .and_then(|price| Some((price, p.timestamp)))
+                })
+            })
+        })
     }
 }
 
