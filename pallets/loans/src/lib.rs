@@ -161,20 +161,27 @@ pub mod module {
     #[pallet::event]
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// Initialize the interest rate parameter
-        /// [base_rate, kink_rate, full_rate, kink_utilization]
-        InitInterestRateModel(Rate, Rate, Rate, Ratio),
         /// Enable collateral for certain asset
         /// [sender, currency_id]
         CollateralAssetAdded(T::AccountId, CurrencyId),
         /// Disable collateral for certain asset
         /// [sender, currency_id]
         CollateralAssetRemoved(T::AccountId, CurrencyId),
-
-        // TODO: add event for dispatchables `mint, redeem, borrow, repay, liquidate` (#32)
-        /// Liquidation occurred
-        /// [liquidator, borrower,liquidate_token,collateral_token,liquidate_token_repay_amount,collateral_token_amount]
-        LiquidationOccur(
+        /// Event emitted when asserts are deposited
+        /// [sender, currency_id, amount]
+        Deposit(T::AccountId, CurrencyId, Balance),
+        /// Event emitted when asserts are redeemed
+        /// [sender, currency_id, amount]
+        Redeem(T::AccountId, CurrencyId, Balance),
+        /// Event emitted when cash is borrowed
+        /// [sender, currency_id, amount]
+        Borrow(T::AccountId, CurrencyId, Balance),
+        /// Event emitted when a borrow is repaid
+        /// [sender, currency_id, amount]
+        RepayBorrow(T::AccountId, CurrencyId, Balance),
+        /// Event emitted when a borrow is liquidated
+        /// [liquidator, borrower, liquidate_token, collateral_token, repay_amount, collateral_amount]
+        LiquidateBorrow(
             T::AccountId,
             T::AccountId,
             CurrencyId,
@@ -182,6 +189,9 @@ pub mod module {
             Balance,
             Balance,
         ),
+        /// New interest rate model is set
+        /// [new_interest_rate_model]
+        NewInterestRateModel(InterestRateModel),
         /// Event emitted when the reserves are reduced
         /// [admin, currency_id, reduced_amount, total_reserves]
         ReservesReduced(T::AccountId, CurrencyId, Balance, Balance),
@@ -486,6 +496,8 @@ pub mod module {
             })?;
             T::Currency::transfer(currency_id, &who, &Self::account_id(), mint_amount)?;
 
+            Self::deposit_event(Event::<T>::Deposit(who, currency_id, mint_amount));
+
             Ok(().into())
         }
 
@@ -498,11 +510,13 @@ pub mod module {
             redeem_amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-
             Self::ensure_currency(&currency_id)?;
 
             Self::update_earned_stored(&who, &currency_id)?;
             Self::redeem_internal(&who, &currency_id, redeem_amount)?;
+
+            Self::deposit_event(Event::<T>::Redeem(who, currency_id, redeem_amount));
+
             Ok(().into())
         }
 
@@ -524,6 +538,9 @@ pub mod module {
                 .checked_mul_int(collateral)
                 .ok_or(Error::<T>::CollateralOverflow)?;
             Self::redeem_internal(&who, &currency_id, redeem_amount)?;
+
+            Self::deposit_event(Event::<T>::Redeem(who, currency_id, redeem_amount));
+
             Ok(().into())
         }
 
@@ -558,6 +575,8 @@ pub mod module {
             );
             TotalBorrows::<T>::insert(&currency_id, total_borrows_new);
 
+            Self::deposit_event(Event::<T>::Borrow(who, currency_id, borrow_amount));
+
             Ok(().into())
         }
 
@@ -574,6 +593,9 @@ pub mod module {
             Self::ensure_currency(&currency_id)?;
 
             Self::repay_borrow_internal(&who, &currency_id, repay_amount)?;
+
+            Self::deposit_event(Event::<T>::RepayBorrow(who, currency_id, repay_amount));
+
             Ok(().into())
         }
 
@@ -590,6 +612,9 @@ pub mod module {
 
             let account_borrows = Self::borrow_balance_stored(&who, &currency_id)?;
             Self::repay_borrow_internal(&who, &currency_id, account_borrows)?;
+
+            Self::deposit_event(Event::<T>::RepayBorrow(who, currency_id, account_borrows));
+
             Ok(().into())
         }
 
@@ -637,7 +662,6 @@ pub mod module {
             collateral_token: CurrencyId,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-
             Self::ensure_currency(&liquidate_token)?;
 
             Self::liquidate_borrow_internal(
@@ -666,6 +690,8 @@ pub mod module {
                 .check_parameters()
                 .map_err(|_| Error::<T>::InvalidRateModelParam)?;
             CurrencyInterestModel::<T>::insert(currency_id, new_model);
+
+            Self::deposit_event(Event::<T>::NewInterestRateModel(new_model));
 
             Ok(().into())
         }
@@ -1152,7 +1178,7 @@ impl<T: Config> Pallet<T> {
         //4. we can decide if withdraw to liquidator (from ctoken to token)
         // Self::redeem_internal(&liquidator, &collateral_token, collateral_token_amount)?;
         // liquidator, borrower,liquidate_token,collateral_token,liquidate_token_repay_amount,collateral_token_amount
-        Self::deposit_event(Event::<T>::LiquidationOccur(
+        Self::deposit_event(Event::<T>::LiquidateBorrow(
             liquidator.clone(),
             borrower.clone(),
             *liquidate_currency_id,
