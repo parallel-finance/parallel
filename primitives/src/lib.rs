@@ -102,8 +102,6 @@ pub const RATE_DECIMAL: u128 = 1_000_000_000_000_000_000;
 
 pub const CURRENCY_DECIMAL: u8 = 18;
 
-pub const BLOCK_PER_YEAR: u128 = 5256000;
-
 pub const MIN_PRICE: FixedU128 = FixedU128::from_inner(u128::MIN);
 
 pub type Price = FixedU128;

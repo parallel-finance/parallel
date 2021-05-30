@@ -538,11 +538,13 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
 
 parameter_types! {
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
+    pub const BlockPerYear: u128 = 5256000;
 }
 impl pallet_loans::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
     type PalletId = LoansPalletId;
+    type BlockPerYear = BlockPerYear;
     type PriceFeeder = Prices;
     type ReserveOrigin = EnsureRoot<AccountId>;
     type UpdateOrigin = EnsureRoot<AccountId>;
