@@ -383,10 +383,6 @@ pub fn new_light(mut config: Configuration) -> Result<TaskManager, ServiceError>
         telemetry.as_ref().map(|x| x.handle()),
     )?;
 
-    // let aura_block_import = sc_consensus_aura::AuraBlockImport::<_, _, _, AuraPair>::new(
-    //     grandpa_block_import.clone(),
-    //     client.clone(),
-    // );
     let slot_duration = sc_consensus_aura::slot_duration(&*client)?.slot_duration();
 
     let import_queue =
