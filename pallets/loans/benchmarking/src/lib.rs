@@ -11,7 +11,7 @@ use orml_oracle::Instance1;
 use orml_oracle::{Config as ORMLOracleConfig, Pallet as ORMLOracle};
 use orml_traits::MultiCurrency;
 use pallet_loans::{Config as LoansConfig, InterestRateModel, Pallet as Loans};
-use primitives::{CurrencyId, Rate, Ratio};
+use primitives::{CurrencyId, PriceWithDecimal, Rate, Ratio};
 use sp_runtime::traits::One;
 use sp_runtime::traits::StaticLookup;
 use sp_runtime::{FixedPointNumber, FixedU128};
@@ -38,14 +38,14 @@ where
 }
 
 pub trait FixedU128Convert<T: ORMLOracleConfig<Instance1>> {
-    fn convert_price(price: FixedU128) -> <T as ORMLOracleConfig<Instance1>>::OracleValue;
+    fn convert_price(price: PriceWithDecimal) -> <T as ORMLOracleConfig<Instance1>>::OracleValue;
 }
 
 impl<T: ORMLOracleConfig<Instance1>> FixedU128Convert<T> for T
 where
-    <T as ORMLOracleConfig<Instance1>>::OracleValue: From<FixedU128>,
+    <T as ORMLOracleConfig<Instance1>>::OracleValue: From<PriceWithDecimal>,
 {
-    fn convert_price(price: FixedU128) -> <T as ORMLOracleConfig<Instance1>>::OracleValue {
+    fn convert_price(price: PriceWithDecimal) -> <T as ORMLOracleConfig<Instance1>>::OracleValue {
         price.into()
     }
 }
@@ -87,7 +87,7 @@ benchmarks! {
         let amount = 200_000_000;
         let borrowed_amount = 100_000_000;
         let currency_id: <T as ORMLOracleConfig<Instance1>>::OracleKey = T::convert(DOT);
-        let price: <T as ORMLOracleConfig<Instance1>>::OracleValue = T::convert_price(FixedU128::from(100_000));
+        let price: <T as ORMLOracleConfig<Instance1>>::OracleValue = T::convert_price(PriceWithDecimal{ price: FixedU128::from(100_000), decimal: 12 });
         assert_ok!(ORMLOracle::<T, _>::feed_values(SystemOrigin::Root.into(),
             vec![(currency_id, price)]));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, amount));
@@ -146,7 +146,7 @@ benchmarks! {
         let borrowed_amount = 100_000_000;
         let repay_amount = 100;
         let currency_id: <T as ORMLOracleConfig<Instance1>>::OracleKey = T::convert(DOT);
-        let price: <T as ORMLOracleConfig<Instance1>>::OracleValue = T::convert_price(FixedU128::from(100_000));
+        let price: <T as ORMLOracleConfig<Instance1>>::OracleValue = T::convert_price(PriceWithDecimal{ price: FixedU128::from(100_000), decimal: 12 });
         assert_ok!(ORMLOracle::<T, _>::feed_values(SystemOrigin::Root.into(),
             vec![(currency_id, price)]));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, INITIAL_AMOUNT));
@@ -168,7 +168,7 @@ benchmarks! {
         initial_set_up::<T>(caller.clone());
         let borrowed_amount = 100_000_000;
         let currency_id: <T as ORMLOracleConfig<Instance1>>::OracleKey = T::convert(DOT);
-        let price: <T as ORMLOracleConfig<Instance1>>::OracleValue = T::convert_price(FixedU128::from(100_000));
+        let price: <T as ORMLOracleConfig<Instance1>>::OracleValue = T::convert_price(PriceWithDecimal{ price: FixedU128::from(100_000), decimal: 12 });
         assert_ok!(ORMLOracle::<T, _>::feed_values(SystemOrigin::Root.into(),
             vec![(currency_id, price)]));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, INITIAL_AMOUNT));
@@ -225,7 +225,7 @@ benchmarks! {
         let repay_amount = 2000;
         let borrowed_amount = 100_000_000;
         let currency_id: <T as ORMLOracleConfig<Instance1>>::OracleKey = T::convert(DOT);
-        let price: <T as ORMLOracleConfig<Instance1>>::OracleValue = T::convert_price(FixedU128::from(100_000));
+        let price: <T as ORMLOracleConfig<Instance1>>::OracleValue = T::convert_price(PriceWithDecimal{ price: FixedU128::from(100_000), decimal: 12 });
         assert_ok!(ORMLOracle::<T, _>::feed_values(SystemOrigin::Root.into(),
             vec![(currency_id, price)]));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(borrower.clone()).into(), DOT, INITIAL_AMOUNT));

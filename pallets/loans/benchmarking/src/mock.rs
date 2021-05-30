@@ -23,7 +23,7 @@ use frame_system::EnsureRoot;
 use lazy_static::lazy_static;
 use orml_oracle::DefaultCombineData;
 use orml_traits::parameter_type_with_key;
-use primitives::{Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder};
+use primitives::{Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, PriceWithDecimal};
 use sp_core::H256;
 use sp_runtime::FixedPointNumber;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
@@ -206,7 +206,7 @@ impl orml_oracle::Config<Instance1> for Test {
     type CombineData = DefaultCombineData<Self, MinimumCount, ExpiresIn, Instance1>;
     type Time = Timestamp;
     type OracleKey = CurrencyId;
-    type OracleValue = FixedU128;
+    type OracleValue = PriceWithDecimal;
     type RootOperatorAccountId = RootOperatorAccountId;
     type WeightInfo = ();
     type Members = Members;
