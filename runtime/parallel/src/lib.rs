@@ -57,8 +57,8 @@ use xcm_builder::{
     AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter,
     EnsureXcmOrigin, FixedWeightBounds, IsConcrete, LocationInverter, NativeAsset,
     ParentAsSuperuser, ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative,
-    SiblingParachainConvertsVia, SignedAccountId32AsNative, SovereignSignedViaLocation,
-    TakeWeightCredit, UsingComponents,
+    SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
+    SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
 };
 use xcm_executor::{Config, XcmExecutor};
 
@@ -109,8 +109,8 @@ pub mod opaque {
 }
 
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-    spec_name: create_runtime_str!("heiko"),
-    impl_name: create_runtime_str!("heiko"),
+    spec_name: create_runtime_str!("parallel"),
+    impl_name: create_runtime_str!("parallel"),
     authoring_version: 1,
     spec_version: 100,
     impl_version: 1,
@@ -418,9 +418,7 @@ impl pallet_sudo::Config for Runtime {
 }
 
 /// No local origins on this chain are allowed to dispatch XCM sends/executions.
-/// TODO: LocalOrigins
-/// https://github.com/paritytech/statemint/blob/master/runtime/statemine/src/lib.rs
-pub type LocalOriginToLocation = ();
+pub type LocalOriginToLocation = (SignedToAccountId32<Origin, AccountId, RelayNetwork>);
 
 /// The means for routing XCM messages which are not for local execution into the right message
 /// queues.
