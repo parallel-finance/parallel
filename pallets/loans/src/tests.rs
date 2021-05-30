@@ -84,7 +84,7 @@ fn mint_failed() {
         ExchangeRate::<Runtime>::insert(DOT, Rate::zero());
         assert_noop!(
             Loans::mint(Origin::signed(ALICE), DOT, 100),
-            Error::<Runtime>::CalcCollateralFailed,
+            Error::<Runtime>::Underflow,
         );
     })
 }
@@ -286,7 +286,8 @@ fn interest_rate_model_works() {
         assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, dollar(100)));
 
         let total_cash = dollar(200) - dollar(100);
-        let total_supply = calc_collateral_amount(dollar(200), Loans::exchange_rate(DOT)).unwrap();
+        let total_supply =
+            Loans::calc_collateral_amount(dollar(200), Loans::exchange_rate(DOT)).unwrap();
         assert_eq!(Loans::total_supply(DOT), total_supply);
 
         let multiplier_per_year = Multiplier::saturating_from_rational(1, 10);
@@ -712,7 +713,8 @@ fn with_transaction_commit_works() {
         assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, dollar(100)));
 
         // let total_cash = dollar(200) - dollar(100);
-        let total_supply = calc_collateral_amount(dollar(200), Loans::exchange_rate(DOT)).unwrap();
+        let total_supply =
+            Loans::calc_collateral_amount(dollar(200), Loans::exchange_rate(DOT)).unwrap();
         assert_eq!(Loans::total_supply(DOT), total_supply);
 
         let borrow_snapshot = Loans::account_borrows(DOT, ALICE);
@@ -749,7 +751,8 @@ fn with_transaction_rollback_works() {
         assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, dollar(100)));
 
         // let total_cash = dollar(200) - dollar(100);
-        let total_supply = calc_collateral_amount(dollar(200), Loans::exchange_rate(DOT)).unwrap();
+        let total_supply =
+            Loans::calc_collateral_amount(dollar(200), Loans::exchange_rate(DOT)).unwrap();
         assert_eq!(Loans::total_supply(DOT), total_supply);
 
         let borrow_snapshot = Loans::account_borrows(DOT, ALICE);
@@ -787,5 +790,8 @@ fn with_transaction_rollback_works() {
 fn calc_collateral_amount_works() {
     let amount: u128 = 1000;
     let exchange_rate = Rate::saturating_from_rational(3, 10);
-    assert_eq!(calc_collateral_amount(amount, exchange_rate).unwrap(), 3333);
+    assert_eq!(
+        Loans::calc_collateral_amount(amount, exchange_rate).unwrap(),
+        3333
+    );
 }

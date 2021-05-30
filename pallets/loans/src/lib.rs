@@ -100,28 +100,10 @@ pub mod module {
 
     #[pallet::error]
     pub enum Error<T> {
-        /// Collateral amount overflow when calculating
-        CollateralOverflow,
-        /// Collateral amount too low to redeem
-        CollateralTooLow,
         /// Insufficient collateral asset to borrow more
         InsufficientCollateral,
         /// Repay amount greater than borrow balance
         RepayAmountTooBig,
-        /// Amount type convert failed
-        AmountConvertFailed,
-        /// Calculate accrue interest failed
-        CalcAccrueInterestFailed,
-        /// Calculate exchange rate failed
-        CalcExchangeRateFailed,
-        /// Calculate collateral amount failed
-        CalcCollateralFailed,
-        /// Calculate interest rate failed
-        CalcInterestRateFailed,
-        /// Calculate borrow balance failed
-        CalcBorrowBalanceFailed,
-        /// Calculate earned amount failed
-        CalcEarnedFailed,
         /// Please enable collateral for one of your assets before borrowing
         NoCollateralAsset,
         /// Currency's oracle price not ready
@@ -140,22 +122,18 @@ pub mod module {
         LiquidatorIsBorrower,
         /// There is no borrow balance
         NoBorrowBalance,
-        /// Calculate borrow balance with close factor failed
-        CalcCloseBorrowsFailed,
-        /// Calculate incentive value failed
-        CalcDiscdCollateralValueFailed,
         /// Liquidate value overflow
         LiquidateValueOverflow,
-        /// Equivalent collateral amount overflow
-        EquivalentCollateralAmountOverflow,
-        /// Real collateral amount overflow
-        RealCollateralAmountOverflow,
         /// Insufficient reserves
         InsufficientReserves,
         /// Invalid rate model params
         InvalidRateModelParam,
         /// Currency not enabled
         CurrencyNotEnabled,
+        /// Calculation overflow
+        Overflow,
+        /// Calculation underflow
+        Underflow,
     }
 
     #[pallet::event]
@@ -474,15 +452,14 @@ pub mod module {
             Self::ensure_currency(&currency_id)?;
             Self::update_earned_stored(&who, &currency_id)?;
             let exchange_rate = Self::exchange_rate(currency_id);
-            let collateral_amount = calc_collateral_amount(mint_amount, exchange_rate)
-                .ok_or(Error::<T>::CalcCollateralFailed)?;
+            let collateral_amount = Self::calc_collateral_amount(mint_amount, exchange_rate)?;
             AccountCollateral::<T>::try_mutate(
                 &currency_id,
                 &who,
                 |collateral_balance| -> DispatchResult {
                     let new_balance = collateral_balance
                         .checked_add(collateral_amount)
-                        .ok_or(Error::<T>::CollateralOverflow)?;
+                        .ok_or(Error::<T>::Overflow)?;
                     *collateral_balance = new_balance;
                     Ok(())
                 },
@@ -490,7 +467,7 @@ pub mod module {
             TotalSupply::<T>::try_mutate(&currency_id, |total_balance| -> DispatchResult {
                 let new_balance = total_balance
                     .checked_add(collateral_amount)
-                    .ok_or(Error::<T>::CollateralOverflow)?;
+                    .ok_or(Error::<T>::Overflow)?;
                 *total_balance = new_balance;
                 Ok(())
             })?;
@@ -536,7 +513,7 @@ pub mod module {
             let exchange_rate = Self::exchange_rate(currency_id);
             let redeem_amount = exchange_rate
                 .checked_mul_int(collateral)
-                .ok_or(Error::<T>::CollateralOverflow)?;
+                .ok_or(Error::<T>::Overflow)?;
             Self::redeem_internal(&who, &currency_id, redeem_amount)?;
 
             Self::deposit_event(Event::<T>::Redeem(who, currency_id, redeem_amount));
@@ -559,11 +536,11 @@ pub mod module {
             let account_borrows = Self::borrow_balance_stored(&who, &currency_id)?;
             let account_borrows_new = account_borrows
                 .checked_add(borrow_amount)
-                .ok_or(Error::<T>::CalcBorrowBalanceFailed)?;
+                .ok_or(Error::<T>::Overflow)?;
             let total_borrows = Self::total_borrows(&currency_id);
             let total_borrows_new = total_borrows
                 .checked_add(borrow_amount)
-                .ok_or(Error::<T>::CalcBorrowBalanceFailed)?;
+                .ok_or(Error::<T>::Overflow)?;
             T::Currency::transfer(currency_id, &Self::account_id(), &who, borrow_amount)?;
             AccountBorrows::<T>::insert(
                 &currency_id,
@@ -769,15 +746,14 @@ impl<T: Config> Pallet<T> {
         redeem_amount: Balance,
     ) -> DispatchResult {
         let exchange_rate = Self::exchange_rate(currency_id);
-        let collateral = calc_collateral_amount(redeem_amount, exchange_rate)
-            .ok_or(Error::<T>::CalcCollateralFailed)?;
+        let collateral = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
         AccountCollateral::<T>::try_mutate(
             currency_id,
             who,
             |collateral_balance| -> DispatchResult {
                 let new_balance = collateral_balance
                     .checked_sub(collateral)
-                    .ok_or(Error::<T>::CollateralTooLow)?;
+                    .ok_or(Error::<T>::Underflow)?;
                 *collateral_balance = new_balance;
                 Ok(())
             },
@@ -785,7 +761,7 @@ impl<T: Config> Pallet<T> {
         TotalSupply::<T>::try_mutate(currency_id, |total_balance| -> DispatchResult {
             let new_balance = total_balance
                 .checked_sub(collateral)
-                .ok_or(Error::<T>::CollateralTooLow)?;
+                .ok_or(Error::<T>::Underflow)?;
             *total_balance = new_balance;
             Ok(())
         })?;
@@ -812,7 +788,7 @@ impl<T: Config> Pallet<T> {
             total_borrow_value = borrow_currency_price
                 .checked_mul(&FixedU128::from_inner(currency_borrow_amount))
                 .and_then(|r| r.checked_add(&total_borrow_value))
-                .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
+                .ok_or(Error::<T>::Overflow)?;
         }
 
         Ok(total_borrow_value)
@@ -827,11 +803,11 @@ impl<T: Config> Pallet<T> {
             .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
         let mut total_borrow_value = borrow_currency_price
             .checked_mul(&FixedU128::from_inner(borrow_amount))
-            .ok_or(Error::<T>::CollateralOverflow)?;
+            .ok_or(Error::<T>::Overflow)?;
 
         total_borrow_value = total_borrow_value
             .checked_add(&Self::total_borrowed_value(borrower)?)
-            .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
+            .ok_or(Error::<T>::Overflow)?;
 
         Ok(total_borrow_value)
     }
@@ -856,11 +832,11 @@ impl<T: Config> Pallet<T> {
 
         let collateral_amount = exchange_rate
             .checked_mul_int(collateral_factor.mul_floor(collateral))
-            .ok_or(Error::<T>::CollateralOverflow)?;
+            .ok_or(Error::<T>::Overflow)?;
 
         currency_price
             .checked_mul(&FixedU128::from_inner(collateral_amount))
-            .ok_or(Error::<T>::CollateralOverflow)
+            .ok_or(Error::<T>::Overflow)
     }
 
     fn total_collateral_asset_value(
@@ -875,7 +851,7 @@ impl<T: Config> Pallet<T> {
         for currency_id in collateral_assets.iter() {
             total_asset_value = total_asset_value
                 .checked_add(&Self::collateral_asset_value(borrower, currency_id)?)
-                .ok_or(Error::<T>::CollateralOverflow)?;
+                .ok_or(Error::<T>::Overflow)?;
         }
 
         Ok(total_asset_value)
@@ -912,11 +888,11 @@ impl<T: Config> Pallet<T> {
 
         let account_borrows_new = account_borrows
             .checked_sub(repay_amount)
-            .ok_or(Error::<T>::CalcBorrowBalanceFailed)?;
+            .ok_or(Error::<T>::Underflow)?;
         let total_borrows = Self::total_borrows(currency_id);
         let total_borrows_new = total_borrows
             .checked_sub(repay_amount)
-            .ok_or(Error::<T>::CalcBorrowBalanceFailed)?;
+            .ok_or(Error::<T>::Underflow)?;
 
         AccountBorrows::<T>::insert(
             currency_id,
@@ -959,7 +935,7 @@ impl<T: Config> Pallet<T> {
             if total_collateral_asset_value
                 > total_borrowed_value
                     .checked_add(&collateral_asset_value)
-                    .ok_or(Error::<T>::CollateralOverflow)?
+                    .ok_or(Error::<T>::Overflow)?
             {
                 collateral_assets.remove(index);
                 AccountCollateralAssets::<T>::insert(who.clone(), collateral_assets);
@@ -987,7 +963,7 @@ impl<T: Config> Pallet<T> {
         let recent_borrow_balance = Self::borrow_index(currency_id)
             .checked_div(&snapshot.borrow_index)
             .and_then(|r| r.checked_mul_int(snapshot.principal))
-            .ok_or(Error::<T>::CalcBorrowBalanceFailed)?;
+            .ok_or(Error::<T>::Overflow)?;
 
         Ok(recent_borrow_balance)
     }
@@ -1000,7 +976,7 @@ impl<T: Config> Pallet<T> {
             .checked_sub(&account_earned.exchange_rate_prior)
             .and_then(|r| r.checked_mul_int(collateral))
             .and_then(|r| r.checked_add(account_earned.total_earned_prior))
-            .ok_or(Error::<T>::CalcEarnedFailed)?;
+            .ok_or(Error::<T>::Overflow)?;
 
         AccountEarned::<T>::insert(
             currency_id,
@@ -1054,7 +1030,7 @@ impl<T: Config> Pallet<T> {
         //the total amount of borrower's collateral token
         let collateral_underlying_amount = exchange_rate
             .checked_mul_int(collateral_ctoken_amount)
-            .ok_or(Error::<T>::CollateralOverflow)?;
+            .ok_or(Error::<T>::Overflow)?;
 
         let (collateral_token_price, _) = T::PriceFeeder::get_price(&collateral_currency_id)
             .ok_or(Error::<T>::OracleCurrencyPriceNotReady)?;
@@ -1062,7 +1038,7 @@ impl<T: Config> Pallet<T> {
         //the total value of borrower's collateral token
         let collateral_value = collateral_token_price
             .checked_mul(&FixedU128::from_inner(collateral_underlying_amount))
-            .ok_or(Error::<T>::CollateralOverflow)?;
+            .ok_or(Error::<T>::Overflow)?;
 
         //calculate liquidate_token_sum
         let (liquidate_token_price, _) = T::PriceFeeder::get_price(&liquidate_currency_id)
@@ -1076,7 +1052,7 @@ impl<T: Config> Pallet<T> {
         let liquidation_incentive = LiquidationIncentive::<T>::get(liquidate_currency_id);
         let discd_collateral_value = collateral_value
             .checked_mul(&liquidation_incentive.into())
-            .ok_or(Error::<T>::CalcDiscdCollateralValueFailed)?;
+            .ok_or(Error::<T>::Overflow)?;
 
         if discd_collateral_value < liquidate_value {
             return Err(Error::<T>::RepayValueGreaterThanCollateral.into());
@@ -1094,7 +1070,7 @@ impl<T: Config> Pallet<T> {
         let real_collateral_underlying_amount = liquidate_value
             .checked_div(&collateral_token_price)
             .and_then(|a| a.checked_div(&liquidation_incentive.into()))
-            .ok_or(Error::<T>::EquivalentCollateralAmountOverflow)?;
+            .ok_or(Error::<T>::Underflow)?;
 
         //inside transfer token
         Self::liquidate_repay_borrow_internal(
@@ -1129,11 +1105,11 @@ impl<T: Config> Pallet<T> {
         let account_borrows = Self::borrow_balance_stored(borrower, liquidate_currency_id)?;
         let account_borrows_new = account_borrows
             .checked_sub(repay_amount)
-            .ok_or(Error::<T>::CalcBorrowBalanceFailed)?;
+            .ok_or(Error::<T>::Underflow)?;
         let total_borrows = Self::total_borrows(liquidate_currency_id);
         let total_borrows_new = total_borrows
             .checked_sub(repay_amount)
-            .ok_or(Error::<T>::CalcBorrowBalanceFailed)?;
+            .ok_or(Error::<T>::Underflow)?;
         AccountBorrows::<T>::insert(
             liquidate_currency_id,
             borrower,
@@ -1148,8 +1124,8 @@ impl<T: Config> Pallet<T> {
         // (divide borrower's ctoken to liquidator)
         // decrease borrower's ctoken
         let exchange_rate = Self::exchange_rate(collateral_currency_id);
-        let collateral_amount = calc_collateral_amount(collateral_underlying_amount, exchange_rate)
-            .ok_or(Error::<T>::CalcCollateralFailed)?;
+        let collateral_amount =
+            Self::calc_collateral_amount(collateral_underlying_amount, exchange_rate)?;
 
         AccountCollateral::<T>::try_mutate(
             collateral_currency_id,
@@ -1157,7 +1133,7 @@ impl<T: Config> Pallet<T> {
             |collateral_balance| -> DispatchResult {
                 let new_balance = collateral_balance
                     .checked_sub(collateral_amount)
-                    .ok_or(Error::<T>::CollateralTooLow)?;
+                    .ok_or(Error::<T>::Underflow)?;
                 *collateral_balance = new_balance;
                 Ok(())
             },
@@ -1169,7 +1145,7 @@ impl<T: Config> Pallet<T> {
             |collateral_balance| -> DispatchResult {
                 let new_balance = collateral_balance
                     .checked_add(collateral_amount)
-                    .ok_or(Error::<T>::CollateralOverflow)?;
+                    .ok_or(Error::<T>::Overflow)?;
                 *collateral_balance = new_balance;
                 Ok(())
             },
@@ -1211,13 +1187,13 @@ impl<T: Config> Pallet<T> {
             let interest_model = Self::currency_interest_model(currency_id);
             let borrow_rate = interest_model
                 .get_borrow_rate(util)
-                .map_err(|_| Error::<T>::CollateralOverflow)?;
+                .map_err(|_| Error::<T>::Overflow)?;
             let supply_rate = InterestRateModel::get_supply_rate(
                 borrow_rate,
                 util,
                 Self::reserve_factor(currency_id),
             )
-            .map_err(|_| Error::<T>::CollateralOverflow)?;
+            .map_err(|_| Error::<T>::Overflow)?;
 
             UtilizationRatio::<T>::insert(currency_id, util);
             BorrowRate::<T>::insert(currency_id, &borrow_rate.0);
@@ -1243,10 +1219,10 @@ impl<T: Config> Pallet<T> {
         let cash_plus_borrows_minus_reserves = total_cash
             .checked_add(total_borrows)
             .and_then(|r| r.checked_sub(total_reserves))
-            .ok_or(Error::<T>::CalcExchangeRateFailed)?;
+            .ok_or(Error::<T>::Overflow)?;
         let exchange_rate =
             Rate::checked_from_rational(cash_plus_borrows_minus_reserves, total_supply)
-                .ok_or(Error::<T>::CalcExchangeRateFailed)?;
+                .ok_or(Error::<T>::Underflow)?;
 
         ExchangeRate::<T>::insert(currency_id, exchange_rate);
 
@@ -1266,7 +1242,7 @@ impl<T: Config> Pallet<T> {
         let total = cash
             .checked_add(borrows)
             .and_then(|r| r.checked_sub(reserves))
-            .ok_or(Error::<T>::CalcInterestRateFailed)?;
+            .ok_or(Error::<T>::Overflow)?;
 
         Ok(Ratio::from_rational(borrows, total))
     }
@@ -1281,19 +1257,19 @@ impl<T: Config> Pallet<T> {
         let reserve_factor = Self::reserve_factor(currency_id);
         let interest_accumulated = borrow_apr
             .accrued_interest_per_block(borrows_prior)
-            .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
+            .ok_or(Error::<T>::Overflow)?;
         let total_borrows_new = interest_accumulated
             .checked_add(borrows_prior)
-            .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
+            .ok_or(Error::<T>::Overflow)?;
         let total_reserves_new = reserve_factor
             .mul_floor(interest_accumulated)
             .checked_add(reserve_prior)
-            .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
+            .ok_or(Error::<T>::Overflow)?;
         let borrow_index = Self::borrow_index(currency_id);
         let borrow_index_new = borrow_apr
             .increment_index_per_block(borrow_index)
             .and_then(|r| r.checked_add(&borrow_index))
-            .ok_or(Error::<T>::CalcAccrueInterestFailed)?;
+            .ok_or(Error::<T>::Overflow)?;
 
         TotalBorrows::<T>::insert(currency_id, total_borrows_new);
         TotalReserves::<T>::insert(currency_id, total_reserves_new);
@@ -1305,10 +1281,14 @@ impl<T: Config> Pallet<T> {
     pub fn get_total_cash(currency_id: CurrencyId) -> Balance {
         T::Currency::free_balance(currency_id, &Self::account_id())
     }
-}
 
-pub fn calc_collateral_amount(underlying_amount: u128, exchange_rate: Rate) -> Option<u128> {
-    FixedU128::from_inner(underlying_amount)
-        .checked_div(&exchange_rate)
-        .map(|r| r.into_inner())
+    pub fn calc_collateral_amount(
+        underlying_amount: u128,
+        exchange_rate: Rate,
+    ) -> result::Result<Balance, Error<T>> {
+        FixedU128::from_inner(underlying_amount)
+            .checked_div(&exchange_rate)
+            .map(|r| r.into_inner())
+            .ok_or(Error::<T>::Underflow)
+    }
 }
