@@ -148,7 +148,7 @@ pub mod module {
         /// Event emitted when assets are deposited
         /// [sender, currency_id, amount]
         Deposit(T::AccountId, CurrencyId, Balance),
-        /// Event emitted when asserts are redeemed
+        /// Event emitted when assets are redeemed
         /// [sender, currency_id, amount]
         Redeem(T::AccountId, CurrencyId, Balance),
         /// Event emitted when cash is borrowed
