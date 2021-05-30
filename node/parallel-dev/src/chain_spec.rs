@@ -16,7 +16,6 @@ use primitives::*;
 use sc_service::ChainType;
 use serde_json::map::Map;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-#[allow(unused_imports)]
 use sp_core::{sr25519, Pair, Public};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::{
@@ -25,18 +24,11 @@ use sp_runtime::{
 };
 use vanilla_runtime::constants::currency::DOLLARS;
 use vanilla_runtime::{
-    AuraConfig,
-    CouncilConfig,
-    DemocracyConfig,
-    ElectionsConfig,
-    GrandpaConfig,
-    OracleMembershipConfig,
-    TechnicalCommitteeConfig,
-    // VanillaOracleConfig
-    WASM_BINARY,
+    AuraConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig,
+    OracleMembershipConfig, TechnicalCommitteeConfig, WASM_BINARY,
 };
 
-pub type VanillaChainSpec = sc_service::GenericChainSpec<vanilla_runtime::GenesisConfig>;
+pub type ChainSpec = sc_service::GenericChainSpec<vanilla_runtime::GenesisConfig>;
 
 /// Helper function to generate a crypto pair from seed
 pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
@@ -45,10 +37,8 @@ pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Pu
         .public()
 }
 
-#[allow(dead_code)]
 type AccountPublic = <Signature as Verify>::Signer;
 
-#[allow(dead_code)]
 /// Helper function to generate an account ID from seed
 pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
 where
@@ -61,13 +51,13 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
     (get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
 }
 
-pub fn development_config() -> Result<VanillaChainSpec, String> {
+pub fn development_config() -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
     let mut properties = Map::new();
     // properties.insert("tokenSymbol".into(), "PARA".into());
     properties.insert("tokenDecimals".into(), 18.into());
 
-    Ok(VanillaChainSpec::from_genesis(
+    Ok(ChainSpec::from_genesis(
         // Name
         "Development",
         // ID
@@ -109,13 +99,13 @@ pub fn development_config() -> Result<VanillaChainSpec, String> {
     ))
 }
 
-pub fn testnet_config() -> Result<VanillaChainSpec, String> {
+pub fn testnet_config() -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Testnet wasm not available".to_string())?;
     let mut properties = Map::new();
     // properties.insert("tokenSymbol".into(), "PARA".into());
     properties.insert("tokenDecimals".into(), 18.into());
 
-    Ok(VanillaChainSpec::from_genesis(
+    Ok(ChainSpec::from_genesis(
         // Name
         "Parallel Testnet",
         // ID
@@ -199,10 +189,6 @@ fn testnet_genesis(
             },
         },
         pallet_sudo: vanilla_runtime::SudoConfig { key: root_key },
-        // orml_oracle_Instance1: VanillaOracleConfig {
-        //     members: endowed_accounts.clone().into(),
-        //     phantom: Default::default(),
-        // },
         orml_tokens: vanilla_runtime::TokensConfig {
             endowed_accounts: endowed_accounts
                 .iter()

@@ -12,6 +12,11 @@
                 "name": "bob",
                 "wsPort": 9955,
                 "port": 30555
+            },
+            {
+                "name": "charlie",
+                "wsPort": 9966,
+                "port": 30666
             }
         ],
         "runtime_genesis_config": {
@@ -42,10 +47,42 @@
                     ]
                 }
             ]
+        },
+        {
+            "bin": "./target/release/parallel",
+            "id": "300",
+            "balance": "1000000000000000000000",
+            "chain": "parallel",
+            "nodes": [
+                {
+                    "wsPort": 9999,
+                    "port": 31300,
+                    "flags": [
+                        "-laura=debug",
+                        "--force-authoring",
+                        "--bob",
+                        "--",
+                        "--execution=wasm"
+                    ]
+                }
+            ]
         }
     ],
     "simpleParachains": [],
-    "hrmpChannels": [],
+    "hrmpChannels": [
+        {
+            "sender": 200,
+            "recipient": 300,
+            "maxCapacity": 8,
+            "maxMessageSize": 512
+        },
+        {
+            "sender": 300,
+            "recipient": 200,
+            "maxCapacity": 8,
+            "maxMessageSize": 512
+        }
+    ],
     "types": {},
     "finalization": false
 }
