@@ -16,7 +16,7 @@
 #![allow(clippy::unnecessary_cast)]
 #![allow(clippy::upper_case_acronyms)]
 
-use codec::{Decode, Encode};
+use codec::{Compact, CompactAs, Decode, Encode, Error};
 use sp_runtime::{
     generic,
     traits::{BlakeTwo256, IdentifyAccount, Verify},
@@ -100,7 +100,7 @@ pub const TOKEN_DECIMAL: u128 = 1_000_000_000_000_000_000;
 
 pub const RATE_DECIMAL: u128 = 1_000_000_000_000_000_000;
 
-pub const CURRENCY_DECIMAL: u128 = 1_000_000_000_000;
+pub const CURRENCY_DECIMAL: u8 = 18;
 
 pub const BLOCK_PER_YEAR: u128 = 5256000;
 
@@ -112,9 +112,18 @@ pub type Timestamp = u64;
 
 pub type PriceDetail = (Price, Timestamp);
 
-pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<PriceWithDecimal, Moment>;
 
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+
+pub trait PriceFeeder {
+    fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail>;
+}
+
+pub trait EmergencyPriceFeeder<CurrencyId, PriceWithDecimal> {
+    fn set_emergency_price(currency_id: CurrencyId, price: PriceWithDecimal);
+    fn reset_emergency_price(currency_id: CurrencyId);
+}
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -122,11 +131,28 @@ pub enum DataProviderId {
     Aggregated = 0,
 }
 
-pub trait PriceFeeder {
-    fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail>;
+#[derive(Encode, Decode, Debug, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct PriceWithDecimal {
+    pub price: Price,
+    pub decimal: u8,
 }
+impl CompactAs for PriceWithDecimal {
+    type As = Price;
 
-pub trait EmergencyPriceFeeder<CurrencyId, Price> {
-    fn set_emergency_price(currency_id: CurrencyId, price: Price);
-    fn reset_emergency_price(currency_id: CurrencyId);
+    fn encode_as(&self) -> &Self::As {
+        &self.price
+    }
+
+    fn decode_from(price: Self::As) -> Result<Self, Error> {
+        Ok(PriceWithDecimal {
+            price,
+            decimal: CURRENCY_DECIMAL,
+        })
+    }
+}
+impl From<Compact<PriceWithDecimal>> for PriceWithDecimal {
+    fn from(x: Compact<PriceWithDecimal>) -> PriceWithDecimal {
+        x.0
+    }
 }

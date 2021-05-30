@@ -43,7 +43,7 @@
             "repayAmount": "Balance"
         },
         "OracleKey": "CurrencyId",
-        "OracleValue": "FixedU128",
+        "OracleValue": "PriceWithDecimal",
         "MomentOf": "Moment",
         "TimestampedValue": {
             "value": "OracleValue",
@@ -73,6 +73,10 @@
         "OrmlBalanceLock": {
             "amount": "Balance",
             "id": "LockIdentifier"
+        },
+        "PriceWithDecimal": {
+            "price": "Price",
+            "decimal": "u8"
         }
     },
     "typesAlias": {

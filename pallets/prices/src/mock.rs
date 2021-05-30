@@ -60,13 +60,16 @@ impl frame_system::Config for Runtime {
     type OnSetCode = ();
 }
 
-pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<PriceWithDecimal, Moment>;
 pub struct MockDataProvider;
 impl DataProvider<CurrencyId, TimeStampedPrice> for MockDataProvider {
     fn get(currency_id: &CurrencyId) -> Option<TimeStampedPrice> {
         match *currency_id {
             DOT => Some(TimeStampedPrice {
-                value: Price::saturating_from_integer(100),
+                value: PriceWithDecimal {
+                    price: Price::saturating_from_integer(100),
+                    decimal: 10,
+                },
                 timestamp: 0,
             }),
             _ => None,

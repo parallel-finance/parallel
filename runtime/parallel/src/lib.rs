@@ -580,13 +580,13 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
         orml_oracle::DefaultCombineData<Runtime, MinimumCount, ExpiresIn, ParallelDataProvider>;
     type Time = Timestamp;
     type OracleKey = CurrencyId;
-    type OracleValue = Price;
+    type OracleValue = PriceWithDecimal;
     type RootOperatorAccountId = ZeroAccountId;
     type WeightInfo = ();
     type Members = OracleMembership;
 }
 
-pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<PriceWithDecimal, Moment>;
 pub struct AggregatedDataProvider;
 impl DataProvider<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
     fn get(key: &CurrencyId) -> Option<TimeStampedPrice> {
