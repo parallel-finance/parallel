@@ -96,6 +96,9 @@ pub mod module {
 
         /// Weight information for extrinsics in this pallet.
         type WeightInfo: WeightInfo;
+
+        /// Block per year
+        type BlockPerYear: Get<u128>;
     }
 
     #[pallet::error]
@@ -1249,7 +1252,7 @@ impl<T: Config> Pallet<T> {
         let reserve_prior = Self::total_reserves(currency_id);
         let reserve_factor = Self::reserve_factor(currency_id);
         let interest_accumulated = borrow_apr
-            .accrued_interest_per_block(borrows_prior)
+            .accrued_interest_per_block(borrows_prior, T::BlockPerYear::get())
             .ok_or(Error::<T>::Overflow)?;
         let total_borrows_new = interest_accumulated
             .checked_add(borrows_prior)
@@ -1260,7 +1263,7 @@ impl<T: Config> Pallet<T> {
             .ok_or(Error::<T>::Overflow)?;
         let borrow_index = Self::borrow_index(currency_id);
         let borrow_index_new = borrow_apr
-            .increment_index_per_block(borrow_index)
+            .increment_index_per_block(borrow_index, T::BlockPerYear::get())
             .and_then(|r| r.checked_add(&borrow_index))
             .ok_or(Error::<T>::Overflow)?;
 

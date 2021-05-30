@@ -124,7 +124,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 /// up by `pallet_aura` to implement `fn slot_duration()`.
 ///
 /// Change this to adjust the block time.
-pub const MILLISECS_PER_BLOCK: u64 = 6000;
+pub const MILLISECS_PER_BLOCK: u64 = 12000;
 
 pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
 
@@ -261,6 +261,7 @@ parameter_types! {
     pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Native;
 
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
+    pub const BlockPerYear: u128 = 262800;
 }
 
 impl orml_currencies::Config for Runtime {
@@ -275,6 +276,7 @@ impl pallet_loans::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
     type PalletId = LoansPalletId;
+    type BlockPerYear = BlockPerYear;
     type PriceFeeder = Prices;
     type ReserveOrigin = EnsureRoot<AccountId>;
     type UpdateOrigin = EnsureRoot<AccountId>;
@@ -418,6 +420,7 @@ impl pallet_sudo::Config for Runtime {
 }
 
 /// No local origins on this chain are allowed to dispatch XCM sends/executions.
+#[allow(unused_parens)]
 pub type LocalOriginToLocation = (SignedToAccountId32<Origin, AccountId, RelayNetwork>);
 
 /// The means for routing XCM messages which are not for local execution into the right message
@@ -435,7 +438,7 @@ impl pallet_xcm::Config for Runtime {
     type XcmRouter = XcmRouter;
     type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
     type XcmExecuteFilter = All<(MultiLocation, Xcm<Call>)>;
-    type XcmReserveTransferFilter = ();
+    type XcmReserveTransferFilter = All<(MultiLocation, Vec<MultiAsset>)>;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type XcmTeleportFilter = All<(MultiLocation, Vec<MultiAsset>)>;
     type Weigher = FixedWeightBounds<UnitWeightCost, Call>;

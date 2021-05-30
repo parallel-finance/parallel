@@ -172,6 +172,7 @@ impl Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
     type PalletId = LoansPalletId;
+    type BlockPerYear = BlockPerYear;
     type PriceFeeder = MOCK_PRICE_FEEDER;
     type ReserveOrigin = EnsureRoot<AccountId>;
     type UpdateOrigin = EnsureRoot<AccountId>;
@@ -180,6 +181,7 @@ impl Config for Runtime {
 
 parameter_types! {
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
+    pub const BlockPerYear: u128 = 5256000;
 }
 
 pub struct ExtBuilder {
