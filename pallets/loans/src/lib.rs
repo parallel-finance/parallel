@@ -145,7 +145,7 @@ pub mod module {
         /// Disable collateral for certain asset
         /// [sender, currency_id]
         CollateralAssetRemoved(T::AccountId, CurrencyId),
-        /// Event emitted when asserts are deposited
+        /// Event emitted when assets are deposited
         /// [sender, currency_id, amount]
         Deposit(T::AccountId, CurrencyId, Balance),
         /// Event emitted when asserts are redeemed
