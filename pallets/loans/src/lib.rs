@@ -737,7 +737,6 @@ impl<T: Config> Pallet<T> {
         T::PalletId::get().into_account()
     }
 
-    #[transactional]
     pub fn redeem_internal(
         who: &T::AccountId,
         currency_id: &CurrencyId,
@@ -746,7 +745,6 @@ impl<T: Config> Pallet<T> {
         let exchange_rate = Self::exchange_rate(currency_id);
         let collateral = calc_collateral_amount(redeem_amount, exchange_rate)
             .ok_or(Error::<T>::CalcCollateralFailed)?;
-
         AccountCollateral::<T>::try_mutate(
             currency_id,
             who,
@@ -758,7 +756,6 @@ impl<T: Config> Pallet<T> {
                 Ok(())
             },
         )?;
-
         TotalSupply::<T>::try_mutate(currency_id, |total_balance| -> DispatchResult {
             let new_balance = total_balance
                 .checked_sub(collateral)
@@ -766,8 +763,6 @@ impl<T: Config> Pallet<T> {
             *total_balance = new_balance;
             Ok(())
         })?;
-
-        // debug::info!("moduleAccountBalance: {:?}", T::Currency::free_balance(currency_id.clone(), &who));
         T::Currency::transfer(*currency_id, &Self::account_id(), who, redeem_amount)?;
 
         Ok(())
@@ -797,7 +792,7 @@ impl<T: Config> Pallet<T> {
         Ok(total_borrow_value)
     }
 
-    fn total_will_borrow_value(
+    fn calc_total_borrow_value(
         borrower: &T::AccountId,
         borrow_currency_id: &CurrencyId,
         borrow_amount: Balance,
@@ -866,18 +861,17 @@ impl<T: Config> Pallet<T> {
         borrow_currency_id: &CurrencyId,
         borrow_amount: Balance,
     ) -> DispatchResult {
-        let total_will_borrow_value =
-            Self::total_will_borrow_value(borrower, borrow_currency_id, borrow_amount)?;
+        let total_borrow_value =
+            Self::calc_total_borrow_value(borrower, borrow_currency_id, borrow_amount)?;
         let total_collateral_asset_value = Self::total_collateral_asset_value(borrower)?;
 
-        if total_collateral_asset_value < total_will_borrow_value {
+        if total_collateral_asset_value < total_borrow_value {
             return Err(Error::<T>::InsufficientCollateral.into());
         }
 
         Ok(())
     }
 
-    #[transactional]
     fn repay_borrow_internal(
         borrower: &T::AccountId,
         currency_id: &CurrencyId,
