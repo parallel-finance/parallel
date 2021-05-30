@@ -67,11 +67,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
             testnet_genesis(
                 wasm_binary,
                 get_account_id_from_seed::<sr25519::Public>("Alice"),
-                vec![
-                    authority_keys_from_seed("Alice"),
-                    authority_keys_from_seed("Bob"),
-                    authority_keys_from_seed("Charlie"),
-                ],
+                vec![authority_keys_from_seed("Alice")],
                 vec!["5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
                     .parse()
                     .unwrap()],
@@ -121,11 +117,7 @@ pub fn testnet_config() -> Result<ChainSpec, String> {
                 "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
                     .parse()
                     .unwrap(),
-                vec![
-                    authority_keys_from_seed("Alice"),
-                    authority_keys_from_seed("Bob"),
-                    authority_keys_from_seed("Charlie"),
-                ],
+                vec![authority_keys_from_seed("Alice")],
                 vec!["5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
                     .parse()
                     .unwrap()],
