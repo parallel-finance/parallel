@@ -505,7 +505,6 @@ pub mod module {
             currency_id: CurrencyId,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-
             Self::ensure_currency(&currency_id)?;
 
             Self::update_earned_stored(&who, &currency_id)?;
@@ -541,7 +540,6 @@ pub mod module {
             let total_borrows_new = total_borrows
                 .checked_add(borrow_amount)
                 .ok_or(Error::<T>::Overflow)?;
-            T::Currency::transfer(currency_id, &Self::account_id(), &who, borrow_amount)?;
             AccountBorrows::<T>::insert(
                 &currency_id,
                 &who,
@@ -551,6 +549,7 @@ pub mod module {
                 },
             );
             TotalBorrows::<T>::insert(&currency_id, total_borrows_new);
+            T::Currency::transfer(currency_id, &Self::account_id(), &who, borrow_amount)?;
 
             Self::deposit_event(Event::<T>::Borrow(who, currency_id, borrow_amount));
 
@@ -566,7 +565,6 @@ pub mod module {
             repay_amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-
             Self::ensure_currency(&currency_id)?;
 
             Self::repay_borrow_internal(&who, &currency_id, repay_amount)?;
@@ -584,7 +582,6 @@ pub mod module {
             currency_id: CurrencyId,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-
             Self::ensure_currency(&currency_id)?;
 
             let account_borrows = Self::borrow_balance_stored(&who, &currency_id)?;
@@ -604,7 +601,6 @@ pub mod module {
             amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-
             Self::ensure_currency(&currency_id)?;
 
             T::Currency::transfer(currency_id, &who, &to, amount)?;
@@ -620,7 +616,6 @@ pub mod module {
             enable: bool,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-
             Self::ensure_currency(&currency_id)?;
 
             Self::collateral_asset_internal(who, currency_id, enable)?;
@@ -660,7 +655,6 @@ pub mod module {
             new_model: InterestRateModel,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
-
             Self::ensure_currency(&currency_id)?;
 
             new_model
@@ -684,7 +678,6 @@ pub mod module {
         ) -> DispatchResultWithPostInfo {
             T::ReserveOrigin::ensure_origin(origin)?;
             let payer = T::Lookup::lookup(payer)?;
-
             Self::ensure_currency(&currency_id)?;
 
             T::Currency::transfer(currency_id, &payer, &Self::account_id(), add_amount)?;
@@ -713,7 +706,6 @@ pub mod module {
         ) -> DispatchResultWithPostInfo {
             T::ReserveOrigin::ensure_origin(origin)?;
             let receiver = T::Lookup::lookup(receiver)?;
-
             Self::ensure_currency(&currency_id)?;
 
             let total_reserves = Self::total_reserves(currency_id);
@@ -721,8 +713,9 @@ pub mod module {
                 return Err(Error::<T>::InsufficientReserves.into());
             }
             let total_reserves_new = total_reserves - reduce_amount;
-            T::Currency::transfer(currency_id, &Self::account_id(), &receiver, reduce_amount)?;
             TotalReserves::<T>::insert(currency_id, total_reserves_new);
+            T::Currency::transfer(currency_id, &Self::account_id(), &receiver, reduce_amount)?;
+
             Self::deposit_event(Event::<T>::ReservesReduced(
                 receiver,
                 currency_id,
