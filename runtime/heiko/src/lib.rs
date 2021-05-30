@@ -438,7 +438,7 @@ impl pallet_xcm::Config for Runtime {
     type XcmRouter = XcmRouter;
     type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
     type XcmExecuteFilter = All<(MultiLocation, Xcm<Call>)>;
-    type XcmReserveTransferFilter = ();
+    type XcmReserveTransferFilter = All<(MultiLocation, Vec<MultiAsset>)>;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type XcmTeleportFilter = All<(MultiLocation, Vec<MultiAsset>)>;
     type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
