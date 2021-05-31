@@ -803,3 +803,15 @@ fn calc_collateral_amount_works() {
         3333
     );
 }
+
+#[test]
+fn get_price_works() {
+    MOCK_PRICE_FEEDER::set_price(DOT, 0.into());
+    assert!(Loans::get_price(&DOT).is_err());
+
+    MOCK_PRICE_FEEDER::set_price(DOT, 2.into());
+    assert_eq!(
+        Loans::get_price(&DOT).unwrap(),
+        Price::saturating_from_integer(2)
+    );
+}
