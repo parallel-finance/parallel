@@ -11,7 +11,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-18.04]
+        os: [ubuntu-20.04]
         rust: [nightly]
 
     # Steps represent a sequence of tasks that will be executed as part of the job
@@ -50,20 +50,20 @@ jobs:
       - name: Copy File Via Ssh Password
         uses: appleboy/scp-action@master
         with:
-          host: ${{ secrets.TESTNET_SSH_HOST }}
-          username: ${{ secrets.TESTNET_SSH_USERNAME }}
-          key: ${{ secrets.TESTNET_SSH_PRIVKEY }}
-          port: ${{ secrets.TESTNET_SSH_PORT }}
+          host: ${{ secrets.REGNET_SSH_HOST }}
+          username: ${{ secrets.REGNET_SSH_USERNAME }}
+          key: ${{ secrets.REGNET_SSH_PRIVKEY }}
+          port: ${{ secrets.REGNET_SSH_PORT }}
           source: "*.tar.xz"
           target: "~"
 
       - name: Deploy
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.TESTNET_SSH_HOST }}
-          username: ${{ secrets.TESTNET_SSH_USERNAME }}
-          key: ${{ secrets.TESTNET_SSH_PRIVKEY }}
-          port: ${{ secrets.TESTNET_SSH_PORT }}
+          host: ${{ secrets.REGNET_SSH_HOST }}
+          username: ${{ secrets.REGNET_SSH_USERNAME }}
+          key: ${{ secrets.REGNET_SSH_PRIVKEY }}
+          port: ${{ secrets.REGNET_SSH_PORT }}
           script: |
             if [ -d parallel ]; then cd parallel && ./setup.sh --undaemonize && cd ..; fi
             rm -fr parallel
