@@ -16,7 +16,7 @@ use crate::cli::{Cli, Subcommand};
 use crate::{chain_spec, service};
 use sc_cli::{ChainSpec, Role, RuntimeVersion, SubstrateCli};
 use sc_service::PartialComponents;
-use vanilla_runtime::Block;
+use vanilla_runtime::{Block, VERSION};
 
 const CHAIN_NAME: &str = "Parallel";
 
@@ -48,7 +48,7 @@ impl SubstrateCli for Cli {
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
         Ok(match id {
             "dev" => Box::new(chain_spec::development_config()?),
-            "testnet" => Box::new(chain_spec::testnet_config()?),
+            "live" => Box::new(chain_spec::live_config()?),
             path => Box::new(chain_spec::ChainSpec::from_json_file(
                 std::path::PathBuf::from(path),
             )?),
@@ -56,7 +56,7 @@ impl SubstrateCli for Cli {
     }
 
     fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-        &vanilla_runtime::VERSION
+        &VERSION
     }
 }
 

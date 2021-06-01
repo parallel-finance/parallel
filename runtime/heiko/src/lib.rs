@@ -183,7 +183,7 @@ parameter_types! {
         })
         .avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
         .build_or_panic();
-    // TODO: register parallel's SS58Prefix
+    // TODO register parallel's SS58Prefix
     pub const SS58Prefix: u8 = 42;
 }
 
@@ -542,7 +542,7 @@ parameter_types! {
 
 parameter_types! {
     // 1_000_000_000_000 => 1 unit of asset for 1 unit of Weight.
-    // TODO: Should take the actual weight price. This is just 1_000 ROC per second of weight.
+    // TODO Should take the actual weight price. This is just 1_000 KSM per second of weight.
     pub const WeightPrice: (MultiLocation, u128) = (MultiLocation::X1(Junction::Parent), 1_000);
     pub AllowUnpaidFrom: Vec<MultiLocation> = vec![ MultiLocation::X1(Junction::Parent) ];
 }
@@ -604,7 +604,7 @@ impl pallet_prices::Config for Runtime {
 }
 
 pub mod currency {
-    type Balance = u128;
+    use primitives::Balance;
     pub const MILLICENTS: Balance = 1_000_000_000;
     pub const CENTS: Balance = 1_000 * MILLICENTS; // assume this is worth about a cent.
     pub const DOLLARS: Balance = 100 * CENTS;
@@ -841,7 +841,7 @@ impl pallet_treasury::Config for Runtime {
 }
 
 parameter_types! {
-    // TODO: update
+    // TODO update
     pub const OracleMaxMembers: u32 = 100;
 }
 

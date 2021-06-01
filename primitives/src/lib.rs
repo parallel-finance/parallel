@@ -31,15 +31,15 @@ use serde::{Deserialize, Serialize};
 pub type BlockNumber = u32;
 
 /// Header type.
-/// TODO: remove this or other alias
+/// TODO remove this or other alias
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
 
 /// Block type.
-/// TODO: remove this or other alias
+/// TODO remove this or other alias
 pub type Block = generic::Block<Header, sp_runtime::OpaqueExtrinsic>;
 
 /// Block ID.
-/// TODO: remove this or other alias
+/// TODO remove this or other alias
 pub type BlockId = generic::BlockId<Block>;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on

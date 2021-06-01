@@ -86,8 +86,8 @@ pub mod opaque {
 }
 
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-    spec_name: create_runtime_str!("parallel"),
-    impl_name: create_runtime_str!("parallel"),
+    spec_name: create_runtime_str!("vanilla"),
+    impl_name: create_runtime_str!("vanilla"),
     authoring_version: 1,
     spec_version: 100,
     impl_version: 1,
@@ -468,7 +468,7 @@ impl pallet_treasury::Config for Runtime {
 }
 
 parameter_types! {
-    // TODO: update
+    // TODO update
     pub const OracleMaxMembers: u32 = 100;
 }
 
@@ -576,8 +576,8 @@ impl pallet_liquidation::Config for Runtime {
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/stak");
-    pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
-    pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
+    pub const StakingCurrency: CurrencyId = CurrencyId::KSM;
+    pub const LiquidCurrency: CurrencyId = CurrencyId::xKSM;
     pub const MaxWithdrawAmount: Balance = 1000;
     pub const MaxAccountProcessingUnstake: u32 = 5;
 }
