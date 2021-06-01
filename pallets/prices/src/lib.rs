@@ -12,6 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! # Prices pallet
+//!
+//! ## Overview
+//!
+//! This pallet provides the price from Oracle Module by implementing the
+//! `PriceFeeder` trait. In case of emergency, the price can be set directly
+//! by Oracle Collective.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 

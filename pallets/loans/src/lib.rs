@@ -12,6 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! # Loans pallet
+//!
+//! ## Overview
+//!
+//! Loans pallet implement the lending protocol by using a pool-based strategy
+//! that aggregates each user's supplied assets. The interest rate is dynamically
+//! determined by the supply and demand.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 #![allow(clippy::collapsible_if)]
@@ -446,6 +454,9 @@ pub mod module {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Sender supplies assets into the market and receives internal supplies in exchange.
+        ///
+        /// - `currency_id`: the asset to be deposited.
+        /// - `mint_amount`: the amount to be deposited.
         #[pallet::weight(T::WeightInfo::mint())]
         #[transactional]
         pub fn mint(
@@ -484,6 +495,9 @@ pub mod module {
         }
 
         /// Sender redeems some of internal supplies in exchange for the underlying asset.
+        ///
+        /// - `currency_id`: the asset to be redeemed.
+        /// - `redeem_amount`: the amount to be redeemed.
         #[pallet::weight(T::WeightInfo::redeem())]
         #[transactional]
         pub fn redeem(
@@ -503,6 +517,8 @@ pub mod module {
         }
 
         /// Sender redeems all of internal supplies in exchange for the underlying asset.
+        ///
+        /// - `currency_id`: the asset to be redeemed.
         #[pallet::weight(T::WeightInfo::redeem_all())]
         #[transactional]
         pub fn redeem_all(
@@ -526,6 +542,9 @@ pub mod module {
         }
 
         /// Sender borrows assets from the protocol to their own address.
+        ///
+        /// - `currency_id`: the asset to be borrowed.
+        /// - `borrow_amount`: the amount to be borrowed.
         #[pallet::weight(T::WeightInfo::borrow())]
         #[transactional]
         pub fn borrow(
@@ -562,6 +581,9 @@ pub mod module {
         }
 
         /// Sender repays some of their debts.
+        ///
+        /// - `currency_id`: the asset to be repaid.
+        /// - `repay_amount`: the amount to be repaid.
         #[pallet::weight(T::WeightInfo::repay_borrow())]
         #[transactional]
         pub fn repay_borrow(
@@ -580,6 +602,8 @@ pub mod module {
         }
 
         /// Sender repays all of their debts.
+        ///
+        /// - `currency_id`: the asset to be repaid.
         #[pallet::weight(T::WeightInfo::repay_borrow_all())]
         #[transactional]
         pub fn repay_borrow_all(
@@ -597,6 +621,7 @@ pub mod module {
             Ok(().into())
         }
 
+        /// Using for development
         #[pallet::weight(T::WeightInfo::transfer_token())]
         #[transactional]
         pub fn transfer_token(
@@ -613,6 +638,10 @@ pub mod module {
             Ok(().into())
         }
 
+        /// Set the collateral asset.
+        ///
+        /// - `currency_id`: the asset to be set.
+        /// - `enable`: turn on/off the collateral option.
         #[pallet::weight(T::WeightInfo::collateral_asset())]
         #[transactional]
         pub fn collateral_asset(
@@ -628,7 +657,12 @@ pub mod module {
             Ok(().into())
         }
 
-        /// The sender liquidates the borrowers collateral.
+        /// The sender liquidates the borrower's collateral.
+        ///
+        /// - `borrower`: the borrower to be liquidated.
+        /// - `liquidate_token`: the assert to be liquidated.
+        /// - `repay_amount`: the amount to be repaid borrow.
+        /// - `collateral_token`: The collateral to seize from the borrower.
         #[pallet::weight(T::WeightInfo::liquidate_borrow())]
         #[transactional]
         pub fn liquidate_borrow(
@@ -652,6 +686,11 @@ pub mod module {
         }
 
         /// Update the interest rate model for a given asset.
+        ///
+        /// May only be called from `T::UpdateOrigin`.
+        ///
+        /// - `currency_id`: the assets to be set.
+        /// - `new_model`: the interest rate model to be set.
         #[pallet::weight(T::WeightInfo::set_rate_model())]
         #[transactional]
         pub fn set_rate_model(
@@ -673,6 +712,12 @@ pub mod module {
         }
 
         /// Add reserves by transferring from payer.
+        ///
+        /// May only be called from `T::ReserveOrigin`.
+        ///
+        /// - `payer`: the payer account.
+        /// - `currency_id`: the assets to be added.
+        /// - `add_amount`: the amount to be added.
         #[pallet::weight(T::WeightInfo::add_reserves())]
         #[transactional]
         pub fn add_reserves(
@@ -701,6 +746,12 @@ pub mod module {
         }
 
         /// Reduces reserves by transferring to receiver.
+        ///
+        /// May only be called from `T::ReserveOrigin`.
+        ///
+        /// - `receiver`: the receiver account.
+        /// - `currency_id`: the assets to be reduced.
+        /// - `reduce_amount`: the amount to be reduced.
         #[pallet::weight(T::WeightInfo::reduce_reserves())]
         #[transactional]
         pub fn reduce_reserves(
