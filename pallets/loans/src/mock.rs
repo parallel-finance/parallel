@@ -45,6 +45,7 @@ construct_runtime!(
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Loans: loans::{Pallet, Storage, Call, Config, Event<T>},
+        Timestamps: pallet_timestamp::{Pallet, Call, Storage, Inherent},
     }
 );
 
@@ -90,6 +91,17 @@ pub const KSM: CurrencyId = CurrencyId::KSM;
 pub const USDT: CurrencyId = CurrencyId::USDT;
 pub const XDOT: CurrencyId = CurrencyId::xDOT;
 pub const NATIVE: CurrencyId = CurrencyId::Native;
+
+parameter_types! {
+    pub const MinimumPeriod: u64 = 5;
+}
+
+impl pallet_timestamp::Config for Runtime {
+    type Moment = u64;
+    type OnTimestampSet = ();
+    type MinimumPeriod = MinimumPeriod;
+    type WeightInfo = ();
+}
 
 parameter_type_with_key! {
     pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
@@ -177,6 +189,7 @@ impl Config for Runtime {
     type ReserveOrigin = EnsureRoot<AccountId>;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
+    type UnixTime = Timestamps;
 }
 
 parameter_types! {

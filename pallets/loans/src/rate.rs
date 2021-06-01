@@ -46,8 +46,10 @@ impl APR {
             .checked_div(&Rate::saturating_from_integer(block_per_year))
     }
 
-    pub fn accrued_interest_per_block(&self, amount: u128, block_per_year: u128) -> Option<u128> {
-        self.0.checked_mul_int(amount)?.checked_div(block_per_year)
+    pub fn accrued_interest_per_block(&self, amount: u128, timestamp: u64) -> Option<u128> {
+        self.0
+            .checked_mul_int(amount)?
+            .checked_div(timestamp as u128)
     }
 
     pub fn increment_index_per_block(&self, index: Rate, block_per_year: u128) -> Option<Rate> {

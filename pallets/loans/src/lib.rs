@@ -21,6 +21,7 @@ use frame_support::{
     log,
     pallet_prelude::*,
     storage::{with_transaction, TransactionOutcome},
+    traits::UnixTime,
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
@@ -101,6 +102,9 @@ pub mod module {
 
         /// Block per year
         type BlockPerYear: Get<u128>;
+
+        /// Unix time
+        type UnixTime: UnixTime;
     }
 
     #[pallet::error]
@@ -1235,7 +1239,7 @@ impl<T: Config> Pallet<T> {
         let reserve_prior = Self::total_reserves(currency_id);
         let reserve_factor = Self::reserve_factor(currency_id);
         let interest_accumulated = borrow_apr
-            .accrued_interest_per_block(borrows_prior, T::BlockPerYear::get())
+            .accrued_interest_per_block(borrows_prior, T::UnixTime::now().as_secs())
             .ok_or(Error::<T>::Overflow)?;
         let total_borrows_new = interest_accumulated
             .checked_add(borrows_prior)

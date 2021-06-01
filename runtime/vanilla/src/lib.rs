@@ -549,6 +549,7 @@ impl pallet_loans::Config for Runtime {
     type ReserveOrigin = EnsureRoot<AccountId>;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = pallet_loans::weights::SubstrateWeight<Runtime>;
+    type UnixTime = Timestamp;
 }
 
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<PriceWithDecimal, Moment>;

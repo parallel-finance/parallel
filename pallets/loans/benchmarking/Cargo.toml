@@ -23,9 +23,10 @@ sp-runtime         = { git = 'https://github.com/paritytech/substrate.git', bran
 sp-std             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.3', version = '3.0.0', default-features = false }
 
 [dev-dependencies]
-lazy_static = { version = '1.4.0' }
-sp-core     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.3', version = '3.0.0', default-features = false }
-sp-io       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.3', version = '3.0.0', default-features = false }
+lazy_static        = { version = '1.4.0' }
+sp-core            = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.3', version = '3.0.0', default-features = false }
+sp-io              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.3', version = '3.0.0', default-features = false }
+pallet-timestamp   = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.3', default-features = false }
 
 [features]
 default = ['std']
