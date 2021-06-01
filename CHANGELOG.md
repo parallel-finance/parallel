@@ -1,5 +1,10 @@
 # CHANGE LOG
 
+## 2021.06.01
+
+-   Remove LiquidationThreshold
+
+
 ## 2021.05.28
 
 -   Add xKSM & heiko runtime (#152)
