@@ -314,12 +314,6 @@ pub mod module {
     pub type LiquidationIncentive<T: Config> =
         StorageMap<_, Twox64Concat, CurrencyId, Ratio, ValueQuery>;
 
-    /// The collateral utilization ratio will triggering the liquidation
-    #[pallet::storage]
-    #[pallet::getter(fn liquidation_threshold)]
-    pub type LiquidationThreshold<T: Config> =
-        StorageMap<_, Twox64Concat, CurrencyId, Ratio, ValueQuery>;
-
     /// The percent, ranging from 0% to 100%, of a liquidatable account's
     /// borrow that can be repaid in a single liquidate transaction.
     #[pallet::storage]
@@ -337,7 +331,6 @@ pub mod module {
         pub kink_utilization: Ratio,
         pub collateral_factor: Vec<(CurrencyId, Ratio)>,
         pub liquidation_incentive: Vec<(CurrencyId, Ratio)>,
-        pub liquidation_threshold: Vec<(CurrencyId, Ratio)>,
         pub close_factor: Vec<(CurrencyId, Ratio)>,
         pub reserve_factor: Vec<(CurrencyId, Ratio)>,
     }
@@ -355,7 +348,6 @@ pub mod module {
                 kink_utilization: Ratio::zero(),
                 collateral_factor: vec![],
                 liquidation_incentive: vec![],
-                liquidation_threshold: vec![],
                 close_factor: vec![],
                 reserve_factor: vec![],
             }
@@ -386,11 +378,6 @@ pub mod module {
                 .iter()
                 .for_each(|(currency_id, liquidation_incentive)| {
                     LiquidationIncentive::<T>::insert(currency_id, liquidation_incentive);
-                });
-            self.liquidation_threshold
-                .iter()
-                .for_each(|(currency_id, liquidation_threshold)| {
-                    LiquidationThreshold::<T>::insert(currency_id, liquidation_threshold);
                 });
             self.close_factor
                 .iter()

@@ -195,12 +195,6 @@ fn testnet_genesis(
                 (CurrencyId::USDT, Ratio::from_percent(90)),
                 (CurrencyId::xDOT, Ratio::from_percent(90)),
             ],
-            // TODO : please refer to https://github.com/parallel-finance/parallel/issues/46
-            liquidation_threshold: vec![
-                (CurrencyId::DOT, Ratio::from_percent(90)),
-                (CurrencyId::USDT, Ratio::from_percent(90)),
-                (CurrencyId::xDOT, Ratio::from_percent(90)),
-            ],
             close_factor: vec![
                 (CurrencyId::DOT, Ratio::from_percent(50)),
                 (CurrencyId::USDT, Ratio::from_percent(50)),

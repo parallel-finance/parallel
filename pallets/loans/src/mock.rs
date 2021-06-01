@@ -240,12 +240,6 @@ impl ExtBuilder {
                 (CurrencyId::USDT, Ratio::from_percent(90)),
                 (CurrencyId::xDOT, Ratio::from_percent(90)),
             ],
-            liquidation_threshold: vec![
-                (CurrencyId::DOT, Ratio::from_percent(80)),
-                (CurrencyId::KSM, Ratio::from_percent(80)),
-                (CurrencyId::USDT, Ratio::from_percent(90)),
-                (CurrencyId::xDOT, Ratio::from_percent(80)),
-            ],
             close_factor: vec![
                 (CurrencyId::DOT, Ratio::from_percent(50)),
                 (CurrencyId::KSM, Ratio::from_percent(50)),
