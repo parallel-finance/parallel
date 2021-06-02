@@ -16,7 +16,7 @@
 #![allow(clippy::unnecessary_cast)]
 #![allow(clippy::upper_case_acronyms)]
 
-use codec::{Compact, CompactAs, Decode, Encode, Error};
+use codec::{Decode, Encode};
 use sp_runtime::{
     generic,
     traits::{BlakeTwo256, IdentifyAccount, Verify},
