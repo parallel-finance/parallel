@@ -96,8 +96,6 @@ pub enum CurrencyId {
     Native = 5,
 }
 
-pub const TOKEN_DECIMAL: u128 = 1_000_000_000_000;
-
 pub const RATE_DECIMAL: u128 = 1_000_000_000_000_000_000;
 
 pub type Price = FixedU128;

@@ -170,9 +170,9 @@ fn testnet_genesis(
                 .iter()
                 .flat_map(|x| {
                     vec![
-                        (x.clone(), CurrencyId::KSM, 1_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::USDT, 1_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::xKSM, 1_000 * TOKEN_DECIMAL),
+                        (x.clone(), CurrencyId::KSM, 10_u128.pow(21)),
+                        (x.clone(), CurrencyId::USDT, 10_u128.pow(21)),
+                        (x.clone(), CurrencyId::xKSM, 10_u128.pow(21)),
                     ]
                 })
                 .collect(),

@@ -22,9 +22,7 @@ use frame_support::{construct_runtime, parameter_types, PalletId};
 use frame_system::EnsureRoot;
 use lazy_static::lazy_static;
 use orml_traits::parameter_type_with_key;
-use primitives::{
-    Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate, Ratio, TOKEN_DECIMAL,
-};
+use primitives::{Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate, Ratio};
 use sp_core::H256;
 use sp_runtime::traits::One;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
@@ -278,5 +276,5 @@ pub(crate) fn run_to_block(n: BlockNumber) {
 }
 
 pub fn million_dollar(d: u128) -> u128 {
-    1_000_000 * d.saturating_mul(TOKEN_DECIMAL)
+    d.saturating_mul(10_u128.pow(18))
 }
