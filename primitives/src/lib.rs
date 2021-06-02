@@ -18,8 +18,7 @@
 
 use codec::{Decode, Encode};
 use sp_runtime::{
-    generic,
-    traits::{BlakeTwo256, IdentifyAccount, Verify},
+    traits::{IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
 };
 use sp_std::{convert::Into, prelude::*};
@@ -29,18 +28,6 @@ use serde::{Deserialize, Serialize};
 
 /// An index to a block.
 pub type BlockNumber = u32;
-
-/// Header type.
-/// TODO remove this or other alias
-pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
-
-/// Block type.
-/// TODO remove this or other alias
-pub type Block = generic::Block<Header, sp_runtime::OpaqueExtrinsic>;
-
-/// Block ID.
-/// TODO remove this or other alias
-pub type BlockId = generic::BlockId<Block>;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on
 /// the chain.
