@@ -20,6 +20,7 @@ use heiko_runtime::{
 };
 use primitives::*;
 use sc_service::ChainType;
+use serde_json::map::Map;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::sr25519;
 use sp_runtime::{traits::One, FixedPointNumber};
@@ -30,6 +31,9 @@ use crate::chain_spec::{get_account_id_from_seed, get_authority_keys_from_seed, 
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
 
 pub fn development_config(id: ParaId) -> ChainSpec {
+    let mut properties = Map::new();
+    // properties.insert("tokenSymbol".into(), "HEIKO".into());
+    properties.insert("tokenDecimals".into(), 18.into());
     ChainSpec::from_genesis(
         // Name
         "Heiko Development",
@@ -82,6 +86,9 @@ pub fn development_config(id: ParaId) -> ChainSpec {
 }
 
 pub fn local_testnet_config(id: ParaId) -> ChainSpec {
+    let mut properties = Map::new();
+    // properties.insert("tokenSymbol".into(), "PARA".into());
+    properties.insert("tokenDecimals".into(), 18.into());
     ChainSpec::from_genesis(
         // Name
         "Heiko Testnet",
