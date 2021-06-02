@@ -100,8 +100,6 @@ pub const TOKEN_DECIMAL: u128 = 1_000_000_000_000;
 
 pub const RATE_DECIMAL: u128 = 1_000_000_000_000_000_000;
 
-pub const MIN_PRICE: FixedU128 = FixedU128::from_inner(u128::MIN);
-
 pub type Price = FixedU128;
 
 pub type Timestamp = u64;
