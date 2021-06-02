@@ -112,7 +112,7 @@ impl<T: Config> Pallet<T> {
             10u128.checked_pow(p.decimal.into()).and_then(|d| {
                 p.price
                     .checked_div(&FixedU128::from_inner(d))
-                    .map(|price| (price, 0))
+                    .and_then(|price| Some((price, 0)))
             })
         })
     }
@@ -129,7 +129,7 @@ impl<T: Config> PriceFeeder for Pallet<T> {
                     p.value
                         .price
                         .checked_div(&FixedU128::from_inner(d))
-                        .map(|price| (price, p.timestamp))
+                        .and_then(|price| Some((price, p.timestamp)))
                 })
             })
         })
