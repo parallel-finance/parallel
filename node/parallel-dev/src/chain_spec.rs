@@ -64,11 +64,13 @@ pub fn development_config() -> Result<ChainSpec, String> {
                 wasm_binary,
                 get_account_id_from_seed::<sr25519::Public>("Alice"),
                 vec![authority_keys_from_seed("Alice")],
-                vec!["5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
-                    .parse()
-                    .unwrap()],
                 vec![
+                    "5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
+                        .parse()
+                        .unwrap(),
                     get_account_id_from_seed::<sr25519::Public>("Alice"),
+                ],
+                vec![
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
                     get_account_id_from_seed::<sr25519::Public>("Charlie"),
                     get_account_id_from_seed::<sr25519::Public>("Dave"),
