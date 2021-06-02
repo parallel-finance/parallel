@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use primitives::{Rate, Ratio};
+use primitives::{Rate, Ratio, Timestamp, SECONDS_PER_YEAR};
 use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedSub, Saturating};
+use sp_runtime::FixedU128;
 
 use crate::*;
 
@@ -41,15 +42,22 @@ impl From<Rate> for APR {
 impl APR {
     pub const MAX: Rate = Rate::from_inner(350_000_000_000_000_000); // 35%
 
+    pub fn from_fraction(delta_time: Timestamp) -> Option<Rate> {
+        FixedU128::from(1)
+            .checked_mul(&Rate::saturating_from_integer(delta_time))?
+            .checked_div(&Rate::saturating_from_integer(SECONDS_PER_YEAR))
+    }
+
     pub fn rate_per_block(&self, block_per_year: u128) -> Option<Rate> {
         self.0
             .checked_div(&Rate::saturating_from_integer(block_per_year))
     }
 
-    pub fn accrued_interest_per_block(&self, amount: u128, timestamp: u64) -> Option<u128> {
+    pub fn accrued_interest_per_block(&self, amount: u128, delta_time: Timestamp) -> Option<u128> {
+        let fraction: Rate = Self::from_fraction(delta_time)?;
         self.0
             .checked_mul_int(amount)?
-            .checked_div(timestamp as u128)
+            .checked_div(fraction.into_inner())
     }
 
     pub fn increment_index_per_block(&self, index: Rate, block_per_year: u128) -> Option<Rate> {

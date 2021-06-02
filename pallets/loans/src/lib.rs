@@ -26,7 +26,9 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
-use primitives::{Amount, Balance, CurrencyId, Multiplier, Price, PriceFeeder, Rate, Ratio};
+use primitives::{
+    Amount, Balance, CurrencyId, Multiplier, Price, PriceFeeder, Rate, Ratio, Timestamp,
+};
 use sp_runtime::{
     traits::{
         AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, StaticLookup, Zero,
@@ -186,6 +188,11 @@ pub mod module {
         /// [admin, currency_id, added_amount, total_reserves]
         ReservesAdded(T::AccountId, CurrencyId, Balance, Balance),
     }
+
+    /// The timestamp of the previous block or defaults to timestamp at genesis.
+    #[pallet::storage]
+    #[pallet::getter(fn last_block_timestamp)]
+    pub type LastBlockTimestamp<T: Config> = StorageValue<_, Timestamp, ValueQuery>;
 
     /// Total number of collateral tokens in circulation
     /// CollateralType -> Balance
@@ -430,6 +437,11 @@ pub mod module {
         /// Called by substrate on block initialization.
         /// Our initialization function is fallible, but that's not allowed.
         fn on_initialize(block_number: T::BlockNumber) -> frame_support::weights::Weight {
+            let last_block_timestamp = LastBlockTimestamp::<T>::get();
+            let now = T::UnixTime::now().as_secs();
+            if last_block_timestamp == 0 {
+                LastBlockTimestamp::<T>::put(now);
+            }
             with_transaction(|| {
                 match <Pallet<T>>::accrue_interest() {
                     Ok(()) => TransactionOutcome::Commit(1000),
@@ -1238,8 +1250,9 @@ impl<T: Config> Pallet<T> {
         let borrows_prior = Self::total_borrows(currency_id);
         let reserve_prior = Self::total_reserves(currency_id);
         let reserve_factor = Self::reserve_factor(currency_id);
+        let delta_time = T::UnixTime::now().as_secs() - Self::last_block_timestamp();
         let interest_accumulated = borrow_apr
-            .accrued_interest_per_block(borrows_prior, T::UnixTime::now().as_secs())
+            .accrued_interest_per_block(borrows_prior, delta_time)
             .ok_or(Error::<T>::Overflow)?;
         let total_borrows_new = interest_accumulated
             .checked_add(borrows_prior)
