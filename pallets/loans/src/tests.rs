@@ -15,7 +15,6 @@
 //! Unit tests for the loans module.
 
 use frame_support::{assert_noop, assert_ok};
-use primitives::RATE_DECIMAL;
 use sp_runtime::traits::{CheckedDiv, One, Saturating};
 use sp_runtime::{FixedU128, Permill};
 
@@ -307,6 +306,7 @@ fn collateral_asset_works() {
 #[test]
 fn interest_rate_model_works() {
     ExtBuilder::default().build().execute_with(|| {
+        let rate_decimal: u128 = 1_000_000_000_000_000_000;
         // Deposit 200 DOT and borrow 100 DOT
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, million_dollar(200)));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
@@ -373,7 +373,7 @@ fn interest_rate_model_works() {
             // exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
             assert_eq!(
                 Loans::exchange_rate(DOT).into_inner(),
-                (total_cash + total_borrows - total_reserves) * RATE_DECIMAL / total_supply
+                (total_cash + total_borrows - total_reserves) * rate_decimal / total_supply
             );
 
             borrow_index = borrow_index
