@@ -220,7 +220,7 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-    pub const TransactionByteFee: Balance = 1 * MILLICENTS;
+    pub const TransactionByteFee: Balance = 1;
 }
 
 impl pallet_transaction_payment::Config for Runtime {
@@ -505,7 +505,7 @@ impl orml_tokens::Config for Runtime {
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::KSM;
+    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Native;
 }
 impl orml_currencies::Config for Runtime {
     type Event = Event;
