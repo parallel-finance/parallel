@@ -14,7 +14,6 @@
 
 use primitives::*;
 use sc_service::ChainType;
-use serde_json::map::Map;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
@@ -22,13 +21,14 @@ use sp_runtime::{
     traits::{IdentifyAccount, One, Verify},
     FixedPointNumber,
 };
-use vanilla_runtime::constants::currency::DOLLARS;
 use vanilla_runtime::{
-    AuraConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig,
-    OracleMembershipConfig, TechnicalCommitteeConfig, WASM_BINARY,
+    constants::currency::DOLLARS, AuraConfig, BalancesConfig, CouncilConfig, DemocracyConfig,
+    ElectionsConfig, GenesisConfig, GrandpaConfig, LiquidStakingConfig, LoansConfig,
+    OracleMembershipConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig, TokensConfig,
+    WASM_BINARY,
 };
 
-pub type ChainSpec = sc_service::GenericChainSpec<vanilla_runtime::GenesisConfig>;
+pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
 
 /// Helper function to generate a crypto pair from seed
 pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
@@ -53,10 +53,6 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
 
 pub fn development_config() -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
-    let mut properties = Map::new();
-    // properties.insert("tokenSymbol".into(), "PARA".into());
-    properties.insert("tokenDecimals".into(), 18.into());
-
     Ok(ChainSpec::from_genesis(
         // Name
         "Development",
@@ -68,11 +64,13 @@ pub fn development_config() -> Result<ChainSpec, String> {
                 wasm_binary,
                 get_account_id_from_seed::<sr25519::Public>("Alice"),
                 vec![authority_keys_from_seed("Alice")],
-                vec!["5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
-                    .parse()
-                    .unwrap()],
                 vec![
+                    "5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
+                        .parse()
+                        .unwrap(),
                     get_account_id_from_seed::<sr25519::Public>("Alice"),
+                ],
+                vec![
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
                     get_account_id_from_seed::<sr25519::Public>("Charlie"),
                     get_account_id_from_seed::<sr25519::Public>("Dave"),
@@ -99,18 +97,14 @@ pub fn development_config() -> Result<ChainSpec, String> {
     ))
 }
 
-pub fn testnet_config() -> Result<ChainSpec, String> {
+pub fn live_config() -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Testnet wasm not available".to_string())?;
-    let mut properties = Map::new();
-    // properties.insert("tokenSymbol".into(), "PARA".into());
-    properties.insert("tokenDecimals".into(), 18.into());
-
     Ok(ChainSpec::from_genesis(
         // Name
-        "Parallel Testnet",
+        "Vanilla Testnet",
         // ID
-        "parallel-testnet",
-        ChainType::Development,
+        "vanilla-local",
+        ChainType::Local,
         move || {
             testnet_genesis(
                 wasm_binary,
@@ -162,12 +156,12 @@ fn testnet_genesis(
     initial_authorities: Vec<(AuraId, GrandpaId)>,
     oracle_accounts: Vec<AccountId>,
     endowed_accounts: Vec<AccountId>,
-) -> vanilla_runtime::GenesisConfig {
+) -> GenesisConfig {
     let num_endowed_accounts = endowed_accounts.len();
     const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
     const STASH: Balance = ENDOWMENT / 1000;
-    vanilla_runtime::GenesisConfig {
-        frame_system: vanilla_runtime::SystemConfig {
+    GenesisConfig {
+        frame_system: SystemConfig {
             code: wasm_binary.to_vec(),
             changes_trie_config: Default::default(),
         },
@@ -180,28 +174,28 @@ fn testnet_genesis(
                 .map(|x| (x.1.clone(), 1))
                 .collect(),
         },
-        pallet_balances: vanilla_runtime::BalancesConfig {
+        pallet_balances: BalancesConfig {
             balances: {
                 let mut endowed_accounts = endowed_accounts.clone();
                 endowed_accounts.extend_from_slice(&oracle_accounts);
 
-                endowed_accounts.into_iter().map(|k| (k, 1 << 90)).collect()
+                endowed_accounts.into_iter().map(|k| (k, 1 << 60)).collect()
             },
         },
-        pallet_sudo: vanilla_runtime::SudoConfig { key: root_key },
-        orml_tokens: vanilla_runtime::TokensConfig {
+        pallet_sudo: SudoConfig { key: root_key },
+        orml_tokens: TokensConfig {
             endowed_accounts: endowed_accounts
                 .iter()
                 .flat_map(|x| {
                     vec![
-                        (x.clone(), CurrencyId::KSM, 1_000_000_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::USDT, 1_000_000_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::xKSM, 1_000_000_000 * TOKEN_DECIMAL),
+                        (x.clone(), CurrencyId::KSM, 10_u128.pow(21)),
+                        (x.clone(), CurrencyId::USDT, 10_u128.pow(21)),
+                        (x.clone(), CurrencyId::xKSM, 10_u128.pow(21)),
                     ]
                 })
                 .collect(),
         },
-        pallet_loans: vanilla_runtime::LoansConfig {
+        pallet_loans: LoansConfig {
             currencies: vec![CurrencyId::KSM, CurrencyId::USDT, CurrencyId::xKSM],
             borrow_index: Rate::one(),                             // 1
             exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
@@ -230,7 +224,7 @@ fn testnet_genesis(
                 (CurrencyId::xKSM, Ratio::from_percent(15)),
             ],
         },
-        pallet_liquid_staking: vanilla_runtime::LiquidStakingConfig {
+        pallet_liquid_staking: LiquidStakingConfig {
             exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
         },
         pallet_democracy: DemocracyConfig::default(),

@@ -16,10 +16,9 @@
 #![allow(clippy::unnecessary_cast)]
 #![allow(clippy::upper_case_acronyms)]
 
-use codec::{Compact, CompactAs, Decode, Encode, Error};
+use codec::{Decode, Encode};
 use sp_runtime::{
-    generic,
-    traits::{BlakeTwo256, IdentifyAccount, Verify},
+    traits::{IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
 };
 use sp_std::{convert::Into, prelude::*};
@@ -29,18 +28,6 @@ use serde::{Deserialize, Serialize};
 
 /// An index to a block.
 pub type BlockNumber = u32;
-
-/// Header type.
-/// TODO: remove this or other alias
-pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
-
-/// Block type.
-/// TODO: remove this or other alias
-pub type Block = generic::Block<Header, sp_runtime::OpaqueExtrinsic>;
-
-/// Block ID.
-/// TODO: remove this or other alias
-pub type BlockId = generic::BlockId<Block>;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on
 /// the chain.
@@ -96,14 +83,6 @@ pub enum CurrencyId {
     Native = 5,
 }
 
-pub const TOKEN_DECIMAL: u128 = 1_000_000_000_000_000_000;
-
-pub const RATE_DECIMAL: u128 = 1_000_000_000_000_000_000;
-
-pub const CURRENCY_DECIMAL: u8 = 18;
-
-pub const MIN_PRICE: FixedU128 = FixedU128::from_inner(u128::MIN);
-
 pub type Price = FixedU128;
 
 pub type Timestamp = u64;
@@ -134,23 +113,4 @@ pub enum DataProviderId {
 pub struct PriceWithDecimal {
     pub price: Price,
     pub decimal: u8,
-}
-impl CompactAs for PriceWithDecimal {
-    type As = Price;
-
-    fn encode_as(&self) -> &Self::As {
-        &self.price
-    }
-
-    fn decode_from(price: Self::As) -> Result<Self, Error> {
-        Ok(PriceWithDecimal {
-            price,
-            decimal: CURRENCY_DECIMAL,
-        })
-    }
-}
-impl From<Compact<PriceWithDecimal>> for PriceWithDecimal {
-    fn from(x: Compact<PriceWithDecimal>) -> PriceWithDecimal {
-        x.0
-    }
 }

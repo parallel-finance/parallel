@@ -32,7 +32,7 @@ pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
 pub fn development_config(id: ParaId) -> ChainSpec {
     ChainSpec::from_genesis(
         // Name
-        "Development",
+        "Parallel Development",
         // ID
         "parallel-dev",
         ChainType::Development,
@@ -84,7 +84,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
 pub fn local_testnet_config(id: ParaId) -> ChainSpec {
     ChainSpec::from_genesis(
         // Name
-        "Local Testnet",
+        "Parallel Testnet",
         // ID
         "parallel-local",
         ChainType::Local,
@@ -158,7 +158,7 @@ fn testnet_genesis(
                 endowed_accounts.into_iter().map(|k| (k, 1 << 60)).collect()
             },
         },
-        // TODO : collateral selection
+        // TODO collateral selection
         pallet_aura: AuraConfig {
             authorities: initial_authorities.iter().map(|x| (x.1.clone())).collect(),
         },
@@ -170,9 +170,9 @@ fn testnet_genesis(
                 .iter()
                 .flat_map(|x| {
                     vec![
-                        (x.clone(), CurrencyId::DOT, 1_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::USDT, 1_000 * TOKEN_DECIMAL),
-                        (x.clone(), CurrencyId::xDOT, 1_000 * TOKEN_DECIMAL),
+                        (x.clone(), CurrencyId::DOT, 10_u128.pow(21)),
+                        (x.clone(), CurrencyId::USDT, 10_u128.pow(21)),
+                        (x.clone(), CurrencyId::xDOT, 10_u128.pow(21)),
                     ]
                 })
                 .collect(),
