@@ -14,6 +14,8 @@
 
 //! Liquidate pallet
 //!
+//! ## Overview
+//!
 //! This pallets provides offchain worker to call the liquidate_borrow operation in loans pallet.
 //! The collator may opt-in with a pre-funded account. The liquidate strategy is:
 //! - find the unhealthy account which has excessed loans

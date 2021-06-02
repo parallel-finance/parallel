@@ -14,6 +14,8 @@
 
 //! # Liquid staking pallet
 //!
+//! ## Overview
+//!
 //! This pallet manages the NPoS operations for relay chain asset.
 
 #![cfg_attr(not(feature = "std"), no_std)]
