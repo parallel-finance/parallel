@@ -100,8 +100,6 @@ pub const TOKEN_DECIMAL: u128 = 1_000_000_000_000;
 
 pub const RATE_DECIMAL: u128 = 1_000_000_000_000_000_000;
 
-pub const CURRENCY_DECIMAL: u8 = 18;
-
 pub const MIN_PRICE: FixedU128 = FixedU128::from_inner(u128::MIN);
 
 pub type Price = FixedU128;
@@ -134,23 +132,4 @@ pub enum DataProviderId {
 pub struct PriceWithDecimal {
     pub price: Price,
     pub decimal: u8,
-}
-impl CompactAs for PriceWithDecimal {
-    type As = Price;
-
-    fn encode_as(&self) -> &Self::As {
-        &self.price
-    }
-
-    fn decode_from(price: Self::As) -> Result<Self, Error> {
-        Ok(PriceWithDecimal {
-            price,
-            decimal: CURRENCY_DECIMAL,
-        })
-    }
-}
-impl From<Compact<PriceWithDecimal>> for PriceWithDecimal {
-    fn from(x: Compact<PriceWithDecimal>) -> PriceWithDecimal {
-        x.0
-    }
 }
