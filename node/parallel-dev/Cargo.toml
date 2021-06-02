@@ -43,9 +43,8 @@ sc-telemetry        = { version = '3.0.0', git = 'https://github.com/paritytech/
 sc-tracing          = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.3' }
 sc-transaction-pool = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.3' }
 
-serde      = { version = '1.0.119', features = ['derive'] }
-serde_json = '1.0.41'
-structopt  = '0.3.8'
+serde     = { version = '1.0.119', features = ['derive'] }
+structopt = '0.3.8'
 
 orml-oracle-rpc            = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 substrate-frame-rpc-system = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.3' }

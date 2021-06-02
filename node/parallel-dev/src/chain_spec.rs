@@ -14,7 +14,6 @@
 
 use primitives::*;
 use sc_service::ChainType;
-use serde_json::map::Map;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
@@ -54,9 +53,6 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
 
 pub fn development_config() -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
-    let mut properties = Map::new();
-    // properties.insert("tokenSymbol".into(), "HEIKO".into());
-    properties.insert("tokenDecimals".into(), 18.into());
     Ok(ChainSpec::from_genesis(
         // Name
         "Development",
@@ -101,14 +97,11 @@ pub fn development_config() -> Result<ChainSpec, String> {
 
 pub fn live_config() -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Testnet wasm not available".to_string())?;
-    let mut properties = Map::new();
-    // properties.insert("tokenSymbol".into(), "HEIKO".into());
-    properties.insert("tokenDecimals".into(), 18.into());
     Ok(ChainSpec::from_genesis(
         // Name
         "Vanilla Testnet",
         // ID
-        "vanilla-dev",
+        "vanilla-local",
         ChainType::Local,
         move || {
             testnet_genesis(
@@ -184,7 +177,7 @@ fn testnet_genesis(
                 let mut endowed_accounts = endowed_accounts.clone();
                 endowed_accounts.extend_from_slice(&oracle_accounts);
 
-                endowed_accounts.into_iter().map(|k| (k, 1 << 90)).collect()
+                endowed_accounts.into_iter().map(|k| (k, 1 << 60)).collect()
             },
         },
         pallet_sudo: SudoConfig { key: root_key },
