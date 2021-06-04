@@ -57,7 +57,7 @@ impl APR {
         let fraction: Rate = Self::from_fraction(delta_time)?;
         self.0
             .checked_mul_int(amount)?
-            .checked_div(fraction.into_inner())
+            .checked_mul(fraction.into_inner())
     }
 
     pub fn increment_index_per_block(&self, index: Rate, block_per_year: u128) -> Option<Rate> {

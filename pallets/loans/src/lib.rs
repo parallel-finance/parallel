@@ -343,6 +343,7 @@ pub mod module {
         pub liquidation_threshold: Vec<(CurrencyId, Ratio)>,
         pub close_factor: Vec<(CurrencyId, Ratio)>,
         pub reserve_factor: Vec<(CurrencyId, Ratio)>,
+		pub last_block_timestamp: Timestamp,
     }
 
     #[cfg(feature = "std")]
@@ -361,6 +362,7 @@ pub mod module {
                 liquidation_threshold: vec![],
                 close_factor: vec![],
                 reserve_factor: vec![],
+				last_block_timestamp: 0,
             }
         }
     }
@@ -406,6 +408,7 @@ pub mod module {
                     ReserveFactor::<T>::insert(currency_id, reserve_factor);
                 });
             Currencies::<T>::put(self.currencies.clone());
+			LastBlockTimestamp::<T>::put(self.last_block_timestamp.clone());
         }
     }
 
