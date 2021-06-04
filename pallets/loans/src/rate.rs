@@ -54,7 +54,7 @@ impl APR {
     }
 
     pub fn accrued_interest_per_block(&self, amount: u128, delta_time: Timestamp) -> Option<u128> {
-        let fraction: Rate = Rate::checked_from_rational(delta_time, SECONDS_PER_YEAR);
+        let fraction: Rate = Rate::checked_from_rational(delta_time, SECONDS_PER_YEAR)?;
         fraction.checked_mul_int(self.0.checked_mul_int(amount)?)
     }
 
