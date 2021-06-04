@@ -55,9 +55,8 @@ impl APR {
 
     pub fn accrued_interest_per_block(&self, amount: u128, delta_time: Timestamp) -> Option<u128> {
         let fraction: Rate = Self::from_fraction(delta_time)?;
-        self.0
-            .checked_mul_int(amount)?
-            .checked_mul(fraction.into_inner())
+
+        fraction.checked_mul_int(self.0.checked_mul_int(amount)?)
     }
 
     pub fn increment_index_per_block(&self, index: Rate, block_per_year: u128) -> Option<Rate> {

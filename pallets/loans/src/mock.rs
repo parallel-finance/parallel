@@ -271,7 +271,7 @@ impl ExtBuilder {
                 (CurrencyId::USDT, Ratio::from_percent(15)),
                 (CurrencyId::xDOT, Ratio::from_percent(15)),
             ],
-			last_block_timestamp: 1,
+            last_block_timestamp: 1,
         }
         .assimilate_storage::<Runtime>(&mut t)
         .unwrap();

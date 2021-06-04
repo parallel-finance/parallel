@@ -297,7 +297,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             (CurrencyId::xDOT, Ratio::from_percent(15)),
             (CurrencyId::xKSM, Ratio::from_percent(15)),
         ],
-		last_block_timestamp: 1,
+        last_block_timestamp: 1,
     }
     .assimilate_storage::<Test>(&mut t)
     .unwrap();
