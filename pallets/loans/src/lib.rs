@@ -1255,7 +1255,7 @@ impl<T: Config> Pallet<T> {
         let reserve_factor = Self::reserve_factor(currency_id);
         let delta_time = T::UnixTime::now().as_secs() - Self::last_block_timestamp();
         let interest_accumulated = borrow_apr
-            .accrued_interest_per_block(borrows_prior, delta_time)
+            .accrued_interest(borrows_prior, delta_time)
             .ok_or(Error::<T>::Overflow)?;
         let total_borrows_new = interest_accumulated
             .checked_add(borrows_prior)
