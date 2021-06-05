@@ -442,10 +442,15 @@ pub mod module {
         fn on_initialize(block_number: T::BlockNumber) -> frame_support::weights::Weight {
             let last_block_timestamp = LastBlockTimestamp::<T>::get();
             let now = T::UnixTime::now().as_secs();
-            LastBlockTimestamp::<T>::put(now);
+            if last_block_timestamp == 0 {
+                LastBlockTimestamp::<T>::put(now);
+            }
             with_transaction(|| {
                 match <Pallet<T>>::accrue_interest() {
-                    Ok(()) => TransactionOutcome::Commit(1000),
+                    Ok(()) => {
+                        LastBlockTimestamp::<T>::put(now);
+                        TransactionOutcome::Commit(1000)
+                    }
                     Err(err) => {
                         // This should never happen...
                         log::info!(
