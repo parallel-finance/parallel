@@ -15,7 +15,7 @@
 //! Unit tests for the loans module.
 
 use frame_support::{assert_noop, assert_ok};
-use primitives::{RATE_DECIMAL, SECONDS_PER_YEAR};
+use primitives::SECONDS_PER_YEAR;
 use sp_runtime::traits::{CheckedDiv, One, Saturating};
 use sp_runtime::{FixedU128, Permill};
 
