@@ -22,9 +22,7 @@ use frame_support::{construct_runtime, parameter_types, PalletId};
 use frame_system::EnsureRoot;
 use lazy_static::lazy_static;
 use orml_traits::parameter_type_with_key;
-use primitives::{
-    Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate, Ratio, TOKEN_DECIMAL,
-};
+use primitives::{Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate, Ratio};
 use sp_core::H256;
 use sp_runtime::traits::One;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
@@ -205,12 +203,12 @@ impl Default for ExtBuilder {
     fn default() -> Self {
         Self {
             endowed_accounts: vec![
-                (ALICE, DOT, dollar(1000)),
-                (ALICE, KSM, dollar(1000)),
-                (ALICE, USDT, dollar(1000)),
-                (BOB, DOT, dollar(1000)),
-                (BOB, KSM, dollar(1000)),
-                (BOB, USDT, dollar(1000)),
+                (ALICE, DOT, million_dollar(1000)),
+                (ALICE, KSM, million_dollar(1000)),
+                (ALICE, USDT, million_dollar(1000)),
+                (BOB, DOT, million_dollar(1000)),
+                (BOB, KSM, million_dollar(1000)),
+                (BOB, USDT, million_dollar(1000)),
             ],
         }
     }
@@ -252,12 +250,6 @@ impl ExtBuilder {
                 (CurrencyId::KSM, Ratio::from_percent(90)),
                 (CurrencyId::USDT, Ratio::from_percent(90)),
                 (CurrencyId::xDOT, Ratio::from_percent(90)),
-            ],
-            liquidation_threshold: vec![
-                (CurrencyId::DOT, Ratio::from_percent(80)),
-                (CurrencyId::KSM, Ratio::from_percent(80)),
-                (CurrencyId::USDT, Ratio::from_percent(90)),
-                (CurrencyId::xDOT, Ratio::from_percent(80)),
             ],
             close_factor: vec![
                 (CurrencyId::DOT, Ratio::from_percent(50)),
@@ -301,6 +293,6 @@ pub(crate) fn run_to_block(n: BlockNumber) {
     }
 }
 
-pub fn dollar(d: u128) -> u128 {
-    d.saturating_mul(TOKEN_DECIMAL)
+pub fn million_dollar(d: u128) -> u128 {
+    d.saturating_mul(10_u128.pow(18))
 }

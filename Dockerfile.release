@@ -6,7 +6,7 @@ WORKDIR /parallel
 
 COPY . /parallel
 
-RUN cargo build --$PROFILE --bin parallel-dev
+RUN cargo build --$PROFILE --bin parallel-dev --features runtime-benchmarks
 
 # ===== SECOND STAGE ======
 

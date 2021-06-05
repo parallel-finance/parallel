@@ -1,0 +1,44 @@
+version: "3"
+services:
+  parallel:
+    ports:
+      - "30333:30333"
+      - "9933:9933"
+      - "9944:9944"
+    image: parallelfinance/parallel:latest
+    volumes:
+      - "parallel-data:/data"
+    restart: always
+    networks:
+      testing_net:
+        ipv4_address: 172.28.1.1
+
+  parallel-dapp:
+    ports:
+      - "8080:80"
+    image: parallelfinance/parallel-dapp:regnet
+    links:
+      - "parallel:parallel"
+    networks:
+      testing_net:
+        ipv4_address: 172.28.1.2
+
+  oracle:
+    image: parallelfinance/oracle-client:latest
+    links:
+      - "parallel:parallel"
+    command: oracle-client -w ws://172.28.1.1:9944
+    restart: always
+    networks:
+      testing_net:
+        ipv4_address: 172.28.1.3
+
+volumes:
+  parallel-data:
+
+networks:
+  testing_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
