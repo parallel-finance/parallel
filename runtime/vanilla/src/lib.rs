@@ -468,7 +468,6 @@ impl pallet_treasury::Config for Runtime {
 }
 
 parameter_types! {
-    // TODO update
     pub const OracleMaxMembers: u32 = 100;
 }
 
