@@ -43,6 +43,7 @@ construct_runtime!(
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Loans: loans::{Pallet, Storage, Call, Config, Event<T>},
+        Timestamps: pallet_timestamp::{Pallet, Call, Storage, Inherent},
     }
 );
 
@@ -88,6 +89,17 @@ pub const KSM: CurrencyId = CurrencyId::KSM;
 pub const USDT: CurrencyId = CurrencyId::USDT;
 pub const XDOT: CurrencyId = CurrencyId::xDOT;
 pub const NATIVE: CurrencyId = CurrencyId::Native;
+
+parameter_types! {
+    pub const MinimumPeriod: u64 = 5;
+}
+
+impl pallet_timestamp::Config for Runtime {
+    type Moment = u64;
+    type OnTimestampSet = ();
+    type MinimumPeriod = MinimumPeriod;
+    type WeightInfo = ();
+}
 
 parameter_type_with_key! {
     pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
@@ -175,6 +187,7 @@ impl Config for Runtime {
     type ReserveOrigin = EnsureRoot<AccountId>;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
+    type UnixTime = Timestamps;
 }
 
 parameter_types! {
@@ -250,6 +263,7 @@ impl ExtBuilder {
                 (CurrencyId::USDT, Ratio::from_percent(15)),
                 (CurrencyId::xDOT, Ratio::from_percent(15)),
             ],
+            last_block_timestamp: 1,
         }
         .assimilate_storage::<Runtime>(&mut t)
         .unwrap();
@@ -258,7 +272,10 @@ impl ExtBuilder {
 
         // t.into()
         let mut ext = sp_io::TestExternalities::new(t);
-        ext.execute_with(|| System::set_block_number(1));
+        ext.execute_with(|| {
+            System::set_block_number(1);
+            Timestamps::set_timestamp(6000);
+        });
         ext
     }
 }
@@ -267,8 +284,9 @@ impl ExtBuilder {
 pub(crate) fn run_to_block(n: BlockNumber) {
     Loans::on_finalize(System::block_number());
     for b in (System::block_number() + 1)..=n {
-        Loans::on_initialize(System::block_number());
         System::set_block_number(b);
+        Timestamps::set_timestamp(6000 * b);
+        Loans::on_initialize(System::block_number());
         if b != n {
             Loans::on_finalize(System::block_number());
         }

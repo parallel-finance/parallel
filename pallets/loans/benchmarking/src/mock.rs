@@ -46,6 +46,7 @@ construct_runtime!(
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Loans: pallet_loans::{Pallet, Storage, Call, Config, Event<T>},
         Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
+        Timestamps: pallet_timestamp::{Pallet, Call, Storage, Inherent},
     }
 );
 
@@ -88,6 +89,17 @@ pub const KSM: CurrencyId = CurrencyId::KSM;
 pub const USDT: CurrencyId = CurrencyId::USDT;
 pub const XDOT: CurrencyId = CurrencyId::xDOT;
 pub const NATIVE: CurrencyId = CurrencyId::Native;
+
+parameter_types! {
+    pub const MinimumPeriod: u64 = 5;
+}
+
+impl pallet_timestamp::Config for Test {
+    type Moment = u64;
+    type OnTimestampSet = ();
+    type MinimumPeriod = MinimumPeriod;
+    type WeightInfo = ();
+}
 
 parameter_type_with_key! {
     pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
@@ -221,6 +233,7 @@ impl pallet_loans::Config for Test {
     type ReserveOrigin = EnsureRoot<AccountId>;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
+    type UnixTime = Timestamps;
 }
 
 impl crate::Config for Test {}
@@ -277,6 +290,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             (CurrencyId::xDOT, Ratio::from_percent(15)),
             (CurrencyId::xKSM, Ratio::from_percent(15)),
         ],
+        last_block_timestamp: 1,
     }
     .assimilate_storage::<Test>(&mut t)
     .unwrap();

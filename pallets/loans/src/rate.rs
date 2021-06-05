@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use primitives::{Rate, Ratio};
+use primitives::{Rate, Ratio, Timestamp, SECONDS_PER_YEAR};
 use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedSub, Saturating};
 
 use crate::*;
@@ -46,14 +46,14 @@ impl APR {
             .checked_div(&Rate::saturating_from_integer(block_per_year))
     }
 
-    pub fn accrued_interest_per_block(&self, amount: u128, block_per_year: u128) -> Option<u128> {
-        self.0.checked_mul_int(amount)?.checked_div(block_per_year)
+    pub fn accrued_interest(&self, amount: u128, delta_time: Timestamp) -> Option<u128> {
+        let fraction: Rate = Rate::checked_from_rational(delta_time, SECONDS_PER_YEAR)?;
+        fraction.checked_mul_int(self.0.checked_mul_int(amount)?)
     }
 
-    pub fn increment_index_per_block(&self, index: Rate, block_per_year: u128) -> Option<Rate> {
-        self.0
-            .checked_mul(&index)?
-            .checked_div(&Rate::saturating_from_integer(block_per_year))
+    pub fn increment_index(&self, index: Rate, delta_time: Timestamp) -> Option<Rate> {
+        let fraction: Rate = Rate::checked_from_rational(delta_time, SECONDS_PER_YEAR)?;
+        self.0.checked_mul(&index)?.checked_mul(&fraction)
     }
 }
 

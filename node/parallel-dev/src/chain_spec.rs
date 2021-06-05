@@ -223,6 +223,7 @@ fn testnet_genesis(
                 (CurrencyId::USDT, Ratio::from_percent(15)),
                 (CurrencyId::xKSM, Ratio::from_percent(15)),
             ],
+            last_block_timestamp: 0,
         },
         pallet_liquid_staking: LiquidStakingConfig {
             exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02

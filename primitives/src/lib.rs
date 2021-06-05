@@ -87,6 +87,8 @@ pub type Price = FixedU128;
 
 pub type Timestamp = u64;
 
+pub const SECONDS_PER_YEAR: Timestamp = 365 * 24 * 60 * 60;
+
 pub type PriceDetail = (Price, Timestamp);
 
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<PriceWithDecimal, Moment>;
