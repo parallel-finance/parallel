@@ -282,7 +282,7 @@ impl ExtBuilder {
         let mut ext = sp_io::TestExternalities::new(t);
         ext.execute_with(|| {
             System::set_block_number(1);
-            Timestamps::set_timestamp(7000);
+            Timestamps::set_timestamp(6000);
         });
         ext
     }
@@ -292,8 +292,9 @@ impl ExtBuilder {
 pub(crate) fn run_to_block(n: BlockNumber) {
     Loans::on_finalize(System::block_number());
     for b in (System::block_number() + 1)..=n {
-        Loans::on_initialize(System::block_number());
         System::set_block_number(b);
+        Timestamps::set_timestamp(6000 * b);
+        Loans::on_initialize(System::block_number());
         if b != n {
             Loans::on_finalize(System::block_number());
         }

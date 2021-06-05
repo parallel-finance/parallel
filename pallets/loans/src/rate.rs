@@ -51,10 +51,9 @@ impl APR {
         fraction.checked_mul_int(self.0.checked_mul_int(amount)?)
     }
 
-    pub fn increment_index_per_block(&self, index: Rate, block_per_year: u128) -> Option<Rate> {
-        self.0
-            .checked_mul(&index)?
-            .checked_div(&Rate::saturating_from_integer(block_per_year))
+    pub fn increment_index_per_block(&self, index: Rate, delta_time: Timestamp) -> Option<Rate> {
+        let fraction: Rate = Rate::checked_from_rational(delta_time, SECONDS_PER_YEAR)?;
+        self.0.checked_mul(&index)?.checked_mul(&fraction)
     }
 }
 

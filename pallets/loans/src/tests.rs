@@ -15,7 +15,7 @@
 //! Unit tests for the loans module.
 
 use frame_support::{assert_noop, assert_ok};
-use primitives::RATE_DECIMAL;
+use primitives::{RATE_DECIMAL, SECONDS_PER_YEAR};
 use sp_runtime::traits::{CheckedDiv, One, Saturating};
 use sp_runtime::{FixedU128, Permill};
 
@@ -323,16 +323,16 @@ fn interest_rate_model_works() {
 
             let borrow_rate_apr =
                 multiplier_per_year.saturating_mul(util_ratio.into()) + base_rate_per_year;
-            let borrow_rate_per_block = borrow_rate_apr
-                .checked_div(&Rate::saturating_from_integer(
-                    <Runtime as Config>::BlockPerYear::get(),
-                ))
-                .unwrap();
-            assert_eq!(borrow_rate_per_block, Rate::from_inner(13318112633));
-            let interest_accumulated = borrow_rate_apr
-                .saturating_mul_int(total_borrows)
-                .checked_div(<Runtime as Config>::BlockPerYear::get())
-                .unwrap();
+            let delta_time =
+                <Runtime as Config>::UnixTime::get() / 1000 - Loans::last_block_timestamp();
+            println!("now {:?}", <Runtime as Config>::UnixTime::get());
+            println!("last_block_timestamp {:?}", Loans::last_block_timestamp());
+            println!("delta_time {:?}", delta_time);
+            let fraction = Rate::saturating_from_rational(delta_time, SECONDS_PER_YEAR);
+            println!("fraction {:?}", fraction);
+            let interest_accumulated =
+                fraction.saturating_mul_int(borrow_rate_apr.saturating_mul_int(total_borrows));
+            println!("interest_accumulated {:?}", interest_accumulated);
             total_borrows = interest_accumulated + total_borrows;
             assert_eq!(Loans::total_borrows(DOT), total_borrows);
             total_reserves =
@@ -344,19 +344,15 @@ fn interest_rate_model_works() {
                 Loans::exchange_rate(DOT).into_inner(),
                 (total_cash + total_borrows - total_reserves) * RATE_DECIMAL / total_supply
             );
-
             borrow_index = borrow_index
                 .saturating_mul(borrow_rate_apr)
-                .checked_div(&Rate::saturating_from_integer(
-                    <Runtime as Config>::BlockPerYear::get(),
-                ))
-                .unwrap()
+                .saturating_mul(fraction)
                 + borrow_index;
             assert_eq!(Loans::borrow_index(DOT), borrow_index);
         }
-        assert_eq!(total_borrows, 100000063926960646826);
-        assert_eq!(total_reserves, 9589044097001);
-        assert_eq!(borrow_index, Rate::from_inner(1000000639269606444));
+        assert_eq!(total_borrows, 100000063926960646629);
+        assert_eq!(total_reserves, 9589044096972);
+        assert_eq!(borrow_index, Rate::from_inner(1000000639269606443));
         assert_eq!(
             Loans::exchange_rate(DOT),
             // Rate::from_inner(20000006392696064) // before reserve
@@ -370,7 +366,7 @@ fn interest_rate_model_works() {
             Loans::exchange_rate(DOT).saturating_mul_int(total_supply) - dollar(200);
         // assert_eq!(supply_interest, 63926960640000); // before reserve
         assert_eq!(supply_interest, 54337916540000);
-        assert_eq!(borrow_principal, 100000063926960644400);
+        assert_eq!(borrow_principal, 100000063926960644300);
         assert_eq!(total_borrows / 10000, borrow_principal / 10000);
         assert_eq!(
             (total_borrows - dollar(100) - total_reserves) / 10000,
@@ -740,7 +736,7 @@ fn with_transaction_commit_works() {
 
         // block 2
         assert_eq!(Loans::utilization_ratio(DOT), Ratio::from_percent(50));
-        assert_eq!(Loans::total_borrows(DOT), 100000001331811263318);
+        assert_eq!(Loans::total_borrows(DOT), 100000001331811263314);
         assert_eq!(Loans::total_reserves(DOT), 199771689497);
         assert_eq!(Loans::exchange_rate(DOT).into_inner(), 20000000113203957);
         assert_eq!(
