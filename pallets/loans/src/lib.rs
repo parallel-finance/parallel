@@ -1271,7 +1271,7 @@ impl<T: Config> Pallet<T> {
             .ok_or(Error::<T>::Overflow)?;
         let borrow_index = Self::borrow_index(currency_id);
         let borrow_index_new = borrow_apr
-            .increment_index_per_block(borrow_index, delta_time)
+            .increment_index(borrow_index, delta_time)
             .and_then(|r| r.checked_add(&borrow_index))
             .ok_or(Error::<T>::Overflow)?;
 

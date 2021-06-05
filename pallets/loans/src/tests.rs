@@ -325,14 +325,9 @@ fn interest_rate_model_works() {
                 multiplier_per_year.saturating_mul(util_ratio.into()) + base_rate_per_year;
             let delta_time =
                 <Runtime as Config>::UnixTime::get() / 1000 - Loans::last_block_timestamp();
-            println!("now {:?}", <Runtime as Config>::UnixTime::get());
-            println!("last_block_timestamp {:?}", Loans::last_block_timestamp());
-            println!("delta_time {:?}", delta_time);
             let fraction = Rate::saturating_from_rational(delta_time, SECONDS_PER_YEAR);
-            println!("fraction {:?}", fraction);
             let interest_accumulated =
                 fraction.saturating_mul_int(borrow_rate_apr.saturating_mul_int(total_borrows));
-            println!("interest_accumulated {:?}", interest_accumulated);
             total_borrows = interest_accumulated + total_borrows;
             assert_eq!(Loans::total_borrows(DOT), total_borrows);
             total_reserves =
