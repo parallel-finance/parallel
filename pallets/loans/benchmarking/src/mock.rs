@@ -228,7 +228,6 @@ impl pallet_loans::Config for Test {
     type Event = Event;
     type Currency = Currencies;
     type PalletId = LoansPalletId;
-    type BlockPerYear = BlockPerYear;
     type PriceFeeder = MOCK_PRICE_FEEDER;
     type ReserveOrigin = EnsureRoot<AccountId>;
     type UpdateOrigin = EnsureRoot<AccountId>;
@@ -240,7 +239,6 @@ impl crate::Config for Test {}
 
 parameter_types! {
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
-    pub const BlockPerYear: u128 = 5256000;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {

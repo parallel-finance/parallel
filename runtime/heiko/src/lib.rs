@@ -261,7 +261,6 @@ parameter_types! {
     pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Native;
 
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
-    pub const BlockPerYear: u128 = 262800;
 }
 
 impl orml_currencies::Config for Runtime {
@@ -276,7 +275,6 @@ impl pallet_loans::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
     type PalletId = LoansPalletId;
-    type BlockPerYear = BlockPerYear;
     type PriceFeeder = Prices;
     type ReserveOrigin = EnsureRoot<AccountId>;
     type UpdateOrigin = EnsureRoot<AccountId>;

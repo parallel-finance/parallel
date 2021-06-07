@@ -110,9 +110,6 @@ pub mod module {
         /// Weight information for extrinsics in this pallet.
         type WeightInfo: WeightInfo;
 
-        /// Block per year
-        type BlockPerYear: Get<u128>;
-
         /// Unix time
         type UnixTime: UnixTime;
     }
