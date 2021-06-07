@@ -323,11 +323,8 @@ fn interest_rate_model_works() {
         assert_eq!(Loans::total_supply(DOT), total_supply);
 
         let multiplier_per_year = Multiplier::saturating_from_rational(1, 10);
-        let multiplier_per_block = multiplier_per_year
-            .checked_div(&Rate::saturating_from_integer(
-                <Runtime as Config>::BlockPerYear::get(),
-            ))
-            .unwrap();
+        let block_fraction = Rate::saturating_from_rational(6, SECONDS_PER_YEAR);
+        let multiplier_per_block = multiplier_per_year.checked_mul(&block_fraction).unwrap();
         assert_eq!(multiplier_per_block, Rate::from_inner(19025875190));
 
         let borrow_snapshot = Loans::account_borrows(DOT, ALICE);
@@ -335,11 +332,7 @@ fn interest_rate_model_works() {
         assert_eq!(borrow_snapshot.borrow_index, Rate::one());
 
         let base_rate_per_year = Rate::saturating_from_rational(2, 100);
-        let base_rate_per_block = base_rate_per_year
-            .checked_div(&Rate::saturating_from_integer(
-                <Runtime as Config>::BlockPerYear::get(),
-            ))
-            .unwrap();
+        let base_rate_per_block = base_rate_per_year.checked_mul(&block_fraction).unwrap();
         assert_eq!(base_rate_per_block, Rate::from_inner(3805175038));
 
         let mut borrow_index = Rate::one();

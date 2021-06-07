@@ -41,19 +41,24 @@ impl From<Rate> for APR {
 impl APR {
     pub const MAX: Rate = Rate::from_inner(350_000_000_000_000_000); // 35%
 
-    pub fn rate_per_block(&self, block_per_year: u128) -> Option<Rate> {
+    fn delta_time_fraction(delta_time: Timestamp) -> Option<Rate> {
+        Rate::checked_from_rational(delta_time, SECONDS_PER_YEAR)
+    }
+
+    pub fn rate_per_delta_time(&self, delta_time: Timestamp) -> Option<APR> {
         self.0
-            .checked_div(&Rate::saturating_from_integer(block_per_year))
+            .checked_mul(&APR::delta_time_fraction(delta_time)?)
+            .map(APR::from)
     }
 
     pub fn accrued_interest(&self, amount: u128, delta_time: Timestamp) -> Option<u128> {
-        let fraction: Rate = Rate::checked_from_rational(delta_time, SECONDS_PER_YEAR)?;
-        fraction.checked_mul_int(self.0.checked_mul_int(amount)?)
+        APR::delta_time_fraction(delta_time)?.checked_mul_int(self.0.checked_mul_int(amount)?)
     }
 
     pub fn increment_index(&self, index: Rate, delta_time: Timestamp) -> Option<Rate> {
-        let fraction: Rate = Rate::checked_from_rational(delta_time, SECONDS_PER_YEAR)?;
-        self.0.checked_mul(&index)?.checked_mul(&fraction)
+        self.0
+            .checked_mul(&index)?
+            .checked_mul(&APR::delta_time_fraction(delta_time)?)
     }
 }
 
@@ -238,16 +243,17 @@ mod tests {
 
     #[test]
     fn get_supply_rate_works() {
-        let block_per_year: u128 = 5256000;
-        let borrow_rate = APR::from(Rate::saturating_from_rational(2, 100 * block_per_year));
+        let borrow_rate_per_year = APR::from(Rate::saturating_from_rational(2, 100));
+        let borrow_rate_per_block = borrow_rate_per_year.rate_per_delta_time(6).unwrap();
         let util = Ratio::from_percent(50);
         let reserve_factor = Ratio::zero();
         let supply_rate =
-            InterestRateModel::get_supply_rate(borrow_rate, util, reserve_factor).unwrap();
+            InterestRateModel::get_supply_rate(borrow_rate_per_block, util, reserve_factor)
+                .unwrap();
         assert_eq!(
             supply_rate,
             APR::from(
-                borrow_rate
+                borrow_rate_per_block
                     .0
                     .saturating_mul(((Ratio::one().saturating_sub(reserve_factor)) * util).into())
             ),

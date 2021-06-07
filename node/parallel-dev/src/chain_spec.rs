@@ -124,7 +124,7 @@ pub fn live_config() -> Result<ChainSpec, String> {
                     "5G4fc9GN6DeFQm4h2HKq3d9hBTsBJWSLWkyuk35cKHh2sqEz"
                         .parse()
                         .unwrap(),
-                    "5DstmiUjymBw5S53vkcWaT6eCjqQKhRX7nXTQVFDCAL3Mscg"
+                    "5DhZeTQqotvntGtrg69T2VK9pzUPXHiVyGUTmp5XFTDTT7ME"
                         .parse()
                         .unwrap(),
                     "5GBykvvrUz3vwTttgHzUEPdm7G1FND1reBfddQLdiaCbhoMd"
@@ -134,6 +134,9 @@ pub fn live_config() -> Result<ChainSpec, String> {
                         .parse()
                         .unwrap(),
                     "5G97JLuuT1opraWvfS6Smt4jaAZuyDquP9GjamKVcPC366qU"
+                        .parse()
+                        .unwrap(),
+                    "5G9eFoXB95fdwFJK9utBf1AgiLvhPUvzArYR2knzXKrKtZPZ"
                         .parse()
                         .unwrap(),
                     "1Gu7GSgLSPrhc1Wci9wAGP6nvzQfaUCYqbfXxjYjMG9bob6"
