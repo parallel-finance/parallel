@@ -1,5 +1,9 @@
 # CHANGE LOG
 
+## 2021.06.07
+
+-   Use KSM/DOT as native currency (#197)
+
 ## 2021.06.06
 
 -   Use timestamp to accure interest (#186)
@@ -7,7 +11,6 @@
 ## 2021.06.01
 
 -   Remove LiquidationThreshold
-
 
 ## 2021.05.28
 
