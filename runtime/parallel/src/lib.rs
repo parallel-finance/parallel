@@ -21,13 +21,13 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use codec::Encode;
-use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use frame_support::{
     traits::{All, IsInVec, LockIdentifier, U128CurrencyToVote},
     PalletId,
 };
 use orml_currencies::BasicCurrencyAdapter;
 use orml_traits::{parameter_type_with_key, DataProvider};
+use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use sp_api::impl_runtime_apis;
 use sp_core::{
     u32_trait::{_1, _2, _3, _4, _5},
@@ -247,7 +247,7 @@ impl orml_tokens::Config for Runtime {
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Native;
+    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::DOT;
 
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
 }

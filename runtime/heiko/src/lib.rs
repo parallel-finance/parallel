@@ -247,7 +247,7 @@ impl orml_tokens::Config for Runtime {
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Native;
+    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::KSM;
 
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
 }
