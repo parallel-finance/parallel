@@ -33,6 +33,7 @@ orml-oracle                     = { git = 'https://github.com/open-web3-stack/op
 orml-oracle-rpc-runtime-api     = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-tokens                     = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-traits                     = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+smallvec                        = '1.6.1'
 # orml-unknown-tokens             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-utilities = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 # orml-xcm-support                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
@@ -58,6 +59,7 @@ pallet-treasury                            = { git = 'https://github.com/parityt
 pallet-xcm                                 = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.3', default-features = false }
 parachain-info                             = { git = 'https://github.com/paritytech/cumulus.git', version = '0.1.0', branch = 'polkadot-v0.9.3', default-features = false }
 polkadot-parachain                         = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.3', default-features = false }
+polkadot-runtime-common                    = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.3', default-features = false }
 primitives                                 = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 serde                                      = { version = '1', features = ['derive'], optional = true }
 sp-api                                     = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.3', default-features = false }
@@ -156,4 +158,5 @@ std                = [
   'pallet-membership/std',
   'pallet-democracy/std',
   'pallet-scheduler/std',
+  'polkadot-runtime-common/std',
 ] # 'orml-xcm-support/std',

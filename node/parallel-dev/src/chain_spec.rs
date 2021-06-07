@@ -182,7 +182,10 @@ fn testnet_genesis(
                 let mut endowed_accounts = endowed_accounts.clone();
                 endowed_accounts.extend_from_slice(&oracle_accounts);
 
-                endowed_accounts.into_iter().map(|k| (k, 1 << 60)).collect()
+                endowed_accounts
+                    .into_iter()
+                    .map(|k| (k, 10_u128.pow(21)))
+                    .collect()
             },
         },
         pallet_sudo: SudoConfig { key: root_key },
@@ -191,7 +194,6 @@ fn testnet_genesis(
                 .iter()
                 .flat_map(|x| {
                     vec![
-                        (x.clone(), CurrencyId::KSM, 10_u128.pow(21)),
                         (x.clone(), CurrencyId::USDT, 10_u128.pow(21)),
                         (x.clone(), CurrencyId::xKSM, 10_u128.pow(21)),
                     ]

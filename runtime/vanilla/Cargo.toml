@@ -21,6 +21,7 @@ version = '4.0.0'
 codec             = { package = 'parity-scale-codec', version = '2.0.0', default-features = false, features = ['derive'] }
 hex-literal       = { version = '0.3.1', optional = true }
 serde             = { version = '1', features = ['derive'], optional = true }
+smallvec          = '1.6.1'
 static_assertions = '1.1.0'
 
 # Substrate dependencies
@@ -45,6 +46,7 @@ pallet-transaction-payment                 = { git = 'https://github.com/parityt
 pallet-transaction-payment-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.3', default-features = false }
 pallet-treasury                            = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.3', default-features = false }
 pallet-utility                             = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.3', default-features = false }
+polkadot-runtime-common                    = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.3', default-features = false }
 primitives                                 = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 sp-api                                     = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.3', default-features = false }
 sp-block-builder                           = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.3', default-features = false }
@@ -130,4 +132,5 @@ std                = [
   'pallet-membership/std',
   'pallet-democracy/std',
   'pallet-scheduler/std',
+  'polkadot-runtime-common/std',
 ]

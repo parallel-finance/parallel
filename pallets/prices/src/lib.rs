@@ -25,8 +25,8 @@
 
 use frame_support::{pallet_prelude::*, transactional};
 use frame_system::pallet_prelude::*;
-pub use module::*;
 use orml_traits::DataProvider;
+pub use pallet::*;
 use primitives::*;
 use sp_runtime::{traits::CheckedDiv, FixedU128};
 
@@ -36,7 +36,7 @@ mod mock;
 mod tests;
 
 #[frame_support::pallet]
-pub mod module {
+pub mod pallet {
     use super::*;
 
     #[pallet::config]
@@ -112,7 +112,7 @@ impl<T: Config> Pallet<T> {
             10u128.checked_pow(p.decimal.into()).and_then(|d| {
                 p.price
                     .checked_div(&FixedU128::from_inner(d))
-                    .and_then(|price| Some((price, 0)))
+                    .map(|price| (price, 0))
             })
         })
     }
@@ -129,7 +129,7 @@ impl<T: Config> PriceFeeder for Pallet<T> {
                     p.value
                         .price
                         .checked_div(&FixedU128::from_inner(d))
-                        .and_then(|price| Some((price, p.timestamp)))
+                        .map(|price| (price, p.timestamp))
                 })
             })
         })

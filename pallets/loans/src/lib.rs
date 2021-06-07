@@ -46,7 +46,7 @@ use sp_runtime::{
 use sp_std::result;
 use sp_std::vec::Vec;
 
-pub use module::*;
+pub use pallet::*;
 
 pub mod weights;
 
@@ -77,7 +77,7 @@ pub struct EarnedSnapshot {
 }
 
 #[frame_support::pallet]
-pub mod module {
+pub mod pallet {
     use super::*;
 
     #[pallet::config]

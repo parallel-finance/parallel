@@ -16,6 +16,7 @@ targets = ['x86_64-unknown-linux-gnu']
 codec             = { package = 'parity-scale-codec', version = '2.0.0', default-features = false, features = ['derive'] }
 hex-literal       = { version = '0.3.1', optional = true }
 serde             = { version = '1', features = ['derive'], optional = true }
+smallvec          = '1.6.1'
 static_assertions = '1.1.0'
 
 # Substrate dependencies
@@ -48,6 +49,7 @@ pallet-treasury                            = { git = 'https://github.com/parityt
 pallet-xcm                                 = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.3', default-features = false }
 parachain-info                             = { git = 'https://github.com/paritytech/cumulus.git', version = '0.1.0', branch = 'polkadot-v0.9.3', default-features = false }
 polkadot-parachain                         = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.3', default-features = false }
+polkadot-runtime-common                    = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.3', default-features = false }
 sp-api                                     = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.3', default-features = false }
 sp-block-builder                           = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.3', default-features = false }
 sp-consensus-aura                          = { git = 'https://github.com/paritytech/substrate.git', version = '0.9.0', branch = 'polkadot-v0.9.3', default-features = false }
@@ -159,4 +161,5 @@ std                = [
   'pallet-membership/std',
   'pallet-democracy/std',
   'pallet-scheduler/std',
+  'polkadot-runtime-common/std',
 ] # 'orml-xcm-support/std',

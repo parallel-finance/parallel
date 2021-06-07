@@ -95,15 +95,6 @@ pub type TimeStampedPrice = orml_oracle::TimestampedValue<PriceWithDecimal, Mome
 
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 
-pub trait PriceFeeder {
-    fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail>;
-}
-
-pub trait EmergencyPriceFeeder<CurrencyId, PriceWithDecimal> {
-    fn set_emergency_price(currency_id: CurrencyId, price: PriceWithDecimal);
-    fn reset_emergency_price(currency_id: CurrencyId);
-}
-
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum DataProviderId {
@@ -115,4 +106,14 @@ pub enum DataProviderId {
 pub struct PriceWithDecimal {
     pub price: Price,
     pub decimal: u8,
+}
+
+////////////////////////////////////////////////////////////////////////////////
+pub trait PriceFeeder {
+    fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail>;
+}
+
+pub trait EmergencyPriceFeeder<CurrencyId, PriceWithDecimal> {
+    fn set_emergency_price(currency_id: CurrencyId, price: PriceWithDecimal);
+    fn reset_emergency_price(currency_id: CurrencyId);
 }
