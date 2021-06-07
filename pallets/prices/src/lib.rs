@@ -25,8 +25,8 @@
 
 use frame_support::{pallet_prelude::*, transactional};
 use frame_system::pallet_prelude::*;
-pub use module::*;
 use orml_traits::DataProvider;
+pub use pallet::*;
 use primitives::*;
 use sp_runtime::{traits::CheckedDiv, FixedU128};
 
