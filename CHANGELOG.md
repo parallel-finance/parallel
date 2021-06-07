@@ -1,5 +1,9 @@
 # CHANGE LOG
 
+## 2021.06.06
+
+-   Use timestamp to accure interest (#186)
+
 ## 2021.06.01
 
 -   Remove LiquidationThreshold
