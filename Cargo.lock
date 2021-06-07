@@ -2887,6 +2887,7 @@ dependencies = [
  "parallel-primitives",
  "parity-scale-codec",
  "polkadot-parachain",
+ "polkadot-runtime-common",
  "serde",
  "sp-api",
  "sp-block-builder",

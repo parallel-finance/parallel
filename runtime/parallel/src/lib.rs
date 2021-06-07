@@ -62,15 +62,19 @@ use xcm_builder::{
 };
 use xcm_executor::{Config, XcmExecutor};
 
+pub mod constants;
+// A few exports that help ease life for downstream crates.
 // re-exports
+pub use constants::{currency, time};
 pub use pallet_liquid_staking;
 pub use pallet_liquidation;
 pub use pallet_loans;
 pub use pallet_multisig;
 pub use pallet_prices;
 
-// A few exports that help ease life for downstream crates.
 use currency::*;
+use time::*;
+
 pub use frame_support::{
     construct_runtime, parameter_types,
     traits::{KeyOwnerProofSystem, Randomness},
@@ -115,21 +119,6 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
 };
-
-/// This determines the average expected block time that we are targetting.
-/// Blocks will be produced at a minimum duration defined by `SLOT_DURATION`.
-/// `SLOT_DURATION` is picked up by `pallet_timestamp` which is in turn picked
-/// up by `pallet_aura` to implement `fn slot_duration()`.
-///
-/// Change this to adjust the block time.
-pub const MILLISECS_PER_BLOCK: u64 = 12000;
-
-pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
-
-// Time is measured by number of blocks.
-pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
-pub const HOURS: BlockNumber = MINUTES * 60;
-pub const DAYS: BlockNumber = HOURS * 24;
 
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
 pub const PRIMARY_PROBABILITY: (u64, u64) = (1, 4);
@@ -599,23 +588,11 @@ impl pallet_prices::Config for Runtime {
     type Source = AggregatedDataProvider;
     type FeederOrigin = EnsureRoot<AccountId>;
 }
-
-pub mod currency {
-    use primitives::Balance;
-    pub const MILLICENTS: Balance = 1_000_000_000;
-    pub const CENTS: Balance = 1_000 * MILLICENTS; // assume this is worth about a cent.
-    pub const DOLLARS: Balance = 100 * CENTS;
-
-    pub const fn deposit(items: u32, bytes: u32) -> Balance {
-        items as Balance * 15 * CENTS + (bytes as Balance) * 6 * CENTS
-    }
-}
-
 parameter_types! {
     // One storage item; key size is 32; value is size 4+4+16+32 bytes = 56 bytes.
-    pub const DepositBase: Balance = currency::deposit(1, 88);
+    pub const DepositBase: Balance = deposit(1, 88);
     // Additional storage item size of 32 bytes.
-    pub const DepositFactor: Balance = currency::deposit(0, 32);
+    pub const DepositFactor: Balance = deposit(0, 32);
     pub const MaxSignatories: u16 = 100;
 }
 

@@ -51,15 +51,18 @@ use orml_currencies::BasicCurrencyAdapter;
 use orml_traits::{parameter_type_with_key, DataProvider};
 
 // Import Parallel dependencies
+/// Constant values used within the runtime.
+pub mod constants;
+
+pub use constants::{currency, time};
 pub use pallet_liquid_staking;
 pub use pallet_liquidation;
 pub use pallet_loans;
 pub use pallet_multisig;
-use primitives::*;
 
-/// Constant values used within the runtime.
-pub mod constants;
-pub use constants::{currency::*, time::*};
+use currency::*;
+use primitives::*;
+use time::*;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
