@@ -21,6 +21,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use codec::Encode;
+use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use frame_support::{
     traits::{All, IsInVec, LockIdentifier, U128CurrencyToVote},
     PalletId,
@@ -65,7 +66,7 @@ use xcm_executor::{Config, XcmExecutor};
 pub mod constants;
 // A few exports that help ease life for downstream crates.
 // re-exports
-pub use constants::{currency, time};
+pub use constants::{currency, fee, time};
 pub use pallet_liquid_staking;
 pub use pallet_liquidation;
 pub use pallet_loans;
@@ -73,6 +74,7 @@ pub use pallet_multisig;
 pub use pallet_prices;
 
 use currency::*;
+use fee::*;
 use time::*;
 
 pub use frame_support::{
@@ -390,14 +392,15 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-    pub const TransactionByteFee: Balance = 1;
+    pub const TransactionByteFee: Balance = 1 * MILLICENTS;
 }
 
 impl pallet_transaction_payment::Config for Runtime {
+    // TODO add missing DealWithFees
     type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, ()>;
     type TransactionByteFee = TransactionByteFee;
-    type WeightToFee = IdentityFee<Balance>;
-    type FeeMultiplierUpdate = ();
+    type WeightToFee = WeightToFee;
+    type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
 }
 
 impl pallet_sudo::Config for Runtime {

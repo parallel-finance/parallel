@@ -7,6 +7,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use codec::Encode;
+use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use static_assertions::const_assert;
 
 // Import Substrate dependencies
@@ -54,7 +55,7 @@ use orml_traits::{parameter_type_with_key, DataProvider};
 /// Constant values used within the runtime.
 pub mod constants;
 
-pub use constants::{currency, time};
+pub use constants::{currency, time, fee};
 pub use pallet_liquid_staking;
 pub use pallet_liquidation;
 pub use pallet_loans;
@@ -63,6 +64,7 @@ pub use pallet_multisig;
 use currency::*;
 use primitives::*;
 use time::*;
+use fee::*;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -223,14 +225,16 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-    pub const TransactionByteFee: Balance = 1;
+    // 1/10 of Kusama's transaction fee
+    pub const TransactionByteFee: Balance = 1 * MILLICENTS;
 }
 
 impl pallet_transaction_payment::Config for Runtime {
+    // TODO add missing DealWithFees
     type OnChargeTransaction = CurrencyAdapter<Balances, ()>;
     type TransactionByteFee = TransactionByteFee;
-    type WeightToFee = IdentityFee<Balance>;
-    type FeeMultiplierUpdate = ();
+    type WeightToFee = WeightToFee;
+    type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
 }
 
 impl pallet_sudo::Config for Runtime {

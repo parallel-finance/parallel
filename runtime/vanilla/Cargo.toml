@@ -21,6 +21,7 @@ version = '4.0.0'
 codec             = { package = 'parity-scale-codec', version = '2.0.0', default-features = false, features = ['derive'] }
 hex-literal       = { version = '0.3.1', optional = true }
 serde             = { version = '1', features = ['derive'], optional = true }
+smallvec          = '1.6.1'
 static_assertions = '1.1.0'
 
 # Substrate dependencies
