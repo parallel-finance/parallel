@@ -77,7 +77,7 @@ pub struct EarnedSnapshot {
 }
 
 #[frame_support::pallet]
-pub mod module {
+pub mod pallet {
     use super::*;
 
     #[pallet::config]
