@@ -973,10 +973,11 @@ impl<T: Config> Pallet<T> {
             let collateral_asset_value = Self::collateral_asset_value(&who, &currency_id)?;
             let total_borrowed_value = Self::total_borrowed_value(&who)?;
 
-            if total_collateral_asset_value
-                > total_borrowed_value
-                    .checked_add(&collateral_asset_value)
-                    .ok_or(Error::<T>::Overflow)?
+            if total_borrowed_value.is_zero()
+                || total_collateral_asset_value
+                    > total_borrowed_value
+                        .checked_add(&collateral_asset_value)
+                        .ok_or(Error::<T>::Overflow)?
             {
                 collateral_assets.remove(index);
                 AccountCollateralAssets::<T>::insert(who.clone(), collateral_assets);
