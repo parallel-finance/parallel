@@ -18,10 +18,10 @@
 
 use codec::{Decode, Encode};
 use sp_runtime::{
-    traits::{IdentifyAccount, Verify},
+    traits::{CheckedDiv, IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
 };
-use sp_std::{convert::Into, prelude::*};
+use sp_std::{cmp::Ordering, convert::Into, prelude::*};
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -101,11 +101,35 @@ pub enum DataProviderId {
     Aggregated = 0,
 }
 
-#[derive(Encode, Decode, Debug, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Encode, Decode, Debug, Default, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct PriceWithDecimal {
     pub price: Price,
     pub decimal: u8,
+}
+impl Ord for PriceWithDecimal {
+    fn cmp(&self, other: &Self) -> Ordering {
+        if let Some((decimal, other_decimal)) = 10u128
+            .checked_pow(self.decimal.into())
+            .zip(10u128.checked_pow(other.decimal.into()))
+        {
+            if let Some((price, other_price)) =
+                self.price.checked_div(&FixedU128::from_inner(decimal)).zip(
+                    other
+                        .price
+                        .checked_div(&FixedU128::from_inner(other_decimal)),
+                )
+            {
+                return price.cmp(&other_price);
+            }
+        }
+        return self.price.cmp(&other.price);
+    }
+}
+impl PartialOrd for PriceWithDecimal {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
