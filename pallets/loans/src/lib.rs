@@ -165,19 +165,19 @@ pub mod pallet {
         CollateralAssetRemoved(T::AccountId, CurrencyId),
         /// Event emitted when assets are deposited
         /// [sender, currency_id, amount]
-        Deposit(T::AccountId, CurrencyId, Balance),
+        Deposited(T::AccountId, CurrencyId, Balance),
         /// Event emitted when assets are redeemed
         /// [sender, currency_id, amount]
-        Redeem(T::AccountId, CurrencyId, Balance),
+        Redeemed(T::AccountId, CurrencyId, Balance),
         /// Event emitted when cash is borrowed
         /// [sender, currency_id, amount]
-        Borrow(T::AccountId, CurrencyId, Balance),
+        Borrowed(T::AccountId, CurrencyId, Balance),
         /// Event emitted when a borrow is repaid
         /// [sender, currency_id, amount]
-        RepayBorrow(T::AccountId, CurrencyId, Balance),
+        RepaidBorrow(T::AccountId, CurrencyId, Balance),
         /// Event emitted when a borrow is liquidated
         /// [liquidator, borrower, liquidate_token, collateral_token, repay_amount, collateral_amount]
-        LiquidateBorrow(
+        LiquidatedBorrow(
             T::AccountId,
             T::AccountId,
             CurrencyId,
@@ -301,7 +301,7 @@ pub mod pallet {
     #[pallet::getter(fn supply_rate)]
     pub type SupplyRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Rate, ValueQuery>;
 
-    /// Borrow utilization ratio
+    /// Borrowed utilization ratio
     #[pallet::storage]
     #[pallet::getter(fn utilization_ratio)]
     pub type UtilizationRatio<T: Config> =
@@ -495,7 +495,7 @@ pub mod pallet {
             })?;
             T::Currency::transfer(currency_id, &who, &Self::account_id(), mint_amount)?;
 
-            Self::deposit_event(Event::<T>::Deposit(who, currency_id, mint_amount));
+            Self::deposit_event(Event::<T>::Deposited(who, currency_id, mint_amount));
 
             Ok(().into())
         }
@@ -517,7 +517,7 @@ pub mod pallet {
             Self::update_earned_stored(&who, &currency_id)?;
             Self::redeem_internal(&who, &currency_id, redeem_amount)?;
 
-            Self::deposit_event(Event::<T>::Redeem(who, currency_id, redeem_amount));
+            Self::deposit_event(Event::<T>::Redeemed(who, currency_id, redeem_amount));
 
             Ok(().into())
         }
@@ -542,7 +542,7 @@ pub mod pallet {
                 .ok_or(Error::<T>::Overflow)?;
             Self::redeem_internal(&who, &currency_id, redeem_amount)?;
 
-            Self::deposit_event(Event::<T>::Redeem(who, currency_id, redeem_amount));
+            Self::deposit_event(Event::<T>::Redeemed(who, currency_id, redeem_amount));
 
             Ok(().into())
         }
@@ -581,7 +581,7 @@ pub mod pallet {
             TotalBorrows::<T>::insert(&currency_id, total_borrows_new);
             T::Currency::transfer(currency_id, &Self::account_id(), &who, borrow_amount)?;
 
-            Self::deposit_event(Event::<T>::Borrow(who, currency_id, borrow_amount));
+            Self::deposit_event(Event::<T>::Borrowed(who, currency_id, borrow_amount));
 
             Ok(().into())
         }
@@ -602,7 +602,7 @@ pub mod pallet {
 
             Self::repay_borrow_internal(&who, &currency_id, repay_amount)?;
 
-            Self::deposit_event(Event::<T>::RepayBorrow(who, currency_id, repay_amount));
+            Self::deposit_event(Event::<T>::RepaidBorrow(who, currency_id, repay_amount));
 
             Ok(().into())
         }
@@ -622,7 +622,7 @@ pub mod pallet {
             let account_borrows = Self::borrow_balance_stored(&who, &currency_id)?;
             Self::repay_borrow_internal(&who, &currency_id, account_borrows)?;
 
-            Self::deposit_event(Event::<T>::RepayBorrow(who, currency_id, account_borrows));
+            Self::deposit_event(Event::<T>::RepaidBorrow(who, currency_id, account_borrows));
 
             Ok(().into())
         }
@@ -1186,7 +1186,7 @@ impl<T: Config> Pallet<T> {
         //4. we can decide if withdraw to liquidator (from ctoken to token)
         // Self::redeem_internal(&liquidator, &collateral_token, collateral_token_amount)?;
         // liquidator, borrower,liquidate_token,collateral_token,liquidate_token_repay_amount,collateral_token_amount
-        Self::deposit_event(Event::<T>::LiquidateBorrow(
+        Self::deposit_event(Event::<T>::LiquidatedBorrow(
             liquidator.clone(),
             borrower.clone(),
             *liquidate_currency_id,
