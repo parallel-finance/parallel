@@ -25,6 +25,7 @@
 #![allow(clippy::collapsible_if)]
 
 pub use crate::rate::{InterestRateModel, APR};
+pub use crate::types::Deposits;
 use frame_support::{
     log,
     pallet_prelude::*,
@@ -57,6 +58,7 @@ mod mock;
 mod rate;
 #[cfg(test)]
 mod tests;
+mod types;
 
 /// Container for borrow balance information
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
@@ -233,16 +235,16 @@ pub mod pallet {
     >;
 
     /// Mapping of account addresses to deposit details
-    /// CollateralType -> Owner -> Balance
+    /// CollateralType -> Owner -> Deposits
     #[pallet::storage]
-    #[pallet::getter(fn account_collateral)]
-    pub type AccountCollateral<T: Config> = StorageDoubleMap<
+    #[pallet::getter(fn account_deposits)]
+    pub type AccountDeposits<T: Config> = StorageDoubleMap<
         _,
         Twox64Concat,
         CurrencyId,
         Blake2_128Concat,
         T::AccountId,
-        Balance,
+        Deposits,
         ValueQuery,
     >;
 
@@ -476,21 +478,17 @@ pub mod pallet {
             Self::ensure_currency(&currency_id)?;
             Self::update_earned_stored(&who, &currency_id)?;
             let exchange_rate = Self::exchange_rate(currency_id);
-            let collateral_amount = Self::calc_collateral_amount(mint_amount, exchange_rate)?;
-            AccountCollateral::<T>::try_mutate(
-                &currency_id,
-                &who,
-                |collateral_balance| -> DispatchResult {
-                    let new_balance = collateral_balance
-                        .checked_add(collateral_amount)
-                        .ok_or(Error::<T>::Overflow)?;
-                    *collateral_balance = new_balance;
-                    Ok(())
-                },
-            )?;
+            let voucher_amount = Self::calc_collateral_amount(mint_amount, exchange_rate)?;
+            AccountDeposits::<T>::try_mutate(&currency_id, &who, |deposits| -> DispatchResult {
+                deposits.voucher_balance = deposits
+                    .voucher_balance
+                    .checked_add(voucher_amount)
+                    .ok_or(Error::<T>::Overflow)?;
+                Ok(())
+            })?;
             TotalSupply::<T>::try_mutate(&currency_id, |total_balance| -> DispatchResult {
                 let new_balance = total_balance
-                    .checked_add(collateral_amount)
+                    .checked_add(voucher_amount)
                     .ok_or(Error::<T>::Overflow)?;
                 *total_balance = new_balance;
                 Ok(())
@@ -537,10 +535,10 @@ pub mod pallet {
             Self::ensure_currency(&currency_id)?;
 
             Self::update_earned_stored(&who, &currency_id)?;
-            let collateral = AccountCollateral::<T>::get(&currency_id, &who);
+            let deposits = AccountDeposits::<T>::get(&currency_id, &who);
             let exchange_rate = Self::exchange_rate(currency_id);
             let redeem_amount = exchange_rate
-                .checked_mul_int(collateral)
+                .checked_mul_int(deposits.voucher_balance)
                 .ok_or(Error::<T>::Overflow)?;
             Self::redeem_internal(&who, &currency_id, redeem_amount)?;
 
@@ -804,17 +802,13 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         let exchange_rate = Self::exchange_rate(currency_id);
         let collateral = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
-        AccountCollateral::<T>::try_mutate(
-            currency_id,
-            who,
-            |collateral_balance| -> DispatchResult {
-                let new_balance = collateral_balance
-                    .checked_sub(collateral)
-                    .ok_or(Error::<T>::Underflow)?;
-                *collateral_balance = new_balance;
-                Ok(())
-            },
-        )?;
+        AccountDeposits::<T>::try_mutate(currency_id, who, |deposits| -> DispatchResult {
+            deposits.voucher_balance = deposits
+                .voucher_balance
+                .checked_sub(collateral)
+                .ok_or(Error::<T>::Underflow)?;
+            Ok(())
+        })?;
         TotalSupply::<T>::try_mutate(currency_id, |total_balance| -> DispatchResult {
             let new_balance = total_balance
                 .checked_sub(collateral)
@@ -866,15 +860,15 @@ impl<T: Config> Pallet<T> {
         borrower: &T::AccountId,
         currency_id: &CurrencyId,
     ) -> result::Result<FixedU128, Error<T>> {
-        let collateral = AccountCollateral::<T>::get(currency_id, borrower);
-        if collateral.is_zero() {
+        let deposits = AccountDeposits::<T>::get(currency_id, borrower);
+        if deposits.voucher_balance.is_zero() {
             return Ok(FixedU128::zero());
         }
         let collateral_factor = CollateralFactor::<T>::get(currency_id);
         let exchange_rate = ExchangeRate::<T>::get(currency_id);
         let currency_price = Self::get_price(currency_id)?;
         let collateral_amount = exchange_rate
-            .checked_mul_int(collateral_factor.mul_floor(collateral))
+            .checked_mul_int(collateral_factor.mul_floor(deposits.voucher_balance))
             .ok_or(Error::<T>::Overflow)?;
 
         currency_price
@@ -957,8 +951,8 @@ impl<T: Config> Pallet<T> {
         let mut collateral_assets = AccountCollateralAssets::<T>::get(&who);
         if enable {
             if !collateral_assets.iter().any(|c| c == &currency_id) {
-                let collateral = AccountCollateral::<T>::get(currency_id, &who);
-                if !collateral.is_zero() {
+                let deposits = AccountDeposits::<T>::get(currency_id, &who);
+                if !deposits.voucher_balance.is_zero() {
                     collateral_assets.push(currency_id);
                     AccountCollateralAssets::<T>::insert(who.clone(), collateral_assets);
                     Self::deposit_event(Event::<T>::CollateralAssetAdded(who, currency_id));
@@ -1011,12 +1005,12 @@ impl<T: Config> Pallet<T> {
     }
 
     fn update_earned_stored(who: &T::AccountId, currency_id: &CurrencyId) -> DispatchResult {
-        let collateral = AccountCollateral::<T>::get(currency_id, who);
+        let deposits = AccountDeposits::<T>::get(currency_id, who);
         let exchange_rate = ExchangeRate::<T>::get(currency_id);
         let account_earned = AccountEarned::<T>::get(currency_id, who);
         let total_earned_prior_new = exchange_rate
             .checked_sub(&account_earned.exchange_rate_prior)
-            .and_then(|r| r.checked_mul_int(collateral))
+            .and_then(|r| r.checked_mul_int(deposits.voucher_balance))
             .and_then(|r| r.checked_add(account_earned.total_earned_prior))
             .ok_or(Error::<T>::Overflow)?;
 
@@ -1065,13 +1059,12 @@ impl<T: Config> Pallet<T> {
         }
 
         //calculate collateral_token_sum price
-        let collateral_ctoken_amount =
-            AccountCollateral::<T>::get(collateral_currency_id, &borrower);
+        let deposits = AccountDeposits::<T>::get(collateral_currency_id, &borrower);
         let exchange_rate = Self::exchange_rate(collateral_currency_id);
 
         //the total amount of borrower's collateral token
         let collateral_underlying_amount = exchange_rate
-            .checked_mul_int(collateral_ctoken_amount)
+            .checked_mul_int(deposits.voucher_balance)
             .ok_or(Error::<T>::Overflow)?;
         let collateral_token_price = Self::get_price(&collateral_currency_id)?;
 
@@ -1166,26 +1159,26 @@ impl<T: Config> Pallet<T> {
         let collateral_amount =
             Self::calc_collateral_amount(collateral_underlying_amount, exchange_rate)?;
 
-        AccountCollateral::<T>::try_mutate(
+        AccountDeposits::<T>::try_mutate(
             collateral_currency_id,
             borrower,
-            |collateral_balance| -> DispatchResult {
-                let new_balance = collateral_balance
+            |deposits| -> DispatchResult {
+                deposits.voucher_balance = deposits
+                    .voucher_balance
                     .checked_sub(collateral_amount)
                     .ok_or(Error::<T>::Underflow)?;
-                *collateral_balance = new_balance;
                 Ok(())
             },
         )?;
         // increase liquidator's ctoken
-        AccountCollateral::<T>::try_mutate(
+        AccountDeposits::<T>::try_mutate(
             collateral_currency_id,
             liquidator,
-            |collateral_balance| -> DispatchResult {
-                let new_balance = collateral_balance
+            |deposits| -> DispatchResult {
+                deposits.voucher_balance = deposits
+                    .voucher_balance
                     .checked_add(collateral_amount)
                     .ok_or(Error::<T>::Overflow)?;
-                *collateral_balance = new_balance;
                 Ok(())
             },
         )?;

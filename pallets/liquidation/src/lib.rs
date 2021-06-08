@@ -186,6 +186,7 @@ impl<T: Config> Pallet<T> {
             BTreeMap::<T::AccountId, (FixedU128, Vec<BorrowMisc>)>::new(),
             |mut acc, (k1, k2, snapshot)| {
                 let loans_value = match T::PriceFeeder::get_price(&k1).and_then(|price_info| {
+                    // TODO should calculate with the current principal rather than the snapshot
                     price_info
                         .0
                         .checked_mul(&FixedU128::from_inner(snapshot.principal))
@@ -220,11 +221,12 @@ impl<T: Config> Pallet<T> {
 
     fn transform_account_collateral(
     ) -> Result<BTreeMap<T::AccountId, (FixedU128, Vec<CollateralMisc>)>, Error<T>> {
-        let result = pallet_loans::AccountCollateral::<T>::iter().fold(
+        let result = pallet_loans::AccountDeposits::<T>::iter().fold(
             BTreeMap::<T::AccountId, (FixedU128, Vec<CollateralMisc>)>::new(),
-            |mut acc, (k1, k2, ctoken_balance)| {
+            |mut acc, (k1, k2, deposits)| {
+                // TODO only calculate with the collateral of the deposits
                 let balance = match pallet_loans::ExchangeRate::<T>::get(&k1)
-                    .checked_mul_int(ctoken_balance)
+                    .checked_mul_int(deposits.voucher_balance)
                 {
                     None => {
                         acc.remove(&k2);

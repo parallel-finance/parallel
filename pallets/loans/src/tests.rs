@@ -67,7 +67,8 @@ fn mint_works() {
         // DOT collateral: deposit = 100
         // DOT: cash - deposit = 1000 - 100 = 900
         assert_eq!(
-            Loans::exchange_rate(DOT).saturating_mul_int(Loans::account_collateral(DOT, ALICE)),
+            Loans::exchange_rate(DOT)
+                .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
             million_dollar(100)
         );
         assert_eq!(
@@ -104,7 +105,8 @@ fn redeem_works() {
         // DOT collateral: deposit - redeem = 100 - 20 = 80
         // DOT: cash - deposit + redeem = 1000 - 100 + 20 = 920
         assert_eq!(
-            Loans::exchange_rate(DOT).saturating_mul_int(Loans::account_collateral(DOT, ALICE)),
+            Loans::exchange_rate(DOT)
+                .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
             million_dollar(80)
         );
         assert_eq!(
@@ -125,7 +127,8 @@ fn redeem_all_works() {
         // DOT: cash - deposit + redeem = 1000 - 100 + 100 = 1000
         // DOT collateral: deposit - redeem = 100 - 100 = 0
         assert_eq!(
-            Loans::exchange_rate(DOT).saturating_mul_int(Loans::account_collateral(DOT, ALICE)),
+            Loans::exchange_rate(DOT)
+                .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
             0,
         );
         assert_eq!(
@@ -152,7 +155,8 @@ fn borrow_works() {
         // DOT borrow balance: borrow = 100
         // DOT: cash - deposit + borrow = 1000 - 200 + 100 = 900
         assert_eq!(
-            Loans::exchange_rate(DOT).saturating_mul_int(Loans::account_collateral(DOT, ALICE)),
+            Loans::exchange_rate(DOT)
+                .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
             million_dollar(200)
         );
         let borrow_snapshot = Loans::account_borrows(DOT, ALICE);
@@ -188,7 +192,8 @@ fn repay_borrow_works() {
         // DOT borrow balance: borrow - repay = 100 - 30 = 70
         // DOT: cash - deposit + borrow - repay = 1000 - 200 + 100 - 30 = 870
         assert_eq!(
-            Loans::exchange_rate(DOT).saturating_mul_int(Loans::account_collateral(DOT, ALICE)),
+            Loans::exchange_rate(DOT)
+                .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
             million_dollar(200)
         );
         let borrow_snapshot = Loans::account_borrows(DOT, ALICE);
@@ -227,7 +232,8 @@ fn repay_borrow_all_works() {
             million_dollar(800),
         );
         assert_eq!(
-            Loans::exchange_rate(DOT).saturating_mul_int(Loans::account_collateral(DOT, ALICE)),
+            Loans::exchange_rate(DOT)
+                .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
             million_dollar(200),
         );
         let borrow_snapshot = Loans::account_borrows(KSM, ALICE);
@@ -273,7 +279,8 @@ fn liquidate_borrow_works() {
             million_dollar(800),
         );
         assert_eq!(
-            Loans::exchange_rate(DOT).saturating_mul_int(Loans::account_collateral(DOT, ALICE)),
+            Loans::exchange_rate(DOT)
+                .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
             88888888888888888889,
         );
         assert_eq!(
@@ -289,7 +296,8 @@ fn liquidate_borrow_works() {
             million_dollar(750)
         );
         assert_eq!(
-            Loans::exchange_rate(DOT).saturating_mul_int(Loans::account_collateral(DOT, BOB)),
+            Loans::exchange_rate(DOT)
+                .saturating_mul_int(Loans::account_deposits(DOT, BOB).voucher_balance),
             111111111111111111111,
         );
     })

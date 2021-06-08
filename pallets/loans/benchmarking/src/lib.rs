@@ -123,7 +123,7 @@ benchmarks! {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T>(caller.clone());
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, 100_000_000));
-        let collateral = Loans::<T>::account_collateral(DOT, caller.clone());
+        let collateral = Loans::<T>::account_deposits(DOT, caller.clone());
         let exchange_rate = Loans::<T>::exchange_rate(DOT);
         let redeem_amount = exchange_rate
             .checked_mul_int(collateral)
