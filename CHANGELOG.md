@@ -1,10 +1,11 @@
 # CHANGE LOG
 
-## 2021.06.08
+## 2021.06.09
 
 -   Add Deposits struct
 -   Change the value type of AccountCollateral from Balance to Deposits 
 -   Rename AccountCollateral to AccountDeposits
+-   Remove the storage AccountCollateralAsset
 
 ## 2021.06.07
 

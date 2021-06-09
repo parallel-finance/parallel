@@ -340,7 +340,6 @@ fn collateral_asset_works() {
 #[test]
 fn total_collateral_asset_value_works() {
     ExtBuilder::default().build().execute_with(|| {
-        // MOCK_PRICE_FEEDER::reset();
         let collateral_factor = Rate::saturating_from_rational(50, 100);
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, million_dollar(100)));
         assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, million_dollar(200)));

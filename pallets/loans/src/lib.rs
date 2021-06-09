@@ -25,7 +25,6 @@
 #![allow(clippy::collapsible_if)]
 
 pub use crate::rate::{InterestRateModel, APR};
-pub use crate::types::Deposits;
 use frame_support::{
     log,
     pallet_prelude::*,
@@ -58,7 +57,6 @@ mod mock;
 mod rate;
 #[cfg(test)]
 mod tests;
-mod types;
 
 /// Container for borrow balance information
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
@@ -74,8 +72,17 @@ pub struct BorrowSnapshot {
 pub struct EarnedSnapshot {
     /// Total deposit interest, after applying the most recent balance-changing action
     pub total_earned_prior: Balance,
-    /// Exchange rate,  after applying the most recent balance-changing action
+    /// Exchange rate, after applying the most recent balance-changing action
     pub exchange_rate_prior: Rate,
+}
+
+/// Deposit information
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
+pub struct Deposits {
+    /// The voucher amount of the deposit
+    pub voucher_balance: Balance,
+    /// Can this deposit be used as collateral
+    pub is_collateral: bool,
 }
 
 #[frame_support::pallet]
@@ -256,13 +263,6 @@ pub mod pallet {
         ValueQuery,
     >;
 
-    /// Mapping of account addresses to assets which allowed as collateral
-    /// Owner -> Vec<CurrencyId>
-    #[pallet::storage]
-    #[pallet::getter(fn account_collateral_assets)]
-    pub type AccountCollateralAssets<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, Vec<CurrencyId>, ValueQuery>;
-
     /// Accumulator of the total earned interest rate since the opening of the market
     /// CurrencyType -> u128
     #[pallet::storage]
@@ -295,7 +295,7 @@ pub mod pallet {
     #[pallet::getter(fn supply_rate)]
     pub type SupplyRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Rate, ValueQuery>;
 
-    /// Borrowed utilization ratio
+    /// Borrow utilization ratio
     #[pallet::storage]
     #[pallet::getter(fn utilization_ratio)]
     pub type UtilizationRatio<T: Config> =
