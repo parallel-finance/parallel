@@ -300,15 +300,61 @@ fn liquidate_borrow_works() {
                 .saturating_mul_int(Loans::account_deposits(DOT, BOB).voucher_balance),
             111111111111111111111,
         );
+        MOCK_PRICE_FEEDER::reset();
     })
 }
 
 #[test]
 fn collateral_asset_works() {
     ExtBuilder::default().build().execute_with(|| {
+        // No collateral assets
+        assert_noop!(
+            Loans::collateral_asset(Origin::signed(ALICE), DOT, true),
+            Error::<Runtime>::NoDeposit
+        );
+        // Deposit 200 DOT as collateral
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, 200));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
-        assert_eq!(Loans::account_collateral_assets(ALICE), vec![DOT]);
+        assert_eq!(Loans::account_deposits(DOT, ALICE).is_collateral, true);
+        assert_noop!(
+            Loans::collateral_asset(Origin::signed(ALICE), DOT, true),
+            Error::<Runtime>::DuplicateOperation
+        );
+        // Borrow 100 DOT base on the collateral of 200 DOT
+        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, 100));
+        assert_noop!(
+            Loans::collateral_asset(Origin::signed(ALICE), DOT, false),
+            Error::<Runtime>::InsufficientCollateral
+        );
+        // Repay all the borrows
+        assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), DOT));
+        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, false));
+        assert_eq!(Loans::account_deposits(DOT, ALICE).is_collateral, false);
+        assert_noop!(
+            Loans::collateral_asset(Origin::signed(ALICE), DOT, false),
+            Error::<Runtime>::DuplicateOperation
+        );
+    })
+}
+
+#[test]
+fn total_collateral_asset_value_works() {
+    ExtBuilder::default().build().execute_with(|| {
+        // MOCK_PRICE_FEEDER::reset();
+        let collateral_factor = Rate::saturating_from_rational(50, 100);
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, million_dollar(100)));
+        assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, million_dollar(200)));
+        assert_ok!(Loans::mint(
+            Origin::signed(ALICE),
+            USDT,
+            million_dollar(300)
+        ));
+        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
+        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
+        assert_eq!(
+            Loans::total_collateral_asset_value(&ALICE).unwrap(),
+            (collateral_factor.saturating_mul_int(100 + 200)).into()
+        );
     })
 }
 
@@ -856,4 +902,5 @@ fn get_price_works() {
         Loans::get_price(&DOT).unwrap(),
         Price::saturating_from_integer(2)
     );
+    MOCK_PRICE_FEEDER::reset();
 }

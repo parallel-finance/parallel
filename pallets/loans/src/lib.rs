@@ -118,22 +118,14 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
-        /// Insufficient collateral asset to borrow more
+        /// Insufficient collateral asset to borrow more or disable collateral
         InsufficientCollateral,
         /// Repay amount greater than borrow balance
         RepayAmountTooBig,
-        /// Please enable collateral for one of your assets before borrowing
-        NoCollateralAsset,
-        /// Currency's oracle price not ready
-        PriceOracleNotReady,
-        /// Asset already enabled collateral
-        AlreadyEnabledCollateral,
-        /// Asset already disabled collateral
-        AlreadyDisabledCollateral,
-        /// Please deposit before collateral
-        DepositRequiredBeforeCollateral,
-        /// Collateral disable action denied
-        CollateralDisableActionDenied,
+        /// Asset already enabled/disabled collateral
+        DuplicateOperation,
+        /// No deposit asset
+        NoDeposit,
         /// Repay amount more than collateral amount
         RepayValueGreaterThanCollateral,
         /// Liquidator is same as borrower
@@ -152,6 +144,8 @@ pub mod pallet {
         Overflow,
         /// Calculation underflow
         Underflow,
+        /// Currency's oracle price not ready
+        PriceOracleNotReady,
     }
 
     #[pallet::event]
@@ -657,8 +651,37 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::ensure_currency(&currency_id)?;
+            ensure!(
+                AccountDeposits::<T>::contains_key(currency_id, &who),
+                Error::<T>::NoDeposit
+            );
+            let mut deposits = Self::account_deposits(currency_id, &who);
+            if deposits.is_collateral == enable {
+                return Err(Error::<T>::DuplicateOperation.into());
+            }
+            // turn on the collateral button
+            if enable {
+                deposits.is_collateral = true;
+                AccountDeposits::<T>::insert(currency_id, &who, deposits);
+                Self::deposit_event(Event::<T>::CollateralAssetAdded(who, currency_id));
 
-            Self::collateral_asset_internal(who, currency_id, enable)?;
+                return Ok(().into());
+            }
+            // turn off the collateral button after checking the liquidity
+            let total_collateral_asset_value = Self::total_collateral_asset_value(&who)?;
+            let collateral_asset_value = Self::collateral_asset_value(&who, &currency_id)?;
+            let total_borrowed_value = Self::total_borrowed_value(&who)?;
+            if total_collateral_asset_value
+                < total_borrowed_value
+                    .checked_add(&collateral_asset_value)
+                    .ok_or(Error::<T>::Overflow)?
+            {
+                return Err(Error::<T>::InsufficientCollateral.into());
+            }
+
+            deposits.is_collateral = false;
+            AccountDeposits::<T>::insert(currency_id, &who, deposits);
+            Self::deposit_event(Event::<T>::CollateralAssetRemoved(who, currency_id));
 
             Ok(().into())
         }
@@ -879,12 +902,15 @@ impl<T: Config> Pallet<T> {
     fn total_collateral_asset_value(
         borrower: &T::AccountId,
     ) -> result::Result<FixedU128, Error<T>> {
-        let collateral_assets = AccountCollateralAssets::<T>::get(borrower);
-        if collateral_assets.is_empty() {
-            return Err(Error::<T>::NoCollateralAsset);
-        }
         let mut total_asset_value: FixedU128 = FixedU128::zero();
-        for currency_id in collateral_assets.iter() {
+        for currency_id in Currencies::<T>::get().iter() {
+            if !AccountDeposits::<T>::contains_key(currency_id, borrower) {
+                continue;
+            }
+            let deposits = Self::account_deposits(currency_id, borrower);
+            if !deposits.is_collateral {
+                continue;
+            }
             total_asset_value = total_asset_value
                 .checked_add(&Self::collateral_asset_value(borrower, currency_id)?)
                 .ok_or(Error::<T>::Overflow)?;
@@ -939,49 +965,6 @@ impl<T: Config> Pallet<T> {
         );
 
         TotalBorrows::<T>::insert(currency_id, total_borrows_new);
-
-        Ok(())
-    }
-
-    fn collateral_asset_internal(
-        who: T::AccountId,
-        currency_id: CurrencyId,
-        enable: bool,
-    ) -> result::Result<(), Error<T>> {
-        let mut collateral_assets = AccountCollateralAssets::<T>::get(&who);
-        if enable {
-            if !collateral_assets.iter().any(|c| c == &currency_id) {
-                let deposits = AccountDeposits::<T>::get(currency_id, &who);
-                if !deposits.voucher_balance.is_zero() {
-                    collateral_assets.push(currency_id);
-                    AccountCollateralAssets::<T>::insert(who.clone(), collateral_assets);
-                    Self::deposit_event(Event::<T>::CollateralAssetAdded(who, currency_id));
-                } else {
-                    return Err(Error::<T>::DepositRequiredBeforeCollateral);
-                }
-            } else {
-                return Err(Error::<T>::AlreadyEnabledCollateral);
-            }
-        } else if let Some(index) = collateral_assets.iter().position(|c| c == &currency_id) {
-            let total_collateral_asset_value = Self::total_collateral_asset_value(&who)?;
-            let collateral_asset_value = Self::collateral_asset_value(&who, &currency_id)?;
-            let total_borrowed_value = Self::total_borrowed_value(&who)?;
-
-            if total_borrowed_value.is_zero()
-                || total_collateral_asset_value
-                    > total_borrowed_value
-                        .checked_add(&collateral_asset_value)
-                        .ok_or(Error::<T>::Overflow)?
-            {
-                collateral_assets.remove(index);
-                AccountCollateralAssets::<T>::insert(who.clone(), collateral_assets);
-                Self::deposit_event(Event::<T>::CollateralAssetRemoved(who, currency_id));
-            } else {
-                return Err(Error::<T>::CollateralDisableActionDenied);
-            }
-        } else {
-            return Err(Error::<T>::AlreadyDisabledCollateral);
-        }
 
         Ok(())
     }
