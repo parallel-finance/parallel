@@ -27,7 +27,7 @@ services:
     image: parallelfinance/oracle-client:latest
     links:
       - "parallel:parallel"
-    command: oracle-client -w ws://172.28.1.1:9944
+    command: oracle-client start -w ws://172.28.1.1:9944
     restart: always
     networks:
       testing_net:
