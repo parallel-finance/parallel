@@ -7,7 +7,7 @@ services:
       - "9944:9944"
     image: parallelfinance/parallel:latest
     volumes:
-      - "parallel-data:/data"
+      - "data:/data"
     restart: always
     networks:
       testing_net:
@@ -16,9 +16,10 @@ services:
   parallel-dapp:
     ports:
       - "8080:80"
-    image: parallelfinance/parallel-dapp:regnet
+    image: parallelfinance/parallel-dapp:latest
     links:
       - "parallel:parallel"
+    restart: always
     networks:
       testing_net:
         ipv4_address: 172.28.1.2
@@ -34,7 +35,7 @@ services:
         ipv4_address: 172.28.1.3
 
 volumes:
-  parallel-data:
+  data:
 
 networks:
   testing_net:

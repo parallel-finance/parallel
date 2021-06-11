@@ -193,10 +193,22 @@ fn testnet_genesis(
             endowed_accounts: endowed_accounts
                 .iter()
                 .flat_map(|x| {
-                    vec![
-                        (x.clone(), CurrencyId::USDT, 10_u128.pow(21)),
-                        (x.clone(), CurrencyId::xKSM, 10_u128.pow(21)),
-                    ]
+                    if x == &"5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                        .parse()
+                        .unwrap()
+                    {
+                        vec![
+                            (x.clone(), CurrencyId::KSM, 10_u128.pow(21)),
+                            (x.clone(), CurrencyId::USDT, 10_u128.pow(15)),
+                            (x.clone(), CurrencyId::xKSM, 10_u128.pow(21)),
+                        ]
+                    } else {
+                        vec![
+                            (x.clone(), CurrencyId::KSM, 10_u128.pow(15)),
+                            (x.clone(), CurrencyId::USDT, 10_u128.pow(9)),
+                            (x.clone(), CurrencyId::xKSM, 10_u128.pow(15)),
+                        ]
+                    }
                 })
                 .collect(),
         },
