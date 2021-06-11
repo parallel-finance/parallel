@@ -511,7 +511,7 @@ impl orml_tokens::Config for Runtime {
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::KSM;
+    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Native;
 }
 impl orml_currencies::Config for Runtime {
     type Event = Event;

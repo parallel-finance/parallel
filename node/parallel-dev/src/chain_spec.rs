@@ -194,6 +194,7 @@ fn testnet_genesis(
                 .iter()
                 .flat_map(|x| {
                     vec![
+                        (x.clone(), CurrencyId::KSM, 10_u128.pow(21)),
                         (x.clone(), CurrencyId::USDT, 10_u128.pow(21)),
                         (x.clone(), CurrencyId::xKSM, 10_u128.pow(21)),
                     ]
