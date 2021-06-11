@@ -135,6 +135,7 @@ fn redeem_all_works() {
             <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
             million_dollar(1000),
         );
+        assert!(!AccountDeposits::<Runtime>::contains_key(DOT, &ALICE))
     })
 }
 

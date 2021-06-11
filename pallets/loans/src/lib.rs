@@ -825,11 +825,18 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         let exchange_rate = Self::exchange_rate(currency_id);
         let collateral = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
-        AccountDeposits::<T>::try_mutate(currency_id, who, |deposits| -> DispatchResult {
-            deposits.voucher_balance = deposits
+        AccountDeposits::<T>::try_mutate_exists(currency_id, who, |deposits| -> DispatchResult {
+            let mut d = deposits.unwrap_or_default();
+            d.voucher_balance = d
                 .voucher_balance
                 .checked_sub(collateral)
                 .ok_or(Error::<T>::Underflow)?;
+            if d.voucher_balance.is_zero() {
+                // remove deposits storage if zero balance
+                *deposits = None;
+            } else {
+                *deposits = Some(d);
+            }
             Ok(())
         })?;
         TotalSupply::<T>::try_mutate(currency_id, |total_balance| -> DispatchResult {
