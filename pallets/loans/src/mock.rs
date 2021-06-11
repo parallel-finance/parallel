@@ -266,8 +266,6 @@ impl ExtBuilder {
         .assimilate_storage::<Runtime>(&mut t)
         .unwrap();
 
-        MOCK_PRICE_FEEDER::reset();
-
         // t.into()
         let mut ext = sp_io::TestExternalities::new(t);
         ext.execute_with(|| {

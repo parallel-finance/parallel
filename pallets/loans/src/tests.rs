@@ -67,7 +67,8 @@ fn mint_works() {
         // DOT collateral: deposit = 100
         // DOT: cash - deposit = 1000 - 100 = 900
         assert_eq!(
-            Loans::exchange_rate(DOT).saturating_mul_int(Loans::account_collateral(DOT, ALICE)),
+            Loans::exchange_rate(DOT)
+                .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
             million_dollar(100)
         );
         assert_eq!(
@@ -104,7 +105,8 @@ fn redeem_works() {
         // DOT collateral: deposit - redeem = 100 - 20 = 80
         // DOT: cash - deposit + redeem = 1000 - 100 + 20 = 920
         assert_eq!(
-            Loans::exchange_rate(DOT).saturating_mul_int(Loans::account_collateral(DOT, ALICE)),
+            Loans::exchange_rate(DOT)
+                .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
             million_dollar(80)
         );
         assert_eq!(
@@ -125,13 +127,15 @@ fn redeem_all_works() {
         // DOT: cash - deposit + redeem = 1000 - 100 + 100 = 1000
         // DOT collateral: deposit - redeem = 100 - 100 = 0
         assert_eq!(
-            Loans::exchange_rate(DOT).saturating_mul_int(Loans::account_collateral(DOT, ALICE)),
+            Loans::exchange_rate(DOT)
+                .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
             0,
         );
         assert_eq!(
             <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
             million_dollar(1000),
         );
+        assert!(!AccountDeposits::<Runtime>::contains_key(DOT, &ALICE))
     })
 }
 
@@ -152,7 +156,8 @@ fn borrow_works() {
         // DOT borrow balance: borrow = 100
         // DOT: cash - deposit + borrow = 1000 - 200 + 100 = 900
         assert_eq!(
-            Loans::exchange_rate(DOT).saturating_mul_int(Loans::account_collateral(DOT, ALICE)),
+            Loans::exchange_rate(DOT)
+                .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
             million_dollar(200)
         );
         let borrow_snapshot = Loans::account_borrows(DOT, ALICE);
@@ -188,7 +193,8 @@ fn repay_borrow_works() {
         // DOT borrow balance: borrow - repay = 100 - 30 = 70
         // DOT: cash - deposit + borrow - repay = 1000 - 200 + 100 - 30 = 870
         assert_eq!(
-            Loans::exchange_rate(DOT).saturating_mul_int(Loans::account_collateral(DOT, ALICE)),
+            Loans::exchange_rate(DOT)
+                .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
             million_dollar(200)
         );
         let borrow_snapshot = Loans::account_borrows(DOT, ALICE);
@@ -227,7 +233,8 @@ fn repay_borrow_all_works() {
             million_dollar(800),
         );
         assert_eq!(
-            Loans::exchange_rate(DOT).saturating_mul_int(Loans::account_collateral(DOT, ALICE)),
+            Loans::exchange_rate(DOT)
+                .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
             million_dollar(200),
         );
         let borrow_snapshot = Loans::account_borrows(KSM, ALICE);
@@ -273,7 +280,8 @@ fn liquidate_borrow_works() {
             million_dollar(800),
         );
         assert_eq!(
-            Loans::exchange_rate(DOT).saturating_mul_int(Loans::account_collateral(DOT, ALICE)),
+            Loans::exchange_rate(DOT)
+                .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
             88888888888888888889,
         );
         assert_eq!(
@@ -289,18 +297,64 @@ fn liquidate_borrow_works() {
             million_dollar(750)
         );
         assert_eq!(
-            Loans::exchange_rate(DOT).saturating_mul_int(Loans::account_collateral(DOT, BOB)),
+            Loans::exchange_rate(DOT)
+                .saturating_mul_int(Loans::account_deposits(DOT, BOB).voucher_balance),
             111111111111111111111,
         );
+        MOCK_PRICE_FEEDER::reset();
     })
 }
 
 #[test]
 fn collateral_asset_works() {
     ExtBuilder::default().build().execute_with(|| {
+        // No collateral assets
+        assert_noop!(
+            Loans::collateral_asset(Origin::signed(ALICE), DOT, true),
+            Error::<Runtime>::NoDeposit
+        );
+        // Deposit 200 DOT as collateral
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, 200));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
-        assert_eq!(Loans::account_collateral_assets(ALICE), vec![DOT]);
+        assert_eq!(Loans::account_deposits(DOT, ALICE).is_collateral, true);
+        assert_noop!(
+            Loans::collateral_asset(Origin::signed(ALICE), DOT, true),
+            Error::<Runtime>::DuplicateOperation
+        );
+        // Borrow 100 DOT base on the collateral of 200 DOT
+        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, 100));
+        assert_noop!(
+            Loans::collateral_asset(Origin::signed(ALICE), DOT, false),
+            Error::<Runtime>::InsufficientCollateral
+        );
+        // Repay all the borrows
+        assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), DOT));
+        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, false));
+        assert_eq!(Loans::account_deposits(DOT, ALICE).is_collateral, false);
+        assert_noop!(
+            Loans::collateral_asset(Origin::signed(ALICE), DOT, false),
+            Error::<Runtime>::DuplicateOperation
+        );
+    })
+}
+
+#[test]
+fn total_collateral_asset_value_works() {
+    ExtBuilder::default().build().execute_with(|| {
+        let collateral_factor = Rate::saturating_from_rational(50, 100);
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, million_dollar(100)));
+        assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, million_dollar(200)));
+        assert_ok!(Loans::mint(
+            Origin::signed(ALICE),
+            USDT,
+            million_dollar(300)
+        ));
+        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
+        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
+        assert_eq!(
+            Loans::total_collateral_asset_value(&ALICE).unwrap(),
+            (collateral_factor.saturating_mul_int(100 + 200)).into()
+        );
     })
 }
 
@@ -848,4 +902,5 @@ fn get_price_works() {
         Loans::get_price(&DOT).unwrap(),
         Price::saturating_from_integer(2)
     );
+    MOCK_PRICE_FEEDER::reset();
 }

@@ -1,5 +1,12 @@
 # CHANGE LOG
 
+## 2021.06.09
+
+-   Add Deposits struct(#206)
+-   Change the value type of AccountCollateral from Balance to Deposits 
+-   Rename AccountCollateral to AccountDeposits
+-   Remove the storage AccountCollateralAsset
+
 ## 2021.06.07
 
 -   Use KSM/DOT as native currency (#197)

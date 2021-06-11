@@ -24,6 +24,10 @@
             "symbol": "CurrencyId",
             "timestamp": "Moment"
         },
+        "Deposits": {
+            "voucherBalance": "Balance",
+            "isCollateral": "bool"
+        },
         "BorrowSnapshot": {
             "principal": "Balance",
             "borrowIndex": "u128"

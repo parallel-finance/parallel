@@ -123,10 +123,10 @@ benchmarks! {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T>(caller.clone());
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, 100_000_000));
-        let collateral = Loans::<T>::account_collateral(DOT, caller.clone());
+        let deposits = Loans::<T>::account_deposits(DOT, caller.clone());
         let exchange_rate = Loans::<T>::exchange_rate(DOT);
         let redeem_amount = exchange_rate
-            .checked_mul_int(collateral)
+            .checked_mul_int(deposits.voucher_balance)
             .ok_or(pallet_loans::Error::<T>::Overflow)?;
         let initial_balance = <T as LoansConfig>::Currency::free_balance(DOT, &Loans::<T>::account_id());
     }: {
@@ -206,14 +206,13 @@ benchmarks! {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T>(caller.clone());
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, INITIAL_AMOUNT));
-        let collateral_assets = pallet_loans::AccountCollateralAssets::<T>::get(&caller.clone());
     }: {
          let _ = Loans::<T>::collateral_asset(SystemOrigin::Signed(caller.clone()).into(), DOT, true);
     }
     verify {
         assert_eq!(
-            pallet_loans::AccountCollateralAssets::<T>::get(&caller.clone()).len(),
-            collateral_assets.len() + 1 as usize,
+            pallet_loans::AccountDeposits::<T>::get(DOT, &caller.clone()).is_collateral,
+            true,
         );
     }
 
