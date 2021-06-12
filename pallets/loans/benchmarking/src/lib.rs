@@ -12,8 +12,7 @@ use orml_oracle::{Config as ORMLOracleConfig, Pallet as ORMLOracle};
 use orml_traits::MultiCurrency;
 use pallet_loans::{Config as LoansConfig, InterestRateModel, Pallet as Loans};
 use primitives::{CurrencyId, PriceWithDecimal, Rate, Ratio};
-use sp_runtime::traits::One;
-use sp_runtime::traits::StaticLookup;
+use sp_runtime::traits::{Bounded, One, StaticLookup};
 use sp_runtime::{FixedPointNumber, FixedU128};
 use sp_std::prelude::*;
 use sp_std::vec;
@@ -60,12 +59,21 @@ fn initial_set_up<T: Config>(caller: T::AccountId) {
     pallet_loans::BorrowIndex::<T>::insert(DOT, Rate::one());
     pallet_loans::CollateralFactor::<T>::insert(DOT, Ratio::from_percent(50));
     pallet_loans::CloseFactor::<T>::insert(DOT, Ratio::from_percent(50));
-    pallet_loans::LiquidationIncentive::<T>::insert(DOT, Ratio::from_percent(90));
+    pallet_loans::LiquidationIncentive::<T>::insert(DOT, Rate::saturating_from_rational(110, 100));
     <T as LoansConfig>::Currency::deposit(DOT, &caller, INITIAL_AMOUNT).unwrap();
     <T as LoansConfig>::Currency::deposit(DOT, &account_id, INITIAL_AMOUNT).unwrap();
 }
 
 benchmarks! {
+    set_liquidation_incentive {
+        let caller: T::AccountId = whitelisted_caller();
+    }: {
+        let _ = Loans::<T>::set_liquidation_incentive(
+            SystemOrigin::Root.into(),
+            DOT,
+            Rate::max_value()
+        );
+    }
 
     mint {
         let caller: T::AccountId = whitelisted_caller();

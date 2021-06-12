@@ -268,13 +268,14 @@ fn liquidate_borrow_works() {
             DOT
         ));
 
-        // incentive = repay KSM value / 0.9
+        // KSM price = 2
+        // incentive = repay KSM value * 1.1 = (50 * 2) * 1.1 = 110
         // Alice DOT: cash - deposit = 1000 - 200 = 800
-        // Alice DOT collateral: deposit - incentive = 200 - (50 * 2 / 0.9) = 89
+        // Alice DOT collateral: deposit - incentive = 200 - 110 = 90
         // Alice KSM: cash + borrow = 1000 + 100 = 1100
-        // Alice KSM borrow balance: origin borrow balance - repay = 100 - 50 = 50
-        // Bob KSM: cash - deposit -repay = 1000 - 200 - 50 = 750
-        // Bob DOT collateral: incentive = 50 * 2 / 0.9 = 111
+        // Alice KSM borrow balance: origin borrow balance - repay amount = 100 - 50 = 50
+        // Bob KSM: cash - deposit - repay = 1000 - 200 - 50 = 750
+        // Bob DOT collateral: incentive = 110
         assert_eq!(
             <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
             million_dollar(800),
@@ -282,7 +283,7 @@ fn liquidate_borrow_works() {
         assert_eq!(
             Loans::exchange_rate(DOT)
                 .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
-            88888888888888888889,
+            90000000000000000000,
         );
         assert_eq!(
             <Runtime as Config>::Currency::free_balance(KSM, &ALICE),
@@ -299,7 +300,7 @@ fn liquidate_borrow_works() {
         assert_eq!(
             Loans::exchange_rate(DOT)
                 .saturating_mul_int(Loans::account_deposits(DOT, BOB).voucher_balance),
-            111111111111111111111,
+            110000000000000000000,
         );
         MOCK_PRICE_FEEDER::reset();
     })
@@ -607,6 +608,37 @@ fn ratio_and_rate_works() {
         assert_eq!(value3 * 5_u64, 1); // 0.3 * 5
         assert_eq!(value4 * 8_u64, 2); // 0.2 * 8
         assert_eq!(value4.mul_floor(8_u64), 1); // 0.2 mul_floor 8
+    })
+}
+
+#[test]
+fn only_root_can_call_set_liquidation_incentive() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_noop!(
+            Loans::set_liquidation_incentive(Origin::signed(ALICE), DOT, Default::default()),
+            DispatchError::BadOrigin
+        );
+        assert_ok!(Loans::set_liquidation_incentive(
+            Origin::root(),
+            DOT,
+            Default::default()
+        ));
+    })
+}
+
+#[test]
+fn set_liquidation_incentive_updates_stored_values() {
+    ExtBuilder::default().build().execute_with(|| {
+        let _ = Loans::set_liquidation_incentive(Origin::root(), DOT, 1.into());
+        assert_noop!(
+            Loans::set_liquidation_incentive(Origin::root(), NATIVE, Default::default()),
+            Error::<Runtime>::CurrencyNotEnabled
+        );
+        assert_eq!(
+            LiquidationIncentive::<Runtime>::try_get(DOT).unwrap(),
+            1.into()
+        );
+        assert!(LiquidationIncentive::<Runtime>::try_get(NATIVE).is_err());
     })
 }
 

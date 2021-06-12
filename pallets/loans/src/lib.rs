@@ -316,7 +316,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn liquidation_incentive)]
     pub type LiquidationIncentive<T: Config> =
-        StorageMap<_, Twox64Concat, CurrencyId, Ratio, ValueQuery>;
+        StorageMap<_, Twox64Concat, CurrencyId, Rate, ValueQuery>;
 
     /// The percent, ranging from 0% to 100%, of a liquidatable account's
     /// borrow that can be repaid in a single liquidate transaction.
@@ -334,7 +334,7 @@ pub mod pallet {
         pub full_rate: Multiplier,
         pub kink_utilization: Ratio,
         pub collateral_factor: Vec<(CurrencyId, Ratio)>,
-        pub liquidation_incentive: Vec<(CurrencyId, Ratio)>,
+        pub liquidation_incentive: Vec<(CurrencyId, Rate)>,
         pub close_factor: Vec<(CurrencyId, Ratio)>,
         pub reserve_factor: Vec<(CurrencyId, Ratio)>,
         pub last_block_timestamp: Timestamp,
@@ -617,6 +617,30 @@ pub mod pallet {
             Self::repay_borrow_internal(&who, &currency_id, account_borrows)?;
 
             Self::deposit_event(Event::<T>::RepaidBorrow(who, currency_id, account_borrows));
+
+            Ok(().into())
+        }
+
+        /// Sets a new liquidation incentive percentage for `currency_id`.
+        ///
+        /// Returns `Err` if the provided asset is not attached to an existent incentive.   
+        ///
+        /// - `currency_id`: the asset that is going to be modified.
+        #[pallet::weight(T::WeightInfo::set_liquidation_incentive())]
+        #[transactional]
+        pub fn set_liquidation_incentive(
+            origin: OriginFor<T>,
+            currency_id: CurrencyId,
+            liquidate_incentive: Rate,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            Self::ensure_currency(&currency_id)?;
+
+            if <LiquidationIncentive<T>>::try_get(currency_id).is_err() {
+                return Err(<Error<T>>::CurrencyNotEnabled.into());
+            }
+
+            <LiquidationIncentive<T>>::insert(currency_id, liquidate_incentive);
 
             Ok(().into())
         }
@@ -976,6 +1000,8 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    // Calculates and returns the most recent amount of borrowed balance of `currency_id`
+    // for `who`.
     pub fn borrow_balance_stored(
         who: &T::AccountId,
         currency_id: &CurrencyId,
@@ -1056,27 +1082,21 @@ impl<T: Config> Pallet<T> {
         let collateral_underlying_amount = exchange_rate
             .checked_mul_int(deposits.voucher_balance)
             .ok_or(Error::<T>::Overflow)?;
-        let collateral_token_price = Self::get_price(&collateral_currency_id)?;
 
-        //the total value of borrower's collateral token
+        // how much the borrower's collateral is worth based on its current currency price
+        let collateral_token_price = Self::get_price(&collateral_currency_id)?;
         let collateral_value = collateral_token_price
             .checked_mul(&FixedU128::from_inner(collateral_underlying_amount))
             .ok_or(Error::<T>::Overflow)?;
 
-        //calculate liquidate_token_sum
-        let liquidate_token_price = Self::get_price(&liquidate_currency_id)?;
-
-        let liquidate_value = liquidate_token_price
-            .checked_mul(&FixedU128::from_inner(repay_amount))
-            .ok_or(Error::<T>::LiquidateValueOverflow)?;
-
         // the incentive for liquidator and punishment for the borrower
         let liquidation_incentive = LiquidationIncentive::<T>::get(liquidate_currency_id);
-        let discd_collateral_value = collateral_value
-            .checked_mul(&liquidation_incentive.into())
-            .ok_or(Error::<T>::Overflow)?;
+        let liquidate_value = Self::get_price(&liquidate_currency_id)?
+            .checked_mul(&FixedU128::from_inner(repay_amount))
+            .and_then(|a| a.checked_mul(&liquidation_incentive))
+            .ok_or(Error::<T>::LiquidateValueOverflow)?;
 
-        if discd_collateral_value < liquidate_value {
+        if collateral_value < liquidate_value {
             return Err(Error::<T>::RepayValueGreaterThanCollateral.into());
         }
 
@@ -1091,7 +1111,6 @@ impl<T: Config> Pallet<T> {
         // instead of saturating_from_integer, and after calculation use into_inner to get final value.
         let real_collateral_underlying_amount = liquidate_value
             .checked_div(&collateral_token_price)
-            .and_then(|a| a.checked_div(&liquidation_incentive.into()))
             .ok_or(Error::<T>::Underflow)?;
 
         //inside transfer token
@@ -1188,6 +1207,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    // Ensures a given `currency_id` exists on the `Currencies` storage.
     fn ensure_currency(currency_id: &CurrencyId) -> DispatchResult {
         if Self::currencies()
             .iter()

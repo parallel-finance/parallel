@@ -24,7 +24,10 @@ use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::sr25519;
 use sp_runtime::{traits::One, FixedPointNumber};
 
-use crate::chain_spec::{get_account_id_from_seed, get_authority_keys_from_seed, Extensions};
+use crate::chain_spec::{
+    get_account_id_from_seed, get_authority_keys_from_seed, Extensions,
+    DEFAULT_LIQUIDATION_INCENTIVE_PCT,
+};
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
@@ -194,9 +197,9 @@ fn testnet_genesis(
                 (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
             liquidation_incentive: vec![
-                (CurrencyId::DOT, Ratio::from_percent(90)),
-                (CurrencyId::USDT, Ratio::from_percent(90)),
-                (CurrencyId::xDOT, Ratio::from_percent(90)),
+                (CurrencyId::DOT, DEFAULT_LIQUIDATION_INCENTIVE_PCT),
+                (CurrencyId::USDT, DEFAULT_LIQUIDATION_INCENTIVE_PCT),
+                (CurrencyId::xDOT, DEFAULT_LIQUIDATION_INCENTIVE_PCT),
             ],
             close_factor: vec![
                 (CurrencyId::DOT, Ratio::from_percent(50)),

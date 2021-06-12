@@ -28,6 +28,9 @@ use vanilla_runtime::{
     WASM_BINARY,
 };
 
+// 1.100000000000000000 or 110%
+pub const DEFAULT_LIQUIDATION_INCENTIVE_PCT: Rate = Rate::from_inner(Rate::DIV / 100 * 110);
+
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
 
 /// Helper function to generate a crypto pair from seed
@@ -226,9 +229,9 @@ fn testnet_genesis(
                 (CurrencyId::xKSM, Ratio::from_percent(90)),
             ],
             liquidation_incentive: vec![
-                (CurrencyId::KSM, Ratio::from_percent(90)),
-                (CurrencyId::USDT, Ratio::from_percent(90)),
-                (CurrencyId::xKSM, Ratio::from_percent(90)),
+                (CurrencyId::KSM, DEFAULT_LIQUIDATION_INCENTIVE_PCT),
+                (CurrencyId::USDT, DEFAULT_LIQUIDATION_INCENTIVE_PCT),
+                (CurrencyId::xKSM, DEFAULT_LIQUIDATION_INCENTIVE_PCT),
             ],
             close_factor: vec![
                 (CurrencyId::KSM, Ratio::from_percent(50)),
