@@ -244,10 +244,10 @@ impl ExtBuilder {
                 (CurrencyId::xDOT, Ratio::from_percent(50)),
             ],
             liquidation_incentive: vec![
-                (CurrencyId::DOT, Ratio::from_percent(90)),
-                (CurrencyId::KSM, Ratio::from_percent(90)),
-                (CurrencyId::USDT, Ratio::from_percent(90)),
-                (CurrencyId::xDOT, Ratio::from_percent(90)),
+                (CurrencyId::DOT, Rate::saturating_from_rational(110, 100)),
+                (CurrencyId::KSM, Rate::saturating_from_rational(110, 100)),
+                (CurrencyId::USDT, Rate::saturating_from_rational(110, 100)),
+                (CurrencyId::xDOT, Rate::saturating_from_rational(110, 100)),
             ],
             close_factor: vec![
                 (CurrencyId::DOT, Ratio::from_percent(50)),

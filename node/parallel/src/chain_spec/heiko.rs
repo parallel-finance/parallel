@@ -194,9 +194,9 @@ fn testnet_genesis(
                 (CurrencyId::xKSM, Ratio::from_percent(50)),
             ],
             liquidation_incentive: vec![
-                (CurrencyId::KSM, Ratio::from_percent(90)),
-                (CurrencyId::USDT, Ratio::from_percent(90)),
-                (CurrencyId::xKSM, Ratio::from_percent(90)),
+                (CurrencyId::KSM, Rate::saturating_from_rational(110, 100)),
+                (CurrencyId::USDT, Rate::saturating_from_rational(110, 100)),
+                (CurrencyId::xKSM, Rate::saturating_from_rational(110, 100)),
             ],
             close_factor: vec![
                 (CurrencyId::KSM, Ratio::from_percent(50)),
