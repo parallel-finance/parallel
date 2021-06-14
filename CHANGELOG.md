@@ -1,9 +1,13 @@
 # CHANGE LOG
 
+## 2021.06.14
+
+-   Upgrade to polkadot-v0.9.4 (#206)
+
 ## 2021.06.09
 
 -   Add Deposits struct(#206)
--   Change the value type of AccountCollateral from Balance to Deposits 
+-   Change the value type of AccountCollateral from Balance to Deposits
 -   Rename AccountCollateral to AccountDeposits
 -   Remove the storage AccountCollateralAsset
 

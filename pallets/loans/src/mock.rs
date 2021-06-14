@@ -219,7 +219,7 @@ impl ExtBuilder {
             .unwrap();
 
         orml_tokens::GenesisConfig::<Runtime> {
-            endowed_accounts: self.endowed_accounts.clone(),
+            balances: self.endowed_accounts.clone(),
         }
         .assimilate_storage(&mut t)
         .unwrap();

@@ -359,8 +359,6 @@ pub fn run() -> Result<()> {
 
             switch_runtime!(chain_spec, {
                 runner.run_node_until_exit(|config| async move {
-                    let key = sp_core::Pair::generate().0;
-
                     let extension = chain_spec::Extensions::try_get(&*config.chain_spec);
                     let relay_chain_id = extension.map(|e| e.relay_chain.clone());
                     let para_id = extension.map(|e| e.para_id);
@@ -404,15 +402,10 @@ pub fn run() -> Result<()> {
                         }
                     );
 
-                    crate::service::start_node::<RuntimeApi, Executor>(
-                        config,
-                        key,
-                        polkadot_config,
-                        id,
-                    )
-                    .await
-                    .map(|r| r.0)
-                    .map_err(Into::into)
+                    crate::service::start_node::<RuntimeApi, Executor>(config, polkadot_config, id)
+                        .await
+                        .map(|r| r.0)
+                        .map_err(Into::into)
                 })
             })
         }
