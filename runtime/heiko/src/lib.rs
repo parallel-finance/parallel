@@ -933,6 +933,7 @@ construct_runtime!(
         PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin},
         CumulusXcm: cumulus_pallet_xcm::{Pallet, Call, Event<T>, Origin},
 
+        // ORML pallets
         Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
