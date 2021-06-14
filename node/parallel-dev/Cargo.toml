@@ -46,7 +46,7 @@ sc-transaction-pool = { version = '3.0.0', git = 'https://github.com/paritytech/
 serde     = { version = '1.0.119', features = ['derive'] }
 structopt = '0.3.8'
 
-orml-oracle-rpc            = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-oracle-rpc            = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'sw/the-return-of-the-xcm', default-features = false }
 substrate-frame-rpc-system = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.4' }
 
 sp-api              = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.4' }

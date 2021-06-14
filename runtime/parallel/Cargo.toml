@@ -66,12 +66,15 @@ xcm-builder                                = { git = 'https://github.com/parityt
 xcm-executor                               = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.4', default-features = false }
 
 # ORML dependencies
-orml-currencies             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-oracle                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-oracle-rpc-runtime-api = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-tokens                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-traits                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-utilities              = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-currencies             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'sw/the-return-of-the-xcm', default-features = false }
+orml-oracle                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'sw/the-return-of-the-xcm', default-features = false }
+orml-oracle-rpc-runtime-api = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'sw/the-return-of-the-xcm', default-features = false }
+orml-tokens                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'sw/the-return-of-the-xcm', default-features = false }
+orml-traits                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'sw/the-return-of-the-xcm', default-features = false }
+orml-unknown-tokens         = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'sw/the-return-of-the-xcm', default-features = false }
+orml-utilities              = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'sw/the-return-of-the-xcm', default-features = false }
+orml-xcm-support            = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'sw/the-return-of-the-xcm', default-features = false }
+orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'sw/the-return-of-the-xcm', default-features = false }
 
 # Parallel dependencies
 pallet-liquid-staking     = { path = '../../pallets/liquid-staking', default-features = false }
@@ -154,7 +157,10 @@ std                = [
   'orml-currencies/std',
   'orml-tokens/std',
   'orml-traits/std',
+  'orml-xcm-support/std',
+  'orml-xtokens/std',
   'orml-utilities/std',
+  'orml-unknown-tokens/std',
   'pallet-treasury/std',
   'pallet-collective/std',
   'pallet-elections-phragmen/std',
@@ -162,4 +168,4 @@ std                = [
   'pallet-democracy/std',
   'pallet-scheduler/std',
   'polkadot-runtime-common/std',
-] # 'orml-xcm-support/std',
+]
