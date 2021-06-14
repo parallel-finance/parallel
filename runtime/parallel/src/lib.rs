@@ -275,7 +275,7 @@ parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/stak");
     pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
-    pub const MaxWithdrawAmount: Balance = 1000;
+    pub const MaxWithdrawAmount: Balance = 10_000_000_000_000;
     pub const MaxAccountProcessingUnstake: u32 = 5;
 }
 

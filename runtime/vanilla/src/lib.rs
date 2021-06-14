@@ -583,7 +583,7 @@ parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/stak");
     pub const StakingCurrency: CurrencyId = CurrencyId::KSM;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xKSM;
-    pub const MaxWithdrawAmount: Balance = 1000;
+    pub const MaxWithdrawAmount: Balance = 1000_000_000_000_000;
     pub const MaxAccountProcessingUnstake: u32 = 5;
 }
 
