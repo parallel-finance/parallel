@@ -38,7 +38,7 @@ use sp_runtime::traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, Convert}
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys, traits,
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, DispatchResult, KeyTypeId, Percent, SaturatedConversion,
+    ApplyExtrinsicResult, KeyTypeId, Percent, SaturatedConversion,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -55,18 +55,14 @@ use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset}
 use polkadot_parachain::primitives::Sibling;
 use primitives::*;
 use static_assertions::const_assert;
-use xcm::v0::{
-    Error as XcmError, Junction, Junction::*, MultiAsset, MultiLocation, MultiLocation::*,
-    NetworkId, Xcm,
-};
+use xcm::v0::{Junction, Junction::*, MultiAsset, MultiLocation, MultiLocation::*, NetworkId, Xcm};
 use xcm_builder::{
-    AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter,
-    EnsureXcmOrigin, FixedWeightBounds, IsConcrete, LocationInverter, NativeAsset,
-    ParentAsSuperuser, ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative,
-    SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
-    SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
+    AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, EnsureXcmOrigin,
+    FixedWeightBounds, LocationInverter, ParentAsSuperuser, ParentIsDefault, RelayChainAsNative,
+    SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
+    SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
 };
-use xcm_executor::{traits::Convert as XcmConvert, Config, XcmExecutor};
+use xcm_executor::{Config, XcmExecutor};
 
 pub mod constants;
 // A few exports that help ease life for downstream crates.
