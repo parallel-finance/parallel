@@ -157,7 +157,7 @@ fn testnet_genesis(
 
                 endowed_accounts
                     .into_iter()
-                    .map(|k| (k, 10_u128.pow(16)))
+                    .map(|k| (k, 10_u128.pow(19)))
                     .collect()
             },
         },
