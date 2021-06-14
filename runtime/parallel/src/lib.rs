@@ -275,7 +275,6 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                 Parachain(ParachainInfo::parachain_id().into()),
                 GeneralKey(b"xKSM".to_vec()),
             )),
-            // TODO: statemine
             _ => None,
         }
     }
@@ -323,9 +322,8 @@ impl orml_xtokens::Config for Runtime {
     type CurrencyIdConvert = CurrencyIdConvert;
     type AccountIdToMultiLocation = AccountId32Convert;
     type SelfLocation = SelfLocation;
-    // TODO
     type XcmExecutor = ();
-    type Weigher = ();
+    type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
 }
 
 impl orml_unknown_tokens::Config for Runtime {
