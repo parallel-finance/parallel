@@ -169,7 +169,7 @@ fn testnet_genesis(
         pallet_sudo: SudoConfig { key: root_key },
         parachain_info: ParachainInfoConfig { parachain_id: id },
         orml_tokens: TokensConfig {
-            endowed_accounts: endowed_accounts
+            balances: endowed_accounts
                 .iter()
                 .flat_map(|x| {
                     vec![

@@ -190,7 +190,7 @@ fn testnet_genesis(
         },
         pallet_sudo: SudoConfig { key: root_key },
         orml_tokens: TokensConfig {
-            endowed_accounts: endowed_accounts
+            balances: endowed_accounts
                 .iter()
                 .flat_map(|x| {
                     if x == &"5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"

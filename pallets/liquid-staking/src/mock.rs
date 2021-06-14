@@ -140,7 +140,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .build_storage::<Test>()
         .unwrap();
     orml_tokens::GenesisConfig::<Test> {
-        endowed_accounts: vec![(1, CurrencyId::DOT, 100)],
+        balances: vec![(1, CurrencyId::DOT, 100)],
     }
     .assimilate_storage(&mut t)
     .unwrap();

@@ -21,7 +21,7 @@ use cumulus_client_service::{
     prepare_node_config, start_collator, start_full_node, StartCollatorParams, StartFullNodeParams,
 };
 use cumulus_primitives_core::ParaId;
-use polkadot_primitives::v0::CollatorPair;
+
 use polkadot_service::ConstructRuntimeApi;
 use sc_client_api::call_executor::ExecutorProvider;
 use sc_executor::native_executor_instance;
@@ -176,7 +176,6 @@ where
 #[sc_tracing::logging::prefix_logs_with("Parachain")]
 async fn start_node_impl<RuntimeApi, Executor>(
     parachain_config: Configuration,
-    collator_key: CollatorPair,
     polkadot_config: Configuration,
     id: ParaId,
 ) -> sc_service::error::Result<(TaskManager, Arc<FullClient<RuntimeApi, Executor>>)>
@@ -197,15 +196,12 @@ where
     let params = new_partial(&parachain_config)?;
     let (mut telemetry, telemetry_worker_handle) = params.other;
 
-    let relay_chain_full_node = cumulus_client_service::build_polkadot_full_node(
-        polkadot_config,
-        collator_key.clone(),
-        telemetry_worker_handle,
-    )
-    .map_err(|e| match e {
-        polkadot_service::Error::Sub(x) => x,
-        s => format!("{}", s).into(),
-    })?;
+    let relay_chain_full_node =
+        cumulus_client_service::build_polkadot_full_node(polkadot_config, telemetry_worker_handle)
+            .map_err(|e| match e {
+                polkadot_service::Error::Sub(x) => x,
+                s => format!("{}", s).into(),
+            })?;
 
     let client = params.client.clone();
     let backend = params.backend.clone();
@@ -223,7 +219,7 @@ where
     let mut task_manager = params.task_manager;
     let import_queue = cumulus_client_service::SharedImportQueue::new(params.import_queue);
 
-    let (network, network_status_sinks, system_rpc_tx, start_network) =
+    let (network, system_rpc_tx, start_network) =
         sc_service::build_network(sc_service::BuildNetworkParams {
             config: &parachain_config,
             client: client.clone(),
@@ -269,7 +265,6 @@ where
         keystore: params.keystore_container.sync_keystore(),
         backend: backend.clone(),
         network: network.clone(),
-        network_status_sinks,
         system_rpc_tx,
         telemetry: telemetry.as_mut(),
     })?;
@@ -352,7 +347,6 @@ where
             announce_block,
             client: client.clone(),
             task_manager: &mut task_manager,
-            collator_key,
             relay_chain_full_node,
             spawner,
             parachain_consensus,
@@ -380,7 +374,6 @@ where
 /// Start a normal parachain node.
 pub async fn start_node<RuntimeApi, Executor>(
     parachain_config: Configuration,
-    collator_key: CollatorPair,
     polkadot_config: Configuration,
     id: ParaId,
 ) -> sc_service::error::Result<(TaskManager, Arc<FullClient<RuntimeApi, Executor>>)>
@@ -393,5 +386,5 @@ where
     RuntimeApi::RuntimeApi: sp_consensus_aura::AuraApi<Block, AuraId>,
     Executor: NativeExecutionDispatch + 'static,
 {
-    start_node_impl(parachain_config, collator_key, polkadot_config, id).await
+    start_node_impl(parachain_config, polkadot_config, id).await
 }
