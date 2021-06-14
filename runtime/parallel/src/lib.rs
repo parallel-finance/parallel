@@ -307,7 +307,10 @@ impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
 pub struct AccountIdToMultiLocation;
 impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
     fn convert(account_id: AccountId) -> MultiLocation {
-        account_id.into()
+        MultiLocation::from(Junction::AccountId32 {
+            network: NetworkId::Any,
+            id: account_id.into(),
+        })
     }
 }
 
@@ -918,7 +921,6 @@ construct_runtime!(
         System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
         Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>},
-        Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>},
 
         // Currencies
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
@@ -950,6 +952,7 @@ construct_runtime!(
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
 
         // Governance
+        Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>},
         Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>},
         Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
         TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
