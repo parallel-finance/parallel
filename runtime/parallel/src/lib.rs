@@ -304,8 +304,8 @@ impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
     }
 }
 
-pub struct AccountId32Convert;
-impl Convert<AccountId, MultiLocation> for AccountId32Convert {
+pub struct AccountIdToMultiLocation;
+impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
     fn convert(account_id: AccountId) -> MultiLocation {
         account_id.into()
     }
@@ -320,9 +320,9 @@ impl orml_xtokens::Config for Runtime {
     type Balance = Balance;
     type CurrencyId = CurrencyId;
     type CurrencyIdConvert = CurrencyIdConvert;
-    type AccountIdToMultiLocation = AccountId32Convert;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type SelfLocation = SelfLocation;
-    type XcmExecutor = ();
+    type XcmExecutor = XcmExecutor<XcmConfig>;
     type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
 }
 
