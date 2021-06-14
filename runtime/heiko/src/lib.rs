@@ -33,11 +33,11 @@ use sp_core::{
     u32_trait::{_1, _2, _3, _4, _5},
     OpaqueMetadata,
 };
-use sp_runtime::traits::{AccountIdLookup, BlakeTwo256, Block as BlockT};
+use sp_runtime::traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, Convert};
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys, traits,
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, KeyTypeId, Percent, SaturatedConversion,
+    ApplyExtrinsicResult, DispatchResult, KeyTypeId, Percent, SaturatedConversion,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -50,10 +50,14 @@ use frame_system::{
     limits::{BlockLength, BlockWeights},
     EnsureOneOf, EnsureRoot,
 };
+use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 use polkadot_parachain::primitives::Sibling;
 use primitives::*;
 use static_assertions::const_assert;
-use xcm::v0::{Junction, Junction::*, MultiAsset, MultiLocation, MultiLocation::*, NetworkId, Xcm};
+use xcm::v0::{
+    Error as XcmError, Junction, Junction::*, MultiAsset, MultiLocation, MultiLocation::*,
+    NetworkId, Xcm,
+};
 use xcm_builder::{
     AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter,
     EnsureXcmOrigin, FixedWeightBounds, IsConcrete, LocationInverter, NativeAsset,
@@ -258,6 +262,79 @@ impl orml_currencies::Config for Runtime {
     type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
     type GetNativeCurrencyId = GetNativeCurrencyId;
     type WeightInfo = ();
+}
+
+impl orml_currencies::Config for Runtime {
+    type Event = Event;
+    type MultiCurrency = Tokens;
+    type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+    type GetNativeCurrencyId = GetNativeCurrencyId;
+    type WeightInfo = ();
+}
+
+pub struct CurrencyIdConvert;
+impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
+    fn convert(id: CurrencyId) -> Option<MultiLocation> {
+        match id {
+            CurrencyId::KSM => Some(X1(Parent)),
+            CurrencyId::xKSM => Some(X3(
+                Parent,
+                Parachain(ParachainInfo::parachain_id().into()),
+                GeneralKey(b"xKSM".to_vec()),
+            )),
+            _ => None,
+        }
+    }
+}
+
+impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
+    fn convert(location: MultiLocation) -> Option<CurrencyId> {
+        match location {
+            X1(Parent) => Some(CurrencyId::KSM),
+            X3(Parent, Parachain(id), GeneralKey(key))
+                if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xKSM".to_vec() =>
+            {
+                Some(CurrencyId::xKSM)
+            }
+            _ => None,
+        }
+    }
+}
+
+impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
+    fn convert(a: MultiAsset) -> Option<CurrencyId> {
+        if let MultiAsset::ConcreteFungible { id, amount: _ } = a {
+            Self::convert(id)
+        } else {
+            None
+        }
+    }
+}
+
+pub struct AccountIdToMultiLocation;
+impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
+    fn convert(account_id: AccountId) -> MultiLocation {
+        account_id.into()
+    }
+}
+
+parameter_types! {
+    pub SelfLocation: MultiLocation = X2(Parent, Parachain(ParachainInfo::parachain_id().into()));
+}
+
+impl orml_xtokens::Config for Runtime {
+    type Event = Event;
+    type Balance = Balance;
+    type CurrencyId = CurrencyId;
+    type CurrencyIdConvert = CurrencyIdConvert;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type SelfLocation = SelfLocation;
+    type XcmExecutor = XcmExecutor<XcmConfig>;
+    type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+}
+
+impl orml_unknown_tokens::Config for Runtime {
+    type Event = Event;
 }
 
 impl pallet_loans::Config for Runtime {

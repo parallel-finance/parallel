@@ -269,11 +269,11 @@ pub struct CurrencyIdConvert;
 impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
-            CurrencyId::KSM => Some(X1(Parent)),
-            CurrencyId::xKSM => Some(X3(
+            CurrencyId::DOT => Some(X1(Parent)),
+            CurrencyId::xDOT => Some(X3(
                 Parent,
                 Parachain(ParachainInfo::parachain_id().into()),
-                GeneralKey(b"xKSM".to_vec()),
+                GeneralKey(b"xDOT".to_vec()),
             )),
             _ => None,
         }
@@ -283,11 +283,11 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
 impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
     fn convert(location: MultiLocation) -> Option<CurrencyId> {
         match location {
-            X1(Parent) => Some(CurrencyId::KSM),
+            X1(Parent) => Some(CurrencyId::DOT),
             X3(Parent, Parachain(id), GeneralKey(key))
-                if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xKSM".to_vec() =>
+                if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xDOT".to_vec() =>
             {
-                Some(CurrencyId::xKSM)
+                Some(CurrencyId::xDOT)
             }
             _ => None,
         }
