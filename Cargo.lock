@@ -2861,7 +2861,7 @@ dependencies = [
  "hex-literal 0.3.1",
  "orml-currencies",
  "orml-oracle",
- "orml-oracle-rpc-runtime-api 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=sw/the-return-of-the-xcm)",
+ "orml-oracle-rpc-runtime-api",
  "orml-tokens",
  "orml-traits",
  "orml-unknown-tokens",
@@ -4875,41 +4875,16 @@ dependencies = [
 [[package]]
 name = "orml-oracle-rpc"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#55f4ff75b3836d32f651e0c9ad230b647b34965e"
-dependencies = [
- "jsonrpc-core",
- "jsonrpc-core-client",
- "jsonrpc-derive",
- "orml-oracle-rpc-runtime-api 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
- "parity-scale-codec",
- "sp-api",
- "sp-blockchain",
- "sp-runtime",
-]
-
-[[package]]
-name = "orml-oracle-rpc"
-version = "0.4.1-dev"
 source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=sw/the-return-of-the-xcm#05752fbba37a0b4a613a74dcf9c57af08d7cde04"
 dependencies = [
  "jsonrpc-core",
  "jsonrpc-core-client",
  "jsonrpc-derive",
- "orml-oracle-rpc-runtime-api 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=sw/the-return-of-the-xcm)",
+ "orml-oracle-rpc-runtime-api",
  "parity-scale-codec",
  "sp-api",
  "sp-blockchain",
  "sp-runtime",
-]
-
-[[package]]
-name = "orml-oracle-rpc-runtime-api"
-version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#55f4ff75b3836d32f651e0c9ad230b647b34965e"
-dependencies = [
- "parity-scale-codec",
- "sp-api",
- "sp-std",
 ]
 
 [[package]]
@@ -5876,7 +5851,7 @@ dependencies = [
  "jsonrpc-core",
  "jsonrpsee-types",
  "log",
- "orml-oracle-rpc 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
+ "orml-oracle-rpc",
  "pallet-transaction-payment-rpc",
  "pallet-transaction-payment-rpc-runtime-api",
  "parallel-primitives",
@@ -5932,7 +5907,7 @@ dependencies = [
  "jsonrpc-core",
  "jsonrpsee-types",
  "log",
- "orml-oracle-rpc 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=sw/the-return-of-the-xcm)",
+ "orml-oracle-rpc",
  "pallet-transaction-payment-rpc",
  "parallel-primitives",
  "parity-scale-codec",
@@ -6005,7 +5980,7 @@ dependencies = [
  "hex-literal 0.3.1",
  "orml-currencies",
  "orml-oracle",
- "orml-oracle-rpc-runtime-api 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=sw/the-return-of-the-xcm)",
+ "orml-oracle-rpc-runtime-api",
  "orml-tokens",
  "orml-traits",
  "orml-unknown-tokens",
@@ -11469,7 +11444,7 @@ dependencies = [
  "hex-literal 0.3.1",
  "orml-currencies",
  "orml-oracle",
- "orml-oracle-rpc-runtime-api 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=sw/the-return-of-the-xcm)",
+ "orml-oracle-rpc-runtime-api",
  "orml-tokens",
  "orml-traits",
  "orml-utilities",
