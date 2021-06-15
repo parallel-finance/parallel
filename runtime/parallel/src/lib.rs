@@ -265,8 +265,8 @@ impl pallet_loans::Config for Runtime {
     type Currency = Currencies;
     type PalletId = LoansPalletId;
     type PriceFeeder = Prices;
-    type ReserveOrigin = EnsureRoot<AccountId>;
-    type UpdateOrigin = EnsureRoot<AccountId>;
+    type ReserveOrigin = EnsureRootOrHalfCouncil;
+    type UpdateOrigin = EnsureRootOrHalfCouncil;
     type WeightInfo = pallet_loans::weights::SubstrateWeight<Runtime>;
     type UnixTime = Timestamp;
 }
