@@ -18,7 +18,7 @@
 //!
 //! This pallets provides offchain worker to call the liquidate_borrow operation in loans pallet.
 //! The collator may opt-in with a pre-funded account. The liquidate strategy is:
-//! - find the unhealthy account which has excessed loans
+//! - find the unhealthy account which has exceeded loans
 //! - liquidate the currency with higher loans
 //! - liquidator gets any of the affordable collaterals.
 
@@ -186,10 +186,12 @@ impl<T: Config> Pallet<T> {
             BTreeMap::<T::AccountId, (FixedU128, Vec<BorrowMisc>)>::new(),
             |mut acc, (k1, k2, snapshot)| {
                 let loans_value = match T::PriceFeeder::get_price(&k1).and_then(|price_info| {
-                    // TODO should calculate with the current principal rather than the snapshot
+                    let result = pallet_loans::Pallet::<T>::borrow_balance_stored_with_snapshot(
+                        &k1, snapshot,
+                    );
                     price_info
                         .0
-                        .checked_mul(&FixedU128::from_inner(snapshot.principal))
+                        .checked_mul(&FixedU128::from_inner(result.ok()?))
                 }) {
                     None => {
                         acc.remove(&k2);
@@ -221,10 +223,10 @@ impl<T: Config> Pallet<T> {
 
     fn transform_account_collateral(
     ) -> Result<BTreeMap<T::AccountId, (FixedU128, Vec<CollateralMisc>)>, Error<T>> {
-        let result = pallet_loans::AccountDeposits::<T>::iter().fold(
+        let iter = pallet_loans::AccountDeposits::<T>::iter();
+        let result = iter.filter(|(.., deposits)| deposits.is_collateral).fold(
             BTreeMap::<T::AccountId, (FixedU128, Vec<CollateralMisc>)>::new(),
             |mut acc, (k1, k2, deposits)| {
-                // TODO only calculate with the collateral of the deposits
                 let balance = match pallet_loans::ExchangeRate::<T>::get(&k1)
                     .checked_mul_int(deposits.voucher_balance)
                 {
