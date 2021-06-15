@@ -1007,6 +1007,15 @@ impl<T: Config> Pallet<T> {
         currency_id: &CurrencyId,
     ) -> result::Result<Balance, Error<T>> {
         let snapshot: BorrowSnapshot = Self::account_borrows(currency_id, who);
+        Self::borrow_balance_stored_with_snapshot(currency_id, snapshot)
+    }
+
+    /// Same as `borrow_balance_stored` but takes a given `snapshot` instead of fetching
+    /// the storage
+    pub fn borrow_balance_stored_with_snapshot(
+        currency_id: &CurrencyId,
+        snapshot: BorrowSnapshot,
+    ) -> result::Result<Balance, Error<T>> {
         if snapshot.principal.is_zero() || snapshot.borrow_index.is_zero() {
             return Ok(0);
         }
