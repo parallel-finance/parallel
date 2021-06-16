@@ -377,37 +377,35 @@ fn interest_rate_model_works() {
             Loans::calc_collateral_amount(million_dollar(200), Loans::exchange_rate(DOT)).unwrap();
         assert_eq!(Loans::total_supply(DOT), total_supply);
 
-        let multiplier_per_year = Multiplier::saturating_from_rational(1, 10);
-        let block_fraction = Rate::saturating_from_rational(6, SECONDS_PER_YEAR);
-        let multiplier_per_block = multiplier_per_year.checked_mul(&block_fraction).unwrap();
-        assert_eq!(multiplier_per_block, Rate::from_inner(19025875190));
-
         let borrow_snapshot = Loans::account_borrows(DOT, ALICE);
         assert_eq!(borrow_snapshot.principal, million_dollar(100));
         assert_eq!(borrow_snapshot.borrow_index, Rate::one());
 
-        let base_rate_per_year = Rate::saturating_from_rational(2, 100);
-        let base_rate_per_block = base_rate_per_year.checked_mul(&block_fraction).unwrap();
-        assert_eq!(base_rate_per_block, Rate::from_inner(3805175038));
+        let base_rate = Rate::saturating_from_rational(2, 100);
+        let kink_rate = Rate::saturating_from_rational(10, 100);
+        // let full_rate = Rate::saturating_from_rational(32, 100);
+        let kink_utilization = Ratio::from_percent(80);
 
         let mut borrow_index = Rate::one();
         let mut total_borrows = borrow_snapshot.principal;
         let mut total_reserves: u128 = 0;
 
-        // Finalized block from 1 to 49
+        // Finalized block from 1 to 50
+        process_block(1);
         for i in 2..50 {
-            run_to_block(i);
+            process_block(i);
             // utilizationRatio = totalBorrows / (totalCash + totalBorrows)
             let util_ratio = Ratio::from_rational(total_borrows, total_cash + total_borrows);
             assert_eq!(Loans::utilization_ratio(DOT), util_ratio);
 
-            let borrow_rate_apr =
-                multiplier_per_year.saturating_mul(util_ratio.into()) + base_rate_per_year;
-            let delta_time =
-                <Runtime as Config>::UnixTime::get() / 1000 - Loans::last_block_timestamp();
-            let fraction = Rate::saturating_from_rational(delta_time, SECONDS_PER_YEAR);
-            let interest_accumulated =
-                fraction.saturating_mul_int(borrow_rate_apr.saturating_mul_int(total_borrows));
+            let delta_time = 6;
+            let borrow_rate =
+                (kink_rate - base_rate) * util_ratio.into() / kink_utilization.into() + base_rate;
+            let interest_accumulated: u128 = borrow_rate
+                .saturating_mul_int(total_borrows)
+                .saturating_mul(delta_time)
+                .checked_div(SECONDS_PER_YEAR.into())
+                .unwrap();
             total_borrows = interest_accumulated + total_borrows;
             assert_eq!(Loans::total_borrows(DOT), total_borrows);
             total_reserves =
@@ -419,18 +417,19 @@ fn interest_rate_model_works() {
                 Loans::exchange_rate(DOT).into_inner(),
                 (total_cash + total_borrows - total_reserves) * rate_decimal / total_supply
             );
-            borrow_index = borrow_index
-                .saturating_mul(borrow_rate_apr)
-                .saturating_mul(fraction)
-                + borrow_index;
+            let numerator = borrow_index
+                .saturating_mul(borrow_rate)
+                .saturating_mul(delta_time.into())
+                .checked_div(&Rate::saturating_from_integer(SECONDS_PER_YEAR))
+                .unwrap();
+            borrow_index = numerator + borrow_index;
             assert_eq!(Loans::borrow_index(DOT), borrow_index);
         }
-        assert_eq!(total_borrows, 100000063926960646629);
-        assert_eq!(total_reserves, 9589044096972);
-        assert_eq!(borrow_index, Rate::from_inner(1000000639269606443));
+        assert_eq!(total_borrows, 100000063926960646826);
+        assert_eq!(total_reserves, 9589044097001);
+        assert_eq!(borrow_index, Rate::from_inner(1000000639269606444));
         assert_eq!(
             Loans::exchange_rate(DOT),
-            // Rate::from_inner(20000006392696064) // before reserve
             Rate::from_inner(20000005433791654)
         );
 
@@ -439,9 +438,8 @@ fn interest_rate_model_works() {
             .saturating_mul_int(borrow_snapshot.principal);
         let supply_interest =
             Loans::exchange_rate(DOT).saturating_mul_int(total_supply) - million_dollar(200);
-        // assert_eq!(supply_interest, 63926960640000); // before reserve
         assert_eq!(supply_interest, 54337916540000);
-        assert_eq!(borrow_principal, 100000063926960644300);
+        assert_eq!(borrow_principal, 100000063926960644400);
         assert_eq!(total_borrows / 10000, borrow_principal / 10000);
         assert_eq!(
             (total_borrows - million_dollar(100) - total_reserves) / 10000,
@@ -852,11 +850,11 @@ fn with_transaction_commit_works() {
         assert_eq!(Loans::exchange_rate(DOT).into_inner(), 20000000000000000);
         assert_eq!(Loans::borrow_index(DOT), Rate::one());
 
-        run_to_block(2);
+        run_to_block(3);
 
-        // block 2
+        // block 3
         assert_eq!(Loans::utilization_ratio(DOT), Ratio::from_percent(50));
-        assert_eq!(Loans::total_borrows(DOT), 100000001331811263314);
+        assert_eq!(Loans::total_borrows(DOT), 100000001331811263318);
         assert_eq!(Loans::total_reserves(DOT), 199771689497);
         assert_eq!(Loans::exchange_rate(DOT).into_inner(), 20000000113203957);
         assert_eq!(
@@ -902,9 +900,9 @@ fn with_transaction_rollback_works() {
             kink_utilization: Ratio::from_percent(0),
         };
         CurrencyInterestModel::<Runtime>::insert(DOT, error_model);
-        run_to_block(2);
+        run_to_block(3);
 
-        // block 2
+        // block 3
         // No storage has been changed
         assert_eq!(Loans::utilization_ratio(DOT), Ratio::from_percent(0));
         assert_eq!(Loans::total_borrows(DOT), million_dollar(100));

@@ -425,17 +425,17 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-        /// Called by substrate on block initialization.
-        /// Our initialization function is fallible, but that's not allowed.
-        fn on_initialize(block_number: T::BlockNumber) -> frame_support::weights::Weight {
-            let last_block_timestamp = LastBlockTimestamp::<T>::get();
+        fn on_finalize(block_number: T::BlockNumber) {
             let now = T::UnixTime::now().as_secs();
-            if last_block_timestamp == 0 {
+            if LastBlockTimestamp::<T>::get().is_zero() {
                 LastBlockTimestamp::<T>::put(now);
             }
             with_transaction(|| {
                 match <Pallet<T>>::accrue_interest() {
-                    Ok(()) => TransactionOutcome::Commit(1000),
+                    Ok(()) => {
+                        LastBlockTimestamp::<T>::put(now);
+                        TransactionOutcome::Commit(1000)
+                    }
                     Err(err) => {
                         // This should never happen...
                         log::info!(
@@ -446,12 +446,7 @@ pub mod pallet {
                         TransactionOutcome::Rollback(0)
                     }
                 }
-            })
-        }
-
-        fn on_finalize(_n: T::BlockNumber) {
-            let now = T::UnixTime::now().as_secs();
-            LastBlockTimestamp::<T>::put(now);
+            });
         }
     }
 
