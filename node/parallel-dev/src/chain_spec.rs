@@ -223,7 +223,7 @@ fn testnet_genesis(
             collateral_factor: vec![
                 (CurrencyId::KSM, Ratio::from_percent(50)),
                 (CurrencyId::USDT, Ratio::from_percent(50)),
-                (CurrencyId::xKSM, Ratio::from_percent(90)),
+                (CurrencyId::xKSM, Ratio::from_percent(50)),
             ],
             liquidation_incentive: vec![
                 (CurrencyId::KSM, Rate::saturating_from_rational(110, 100)),
