@@ -33,7 +33,9 @@ use sp_core::{
     u32_trait::{_1, _2, _3, _4, _5},
     OpaqueMetadata,
 };
-use sp_runtime::traits::{AccountIdLookup, BlakeTwo256, Block as BlockT};
+use sp_runtime::traits::{
+    AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Zero,
+};
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys, traits,
     transaction_validity::{TransactionSource, TransactionValidity},
@@ -231,8 +233,12 @@ impl frame_system::Config for Runtime {
 
 parameter_type_with_key! {
     pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
-        Default::default()
+        Zero::zero()
     };
+}
+
+parameter_types! {
+   pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
 }
 
 impl orml_tokens::Config for Runtime {
@@ -240,7 +246,7 @@ impl orml_tokens::Config for Runtime {
     type Balance = Balance;
     type Amount = Amount;
     type CurrencyId = CurrencyId;
-    type OnDust = ();
+    type OnDust = orml_tokens::TransferDust<Runtime, TreasuryAccount>;
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
     type MaxLocks = MaxLocks;

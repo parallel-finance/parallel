@@ -37,7 +37,9 @@ use sp_core::{
 pub use sp_runtime::BuildStorage;
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
-    traits::{self, AccountIdLookup, BlakeTwo256, Block as BlockT, NumberFor},
+    traits::{
+        self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, NumberFor, Zero,
+    },
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, Percent, SaturatedConversion,
 };
@@ -496,15 +498,20 @@ impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
 
 parameter_type_with_key! {
     pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
-        Default::default()
+        Zero::zero()
     };
 }
+
+parameter_types! {
+   pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
+}
+
 impl orml_tokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type Amount = Amount;
     type CurrencyId = CurrencyId;
-    type OnDust = ();
+    type OnDust = orml_tokens::TransferDust<Runtime, TreasuryAccount>;
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
     type MaxLocks = MaxLocks;
