@@ -36,31 +36,26 @@
             "chain": "heiko",
             "nodes": [
                 {
-                    "wsPort": 9988,
+                    "wsPort": 9977,
                     "port": 31200,
                     "flags": [
                         "-laura=debug",
-                        "--force-authoring",
                         "--alice",
                         "--",
                         "--execution=wasm"
                     ]
-                }
-            ]
-        },
-        {
-            "bin": "./target/release/parallel",
-            "id": "300",
-            "balance": "1000000000000000000000",
-            "chain": "parallel",
-            "nodes": [
+                },
+                {
+                    "wsPort": 9988,
+                    "port": 31300,
+                    "flags": ["-laura=debug", "--bob", "--", "--execution=wasm"]
+                },
                 {
                     "wsPort": 9999,
-                    "port": 31300,
+                    "port": 31400,
                     "flags": [
                         "-laura=debug",
-                        "--force-authoring",
-                        "--bob",
+                        "--charlie",
                         "--",
                         "--execution=wasm"
                     ]
@@ -69,20 +64,7 @@
         }
     ],
     "simpleParachains": [],
-    "hrmpChannels": [
-        {
-            "sender": 200,
-            "recipient": 300,
-            "maxCapacity": 8,
-            "maxMessageSize": 512
-        },
-        {
-            "sender": 300,
-            "recipient": 200,
-            "maxCapacity": 8,
-            "maxMessageSize": 512
-        }
-    ],
+    "hrmpChannels": [],
     "types": {},
     "finalization": false
 }
