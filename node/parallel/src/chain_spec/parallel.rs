@@ -167,7 +167,7 @@ fn testnet_genesis(
         pallet_collator_selection: CollatorSelectionConfig {
             invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
             candidacy_bond: EXISTENTIAL_DEPOSIT * 16,
-            ..Default::default()
+            desired_candidates: 16,
         },
         pallet_session: SessionConfig {
             keys: invulnerables
