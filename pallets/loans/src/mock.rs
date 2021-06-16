@@ -261,7 +261,7 @@ impl ExtBuilder {
                 (CurrencyId::USDT, Ratio::from_percent(15)),
                 (CurrencyId::xDOT, Ratio::from_percent(15)),
             ],
-            last_block_timestamp: 1,
+            last_block_timestamp: 0,
         }
         .assimilate_storage::<Runtime>(&mut t)
         .unwrap();
@@ -269,7 +269,7 @@ impl ExtBuilder {
         // t.into()
         let mut ext = sp_io::TestExternalities::new(t);
         ext.execute_with(|| {
-            System::set_block_number(1);
+            System::set_block_number(0);
             Timestamps::set_timestamp(6000);
         });
         ext
@@ -281,12 +281,19 @@ pub(crate) fn run_to_block(n: BlockNumber) {
     Loans::on_finalize(System::block_number());
     for b in (System::block_number() + 1)..=n {
         System::set_block_number(b);
-        Timestamps::set_timestamp(6000 * b);
         Loans::on_initialize(System::block_number());
+        Timestamps::set_timestamp(6000 * b);
         if b != n {
             Loans::on_finalize(System::block_number());
         }
     }
+}
+
+pub(crate) fn process_block(n: BlockNumber) {
+    System::set_block_number(n);
+    Loans::on_initialize(n);
+    Timestamps::set_timestamp(6000 * n);
+    Loans::on_finalize(n);
 }
 
 pub fn million_dollar(d: u128) -> u128 {

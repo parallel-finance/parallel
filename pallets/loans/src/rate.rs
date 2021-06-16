@@ -41,24 +41,18 @@ impl From<Rate> for APR {
 impl APR {
     pub const MAX: Rate = Rate::from_inner(350_000_000_000_000_000); // 35%
 
-    fn delta_time_fraction(delta_time: Timestamp) -> Option<Rate> {
-        Rate::checked_from_rational(delta_time, SECONDS_PER_YEAR)
-    }
-
-    pub fn rate_per_delta_time(&self, delta_time: Timestamp) -> Option<APR> {
-        self.0
-            .checked_mul(&APR::delta_time_fraction(delta_time)?)
-            .map(APR::from)
-    }
-
     pub fn accrued_interest(&self, amount: u128, delta_time: Timestamp) -> Option<u128> {
-        APR::delta_time_fraction(delta_time)?.checked_mul_int(self.0.checked_mul_int(amount)?)
+        self.0
+            .checked_mul_int(amount)?
+            .checked_mul(delta_time.into())?
+            .checked_div(SECONDS_PER_YEAR.into())
     }
 
     pub fn increment_index(&self, index: Rate, delta_time: Timestamp) -> Option<Rate> {
         self.0
             .checked_mul(&index)?
-            .checked_mul(&APR::delta_time_fraction(delta_time)?)
+            .checked_mul(&FixedU128::saturating_from_integer(delta_time))?
+            .checked_div(&FixedU128::saturating_from_integer(SECONDS_PER_YEAR))
     }
 }
 
@@ -243,17 +237,15 @@ mod tests {
 
     #[test]
     fn get_supply_rate_works() {
-        let borrow_rate_per_year = APR::from(Rate::saturating_from_rational(2, 100));
-        let borrow_rate_per_block = borrow_rate_per_year.rate_per_delta_time(6).unwrap();
+        let borrow_rate = APR::from(Rate::saturating_from_rational(2, 100));
         let util = Ratio::from_percent(50);
         let reserve_factor = Ratio::zero();
         let supply_rate =
-            InterestRateModel::get_supply_rate(borrow_rate_per_block, util, reserve_factor)
-                .unwrap();
+            InterestRateModel::get_supply_rate(borrow_rate, util, reserve_factor).unwrap();
         assert_eq!(
             supply_rate,
             APR::from(
-                borrow_rate_per_block
+                borrow_rate
                     .0
                     .saturating_mul(((Ratio::one().saturating_sub(reserve_factor)) * util).into())
             ),
