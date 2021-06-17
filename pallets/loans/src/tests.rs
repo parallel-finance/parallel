@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Unit tests for the loans module.
+#![cfg(test)]
+
 
 use frame_support::{assert_noop, assert_ok};
 use primitives::SECONDS_PER_YEAR;

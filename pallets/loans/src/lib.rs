@@ -34,9 +34,11 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
+pub use pallet::*;
 use primitives::{
     Amount, Balance, CurrencyId, Multiplier, Price, PriceFeeder, Rate, Ratio, Timestamp,
 };
+use sp_runtime::ArithmeticError;
 use sp_runtime::{
     traits::{
         AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, StaticLookup, Zero,
@@ -45,18 +47,12 @@ use sp_runtime::{
 };
 use sp_std::result;
 use sp_std::vec::Vec;
-
-pub use pallet::*;
-
-pub mod weights;
-
 pub use weights::WeightInfo;
 
-#[cfg(test)]
 mod mock;
 mod rate;
-#[cfg(test)]
 mod tests;
+pub mod weights;
 
 /// Container for borrow balance information
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
