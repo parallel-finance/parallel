@@ -418,7 +418,7 @@ parameter_types! {
 impl pallet_collator_selection::Config for Runtime {
     type Event = Event;
     type Currency = Balances;
-    type UpdateOrigin = EnsureRoot<AccountId>;
+    type UpdateOrigin = EnsureRootOrHalfCouncil;
     type PotId = PotId;
     type MaxCandidates = MaxCandidates;
     type MaxInvulnerables = MaxInvulnerables;
