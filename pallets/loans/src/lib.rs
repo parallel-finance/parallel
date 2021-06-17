@@ -45,7 +45,7 @@ use sp_runtime::{
     },
     FixedPointNumber, FixedU128,
 };
-use sp_std::result;
+use sp_std::result::Result;
 use sp_std::vec::Vec;
 pub use weights::WeightInfo;
 
@@ -53,9 +53,6 @@ mod mock;
 mod rate;
 mod tests;
 pub mod weights;
-
-pub(crate) const OVERFLOW: DispatchError = DispatchError::Arithmetic(ArithmeticError::Overflow);
-pub(crate) const UNDERFLOW: DispatchError = DispatchError::Arithmetic(ArithmeticError::Overflow);
 
 /// Container for borrow balance information
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
@@ -467,11 +464,13 @@ pub mod pallet {
                 deposits.voucher_balance = deposits
                     .voucher_balance
                     .checked_add(voucher_amount)
-                    .ok_or(OVERFLOW)?;
+                    .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
             TotalSupply::<T>::try_mutate(&currency_id, |total_balance| -> DispatchResult {
-                let new_balance = total_balance.checked_add(voucher_amount).ok_or(OVERFLOW)?;
+                let new_balance = total_balance
+                    .checked_add(voucher_amount)
+                    .ok_or(ArithmeticError::Overflow)?;
                 *total_balance = new_balance;
                 Ok(())
             })?;
@@ -521,7 +520,7 @@ pub mod pallet {
             let exchange_rate = Self::exchange_rate(currency_id);
             let redeem_amount = exchange_rate
                 .checked_mul_int(deposits.voucher_balance)
-                .ok_or(OVERFLOW)?;
+                .ok_or(ArithmeticError::Overflow)?;
             Self::redeem_internal(&who, &currency_id, redeem_amount)?;
 
             Self::deposit_event(Event::<T>::Redeemed(who, currency_id, redeem_amount));
@@ -545,9 +544,13 @@ pub mod pallet {
 
             Self::borrow_guard(&who, &currency_id, borrow_amount)?;
             let account_borrows = Self::borrow_balance_stored(&who, &currency_id)?;
-            let account_borrows_new = account_borrows.checked_add(borrow_amount).ok_or(OVERFLOW)?;
+            let account_borrows_new = account_borrows
+                .checked_add(borrow_amount)
+                .ok_or(ArithmeticError::Overflow)?;
             let total_borrows = Self::total_borrows(&currency_id);
-            let total_borrows_new = total_borrows.checked_add(borrow_amount).ok_or(OVERFLOW)?;
+            let total_borrows_new = total_borrows
+                .checked_add(borrow_amount)
+                .ok_or(ArithmeticError::Overflow)?;
             AccountBorrows::<T>::insert(
                 &currency_id,
                 &who,
@@ -682,7 +685,7 @@ pub mod pallet {
             if total_collateral_asset_value
                 < total_borrowed_value
                     .checked_add(&collateral_asset_value)
-                    .ok_or(OVERFLOW)?
+                    .ok_or(ArithmeticError::Overflow)?
             {
                 return Err(Error::<T>::InsufficientCollateral.into());
             }
@@ -835,7 +838,10 @@ impl<T: Config> Pallet<T> {
         let collateral = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
         AccountDeposits::<T>::try_mutate_exists(currency_id, who, |deposits| -> DispatchResult {
             let mut d = deposits.unwrap_or_default();
-            d.voucher_balance = d.voucher_balance.checked_sub(collateral).ok_or(UNDERFLOW)?;
+            d.voucher_balance = d
+                .voucher_balance
+                .checked_sub(collateral)
+                .ok_or(ArithmeticError::Underflow)?;
             if d.voucher_balance.is_zero() {
                 // remove deposits storage if zero balance
                 *deposits = None;
@@ -845,7 +851,9 @@ impl<T: Config> Pallet<T> {
             Ok(())
         })?;
         TotalSupply::<T>::try_mutate(currency_id, |total_balance| -> DispatchResult {
-            let new_balance = total_balance.checked_sub(collateral).ok_or(UNDERFLOW)?;
+            let new_balance = total_balance
+                .checked_sub(collateral)
+                .ok_or(ArithmeticError::Underflow)?;
             *total_balance = new_balance;
             Ok(())
         })?;
@@ -854,7 +862,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    fn total_borrowed_value(borrower: &T::AccountId) -> result::Result<FixedU128, DispatchError> {
+    fn total_borrowed_value(borrower: &T::AccountId) -> Result<FixedU128, DispatchError> {
         let mut total_borrow_value: FixedU128 = FixedU128::zero();
 
         for currency_id in Currencies::<T>::get().iter() {
@@ -866,7 +874,7 @@ impl<T: Config> Pallet<T> {
             total_borrow_value = borrow_currency_price
                 .checked_mul(&FixedU128::from_inner(currency_borrow_amount))
                 .and_then(|r| r.checked_add(&total_borrow_value))
-                .ok_or(OVERFLOW)?;
+                .ok_or(ArithmeticError::Overflow)?;
         }
 
         Ok(total_borrow_value)
@@ -876,15 +884,15 @@ impl<T: Config> Pallet<T> {
         borrower: &T::AccountId,
         borrow_currency_id: &CurrencyId,
         borrow_amount: Balance,
-    ) -> result::Result<FixedU128, DispatchError> {
+    ) -> Result<FixedU128, DispatchError> {
         let borrow_currency_price = Self::get_price(borrow_currency_id)?;
         let mut total_borrow_value = borrow_currency_price
             .checked_mul(&FixedU128::from_inner(borrow_amount))
-            .ok_or(OVERFLOW)?;
+            .ok_or(ArithmeticError::Overflow)?;
 
         total_borrow_value = total_borrow_value
             .checked_add(&Self::total_borrowed_value(borrower)?)
-            .ok_or(OVERFLOW)?;
+            .ok_or(ArithmeticError::Overflow)?;
 
         Ok(total_borrow_value)
     }
@@ -892,7 +900,7 @@ impl<T: Config> Pallet<T> {
     fn collateral_asset_value(
         borrower: &T::AccountId,
         currency_id: &CurrencyId,
-    ) -> result::Result<FixedU128, DispatchError> {
+    ) -> Result<FixedU128, DispatchError> {
         let deposits = AccountDeposits::<T>::get(currency_id, borrower);
         if deposits.voucher_balance.is_zero() {
             return Ok(FixedU128::zero());
@@ -902,16 +910,15 @@ impl<T: Config> Pallet<T> {
         let currency_price = Self::get_price(currency_id)?;
         let collateral_amount = exchange_rate
             .checked_mul_int(collateral_factor.mul_floor(deposits.voucher_balance))
-            .ok_or(OVERFLOW)?;
+            .ok_or(ArithmeticError::Overflow)?;
 
-        currency_price
+        let rslt = currency_price
             .checked_mul(&FixedU128::from_inner(collateral_amount))
-            .ok_or(OVERFLOW)
+            .ok_or(ArithmeticError::Overflow)?;
+        Ok(rslt)
     }
 
-    fn total_collateral_asset_value(
-        borrower: &T::AccountId,
-    ) -> result::Result<FixedU128, DispatchError> {
+    fn total_collateral_asset_value(borrower: &T::AccountId) -> Result<FixedU128, DispatchError> {
         let mut total_asset_value: FixedU128 = FixedU128::zero();
         for currency_id in Currencies::<T>::get().iter() {
             if !AccountDeposits::<T>::contains_key(currency_id, borrower) {
@@ -923,7 +930,7 @@ impl<T: Config> Pallet<T> {
             }
             total_asset_value = total_asset_value
                 .checked_add(&Self::collateral_asset_value(borrower, currency_id)?)
-                .ok_or(OVERFLOW)?;
+                .ok_or(ArithmeticError::Overflow)?;
         }
 
         Ok(total_asset_value)
@@ -957,9 +964,13 @@ impl<T: Config> Pallet<T> {
 
         T::Currency::transfer(*currency_id, borrower, &Self::account_id(), repay_amount)?;
 
-        let account_borrows_new = account_borrows.checked_sub(repay_amount).ok_or(UNDERFLOW)?;
+        let account_borrows_new = account_borrows
+            .checked_sub(repay_amount)
+            .ok_or(ArithmeticError::Underflow)?;
         let total_borrows = Self::total_borrows(currency_id);
-        let total_borrows_new = total_borrows.checked_sub(repay_amount).ok_or(UNDERFLOW)?;
+        let total_borrows_new = total_borrows
+            .checked_sub(repay_amount)
+            .ok_or(ArithmeticError::Underflow)?;
 
         AccountBorrows::<T>::insert(
             currency_id,
@@ -980,7 +991,7 @@ impl<T: Config> Pallet<T> {
     pub fn borrow_balance_stored(
         who: &T::AccountId,
         currency_id: &CurrencyId,
-    ) -> result::Result<Balance, DispatchError> {
+    ) -> Result<Balance, DispatchError> {
         let snapshot: BorrowSnapshot = Self::account_borrows(currency_id, who);
         Self::borrow_balance_stored_with_snapshot(currency_id, snapshot)
     }
@@ -990,7 +1001,7 @@ impl<T: Config> Pallet<T> {
     pub fn borrow_balance_stored_with_snapshot(
         currency_id: &CurrencyId,
         snapshot: BorrowSnapshot,
-    ) -> result::Result<Balance, DispatchError> {
+    ) -> Result<Balance, DispatchError> {
         if snapshot.principal.is_zero() || snapshot.borrow_index.is_zero() {
             return Ok(0);
         }
@@ -999,7 +1010,7 @@ impl<T: Config> Pallet<T> {
         let recent_borrow_balance = Self::borrow_index(currency_id)
             .checked_div(&snapshot.borrow_index)
             .and_then(|r| r.checked_mul_int(snapshot.principal))
-            .ok_or(OVERFLOW)?;
+            .ok_or(ArithmeticError::Overflow)?;
 
         Ok(recent_borrow_balance)
     }
@@ -1012,7 +1023,7 @@ impl<T: Config> Pallet<T> {
             .checked_sub(&account_earned.exchange_rate_prior)
             .and_then(|r| r.checked_mul_int(deposits.voucher_balance))
             .and_then(|r| r.checked_add(account_earned.total_earned_prior))
-            .ok_or(OVERFLOW)?;
+            .ok_or(ArithmeticError::Overflow)?;
 
         AccountEarned::<T>::insert(
             currency_id,
@@ -1065,13 +1076,13 @@ impl<T: Config> Pallet<T> {
         //the total amount of borrower's collateral token
         let collateral_underlying_amount = exchange_rate
             .checked_mul_int(deposits.voucher_balance)
-            .ok_or(OVERFLOW)?;
+            .ok_or(ArithmeticError::Overflow)?;
 
         // how much the borrower's collateral is worth based on its current currency price
         let collateral_token_price = Self::get_price(&collateral_currency_id)?;
         let collateral_value = collateral_token_price
             .checked_mul(&FixedU128::from_inner(collateral_underlying_amount))
-            .ok_or(OVERFLOW)?;
+            .ok_or(ArithmeticError::Overflow)?;
 
         // the incentive for liquidator and punishment for the borrower
         let liquidation_incentive = LiquidationIncentive::<T>::get(liquidate_currency_id);
@@ -1095,7 +1106,7 @@ impl<T: Config> Pallet<T> {
         // instead of saturating_from_integer, and after calculation use into_inner to get final value.
         let real_collateral_underlying_amount = liquidate_value
             .checked_div(&collateral_token_price)
-            .ok_or(UNDERFLOW)?;
+            .ok_or(ArithmeticError::Underflow)?;
 
         //inside transfer token
         Self::liquidate_repay_borrow_internal(
@@ -1128,9 +1139,13 @@ impl<T: Config> Pallet<T> {
         )?;
         //2. the system will reduce borrower's debt
         let account_borrows = Self::borrow_balance_stored(borrower, liquidate_currency_id)?;
-        let account_borrows_new = account_borrows.checked_sub(repay_amount).ok_or(UNDERFLOW)?;
+        let account_borrows_new = account_borrows
+            .checked_sub(repay_amount)
+            .ok_or(ArithmeticError::Underflow)?;
         let total_borrows = Self::total_borrows(liquidate_currency_id);
-        let total_borrows_new = total_borrows.checked_sub(repay_amount).ok_or(UNDERFLOW)?;
+        let total_borrows_new = total_borrows
+            .checked_sub(repay_amount)
+            .ok_or(ArithmeticError::Underflow)?;
         AccountBorrows::<T>::insert(
             liquidate_currency_id,
             borrower,
@@ -1155,7 +1170,7 @@ impl<T: Config> Pallet<T> {
                 deposits.voucher_balance = deposits
                     .voucher_balance
                     .checked_sub(collateral_amount)
-                    .ok_or(UNDERFLOW)?;
+                    .ok_or(ArithmeticError::Underflow)?;
                 Ok(())
             },
         )?;
@@ -1167,7 +1182,7 @@ impl<T: Config> Pallet<T> {
                 deposits.voucher_balance = deposits
                     .voucher_balance
                     .checked_add(collateral_amount)
-                    .ok_or(OVERFLOW)?;
+                    .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             },
         )?;
@@ -1207,13 +1222,15 @@ impl<T: Config> Pallet<T> {
             let util = Self::calc_utilization_ratio(total_cash, total_borrows, total_reserves)?;
 
             let interest_model = Self::currency_interest_model(currency_id);
-            let borrow_rate = interest_model.get_borrow_rate(util).map_err(|_| OVERFLOW)?;
+            let borrow_rate = interest_model
+                .get_borrow_rate(util)
+                .map_err(|_| ArithmeticError::Overflow)?;
             let supply_rate = InterestRateModel::get_supply_rate(
                 borrow_rate,
                 util,
                 Self::reserve_factor(currency_id),
             )
-            .map_err(|_| OVERFLOW)?;
+            .map_err(|_| ArithmeticError::Overflow)?;
 
             UtilizationRatio::<T>::insert(currency_id, util);
             BorrowRate::<T>::insert(currency_id, &borrow_rate.0);
@@ -1239,10 +1256,10 @@ impl<T: Config> Pallet<T> {
         let cash_plus_borrows_minus_reserves = total_cash
             .checked_add(total_borrows)
             .and_then(|r| r.checked_sub(total_reserves))
-            .ok_or(OVERFLOW)?;
+            .ok_or(ArithmeticError::Overflow)?;
         let exchange_rate =
             Rate::checked_from_rational(cash_plus_borrows_minus_reserves, total_supply)
-                .ok_or(UNDERFLOW)?;
+                .ok_or(ArithmeticError::Underflow)?;
 
         ExchangeRate::<T>::insert(currency_id, exchange_rate);
 
@@ -1262,7 +1279,7 @@ impl<T: Config> Pallet<T> {
         let total = cash
             .checked_add(borrows)
             .and_then(|r| r.checked_sub(reserves))
-            .ok_or(OVERFLOW)?;
+            .ok_or(ArithmeticError::Overflow)?;
 
         Ok(Ratio::from_rational(borrows, total))
     }
@@ -1278,19 +1295,19 @@ impl<T: Config> Pallet<T> {
         let delta_time = T::UnixTime::now().as_secs() - Self::last_block_timestamp();
         let interest_accumulated = borrow_apr
             .accrued_interest(borrows_prior, delta_time)
-            .ok_or(OVERFLOW)?;
+            .ok_or(ArithmeticError::Overflow)?;
         let total_borrows_new = interest_accumulated
             .checked_add(borrows_prior)
-            .ok_or(OVERFLOW)?;
+            .ok_or(ArithmeticError::Overflow)?;
         let total_reserves_new = reserve_factor
             .mul_floor(interest_accumulated)
             .checked_add(reserve_prior)
-            .ok_or(OVERFLOW)?;
+            .ok_or(ArithmeticError::Overflow)?;
         let borrow_index = Self::borrow_index(currency_id);
         let borrow_index_new = borrow_apr
             .increment_index(borrow_index, delta_time)
             .and_then(|r| r.checked_add(&borrow_index))
-            .ok_or(OVERFLOW)?;
+            .ok_or(ArithmeticError::Overflow)?;
 
         TotalBorrows::<T>::insert(currency_id, total_borrows_new);
         TotalReserves::<T>::insert(currency_id, total_reserves_new);
@@ -1306,14 +1323,15 @@ impl<T: Config> Pallet<T> {
     pub fn calc_collateral_amount(
         underlying_amount: u128,
         exchange_rate: Rate,
-    ) -> result::Result<Balance, DispatchError> {
-        FixedU128::from_inner(underlying_amount)
+    ) -> Result<Balance, DispatchError> {
+        let rslt = FixedU128::from_inner(underlying_amount)
             .checked_div(&exchange_rate)
             .map(|r| r.into_inner())
-            .ok_or(UNDERFLOW)
+            .ok_or(ArithmeticError::Underflow)?;
+        Ok(rslt)
     }
 
-    pub fn get_price(currency_id: &CurrencyId) -> result::Result<Price, Error<T>> {
+    pub fn get_price(currency_id: &CurrencyId) -> Result<Price, Error<T>> {
         let (price, _) =
             T::PriceFeeder::get_price(currency_id).ok_or(Error::<T>::PriceOracleNotReady)?;
         if price.is_zero() {

@@ -6,7 +6,7 @@ use crate::{
 use frame_support::{assert_noop, assert_ok};
 use orml_traits::MultiCurrency;
 use primitives::Rate;
-use sp_runtime::{traits::Bounded, FixedPointNumber};
+use sp_runtime::FixedPointNumber;
 
 #[test]
 fn borrower_must_have_some_borrowed_balance() {
@@ -19,8 +19,7 @@ fn borrower_must_have_some_borrowed_balance() {
     })
 }
 
-#[test]
-fn collateral_value_must_be_less_than_liquidation_value() {
+pub(super) fn collateral_value_must_be_greater_than_liquidation_value() {
     ExtBuilder::default().build().execute_with(|| {
         initial_setup();
         alice_borrows_100_ksm();
@@ -30,11 +29,11 @@ fn collateral_value_must_be_less_than_liquidation_value() {
             Loans::liquidate_borrow(Origin::signed(BOB), ALICE, KSM, million_dollar(50), DOT),
             Error::<Runtime>::RepayValueGreaterThanCollateral
         );
+        MOCK_PRICE_FEEDER::reset();
     })
 }
 
-#[test]
-fn full_workflow_works_as_expected() {
+pub(super) fn full_workflow_works_as_expected() {
     ExtBuilder::default().build().execute_with(|| {
         initial_setup();
         alice_borrows_100_ksm();
@@ -87,8 +86,7 @@ fn full_workflow_works_as_expected() {
     })
 }
 
-#[test]
-fn liquidator_can_not_repay_more_than_the_close_factor_pct_multiplier() {
+pub(super) fn liquidator_can_not_repay_more_than_the_close_factor_pct_multiplier() {
     ExtBuilder::default().build().execute_with(|| {
         initial_setup();
         alice_borrows_100_ksm();
@@ -97,6 +95,7 @@ fn liquidator_can_not_repay_more_than_the_close_factor_pct_multiplier() {
             Loans::liquidate_borrow(Origin::signed(BOB), ALICE, KSM, million_dollar(51), DOT),
             Error::<Runtime>::RepayAmountExceedsCloseFactor
         );
+        MOCK_PRICE_FEEDER::reset();
     })
 }
 

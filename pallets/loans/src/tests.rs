@@ -83,12 +83,19 @@ fn mint_works() {
 #[test]
 fn mint_must_return_err_when_overflows_occur() {
     ExtBuilder::default().build().execute_with(|| {
-        // Amout is too large
-        assert_noop!(Loans::mint(Origin::signed(ALICE), DOT, u128::MAX), OVERFLOW,);
+        // Amount is too large, max_value / 0.0X == Overflow
+        // Underflow is used here redeem could also be 0
+        assert_noop!(
+            Loans::mint(Origin::signed(ALICE), DOT, u128::MAX),
+            ArithmeticError::Underflow
+        );
 
         // Exchange rate must ge greater than zero
         ExchangeRate::<Runtime>::insert(DOT, Rate::zero());
-        assert_noop!(Loans::mint(Origin::signed(ALICE), DOT, 100), UNDERFLOW);
+        assert_noop!(
+            Loans::mint(Origin::signed(ALICE), DOT, 100),
+            ArithmeticError::Underflow
+        );
     })
 }
 
@@ -121,15 +128,19 @@ fn redeem_works() {
 #[test]
 fn redeem_must_return_err_when_overflows_occur() {
     ExtBuilder::default().build().execute_with(|| {
-        // Amount is too large
+        // Amount is too large, max_value / 0.0X == Overflow
+        // Underflow is used here redeem could also be 0
         assert_noop!(
             Loans::redeem(Origin::signed(ALICE), DOT, u128::MAX),
-            OVERFLOW,
+            ArithmeticError::Underflow,
         );
 
         // Exchange rate must ge greater than zero
         ExchangeRate::<Runtime>::insert(DOT, Rate::zero());
-        assert_noop!(Loans::redeem(Origin::signed(ALICE), DOT, 100), UNDERFLOW);
+        assert_noop!(
+            Loans::redeem(Origin::signed(ALICE), DOT, 100),
+            ArithmeticError::Underflow
+        );
     })
 }
 
@@ -293,7 +304,6 @@ fn collateral_asset_works() {
     })
 }
 
-#[test]
 fn total_collateral_asset_value_works() {
     ExtBuilder::default().build().execute_with(|| {
         let collateral_factor = Rate::saturating_from_rational(50, 100);
@@ -887,4 +897,15 @@ fn get_price_works() {
         Price::saturating_from_integer(2)
     );
     MOCK_PRICE_FEEDER::reset();
+}
+
+// Groups all tests that conflict internal storage due to concurrent reads and writes
+// or in other words, groups all flaky concurrent tests.
+#[test]
+fn sequential_tests() {
+    total_collateral_asset_value_works();
+
+    liquidate_borrow::collateral_value_must_be_greater_than_liquidation_value();
+    liquidate_borrow::full_workflow_works_as_expected();
+    liquidate_borrow::liquidator_can_not_repay_more_than_the_close_factor_pct_multiplier();
 }
