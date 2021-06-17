@@ -39,7 +39,7 @@
                     "wsPort": 9977,
                     "port": 31200,
                     "flags": [
-                        "-laura=debug",
+                        "-lpallet_collator_selection=debug",
                         "--alice",
                         "--",
                         "--execution=wasm"
@@ -48,13 +48,18 @@
                 {
                     "wsPort": 9988,
                     "port": 31300,
-                    "flags": ["-laura=debug", "--bob", "--", "--execution=wasm"]
+                    "flags": [
+                        "-lpallet_collator_selection=debug",
+                        "--bob",
+                        "--",
+                        "--execution=wasm"
+                    ]
                 },
                 {
                     "wsPort": 9999,
                     "port": 31400,
                     "flags": [
-                        "-laura=debug",
+                        "-lpallet_collator_selection=debug",
                         "--charlie",
                         "--",
                         "--execution=wasm"
