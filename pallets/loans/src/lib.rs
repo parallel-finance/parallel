@@ -127,7 +127,7 @@ pub mod pallet {
         /// Insufficient collateral asset to borrow more or disable collateral
         InsufficientCollateral,
         /// Repay amount greater than borrow balance
-        RepayAmountTooBig,
+        RepayAmountExceedsCloseFactor,
         /// Asset already enabled/disabled collateral
         DuplicateOperation,
         /// No deposit asset
@@ -952,7 +952,7 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         let account_borrows = Self::borrow_balance_stored(borrower, currency_id)?;
         if account_borrows < repay_amount {
-            return Err(Error::<T>::RepayAmountTooBig.into());
+            return Err(Error::<T>::RepayAmountExceedsCloseFactor.into());
         }
 
         T::Currency::transfer(*currency_id, borrower, &Self::account_id(), repay_amount)?;
@@ -1055,7 +1055,7 @@ impl<T: Config> Pallet<T> {
         // we can only liquidate 50% of the borrows
         let close_factor = CloseFactor::<T>::get(liquidate_currency_id);
         if close_factor.mul_floor(account_borrows) < repay_amount {
-            return Err(Error::<T>::RepayAmountTooBig.into());
+            return Err(Error::<T>::RepayAmountExceedsCloseFactor.into());
         }
 
         //calculate collateral_token_sum price
