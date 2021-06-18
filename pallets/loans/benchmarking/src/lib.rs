@@ -13,7 +13,7 @@ use orml_traits::MultiCurrency;
 use pallet_loans::{Config as LoansConfig, InterestRateModel, Pallet as Loans};
 use primitives::{CurrencyId, PriceWithDecimal, Rate, Ratio};
 use sp_runtime::traits::{Bounded, One, StaticLookup};
-use sp_runtime::{FixedPointNumber, FixedU128};
+use sp_runtime::{ArithmeticError, DispatchError, FixedPointNumber, FixedU128};
 use sp_std::prelude::*;
 use sp_std::vec;
 
@@ -135,7 +135,7 @@ benchmarks! {
         let exchange_rate = Loans::<T>::exchange_rate(DOT);
         let redeem_amount = exchange_rate
             .checked_mul_int(deposits.voucher_balance)
-            .ok_or(pallet_loans::Error::<T>::Overflow)?;
+            .ok_or(DispatchError::Arithmetic(ArithmeticError::Overflow))?;
         let initial_balance = <T as LoansConfig>::Currency::free_balance(DOT, &Loans::<T>::account_id());
     }: {
          let _ = Loans::<T>::redeem_all(SystemOrigin::Signed(caller.clone()).into(), DOT);

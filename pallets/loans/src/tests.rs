@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Unit tests for the loans module.
+#![cfg(test)]
+
+mod liquidate_borrow;
 
 use frame_support::{assert_noop, assert_ok};
 use primitives::SECONDS_PER_YEAR;
@@ -79,13 +81,20 @@ fn mint_works() {
 }
 
 #[test]
-fn mint_failed() {
+fn mint_must_return_err_when_overflows_occur() {
     ExtBuilder::default().build().execute_with(|| {
-        // calculate collateral amount failed
+        // Amount is too large, max_value / 0.0X == Overflow
+        // Underflow is used here redeem could also be 0
+        assert_noop!(
+            Loans::mint(Origin::signed(ALICE), DOT, u128::MAX),
+            ArithmeticError::Underflow
+        );
+
+        // Exchange rate must ge greater than zero
         ExchangeRate::<Runtime>::insert(DOT, Rate::zero());
         assert_noop!(
             Loans::mint(Origin::signed(ALICE), DOT, 100),
-            Error::<Runtime>::Underflow,
+            ArithmeticError::Underflow
         );
     })
 }
@@ -112,6 +121,25 @@ fn redeem_works() {
         assert_eq!(
             <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
             million_dollar(920),
+        );
+    })
+}
+
+#[test]
+fn redeem_must_return_err_when_overflows_occur() {
+    ExtBuilder::default().build().execute_with(|| {
+        // Amount is too large, max_value / 0.0X == Overflow
+        // Underflow is used here redeem could also be 0
+        assert_noop!(
+            Loans::redeem(Origin::signed(ALICE), DOT, u128::MAX),
+            ArithmeticError::Underflow,
+        );
+
+        // Exchange rate must ge greater than zero
+        ExchangeRate::<Runtime>::insert(DOT, Rate::zero());
+        assert_noop!(
+            Loans::redeem(Origin::signed(ALICE), DOT, 100),
+            ArithmeticError::Underflow
         );
     })
 }
@@ -244,69 +272,6 @@ fn repay_borrow_all_works() {
 }
 
 #[test]
-fn liquidate_borrow_works() {
-    ExtBuilder::default().build().execute_with(|| {
-        // Bob deposits 200 KSM
-        assert_ok!(Loans::mint(Origin::signed(BOB), KSM, million_dollar(200)));
-        // Alice deposits 200 DOT as collateral
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, million_dollar(200)));
-        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
-        // Alice borrows 100 KSM
-        assert_ok!(Loans::borrow(
-            Origin::signed(ALICE),
-            KSM,
-            million_dollar(100)
-        ));
-        // adjust KSM price to make ALICE generate shortfall
-        MOCK_PRICE_FEEDER::set_price(KSM, 2.into());
-        // BOB repay the KSM borrow balance and get DOT from ALICE
-        assert_ok!(Loans::liquidate_borrow(
-            Origin::signed(BOB),
-            ALICE,
-            KSM,
-            million_dollar(50),
-            DOT
-        ));
-
-        // KSM price = 2
-        // incentive = repay KSM value * 1.1 = (50 * 2) * 1.1 = 110
-        // Alice DOT: cash - deposit = 1000 - 200 = 800
-        // Alice DOT collateral: deposit - incentive = 200 - 110 = 90
-        // Alice KSM: cash + borrow = 1000 + 100 = 1100
-        // Alice KSM borrow balance: origin borrow balance - repay amount = 100 - 50 = 50
-        // Bob KSM: cash - deposit - repay = 1000 - 200 - 50 = 750
-        // Bob DOT collateral: incentive = 110
-        assert_eq!(
-            <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
-            million_dollar(800),
-        );
-        assert_eq!(
-            Loans::exchange_rate(DOT)
-                .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
-            90000000000000000000,
-        );
-        assert_eq!(
-            <Runtime as Config>::Currency::free_balance(KSM, &ALICE),
-            million_dollar(1100),
-        );
-        assert_eq!(
-            Loans::account_borrows(KSM, ALICE).principal,
-            million_dollar(50)
-        );
-        assert_eq!(
-            <Runtime as Config>::Currency::free_balance(KSM, &BOB),
-            million_dollar(750)
-        );
-        assert_eq!(
-            Loans::exchange_rate(DOT)
-                .saturating_mul_int(Loans::account_deposits(DOT, BOB).voucher_balance),
-            110000000000000000000,
-        );
-        MOCK_PRICE_FEEDER::reset();
-    })
-}
-
-#[test]
 fn collateral_asset_works() {
     ExtBuilder::default().build().execute_with(|| {
         // No collateral assets
@@ -339,7 +304,6 @@ fn collateral_asset_works() {
     })
 }
 
-#[test]
 fn total_collateral_asset_value_works() {
     ExtBuilder::default().build().execute_with(|| {
         let collateral_factor = Rate::saturating_from_rational(50, 100);
@@ -933,4 +897,15 @@ fn get_price_works() {
         Price::saturating_from_integer(2)
     );
     MOCK_PRICE_FEEDER::reset();
+}
+
+// Groups all tests that conflict internal storage due to concurrent reads and writes
+// or in other words, groups all flaky concurrent tests.
+#[test]
+fn sequential_tests() {
+    total_collateral_asset_value_works();
+
+    liquidate_borrow::collateral_value_must_be_greater_than_liquidation_value();
+    liquidate_borrow::full_workflow_works_as_expected();
+    liquidate_borrow::liquidator_can_not_repay_more_than_the_close_factor_pct_multiplier();
 }
