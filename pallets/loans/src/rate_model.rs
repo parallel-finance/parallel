@@ -15,17 +15,7 @@
 use primitives::{Rate, Ratio, Timestamp, SECONDS_PER_YEAR};
 use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedSub, Saturating};
 
-use crate::rate_model::InterestRateModel::Jump;
 use crate::*;
-
-// pub trait InterestRateModel<T> {
-//     /// Initialize new interest rate model
-//     fn new_model(model: T) -> Self;
-//     /// Check interest rate model for sanity
-//     fn check_model() -> bool;
-//     /// Calculates the borrow interest rate
-//     fn get_borrow_rate(&self, utilization: Ratio) -> Option<Rate>;
-// }
 
 /// Parallel interest rate model
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug)]
@@ -37,12 +27,11 @@ pub enum InterestRateModel {
 #[cfg(feature = "std")]
 impl Default for InterestRateModel {
     fn default() -> Self {
-        Jump(JumpModel {
-            base_rate: Rate::saturating_from_rational(2, 100),
-            jump_rate: Rate::saturating_from_rational(10, 100),
-            full_rate: Rate::saturating_from_rational(32, 100),
-            jump_utilization: Ratio::from_percent(80),
-        })
+        Self::new_jump_model(
+            Rate::saturating_from_rational(2, 100),
+            Rate::saturating_from_rational(10, 100),
+            Rate::saturating_from_rational(32, 100),
+            Ratio::from_percent(80))
     }
 }
 
@@ -131,6 +120,10 @@ impl JumpModel {
         {
             return false;
         }
+        if self.base_rate > self.jump_rate
+            || self.jump_rate > self.full_rate {
+            return false;
+        }
 
         true
     }
@@ -169,17 +162,18 @@ pub struct CurveModel {
 }
 
 impl CurveModel {
-    /// Create a new rate model
+    /// Create a new curve model
     pub fn new_model(base_rate: Rate) -> CurveModel {
         Self { base_rate }
     }
 
+    /// Check the curve model for sanity
     pub fn check_model(&self) -> bool {
         true
     }
 
     /// Calculates the borrow interest rate of curve model
-    pub fn get_borrow_rate(&self, utilization: Ratio) -> Option<Rate> {
+    pub fn get_borrow_rate(&self, _utilization: Ratio) -> Option<Rate> {
         // TODO: Need to implement the curve model
         None
     }
@@ -202,7 +196,6 @@ pub fn increment_index(borrow_rate: Rate, index: Rate, delta_time: Timestamp) ->
 #[cfg(test)]
 mod tests {
     use super::*;
-    use frame_support::assert_ok;
     use sp_runtime::FixedU128;
 
     // Test jump model

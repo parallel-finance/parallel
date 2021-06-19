@@ -322,9 +322,9 @@ pub mod pallet {
         pub borrow_index: Rate,
         pub exchange_rate: Rate,
         pub base_rate: Rate,
-        pub kink_rate: Multiplier,
+        pub jump_rate: Multiplier,
         pub full_rate: Multiplier,
-        pub kink_utilization: Ratio,
+        pub jump_utilization: Ratio,
         pub collateral_factor: Vec<(CurrencyId, Ratio)>,
         pub liquidation_incentive: Vec<(CurrencyId, Rate)>,
         pub close_factor: Vec<(CurrencyId, Ratio)>,
@@ -340,9 +340,9 @@ pub mod pallet {
                 borrow_index: Rate::zero(),
                 exchange_rate: Rate::zero(),
                 base_rate: Rate::zero(),
-                kink_rate: Multiplier::zero(),
+                jump_rate: Multiplier::zero(),
                 full_rate: Multiplier::zero(),
-                kink_utilization: Ratio::zero(),
+                jump_utilization: Ratio::zero(),
                 collateral_factor: vec![],
                 liquidation_incentive: vec![],
                 close_factor: vec![],
@@ -358,9 +358,9 @@ pub mod pallet {
             self.currencies.iter().for_each(|currency_id| {
                 let interest_model = InterestRateModel::new_jump_model(
                     self.base_rate,
-                    self.kink_rate,
+                    self.jump_rate,
                     self.full_rate,
-                    self.kink_utilization,
+                    self.jump_utilization,
                 );
                 if !interest_model.check_model() {
                     log::info!(
