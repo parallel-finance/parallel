@@ -289,23 +289,21 @@ benchmarks! {
          let _ = Loans::<T>::set_rate_model(
             SystemOrigin::Root.into(),
             DOT,
-            InterestRateModel {
-                base_rate: Rate::saturating_from_rational(5, 100).into(),
-                kink_rate: Rate::saturating_from_rational(15, 100).into(),
-                full_rate: Rate::saturating_from_rational(35, 100).into(),
-                kink_utilization: Ratio::from_percent(80).into(),
-            }
+            InterestRateModel::new_jump_model(
+                Rate::saturating_from_rational(5, 100),
+                Rate::saturating_from_rational(15, 100),
+                Rate::saturating_from_rational(35, 100),
+                Ratio::from_percent(80))
          );
     }
     verify {
         assert_eq!(
             Loans::<T>::currency_interest_model(DOT),
-            InterestRateModel {
-                base_rate: Rate::saturating_from_rational(5, 100).into(),
-                kink_rate: Rate::saturating_from_rational(15, 100).into(),
-                full_rate: Rate::saturating_from_rational(35, 100).into(),
-                kink_utilization: Ratio::from_percent(80).into(),
-            }
+            InterestRateModel::new_jump_model(
+                Rate::saturating_from_rational(5, 100),
+                Rate::saturating_from_rational(15, 100),
+                Rate::saturating_from_rational(35, 100),
+                Ratio::from_percent(80))
         );
     }
 }

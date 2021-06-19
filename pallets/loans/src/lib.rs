@@ -24,7 +24,7 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::collapsible_if)]
 
-pub use crate::rate::{InterestRateModel, APR};
+pub use crate::rate_model::*;
 use frame_support::{
     log,
     pallet_prelude::*,
@@ -50,9 +50,9 @@ use sp_std::vec::Vec;
 pub use weights::WeightInfo;
 
 mod mock;
-mod rate;
 mod tests;
 pub mod weights;
+mod rate_model;
 
 /// Container for borrow balance information
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
@@ -356,13 +356,18 @@ pub mod pallet {
     impl<T: Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
             self.currencies.iter().for_each(|currency_id| {
-                let interest_model = InterestRateModel::new_model(
+                let interest_model = InterestRateModel::new_jump_model(
                     self.base_rate,
                     self.kink_rate,
                     self.full_rate,
                     self.kink_utilization,
                 );
-                interest_model.check_parameters().unwrap();
+                if !interest_model.check_model() {
+                    log::info!(
+                        "Could not initialize the interest rate model!!! {:#?}",
+                        currency_id
+                    );
+                }
                 CurrencyInterestModel::<T>::insert(currency_id, interest_model);
                 ExchangeRate::<T>::insert(currency_id, self.exchange_rate);
                 BorrowIndex::<T>::insert(currency_id, self.borrow_index);
@@ -741,9 +746,8 @@ pub mod pallet {
             T::UpdateOrigin::ensure_origin(origin)?;
             Self::ensure_currency(&currency_id)?;
 
-            new_model
-                .check_parameters()
-                .map_err(|_| Error::<T>::InvalidRateModelParam)?;
+            ensure!(new_model.check_model(), Error::<T>::InvalidRateModelParam);
+
             CurrencyInterestModel::<T>::insert(currency_id, new_model);
 
             Self::deposit_event(Event::<T>::NewInterestRateModel(new_model));
@@ -1224,19 +1228,18 @@ impl<T: Config> Pallet<T> {
             let interest_model = Self::currency_interest_model(currency_id);
             let borrow_rate = interest_model
                 .get_borrow_rate(util)
-                .map_err(|_| ArithmeticError::Overflow)?;
+                .ok_or(ArithmeticError::Overflow)?;
             let supply_rate = InterestRateModel::get_supply_rate(
                 borrow_rate,
                 util,
                 Self::reserve_factor(currency_id),
-            )
-            .map_err(|_| ArithmeticError::Overflow)?;
+            );
 
             UtilizationRatio::<T>::insert(currency_id, util);
-            BorrowRate::<T>::insert(currency_id, &borrow_rate.0);
-            SupplyRate::<T>::insert(currency_id, supply_rate.0);
+            BorrowRate::<T>::insert(currency_id, &borrow_rate);
+            SupplyRate::<T>::insert(currency_id, supply_rate);
 
-            Self::update_borrow_index(APR::from(borrow_rate), currency_id)?;
+            Self::update_borrow_index(borrow_rate, currency_id)?;
             Self::update_exchange_rate(currency_id)?;
         }
 
@@ -1284,7 +1287,7 @@ impl<T: Config> Pallet<T> {
         Ok(Ratio::from_rational(borrows, total))
     }
 
-    pub fn update_borrow_index(borrow_apr: APR, currency_id: CurrencyId) -> DispatchResult {
+    pub fn update_borrow_index(borrow_rate: Rate, currency_id: CurrencyId) -> DispatchResult {
         // interestAccumulated = totalBorrows * borrowRate
         // totalBorrows = interestAccumulated + totalBorrows
         // totalReserves = interestAccumulated * reserveFactor + totalReserves
@@ -1293,8 +1296,7 @@ impl<T: Config> Pallet<T> {
         let reserve_prior = Self::total_reserves(currency_id);
         let reserve_factor = Self::reserve_factor(currency_id);
         let delta_time = T::UnixTime::now().as_secs() - Self::last_block_timestamp();
-        let interest_accumulated = borrow_apr
-            .accrued_interest(borrows_prior, delta_time)
+        let interest_accumulated = accrued_interest(borrow_rate, borrows_prior, delta_time)
             .ok_or(ArithmeticError::Overflow)?;
         let total_borrows_new = interest_accumulated
             .checked_add(borrows_prior)
@@ -1304,8 +1306,7 @@ impl<T: Config> Pallet<T> {
             .checked_add(reserve_prior)
             .ok_or(ArithmeticError::Overflow)?;
         let borrow_index = Self::borrow_index(currency_id);
-        let borrow_index_new = borrow_apr
-            .increment_index(borrow_index, delta_time)
+        let borrow_index_new = increment_index(borrow_rate, borrow_index, delta_time)
             .and_then(|r| r.checked_add(&borrow_index))
             .ok_or(ArithmeticError::Overflow)?;
 
