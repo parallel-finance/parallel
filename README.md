@@ -107,6 +107,25 @@ subcommands:
 ./target/release/parallel -h
 ```
 
+### Docker
+
+Run Vanilla Dev Node
+
+```
+docker run -d -p 9944:9944 \
+    -v "$(pwd):/data" \
+    parallelfinance/parallel:latest
+```
+
+Run Vanilla Live Node
+
+```
+docker run -d -p 9944:9944 \
+    -v "$(pwd):/data" \
+    parallelfinance/parallel:latest \
+    parallel-dev --chain live --alice --rpc-cors all --rpc-methods=Unsafe --unsafe-rpc-external --unsafe-ws-external
+```
+
 ## Learn More
 
 Refer to the upstream
