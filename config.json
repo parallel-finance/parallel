@@ -38,32 +38,17 @@
                 {
                     "wsPort": 9977,
                     "port": 31200,
-                    "flags": [
-                        "-lpallet_collator_selection=debug",
-                        "--alice",
-                        "--",
-                        "--execution=wasm"
-                    ]
+                    "flags": ["--alice", "--", "--execution=wasm"]
                 },
                 {
                     "wsPort": 9988,
                     "port": 31300,
-                    "flags": [
-                        "-lpallet_collator_selection=debug",
-                        "--bob",
-                        "--",
-                        "--execution=wasm"
-                    ]
+                    "flags": ["--bob", "--", "--execution=wasm"]
                 },
                 {
                     "wsPort": 9999,
                     "port": 31400,
-                    "flags": [
-                        "-lpallet_collator_selection=debug",
-                        "--charlie",
-                        "--",
-                        "--execution=wasm"
-                    ]
+                    "flags": ["--charlie", "--", "--execution=wasm"]
                 }
             ]
         }
