@@ -614,7 +614,8 @@ fn set_rate_model_works() {
                 Rate::saturating_from_rational(2, 100),
                 Rate::saturating_from_rational(10, 100),
                 Rate::saturating_from_rational(32, 100),
-                Ratio::from_percent(80))
+                Ratio::from_percent(80)
+            )
         );
         // Set new rate model
         assert_ok!(Loans::set_rate_model(
@@ -624,7 +625,8 @@ fn set_rate_model_works() {
                 Rate::saturating_from_rational(5, 100),
                 Rate::saturating_from_rational(15, 100),
                 Rate::saturating_from_rational(35, 100),
-                Ratio::from_percent(80))
+                Ratio::from_percent(80)
+            )
         ));
         assert_eq!(
             Loans::currency_interest_model(DOT),
@@ -632,7 +634,8 @@ fn set_rate_model_works() {
                 Rate::saturating_from_rational(5, 100),
                 Rate::saturating_from_rational(15, 100),
                 Rate::saturating_from_rational(35, 100),
-                Ratio::from_percent(80))
+                Ratio::from_percent(80)
+            )
         );
     })
 }
@@ -649,7 +652,8 @@ fn set_rate_model_failed_by_error_param() {
                     Rate::saturating_from_rational(36, 100),
                     Rate::saturating_from_rational(15, 100),
                     Rate::saturating_from_rational(35, 100),
-                    Ratio::from_percent(80))
+                    Ratio::from_percent(80)
+                )
             ),
             Error::<Runtime>::InvalidRateModelParam
         );
@@ -662,7 +666,8 @@ fn set_rate_model_failed_by_error_param() {
                     Rate::saturating_from_rational(5, 100),
                     Rate::saturating_from_rational(36, 100),
                     Rate::saturating_from_rational(37, 100),
-                    Ratio::from_percent(80))
+                    Ratio::from_percent(80)
+                )
             ),
             Error::<Runtime>::InvalidRateModelParam
         );
@@ -675,7 +680,8 @@ fn set_rate_model_failed_by_error_param() {
                     Rate::saturating_from_rational(5, 100),
                     Rate::saturating_from_rational(15, 100),
                     Rate::saturating_from_rational(57, 100),
-                    Ratio::from_percent(80))
+                    Ratio::from_percent(80)
+                )
             ),
             Error::<Runtime>::InvalidRateModelParam
         );
@@ -688,7 +694,8 @@ fn set_rate_model_failed_by_error_param() {
                     Rate::saturating_from_rational(10, 100),
                     Rate::saturating_from_rational(9, 100),
                     Rate::saturating_from_rational(14, 100),
-                    Ratio::from_percent(80))
+                    Ratio::from_percent(80)
+                )
             ),
             Error::<Runtime>::InvalidRateModelParam
         );
@@ -701,7 +708,8 @@ fn set_rate_model_failed_by_error_param() {
                     Rate::saturating_from_rational(5, 100),
                     Rate::saturating_from_rational(15, 100),
                     Rate::saturating_from_rational(14, 100),
-                    Ratio::from_percent(80))
+                    Ratio::from_percent(80)
+                )
             ),
             Error::<Runtime>::InvalidRateModelParam
         );

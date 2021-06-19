@@ -31,7 +31,8 @@ impl Default for InterestRateModel {
             Rate::saturating_from_rational(2, 100),
             Rate::saturating_from_rational(10, 100),
             Rate::saturating_from_rational(32, 100),
-            Ratio::from_percent(80))
+            Ratio::from_percent(80),
+        )
     }
 }
 
@@ -120,8 +121,7 @@ impl JumpModel {
         {
             return false;
         }
-        if self.base_rate > self.jump_rate
-            || self.jump_rate > self.full_rate {
+        if self.base_rate > self.jump_rate || self.jump_rate > self.full_rate {
             return false;
         }
 

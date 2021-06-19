@@ -50,9 +50,9 @@ use sp_std::vec::Vec;
 pub use weights::WeightInfo;
 
 mod mock;
+mod rate_model;
 mod tests;
 pub mod weights;
-mod rate_model;
 
 /// Container for borrow balance information
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
