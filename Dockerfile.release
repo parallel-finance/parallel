@@ -17,7 +17,7 @@ COPY --from=builder /parallel/target/$PROFILE/parallel-dev /usr/local/bin
 COPY --from=builder /parallel/target/$PROFILE/parallel /usr/local/bin
 
 RUN useradd -m -u 1000 -U -s /bin/sh -d /parallel parallel && \
-	mkdir -p /parallel/.local/share && \
+	mkdir -p /parallel/.local && \
 	mkdir /data && \
 	chown -R parallel:parallel /data && \
 	ln -s /data /parallel/.local/share && \

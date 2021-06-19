@@ -126,6 +126,16 @@ docker run --restart=always -d -p 9944:9944 \
     parallel-dev --chain live --alice --rpc-cors all --rpc-methods=Unsafe --unsafe-rpc-external --unsafe-ws-external
 ```
 
+Run Heiko Collator
+
+```
+docker run --restart=always -d -p 9944:9944 \
+    -v "$(pwd):/data" \
+    -v "$(pwd)/rococo-local.json:/usr/local/bin/rococo-local.json" \
+    parallelfinance/parallel:latest \
+    parallel --collator --alice --chain heiko --parachain-id 200 -- --chain /usr/local/bin/rococo-local.json
+```
+
 ## Learn More
 
 Refer to the upstream
