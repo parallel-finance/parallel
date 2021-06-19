@@ -14,7 +14,6 @@
 
 pub mod currency {
     use primitives::Balance;
-
     pub const EXISTENTIAL_DEPOSIT: u128 = 500;
 
     pub const MILLICENTS: Balance = 1_000_000_000;
