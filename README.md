@@ -112,7 +112,7 @@ subcommands:
 Run Vanilla Dev Node
 
 ```
-docker run -d -p 9944:9944 \
+docker run --restart=always -d -p 9944:9944 \
     -v "$(pwd):/data" \
     parallelfinance/parallel:latest
 ```
@@ -120,7 +120,7 @@ docker run -d -p 9944:9944 \
 Run Vanilla Live Node
 
 ```
-docker run -d -p 9944:9944 \
+docker run --restart=always -d -p 9944:9944 \
     -v "$(pwd):/data" \
     parallelfinance/parallel:latest \
     parallel-dev --chain live --alice --rpc-cors all --rpc-methods=Unsafe --unsafe-rpc-external --unsafe-ws-external
