@@ -24,7 +24,6 @@ pub enum InterestRateModel {
     Curve(CurveModel),
 }
 
-#[cfg(feature = "std")]
 impl Default for InterestRateModel {
     fn default() -> Self {
         Self::new_jump_model(

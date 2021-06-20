@@ -363,7 +363,7 @@ pub mod pallet {
                     self.jump_utilization,
                 );
                 if !interest_model.check_model() {
-                    log::info!(
+                    panic!(
                         "Could not initialize the interest rate model!!! {:#?}",
                         currency_id
                     );
@@ -435,7 +435,7 @@ pub mod pallet {
                     }
                     Err(err) => {
                         // This should never happen...
-                        log::info!(
+                        log::error!(
                             "Could not initialize block!!! {:#?} {:#?}",
                             block_number,
                             err
