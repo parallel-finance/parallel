@@ -9,12 +9,12 @@
 A new Cumulus-based Substrate node, ready for hacking :rocket:
 
 [discord-badge]: https://img.shields.io/discord/830972820846018600.svg?logo=discord&style=flat-square
-[discord-url]: https://discord.gg/fDjjzCTW
+[discord-url]: https://discord.com/invite/buKKx4dySW
 
 [Website](https://parallel.fi) |
 [White Paper](https://docs.parallel.fi/white-paper) |
 [API Docs](https://docs.parallel.fi) |
-[Chat](https://discord.gg/fDjjzCTW)
+[Chat](https://discord.com/invite/buKKx4dySW)
 
 ## Getting Started
 
