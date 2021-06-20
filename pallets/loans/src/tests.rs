@@ -467,6 +467,22 @@ fn reduce_reserves_works() {
 }
 
 #[test]
+fn reduce_reserve_reduce_amount_must_be_less_than_total_reserves() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_ok!(Loans::add_reserves(
+            Origin::root(),
+            ALICE,
+            DOT,
+            million_dollar(100)
+        ));
+        assert_noop!(
+            Loans::reduce_reserves(Origin::root(), ALICE, DOT, million_dollar(200)),
+            Error::<Runtime>::InsufficientReserves
+        );
+    })
+}
+
+#[test]
 fn ratio_and_rate_works() {
     ExtBuilder::default().build().execute_with(|| {
         // Permill to FixedU128

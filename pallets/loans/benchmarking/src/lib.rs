@@ -135,7 +135,7 @@ benchmarks! {
         let exchange_rate = Loans::<T>::exchange_rate(DOT);
         let redeem_amount = exchange_rate
             .checked_mul_int(deposits.voucher_balance)
-            .ok_or(DispatchError::Arithmetic(ArithmeticError::Overflow))?;
+            .ok_or(ArithmeticError::Overflow)?;
         let initial_balance = <T as LoansConfig>::Currency::free_balance(DOT, &Loans::<T>::account_id());
     }: {
          let _ = Loans::<T>::redeem_all(SystemOrigin::Signed(caller.clone()).into(), DOT);
