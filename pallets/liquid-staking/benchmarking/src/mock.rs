@@ -1,4 +1,6 @@
-use crate as pallet_liquid_staking;
+#![cfg(test)]
+
+use super::*;
 use frame_support::{ord_parameter_types, parameter_types, traits::GenesisBuild, PalletId};
 use frame_system::{self as system, EnsureSignedBy};
 use sp_core::H256;
@@ -16,8 +18,8 @@ pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const XDOT: CurrencyId = CurrencyId::xDOT;
 pub const NATIVE: CurrencyId = CurrencyId::Native;
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
-type Block = frame_system::mocking::MockBlock<Test>;
+pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
+pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<u32, Call, u64, ()>;
 type BlockNumber = u64;
 
 // Configure a mock runtime to test the pallet.
@@ -133,6 +135,8 @@ impl pallet_liquid_staking::Config for Test {
     type MaxWithdrawAmount = MaxWithdrawAmount;
     type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
 }
+
+impl crate::Config for Test {}
 
 // BUild genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
