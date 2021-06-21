@@ -1,5 +1,11 @@
 # CHANGE LOG
 
+## 2021.06.19
+
+-   Remove APR struct (#226)
+-   Modify the type of InterestRateModel from struct to enum
+-   Support the curve rate model
+
 ## 2021.06.14
 
 -   Upgrade to polkadot-v0.9.4 (#206)

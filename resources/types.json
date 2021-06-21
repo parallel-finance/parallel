@@ -59,11 +59,17 @@
             "_enum": ["Aggregated"]
         },
         "OrderedSet": "Vec<AccountId>",
-        "InterestRateModel": {
+        "JumpModel": {
             "baseRate": "Rate",
-            "kinkRate": "Rate",
+            "jumpRate": "Rate",
             "fullRate": "Rate",
-            "kinkUtilization": "Ratio"
+            "jumpUtilization": "Ratio"
+        },
+        "CurveModel": {
+            "baseRate": "Rate"
+        },
+        "InterestRateModel": {
+            "_enum": ["JumpModel", "CurveModel"]
         },
         "UnstakeInfo": {
             "amount": "u128",

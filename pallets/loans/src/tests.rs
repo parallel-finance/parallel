@@ -346,9 +346,9 @@ fn interest_rate_model_works() {
         assert_eq!(borrow_snapshot.borrow_index, Rate::one());
 
         let base_rate = Rate::saturating_from_rational(2, 100);
-        let kink_rate = Rate::saturating_from_rational(10, 100);
+        let jump_rate = Rate::saturating_from_rational(10, 100);
         // let full_rate = Rate::saturating_from_rational(32, 100);
-        let kink_utilization = Ratio::from_percent(80);
+        let jump_utilization = Ratio::from_percent(80);
 
         let mut borrow_index = Rate::one();
         let mut total_borrows = borrow_snapshot.principal;
@@ -364,7 +364,7 @@ fn interest_rate_model_works() {
 
             let delta_time = 6;
             let borrow_rate =
-                (kink_rate - base_rate) * util_ratio.into() / kink_utilization.into() + base_rate;
+                (jump_rate - base_rate) * util_ratio.into() / jump_utilization.into() + base_rate;
             let interest_accumulated: u128 = borrow_rate
                 .saturating_mul_int(total_borrows)
                 .saturating_mul(delta_time)
@@ -626,32 +626,32 @@ fn set_rate_model_works() {
         // Check genesis rate model
         assert_eq!(
             Loans::currency_interest_model(DOT),
-            rate::InterestRateModel {
-                base_rate: Rate::saturating_from_rational(2, 100).into(),
-                kink_rate: Rate::saturating_from_rational(10, 100).into(),
-                full_rate: Rate::saturating_from_rational(32, 100).into(),
-                kink_utilization: Ratio::from_percent(80).into(),
-            }
+            InterestRateModel::new_jump_model(
+                Rate::saturating_from_rational(2, 100),
+                Rate::saturating_from_rational(10, 100),
+                Rate::saturating_from_rational(32, 100),
+                Ratio::from_percent(80)
+            )
         );
         // Set new rate model
         assert_ok!(Loans::set_rate_model(
             Origin::root(),
             DOT,
-            rate::InterestRateModel {
-                base_rate: Rate::saturating_from_rational(5, 100).into(),
-                kink_rate: Rate::saturating_from_rational(15, 100).into(),
-                full_rate: Rate::saturating_from_rational(35, 100).into(),
-                kink_utilization: Ratio::from_percent(80).into(),
-            }
+            InterestRateModel::new_jump_model(
+                Rate::saturating_from_rational(5, 100),
+                Rate::saturating_from_rational(15, 100),
+                Rate::saturating_from_rational(35, 100),
+                Ratio::from_percent(80)
+            )
         ));
         assert_eq!(
             Loans::currency_interest_model(DOT),
-            rate::InterestRateModel {
-                base_rate: Rate::saturating_from_rational(5, 100).into(),
-                kink_rate: Rate::saturating_from_rational(15, 100).into(),
-                full_rate: Rate::saturating_from_rational(35, 100).into(),
-                kink_utilization: Ratio::from_percent(80).into(),
-            }
+            InterestRateModel::new_jump_model(
+                Rate::saturating_from_rational(5, 100),
+                Rate::saturating_from_rational(15, 100),
+                Rate::saturating_from_rational(35, 100),
+                Ratio::from_percent(80)
+            )
         );
     })
 }
@@ -664,26 +664,26 @@ fn set_rate_model_failed_by_error_param() {
             Loans::set_rate_model(
                 Origin::root(),
                 DOT,
-                rate::InterestRateModel {
-                    base_rate: Rate::saturating_from_rational(36, 100).into(),
-                    kink_rate: Rate::saturating_from_rational(15, 100).into(),
-                    full_rate: Rate::saturating_from_rational(35, 100).into(),
-                    kink_utilization: Ratio::from_percent(80).into(),
-                }
+                InterestRateModel::new_jump_model(
+                    Rate::saturating_from_rational(36, 100),
+                    Rate::saturating_from_rational(15, 100),
+                    Rate::saturating_from_rational(35, 100),
+                    Ratio::from_percent(80)
+                )
             ),
             Error::<Runtime>::InvalidRateModelParam
         );
-        // Invalid kink_rate
+        // Invalid jump_rate
         assert_noop!(
             Loans::set_rate_model(
                 Origin::root(),
                 DOT,
-                rate::InterestRateModel {
-                    base_rate: Rate::saturating_from_rational(5, 100).into(),
-                    kink_rate: Rate::saturating_from_rational(36, 100).into(),
-                    full_rate: Rate::saturating_from_rational(37, 100).into(),
-                    kink_utilization: Ratio::from_percent(80).into(),
-                }
+                InterestRateModel::new_jump_model(
+                    Rate::saturating_from_rational(5, 100),
+                    Rate::saturating_from_rational(36, 100),
+                    Rate::saturating_from_rational(37, 100),
+                    Ratio::from_percent(80)
+                )
             ),
             Error::<Runtime>::InvalidRateModelParam
         );
@@ -692,40 +692,40 @@ fn set_rate_model_failed_by_error_param() {
             Loans::set_rate_model(
                 Origin::root(),
                 DOT,
-                rate::InterestRateModel {
-                    base_rate: Rate::saturating_from_rational(5, 100).into(),
-                    kink_rate: Rate::saturating_from_rational(15, 100).into(),
-                    full_rate: Rate::saturating_from_rational(37, 100).into(),
-                    kink_utilization: Ratio::from_percent(80).into(),
-                }
+                InterestRateModel::new_jump_model(
+                    Rate::saturating_from_rational(5, 100),
+                    Rate::saturating_from_rational(15, 100),
+                    Rate::saturating_from_rational(57, 100),
+                    Ratio::from_percent(80)
+                )
             ),
             Error::<Runtime>::InvalidRateModelParam
         );
-        // base_rate greater than kink_rate
+        // base_rate greater than jump_rate
         assert_noop!(
             Loans::set_rate_model(
                 Origin::root(),
                 DOT,
-                rate::InterestRateModel {
-                    base_rate: Rate::saturating_from_rational(10, 100).into(),
-                    kink_rate: Rate::saturating_from_rational(9, 100).into(),
-                    full_rate: Rate::saturating_from_rational(14, 100).into(),
-                    kink_utilization: Ratio::from_percent(80).into(),
-                }
+                InterestRateModel::new_jump_model(
+                    Rate::saturating_from_rational(10, 100),
+                    Rate::saturating_from_rational(9, 100),
+                    Rate::saturating_from_rational(14, 100),
+                    Ratio::from_percent(80)
+                )
             ),
             Error::<Runtime>::InvalidRateModelParam
         );
-        // kink_rate greater than full_rate
+        // jump_rate greater than full_rate
         assert_noop!(
             Loans::set_rate_model(
                 Origin::root(),
                 DOT,
-                rate::InterestRateModel {
-                    base_rate: Rate::saturating_from_rational(5, 100).into(),
-                    kink_rate: Rate::saturating_from_rational(15, 100).into(),
-                    full_rate: Rate::saturating_from_rational(14, 100).into(),
-                    kink_utilization: Ratio::from_percent(80).into(),
-                }
+                InterestRateModel::new_jump_model(
+                    Rate::saturating_from_rational(5, 100),
+                    Rate::saturating_from_rational(15, 100),
+                    Rate::saturating_from_rational(14, 100),
+                    Ratio::from_percent(80)
+                )
             ),
             Error::<Runtime>::InvalidRateModelParam
         );
@@ -873,12 +873,13 @@ fn with_transaction_rollback_works() {
         assert_eq!(Loans::borrow_index(DOT), Rate::one());
 
         // Set an error rate model to trigger an Error Result when accruing interest.
-        let error_model = InterestRateModel {
-            base_rate: Rate::zero().into(),
-            kink_rate: Rate::one().into(),
-            full_rate: Rate::zero().into(),
-            kink_utilization: Ratio::from_percent(0),
-        };
+        let error_model = InterestRateModel::new_jump_model(
+            Rate::zero(),
+            Rate::one(),
+            Rate::zero(),
+            Ratio::from_percent(0),
+        );
+
         CurrencyInterestModel::<Runtime>::insert(DOT, error_model);
         run_to_block(3);
 

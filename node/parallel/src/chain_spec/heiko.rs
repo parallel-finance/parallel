@@ -185,9 +185,9 @@ fn testnet_genesis(
             borrow_index: Rate::one(),                             // 1
             exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
             base_rate: Rate::saturating_from_rational(2, 100),     // 2%
-            kink_rate: Rate::saturating_from_rational(10, 100),    // 10%
+            jump_rate: Rate::saturating_from_rational(10, 100),    // 10%
             full_rate: Rate::saturating_from_rational(32, 100),    // 32%
-            kink_utilization: Ratio::from_percent(80),             // 80%
+            jump_utilization: Ratio::from_percent(80),             // 80%
             collateral_factor: vec![
                 (CurrencyId::KSM, Ratio::from_percent(50)),
                 (CurrencyId::USDT, Ratio::from_percent(50)),
