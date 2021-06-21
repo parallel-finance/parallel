@@ -115,3 +115,8 @@ to learn more about the structure of this project, the capabilities it encapsula
 which those capabilities are implemented. You can learn more about
 [The Path of Parachain Block](https://polkadot.network/the-path-of-a-parachain-block/) on the
 official Polkadot Blog.
+
+## Open Source Credits
+We would like to send a big thank you to the following projects and their contributors.
+- [Compound](https://compound.finance/)
+- [ORML](https://github.com/open-web3-stack/open-runtime-module-library)
