@@ -17,7 +17,7 @@ orml-tokens         = { git = 'https://github.com/open-web3-stack/open-runtime-m
 orml-traits         = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-utilities      = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 pallet-timestamp    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.4', default-features = false, version = '3.0.0' }
-primitives          = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
+primitives          = { package = 'parallel-primitives', path = '../../../primitives', default-features = false }
 serde               = { version = '1', features = ['derive'] }
 sp-runtime          = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.4', version = '3.0.0', default-features = false }
 sp-std              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.4', version = '3.0.0', default-features = false }

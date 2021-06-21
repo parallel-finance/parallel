@@ -900,9 +900,11 @@ impl_runtime_apis! {
 
             use pallet_loans_benchmarking::Pallet as LoansBench;
             use frame_system_benchmarking::Pallet as SystemBench;
+			use pallet_liquid_staking_benchmarking::Pallet as LiquidStakingBench;
 
             impl pallet_loans_benchmarking::Config for Runtime {}
             impl frame_system_benchmarking::Config for Runtime {}
+			impl pallet_liquid_staking_benchmarking::Config for Runtime {}
 
             let whitelist: Vec<TrackedStorageKey> = vec![
                 // Block Number
@@ -929,6 +931,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_balances, Balances);
             add_benchmark!(params, batches, pallet_timestamp, Timestamp);
             add_benchmark!(params, batches, pallet_loans, LoansBench::<Runtime>);
+			add_benchmark!(params, batches, pallet_liquid_staking_benchmarking, LoansBench::<Runtime>);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)
