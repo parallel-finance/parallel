@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use primitives::{Rate, Ratio, Timestamp, SECONDS_PER_YEAR};
-use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedSub, Saturating};
+use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, Saturating};
 
 use crate::*;
 
@@ -63,19 +63,12 @@ impl InterestRateModels {
         Self::Curve(CurveModel::new_model(base_rate))
     }
 
-    pub fn check_model(&self) -> bool {
-        match self {
-            Self::Jump(jump) => jump.check_model(),
-            Self::Curve(curve) => curve.check_model(),
-        }
-    }
-
-    /// Calculates the current borrow interest rate
-    pub fn get_borrow_rate(&self, utilization: Ratio) -> Option<Rate> {
-        match self {
-            Self::Jump(jump) => jump.get_borrow_rate(utilization),
-            Self::Curve(curve) => curve.get_borrow_rate(utilization),
-        }
+    pub fn new_new_curve_name(borrow_rate: Rate, reserve_ratio: Ratio, staking_apy: Ratio) -> Self {
+        Self::NewCurveName(NewCurveNameModel::new(
+            borrow_rate,
+            reserve_ratio,
+            staking_apy,
+        ))
     }
 
     /// Calculates the current supply interest rate
@@ -205,11 +198,19 @@ impl InterestRateModel for CurveModel {
 }
 
 #[derive(Clone, Copy, Decode, Default, Encode, Eq, PartialEq, RuntimeDebug)]
-pub struct NewCurveNameModel {}
+pub struct NewCurveNameModel {
+    borrow_rate: Rate,
+    reserve_ratio: Ratio,
+    staking_apy: Ratio,
+}
 
 impl NewCurveNameModel {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(borrow_rate: Rate, reserve_ratio: Ratio, staking_apy: Ratio) -> Self {
+        Self {
+            borrow_rate,
+            reserve_ratio,
+            staking_apy,
+        }
     }
 }
 
@@ -218,8 +219,20 @@ impl InterestRateModel for NewCurveNameModel {
         false
     }
 
-    fn get_borrow_rate(&self, _: Ratio) -> Option<Rate> {
-        None
+    fn get_borrow_rate(&self, utilization: Ratio) -> Option<Rate> {
+        const ONE: Rate = Rate::from_inner(Rate::DIV);
+        const TWO: Rate = Rate::from_inner(2 * Rate::DIV);
+
+        let one_minus_rsv_ratio = ONE.checked_sub(&self.reserve_ratio.into())?;
+        let utilization_rate: Rate = utilization.into();
+        let supply_rate = ONE.checked_sub(&utilization_rate.checked_mul(&one_minus_rsv_ratio)?)?;
+
+        let interest_rate_distance = self.borrow_rate.checked_sub(&supply_rate)?;
+        let interest_rate_distance_div_by_2 = interest_rate_distance.checked_div(&TWO)?;
+        let staking_apy_rate: Rate = self.staking_apy.into();
+        let optimal_rate = staking_apy_rate.checked_add(&interest_rate_distance_div_by_2)?;
+
+        Some(optimal_rate)
     }
 }
 
@@ -312,6 +325,21 @@ mod tests {
             supply_rate,
             borrow_rate
                 .saturating_mul(((Ratio::one().saturating_sub(reserve_factor)) * util).into()),
+        );
+    }
+
+    #[test]
+    fn new_curve_name_correctly_calculates_borrow_rate() {
+        let new_curve_name_model = NewCurveNameModel::new(
+            Rate::from_inner(Rate::DIV / 100 * 110), // 110%
+            Ratio::from_percent(50),
+            Ratio::from_percent(14),
+        );
+        assert_eq!(
+            new_curve_name_model
+                .get_borrow_rate(Ratio::from_percent(10))
+                .unwrap(),
+            Rate::from_inner(Rate::DIV / 1000 * 215) // 21.5%
         );
     }
 }
