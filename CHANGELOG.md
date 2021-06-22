@@ -1,5 +1,9 @@
 # CHANGE LOG
 
+## 2021.06.22
+
+-   Upgrade to polkadot-v0.9.5 (#237)
+
 ## 2021.06.19
 
 -   Remove APR struct (#226)
