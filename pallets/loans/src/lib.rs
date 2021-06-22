@@ -1207,7 +1207,7 @@ impl<T: Config> Pallet<T> {
     }
 
     // Ensures a given `currency_id` exists on the `Currencies` storage.
-    fn ensure_currency(currency_id: &CurrencyId) -> DispatchResult {
+    pub fn ensure_currency(currency_id: &CurrencyId) -> DispatchResult {
         if Self::currencies()
             .iter()
             .any(|currency| currency == currency_id)
