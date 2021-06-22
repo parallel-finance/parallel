@@ -243,7 +243,7 @@ fn testnet_genesis(
             last_block_timestamp: 0,
         },
         pallet_liquid_staking: LiquidStakingConfig {
-            exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
+            exchange_rate: Rate::saturating_from_rational(100, 100), // 1
         },
         pallet_democracy: DemocracyConfig::default(),
         pallet_elections_phragmen: ElectionsConfig {
