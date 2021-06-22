@@ -675,8 +675,7 @@ construct_runtime!(
         NodeBlock = opaque::Block,
         UncheckedExtrinsic = UncheckedExtrinsic
     {
-        // Substrate pallets
-        // Utility
+        // System, Utility
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
         Utility: pallet_utility::{Pallet, Call, Event},
@@ -703,12 +702,12 @@ construct_runtime!(
         // Oracles
         OracleMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>},
 
-        // ORML pallets
+        // ORML
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
         Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call,  Event<T>},
 
-        // Parallel pallets
+        // Parallel
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
         Liquidation: pallet_liquidation::{Pallet, Call},
