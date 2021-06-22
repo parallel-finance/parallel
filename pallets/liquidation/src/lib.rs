@@ -140,7 +140,6 @@ pub mod pallet {
             collateral_currency: CurrencyId,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            pallet_loans::Pallet::<T>::ensure_currency(&liquidate_currency)?;
 
             pallet_loans::Pallet::<T>::liquidate_borrow_internal(
                 who,
