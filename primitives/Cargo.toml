@@ -8,11 +8,11 @@ version = '1.0.0'
 codec             = { package = 'parity-scale-codec', version = '2.0.0', default-features = false }
 orml-oracle       = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 serde             = { version = '1', optional = true }
-sp-consensus-aura = { git = 'https://github.com/paritytech/substrate.git', version = "0.9.0", branch = 'polkadot-v0.9.4', default-features = false }
-sp-core           = { git = 'https://github.com/paritytech/substrate.git', version = "3.0.0", branch = 'polkadot-v0.9.4', default-features = false }
-sp-io             = { git = 'https://github.com/paritytech/substrate.git', version = "3.0.0", branch = 'polkadot-v0.9.4', default-features = false }
-sp-runtime        = { git = 'https://github.com/paritytech/substrate.git', version = "3.0.0", branch = 'polkadot-v0.9.4', default-features = false }
-sp-std            = { git = 'https://github.com/paritytech/substrate.git', version = "3.0.0", branch = 'polkadot-v0.9.4', default-features = false }
+sp-consensus-aura = { git = 'https://github.com/paritytech/substrate.git', version = "0.9.0", branch = 'polkadot-v0.9.5', default-features = false }
+sp-core           = { git = 'https://github.com/paritytech/substrate.git', version = "3.0.0", branch = 'polkadot-v0.9.5', default-features = false }
+sp-io             = { git = 'https://github.com/paritytech/substrate.git', version = "3.0.0", branch = 'polkadot-v0.9.5', default-features = false }
+sp-runtime        = { git = 'https://github.com/paritytech/substrate.git', version = "3.0.0", branch = 'polkadot-v0.9.5', default-features = false }
+sp-std            = { git = 'https://github.com/paritytech/substrate.git', version = "3.0.0", branch = 'polkadot-v0.9.5', default-features = false }
 
 [features]
 default = ['std']

@@ -26,12 +26,12 @@ fn get_price_from_oracle() {
     ExtBuilder::default().build().execute_with(|| {
         // currency exist
         assert_eq!(
-            PricesPallet::get_price(&DOT),
+            Prices::get_price(&DOT),
             Some((Price::from_inner(10_000_000_000 * PRICE_ONE), 0))
         );
 
         // currency not exist
-        assert_eq!(PricesPallet::get_price(&KSM), None);
+        assert_eq!(Prices::get_price(&KSM), None);
     });
 }
 
@@ -39,7 +39,7 @@ fn get_price_from_oracle() {
 fn set_price_work() {
     ExtBuilder::default().build().execute_with(|| {
         assert_eq!(
-            PricesPallet::get_price(&DOT),
+            Prices::get_price(&DOT),
             Some((Price::from_inner(10_000_000_000 * PRICE_ONE), 0))
         );
         // set DOT price
@@ -51,7 +51,7 @@ fn set_price_work() {
             },
         );
         assert_eq!(
-            PricesPallet::get_price(&DOT),
+            Prices::get_price(&DOT),
             Some((Price::from_inner(9_900_000_000 * PRICE_ONE), 0))
         );
     });
@@ -61,7 +61,7 @@ fn set_price_work() {
 fn reset_price_work() {
     ExtBuilder::default().build().execute_with(|| {
         assert_eq!(
-            PricesPallet::get_price(&DOT),
+            Prices::get_price(&DOT),
             Some((Price::from_inner(10_000_000_000 * PRICE_ONE), 0))
         );
         // set DOT price
@@ -73,14 +73,14 @@ fn reset_price_work() {
             },
         );
         assert_eq!(
-            PricesPallet::get_price(&DOT),
+            Prices::get_price(&DOT),
             Some((Price::from_inner(9_900_000_000 * PRICE_ONE), 0))
         );
 
         // reset DOT price
         EmergencyPrice::<Runtime>::remove(DOT);
         assert_eq!(
-            PricesPallet::get_price(&DOT),
+            Prices::get_price(&DOT),
             Some((Price::from_inner(10_000_000_000 * PRICE_ONE), 0))
         );
     });
@@ -93,11 +93,11 @@ fn set_price_call_work() {
 
         // set emergency price from 100 to 90
         assert_eq!(
-            PricesPallet::get_price(&DOT),
+            Prices::get_price(&DOT),
             Some((FixedU128::from_inner(10_000_000_000 * PRICE_ONE), 0))
         );
         assert_noop!(
-            PricesPallet::set_price(
+            Prices::set_price(
                 Origin::signed(2),
                 DOT,
                 PriceWithDecimal {
@@ -107,7 +107,7 @@ fn set_price_call_work() {
             ),
             BadOrigin
         );
-        assert_ok!(PricesPallet::set_price(
+        assert_ok!(Prices::set_price(
             Origin::signed(1),
             DOT,
             PriceWithDecimal {
@@ -116,12 +116,12 @@ fn set_price_call_work() {
             }
         ));
         assert_eq!(
-            PricesPallet::get_price(&DOT),
+            Prices::get_price(&DOT),
             Some((FixedU128::from_inner(9_000_000_000 * PRICE_ONE), 0))
         );
 
         // check the event
-        let set_price_event = Event::prices(crate::Event::SetPrice(
+        let set_price_event = Event::Prices(crate::Event::SetPrice(
             DOT,
             PriceWithDecimal {
                 price: Price::saturating_from_integer(90),
@@ -132,7 +132,7 @@ fn set_price_call_work() {
             .iter()
             .any(|record| record.event == set_price_event));
         assert_eq!(
-            PricesPallet::set_price(
+            Prices::set_price(
                 Origin::signed(1),
                 DOT,
                 PriceWithDecimal {
@@ -152,10 +152,10 @@ fn reset_price_call_work() {
 
         // set emergency price from 100 to 90
         assert_eq!(
-            PricesPallet::get_price(&DOT),
+            Prices::get_price(&DOT),
             Some((FixedU128::from_inner(10_000_000_000 * PRICE_ONE), 0))
         );
-        assert_ok!(PricesPallet::set_price(
+        assert_ok!(Prices::set_price(
             Origin::signed(1),
             DOT,
             PriceWithDecimal {
@@ -164,28 +164,25 @@ fn reset_price_call_work() {
             }
         ));
         assert_eq!(
-            PricesPallet::get_price(&DOT),
+            Prices::get_price(&DOT),
             Some((FixedU128::from_inner(9_000_000_000 * PRICE_ONE), 0))
         );
 
         // try reset price
-        assert_noop!(PricesPallet::reset_price(Origin::signed(2), DOT), BadOrigin);
-        assert_ok!(PricesPallet::reset_price(Origin::signed(1), DOT));
+        assert_noop!(Prices::reset_price(Origin::signed(2), DOT), BadOrigin);
+        assert_ok!(Prices::reset_price(Origin::signed(1), DOT));
 
         // price need to be 100 after reset_price
         assert_eq!(
-            PricesPallet::get_price(&DOT),
+            Prices::get_price(&DOT),
             Some((FixedU128::from_inner(10_000_000_000 * PRICE_ONE), 0))
         );
 
         // check the event
-        let reset_price_event = Event::prices(crate::Event::ResetPrice(DOT));
+        let reset_price_event = Event::Prices(crate::Event::ResetPrice(DOT));
         assert!(System::events()
             .iter()
             .any(|record| record.event == reset_price_event));
-        assert_eq!(
-            PricesPallet::reset_price(Origin::signed(1), DOT),
-            Ok(().into())
-        );
+        assert_eq!(Prices::reset_price(Origin::signed(1), DOT), Ok(().into()));
     });
 }

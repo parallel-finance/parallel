@@ -141,6 +141,8 @@ impl pallet_balances::Config for Test {
     type Balance = Balance;
     type Event = Event;
     type DustRemoval = ();
+    type MaxReserves = ();
+    type ReserveIdentifier = [u8; 8];
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = ();
@@ -212,6 +214,10 @@ impl SortedMembers<AccountId> for Members {
     }
 }
 
+parameter_types! {
+    pub const MaxHasDispatchedSize: u32 = 100;
+}
+
 impl orml_oracle::Config<Instance1> for Test {
     type Event = Event;
     type OnNewData = ();
@@ -222,6 +228,7 @@ impl orml_oracle::Config<Instance1> for Test {
     type RootOperatorAccountId = RootOperatorAccountId;
     type WeightInfo = ();
     type Members = Members;
+    type MaxHasDispatchedSize = MaxHasDispatchedSize;
 }
 
 impl pallet_loans::Config for Test {
