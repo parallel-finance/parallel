@@ -183,9 +183,6 @@ fn reset_price_call_work() {
         assert!(System::events()
             .iter()
             .any(|record| record.event == reset_price_event));
-        assert_eq!(
-            Prices::reset_price(Origin::signed(1), DOT),
-            Ok(().into())
-        );
+        assert_eq!(Prices::reset_price(Origin::signed(1), DOT), Ok(().into()));
     });
 }
