@@ -175,7 +175,6 @@ fn testnet_genesis(
                     vec![
                         (x.clone(), CurrencyId::DOT, 10_u128.pow(13)),
                         (x.clone(), CurrencyId::USDT, 10_u128.pow(9)),
-                        (x.clone(), CurrencyId::xDOT, 10_u128.pow(13)),
                     ]
                 })
                 .collect(),
@@ -211,7 +210,7 @@ fn testnet_genesis(
             last_block_timestamp: 0,
         },
         pallet_liquid_staking: LiquidStakingConfig {
-            exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
+            exchange_rate: Rate::saturating_from_rational(100, 100), // 1
         },
         pallet_democracy: DemocracyConfig::default(),
         pallet_elections_phragmen: ElectionsConfig {
