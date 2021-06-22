@@ -200,13 +200,11 @@ fn testnet_genesis(
                         vec![
                             (x.clone(), CurrencyId::KSM, 10_u128.pow(21)),
                             (x.clone(), CurrencyId::USDT, 10_u128.pow(15)),
-                            (x.clone(), CurrencyId::xKSM, 10_u128.pow(21)),
                         ]
                     } else {
                         vec![
                             (x.clone(), CurrencyId::KSM, 10_u128.pow(15)),
                             (x.clone(), CurrencyId::USDT, 10_u128.pow(9)),
-                            (x.clone(), CurrencyId::xKSM, 10_u128.pow(15)),
                         ]
                     }
                 })

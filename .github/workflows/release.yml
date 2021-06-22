@@ -12,7 +12,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-18.04]
+        os: [ubuntu-20.04]
         rust: [nightly]
 
     # Steps represent a sequence of tasks that will be executed as part of the job

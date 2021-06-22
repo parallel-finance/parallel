@@ -38,12 +38,11 @@ jobs:
 
       - name: Build Release And Package
         run: |
-          cargo build --release
+          cargo build --bin parallel-dev --release
           rm -fr dist || true
           mkdir dist || true
           cp README.md dist
           cp target/release/parallel-dev dist/parallel-dev
-          cp target/release/parallel dist/parallel
           cp -r ./resources dist
           cp scripts/setup.sh dist
           tar -cvJf parallel.tar.xz dist --transform 's|dist|parallel|'
