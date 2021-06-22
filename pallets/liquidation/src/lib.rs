@@ -130,7 +130,7 @@ pub mod pallet {
         /// - `repay_amount`: the amount will be liquidated
         /// - `collateral_currency`: the currency that liquidator want to get after liquidation.
         #[pallet::weight(10_000)]
-        fn liquidate_borrow(
+        pub fn liquidate_borrow(
             origin: OriginFor<T>,
             borrower: T::AccountId,
             liquidate_currency: CurrencyId,

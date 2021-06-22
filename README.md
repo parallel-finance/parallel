@@ -53,7 +53,7 @@ make launch
 
 ### Local Testnet
 
-Polkadot (release-v0.9.4 branch)
+Polkadot (release-v0.9.5 branch)
 
 ```
 cargo build --release

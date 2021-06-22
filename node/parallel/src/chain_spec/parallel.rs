@@ -147,13 +147,13 @@ fn testnet_genesis(
     const STASH: Balance = ENDOWMENT / 1000;
 
     GenesisConfig {
-        frame_system: SystemConfig {
+        system: SystemConfig {
             code: WASM_BINARY
                 .expect("WASM binary was not build, please build it!")
                 .to_vec(),
             changes_trie_config: Default::default(),
         },
-        pallet_balances: BalancesConfig {
+        balances: BalancesConfig {
             balances: {
                 let mut endowed_accounts = endowed_accounts.clone();
                 endowed_accounts.extend_from_slice(&oracle_accounts);
@@ -164,12 +164,12 @@ fn testnet_genesis(
                     .collect()
             },
         },
-        pallet_collator_selection: CollatorSelectionConfig {
+        collator_selection: CollatorSelectionConfig {
             invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
             candidacy_bond: EXISTENTIAL_DEPOSIT * 16,
             desired_candidates: 16,
         },
-        pallet_session: SessionConfig {
+        session: SessionConfig {
             keys: invulnerables
                 .iter()
                 .cloned()
@@ -182,11 +182,11 @@ fn testnet_genesis(
                 })
                 .collect(),
         },
-        pallet_aura: Default::default(),
-        cumulus_pallet_aura_ext: Default::default(),
-        pallet_sudo: SudoConfig { key: root_key },
+        aura: Default::default(),
+        aura_ext: Default::default(),
+        sudo: SudoConfig { key: root_key },
         parachain_info: ParachainInfoConfig { parachain_id: id },
-        orml_tokens: TokensConfig {
+        tokens: TokensConfig {
             balances: endowed_accounts
                 .iter()
                 .flat_map(|x| {
@@ -197,7 +197,7 @@ fn testnet_genesis(
                 })
                 .collect(),
         },
-        pallet_loans: LoansConfig {
+        loans: LoansConfig {
             currencies: vec![CurrencyId::DOT, CurrencyId::USDT, CurrencyId::xDOT],
             borrow_index: Rate::one(),                             // 1
             exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
@@ -227,11 +227,11 @@ fn testnet_genesis(
             ],
             last_block_timestamp: 0,
         },
-        pallet_liquid_staking: LiquidStakingConfig {
+        liquid_staking: LiquidStakingConfig {
             exchange_rate: Rate::saturating_from_rational(100, 100), // 1
         },
-        pallet_democracy: DemocracyConfig::default(),
-        pallet_elections_phragmen: ElectionsConfig {
+        democracy: DemocracyConfig::default(),
+        elections: ElectionsConfig {
             members: endowed_accounts
                 .iter()
                 .take((num_endowed_accounts + 1) / 2)
@@ -239,8 +239,8 @@ fn testnet_genesis(
                 .map(|member| (member, STASH))
                 .collect(),
         },
-        pallet_collective_Instance1: CouncilConfig::default(),
-        pallet_collective_Instance2: TechnicalCommitteeConfig {
+        council: CouncilConfig::default(),
+        technical_committee: TechnicalCommitteeConfig {
             members: endowed_accounts
                 .iter()
                 .take((num_endowed_accounts + 1) / 2)
@@ -248,9 +248,9 @@ fn testnet_genesis(
                 .collect(),
             phantom: Default::default(),
         },
-        pallet_membership_Instance1: Default::default(),
-        pallet_treasury: Default::default(),
-        pallet_membership_Instance2: OracleMembershipConfig {
+        technical_membership: Default::default(),
+        treasury: Default::default(),
+        oracle_membership: OracleMembershipConfig {
             members: oracle_accounts,
             phantom: Default::default(),
         },

@@ -76,6 +76,8 @@ impl pallet_balances::Config for Test {
     type Balance = Balance;
     type Event = Event;
     type DustRemoval = ();
+    type MaxReserves = ();
+    type ReserveIdentifier = [u8; 8];
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = ();

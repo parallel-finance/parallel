@@ -97,7 +97,7 @@ construct_runtime!(
         UncheckedExtrinsic = UncheckedExtrinsic
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-        PricesPallet: prices::{Pallet, Storage, Call, Event<T>},
+        Prices: prices::{Pallet, Storage, Call, Event<T>},
     }
 );
 
