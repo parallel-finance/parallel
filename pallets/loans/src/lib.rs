@@ -1057,7 +1057,7 @@ impl<T: Config> Pallet<T> {
         repay_amount: Balance,
         collateral_currency_id: CurrencyId,
     ) -> DispatchResult {
-        Self::ensure_currency(&liquidate_token)?;
+        Self::ensure_currency(&liquidate_currency_id)?;
 
         if borrower == liquidator {
             return Err(Error::<T>::LiquidatorIsBorrower.into());
@@ -1208,7 +1208,7 @@ impl<T: Config> Pallet<T> {
     }
 
     // Ensures a given `currency_id` exists on the `Currencies` storage.
-    pub fn ensure_currency(currency_id: &CurrencyId) -> DispatchResult {
+    fn ensure_currency(currency_id: &CurrencyId) -> DispatchResult {
         if Self::currencies()
             .iter()
             .any(|currency| currency == currency_id)
