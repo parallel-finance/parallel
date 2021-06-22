@@ -35,18 +35,18 @@ impl Default for InterestRateModel {
     }
 }
 
-impl InterestRateModel {
+impl InterestRateModels {
     pub fn new_jump_model(
         base_rate: Rate,
-        jump_rate: Rate,
-        full_rate: Rate,
-        jump_utilization: Ratio,
+        max_rate: Rate,
+        optimal_rate: Rate,
+        optimal_utilization: Ratio,
     ) -> Self {
         Self::Jump(JumpModel::new_model(
             base_rate,
-            jump_rate,
-            full_rate,
-            jump_utilization,
+            max_rate,
+            optimal_rate,
+            optimal_utilization,
         ))
     }
 
@@ -85,69 +85,68 @@ pub struct JumpModel {
     /// The base interest rate when utilization rate is 0
     pub base_rate: Rate,
     /// The interest rate on jump utilization point
-    pub jump_rate: Rate,
+    pub max_rate: Rate,
     /// The max interest rate when utilization rate is 100%
-    pub full_rate: Rate,
-    /// The utilization point at which the jump_rate is applied
-    pub jump_utilization: Ratio,
+    pub optimal_rate: Rate,
+    /// The utilization point at which the max_rate is applied
+    pub optimal_utilization: Ratio,
 }
 
 impl JumpModel {
     pub const MAX_BASE_RATE: Rate = Rate::from_inner(100_000_000_000_000_000); // 10%
-    pub const MAX_JUMP_RATE: Rate = Rate::from_inner(300_000_000_000_000_000); // 30%
-    pub const MAX_FULL_RATE: Rate = Rate::from_inner(500_000_000_000_000_000); // 50%
+    pub const MAX_RATE: Rate = Rate::from_inner(300_000_000_000_000_000); // 30%
+    pub const MAX_OPTIMAL_RATE: Rate = Rate::from_inner(500_000_000_000_000_000); // 50%
 
     /// Create a new rate model
     pub fn new_model(
         base_rate: Rate,
-        jump_rate: Rate,
-        full_rate: Rate,
-        jump_utilization: Ratio,
+        max_rate: Rate,
+        optimal_rate: Rate,
+        optimal_utilization: Ratio,
     ) -> JumpModel {
         Self {
             base_rate,
-            jump_rate,
-            full_rate,
-            jump_utilization,
+            max_rate,
+            optimal_rate,
+            optimal_utilization,
         }
     }
+}
 
     /// Check the jump model for sanity
     pub fn check_model(&self) -> bool {
         if self.base_rate > Self::MAX_BASE_RATE
-            || self.jump_rate > Self::MAX_JUMP_RATE
-            || self.full_rate > Self::MAX_FULL_RATE
+            || self.max_rate > Self::MAX_RATE
+            || self.optimal_rate > Self::MAX_OPTIMAL_RATE
         {
             return false;
         }
-        if self.base_rate > self.jump_rate || self.jump_rate > self.full_rate {
+        if self.base_rate > self.max_rate || self.max_rate > self.optimal_rate {
             return false;
         }
 
         true
     }
 
-    /// Calculates the borrow interest rate of jump model
-    pub fn get_borrow_rate(&self, utilization: Ratio) -> Option<Rate> {
-        if utilization <= self.jump_utilization {
-            // utilization * (jump_rate - zero_rate) / jump_utilization + zero_rate
+        if utilization <= self.optimal_utilization {
+            // utilization * (max_rate - zero_rate) / optimal_utilization + zero_rate
             let result = self
-                .jump_rate
+                .max_rate
                 .checked_sub(&self.base_rate)?
                 .saturating_mul(utilization.into())
-                .checked_div(&self.jump_utilization.into())?
+                .checked_div(&self.optimal_utilization.into())?
                 .checked_add(&self.base_rate)?;
 
             Some(result.into())
         } else {
-            // (utilization - jump_utilization)*(full_rate - jump_rate) / ( 1 - jump_utilization) + jump_rate
-            let excess_util = utilization.saturating_sub(self.jump_utilization);
+            // (utilization - optimal_utilization)*(optimal_rate - max_rate) / ( 1 - optimal_utilization) + max_rate
+            let excess_util = utilization.saturating_sub(self.optimal_utilization);
             let result = self
-                .full_rate
-                .checked_sub(&self.jump_rate)?
+                .optimal_rate
+                .checked_sub(&self.max_rate)?
                 .saturating_mul(excess_util.into())
-                .checked_div(&(Ratio::one().saturating_sub(self.jump_utilization).into()))?
-                .checked_add(&self.jump_rate)?;
+                .checked_div(&(Ratio::one().saturating_sub(self.optimal_utilization).into()))?
+                .checked_add(&self.max_rate)?;
 
             Some(result.into())
         }
@@ -201,17 +200,17 @@ mod tests {
     #[test]
     fn init_jump_model_works() {
         let base_rate = Rate::saturating_from_rational(2, 100);
-        let jump_rate = Rate::saturating_from_rational(10, 100);
-        let full_rate = Rate::saturating_from_rational(32, 100);
-        let jump_utilization = Ratio::from_percent(80);
+        let max_rate = Rate::saturating_from_rational(10, 100);
+        let optimal_rate = Rate::saturating_from_rational(32, 100);
+        let optimal_utilization = Ratio::from_percent(80);
 
         assert_eq!(
-            JumpModel::new_model(base_rate, jump_rate, full_rate, jump_utilization),
+            JumpModel::new_model(base_rate, max_rate, optimal_rate, optimal_utilization),
             JumpModel {
                 base_rate: Rate::from_inner(20_000_000_000_000_000).into(),
-                jump_rate: Rate::from_inner(100_000_000_000_000_000).into(),
-                full_rate: Rate::from_inner(320_000_000_000_000_000).into(),
-                jump_utilization: Ratio::from_percent(80),
+                max_rate: Rate::from_inner(100_000_000_000_000_000).into(),
+                optimal_rate: Rate::from_inner(320_000_000_000_000_000).into(),
+                optimal_utilization: Ratio::from_percent(80),
             }
         );
     }
@@ -220,10 +219,11 @@ mod tests {
     fn get_borrow_rate_works() {
         // init
         let base_rate = Rate::saturating_from_rational(2, 100);
-        let jump_rate = Rate::saturating_from_rational(10, 100);
-        let full_rate = Rate::saturating_from_rational(32, 100);
-        let jump_utilization = Ratio::from_percent(80);
-        let jump_model = JumpModel::new_model(base_rate, jump_rate, full_rate, jump_utilization);
+        let max_rate = Rate::saturating_from_rational(10, 100);
+        let optimal_rate = Rate::saturating_from_rational(32, 100);
+        let optimal_utilization = Ratio::from_percent(80);
+        let jump_model =
+            JumpModel::new_model(base_rate, max_rate, optimal_rate, optimal_utilization);
         assert!(jump_model.check_model());
 
         // normal rate
@@ -233,19 +233,21 @@ mod tests {
         let borrow_rate = jump_model.get_borrow_rate(util).unwrap();
         assert_eq!(
             borrow_rate,
-            jump_model.jump_rate.saturating_mul(util.into()) + jump_model.base_rate,
+            jump_model.max_rate.saturating_mul(util.into()) + jump_model.base_rate,
         );
 
         // jump rate
         cash = 100;
         let util = Ratio::from_rational(borrows, cash + borrows);
         let borrow_rate = jump_model.get_borrow_rate(util).unwrap();
-        let normal_rate =
-            jump_model.jump_rate.saturating_mul(jump_utilization.into()) + jump_model.base_rate;
-        let excess_util = util.saturating_sub(jump_utilization);
+        let normal_rate = jump_model
+            .max_rate
+            .saturating_mul(optimal_utilization.into())
+            + jump_model.base_rate;
+        let excess_util = util.saturating_sub(optimal_utilization);
         assert_eq!(
             borrow_rate,
-            (jump_model.full_rate - jump_model.jump_rate).saturating_mul(excess_util.into())
+            (jump_model.optimal_rate - jump_model.max_rate).saturating_mul(excess_util.into())
                 / FixedU128::saturating_from_rational(20, 100)
                 + normal_rate,
         );
