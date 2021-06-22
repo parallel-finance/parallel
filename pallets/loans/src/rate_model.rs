@@ -17,14 +17,23 @@ use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedSub, Saturating};
 
 use crate::*;
 
-/// Parallel interest rate model
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug)]
-pub enum InterestRateModel {
-    Jump(JumpModel),
-    Curve(CurveModel),
+pub trait InterestRateModel {
+    /// Check the model for sanity
+    fn check_model(&self) -> bool;
+
+    /// Calculates the borrow interest rate of the model
+    fn get_borrow_rate(&self, utilization: Ratio) -> Option<Rate>;
 }
 
-impl Default for InterestRateModel {
+/// Parallel interest rate model
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug)]
+pub enum InterestRateModels {
+    Curve(CurveModel),
+    Jump(JumpModel),
+    NewCurveName(NewCurveNameModel),
+}
+
+impl Default for InterestRateModels {
     fn default() -> Self {
         Self::new_jump_model(
             Rate::saturating_from_rational(2, 100),
@@ -79,6 +88,24 @@ impl InterestRateModels {
     }
 }
 
+impl InterestRateModel for InterestRateModels {
+    fn check_model(&self) -> bool {
+        match self {
+            Self::Curve(curve) => curve.check_model(),
+            Self::Jump(jump) => jump.check_model(),
+            Self::NewCurveName(model) => model.check_model(),
+        }
+    }
+
+    fn get_borrow_rate(&self, utilization: Ratio) -> Option<Rate> {
+        match self {
+            Self::Curve(curve) => curve.get_borrow_rate(utilization),
+            Self::Jump(jump) => jump.get_borrow_rate(utilization),
+            Self::NewCurveName(model) => model.get_borrow_rate(utilization),
+        }
+    }
+}
+
 /// The jump interest rate model
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
 pub struct JumpModel {
@@ -113,8 +140,8 @@ impl JumpModel {
     }
 }
 
-    /// Check the jump model for sanity
-    pub fn check_model(&self) -> bool {
+impl InterestRateModel for JumpModel {
+    fn check_model(&self) -> bool {
         if self.base_rate > Self::MAX_BASE_RATE
             || self.max_rate > Self::MAX_RATE
             || self.optimal_rate > Self::MAX_OPTIMAL_RATE
@@ -128,6 +155,7 @@ impl JumpModel {
         true
     }
 
+    fn get_borrow_rate(&self, utilization: Ratio) -> Option<Rate> {
         if utilization <= self.optimal_utilization {
             // utilization * (max_rate - zero_rate) / optimal_utilization + zero_rate
             let result = self
@@ -164,15 +192,33 @@ impl CurveModel {
     pub fn new_model(base_rate: Rate) -> CurveModel {
         Self { base_rate }
     }
+}
 
-    /// Check the curve model for sanity
-    pub fn check_model(&self) -> bool {
-        true
+impl InterestRateModel for CurveModel {
+    fn check_model(&self) -> bool {
+        false
     }
 
-    /// Calculates the borrow interest rate of curve model
-    pub fn get_borrow_rate(&self, _utilization: Ratio) -> Option<Rate> {
-        // TODO: Need to implement the curve model
+    fn get_borrow_rate(&self, _: Ratio) -> Option<Rate> {
+        None
+    }
+}
+
+#[derive(Clone, Copy, Decode, Default, Encode, Eq, PartialEq, RuntimeDebug)]
+pub struct NewCurveNameModel {}
+
+impl NewCurveNameModel {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl InterestRateModel for NewCurveNameModel {
+    fn check_model(&self) -> bool {
+        false
+    }
+
+    fn get_borrow_rate(&self, _: Ratio) -> Option<Rate> {
         None
     }
 }
@@ -261,7 +307,7 @@ mod tests {
         let borrow_rate = Rate::saturating_from_rational(2, 100);
         let util = Ratio::from_percent(50);
         let reserve_factor = Ratio::zero();
-        let supply_rate = InterestRateModel::get_supply_rate(borrow_rate, util, reserve_factor);
+        let supply_rate = InterestRateModels::get_supply_rate(borrow_rate, util, reserve_factor);
         assert_eq!(
             supply_rate,
             borrow_rate

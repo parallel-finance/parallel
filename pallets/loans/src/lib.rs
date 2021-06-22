@@ -182,7 +182,7 @@ pub mod pallet {
         ),
         /// New interest rate model is set
         /// [new_interest_rate_model]
-        NewInterestRateModel(InterestRateModel),
+        NewInterestRateModel(InterestRateModels),
         /// Event emitted when the reserves are reduced
         /// [admin, currency_id, reduced_amount, total_reserves]
         ReservesReduced(T::AccountId, CurrencyId, Balance, Balance),
@@ -277,7 +277,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn currency_interest_model)]
     pub type CurrencyInterestModel<T: Config> =
-        StorageMap<_, Twox64Concat, CurrencyId, InterestRateModel, ValueQuery>;
+        StorageMap<_, Twox64Concat, CurrencyId, InterestRateModels, ValueQuery>;
 
     /// Mapping of borrow rate to currency type
     #[pallet::storage]
@@ -358,7 +358,7 @@ pub mod pallet {
     impl<T: Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
             self.currencies.iter().for_each(|currency_id| {
-                let interest_model = InterestRateModel::new_jump_model(
+                let interest_model = InterestRateModels::new_jump_model(
                     self.base_rate,
                     self.jump_rate,
                     self.full_rate,
@@ -742,7 +742,7 @@ pub mod pallet {
         pub fn set_rate_model(
             origin: OriginFor<T>,
             currency_id: CurrencyId,
-            new_model: InterestRateModel,
+            new_model: InterestRateModels,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
             Self::ensure_currency(&currency_id)?;
@@ -1271,7 +1271,7 @@ impl<T: Config> Pallet<T> {
             let borrow_rate = interest_model
                 .get_borrow_rate(util)
                 .ok_or(ArithmeticError::Overflow)?;
-            let supply_rate = InterestRateModel::get_supply_rate(
+            let supply_rate = InterestRateModels::get_supply_rate(
                 borrow_rate,
                 util,
                 Self::reserve_factor(currency_id),

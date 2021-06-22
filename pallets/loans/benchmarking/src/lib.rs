@@ -10,7 +10,7 @@ use frame_system::RawOrigin as SystemOrigin;
 use orml_oracle::Instance1;
 use orml_oracle::{Config as ORMLOracleConfig, Pallet as ORMLOracle};
 use orml_traits::MultiCurrency;
-use pallet_loans::{Config as LoansConfig, InterestRateModel, Pallet as Loans};
+use pallet_loans::{Config as LoansConfig, InterestRateModels, Pallet as Loans};
 use primitives::{CurrencyId, PriceWithDecimal, Rate, Ratio};
 use sp_runtime::traits::{Bounded, One, StaticLookup};
 use sp_runtime::{ArithmeticError, FixedPointNumber, FixedU128};
@@ -289,7 +289,7 @@ benchmarks! {
          let _ = Loans::<T>::set_rate_model(
             SystemOrigin::Root.into(),
             DOT,
-            InterestRateModel::new_jump_model(
+            InterestRateModels::new_jump_model(
                 Rate::saturating_from_rational(5, 100),
                 Rate::saturating_from_rational(15, 100),
                 Rate::saturating_from_rational(35, 100),
@@ -299,7 +299,7 @@ benchmarks! {
     verify {
         assert_eq!(
             Loans::<T>::currency_interest_model(DOT),
-            InterestRateModel::new_jump_model(
+            InterestRateModels::new_jump_model(
                 Rate::saturating_from_rational(5, 100),
                 Rate::saturating_from_rational(15, 100),
                 Rate::saturating_from_rational(35, 100),
