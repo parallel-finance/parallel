@@ -38,27 +38,17 @@
                 {
                     "wsPort": 9977,
                     "port": 31200,
-                    "flags": [
-                        "-laura=debug",
-                        "--alice",
-                        "--",
-                        "--execution=wasm"
-                    ]
+                    "flags": ["--alice", "--", "--execution=wasm"]
                 },
                 {
                     "wsPort": 9988,
                     "port": 31300,
-                    "flags": ["-laura=debug", "--bob", "--", "--execution=wasm"]
+                    "flags": ["--bob", "--", "--execution=wasm"]
                 },
                 {
                     "wsPort": 9999,
                     "port": 31400,
-                    "flags": [
-                        "-laura=debug",
-                        "--charlie",
-                        "--",
-                        "--execution=wasm"
-                    ]
+                    "flags": ["--charlie", "--", "--execution=wasm"]
                 }
             ]
         }

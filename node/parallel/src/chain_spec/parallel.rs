@@ -14,9 +14,11 @@
 
 use cumulus_primitives_core::ParaId;
 use parallel_runtime::{
-    currency::DOLLARS, AuraConfig, BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig,
+    currency::{DOLLARS, EXISTENTIAL_DEPOSIT},
+    opaque::SessionKeys,
+    BalancesConfig, CollatorSelectionConfig, CouncilConfig, DemocracyConfig, ElectionsConfig,
     GenesisConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig, ParachainInfoConfig,
-    SudoConfig, SystemConfig, TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
+    SessionConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
 };
 use primitives::*;
 use sc_service::ChainType;
@@ -135,7 +137,7 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
 
 fn testnet_genesis(
     root_key: AccountId,
-    initial_authorities: Vec<(AccountId, AuraId)>,
+    invulnerables: Vec<(AccountId, AuraId)>,
     oracle_accounts: Vec<AccountId>,
     endowed_accounts: Vec<AccountId>,
     id: ParaId,
@@ -143,6 +145,7 @@ fn testnet_genesis(
     let num_endowed_accounts = endowed_accounts.len();
     const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
     const STASH: Balance = ENDOWMENT / 1000;
+
     GenesisConfig {
         frame_system: SystemConfig {
             code: WASM_BINARY
@@ -161,10 +164,25 @@ fn testnet_genesis(
                     .collect()
             },
         },
-        // TODO collateral selection
-        pallet_aura: AuraConfig {
-            authorities: initial_authorities.iter().map(|x| (x.1.clone())).collect(),
+        pallet_collator_selection: CollatorSelectionConfig {
+            invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
+            candidacy_bond: EXISTENTIAL_DEPOSIT * 16,
+            desired_candidates: 16,
         },
+        pallet_session: SessionConfig {
+            keys: invulnerables
+                .iter()
+                .cloned()
+                .map(|(acc, aura)| {
+                    (
+                        acc.clone(),          // account id
+                        acc.clone(),          // validator id
+                        SessionKeys { aura }, // session keys
+                    )
+                })
+                .collect(),
+        },
+        pallet_aura: Default::default(),
         cumulus_pallet_aura_ext: Default::default(),
         pallet_sudo: SudoConfig { key: root_key },
         parachain_info: ParachainInfoConfig { parachain_id: id },
