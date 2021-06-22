@@ -72,8 +72,8 @@
             "_enum": ["JumpModel", "CurveModel"]
         },
         "UnstakeInfo": {
-            "amount": "u128",
-            "blockNumber": "u64"
+            "amount": "Balance",
+            "blockNumber": "u32"
         },
         "OrmlAccountData": {
             "free": "Balance",
