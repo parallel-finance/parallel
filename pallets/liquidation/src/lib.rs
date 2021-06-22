@@ -115,10 +115,9 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn offchain_worker(block_number: T::BlockNumber) {
-            match Self::liquidate(block_number) {
-                Err(e) => log::error!("Failed to run offchain liquidation: {:?}", e),
-                Ok(_) => log::info!("offchain liquidation processed successfully"),
-            };
+            if let Err(e) = Self::liquidate(block_number) {
+                log::error!("Failed to run offchain liquidation: {:?}", e);
+            }
         }
     }
 

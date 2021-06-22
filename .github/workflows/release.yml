@@ -43,20 +43,21 @@ jobs:
 
       - name: Build Release And Package
         run: |
-          cargo build --bin parallel-dev --release
+          cargo build --release
           rm -fr dist || true
           mkdir dist || true
           cp README.md dist
-          cp target/release/parallel-dev dist/parallel
+          cp target/release/parallel-dev dist/parallel-dev
+          cp target/release/parallel dist/parallel
           cp -r ./resources dist
           cp scripts/setup.sh dist
           cp LICENSE dist
-          tar -cvJf vanilla-${{ steps.get_version.outputs.VERSION }}.tar.xz dist --transform 's|dist|parallel|'
+          tar -cvJf parallel-${{ steps.get_version.outputs.VERSION }}.tar.xz dist --transform 's|dist|parallel|'
 
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            vanilla-${{ steps.get_version.outputs.VERSION }}.tar.xz
+            parallel-${{ steps.get_version.outputs.VERSION }}.tar.xz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -71,7 +71,7 @@ Substrate Parachain Template:
 
 ```
 # this command assumes the chain spec is in a directory named polkadot that is a sibling of the working directory
-./target/release/parallel -d local-test --collator -laura=debug --force-authoring --alice --ws-port 9915 --parachain-id 200 -- --chain ../polkadot/rococo_local.json \
+./target/release/parallel -d local-test --collator --alice --chain heiko --ws-port 9915 --parachain-id 200 -- --chain ../polkadot/rococo_local.json \
         --bootnodes /ip4/127.0.0.1/tcp/50555/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp
 ```
 
@@ -105,6 +105,35 @@ subcommands:
 
 ```sh
 ./target/release/parallel -h
+```
+
+### Docker
+
+Run Vanilla Dev Node
+
+```
+docker run --restart=always -d -p 9944:9944 \
+    -v "$(pwd):/data" \
+    parallelfinance/parallel:latest
+```
+
+Run Vanilla Live Node
+
+```
+docker run --restart=always -d -p 9944:9944 \
+    -v "$(pwd):/data" \
+    parallelfinance/parallel:latest \
+    parallel-dev --chain live --alice --rpc-cors all --rpc-methods=Unsafe --unsafe-rpc-external --unsafe-ws-external
+```
+
+Run Heiko Collator
+
+```
+docker run --restart=always -d -p 9944:9944 \
+    -v "$(pwd):/data" \
+    -v "$(pwd)/rococo-local.json:/usr/local/bin/rococo-local.json" \
+    parallelfinance/parallel:latest \
+    parallel --collator --alice --chain heiko --parachain-id 200 -- --chain /usr/local/bin/rococo-local.json
 ```
 
 ## Learn More

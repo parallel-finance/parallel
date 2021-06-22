@@ -13,7 +13,7 @@ use orml_traits::MultiCurrency;
 use pallet_loans::{Config as LoansConfig, InterestRateModel, Pallet as Loans};
 use primitives::{CurrencyId, PriceWithDecimal, Rate, Ratio};
 use sp_runtime::traits::{Bounded, One, StaticLookup};
-use sp_runtime::{ArithmeticError, DispatchError, FixedPointNumber, FixedU128};
+use sp_runtime::{ArithmeticError, FixedPointNumber, FixedU128};
 use sp_std::prelude::*;
 use sp_std::vec;
 
