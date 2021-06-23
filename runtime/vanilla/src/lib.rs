@@ -41,7 +41,7 @@ use sp_runtime::{
         self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, NumberFor, Zero,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, Percent, SaturatedConversion,
+    ApplyExtrinsicResult, FixedPointNumber, Percent, SaturatedConversion,
 };
 pub use sp_runtime::{Perbill, Permill};
 use sp_std::prelude::*;
@@ -553,10 +553,12 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
 // Configure Parallel pallets to include in runtime.
 
 parameter_types! {
+    pub const BorrowRate: Rate = Rate::from_inner(Rate::DIV / 100 * 2);
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
 }
 impl pallet_loans::Config for Runtime {
     type Event = Event;
+    type BorrowRate = BorrowRate;
     type Currency = Currencies;
     type PalletId = LoansPalletId;
     type PriceFeeder = Prices;

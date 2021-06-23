@@ -184,8 +184,13 @@ impl PriceFeeder for MockPriceFeeder {
     }
 }
 
+parameter_types! {
+    pub const BorrowRate: Rate = Rate::from_inner(Rate::DIV / 100 * 2);
+}
+
 impl Config for Runtime {
     type Event = Event;
+    type BorrowRate = BorrowRate;
     type Currency = Currencies;
     type PalletId = LoansPalletId;
     type PriceFeeder = MockPriceFeeder;

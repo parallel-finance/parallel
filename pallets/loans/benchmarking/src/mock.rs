@@ -234,8 +234,13 @@ impl orml_oracle::Config<Instance1> for Test {
     type MaxHasDispatchedSize = MaxHasDispatchedSize;
 }
 
+parameter_types! {
+    pub const BorrowRate: Rate = Rate::from_inner(Rate::DIV / 100 * 2);
+}
+
 impl pallet_loans::Config for Test {
     type Event = Event;
+    type BorrowRate = BorrowRate;
     type Currency = Currencies;
     type PalletId = LoansPalletId;
     type PriceFeeder = MockPriceFeeder;

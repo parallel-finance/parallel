@@ -39,7 +39,7 @@ use sp_runtime::traits::{
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys, traits,
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, KeyTypeId, Percent, SaturatedConversion,
+    ApplyExtrinsicResult, FixedPointNumber, KeyTypeId, Percent, SaturatedConversion,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -268,8 +268,13 @@ impl orml_currencies::Config for Runtime {
     type WeightInfo = ();
 }
 
+parameter_types! {
+    pub const BorrowRate: Rate = Rate::from_inner(Rate::DIV / 100 * 2);
+}
+
 impl pallet_loans::Config for Runtime {
     type Event = Event;
+    type BorrowRate = BorrowRate;
     type Currency = Currencies;
     type PalletId = LoansPalletId;
     type PriceFeeder = Prices;
