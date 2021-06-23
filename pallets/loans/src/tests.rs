@@ -100,6 +100,40 @@ fn mint_must_return_err_when_overflows_occur() {
 }
 
 #[test]
+fn redeem_allowed_works() {
+    ExtBuilder::default().build().execute_with(|| {
+        // Prepare: Bob Deposit 200 DOT
+        assert_ok!(Loans::mint(Origin::signed(BOB), DOT, 200));
+
+        // Deposit 200 KSM as collateral
+        assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, 200));
+        // Redeem 201 KSM should cause InsufficientDeposit
+        assert_noop!(
+            Loans::redeem_allowed(&KSM, &ALICE, 201),
+            Error::<Runtime>::InsufficientDeposit
+        );
+        // Redeem 200 DOT should cause InsufficientDeposit
+        assert_noop!(
+            Loans::redeem_allowed(&DOT, &ALICE, 200),
+            Error::<Runtime>::InsufficientDeposit
+        );
+        // Redeem 200 KSM is ok
+        assert_ok!(Loans::redeem_allowed(&KSM, &ALICE, 200));
+
+        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
+        // Borrow 50 DOT will reduce 100 KSM liquidity for collateral_factor is 50%
+        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, 50));
+        // Redeem 101 KSM should cause InsufficientLiquidity
+        assert_noop!(
+            Loans::redeem_allowed(&KSM, &ALICE, 101),
+            Error::<Runtime>::InsufficientLiquidity
+        );
+        // Redeem 100 KSM is ok
+        assert_ok!(Loans::redeem_allowed(&KSM, &ALICE, 100));
+    })
+}
+
+#[test]
 fn redeem_works() {
     ExtBuilder::default().build().execute_with(|| {
         // Deposit 100 DOT
@@ -164,6 +198,22 @@ fn redeem_all_works() {
             million_dollar(1000),
         );
         assert!(!AccountDeposits::<Runtime>::contains_key(DOT, &ALICE))
+    })
+}
+
+#[test]
+fn borrow_allowed_works() {
+    ExtBuilder::default().build().execute_with(|| {
+        // Deposit 200 DOT as collateral
+        assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, 200));
+        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
+        // Borrow 101 DOT should cause InsufficientLiquidity
+        assert_noop!(
+            Loans::borrow_allowed(&DOT, &ALICE, 101),
+            Error::<Runtime>::InsufficientLiquidity
+        );
+        // Borrow 100 DOT is ok
+        assert_ok!(Loans::borrow_allowed(&DOT, &ALICE, 100));
     })
 }
 
@@ -291,7 +341,7 @@ fn collateral_asset_works() {
         assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, 100));
         assert_noop!(
             Loans::collateral_asset(Origin::signed(ALICE), DOT, false),
-            Error::<Runtime>::InsufficientCollateral
+            Error::<Runtime>::InsufficientLiquidity
         );
         // Repay all the borrows
         assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), DOT));
@@ -304,7 +354,7 @@ fn collateral_asset_works() {
     })
 }
 
-fn total_collateral_asset_value_works() {
+fn total_collateral_value_works() {
     ExtBuilder::default().build().execute_with(|| {
         let collateral_factor = Rate::saturating_from_rational(50, 100);
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, million_dollar(100)));
@@ -317,7 +367,7 @@ fn total_collateral_asset_value_works() {
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
         assert_eq!(
-            Loans::total_collateral_asset_value(&ALICE).unwrap(),
+            Loans::total_collateral_value(&ALICE).unwrap(),
             (collateral_factor.saturating_mul_int(100 + 200)).into()
         );
     })
@@ -920,7 +970,7 @@ fn get_price_works() {
 // or in other words, groups all flaky concurrent tests.
 #[test]
 fn sequential_tests() {
-    total_collateral_asset_value_works();
+    total_collateral_value_works();
 
     liquidate_borrow::collateral_value_must_be_greater_than_liquidation_value();
     liquidate_borrow::full_workflow_works_as_expected();
