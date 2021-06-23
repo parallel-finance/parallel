@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::*;
 use primitives::{Rate, Ratio, Timestamp, SECONDS_PER_YEAR};
 use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, Saturating};
 
-use crate::*;
+const STAKING_APY: Ratio = Ratio::from_percent(14);
 
 pub trait InterestRateModelLike {
     /// Check the model for sanity
@@ -63,8 +64,8 @@ impl InterestRateModel {
         Self::Curve(CurveModel::new_model(base_rate))
     }
 
-    pub fn new_polynomial_model(borrow_rate: Rate, reserve_factor: Ratio) -> Self {
-        Self::Polynomial(PolynomialModel::new(borrow_rate, reserve_factor))
+    pub fn new_polynomial_model(base_rate: Rate, optimal_rate: Rate, max_rate: Rate) -> Self {
+        Self::Polynomial(PolynomialModel::new(base_rate, optimal_rate, max_rate))
     }
 
     /// Calculates the current supply interest rate
@@ -195,41 +196,24 @@ impl InterestRateModelLike for CurveModel {
 
 #[derive(Clone, Copy, Decode, Default, Encode, Eq, PartialEq, RuntimeDebug)]
 pub struct PolynomialModel {
-    borrow_rate: Rate,
-    reserve_factor: Ratio,
+    jump_model: JumpModel,
 }
 
 impl PolynomialModel {
-    const MAX_BORROW_RATE: Rate = Rate::from_inner(Rate::DIV); // 100%
-    const MAX_RESERVE_FACTOR: Ratio = Ratio::from_percent(20);
-    const STAKING_APY: Rate = Rate::from_inner(Rate::DIV / 100 * 14); // 14%
-
-    pub fn new(borrow_rate: Rate, reserve_factor: Ratio) -> Self {
+    pub fn new(base_rate: Rate, optimal_rate: Rate, max_rate: Rate) -> Self {
         Self {
-            borrow_rate,
-            reserve_factor,
+            jump_model: JumpModel::new_model(base_rate, optimal_rate, max_rate, STAKING_APY),
         }
     }
 }
 
 impl InterestRateModelLike for PolynomialModel {
     fn check_model(&self) -> bool {
-        self.borrow_rate <= Self::MAX_BORROW_RATE && self.reserve_factor <= Self::MAX_RESERVE_FACTOR
+        self.jump_model.check_model()
     }
 
     fn get_borrow_rate(&self, utilization: Ratio) -> Option<Rate> {
-        const ONE: Rate = Rate::from_inner(Rate::DIV);
-        const TWO: Rate = Rate::from_inner(2 * Rate::DIV);
-
-        let one_minus_rsv_ratio = ONE.checked_sub(&self.reserve_factor.into())?;
-        let utilization_rate: Rate = utilization.into();
-        let supply_rate = ONE.checked_sub(&utilization_rate.checked_mul(&one_minus_rsv_ratio)?)?;
-
-        let interest_rate_distance = self.borrow_rate.checked_sub(&supply_rate)?;
-        let interest_rate_distance_div_by_2 = interest_rate_distance.checked_div(&TWO)?;
-        let optimal_rate = Self::STAKING_APY.checked_add(&interest_rate_distance_div_by_2)?;
-
-        Some(optimal_rate)
+        self.jump_model.get_borrow_rate(utilization)
     }
 }
 
@@ -328,12 +312,13 @@ mod tests {
     #[test]
     fn polynomial_curve_correctly_calculates_borrow_rate() {
         let model = PolynomialModel::new(
-            Rate::from_inner(Rate::DIV / 100 * 110), // 110%
-            Ratio::from_percent(50),
+            Rate::from_inner(Rate::DIV / 100 * 2),  // 2%
+            Rate::from_inner(Rate::DIV / 100 * 10), // 10%
+            Rate::from_inner(Rate::DIV / 100 * 32), // 32%
         );
         assert_eq!(
             model.get_borrow_rate(Ratio::from_percent(10)).unwrap(),
-            Rate::from_inner(Rate::DIV / 1000 * 215) // 21.5%
+            Rate::from_inner(Rate::DIV / 1000000000000000000 * 77142857142857142)
         );
     }
 }
