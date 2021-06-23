@@ -164,20 +164,20 @@ fn testnet_genesis(
     const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
     const STASH: Balance = ENDOWMENT / 1000;
     GenesisConfig {
-        frame_system: SystemConfig {
+        system: SystemConfig {
             code: wasm_binary.to_vec(),
             changes_trie_config: Default::default(),
         },
-        pallet_aura: AuraConfig {
+        aura: AuraConfig {
             authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),
         },
-        pallet_grandpa: GrandpaConfig {
+        grandpa: GrandpaConfig {
             authorities: initial_authorities
                 .iter()
                 .map(|x| (x.1.clone(), 1))
                 .collect(),
         },
-        pallet_balances: BalancesConfig {
+        balances: BalancesConfig {
             balances: {
                 let mut endowed_accounts = endowed_accounts.clone();
                 endowed_accounts.extend_from_slice(&oracle_accounts);
@@ -188,8 +188,8 @@ fn testnet_genesis(
                     .collect()
             },
         },
-        pallet_sudo: SudoConfig { key: root_key },
-        orml_tokens: TokensConfig {
+        sudo: SudoConfig { key: root_key },
+        tokens: TokensConfig {
             balances: endowed_accounts
                 .iter()
                 .flat_map(|x| {
@@ -210,7 +210,7 @@ fn testnet_genesis(
                 })
                 .collect(),
         },
-        pallet_loans: LoansConfig {
+        loans: LoansConfig {
             currencies: vec![CurrencyId::KSM, CurrencyId::USDT, CurrencyId::xKSM],
             borrow_index: Rate::one(),                             // 1
             exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
@@ -240,11 +240,11 @@ fn testnet_genesis(
             ],
             last_block_timestamp: 0,
         },
-        pallet_liquid_staking: LiquidStakingConfig {
+        liquid_staking: LiquidStakingConfig {
             exchange_rate: Rate::saturating_from_rational(100, 100), // 1
         },
-        pallet_democracy: DemocracyConfig::default(),
-        pallet_elections_phragmen: ElectionsConfig {
+        democracy: DemocracyConfig::default(),
+        elections: ElectionsConfig {
             members: endowed_accounts
                 .iter()
                 .take((num_endowed_accounts + 1) / 2)
@@ -252,8 +252,8 @@ fn testnet_genesis(
                 .map(|member| (member, STASH))
                 .collect(),
         },
-        pallet_collective_Instance1: CouncilConfig::default(),
-        pallet_collective_Instance2: TechnicalCommitteeConfig {
+        council: CouncilConfig::default(),
+        technical_committee: TechnicalCommitteeConfig {
             members: endowed_accounts
                 .iter()
                 .take((num_endowed_accounts + 1) / 2)
@@ -261,9 +261,9 @@ fn testnet_genesis(
                 .collect(),
             phantom: Default::default(),
         },
-        pallet_membership_Instance1: Default::default(),
-        pallet_treasury: Default::default(),
-        pallet_membership_Instance2: OracleMembershipConfig {
+        technical_membership: Default::default(),
+        treasury: Default::default(),
+        oracle_membership: OracleMembershipConfig {
             members: oracle_accounts,
             phantom: Default::default(),
         },

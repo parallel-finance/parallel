@@ -221,6 +221,8 @@ impl pallet_balances::Config for Runtime {
     /// The ubiquitous event type.
     type Event = Event;
     type DustRemoval = ();
+    type MaxReserves = ();
+    type ReserveIdentifier = [u8; 8];
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
@@ -232,7 +234,6 @@ parameter_types! {
 }
 
 impl pallet_transaction_payment::Config for Runtime {
-    // TODO add missing DealWithFees
     type OnChargeTransaction = CurrencyAdapter<Balances, ()>;
     type TransactionByteFee = TransactionByteFee;
     type WeightToFee = WeightToFee;
@@ -531,6 +532,7 @@ impl orml_currencies::Config for Runtime {
 parameter_types! {
     pub const MinimumCount: u32 = 1;
     pub const ExpiresIn: Moment = 1000 * 60 * 60; // 60 mins
+    pub const MaxHasDispatchedSize: u32 = 100;
     pub ZeroAccountId: AccountId = AccountId::from([0u8; 32]);
 }
 type ParallelDataProvider = orml_oracle::Instance1;
@@ -543,6 +545,7 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
     type OracleKey = CurrencyId;
     type OracleValue = PriceWithDecimal;
     type RootOperatorAccountId = ZeroAccountId;
+    type MaxHasDispatchedSize = MaxHasDispatchedSize;
     type WeightInfo = ();
     type Members = OracleMembership;
 }
@@ -672,18 +675,20 @@ construct_runtime!(
         NodeBlock = opaque::Block,
         UncheckedExtrinsic = UncheckedExtrinsic
     {
-        // Substrate pallets
-        // Utility
+        // System, Utility
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
         Utility: pallet_utility::{Pallet, Call, Event},
         Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>},
+
         // Consensus
         Aura: pallet_aura::{Pallet, Config<T>},
         Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
+
         // Currencies
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
         TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
+
         // Governance
         Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
         Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>},
@@ -693,15 +698,16 @@ construct_runtime!(
         Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
         Elections: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>},
         TechnicalMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>},
+
         // Oracles
         OracleMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>},
 
-        // ORML pallets
+        // ORML
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
         Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call,  Event<T>},
 
-        // Parallel pallets
+        // Parallel
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
         Liquidation: pallet_liquidation::{Pallet, Call},

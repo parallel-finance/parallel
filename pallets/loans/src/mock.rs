@@ -144,6 +144,8 @@ impl pallet_balances::Config for Runtime {
     type Event = Event;
     type DustRemoval = ();
     type ExistentialDeposit = ExistentialDeposit;
+    type MaxReserves = ();
+    type ReserveIdentifier = [u8; 8];
     type AccountStore = System;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
 }
@@ -196,13 +198,13 @@ parameter_types! {
 }
 
 pub struct ExtBuilder {
-    endowed_accounts: Vec<(AccountId, CurrencyId, Balance)>,
+    balances: Vec<(AccountId, CurrencyId, Balance)>,
 }
 
 impl Default for ExtBuilder {
     fn default() -> Self {
         Self {
-            endowed_accounts: vec![
+            balances: vec![
                 (ALICE, DOT, million_dollar(1000)),
                 (ALICE, KSM, million_dollar(1000)),
                 (ALICE, USDT, million_dollar(1000)),
@@ -221,7 +223,7 @@ impl ExtBuilder {
             .unwrap();
 
         orml_tokens::GenesisConfig::<Runtime> {
-            balances: self.endowed_accounts.clone(),
+            balances: self.balances.clone(),
         }
         .assimilate_storage(&mut t)
         .unwrap();
