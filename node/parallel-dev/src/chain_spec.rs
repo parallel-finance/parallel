@@ -22,10 +22,9 @@ use sp_runtime::{
     FixedPointNumber,
 };
 use vanilla_runtime::{
-    AuraConfig, BalancesConfig, CouncilConfig,
-    DemocracyConfig, ElectionsConfig, GenesisConfig, GrandpaConfig, LiquidStakingConfig,
-    LoansConfig, OracleMembershipConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig,
-    TokensConfig, WASM_BINARY,
+    AuraConfig, BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig,
+    GrandpaConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig, SudoConfig,
+    SystemConfig, TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
 };
 
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
