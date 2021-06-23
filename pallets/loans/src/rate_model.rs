@@ -17,7 +17,7 @@ use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, Saturat
 
 use crate::*;
 
-pub trait InterestRateModel {
+pub trait InterestRateModelLike {
     /// Check the model for sanity
     fn check_model(&self) -> bool;
 
@@ -27,13 +27,13 @@ pub trait InterestRateModel {
 
 /// Parallel interest rate model
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug)]
-pub enum InterestRateModels {
+pub enum InterestRateModel {
     Curve(CurveModel),
     Jump(JumpModel),
-    NewCurveName(NewCurveNameModel),
+    Polynomial(PolynomialModel),
 }
 
-impl Default for InterestRateModels {
+impl Default for InterestRateModel {
     fn default() -> Self {
         Self::new_jump_model(
             Rate::saturating_from_rational(2, 100),
@@ -44,17 +44,17 @@ impl Default for InterestRateModels {
     }
 }
 
-impl InterestRateModels {
+impl InterestRateModel {
     pub fn new_jump_model(
         base_rate: Rate,
-        max_rate: Rate,
         optimal_rate: Rate,
+        max_rate: Rate,
         optimal_utilization: Ratio,
     ) -> Self {
         Self::Jump(JumpModel::new_model(
             base_rate,
-            max_rate,
             optimal_rate,
+            max_rate,
             optimal_utilization,
         ))
     }
@@ -63,12 +63,8 @@ impl InterestRateModels {
         Self::Curve(CurveModel::new_model(base_rate))
     }
 
-    pub fn new_new_curve_name(borrow_rate: Rate, reserve_ratio: Ratio, staking_apy: Ratio) -> Self {
-        Self::NewCurveName(NewCurveNameModel::new(
-            borrow_rate,
-            reserve_ratio,
-            staking_apy,
-        ))
+    pub fn new_polynomial_model(borrow_rate: Rate, reserve_factor: Ratio) -> Self {
+        Self::Polynomial(PolynomialModel::new(borrow_rate, reserve_factor))
     }
 
     /// Calculates the current supply interest rate
@@ -81,12 +77,12 @@ impl InterestRateModels {
     }
 }
 
-impl InterestRateModel for InterestRateModels {
+impl InterestRateModelLike for InterestRateModel {
     fn check_model(&self) -> bool {
         match self {
             Self::Curve(curve) => curve.check_model(),
             Self::Jump(jump) => jump.check_model(),
-            Self::NewCurveName(model) => model.check_model(),
+            Self::Polynomial(model) => model.check_model(),
         }
     }
 
@@ -94,7 +90,7 @@ impl InterestRateModel for InterestRateModels {
         match self {
             Self::Curve(curve) => curve.get_borrow_rate(utilization),
             Self::Jump(jump) => jump.get_borrow_rate(utilization),
-            Self::NewCurveName(model) => model.get_borrow_rate(utilization),
+            Self::Polynomial(model) => model.get_borrow_rate(utilization),
         }
     }
 }
@@ -105,43 +101,43 @@ pub struct JumpModel {
     /// The base interest rate when utilization rate is 0
     pub base_rate: Rate,
     /// The interest rate on jump utilization point
-    pub max_rate: Rate,
-    /// The max interest rate when utilization rate is 100%
     pub optimal_rate: Rate,
-    /// The utilization point at which the max_rate is applied
+    /// The max interest rate when utilization rate is 100%
+    pub max_rate: Rate,
+    /// The utilization point at which the optimal_rate is applied
     pub optimal_utilization: Ratio,
 }
 
 impl JumpModel {
     pub const MAX_BASE_RATE: Rate = Rate::from_inner(100_000_000_000_000_000); // 10%
-    pub const MAX_RATE: Rate = Rate::from_inner(300_000_000_000_000_000); // 30%
-    pub const MAX_OPTIMAL_RATE: Rate = Rate::from_inner(500_000_000_000_000_000); // 50%
+    pub const MAX_OPTIMAL_RATE: Rate = Rate::from_inner(300_000_000_000_000_000); // 30%
+    pub const MAX_RATE: Rate = Rate::from_inner(500_000_000_000_000_000); // 50%
 
     /// Create a new rate model
     pub fn new_model(
         base_rate: Rate,
-        max_rate: Rate,
         optimal_rate: Rate,
+        max_rate: Rate,
         optimal_utilization: Ratio,
     ) -> JumpModel {
         Self {
             base_rate,
-            max_rate,
             optimal_rate,
+            max_rate,
             optimal_utilization,
         }
     }
 }
 
-impl InterestRateModel for JumpModel {
+impl InterestRateModelLike for JumpModel {
     fn check_model(&self) -> bool {
         if self.base_rate > Self::MAX_BASE_RATE
-            || self.max_rate > Self::MAX_RATE
             || self.optimal_rate > Self::MAX_OPTIMAL_RATE
+            || self.max_rate > Self::MAX_RATE
         {
             return false;
         }
-        if self.base_rate > self.max_rate || self.max_rate > self.optimal_rate {
+        if self.base_rate > self.optimal_rate || self.optimal_rate > self.max_rate {
             return false;
         }
 
@@ -150,9 +146,9 @@ impl InterestRateModel for JumpModel {
 
     fn get_borrow_rate(&self, utilization: Ratio) -> Option<Rate> {
         if utilization <= self.optimal_utilization {
-            // utilization * (max_rate - zero_rate) / optimal_utilization + zero_rate
+            // utilization * (optimal_rate - zero_rate) / optimal_utilization + zero_rate
             let result = self
-                .max_rate
+                .optimal_rate
                 .checked_sub(&self.base_rate)?
                 .saturating_mul(utilization.into())
                 .checked_div(&self.optimal_utilization.into())?
@@ -160,14 +156,14 @@ impl InterestRateModel for JumpModel {
 
             Some(result.into())
         } else {
-            // (utilization - optimal_utilization)*(optimal_rate - max_rate) / ( 1 - optimal_utilization) + max_rate
+            // (utilization - optimal_utilization)*(max_rate - optimal_rate) / ( 1 - optimal_utilization) + optimal_rate
             let excess_util = utilization.saturating_sub(self.optimal_utilization);
             let result = self
-                .optimal_rate
-                .checked_sub(&self.max_rate)?
+                .max_rate
+                .checked_sub(&self.optimal_rate)?
                 .saturating_mul(excess_util.into())
                 .checked_div(&(Ratio::one().saturating_sub(self.optimal_utilization).into()))?
-                .checked_add(&self.max_rate)?;
+                .checked_add(&self.optimal_rate)?;
 
             Some(result.into())
         }
@@ -187,7 +183,7 @@ impl CurveModel {
     }
 }
 
-impl InterestRateModel for CurveModel {
+impl InterestRateModelLike for CurveModel {
     fn check_model(&self) -> bool {
         false
     }
@@ -198,39 +194,40 @@ impl InterestRateModel for CurveModel {
 }
 
 #[derive(Clone, Copy, Decode, Default, Encode, Eq, PartialEq, RuntimeDebug)]
-pub struct NewCurveNameModel {
+pub struct PolynomialModel {
     borrow_rate: Rate,
-    reserve_ratio: Ratio,
-    staking_apy: Ratio,
+    reserve_factor: Ratio,
 }
 
-impl NewCurveNameModel {
-    pub fn new(borrow_rate: Rate, reserve_ratio: Ratio, staking_apy: Ratio) -> Self {
+impl PolynomialModel {
+    const MAX_BORROW_RATE: Rate = Rate::from_inner(Rate::DIV); // 100%
+    const MAX_RESERVE_FACTOR: Ratio = Ratio::from_percent(20);
+    const STAKING_APY: Rate = Rate::from_inner(Rate::DIV / 100 * 14); // 14%
+
+    pub fn new(borrow_rate: Rate, reserve_factor: Ratio) -> Self {
         Self {
             borrow_rate,
-            reserve_ratio,
-            staking_apy,
+            reserve_factor,
         }
     }
 }
 
-impl InterestRateModel for NewCurveNameModel {
+impl InterestRateModelLike for PolynomialModel {
     fn check_model(&self) -> bool {
-        false
+        self.borrow_rate <= Self::MAX_BORROW_RATE && self.reserve_factor <= Self::MAX_RESERVE_FACTOR
     }
 
     fn get_borrow_rate(&self, utilization: Ratio) -> Option<Rate> {
         const ONE: Rate = Rate::from_inner(Rate::DIV);
         const TWO: Rate = Rate::from_inner(2 * Rate::DIV);
 
-        let one_minus_rsv_ratio = ONE.checked_sub(&self.reserve_ratio.into())?;
+        let one_minus_rsv_ratio = ONE.checked_sub(&self.reserve_factor.into())?;
         let utilization_rate: Rate = utilization.into();
         let supply_rate = ONE.checked_sub(&utilization_rate.checked_mul(&one_minus_rsv_ratio)?)?;
 
         let interest_rate_distance = self.borrow_rate.checked_sub(&supply_rate)?;
         let interest_rate_distance_div_by_2 = interest_rate_distance.checked_div(&TWO)?;
-        let staking_apy_rate: Rate = self.staking_apy.into();
-        let optimal_rate = staking_apy_rate.checked_add(&interest_rate_distance_div_by_2)?;
+        let optimal_rate = Self::STAKING_APY.checked_add(&interest_rate_distance_div_by_2)?;
 
         Some(optimal_rate)
     }
@@ -259,16 +256,16 @@ mod tests {
     #[test]
     fn init_jump_model_works() {
         let base_rate = Rate::saturating_from_rational(2, 100);
-        let max_rate = Rate::saturating_from_rational(10, 100);
-        let optimal_rate = Rate::saturating_from_rational(32, 100);
+        let optimal_rate = Rate::saturating_from_rational(10, 100);
+        let max_rate = Rate::saturating_from_rational(32, 100);
         let optimal_utilization = Ratio::from_percent(80);
 
         assert_eq!(
-            JumpModel::new_model(base_rate, max_rate, optimal_rate, optimal_utilization),
+            JumpModel::new_model(base_rate, optimal_rate, max_rate, optimal_utilization),
             JumpModel {
                 base_rate: Rate::from_inner(20_000_000_000_000_000).into(),
-                max_rate: Rate::from_inner(100_000_000_000_000_000).into(),
-                optimal_rate: Rate::from_inner(320_000_000_000_000_000).into(),
+                optimal_rate: Rate::from_inner(100_000_000_000_000_000).into(),
+                max_rate: Rate::from_inner(320_000_000_000_000_000).into(),
                 optimal_utilization: Ratio::from_percent(80),
             }
         );
@@ -278,11 +275,11 @@ mod tests {
     fn get_borrow_rate_works() {
         // init
         let base_rate = Rate::saturating_from_rational(2, 100);
-        let max_rate = Rate::saturating_from_rational(10, 100);
-        let optimal_rate = Rate::saturating_from_rational(32, 100);
+        let optimal_rate = Rate::saturating_from_rational(10, 100);
+        let max_rate = Rate::saturating_from_rational(32, 100);
         let optimal_utilization = Ratio::from_percent(80);
         let jump_model =
-            JumpModel::new_model(base_rate, max_rate, optimal_rate, optimal_utilization);
+            JumpModel::new_model(base_rate, optimal_rate, max_rate, optimal_utilization);
         assert!(jump_model.check_model());
 
         // normal rate
@@ -292,7 +289,7 @@ mod tests {
         let borrow_rate = jump_model.get_borrow_rate(util).unwrap();
         assert_eq!(
             borrow_rate,
-            jump_model.max_rate.saturating_mul(util.into()) + jump_model.base_rate,
+            jump_model.optimal_rate.saturating_mul(util.into()) + jump_model.base_rate,
         );
 
         // jump rate
@@ -300,13 +297,13 @@ mod tests {
         let util = Ratio::from_rational(borrows, cash + borrows);
         let borrow_rate = jump_model.get_borrow_rate(util).unwrap();
         let normal_rate = jump_model
-            .max_rate
+            .optimal_rate
             .saturating_mul(optimal_utilization.into())
             + jump_model.base_rate;
         let excess_util = util.saturating_sub(optimal_utilization);
         assert_eq!(
             borrow_rate,
-            (jump_model.optimal_rate - jump_model.max_rate).saturating_mul(excess_util.into())
+            (jump_model.max_rate - jump_model.optimal_rate).saturating_mul(excess_util.into())
                 / FixedU128::saturating_from_rational(20, 100)
                 + normal_rate,
         );
@@ -320,7 +317,7 @@ mod tests {
         let borrow_rate = Rate::saturating_from_rational(2, 100);
         let util = Ratio::from_percent(50);
         let reserve_factor = Ratio::zero();
-        let supply_rate = InterestRateModels::get_supply_rate(borrow_rate, util, reserve_factor);
+        let supply_rate = InterestRateModel::get_supply_rate(borrow_rate, util, reserve_factor);
         assert_eq!(
             supply_rate,
             borrow_rate
@@ -329,16 +326,13 @@ mod tests {
     }
 
     #[test]
-    fn new_curve_name_correctly_calculates_borrow_rate() {
-        let new_curve_name_model = NewCurveNameModel::new(
+    fn polynomial_curve_correctly_calculates_borrow_rate() {
+        let model = PolynomialModel::new(
             Rate::from_inner(Rate::DIV / 100 * 110), // 110%
             Ratio::from_percent(50),
-            Ratio::from_percent(14),
         );
         assert_eq!(
-            new_curve_name_model
-                .get_borrow_rate(Ratio::from_percent(10))
-                .unwrap(),
+            model.get_borrow_rate(Ratio::from_percent(10)).unwrap(),
             Rate::from_inner(Rate::DIV / 1000 * 215) // 21.5%
         );
     }

@@ -676,7 +676,7 @@ fn set_rate_model_works() {
         // Check genesis rate model
         assert_eq!(
             Loans::currency_interest_model(DOT),
-            InterestRateModels::new_jump_model(
+            InterestRateModel::new_jump_model(
                 Rate::saturating_from_rational(2, 100),
                 Rate::saturating_from_rational(10, 100),
                 Rate::saturating_from_rational(32, 100),
@@ -687,7 +687,7 @@ fn set_rate_model_works() {
         assert_ok!(Loans::set_rate_model(
             Origin::root(),
             DOT,
-            InterestRateModels::new_jump_model(
+            InterestRateModel::new_jump_model(
                 Rate::saturating_from_rational(5, 100),
                 Rate::saturating_from_rational(15, 100),
                 Rate::saturating_from_rational(35, 100),
@@ -696,7 +696,7 @@ fn set_rate_model_works() {
         ));
         assert_eq!(
             Loans::currency_interest_model(DOT),
-            InterestRateModels::new_jump_model(
+            InterestRateModel::new_jump_model(
                 Rate::saturating_from_rational(5, 100),
                 Rate::saturating_from_rational(15, 100),
                 Rate::saturating_from_rational(35, 100),
@@ -714,7 +714,7 @@ fn set_rate_model_failed_by_error_param() {
             Loans::set_rate_model(
                 Origin::root(),
                 DOT,
-                InterestRateModels::new_jump_model(
+                InterestRateModel::new_jump_model(
                     Rate::saturating_from_rational(36, 100),
                     Rate::saturating_from_rational(15, 100),
                     Rate::saturating_from_rational(35, 100),
@@ -728,7 +728,7 @@ fn set_rate_model_failed_by_error_param() {
             Loans::set_rate_model(
                 Origin::root(),
                 DOT,
-                InterestRateModels::new_jump_model(
+                InterestRateModel::new_jump_model(
                     Rate::saturating_from_rational(5, 100),
                     Rate::saturating_from_rational(36, 100),
                     Rate::saturating_from_rational(37, 100),
@@ -742,7 +742,7 @@ fn set_rate_model_failed_by_error_param() {
             Loans::set_rate_model(
                 Origin::root(),
                 DOT,
-                InterestRateModels::new_jump_model(
+                InterestRateModel::new_jump_model(
                     Rate::saturating_from_rational(5, 100),
                     Rate::saturating_from_rational(15, 100),
                     Rate::saturating_from_rational(57, 100),
@@ -756,7 +756,7 @@ fn set_rate_model_failed_by_error_param() {
             Loans::set_rate_model(
                 Origin::root(),
                 DOT,
-                InterestRateModels::new_jump_model(
+                InterestRateModel::new_jump_model(
                     Rate::saturating_from_rational(10, 100),
                     Rate::saturating_from_rational(9, 100),
                     Rate::saturating_from_rational(14, 100),
@@ -770,7 +770,7 @@ fn set_rate_model_failed_by_error_param() {
             Loans::set_rate_model(
                 Origin::root(),
                 DOT,
-                InterestRateModels::new_jump_model(
+                InterestRateModel::new_jump_model(
                     Rate::saturating_from_rational(5, 100),
                     Rate::saturating_from_rational(15, 100),
                     Rate::saturating_from_rational(14, 100),
@@ -923,7 +923,7 @@ fn with_transaction_rollback_works() {
         assert_eq!(Loans::borrow_index(DOT), Rate::one());
 
         // Set an error rate model to trigger an Error Result when accruing interest.
-        let error_model = InterestRateModels::new_jump_model(
+        let error_model = InterestRateModel::new_jump_model(
             Rate::zero(),
             Rate::one(),
             Rate::zero(),
