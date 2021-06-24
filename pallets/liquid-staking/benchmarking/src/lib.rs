@@ -200,6 +200,47 @@ benchmarks! {
         assert_last_event::<T>(pallet_liquid_staking::Event::UnstakeProcessing(agent, caller, amount).into());
     }
 
+    finish_processed_unstake {
+        let caller: T::AccountId = whitelisted_caller();
+        initial_set_up::<T>(caller.clone());
+        let agent: T::AccountId = account("Sample", 6, SEED);
+        let amount = 100_000;
+        let unstake_amount = 5_000_000;
+        assert_ok!(LiquidStaking::<T>::stake(
+            SystemOrigin::Signed(caller.clone()).into(),
+            amount));
+
+        assert_ok!(LiquidStaking::<T>::unstake(
+            SystemOrigin::Signed(caller.clone()).into(),
+            unstake_amount));
+
+        assert_ok!(LiquidStaking::<T>::process_pending_unstake(
+            SystemOrigin::Root.into(),
+            agent.clone(),
+            caller.clone(),
+            amount
+        ));
+    }: {
+        let _ = LiquidStaking::<T>::finish_processed_unstake(
+            SystemOrigin::Root.into(),
+            agent.clone(),
+            caller.clone(),
+            amount
+        );
+    }
+    verify {
+        assert_eq!(
+            <T as LiquidStakingConfig>::Currency::free_balance(CurrencyId::DOT, &caller),
+            INITIAL_AMOUNT
+        );
+        assert_eq!(
+            <T as LiquidStakingConfig>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::<T>::account_id()),
+            INITIAL_AMOUNT
+        );
+
+        assert_last_event::<T>(pallet_liquid_staking::Event::UnstakeProcessed(agent, caller, amount).into());
+    }
+
 }
 
 impl_benchmark_test_suite!(Pallet, crate::mock::new_test_ext(), crate::mock::Test,);
