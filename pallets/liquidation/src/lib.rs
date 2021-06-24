@@ -24,7 +24,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{log, pallet_prelude::*};
+use frame_support::{log, pallet_prelude::*, transactional};
 use frame_system::offchain::{
     AppCrypto, CreateSignedTransaction, ForAny, SendSignedTransaction, Signer,
 };
@@ -42,6 +42,7 @@ use sp_std::collections::btree_map::BTreeMap;
 use sp_std::prelude::*;
 
 pub use pallet::*;
+use pallet_loans::WeightInfo;
 use primitives::{Balance, CurrencyId, PriceFeeder};
 
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"pool");
@@ -129,7 +130,8 @@ pub mod pallet {
         /// - `liquidate_currency`: the currency of a loan
         /// - `repay_amount`: the amount will be liquidated
         /// - `collateral_currency`: the currency that liquidator want to get after liquidation.
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::liquidate_borrow())]
+        #[transactional]
         pub fn liquidate_borrow(
             origin: OriginFor<T>,
             borrower: T::AccountId,
@@ -138,6 +140,7 @@ pub mod pallet {
             collateral_currency: CurrencyId,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+
             pallet_loans::Pallet::<T>::liquidate_borrow_internal(
                 who,
                 borrower,

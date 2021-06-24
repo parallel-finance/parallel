@@ -720,7 +720,6 @@ pub mod pallet {
             collateral_token: CurrencyId,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_currency(&liquidate_token)?;
 
             Self::liquidate_borrow_internal(
                 who,
@@ -1099,6 +1098,8 @@ impl<T: Config> Pallet<T> {
         repay_amount: Balance,
         collateral_currency_id: CurrencyId,
     ) -> DispatchResult {
+        Self::ensure_currency(&liquidate_currency_id)?;
+
         if borrower == liquidator {
             return Err(Error::<T>::LiquidatorIsBorrower.into());
         }
