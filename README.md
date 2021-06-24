@@ -43,7 +43,7 @@ cargo build --release
 make help
 ```
 
-## Run Heiko Node (via polkadot-launch)
+## Run Heiko Node (via polkadot-launch 1.6.3)
 
 ```
 make launch
