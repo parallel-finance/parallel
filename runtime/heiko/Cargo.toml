@@ -79,7 +79,10 @@ orml-oracle                 = { git = 'https://github.com/open-web3-stack/open-r
 orml-oracle-rpc-runtime-api = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-tokens                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-traits                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-unknown-tokens         = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-utilities              = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-xcm-support            = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 
 # Parallel dependencies
 pallet-liquid-staking     = { path = '../../pallets/liquid-staking', default-features = false }
@@ -174,4 +177,7 @@ std                = [
   'pallet-authorship/std',
   'pallet-collator-selection/std',
   'cumulus-primitives-timestamp/std',
+  'orml-unknown-tokens/std',
+  'orml-xcm-support/std',
+  'orml-xtokens/std',
 ]
