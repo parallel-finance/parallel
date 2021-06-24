@@ -7,10 +7,11 @@ mod mock;
 use frame_benchmarking::account;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::assert_ok;
+use frame_support::sp_runtime::FixedPointNumber;
 use frame_system::RawOrigin as SystemOrigin;
 use orml_traits::MultiCurrency;
 use pallet_liquid_staking::{Config as LiquidStakingConfig, Pallet as LiquidStaking};
-use primitives::CurrencyId;
+use primitives::{CurrencyId, Rate};
 use sp_std::prelude::*;
 
 pub struct Pallet<T: Config>(LiquidStaking<T>);
@@ -28,6 +29,7 @@ fn initial_set_up<T: Config>(caller: T::AccountId) {
     let account_id = LiquidStaking::<T>::account_id();
     <T as LiquidStakingConfig>::Currency::deposit(DOT, &caller, INITIAL_AMOUNT).unwrap();
     <T as LiquidStakingConfig>::Currency::deposit(DOT, &account_id, INITIAL_AMOUNT).unwrap();
+    pallet_liquid_staking::ExchangeRate::<T>::put(Rate::saturating_from_rational(2, 100));
 }
 
 benchmarks! {

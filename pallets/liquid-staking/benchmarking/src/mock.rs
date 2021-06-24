@@ -77,15 +77,15 @@ parameter_types! {
 }
 
 impl pallet_balances::Config for Test {
-	type MaxLocks = MaxLocks;
-	type Balance = Balance;
-	type Event = Event;
-	type DustRemoval = ();
-	type MaxReserves = ();
-	type ReserveIdentifier = [u8; 8];
-	type ExistentialDeposit = ExistentialDeposit;
-	type AccountStore = System;
-	type WeightInfo = ();
+    type MaxLocks = MaxLocks;
+    type Balance = Balance;
+    type Event = Event;
+    type DustRemoval = ();
+    type MaxReserves = ();
+    type ReserveIdentifier = [u8; 8];
+    type ExistentialDeposit = ExistentialDeposit;
+    type AccountStore = System;
+    type WeightInfo = ();
 }
 
 parameter_type_with_key! {
@@ -148,10 +148,5 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap();
-    pallet_liquid_staking::GenesisConfig {
-        exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
-    }
-    .assimilate_storage::<Test>(&mut t)
-    .unwrap();
     t.into()
 }
