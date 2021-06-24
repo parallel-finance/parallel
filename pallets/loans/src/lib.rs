@@ -776,7 +776,9 @@ pub mod pallet {
 
             T::Currency::transfer(currency_id, &payer, &Self::account_id(), add_amount)?;
             let total_reserves = Self::total_reserves(currency_id);
-            let total_reserves_new = total_reserves + add_amount;
+            let total_reserves_new = total_reserves
+                .checked_add(add_amount)
+                .ok_or(ArithmeticError::Overflow)?;
             TotalReserves::<T>::insert(currency_id, total_reserves_new);
 
             Self::deposit_event(Event::<T>::ReservesAdded(
@@ -812,7 +814,9 @@ pub mod pallet {
             if reduce_amount > total_reserves {
                 return Err(Error::<T>::InsufficientReserves.into());
             }
-            let total_reserves_new = total_reserves - reduce_amount;
+            let total_reserves_new = total_reserves
+                .checked_sub(reduce_amount)
+                .ok_or(ArithmeticError::Underflow)?;
             TotalReserves::<T>::insert(currency_id, total_reserves_new);
             T::Currency::transfer(currency_id, &Self::account_id(), &receiver, reduce_amount)?;
 
@@ -1295,7 +1299,10 @@ impl<T: Config> Pallet<T> {
         let borrows_prior = Self::total_borrows(currency_id);
         let reserve_prior = Self::total_reserves(currency_id);
         let reserve_factor = Self::reserve_factor(currency_id);
-        let delta_time = T::UnixTime::now().as_secs() - Self::last_block_timestamp();
+        let delta_time = T::UnixTime::now()
+            .as_secs()
+            .checked_sub(Self::last_block_timestamp())
+            .ok_or(ArithmeticError::Underflow)?;
         let interest_accumulated = accrued_interest(borrow_rate, borrows_prior, delta_time)
             .ok_or(ArithmeticError::Overflow)?;
         let total_borrows_new = interest_accumulated
