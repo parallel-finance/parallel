@@ -144,12 +144,24 @@ pub trait EmergencyPriceFeeder<CurrencyId, PriceWithDecimal> {
     fn reset_emergency_price(currency_id: CurrencyId);
 }
 
-pub trait XTransfer<T: Config, C, A, B> {
-    fn xtransfer(from: OriginFor<T>, currency_id: C, to: A, amount: B) -> DispatchResult;
+pub trait XTransfer<T: Config, CurrencyId, AccountId, Balance> {
+    fn xtransfer(
+        from: OriginFor<T>,
+        currency_id: CurrencyId,
+        to: AccountId,
+        amount: Balance,
+    ) -> DispatchResult;
 }
 
-impl<T: Config, C, A, B> XTransfer<T, C, A, B> for () {
-    fn xtransfer(_from: OriginFor<T>, _currency_id: C, _to: A, _amount: B) -> DispatchResult {
+impl<T: Config, CurrencyId, AccountId, Balance> XTransfer<T, CurrencyId, AccountId, Balance>
+    for ()
+{
+    fn xtransfer(
+        _from: OriginFor<T>,
+        _currency_id: CurrencyId,
+        _to: AccountId,
+        _amount: Balance,
+    ) -> DispatchResult {
         Ok(().into())
     }
 }
