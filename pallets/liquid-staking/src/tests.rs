@@ -44,10 +44,6 @@ fn withdraw_should_work() {
             90
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &2),
-            10
-        );
-        assert_eq!(
             <Test as Config>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::account_id()),
             0
         );

@@ -21,7 +21,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::{pallet_prelude::*, transactional, BoundedVec, PalletId};
-use frame_system::pallet_prelude::*;
+use frame_system::{pallet_prelude::*, RawOrigin};
 use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber, RuntimeDebug};
 use sp_std::convert::TryInto;
 use sp_std::prelude::*;
@@ -29,7 +29,7 @@ use sp_std::prelude::*;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 
 pub use pallet::*;
-use primitives::{Amount, Balance, CurrencyId, Rate};
+use primitives::{Amount, Balance, CurrencyId, Rate, XTransfer};
 
 #[cfg(test)]
 mod mock;
@@ -87,6 +87,8 @@ pub mod pallet {
         /// The maximum size of AccountProcessingUnstake
         #[pallet::constant]
         type MaxAccountProcessingUnstake: Get<u32>;
+
+        type XTransfer: XTransfer<Self, CurrencyId, Self::AccountId, Balance>;
     }
 
     #[pallet::error]
@@ -264,10 +266,10 @@ pub mod pallet {
                 Error::<T>::ExcessWithdrawThreshold
             );
 
-            T::Currency::transfer(
+            T::XTransfer::xtransfer(
+                RawOrigin::Signed(Self::account_id()).into(),
                 T::StakingCurrency::get(),
-                &Self::account_id(),
-                &agent,
+                agent.clone(),
                 amount,
             )?;
 

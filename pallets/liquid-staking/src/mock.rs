@@ -1,6 +1,8 @@
 use crate as pallet_liquid_staking;
-use frame_support::{ord_parameter_types, parameter_types, traits::GenesisBuild, PalletId};
-use frame_system::{self as system, EnsureSignedBy};
+use frame_support::{
+    dispatch::DispatchResult, ord_parameter_types, parameter_types, traits::GenesisBuild, PalletId,
+};
+use frame_system::{self as system, ensure_signed, pallet_prelude::OriginFor, EnsureSignedBy};
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
@@ -8,9 +10,9 @@ use sp_runtime::{
     FixedPointNumber,
 };
 
-use orml_traits::parameter_type_with_key;
+use orml_traits::{parameter_type_with_key, MultiCurrency};
 
-use primitives::{Amount, Balance, CurrencyId, Rate};
+use primitives::{Amount, Balance, CurrencyId, Rate, XTransfer};
 
 pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const XDOT: CurrencyId = CurrencyId::xDOT;
@@ -19,6 +21,7 @@ pub const NATIVE: CurrencyId = CurrencyId::Native;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
+type AccountId = u64;
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -51,7 +54,7 @@ impl system::Config for Test {
     type BlockNumber = BlockNumber;
     type Hash = H256;
     type Hashing = BlakeTwo256;
-    type AccountId = u64;
+    type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
     type Event = Event;
@@ -134,6 +137,19 @@ impl pallet_liquid_staking::Config for Test {
     type WithdrawOrigin = EnsureSignedBy<Six, u64>;
     type MaxWithdrawAmount = MaxWithdrawAmount;
     type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
+    type XTransfer = Currencies;
+}
+
+impl XTransfer<Test, CurrencyId, AccountId, Balance> for Currencies {
+    fn xtransfer(
+        from: OriginFor<Test>,
+        currency_id: CurrencyId,
+        _to: AccountId,
+        amount: Balance,
+    ) -> DispatchResult {
+        let from = ensure_signed(from)?;
+        <Test as orml_currencies::Config>::MultiCurrency::withdraw(currency_id, &from, amount)
+    }
 }
 
 // BUild genesis storage according to the mock runtime.

@@ -17,6 +17,8 @@
 #![allow(clippy::upper_case_acronyms)]
 
 use codec::{Decode, Encode};
+use frame_support::dispatch::DispatchResult;
+use frame_system::{pallet_prelude::OriginFor, Config};
 use sp_runtime::{
     traits::{CheckedDiv, IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
@@ -140,4 +142,14 @@ pub trait PriceFeeder {
 pub trait EmergencyPriceFeeder<CurrencyId, PriceWithDecimal> {
     fn set_emergency_price(currency_id: CurrencyId, price: PriceWithDecimal);
     fn reset_emergency_price(currency_id: CurrencyId);
+}
+
+pub trait XTransfer<T: Config, C, A, B> {
+    fn xtransfer(from: OriginFor<T>, currency_id: C, to: A, amount: B) -> DispatchResult;
+}
+
+impl<T: Config, C, A, B> XTransfer<T, C, A, B> for () {
+    fn xtransfer(from: OriginFor<T>, currency_id: C, to: A, amount: B) -> DispatchResult {
+        Ok(().into())
+    }
 }

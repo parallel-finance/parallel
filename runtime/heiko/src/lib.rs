@@ -22,6 +22,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use codec::Encode;
 use frame_support::{
+    pallet_prelude::DispatchResult,
     traits::{All, LockIdentifier, U128CurrencyToVote},
     PalletId,
 };
@@ -50,6 +51,7 @@ use cumulus_primitives_core::ParaId;
 use frame_support::log;
 use frame_system::{
     limits::{BlockLength, BlockWeights},
+    pallet_prelude::OriginFor,
     EnsureOneOf, EnsureRoot,
 };
 use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
@@ -336,6 +338,18 @@ impl orml_unknown_tokens::Config for Runtime {
     type Event = Event;
 }
 
+impl XTransfer<Runtime, CurrencyId, AccountId, Balance> for XTokens {
+    fn xtransfer(
+        from: OriginFor<Runtime>,
+        currency_id: CurrencyId,
+        to: AccountId,
+        amount: Balance,
+    ) -> DispatchResult {
+        let dest = <AccountIdToMultiLocation as Convert<AccountId, MultiLocation>>::convert(to);
+        XTokens::transfer(from, currency_id, amount, dest, 10000000)
+    }
+}
+
 impl pallet_loans::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
@@ -364,6 +378,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type WithdrawOrigin = EnsureRoot<AccountId>;
     type MaxWithdrawAmount = MaxWithdrawAmount;
     type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
+    type XTransfer = XTokens;
 }
 
 parameter_types! {

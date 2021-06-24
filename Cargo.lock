@@ -6010,6 +6010,8 @@ dependencies = [
 name = "parallel-primitives"
 version = "1.0.0"
 dependencies = [
+ "frame-support",
+ "frame-system",
  "orml-oracle",
  "parity-scale-codec",
  "serde",
