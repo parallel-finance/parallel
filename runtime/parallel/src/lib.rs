@@ -34,7 +34,7 @@ use sp_core::{
     OpaqueMetadata,
 };
 use sp_runtime::traits::{
-    AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Zero,
+    AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, Zero,
 };
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys, traits,
@@ -46,22 +46,22 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
-// XCM imports
+use cumulus_primitives_core::ParaId;
 use frame_support::log;
 use frame_system::{
     limits::{BlockLength, BlockWeights},
     EnsureOneOf, EnsureRoot,
 };
+use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 use polkadot_parachain::primitives::Sibling;
 use primitives::*;
 use static_assertions::const_assert;
 use xcm::v0::{Junction, Junction::*, MultiAsset, MultiLocation, MultiLocation::*, NetworkId, Xcm};
 use xcm_builder::{
-    AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter,
-    EnsureXcmOrigin, FixedWeightBounds, IsConcrete, LocationInverter, NativeAsset,
-    ParentAsSuperuser, ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative,
-    SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
-    SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
+    AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, EnsureXcmOrigin,
+    FixedWeightBounds, LocationInverter, ParentAsSuperuser, ParentIsDefault, RelayChainAsNative,
+    SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
+    SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
 };
 use xcm_executor::{Config, XcmExecutor};
 
@@ -266,6 +266,74 @@ impl orml_currencies::Config for Runtime {
     type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
     type GetNativeCurrencyId = GetNativeCurrencyId;
     type WeightInfo = ();
+}
+
+pub struct CurrencyIdConvert;
+impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
+    fn convert(id: CurrencyId) -> Option<MultiLocation> {
+        match id {
+            CurrencyId::DOT => Some(X1(Parent)),
+            CurrencyId::xDOT => Some(X3(
+                Parent,
+                Parachain(ParachainInfo::parachain_id().into()),
+                GeneralKey(b"xDOT".to_vec()),
+            )),
+            _ => None,
+        }
+    }
+}
+
+impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
+    fn convert(location: MultiLocation) -> Option<CurrencyId> {
+        match location {
+            X1(Parent) => Some(CurrencyId::DOT),
+            X3(Parent, Parachain(id), GeneralKey(key))
+                if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xDOT".to_vec() =>
+            {
+                Some(CurrencyId::xDOT)
+            }
+            _ => None,
+        }
+    }
+}
+
+impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
+    fn convert(a: MultiAsset) -> Option<CurrencyId> {
+        if let MultiAsset::ConcreteFungible { id, amount: _ } = a {
+            Self::convert(id)
+        } else {
+            None
+        }
+    }
+}
+
+pub struct AccountIdToMultiLocation;
+impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
+    fn convert(account_id: AccountId) -> MultiLocation {
+        MultiLocation::from(Junction::AccountId32 {
+            network: NetworkId::Any,
+            id: account_id.into(),
+        })
+    }
+}
+
+parameter_types! {
+    pub SelfLocation: MultiLocation = X2(Parent, Parachain(ParachainInfo::parachain_id().into()));
+}
+
+impl orml_xtokens::Config for Runtime {
+    type Event = Event;
+    type Balance = Balance;
+    type CurrencyId = CurrencyId;
+    type CurrencyIdConvert = CurrencyIdConvert;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type SelfLocation = SelfLocation;
+    type XcmExecutor = XcmExecutor<XcmConfig>;
+    type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+}
+
+impl orml_unknown_tokens::Config for Runtime {
+    type Event = Event;
 }
 
 impl pallet_loans::Config for Runtime {
@@ -532,6 +600,7 @@ impl parachain_info::Config for Runtime {}
 parameter_types! {
     pub const RelayLocation: MultiLocation = MultiLocation::X1(Junction::Parent);
     pub const RelayNetwork: NetworkId = NetworkId::Polkadot;
+    pub ParallelNetwork: NetworkId = NetworkId::Named("parallel".into());
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation =  X1(Parachain(ParachainInfo::parachain_id().into()));
 }
@@ -549,17 +618,18 @@ pub type LocationToAccountId = (
 );
 
 /// Means for transacting assets on this chain.
-pub type LocalAssetTransactor = CurrencyAdapter<
+pub type LocalAssetTransactor = MultiCurrencyAdapter<
     // Use this currency:
-    Balances,
+    Currencies,
+    UnknownTokens,
     // Use this currency when it is a fungible asset matching the given location or name:
-    IsConcrete<RelayLocation>,
-    // Do a simple punn to convert an AccountId32 MultiLocation into a native chain account ID:
-    LocationToAccountId,
+    IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
     // Our chain's account ID type (we can't get away without mentioning it explicitly):
     AccountId,
-    // We don't track any teleports.
-    (),
+    // Do a simple punn to convert an AccountId32 MultiLocation into a native chain account ID:
+    LocationToAccountId,
+    CurrencyId,
+    CurrencyIdConvert,
 >;
 
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
@@ -610,8 +680,8 @@ impl Config for XcmConfig {
     // How to withdraw and deposit an asset.
     type AssetTransactor = LocalAssetTransactor;
     type OriginConverter = XcmOriginToTransactDispatchOrigin;
-    type IsReserve = NativeAsset;
-    type IsTeleporter = NativeAsset; // <- should be enough to allow teleportation of ROC
+    type IsReserve = MultiNativeAsset;
+    type IsTeleporter = MultiNativeAsset; // <- should be enough to allow teleportation of ROC
     type LocationInverter = LocationInverter<Ancestry>;
     type Barrier = Barrier;
     type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
@@ -945,6 +1015,8 @@ construct_runtime!(
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
         Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
+        XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
+        UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event},
 
         // Parallel pallets
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
