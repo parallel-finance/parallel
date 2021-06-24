@@ -92,6 +92,28 @@ benchmarks! {
         assert_last_event::<T>(pallet_liquid_staking::Event::WithdrawSuccess(agent, amount).into());
     }
 
+    record_rewards {
+        let caller: T::AccountId = whitelisted_caller();
+        initial_set_up::<T>(caller.clone());
+        let agent: T::AccountId = account("Sample", 6, SEED);
+        let amount = 100_000;
+        assert_ok!(LiquidStaking::<T>::stake(
+            SystemOrigin::Signed(caller.clone()).into(),
+            amount));
+    }: {
+        let _ = LiquidStaking::<T>::record_rewards(
+            SystemOrigin::Root.into(),
+            agent.clone(),
+            amount
+        );
+    }
+    verify {
+        assert_eq!(pallet_liquid_staking::TotalStakingAsset::<T>::get(), 200_000);
+        assert_eq!(pallet_liquid_staking::TotalVoucher::<T>::get(), 5_000_000);
+
+        assert_last_event::<T>(pallet_liquid_staking::Event::RewardsRecorded(agent, amount).into());
+    }
+
 }
 
 impl_benchmark_test_suite!(Pallet, crate::mock::new_test_ext(), crate::mock::Test,);
