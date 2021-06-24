@@ -43,7 +43,7 @@ cargo build --release
 make help
 ```
 
-## Run Heiko Node (via polkadot-launch)
+## Run Heiko Node (via polkadot-launch 1.6.3)
 
 ```
 make launch
@@ -53,7 +53,7 @@ make launch
 
 ### Local Testnet
 
-Polkadot (release-v0.9.5 branch)
+Polkadot (release-v0.9.5 branch, you'll need to cherry-pick this commit: b66483bc368812237469e1ff83dfea590fe8050f)
 
 ```
 cargo build --release
@@ -146,6 +146,8 @@ which those capabilities are implemented. You can learn more about
 official Polkadot Blog.
 
 ## Open Source Credits
+
 We would like to thank the following projects.
-- [Compound](https://compound.finance/)
-- [ORML](https://github.com/open-web3-stack/open-runtime-module-library)
+
+-   [Compound](https://compound.finance/)
+-   [ORML](https://github.com/open-web3-stack/open-runtime-module-library)

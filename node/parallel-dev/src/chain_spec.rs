@@ -22,10 +22,9 @@ use sp_runtime::{
     FixedPointNumber,
 };
 use vanilla_runtime::{
-    constants::currency::DOLLARS, AuraConfig, BalancesConfig, CouncilConfig, DemocracyConfig,
-    ElectionsConfig, GenesisConfig, GrandpaConfig, LiquidStakingConfig, LoansConfig,
-    OracleMembershipConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig, TokensConfig,
-    WASM_BINARY,
+    AuraConfig, BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig,
+    GrandpaConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig, SudoConfig,
+    SystemConfig, TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
 };
 
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
@@ -160,9 +159,6 @@ fn testnet_genesis(
     oracle_accounts: Vec<AccountId>,
     endowed_accounts: Vec<AccountId>,
 ) -> GenesisConfig {
-    let num_endowed_accounts = endowed_accounts.len();
-    const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
-    const STASH: Balance = ENDOWMENT / 1000;
     GenesisConfig {
         system: SystemConfig {
             code: wasm_binary.to_vec(),
@@ -247,16 +243,16 @@ fn testnet_genesis(
         elections: ElectionsConfig {
             members: endowed_accounts
                 .iter()
-                .take((num_endowed_accounts + 1) / 2)
+                .take((endowed_accounts.len() + 1) / 2)
                 .cloned()
-                .map(|member| (member, STASH))
+                .map(|member| (member, 0))
                 .collect(),
         },
         council: CouncilConfig::default(),
         technical_committee: TechnicalCommitteeConfig {
             members: endowed_accounts
                 .iter()
-                .take((num_endowed_accounts + 1) / 2)
+                .take((endowed_accounts.len() + 1) / 2)
                 .cloned()
                 .collect(),
             phantom: Default::default(),

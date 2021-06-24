@@ -75,6 +75,10 @@ resources:
 	target/release/parallel export-genesis-state --parachain-id 200 > ./resources/para-200-genesis
 	target/release/parallel export-genesis-wasm > ./resources/para-200.wasm
 
+.PHONY: register-parachain
+register-parachain:
+	polkadot-js-api --seed "//Alice" --sudo tx.parasSudoWrapper.sudoScheduleParaInitialize 200 "{ \"genesisHead\":\"$(shell cat ./resources/para-200-genesis)\", \"validationCode\":\"$(shell cat ./resources/para-200.wasm)\", \"parachain\": true }"
+
 .PHONY: launch
 launch:
 	polkadot-launch config.json

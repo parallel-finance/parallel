@@ -1,5 +1,5 @@
 use crate::{
-    mock::{Loans, Origin, Runtime, ALICE, BOB, DOT, KSM, MOCK_PRICE_FEEDER},
+    mock::{Loans, MockPriceFeeder, Origin, Runtime, ALICE, BOB, DOT, KSM},
     tests::{million_dollar, ExtBuilder},
     Config, Error, LiquidationIncentive,
 };
@@ -23,13 +23,13 @@ pub(super) fn collateral_value_must_be_greater_than_liquidation_value() {
     ExtBuilder::default().build().execute_with(|| {
         initial_setup();
         alice_borrows_100_ksm();
-        MOCK_PRICE_FEEDER::set_price(KSM, Rate::from_float(2000.0));
+        MockPriceFeeder::set_price(KSM, Rate::from_float(2000.0));
         LiquidationIncentive::<Runtime>::insert(KSM, Rate::from_float(200.0));
         assert_noop!(
             Loans::liquidate_borrow(Origin::signed(BOB), ALICE, KSM, million_dollar(50), DOT),
             Error::<Runtime>::RepayValueGreaterThanCollateral
         );
-        MOCK_PRICE_FEEDER::reset();
+        MockPriceFeeder::reset();
     })
 }
 
@@ -38,7 +38,7 @@ pub(super) fn full_workflow_works_as_expected() {
         initial_setup();
         alice_borrows_100_ksm();
         // adjust KSM price to make ALICE generate shortfall
-        MOCK_PRICE_FEEDER::set_price(KSM, 2.into());
+        MockPriceFeeder::set_price(KSM, 2.into());
         // BOB repay the KSM borrow balance and get DOT from ALICE
         assert_ok!(Loans::liquidate_borrow(
             Origin::signed(BOB),
@@ -82,7 +82,7 @@ pub(super) fn full_workflow_works_as_expected() {
                 .saturating_mul_int(Loans::account_deposits(DOT, BOB).voucher_balance),
             110000000000000000000,
         );
-        MOCK_PRICE_FEEDER::reset();
+        MockPriceFeeder::reset();
     })
 }
 
@@ -90,12 +90,12 @@ pub(super) fn liquidator_can_not_repay_more_than_the_close_factor_pct_multiplier
     ExtBuilder::default().build().execute_with(|| {
         initial_setup();
         alice_borrows_100_ksm();
-        MOCK_PRICE_FEEDER::set_price(KSM, 20.into());
+        MockPriceFeeder::set_price(KSM, 20.into());
         assert_noop!(
             Loans::liquidate_borrow(Origin::signed(BOB), ALICE, KSM, million_dollar(51), DOT),
             Error::<Runtime>::RepayAmountExceedsCloseFactor
         );
-        MOCK_PRICE_FEEDER::reset();
+        MockPriceFeeder::reset();
     })
 }
 

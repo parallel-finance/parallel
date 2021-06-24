@@ -14,11 +14,10 @@
 
 use cumulus_primitives_core::ParaId;
 use parallel_runtime::{
-    currency::{DOLLARS, EXISTENTIAL_DEPOSIT},
-    opaque::SessionKeys,
-    BalancesConfig, CollatorSelectionConfig, CouncilConfig, DemocracyConfig, ElectionsConfig,
-    GenesisConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig, ParachainInfoConfig,
-    SessionConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
+    currency::EXISTENTIAL_DEPOSIT, opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig,
+    CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig, LiquidStakingConfig,
+    LoansConfig, OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig,
+    SystemConfig, TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
 };
 use primitives::*;
 use sc_service::ChainType;
@@ -142,10 +141,6 @@ fn testnet_genesis(
     endowed_accounts: Vec<AccountId>,
     id: ParaId,
 ) -> GenesisConfig {
-    let num_endowed_accounts = endowed_accounts.len();
-    const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
-    const STASH: Balance = ENDOWMENT / 1000;
-
     GenesisConfig {
         system: SystemConfig {
             code: WASM_BINARY
@@ -234,16 +229,16 @@ fn testnet_genesis(
         elections: ElectionsConfig {
             members: endowed_accounts
                 .iter()
-                .take((num_endowed_accounts + 1) / 2)
+                .take((endowed_accounts.len() + 1) / 2)
                 .cloned()
-                .map(|member| (member, STASH))
+                .map(|member| (member, 0))
                 .collect(),
         },
         council: CouncilConfig::default(),
         technical_committee: TechnicalCommitteeConfig {
             members: endowed_accounts
                 .iter()
-                .take((num_endowed_accounts + 1) / 2)
+                .take((endowed_accounts.len() + 1) / 2)
                 .cloned()
                 .collect(),
             phantom: Default::default(),

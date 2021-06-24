@@ -5344,7 +5344,6 @@ version = "3.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
- "lazy_static",
  "orml-currencies",
  "orml-tokens",
  "orml-traits",
@@ -5367,7 +5366,6 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "lazy_static",
  "orml-currencies",
  "orml-oracle",
  "orml-tokens",
