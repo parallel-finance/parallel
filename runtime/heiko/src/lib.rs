@@ -558,7 +558,8 @@ impl pallet_xcm::Config for Runtime {
     type XcmExecuteFilter = All<(MultiLocation, Xcm<Call>)>;
     type XcmReserveTransferFilter = All<(MultiLocation, Vec<MultiAsset>)>;
     type XcmExecutor = XcmExecutor<XcmConfig>;
-    type XcmTeleportFilter = All<(MultiLocation, Vec<MultiAsset>)>;
+    // Teleporting is disabled.
+    type XcmTeleportFilter = ();
     type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
 }
 
@@ -670,7 +671,6 @@ parameter_types! {
 pub type Barrier = (
     TakeWeightCredit,
     AllowTopLevelPaidExecutionFrom<All<MultiLocation>>,
-    AllowUnpaidExecutionFrom<IsInVec<AllowUnpaidFrom>>, // <- Parent gets free execution
 );
 
 pub struct XcmConfig;
@@ -681,7 +681,8 @@ impl Config for XcmConfig {
     type AssetTransactor = LocalAssetTransactor;
     type OriginConverter = XcmOriginToTransactDispatchOrigin;
     type IsReserve = MultiNativeAsset;
-    type IsTeleporter = MultiNativeAsset; // <- should be enough to allow teleportation of ROC
+    // Teleporting is disabled.
+    type IsTeleporter = ();
     type LocationInverter = LocationInverter<Ancestry>;
     type Barrier = Barrier;
     type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
