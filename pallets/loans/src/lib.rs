@@ -121,8 +121,10 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
-        /// Insufficient collateral asset to borrow more or disable collateral
-        InsufficientCollateral,
+        /// Insufficient liquidity to borrow more or disable collateral
+        InsufficientLiquidity,
+        /// Insufficient deposit to redeem
+        InsufficientDeposit,
         /// Repay amount greater than borrow balance
         RepayAmountExceedsCloseFactor,
         /// Asset already enabled/disabled collateral
@@ -547,7 +549,7 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             Self::ensure_currency(&currency_id)?;
 
-            Self::borrow_guard(&who, &currency_id, borrow_amount)?;
+            Self::borrow_allowed(&currency_id, &who, borrow_amount)?;
             let account_borrows = Self::borrow_balance_stored(&who, &currency_id)?;
             let account_borrows_new = account_borrows
                 .checked_add(borrow_amount)
@@ -684,15 +686,15 @@ pub mod pallet {
                 return Ok(().into());
             }
             // turn off the collateral button after checking the liquidity
-            let total_collateral_asset_value = Self::total_collateral_asset_value(&who)?;
+            let total_collateral_value = Self::total_collateral_value(&who)?;
             let collateral_asset_value = Self::collateral_asset_value(&who, &currency_id)?;
             let total_borrowed_value = Self::total_borrowed_value(&who)?;
-            if total_collateral_asset_value
+            if total_collateral_value
                 < total_borrowed_value
                     .checked_add(&collateral_asset_value)
                     .ok_or(ArithmeticError::Overflow)?
             {
-                return Err(Error::<T>::InsufficientCollateral.into());
+                return Err(Error::<T>::InsufficientLiquidity.into());
             }
 
             deposits.is_collateral = false;
@@ -837,11 +839,117 @@ impl<T: Config> Pallet<T> {
         T::PalletId::get().into_account()
     }
 
+    fn get_account_liquidity(
+        account: &T::AccountId,
+    ) -> Result<(FixedU128, FixedU128), DispatchError> {
+        let total_borrow_value = Self::total_borrowed_value(account)?;
+        let total_collateral_value = Self::total_collateral_value(account)?;
+        if total_collateral_value > total_borrow_value {
+            Ok((
+                total_collateral_value - total_borrow_value,
+                FixedU128::zero(),
+            ))
+        } else {
+            Ok((
+                FixedU128::zero(),
+                total_borrow_value - total_collateral_value,
+            ))
+        }
+    }
+
+    fn total_borrowed_value(borrower: &T::AccountId) -> Result<FixedU128, DispatchError> {
+        let mut total_borrow_value: FixedU128 = FixedU128::zero();
+
+        for currency_id in Currencies::<T>::get().iter() {
+            let currency_borrow_amount = Self::borrow_balance_stored(borrower, currency_id)?;
+            if currency_borrow_amount.is_zero() {
+                continue;
+            }
+            let borrow_currency_price = Self::get_price(currency_id)?;
+            total_borrow_value = borrow_currency_price
+                .checked_mul(&FixedU128::from_inner(currency_borrow_amount))
+                .and_then(|r| r.checked_add(&total_borrow_value))
+                .ok_or(ArithmeticError::Overflow)?;
+        }
+
+        Ok(total_borrow_value)
+    }
+
+    fn collateral_asset_value(
+        borrower: &T::AccountId,
+        currency_id: &CurrencyId,
+    ) -> Result<FixedU128, DispatchError> {
+        if !AccountDeposits::<T>::contains_key(currency_id, borrower) {
+            return Ok(FixedU128::zero());
+        }
+        let deposits = Self::account_deposits(currency_id, borrower);
+        if !deposits.is_collateral {
+            return Ok(FixedU128::zero());
+        }
+        if deposits.voucher_balance.is_zero() {
+            return Ok(FixedU128::zero());
+        }
+        let collateral_factor = CollateralFactor::<T>::get(currency_id);
+        let exchange_rate = ExchangeRate::<T>::get(currency_id);
+        let currency_price = Self::get_price(currency_id)?;
+        let collateral_amount = exchange_rate
+            .checked_mul_int(collateral_factor.mul_floor(deposits.voucher_balance))
+            .ok_or(ArithmeticError::Overflow)?;
+
+        let rslt = currency_price
+            .checked_mul(&FixedU128::from_inner(collateral_amount))
+            .ok_or(ArithmeticError::Overflow)?;
+        Ok(rslt)
+    }
+
+    fn total_collateral_value(borrower: &T::AccountId) -> Result<FixedU128, DispatchError> {
+        let mut total_asset_value: FixedU128 = FixedU128::zero();
+        for currency_id in Currencies::<T>::get().iter() {
+            total_asset_value = total_asset_value
+                .checked_add(&Self::collateral_asset_value(borrower, currency_id)?)
+                .ok_or(ArithmeticError::Overflow)?;
+        }
+
+        Ok(total_asset_value)
+    }
+
+    /// Checks if the redeemer should be allowed to redeem tokens in given market
+    fn redeem_allowed(
+        currency_id: &CurrencyId,
+        redeemer: &T::AccountId,
+        redeem_amount: Balance,
+    ) -> DispatchResult {
+        let deposit = Self::account_deposits(currency_id, redeemer);
+        let exchange_rate = Self::exchange_rate(currency_id);
+        let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
+        if deposit.voucher_balance < voucher_amount {
+            return Err(Error::<T>::InsufficientDeposit.into());
+        }
+        if !deposit.is_collateral {
+            return Ok(());
+        }
+        let collateral_factor = Self::collateral_factor(currency_id);
+        let price = Self::get_price(currency_id)?;
+        let redeem_effects_value = price
+            .checked_mul(&FixedU128::from_inner(
+                collateral_factor.mul_ceil(redeem_amount),
+            ))
+            .ok_or(ArithmeticError::Overflow)?;
+
+        let (liquidity, _) = Self::get_account_liquidity(redeemer)?;
+        if liquidity < redeem_effects_value {
+            return Err(Error::<T>::InsufficientLiquidity.into());
+        }
+
+        Ok(())
+    }
+
     pub fn redeem_internal(
         who: &T::AccountId,
         currency_id: &CurrencyId,
         redeem_amount: Balance,
     ) -> DispatchResult {
+        Self::redeem_allowed(currency_id, who, redeem_amount)?;
         let exchange_rate = Self::exchange_rate(currency_id);
         let collateral = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
         AccountDeposits::<T>::try_mutate_exists(currency_id, who, |deposits| -> DispatchResult {
@@ -870,91 +978,20 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    fn total_borrowed_value(borrower: &T::AccountId) -> Result<FixedU128, DispatchError> {
-        let mut total_borrow_value: FixedU128 = FixedU128::zero();
-
-        for currency_id in Currencies::<T>::get().iter() {
-            let currency_borrow_amount = Self::borrow_balance_stored(borrower, currency_id)?;
-            if currency_borrow_amount.is_zero() {
-                continue;
-            }
-            let borrow_currency_price = Self::get_price(currency_id)?;
-            total_borrow_value = borrow_currency_price
-                .checked_mul(&FixedU128::from_inner(currency_borrow_amount))
-                .and_then(|r| r.checked_add(&total_borrow_value))
-                .ok_or(ArithmeticError::Overflow)?;
-        }
-
-        Ok(total_borrow_value)
-    }
-
-    fn calc_total_borrow_value(
+    /// Borrower shouldn't borrow more than his total collateral value
+    fn borrow_allowed(
+        currency_id: &CurrencyId,
         borrower: &T::AccountId,
-        borrow_currency_id: &CurrencyId,
         borrow_amount: Balance,
-    ) -> Result<FixedU128, DispatchError> {
-        let borrow_currency_price = Self::get_price(borrow_currency_id)?;
-        let mut total_borrow_value = borrow_currency_price
+    ) -> DispatchResult {
+        let price = Self::get_price(currency_id)?;
+        let borrow_value = price
             .checked_mul(&FixedU128::from_inner(borrow_amount))
             .ok_or(ArithmeticError::Overflow)?;
 
-        total_borrow_value = total_borrow_value
-            .checked_add(&Self::total_borrowed_value(borrower)?)
-            .ok_or(ArithmeticError::Overflow)?;
-
-        Ok(total_borrow_value)
-    }
-
-    fn collateral_asset_value(
-        borrower: &T::AccountId,
-        currency_id: &CurrencyId,
-    ) -> Result<FixedU128, DispatchError> {
-        let deposits = AccountDeposits::<T>::get(currency_id, borrower);
-        if deposits.voucher_balance.is_zero() {
-            return Ok(FixedU128::zero());
-        }
-        let collateral_factor = CollateralFactor::<T>::get(currency_id);
-        let exchange_rate = ExchangeRate::<T>::get(currency_id);
-        let currency_price = Self::get_price(currency_id)?;
-        let collateral_amount = exchange_rate
-            .checked_mul_int(collateral_factor.mul_floor(deposits.voucher_balance))
-            .ok_or(ArithmeticError::Overflow)?;
-
-        let rslt = currency_price
-            .checked_mul(&FixedU128::from_inner(collateral_amount))
-            .ok_or(ArithmeticError::Overflow)?;
-        Ok(rslt)
-    }
-
-    fn total_collateral_asset_value(borrower: &T::AccountId) -> Result<FixedU128, DispatchError> {
-        let mut total_asset_value: FixedU128 = FixedU128::zero();
-        for currency_id in Currencies::<T>::get().iter() {
-            if !AccountDeposits::<T>::contains_key(currency_id, borrower) {
-                continue;
-            }
-            let deposits = Self::account_deposits(currency_id, borrower);
-            if !deposits.is_collateral {
-                continue;
-            }
-            total_asset_value = total_asset_value
-                .checked_add(&Self::collateral_asset_value(borrower, currency_id)?)
-                .ok_or(ArithmeticError::Overflow)?;
-        }
-
-        Ok(total_asset_value)
-    }
-
-    /// Borrower shouldn't borrow more than what he/she has pledged in total
-    fn borrow_guard(
-        borrower: &T::AccountId,
-        borrow_currency_id: &CurrencyId,
-        borrow_amount: Balance,
-    ) -> DispatchResult {
-        let total_borrow_value =
-            Self::calc_total_borrow_value(borrower, borrow_currency_id, borrow_amount)?;
-        let total_collateral_asset_value = Self::total_collateral_asset_value(borrower)?;
-        if total_collateral_asset_value < total_borrow_value {
-            return Err(Error::<T>::InsufficientCollateral.into());
+        let (liquidity, _) = Self::get_account_liquidity(borrower)?;
+        if liquidity < borrow_value {
+            return Err(Error::<T>::InsufficientLiquidity.into());
         }
 
         Ok(())
