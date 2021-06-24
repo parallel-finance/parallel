@@ -43,7 +43,7 @@ cargo build --release
 make help
 ```
 
-## Run Heiko Node (via polkadot-launch)
+## Run Heiko Node (via polkadot-launch 1.6.3)
 
 ```
 make launch
@@ -53,7 +53,7 @@ make launch
 
 ### Local Testnet
 
-Polkadot (release-v0.9.4 branch)
+Polkadot (release-v0.9.5 branch, you'll need to cherry-pick this commit: b66483bc368812237469e1ff83dfea590fe8050f)
 
 ```
 cargo build --release
@@ -71,7 +71,7 @@ Substrate Parachain Template:
 
 ```
 # this command assumes the chain spec is in a directory named polkadot that is a sibling of the working directory
-./target/release/parallel -d local-test --collator -laura=debug --force-authoring --alice --ws-port 9915 --parachain-id 200 -- --chain ../polkadot/rococo_local.json \
+./target/release/parallel -d local-test --collator --alice --chain heiko --ws-port 9915 --parachain-id 200 -- --chain ../polkadot/rococo_local.json \
         --bootnodes /ip4/127.0.0.1/tcp/50555/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp
 ```
 
@@ -107,6 +107,35 @@ subcommands:
 ./target/release/parallel -h
 ```
 
+### Docker
+
+Run Vanilla Dev Node
+
+```
+docker run --restart=always -d -p 9944:9944 \
+    -v "$(pwd):/data" \
+    parallelfinance/parallel:latest
+```
+
+Run Vanilla Live Node
+
+```
+docker run --restart=always -d -p 9944:9944 \
+    -v "$(pwd):/data" \
+    parallelfinance/parallel:latest \
+    parallel-dev --chain live --alice --rpc-cors all --rpc-methods=Unsafe --unsafe-rpc-external --unsafe-ws-external
+```
+
+Run Heiko Collator
+
+```
+docker run --restart=always -d -p 9944:9944 \
+    -v "$(pwd):/data" \
+    -v "$(pwd)/rococo-local.json:/usr/local/bin/rococo-local.json" \
+    parallelfinance/parallel:latest \
+    parallel --collator --alice --chain heiko --parachain-id 200 -- --chain /usr/local/bin/rococo-local.json
+```
+
 ## Learn More
 
 Refer to the upstream
@@ -115,3 +144,10 @@ to learn more about the structure of this project, the capabilities it encapsula
 which those capabilities are implemented. You can learn more about
 [The Path of Parachain Block](https://polkadot.network/the-path-of-a-parachain-block/) on the
 official Polkadot Blog.
+
+## Open Source Credits
+
+We would like to thank the following projects.
+
+-   [Compound](https://compound.finance/)
+-   [ORML](https://github.com/open-web3-stack/open-runtime-module-library)

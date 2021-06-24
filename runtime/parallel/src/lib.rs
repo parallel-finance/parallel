@@ -66,9 +66,11 @@ use xcm_builder::{
 use xcm_executor::{Config, XcmExecutor};
 
 pub mod constants;
+pub mod impls;
 // A few exports that help ease life for downstream crates.
 // re-exports
 pub use constants::{currency, fee, time};
+pub use impls::DealWithFees;
 pub use pallet_liquid_staking;
 pub use pallet_liquidation;
 pub use pallet_loans;
@@ -374,6 +376,57 @@ impl pallet_timestamp::Config for Runtime {
     type WeightInfo = ();
 }
 
+parameter_types! {
+    pub const UncleGenerations: u32 = 0;
+}
+
+impl pallet_authorship::Config for Runtime {
+    type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Aura>;
+    type UncleGenerations = UncleGenerations;
+    type FilterUncle = ();
+    type EventHandler = (CollatorSelection,);
+}
+
+parameter_types! {
+    pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(33);
+    pub const Period: u32 = 6 * HOURS;
+    pub const Offset: u32 = 0;
+}
+
+impl pallet_session::Config for Runtime {
+    type Event = Event;
+    type ValidatorId = <Self as frame_system::Config>::AccountId;
+    // we don't have stash and controller, thus we don't need the convert as well.
+    type ValidatorIdOf = pallet_collator_selection::IdentityCollator;
+    type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
+    type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
+    type SessionManager = CollatorSelection;
+    // Essentially just Aura, but lets be pedantic.
+    type SessionHandler =
+        <opaque::SessionKeys as sp_runtime::traits::OpaqueKeys>::KeyTypeIdProviders;
+    type Keys = opaque::SessionKeys;
+    type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
+    type WeightInfo = ();
+}
+
+parameter_types! {
+    pub const PotId: PalletId = PalletId(*b"PotStake");
+    pub const MaxCandidates: u32 = 1000;
+    pub const MaxInvulnerables: u32 = 100;
+}
+
+impl pallet_collator_selection::Config for Runtime {
+    type Event = Event;
+    type Currency = Balances;
+    type UpdateOrigin = EnsureRootOrHalfCouncil;
+    type PotId = PotId;
+    type MaxCandidates = MaxCandidates;
+    type MaxInvulnerables = MaxInvulnerables;
+    // should be a multiple of session or things will get inconsistent
+    type KickThreshold = Period;
+    type WeightInfo = ();
+}
+
 impl pallet_aura::Config for Runtime {
     type AuthorityId = AuraId;
 }
@@ -381,7 +434,7 @@ impl pallet_aura::Config for Runtime {
 impl cumulus_pallet_aura_ext::Config for Runtime {}
 
 parameter_types! {
-    pub const ExistentialDeposit: u128 = 500;
+    pub const ExistentialDeposit: u128 = currency::EXISTENTIAL_DEPOSIT;
     pub const MaxLocks: u32 = 50;
 }
 
@@ -392,6 +445,8 @@ impl pallet_balances::Config for Runtime {
     /// The ubiquitous event type.
     type Event = Event;
     type DustRemoval = ();
+    type MaxReserves = ();
+    type ReserveIdentifier = [u8; 8];
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
@@ -402,8 +457,8 @@ parameter_types! {
 }
 
 impl pallet_transaction_payment::Config for Runtime {
-    // TODO add missing DealWithFees
-    type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, ()>;
+    type OnChargeTransaction =
+        pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees<Runtime>>;
     type TransactionByteFee = TransactionByteFee;
     type WeightToFee = WeightToFee;
     type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
@@ -453,7 +508,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 impl cumulus_pallet_dmp_queue::Config for Runtime {
     type Event = Event;
     type XcmExecutor = XcmExecutor<XcmConfig>;
-    type ExecuteOverweightOrigin = frame_system::EnsureRoot<AccountId>;
+    type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
 }
 
 parameter_types! {
@@ -567,6 +622,7 @@ impl Config for XcmConfig {
 parameter_types! {
       pub const MinimumCount: u32 = 1;
       pub const ExpiresIn: Moment = 1000 * 60 * 60; // 60 mins
+      pub const MaxHasDispatchedSize: u32 = 100;
       pub ZeroAccountId: AccountId = AccountId::from([0u8; 32]);
 }
 
@@ -580,6 +636,7 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
     type OracleKey = CurrencyId;
     type OracleValue = PriceWithDecimal;
     type RootOperatorAccountId = ZeroAccountId;
+    type MaxHasDispatchedSize = MaxHasDispatchedSize;
     type WeightInfo = ();
     type Members = OracleMembership;
 }
@@ -848,27 +905,13 @@ construct_runtime!(
         NodeBlock = opaque::Block,
         UncheckedExtrinsic = UncheckedExtrinsic,
     {
+        // System, Utility
         System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-        Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>},
-        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Storage, Inherent, Event<T>, ValidateUnsigned},
-        TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
-        ParachainInfo: parachain_info::{Pallet, Storage, Config},
-        XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>},
-        DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>},
-        PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin},
-        CumulusXcm: cumulus_pallet_xcm::{Pallet, Call, Event<T>, Origin},
-        Currencies: orml_currencies::{Pallet, Call, Event<T>},
-        Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
-        Aura: pallet_aura::{Pallet, Config<T>},
-        AuraExt: cumulus_pallet_aura_ext::{Pallet, Config},
-        Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
-        Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
-        LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config},
-        Liquidation: pallet_liquidation::{Pallet, Call},
-        Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
         Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>},
+
+        // Governance
+        Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>},
         Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>},
         Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
         TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
@@ -876,6 +919,40 @@ construct_runtime!(
         Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
         Elections: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>},
         TechnicalMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>},
+
+        // Currencies
+        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+        TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
+
+        // Parachain
+        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Storage, Inherent, Event<T>, ValidateUnsigned},
+        ParachainInfo: parachain_info::{Pallet, Storage, Config},
+        XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>},
+        DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>},
+        PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin},
+        CumulusXcm: cumulus_pallet_xcm::{Pallet, Call, Event<T>, Origin},
+
+        // Collator
+        Authorship: pallet_authorship::{Pallet, Call, Storage},
+        CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>},
+        Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
+
+        // Consensus
+        Aura: pallet_aura::{Pallet, Config<T>},
+        AuraExt: cumulus_pallet_aura_ext::{Pallet, Config},
+
+        // ORML
+        Currencies: orml_currencies::{Pallet, Call, Event<T>},
+        Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
+        Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
+
+        // Parallel pallets
+        Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
+        LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config},
+        Liquidation: pallet_liquidation::{Pallet, Call},
+        Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
+
+        // Oracles
         OracleMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>},
     }
 );
@@ -1083,7 +1160,31 @@ impl_runtime_apis! {
     }
 }
 
+struct CheckInherents;
+
+impl cumulus_pallet_parachain_system::CheckInherents<Block> for CheckInherents {
+    fn check_inherents(
+        block: &Block,
+        relay_state_proof: &cumulus_pallet_parachain_system::RelayChainStateProof,
+    ) -> sp_inherents::CheckInherentsResult {
+        let relay_chain_slot = relay_state_proof
+            .read_slot()
+            .expect("Could not read the relay chain slot from the proof");
+
+        let inherent_data =
+            cumulus_primitives_timestamp::InherentDataProvider::from_relay_chain_slot_and_duration(
+                relay_chain_slot,
+                sp_std::time::Duration::from_secs(6),
+            )
+            .create_inherent_data()
+            .expect("Could not create the timestamp inherent data");
+
+        inherent_data.check_extrinsics(&block)
+    }
+}
+
 cumulus_pallet_parachain_system::register_validate_block!(
-    Runtime,
-    cumulus_pallet_aura_ext::BlockExecutor::<Runtime, Executive>,
+    Runtime = Runtime,
+    BlockExecutor = cumulus_pallet_aura_ext::BlockExecutor::<Runtime, Executive>,
+    CheckInherents = CheckInherents,
 );

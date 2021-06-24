@@ -14,9 +14,10 @@
 
 use cumulus_primitives_core::ParaId;
 use heiko_runtime::{
-    currency::DOLLARS, AuraConfig, BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig,
-    GenesisConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig, ParachainInfoConfig,
-    SudoConfig, SystemConfig, TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
+    currency::EXISTENTIAL_DEPOSIT, opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig,
+    CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig, LiquidStakingConfig,
+    LoansConfig, OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig,
+    SystemConfig, TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
 };
 use primitives::*;
 use sc_service::ChainType;
@@ -135,22 +136,19 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
 
 fn testnet_genesis(
     root_key: AccountId,
-    initial_authorities: Vec<(AccountId, AuraId)>,
+    invulnerables: Vec<(AccountId, AuraId)>,
     oracle_accounts: Vec<AccountId>,
     endowed_accounts: Vec<AccountId>,
     id: ParaId,
 ) -> GenesisConfig {
-    let num_endowed_accounts = endowed_accounts.len();
-    const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
-    const STASH: Balance = ENDOWMENT / 1000;
     GenesisConfig {
-        frame_system: SystemConfig {
+        system: SystemConfig {
             code: WASM_BINARY
                 .expect("WASM binary was not build, please build it!")
                 .to_vec(),
             changes_trie_config: Default::default(),
         },
-        pallet_balances: BalancesConfig {
+        balances: BalancesConfig {
             balances: {
                 let mut endowed_accounts = endowed_accounts.clone();
                 endowed_accounts.extend_from_slice(&oracle_accounts);
@@ -161,26 +159,40 @@ fn testnet_genesis(
                     .collect()
             },
         },
-        // TODO collateral selection
-        pallet_aura: AuraConfig {
-            authorities: initial_authorities.iter().map(|x| (x.1.clone())).collect(),
+        collator_selection: CollatorSelectionConfig {
+            invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
+            candidacy_bond: EXISTENTIAL_DEPOSIT * 16,
+            desired_candidates: 16,
         },
-        cumulus_pallet_aura_ext: Default::default(),
-        pallet_sudo: SudoConfig { key: root_key },
+        session: SessionConfig {
+            keys: invulnerables
+                .iter()
+                .cloned()
+                .map(|(acc, aura)| {
+                    (
+                        acc.clone(),          // account id
+                        acc.clone(),          // validator id
+                        SessionKeys { aura }, // session keys
+                    )
+                })
+                .collect(),
+        },
+        aura: Default::default(),
+        aura_ext: Default::default(),
+        sudo: SudoConfig { key: root_key },
         parachain_info: ParachainInfoConfig { parachain_id: id },
-        orml_tokens: TokensConfig {
+        tokens: TokensConfig {
             balances: endowed_accounts
                 .iter()
                 .flat_map(|x| {
                     vec![
                         (x.clone(), CurrencyId::KSM, 10_u128.pow(15)),
                         (x.clone(), CurrencyId::USDT, 10_u128.pow(9)),
-                        (x.clone(), CurrencyId::xKSM, 10_u128.pow(15)),
                     ]
                 })
                 .collect(),
         },
-        pallet_loans: LoansConfig {
+        loans: LoansConfig {
             currencies: vec![CurrencyId::KSM, CurrencyId::USDT, CurrencyId::xKSM],
             borrow_index: Rate::one(),                             // 1
             exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
@@ -210,30 +222,30 @@ fn testnet_genesis(
             ],
             last_block_timestamp: 0,
         },
-        pallet_liquid_staking: LiquidStakingConfig {
-            exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
+        liquid_staking: LiquidStakingConfig {
+            exchange_rate: Rate::saturating_from_rational(100, 100), // 1
         },
-        pallet_democracy: DemocracyConfig::default(),
-        pallet_elections_phragmen: ElectionsConfig {
+        democracy: DemocracyConfig::default(),
+        elections: ElectionsConfig {
             members: endowed_accounts
                 .iter()
-                .take((num_endowed_accounts + 1) / 2)
+                .take((endowed_accounts.len() + 1) / 2)
                 .cloned()
-                .map(|member| (member, STASH))
+                .map(|member| (member, 0))
                 .collect(),
         },
-        pallet_collective_Instance1: CouncilConfig::default(),
-        pallet_collective_Instance2: TechnicalCommitteeConfig {
+        council: CouncilConfig::default(),
+        technical_committee: TechnicalCommitteeConfig {
             members: endowed_accounts
                 .iter()
-                .take((num_endowed_accounts + 1) / 2)
+                .take((endowed_accounts.len() + 1) / 2)
                 .cloned()
                 .collect(),
             phantom: Default::default(),
         },
-        pallet_membership_Instance1: Default::default(),
-        pallet_treasury: Default::default(),
-        pallet_membership_Instance2: OracleMembershipConfig {
+        technical_membership: Default::default(),
+        treasury: Default::default(),
+        oracle_membership: OracleMembershipConfig {
             members: oracle_accounts,
             phantom: Default::default(),
         },

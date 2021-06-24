@@ -193,6 +193,13 @@ impl sc_client_api::BlockBackend<Block> for Client {
         }
     }
 
+    fn block_indexed_body(&self, id: &BlockId) -> sp_blockchain::Result<Option<Vec<Vec<u8>>>> {
+        match self {
+            Self::Parallel(client) => client.block_indexed_body(id),
+            Self::Heiko(client) => client.block_indexed_body(id),
+        }
+    }
+
     fn block(&self, id: &BlockId) -> sp_blockchain::Result<Option<SignedBlock<Block>>> {
         match self {
             Self::Parallel(client) => client.block(id),

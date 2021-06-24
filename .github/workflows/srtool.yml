@@ -1,0 +1,34 @@
+name: Srtool build
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  srtool:
+    if: github.repository == 'parallel-finance/parallel'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        chain: ["heiko", "parallel"]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Srtool build
+        id: srtool_build
+        uses: chevdor/srtool-actions@v0.1.0
+        with:
+          chain: ${{ matrix.chain }}
+          runtime_dir: runtime/${{ matrix.chain }}
+      - name: Summary
+        run: |
+          echo '${{ steps.srtool_build.outputs.json }}' | jq > ${{ matrix.chain }}-srtool-digest.json
+          cat ${{ matrix.chain }}-srtool-digest.json
+          echo "Runtime location: ${{ steps.srtool_build.outputs.wasm }}"
+      - name: Archive Runtime
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.chain }}-runtime-${{ github.sha }}
+          path: |
+            ${{ steps.srtool_build.outputs.wasm }}
+            ${{ matrix.chain }}-srtool-digest.json

@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use parallel_runtime::opaque::Block;
+use crate::client::Block;
 use primitives::{AccountId, Balance, CurrencyId, DataProviderId, Index, TimeStampedPrice};
 pub use sc_rpc_api::DenyUnsafe;
 use sp_api::ProvideRuntimeApi;
