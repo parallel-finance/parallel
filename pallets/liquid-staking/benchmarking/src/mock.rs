@@ -8,15 +8,14 @@ use sp_core::H256;
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
-    FixedPointNumber,
 };
 
 use orml_traits::parameter_type_with_key;
 
-use primitives::{Amount, Balance, CurrencyId, Rate};
+use primitives::{Amount, Balance, CurrencyId};
 
-pub const DOT: CurrencyId = CurrencyId::DOT;
-pub const XDOT: CurrencyId = CurrencyId::xDOT;
+pub const KSM: CurrencyId = CurrencyId::KSM;
+pub const XKSM: CurrencyId = CurrencyId::xKSM;
 pub const NATIVE: CurrencyId = CurrencyId::Native;
 
 pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
@@ -124,8 +123,8 @@ ord_parameter_types! {
 
 parameter_types! {
     pub const LiquidStakingPalletId: PalletId = PalletId(*b"par/liqu");
-    pub const StakingCurrency: CurrencyId = DOT;
-    pub const LiquidCurrency: CurrencyId = XDOT;
+    pub const StakingCurrency: CurrencyId = KSM;
+    pub const LiquidCurrency: CurrencyId = XKSM;
     pub const MaxWithdrawAmount: Balance = 100_000_0;
     pub const MaxAccountProcessingUnstake: u32 = 5;
 }
@@ -145,7 +144,7 @@ impl crate::Config for Test {}
 
 // BUild genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-    let mut t = system::GenesisConfig::default()
+    let t = system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap();
     t.into()

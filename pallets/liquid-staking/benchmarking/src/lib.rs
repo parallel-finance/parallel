@@ -21,14 +21,14 @@ fn assert_last_event<T: Config>(generic_event: <T as LiquidStakingConfig>::Event
     frame_system::Pallet::<T>::assert_last_event(generic_event.into());
 }
 
-const DOT: CurrencyId = CurrencyId::DOT;
+const KSM: CurrencyId = CurrencyId::KSM;
 const INITIAL_AMOUNT: u128 = 100_000_000_000;
 const SEED: u32 = 0;
 
 fn initial_set_up<T: Config>(caller: T::AccountId) {
     let account_id = LiquidStaking::<T>::account_id();
-    <T as LiquidStakingConfig>::Currency::deposit(DOT, &caller, INITIAL_AMOUNT).unwrap();
-    <T as LiquidStakingConfig>::Currency::deposit(DOT, &account_id, INITIAL_AMOUNT).unwrap();
+    <T as LiquidStakingConfig>::Currency::deposit(KSM, &caller, INITIAL_AMOUNT).unwrap();
+    <T as LiquidStakingConfig>::Currency::deposit(KSM, &account_id, INITIAL_AMOUNT).unwrap();
     pallet_liquid_staking::ExchangeRate::<T>::put(Rate::saturating_from_rational(2, 100));
 }
 
@@ -50,15 +50,15 @@ benchmarks! {
 
         // Check balance is correct
         assert_eq!(
-            <T as LiquidStakingConfig>::Currency::free_balance(CurrencyId::DOT, &caller),
+            <T as LiquidStakingConfig>::Currency::free_balance(CurrencyId::KSM, &caller),
             INITIAL_AMOUNT - amount
         );
         assert_eq!(
-            <T as LiquidStakingConfig>::Currency::free_balance(CurrencyId::xDOT, &caller),
+            <T as LiquidStakingConfig>::Currency::free_balance(CurrencyId::xKSM, &caller),
             5_000_000
         );
         assert_eq!(
-            <T as LiquidStakingConfig>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::<T>::account_id()),
+            <T as LiquidStakingConfig>::Currency::free_balance(CurrencyId::KSM, &LiquidStaking::<T>::account_id()),
             INITIAL_AMOUNT + amount
         );
         assert_last_event::<T>(pallet_liquid_staking::Event::Staked(caller, amount).into());
@@ -82,12 +82,12 @@ benchmarks! {
     verify {
         // Check balance is correct
         assert_eq!(
-            <T as LiquidStakingConfig>::Currency::free_balance(CurrencyId::DOT, &caller),
+            <T as LiquidStakingConfig>::Currency::free_balance(CurrencyId::KSM, &caller),
             INITIAL_AMOUNT - amount
         );
 
         assert_eq!(
-            <T as LiquidStakingConfig>::Currency::free_balance(CurrencyId::DOT, &agent),
+            <T as LiquidStakingConfig>::Currency::free_balance(CurrencyId::KSM, &agent),
             amount
         );
 
@@ -157,11 +157,11 @@ benchmarks! {
         assert_eq!(pallet_liquid_staking::TotalStakingAsset::<T>::get(), 0);
         assert_eq!(pallet_liquid_staking::TotalVoucher::<T>::get(), 0);
         assert_eq!(
-            <T as LiquidStakingConfig>::Currency::free_balance(CurrencyId::DOT, &caller),
+            <T as LiquidStakingConfig>::Currency::free_balance(CurrencyId::KSM, &caller),
             INITIAL_AMOUNT - amount
         );
         assert_eq!(
-            <T as LiquidStakingConfig>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::<T>::account_id()),
+            <T as LiquidStakingConfig>::Currency::free_balance(CurrencyId::KSM, &LiquidStaking::<T>::account_id()),
             INITIAL_AMOUNT + amount
         );
 
@@ -232,11 +232,11 @@ benchmarks! {
     }
     verify {
         assert_eq!(
-            <T as LiquidStakingConfig>::Currency::free_balance(CurrencyId::DOT, &caller),
+            <T as LiquidStakingConfig>::Currency::free_balance(CurrencyId::KSM, &caller),
             INITIAL_AMOUNT
         );
         assert_eq!(
-            <T as LiquidStakingConfig>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::<T>::account_id()),
+            <T as LiquidStakingConfig>::Currency::free_balance(CurrencyId::KSM, &LiquidStaking::<T>::account_id()),
             INITIAL_AMOUNT
         );
 
