@@ -77,13 +77,15 @@ parameter_types! {
 }
 
 impl pallet_balances::Config for Test {
-    type MaxLocks = MaxLocks;
-    type Balance = Balance;
-    type Event = Event;
-    type DustRemoval = ();
-    type ExistentialDeposit = ExistentialDeposit;
-    type AccountStore = System;
-    type WeightInfo = ();
+	type MaxLocks = MaxLocks;
+	type Balance = Balance;
+	type Event = Event;
+	type DustRemoval = ();
+	type MaxReserves = ();
+	type ReserveIdentifier = [u8; 8];
+	type ExistentialDeposit = ExistentialDeposit;
+	type AccountStore = System;
+	type WeightInfo = ();
 }
 
 parameter_type_with_key! {
