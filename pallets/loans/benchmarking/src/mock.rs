@@ -17,10 +17,12 @@
 
 use super::*;
 
-use frame_support::traits::{SortedMembers, Time};
-use frame_support::{construct_runtime, parameter_types, PalletId};
+use frame_support::{
+    construct_runtime, parameter_types,
+    traits::{SortedMembers, Time},
+    PalletId,
+};
 use frame_system::EnsureRoot;
-use lazy_static::lazy_static;
 use orml_oracle::DefaultCombineData;
 use orml_traits::parameter_type_with_key;
 use primitives::{Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, PriceWithDecimal};
@@ -29,7 +31,7 @@ use sp_runtime::FixedPointNumber;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 use sp_std::vec::Vec;
 use std::cell::RefCell;
-use std::{collections::HashMap, sync::Mutex};
+use std::collections::HashMap;
 
 pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
 pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<u32, Call, u64, ()>;
@@ -46,7 +48,7 @@ construct_runtime!(
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Loans: pallet_loans::{Pallet, Storage, Call, Config, Event<T>},
         Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
-        Timestamps: pallet_timestamp::{Pallet, Call, Storage, Inherent},
+        TimestampPallet: pallet_timestamp::{Pallet, Call, Storage, Inherent},
     }
 );
 
@@ -148,35 +150,36 @@ impl pallet_balances::Config for Test {
     type WeightInfo = ();
 }
 
-lazy_static! {
-    pub static ref MOCK_PRICE_FEEDER: Mutex<HashMap<CurrencyId, Option<PriceDetail>>> = {
-        Mutex::new(
+pub struct MockPriceFeeder;
+
+impl MockPriceFeeder {
+    thread_local! {
+        pub static PRICES: RefCell<HashMap<CurrencyId, Option<PriceDetail>>> = RefCell::new(
             vec![DOT, KSM, USDT, XDOT]
                 .iter()
                 .map(|&x| (x, Some((Price::saturating_from_integer(1), 1))))
-                .collect(),
-        )
-    };
-}
+                .collect()
+        );
+    }
 
-impl MOCK_PRICE_FEEDER {
     pub fn set_price(currency_id: CurrencyId, price: Price) {
-        MOCK_PRICE_FEEDER
-            .lock()
-            .unwrap()
-            .insert(currency_id, Some((price, 1u64)));
+        Self::PRICES.with(|prices| {
+            prices.borrow_mut().insert(currency_id, Some((price, 1u64)));
+        });
     }
 
     pub fn reset() {
-        for (_, val) in MOCK_PRICE_FEEDER.lock().unwrap().iter_mut() {
-            *val = Some((Price::saturating_from_integer(1), 1u64));
-        }
+        Self::PRICES.with(|prices| {
+            for (_, val) in prices.borrow_mut().iter_mut() {
+                *val = Some((Price::saturating_from_integer(1), 1u64));
+            }
+        })
     }
 }
 
-impl PriceFeeder for MOCK_PRICE_FEEDER {
+impl PriceFeeder for MockPriceFeeder {
     fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
-        *MOCK_PRICE_FEEDER.lock().unwrap().get(currency_id).unwrap()
+        Self::PRICES.with(|prices| *prices.borrow().get(currency_id).unwrap())
     }
 }
 
@@ -235,11 +238,11 @@ impl pallet_loans::Config for Test {
     type Event = Event;
     type Currency = Currencies;
     type PalletId = LoansPalletId;
-    type PriceFeeder = MOCK_PRICE_FEEDER;
+    type PriceFeeder = MockPriceFeeder;
     type ReserveOrigin = EnsureRoot<AccountId>;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
-    type UnixTime = Timestamps;
+    type UnixTime = TimestampPallet;
 }
 
 impl crate::Config for Test {}

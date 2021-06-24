@@ -22,14 +22,14 @@ use loans::*;
 
 use frame_support::{construct_runtime, parameter_types, PalletId};
 use frame_system::EnsureRoot;
-use lazy_static::lazy_static;
 use orml_traits::parameter_type_with_key;
 use primitives::{Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate, Ratio};
 use sp_core::H256;
 use sp_runtime::traits::One;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 use sp_std::vec::Vec;
-use std::{collections::HashMap, sync::Mutex};
+use std::cell::RefCell;
+use std::collections::HashMap;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
@@ -45,7 +45,7 @@ construct_runtime!(
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Loans: loans::{Pallet, Storage, Call, Config, Event<T>},
-        Timestamps: pallet_timestamp::{Pallet, Call, Storage, Inherent},
+        TimestampPallet: pallet_timestamp::{Pallet, Call, Storage, Inherent},
     }
 );
 
@@ -150,35 +150,37 @@ impl pallet_balances::Config for Runtime {
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
 }
 
-lazy_static! {
-    pub static ref MOCK_PRICE_FEEDER: Mutex<HashMap<CurrencyId, Option<PriceDetail>>> = {
-        Mutex::new(
-            vec![DOT, KSM, USDT, XDOT]
-                .iter()
-                .map(|&x| (x, Some((Price::saturating_from_integer(1), 1))))
-                .collect(),
-        )
-    };
-}
+pub struct MockPriceFeeder;
 
-impl MOCK_PRICE_FEEDER {
+impl MockPriceFeeder {
+    thread_local! {
+        pub static PRICES: RefCell<HashMap<CurrencyId, Option<PriceDetail>>> = {
+            RefCell::new(
+                vec![DOT, KSM, USDT, XDOT]
+                    .iter()
+                    .map(|&x| (x, Some((Price::saturating_from_integer(1), 1))))
+                    .collect())
+        };
+    }
+
     pub fn set_price(currency_id: CurrencyId, price: Price) {
-        MOCK_PRICE_FEEDER
-            .lock()
-            .unwrap()
-            .insert(currency_id, Some((price, 1u64)));
+        Self::PRICES.with(|prices| {
+            prices.borrow_mut().insert(currency_id, Some((price, 1u64)));
+        });
     }
 
     pub fn reset() {
-        for (_, val) in MOCK_PRICE_FEEDER.lock().unwrap().iter_mut() {
-            *val = Some((Price::saturating_from_integer(1), 1u64));
-        }
+        Self::PRICES.with(|prices| {
+            for (_, val) in prices.borrow_mut().iter_mut() {
+                *val = Some((Price::saturating_from_integer(1), 1u64));
+            }
+        })
     }
 }
 
-impl PriceFeeder for MOCK_PRICE_FEEDER {
+impl PriceFeeder for MockPriceFeeder {
     fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
-        *MOCK_PRICE_FEEDER.lock().unwrap().get(currency_id).unwrap()
+        Self::PRICES.with(|prices| *prices.borrow().get(currency_id).unwrap())
     }
 }
 
@@ -186,11 +188,11 @@ impl Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
     type PalletId = LoansPalletId;
-    type PriceFeeder = MOCK_PRICE_FEEDER;
+    type PriceFeeder = MockPriceFeeder;
     type ReserveOrigin = EnsureRoot<AccountId>;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
-    type UnixTime = Timestamps;
+    type UnixTime = TimestampPallet;
 }
 
 parameter_types! {
@@ -274,7 +276,7 @@ impl ExtBuilder {
         let mut ext = sp_io::TestExternalities::new(t);
         ext.execute_with(|| {
             System::set_block_number(0);
-            Timestamps::set_timestamp(6000);
+            TimestampPallet::set_timestamp(6000);
         });
         ext
     }
@@ -286,7 +288,7 @@ pub(crate) fn run_to_block(n: BlockNumber) {
     for b in (System::block_number() + 1)..=n {
         System::set_block_number(b);
         Loans::on_initialize(System::block_number());
-        Timestamps::set_timestamp(6000 * b);
+        TimestampPallet::set_timestamp(6000 * b);
         if b != n {
             Loans::on_finalize(System::block_number());
         }
@@ -296,7 +298,7 @@ pub(crate) fn run_to_block(n: BlockNumber) {
 pub(crate) fn process_block(n: BlockNumber) {
     System::set_block_number(n);
     Loans::on_initialize(n);
-    Timestamps::set_timestamp(6000 * n);
+    TimestampPallet::set_timestamp(6000 * n);
     Loans::on_finalize(n);
 }
 
