@@ -149,7 +149,7 @@ pub trait XTransfer<T: Config, C, A, B> {
 }
 
 impl<T: Config, C, A, B> XTransfer<T, C, A, B> for () {
-    fn xtransfer(from: OriginFor<T>, currency_id: C, to: A, amount: B) -> DispatchResult {
+    fn xtransfer(_from: OriginFor<T>, _currency_id: C, _to: A, _amount: B) -> DispatchResult {
         Ok(().into())
     }
 }
