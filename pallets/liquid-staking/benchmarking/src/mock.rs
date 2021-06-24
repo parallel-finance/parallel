@@ -1,8 +1,9 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{ord_parameter_types, parameter_types, traits::GenesisBuild, PalletId};
-use frame_system::{self as system, EnsureSignedBy};
+use frame_support::{ord_parameter_types, parameter_types, PalletId};
+use frame_system as system;
+use frame_system::EnsureRoot;
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
@@ -53,7 +54,7 @@ impl system::Config for Test {
     type BlockNumber = BlockNumber;
     type Hash = H256;
     type Hashing = BlakeTwo256;
-    type AccountId = u64;
+    type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
     type Event = Event;
@@ -67,6 +68,8 @@ impl system::Config for Test {
     type SS58Prefix = SS58Prefix;
     type OnSetCode = ();
 }
+
+pub type AccountId = u128;
 
 parameter_types! {
     pub const ExistentialDeposit: Balance = 1;
@@ -121,7 +124,7 @@ parameter_types! {
     pub const LiquidStakingPalletId: PalletId = PalletId(*b"par/liqu");
     pub const StakingCurrency: CurrencyId = DOT;
     pub const LiquidCurrency: CurrencyId = XDOT;
-    pub const MaxWithdrawAmount: Balance = 10;
+    pub const MaxWithdrawAmount: Balance = 100_000_0;
     pub const MaxAccountProcessingUnstake: u32 = 5;
 }
 
@@ -131,7 +134,7 @@ impl pallet_liquid_staking::Config for Test {
     type PalletId = LiquidStakingPalletId;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type WithdrawOrigin = EnsureSignedBy<Six, u64>;
+    type WithdrawOrigin = EnsureRoot<AccountId>;
     type MaxWithdrawAmount = MaxWithdrawAmount;
     type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
 }
@@ -143,11 +146,6 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap();
-    orml_tokens::GenesisConfig::<Test> {
-        balances: vec![(1, CurrencyId::DOT, 100)],
-    }
-    .assimilate_storage(&mut t)
-    .unwrap();
     pallet_liquid_staking::GenesisConfig {
         exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
     }

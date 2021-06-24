@@ -4,7 +4,9 @@
 
 mod mock;
 
+use frame_benchmarking::account;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
+use frame_support::assert_ok;
 use frame_system::RawOrigin as SystemOrigin;
 use orml_traits::MultiCurrency;
 use pallet_liquid_staking::{Config as LiquidStakingConfig, Pallet as LiquidStaking};
@@ -20,6 +22,7 @@ fn assert_last_event<T: Config>(generic_event: <T as LiquidStakingConfig>::Event
 
 const DOT: CurrencyId = CurrencyId::DOT;
 const INITIAL_AMOUNT: u128 = 100_000_000_000;
+const SEED: u32 = 0;
 
 fn initial_set_up<T: Config>(caller: T::AccountId) {
     let account_id = LiquidStaking::<T>::account_id();
@@ -57,6 +60,36 @@ benchmarks! {
             INITIAL_AMOUNT + amount
         );
         assert_last_event::<T>(pallet_liquid_staking::Event::Staked(caller, amount).into());
+    }
+
+    withdraw {
+        let caller: T::AccountId = whitelisted_caller();
+        initial_set_up::<T>(caller.clone());
+        let agent: T::AccountId = account("Sample", 6, SEED);
+        let amount = 100_000;
+        assert_ok!(LiquidStaking::<T>::stake(
+            SystemOrigin::Signed(caller.clone()).into(),
+            amount));
+    }: {
+        let _ = LiquidStaking::<T>::withdraw(
+            SystemOrigin::Root.into(),
+            agent.clone(),
+            amount
+        );
+    }
+    verify {
+        // Check balance is correct
+        assert_eq!(
+            <T as LiquidStakingConfig>::Currency::free_balance(CurrencyId::DOT, &caller),
+            INITIAL_AMOUNT - amount
+        );
+
+        assert_eq!(
+            <T as LiquidStakingConfig>::Currency::free_balance(CurrencyId::DOT, &agent),
+            amount
+        );
+
+        assert_last_event::<T>(pallet_liquid_staking::Event::WithdrawSuccess(agent, amount).into());
     }
 
 }
