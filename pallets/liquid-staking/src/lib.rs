@@ -117,7 +117,7 @@ pub mod pallet {
         /// The assets get staked successfully
         Staked(T::AccountId, Balance),
         /// The voucher get unstaked successfully
-        Unstaked(T::AccountId, Balance),
+        Unstaked(T::AccountId, Balance, Balance),
         /// The withdraw request is successful
         WithdrawSuccess(T::AccountId, Balance),
         /// The rewards are recorded
@@ -384,7 +384,7 @@ pub mod pallet {
                 Ok(())
             })?;
 
-            Self::deposit_event(Event::Unstaked(sender, amount));
+            Self::deposit_event(Event::Unstaked(sender, amount, asset_amount));
             Ok(().into())
         }
 
