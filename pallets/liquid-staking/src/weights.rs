@@ -35,99 +35,101 @@
 // --template=./.maintain/frame-weight-template.hbs
 // --output=./pallets/liquid-staking/src/weights.rs
 
-
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 
-use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
+use frame_support::{
+    traits::Get,
+    weights::{constants::RocksDbWeight, Weight},
+};
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_liquid_staking.
 pub trait WeightInfo {
-	fn stake() -> Weight;
-	fn withdraw() -> Weight;
-	fn record_rewards() -> Weight;
-	fn record_slash() -> Weight;
-	fn unstake() -> Weight;
-	fn process_pending_unstake() -> Weight;
-	fn finish_processed_unstake() -> Weight;
+    fn stake() -> Weight;
+    fn withdraw() -> Weight;
+    fn record_rewards() -> Weight;
+    fn record_slash() -> Weight;
+    fn unstake() -> Weight;
+    fn process_pending_unstake() -> Weight;
+    fn finish_processed_unstake() -> Weight;
 }
 
 /// Weights for pallet_liquid_staking using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
-	fn stake() -> Weight {
-		(81_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(7 as Weight))
-			.saturating_add(T::DbWeight::get().writes(6 as Weight))
-	}
-	fn withdraw() -> Weight {
-		(58_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
-	}
-	fn record_rewards() -> Weight {
-		(22_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(2 as Weight))
-	}
-	fn record_slash() -> Weight {
-		(22_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(2 as Weight))
-	}
-	fn unstake() -> Weight {
-		(63_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(6 as Weight))
-			.saturating_add(T::DbWeight::get().writes(5 as Weight))
-	}
-	fn process_pending_unstake() -> Weight {
-		(27_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(2 as Weight))
-	}
-	fn finish_processed_unstake() -> Weight {
-		(49_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
-	}
+    fn stake() -> Weight {
+        (81_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(7 as Weight))
+            .saturating_add(T::DbWeight::get().writes(6 as Weight))
+    }
+    fn withdraw() -> Weight {
+        (58_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(4 as Weight))
+            .saturating_add(T::DbWeight::get().writes(3 as Weight))
+    }
+    fn record_rewards() -> Weight {
+        (22_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(2 as Weight))
+            .saturating_add(T::DbWeight::get().writes(2 as Weight))
+    }
+    fn record_slash() -> Weight {
+        (22_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(2 as Weight))
+            .saturating_add(T::DbWeight::get().writes(2 as Weight))
+    }
+    fn unstake() -> Weight {
+        (63_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(6 as Weight))
+            .saturating_add(T::DbWeight::get().writes(5 as Weight))
+    }
+    fn process_pending_unstake() -> Weight {
+        (27_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(2 as Weight))
+            .saturating_add(T::DbWeight::get().writes(2 as Weight))
+    }
+    fn finish_processed_unstake() -> Weight {
+        (49_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(4 as Weight))
+            .saturating_add(T::DbWeight::get().writes(3 as Weight))
+    }
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
-	fn stake() -> Weight {
-		(81_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(7 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(6 as Weight))
-	}
-	fn withdraw() -> Weight {
-		(58_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(4 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(3 as Weight))
-	}
-	fn record_rewards() -> Weight {
-		(22_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(2 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(2 as Weight))
-	}
-	fn record_slash() -> Weight {
-		(22_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(2 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(2 as Weight))
-	}
-	fn unstake() -> Weight {
-		(63_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(6 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(5 as Weight))
-	}
-	fn process_pending_unstake() -> Weight {
-		(27_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(2 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(2 as Weight))
-	}
-	fn finish_processed_unstake() -> Weight {
-		(49_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(4 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(3 as Weight))
-	}
+    fn stake() -> Weight {
+        (81_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(7 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(6 as Weight))
+    }
+    fn withdraw() -> Weight {
+        (58_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(4 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(3 as Weight))
+    }
+    fn record_rewards() -> Weight {
+        (22_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(2 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(2 as Weight))
+    }
+    fn record_slash() -> Weight {
+        (22_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(2 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(2 as Weight))
+    }
+    fn unstake() -> Weight {
+        (63_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(6 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(5 as Weight))
+    }
+    fn process_pending_unstake() -> Weight {
+        (27_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(2 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(2 as Weight))
+    }
+    fn finish_processed_unstake() -> Weight {
+        (49_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(4 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(3 as Weight))
+    }
 }
