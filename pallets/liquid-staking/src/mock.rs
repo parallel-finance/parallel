@@ -134,6 +134,7 @@ impl pallet_liquid_staking::Config for Test {
     type WithdrawOrigin = EnsureSignedBy<Six, u64>;
     type MaxWithdrawAmount = MaxWithdrawAmount;
     type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
+    type WeightInfo = ();
 }
 
 // BUild genesis storage according to the mock runtime.

@@ -296,6 +296,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type WithdrawOrigin = EnsureRoot<AccountId>;
     type MaxWithdrawAmount = MaxWithdrawAmount;
     type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
+    type WeightInfo = pallet_liquid_staking::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {

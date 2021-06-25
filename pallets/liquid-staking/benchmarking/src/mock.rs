@@ -138,6 +138,7 @@ impl pallet_liquid_staking::Config for Test {
     type WithdrawOrigin = EnsureRoot<AccountId>;
     type MaxWithdrawAmount = MaxWithdrawAmount;
     type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
+    type WeightInfo = ();
 }
 
 impl crate::Config for Test {}
