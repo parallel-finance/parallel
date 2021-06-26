@@ -505,7 +505,7 @@ pub mod pallet {
             let exchange_rate = Self::exchange_rate(currency_id);
             let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
             Self::update_earned_stored(&who, &currency_id)?;
-            Self::redeem_internal(&who, &currency_id, voucher_amount)?;
+            let redeem_amount = Self::redeem_internal(&who, &currency_id, voucher_amount)?;
 
             Self::deposit_event(Event::<T>::Redeemed(who, currency_id, redeem_amount));
 
