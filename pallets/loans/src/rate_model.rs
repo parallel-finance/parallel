@@ -175,9 +175,10 @@ impl CurveModel {
 
     /// Calculates the borrow interest rate of curve model
     pub fn get_borrow_rate(&self, utilization: Ratio) -> Option<Rate> {
+        const NINE: usize = 9;
         let utilization_rate: Rate = utilization.into();
         utilization_rate
-            .saturating_pow(9)
+            .saturating_pow(NINE)
             .checked_add(&self.base_rate)
     }
 }
