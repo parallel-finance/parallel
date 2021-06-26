@@ -68,7 +68,7 @@ fn withdraw_too_much_should_fail() {
         let _ = LiquidStaking::stake(Origin::signed(1), 10);
         assert_noop!(
             LiquidStaking::withdraw(Origin::signed(6), 2, 11),
-            Error::<Test>::ExcessWithdraw,
+            Error::<Test>::ExcessWithdrawThreshold,
         );
     })
 }

@@ -502,8 +502,10 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             Self::ensure_currency(&currency_id)?;
 
+            let exchange_rate = Self::exchange_rate(currency_id);
+            let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
             Self::update_earned_stored(&who, &currency_id)?;
-            Self::redeem_internal(&who, &currency_id, redeem_amount)?;
+            Self::redeem_internal(&who, &currency_id, voucher_amount)?;
 
             Self::deposit_event(Event::<T>::Redeemed(who, currency_id, redeem_amount));
 
@@ -524,11 +526,8 @@ pub mod pallet {
 
             Self::update_earned_stored(&who, &currency_id)?;
             let deposits = AccountDeposits::<T>::get(&currency_id, &who);
-            let exchange_rate = Self::exchange_rate(currency_id);
-            let redeem_amount = exchange_rate
-                .checked_mul_int(deposits.voucher_balance)
-                .ok_or(ArithmeticError::Overflow)?;
-            Self::redeem_internal(&who, &currency_id, redeem_amount)?;
+            let redeem_amount =
+                Self::redeem_internal(&who, &currency_id, deposits.voucher_balance)?;
 
             Self::deposit_event(Event::<T>::Redeemed(who, currency_id, redeem_amount));
 
@@ -895,10 +894,9 @@ impl<T: Config> Pallet<T> {
             .checked_mul_int(collateral_factor.mul_floor(deposits.voucher_balance))
             .ok_or(ArithmeticError::Overflow)?;
 
-        let rslt = currency_price
+        Ok(currency_price
             .checked_mul(&FixedU128::from_inner(collateral_amount))
-            .ok_or(ArithmeticError::Overflow)?;
-        Ok(rslt)
+            .ok_or(ArithmeticError::Overflow)?)
     }
 
     fn total_collateral_value(borrower: &T::AccountId) -> Result<FixedU128, DispatchError> {
@@ -916,16 +914,16 @@ impl<T: Config> Pallet<T> {
     fn redeem_allowed(
         currency_id: &CurrencyId,
         redeemer: &T::AccountId,
-        redeem_amount: Balance,
-    ) -> DispatchResult {
+        voucher_amount: Balance,
+    ) -> Result<Balance, DispatchError> {
         let deposit = Self::account_deposits(currency_id, redeemer);
         let exchange_rate = Self::exchange_rate(currency_id);
-        let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
+        let redeem_amount = Self::calc_underlying_amount(voucher_amount, exchange_rate)?;
         if deposit.voucher_balance < voucher_amount {
             return Err(Error::<T>::InsufficientDeposit.into());
         }
         if !deposit.is_collateral {
-            return Ok(());
+            return Ok(redeem_amount);
         }
         let collateral_factor = Self::collateral_factor(currency_id);
         let price = Self::get_price(currency_id)?;
@@ -940,22 +938,20 @@ impl<T: Config> Pallet<T> {
             return Err(Error::<T>::InsufficientLiquidity.into());
         }
 
-        Ok(())
+        Ok(redeem_amount)
     }
 
     pub fn redeem_internal(
         who: &T::AccountId,
         currency_id: &CurrencyId,
-        redeem_amount: Balance,
-    ) -> DispatchResult {
-        Self::redeem_allowed(currency_id, who, redeem_amount)?;
-        let exchange_rate = Self::exchange_rate(currency_id);
-        let collateral = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
+        voucher_amount: Balance,
+    ) -> Result<Balance, DispatchError> {
+        let redeem_amount = Self::redeem_allowed(currency_id, who, voucher_amount)?;
         AccountDeposits::<T>::try_mutate_exists(currency_id, who, |deposits| -> DispatchResult {
             let mut d = deposits.unwrap_or_default();
             d.voucher_balance = d
                 .voucher_balance
-                .checked_sub(collateral)
+                .checked_sub(voucher_amount)
                 .ok_or(ArithmeticError::Underflow)?;
             if d.voucher_balance.is_zero() {
                 // remove deposits storage if zero balance
@@ -967,14 +963,14 @@ impl<T: Config> Pallet<T> {
         })?;
         TotalSupply::<T>::try_mutate(currency_id, |total_balance| -> DispatchResult {
             let new_balance = total_balance
-                .checked_sub(collateral)
+                .checked_sub(voucher_amount)
                 .ok_or(ArithmeticError::Underflow)?;
             *total_balance = new_balance;
             Ok(())
         })?;
         T::Currency::transfer(*currency_id, &Self::account_id(), who, redeem_amount)?;
 
-        Ok(())
+        Ok(redeem_amount)
     }
 
     /// Borrower shouldn't borrow more than his total collateral value
@@ -1366,15 +1362,23 @@ impl<T: Config> Pallet<T> {
         T::Currency::free_balance(currency_id, &Self::account_id())
     }
 
+    pub fn calc_underlying_amount(
+        voucher_amount: u128,
+        exchange_rate: Rate,
+    ) -> Result<Balance, DispatchError> {
+        Ok(exchange_rate
+            .checked_mul_int(voucher_amount)
+            .ok_or(ArithmeticError::Underflow)?)
+    }
+
     pub fn calc_collateral_amount(
         underlying_amount: u128,
         exchange_rate: Rate,
     ) -> Result<Balance, DispatchError> {
-        let rslt = FixedU128::from_inner(underlying_amount)
+        Ok(FixedU128::from_inner(underlying_amount)
             .checked_div(&exchange_rate)
             .map(|r| r.into_inner())
-            .ok_or(ArithmeticError::Underflow)?;
-        Ok(rslt)
+            .ok_or(ArithmeticError::Underflow)?)
     }
 
     pub fn get_price(currency_id: &CurrencyId) -> Result<Price, Error<T>> {
