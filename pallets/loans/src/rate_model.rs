@@ -161,6 +161,8 @@ pub struct CurveModel {
 }
 
 impl CurveModel {
+    pub const MAX_BASE_RATE: Rate = Rate::from_inner(Rate::DIV / 100 * 10); // 10%
+
     /// Create a new curve model
     pub fn new_model(base_rate: Rate) -> CurveModel {
         Self { base_rate }
@@ -168,13 +170,16 @@ impl CurveModel {
 
     /// Check the curve model for sanity
     pub fn check_model(&self) -> bool {
-        true
+        self.base_rate <= Self::MAX_BASE_RATE
     }
 
     /// Calculates the borrow interest rate of curve model
-    pub fn get_borrow_rate(&self, _utilization: Ratio) -> Option<Rate> {
-        // TODO: Need to implement the curve model
-        None
+    pub fn get_borrow_rate(&self, utilization: Ratio) -> Option<Rate> {
+        const NINE: usize = 9;
+        let utilization_rate: Rate = utilization.into();
+        utilization_rate
+            .saturating_pow(NINE)
+            .checked_add(&self.base_rate)
     }
 }
 
@@ -264,6 +269,15 @@ mod tests {
             supply_rate,
             borrow_rate
                 .saturating_mul(((Ratio::one().saturating_sub(reserve_factor)) * util).into()),
+        );
+    }
+
+    #[test]
+    fn curve_model_correctly_calculates_borrow_rate() {
+        let model = CurveModel::new_model(Rate::from_inner(Rate::DIV / 100 * 2));
+        assert_eq!(
+            model.get_borrow_rate(Ratio::from_percent(80)).unwrap(),
+            Rate::from_inner(154217728000000000)
         );
     }
 }
