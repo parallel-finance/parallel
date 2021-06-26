@@ -505,7 +505,7 @@ pub mod pallet {
             let exchange_rate = Self::exchange_rate(currency_id);
             let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
             Self::update_earned_stored(&who, &currency_id)?;
-            Self::redeem_internal(&who, &currency_id, voucher_amount)?;
+            let redeem_amount = Self::redeem_internal(&who, &currency_id, voucher_amount)?;
 
             Self::deposit_event(Event::<T>::Redeemed(who, currency_id, redeem_amount));
 
@@ -526,10 +526,8 @@ pub mod pallet {
 
             Self::update_earned_stored(&who, &currency_id)?;
             let deposits = AccountDeposits::<T>::get(&currency_id, &who);
-            Self::redeem_internal(&who, &currency_id, deposits.voucher_balance)?;
-            let exchange_rate = Self::exchange_rate(currency_id);
             let redeem_amount =
-                Self::calc_underlying_amount(deposits.voucher_balance, exchange_rate)?;
+                Self::redeem_internal(&who, &currency_id, deposits.voucher_balance)?;
 
             Self::deposit_event(Event::<T>::Redeemed(who, currency_id, redeem_amount));
 
@@ -919,8 +917,6 @@ impl<T: Config> Pallet<T> {
         voucher_amount: Balance,
     ) -> DispatchResult {
         let deposit = Self::account_deposits(currency_id, redeemer);
-        let exchange_rate = Self::exchange_rate(currency_id);
-        let redeem_amount = Self::calc_underlying_amount(voucher_amount, exchange_rate)?;
         if deposit.voucher_balance < voucher_amount {
             return Err(Error::<T>::InsufficientDeposit.into());
         }
@@ -929,6 +925,8 @@ impl<T: Config> Pallet<T> {
         }
         let collateral_factor = Self::collateral_factor(currency_id);
         let price = Self::get_price(currency_id)?;
+        let exchange_rate = Self::exchange_rate(currency_id);
+        let redeem_amount = Self::calc_underlying_amount(voucher_amount, exchange_rate)?;
         let redeem_effects_value = price
             .checked_mul(&FixedU128::from_inner(
                 collateral_factor.mul_ceil(redeem_amount),
@@ -947,7 +945,7 @@ impl<T: Config> Pallet<T> {
         who: &T::AccountId,
         currency_id: &CurrencyId,
         voucher_amount: Balance,
-    ) -> DispatchResult {
+    ) -> Result<Balance, DispatchError> {
         Self::redeem_allowed(currency_id, who, voucher_amount)?;
         let exchange_rate = Self::exchange_rate(currency_id);
         let redeem_amount = Self::calc_underlying_amount(voucher_amount, exchange_rate)?;
@@ -974,7 +972,7 @@ impl<T: Config> Pallet<T> {
         })?;
         T::Currency::transfer(*currency_id, &Self::account_id(), who, redeem_amount)?;
 
-        Ok(())
+        Ok(redeem_amount)
     }
 
     /// Borrower shouldn't borrow more than his total collateral value
