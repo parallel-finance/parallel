@@ -1368,7 +1368,7 @@ impl<T: Config> Pallet<T> {
     ) -> Result<Balance, DispatchError> {
         Ok(exchange_rate
             .checked_mul_int(voucher_amount)
-            .ok_or(ArithmeticError::Underflow)?)
+            .ok_or(ArithmeticError::Overflow)?)
     }
 
     pub fn calc_collateral_amount(
