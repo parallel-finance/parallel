@@ -446,6 +446,11 @@ pub mod pallet {
                     }
                 }
             });
+
+            // This is used to trigger the price aggregation to update the results to the ORML Oracle Pallet.
+            for currency_id in Currencies::<T>::get().iter() {
+                let _ = Self::get_price(currency_id);
+            }
         }
     }
 
