@@ -32,11 +32,12 @@ pub use pallet::*;
 use primitives::{Amount, Balance, CurrencyId, Rate};
 pub use weights::WeightInfo;
 
+mod benchmarking;
 #[cfg(test)]
 mod mock;
 
-#[cfg(test)]
-mod tests;
+// #[cfg(test)]
+// mod tests;
 pub mod weights;
 
 /// Container for pending balance information
@@ -231,13 +232,14 @@ pub mod pallet {
                 .reciprocal()
                 .and_then(|r| r.checked_mul_int(amount))
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
-
+            //assert_eq!(true, false);
             T::Currency::transfer(
                 T::StakingCurrency::get(),
                 &sender,
                 &Self::account_id(),
                 amount,
             )?;
+            //assert_eq!(true, false);
             T::Currency::deposit(T::LiquidCurrency::get(), &sender, voucher_amount)?;
             TotalVoucher::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b.checked_add(voucher_amount).ok_or(Error::<T>::Overflow)?;
@@ -266,6 +268,7 @@ pub mod pallet {
             amount: Balance,
         ) -> DispatchResultWithPostInfo {
             T::WithdrawOrigin::ensure_origin(origin)?;
+            //assert_eq!(amount , T::MaxWithdrawAmount::get());
             ensure!(
                 amount <= T::MaxWithdrawAmount::get(),
                 Error::<T>::ExcessWithdraw
