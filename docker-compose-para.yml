@@ -1,0 +1,93 @@
+version: '3'
+services:
+    relay_alice:
+        ports:
+            - '30333:30333'
+            - '9933:9933'
+            - '9944:9944'
+        image: parity/polkadot:v0.9.6
+        volumes:
+            - 'relay-data-alice:/data'
+            - './rococo-local.json:/usr/local/bin/rococo-local.json'
+        command: --chain /usr/local/bin/rococo-local.json --alice -d /data --rpc-cors all --rpc-methods=Unsafe --unsafe-rpc-external --unsafe-ws-external --node-key 0000000000000000000000000000000000000000000000000000000000000001
+        networks:
+            testing_net:
+                ipv4_address: 172.28.1.1
+
+    relay_bob:
+        ports:
+            - '30344:30344'
+            - '9935:9935'
+            - '9945:9945'
+        image: parity/polkadot:v0.9.6
+        volumes:
+            - 'relay-data-bob:/data'
+            - './rococo-local.json:/usr/local/bin/rococo-local.json'
+        links:
+            - 'relay_alice:alice'
+        command: --chain /usr/local/bin/rococo-local.json --bob -d /data --port 30344 --rpc-port 9935 --ws-port 9945 --rpc-cors all --rpc-methods=Unsafe --unsafe-rpc-external --unsafe-ws-external --bootnodes '/ip4/172.28.1.1/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp'
+        networks:
+            testing_net:
+                ipv4_address: 172.28.1.2
+
+    para_alice:
+        ports:
+            - '30345:30345'
+            - '9936:9936'
+            - '9946:9946'
+        image: parallelfinance/parallel:latest
+        volumes:
+            - 'para-data-alice:/data'
+            - './rococo-local.json:/usr/local/bin/rococo-local.json'
+        links:
+            - 'relay_alice:alice'
+        command: parallel -d /data --collator --alice --chain heiko --parachain-id 200 --port 30345 --rpc-port 9936 --ws-port 9946 --rpc-cors all --rpc-methods=Unsafe --unsafe-rpc-external --unsafe-ws-external -- --chain /usr/local/bin/rococo-local.json --bootnodes '/ip4/172.28.1.1/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp'
+        networks:
+            testing_net:
+                ipv4_address: 172.28.1.3
+
+    para_bob:
+        ports:
+            - '30346:30346'
+            - '9937:9937'
+            - '9947:9947'
+        image: parallelfinance/parallel:latest
+        volumes:
+            - 'para-data-bob:/data'
+            - './rococo-local.json:/usr/local/bin/rococo-local.json'
+        links:
+            - 'relay_alice:alice'
+        command: parallel -d /data --collator --bob --chain heiko --parachain-id 200 --port 30346 --rpc-port 9937 --ws-port 9947 --rpc-cors all --rpc-methods=Unsafe --unsafe-rpc-external --unsafe-ws-external -- --chain /usr/local/bin/rococo-local.json --bootnodes '/ip4/172.28.1.1/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp'
+        networks:
+            testing_net:
+                ipv4_address: 172.28.1.4
+
+    para_charlie:
+        ports:
+            - '30347:30347'
+            - '9938:9938'
+            - '9948:9948'
+        image: parallelfinance/parallel:latest
+        volumes:
+            - 'para-data-charlie:/data'
+            - './rococo-local.json:/usr/local/bin/rococo-local.json'
+        links:
+            - 'relay_alice:alice'
+        command: parallel -d /data --collator --charlie --chain heiko --parachain-id 200 --port 30347 --rpc-port 9938 --ws-port 9948 --rpc-cors all --rpc-methods=Unsafe --unsafe-rpc-external --unsafe-ws-external -- --chain /usr/local/bin/rococo-local.json --bootnodes '/ip4/172.28.1.1/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp'
+        networks:
+            testing_net:
+                ipv4_address: 172.28.1.5
+
+volumes:
+    relay-data-alice:
+    relay-data-bob:
+    para-data-alice:
+    para-data-bob:
+    para-data-charlie:
+
+networks:
+    testing_net:
+        ipam:
+            driver: default
+            config:
+                - subnet: 172.28.0.0/16
