@@ -22,7 +22,7 @@
 
 use frame_support::{pallet_prelude::*, transactional, BoundedVec, PalletId};
 use frame_system::pallet_prelude::*;
-use sp_runtime::{traits::AccountIdConversion, FixedPointNumber, RuntimeDebug};
+use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber, RuntimeDebug};
 use sp_std::convert::TryInto;
 use sp_std::prelude::*;
 
@@ -99,12 +99,8 @@ pub mod pallet {
     pub enum Error<T> {
         /// ExchangeRate is invalid
         InvalidExchangeRate,
-        /// Calculation overflow
-        Overflow,
-        /// Calculation underflow
-        Underflow,
         /// The withdraw assets exceed the threshold
-        ExcessWithdraw,
+        ExcessWithdrawThreshold,
         /// The account don't have any pending unstake
         NoPendingUnstake,
         /// The agent process invalid amount of unstake asset
@@ -123,7 +119,7 @@ pub mod pallet {
         /// The assets get staked successfully
         Staked(T::AccountId, Balance),
         /// The voucher get unstaked successfully
-        Unstaked(T::AccountId, Balance),
+        Unstaked(T::AccountId, Balance, Balance),
         /// The withdraw request is successful
         WithdrawSuccess(T::AccountId, Balance),
         /// The rewards are recorded
@@ -242,11 +238,13 @@ pub mod pallet {
             //assert_eq!(true, false);
             T::Currency::deposit(T::LiquidCurrency::get(), &sender, voucher_amount)?;
             TotalVoucher::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_add(voucher_amount).ok_or(Error::<T>::Overflow)?;
+                *b = b
+                    .checked_add(voucher_amount)
+                    .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
             TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_add(amount).ok_or(Error::<T>::Overflow)?;
+                *b = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
 
@@ -271,7 +269,7 @@ pub mod pallet {
             //assert_eq!(amount , T::MaxWithdrawAmount::get());
             ensure!(
                 amount <= T::MaxWithdrawAmount::get(),
-                Error::<T>::ExcessWithdraw
+                Error::<T>::ExcessWithdrawThreshold
             );
 
             T::Currency::transfer(
@@ -302,7 +300,7 @@ pub mod pallet {
             T::WithdrawOrigin::ensure_origin(origin)?;
 
             TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_add(amount).ok_or(Error::<T>::Overflow)?;
+                *b = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
             let exchange_rate = Rate::checked_from_rational(
@@ -333,7 +331,7 @@ pub mod pallet {
             T::WithdrawOrigin::ensure_origin(origin)?;
 
             TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_sub(amount).ok_or(Error::<T>::Underflow)?;
+                *b = b.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
                 Ok(())
             })?;
             let exchange_rate = Rate::checked_from_rational(
@@ -364,7 +362,7 @@ pub mod pallet {
 
             AccountPendingUnstake::<T>::try_mutate(&sender, |info| -> DispatchResult {
                 let block_number = frame_system::Pallet::<T>::block_number();
-                let new_info = info.map_or::<Result<_, Error<T>>, _>(
+                let new_info = info.map_or::<Result<_, DispatchError>, _>(
                     Ok(UnstakeInfo {
                         amount: asset_amount,
                         block_number,
@@ -373,7 +371,7 @@ pub mod pallet {
                         v.amount = v
                             .amount
                             .checked_add(asset_amount)
-                            .ok_or(Error::<T>::Overflow)?;
+                            .ok_or(ArithmeticError::Overflow)?;
                         v.block_number = block_number;
                         Ok(v)
                     },
@@ -383,16 +381,18 @@ pub mod pallet {
             })?;
             T::Currency::withdraw(T::LiquidCurrency::get(), &sender, amount)?;
             TotalVoucher::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_sub(amount).ok_or(Error::<T>::Underflow)?;
+                *b = b.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
                 Ok(())
             })?;
             // TODO should it update after applied onbond operation?
             TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_sub(asset_amount).ok_or(Error::<T>::Underflow)?;
+                *b = b
+                    .checked_sub(asset_amount)
+                    .ok_or(ArithmeticError::Underflow)?;
                 Ok(())
             })?;
 
-            Self::deposit_event(Event::Unstaked(sender, amount));
+            Self::deposit_event(Event::Unstaked(sender, amount, asset_amount));
             Ok(().into())
         }
 
@@ -414,13 +414,19 @@ pub mod pallet {
             T::WithdrawOrigin::ensure_origin(origin)?;
 
             AccountPendingUnstake::<T>::try_mutate_exists(&owner, |info| -> DispatchResult {
-                let new_info = info.map_or(Err(Error::<T>::NoPendingUnstake), |mut v| {
-                    if amount > v.amount {
-                        return Err(Error::<T>::InvalidUnstakeAmount);
-                    }
-                    v.amount = v.amount.checked_sub(amount).ok_or(Error::<T>::Underflow)?;
-                    Ok(v)
-                })?;
+                let new_info = info.map_or(
+                    Err(DispatchError::from(<Error<T>>::NoPendingUnstake)),
+                    |mut v| {
+                        if amount > v.amount {
+                            return Err(Error::<T>::InvalidUnstakeAmount.into());
+                        }
+                        v.amount = v
+                            .amount
+                            .checked_sub(amount)
+                            .ok_or(ArithmeticError::Underflow)?;
+                        Ok(v)
+                    },
+                )?;
                 *info = match new_info.amount {
                     0 => None,
                     _ => Some(new_info),

@@ -109,27 +109,27 @@ fn redeem_allowed_works() {
         assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, 200));
         // Redeem 201 KSM should cause InsufficientDeposit
         assert_noop!(
-            Loans::redeem_allowed(&KSM, &ALICE, 201),
+            Loans::redeem_allowed(&KSM, &ALICE, 10050),
             Error::<Runtime>::InsufficientDeposit
         );
         // Redeem 200 DOT should cause InsufficientDeposit
         assert_noop!(
-            Loans::redeem_allowed(&DOT, &ALICE, 200),
+            Loans::redeem_allowed(&DOT, &ALICE, 10000),
             Error::<Runtime>::InsufficientDeposit
         );
         // Redeem 200 KSM is ok
-        assert_ok!(Loans::redeem_allowed(&KSM, &ALICE, 200));
+        assert_ok!(Loans::redeem_allowed(&KSM, &ALICE, 10000));
 
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
         // Borrow 50 DOT will reduce 100 KSM liquidity for collateral_factor is 50%
         assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, 50));
         // Redeem 101 KSM should cause InsufficientLiquidity
         assert_noop!(
-            Loans::redeem_allowed(&KSM, &ALICE, 101),
+            Loans::redeem_allowed(&KSM, &ALICE, 5050),
             Error::<Runtime>::InsufficientLiquidity
         );
         // Redeem 100 KSM is ok
-        assert_ok!(Loans::redeem_allowed(&KSM, &ALICE, 100));
+        assert_ok!(Loans::redeem_allowed(&KSM, &ALICE, 5000));
     })
 }
 
