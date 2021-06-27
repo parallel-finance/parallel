@@ -128,6 +128,8 @@ benchmarks! {
         initial_set_up::<T>(caller.clone());
         let amount = 100_000;
         let unstake_amount = 5_000_000;
+        let exchange_rate = ExchangeRate::<T>::get();
+        let asset_amount = exchange_rate.checked_mul_int(amount).unwrap();
         assert_ok!(LiquidStaking::<T>::stake(
             SystemOrigin::Signed(caller.clone()).into(),
             amount));
@@ -144,7 +146,7 @@ benchmarks! {
             INITIAL_AMOUNT + amount
         );
 
-        assert_last_event::<T>(Event::<T>::Unstaked(caller, unstake_amount).into());
+        assert_last_event::<T>(Event::<T>::Unstaked(caller, unstake_amount, asset_amount).into());
     }
 
     process_pending_unstake {
@@ -163,7 +165,6 @@ benchmarks! {
         let call = Call::<T>::process_pending_unstake(agent.clone(), caller.clone(), amount);
         let origin = T::WithdrawOrigin::successful_origin();
     }: { call.dispatch_bypass_filter(origin)? }
-
     verify {
         assert_eq!(AccountPendingUnstake::<T>::get(&caller), None,);
         let processing_unstake = AccountProcessingUnstake::<T>::get(&agent, &caller).unwrap();
