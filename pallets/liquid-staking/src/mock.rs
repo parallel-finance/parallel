@@ -1,5 +1,9 @@
 use crate as pallet_liquid_staking;
-use frame_support::{ord_parameter_types, parameter_types, traits::GenesisBuild, PalletId};
+use frame_support::{
+    parameter_types,
+    traits::{GenesisBuild, SortedMembers},
+    PalletId,
+};
 use frame_system::{self as system, EnsureSignedBy};
 use sp_core::H256;
 use sp_runtime::{
@@ -113,8 +117,11 @@ impl orml_currencies::Config for Test {
     type WeightInfo = ();
 }
 
-ord_parameter_types! {
-    pub const Six: u64 = 6;
+pub struct Six;
+impl SortedMembers<u64> for Six {
+    fn sorted_members() -> Vec<u64> {
+        vec![6]
+    }
 }
 
 parameter_types! {
