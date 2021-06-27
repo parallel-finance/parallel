@@ -228,7 +228,6 @@ pub mod pallet {
                 .reciprocal()
                 .and_then(|r| r.checked_mul_int(amount))
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
-            //assert_eq!(true, false);
             T::Currency::transfer(
                 T::StakingCurrency::get(),
                 &sender,
@@ -266,7 +265,6 @@ pub mod pallet {
             amount: Balance,
         ) -> DispatchResultWithPostInfo {
             T::WithdrawOrigin::ensure_origin(origin)?;
-            //assert_eq!(amount , T::MaxWithdrawAmount::get());
             ensure!(
                 amount <= T::MaxWithdrawAmount::get(),
                 Error::<T>::ExcessWithdrawThreshold
