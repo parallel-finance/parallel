@@ -555,7 +555,7 @@ pub mod pallet {
             Self::ensure_currency(&currency_id)?;
 
             Self::borrow_allowed(&currency_id, &who, borrow_amount)?;
-            let account_borrows = Self::borrow_balance_stored(&who, &currency_id)?;
+            let account_borrows = Self::recent_borrow_balance(&who, &currency_id)?;
             let account_borrows_new = account_borrows
                 .checked_add(borrow_amount)
                 .ok_or(ArithmeticError::Overflow)?;
@@ -593,7 +593,8 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             Self::ensure_currency(&currency_id)?;
 
-            Self::repay_borrow_internal(&who, &currency_id, repay_amount)?;
+            let account_borrows = Self::recent_borrow_balance(&who, &currency_id)?;
+            Self::repay_borrow_internal(&who, &currency_id, account_borrows, repay_amount)?;
 
             Self::deposit_event(Event::<T>::RepaidBorrow(who, currency_id, repay_amount));
 
@@ -612,8 +613,8 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             Self::ensure_currency(&currency_id)?;
 
-            let account_borrows = Self::borrow_balance_stored(&who, &currency_id)?;
-            Self::repay_borrow_internal(&who, &currency_id, account_borrows)?;
+            let account_borrows = Self::recent_borrow_balance(&who, &currency_id)?;
+            Self::repay_borrow_internal(&who, &currency_id, account_borrows, account_borrows)?;
 
             Self::deposit_event(Event::<T>::RepaidBorrow(who, currency_id, account_borrows));
 
@@ -622,7 +623,7 @@ pub mod pallet {
 
         /// Sets a new liquidation incentive percentage for `currency_id`.
         ///
-        /// Returns `Err` if the provided asset is not attached to an existent incentive.   
+        /// Returns `Err` if the provided asset is not attached to an existent incentive.
         ///
         /// - `currency_id`: the asset that is going to be modified.
         #[pallet::weight(T::WeightInfo::set_liquidation_incentive())]
@@ -865,7 +866,7 @@ impl<T: Config> Pallet<T> {
         let mut total_borrow_value: FixedU128 = FixedU128::zero();
 
         for currency_id in Currencies::<T>::get().iter() {
-            let currency_borrow_amount = Self::borrow_balance_stored(borrower, currency_id)?;
+            let currency_borrow_amount = Self::recent_borrow_balance(borrower, currency_id)?;
             if currency_borrow_amount.is_zero() {
                 continue;
             }
@@ -1003,9 +1004,9 @@ impl<T: Config> Pallet<T> {
     fn repay_borrow_internal(
         borrower: &T::AccountId,
         currency_id: &CurrencyId,
+        account_borrows: Balance,
         repay_amount: Balance,
     ) -> DispatchResult {
-        let account_borrows = Self::borrow_balance_stored(borrower, currency_id)?;
         if account_borrows < repay_amount {
             return Err(Error::<T>::RepayAmountExceedsCloseFactor.into());
         }
@@ -1016,10 +1017,10 @@ impl<T: Config> Pallet<T> {
             .checked_sub(repay_amount)
             .ok_or(ArithmeticError::Underflow)?;
         let total_borrows = Self::total_borrows(currency_id);
-        let total_borrows_new = total_borrows
-            .checked_sub(repay_amount)
-            .ok_or(ArithmeticError::Underflow)?;
+        // TODO : total_borrows should contain interests
+        let total_borrows_new = total_borrows.saturating_sub(repay_amount);
 
+        // TODO : this should be extracted into a function to not forget
         AccountBorrows::<T>::insert(
             currency_id,
             borrower,
@@ -1036,17 +1037,17 @@ impl<T: Config> Pallet<T> {
 
     // Calculates and returns the most recent amount of borrowed balance of `currency_id`
     // for `who`.
-    pub fn borrow_balance_stored(
+    pub fn recent_borrow_balance(
         who: &T::AccountId,
         currency_id: &CurrencyId,
     ) -> Result<Balance, DispatchError> {
         let snapshot: BorrowSnapshot = Self::account_borrows(currency_id, who);
-        Self::borrow_balance_stored_with_snapshot(currency_id, snapshot)
+        Self::recent_balance_from_snapshot(currency_id, snapshot)
     }
 
     /// Same as `borrow_balance_stored` but takes a given `snapshot` instead of fetching
     /// the storage
-    pub fn borrow_balance_stored_with_snapshot(
+    pub fn recent_balance_from_snapshot(
         currency_id: &CurrencyId,
         snapshot: BorrowSnapshot,
     ) -> Result<Balance, DispatchError> {
@@ -1108,7 +1109,7 @@ impl<T: Config> Pallet<T> {
             return Err(Error::<T>::LiquidatorIsBorrower.into());
         }
 
-        let account_borrows = Self::borrow_balance_stored(&borrower, &liquidate_currency_id)?;
+        let account_borrows = Self::recent_borrow_balance(&borrower, &liquidate_currency_id)?;
         if account_borrows.is_zero() {
             return Err(Error::<T>::NoBorrowBalance.into());
         }
@@ -1188,7 +1189,7 @@ impl<T: Config> Pallet<T> {
             repay_amount,
         )?;
         //2. the system will reduce borrower's debt
-        let account_borrows = Self::borrow_balance_stored(borrower, liquidate_currency_id)?;
+        let account_borrows = Self::recent_borrow_balance(borrower, liquidate_currency_id)?;
         let account_borrows_new = account_borrows
             .checked_sub(repay_amount)
             .ok_or(ArithmeticError::Underflow)?;
