@@ -20,7 +20,7 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
     frame_system::Pallet::<T>::assert_last_event(generic_event.into());
 }
 
-const INITIAL_AMOUNT: u128 = 100_000_000_000;
+const INITIAL_AMOUNT: u128 = 1000_000_000_000_000;
 const SEED: u32 = 0;
 
 fn initial_set_up<T: Config>(caller: T::AccountId) {
