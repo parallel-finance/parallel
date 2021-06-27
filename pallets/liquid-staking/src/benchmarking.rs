@@ -124,12 +124,12 @@ benchmarks! {
 
 
     unstake {
-        let caller: T::AccountId = whitelisted_caller();
+        let caller: T::AccountId = account("Sample", 1, SEED);
         initial_set_up::<T>(caller.clone());
         let amount = 100_000;
         let unstake_amount = 5_000_000;
         let exchange_rate = ExchangeRate::<T>::get();
-        let asset_amount = exchange_rate.checked_mul_int(amount).unwrap();
+        let asset_amount = exchange_rate.checked_mul_int(unstake_amount).unwrap();
         assert_ok!(LiquidStaking::<T>::stake(
             SystemOrigin::Signed(caller.clone()).into(),
             amount));
@@ -150,7 +150,7 @@ benchmarks! {
     }
 
     process_pending_unstake {
-        let caller: T::AccountId = whitelisted_caller();
+        let caller: T::AccountId = account("Sample", 2, SEED);
         initial_set_up::<T>(caller.clone());
         let agent: T::AccountId = account("Sample", 6, SEED);
         let amount = 100_000;
@@ -180,7 +180,7 @@ benchmarks! {
 
 
     finish_processed_unstake {
-        let caller: T::AccountId = whitelisted_caller();
+        let caller: T::AccountId = account("Sample", 3, SEED);
         initial_set_up::<T>(caller.clone());
         let agent: T::AccountId = account("Sample", 6, SEED);
         let amount = 100_000;
