@@ -59,12 +59,12 @@ pub trait WeightInfo {
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
     fn stake() -> Weight {
-        (80_000_000 as Weight)
+        (79_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(7 as Weight))
             .saturating_add(T::DbWeight::get().writes(6 as Weight))
     }
     fn withdraw() -> Weight {
-        (57_000_000 as Weight)
+        (56_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(4 as Weight))
             .saturating_add(T::DbWeight::get().writes(3 as Weight))
     }
@@ -79,7 +79,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().writes(2 as Weight))
     }
     fn unstake() -> Weight {
-        (61_000_000 as Weight)
+        (60_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(7 as Weight))
             .saturating_add(T::DbWeight::get().writes(6 as Weight))
     }
@@ -89,7 +89,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().writes(2 as Weight))
     }
     fn finish_processed_unstake() -> Weight {
-        (48_000_000 as Weight)
+        (47_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(4 as Weight))
             .saturating_add(T::DbWeight::get().writes(3 as Weight))
     }
@@ -98,12 +98,12 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 // For backwards compatibility and tests
 impl WeightInfo for () {
     fn stake() -> Weight {
-        (80_000_000 as Weight)
+        (79_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(7 as Weight))
             .saturating_add(RocksDbWeight::get().writes(6 as Weight))
     }
     fn withdraw() -> Weight {
-        (57_000_000 as Weight)
+        (56_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(4 as Weight))
             .saturating_add(RocksDbWeight::get().writes(3 as Weight))
     }
@@ -118,7 +118,7 @@ impl WeightInfo for () {
             .saturating_add(RocksDbWeight::get().writes(2 as Weight))
     }
     fn unstake() -> Weight {
-        (61_000_000 as Weight)
+        (60_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(7 as Weight))
             .saturating_add(RocksDbWeight::get().writes(6 as Weight))
     }
@@ -128,7 +128,7 @@ impl WeightInfo for () {
             .saturating_add(RocksDbWeight::get().writes(2 as Weight))
     }
     fn finish_processed_unstake() -> Weight {
-        (48_000_000 as Weight)
+        (47_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(4 as Weight))
             .saturating_add(RocksDbWeight::get().writes(3 as Weight))
     }

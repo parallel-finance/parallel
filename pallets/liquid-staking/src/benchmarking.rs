@@ -197,9 +197,36 @@ benchmarks! {
             SystemOrigin::Root.into(),
             agent.clone(),
             caller.clone(),
-            amount
+            50_000
         ));
-        let call = Call::<T>::finish_processed_unstake(agent.clone(), caller.clone(), amount);
+        assert_ok!(LiquidStaking::<T>::process_pending_unstake(
+            SystemOrigin::Root.into(),
+            agent.clone(),
+            caller.clone(),
+            40_000
+        ));
+        assert_ok!(LiquidStaking::<T>::process_pending_unstake(
+            SystemOrigin::Root.into(),
+            agent.clone(),
+            caller.clone(),
+            10_000
+        ));
+
+        assert_ok!(LiquidStaking::<T>::finish_processed_unstake(
+            SystemOrigin::Root.into(),
+            agent.clone(),
+            caller.clone(),
+            50_000
+        ));
+
+        assert_ok!(LiquidStaking::<T>::finish_processed_unstake(
+            SystemOrigin::Root.into(),
+            agent.clone(),
+            caller.clone(),
+            40_000
+        ));
+
+        let call = Call::<T>::finish_processed_unstake(agent.clone(), caller.clone(), 10_000);
         let origin = SystemOrigin::Root.into();
     }: { call.dispatch_bypass_filter(origin)? }
     verify {
@@ -212,7 +239,7 @@ benchmarks! {
             INITIAL_AMOUNT
         );
 
-        assert_last_event::<T>(Event::<T>::UnstakeProcessed(agent, caller, amount).into());
+        assert_last_event::<T>(Event::<T>::UnstakeProcessed(agent, caller, 10_000).into());
     }
 
 }
