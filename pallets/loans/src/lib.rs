@@ -1089,6 +1089,16 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    /// Borrower shouldn't borrow more than his total collateral value
+    fn borrow_allowed(
+        currency_id: &CurrencyId,
+        borrower: &T::AccountId,
+        borrow_amount: Balance,
+    ) -> DispatchResult {
+
+        Ok(())
+    }
+
     /// please note, as bellow:
     /// - liquidate_token is borrower's debt, like DAI/USDT
     /// - collateral_token is borrower's collateral, like BTC/KSM/DOT
