@@ -33,6 +33,7 @@ use frame_support::{
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
+pub use market::Market;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 pub use pallet::*;
 use primitives::{
@@ -49,6 +50,7 @@ use sp_std::result::Result;
 use sp_std::vec::Vec;
 pub use weights::WeightInfo;
 
+mod market;
 mod mock;
 mod rate_model;
 mod tests;
@@ -317,6 +319,10 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn close_factor)]
     pub type CloseFactor<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Ratio, ValueQuery>;
+
+    /// Links a currency id to a market or in other words, dictates the currency of a market.
+    #[pallet::storage]
+    pub type MarketMapper<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Market>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig {
