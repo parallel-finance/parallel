@@ -83,17 +83,30 @@ fn mint_works() {
 #[test]
 fn mint_must_return_err_when_overflows_occur() {
     ExtBuilder::default().build().execute_with(|| {
-        // Amount is too large, max_value / 0.0X == Overflow
+        const MAX_VALUE: u128 = u128::MAX / 2;
+
+        // Verify token balance first
+        assert_noop!(
+            Loans::mint(Origin::signed(CHARLIE), DOT, MAX_VALUE),
+            orml_tokens::Error::<Runtime>::BalanceTooLow
+        );
+
+        // Deposit MAX_VALUE DOT for CHARLIE
+        assert_ok!(<Runtime as Config>::Currency::deposit(
+            DOT, &CHARLIE, MAX_VALUE
+        ));
+
+        // Amount is too large, MAX_VALUE / 0.0X == Overflow
         // Underflow is used here redeem could also be 0
         assert_noop!(
-            Loans::mint(Origin::signed(ALICE), DOT, u128::MAX),
+            Loans::mint(Origin::signed(CHARLIE), DOT, MAX_VALUE),
             ArithmeticError::Underflow
         );
 
         // Exchange rate must ge greater than zero
         ExchangeRate::<Runtime>::insert(DOT, Rate::zero());
         assert_noop!(
-            Loans::mint(Origin::signed(ALICE), DOT, 100),
+            Loans::mint(Origin::signed(CHARLIE), DOT, 100),
             ArithmeticError::Underflow
         );
     })
