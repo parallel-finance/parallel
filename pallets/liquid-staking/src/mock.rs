@@ -4,7 +4,7 @@ use frame_support::{
     traits::{GenesisBuild, SortedMembers},
     PalletId,
 };
-use frame_system::{self as system, EnsureSignedBy};
+use frame_system::{self as system, EnsureOneOf, EnsureRoot, EnsureSignedBy};
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
@@ -23,6 +23,7 @@ pub const NATIVE: CurrencyId = CurrencyId::Native;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
+type AccountId = u64;
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -55,7 +56,7 @@ impl system::Config for Test {
     type BlockNumber = BlockNumber;
     type Hash = H256;
     type Hashing = BlakeTwo256;
-    type AccountId = u64;
+    type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
     type Event = Event;
@@ -118,11 +119,14 @@ impl orml_currencies::Config for Test {
 }
 
 pub struct Six;
-impl SortedMembers<u64> for Six {
-    fn sorted_members() -> Vec<u64> {
+impl SortedMembers<AccountId> for Six {
+    fn sorted_members() -> Vec<AccountId> {
         vec![6]
     }
 }
+
+type EnsureRootOrSix =
+    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<Six, AccountId>>;
 
 parameter_types! {
     pub const LiquidStakingPalletId: PalletId = PalletId(*b"par/liqu");
@@ -138,7 +142,7 @@ impl pallet_liquid_staking::Config for Test {
     type PalletId = LiquidStakingPalletId;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type WithdrawOrigin = EnsureSignedBy<Six, u64>;
+    type WithdrawOrigin = EnsureRootOrSix;
     type MaxWithdrawAmount = MaxWithdrawAmount;
     type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
     type WeightInfo = ();

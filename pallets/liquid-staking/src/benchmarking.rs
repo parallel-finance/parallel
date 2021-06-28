@@ -10,7 +10,7 @@ use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_call
 use frame_support::sp_runtime::FixedPointNumber;
 use frame_support::{
     assert_ok,
-    traits::{EnsureOrigin, Get, UnfilteredDispatchable},
+    traits::{Get, UnfilteredDispatchable},
 };
 use frame_system::{self, RawOrigin as SystemOrigin};
 use orml_traits::MultiCurrency;
@@ -68,7 +68,7 @@ benchmarks! {
             SystemOrigin::Signed(caller.clone()).into(),
             amount));
         let call = Call::<T>::withdraw(agent.clone(), withdraw_amount);
-        let origin = T::WithdrawOrigin::successful_origin();
+        let origin = SystemOrigin::Root.into();
     }: { call.dispatch_bypass_filter(origin)? }
     verify {
         // Check balance is correct
@@ -94,7 +94,7 @@ benchmarks! {
             SystemOrigin::Signed(caller.clone()).into(),
             amount));
         let call = Call::<T>::record_rewards(agent.clone(), amount);
-        let origin = T::WithdrawOrigin::successful_origin();
+        let origin = SystemOrigin::Root.into();
     }: { call.dispatch_bypass_filter(origin)? }
     verify {
         assert_eq!(TotalStakingAsset::<T>::get(), 200_000);
@@ -113,7 +113,7 @@ benchmarks! {
             SystemOrigin::Signed(caller.clone()).into(),
             amount));
         let call = Call::<T>::record_slash(agent.clone(), slash_amount);
-        let origin = T::WithdrawOrigin::successful_origin();
+        let origin = SystemOrigin::Root.into();
     }: { call.dispatch_bypass_filter(origin)? }
     verify {
         assert_eq!(TotalStakingAsset::<T>::get(), slash_amount);
@@ -163,7 +163,7 @@ benchmarks! {
             SystemOrigin::Signed(caller.clone()).into(),
             unstake_amount));
         let call = Call::<T>::process_pending_unstake(agent.clone(), caller.clone(), amount);
-        let origin = T::WithdrawOrigin::successful_origin();
+        let origin = SystemOrigin::Root.into();
     }: { call.dispatch_bypass_filter(origin)? }
     verify {
         assert_eq!(AccountPendingUnstake::<T>::get(&caller), None,);
@@ -194,13 +194,13 @@ benchmarks! {
             unstake_amount));
 
         assert_ok!(LiquidStaking::<T>::process_pending_unstake(
-            T::WithdrawOrigin::successful_origin(),
+            SystemOrigin::Root.into(),
             agent.clone(),
             caller.clone(),
             amount
         ));
         let call = Call::<T>::finish_processed_unstake(agent.clone(), caller.clone(), amount);
-        let origin = T::WithdrawOrigin::successful_origin();
+        let origin = SystemOrigin::Root.into();
     }: { call.dispatch_bypass_filter(origin)? }
     verify {
         assert_eq!(
