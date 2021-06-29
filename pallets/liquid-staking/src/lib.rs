@@ -234,7 +234,6 @@ pub mod pallet {
                 &Self::account_id(),
                 amount,
             )?;
-            //assert_eq!(true, false);
             T::Currency::deposit(T::LiquidCurrency::get(), &sender, voucher_amount)?;
             TotalVoucher::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b
