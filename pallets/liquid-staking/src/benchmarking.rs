@@ -31,6 +31,38 @@ fn initial_set_up<T: Config>(caller: T::AccountId) {
     ExchangeRate::<T>::put(Rate::saturating_from_rational(2, 100));
 }
 
+fn set_up_accounts<T: Config>(i: u32) -> (T::AccountId, T::AccountId) {
+    let caller: T::AccountId = account("unstake_caller", i, SEED);
+    initial_set_up::<T>(caller.clone());
+    let agent: T::AccountId = account("unstake_agent", i, SEED);
+    (caller, agent)
+}
+
+fn create_pending_unstakes<T: Config>(n: u32) -> Result<(), &'static str> {
+    for i in 0..n {
+        let (caller, agent): (T::AccountId, T::AccountId) = set_up_accounts::<T>(i);
+        let amount = 100_000;
+        let unstake_amount = 5_000_000;
+        assert_ok!(LiquidStaking::<T>::stake(
+            SystemOrigin::Signed(caller.clone()).into(),
+            amount
+        ));
+
+        assert_ok!(LiquidStaking::<T>::unstake(
+            SystemOrigin::Signed(caller.clone()).into(),
+            unstake_amount
+        ));
+
+        assert_ok!(LiquidStaking::<T>::process_pending_unstake(
+            T::WithdrawOrigin::successful_origin(),
+            agent,
+            caller,
+            amount
+        ));
+    }
+    Ok(())
+}
+
 benchmarks! {
 
     stake {
@@ -69,7 +101,7 @@ benchmarks! {
         let call = Call::<T>::record_rewards(agent.clone(), amount);
         let origin = T::WithdrawOrigin::successful_origin();
     }: { call.dispatch_bypass_filter(origin)? }
-	verify {
+    verify {
         assert_last_event::<T>(Event::<T>::RewardsRecorded(agent, amount).into());
     }
 
@@ -105,9 +137,9 @@ benchmarks! {
     }
 
     process_pending_unstake {
-        let caller: T::AccountId = account("Sample", 2, SEED);
-        initial_set_up::<T>(caller.clone());
-        let agent: T::AccountId = account("Sample", 6, SEED);
+        let p in 0 .. T::MaxAccountProcessingUnstake::get() - 1;
+        create_pending_unstakes::<T>(p)?;
+        let (caller, agent) : (T::AccountId, T::AccountId)= set_up_accounts::<T>(SEED);
         let amount = 100_000;
         let unstake_amount = 5_000_000;
         assert_ok!(LiquidStaking::<T>::stake(
