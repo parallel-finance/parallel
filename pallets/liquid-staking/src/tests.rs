@@ -44,6 +44,10 @@ fn withdraw_should_work() {
 
         // Check balance is correct
         assert_eq!(
+            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &AccountId::from(2_u64)),
+            10
+        );
+        assert_eq!(
             <Test as Config>::Currency::free_balance(CurrencyId::DOT, &AccountId::from(1_u64)),
             90
         );

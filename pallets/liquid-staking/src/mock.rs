@@ -17,7 +17,8 @@ use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup},
     FixedPointNumber, RuntimeDebug,
 };
-use xcm::v0::MultiLocation;
+use sp_std::convert::TryInto;
+use xcm::v0::{Junction, MultiLocation};
 
 pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const XDOT: CurrencyId = CurrencyId::xDOT;
@@ -56,8 +57,16 @@ impl From<u64> for AccountId {
 }
 
 impl From<AccountId> for [u8; 32] {
-    fn from(_: AccountId) -> Self {
-        [0; 32]
+    fn from(account_id: AccountId) -> Self {
+        let mut b: Vec<u8> = account_id.0.to_be_bytes().iter().cloned().collect();
+        b.resize_with(32, Default::default);
+        b.try_into().unwrap()
+    }
+}
+
+impl From<[u8; 32]> for AccountId {
+    fn from(account_id32: [u8; 32]) -> Self {
+        AccountId::from(u64::from_be_bytes(account_id32[0..8].try_into().unwrap()))
     }
 }
 
@@ -182,16 +191,28 @@ impl XTransfer<Test, CurrencyId, AccountId, Balance> for Currencies {
     fn xtransfer(
         from: OriginFor<Test>,
         currency_id: CurrencyId,
-        _to: MultiLocation,
+        mut to: MultiLocation,
         amount: Balance,
         _weight: Weight,
     ) -> DispatchResult {
         let from = ensure_signed(from)?;
-        <Test as orml_currencies::Config>::MultiCurrency::withdraw(currency_id, &from, amount)
+        <Test as orml_currencies::Config>::MultiCurrency::withdraw(currency_id, &from, amount)?;
+        if let Some(Junction::AccountId32 {
+            id: account_id32, ..
+        }) = to.take_last()
+        {
+            let account_id: AccountId = account_id32.into();
+            <Test as orml_currencies::Config>::MultiCurrency::deposit(
+                currency_id,
+                &account_id,
+                amount,
+            )?;
+        }
+        Ok(())
     }
 }
 
-// BUild genesis storage according to the mock runtime.
+// Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = system::GenesisConfig::default()
         .build_storage::<Test>()

@@ -281,6 +281,7 @@ pub mod pallet {
                     },
                 ),
                 amount,
+                // TODO : measure xcm weight
                 1000_1000,
             )?;
 
