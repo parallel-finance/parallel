@@ -21,15 +21,16 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::{pallet_prelude::*, transactional, BoundedVec, PalletId};
-use frame_system::pallet_prelude::*;
+use frame_system::{pallet_prelude::*, RawOrigin};
 use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber, RuntimeDebug};
 use sp_std::convert::TryInto;
 use sp_std::prelude::*;
+use xcm::v0::{Junction, MultiLocation, NetworkId};
 
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 
 pub use pallet::*;
-use primitives::{Amount, Balance, CurrencyId, Rate};
+use primitives::{Amount, Balance, CurrencyId, Rate, XTransfer};
 
 #[cfg(test)]
 mod mock;
@@ -87,6 +88,8 @@ pub mod pallet {
         /// The maximum size of AccountProcessingUnstake
         #[pallet::constant]
         type MaxAccountProcessingUnstake: Get<u32>;
+
+        type XTransfer: XTransfer<Self, CurrencyId, Self::AccountId, Balance>;
     }
 
     #[pallet::error]
@@ -206,7 +209,10 @@ pub mod pallet {
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
     #[pallet::call]
-    impl<T: Config> Pallet<T> {
+    impl<T: Config> Pallet<T>
+    where
+        [u8; 32]: From<<T as frame_system::Config>::AccountId>,
+    {
         /// Put assets under staking, the native assets will be transferred to the account
         /// owned by the pallet, user receive voucher in return, such vocher can be further
         /// used as collateral for lending.
@@ -264,11 +270,19 @@ pub mod pallet {
                 Error::<T>::ExcessWithdrawThreshold
             );
 
-            T::Currency::transfer(
+            T::XTransfer::xtransfer(
+                RawOrigin::Signed(Self::account_id()).into(),
                 T::StakingCurrency::get(),
-                &Self::account_id(),
-                &agent,
+                MultiLocation::X2(
+                    Junction::Parent,
+                    Junction::AccountId32 {
+                        network: NetworkId::Any,
+                        id: agent.clone().into(),
+                    },
+                ),
                 amount,
+                // TODO : measure xcm weight
+                1000_1000,
             )?;
 
             Self::deposit_event(Event::WithdrawSuccess(agent, amount));
