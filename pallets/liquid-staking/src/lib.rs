@@ -30,7 +30,7 @@ use xcm::v0::{Junction, MultiLocation, NetworkId};
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 
 pub use pallet::*;
-use primitives::{Amount, Balance, CurrencyId, Rate, XTransfer};
+use primitives::{Amount, Balance, CurrencyId, ExchangeRateProvider, Rate, XTransfer};
 
 #[cfg(test)]
 mod mock;
@@ -520,5 +520,11 @@ pub mod pallet {
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> T::AccountId {
         T::PalletId::get().into_account()
+    }
+}
+
+impl<T: Config> ExchangeRateProvider for Pallet<T> {
+    fn get_exchange_rate() -> Rate {
+        ExchangeRate::<T>::get()
     }
 }

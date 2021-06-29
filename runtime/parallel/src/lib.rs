@@ -751,14 +751,7 @@ impl pallet_prices::Config for Runtime {
     type FeederOrigin = EnsureRoot<AccountId>;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type LiquidStakingExchangeRateProvider = LiquidStakingExchangeRateProvider;
-}
-
-pub struct LiquidStakingExchangeRateProvider;
-impl ExchangeRateProvider for LiquidStakingExchangeRateProvider {
-    fn get_exchange_rate() -> Rate {
-        LiquidStaking::exchange_rate()
-    }
+    type LiquidStakingExchangeRateProvider = LiquidStaking;
 }
 
 parameter_types! {
