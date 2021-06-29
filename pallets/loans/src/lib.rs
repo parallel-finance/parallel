@@ -469,6 +469,8 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::ensure_currency(&currency_id)?;
+
+            T::Currency::transfer(currency_id, &who, &Self::account_id(), mint_amount)?;
             Self::update_earned_stored(&who, &currency_id)?;
             let exchange_rate = Self::exchange_rate(currency_id);
             let voucher_amount = Self::calc_collateral_amount(mint_amount, exchange_rate)?;
@@ -486,7 +488,6 @@ pub mod pallet {
                 *total_balance = new_balance;
                 Ok(())
             })?;
-            T::Currency::transfer(currency_id, &who, &Self::account_id(), mint_amount)?;
 
             Self::deposit_event(Event::<T>::Deposited(who, currency_id, mint_amount));
 
