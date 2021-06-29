@@ -607,6 +607,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type MaxWithdrawAmount = MaxWithdrawAmount;
     type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
     type WeightInfo = pallet_liquid_staking::weights::SubstrateWeight<Runtime>;
+    type XTransfer = ();
 }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime

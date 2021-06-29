@@ -42,7 +42,7 @@ test: test-dev test-parallel
 
 .PHONY: test-dev
 test-dev:
-	SKIP_WASM_BUILD= cargo test --manifest-path node/parallel-dev/Cargo.toml -p pallet-loans -p pallet-liquidation -p pallet-liquid-staking -p pallet-prices
+	SKIP_WASM_BUILD= cargo test --manifest-path node/parallel-dev/Cargo.toml -p pallet-loans -p pallet-liquidation -p pallet-liquid-staking -p pallet-prices -- --nocapture
 
 .PHONY: test-parallel
 test-parallel:

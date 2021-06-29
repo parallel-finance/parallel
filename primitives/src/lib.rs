@@ -17,11 +17,14 @@
 #![allow(clippy::upper_case_acronyms)]
 
 use codec::{Decode, Encode};
+use frame_support::dispatch::{DispatchResult, Weight};
+use frame_system::{pallet_prelude::OriginFor, Config};
 use sp_runtime::{
     traits::{CheckedDiv, IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
 };
 use sp_std::{cmp::Ordering, convert::Into, prelude::*};
+use xcm::v0::MultiLocation;
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -140,4 +143,28 @@ pub trait PriceFeeder {
 pub trait EmergencyPriceFeeder<CurrencyId, PriceWithDecimal> {
     fn set_emergency_price(currency_id: CurrencyId, price: PriceWithDecimal);
     fn reset_emergency_price(currency_id: CurrencyId);
+}
+
+pub trait XTransfer<T: Config, CurrencyId, AccountId, Balance> {
+    fn xtransfer(
+        from: OriginFor<T>,
+        currency_id: CurrencyId,
+        to: MultiLocation,
+        amount: Balance,
+        weight: Weight,
+    ) -> DispatchResult;
+}
+
+impl<T: Config, CurrencyId, AccountId, Balance> XTransfer<T, CurrencyId, AccountId, Balance>
+    for ()
+{
+    fn xtransfer(
+        _from: OriginFor<T>,
+        _currency_id: CurrencyId,
+        _to: MultiLocation,
+        _amount: Balance,
+        _weight: Weight,
+    ) -> DispatchResult {
+        Ok(().into())
+    }
 }
