@@ -22,6 +22,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use codec::Encode;
 use frame_support::{
+    dispatch::Weight,
     pallet_prelude::DispatchResult,
     traits::{All, LockIdentifier, U128CurrencyToVote},
     PalletId,
@@ -88,7 +89,7 @@ pub use frame_support::{
     traits::{KeyOwnerProofSystem, Randomness},
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
-        DispatchClass, IdentityFee, Weight,
+        DispatchClass, IdentityFee,
     },
     StorageValue,
 };
@@ -342,11 +343,11 @@ impl XTransfer<Runtime, CurrencyId, AccountId, Balance> for XTokens {
     fn xtransfer(
         from: OriginFor<Runtime>,
         currency_id: CurrencyId,
-        to: AccountId,
+        to: MultiLocation,
         amount: Balance,
+        weight: Weight,
     ) -> DispatchResult {
-        let dest = <AccountIdToMultiLocation as Convert<AccountId, MultiLocation>>::convert(to);
-        XTokens::transfer(from, currency_id, amount, dest, 10000000)
+        XTokens::transfer(from, currency_id, amount, to, weight)
     }
 }
 

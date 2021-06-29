@@ -5355,6 +5355,7 @@ version = "3.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
+ "max-encoded-len",
  "orml-currencies",
  "orml-tokens",
  "orml-traits",
@@ -5368,6 +5369,7 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+ "xcm",
 ]
 
 [[package]]
@@ -6020,6 +6022,7 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+ "xcm",
 ]
 
 [[package]]

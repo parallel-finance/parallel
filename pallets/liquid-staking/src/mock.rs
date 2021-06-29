@@ -1,18 +1,23 @@
 use crate as pallet_liquid_staking;
+use codec::{Decode, Encode};
 use frame_support::{
-    dispatch::DispatchResult, ord_parameter_types, parameter_types, traits::GenesisBuild, PalletId,
+    dispatch::{DispatchResult, Weight},
+    ord_parameter_types, parameter_types,
+    traits::{GenesisBuild, MaxEncodedLen},
+    PalletId,
 };
 use frame_system::{self as system, ensure_signed, pallet_prelude::OriginFor, EnsureSignedBy};
+use orml_traits::{parameter_type_with_key, MultiCurrency};
+use primitives::{Amount, Balance, CurrencyId, Rate, XTransfer};
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
-    FixedPointNumber,
+    FixedPointNumber, RuntimeDebug,
 };
-
-use orml_traits::{parameter_type_with_key, MultiCurrency};
-
-use primitives::{Amount, Balance, CurrencyId, Rate, XTransfer};
+use xcm::v0::MultiLocation;
 
 pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const XDOT: CurrencyId = CurrencyId::xDOT;
@@ -21,7 +26,40 @@ pub const NATIVE: CurrencyId = CurrencyId::Native;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
-type AccountId = u64;
+
+#[derive(
+    Encode,
+    Decode,
+    Default,
+    Eq,
+    PartialEq,
+    Copy,
+    Clone,
+    RuntimeDebug,
+    PartialOrd,
+    Ord,
+    MaxEncodedLen,
+)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
+pub struct AccountId(u64);
+
+impl sp_std::fmt::Display for AccountId {
+    fn fmt(&self, f: &mut sp_std::fmt::Formatter<'_>) -> sp_std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl From<u64> for AccountId {
+    fn from(account_id: u64) -> Self {
+        Self(account_id)
+    }
+}
+
+impl From<AccountId> for [u8; 32] {
+    fn from(_: AccountId) -> Self {
+        [0; 32]
+    }
+}
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -117,7 +155,7 @@ impl orml_currencies::Config for Test {
 }
 
 ord_parameter_types! {
-    pub const Six: u64 = 6;
+    pub const Six: AccountId = AccountId::from(6_u64);
 }
 
 parameter_types! {
@@ -134,7 +172,7 @@ impl pallet_liquid_staking::Config for Test {
     type PalletId = LiquidStakingPalletId;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type WithdrawOrigin = EnsureSignedBy<Six, u64>;
+    type WithdrawOrigin = EnsureSignedBy<Six, AccountId>;
     type MaxWithdrawAmount = MaxWithdrawAmount;
     type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
     type XTransfer = Currencies;
@@ -144,8 +182,9 @@ impl XTransfer<Test, CurrencyId, AccountId, Balance> for Currencies {
     fn xtransfer(
         from: OriginFor<Test>,
         currency_id: CurrencyId,
-        _to: AccountId,
+        _to: MultiLocation,
         amount: Balance,
+        _weight: Weight,
     ) -> DispatchResult {
         let from = ensure_signed(from)?;
         <Test as orml_currencies::Config>::MultiCurrency::withdraw(currency_id, &from, amount)
@@ -158,7 +197,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .build_storage::<Test>()
         .unwrap();
     orml_tokens::GenesisConfig::<Test> {
-        balances: vec![(1, CurrencyId::DOT, 100)],
+        balances: vec![(1.into(), CurrencyId::DOT, 100)],
     }
     .assimilate_storage(&mut t)
     .unwrap();

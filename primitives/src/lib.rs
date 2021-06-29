@@ -17,13 +17,14 @@
 #![allow(clippy::upper_case_acronyms)]
 
 use codec::{Decode, Encode};
-use frame_support::dispatch::DispatchResult;
+use frame_support::dispatch::{DispatchResult, Weight};
 use frame_system::{pallet_prelude::OriginFor, Config};
 use sp_runtime::{
     traits::{CheckedDiv, IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
 };
 use sp_std::{cmp::Ordering, convert::Into, prelude::*};
+use xcm::v0::MultiLocation;
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -148,8 +149,9 @@ pub trait XTransfer<T: Config, CurrencyId, AccountId, Balance> {
     fn xtransfer(
         from: OriginFor<T>,
         currency_id: CurrencyId,
-        to: AccountId,
+        to: MultiLocation,
         amount: Balance,
+        weight: Weight,
     ) -> DispatchResult;
 }
 
@@ -159,8 +161,9 @@ impl<T: Config, CurrencyId, AccountId, Balance> XTransfer<T, CurrencyId, Account
     fn xtransfer(
         _from: OriginFor<T>,
         _currency_id: CurrencyId,
-        _to: AccountId,
+        _to: MultiLocation,
         _amount: Balance,
+        _weight: Weight,
     ) -> DispatchResult {
         Ok(().into())
     }
