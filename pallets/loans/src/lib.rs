@@ -1017,7 +1017,7 @@ impl<T: Config> Pallet<T> {
             .checked_sub(repay_amount)
             .ok_or(ArithmeticError::Underflow)?;
         let total_borrows = Self::total_borrows(currency_id);
-        // NOTE : total_borrows use a different way to calculate interest (every 6 seconds)
+        // NOTE : total_borrows use a different way to calculate interest
         // so when user repays all borrows, total_borrows can be smaller than account_borrows
         // which will cause it to fail with `ArithmeticError::Underflow`
         //
@@ -1055,7 +1055,7 @@ impl<T: Config> Pallet<T> {
         snapshot: BorrowSnapshot,
     ) -> Result<Balance, DispatchError> {
         if snapshot.principal.is_zero() || snapshot.borrow_index.is_zero() {
-            return Ok(0);
+            return Ok(Zero::zero());
         }
         // Calculate new borrow balance using the interest index:
         // recent_borrow_balance = snapshot.principal * borrow_index / snapshot.borrow_index
