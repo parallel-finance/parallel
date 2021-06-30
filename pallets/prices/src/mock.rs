@@ -72,19 +72,48 @@ impl DataProvider<CurrencyId, TimeStampedPrice> for MockDataProvider {
                 },
                 timestamp: 0,
             }),
+            KSM => Some(TimeStampedPrice {
+                value: PriceWithDecimal {
+                    price: Price::saturating_from_integer(500),
+                    decimal: 12,
+                },
+                timestamp: 0,
+            }),
             _ => None,
         }
     }
 }
 
+impl DataProviderExtended<CurrencyId, TimeStampedPrice> for MockDataProvider {
+    fn get_no_op(_key: &CurrencyId) -> Option<TimeStampedPrice> {
+        None
+    }
+
+    fn get_all_values() -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
+        vec![]
+    }
+}
+
+pub struct LiquidStakingExchangeRateProvider;
+impl ExchangeRateProvider for LiquidStakingExchangeRateProvider {
+    fn get_exchange_rate() -> Rate {
+        Rate::saturating_from_rational(150, 100)
+    }
+}
+
 ord_parameter_types! {
     pub const One: AccountId = 1;
+    pub const StakingCurrency: CurrencyId = CurrencyId::KSM;
+    pub const LiquidCurrency: CurrencyId = CurrencyId::xKSM;
 }
 
 impl Config for Runtime {
     type Event = Event;
     type Source = MockDataProvider;
     type FeederOrigin = EnsureSignedBy<One, AccountId>;
+    type StakingCurrency = StakingCurrency;
+    type LiquidCurrency = LiquidCurrency;
+    type LiquidStakingExchangeRateProvider = LiquidStakingExchangeRateProvider;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;

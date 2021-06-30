@@ -31,7 +31,7 @@ use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 
 pub use pallet::*;
 pub use weights::WeightInfo;
-use primitives::{Amount, Balance, CurrencyId, Rate, XTransfer};
+use primitives::{Amount, Balance, CurrencyId, ExchangeRateProvider, Rate, XTransfer};
 
 mod benchmarking;
 #[cfg(test)]
@@ -525,5 +525,11 @@ pub mod pallet {
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> T::AccountId {
         T::PalletId::get().into_account()
+    }
+}
+
+impl<T: Config> ExchangeRateProvider for Pallet<T> {
+    fn get_exchange_rate() -> Rate {
+        ExchangeRate::<T>::get()
     }
 }
