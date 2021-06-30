@@ -30,8 +30,8 @@ use xcm::v0::{Junction, MultiLocation, NetworkId};
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 
 pub use pallet::*;
-pub use weights::WeightInfo;
 use primitives::{Amount, Balance, CurrencyId, ExchangeRateProvider, Rate, XTransfer};
+pub use weights::WeightInfo;
 
 mod benchmarking;
 #[cfg(test)]

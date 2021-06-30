@@ -7,7 +7,10 @@ use frame_support::{
     traits::{GenesisBuild, MaxEncodedLen, SortedMembers},
     PalletId,
 };
-use frame_system::{self as system, EnsureOneOf, EnsureRoot, ensure_signed, EnsureSignedBy, pallet_prelude::OriginFor};
+use frame_system::{
+    self as system, ensure_signed, pallet_prelude::OriginFor, EnsureOneOf, EnsureRoot,
+    EnsureSignedBy,
+};
 use orml_traits::{parameter_type_with_key, MultiCurrency};
 use primitives::{Amount, Balance, CurrencyId, Rate, XTransfer};
 #[cfg(feature = "std")]

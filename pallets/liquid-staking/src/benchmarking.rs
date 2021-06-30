@@ -8,10 +8,7 @@ use crate::Pallet as LiquidStaking;
 use frame_benchmarking::account;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::sp_runtime::FixedPointNumber;
-use frame_support::{
-    assert_ok,
-    traits::{Get, UnfilteredDispatchable},
-};
+use frame_support::{assert_ok, dispatch::UnfilteredDispatchable, traits::Get};
 use frame_system::{self, RawOrigin as SystemOrigin};
 use orml_traits::MultiCurrency;
 use primitives::Rate;
@@ -38,7 +35,10 @@ fn set_up_accounts<T: Config>(i: u32) -> (T::AccountId, T::AccountId) {
     (caller, agent)
 }
 
-fn create_pending_unstakes<T: Config>(n: u32) -> Result<(), &'static str> {
+fn create_pending_unstakes<T: Config>(n: u32) -> Result<(), &'static str>
+where
+    [u8; 32]: From<<T as frame_system::Config>::AccountId>,
+{
     for i in 0..n {
         let (caller, agent): (T::AccountId, T::AccountId) = set_up_accounts::<T>(i);
         let amount = 100_000;
@@ -64,7 +64,10 @@ fn create_pending_unstakes<T: Config>(n: u32) -> Result<(), &'static str> {
 }
 
 benchmarks! {
-
+    where_clause {
+        where
+    [u8; 32]: From<<T as frame_system::Config>::AccountId>,
+        }
     stake {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T>(caller.clone());
