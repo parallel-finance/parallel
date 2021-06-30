@@ -189,7 +189,7 @@ impl<T: Config> Pallet<T> {
             |mut acc, (k1, k2, snapshot)| {
                 let loans_value = match T::PriceFeeder::get_price(&k1).and_then(|price_info| {
                     let result =
-                        pallet_loans::Pallet::<T>::recent_balance_from_snapshot(&k1, snapshot);
+                        pallet_loans::Pallet::<T>::current_balance_from_snapshot(&k1, snapshot);
                     price_info
                         .0
                         .checked_mul(&FixedU128::from_inner(result.ok()?))
