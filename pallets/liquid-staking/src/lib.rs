@@ -414,7 +414,9 @@ pub mod pallet {
         /// - `agent`: the multisig account of relay chain.
         /// - `owner`: the account which performs `unstake` operation
         /// - `amount`: the assets can be unbond for the owner's unstaking request.
-        #[pallet::weight(T::WeightInfo::process_pending_unstake())]
+        #[pallet::weight(T::WeightInfo::process_pending_unstake(
+            T::MaxAccountProcessingUnstake::get()
+        ))]
         #[transactional]
         pub fn process_pending_unstake(
             origin: OriginFor<T>,

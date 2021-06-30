@@ -59,7 +59,7 @@ pub trait WeightInfo {
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
     fn stake() -> Weight {
-        (79_000_000 as Weight)
+        (80_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(7 as Weight))
             .saturating_add(T::DbWeight::get().writes(6 as Weight))
     }
@@ -67,7 +67,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
         (12_000_000 as Weight)
     }
     fn record_rewards() -> Weight {
-        (22_000_000 as Weight)
+        (21_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(2 as Weight))
             .saturating_add(T::DbWeight::get().writes(2 as Weight))
     }
@@ -77,14 +77,14 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().writes(2 as Weight))
     }
     fn unstake() -> Weight {
-        (60_000_000 as Weight)
+        (61_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(7 as Weight))
             .saturating_add(T::DbWeight::get().writes(6 as Weight))
     }
     fn process_pending_unstake(p: u32) -> Weight {
-        (26_040_000 as Weight)
+        (26_540_000 as Weight)
             // Standard Error: 49_000
-            .saturating_add((420_000 as Weight).saturating_mul(p as Weight))
+            .saturating_add((250_000 as Weight).saturating_mul(p as Weight))
             .saturating_add(T::DbWeight::get().reads(2 as Weight))
             .saturating_add(T::DbWeight::get().writes(2 as Weight))
     }
@@ -98,7 +98,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 // For backwards compatibility and tests
 impl WeightInfo for () {
     fn stake() -> Weight {
-        (79_000_000 as Weight)
+        (80_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(7 as Weight))
             .saturating_add(RocksDbWeight::get().writes(6 as Weight))
     }
@@ -106,7 +106,7 @@ impl WeightInfo for () {
         (12_000_000 as Weight)
     }
     fn record_rewards() -> Weight {
-        (22_000_000 as Weight)
+        (21_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(2 as Weight))
             .saturating_add(RocksDbWeight::get().writes(2 as Weight))
     }
@@ -116,14 +116,14 @@ impl WeightInfo for () {
             .saturating_add(RocksDbWeight::get().writes(2 as Weight))
     }
     fn unstake() -> Weight {
-        (60_000_000 as Weight)
+        (61_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(7 as Weight))
             .saturating_add(RocksDbWeight::get().writes(6 as Weight))
     }
     fn process_pending_unstake(p: u32) -> Weight {
-        (26_040_000 as Weight)
+        (26_540_000 as Weight)
             // Standard Error: 49_000
-            .saturating_add((420_000 as Weight).saturating_mul(p as Weight))
+            .saturating_add((250_000 as Weight).saturating_mul(p as Weight))
             .saturating_add(RocksDbWeight::get().reads(2 as Weight))
             .saturating_add(RocksDbWeight::get().writes(2 as Weight))
     }
