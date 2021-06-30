@@ -9,13 +9,22 @@ use primitives::Rate;
 use sp_runtime::FixedPointNumber;
 
 #[test]
-fn borrower_must_have_some_borrowed_balance() {
+fn liquidate_borrow_allowed_works() {
     ExtBuilder::default().build().execute_with(|| {
-        initial_setup();
+        // Borrower should have a positive shortfall
         assert_noop!(
-            Loans::liquidate_borrow(Origin::signed(BOB), ALICE, KSM, 0, DOT),
-            Error::<Runtime>::NoBorrowBalance
+            Loans::liquidate_borrow_allowed(&ALICE, DOT, 100),
+            Error::<Runtime>::InsufficientShortfall
         );
+        initial_setup();
+        alice_borrows_100_ksm();
+        // Adjust KSM price to make shortfall
+        MockPriceFeeder::set_price(KSM, 2.into());
+        assert_noop!(
+            Loans::liquidate_borrow_allowed(&ALICE, KSM, million_dollar(51)),
+            Error::<Runtime>::TooMuchRepay
+        );
+        assert_ok!(Loans::liquidate_borrow_allowed(&ALICE, KSM, million_dollar(50)));
     })
 }
 
@@ -93,7 +102,7 @@ pub(super) fn liquidator_can_not_repay_more_than_the_close_factor_pct_multiplier
         MockPriceFeeder::set_price(KSM, 20.into());
         assert_noop!(
             Loans::liquidate_borrow(Origin::signed(BOB), ALICE, KSM, million_dollar(51), DOT),
-            Error::<Runtime>::RepayAmountExceedsCloseFactor
+            Error::<Runtime>::TooMuchRepay
         );
         MockPriceFeeder::reset();
     })
