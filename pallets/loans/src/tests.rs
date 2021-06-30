@@ -306,12 +306,18 @@ fn repay_borrow_all_works() {
         // Alice deposit 200 DOT as collateral
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, million_dollar(200)));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
-        // Alice borrow 50 KSM
+        // Alice borrow 50/1e6 KSM
+        assert_ok!(Loans::borrow(Origin::signed(ALICE), KSM, dollar(50)));
+
+        // Alice borrow 50/1e6 DOT
         assert_ok!(Loans::borrow(
             Origin::signed(ALICE),
-            KSM,
+            DOT,
             million_dollar(50)
         ));
+
+        run_to_block(150);
+
         // Alice repay all borrow balance
         assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), KSM));
 
@@ -321,12 +327,12 @@ fn repay_borrow_all_works() {
         // KSM borrow balance: borrow - repay = 50 - 50 = 0
         assert_eq!(
             <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
-            million_dollar(800),
+            million_dollar(850),
         );
         assert_eq!(
             Loans::exchange_rate(DOT)
                 .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
-            million_dollar(200),
+            200000053852773610000
         );
         let borrow_snapshot = Loans::account_borrows(KSM, ALICE);
         assert_eq!(borrow_snapshot.principal, 0);

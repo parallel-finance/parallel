@@ -1017,10 +1017,13 @@ impl<T: Config> Pallet<T> {
             .checked_sub(repay_amount)
             .ok_or(ArithmeticError::Underflow)?;
         let total_borrows = Self::total_borrows(currency_id);
-        // TODO : total_borrows should contain interests
+        // NOTE : total_borrows use a different way to calculate interest (every 6 seconds)
+        // so when user repays all borrows, total_borrows can be smaller than account_borrows
+        // which will cause it to fail with `ArithmeticError::Underflow`
+        //
+        // Change it back to checked_sub will cause Underflow
         let total_borrows_new = total_borrows.saturating_sub(repay_amount);
 
-        // TODO : this should be extracted into a function to not forget
         AccountBorrows::<T>::insert(
             currency_id,
             borrower,
