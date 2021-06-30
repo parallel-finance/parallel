@@ -3,7 +3,7 @@ use crate as pallet_liquid_staking;
 use codec::{Decode, Encode};
 use frame_support::{
     dispatch::{DispatchResult, Weight},
-    ord_parameter_types, parameter_types,
+    parameter_types,
     traits::{GenesisBuild, MaxEncodedLen, SortedMembers},
     PalletId,
 };

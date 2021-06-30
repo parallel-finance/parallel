@@ -52,44 +52,46 @@ pub trait WeightInfo {
     fn record_slash() -> Weight;
     fn unstake() -> Weight;
     fn process_pending_unstake(p: u32) -> Weight;
-    fn finish_processed_unstake() -> Weight;
+    fn finish_processed_unstake(p: u32) -> Weight;
 }
 
 /// Weights for pallet_liquid_staking using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
     fn stake() -> Weight {
-        (80_000_000 as Weight)
+        (81_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(7 as Weight))
             .saturating_add(T::DbWeight::get().writes(6 as Weight))
     }
     fn withdraw() -> Weight {
-        (12_000_000 as Weight)
+        (13_000_000 as Weight)
     }
     fn record_rewards() -> Weight {
-        (21_000_000 as Weight)
+        (22_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(2 as Weight))
             .saturating_add(T::DbWeight::get().writes(2 as Weight))
     }
     fn record_slash() -> Weight {
-        (21_000_000 as Weight)
+        (22_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(2 as Weight))
             .saturating_add(T::DbWeight::get().writes(2 as Weight))
     }
     fn unstake() -> Weight {
-        (61_000_000 as Weight)
+        (62_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(7 as Weight))
             .saturating_add(T::DbWeight::get().writes(6 as Weight))
     }
     fn process_pending_unstake(p: u32) -> Weight {
-        (26_540_000 as Weight)
-            // Standard Error: 49_000
-            .saturating_add((250_000 as Weight).saturating_mul(p as Weight))
+        (26_480_000 as Weight)
+            // Standard Error: 53_000
+            .saturating_add((410_000 as Weight).saturating_mul(p as Weight))
             .saturating_add(T::DbWeight::get().reads(2 as Weight))
             .saturating_add(T::DbWeight::get().writes(2 as Weight))
     }
-    fn finish_processed_unstake() -> Weight {
-        (47_000_000 as Weight)
+    fn finish_processed_unstake(p: u32) -> Weight {
+        (48_420_000 as Weight)
+            // Standard Error: 46_000
+            .saturating_add((210_000 as Weight).saturating_mul(p as Weight))
             .saturating_add(T::DbWeight::get().reads(4 as Weight))
             .saturating_add(T::DbWeight::get().writes(3 as Weight))
     }
@@ -98,37 +100,39 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 // For backwards compatibility and tests
 impl WeightInfo for () {
     fn stake() -> Weight {
-        (80_000_000 as Weight)
+        (81_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(7 as Weight))
             .saturating_add(RocksDbWeight::get().writes(6 as Weight))
     }
     fn withdraw() -> Weight {
-        (12_000_000 as Weight)
+        (13_000_000 as Weight)
     }
     fn record_rewards() -> Weight {
-        (21_000_000 as Weight)
+        (22_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(2 as Weight))
             .saturating_add(RocksDbWeight::get().writes(2 as Weight))
     }
     fn record_slash() -> Weight {
-        (21_000_000 as Weight)
+        (22_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(2 as Weight))
             .saturating_add(RocksDbWeight::get().writes(2 as Weight))
     }
     fn unstake() -> Weight {
-        (61_000_000 as Weight)
+        (62_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(7 as Weight))
             .saturating_add(RocksDbWeight::get().writes(6 as Weight))
     }
     fn process_pending_unstake(p: u32) -> Weight {
-        (26_540_000 as Weight)
-            // Standard Error: 49_000
-            .saturating_add((250_000 as Weight).saturating_mul(p as Weight))
+        (26_480_000 as Weight)
+            // Standard Error: 53_000
+            .saturating_add((410_000 as Weight).saturating_mul(p as Weight))
             .saturating_add(RocksDbWeight::get().reads(2 as Weight))
             .saturating_add(RocksDbWeight::get().writes(2 as Weight))
     }
-    fn finish_processed_unstake() -> Weight {
-        (47_000_000 as Weight)
+    fn finish_processed_unstake(p: u32) -> Weight {
+        (48_420_000 as Weight)
+            // Standard Error: 46_000
+            .saturating_add((210_000 as Weight).saturating_mul(p as Weight))
             .saturating_add(RocksDbWeight::get().reads(4 as Weight))
             .saturating_add(RocksDbWeight::get().writes(3 as Weight))
     }

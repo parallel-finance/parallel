@@ -28,32 +28,63 @@ fn initial_set_up<T: Config>(caller: T::AccountId) {
     ExchangeRate::<T>::put(Rate::saturating_from_rational(2, 100));
 }
 
-fn set_up_accounts<T: Config>(i: u32) -> (T::AccountId, T::AccountId) {
-    let caller: T::AccountId = account("unstake_caller", i, SEED);
+fn set_up_accounts<T: Config>(name: &'static str, i: u32) -> (T::AccountId, T::AccountId) {
+    let caller: T::AccountId = account(name, i, SEED);
     initial_set_up::<T>(caller.clone());
-    let agent: T::AccountId = account("unstake_agent", i, SEED);
+    let agent: T::AccountId = account(name, i, SEED);
     (caller, agent)
 }
 
-fn create_pending_unstakes<T: Config>(n: u32) -> Result<(), &'static str>
+fn create_pending_unstakes<T: Config>(
+    name: &'static str,
+    n: u32,
+    amount: u128,
+) -> Result<(), &'static str>
 where
     [u8; 32]: From<<T as frame_system::Config>::AccountId>,
 {
     for i in 0..n {
-        let (caller, agent): (T::AccountId, T::AccountId) = set_up_accounts::<T>(i);
-        let amount = 100_000;
-        let unstake_amount = 5_000_000;
-        assert_ok!(LiquidStaking::<T>::stake(
-            SystemOrigin::Signed(caller.clone()).into(),
-            amount
-        ));
+        process_unstake::<T>(name, i, amount);
+    }
+    Ok(())
+}
 
-        assert_ok!(LiquidStaking::<T>::unstake(
-            SystemOrigin::Signed(caller.clone()).into(),
-            unstake_amount
-        ));
+fn process_unstake<T: Config>(name: &'static str, i: u32, amount: u128)
+where
+    [u8; 32]: From<<T as frame_system::Config>::AccountId>,
+{
+    let (caller, agent): (T::AccountId, T::AccountId) = set_up_accounts::<T>(name, i);
+    let unstake_amount = 5_000_000;
+    assert_ok!(LiquidStaking::<T>::stake(
+        SystemOrigin::Signed(caller.clone()).into(),
+        amount
+    ));
 
-        assert_ok!(LiquidStaking::<T>::process_pending_unstake(
+    assert_ok!(LiquidStaking::<T>::unstake(
+        SystemOrigin::Signed(caller.clone()).into(),
+        unstake_amount
+    ));
+
+    assert_ok!(LiquidStaking::<T>::process_pending_unstake(
+        T::WithdrawOrigin::successful_origin(),
+        agent,
+        caller,
+        amount
+    ));
+}
+
+fn finish_pending_unstakes<T: Config>(
+    name: &'static str,
+    n: u32,
+    amount: u128,
+) -> Result<(), &'static str>
+where
+    [u8; 32]: From<<T as frame_system::Config>::AccountId>,
+{
+    for i in 0..n {
+        process_unstake::<T>(name, i, amount);
+        let (caller, agent): (T::AccountId, T::AccountId) = set_up_accounts::<T>(name, i);
+        assert_ok!(LiquidStaking::<T>::finish_processed_unstake(
             T::WithdrawOrigin::successful_origin(),
             agent,
             caller,
@@ -141,9 +172,9 @@ benchmarks! {
 
     process_pending_unstake {
         let p in 0 .. T::MaxAccountProcessingUnstake::get() - 1;
-        create_pending_unstakes::<T>(p)?;
-        let (caller, agent) : (T::AccountId, T::AccountId)= set_up_accounts::<T>(SEED);
         let amount = 100_000;
+        create_pending_unstakes::<T>("unstake_agent", p, amount)?;
+        let (caller, agent) : (T::AccountId, T::AccountId)= set_up_accounts::<T>("unstake_agent", SEED);
         let unstake_amount = 5_000_000;
         assert_ok!(LiquidStaking::<T>::stake(
             SystemOrigin::Signed(caller.clone()).into(),
@@ -161,10 +192,10 @@ benchmarks! {
 
 
     finish_processed_unstake {
-        let caller: T::AccountId = account("Sample", 3, SEED);
-        initial_set_up::<T>(caller.clone());
-        let agent: T::AccountId = account("Sample", 6, SEED);
         let amount = 100_000;
+        let p in 0 .. T::MaxAccountProcessingUnstake::get() - 1;
+        finish_pending_unstakes::<T>("finish_processed_unstake", p, amount)?;
+        let (caller, agent) : (T::AccountId, T::AccountId)= set_up_accounts::<T>("finish_processed_unstake", SEED);
         let unstake_amount = 5_000_000;
         assert_ok!(LiquidStaking::<T>::stake(
             SystemOrigin::Signed(caller.clone()).into(),
