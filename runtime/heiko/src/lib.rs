@@ -28,7 +28,7 @@ use frame_support::{
     PalletId,
 };
 use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::{parameter_type_with_key, DataProvider};
+use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended};
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use sp_api::impl_runtime_apis;
 use sp_core::{
@@ -736,10 +736,23 @@ impl DataProvider<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
     }
 }
 
+impl DataProviderExtended<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
+    fn get_no_op(key: &CurrencyId) -> Option<TimeStampedPrice> {
+        Oracle::get_no_op(key)
+    }
+    #[allow(clippy::complexity)]
+    fn get_all_values() -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
+        Oracle::get_all_values()
+    }
+}
+
 impl pallet_prices::Config for Runtime {
     type Event = Event;
     type Source = AggregatedDataProvider;
     type FeederOrigin = EnsureRoot<AccountId>;
+    type StakingCurrency = StakingCurrency;
+    type LiquidCurrency = LiquidCurrency;
+    type LiquidStakingExchangeRateProvider = LiquidStaking;
 }
 
 parameter_types! {
@@ -1190,13 +1203,13 @@ impl_runtime_apis! {
     > for Runtime {
         fn get_value(provider_id: DataProviderId, key: CurrencyId) -> Option<TimeStampedPrice> {
             match provider_id {
-                DataProviderId::Aggregated => Oracle::get_no_op(&key)
+                DataProviderId::Aggregated => Prices::get_no_op(&key)
             }
         }
 
         fn get_all_values(provider_id: DataProviderId) -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
             match provider_id {
-                DataProviderId::Aggregated => Oracle::get_all_values()
+                DataProviderId::Aggregated => Prices::get_all_values()
             }
         }
     }

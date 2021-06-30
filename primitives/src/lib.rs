@@ -168,3 +168,6 @@ impl<T: Config, CurrencyId, AccountId, Balance> XTransfer<T, CurrencyId, Account
         Ok(().into())
     }
 }
+pub trait ExchangeRateProvider {
+    fn get_exchange_rate() -> Rate;
+}
