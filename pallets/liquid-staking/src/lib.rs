@@ -31,12 +31,15 @@ use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 
 pub use pallet::*;
 use primitives::{Amount, Balance, CurrencyId, ExchangeRateProvider, Rate, XTransfer};
+pub use weights::WeightInfo;
 
+mod benchmarking;
 #[cfg(test)]
 mod mock;
 
 #[cfg(test)]
 mod tests;
+pub mod weights;
 
 /// Container for pending balance information
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
@@ -88,6 +91,9 @@ pub mod pallet {
         /// The maximum size of AccountProcessingUnstake
         #[pallet::constant]
         type MaxAccountProcessingUnstake: Get<u32>;
+
+        /// Weight information for extrinsics in this pallet.
+        type WeightInfo: WeightInfo;
 
         type XTransfer: XTransfer<Self, CurrencyId, Self::AccountId, Balance>;
     }
@@ -218,7 +224,7 @@ pub mod pallet {
         /// used as collateral for lending.
         ///
         /// - `amount`: the amount of staking assets
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::stake())]
         #[transactional]
         pub fn stake(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
@@ -228,7 +234,6 @@ pub mod pallet {
                 .reciprocal()
                 .and_then(|r| r.checked_mul_int(amount))
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
-
             T::Currency::transfer(
                 T::StakingCurrency::get(),
                 &sender,
@@ -257,7 +262,7 @@ pub mod pallet {
         ///
         /// - `agent`: the multisig account of relay chain.
         /// - `amount`: the requested assets.
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::withdraw())]
         #[transactional]
         pub fn withdraw(
             origin: OriginFor<T>,
@@ -296,7 +301,7 @@ pub mod pallet {
         ///
         /// - `agent`: the multisig account of relay chain.
         /// - `amount`: the rewarded assets.
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::record_rewards())]
         #[transactional]
         pub fn record_rewards(
             origin: OriginFor<T>,
@@ -327,7 +332,7 @@ pub mod pallet {
         ///
         /// - `agent`: the multisig account of relay chain.
         /// - `amount`: the rewarded assets.
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::record_slash())]
         #[transactional]
         pub fn record_slash(
             origin: OriginFor<T>,
@@ -356,7 +361,7 @@ pub mod pallet {
         /// chain to do the `unbond` operation.
         ///
         /// - `amount`: the amount of unstaking voucher
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::unstake())]
         #[transactional]
         pub fn unstake(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
@@ -409,7 +414,9 @@ pub mod pallet {
         /// - `agent`: the multisig account of relay chain.
         /// - `owner`: the account which performs `unstake` operation
         /// - `amount`: the assets can be unbond for the owner's unstaking request.
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::process_pending_unstake(
+            T::MaxAccountProcessingUnstake::get()
+        ))]
         #[transactional]
         pub fn process_pending_unstake(
             origin: OriginFor<T>,
@@ -471,7 +478,9 @@ pub mod pallet {
         /// - `agent`: the multisig account of relay chain.
         /// - `owner`: the account which performs `unstake` operation
         /// - `amount`: the assets already unbond for the owner's unstaking request.
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::finish_processed_unstake(
+            T::MaxAccountProcessingUnstake::get()
+        ))]
         #[transactional]
         pub fn finish_processed_unstake(
             origin: OriginFor<T>,

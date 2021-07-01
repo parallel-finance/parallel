@@ -379,6 +379,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type WithdrawOrigin = EnsureRoot<AccountId>;
     type MaxWithdrawAmount = MaxWithdrawAmount;
     type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
+    type WeightInfo = pallet_liquid_staking::weights::SubstrateWeight<Runtime>;
     type XTransfer = XTokens;
 }
 
@@ -1253,6 +1254,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_balances, Balances);
             add_benchmark!(params, batches, pallet_timestamp, Timestamp);
             add_benchmark!(params, batches, pallet_loans, LoansBench::<Runtime>);
+            add_benchmark!(params, batches, pallet_liquid_staking, LiquidStaking);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)

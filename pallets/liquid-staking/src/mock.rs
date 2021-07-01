@@ -1,12 +1,16 @@
 use crate as pallet_liquid_staking;
+
 use codec::{Decode, Encode};
 use frame_support::{
     dispatch::{DispatchResult, Weight},
-    ord_parameter_types, parameter_types,
-    traits::{GenesisBuild, MaxEncodedLen},
+    parameter_types,
+    traits::{GenesisBuild, MaxEncodedLen, SortedMembers},
     PalletId,
 };
-use frame_system::{self as system, ensure_signed, pallet_prelude::OriginFor, EnsureSignedBy};
+use frame_system::{
+    self as system, ensure_signed, pallet_prelude::OriginFor, EnsureOneOf, EnsureRoot,
+    EnsureSignedBy,
+};
 use orml_traits::{parameter_type_with_key, MultiCurrency};
 use primitives::{Amount, Balance, CurrencyId, Rate, XTransfer};
 #[cfg(feature = "std")]
@@ -163,9 +167,15 @@ impl orml_currencies::Config for Test {
     type WeightInfo = ();
 }
 
-ord_parameter_types! {
-    pub const Six: AccountId = AccountId::from(6_u64);
+pub struct Six;
+impl SortedMembers<AccountId> for Six {
+    fn sorted_members() -> Vec<AccountId> {
+        vec![AccountId::from(6_u64)]
+    }
 }
+
+type EnsureRootOrSix =
+    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<Six, AccountId>>;
 
 parameter_types! {
     pub const LiquidStakingPalletId: PalletId = PalletId(*b"par/liqu");
@@ -181,9 +191,10 @@ impl pallet_liquid_staking::Config for Test {
     type PalletId = LiquidStakingPalletId;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type WithdrawOrigin = EnsureSignedBy<Six, AccountId>;
+    type WithdrawOrigin = EnsureRootOrSix;
     type MaxWithdrawAmount = MaxWithdrawAmount;
     type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
+    type WeightInfo = ();
     type XTransfer = Currencies;
 }
 

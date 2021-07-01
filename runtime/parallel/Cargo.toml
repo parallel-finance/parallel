@@ -85,12 +85,12 @@ orml-xcm-support            = { git = 'https://github.com/open-web3-stack/open-r
 orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 
 # Parallel dependencies
-pallet-liquid-staking     = { path = '../../pallets/liquid-staking', default-features = false }
-pallet-liquidation        = { path = '../../pallets/liquidation', default-features = false }
-pallet-loans              = { path = '../../pallets/loans', default-features = false }
-pallet-loans-benchmarking = { path = '../../pallets/loans/benchmarking', default-features = false, optional = true }
-pallet-prices             = { path = '../../pallets/prices', default-features = false }
-primitives                = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
+pallet-liquid-staking                       = { path = '../../pallets/liquid-staking', default-features = false }
+pallet-liquidation                          = { path = '../../pallets/liquidation', default-features = false }
+pallet-loans                                = { path = '../../pallets/loans', default-features = false }
+pallet-loans-benchmarking                   = { path = '../../pallets/loans/benchmarking', default-features = false, optional = true }
+pallet-prices                               = { path = '../../pallets/prices', default-features = false }
+primitives                                  = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 
 [build-dependencies.substrate-wasm-builder]
 branch  = 'polkadot-v0.9.5'
@@ -112,6 +112,7 @@ runtime-benchmarks = [
   'pallet-balances/runtime-benchmarks',
   'pallet-timestamp/runtime-benchmarks',
   'pallet-loans-benchmarking',
+  'pallet-liquid-staking/runtime-benchmarks',
   'pallet-collective/runtime-benchmarks',
   'pallet-xcm/runtime-benchmarks',
   'xcm-builder/runtime-benchmarks',

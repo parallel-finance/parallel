@@ -68,7 +68,7 @@ jobs:
 
       - name: Generate code coverage
         run: |
-          cargo +nightly-2021-03-24 tarpaulin --verbose --all-features --workspace --exclude parallel --exclude parallel-dev --exclude parallel-runtime --exclude vanilla-runtime --exclude heiko-runtime --timeout 120 --out Xml
+          cargo +nightly-2021-03-24 tarpaulin --verbose --all-features --workspace --exclude parallel --exclude parallel-dev --exclude parallel-runtime --exclude vanilla-runtime --exclude heiko-runtime --exclude pallet-loans-benchmarking  --exclude pallet-liquid-staking --timeout 120 --out Xml
 
       - name: Upload To Codecov.io
         uses: codecov/codecov-action@v1

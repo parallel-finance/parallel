@@ -69,11 +69,11 @@ orml-traits                 = { git = 'https://github.com/open-web3-stack/open-r
 orml-utilities              = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 
 # Parallel dependencies
-pallet-liquid-staking     = { path = '../../pallets/liquid-staking', default-features = false }
-pallet-liquidation        = { path = '../../pallets/liquidation', default-features = false }
-pallet-loans              = { path = '../../pallets/loans', default-features = false }
-pallet-loans-benchmarking = { path = '../../pallets/loans/benchmarking', default-features = false, optional = true }
-pallet-prices             = { path = '../../pallets/prices', default-features = false }
+pallet-liquid-staking                       = { path = '../../pallets/liquid-staking', default-features = false }
+pallet-liquidation                          = { path = '../../pallets/liquidation', default-features = false }
+pallet-loans                                = { path = '../../pallets/loans', default-features = false }
+pallet-loans-benchmarking                   = { path = '../../pallets/loans/benchmarking', default-features = false, optional = true }
+pallet-prices                               = { path = '../../pallets/prices', default-features = false }
 
 [features]
 default            = ['std']
@@ -87,6 +87,7 @@ runtime-benchmarks = [
   'pallet-timestamp/runtime-benchmarks',
   'sp-runtime/runtime-benchmarks',
   'pallet-loans-benchmarking',
+  'pallet-liquid-staking/runtime-benchmarks',
   'pallet-collective/runtime-benchmarks',
 ]
 std                = [
