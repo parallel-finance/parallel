@@ -188,9 +188,8 @@ impl<T: Config> Pallet<T> {
             BTreeMap::<T::AccountId, (FixedU128, Vec<BorrowMisc>)>::new(),
             |mut acc, (k1, k2, snapshot)| {
                 let loans_value = match T::PriceFeeder::get_price(&k1).and_then(|price_info| {
-                    let result = pallet_loans::Pallet::<T>::borrow_balance_stored_with_snapshot(
-                        &k1, snapshot,
-                    );
+                    let result =
+                        pallet_loans::Pallet::<T>::current_balance_from_snapshot(&k1, snapshot);
                     price_info
                         .0
                         .checked_mul(&FixedU128::from_inner(result.ok()?))

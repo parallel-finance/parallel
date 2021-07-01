@@ -303,6 +303,11 @@ pub(crate) fn process_block(n: BlockNumber) {
     Loans::on_finalize(n);
 }
 
+// TODO make decimals more explicit
+pub fn dollar(d: u128) -> u128 {
+    d.saturating_mul(10_u128.pow(12))
+}
+
 pub fn million_dollar(d: u128) -> u128 {
-    d.saturating_mul(10_u128.pow(18))
+    dollar(d) * 10_u128.pow(6)
 }

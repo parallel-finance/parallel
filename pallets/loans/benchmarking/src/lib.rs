@@ -182,7 +182,7 @@ benchmarks! {
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, INITIAL_AMOUNT));
         assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(caller.clone()).into(), DOT, true));
         assert_ok!(Loans::<T>::borrow(SystemOrigin::Signed(caller.clone()).into(), DOT, borrowed_amount));
-        let repay_amount = Loans::<T>::borrow_balance_stored(&caller.clone(), &DOT)?;
+        let repay_amount = Loans::<T>::current_borrow_balance(&caller.clone(), &DOT)?;
         let total_borrows = Loans::<T>::total_borrows(DOT);
     }: {
          let _ = Loans::<T>::repay_borrow_all(SystemOrigin::Signed(caller.clone()).into(), DOT);
