@@ -1,5 +1,5 @@
 use crate::{
-    mock::{Loans, MockPriceFeeder, Origin, Runtime, ALICE, BOB, DOT, KSM},
+    mock::{Loans, MockPriceFeeder, Origin, Runtime, ALICE, BOB, DOT, KSM, USDT},
     tests::{million_dollar, ExtBuilder},
     Config, Error, LiquidationIncentive,
 };
@@ -24,7 +24,29 @@ fn liquidate_borrow_allowed_works() {
             Loans::liquidate_borrow_allowed(&ALICE, KSM, million_dollar(51)),
             Error::<Runtime>::TooMuchRepay
         );
-        assert_ok!(Loans::liquidate_borrow_allowed(&ALICE, KSM, million_dollar(50)));
+        assert_ok!(Loans::liquidate_borrow_allowed(
+            &ALICE,
+            KSM,
+            million_dollar(50)
+        ));
+    })
+}
+
+#[test]
+fn deposit_of_borrower_must_be_collateral() {
+    ExtBuilder::default().build().execute_with(|| {
+        initial_setup();
+        alice_borrows_100_ksm();
+        // Adjust KSM price to make shortfall
+        MockPriceFeeder::set_price(KSM, 2.into());
+        assert_noop!(
+            Loans::liquidate_borrow_allowed(&ALICE, KSM, million_dollar(51)),
+            Error::<Runtime>::TooMuchRepay
+        );
+        assert_noop!(
+            Loans::liquidate_borrow(Origin::signed(BOB), ALICE, KSM, 10, USDT),
+            Error::<Runtime>::DepositsAreNotCollateral
+        );
     })
 }
 
@@ -36,7 +58,7 @@ pub(super) fn collateral_value_must_be_greater_than_liquidation_value() {
         LiquidationIncentive::<Runtime>::insert(KSM, Rate::from_float(200.0));
         assert_noop!(
             Loans::liquidate_borrow(Origin::signed(BOB), ALICE, KSM, million_dollar(50), DOT),
-            Error::<Runtime>::RepayValueGreaterThanCollateral
+            Error::<Runtime>::InsufficientCollateral
         );
         MockPriceFeeder::reset();
     })
