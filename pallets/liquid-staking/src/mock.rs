@@ -12,7 +12,7 @@ use frame_system::{
     EnsureSignedBy,
 };
 use orml_traits::{parameter_type_with_key, MultiCurrency};
-use primitives::{Amount, Balance, CurrencyId, Rate, XTransfer};
+use primitives::{Amount, Balance, CurrencyId, Rate, Ratio, XTransfer};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
@@ -27,7 +27,7 @@ use xcm::v0::{Junction, MultiLocation};
 pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const XDOT: CurrencyId = CurrencyId::xDOT;
 pub const NATIVE: CurrencyId = CurrencyId::Native;
-
+pub const DOT_DECIMAL: u128 = 10u128.pow(10);
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
@@ -229,12 +229,16 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .build_storage::<Test>()
         .unwrap();
     orml_tokens::GenesisConfig::<Test> {
-        balances: vec![(1.into(), CurrencyId::DOT, 100)],
+        balances: vec![
+            (1.into(), CurrencyId::DOT, 100),
+            (11.into(), CurrencyId::DOT, 100 * DOT_DECIMAL),
+        ],
     }
     .assimilate_storage(&mut t)
     .unwrap();
     pallet_liquid_staking::GenesisConfig {
         exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
+        reserve_factor: Ratio::from_perthousand(5),
     }
     .assimilate_storage::<Test>(&mut t)
     .unwrap();
