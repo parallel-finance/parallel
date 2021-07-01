@@ -125,16 +125,20 @@ pub mod pallet {
         InsufficientLiquidity,
         /// Insufficient deposit to redeem
         InsufficientDeposit,
-        /// Repay amount greater than borrow balance
-        RepayAmountExceedsCloseFactor,
+        /// Repay amount greater than allowed
+        TooMuchRepay,
         /// Asset already enabled/disabled collateral
         DuplicateOperation,
         /// No deposit asset
         NoDeposit,
         /// Repay amount more than collateral amount
-        RepayValueGreaterThanCollateral,
+        InsufficientCollateral,
         /// Liquidator is same as borrower
         LiquidatorIsBorrower,
+        /// Deposits are not used as a collateral
+        DepositsAreNotCollateral,
+        /// Insufficient shortfall to repay
+        InsufficientShortfall,
         /// There is no borrow balance
         NoBorrowBalance,
         /// Liquidate value overflow
@@ -1008,7 +1012,7 @@ impl<T: Config> Pallet<T> {
         repay_amount: Balance,
     ) -> DispatchResult {
         if account_borrows < repay_amount {
-            return Err(Error::<T>::RepayAmountExceedsCloseFactor.into());
+            return Err(Error::<T>::TooMuchRepay.into());
         }
 
         T::Currency::transfer(*currency_id, borrower, &Self::account_id(), repay_amount)?;
@@ -1089,16 +1093,36 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    /// please note, as bellow:
-    /// - liquidate_token is borrower's debt, like DAI/USDT
-    /// - collateral_token is borrower's collateral, like BTC/KSM/DOT
-    /// - repay_amount is amount of liquidate_token (such as DAI/USDT)
+    /// Checks if the liquidation should be allowed to occur
+    fn liquidate_borrow_allowed(
+        borrower: &T::AccountId,
+        liquidate_currency_id: CurrencyId,
+        repay_amount: Balance,
+    ) -> DispatchResult {
+        let (_, shortfall) = Self::get_account_liquidity(borrower)?;
+        if shortfall.is_zero() {
+            return Err(Error::<T>::InsufficientShortfall.into());
+        }
+
+        // The liquidator may not repay more than 50%(close_factor) of the borrower's borrow balance.
+        let account_borrows = Self::current_borrow_balance(&borrower, &liquidate_currency_id)?;
+        let close_factor = CloseFactor::<T>::get(liquidate_currency_id);
+        if close_factor.mul_ceil(account_borrows) < repay_amount {
+            return Err(Error::<T>::TooMuchRepay.into());
+        }
+
+        Ok(())
+    }
+
+    /// Note:
+    /// - liquidate_token is borrower's debt asset.
+    /// - collateral_token is borrower's collateral asset.
+    /// - repay_amount is amount of liquidate_token
     ///
-    /// in this function,
-    /// the liquidator will pay liquidate_token from own account to module account,
-    /// the system will reduce borrower's debt
-    /// the liquidator will receive collateral_token(ctoken) from system (divide borrower's ctoken to liquidator)
-    /// then liquidator can decide if withdraw (from ctoken to token)
+    /// The liquidator will repay a certain amount of liquidate_token from own
+    /// account for borrower. Then the protocol will reduce borrower's debt
+    /// and liquidator will receive collateral_token(as voucher amount) from
+    /// borrower.
     pub fn liquidate_borrow_internal(
         liquidator: T::AccountId,
         borrower: T::AccountId,
@@ -1111,34 +1135,24 @@ impl<T: Config> Pallet<T> {
         if borrower == liquidator {
             return Err(Error::<T>::LiquidatorIsBorrower.into());
         }
+        Self::liquidate_borrow_allowed(&borrower, liquidate_currency_id, repay_amount)?;
 
-        let account_borrows = Self::current_borrow_balance(&borrower, &liquidate_currency_id)?;
-        if account_borrows.is_zero() {
-            return Err(Error::<T>::NoBorrowBalance.into());
-        }
-
-        // we can only liquidate 50% of the borrows
-        let close_factor = CloseFactor::<T>::get(liquidate_currency_id);
-        if close_factor.mul_floor(account_borrows) < repay_amount {
-            return Err(Error::<T>::RepayAmountExceedsCloseFactor.into());
-        }
-
-        //calculate collateral_token_sum price
         let deposits = AccountDeposits::<T>::get(collateral_currency_id, &borrower);
+        if !deposits.is_collateral {
+            return Err(Error::<T>::DepositsAreNotCollateral.into());
+        }
         let exchange_rate = Self::exchange_rate(collateral_currency_id);
-
-        //the total amount of borrower's collateral token
-        let collateral_underlying_amount = exchange_rate
+        let borrower_deposit_amount = exchange_rate
             .checked_mul_int(deposits.voucher_balance)
             .ok_or(ArithmeticError::Overflow)?;
 
-        // how much the borrower's collateral is worth based on its current currency price
+        // Calculate the collateral value
         let collateral_token_price = Self::get_price(&collateral_currency_id)?;
         let collateral_value = collateral_token_price
-            .checked_mul(&FixedU128::from_inner(collateral_underlying_amount))
+            .checked_mul(&FixedU128::from_inner(borrower_deposit_amount))
             .ok_or(ArithmeticError::Overflow)?;
 
-        // the incentive for liquidator and punishment for the borrower
+        // The incentive for liquidator and punishment for the borrower
         let liquidation_incentive = LiquidationIncentive::<T>::get(liquidate_currency_id);
         let liquidate_value = Self::get_price(&liquidate_currency_id)?
             .checked_mul(&FixedU128::from_inner(repay_amount))
@@ -1146,10 +1160,10 @@ impl<T: Config> Pallet<T> {
             .ok_or(Error::<T>::LiquidateValueOverflow)?;
 
         if collateral_value < liquidate_value {
-            return Err(Error::<T>::RepayValueGreaterThanCollateral.into());
+            return Err(Error::<T>::InsufficientCollateral.into());
         }
 
-        // calculate the collateral will get
+        // Calculate the collateral will get
         //
         // amount: 1 Unit = 10^12 pico
         // price is for 1 pico: 1$ = FixedU128::saturating_from_rational(1, 10^12)
@@ -1191,7 +1205,8 @@ impl<T: Config> Pallet<T> {
             &Self::account_id(),
             repay_amount,
         )?;
-        //2. the system will reduce borrower's debt
+
+        // 2.the system reduce borrower's debt
         let account_borrows = Self::current_borrow_balance(borrower, liquidate_currency_id)?;
         let account_borrows_new = account_borrows
             .checked_sub(repay_amount)
@@ -1210,13 +1225,10 @@ impl<T: Config> Pallet<T> {
         );
         TotalBorrows::<T>::insert(liquidate_currency_id, total_borrows_new);
 
-        // 3.the liquidator will receive collateral_token(ctoken) from system
-        // (divide borrower's ctoken to liquidator)
-        // decrease borrower's ctoken
+        // 3.the liquidator will receive voucher token from borrower
         let exchange_rate = Self::exchange_rate(collateral_currency_id);
         let collateral_amount =
             Self::calc_collateral_amount(collateral_underlying_amount, exchange_rate)?;
-
         AccountDeposits::<T>::try_mutate(
             collateral_currency_id,
             borrower,
@@ -1228,7 +1240,7 @@ impl<T: Config> Pallet<T> {
                 Ok(())
             },
         )?;
-        // increase liquidator's ctoken
+        // increase liquidator's voucher_balance
         AccountDeposits::<T>::try_mutate(
             collateral_currency_id,
             liquidator,
@@ -1241,9 +1253,6 @@ impl<T: Config> Pallet<T> {
             },
         )?;
 
-        //4. we can decide if withdraw to liquidator (from ctoken to token)
-        // Self::redeem_internal(&liquidator, &collateral_token, collateral_token_amount)?;
-        // liquidator, borrower,liquidate_token,collateral_token,liquidate_token_repay_amount,collateral_token_amount
         Self::deposit_event(Event::<T>::LiquidatedBorrow(
             liquidator.clone(),
             borrower.clone(),
