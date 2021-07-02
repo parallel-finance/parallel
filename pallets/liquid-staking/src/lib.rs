@@ -145,6 +145,11 @@ pub mod pallet {
     #[pallet::getter(fn reserve_factor)]
     pub type ReserveFactor<T: Config> = StorageValue<_, Ratio, ValueQuery>;
 
+    /// The total amount of reserve.
+    #[pallet::storage]
+    #[pallet::getter(fn total_reserve)]
+    pub type TotalReserve<T: Config> = StorageValue<_, Balance, ValueQuery>;
+
     /// The total amount of a staking asset.
     #[pallet::storage]
     #[pallet::getter(fn total_staking)]
@@ -317,8 +322,15 @@ pub mod pallet {
             amount: Balance,
         ) -> DispatchResultWithPostInfo {
             T::WithdrawOrigin::ensure_origin(origin)?;
+
+            let reserve = Self::reserve_factor().mul_floor(amount);
+            TotalReserve::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_add(reserve).ok_or(ArithmeticError::Overflow)?;
+                Ok(())
+            })?;
+
             let left_amount = amount
-                .checked_sub(Self::reserve_factor().mul_floor(amount))
+                .checked_sub(reserve)
                 .ok_or(ArithmeticError::Overflow)?;
             TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b

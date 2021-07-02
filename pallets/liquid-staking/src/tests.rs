@@ -665,7 +665,7 @@ fn record_rewards_deduct_reserve_should_work() {
         assert_eq!(TotalStakingAsset::<Test>::get(), total_staking);
         let total_voucher = 500 * DOT_DECIMAL;
         assert_eq!(TotalVoucher::<Test>::get(), total_voucher);
-
+        assert_eq!(TotalReserve::<Test>::get(), 5 * 10u128.pow(7));
         assert_eq!(
             ExchangeRate::<Test>::get(),
             Rate::saturating_from_rational(total_staking, total_voucher)
@@ -696,7 +696,7 @@ fn process_pending_unstake_for_max_should_fail() {
                 Origin::signed(6.into()),
                 10000.into(),
                 1.into(),
-                2
+                1
             ),
             Error::<Test>::MaxAccountProcessingUnstakeExceeded,
         );

@@ -367,7 +367,7 @@ parameter_types! {
     pub const StakingCurrency: CurrencyId = CurrencyId::KSM;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xKSM;
     pub const MaxWithdrawAmount: Balance = 1000_000_000_000_000;
-    pub const MaxAccountProcessingUnstake: u32 = 10_000;
+    pub const MaxAccountProcessingUnstake: u32 = 5;
 }
 
 impl pallet_liquid_staking::Config for Runtime {
