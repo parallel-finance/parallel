@@ -36,6 +36,17 @@
             "totalEarnedPrior": "Balance",
             "exchangeRatePrior": "u128"
         },
+        "Market": {
+            "closeFactor": "Ratio",
+            "collateralFactor": "Ratio",
+            "liquidateIncentive": "Rate",
+            "rateModel": "InterestRateModel",
+            "reserveFactor": "Ratio",
+            "state": "MarketState"
+        },
+        "MarketState": {
+            "_enum": ["Active", "Pending", "Supervision"]
+        },
         "PendingBalance": {
             "balance": "Balance",
             "timestamp": "Moment"
