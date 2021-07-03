@@ -30,7 +30,7 @@ fn mock_genesis_ok() {
     ExtBuilder::default().build().execute_with(|| {
         assert_eq!(BorrowIndex::<Runtime>::get(USDT), Rate::one());
         assert_eq!(
-            CollateralFactor::<Runtime>::get(KSM),
+            Markets::<Runtime>::get(&KSM).unwrap().collateral_factor,
             Ratio::from_percent(50)
         );
     });
@@ -122,27 +122,27 @@ fn redeem_allowed_works() {
         assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, 200));
         // Redeem 201 KSM should cause InsufficientDeposit
         assert_noop!(
-            Loans::redeem_allowed(&KSM, &ALICE, 10050),
+            Loans::redeem_allowed(&KSM, &ALICE, 10050, &MARKET_MOCK),
             Error::<Runtime>::InsufficientDeposit
         );
         // Redeem 200 DOT should cause InsufficientDeposit
         assert_noop!(
-            Loans::redeem_allowed(&DOT, &ALICE, 10000),
+            Loans::redeem_allowed(&DOT, &ALICE, 10000, &MARKET_MOCK),
             Error::<Runtime>::InsufficientDeposit
         );
         // Redeem 200 KSM is ok
-        assert_ok!(Loans::redeem_allowed(&KSM, &ALICE, 10000));
+        assert_ok!(Loans::redeem_allowed(&KSM, &ALICE, 10000, &MARKET_MOCK));
 
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
         // Borrow 50 DOT will reduce 100 KSM liquidity for collateral_factor is 50%
         assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, 50));
         // Redeem 101 KSM should cause InsufficientLiquidity
         assert_noop!(
-            Loans::redeem_allowed(&KSM, &ALICE, 5050),
+            Loans::redeem_allowed(&KSM, &ALICE, 5050, &MARKET_MOCK),
             Error::<Runtime>::InsufficientLiquidity
         );
         // Redeem 100 KSM is ok
-        assert_ok!(Loans::redeem_allowed(&KSM, &ALICE, 5000));
+        assert_ok!(Loans::redeem_allowed(&KSM, &ALICE, 5000, &MARKET_MOCK));
     })
 }
 
@@ -474,8 +474,11 @@ fn interest_rate_model_works() {
                 .unwrap();
             total_borrows = interest_accumulated + total_borrows;
             assert_eq!(Loans::total_borrows(DOT), total_borrows);
-            total_reserves =
-                Loans::reserve_factor(DOT).mul_floor(interest_accumulated) + total_reserves;
+            total_reserves = Markets::<Runtime>::get(&DOT)
+                .unwrap()
+                .reserve_factor
+                .mul_floor(interest_accumulated)
+                + total_reserves;
             assert_eq!(Loans::total_reserves(DOT), total_reserves);
 
             // exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
@@ -715,10 +718,12 @@ fn set_liquidation_incentive_updates_stored_values() {
             Error::<Runtime>::CurrencyNotEnabled
         );
         assert_eq!(
-            LiquidationIncentive::<Runtime>::try_get(DOT).unwrap(),
+            Markets::<Runtime>::try_get(&DOT)
+                .unwrap()
+                .liquidate_incentive,
             1.into()
         );
-        assert!(LiquidationIncentive::<Runtime>::try_get(NATIVE).is_err());
+        assert!(Markets::<Runtime>::try_get(&NATIVE).is_err());
     })
 }
 
@@ -727,7 +732,7 @@ fn set_rate_model_works() {
     ExtBuilder::default().build().execute_with(|| {
         // Check genesis rate model
         assert_eq!(
-            Loans::currency_interest_model(DOT),
+            Markets::<Runtime>::try_get(&DOT).unwrap().rate_model,
             InterestRateModel::new_jump_model(
                 Rate::saturating_from_rational(2, 100),
                 Rate::saturating_from_rational(10, 100),
@@ -747,7 +752,7 @@ fn set_rate_model_works() {
             )
         ));
         assert_eq!(
-            Loans::currency_interest_model(DOT),
+            Markets::<Runtime>::try_get(&DOT).unwrap().rate_model,
             InterestRateModel::new_jump_model(
                 Rate::saturating_from_rational(5, 100),
                 Rate::saturating_from_rational(15, 100),
@@ -982,7 +987,10 @@ fn with_transaction_rollback_works() {
             Ratio::from_percent(0),
         );
 
-        CurrencyInterestModel::<Runtime>::insert(DOT, error_model);
+        Loans::mutate_market(&DOT, |market| {
+            market.rate_model = error_model;
+        })
+        .unwrap();
         run_to_block(3);
 
         // block 3

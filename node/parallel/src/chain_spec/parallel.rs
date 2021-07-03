@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use cumulus_primitives_core::ParaId;
+use heiko_runtime::pallet_loans::{InterestRateModel, JumpModel, Market, MarketState};
 use parallel_runtime::{
     currency::EXISTENTIAL_DEPOSIT, opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig,
     CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig, LiquidStakingConfig,
@@ -193,32 +194,57 @@ fn testnet_genesis(
                 .collect(),
         },
         loans: LoansConfig {
-            currencies: vec![CurrencyId::DOT, CurrencyId::USDT, CurrencyId::xDOT],
             borrow_index: Rate::one(),                             // 1
             exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
-            base_rate: Rate::saturating_from_rational(2, 100),     // 2%
-            jump_rate: Rate::saturating_from_rational(10, 100),    // 10%
-            full_rate: Rate::saturating_from_rational(32, 100),    // 32%
-            jump_utilization: Ratio::from_percent(80),             // 80%
-            collateral_factor: vec![
-                (CurrencyId::DOT, Ratio::from_percent(50)),
-                (CurrencyId::USDT, Ratio::from_percent(50)),
-                (CurrencyId::xDOT, Ratio::from_percent(50)),
-            ],
-            liquidation_incentive: vec![
-                (CurrencyId::DOT, Rate::saturating_from_rational(110, 100)),
-                (CurrencyId::USDT, Rate::saturating_from_rational(110, 100)),
-                (CurrencyId::xDOT, Rate::saturating_from_rational(110, 100)),
-            ],
-            close_factor: vec![
-                (CurrencyId::DOT, Ratio::from_percent(50)),
-                (CurrencyId::USDT, Ratio::from_percent(50)),
-                (CurrencyId::xDOT, Ratio::from_percent(50)),
-            ],
-            reserve_factor: vec![
-                (CurrencyId::DOT, Ratio::from_percent(15)),
-                (CurrencyId::USDT, Ratio::from_percent(15)),
-                (CurrencyId::xDOT, Ratio::from_percent(15)),
+            markets: vec![
+                (
+                    CurrencyId::DOT,
+                    Market {
+                        close_factor: Ratio::from_percent(50),
+                        collateral_factor: Ratio::from_percent(50),
+                        liquidate_incentive: Rate::saturating_from_rational(110, 100),
+                        state: MarketState::Active,
+                        rate_model: InterestRateModel::Jump(JumpModel::new_model(
+                            Rate::saturating_from_rational(2, 100),
+                            Rate::saturating_from_rational(10, 100),
+                            Rate::saturating_from_rational(32, 100),
+                            Ratio::from_percent(80),
+                        )),
+                        reserve_factor: Ratio::from_percent(15),
+                    },
+                ),
+                (
+                    CurrencyId::USDT,
+                    Market {
+                        close_factor: Ratio::from_percent(50),
+                        collateral_factor: Ratio::from_percent(50),
+                        liquidate_incentive: Rate::saturating_from_rational(110, 100),
+                        state: MarketState::Active,
+                        rate_model: InterestRateModel::Jump(JumpModel::new_model(
+                            Rate::saturating_from_rational(2, 100),
+                            Rate::saturating_from_rational(10, 100),
+                            Rate::saturating_from_rational(32, 100),
+                            Ratio::from_percent(80),
+                        )),
+                        reserve_factor: Ratio::from_percent(15),
+                    },
+                ),
+                (
+                    CurrencyId::xDOT,
+                    Market {
+                        close_factor: Ratio::from_percent(50),
+                        collateral_factor: Ratio::from_percent(50),
+                        liquidate_incentive: Rate::saturating_from_rational(110, 100),
+                        state: MarketState::Active,
+                        rate_model: InterestRateModel::Jump(JumpModel::new_model(
+                            Rate::saturating_from_rational(2, 100),
+                            Rate::saturating_from_rational(10, 100),
+                            Rate::saturating_from_rational(32, 100),
+                            Ratio::from_percent(80),
+                        )),
+                        reserve_factor: Ratio::from_percent(15),
+                    },
+                ),
             ],
             last_block_timestamp: 0,
         },

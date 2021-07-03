@@ -18,6 +18,7 @@ use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedSub, Saturating};
 use crate::*;
 
 /// Parallel interest rate model
+#[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug)]
 pub enum InterestRateModel {
     Jump(JumpModel),
@@ -80,6 +81,7 @@ impl InterestRateModel {
 }
 
 /// The jump interest rate model
+#[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
 pub struct JumpModel {
     /// The base interest rate when utilization rate is 0
@@ -98,7 +100,7 @@ impl JumpModel {
     pub const MAX_FULL_RATE: Rate = Rate::from_inner(500_000_000_000_000_000); // 50%
 
     /// Create a new rate model
-    pub fn new_model(
+    pub const fn new_model(
         base_rate: Rate,
         jump_rate: Rate,
         full_rate: Rate,
@@ -155,6 +157,7 @@ impl JumpModel {
 }
 
 /// The curve interest rate model
+#[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
 pub struct CurveModel {
     base_rate: Rate,
@@ -274,7 +277,7 @@ mod tests {
 
     #[test]
     fn curve_model_correctly_calculates_borrow_rate() {
-        let model = CurveModel::new_model(Rate::from_inner(Rate::DIV / 100 * 2));
+        let model = CurveModel::new_model(Rate::saturating_from_rational(2, 100));
         assert_eq!(
             model.get_borrow_rate(Ratio::from_percent(80)).unwrap(),
             Rate::from_inner(154217728000000000)
