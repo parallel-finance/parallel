@@ -100,7 +100,7 @@ impl JumpModel {
     pub const MAX_FULL_RATE: Rate = Rate::from_inner(500_000_000_000_000_000); // 50%
 
     /// Create a new rate model
-    pub const fn new_model(
+    pub fn new_model(
         base_rate: Rate,
         jump_rate: Rate,
         full_rate: Rate,
