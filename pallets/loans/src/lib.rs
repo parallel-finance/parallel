@@ -1373,18 +1373,3 @@ impl<T: Config> Pallet<T> {
         Markets::<T>::iter().filter(|(_, market)| market.state == MarketState::Active)
     }
 }
-
-#[cfg(any(test, feature = "runtime-benchmarks"))]
-pub const MARKET_MOCK: Market = Market {
-    close_factor: Ratio::from_percent(50),
-    collateral_factor: Ratio::from_percent(50),
-    liquidate_incentive: Rate::from_inner(Rate::DIV / 100 * 110),
-    state: MarketState::Active,
-    rate_model: InterestRateModel::Jump(JumpModel::new_model(
-        Rate::from_inner(Rate::DIV / 100 * 2),
-        Rate::from_inner(Rate::DIV / 100 * 10),
-        Rate::from_inner(Rate::DIV / 100 * 32),
-        Ratio::from_percent(80),
-    )),
-    reserve_factor: Ratio::from_percent(15),
-};
