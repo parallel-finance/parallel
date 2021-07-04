@@ -643,3 +643,62 @@ fn finish_processed_unstake_with_multiple_processing_should_work() {
         );
     })
 }
+
+#[test]
+fn record_rewards_deduct_reserve_should_work() {
+    new_test_ext().execute_with(|| {
+        let stake_amount = 10 * DOT_DECIMAL;
+        assert_ok!(LiquidStaking::stake(
+            Origin::signed(11.into()),
+            stake_amount
+        ));
+
+        let reward_amount = 1 * DOT_DECIMAL;
+        assert_ok!(LiquidStaking::record_rewards(
+            Origin::signed(6.into()),
+            2.into(),
+            reward_amount
+        ));
+
+        let reserve_factor = ReserveFactor::<Test>::get();
+        let total_staking = stake_amount + reward_amount - reserve_factor.mul_floor(reward_amount);
+        assert_eq!(TotalStakingAsset::<Test>::get(), total_staking);
+        let total_voucher = 500 * DOT_DECIMAL;
+        assert_eq!(TotalVoucher::<Test>::get(), total_voucher);
+        assert_eq!(TotalReserve::<Test>::get(), 5 * 10u128.pow(7));
+        assert_eq!(
+            ExchangeRate::<Test>::get(),
+            Rate::saturating_from_rational(total_staking, total_voucher)
+        );
+    })
+}
+
+#[test]
+fn process_pending_unstake_for_max_should_fail() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(LiquidStaking::stake(Origin::signed(1.into()), 10));
+        assert_ok!(LiquidStaking::unstake(Origin::signed(1.into()), 500));
+        let max = <mock::Test as Config>::MaxAccountProcessingUnstake::get() as u32;
+        // in production, MaxAccountProcessingUnstake should be suitable
+        assert_eq!(max, 5);
+
+        for _i in 0..max {
+            assert_ok!(LiquidStaking::process_pending_unstake(
+                Origin::signed(6.into()),
+                10000.into(),
+                1.into(),
+                1
+            ));
+        }
+
+        assert_noop!(
+            LiquidStaking::process_pending_unstake(
+                Origin::signed(6.into()),
+                10000.into(),
+                1.into(),
+                1
+            ),
+            Error::<Test>::MaxAccountProcessingUnstakeExceeded,
+        );
+    })
+}

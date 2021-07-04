@@ -25,6 +25,7 @@ use frame_support::{
 use frame_system::EnsureRoot;
 use orml_oracle::DefaultCombineData;
 use orml_traits::parameter_type_with_key;
+use pallet_loans::MARKET_MOCK;
 use primitives::{Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, PriceWithDecimal};
 use sp_core::H256;
 use sp_runtime::FixedPointNumber;
@@ -257,46 +258,13 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .unwrap();
 
     pallet_loans::GenesisConfig {
-        currencies: vec![
-            CurrencyId::DOT,
-            CurrencyId::KSM,
-            CurrencyId::USDT,
-            CurrencyId::xDOT,
-            CurrencyId::xKSM,
-        ],
         borrow_index: Rate::one(),                             // 1
         exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
-        base_rate: Rate::saturating_from_rational(2, 100),     // 2%
-        jump_rate: Rate::saturating_from_rational(10, 100),    // 10%
-        full_rate: Rate::saturating_from_rational(32, 100),    // 32%
-        jump_utilization: Ratio::from_percent(80),             // 80%
-        collateral_factor: vec![
-            (CurrencyId::DOT, Ratio::from_percent(50)),
-            (CurrencyId::KSM, Ratio::from_percent(50)),
-            (CurrencyId::USDT, Ratio::from_percent(50)),
-            (CurrencyId::xDOT, Ratio::from_percent(50)),
-            (CurrencyId::xKSM, Ratio::from_percent(50)),
-        ],
-        liquidation_incentive: vec![
-            (CurrencyId::DOT, Rate::saturating_from_rational(110, 100)),
-            (CurrencyId::KSM, Rate::saturating_from_rational(110, 100)),
-            (CurrencyId::USDT, Rate::saturating_from_rational(110, 100)),
-            (CurrencyId::xDOT, Rate::saturating_from_rational(110, 100)),
-            (CurrencyId::xKSM, Rate::saturating_from_rational(110, 100)),
-        ],
-        close_factor: vec![
-            (CurrencyId::DOT, Ratio::from_percent(50)),
-            (CurrencyId::KSM, Ratio::from_percent(50)),
-            (CurrencyId::USDT, Ratio::from_percent(50)),
-            (CurrencyId::xDOT, Ratio::from_percent(50)),
-            (CurrencyId::xKSM, Ratio::from_percent(50)),
-        ],
-        reserve_factor: vec![
-            (CurrencyId::DOT, Ratio::from_percent(15)),
-            (CurrencyId::KSM, Ratio::from_percent(15)),
-            (CurrencyId::USDT, Ratio::from_percent(15)),
-            (CurrencyId::xDOT, Ratio::from_percent(15)),
-            (CurrencyId::xKSM, Ratio::from_percent(15)),
+        markets: vec![
+            (CurrencyId::DOT, MARKET_MOCK),
+            (CurrencyId::KSM, MARKET_MOCK),
+            (CurrencyId::USDT, MARKET_MOCK),
+            (CurrencyId::xDOT, MARKET_MOCK),
         ],
         last_block_timestamp: 1,
     }

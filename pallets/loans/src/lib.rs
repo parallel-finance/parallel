@@ -33,11 +33,10 @@ use frame_support::{
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
+pub use market::{Market, MarketState};
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 pub use pallet::*;
-use primitives::{
-    Amount, Balance, CurrencyId, Multiplier, Price, PriceFeeder, Rate, Ratio, Timestamp,
-};
+use primitives::{Amount, Balance, CurrencyId, Price, PriceFeeder, Rate, Ratio, Timestamp};
 use sp_runtime::ArithmeticError;
 use sp_runtime::{
     traits::{
@@ -49,6 +48,7 @@ use sp_std::result::Result;
 use sp_std::vec::Vec;
 pub use weights::WeightInfo;
 
+mod market;
 mod mock;
 mod rate_model;
 mod tests;
@@ -151,6 +151,8 @@ pub mod pallet {
         CurrencyNotEnabled,
         /// Currency's oracle price not ready
         PriceOracleNotReady,
+        /// Market does not exist
+        MarketDoesNotExist,
     }
 
     #[pallet::event]
@@ -267,21 +269,10 @@ pub mod pallet {
     #[pallet::getter(fn borrow_index)]
     pub type BorrowIndex<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Rate, ValueQuery>;
 
-    /// The currency types support on lending markets
-    #[pallet::storage]
-    #[pallet::getter(fn currencies)]
-    pub type Currencies<T: Config> = StorageValue<_, Vec<CurrencyId>, ValueQuery>;
-
     /// The exchange rate from the underlying to the internal collateral
     #[pallet::storage]
     #[pallet::getter(fn exchange_rate)]
     pub type ExchangeRate<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Rate, ValueQuery>;
-
-    /// The utilization point at which the jump multiplier is applied
-    #[pallet::storage]
-    #[pallet::getter(fn currency_interest_model)]
-    pub type CurrencyInterestModel<T: Config> =
-        StorageMap<_, Twox64Concat, CurrencyId, InterestRateModel, ValueQuery>;
 
     /// Mapping of borrow rate to currency type
     #[pallet::storage]
@@ -299,60 +290,25 @@ pub mod pallet {
     pub type UtilizationRatio<T: Config> =
         StorageMap<_, Twox64Concat, CurrencyId, Ratio, ValueQuery>;
 
-    /// The collateral utilization ratio
+    /// Mapping of currency id to its market
     #[pallet::storage]
-    #[pallet::getter(fn collateral_factor)]
-    pub type CollateralFactor<T: Config> =
-        StorageMap<_, Twox64Concat, CurrencyId, Ratio, ValueQuery>;
-
-    /// Fraction of interest currently set aside for reserves
-    #[pallet::storage]
-    #[pallet::getter(fn reserve_factor)]
-    pub type ReserveFactor<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Ratio, ValueQuery>;
-
-    /// Liquidation incentive ratio
-    #[pallet::storage]
-    #[pallet::getter(fn liquidation_incentive)]
-    pub type LiquidationIncentive<T: Config> =
-        StorageMap<_, Twox64Concat, CurrencyId, Rate, ValueQuery>;
-
-    /// The percent, ranging from 0% to 100%, of a liquidatable account's
-    /// borrow that can be repaid in a single liquidate transaction.
-    #[pallet::storage]
-    #[pallet::getter(fn close_factor)]
-    pub type CloseFactor<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Ratio, ValueQuery>;
+    pub type Markets<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, Market>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig {
-        pub currencies: Vec<CurrencyId>,
         pub borrow_index: Rate,
         pub exchange_rate: Rate,
-        pub base_rate: Rate,
-        pub jump_rate: Multiplier,
-        pub full_rate: Multiplier,
-        pub jump_utilization: Ratio,
-        pub collateral_factor: Vec<(CurrencyId, Ratio)>,
-        pub liquidation_incentive: Vec<(CurrencyId, Rate)>,
-        pub close_factor: Vec<(CurrencyId, Ratio)>,
-        pub reserve_factor: Vec<(CurrencyId, Ratio)>,
         pub last_block_timestamp: Timestamp,
+        pub markets: Vec<(CurrencyId, Market)>,
     }
 
     #[cfg(feature = "std")]
     impl Default for GenesisConfig {
         fn default() -> Self {
             GenesisConfig {
-                currencies: vec![],
                 borrow_index: Rate::zero(),
                 exchange_rate: Rate::zero(),
-                base_rate: Rate::zero(),
-                jump_rate: Multiplier::zero(),
-                full_rate: Multiplier::zero(),
-                jump_utilization: Ratio::zero(),
-                collateral_factor: vec![],
-                liquidation_incentive: vec![],
-                close_factor: vec![],
-                reserve_factor: vec![],
+                markets: vec![],
                 last_block_timestamp: 0,
             }
         }
@@ -361,44 +317,17 @@ pub mod pallet {
     #[pallet::genesis_build]
     impl<T: Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
-            self.currencies.iter().for_each(|currency_id| {
-                let interest_model = InterestRateModel::new_jump_model(
-                    self.base_rate,
-                    self.jump_rate,
-                    self.full_rate,
-                    self.jump_utilization,
-                );
-                if !interest_model.check_model() {
+            self.markets.iter().for_each(|(currency_id, market)| {
+                if !market.rate_model.check_model() {
                     panic!(
                         "Could not initialize the interest rate model!!! {:#?}",
                         currency_id
                     );
                 }
-                CurrencyInterestModel::<T>::insert(currency_id, interest_model);
-                ExchangeRate::<T>::insert(currency_id, self.exchange_rate);
                 BorrowIndex::<T>::insert(currency_id, self.borrow_index);
+                ExchangeRate::<T>::insert(currency_id, self.exchange_rate);
+                Markets::<T>::insert(currency_id, market)
             });
-            self.collateral_factor
-                .iter()
-                .for_each(|(currency_id, collateral_factor)| {
-                    CollateralFactor::<T>::insert(currency_id, collateral_factor);
-                });
-            self.liquidation_incentive
-                .iter()
-                .for_each(|(currency_id, liquidation_incentive)| {
-                    LiquidationIncentive::<T>::insert(currency_id, liquidation_incentive);
-                });
-            self.close_factor
-                .iter()
-                .for_each(|(currency_id, close_factor)| {
-                    CloseFactor::<T>::insert(currency_id, close_factor);
-                });
-            self.reserve_factor
-                .iter()
-                .for_each(|(currency_id, reserve_factor)| {
-                    ReserveFactor::<T>::insert(currency_id, reserve_factor);
-                });
-            Currencies::<T>::put(self.currencies.clone());
             LastBlockTimestamp::<T>::put(self.last_block_timestamp.clone());
         }
     }
@@ -452,8 +381,8 @@ pub mod pallet {
             });
 
             // This is used to trigger the price aggregation to update the results to the ORML Oracle Pallet.
-            for currency_id in Currencies::<T>::get().iter() {
-                let _ = Self::get_price(currency_id);
+            for (currency_id, _) in Self::active_markets() {
+                let _ = Self::get_price(&currency_id);
             }
         }
     }
@@ -627,7 +556,7 @@ pub mod pallet {
 
         /// Sets a new liquidation incentive percentage for `currency_id`.
         ///
-        /// Returns `Err` if the provided asset is not attached to an existent incentive.
+        /// Returns `Err` if the provided currency is not attached to an existent market.
         ///
         /// - `currency_id`: the asset that is going to be modified.
         #[pallet::weight(T::WeightInfo::set_liquidation_incentive())]
@@ -640,11 +569,9 @@ pub mod pallet {
             T::UpdateOrigin::ensure_origin(origin)?;
             Self::ensure_currency(&currency_id)?;
 
-            if <LiquidationIncentive<T>>::try_get(currency_id).is_err() {
-                return Err(<Error<T>>::CurrencyNotEnabled.into());
-            }
-
-            <LiquidationIncentive<T>>::insert(currency_id, liquidate_incentive);
+            Self::mutate_market(&currency_id, |market| {
+                market.liquidate_incentive = liquidate_incentive
+            })?;
 
             Ok(().into())
         }
@@ -697,7 +624,8 @@ pub mod pallet {
             }
             // turn off the collateral button after checking the liquidity
             let total_collateral_value = Self::total_collateral_value(&who)?;
-            let collateral_asset_value = Self::collateral_asset_value(&who, &currency_id)?;
+            let market = Self::market(&currency_id)?;
+            let collateral_asset_value = Self::collateral_asset_value(&who, &currency_id, &market)?;
             let total_borrowed_value = Self::total_borrowed_value(&who)?;
             if total_collateral_value
                 < total_borrowed_value
@@ -743,7 +671,8 @@ pub mod pallet {
 
         /// Update the interest rate model for a given asset.
         ///
-        /// May only be called from `T::UpdateOrigin`.
+        /// Returns `Err` if the provided currency is not attached to an existent market. May
+        /// only be called from `T::UpdateOrigin`.
         ///
         /// - `currency_id`: the assets to be set.
         /// - `new_model`: the interest rate model to be set.
@@ -759,7 +688,7 @@ pub mod pallet {
 
             ensure!(new_model.check_model(), Error::<T>::InvalidRateModelParam);
 
-            CurrencyInterestModel::<T>::insert(currency_id, new_model);
+            Self::mutate_market(&currency_id, |market| market.rate_model = new_model)?;
 
             Self::deposit_event(Event::<T>::NewInterestRateModel(new_model));
 
@@ -869,12 +798,12 @@ impl<T: Config> Pallet<T> {
     fn total_borrowed_value(borrower: &T::AccountId) -> Result<FixedU128, DispatchError> {
         let mut total_borrow_value: FixedU128 = FixedU128::zero();
 
-        for currency_id in Currencies::<T>::get().iter() {
-            let currency_borrow_amount = Self::current_borrow_balance(borrower, currency_id)?;
+        for (currency_id, _) in Self::active_markets() {
+            let currency_borrow_amount = Self::current_borrow_balance(borrower, &currency_id)?;
             if currency_borrow_amount.is_zero() {
                 continue;
             }
-            let borrow_currency_price = Self::get_price(currency_id)?;
+            let borrow_currency_price = Self::get_price(&currency_id)?;
             total_borrow_value = borrow_currency_price
                 .checked_mul(&FixedU128::from_inner(currency_borrow_amount))
                 .and_then(|r| r.checked_add(&total_borrow_value))
@@ -887,6 +816,7 @@ impl<T: Config> Pallet<T> {
     fn collateral_asset_value(
         borrower: &T::AccountId,
         currency_id: &CurrencyId,
+        market: &Market,
     ) -> Result<FixedU128, DispatchError> {
         if !AccountDeposits::<T>::contains_key(currency_id, borrower) {
             return Ok(FixedU128::zero());
@@ -898,11 +828,10 @@ impl<T: Config> Pallet<T> {
         if deposits.voucher_balance.is_zero() {
             return Ok(FixedU128::zero());
         }
-        let collateral_factor = CollateralFactor::<T>::get(currency_id);
         let exchange_rate = ExchangeRate::<T>::get(currency_id);
         let currency_price = Self::get_price(currency_id)?;
         let collateral_amount = exchange_rate
-            .checked_mul_int(collateral_factor.mul_floor(deposits.voucher_balance))
+            .checked_mul_int(market.collateral_factor.mul_floor(deposits.voucher_balance))
             .ok_or(ArithmeticError::Overflow)?;
 
         Ok(currency_price
@@ -912,9 +841,13 @@ impl<T: Config> Pallet<T> {
 
     fn total_collateral_value(borrower: &T::AccountId) -> Result<FixedU128, DispatchError> {
         let mut total_asset_value: FixedU128 = FixedU128::zero();
-        for currency_id in Currencies::<T>::get().iter() {
+        for (currency_id, market) in Self::active_markets() {
             total_asset_value = total_asset_value
-                .checked_add(&Self::collateral_asset_value(borrower, currency_id)?)
+                .checked_add(&Self::collateral_asset_value(
+                    borrower,
+                    &currency_id,
+                    &market,
+                )?)
                 .ok_or(ArithmeticError::Overflow)?;
         }
 
@@ -926,6 +859,7 @@ impl<T: Config> Pallet<T> {
         currency_id: &CurrencyId,
         redeemer: &T::AccountId,
         voucher_amount: Balance,
+        market: &Market,
     ) -> DispatchResult {
         let deposit = Self::account_deposits(currency_id, redeemer);
         if deposit.voucher_balance < voucher_amount {
@@ -934,13 +868,12 @@ impl<T: Config> Pallet<T> {
         if !deposit.is_collateral {
             return Ok(());
         }
-        let collateral_factor = Self::collateral_factor(currency_id);
         let price = Self::get_price(currency_id)?;
         let exchange_rate = Self::exchange_rate(currency_id);
         let redeem_amount = Self::calc_underlying_amount(voucher_amount, exchange_rate)?;
         let redeem_effects_value = price
             .checked_mul(&FixedU128::from_inner(
-                collateral_factor.mul_ceil(redeem_amount),
+                market.collateral_factor.mul_ceil(redeem_amount),
             ))
             .ok_or(ArithmeticError::Overflow)?;
 
@@ -957,7 +890,8 @@ impl<T: Config> Pallet<T> {
         currency_id: &CurrencyId,
         voucher_amount: Balance,
     ) -> Result<Balance, DispatchError> {
-        Self::redeem_allowed(currency_id, who, voucher_amount)?;
+        let market = Self::market(currency_id)?;
+        Self::redeem_allowed(currency_id, who, voucher_amount, &market)?;
         let exchange_rate = Self::exchange_rate(currency_id);
         let redeem_amount = Self::calc_underlying_amount(voucher_amount, exchange_rate)?;
         AccountDeposits::<T>::try_mutate_exists(currency_id, who, |deposits| -> DispatchResult {
@@ -1098,6 +1032,7 @@ impl<T: Config> Pallet<T> {
         borrower: &T::AccountId,
         liquidate_currency_id: CurrencyId,
         repay_amount: Balance,
+        market: &Market,
     ) -> DispatchResult {
         let (_, shortfall) = Self::get_account_liquidity(borrower)?;
         if shortfall.is_zero() {
@@ -1106,8 +1041,7 @@ impl<T: Config> Pallet<T> {
 
         // The liquidator may not repay more than 50%(close_factor) of the borrower's borrow balance.
         let account_borrows = Self::current_borrow_balance(&borrower, &liquidate_currency_id)?;
-        let close_factor = CloseFactor::<T>::get(liquidate_currency_id);
-        if close_factor.mul_ceil(account_borrows) < repay_amount {
+        if market.close_factor.mul_ceil(account_borrows) < repay_amount {
             return Err(Error::<T>::TooMuchRepay.into());
         }
 
@@ -1132,10 +1066,12 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         Self::ensure_currency(&liquidate_currency_id)?;
 
+        let market = Self::market(&liquidate_currency_id)?;
+
         if borrower == liquidator {
             return Err(Error::<T>::LiquidatorIsBorrower.into());
         }
-        Self::liquidate_borrow_allowed(&borrower, liquidate_currency_id, repay_amount)?;
+        Self::liquidate_borrow_allowed(&borrower, liquidate_currency_id, repay_amount, &market)?;
 
         let deposits = AccountDeposits::<T>::get(collateral_currency_id, &borrower);
         if !deposits.is_collateral {
@@ -1153,10 +1089,9 @@ impl<T: Config> Pallet<T> {
             .ok_or(ArithmeticError::Overflow)?;
 
         // The incentive for liquidator and punishment for the borrower
-        let liquidation_incentive = LiquidationIncentive::<T>::get(liquidate_currency_id);
         let liquidate_value = Self::get_price(&liquidate_currency_id)?
             .checked_mul(&FixedU128::from_inner(repay_amount))
-            .and_then(|a| a.checked_mul(&liquidation_incentive))
+            .and_then(|a| a.checked_mul(&market.liquidate_incentive))
             .ok_or(Error::<T>::LiquidateValueOverflow)?;
 
         if collateral_value < liquidate_value {
@@ -1267,10 +1202,7 @@ impl<T: Config> Pallet<T> {
 
     // Ensures a given `currency_id` exists on the `Currencies` storage.
     fn ensure_currency(currency_id: &CurrencyId) -> DispatchResult {
-        if Self::currencies()
-            .iter()
-            .any(|currency| currency == currency_id)
-        {
+        if Self::active_markets().any(|(currency, _)| &currency == currency_id) {
             Ok(())
         } else {
             Err(<Error<T>>::CurrencyNotEnabled.into())
@@ -1278,27 +1210,24 @@ impl<T: Config> Pallet<T> {
     }
 
     fn accrue_interest() -> DispatchResult {
-        for currency_id in Self::currencies() {
+        for (currency_id, market) in Self::active_markets() {
             let total_cash = Self::get_total_cash(currency_id);
             let total_borrows = Self::total_borrows(currency_id);
             let total_reserves = Self::total_reserves(currency_id);
             let util = Self::calc_utilization_ratio(total_cash, total_borrows, total_reserves)?;
 
-            let interest_model = Self::currency_interest_model(currency_id);
-            let borrow_rate = interest_model
+            let borrow_rate = market
+                .rate_model
                 .get_borrow_rate(util)
                 .ok_or(ArithmeticError::Overflow)?;
-            let supply_rate = InterestRateModel::get_supply_rate(
-                borrow_rate,
-                util,
-                Self::reserve_factor(currency_id),
-            );
+            let supply_rate =
+                InterestRateModel::get_supply_rate(borrow_rate, util, market.reserve_factor);
 
             UtilizationRatio::<T>::insert(currency_id, util);
             BorrowRate::<T>::insert(currency_id, &borrow_rate);
             SupplyRate::<T>::insert(currency_id, supply_rate);
 
-            Self::update_borrow_index(borrow_rate, currency_id)?;
+            Self::update_borrow_index(borrow_rate, currency_id, &market)?;
             Self::update_exchange_rate(currency_id)?;
         }
 
@@ -1346,14 +1275,17 @@ impl<T: Config> Pallet<T> {
         Ok(Ratio::from_rational(borrows, total))
     }
 
-    pub fn update_borrow_index(borrow_rate: Rate, currency_id: CurrencyId) -> DispatchResult {
+    pub fn update_borrow_index(
+        borrow_rate: Rate,
+        currency_id: CurrencyId,
+        market: &Market,
+    ) -> DispatchResult {
         // interestAccumulated = totalBorrows * borrowRate
         // totalBorrows = interestAccumulated + totalBorrows
         // totalReserves = interestAccumulated * reserveFactor + totalReserves
         // borrowIndex = borrowIndex * (1 + borrowRate)
         let borrows_prior = Self::total_borrows(currency_id);
         let reserve_prior = Self::total_reserves(currency_id);
-        let reserve_factor = Self::reserve_factor(currency_id);
         let delta_time = T::UnixTime::now()
             .as_secs()
             .checked_sub(Self::last_block_timestamp())
@@ -1363,7 +1295,8 @@ impl<T: Config> Pallet<T> {
         let total_borrows_new = interest_accumulated
             .checked_add(borrows_prior)
             .ok_or(ArithmeticError::Overflow)?;
-        let total_reserves_new = reserve_factor
+        let total_reserves_new = market
+            .reserve_factor
             .mul_floor(interest_accumulated)
             .checked_add(reserve_prior)
             .ok_or(ArithmeticError::Overflow)?;
@@ -1411,4 +1344,47 @@ impl<T: Config> Pallet<T> {
 
         Ok(price)
     }
+
+    // Returns a stored Market.
+    //
+    // Returns `Err` if market does not exist.
+    pub fn market(currency_id: &CurrencyId) -> Result<Market, DispatchError> {
+        Markets::<T>::try_get(currency_id).map_err(|_err| Error::<T>::MarketDoesNotExist.into())
+    }
+
+    // Mutates a stored Market.
+    //
+    // Returns `Err` if market does not exist.
+    pub(crate) fn mutate_market<F>(currency_id: &CurrencyId, cb: F) -> Result<(), DispatchError>
+    where
+        F: FnOnce(&mut Market),
+    {
+        Markets::<T>::try_mutate(currency_id, |opt| {
+            if let Some(market) = opt {
+                cb(market);
+                return Ok(());
+            }
+            Err(Error::<T>::MarketDoesNotExist.into())
+        })
+    }
+
+    // All markets that are `MarketStatus::Active`.
+    fn active_markets() -> impl Iterator<Item = (CurrencyId, Market)> {
+        Markets::<T>::iter().filter(|(_, market)| market.state == MarketState::Active)
+    }
 }
+
+#[cfg(any(test, feature = "runtime-benchmarks"))]
+pub const MARKET_MOCK: Market = Market {
+    close_factor: Ratio::from_percent(50),
+    collateral_factor: Ratio::from_percent(50),
+    liquidate_incentive: Rate::from_inner(Rate::DIV / 100 * 110),
+    state: MarketState::Active,
+    rate_model: InterestRateModel::Jump(JumpModel::new_model(
+        Rate::from_inner(Rate::DIV / 100 * 2),
+        Rate::from_inner(Rate::DIV / 100 * 10),
+        Rate::from_inner(Rate::DIV / 100 * 32),
+        Ratio::from_percent(80),
+    )),
+    reserve_factor: Ratio::from_percent(15),
+};

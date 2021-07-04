@@ -43,7 +43,7 @@ use sp_std::prelude::*;
 
 pub use pallet::*;
 use pallet_loans::WeightInfo;
-use primitives::{Balance, CurrencyId, PriceFeeder};
+use primitives::{Balance, CurrencyId, PriceFeeder, Rate};
 
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"pool");
 
@@ -246,8 +246,10 @@ impl<T: Config> Pallet<T> {
                     }
                     Some(v) => v,
                 };
-                let under_collatoral_value = match collateral_value
-                    .checked_mul(&pallet_loans::CollateralFactor::<T>::get(&k1).into())
+                let collateral_factor: Rate = pallet_loans::Pallet::<T>::market(&k1)
+                    .map(|elem| elem.collateral_factor.into())
+                    .unwrap_or_default();
+                let under_collatoral_value = match collateral_value.checked_mul(&collateral_factor)
                 {
                     None => {
                         acc.remove(&k2);

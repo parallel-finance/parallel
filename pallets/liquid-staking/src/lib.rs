@@ -30,7 +30,7 @@ use xcm::v0::{Junction, MultiLocation, NetworkId};
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 
 pub use pallet::*;
-use primitives::{Amount, Balance, CurrencyId, ExchangeRateProvider, Rate, XTransfer};
+use primitives::{Amount, Balance, CurrencyId, ExchangeRateProvider, Rate, Ratio, XTransfer};
 pub use weights::WeightInfo;
 
 mod benchmarking;
@@ -140,6 +140,16 @@ pub mod pallet {
     #[pallet::getter(fn exchange_rate)]
     pub type ExchangeRate<T: Config> = StorageValue<_, Rate, ValueQuery>;
 
+    /// Fraction of reward currently set aside for reserves
+    #[pallet::storage]
+    #[pallet::getter(fn reserve_factor)]
+    pub type ReserveFactor<T: Config> = StorageValue<_, Ratio, ValueQuery>;
+
+    /// The total amount of reserve.
+    #[pallet::storage]
+    #[pallet::getter(fn total_reserve)]
+    pub type TotalReserve<T: Config> = StorageValue<_, Balance, ValueQuery>;
+
     /// The total amount of a staking asset.
     #[pallet::storage]
     #[pallet::getter(fn total_staking)]
@@ -173,6 +183,7 @@ pub mod pallet {
     #[pallet::genesis_config]
     pub struct GenesisConfig {
         pub exchange_rate: Rate,
+        pub reserve_factor: Ratio,
     }
 
     #[cfg(feature = "std")]
@@ -180,6 +191,7 @@ pub mod pallet {
         fn default() -> Self {
             Self {
                 exchange_rate: Rate::default(),
+                reserve_factor: Ratio::default(),
             }
         }
     }
@@ -188,6 +200,7 @@ pub mod pallet {
     impl<T: Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
             ExchangeRate::<T>::put(self.exchange_rate);
+            ReserveFactor::<T>::put(self.reserve_factor);
         }
     }
 
@@ -310,8 +323,19 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::WithdrawOrigin::ensure_origin(origin)?;
 
+            let reserve = Self::reserve_factor().mul_floor(amount);
+            TotalReserve::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_add(reserve).ok_or(ArithmeticError::Overflow)?;
+                Ok(())
+            })?;
+
+            let left_amount = amount
+                .checked_sub(reserve)
+                .ok_or(ArithmeticError::Overflow)?;
             TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
+                *b = b
+                    .checked_add(left_amount)
+                    .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
             let exchange_rate = Rate::checked_from_rational(

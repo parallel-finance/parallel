@@ -1,5 +1,9 @@
 # CHANGE LOG
 
+## 2021.06.30
+
+-   [`loans`] `Currencies`, `CurrencyInterestModel`, `CollateralFactor`, `ReserveFactor`, `LiquidationIncentive` and `CloseFactor` storages were removed in favor of the `Market` structure.
+
 ## 2021.06.22
 
 -   Upgrade to polkadot-v0.9.5 (#237)
@@ -141,3 +145,4 @@
 
 -   Modify types of `BorrowIndex`, `ExchangeRate`, `MultiplierPerBlock`, `JumpMultiplierPerBlock`, `BorrowRate`, `BaseRatePerBlock` from `u128` to `FixedU128` Modify their decimals from 1e9 to 1e18. (#64)
 -   Modify types of `CollatreralFactor`, `UtilizationRatio` from `u128` to `Permill`. (#64)
+,
