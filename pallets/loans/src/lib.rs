@@ -986,7 +986,7 @@ impl<T: Config> Pallet<T> {
         Self::current_balance_from_snapshot(currency_id, snapshot)
     }
 
-    /// Same as `borrow_balance_stored` but takes a given `snapshot` instead of fetching
+    /// Same as `current_borrow_balance` but takes a given `snapshot` instead of fetching
     /// the storage
     pub fn current_balance_from_snapshot(
         currency_id: &CurrencyId,

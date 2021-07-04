@@ -54,7 +54,8 @@ fn deposit_of_borrower_must_be_collateral() {
     })
 }
 
-pub(super) fn collateral_value_must_be_greater_than_liquidation_value() {
+#[test]
+fn collateral_value_must_be_greater_than_liquidation_value() {
     ExtBuilder::default().build().execute_with(|| {
         initial_setup();
         alice_borrows_100_ksm();
@@ -67,11 +68,11 @@ pub(super) fn collateral_value_must_be_greater_than_liquidation_value() {
             Loans::liquidate_borrow(Origin::signed(BOB), ALICE, KSM, million_dollar(50), DOT),
             Error::<Runtime>::InsufficientCollateral
         );
-        MockPriceFeeder::reset();
     })
 }
 
-pub(super) fn full_workflow_works_as_expected() {
+#[test]
+fn full_workflow_works_as_expected() {
     ExtBuilder::default().build().execute_with(|| {
         initial_setup();
         alice_borrows_100_ksm();
@@ -120,11 +121,11 @@ pub(super) fn full_workflow_works_as_expected() {
                 .saturating_mul_int(Loans::account_deposits(DOT, BOB).voucher_balance),
             110000000000000000000,
         );
-        MockPriceFeeder::reset();
     })
 }
 
-pub(super) fn liquidator_can_not_repay_more_than_the_close_factor_pct_multiplier() {
+#[test]
+fn liquidator_can_not_repay_more_than_the_close_factor_pct_multiplier() {
     ExtBuilder::default().build().execute_with(|| {
         initial_setup();
         alice_borrows_100_ksm();
@@ -133,7 +134,6 @@ pub(super) fn liquidator_can_not_repay_more_than_the_close_factor_pct_multiplier
             Loans::liquidate_borrow(Origin::signed(BOB), ALICE, KSM, million_dollar(51), DOT),
             Error::<Runtime>::TooMuchRepay
         );
-        MockPriceFeeder::reset();
     })
 }
 
