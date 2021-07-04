@@ -37,11 +37,11 @@
             "exchangeRatePrior": "u128"
         },
         "Market": {
-            "closeFactor": "Ratio",
             "collateralFactor": "Ratio",
+            "reserveFactor": "Ratio",
+            "closeFactor": "Ratio",
             "liquidateIncentive": "Rate",
             "rateModel": "InterestRateModel",
-            "reserveFactor": "Ratio",
             "state": "MarketState"
         },
         "MarketState": {
@@ -80,7 +80,10 @@
             "baseRate": "Rate"
         },
         "InterestRateModel": {
-            "_enum": ["JumpModel", "CurveModel"]
+            "_enum": {
+                "JumpModel": "JumpModel",
+                "CurveModel": "CurveModel"
+            }
         },
         "UnstakeInfo": {
             "amount": "Balance",
