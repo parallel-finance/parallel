@@ -49,11 +49,15 @@ test-parallel:
 	SKIP_WASM_BUILD= cargo test --manifest-path node/parallel/Cargo.toml --workspace
 
 .PHONY: bench
-bench: bench-loans
+bench: bench-loans bench-liquid-staking
 
 .PHONY: bench-loans
 bench-loans:
 	target/release/parallel-dev benchmark --chain=dev --execution=wasm --wasm-execution=compiled --pallet=pallet-loans --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/loans/src/weights.rs
+
+.PHONY: bench-liquid-staking
+bench-liquid-staking:
+	target/release/parallel-dev benchmark --chain=dev --execution=wasm --wasm-execution=compiled --pallet=pallet-liquid-staking --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/liquid-staking/src/weights.rs
 
 .PHONY: lint
 lint:

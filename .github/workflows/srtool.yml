@@ -1,7 +1,9 @@
 name: Srtool build
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - master
 
 jobs:
   srtool:
@@ -14,9 +16,10 @@ jobs:
       - uses: actions/checkout@v2
       - name: Srtool build
         id: srtool_build
-        uses: chevdor/srtool-actions@v0.1.0
+        uses: chevdor/srtool-actions@v0.2.0
         with:
           chain: ${{ matrix.chain }}
+          tag: 1.53.0-0.9.15
           runtime_dir: runtime/${{ matrix.chain }}
       - name: Summary
         run: |
@@ -29,4 +32,5 @@ jobs:
           name: ${{ matrix.chain }}-runtime-${{ github.sha }}
           path: |
             ${{ steps.srtool_build.outputs.wasm }}
+            ${{ steps.srtool_build.outputs.wasm_compressed }}
             ${{ matrix.chain }}-srtool-digest.json
