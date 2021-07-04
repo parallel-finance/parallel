@@ -50,16 +50,25 @@ where
 }
 
 const DOT: CurrencyId = CurrencyId::DOT;
+const KSM: CurrencyId = CurrencyId::KSM;
 const INITIAL_AMOUNT: u128 = 100_000_000_000;
 const SEED: u32 = 0;
 
-fn initial_set_up<T: Config>(caller: T::AccountId) {
+fn initial_set_up<T: Config>() {
     let account_id = Loans::<T>::account_id();
     pallet_loans::ExchangeRate::<T>::insert(DOT, Rate::saturating_from_rational(2, 100));
+    pallet_loans::ExchangeRate::<T>::insert(KSM, Rate::saturating_from_rational(2, 100));
     pallet_loans::BorrowIndex::<T>::insert(DOT, Rate::one());
+    pallet_loans::BorrowIndex::<T>::insert(KSM, Rate::one());
     pallet_loans::Markets::<T>::insert(DOT, MARKET_MOCK);
-    <T as LoansConfig>::Currency::deposit(DOT, &caller, INITIAL_AMOUNT).unwrap();
+    pallet_loans::Markets::<T>::insert(KSM, MARKET_MOCK);
     <T as LoansConfig>::Currency::deposit(DOT, &account_id, INITIAL_AMOUNT).unwrap();
+    <T as LoansConfig>::Currency::deposit(KSM, &account_id, INITIAL_AMOUNT).unwrap();
+}
+
+fn transfer_initial_balance<T: Config>(caller: T::AccountId) {
+    <T as LoansConfig>::Currency::deposit(DOT, &caller, INITIAL_AMOUNT).unwrap();
+    <T as LoansConfig>::Currency::deposit(KSM, &caller, INITIAL_AMOUNT).unwrap();
 }
 
 benchmarks! {
@@ -75,7 +84,8 @@ benchmarks! {
 
     mint {
         let caller: T::AccountId = whitelisted_caller();
-        initial_set_up::<T>(caller.clone());
+        initial_set_up::<T>();
+        transfer_initial_balance::<T>(caller.clone());
         let amount = 100_000;
     }: {
         let _ = Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, amount);
@@ -89,7 +99,8 @@ benchmarks! {
 
     borrow {
         let caller: T::AccountId = whitelisted_caller();
-        initial_set_up::<T>(caller.clone());
+        initial_set_up::<T>();
+        transfer_initial_balance::<T>(caller.clone());
         let amount = 200_000_000;
         let borrowed_amount = 100_000_000;
         let currency_id: <T as ORMLOracleConfig<Instance1>>::OracleKey = T::convert(DOT);
@@ -111,7 +122,8 @@ benchmarks! {
 
     redeem {
         let caller: T::AccountId = whitelisted_caller();
-        initial_set_up::<T>(caller.clone());
+        initial_set_up::<T>();
+        transfer_initial_balance::<T>(caller.clone());
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, 100_000_000));
         let amount = 100_000;
         let initial_balance = <T as LoansConfig>::Currency::free_balance(DOT, &Loans::<T>::account_id());
@@ -127,7 +139,8 @@ benchmarks! {
 
     redeem_all {
         let caller: T::AccountId = whitelisted_caller();
-        initial_set_up::<T>(caller.clone());
+        initial_set_up::<T>();
+        transfer_initial_balance::<T>(caller.clone());
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, 100_000_000));
         let deposits = Loans::<T>::account_deposits(DOT, caller.clone());
         let exchange_rate = Loans::<T>::exchange_rate(DOT);
@@ -147,7 +160,8 @@ benchmarks! {
 
     repay_borrow {
         let caller: T::AccountId = whitelisted_caller();
-        initial_set_up::<T>(caller.clone());
+        initial_set_up::<T>();
+        transfer_initial_balance::<T>(caller.clone());
         let amount = 200_000_000;
         let borrowed_amount = 100_000_000;
         let repay_amount = 100;
@@ -171,7 +185,8 @@ benchmarks! {
 
     repay_borrow_all {
         let caller: T::AccountId = whitelisted_caller();
-        initial_set_up::<T>(caller.clone());
+        initial_set_up::<T>();
+        transfer_initial_balance::<T>(caller.clone());
         let borrowed_amount = 100_000_000;
         let currency_id: <T as ORMLOracleConfig<Instance1>>::OracleKey = T::convert(DOT);
         let price: <T as ORMLOracleConfig<Instance1>>::OracleValue = T::convert_price(PriceWithDecimal{ price: FixedU128::from(100_000), decimal: 12 });
@@ -194,7 +209,8 @@ benchmarks! {
 
     transfer_token {
         let caller: T::AccountId = whitelisted_caller();
-        initial_set_up::<T>(caller.clone());
+        initial_set_up::<T>();
+        transfer_initial_balance::<T>(caller.clone());
         let to: T::AccountId = account("Sample", 100, SEED);
         let amount = 200_000_000;
         let initial_balance = <T as LoansConfig>::Currency::free_balance(DOT, &caller.clone());
@@ -210,7 +226,8 @@ benchmarks! {
 
     collateral_asset {
         let caller: T::AccountId = whitelisted_caller();
-        initial_set_up::<T>(caller.clone());
+        initial_set_up::<T>();
+        transfer_initial_balance::<T>(caller.clone());
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT, INITIAL_AMOUNT));
     }: {
          let _ = Loans::<T>::collateral_asset(SystemOrigin::Signed(caller.clone()).into(), DOT, true);
@@ -223,34 +240,36 @@ benchmarks! {
     }
 
     liquidate_borrow {
-        let borrower: T::AccountId = whitelisted_caller();
-        initial_set_up::<T>(borrower.clone());
-        let caller: T::AccountId = account("Sample", 100, SEED);
-        <T as LoansConfig>::Currency::deposit(DOT, &caller.clone(), INITIAL_AMOUNT).unwrap();
-        let repay_amount = 2000;
-        let borrowed_amount = 100_000_000;
-        let currency_id: <T as ORMLOracleConfig<Instance1>>::OracleKey = T::convert(DOT);
+        let alice: T::AccountId = whitelisted_caller();
+        initial_set_up::<T>();
+        let bob: T::AccountId = account("Sample", 100, SEED);
+        let currency_id: <T as ORMLOracleConfig<Instance1>>::OracleKey = T::convert(KSM);
         let price: <T as ORMLOracleConfig<Instance1>>::OracleValue = T::convert_price(PriceWithDecimal{ price: FixedU128::from(100_000), decimal: 12 });
         assert_ok!(ORMLOracle::<T, _>::feed_values(SystemOrigin::Root.into(),
             vec![(currency_id, price)]));
-        assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(borrower.clone()).into(), DOT, INITIAL_AMOUNT));
-        assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(borrower.clone()).into(), DOT, true));
-        assert_ok!(Loans::<T>::borrow(SystemOrigin::Signed(borrower.clone()).into(), DOT, borrowed_amount));
-        let total_borrows = pallet_loans::TotalBorrows::<T>::get(DOT);
+        <T as LoansConfig>::Currency::deposit(DOT, &alice.clone(), 100_000_000_0).unwrap();
+        <T as LoansConfig>::Currency::deposit(KSM, &alice.clone(), 100_000_000_0).unwrap();
+        <T as LoansConfig>::Currency::deposit(DOT, &bob.clone(), 100_000_000_0).unwrap();
+        <T as LoansConfig>::Currency::deposit(KSM, &bob.clone(), 100_000_000_0).unwrap();
+        assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(bob.clone()).into(), KSM, 200_000_000));
+        assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(alice.clone()).into(), DOT, 200_000_000));
+        assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(alice.clone()).into(), DOT, true));
+        assert_ok!(Loans::<T>::borrow(SystemOrigin::Signed(alice.clone()).into(), KSM, 100_000_000));
     }: {
-         let _ = Loans::<T>::liquidate_borrow(SystemOrigin::Signed(caller.clone()).into(), borrower, DOT, repay_amount, DOT);
+         let _ = Loans::<T>::liquidate_borrow(SystemOrigin::Signed(bob).into(), alice.clone(), KSM, 50_000_000, DOT);
     }
     verify {
         assert_eq!(
-            pallet_loans::TotalBorrows::<T>::get(DOT),
-            total_borrows - repay_amount,
+            <T as LoansConfig>::Currency::free_balance(DOT, &alice),
+            800_000_000,
         );
     }
 
     add_reserves {
         let caller: T::AccountId = whitelisted_caller();
         let payer = T::Lookup::unlookup(caller.clone());
-        initial_set_up::<T>(caller.clone());
+        initial_set_up::<T>();
+        transfer_initial_balance::<T>(caller.clone());
         let amount = 2000;
         let total_reserves = Loans::<T>::total_reserves(DOT);
     }: {
@@ -266,7 +285,8 @@ benchmarks! {
     reduce_reserves {
         let caller: T::AccountId = whitelisted_caller();
         let payer = T::Lookup::unlookup(caller.clone());
-        initial_set_up::<T>(caller.clone());
+        initial_set_up::<T>();
+        transfer_initial_balance::<T>(caller.clone());
         let amount = 2000;
         let amount1 = 1000;
         assert_ok!(Loans::<T>::add_reserves(SystemOrigin::Root.into(), payer.clone(), DOT, amount));
