@@ -10,7 +10,7 @@ use frame_system::RawOrigin as SystemOrigin;
 use orml_oracle::Instance1;
 use orml_oracle::{Config as ORMLOracleConfig, Pallet as ORMLOracle};
 use orml_traits::MultiCurrency;
-use pallet_loans::{Config as LoansConfig, InterestRateModel, Pallet as Loans, MARKET_MOCK};
+use pallet_loans::{Config as LoansConfig, InterestRateModel, Pallet as Loans};
 use primitives::{CurrencyId, PriceWithDecimal, Rate, Ratio};
 use sp_runtime::traits::{Bounded, One, StaticLookup};
 use sp_runtime::{ArithmeticError, FixedPointNumber, FixedU128};
@@ -57,7 +57,6 @@ fn initial_set_up<T: Config>(caller: T::AccountId) {
     let account_id = Loans::<T>::account_id();
     pallet_loans::ExchangeRate::<T>::insert(DOT, Rate::saturating_from_rational(2, 100));
     pallet_loans::BorrowIndex::<T>::insert(DOT, Rate::one());
-    pallet_loans::Markets::<T>::insert(DOT, MARKET_MOCK);
     <T as LoansConfig>::Currency::deposit(DOT, &caller, INITIAL_AMOUNT).unwrap();
     <T as LoansConfig>::Currency::deposit(DOT, &account_id, INITIAL_AMOUNT).unwrap();
 }

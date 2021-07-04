@@ -25,7 +25,7 @@ use frame_support::{
 use frame_system::EnsureRoot;
 use orml_oracle::DefaultCombineData;
 use orml_traits::parameter_type_with_key;
-use pallet_loans::MARKET_MOCK;
+use pallet_loans::{JumpModel, Market, MarketState};
 use primitives::{Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, PriceWithDecimal};
 use sp_core::H256;
 use sp_runtime::FixedPointNumber;
@@ -273,3 +273,17 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
     sp_io::TestExternalities::new(t)
 }
+
+pub const MARKET_MOCK: Market = Market {
+    close_factor: Ratio::from_percent(50),
+    collateral_factor: Ratio::from_percent(50),
+    liquidate_incentive: Rate::from_inner(Rate::DIV / 100 * 110),
+    state: MarketState::Active,
+    rate_model: InterestRateModel::Jump(JumpModel {
+        base_rate: Rate::from_inner(Rate::DIV / 100 * 2),
+        jump_rate: Rate::from_inner(Rate::DIV / 100 * 10),
+        full_rate: Rate::from_inner(Rate::DIV / 100 * 32),
+        jump_utilization: Ratio::from_percent(80),
+    }),
+    reserve_factor: Ratio::from_percent(15),
+};
