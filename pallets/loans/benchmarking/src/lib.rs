@@ -11,7 +11,9 @@ use orml_oracle::Instance1;
 use orml_oracle::{Config as ORMLOracleConfig, Pallet as ORMLOracle};
 use orml_traits::MultiCurrency;
 use pallet_loans::{Config as LoansConfig, InterestRateModel, Pallet as Loans};
-use primitives::{CurrencyId, PriceWithDecimal, Rate, Ratio};
+use pallet_loans::{JumpModel, Market, MarketState};
+use pallet_prices::{Config as PriceConfig, Pallet as Prices};
+use primitives::{CurrencyId, Price, PriceWithDecimal, Rate, Ratio};
 use sp_runtime::traits::{Bounded, One, StaticLookup};
 use sp_runtime::{ArithmeticError, FixedPointNumber, FixedU128};
 use sp_std::prelude::*;
@@ -19,7 +21,11 @@ use sp_std::vec;
 
 pub struct Pallet<T: Config>(Loans<T>);
 pub trait Config:
-    LoansConfig + ORMLOracleConfig<Instance1> + CurrencyIdConvert<Self> + FixedU128Convert<Self>
+    LoansConfig
+    + ORMLOracleConfig<Instance1>
+    + CurrencyIdConvert<Self>
+    + FixedU128Convert<Self>
+    + PriceConfig
 {
 }
 
@@ -53,6 +59,19 @@ const DOT: CurrencyId = CurrencyId::DOT;
 const KSM: CurrencyId = CurrencyId::KSM;
 const INITIAL_AMOUNT: u128 = 100_000_000_000;
 const SEED: u32 = 0;
+const MARKET_MOCK: Market = Market {
+    close_factor: Ratio::from_percent(50),
+    collateral_factor: Ratio::from_percent(50),
+    liquidate_incentive: Rate::from_inner(Rate::DIV / 100 * 110),
+    state: MarketState::Active,
+    rate_model: InterestRateModel::Jump(JumpModel {
+        base_rate: Rate::from_inner(Rate::DIV / 100 * 2),
+        jump_rate: Rate::from_inner(Rate::DIV / 100 * 10),
+        full_rate: Rate::from_inner(Rate::DIV / 100 * 32),
+        jump_utilization: Ratio::from_percent(80),
+    }),
+    reserve_factor: Ratio::from_percent(15),
+};
 
 fn initial_set_up<T: Config>() {
     let account_id = Loans::<T>::account_id();
@@ -63,6 +82,9 @@ fn initial_set_up<T: Config>() {
 
     <T as LoansConfig>::Currency::deposit(DOT, &account_id, INITIAL_AMOUNT).unwrap();
     <T as LoansConfig>::Currency::deposit(KSM, &account_id, INITIAL_AMOUNT).unwrap();
+
+    pallet_loans::Markets::<T>::insert(DOT, MARKET_MOCK);
+    pallet_loans::Markets::<T>::insert(KSM, MARKET_MOCK);
 }
 
 fn transfer_initial_balance<T: Config>(caller: T::AccountId) {
@@ -239,28 +261,31 @@ benchmarks! {
     }
 
     liquidate_borrow {
-        let alice: T::AccountId = whitelisted_caller();
+        let alice: T::AccountId = account("Sample", 100, SEED);
         initial_set_up::<T>();
-        let bob: T::AccountId = account("Sample", 100, SEED);
-        let currency_id: <T as ORMLOracleConfig<Instance1>>::OracleKey = T::convert(KSM);
-        let price: <T as ORMLOracleConfig<Instance1>>::OracleValue = T::convert_price(PriceWithDecimal{ price: FixedU128::from(100_000), decimal: 12 });
-        assert_ok!(ORMLOracle::<T, _>::feed_values(SystemOrigin::Root.into(),
-            vec![(currency_id, price)]));
-        <T as LoansConfig>::Currency::deposit(DOT, &alice.clone(), 100_000_000_0).unwrap();
-        <T as LoansConfig>::Currency::deposit(KSM, &alice.clone(), 100_000_000_0).unwrap();
-        <T as LoansConfig>::Currency::deposit(DOT, &bob.clone(), 100_000_000_0).unwrap();
-        <T as LoansConfig>::Currency::deposit(KSM, &bob.clone(), 100_000_000_0).unwrap();
-        assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(bob.clone()).into(), KSM, 200_000_000));
-        assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(alice.clone()).into(), DOT, 200_000_000));
+        let bob: T::AccountId = account("Sample", 101, SEED);
+        transfer_initial_balance::<T>(alice.clone());
+        transfer_initial_balance::<T>(bob.clone());
+        assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(bob.clone()).into(), KSM, 200_000_000_00));
+        assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(alice.clone()).into(), DOT, 200_000_000_00));
         assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(alice.clone()).into(), DOT, true));
-        assert_ok!(Loans::<T>::borrow(SystemOrigin::Signed(alice.clone()).into(), KSM, 100_000_000));
+        assert_ok!(Loans::<T>::borrow(SystemOrigin::Signed(alice.clone()).into(), KSM, 100_000_000_00));
+                let price = PriceWithDecimal {
+                    price: Price::saturating_from_integer(2),
+                    decimal: 8
+                };
+        assert_ok!(Prices::<T>::set_price(SystemOrigin::Root.into(), KSM, price));
     }: {
-         let _ = Loans::<T>::liquidate_borrow(SystemOrigin::Signed(bob).into(), alice.clone(), KSM, 50_000_000, DOT);
+         let _ = Loans::<T>::liquidate_borrow(SystemOrigin::Signed(bob.clone()).into(), alice.clone(), KSM, 50_000_000_00, DOT);
     }
     verify {
         assert_eq!(
             <T as LoansConfig>::Currency::free_balance(DOT, &alice),
-            800_000_000,
+            800_000_000_00,
+        );
+        assert_eq!(
+            <T as LoansConfig>::Currency::free_balance(KSM, &bob),
+            750_000_000_00,
         );
     }
 
@@ -302,6 +327,7 @@ benchmarks! {
 
     set_rate_model {
         let caller: T::AccountId = whitelisted_caller();
+        initial_set_up::<T>();
     }: {
          let _ = Loans::<T>::set_rate_model(
             SystemOrigin::Root.into(),
