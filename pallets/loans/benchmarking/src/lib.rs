@@ -279,13 +279,14 @@ benchmarks! {
          let _ = Loans::<T>::liquidate_borrow(SystemOrigin::Signed(bob.clone()).into(), alice.clone(), KSM, 50_000_000_00, DOT);
     }
     verify {
-        assert_eq!(
-            <T as LoansConfig>::Currency::free_balance(DOT, &alice),
-            800_000_000_00,
+         assert_eq!(
+            Loans::<T>::account_borrows(KSM, alice).principal,
+            50_000_000_00
         );
         assert_eq!(
-            <T as LoansConfig>::Currency::free_balance(KSM, &bob),
-            750_000_000_00,
+            Loans::<T>::exchange_rate(DOT)
+                .saturating_mul_int(Loans::<T>::account_deposits(DOT, bob).voucher_balance),
+            11_000_000_000,
         );
     }
 
