@@ -64,12 +64,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
                 wasm_binary,
                 get_account_id_from_seed::<sr25519::Public>("Alice"),
                 vec![authority_keys_from_seed("Alice")],
-                vec![
-                    "5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
-                        .parse()
-                        .unwrap(),
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-                ],
+                vec![get_account_id_from_seed::<sr25519::Public>("Ferdie")],
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Alice"),
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -82,10 +77,6 @@ pub fn development_config() -> Result<ChainSpec, String> {
                     get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-                    // Parallel team accounts
-                    "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                        .parse()
-                        .unwrap(),
                 ],
             )
         },

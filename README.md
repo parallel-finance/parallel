@@ -54,7 +54,7 @@ make launch
 
 ### Local Testnet
 
-Polkadot (release-v0.9.5 branch, you'll need to cherry-pick this commit: b66483bc368812237469e1ff83dfea590fe8050f)
+Polkadot (release-v0.9.6 branch)
 
 ```
 cargo build --release
@@ -147,7 +147,7 @@ docker run --restart=always -d -p 9988:9988 \
 Run Heiko parachain
 
 ```
-docker-compose -f docker-compose-para.yml up -d
+docker-compose -f docker-compose-heiko.yml up -d
 docker-compose logs -f
 ```
 
