@@ -14,7 +14,7 @@ use pallet_loans::{Config as LoansConfig, InterestRateModel, Pallet as Loans};
 use pallet_loans::{JumpModel, Market, MarketState};
 use pallet_prices::{Config as PriceConfig, Pallet as Prices};
 use primitives::{CurrencyId, Price, PriceWithDecimal, Rate, Ratio};
-use sp_runtime::traits::{Bounded, One, StaticLookup};
+use sp_runtime::traits::{One, StaticLookup};
 use sp_runtime::{ArithmeticError, FixedPointNumber, FixedU128};
 use sp_std::prelude::*;
 use sp_std::vec;
@@ -93,13 +93,32 @@ fn transfer_initial_balance<T: Config>(caller: T::AccountId) {
 }
 
 benchmarks! {
-    set_liquidation_incentive {
+    active_market {
         let caller: T::AccountId = whitelisted_caller();
     }: {
-        let _ = Loans::<T>::set_liquidation_incentive(
-            SystemOrigin::Root.into(),
+        let _ = Loans::<T>::active_market(
+            SystemOrigin::Signed(caller.clone()).into(),
             DOT,
-            Rate::max_value()
+        );
+    }
+
+    add_market {
+        let caller: T::AccountId = whitelisted_caller();
+    }: {
+        let _ = Loans::<T>::add_market(
+            SystemOrigin::Signed(caller.clone()).into(),
+            CurrencyId::Native,
+            MARKET_MOCK
+        );
+    }
+
+    update_market {
+        let caller: T::AccountId = whitelisted_caller();
+    }: {
+        let _ = Loans::<T>::update_market(
+            SystemOrigin::Signed(caller.clone()).into(),
+            DOT,
+            MARKET_MOCK
         );
     }
 
@@ -323,31 +342,6 @@ benchmarks! {
         assert_eq!(
             Loans::<T>::total_reserves(DOT),
             total_reserves - amount1,
-        );
-    }
-
-    set_rate_model {
-        let caller: T::AccountId = whitelisted_caller();
-        initial_set_up::<T>();
-    }: {
-         let _ = Loans::<T>::set_rate_model(
-            SystemOrigin::Root.into(),
-            DOT,
-            InterestRateModel::new_jump_model(
-                Rate::saturating_from_rational(5, 100),
-                Rate::saturating_from_rational(15, 100),
-                Rate::saturating_from_rational(35, 100),
-                Ratio::from_percent(80))
-         );
-    }
-    verify {
-        assert_eq!(
-            pallet_loans::Markets::<T>::get(DOT).unwrap().rate_model,
-            InterestRateModel::new_jump_model(
-                Rate::saturating_from_rational(5, 100),
-                Rate::saturating_from_rational(15, 100),
-                Rate::saturating_from_rational(35, 100),
-                Ratio::from_percent(80))
         );
     }
 }

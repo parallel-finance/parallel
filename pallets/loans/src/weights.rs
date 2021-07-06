@@ -46,7 +46,9 @@ use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_loans.
 pub trait WeightInfo {
-    fn set_liquidation_incentive() -> Weight;
+    fn active_market() -> Weight;
+    fn add_market() -> Weight;
+    fn update_market() -> Weight;
     fn mint() -> Weight;
     fn borrow() -> Weight;
     fn redeem() -> Weight;
@@ -58,14 +60,19 @@ pub trait WeightInfo {
     fn liquidate_borrow() -> Weight;
     fn add_reserves() -> Weight;
     fn reduce_reserves() -> Weight;
-    fn set_rate_model() -> Weight;
 }
 
 /// Weights for pallet_loans using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
-    fn set_liquidation_incentive() -> Weight {
-        (3_787_000 as Weight).saturating_add(T::DbWeight::get().reads(1 as Weight))
+    fn active_market() -> Weight {
+        0
+    }
+    fn add_market() -> Weight {
+        0
+    }
+    fn update_market() -> Weight {
+        0
     }
     fn mint() -> Weight {
         (63_000_000 as Weight)
@@ -122,15 +129,18 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().reads(3 as Weight))
             .saturating_add(T::DbWeight::get().writes(3 as Weight))
     }
-    fn set_rate_model() -> Weight {
-        (8_000_000 as Weight).saturating_add(T::DbWeight::get().writes(1 as Weight))
-    }
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
-    fn set_liquidation_incentive() -> Weight {
-        (3_787_000 as Weight).saturating_add(RocksDbWeight::get().reads(1 as Weight))
+    fn active_market() -> Weight {
+        0
+    }
+    fn add_market() -> Weight {
+        0
+    }
+    fn update_market() -> Weight {
+        0
     }
     fn mint() -> Weight {
         (63_000_000 as Weight)
@@ -186,8 +196,5 @@ impl WeightInfo for () {
         (49_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(3 as Weight))
             .saturating_add(RocksDbWeight::get().writes(3 as Weight))
-    }
-    fn set_rate_model() -> Weight {
-        (8_000_000 as Weight).saturating_add(RocksDbWeight::get().writes(1 as Weight))
     }
 }
