@@ -26,7 +26,10 @@ use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::crypto::UncheckedInto;
 use sp_core::sr25519;
-use sp_runtime::{traits::One, FixedPointNumber};
+use sp_runtime::{
+    traits::{One, Zero},
+    FixedPointNumber,
+};
 
 use crate::chain_spec::{get_account_id_from_seed, get_authority_keys_from_seed, Extensions};
 
@@ -173,7 +176,7 @@ fn testnet_genesis(
                 endowed_accounts.extend_from_slice(&oracle_accounts);
                 let ed_balances = invulnerables
                     .iter()
-                    .map(|invulnerable| (invulnerable.0.clone(), 16 * EXISTENTIAL_DEPOSIT));
+                    .map(|invulnerable| (invulnerable.0.clone(), EXISTENTIAL_DEPOSIT));
 
                 endowed_accounts
                     .into_iter()
@@ -184,8 +187,9 @@ fn testnet_genesis(
         },
         collator_selection: CollatorSelectionConfig {
             invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
-            candidacy_bond: EXISTENTIAL_DEPOSIT * 16,
+            candidacy_bond: Zero::zero(),
             desired_candidates: 16,
+            ..Default::default()
         },
         session: SessionConfig {
             keys: invulnerables
