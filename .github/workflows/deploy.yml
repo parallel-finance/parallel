@@ -1,16 +1,10 @@
 name: Deploy
 
 on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches: [master]
-
-  # workflow_run:
-  #   workflows: ["Docker Image"]
-  #   types:
-  #     - completed
+  workflow_run:
+    workflows: ["Docker Image"]
+    types:
+      - completed
 
 jobs:
   deploy:
