@@ -28,7 +28,5 @@ jobs:
             docker image pull ${{ secrets.DOCKERHUB_REPO }}:latest
             docker container stop parallel || true
             docker container rm parallel || true
-            docker run --restart=always --name parallel -d -p 9944:9944 \
-              -v "$(pwd):/data" \
-              parallelfinance/parallel:latest \
-              parallel-dev -d /data --chain live --alice --rpc-cors all --rpc-methods=Unsafe --unsafe-rpc-external --unsafe-ws-external
+            docker volume create parallel-chains || true
+            docker run --restart=always --name parallel -d -p 9944:9944 -v "parallel-chains:/data" parallelfinance/parallel:latest parallel-dev -d /data --chain live --alice --rpc-cors all --rpc-methods=Unsafe --unsafe-rpc-external --unsafe-ws-external
