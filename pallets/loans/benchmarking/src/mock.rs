@@ -18,21 +18,22 @@
 use super::*;
 
 use frame_support::{
-    construct_runtime, parameter_types,
+    construct_runtime, ord_parameter_types, parameter_types,
     traits::{SortedMembers, Time},
     PalletId,
 };
 use frame_system::EnsureRoot;
 use orml_oracle::DefaultCombineData;
 use orml_traits::parameter_type_with_key;
-use pallet_loans::{JumpModel, Market, MarketState};
-use primitives::{Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, PriceWithDecimal};
+use orml_traits::DataProvider;
+use orml_traits::DataProviderExtended;
+use primitives::{
+    Amount, Balance, CurrencyId, ExchangeRateProvider, Moment, Price, PriceWithDecimal,
+};
 use sp_core::H256;
-use sp_runtime::FixedPointNumber;
-use sp_runtime::{testing::Header, traits::IdentityLookup};
+use sp_runtime::{testing::Header, traits::IdentityLookup, FixedPointNumber};
 use sp_std::vec::Vec;
 use std::cell::RefCell;
-use std::collections::HashMap;
 
 pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
 pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<u32, Call, u64, ()>;
@@ -49,6 +50,7 @@ construct_runtime!(
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Loans: pallet_loans::{Pallet, Storage, Call, Config, Event<T>},
         Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
+        Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
         TimestampPallet: pallet_timestamp::{Pallet, Call, Storage, Inherent},
     }
 );
@@ -89,8 +91,6 @@ pub type BlockNumber = u64;
 
 pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const KSM: CurrencyId = CurrencyId::KSM;
-pub const USDT: CurrencyId = CurrencyId::USDT;
-pub const XDOT: CurrencyId = CurrencyId::xDOT;
 pub const NATIVE: CurrencyId = CurrencyId::Native;
 
 parameter_types! {
@@ -151,39 +151,6 @@ impl pallet_balances::Config for Test {
     type WeightInfo = ();
 }
 
-pub struct MockPriceFeeder;
-
-impl MockPriceFeeder {
-    thread_local! {
-        pub static PRICES: RefCell<HashMap<CurrencyId, Option<PriceDetail>>> = RefCell::new(
-            vec![DOT, KSM, USDT, XDOT]
-                .iter()
-                .map(|&x| (x, Some((Price::saturating_from_integer(1), 1))))
-                .collect()
-        );
-    }
-
-    pub fn set_price(currency_id: CurrencyId, price: Price) {
-        Self::PRICES.with(|prices| {
-            prices.borrow_mut().insert(currency_id, Some((price, 1u64)));
-        });
-    }
-
-    pub fn reset() {
-        Self::PRICES.with(|prices| {
-            for (_, val) in prices.borrow_mut().iter_mut() {
-                *val = Some((Price::saturating_from_integer(1), 1u64));
-            }
-        })
-    }
-}
-
-impl PriceFeeder for MockPriceFeeder {
-    fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
-        Self::PRICES.with(|prices| *prices.borrow().get(currency_id).unwrap())
-    }
-}
-
 thread_local! {
     static TIME: RefCell<u32> = RefCell::new(0);
 }
@@ -235,11 +202,66 @@ impl orml_oracle::Config<Instance1> for Test {
     type MaxHasDispatchedSize = MaxHasDispatchedSize;
 }
 
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<PriceWithDecimal, Moment>;
+pub struct MockDataProvider;
+impl DataProvider<CurrencyId, TimeStampedPrice> for MockDataProvider {
+    fn get(currency_id: &CurrencyId) -> Option<TimeStampedPrice> {
+        match *currency_id {
+            DOT => Some(TimeStampedPrice {
+                value: PriceWithDecimal {
+                    price: Price::saturating_from_integer(100),
+                    decimal: 10,
+                },
+                timestamp: 0,
+            }),
+            KSM => Some(TimeStampedPrice {
+                value: PriceWithDecimal {
+                    price: Price::saturating_from_integer(500),
+                    decimal: 12,
+                },
+                timestamp: 0,
+            }),
+            _ => None,
+        }
+    }
+}
+
+impl DataProviderExtended<CurrencyId, TimeStampedPrice> for MockDataProvider {
+    fn get_no_op(_key: &CurrencyId) -> Option<TimeStampedPrice> {
+        None
+    }
+
+    fn get_all_values() -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
+        vec![]
+    }
+}
+
+pub struct LiquidStakingExchangeRateProvider;
+impl ExchangeRateProvider for LiquidStakingExchangeRateProvider {
+    fn get_exchange_rate() -> Rate {
+        Rate::saturating_from_rational(150, 100)
+    }
+}
+
+ord_parameter_types! {
+    pub const StakingCurrency: CurrencyId = CurrencyId::KSM;
+    pub const LiquidCurrency: CurrencyId = CurrencyId::xKSM;
+}
+
+impl pallet_prices::Config for Test {
+    type Event = Event;
+    type Source = MockDataProvider;
+    type FeederOrigin = EnsureRoot<AccountId>;
+    type StakingCurrency = StakingCurrency;
+    type LiquidCurrency = LiquidCurrency;
+    type LiquidStakingExchangeRateProvider = LiquidStakingExchangeRateProvider;
+}
+
 impl pallet_loans::Config for Test {
     type Event = Event;
     type Currency = Currencies;
     type PalletId = LoansPalletId;
-    type PriceFeeder = MockPriceFeeder;
+    type PriceFeeder = Prices;
     type ReserveOrigin = EnsureRoot<AccountId>;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
@@ -258,14 +280,9 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .unwrap();
 
     pallet_loans::GenesisConfig {
-        borrow_index: Rate::one(),                             // 1
+        borrow_index: Rate::from(1),                           // 1
         exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
-        markets: vec![
-            (CurrencyId::DOT, MARKET_MOCK),
-            (CurrencyId::KSM, MARKET_MOCK),
-            (CurrencyId::USDT, MARKET_MOCK),
-            (CurrencyId::xDOT, MARKET_MOCK),
-        ],
+        markets: vec![],
         last_block_timestamp: 1,
     }
     .assimilate_storage::<Test>(&mut t)
@@ -273,17 +290,3 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
     sp_io::TestExternalities::new(t)
 }
-
-pub const MARKET_MOCK: Market = Market {
-    close_factor: Ratio::from_percent(50),
-    collateral_factor: Ratio::from_percent(50),
-    liquidate_incentive: Rate::from_inner(Rate::DIV / 100 * 110),
-    state: MarketState::Active,
-    rate_model: InterestRateModel::Jump(JumpModel {
-        base_rate: Rate::from_inner(Rate::DIV / 100 * 2),
-        jump_rate: Rate::from_inner(Rate::DIV / 100 * 10),
-        full_rate: Rate::from_inner(Rate::DIV / 100 * 32),
-        jump_utilization: Ratio::from_percent(80),
-    }),
-    reserve_factor: Ratio::from_percent(15),
-};

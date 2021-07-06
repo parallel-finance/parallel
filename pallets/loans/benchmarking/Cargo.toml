@@ -18,6 +18,7 @@ orml-tokens        = { git = 'https://github.com/open-web3-stack/open-runtime-mo
 orml-traits        = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 pallet-balances    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.5', version = '3.0.0', default-features = false }
 pallet-loans       = { default-features = false, features = ['runtime-benchmarks'], path = '../../loans' }
+pallet-prices      = { path = '../../../pallets/prices', default-features = false }
 primitives         = { package = 'parallel-primitives', path = '../../../primitives', default-features = false }
 sp-runtime         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.5', version = '3.0.0', default-features = false }
 sp-std             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.5', version = '3.0.0', default-features = false }
@@ -41,6 +42,7 @@ std     = [
   'pallet-balances/std',
   'primitives/std',
   'pallet-loans/std',
+  'pallet-prices/std',
   'primitives/std',
   'sp-runtime/std',
   'sp-std/std',
