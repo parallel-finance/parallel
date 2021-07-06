@@ -2867,6 +2867,7 @@ dependencies = [
  "pallet-liquidation",
  "pallet-loans",
  "pallet-loans-benchmarking",
+ "pallet-loans-rpc-runtime-api",
  "pallet-membership",
  "pallet-multisig",
  "pallet-prices",
@@ -5436,6 +5437,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-loans-rpc-runtime-api"
+version = "3.0.0"
+dependencies = [
+ "parity-scale-codec",
+ "sp-api",
+ "sp-runtime",
+]
+
+[[package]]
 name = "pallet-membership"
 version = "3.0.0"
 source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.5#9c572625f6557dfdb19f47474369a0327d51dfbc"
@@ -6066,6 +6076,7 @@ dependencies = [
  "pallet-liquidation",
  "pallet-loans",
  "pallet-loans-benchmarking",
+ "pallet-loans-rpc-runtime-api",
  "pallet-membership",
  "pallet-multisig",
  "pallet-prices",
@@ -11651,6 +11662,7 @@ dependencies = [
  "pallet-liquidation",
  "pallet-loans",
  "pallet-loans-benchmarking",
+ "pallet-loans-rpc-runtime-api",
  "pallet-membership",
  "pallet-multisig",
  "pallet-prices",
