@@ -153,8 +153,8 @@ pub mod pallet {
         PriceOracleNotReady,
         /// Market does not exist
         MarketDoesNotExist,
-        /// It is not possible to create a market with a currency that is already stored
-        MarketCurrencyAlreadyExists,
+        /// New markets must have a pending state
+        NewMarketMustHavePendingState,
     }
 
     #[pallet::event]
@@ -402,7 +402,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             currency_id: CurrencyId,
         ) -> DispatchResultWithPostInfo {
-            let _ = ensure_signed(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
             Self::mutate_market(&currency_id, |stored_market| {
                 if let MarketState::Active = stored_market.state {
                     return;
@@ -413,10 +413,12 @@ pub mod pallet {
         }
 
         /// Stores a new market and its related currency. Returns `Err` if a currency
-        /// is already attached to a market.
+        /// is not attached to an existent market.
         ///
-        /// Regardless of the provided market state, all stored markets will be initially
-        /// stored as `pending`.
+        /// All provided market states must be `Pending`, otherwise an error will be returned.
+        ///
+        /// If a currency is already attached to a market, then the market will be replaced
+        /// by the new provided value.
         ///
         /// - `currency_id`: Market related currency
         /// - `market`: The market that is going to be stored
@@ -425,17 +427,17 @@ pub mod pallet {
         pub fn add_market(
             origin: OriginFor<T>,
             currency_id: CurrencyId,
-            mut market: Market,
+            market: Market,
         ) -> DispatchResultWithPostInfo {
-            let _ = ensure_signed(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
+            let _ = Self::market(&currency_id)?;
             ensure!(
                 market.rate_model.check_model(),
                 Error::<T>::InvalidRateModelParam
             );
-            if Self::market(&currency_id).is_ok() {
-                return Err(Error::<T>::MarketCurrencyAlreadyExists.into());
+            if market.state != MarketState::Pending {
+                return Err(Error::<T>::NewMarketMustHavePendingState.into());
             }
-            market.state = MarketState::Pending;
             Markets::<T>::insert(currency_id, market.clone());
             Self::deposit_event(Event::<T>::NewMarket(market));
             Ok(().into())
@@ -454,7 +456,7 @@ pub mod pallet {
             currency_id: CurrencyId,
             market: Market,
         ) -> DispatchResultWithPostInfo {
-            let _ = ensure_signed(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
             ensure!(
                 market.rate_model.check_model(),
                 Error::<T>::InvalidRateModelParam

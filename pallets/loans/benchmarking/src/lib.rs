@@ -72,6 +72,11 @@ const MARKET_MOCK: Market = Market {
     }),
     reserve_factor: Ratio::from_percent(15),
 };
+const PENDING_MARKET_MOCK: Market = {
+    let mut market = MARKET_MOCK;
+    market.state = MarketState::Pending;
+    market
+};
 
 fn initial_set_up<T: Config>() {
     let account_id = Loans::<T>::account_id();
@@ -94,31 +99,28 @@ fn transfer_initial_balance<T: Config>(caller: T::AccountId) {
 
 benchmarks! {
     active_market {
-        let caller: T::AccountId = whitelisted_caller();
     }: {
         let _ = Loans::<T>::active_market(
-            SystemOrigin::Signed(caller.clone()).into(),
+            SystemOrigin::Root.into(),
             DOT,
         );
     }
 
     add_market {
-        let caller: T::AccountId = whitelisted_caller();
     }: {
         let _ = Loans::<T>::add_market(
-            SystemOrigin::Signed(caller.clone()).into(),
-            CurrencyId::Native,
-            MARKET_MOCK
+            SystemOrigin::Root.into(),
+            CurrencyId::DOT,
+            PENDING_MARKET_MOCK
         );
     }
 
     update_market {
-        let caller: T::AccountId = whitelisted_caller();
     }: {
         let _ = Loans::<T>::update_market(
-            SystemOrigin::Signed(caller.clone()).into(),
+            SystemOrigin::Root.into(),
             DOT,
-            MARKET_MOCK
+            PENDING_MARKET_MOCK
         );
     }
 
