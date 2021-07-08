@@ -93,21 +93,24 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
                     .unwrap(),
                 vec![
                     (
+                        // 5DFScwjDYWMG7oAcotAaWdxnjZKyBd3PvG7QbzMCisEWPquY
                         hex!["346ca44fd617b87fcd050c4a4bb7ef369a2e2e4d7f44233ab12b9bea56290461"]
                             .into(),
-                        hex!["de55da8f1b83b3dcff984d4b7c21c2ecb797f528d8f16730101ccbc2659d1366"]
+                        hex!["346ca44fd617b87fcd050c4a4bb7ef369a2e2e4d7f44233ab12b9bea56290461"]
                             .unchecked_into(),
                     ),
                     (
+                        // 5GEwvVsMiZvLY9TsRYVd9NUuTUuAHCEL7uX1GTrLufXf8pKV
                         hex!["b8c0bd039e40de150100a5c7c7dce7e5e2a3006ff4147cdc7caedb7ef0092b76"]
                             .into(),
-                        hex!["748feff55fad6c62629b3bc0e27bd1f2f30f394b6effc37979275f7313cee121"]
+                        hex!["b8c0bd039e40de150100a5c7c7dce7e5e2a3006ff4147cdc7caedb7ef0092b76"]
                             .unchecked_into(),
                     ),
                     (
+                        // 5EbjqR169aiZibNdzMRMcJGjh8fLyXWtA5RSMJRonpdMjunU
                         hex!["7023bbf7ff4780bef4b34759f6df004a341e6e5893df7d74a83b91af2055203d"]
                             .into(),
-                        hex!["8e8a48c828e35a580f9d0f0eec65d7892e0dfe7f51400d6406904c5c5eccc317"]
+                        hex!["7023bbf7ff4780bef4b34759f6df004a341e6e5893df7d74a83b91af2055203d"]
                             .unchecked_into(),
                     ),
                 ],
