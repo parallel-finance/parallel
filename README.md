@@ -54,7 +54,7 @@ make launch
 
 ### Local Testnet
 
-Polkadot (release-v0.9.6 branch)
+Polkadot (release-v0.9.7 branch, you'll need to cherry-pick this commit: b66483bc368812237469e1ff83dfea590fe8050f)
 
 ```
 cargo build --release
