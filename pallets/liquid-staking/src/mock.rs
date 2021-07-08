@@ -232,6 +232,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         balances: vec![
             (1.into(), CurrencyId::DOT, 100),
             (11.into(), CurrencyId::DOT, 100 * DOT_DECIMAL),
+            (12.into(), CurrencyId::DOT, 100),
         ],
     }
     .assimilate_storage(&mut t)
