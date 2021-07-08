@@ -16,10 +16,10 @@ use cumulus_primitives_core::ParaId;
 use heiko_runtime::pallet_loans::{InterestRateModel, JumpModel, Market, MarketState};
 use hex_literal::hex;
 use parallel_runtime::{
-    currency::EXISTENTIAL_DEPOSIT, opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig,
-    CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig, LiquidStakingConfig,
-    LoansConfig, OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig,
-    SystemConfig, TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
+    opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, CouncilConfig, DemocracyConfig,
+    ElectionsConfig, GenesisConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig,
+    ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig,
+    TokensConfig, WASM_BINARY,
 };
 use primitives::*;
 use sc_service::ChainType;
@@ -174,14 +174,15 @@ fn testnet_genesis(
             balances: {
                 let mut endowed_accounts = endowed_accounts.clone();
                 endowed_accounts.extend_from_slice(&oracle_accounts);
-                let ed_balances = invulnerables
-                    .iter()
-                    .map(|invulnerable| (invulnerable.0.clone(), EXISTENTIAL_DEPOSIT));
+                endowed_accounts.extend(
+                    invulnerables
+                        .iter()
+                        .map(|invulnerable| invulnerable.0.clone()),
+                );
 
                 endowed_accounts
                     .into_iter()
                     .map(|k| (k, 10_u128.pow(13)))
-                    .chain(ed_balances)
                     .collect()
             },
         },

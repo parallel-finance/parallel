@@ -14,7 +14,6 @@
 
 use cumulus_primitives_core::ParaId;
 use heiko_runtime::{
-    currency::EXISTENTIAL_DEPOSIT,
     opaque::SessionKeys,
     pallet_loans::{InterestRateModel, JumpModel, Market, MarketState},
     BalancesConfig, CollatorSelectionConfig, CouncilConfig, DemocracyConfig, ElectionsConfig,
@@ -175,14 +174,15 @@ fn testnet_genesis(
             balances: {
                 let mut endowed_accounts = endowed_accounts.clone();
                 endowed_accounts.extend_from_slice(&oracle_accounts);
-                let ed_balances = invulnerables
-                    .iter()
-                    .map(|invulnerable| (invulnerable.0.clone(), EXISTENTIAL_DEPOSIT));
+                endowed_accounts.extend(
+                    invulnerables
+                        .iter()
+                        .map(|invulnerable| invulnerable.0.clone()),
+                );
 
                 endowed_accounts
                     .into_iter()
                     .map(|k| (k, 10_u128.pow(15)))
-                    .chain(ed_balances)
                     .collect()
             },
         },
