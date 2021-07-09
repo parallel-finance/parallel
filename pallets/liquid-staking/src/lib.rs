@@ -162,8 +162,8 @@ pub mod pallet {
 
     /// The total person-times of staking operations.
     #[pallet::storage]
-    #[pallet::getter(fn total_stakers)]
-    pub type TotalStakers<T: Config> = StorageValue<_, u128, ValueQuery>;
+    #[pallet::getter(fn staking_person_times)]
+    pub type StakingPersonTimes<T: Config> = StorageValue<_, u128, ValueQuery>;
 
     /// The queue stores all the pending unstaking requests.
     /// Key is the owner of assets.
@@ -270,10 +270,7 @@ pub mod pallet {
                 Ok(())
             })?;
 
-            let _ = TotalStakers::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.saturating_add(1);
-                Ok(())
-            });
+            StakingPersonTimes::<T>::mutate(|b| *b = b.saturating_add(1));
 
             Self::deposit_event(Event::Staked(sender, amount));
             Ok(().into())
