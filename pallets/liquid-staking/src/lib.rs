@@ -161,19 +161,9 @@ pub mod pallet {
     pub type TotalVoucher<T: Config> = StorageValue<_, Balance, ValueQuery>;
 
     /// The total quantity of stakers.
-    // Consider this scenario, one person stake through this pallet, TotalStakers increase by 1,
-    // and transfer liquidStaking currency to the other person in token pallet, then two person can unstake, we cannot minus 2.
-    //
-    // In loans pallet, xKSM can be totally transfered to pallet account, so we can not simply regards the account who hold xKSM as stakers.
     #[pallet::storage]
     #[pallet::getter(fn total_stakers)]
-    pub type TotalStakers<T: Config> = StorageValue<_, u32, ValueQuery>;
-
-    /// Whether users had staked before.
-    // Only the user who had increased the total quantity by 1, can reduce it by 1 when unstake all owned token.
-    #[pallet::storage]
-    #[pallet::getter(fn stakers)]
-    pub type Stakers<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, bool, ValueQuery>;
+    pub type TotalStakers<T: Config> = StorageValue<_, u128, ValueQuery>;
 
     /// The queue stores all the pending unstaking requests.
     /// Key is the owner of assets.
@@ -280,13 +270,10 @@ pub mod pallet {
                 Ok(())
             })?;
 
-            if !Stakers::<T>::get(&sender) {
-                TotalStakers::<T>::try_mutate(|b| -> DispatchResult {
-                    *b = b.checked_add(1).ok_or(ArithmeticError::Overflow)?;
-                    Ok(())
-                })?;
-                Stakers::<T>::insert(&sender, true);
-            }
+            let _ = TotalStakers::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.saturating_add(1);
+                Ok(())
+            });
 
             Self::deposit_event(Event::Staked(sender, amount));
             Ok(().into())
@@ -449,17 +436,6 @@ pub mod pallet {
                     .ok_or(ArithmeticError::Underflow)?;
                 Ok(())
             })?;
-
-            if T::Currency::free_balance(T::LiquidCurrency::get(), &sender)
-                <= T::Currency::minimum_balance(T::LiquidCurrency::get())
-                && Stakers::<T>::get(&sender)
-            {
-                TotalStakers::<T>::try_mutate(|b| -> DispatchResult {
-                    *b = b.checked_sub(1).ok_or(ArithmeticError::Overflow)?;
-                    Ok(())
-                })?;
-                Stakers::<T>::insert(&sender, false);
-            }
 
             Self::deposit_event(Event::Unstaked(sender, amount, asset_amount));
             Ok(().into())

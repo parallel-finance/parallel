@@ -707,29 +707,16 @@ fn process_pending_unstake_for_max_should_fail() {
 fn total_stakers_calculate_should_work() {
     new_test_ext().execute_with(|| {
         assert_eq!(TotalStakers::<Test>::get(), 0);
-        assert_eq!(Stakers::<Test>::get(AccountId::from(1)), false);
-
         assert_ok!(LiquidStaking::stake(Origin::signed(1.into()), 10));
         assert_eq!(TotalStakers::<Test>::get(), 1);
-        assert_eq!(Stakers::<Test>::get(AccountId::from(1)), true);
-
-        assert_ok!(LiquidStaking::stake(Origin::signed(12.into()), 10));
-        assert_ok!(LiquidStaking::stake(Origin::signed(12.into()), 10));
+        assert_ok!(LiquidStaking::stake(Origin::signed(1.into()), 10));
         assert_eq!(TotalStakers::<Test>::get(), 2);
-        assert_eq!(Stakers::<Test>::get(AccountId::from(12)), true);
 
-        assert_ok!(Currencies::transfer(
-            Origin::signed(12.into()),
-            3.into(),
-            XDOT,
-            200,
-        ));
-        assert_ok!(LiquidStaking::unstake(Origin::signed(3.into()), 200));
-        assert_eq!(TotalStakers::<Test>::get(), 2);
-        assert_eq!(Stakers::<Test>::get(AccountId::from(3)), false);
-
-        assert_ok!(LiquidStaking::unstake(Origin::signed(1.into()), 500));
-        assert_eq!(TotalStakers::<Test>::get(), 1);
-        assert_eq!(Stakers::<Test>::get(AccountId::from(1)), false);
+        assert_ok!(TotalStakers::<Test>::try_mutate(|b| -> DispatchResult {
+            *b = u128::MAX;
+            Ok(())
+        }));
+        assert_ok!(LiquidStaking::stake(Origin::signed(1.into()), 10));
+        assert_eq!(TotalStakers::<Test>::get(), u128::MAX);
     })
 }
