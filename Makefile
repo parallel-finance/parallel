@@ -79,14 +79,19 @@ resources:
 	target/release/parallel export-genesis-state --parachain-id 200 > ./resources/para-200-genesis
 	target/release/parallel export-genesis-wasm > ./resources/para-200.wasm
 
-.PHONY: register-parachain
-register-parachain:
-	polkadot-js-api --seed "//Alice" --sudo tx.parasSudoWrapper.sudoScheduleParaInitialize 200 "{ \"genesisHead\":\"$(shell cat ./resources/para-200-genesis)\", \"validationCode\":\"$(shell cat ./resources/para-200.wasm)\", \"parachain\": true }"
+.PHONY: docker-resources
+docker-resources:
+	docker run --rm  parallelfinance/parallel:latest parallel export-genesis-state --chain heiko-dev --parachain-id 200 > ./resources/para-200-genesis
+	docker run --rm  parallelfinance/parallel:latest parallel export-genesis-wasm --chain heiko-dev > ./resources/para-200.wasm
 
 .PHONY: launch
 launch:
 	polkadot-launch config.json
 
+.PHONY: docker-launch
+docker-launch:
+	docker-compose -f docker-compose-heiko.yml down --remove-orphans
+	docker-compose -f docker-compose-heiko.yml up -d
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?' Makefile | cut -d: -f1 | sort

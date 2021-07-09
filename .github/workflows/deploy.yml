@@ -1,62 +1,19 @@
 name: Deploy
 
 on:
-  push:
-    branches: [master]
+  workflow_run:
+    workflows: ["Docker Image"]
+    types:
+      - completed
 
 jobs:
   deploy:
     if: github.repository == 'parallel-finance/parallel'
     name: Auto Deploy
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-20.04]
-        rust: [nightly]
+    runs-on: ubuntu-latest
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - name: Checkout Repository
-        uses: actions/checkout@v2
-        with:
-          submodules: true
-
-      - name: Install Rust toolchain ${{ matrix.rust }}
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ matrix.rust }}
-          override: true
-
-      - name: Install wasm32-unknown-unknown for ${{ matrix.rust }}
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{ matrix.rust }}
-          target: wasm32-unknown-unknown
-          override: true
-
-      - name: Build Release And Package
-        run: |
-          cargo build --bin parallel-dev --release
-          rm -fr dist || true
-          mkdir dist || true
-          cp README.md dist
-          cp target/release/parallel-dev dist/parallel-dev
-          cp -r ./resources dist
-          cp scripts/setup.sh dist
-          tar -cvJf parallel.tar.xz dist --transform 's|dist|parallel|'
-
-      - name: Copy File Via Ssh Password
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.REGNET_SSH_HOST }}
-          username: ${{ secrets.REGNET_SSH_USERNAME }}
-          key: ${{ secrets.REGNET_SSH_PRIVKEY }}
-          port: ${{ secrets.REGNET_SSH_PORT }}
-          source: "*.tar.xz"
-          target: "~"
-
       - name: Deploy
         uses: appleboy/ssh-action@master
         with:
@@ -65,8 +22,10 @@ jobs:
           key: ${{ secrets.REGNET_SSH_PRIVKEY }}
           port: ${{ secrets.REGNET_SSH_PORT }}
           script: |
-            if [ -d parallel ]; then cd parallel && ./setup.sh --undaemonize && cd ..; fi
-            rm -fr parallel
-            tar -Jxf parallel.tar.xz
-            rm -fr parallel.tar.xz || true
-            cd parallel && ./setup.sh --daemonize
+            docker image pull ${{ secrets.DOCKERHUB_REPO }}:latest
+            docker container stop parallel || true
+            docker container rm parallel || true
+            docker volume create chains || true
+            docker run --restart=always --name parallel -d -p 9944:9944 \
+              -v "chains:/data" parallelfinance/parallel:latest \
+              parallel-dev -d /data --chain live --validator --rpc-cors all --rpc-methods=Unsafe --unsafe-rpc-external --unsafe-ws-external

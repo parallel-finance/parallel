@@ -14,18 +14,22 @@
 
 use cumulus_primitives_core::ParaId;
 use heiko_runtime::{
-    currency::EXISTENTIAL_DEPOSIT,
     opaque::SessionKeys,
     pallet_loans::{InterestRateModel, JumpModel, Market, MarketState},
     BalancesConfig, CollatorSelectionConfig, CouncilConfig, DemocracyConfig, ElectionsConfig,
     GenesisConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig, ParachainInfoConfig,
     SessionConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
 };
+use hex_literal::hex;
 use primitives::*;
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+use sp_core::crypto::UncheckedInto;
 use sp_core::sr25519;
-use sp_runtime::{traits::One, FixedPointNumber};
+use sp_runtime::{
+    traits::{One, Zero},
+    FixedPointNumber,
+};
 
 use crate::chain_spec::{get_account_id_from_seed, get_authority_keys_from_seed, Extensions};
 
@@ -41,24 +45,14 @@ pub fn development_config(id: ParaId) -> ChainSpec {
         ChainType::Development,
         move || {
             testnet_genesis(
-                "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                    .parse()
-                    .unwrap(),
+                get_account_id_from_seed::<sr25519::Public>("Alice"),
                 vec![
                     get_authority_keys_from_seed("Alice"),
                     get_authority_keys_from_seed("Bob"),
                     get_authority_keys_from_seed("Charlie"),
                 ],
+                vec![get_account_id_from_seed::<sr25519::Public>("Ferdie")],
                 vec![
-                    "5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
-                        .parse()
-                        .unwrap(),
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-                ],
-                vec![
-                    get_account_id_from_seed::<sr25519::Public>("Alice"),
-                    get_account_id_from_seed::<sr25519::Public>("Bob"),
-                    get_account_id_from_seed::<sr25519::Public>("Charlie"),
                     get_account_id_from_seed::<sr25519::Public>("Dave"),
                     get_account_id_from_seed::<sr25519::Public>("Eve"),
                     get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
@@ -67,10 +61,6 @@ pub fn development_config(id: ParaId) -> ChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-                    // Parallel team accounts
-                    "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                        .parse()
-                        .unwrap(),
                 ],
                 id,
             )
@@ -80,7 +70,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
         None,
         None,
         Extensions {
-            relay_chain: "relay-dev".into(),
+            relay_chain: "rococo-local".into(),
             para_id: id.into(),
         },
     )
@@ -99,9 +89,27 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
                     .parse()
                     .unwrap(),
                 vec![
-                    get_authority_keys_from_seed("Alice"),
-                    get_authority_keys_from_seed("Bob"),
-                    get_authority_keys_from_seed("Charlie"),
+                    (
+                        // 5DFScwjDYWMG7oAcotAaWdxnjZKyBd3PvG7QbzMCisEWPquY
+                        hex!["346ca44fd617b87fcd050c4a4bb7ef369a2e2e4d7f44233ab12b9bea56290461"]
+                            .into(),
+                        hex!["346ca44fd617b87fcd050c4a4bb7ef369a2e2e4d7f44233ab12b9bea56290461"]
+                            .unchecked_into(),
+                    ),
+                    (
+                        // 5GEwvVsMiZvLY9TsRYVd9NUuTUuAHCEL7uX1GTrLufXf8pKV
+                        hex!["b8c0bd039e40de150100a5c7c7dce7e5e2a3006ff4147cdc7caedb7ef0092b76"]
+                            .into(),
+                        hex!["b8c0bd039e40de150100a5c7c7dce7e5e2a3006ff4147cdc7caedb7ef0092b76"]
+                            .unchecked_into(),
+                    ),
+                    (
+                        // 5EbjqR169aiZibNdzMRMcJGjh8fLyXWtA5RSMJRonpdMjunU
+                        hex!["7023bbf7ff4780bef4b34759f6df004a341e6e5893df7d74a83b91af2055203d"]
+                            .into(),
+                        hex!["7023bbf7ff4780bef4b34759f6df004a341e6e5893df7d74a83b91af2055203d"]
+                            .unchecked_into(),
+                    ),
                 ],
                 vec!["5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
                     .parse()
@@ -142,7 +150,7 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
         None,
         None,
         Extensions {
-            relay_chain: "relay-local".into(),
+            relay_chain: "kusama".into(),
             para_id: id.into(),
         },
     )
@@ -166,6 +174,11 @@ fn testnet_genesis(
             balances: {
                 let mut endowed_accounts = endowed_accounts.clone();
                 endowed_accounts.extend_from_slice(&oracle_accounts);
+                endowed_accounts.extend(
+                    invulnerables
+                        .iter()
+                        .map(|invulnerable| invulnerable.0.clone()),
+                );
 
                 endowed_accounts
                     .into_iter()
@@ -175,8 +188,9 @@ fn testnet_genesis(
         },
         collator_selection: CollatorSelectionConfig {
             invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
-            candidacy_bond: EXISTENTIAL_DEPOSIT * 16,
+            candidacy_bond: Zero::zero(),
             desired_candidates: 16,
+            ..Default::default()
         },
         session: SessionConfig {
             keys: invulnerables

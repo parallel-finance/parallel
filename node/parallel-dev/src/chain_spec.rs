@@ -12,9 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use hex_literal::hex;
 use primitives::*;
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+use sp_core::crypto::UncheckedInto;
 use sp_core::{sr25519, Pair, Public};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::{
@@ -64,12 +66,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
                 wasm_binary,
                 get_account_id_from_seed::<sr25519::Public>("Alice"),
                 vec![authority_keys_from_seed("Alice")],
-                vec![
-                    "5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
-                        .parse()
-                        .unwrap(),
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-                ],
+                vec![get_account_id_from_seed::<sr25519::Public>("Ferdie")],
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Alice"),
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -82,10 +79,6 @@ pub fn development_config() -> Result<ChainSpec, String> {
                     get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-                    // Parallel team accounts
-                    "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                        .parse()
-                        .unwrap(),
                 ],
             )
         },
@@ -98,12 +91,12 @@ pub fn development_config() -> Result<ChainSpec, String> {
 }
 
 pub fn live_config() -> Result<ChainSpec, String> {
-    let wasm_binary = WASM_BINARY.ok_or_else(|| "Testnet wasm not available".to_string())?;
+    let wasm_binary = WASM_BINARY.ok_or_else(|| "Live wasm not available".to_string())?;
     Ok(ChainSpec::from_genesis(
         // Name
-        "Vanilla Testnet",
+        "Vanilla Live",
         // ID
-        "vanilla-local",
+        "vanilla-live",
         ChainType::Local,
         move || {
             testnet_genesis(
@@ -111,7 +104,12 @@ pub fn live_config() -> Result<ChainSpec, String> {
                 "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
                     .parse()
                     .unwrap(),
-                vec![authority_keys_from_seed("Alice")],
+                vec![(
+                    hex!["a213e66d76b8b4b7f8da0343bbb658cb22b77c5f4b6bf87eb20be5618a61577b"]
+                        .unchecked_into(),
+                    hex!["90992c3f6fade153e1bf5a2856ec6983648b339a5c158238d6dd7c4e16832b12"]
+                        .unchecked_into(),
+                )],
                 vec!["5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
                     .parse()
                     .unwrap()],

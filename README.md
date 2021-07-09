@@ -54,7 +54,7 @@ make launch
 
 ### Local Testnet
 
-Polkadot (release-v0.9.5 branch, you'll need to cherry-pick this commit: b66483bc368812237469e1ff83dfea590fe8050f)
+Polkadot (release-v0.9.7 branch, you'll need to cherry-pick this commit: b66483bc368812237469e1ff83dfea590fe8050f)
 
 ```
 cargo build --release
@@ -125,7 +125,9 @@ Run Vanilla Live Node
 docker run --restart=always -d -p 9944:9944 \
     -v "$(pwd):/data" \
     parallelfinance/parallel:latest \
-    parallel-dev -d /data --chain live --alice --rpc-cors all --rpc-methods=Unsafe --unsafe-rpc-external --unsafe-ws-external
+    parallel-dev -d /data --chain live --validator --rpc-cors all --rpc-methods=Unsafe --unsafe-rpc-external --unsafe-ws-external
+
+# insert aura/gran keys to keystore
 ```
 
 Generate genesis state & wasm & run collator
@@ -141,13 +143,13 @@ docker run --restart=always -d -p 9988:9988 \
     -v "$(pwd):/data" \
     -v "$(pwd)/rococo-local.json:/usr/local/bin/rococo-local.json" \
     parallelfinance/parallel:latest \
-    parallel -d /data --collator --alice --chain heiko --parachain-id 200 --ws-port 9988 --rpc-cors all --rpc-methods=Unsafe --unsafe-rpc-external --unsafe-ws-external -- --chain /usr/local/bin/rococo-local.json
+    parallel -d /data --collator --alice --chain heiko-dev --parachain-id 200 --ws-port 9988 --rpc-cors all --rpc-methods=Unsafe --unsafe-rpc-external --unsafe-ws-external -- --chain /usr/local/bin/rococo-local.json
 ```
 
-Run Heiko parachain
+Run Heiko Dev Parachain
 
 ```
-docker-compose -f docker-compose-para.yml up -d
+docker-compose -f docker-compose-heiko.yml up -d
 docker-compose logs -f
 ```
 
