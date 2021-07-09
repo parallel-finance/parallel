@@ -20,7 +20,9 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{pallet_prelude::*, transactional, BoundedVec, PalletId};
+use frame_support::{
+    pallet_prelude::*, traits::SortedMembers, transactional, BoundedVec, PalletId,
+};
 use frame_system::{pallet_prelude::*, RawOrigin};
 use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber, RuntimeDebug};
 use sp_std::convert::TryInto;
@@ -95,7 +97,11 @@ pub mod pallet {
         /// Weight information for extrinsics in this pallet.
         type WeightInfo: WeightInfo;
 
+        /// XCM transfer
         type XTransfer: XTransfer<Self, CurrencyId, Self::AccountId, Balance>;
+
+        /// Approved agent list on relaychain
+        type Members: SortedMembers<Self::AccountId>;
     }
 
     #[pallet::error]
@@ -114,6 +120,8 @@ pub mod pallet {
         InvalidProcessedUnstakeAmount,
         /// The maximum account processing unstake reuqest exceeded
         MaxAccountProcessingUnstakeExceeded,
+        /// Not approved agent
+        IllegalAgent,
     }
 
     #[pallet::event]
@@ -290,6 +298,8 @@ pub mod pallet {
             amount: Balance,
         ) -> DispatchResultWithPostInfo {
             T::WithdrawOrigin::ensure_origin(origin)?;
+            ensure!(T::Members::contains(&agent), Error::<T>::IllegalAgent);
+
             ensure!(
                 amount <= T::MaxWithdrawAmount::get(),
                 Error::<T>::ExcessWithdrawThreshold
@@ -329,6 +339,7 @@ pub mod pallet {
             amount: Balance,
         ) -> DispatchResultWithPostInfo {
             T::WithdrawOrigin::ensure_origin(origin)?;
+            ensure!(T::Members::contains(&agent), Error::<T>::IllegalAgent);
 
             let reserve = Self::reserve_factor().mul_floor(amount);
             TotalReserve::<T>::try_mutate(|b| -> DispatchResult {
@@ -371,6 +382,7 @@ pub mod pallet {
             amount: Balance,
         ) -> DispatchResultWithPostInfo {
             T::WithdrawOrigin::ensure_origin(origin)?;
+            ensure!(T::Members::contains(&agent), Error::<T>::IllegalAgent);
 
             TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
@@ -456,6 +468,7 @@ pub mod pallet {
             amount: Balance,
         ) -> DispatchResultWithPostInfo {
             T::WithdrawOrigin::ensure_origin(origin)?;
+            ensure!(T::Members::contains(&agent), Error::<T>::IllegalAgent);
 
             AccountPendingUnstake::<T>::try_mutate_exists(&owner, |info| -> DispatchResult {
                 let new_info = info.map_or(
@@ -520,6 +533,7 @@ pub mod pallet {
             amount: Balance,
         ) -> DispatchResultWithPostInfo {
             T::WithdrawOrigin::ensure_origin(origin)?;
+            ensure!(T::Members::contains(&agent), Error::<T>::IllegalAgent);
 
             AccountProcessingUnstake::<T>::try_mutate_exists(
                 &agent,

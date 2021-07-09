@@ -709,3 +709,43 @@ fn process_pending_unstake_for_max_should_fail() {
         );
     })
 }
+
+#[test]
+fn illegal_agent_should_fail() {
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            LiquidStaking::withdraw(Origin::signed(6.into()), 11.into(), 1),
+            Error::<Test>::IllegalAgent,
+        );
+
+        assert_noop!(
+            LiquidStaking::record_rewards(Origin::signed(6.into()), 11.into(), 1),
+            Error::<Test>::IllegalAgent,
+        );
+
+        assert_noop!(
+            LiquidStaking::record_slash(Origin::signed(6.into()), 11.into(), 1),
+            Error::<Test>::IllegalAgent,
+        );
+
+        assert_noop!(
+            LiquidStaking::process_pending_unstake(
+                Origin::signed(6.into()),
+                11.into(),
+                1.into(),
+                1
+            ),
+            Error::<Test>::IllegalAgent,
+        );
+
+        assert_noop!(
+            LiquidStaking::finish_processed_unstake(
+                Origin::signed(6.into()),
+                11.into(),
+                1.into(),
+                1
+            ),
+            Error::<Test>::IllegalAgent,
+        );
+    })
+}
