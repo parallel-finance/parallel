@@ -160,7 +160,7 @@ pub mod pallet {
     #[pallet::getter(fn total_voucher)]
     pub type TotalVoucher<T: Config> = StorageValue<_, Balance, ValueQuery>;
 
-    /// The total quantity of stakers.
+    /// The total person-times of staking operations.
     #[pallet::storage]
     #[pallet::getter(fn total_stakers)]
     pub type TotalStakers<T: Config> = StorageValue<_, u128, ValueQuery>;
