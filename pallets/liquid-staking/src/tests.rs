@@ -7,7 +7,6 @@ use sp_runtime::traits::BadOrigin;
 fn stake_should_work() {
     new_test_ext().execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(1.into()), 10));
-
         // Check storage is correct
         assert_eq!(
             ExchangeRate::<Test>::get(),
@@ -29,6 +28,14 @@ fn stake_should_work() {
             <Test as Config>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::account_id()),
             10
         );
+
+        // check StakingPersonTimes works correctly
+        assert_eq!(StakingPersonTimes::<Test>::get(), 1);
+        assert_ok!(LiquidStaking::stake(Origin::signed(1.into()), 10));
+        assert_eq!(StakingPersonTimes::<Test>::get(), 2);
+        StakingPersonTimes::<Test>::mutate(|b| *b = u128::MAX);
+        assert_ok!(LiquidStaking::stake(Origin::signed(1.into()), 10));
+        assert_eq!(StakingPersonTimes::<Test>::get(), u128::MAX);
     })
 }
 
