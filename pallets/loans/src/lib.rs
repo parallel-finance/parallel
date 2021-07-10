@@ -197,6 +197,9 @@ pub mod pallet {
         /// Event emitted when the reserves are added
         /// [admin, currency_id, added_amount, total_reserves]
         ReservesAdded(T::AccountId, CurrencyId, Balance, Balance),
+        /// Event emitted when a market is activated
+        /// [admin, currency_id]
+        ActivatedMarket(CurrencyId),
     }
 
     /// The timestamp of the previous block or defaults to timestamp at genesis.
@@ -409,6 +412,7 @@ pub mod pallet {
                 }
                 stored_market.state = MarketState::Active
             })?;
+            Self::deposit_event(Event::<T>::ActivatedMarket(currency_id));
             Ok(().into())
         }
 
