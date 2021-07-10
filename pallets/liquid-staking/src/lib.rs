@@ -43,11 +43,14 @@ mod mock;
 mod tests;
 pub mod weights;
 
+pub type EraIndex = u32;
+
 /// Container for pending balance information
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
 pub struct UnstakeInfo<BlockNumber> {
     pub amount: Balance,
     pub block_number: BlockNumber,
+    pub era_index: Option<EraIndex>,
 }
 
 #[frame_support::pallet]
@@ -317,7 +320,7 @@ pub mod pallet {
                 ),
                 amount,
                 // TODO : measure xcm weight
-                1000_1000,
+                100_000_000,
             )?;
 
             Self::deposit_event(Event::WithdrawSuccess(agent, amount));
@@ -420,6 +423,7 @@ pub mod pallet {
                     Ok(UnstakeInfo {
                         amount: asset_amount,
                         block_number,
+                        era_index: None,
                     }),
                     |mut v| {
                         v.amount = v
@@ -465,6 +469,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             agent: T::AccountId,
             owner: T::AccountId,
+            era_index: EraIndex,
             amount: Balance,
         ) -> DispatchResultWithPostInfo {
             T::WithdrawOrigin::ensure_origin(origin)?;
@@ -496,6 +501,7 @@ pub mod pallet {
             let new_unstake = UnstakeInfo {
                 amount,
                 block_number,
+                era_index: Some(era_index),
             };
             let new_processing_unstake = match processing_unstake {
                 None => vec![new_unstake]
