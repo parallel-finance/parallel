@@ -26,7 +26,7 @@ use xcm::v0::{Junction, MultiLocation};
 
 pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const XDOT: CurrencyId = CurrencyId::xDOT;
-pub const NATIVE: CurrencyId = CurrencyId::Native;
+pub const NATIVE: CurrencyId = CurrencyId::HKO;
 pub const DOT_DECIMAL: u128 = 10u128.pow(10);
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
