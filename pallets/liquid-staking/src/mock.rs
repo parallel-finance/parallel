@@ -196,6 +196,15 @@ impl pallet_liquid_staking::Config for Test {
     type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
     type WeightInfo = ();
     type XTransfer = Currencies;
+    type Members = Members;
+}
+
+pub struct Members;
+
+impl SortedMembers<AccountId> for Members {
+    fn sorted_members() -> Vec<AccountId> {
+        vec![2.into(), 10000.into()]
+    }
 }
 
 impl XTransfer<Test, CurrencyId, AccountId, Balance> for Currencies {

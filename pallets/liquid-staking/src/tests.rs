@@ -166,7 +166,8 @@ fn unstake_should_work() {
             AccountPendingUnstake::<Test>::get(&AccountId::from(1_u64)).unwrap(),
             UnstakeInfo {
                 amount: 10,
-                block_number: frame_system::Pallet::<Test>::block_number()
+                block_number: frame_system::Pallet::<Test>::block_number(),
+                era_index: None,
             }
         );
 
@@ -207,6 +208,7 @@ fn process_pending_unstake_should_work() {
             Origin::signed(6.into()),
             10000.into(),
             1.into(),
+            1,
             10
         ));
 
@@ -238,6 +240,7 @@ fn process_pending_unstake_from_invalid_origin_should_fail() {
                 Origin::signed(1.into()),
                 10000.into(),
                 1.into(),
+                1,
                 10
             ),
             BadOrigin
@@ -255,6 +258,7 @@ fn process_pending_unstake_with_empty_unstake_request_should_fail() {
                 Origin::signed(6.into()),
                 10000.into(),
                 1.into(),
+                1,
                 10
             ),
             Error::<Test>::NoPendingUnstake
@@ -273,6 +277,7 @@ fn process_pending_unstake_with_excess_amount_should_fail() {
                 Origin::signed(6.into()),
                 10000.into(),
                 1.into(),
+                1,
                 20,
             ),
             Error::<Test>::InvalidUnstakeAmount
@@ -291,6 +296,7 @@ fn process_pending_unstake_for_multiple_times_should_work() {
             Origin::signed(6.into()),
             10000.into(),
             1.into(),
+            1,
             5
         ));
 
@@ -300,6 +306,7 @@ fn process_pending_unstake_for_multiple_times_should_work() {
             Some(UnstakeInfo {
                 amount: 5,
                 block_number: frame_system::Pallet::<Test>::block_number(),
+                era_index: None,
             }),
         );
         let processing_unstake = AccountProcessingUnstake::<Test>::get(
@@ -313,12 +320,14 @@ fn process_pending_unstake_for_multiple_times_should_work() {
             processing_unstake[0].block_number,
             frame_system::Pallet::<Test>::block_number()
         );
+        assert_eq!(processing_unstake[0].era_index, Some(1));
 
         // The second time
         assert_ok!(LiquidStaking::process_pending_unstake(
             Origin::signed(6.into()),
             10000.into(),
             1.into(),
+            2,
             4
         ));
 
@@ -328,6 +337,7 @@ fn process_pending_unstake_for_multiple_times_should_work() {
             Some(UnstakeInfo {
                 amount: 1,
                 block_number: frame_system::Pallet::<Test>::block_number(),
+                era_index: None,
             }),
         );
         let processing_unstake = AccountProcessingUnstake::<Test>::get(
@@ -341,17 +351,20 @@ fn process_pending_unstake_for_multiple_times_should_work() {
             processing_unstake[0].block_number,
             frame_system::Pallet::<Test>::block_number()
         );
+        assert_eq!(processing_unstake[0].era_index, Some(1));
         assert_eq!(processing_unstake[1].amount, 4);
         assert_eq!(
             processing_unstake[1].block_number,
             frame_system::Pallet::<Test>::block_number()
         );
+        assert_eq!(processing_unstake[1].era_index, Some(2));
 
         // The third time
         assert_ok!(LiquidStaking::process_pending_unstake(
             Origin::signed(6.into()),
             10000.into(),
             1.into(),
+            3,
             1
         ));
 
@@ -371,16 +384,19 @@ fn process_pending_unstake_for_multiple_times_should_work() {
             processing_unstake[0].block_number,
             frame_system::Pallet::<Test>::block_number()
         );
+        assert_eq!(processing_unstake[0].era_index, Some(1));
         assert_eq!(processing_unstake[1].amount, 4);
         assert_eq!(
             processing_unstake[1].block_number,
             frame_system::Pallet::<Test>::block_number()
         );
+        assert_eq!(processing_unstake[1].era_index, Some(2));
         assert_eq!(processing_unstake[2].amount, 1);
         assert_eq!(
             processing_unstake[2].block_number,
             frame_system::Pallet::<Test>::block_number()
         );
+        assert_eq!(processing_unstake[2].era_index, Some(3));
     })
 }
 
@@ -393,6 +409,7 @@ fn finish_processed_unstake_should_work() {
             Origin::signed(6.into()),
             10000.into(),
             1.into(),
+            1,
             10,
         );
 
@@ -437,6 +454,7 @@ fn finish_processed_unstake_from_invalid_origin_should_fail() {
             Origin::signed(6.into()),
             10000.into(),
             1.into(),
+            1,
             10,
         );
 
@@ -479,6 +497,7 @@ fn finish_processed_unstake_with_incorrect_amount_should_fail() {
             Origin::signed(6.into()),
             10000.into(),
             1.into(),
+            1,
             10,
         );
 
@@ -503,6 +522,7 @@ fn finish_processed_unstake_with_another_incorrect_amount_should_fail() {
             Origin::signed(6.into()),
             10000.into(),
             1.into(),
+            1,
             10,
         );
 
@@ -527,18 +547,21 @@ fn finish_processed_unstake_with_multiple_processing_should_work() {
             Origin::signed(6.into()),
             10000.into(),
             1.into(),
+            3,
             5,
         );
         let _ = LiquidStaking::process_pending_unstake(
             Origin::signed(6.into()),
             10000.into(),
             1.into(),
+            3,
             4,
         );
         let _ = LiquidStaking::process_pending_unstake(
             Origin::signed(6.into()),
             10000.into(),
             1.into(),
+            3,
             1,
         );
 
@@ -560,11 +583,13 @@ fn finish_processed_unstake_with_multiple_processing_should_work() {
             vec![
                 UnstakeInfo {
                     amount: 4,
-                    block_number: frame_system::Pallet::<Test>::block_number()
+                    block_number: frame_system::Pallet::<Test>::block_number(),
+                    era_index: Some(3),
                 },
                 UnstakeInfo {
                     amount: 1,
-                    block_number: frame_system::Pallet::<Test>::block_number()
+                    block_number: frame_system::Pallet::<Test>::block_number(),
+                    era_index: Some(3),
                 },
             ],
         );
@@ -600,7 +625,8 @@ fn finish_processed_unstake_with_multiple_processing_should_work() {
             .unwrap(),
             vec![UnstakeInfo {
                 amount: 1,
-                block_number: frame_system::Pallet::<Test>::block_number()
+                block_number: frame_system::Pallet::<Test>::block_number(),
+                era_index: Some(3),
             },],
         );
 
@@ -694,6 +720,7 @@ fn process_pending_unstake_for_max_should_fail() {
                 Origin::signed(6.into()),
                 10000.into(),
                 1.into(),
+                1,
                 1
             ));
         }
@@ -703,9 +730,51 @@ fn process_pending_unstake_for_max_should_fail() {
                 Origin::signed(6.into()),
                 10000.into(),
                 1.into(),
+                1,
                 1
             ),
             Error::<Test>::MaxAccountProcessingUnstakeExceeded,
+        );
+    })
+}
+
+#[test]
+fn illegal_agent_should_fail() {
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            LiquidStaking::withdraw(Origin::signed(6.into()), 11.into(), 1),
+            Error::<Test>::IllegalAgent,
+        );
+
+        assert_noop!(
+            LiquidStaking::record_rewards(Origin::signed(6.into()), 11.into(), 1),
+            Error::<Test>::IllegalAgent,
+        );
+
+        assert_noop!(
+            LiquidStaking::record_slash(Origin::signed(6.into()), 11.into(), 1),
+            Error::<Test>::IllegalAgent,
+        );
+
+        assert_noop!(
+            LiquidStaking::process_pending_unstake(
+                Origin::signed(6.into()),
+                11.into(),
+                1.into(),
+                1,
+                1
+            ),
+            Error::<Test>::IllegalAgent,
+        );
+
+        assert_noop!(
+            LiquidStaking::finish_processed_unstake(
+                Origin::signed(6.into()),
+                11.into(),
+                1.into(),
+                1
+            ),
+            Error::<Test>::IllegalAgent,
         );
     })
 }

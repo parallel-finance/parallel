@@ -362,6 +362,24 @@ impl pallet_loans::Config for Runtime {
 }
 
 parameter_types! {
+    pub const LiquidStakingAgentMaxMembers: u32 = 100;
+}
+
+type LiquidStakingAgentMembershipInstance = pallet_membership::Instance3;
+impl pallet_membership::Config<LiquidStakingAgentMembershipInstance> for Runtime {
+    type Event = Event;
+    type AddOrigin = EnsureRootOrHalfCouncil;
+    type RemoveOrigin = EnsureRootOrHalfCouncil;
+    type SwapOrigin = EnsureRootOrHalfCouncil;
+    type ResetOrigin = EnsureRootOrHalfCouncil;
+    type PrimeOrigin = EnsureRootOrHalfCouncil;
+    type MembershipInitialized = ();
+    type MembershipChanged = ();
+    type MaxMembers = LiquidStakingAgentMaxMembers;
+    type WeightInfo = ();
+}
+
+parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/stak");
     pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
@@ -380,6 +398,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
     type WeightInfo = pallet_liquid_staking::weights::SubstrateWeight<Runtime>;
     type XTransfer = XTokens;
+    type Members = LiquidStakingAgentMembership;
 }
 
 parameter_types! {
@@ -1057,6 +1076,9 @@ construct_runtime!(
 
         // Oracles
         OracleMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>},
+
+        // LiquidStaking
+        LiquidStakingAgentMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>},
     }
 );
 

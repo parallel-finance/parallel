@@ -17,8 +17,9 @@ use heiko_runtime::{
     opaque::SessionKeys,
     pallet_loans::{InterestRateModel, JumpModel, Market, MarketState},
     BalancesConfig, CollatorSelectionConfig, CouncilConfig, DemocracyConfig, ElectionsConfig,
-    GenesisConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig, ParachainInfoConfig,
-    SessionConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
+    GenesisConfig, LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig,
+    OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
+    TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
 };
 use hex_literal::hex;
 use primitives::*;
@@ -62,6 +63,10 @@ pub fn development_config(id: ParaId) -> ChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                 ],
+                // Multisig account combined by Alice, Bob and Charile, ss58 prefix is 42
+                vec!["5DjYJStmdZ2rcqXbXGX7TW85JsrW6uG4y9MUcLq2BoPMpRA7"
+                    .parse()
+                    .unwrap()],
                 id,
             )
         },
@@ -142,6 +147,10 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
                         .parse()
                         .unwrap(),
                 ],
+                // Parallel team accounts, ss58 prefix is 42
+                vec!["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                    .parse()
+                    .unwrap()],
                 id,
             )
         },
@@ -161,6 +170,7 @@ fn testnet_genesis(
     invulnerables: Vec<(AccountId, AuraId)>,
     oracle_accounts: Vec<AccountId>,
     endowed_accounts: Vec<AccountId>,
+    liquid_staking_agents: Vec<AccountId>,
     id: ParaId,
 ) -> GenesisConfig {
     GenesisConfig {
@@ -301,6 +311,10 @@ fn testnet_genesis(
         treasury: Default::default(),
         oracle_membership: OracleMembershipConfig {
             members: oracle_accounts,
+            phantom: Default::default(),
+        },
+        liquid_staking_agent_membership: LiquidStakingAgentMembershipConfig {
+            members: liquid_staking_agents,
             phantom: Default::default(),
         },
     }

@@ -87,7 +87,8 @@
         },
         "UnstakeInfo": {
             "amount": "Balance",
-            "blockNumber": "u32"
+            "blockNumber": "u32",
+            "eraIndex": "Option<u32>"
         },
         "OrmlAccountData": {
             "free": "Balance",
