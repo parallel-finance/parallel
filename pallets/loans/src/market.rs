@@ -14,7 +14,7 @@ pub enum MarketState {
 ///
 /// A large pool of liquidity where accounts can lend and borrow.
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
-#[derive(codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
+#[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
 pub struct Market {
     /// The collateral utilization ratio
     pub collateral_factor: Ratio,

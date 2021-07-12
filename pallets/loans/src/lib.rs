@@ -153,6 +153,8 @@ pub mod pallet {
         PriceOracleNotReady,
         /// Market does not exist
         MarketDoesNotExist,
+        /// New markets must have a pending state
+        NewMarketMustHavePendingState,
     }
 
     #[pallet::event]
@@ -188,13 +190,16 @@ pub mod pallet {
         ),
         /// New interest rate model is set
         /// [new_interest_rate_model]
-        NewInterestRateModel(InterestRateModel),
+        NewMarket(Market),
         /// Event emitted when the reserves are reduced
         /// [admin, currency_id, reduced_amount, total_reserves]
         ReservesReduced(T::AccountId, CurrencyId, Balance, Balance),
         /// Event emitted when the reserves are added
         /// [admin, currency_id, added_amount, total_reserves]
         ReservesAdded(T::AccountId, CurrencyId, Balance, Balance),
+        /// Event emitted when a market is activated
+        /// [admin, currency_id]
+        ActivatedMarket(CurrencyId),
     }
 
     /// The timestamp of the previous block or defaults to timestamp at genesis.
@@ -389,6 +394,95 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        /// Activates a market. Returns `Err` if the market currency does not exist.
+        ///
+        /// If the market is already activated, does nothing.
+        ///
+        /// - `currency_id`: Market related currency
+        #[pallet::weight(T::WeightInfo::active_market())]
+        #[transactional]
+        pub fn active_market(
+            origin: OriginFor<T>,
+            currency_id: CurrencyId,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            Self::mutate_market(&currency_id, |stored_market| {
+                if let MarketState::Active = stored_market.state {
+                    return;
+                }
+                stored_market.state = MarketState::Active
+            })?;
+            Self::deposit_event(Event::<T>::ActivatedMarket(currency_id));
+            Ok(().into())
+        }
+
+        /// Stores a new market and its related currency. Returns `Err` if a currency
+        /// is not attached to an existent market.
+        ///
+        /// All provided market states must be `Pending`, otherwise an error will be returned.
+        ///
+        /// If a currency is already attached to a market, then the market will be replaced
+        /// by the new provided value.
+        ///
+        /// - `currency_id`: Market related currency
+        /// - `market`: The market that is going to be stored
+        #[pallet::weight(T::WeightInfo::add_market())]
+        #[transactional]
+        pub fn add_market(
+            origin: OriginFor<T>,
+            currency_id: CurrencyId,
+            market: Market,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            let _ = Self::market(&currency_id)?;
+            ensure!(
+                market.rate_model.check_model(),
+                Error::<T>::InvalidRateModelParam
+            );
+            if market.state != MarketState::Pending {
+                return Err(Error::<T>::NewMarketMustHavePendingState.into());
+            }
+            Markets::<T>::insert(currency_id, market.clone());
+            Self::deposit_event(Event::<T>::NewMarket(market));
+            Ok(().into())
+        }
+
+        /// Updates a stored market. Returns `Err` if the market currency does not exist.
+        ///
+        /// Market state won't be modified, regardless of the provided value.
+        ///
+        /// - `currency_id`: Market related currency
+        /// - `market`: The new market parameters
+        #[pallet::weight(T::WeightInfo::update_market())]
+        #[transactional]
+        pub fn update_market(
+            origin: OriginFor<T>,
+            currency_id: CurrencyId,
+            market: Market,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            ensure!(
+                market.rate_model.check_model(),
+                Error::<T>::InvalidRateModelParam
+            );
+            Self::mutate_market(&currency_id, |stored_market| {
+                let Market {
+                    collateral_factor,
+                    reserve_factor,
+                    close_factor,
+                    liquidate_incentive,
+                    rate_model,
+                    state: _,
+                } = stored_market;
+                *collateral_factor = market.collateral_factor;
+                *reserve_factor = market.reserve_factor;
+                *close_factor = market.close_factor;
+                *liquidate_incentive = market.liquidate_incentive;
+                *rate_model = market.rate_model;
+            })?;
+            Ok(().into())
+        }
+
         /// Sender supplies assets into the market and receives internal supplies in exchange.
         ///
         /// - `currency_id`: the asset to be deposited.
@@ -554,28 +648,6 @@ pub mod pallet {
             Ok(().into())
         }
 
-        /// Sets a new liquidation incentive percentage for `currency_id`.
-        ///
-        /// Returns `Err` if the provided currency is not attached to an existent market.
-        ///
-        /// - `currency_id`: the asset that is going to be modified.
-        #[pallet::weight(T::WeightInfo::set_liquidation_incentive())]
-        #[transactional]
-        pub fn set_liquidation_incentive(
-            origin: OriginFor<T>,
-            currency_id: CurrencyId,
-            liquidate_incentive: Rate,
-        ) -> DispatchResultWithPostInfo {
-            T::UpdateOrigin::ensure_origin(origin)?;
-            Self::ensure_currency(&currency_id)?;
-
-            Self::mutate_market(&currency_id, |market| {
-                market.liquidate_incentive = liquidate_incentive
-            })?;
-
-            Ok(().into())
-        }
-
         /// Using for development
         #[pallet::weight(T::WeightInfo::transfer_token())]
         #[transactional]
@@ -666,32 +738,6 @@ pub mod pallet {
                 repay_amount,
                 collateral_token,
             )?;
-            Ok(().into())
-        }
-
-        /// Update the interest rate model for a given asset.
-        ///
-        /// Returns `Err` if the provided currency is not attached to an existent market. May
-        /// only be called from `T::UpdateOrigin`.
-        ///
-        /// - `currency_id`: the assets to be set.
-        /// - `new_model`: the interest rate model to be set.
-        #[pallet::weight(T::WeightInfo::set_rate_model())]
-        #[transactional]
-        pub fn set_rate_model(
-            origin: OriginFor<T>,
-            currency_id: CurrencyId,
-            new_model: InterestRateModel,
-        ) -> DispatchResultWithPostInfo {
-            T::UpdateOrigin::ensure_origin(origin)?;
-            Self::ensure_currency(&currency_id)?;
-
-            ensure!(new_model.check_model(), Error::<T>::InvalidRateModelParam);
-
-            Self::mutate_market(&currency_id, |market| market.rate_model = new_model)?;
-
-            Self::deposit_event(Event::<T>::NewInterestRateModel(new_model));
-
             Ok(().into())
         }
 
