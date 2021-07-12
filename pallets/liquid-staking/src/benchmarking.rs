@@ -64,12 +64,12 @@ where
         SystemOrigin::Signed(caller.clone()).into(),
         unstake_amount
     ));
-    let era_index = 1;
+
     assert_ok!(LiquidStaking::<T>::process_pending_unstake(
         T::WithdrawOrigin::successful_origin(),
         agent,
         caller,
-        era_index,
+        1,
         amount
     ));
 }
@@ -184,8 +184,8 @@ benchmarks! {
         assert_ok!(LiquidStaking::<T>::unstake(
             SystemOrigin::Signed(caller.clone()).into(),
             unstake_amount));
-        let era_index = 1;
-        let call = Call::<T>::process_pending_unstake(agent.clone(), caller.clone(), era_index, amount);
+
+        let call = Call::<T>::process_pending_unstake(agent.clone(), caller.clone(), 1, amount);
         let origin = T::WithdrawOrigin::successful_origin();
     }: { call.dispatch_bypass_filter(origin)? }
     verify {
@@ -206,26 +206,26 @@ benchmarks! {
         assert_ok!(LiquidStaking::<T>::unstake(
             SystemOrigin::Signed(caller.clone()).into(),
             unstake_amount));
-        let era_index = 1;
+
         assert_ok!(LiquidStaking::<T>::process_pending_unstake(
             T::WithdrawOrigin::successful_origin(),
             agent.clone(),
             caller.clone(),
-            era_index,
+            1,
             50_000
         ));
         assert_ok!(LiquidStaking::<T>::process_pending_unstake(
             T::WithdrawOrigin::successful_origin(),
             agent.clone(),
             caller.clone(),
-            era_index,
+            1,
             40_000
         ));
         assert_ok!(LiquidStaking::<T>::process_pending_unstake(
             T::WithdrawOrigin::successful_origin(),
             agent.clone(),
             caller.clone(),
-            era_index,
+            1,
             10_000
         ));
 
