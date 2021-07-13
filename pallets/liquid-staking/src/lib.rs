@@ -320,7 +320,7 @@ pub mod pallet {
                 ),
                 amount,
                 // TODO : measure xcm weight
-                100_000_000,
+                Self::xcm_weight(),
             )?;
 
             Self::deposit_event(Event::WithdrawSuccess(agent, amount));
@@ -568,7 +568,7 @@ pub mod pallet {
                 T::StakingCurrency::get(),
                 &Self::account_id(),
                 &owner,
-                amount,
+                amount - Self::xcm_weight() as u128,
             )?;
 
             Self::deposit_event(Event::UnstakeProcessed(agent, owner, amount));
@@ -580,6 +580,14 @@ pub mod pallet {
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> T::AccountId {
         T::PalletId::get().into_account()
+    }
+
+    fn xcm_weight() -> Weight {
+        if cfg!(test) {
+            0
+        } else {
+            100_000_000
+        }
     }
 }
 
