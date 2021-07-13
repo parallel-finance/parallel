@@ -321,6 +321,7 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 
 parameter_types! {
     pub SelfLocation: MultiLocation = X2(Parent, Parachain(ParachainInfo::parachain_id().into()));
+    pub const BaseXcmWeight: Weight = 100_000_000;
 }
 
 impl orml_xtokens::Config for Runtime {
@@ -332,6 +333,7 @@ impl orml_xtokens::Config for Runtime {
     type SelfLocation = SelfLocation;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+    type BaseXcmWeight = BaseXcmWeight;
 }
 
 impl orml_unknown_tokens::Config for Runtime {
@@ -399,6 +401,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type WeightInfo = pallet_liquid_staking::weights::SubstrateWeight<Runtime>;
     type XTransfer = XTokens;
     type Members = LiquidStakingAgentMembership;
+    type BaseXcmWeight = BaseXcmWeight;
 }
 
 parameter_types! {

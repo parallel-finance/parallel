@@ -105,6 +105,9 @@ pub mod pallet {
 
         /// Approved agent list on relaychain
         type Members: SortedMembers<Self::AccountId>;
+
+        /// Base xcm weight to use for cross chain transfer
+        type BaseXcmWeight: Get<Weight>;
     }
 
     #[pallet::error]
@@ -319,8 +322,7 @@ pub mod pallet {
                     },
                 ),
                 amount,
-                // TODO : measure xcm weight
-                Self::xcm_weight(),
+                T::BaseXcmWeight::get(),
             )?;
 
             Self::deposit_event(Event::WithdrawSuccess(agent, amount));
@@ -568,7 +570,7 @@ pub mod pallet {
                 T::StakingCurrency::get(),
                 &Self::account_id(),
                 &owner,
-                amount - Self::xcm_weight() as u128,
+                amount - T::BaseXcmWeight::get() as u128,
             )?;
 
             Self::deposit_event(Event::UnstakeProcessed(agent, owner, amount));
@@ -580,14 +582,6 @@ pub mod pallet {
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> T::AccountId {
         T::PalletId::get().into_account()
-    }
-
-    fn xcm_weight() -> Weight {
-        if cfg!(test) {
-            0
-        } else {
-            100_000_000
-        }
     }
 }
 

@@ -183,6 +183,7 @@ parameter_types! {
     pub const LiquidCurrency: CurrencyId = XDOT;
     pub const MaxWithdrawAmount: Balance = 10;
     pub const MaxAccountProcessingUnstake: u32 = 5;
+    pub const BaseXcmWeight: Weight = 0;
 }
 
 impl pallet_liquid_staking::Config for Test {
@@ -197,6 +198,7 @@ impl pallet_liquid_staking::Config for Test {
     type WeightInfo = ();
     type XTransfer = Currencies;
     type Members = Members;
+    type BaseXcmWeight = BaseXcmWeight;
 }
 
 pub struct Members;

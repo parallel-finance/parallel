@@ -608,6 +608,7 @@ parameter_types! {
     pub const LiquidCurrency: CurrencyId = CurrencyId::xKSM;
     pub const MaxWithdrawAmount: Balance = 1000_000_000_000_000;
     pub const MaxAccountProcessingUnstake: u32 = 5;
+    pub const BaseXcmWeight: Weight = 0;
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -622,6 +623,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type WeightInfo = pallet_liquid_staking::weights::SubstrateWeight<Runtime>;
     type XTransfer = ();
     type Members = IsInVec<()>;
+    type BaseXcmWeight = BaseXcmWeight;
 }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
