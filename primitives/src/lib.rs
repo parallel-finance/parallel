@@ -83,7 +83,8 @@ pub enum CurrencyId {
     xDOT = 3,
     #[allow(non_camel_case_types)]
     xKSM = 4,
-    Native = 5,
+    HKO = 5,
+    PARA = 6,
 }
 
 pub type Price = FixedU128;
