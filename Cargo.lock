@@ -5437,6 +5437,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-loans-rpc"
+version = "3.0.0"
+dependencies = [
+ "jsonrpc-core",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "pallet-loans-rpc-runtime-api",
+ "parity-scale-codec",
+ "serde",
+ "serde_json",
+ "sp-api",
+ "sp-blockchain",
+ "sp-core",
+ "sp-runtime",
+]
+
+[[package]]
 name = "pallet-loans-rpc-runtime-api"
 version = "3.0.0"
 dependencies = [
@@ -5927,6 +5944,7 @@ dependencies = [
  "jsonrpc-core",
  "log",
  "orml-oracle-rpc",
+ "pallet-loans-rpc",
  "pallet-transaction-payment-rpc",
  "pallet-transaction-payment-rpc-runtime-api",
  "parallel-primitives",
@@ -5982,6 +6000,7 @@ dependencies = [
  "jsonrpc-core",
  "log",
  "orml-oracle-rpc",
+ "pallet-loans-rpc",
  "pallet-transaction-payment-rpc",
  "parallel-primitives",
  "parity-scale-codec",
