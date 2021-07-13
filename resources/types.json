@@ -3,7 +3,7 @@
         "Address": "MultiAddress",
         "LookupSource": "MultiAddress",
         "CurrencyId": {
-            "_enum": ["DOT", "KSM", "USDT", "xDOT", "xKSM", "PARA", "HKO"]
+            "_enum": ["DOT", "KSM", "USDT", "xDOT", "xKSM", "HKO", "PARA"]
         },
         "CurrencyIdOf": "CurrencyId",
         "Amount": "i128",
