@@ -143,7 +143,7 @@ pub fn live_config() -> Result<ChainSpec, String> {
                 ],
             )
         },
-        vec![],
+        vec!["/dns/35.246.154.195/tcp/30333/p2p/12D3KooWMRN3wVhcijAB7H6M7wo48KW3CJSpyHSWZcCzNwYW3KVF".parse().unwrap()],
         None,
         None,
         None,
