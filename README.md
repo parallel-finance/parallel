@@ -143,7 +143,11 @@ parallel-dev key insert --chain=/usr/local/bin/live.json --suri "<validator's se
 docker container stop parallel
 docker container rm parallel
 
-docker run --restart=always --name parallel -d -p 30333:30333 -v "chains:/data" -v "$(pwd)/live.json:/usr/local/bin/live.json" parallelfinance/parallel:latest  parallel-dev -d /data --chain /usr/local/bin/live.json --validator
+docker run --restart=always --name parallel -d -p 30333:30333 \
+    -v "chains:/data" \
+    -v "$(pwd)/live.json:/usr/local/bin/live.json" \
+    parallelfinance/parallel:latest  \
+    parallel-dev -d /data --chain /usr/local/bin/live.json --validator
 ```
 
 Run Vanilla Live Full Node
