@@ -913,7 +913,7 @@ impl_runtime_apis! {
         }
     }
 
-    impl pallet_loans_rpc_runtime_api::LoanApi<Block, AccountId> for Runtime {
+    impl pallet_loans_rpc_runtime_api::LoansApi<Block, AccountId> for Runtime {
         fn get_account_liquidity(account: AccountId) -> Result<(FixedU128, FixedU128), DispatchError> {
             Loans::get_account_liquidity(&account)
         }

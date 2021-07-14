@@ -43,12 +43,12 @@ where
     C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
     C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
     C::Api: orml_oracle_rpc::OracleRuntimeApi<Block, DataProviderId, CurrencyId, TimeStampedPrice>,
-    C::Api: pallet_loans_rpc::LoanRuntimeApi<Block, AccountId>,
+    C::Api: pallet_loans_rpc::LoansRuntimeApi<Block, AccountId>,
     C::Api: BlockBuilder<Block>,
     P: TransactionPool + 'static,
 {
     use orml_oracle_rpc::{Oracle, OracleApi};
-    use pallet_loans_rpc::{Loan, LoanApi};
+    use pallet_loans_rpc::{Loans, LoansApi};
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
     use substrate_frame_rpc_system::{FullSystem, SystemApi};
 
@@ -75,7 +75,7 @@ where
     // `io.extend_with(YourRpcTrait::to_delegate(YourRpcStruct::new(ReferenceToClient, ...)));`
     io.extend_with(OracleApi::to_delegate(Oracle::new(client.clone())));
 
-    io.extend_with(LoanApi::to_delegate(Loan::new(client.clone())));
+    io.extend_with(LoansApi::to_delegate(Loans::new(client.clone())));
 
     io
 }

@@ -15,7 +15,4 @@ sp-api                          = { git = "https://github.com/paritytech/substra
 sp-blockchain                   = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.5" }
 sp-core                         = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.5" }
 
-pallet-loans-rpc-runtime-api    = { path = "runtime-api", version = "3.0.0" }
-
-[dev-dependencies]
-serde_json = "1.0.41"
+pallet-loans-rpc-runtime-api    = { path = "runtime-api", default-features = false, version = "3.0.0" }
