@@ -28,4 +28,4 @@ jobs:
             docker volume create chains || true
             docker run --restart=always --name parallel -d -p 9944:9944 \
               -v "chains:/data" parallelfinance/parallel:latest \
-              parallel-dev -d /data --chain live --validator --rpc-cors all --rpc-methods=Unsafe --unsafe-rpc-external --unsafe-ws-external
+              parallel-dev -d /data --dev --ws-external

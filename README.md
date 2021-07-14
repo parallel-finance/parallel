@@ -44,7 +44,7 @@ cargo build --release
 make help
 ```
 
-## Run Heiko Node (via polkadot-launch 1.6.3)
+## Run Heiko Node (via polkadot-launch 1.7.0)
 
 ```
 make launch
@@ -119,38 +119,63 @@ docker run --restart=always -d -p 9944:9944 \
     parallel-dev -d /data --dev --ws-external
 ```
 
-Run Vanilla Live Node
+Run Vanilla Live Validator Node
 
 ```
-docker run --restart=always -d -p 9944:9944 \
-    -v "$(pwd):/data" \
+docker volume create chains
+
+docker run --restart=always --name parallel -d -p 9944:9944 -p 9933:9933 \
+    -v "chains:/data" \
+    -v "$(pwd)/live.json:/usr/local/bin/live.json" \
     parallelfinance/parallel:latest \
-    parallel-dev -d /data --chain live --validator --rpc-cors all --rpc-methods=Unsafe --unsafe-rpc-external --unsafe-ws-external
+    parallel-dev -d /data --chain /usr/local/bin/live.json --validator --rpc-cors all --rpc-methods=Unsafe --unsafe-rpc-external --unsafe-ws-external
 
-# insert aura/gran keys to keystore
+# insert aura & gran keys to keystore
+curl http://localhost:9933 -H "Content-Type:application/json;charset=utf-8" -d "@aura.json"
+curl http://localhost:9933 -H "Content-Type:application/json;charset=utf-8" -d "@gran.json"
+
+docker exec -it parallel bash
+
+# setup liquidation account
+parallel-dev key insert --chain=/usr/local/bin/live.json --suri "<validator's seed>" --key-type pool -d /data
+
+# restart and allow only p2p connections
+docker container stop parallel
+docker container rm parallel
+
+docker run --restart=always --name parallel -d -p 30333:30333 \
+    -v "chains:/data" \
+    -v "$(pwd)/live.json:/usr/local/bin/live.json" \
+    parallelfinance/parallel:latest  \
+    parallel-dev -d /data --chain /usr/local/bin/live.json --validator
 ```
 
-Generate genesis state & wasm & run collator
+Run Vanilla Live Full Node
+
+```
+docker volume create chains
+
+docker run --restart=always --name parallel -d -p 9944:9944 \
+    -v "chains:/data" \
+    -v "$(pwd)/live.json:/usr/local/bin/live.json" \
+    parallelfinance/parallel:latest \
+    parallel-dev -d /data --chain /usr/local/bin/live.json --rpc-cors all --unsafe-ws-external
+```
+
+Run Heiko Dev Network
+
+```
+docker-compose -f docker-compose-heiko-dev.yml up -d
+docker-compose logs -f
+```
+
+Generate heiko-dev's genesis state & wasm
 
 ```
 docker run --rm  parity/polkadot:latest build-spec --chain rococo-local --raw --disable-default-bootnode > rococo-local.json
 
-docker run --rm  parallelfinance/parallel:latest parallel export-genesis-state --parachain-id 200 > ./para-200-genesis
-docker run --rm  parallelfinance/parallel:latest parallel export-genesis-wasm > ./para-200.wasm
-
-# Run collator without connecting to any relay node
-docker run --restart=always -d -p 9988:9988 \
-    -v "$(pwd):/data" \
-    -v "$(pwd)/rococo-local.json:/usr/local/bin/rococo-local.json" \
-    parallelfinance/parallel:latest \
-    parallel -d /data --collator --alice --chain heiko-dev --parachain-id 200 --ws-port 9988 --rpc-cors all --rpc-methods=Unsafe --unsafe-rpc-external --unsafe-ws-external -- --chain /usr/local/bin/rococo-local.json
-```
-
-Run Heiko Dev Parachain
-
-```
-docker-compose -f docker-compose-heiko.yml up -d
-docker-compose logs -f
+docker run --rm  parallelfinance/parallel:latest parallel export-genesis-state --chain heiko-dev --parachain-id 200 > ./para-200-genesis
+docker run --rm  parallelfinance/parallel:latest parallel export-genesis-wasm --chain heiko-dev > ./para-200.wasm
 ```
 
 ## Learn More
