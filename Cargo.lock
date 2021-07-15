@@ -2884,6 +2884,7 @@ dependencies = [
  "pallet-loans-rpc-runtime-api",
  "pallet-membership",
  "pallet-multisig",
+ "pallet-nominee-election",
  "pallet-prices",
  "pallet-scheduler",
  "pallet-session",
@@ -5536,6 +5537,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-nominee-election"
+version = "3.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-offences"
 version = "3.0.0"
 source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.8#1b758b2a8d151d97d2242260c465b6df9cb8a7a4"
@@ -6064,6 +6079,7 @@ dependencies = [
  "pallet-loans-rpc-runtime-api",
  "pallet-membership",
  "pallet-multisig",
+ "pallet-nominee-election",
  "pallet-prices",
  "pallet-scheduler",
  "pallet-session",
@@ -11613,6 +11629,7 @@ dependencies = [
  "pallet-loans-rpc-runtime-api",
  "pallet-membership",
  "pallet-multisig",
+ "pallet-nominee-election",
  "pallet-prices",
  "pallet-scheduler",
  "pallet-sudo",

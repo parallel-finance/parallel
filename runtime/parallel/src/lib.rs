@@ -73,10 +73,12 @@ pub mod impls;
 // re-exports
 pub use constants::{currency, fee, time};
 pub use impls::DealWithFees;
+
 pub use pallet_liquid_staking;
 pub use pallet_liquidation;
 pub use pallet_loans;
 pub use pallet_multisig;
+pub use pallet_nominee_election;
 pub use pallet_prices;
 
 use currency::*;
@@ -390,6 +392,33 @@ impl pallet_liquid_staking::Config for Runtime {
     type XcmTransfer = XTokens;
     type Members = LiquidStakingAgentMembership;
     type BaseXcmWeight = BaseXcmWeight;
+}
+
+parameter_types! {
+    pub const MaxNumValidators: u32 = 16;
+    pub const ValidatorFeedersMembershipMaxMembers: u32 = 3;
+}
+
+type ValidatorFeedersMembershipInstance = pallet_membership::Instance4;
+impl pallet_membership::Config<ValidatorFeedersMembershipInstance> for Runtime {
+    type Event = Event;
+    type AddOrigin = EnsureRootOrHalfCouncil;
+    type RemoveOrigin = EnsureRootOrHalfCouncil;
+    type SwapOrigin = EnsureRootOrHalfCouncil;
+    type ResetOrigin = EnsureRootOrHalfCouncil;
+    type PrimeOrigin = EnsureRootOrHalfCouncil;
+    type MembershipInitialized = ();
+    type MembershipChanged = ();
+    type MaxMembers = ValidatorFeedersMembershipMaxMembers;
+    type WeightInfo = ();
+}
+
+impl pallet_nominee_election::Config for Runtime {
+    type Event = Event;
+    type UpdateOrigin = EnsureRootOrHalfCouncil;
+    type WhitelistUpdateOrigin = EnsureRootOrHalfCouncil;
+    type MaxNumValidators = MaxNumValidators;
+    type Members = ValidatorFeedersMembership;
 }
 
 parameter_types! {
@@ -1064,9 +1093,8 @@ construct_runtime!(
         XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
         UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event},
 
-        // Parallel pallets
+        // Loans
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
-        LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config},
         Liquidation: pallet_liquidation::{Pallet, Call},
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
 
@@ -1074,7 +1102,10 @@ construct_runtime!(
         OracleMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>},
 
         // LiquidStaking
+        LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config},
         LiquidStakingAgentMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>},
+        NomineeElection: pallet_nominee_election::{Pallet, Call, Storage, Event<T>, Config},
+        ValidatorFeedersMembership: pallet_membership::<Instance4>::{Pallet, Call, Storage, Event<T>, Config<T>}
     }
 );
 

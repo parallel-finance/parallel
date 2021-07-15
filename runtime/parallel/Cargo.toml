@@ -85,13 +85,14 @@ orml-xcm-support            = { git = 'https://github.com/open-web3-stack/open-r
 orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 
 # Parallel dependencies
-pallet-liquid-staking                       = { path = '../../pallets/liquid-staking', default-features = false }
-pallet-liquidation                          = { path = '../../pallets/liquidation', default-features = false }
-pallet-loans                                = { path = '../../pallets/loans', default-features = false }
-pallet-loans-rpc-runtime-api                = { path = '../../pallets/loans/rpc/runtime-api', default-features = false }
-pallet-loans-benchmarking                   = { path = '../../pallets/loans/benchmarking', default-features = false, optional = true }
-pallet-prices                               = { path = '../../pallets/prices', default-features = false }
-primitives                                  = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
+pallet-liquid-staking        = { path = '../../pallets/liquid-staking', default-features = false }
+pallet-liquidation           = { path = '../../pallets/liquidation', default-features = false }
+pallet-loans                 = { path = '../../pallets/loans', default-features = false }
+pallet-loans-benchmarking    = { path = '../../pallets/loans/benchmarking', default-features = false, optional = true }
+pallet-loans-rpc-runtime-api = { path = '../../pallets/loans/rpc/runtime-api', default-features = false }
+pallet-nominee-election      = { path = '../../pallets/nominee-election', default-features = false }
+pallet-prices                = { path = '../../pallets/prices', default-features = false }
+primitives                   = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 
 [build-dependencies.substrate-wasm-builder]
 branch  = 'polkadot-v0.9.8'
@@ -158,6 +159,7 @@ std                = [
   'primitives/std',
   'pallet-loans/std',
   'pallet-loans-rpc-runtime-api/std',
+  'pallet-nominee-election/std',
   'pallet-liquid-staking/std',
   'pallet-liquidation/std',
   'pallet-prices/std',

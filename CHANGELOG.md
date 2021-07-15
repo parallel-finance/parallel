@@ -7,7 +7,7 @@
 
 ## 2021.07.15
 
--   Upgrade polkadot to v0.9.8
+-   Upgrade polkadot to v0.9.8 (#301)
 
 ## 2021.07.08
 

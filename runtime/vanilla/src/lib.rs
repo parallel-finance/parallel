@@ -61,10 +61,12 @@ use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended, X
 pub mod constants;
 
 pub use constants::{currency, fee, time};
+
 pub use pallet_liquid_staking;
 pub use pallet_liquidation;
 pub use pallet_loans;
 pub use pallet_multisig;
+pub use pallet_nominee_election;
 
 use currency::*;
 use fee::*;
@@ -596,16 +598,6 @@ impl pallet_prices::Config for Runtime {
 }
 
 parameter_types! {
-    pub const LockPeriod: u64 = 20000; // in milli-seconds
-    pub const LiquidateFactor: Percent = Percent::from_percent(50);
-}
-impl pallet_liquidation::Config for Runtime {
-    type AuthorityId = pallet_liquidation::crypto::AuthId;
-    type LockPeriod = LockPeriod;
-    type LiquidateFactor = LiquidateFactor;
-}
-
-parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/stak");
     pub const StakingCurrency: CurrencyId = CurrencyId::KSM;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xKSM;
@@ -661,6 +653,44 @@ impl pallet_liquid_staking::Config for Runtime {
     type XcmTransfer = XcmTransferT;
     type Members = IsInVec<()>;
     type BaseXcmWeight = BaseXcmWeight;
+}
+
+parameter_types! {
+    pub const MaxNumValidators: u32 = 16;
+    pub const ValidatorFeedersMembershipMaxMembers: u32 = 3;
+}
+
+type ValidatorFeedersMembershipInstance = pallet_membership::Instance4;
+impl pallet_membership::Config<ValidatorFeedersMembershipInstance> for Runtime {
+    type Event = Event;
+    type AddOrigin = EnsureRootOrHalfCouncil;
+    type RemoveOrigin = EnsureRootOrHalfCouncil;
+    type SwapOrigin = EnsureRootOrHalfCouncil;
+    type ResetOrigin = EnsureRootOrHalfCouncil;
+    type PrimeOrigin = EnsureRootOrHalfCouncil;
+    type MembershipInitialized = ();
+    type MembershipChanged = ();
+    type MaxMembers = ValidatorFeedersMembershipMaxMembers;
+    type WeightInfo = ();
+}
+
+impl pallet_nominee_election::Config for Runtime {
+    type Event = Event;
+    type UpdateOrigin = EnsureRootOrHalfCouncil;
+    type WhitelistUpdateOrigin = EnsureRootOrHalfCouncil;
+    type MaxNumValidators = MaxNumValidators;
+    type Members = ValidatorFeedersMembership;
+}
+
+parameter_types! {
+    pub const LockPeriod: u64 = 20000; // in milli-seconds
+    pub const LiquidateFactor: Percent = Percent::from_percent(50);
+}
+
+impl pallet_liquidation::Config for Runtime {
+    type AuthorityId = pallet_liquidation::crypto::AuthId;
+    type LockPeriod = LockPeriod;
+    type LiquidateFactor = LiquidateFactor;
 }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
@@ -762,11 +792,15 @@ construct_runtime!(
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
         Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call,  Event<T>},
 
-        // Parallel
+        // Loans
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
         Liquidation: pallet_liquidation::{Pallet, Call},
+
+        // LiquidStaking
         LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config},
+        NomineeElection: pallet_nominee_election::{Pallet, Call, Storage, Event<T>, Config},
+        ValidatorFeedersMembership: pallet_membership::<Instance4>::{Pallet, Call, Storage, Event<T>, Config<T>}
     }
 );
 
