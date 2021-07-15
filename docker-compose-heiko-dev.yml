@@ -5,7 +5,7 @@ services:
       - "30333:30333"
       - "9933:9933"
       - "9944:9944"
-    image: parity/polkadot:v0.9.7
+    image: parity/polkadot:v0.9.8
     volumes:
       - "relay-data-alice:/data"
       - "./rococo-local.json:/usr/local/bin/rococo-local.json"
@@ -19,7 +19,7 @@ services:
       - "30344:30344"
       - "9935:9935"
       - "9945:9945"
-    image: parity/polkadot:v0.9.7
+    image: parity/polkadot:v0.9.8
     volumes:
       - "relay-data-bob:/data"
       - "./rococo-local.json:/usr/local/bin/rococo-local.json"
