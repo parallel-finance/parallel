@@ -14,7 +14,7 @@ use static_assertions::const_assert;
 use frame_support::PalletId;
 pub use frame_support::{
     construct_runtime, log, parameter_types,
-    traits::{KeyOwnerProofSystem, LockIdentifier, Randomness, U128CurrencyToVote},
+    traits::{IsInVec, KeyOwnerProofSystem, LockIdentifier, Randomness, U128CurrencyToVote},
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
         DispatchClass, IdentityFee, Weight,
@@ -49,10 +49,12 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
+use xcm::v0::{Junction, MultiAsset, MultiLocation, Outcome};
 
 // Import ORML dependcies
 use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended};
+use orml_traits::MultiCurrency;
+use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended, XcmTransfer};
 
 // Import Parallel dependencies
 /// Constant values used within the runtime.
@@ -520,7 +522,7 @@ impl orml_tokens::Config for Runtime {
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Native;
+    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::HKO;
 }
 impl orml_currencies::Config for Runtime {
     type Event = Event;
@@ -609,6 +611,41 @@ parameter_types! {
     pub const LiquidCurrency: CurrencyId = CurrencyId::xKSM;
     pub const MaxWithdrawAmount: Balance = 1000_000_000_000_000;
     pub const MaxAccountProcessingUnstake: u32 = 5;
+    pub const BaseXcmWeight: Weight = 0;
+}
+
+pub struct XcmTransferT;
+impl XcmTransfer<AccountId, Balance, CurrencyId> for XcmTransferT {
+    fn transfer(
+        who: AccountId,
+        currency_id: CurrencyId,
+        amount: Balance,
+        mut to: MultiLocation,
+        _dest_weight: Weight,
+    ) -> XcmExecutionResult {
+        <Runtime as orml_currencies::Config>::MultiCurrency::withdraw(currency_id, &who, amount)?;
+        if let Some(Junction::AccountId32 {
+            id: account_id32, ..
+        }) = to.take_last()
+        {
+            let account_id: AccountId = account_id32.into();
+            <Runtime as orml_currencies::Config>::MultiCurrency::deposit(
+                currency_id,
+                &account_id,
+                amount,
+            )?;
+        }
+        Ok(Outcome::Complete(0))
+    }
+
+    fn transfer_multi_asset(
+        _who: AccountId,
+        _asset: MultiAsset,
+        _dest: MultiLocation,
+        _dest_weight: Weight,
+    ) -> XcmExecutionResult {
+        unimplemented!()
+    }
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -621,7 +658,9 @@ impl pallet_liquid_staking::Config for Runtime {
     type MaxWithdrawAmount = MaxWithdrawAmount;
     type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
     type WeightInfo = pallet_liquid_staking::weights::SubstrateWeight<Runtime>;
-    type XTransfer = ();
+    type XcmTransfer = XcmTransferT;
+    type Members = IsInVec<()>;
+    type BaseXcmWeight = BaseXcmWeight;
 }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
@@ -813,8 +852,9 @@ impl_runtime_apis! {
         fn validate_transaction(
             source: TransactionSource,
             tx: <Block as BlockT>::Extrinsic,
+            block_hash: <Block as BlockT>::Hash,
         ) -> TransactionValidity {
-            Executive::validate_transaction(source, tx)
+            Executive::validate_transaction(source, tx, block_hash)
         }
     }
 

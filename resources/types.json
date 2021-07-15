@@ -3,7 +3,7 @@
         "Address": "MultiAddress",
         "LookupSource": "MultiAddress",
         "CurrencyId": {
-            "_enum": ["DOT", "KSM", "USDT", "xDOT", "xKSM", "Native"]
+            "_enum": ["DOT", "KSM", "USDT", "xDOT", "xKSM", "HKO", "PARA"]
         },
         "CurrencyIdOf": "CurrencyId",
         "Amount": "i128",
@@ -87,7 +87,8 @@
         },
         "UnstakeInfo": {
             "amount": "Balance",
-            "blockNumber": "u32"
+            "blockNumber": "u32",
+            "eraIndex": "Option<u32>"
         },
         "OrmlAccountData": {
             "free": "Balance",

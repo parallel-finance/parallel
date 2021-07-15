@@ -20,8 +20,11 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{pallet_prelude::*, transactional, BoundedVec, PalletId};
-use frame_system::{pallet_prelude::*, RawOrigin};
+use frame_support::{
+    pallet_prelude::*, traits::SortedMembers, transactional, BoundedVec, PalletId,
+};
+use frame_system::pallet_prelude::*;
+use orml_traits::XcmTransfer;
 use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber, RuntimeDebug};
 use sp_std::convert::TryInto;
 use sp_std::prelude::*;
@@ -30,7 +33,7 @@ use xcm::v0::{Junction, MultiLocation, NetworkId};
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 
 pub use pallet::*;
-use primitives::{Amount, Balance, CurrencyId, ExchangeRateProvider, Rate, Ratio, XTransfer};
+use primitives::{Amount, Balance, CurrencyId, ExchangeRateProvider, Rate, Ratio};
 pub use weights::WeightInfo;
 
 mod benchmarking;
@@ -41,11 +44,14 @@ mod mock;
 mod tests;
 pub mod weights;
 
+pub type EraIndex = u32;
+
 /// Container for pending balance information
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
 pub struct UnstakeInfo<BlockNumber> {
     pub amount: Balance,
     pub block_number: BlockNumber,
+    pub era_index: Option<EraIndex>,
 }
 
 #[frame_support::pallet]
@@ -95,7 +101,14 @@ pub mod pallet {
         /// Weight information for extrinsics in this pallet.
         type WeightInfo: WeightInfo;
 
-        type XTransfer: XTransfer<Self, CurrencyId, Self::AccountId, Balance>;
+        /// XCM transfer
+        type XcmTransfer: XcmTransfer<Self::AccountId, Balance, CurrencyId>;
+
+        /// Approved agent list on relaychain
+        type Members: SortedMembers<Self::AccountId>;
+
+        /// Base xcm weight to use for cross chain transfer
+        type BaseXcmWeight: Get<Weight>;
     }
 
     #[pallet::error]
@@ -114,6 +127,8 @@ pub mod pallet {
         InvalidProcessedUnstakeAmount,
         /// The maximum account processing unstake reuqest exceeded
         MaxAccountProcessingUnstakeExceeded,
+        /// Not approved agent
+        IllegalAgent,
     }
 
     #[pallet::event]
@@ -159,6 +174,11 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn total_voucher)]
     pub type TotalVoucher<T: Config> = StorageValue<_, Balance, ValueQuery>;
+
+    /// The total person-times of staking operations.
+    #[pallet::storage]
+    #[pallet::getter(fn staking_person_times)]
+    pub type StakingPersonTimes<T: Config> = StorageValue<_, u128, ValueQuery>;
 
     /// The queue stores all the pending unstaking requests.
     /// Key is the owner of assets.
@@ -265,6 +285,8 @@ pub mod pallet {
                 Ok(())
             })?;
 
+            StakingPersonTimes::<T>::mutate(|b| *b = b.saturating_add(1));
+
             Self::deposit_event(Event::Staked(sender, amount));
             Ok(().into())
         }
@@ -283,14 +305,17 @@ pub mod pallet {
             amount: Balance,
         ) -> DispatchResultWithPostInfo {
             T::WithdrawOrigin::ensure_origin(origin)?;
+            ensure!(T::Members::contains(&agent), Error::<T>::IllegalAgent);
+
             ensure!(
                 amount <= T::MaxWithdrawAmount::get(),
                 Error::<T>::ExcessWithdrawThreshold
             );
 
-            T::XTransfer::xtransfer(
-                RawOrigin::Signed(Self::account_id()).into(),
+            T::XcmTransfer::transfer(
+                Self::account_id(),
                 T::StakingCurrency::get(),
+                amount,
                 MultiLocation::X2(
                     Junction::Parent,
                     Junction::AccountId32 {
@@ -298,9 +323,7 @@ pub mod pallet {
                         id: agent.clone().into(),
                     },
                 ),
-                amount,
-                // TODO : measure xcm weight
-                1000_1000,
+                T::BaseXcmWeight::get(),
             )?;
 
             Self::deposit_event(Event::WithdrawSuccess(agent, amount));
@@ -322,6 +345,7 @@ pub mod pallet {
             amount: Balance,
         ) -> DispatchResultWithPostInfo {
             T::WithdrawOrigin::ensure_origin(origin)?;
+            ensure!(T::Members::contains(&agent), Error::<T>::IllegalAgent);
 
             let reserve = Self::reserve_factor().mul_floor(amount);
             TotalReserve::<T>::try_mutate(|b| -> DispatchResult {
@@ -364,6 +388,7 @@ pub mod pallet {
             amount: Balance,
         ) -> DispatchResultWithPostInfo {
             T::WithdrawOrigin::ensure_origin(origin)?;
+            ensure!(T::Members::contains(&agent), Error::<T>::IllegalAgent);
 
             TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
@@ -401,6 +426,7 @@ pub mod pallet {
                     Ok(UnstakeInfo {
                         amount: asset_amount,
                         block_number,
+                        era_index: None,
                     }),
                     |mut v| {
                         v.amount = v
@@ -446,9 +472,11 @@ pub mod pallet {
             origin: OriginFor<T>,
             agent: T::AccountId,
             owner: T::AccountId,
+            era_index: EraIndex,
             amount: Balance,
         ) -> DispatchResultWithPostInfo {
             T::WithdrawOrigin::ensure_origin(origin)?;
+            ensure!(T::Members::contains(&agent), Error::<T>::IllegalAgent);
 
             AccountPendingUnstake::<T>::try_mutate_exists(&owner, |info| -> DispatchResult {
                 let new_info = info.map_or(
@@ -476,6 +504,7 @@ pub mod pallet {
             let new_unstake = UnstakeInfo {
                 amount,
                 block_number,
+                era_index: Some(era_index),
             };
             let new_processing_unstake = match processing_unstake {
                 None => vec![new_unstake]
@@ -513,6 +542,7 @@ pub mod pallet {
             amount: Balance,
         ) -> DispatchResultWithPostInfo {
             T::WithdrawOrigin::ensure_origin(origin)?;
+            ensure!(T::Members::contains(&agent), Error::<T>::IllegalAgent);
 
             AccountProcessingUnstake::<T>::try_mutate_exists(
                 &agent,
@@ -541,7 +571,7 @@ pub mod pallet {
                 T::StakingCurrency::get(),
                 &Self::account_id(),
                 &owner,
-                amount,
+                amount - T::BaseXcmWeight::get() as u128,
             )?;
 
             Self::deposit_event(Event::UnstakeProcessed(agent, owner, amount));

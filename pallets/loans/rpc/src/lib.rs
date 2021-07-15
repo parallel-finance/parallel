@@ -1,22 +1,36 @@
+// Copyright 2021 Parallel Finance Developer.
+// This file is part of Parallel Finance.
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use std::sync::Arc;
 
 use codec::Codec;
 use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
 use jsonrpc_derive::rpc;
 pub use pallet_loans_rpc_runtime_api::LoansApi as LoansRuntimeApi;
+use primitives::{Shortfalls, Surplus};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
-use sp_runtime::FixedU128;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
 
 #[rpc]
 pub trait LoansApi<BlockHash, AccountId> {
-    #[rpc(name = "pallet_loans_get_account_liquidity")]
+    #[rpc(name = "loans_get_account_liquidity")]
     fn get_account_liquidity(
         &self,
         account: AccountId,
         at: Option<BlockHash>,
-    ) -> Result<(FixedU128, FixedU128)>;
+    ) -> Result<(Shortfalls, Surplus)>;
 }
 
 /// A struct that implements the [`LoansApi`].
@@ -62,7 +76,7 @@ where
         &self,
         account: AccountId,
         at: Option<<Block as BlockT>::Hash>,
-    ) -> Result<(FixedU128, FixedU128)> {
+    ) -> Result<(Shortfalls, Surplus)> {
         let api = self.client.runtime_api();
         let at = BlockId::hash(at.unwrap_or(
             // If the block hash is not supplied assume the best block.

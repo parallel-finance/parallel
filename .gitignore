@@ -31,3 +31,5 @@ dist/
 *-local*.json
 
 chains/
+
+**/keystore*

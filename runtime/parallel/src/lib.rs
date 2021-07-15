@@ -22,7 +22,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use codec::Encode;
 use frame_support::{
-    dispatch::{DispatchResult, Weight},
+    dispatch::Weight,
     traits::{All, LockIdentifier, U128CurrencyToVote},
     PalletId,
 };
@@ -52,7 +52,6 @@ use cumulus_primitives_core::ParaId;
 use frame_support::log;
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    pallet_prelude::OriginFor,
     EnsureOneOf, EnsureRoot,
 };
 use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
@@ -258,7 +257,7 @@ impl orml_tokens::Config for Runtime {
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Native;
+    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::PARA;
 
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
 }
@@ -322,6 +321,7 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 
 parameter_types! {
     pub SelfLocation: MultiLocation = X2(Parent, Parachain(ParachainInfo::parachain_id().into()));
+    pub const BaseXcmWeight: Weight = 100_000_000;
 }
 
 impl orml_xtokens::Config for Runtime {
@@ -333,22 +333,11 @@ impl orml_xtokens::Config for Runtime {
     type SelfLocation = SelfLocation;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+    type BaseXcmWeight = BaseXcmWeight;
 }
 
 impl orml_unknown_tokens::Config for Runtime {
     type Event = Event;
-}
-
-impl XTransfer<Runtime, CurrencyId, AccountId, Balance> for XTokens {
-    fn xtransfer(
-        from: OriginFor<Runtime>,
-        currency_id: CurrencyId,
-        to: MultiLocation,
-        amount: Balance,
-        weight: Weight,
-    ) -> DispatchResult {
-        XTokens::transfer(from, currency_id, amount, to, weight)
-    }
 }
 
 impl pallet_loans::Config for Runtime {
@@ -360,6 +349,24 @@ impl pallet_loans::Config for Runtime {
     type UpdateOrigin = EnsureRootOrHalfCouncil;
     type WeightInfo = pallet_loans::weights::SubstrateWeight<Runtime>;
     type UnixTime = Timestamp;
+}
+
+parameter_types! {
+    pub const LiquidStakingAgentMaxMembers: u32 = 100;
+}
+
+type LiquidStakingAgentMembershipInstance = pallet_membership::Instance3;
+impl pallet_membership::Config<LiquidStakingAgentMembershipInstance> for Runtime {
+    type Event = Event;
+    type AddOrigin = EnsureRootOrHalfCouncil;
+    type RemoveOrigin = EnsureRootOrHalfCouncil;
+    type SwapOrigin = EnsureRootOrHalfCouncil;
+    type ResetOrigin = EnsureRootOrHalfCouncil;
+    type PrimeOrigin = EnsureRootOrHalfCouncil;
+    type MembershipInitialized = ();
+    type MembershipChanged = ();
+    type MaxMembers = LiquidStakingAgentMaxMembers;
+    type WeightInfo = ();
 }
 
 parameter_types! {
@@ -380,7 +387,9 @@ impl pallet_liquid_staking::Config for Runtime {
     type MaxWithdrawAmount = MaxWithdrawAmount;
     type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
     type WeightInfo = pallet_liquid_staking::weights::SubstrateWeight<Runtime>;
-    type XTransfer = XTokens;
+    type XcmTransfer = XTokens;
+    type Members = LiquidStakingAgentMembership;
+    type BaseXcmWeight = BaseXcmWeight;
 }
 
 parameter_types! {
@@ -497,6 +506,7 @@ impl pallet_session::Config for Runtime {
 parameter_types! {
     pub const PotId: PalletId = PalletId(*b"PotStake");
     pub const MaxCandidates: u32 = 1000;
+    pub const MinCandidates: u32 = 1;
     pub const MaxInvulnerables: u32 = 100;
 }
 
@@ -506,9 +516,13 @@ impl pallet_collator_selection::Config for Runtime {
     type UpdateOrigin = EnsureRootOrHalfCouncil;
     type PotId = PotId;
     type MaxCandidates = MaxCandidates;
+    type MinCandidates = MinCandidates;
     type MaxInvulnerables = MaxInvulnerables;
     // should be a multiple of session or things will get inconsistent
     type KickThreshold = Period;
+    type ValidatorId = <Self as frame_system::Config>::AccountId;
+    type ValidatorIdOf = pallet_collator_selection::IdentityCollator;
+    type ValidatorRegistration = Session;
     type WeightInfo = ();
 }
 
@@ -1027,7 +1041,7 @@ construct_runtime!(
         TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
 
         // Parachain
-        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Storage, Inherent, Event<T>, ValidateUnsigned},
+        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Storage, Inherent, Event<T>},
         ParachainInfo: parachain_info::{Pallet, Storage, Config},
         XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>},
         DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>},
@@ -1058,6 +1072,9 @@ construct_runtime!(
 
         // Oracles
         OracleMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>},
+
+        // LiquidStaking
+        LiquidStakingAgentMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>},
     }
 );
 
@@ -1164,8 +1181,9 @@ impl_runtime_apis! {
         fn validate_transaction(
             source: TransactionSource,
             tx: <Block as BlockT>::Extrinsic,
+            block_hash: <Block as BlockT>::Hash,
         ) -> TransactionValidity {
-            Executive::validate_transaction(source, tx)
+            Executive::validate_transaction(source, tx, block_hash)
         }
     }
 

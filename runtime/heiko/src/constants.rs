@@ -14,11 +14,12 @@
 
 pub mod currency {
     use primitives::Balance;
-    pub const EXISTENTIAL_DEPOSIT: u128 = 500;
 
     pub const MILLICENTS: Balance = 10_000_000;
     pub const CENTS: Balance = 1_000 * MILLICENTS; // assume this is worth about a cent.
     pub const DOLLARS: Balance = 100 * CENTS;
+
+    pub const EXISTENTIAL_DEPOSIT: u128 = 10 * CENTS; // 0.1 Native Token Balance
 
     pub const fn deposit(items: u32, bytes: u32) -> Balance {
         items as Balance * 15 * CENTS + (bytes as Balance) * 6 * CENTS

@@ -91,7 +91,7 @@ pub type BlockNumber = u64;
 
 pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const KSM: CurrencyId = CurrencyId::KSM;
-pub const NATIVE: CurrencyId = CurrencyId::Native;
+pub const NATIVE: CurrencyId = CurrencyId::HKO;
 
 parameter_types! {
     pub const MinimumPeriod: u64 = 5;

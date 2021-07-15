@@ -2,17 +2,15 @@ use crate as pallet_liquid_staking;
 
 use codec::{Decode, Encode};
 use frame_support::{
-    dispatch::{DispatchResult, Weight},
+    dispatch::Weight,
     parameter_types,
     traits::{GenesisBuild, MaxEncodedLen, SortedMembers},
     PalletId,
 };
-use frame_system::{
-    self as system, ensure_signed, pallet_prelude::OriginFor, EnsureOneOf, EnsureRoot,
-    EnsureSignedBy,
-};
+use frame_system::{self as system, EnsureOneOf, EnsureRoot, EnsureSignedBy};
+use orml_traits::XcmTransfer;
 use orml_traits::{parameter_type_with_key, MultiCurrency};
-use primitives::{Amount, Balance, CurrencyId, Rate, Ratio, XTransfer};
+use primitives::{Amount, Balance, CurrencyId, Rate, Ratio, XcmExecutionResult};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
@@ -22,11 +20,11 @@ use sp_runtime::{
     FixedPointNumber, RuntimeDebug,
 };
 use sp_std::convert::TryInto;
-use xcm::v0::{Junction, MultiLocation};
+use xcm::v0::{Junction, MultiAsset, MultiLocation, Outcome};
 
 pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const XDOT: CurrencyId = CurrencyId::xDOT;
-pub const NATIVE: CurrencyId = CurrencyId::Native;
+pub const NATIVE: CurrencyId = CurrencyId::HKO;
 pub const DOT_DECIMAL: u128 = 10u128.pow(10);
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -183,6 +181,7 @@ parameter_types! {
     pub const LiquidCurrency: CurrencyId = XDOT;
     pub const MaxWithdrawAmount: Balance = 10;
     pub const MaxAccountProcessingUnstake: u32 = 5;
+    pub const BaseXcmWeight: Weight = 0;
 }
 
 impl pallet_liquid_staking::Config for Test {
@@ -195,19 +194,28 @@ impl pallet_liquid_staking::Config for Test {
     type MaxWithdrawAmount = MaxWithdrawAmount;
     type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
     type WeightInfo = ();
-    type XTransfer = Currencies;
+    type XcmTransfer = Currencies;
+    type Members = Members;
+    type BaseXcmWeight = BaseXcmWeight;
 }
 
-impl XTransfer<Test, CurrencyId, AccountId, Balance> for Currencies {
-    fn xtransfer(
-        from: OriginFor<Test>,
+pub struct Members;
+
+impl SortedMembers<AccountId> for Members {
+    fn sorted_members() -> Vec<AccountId> {
+        vec![2.into(), 10000.into()]
+    }
+}
+
+impl XcmTransfer<AccountId, Balance, CurrencyId> for Currencies {
+    fn transfer(
+        who: AccountId,
         currency_id: CurrencyId,
-        mut to: MultiLocation,
         amount: Balance,
-        _weight: Weight,
-    ) -> DispatchResult {
-        let from = ensure_signed(from)?;
-        <Test as orml_currencies::Config>::MultiCurrency::withdraw(currency_id, &from, amount)?;
+        mut to: MultiLocation,
+        _dest_weight: Weight,
+    ) -> XcmExecutionResult {
+        <Test as orml_currencies::Config>::MultiCurrency::withdraw(currency_id, &who, amount)?;
         if let Some(Junction::AccountId32 {
             id: account_id32, ..
         }) = to.take_last()
@@ -219,7 +227,16 @@ impl XTransfer<Test, CurrencyId, AccountId, Balance> for Currencies {
                 amount,
             )?;
         }
-        Ok(())
+        Ok(Outcome::Complete(0))
+    }
+
+    fn transfer_multi_asset(
+        _who: AccountId,
+        _asset: MultiAsset,
+        _dest: MultiLocation,
+        _dest_weight: Weight,
+    ) -> XcmExecutionResult {
+        unimplemented!()
     }
 }
 
