@@ -519,6 +519,7 @@ impl pallet_session::Config for Runtime {
 parameter_types! {
     pub const PotId: PalletId = PalletId(*b"PotStake");
     pub const MaxCandidates: u32 = 1000;
+    pub const MinCandidates: u32 = 1;
     pub const MaxInvulnerables: u32 = 100;
 }
 
@@ -528,9 +529,13 @@ impl pallet_collator_selection::Config for Runtime {
     type UpdateOrigin = EnsureRootOrHalfCouncil;
     type PotId = PotId;
     type MaxCandidates = MaxCandidates;
+    type MinCandidates = MinCandidates;
     type MaxInvulnerables = MaxInvulnerables;
     // should be a multiple of session or things will get inconsistent
     type KickThreshold = Period;
+    type ValidatorId = <Self as frame_system::Config>::AccountId;
+    type ValidatorIdOf = pallet_collator_selection::IdentityCollator;
+    type ValidatorRegistration = Session;
     type WeightInfo = ();
 }
 
@@ -1049,7 +1054,7 @@ construct_runtime!(
         TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
 
         // Parachain
-        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Storage, Inherent, Event<T>, ValidateUnsigned},
+        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Storage, Inherent, Event<T>},
         ParachainInfo: parachain_info::{Pallet, Storage, Config},
         XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>},
         DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>},
@@ -1189,8 +1194,9 @@ impl_runtime_apis! {
         fn validate_transaction(
             source: TransactionSource,
             tx: <Block as BlockT>::Extrinsic,
+            block_hash: <Block as BlockT>::Hash,
         ) -> TransactionValidity {
-            Executive::validate_transaction(source, tx)
+            Executive::validate_transaction(source, tx, block_hash)
         }
     }
 
