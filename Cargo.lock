@@ -11607,6 +11607,7 @@ dependencies = [
  "sp-version",
  "static_assertions",
  "substrate-wasm-builder",
+ "xcm",
 ]
 
 [[package]]

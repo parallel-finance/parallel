@@ -48,10 +48,12 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
+use xcm::v0::{Junction, MultiAsset, MultiLocation, Outcome};
 
 // Import ORML dependcies
 use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended};
+use orml_traits::MultiCurrency;
+use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended, XcmTransfer};
 
 // Import Parallel dependencies
 /// Constant values used within the runtime.
@@ -611,6 +613,40 @@ parameter_types! {
     pub const BaseXcmWeight: Weight = 0;
 }
 
+pub struct XcmTransferT;
+impl XcmTransfer<AccountId, Balance, CurrencyId> for XcmTransferT {
+    fn transfer(
+        who: AccountId,
+        currency_id: CurrencyId,
+        amount: Balance,
+        mut to: MultiLocation,
+        _dest_weight: Weight,
+    ) -> XcmExecutionResult {
+        <Runtime as orml_currencies::Config>::MultiCurrency::withdraw(currency_id, &who, amount)?;
+        if let Some(Junction::AccountId32 {
+            id: account_id32, ..
+        }) = to.take_last()
+        {
+            let account_id: AccountId = account_id32.into();
+            <Runtime as orml_currencies::Config>::MultiCurrency::deposit(
+                currency_id,
+                &account_id,
+                amount,
+            )?;
+        }
+        Ok(Outcome::Complete(0))
+    }
+
+    fn transfer_multi_asset(
+        _who: AccountId,
+        _asset: MultiAsset,
+        _dest: MultiLocation,
+        _dest_weight: Weight,
+    ) -> XcmExecutionResult {
+        unimplemented!()
+    }
+}
+
 impl pallet_liquid_staking::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
@@ -621,7 +657,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type MaxWithdrawAmount = MaxWithdrawAmount;
     type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
     type WeightInfo = pallet_liquid_staking::weights::SubstrateWeight<Runtime>;
-    type XTransfer = ();
+    type XcmTransfer = XcmTransferT;
     type Members = IsInVec<()>;
     type BaseXcmWeight = BaseXcmWeight;
 }

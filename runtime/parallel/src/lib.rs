@@ -22,7 +22,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use codec::Encode;
 use frame_support::{
-    dispatch::{DispatchResult, Weight},
+    dispatch::Weight,
     traits::{All, LockIdentifier, U128CurrencyToVote},
     PalletId,
 };
@@ -51,7 +51,6 @@ use cumulus_primitives_core::ParaId;
 use frame_support::log;
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    pallet_prelude::OriginFor,
     EnsureOneOf, EnsureRoot,
 };
 use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
@@ -340,18 +339,6 @@ impl orml_unknown_tokens::Config for Runtime {
     type Event = Event;
 }
 
-impl XTransfer<Runtime, CurrencyId, AccountId, Balance> for XTokens {
-    fn xtransfer(
-        from: OriginFor<Runtime>,
-        currency_id: CurrencyId,
-        to: MultiLocation,
-        amount: Balance,
-        weight: Weight,
-    ) -> DispatchResult {
-        XTokens::transfer(from, currency_id, amount, to, weight)
-    }
-}
-
 impl pallet_loans::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
@@ -399,7 +386,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type MaxWithdrawAmount = MaxWithdrawAmount;
     type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
     type WeightInfo = pallet_liquid_staking::weights::SubstrateWeight<Runtime>;
-    type XTransfer = XTokens;
+    type XcmTransfer = XTokens;
     type Members = LiquidStakingAgentMembership;
     type BaseXcmWeight = BaseXcmWeight;
 }
