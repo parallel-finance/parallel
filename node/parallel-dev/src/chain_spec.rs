@@ -182,6 +182,7 @@ fn testnet_genesis(
             balances: {
                 let mut endowed_accounts = endowed_accounts.clone();
                 endowed_accounts.extend_from_slice(&oracle_accounts);
+                endowed_accounts.extend_from_slice(&validator_feeders);
 
                 endowed_accounts
                     .into_iter()
