@@ -76,8 +76,8 @@ restart: purge run
 
 .PHONY: resources
 resources:
-	target/release/parallel export-genesis-state --parachain-id 200 > ./resources/para-200-genesis
-	target/release/parallel export-genesis-wasm > ./resources/para-200.wasm
+	target/release/parallel export-genesis-state --chain heiko-dev --parachain-id 200 > ./resources/para-200-genesis
+	target/release/parallel export-genesis-wasm --chain heiko-dev > ./resources/para-200.wasm
 
 .PHONY: docker-resources
 docker-resources:
