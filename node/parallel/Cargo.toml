@@ -27,6 +27,7 @@ heiko-runtime                              = { version = '0.0.1', path = '../../
 pallet-transaction-payment-rpc             = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.8' }
 pallet-transaction-payment-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.8' }
 parallel-runtime                           = { version = '0.0.1', path = '../../runtime/parallel' }
+pallet-loans-rpc                           = { version = '3.0.0', path = '../../pallets/loans/rpc' }
 
 sc-basic-authorship = { version = '0.9.0', git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.8' }
 sc-chain-spec       = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.8' }

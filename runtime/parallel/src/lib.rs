@@ -42,6 +42,7 @@ use sp_runtime::{
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, KeyTypeId, Percent, SaturatedConversion,
 };
+use sp_runtime::{DispatchError, FixedU128};
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -1235,6 +1236,12 @@ impl_runtime_apis! {
     impl cumulus_primitives_core::CollectCollationInfo<Block> for Runtime {
         fn collect_collation_info() -> cumulus_primitives_core::CollationInfo {
             ParachainSystem::collect_collation_info()
+        }
+    }
+
+    impl pallet_loans_rpc_runtime_api::LoansApi<Block, AccountId> for Runtime {
+        fn get_account_liquidity(account: AccountId) -> Result<(FixedU128, FixedU128), DispatchError> {
+            Loans::get_account_liquidity(&account)
         }
     }
 

@@ -85,6 +85,10 @@ pub enum CurrencyId {
     PARA = 6,
 }
 
+pub type Shortfalls = FixedU128;
+
+pub type Surplus = FixedU128;
+
 pub type Price = FixedU128;
 
 pub type Timestamp = u64;

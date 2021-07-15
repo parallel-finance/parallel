@@ -43,6 +43,7 @@ use sp_runtime::{
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, Percent, SaturatedConversion,
 };
+use sp_runtime::{DispatchError, FixedU128};
 pub use sp_runtime::{Perbill, Permill};
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -949,6 +950,12 @@ impl_runtime_apis! {
             match provider_id {
                 DataProviderId::Aggregated => Prices::get_all_values()
             }
+        }
+    }
+
+    impl pallet_loans_rpc_runtime_api::LoansApi<Block, AccountId> for Runtime {
+        fn get_account_liquidity(account: AccountId) -> Result<(FixedU128, FixedU128), DispatchError> {
+            Loans::get_account_liquidity(&account)
         }
     }
 

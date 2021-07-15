@@ -2881,6 +2881,7 @@ dependencies = [
  "pallet-liquidation",
  "pallet-loans",
  "pallet-loans-benchmarking",
+ "pallet-loans-rpc-runtime-api",
  "pallet-membership",
  "pallet-multisig",
  "pallet-prices",
@@ -5414,6 +5415,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-loans-rpc"
+version = "3.0.0"
+dependencies = [
+ "jsonrpc-core",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "pallet-loans-rpc-runtime-api",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "serde",
+ "sp-api",
+ "sp-blockchain",
+ "sp-core",
+ "sp-runtime",
+]
+
+[[package]]
+name = "pallet-loans-rpc-runtime-api"
+version = "3.0.0"
+dependencies = [
+ "parallel-primitives",
+ "parity-scale-codec",
+ "sp-api",
+ "sp-runtime",
+]
+
+[[package]]
 name = "pallet-membership"
 version = "3.0.0"
 source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.8#1b758b2a8d151d97d2242260c465b6df9cb8a7a4"
@@ -5882,6 +5910,7 @@ dependencies = [
  "jsonrpc-core",
  "log",
  "orml-oracle-rpc",
+ "pallet-loans-rpc",
  "pallet-transaction-payment-rpc",
  "pallet-transaction-payment-rpc-runtime-api",
  "parallel-primitives",
@@ -5937,6 +5966,7 @@ dependencies = [
  "jsonrpc-core",
  "log",
  "orml-oracle-rpc",
+ "pallet-loans-rpc",
  "pallet-transaction-payment-rpc",
  "parallel-primitives",
  "parity-scale-codec",
@@ -6031,6 +6061,7 @@ dependencies = [
  "pallet-liquidation",
  "pallet-loans",
  "pallet-loans-benchmarking",
+ "pallet-loans-rpc-runtime-api",
  "pallet-membership",
  "pallet-multisig",
  "pallet-prices",
@@ -11579,6 +11610,7 @@ dependencies = [
  "pallet-liquidation",
  "pallet-loans",
  "pallet-loans-benchmarking",
+ "pallet-loans-rpc-runtime-api",
  "pallet-membership",
  "pallet-multisig",
  "pallet-prices",

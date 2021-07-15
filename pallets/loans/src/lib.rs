@@ -823,7 +823,7 @@ impl<T: Config> Pallet<T> {
         T::PalletId::get().into_account()
     }
 
-    fn get_account_liquidity(
+    pub fn get_account_liquidity(
         account: &T::AccountId,
     ) -> Result<(FixedU128, FixedU128), DispatchError> {
         let total_borrow_value = Self::total_borrowed_value(account)?;
