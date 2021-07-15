@@ -54,7 +54,7 @@ make launch
 
 ### Local Testnet
 
-Polkadot (release-v0.9.7 branch, you'll need to cherry-pick this commit: b66483bc368812237469e1ff83dfea590fe8050f)
+Polkadot (release-v0.9.8 branch)
 
 ```
 cargo build --release
@@ -72,7 +72,7 @@ Substrate Parachain Template:
 
 ```
 # this command assumes the chain spec is in a directory named polkadot that is a sibling of the working directory
-./target/release/parallel -d local-test --collator --alice --chain heiko --ws-port 9915 --parachain-id 200 -- --chain ../polkadot/rococo_local.json \
+./target/release/parallel -d local-test --collator --alice --chain heiko-dev --ws-port 9915 --parachain-id 200 -- --chain ../polkadot/rococo_local.json \
         --bootnodes /ip4/127.0.0.1/tcp/50555/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp
 ```
 

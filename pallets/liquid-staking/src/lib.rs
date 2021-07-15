@@ -23,7 +23,8 @@
 use frame_support::{
     pallet_prelude::*, traits::SortedMembers, transactional, BoundedVec, PalletId,
 };
-use frame_system::{pallet_prelude::*, RawOrigin};
+use frame_system::pallet_prelude::*;
+use orml_traits::XcmTransfer;
 use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber, RuntimeDebug};
 use sp_std::convert::TryInto;
 use sp_std::prelude::*;
@@ -32,7 +33,7 @@ use xcm::v0::{Junction, MultiLocation, NetworkId};
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 
 pub use pallet::*;
-use primitives::{Amount, Balance, CurrencyId, ExchangeRateProvider, Rate, Ratio, XTransfer};
+use primitives::{Amount, Balance, CurrencyId, ExchangeRateProvider, Rate, Ratio};
 pub use weights::WeightInfo;
 
 mod benchmarking;
@@ -101,10 +102,13 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
 
         /// XCM transfer
-        type XTransfer: XTransfer<Self, CurrencyId, Self::AccountId, Balance>;
+        type XcmTransfer: XcmTransfer<Self::AccountId, Balance, CurrencyId>;
 
         /// Approved agent list on relaychain
         type Members: SortedMembers<Self::AccountId>;
+
+        /// Base xcm weight to use for cross chain transfer
+        type BaseXcmWeight: Get<Weight>;
     }
 
     #[pallet::error]
@@ -308,9 +312,10 @@ pub mod pallet {
                 Error::<T>::ExcessWithdrawThreshold
             );
 
-            T::XTransfer::xtransfer(
-                RawOrigin::Signed(Self::account_id()).into(),
+            T::XcmTransfer::transfer(
+                Self::account_id(),
                 T::StakingCurrency::get(),
+                amount,
                 MultiLocation::X2(
                     Junction::Parent,
                     Junction::AccountId32 {
@@ -318,9 +323,7 @@ pub mod pallet {
                         id: agent.clone().into(),
                     },
                 ),
-                amount,
-                // TODO : measure xcm weight
-                Self::xcm_weight(),
+                T::BaseXcmWeight::get(),
             )?;
 
             Self::deposit_event(Event::WithdrawSuccess(agent, amount));
@@ -568,7 +571,7 @@ pub mod pallet {
                 T::StakingCurrency::get(),
                 &Self::account_id(),
                 &owner,
-                amount - Self::xcm_weight() as u128,
+                amount - T::BaseXcmWeight::get() as u128,
             )?;
 
             Self::deposit_event(Event::UnstakeProcessed(agent, owner, amount));
@@ -580,14 +583,6 @@ pub mod pallet {
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> T::AccountId {
         T::PalletId::get().into_account()
-    }
-
-    fn xcm_weight() -> Weight {
-        if cfg!(test) {
-            0
-        } else {
-            100_000_000
-        }
     }
 }
 

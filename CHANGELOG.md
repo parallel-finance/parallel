@@ -1,5 +1,9 @@
 # CHANGE LOG
 
+## 2021.07.15
+
+-   Upgrade polkadot to v0.9.8
+
 ## 2021.07.08
 
 -   Upgrade polkadot to v0.9.7
@@ -152,4 +156,3 @@
 -   Modify types of `BorrowIndex`, `ExchangeRate`, `MultiplierPerBlock`, `JumpMultiplierPerBlock`, `BorrowRate`, `BaseRatePerBlock` from `u128` to `FixedU128` Modify their decimals from 1e9 to 1e18. (#64)
 -   Modify types of `CollatreralFactor`, `UtilizationRatio` from `u128` to `Permill`. (#64)
     ,
-
