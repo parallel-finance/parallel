@@ -5,6 +5,7 @@
     "CurrencyId": {
       "_enum": ["DOT", "KSM", "USDT", "xDOT", "xKSM", "HKO", "PARA"]
     },
+    "Currency": "CurrencyId",
     "CurrencyIdOf": "CurrencyId",
     "Amount": "i128",
     "AmountOf": "Amount",
