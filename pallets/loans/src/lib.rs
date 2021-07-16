@@ -139,8 +139,6 @@ pub mod pallet {
         DepositsAreNotCollateral,
         /// Insufficient shortfall to repay
         InsufficientShortfall,
-        /// There is no borrow balance
-        NoBorrowBalance,
         /// Liquidate value overflow
         LiquidateValueOverflow,
         /// Insufficient reserves
