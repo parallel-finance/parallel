@@ -143,9 +143,9 @@ pub mod pallet {
         fn default() -> Self {
             GenesisConfig {
                 coefficients: NomineeScoreCoefficients {
-                    crf: 1,
-                    nf: 1,
-                    epf: 1,
+                    crf: 100,
+                    nf: 1000,
+                    epf: 10,
                 },
             }
         }

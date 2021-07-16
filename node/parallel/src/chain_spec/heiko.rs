@@ -330,9 +330,9 @@ fn testnet_genesis(
         },
         nominee_election: NomineeElectionConfig {
             coefficients: NomineeScoreCoefficients {
-                crf: 1,
-                nf: 1,
-                epf: 1,
+                crf: 100,
+                nf: 1000,
+                epf: 10,
             },
         },
     }
