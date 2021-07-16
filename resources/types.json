@@ -102,12 +102,66 @@
         "PriceWithDecimal": {
             "price": "Price",
             "decimal": "u8"
-        }
+        },
+        "Shortfalls": "FixedU128",
+        "Surplus": "FixedU128"
     },
     "typesAlias": {
         "tokens": {
             "AccountData": "OrmlAccountData",
             "BalanceLock": "OrmlBalanceLock"
+        }
+    },
+    "rpc": {
+        "oracle": {
+            "getValue": {
+                "description": "Retrieves the oracle value for a given key.",
+                "params": [
+                    {
+                        "name": "providerId",
+                        "type": "RpcDataProviderId"
+                    },
+                    {
+                        "name": "key",
+                        "type": "OracleKey"
+                    }
+                ],
+                "type": "Option<TimestampedValue>",
+                "isSubscription": false,
+                "jsonrpc": "oracle_getValue",
+                "method": "getValue",
+                "section": "oracle"
+            },
+            "getAllValues": {
+                "description": "Retrieves all oracle values.",
+                "params": [
+                    {
+                        "name": "providerId",
+                        "type": "RpcDataProviderId"
+                    }
+                ],
+                "type": "Vec<(OracleKey, Option<TimestampedValue>)>",
+                "isSubscription": false,
+                "jsonrpc": "oracle_getAllValues",
+                "method": "getAllValues",
+                "section": "oracle"
+            }
+        },
+        "loans": {
+            "getAccountLiquidity": {
+                "description": "Retrieves the liquidity of an user",
+                "params": [
+                    {
+                        "name": "accountId",
+                        "type": "AccountId"
+                    }
+                ],
+                "type": "(Shortfalls, Surplus)",
+                "isSubscription": false,
+                "jsonrpc": "loans_getAccountLiquidity",
+                "method": "getAccountLiquidity",
+                "section": "loans"
+            }
         }
     }
 }
