@@ -82,7 +82,7 @@ pub mod pallet {
 
         /// The maximum size of selected validators
         #[pallet::constant]
-        type MaxNumValidators: Get<u32>;
+        type MaxValidators: Get<u32>;
 
         /// Approved accouts which can set validators
         type Members: SortedMembers<Self::AccountId>;
@@ -97,13 +97,13 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn validators)]
     pub type Validators<T: Config> =
-        StorageValue<_, BoundedVec<ValidatorInfo<T::AccountId>, T::MaxNumValidators>, ValueQuery>;
+        StorageValue<_, BoundedVec<ValidatorInfo<T::AccountId>, T::MaxValidators>, ValueQuery>;
 
     /// Whitelisted validators selected by council
     #[pallet::storage]
     #[pallet::getter(fn whitelisted_validators)]
     pub type WhitelistedValidators<T: Config> =
-        StorageValue<_, BoundedVec<T::AccountId, T::MaxNumValidators>, ValueQuery>;
+        StorageValue<_, BoundedVec<T::AccountId, T::MaxValidators>, ValueQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(crate) fn deposit_event)]
@@ -112,8 +112,8 @@ pub mod pallet {
         CoefficientsUpdated(NomineeScoreCoefficients, NomineeScoreCoefficients),
         /// Validator set updated (old_validators, new_validators)
         ValidorsUpdated(
-            BoundedVec<ValidatorInfo<T::AccountId>, T::MaxNumValidators>,
-            BoundedVec<ValidatorInfo<T::AccountId>, T::MaxNumValidators>,
+            BoundedVec<ValidatorInfo<T::AccountId>, T::MaxValidators>,
+            BoundedVec<ValidatorInfo<T::AccountId>, T::MaxValidators>,
         ),
         /// New validator was added to whitelist
         WhitelistedValidatorAdded(T::AccountId),
@@ -126,7 +126,7 @@ pub mod pallet {
     #[pallet::error]
     pub enum Error<T> {
         /// The maximum number of validators exceeded
-        MaxNumValidatorsExceeded,
+        MaxValidatorsExceeded,
         /// Feeded validators cannot be empty
         NoEmptyValidators,
         /// Invalid validators feeder
@@ -224,10 +224,10 @@ pub mod pallet {
             validators.retain(|v| whitelisted_validators.iter().all(|wv| wv != &v.account_id));
 
             let old_validators = Self::validators();
-            let new_validators: BoundedVec<ValidatorInfo<T::AccountId>, T::MaxNumValidators> =
+            let new_validators: BoundedVec<ValidatorInfo<T::AccountId>, T::MaxValidators> =
                 validators
                     .try_into()
-                    .map_err(|_| Error::<T>::MaxNumValidatorsExceeded)?;
+                    .map_err(|_| Error::<T>::MaxValidatorsExceeded)?;
 
             Validators::<T>::put(new_validators.clone());
             Self::deposit_event(Event::<T>::ValidorsUpdated(old_validators, new_validators));
@@ -244,7 +244,7 @@ pub mod pallet {
             T::WhitelistUpdateOrigin::ensure_origin(origin)?;
 
             WhitelistedValidators::<T>::try_append(validator_id.clone())
-                .map_err(|_| Error::<T>::MaxNumValidatorsExceeded)?;
+                .map_err(|_| Error::<T>::MaxValidatorsExceeded)?;
 
             Self::deposit_event(Event::<T>::WhitelistedValidatorAdded(validator_id));
             Ok(().into())

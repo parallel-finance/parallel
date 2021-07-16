@@ -656,7 +656,7 @@ impl pallet_liquid_staking::Config for Runtime {
 }
 
 parameter_types! {
-    pub const MaxNumValidators: u32 = 16;
+    pub const MaxValidators: u32 = 16;
     pub const ValidatorFeedersMembershipMaxMembers: u32 = 3;
 }
 
@@ -678,7 +678,7 @@ impl pallet_nominee_election::Config for Runtime {
     type Event = Event;
     type UpdateOrigin = EnsureRootOrHalfCouncil;
     type WhitelistUpdateOrigin = EnsureRootOrHalfCouncil;
-    type MaxNumValidators = MaxNumValidators;
+    type MaxValidators = MaxValidators;
     type Members = ValidatorFeedersMembership;
 }
 
