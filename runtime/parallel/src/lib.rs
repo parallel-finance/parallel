@@ -37,12 +37,12 @@ use sp_core::{
 use sp_runtime::traits::{
     AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, Zero,
 };
+use sp_runtime::DispatchError;
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys, traits,
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, KeyTypeId, Percent, SaturatedConversion,
 };
-use sp_runtime::{DispatchError, FixedU128};
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -1240,7 +1240,7 @@ impl_runtime_apis! {
     }
 
     impl pallet_loans_rpc_runtime_api::LoansApi<Block, AccountId> for Runtime {
-        fn get_account_liquidity(account: AccountId) -> Result<(FixedU128, FixedU128), DispatchError> {
+        fn get_account_liquidity(account: AccountId) -> Result<(Shortfalls, Surplus), DispatchError> {
             Loans::get_account_liquidity(&account)
         }
     }
