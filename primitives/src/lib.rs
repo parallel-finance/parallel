@@ -18,8 +18,8 @@
 
 use codec::{Decode, Encode};
 use sp_runtime::{
-    traits::{CheckedDiv, IdentifyAccount, Verify},
-    DispatchError, FixedU128, MultiSignature, Permill, RuntimeDebug,
+    traits::{CheckedAdd, CheckedDiv, CheckedMul, IdentifyAccount, Verify},
+    ArithmeticError, DispatchError, FixedU128, MultiSignature, Permill, RuntimeDebug,
 };
 use sp_std::{cmp::Ordering, convert::Into, prelude::*};
 use xcm::v0::Outcome;
@@ -94,6 +94,7 @@ pub type Price = FixedU128;
 pub type Timestamp = u64;
 
 pub const SECONDS_PER_YEAR: Timestamp = 365 * 24 * 60 * 60;
+pub const TOKEN_DECIMALS: u8 = 18; //FixedU128::DIV;
 
 pub type PriceDetail = (Price, Timestamp);
 
@@ -152,4 +153,17 @@ pub trait EmergencyPriceFeeder<CurrencyId, PriceWithDecimal> {
 
 pub trait ExchangeRateProvider {
     fn get_exchange_rate() -> Rate;
+}
+
+/// Returns the actual quantity of tokens that a given integral amount represents.
+pub fn token_units<T>(amount: T) -> Result<T, DispatchError>
+where
+    T: CheckedAdd + CheckedMul + From<u8>,
+{
+    let mut rslt = amount;
+    for _ in 0..TOKEN_DECIMALS {
+        let rslt_opt = rslt.checked_mul(&T::from(10u8));
+        rslt = rslt_opt.ok_or_else::<DispatchError, _>(|| ArithmeticError::Overflow.into())?;
+    }
+    Ok(rslt)
 }
