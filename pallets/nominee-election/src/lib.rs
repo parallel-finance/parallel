@@ -57,8 +57,9 @@ pub struct NomineeCoefficients {
 #[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, Default)]
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
 pub struct ValidatorInfo<AccountId> {
+    pub name: Option<Vec<u8>>,
     // Account Id
-    pub account_id: AccountId,
+    pub address: AccountId,
     // Nomination (token amount)
     pub stakes: u128,
     // Score
@@ -221,7 +222,7 @@ pub mod pallet {
             ensure!(!validators.is_empty(), Error::<T>::NoEmptyValidators);
 
             let whitelisted_validators = Self::whitelisted_validators();
-            validators.retain(|v| whitelisted_validators.iter().all(|wv| wv != &v.account_id));
+            validators.retain(|v| whitelisted_validators.iter().all(|wv| wv != &v.address));
 
             let old_validators = Self::validators();
             let new_validators: BoundedVec<ValidatorInfo<T::AccountId>, T::MaxValidators> =
