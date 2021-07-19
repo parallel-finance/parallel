@@ -16,7 +16,7 @@ use cumulus_primitives_core::ParaId;
 use heiko_runtime::{
     opaque::SessionKeys,
     pallet_loans::{InterestRateModel, JumpModel, Market, MarketState},
-    pallet_nominee_election::NomineeScoreCoefficients,
+    pallet_nominee_election::NomineeCoefficients,
     BalancesConfig, CollatorSelectionConfig, CouncilConfig, DemocracyConfig, ElectionsConfig,
     GenesisConfig, LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig,
     NomineeElectionConfig, OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig,
@@ -329,7 +329,7 @@ fn testnet_genesis(
             phantom: Default::default(),
         },
         nominee_election: NomineeElectionConfig {
-            coefficients: NomineeScoreCoefficients {
+            coefficients: NomineeCoefficients {
                 crf: 100,
                 nf: 1000,
                 epf: 10,

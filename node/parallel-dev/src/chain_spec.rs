@@ -25,7 +25,7 @@ use sp_runtime::{
 };
 use vanilla_runtime::{
     pallet_loans::{InterestRateModel, JumpModel, Market, MarketState},
-    pallet_nominee_election::NomineeScoreCoefficients,
+    pallet_nominee_election::NomineeCoefficients,
     AuraConfig, BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig,
     GrandpaConfig, LiquidStakingConfig, LoansConfig, NomineeElectionConfig, OracleMembershipConfig,
     SudoConfig, SystemConfig, TechnicalCommitteeConfig, TokensConfig,
@@ -300,7 +300,7 @@ fn testnet_genesis(
             phantom: Default::default(),
         },
         nominee_election: NomineeElectionConfig {
-            coefficients: NomineeScoreCoefficients {
+            coefficients: NomineeCoefficients {
                 crf: 100,
                 nf: 1000,
                 epf: 10,

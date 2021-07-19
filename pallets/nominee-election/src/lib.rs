@@ -32,7 +32,7 @@ use sp_std::{convert::TryInto, vec::Vec};
 /// https://docs.parallel.fi/dev/staking/staking-election
 #[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, Default)]
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
-pub struct NomineeScoreCoefficients {
+pub struct NomineeCoefficients {
     // R: Reputation, 0 or 1
     // CR: Commission Rate
     // N: Nomination of one validator
@@ -91,7 +91,7 @@ pub mod pallet {
     /// Nominee election coefficients
     #[pallet::storage]
     #[pallet::getter(fn coefficients)]
-    pub type Coefficients<T: Config> = StorageValue<_, NomineeScoreCoefficients, ValueQuery>;
+    pub type Coefficients<T: Config> = StorageValue<_, NomineeCoefficients, ValueQuery>;
 
     /// Validators selected by off-chain client
     #[pallet::storage]
@@ -109,7 +109,7 @@ pub mod pallet {
     #[pallet::generate_deposit(pub(crate) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Coefficients updated (old_coefficients, new_coefficients)
-        CoefficientsUpdated(NomineeScoreCoefficients, NomineeScoreCoefficients),
+        CoefficientsUpdated(NomineeCoefficients, NomineeCoefficients),
         /// Validator set updated (old_validators, new_validators)
         ValidorsUpdated(
             BoundedVec<ValidatorInfo<T::AccountId>, T::MaxValidators>,
@@ -135,14 +135,14 @@ pub mod pallet {
 
     #[pallet::genesis_config]
     pub struct GenesisConfig {
-        pub coefficients: NomineeScoreCoefficients,
+        pub coefficients: NomineeCoefficients,
     }
 
     #[cfg(feature = "std")]
     impl Default for GenesisConfig {
         fn default() -> Self {
             GenesisConfig {
-                coefficients: NomineeScoreCoefficients {
+                coefficients: NomineeCoefficients {
                     crf: 100,
                     nf: 1000,
                     epf: 10,
@@ -191,7 +191,7 @@ pub mod pallet {
         #[transactional]
         pub fn set_coefficients(
             origin: OriginFor<T>,
-            coefficients: NomineeScoreCoefficients,
+            coefficients: NomineeCoefficients,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
             let old_coefficients = Self::coefficients();
