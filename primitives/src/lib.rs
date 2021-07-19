@@ -68,9 +68,6 @@ pub type Rate = FixedU128;
 /// The fixed point number, range from 0 to 1.
 pub type Ratio = Permill;
 
-/// The fixed point number used in loans pallet.
-pub type Multiplier = FixedU128;
-
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
 pub enum CurrencyId {
@@ -85,9 +82,9 @@ pub enum CurrencyId {
     PARA = 6,
 }
 
-pub type Shortfalls = FixedU128;
+pub type Liquidity = FixedU128;
 
-pub type Surplus = FixedU128;
+pub type Shortfall = FixedU128;
 
 pub type Price = FixedU128;
 

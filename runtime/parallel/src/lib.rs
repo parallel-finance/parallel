@@ -1240,7 +1240,7 @@ impl_runtime_apis! {
     }
 
     impl pallet_loans_rpc_runtime_api::LoansApi<Block, AccountId> for Runtime {
-        fn get_account_liquidity(account: AccountId) -> Result<(Shortfalls, Surplus), DispatchError> {
+        fn get_account_liquidity(account: AccountId) -> Result<(Liquidity, Shortfall), DispatchError> {
             Loans::get_account_liquidity(&account)
         }
     }

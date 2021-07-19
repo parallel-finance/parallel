@@ -18,7 +18,7 @@ use codec::Codec;
 use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
 use jsonrpc_derive::rpc;
 pub use pallet_loans_rpc_runtime_api::LoansApi as LoansRuntimeApi;
-use primitives::{Shortfalls, Surplus};
+use primitives::{Liquidity, Shortfall};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
@@ -30,7 +30,7 @@ pub trait LoansApi<BlockHash, AccountId> {
         &self,
         account: AccountId,
         at: Option<BlockHash>,
-    ) -> Result<(Shortfalls, Surplus)>;
+    ) -> Result<(Liquidity, Shortfall)>;
 }
 
 /// A struct that implements the [`LoansApi`].
@@ -76,7 +76,7 @@ where
         &self,
         account: AccountId,
         at: Option<<Block as BlockT>::Hash>,
-    ) -> Result<(Shortfalls, Surplus)> {
+    ) -> Result<(Liquidity, Shortfall)> {
         let api = self.client.runtime_api();
         let at = BlockId::hash(at.unwrap_or(
             // If the block hash is not supplied assume the best block.

@@ -104,8 +104,8 @@
       "price": "Price",
       "decimal": "u8"
     },
-    "Shortfalls": "FixedU128",
-    "Surplus": "FixedU128"
+    "Shortfall": "FixedU128",
+    "Liquidity": "FixedU128"
   },
   "typesAlias": {
     "tokens": {
@@ -157,7 +157,7 @@
             "type": "AccountId"
           }
         ],
-        "type": "(Shortfalls, Surplus)",
+        "type": "(Liquidity, Shortfall)",
         "isSubscription": false,
         "jsonrpc": "loans_getAccountLiquidity",
         "method": "getAccountLiquidity",
