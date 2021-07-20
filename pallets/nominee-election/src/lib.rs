@@ -28,6 +28,11 @@ pub use pallet::*;
 
 use sp_std::{convert::TryInto, vec::Vec};
 
+#[cfg(test)]
+mod mock;
+#[cfg(test)]
+mod tests;
+
 /// Nominee Election Coefficients
 /// https://docs.parallel.fi/dev/staking/staking-election
 #[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, Default)]
@@ -132,6 +137,8 @@ pub mod pallet {
         NoEmptyValidators,
         /// Invalid validators feeder
         BadValidatorsFeeder,
+        /// Validator not found, thus not removed
+        ValidatorNotFound,
     }
 
     #[pallet::genesis_config]
@@ -193,7 +200,7 @@ pub mod pallet {
         pub fn set_coefficients(
             origin: OriginFor<T>,
             coefficients: NomineeCoefficients,
-        ) -> DispatchResultWithPostInfo {
+        ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
             let old_coefficients = Self::coefficients();
             Coefficients::<T>::put(coefficients.clone());
@@ -202,7 +209,7 @@ pub mod pallet {
                 old_coefficients,
                 coefficients,
             ));
-            Ok(().into())
+            Ok(())
         }
 
         /// Set selected validators
@@ -213,7 +220,7 @@ pub mod pallet {
         pub fn set_validators(
             origin: OriginFor<T>,
             mut validators: Vec<ValidatorInfo<T::AccountId>>,
-        ) -> DispatchResultWithPostInfo {
+        ) -> DispatchResult {
             let feeder = ensure_signed(origin)?;
             ensure!(
                 T::Members::contains(&feeder),
@@ -232,7 +239,7 @@ pub mod pallet {
 
             Validators::<T>::put(new_validators.clone());
             Self::deposit_event(Event::<T>::ValidorsUpdated(old_validators, new_validators));
-            Ok(().into())
+            Ok(())
         }
 
         /// Add new validator to whitelist
@@ -241,14 +248,14 @@ pub mod pallet {
         pub fn add_whitelist_validator(
             origin: OriginFor<T>,
             validator_id: T::AccountId,
-        ) -> DispatchResultWithPostInfo {
+        ) -> DispatchResult {
             T::WhitelistUpdateOrigin::ensure_origin(origin)?;
 
             WhitelistedValidators::<T>::try_append(validator_id.clone())
                 .map_err(|_| Error::<T>::MaxValidatorsExceeded)?;
 
             Self::deposit_event(Event::<T>::WhitelistedValidatorAdded(validator_id));
-            Ok(().into())
+            Ok(())
         }
 
         /// Remove validator from whitelist
@@ -257,25 +264,31 @@ pub mod pallet {
         pub fn remove_whitelisted_validator(
             origin: OriginFor<T>,
             validator_id: T::AccountId,
-        ) -> DispatchResultWithPostInfo {
+        ) -> DispatchResult {
             T::WhitelistUpdateOrigin::ensure_origin(origin)?;
 
-            WhitelistedValidators::<T>::mutate(|vs| vs.retain(|v| v != &validator_id));
-
-            Self::deposit_event(Event::<T>::WhitelistedValidatorRemoved(validator_id));
-            Ok(().into())
+            if let Some(removed) = WhitelistedValidators::<T>::mutate(|vs| {
+                vs.iter()
+                    .position(|v| v == &validator_id)
+                    .map(|idx| vs.remove(idx))
+            }) {
+                Self::deposit_event(Event::<T>::WhitelistedValidatorRemoved(removed));
+                Ok(())
+            } else {
+                Err(Error::<T>::ValidatorNotFound.into())
+            }
         }
 
         /// Reset whitelisted validators
         #[pallet::weight(1000)]
         #[transactional]
-        pub fn reset_whitelisted_validators(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+        pub fn reset_whitelisted_validators(origin: OriginFor<T>) -> DispatchResult {
             T::WhitelistUpdateOrigin::ensure_origin(origin)?;
 
             WhitelistedValidators::<T>::kill();
 
             Self::deposit_event(Event::<T>::WhitelistedValidatorsReset);
-            Ok(().into())
+            Ok(())
         }
     }
 }
