@@ -67,6 +67,7 @@ orml-oracle-rpc-runtime-api = { git = 'https://github.com/open-web3-stack/open-r
 orml-tokens                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-traits                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-utilities              = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-vesting                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 
 # Polkadot dependencies
 xcm = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.8', default-features = false }
@@ -140,4 +141,5 @@ std                = [
   'pallet-scheduler/std',
   'polkadot-runtime-common/std',
   'xcm/std',
+  'orml-vesting/std',
 ]
