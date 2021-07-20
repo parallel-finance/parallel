@@ -19,7 +19,7 @@ use heiko_runtime::{
     BalancesConfig, CollatorSelectionConfig, CouncilConfig, DemocracyConfig, ElectionsConfig,
     GenesisConfig, LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig,
     OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
+    TechnicalCommitteeConfig, TokensConfig, VestingConfig, WASM_BINARY,
 };
 use hex_literal::hex;
 use primitives::*;
@@ -173,6 +173,9 @@ fn testnet_genesis(
     liquid_staking_agents: Vec<AccountId>,
     id: ParaId,
 ) -> GenesisConfig {
+    let vesting_list_json = &include_bytes!("../../../../resources/vesting.json")[..];
+    let vesting_list: Vec<(AccountId, BlockNumber, BlockNumber, u32, Balance)> =
+        serde_json::from_slice(vesting_list_json).unwrap();
     GenesisConfig {
         system: SystemConfig {
             code: WASM_BINARY
@@ -316,6 +319,9 @@ fn testnet_genesis(
         liquid_staking_agent_membership: LiquidStakingAgentMembershipConfig {
             members: liquid_staking_agents,
             phantom: Default::default(),
+        },
+        vesting: VestingConfig {
+            vesting: vesting_list,
         },
     }
 }
