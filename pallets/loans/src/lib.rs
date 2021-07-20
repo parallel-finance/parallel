@@ -1110,6 +1110,7 @@ impl<T: Config> Pallet<T> {
         collateral_currency_id: CurrencyId,
     ) -> DispatchResult {
         Self::ensure_currency(&liquidate_currency_id)?;
+        Self::ensure_currency(&collateral_currency_id)?;
 
         let market = Self::market(&liquidate_currency_id)?;
 
