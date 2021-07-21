@@ -22,7 +22,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-use frame_support::{pallet_prelude::*, traits::SortedMembers, transactional};
+use frame_support::{log, pallet_prelude::*, traits::SortedMembers, transactional};
 use frame_system::pallet_prelude::*;
 pub use pallet::*;
 
@@ -35,7 +35,7 @@ mod tests;
 
 /// Nominee Election Coefficients
 /// https://docs.parallel.fi/dev/staking/staking-election
-#[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, Default)]
+#[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug)]
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
 pub struct NomineeCoefficients {
     // R: Reputation, 0 or 1
@@ -58,6 +58,16 @@ pub struct NomineeCoefficients {
     // Score: R * (CRF * (1 - CR) + NF * (1 / N) + EPF * (EEP / EEPA)) * SR
 }
 
+impl Default for NomineeCoefficients {
+    fn default() -> Self {
+        NomineeCoefficients {
+            crf: 100,
+            nf: 1000,
+            epf: 10,
+        }
+    }
+}
+
 /// Info of the validator to be elected
 #[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, Default)]
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
@@ -69,6 +79,40 @@ pub struct ValidatorInfo<AccountId> {
     pub stakes: u128,
     // Score
     pub score: u128,
+}
+
+// A value placed in storage that represents the current version of the NomineeElection storage. This value
+// is used by the `on_runtime_upgrade` logic to determine whether we run storage migration logic.
+// This should match directly with the semantic versions of the Rust crate.
+#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug)]
+enum Releases {
+    V0_0_0,
+    V1_0_0,
+}
+
+impl Default for Releases {
+    fn default() -> Self {
+        Releases::V0_0_0
+    }
+}
+
+pub mod migrations {
+    use super::*;
+
+    pub mod v1 {
+        use super::*;
+
+        pub fn migrate<T: Config>() -> Weight {
+            log::info!("Migrating NomineeElection to Releases::V1_0_0");
+
+            Coefficients::<T>::put(NomineeCoefficients::default());
+
+            StorageVersion::<T>::put(Releases::V1_0_0);
+            log::info!("Completed NomineeElection migration to Releases::V1_0_0");
+
+            T::DbWeight::get().writes(2)
+        }
+    }
 }
 
 #[frame_support::pallet]
@@ -93,6 +137,13 @@ pub mod pallet {
         /// Approved accouts which can set validators
         type Members: SortedMembers<Self::AccountId>;
     }
+
+    /// True if network has been upgraded to this version.
+    /// Storage version of the pallet.
+    ///
+    /// This is set to v1.0.0 for new networks.
+    #[pallet::storage]
+    pub(crate) type StorageVersion<T: Config> = StorageValue<_, Releases, ValueQuery>;
 
     /// Nominee election coefficients
     #[pallet::storage]
@@ -150,11 +201,7 @@ pub mod pallet {
     impl Default for GenesisConfig {
         fn default() -> Self {
             GenesisConfig {
-                coefficients: NomineeCoefficients {
-                    crf: 100,
-                    nf: 1000,
-                    epf: 10,
-                },
+                coefficients: Default::default(),
             }
         }
     }
@@ -162,6 +209,7 @@ pub mod pallet {
     #[pallet::genesis_build]
     impl<T: Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
+            StorageVersion::<T>::put(Releases::V1_0_0);
             Coefficients::<T>::put(self.coefficients.clone());
         }
     }
@@ -190,7 +238,15 @@ pub mod pallet {
     pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+        fn on_runtime_upgrade() -> frame_support::weights::Weight {
+            if StorageVersion::<T>::get() == Releases::V0_0_0 {
+                migrations::v1::migrate::<T>()
+            } else {
+                T::DbWeight::get().reads(1)
+            }
+        }
+    }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
