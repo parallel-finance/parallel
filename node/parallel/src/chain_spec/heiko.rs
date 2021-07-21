@@ -16,10 +16,12 @@ use cumulus_primitives_core::ParaId;
 use heiko_runtime::{
     opaque::SessionKeys,
     pallet_loans::{InterestRateModel, JumpModel, Market, MarketState},
+    pallet_nominee_election::NomineeCoefficients,
     BalancesConfig, CollatorSelectionConfig, CouncilConfig, DemocracyConfig, ElectionsConfig,
     GenesisConfig, LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig,
-    OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
+    NomineeElectionConfig, OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig,
+    SystemConfig, TechnicalCommitteeConfig, TokensConfig, ValidatorFeedersMembershipConfig,
+    WASM_BINARY,
 };
 use hex_literal::hex;
 use primitives::*;
@@ -55,7 +57,6 @@ pub fn development_config(id: ParaId) -> ChainSpec {
                 vec![get_account_id_from_seed::<sr25519::Public>("Ferdie")],
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Dave"),
-                    get_account_id_from_seed::<sr25519::Public>("Eve"),
                     get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
@@ -63,6 +64,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                 ],
+                vec![get_account_id_from_seed::<sr25519::Public>("Eve")],
                 // Multisig account combined by Alice, Bob and Charile, ss58 prefix is 42
                 vec!["5DjYJStmdZ2rcqXbXGX7TW85JsrW6uG4y9MUcLq2BoPMpRA7"
                     .parse()
@@ -147,6 +149,9 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
                         .parse()
                         .unwrap(),
                 ],
+                vec!["5FjH9a7RQmihmb7i4UzbNmecjPm9WVLyoJHfsixkrLGEKwsJ"
+                    .parse()
+                    .unwrap()],
                 // Parallel team accounts, ss58 prefix is 42
                 vec!["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
                     .parse()
@@ -170,6 +175,7 @@ fn testnet_genesis(
     invulnerables: Vec<(AccountId, AuraId)>,
     oracle_accounts: Vec<AccountId>,
     endowed_accounts: Vec<AccountId>,
+    validator_feeders: Vec<AccountId>,
     liquid_staking_agents: Vec<AccountId>,
     id: ParaId,
 ) -> GenesisConfig {
@@ -184,6 +190,7 @@ fn testnet_genesis(
             balances: {
                 let mut endowed_accounts = endowed_accounts.clone();
                 endowed_accounts.extend_from_slice(&oracle_accounts);
+                endowed_accounts.extend_from_slice(&validator_feeders);
                 endowed_accounts.extend(
                     invulnerables
                         .iter()
@@ -316,6 +323,17 @@ fn testnet_genesis(
         liquid_staking_agent_membership: LiquidStakingAgentMembershipConfig {
             members: liquid_staking_agents,
             phantom: Default::default(),
+        },
+        validator_feeders_membership: ValidatorFeedersMembershipConfig {
+            members: validator_feeders,
+            phantom: Default::default(),
+        },
+        nominee_election: NomineeElectionConfig {
+            coefficients: NomineeCoefficients {
+                crf: 100,
+                nf: 1000,
+                epf: 10,
+            },
         },
     }
 }

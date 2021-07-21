@@ -73,10 +73,12 @@ pub mod impls;
 // re-exports
 pub use constants::{currency, fee, time};
 pub use impls::DealWithFees;
+
 pub use pallet_liquid_staking;
 pub use pallet_liquidation;
 pub use pallet_loans;
 pub use pallet_multisig;
+pub use pallet_nominee_election;
 pub use pallet_prices;
 
 use currency::*;
@@ -122,7 +124,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("parallel"),
     impl_name: create_runtime_str!("parallel"),
     authoring_version: 1,
-    spec_version: 100,
+    spec_version: 110,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -390,6 +392,33 @@ impl pallet_liquid_staking::Config for Runtime {
     type XcmTransfer = XTokens;
     type Members = LiquidStakingAgentMembership;
     type BaseXcmWeight = BaseXcmWeight;
+}
+
+parameter_types! {
+    pub const MaxValidators: u32 = 16;
+    pub const ValidatorFeedersMembershipMaxMembers: u32 = 3;
+}
+
+type ValidatorFeedersMembershipInstance = pallet_membership::Instance4;
+impl pallet_membership::Config<ValidatorFeedersMembershipInstance> for Runtime {
+    type Event = Event;
+    type AddOrigin = EnsureRootOrHalfCouncil;
+    type RemoveOrigin = EnsureRootOrHalfCouncil;
+    type SwapOrigin = EnsureRootOrHalfCouncil;
+    type ResetOrigin = EnsureRootOrHalfCouncil;
+    type PrimeOrigin = EnsureRootOrHalfCouncil;
+    type MembershipInitialized = ();
+    type MembershipChanged = ();
+    type MaxMembers = ValidatorFeedersMembershipMaxMembers;
+    type WeightInfo = ();
+}
+
+impl pallet_nominee_election::Config for Runtime {
+    type Event = Event;
+    type UpdateOrigin = EnsureRootOrHalfCouncil;
+    type WhitelistUpdateOrigin = EnsureRootOrHalfCouncil;
+    type MaxValidators = MaxValidators;
+    type Members = ValidatorFeedersMembership;
 }
 
 parameter_types! {
@@ -789,13 +818,13 @@ impl pallet_multisig::Config for Runtime {
 }
 
 parameter_types! {
-    pub const LaunchPeriod: BlockNumber = 28 * 24 * 60 * MINUTES;
-    pub const VotingPeriod: BlockNumber = 28 * 24 * 60 * MINUTES;
-    pub const FastTrackVotingPeriod: BlockNumber = 3 * 24 * 60 * MINUTES;
+    pub const LaunchPeriod: BlockNumber = 7 * 24 * 60 * MINUTES;
+    pub const VotingPeriod: BlockNumber = 7 * 24 * 60 * MINUTES;
+    pub const FastTrackVotingPeriod: BlockNumber = 1 * 24 * 60 * MINUTES;
     pub const InstantAllowed: bool = true;
     pub const MinimumDeposit: Balance = 100 * DOLLARS;
-    pub const EnactmentPeriod: BlockNumber = 30 * 24 * 60 * MINUTES;
-    pub const CooloffPeriod: BlockNumber = 28 * 24 * 60 * MINUTES;
+    pub const EnactmentPeriod: BlockNumber = 8 * 24 * 60 * MINUTES;
+    pub const CooloffPeriod: BlockNumber = 7 * 24 * 60 * MINUTES;
     // One cent: $10,000 / MB
     pub const PreimageByteDeposit: Balance = 1 * CENTS;
     pub const MaxVotes: u32 = 100;
@@ -854,7 +883,7 @@ impl pallet_democracy::Config for Runtime {
 }
 
 parameter_types! {
-    pub const CouncilMotionDuration: BlockNumber = 5 * DAYS;
+    pub const CouncilMotionDuration: BlockNumber = 1 * DAYS;
     pub const CouncilMaxProposals: u32 = 100;
     pub const CouncilMaxMembers: u32 = 100;
 }
@@ -907,7 +936,7 @@ impl pallet_elections_phragmen::Config for Runtime {
 }
 
 parameter_types! {
-    pub const TechnicalMotionDuration: BlockNumber = 5 * DAYS;
+    pub const TechnicalMotionDuration: BlockNumber = 1 * DAYS;
     pub const TechnicalMaxProposals: u32 = 100;
     pub const TechnicalMaxMembers: u32 = 100;
 }
@@ -928,6 +957,11 @@ type EnsureRootOrHalfCouncil = EnsureOneOf<
     AccountId,
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>,
+>;
+type EnsureRootOrHalfTechnical = EnsureOneOf<
+    AccountId,
+    EnsureRoot<AccountId>,
+    pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, TechnicalCollective>,
 >;
 impl pallet_membership::Config<pallet_membership::Instance1> for Runtime {
     type Event = Event;
@@ -954,7 +988,7 @@ impl pallet_scheduler::Config for Runtime {
     type PalletsOrigin = OriginCaller;
     type Call = Call;
     type MaximumWeight = MaximumSchedulerWeight;
-    type ScheduleOrigin = EnsureRoot<AccountId>;
+    type ScheduleOrigin = EnsureRootOrHalfTechnical;
     type MaxScheduledPerBlock = MaxScheduledPerBlock;
     type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
 }
@@ -1064,9 +1098,8 @@ construct_runtime!(
         XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
         UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event},
 
-        // Parallel pallets
+        // Loans
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
-        LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config},
         Liquidation: pallet_liquidation::{Pallet, Call},
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
 
@@ -1074,7 +1107,10 @@ construct_runtime!(
         OracleMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>},
 
         // LiquidStaking
+        LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config},
         LiquidStakingAgentMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>},
+        NomineeElection: pallet_nominee_election::{Pallet, Call, Storage, Event<T>, Config},
+        ValidatorFeedersMembership: pallet_membership::<Instance4>::{Pallet, Call, Storage, Event<T>, Config<T>}
     }
 );
 

@@ -82,7 +82,7 @@ services:
     image: parallelfinance/oracle-client:latest
     links:
       - "para_bob:para_bob"
-    command: oracle-client start -w ws://172.28.1.4:9947 -m 24000
+    command: start -w ws://172.28.1.4:9947 -m 24000
     restart: always
     networks:
       testing_net:

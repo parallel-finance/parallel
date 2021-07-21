@@ -25,9 +25,11 @@ use sp_runtime::{
 };
 use vanilla_runtime::{
     pallet_loans::{InterestRateModel, JumpModel, Market, MarketState},
+    pallet_nominee_election::NomineeCoefficients,
     AuraConfig, BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig,
-    GrandpaConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig, SudoConfig,
-    SystemConfig, TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
+    GrandpaConfig, LiquidStakingConfig, LoansConfig, NomineeElectionConfig, OracleMembershipConfig,
+    SudoConfig, SystemConfig, TechnicalCommitteeConfig, TokensConfig,
+    ValidatorFeedersMembershipConfig, WASM_BINARY,
 };
 
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
@@ -67,12 +69,12 @@ pub fn development_config() -> Result<ChainSpec, String> {
                 get_account_id_from_seed::<sr25519::Public>("Alice"),
                 vec![authority_keys_from_seed("Alice")],
                 vec![get_account_id_from_seed::<sr25519::Public>("Ferdie")],
+                vec![get_account_id_from_seed::<sr25519::Public>("Eve")],
                 vec![
                     get_account_id_from_seed::<sr25519::Public>("Alice"),
                     get_account_id_from_seed::<sr25519::Public>("Bob"),
                     get_account_id_from_seed::<sr25519::Public>("Charlie"),
                     get_account_id_from_seed::<sr25519::Public>("Dave"),
-                    get_account_id_from_seed::<sr25519::Public>("Eve"),
                     get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
@@ -111,6 +113,9 @@ pub fn live_config() -> Result<ChainSpec, String> {
                         .unchecked_into(),
                 )],
                 vec!["5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
+                    .parse()
+                    .unwrap()],
+                vec!["5FjH9a7RQmihmb7i4UzbNmecjPm9WVLyoJHfsixkrLGEKwsJ"
                     .parse()
                     .unwrap()],
                 vec![
@@ -156,6 +161,7 @@ fn testnet_genesis(
     root_key: AccountId,
     initial_authorities: Vec<(AuraId, GrandpaId)>,
     oracle_accounts: Vec<AccountId>,
+    validator_feeders: Vec<AccountId>,
     endowed_accounts: Vec<AccountId>,
 ) -> GenesisConfig {
     GenesisConfig {
@@ -176,6 +182,7 @@ fn testnet_genesis(
             balances: {
                 let mut endowed_accounts = endowed_accounts.clone();
                 endowed_accounts.extend_from_slice(&oracle_accounts);
+                endowed_accounts.extend_from_slice(&validator_feeders);
 
                 endowed_accounts
                     .into_iter()
@@ -287,6 +294,17 @@ fn testnet_genesis(
         oracle_membership: OracleMembershipConfig {
             members: oracle_accounts,
             phantom: Default::default(),
+        },
+        validator_feeders_membership: ValidatorFeedersMembershipConfig {
+            members: validator_feeders,
+            phantom: Default::default(),
+        },
+        nominee_election: NomineeElectionConfig {
+            coefficients: NomineeCoefficients {
+                crf: 100,
+                nf: 1000,
+                epf: 10,
+            },
         },
     }
 }
