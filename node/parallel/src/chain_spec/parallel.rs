@@ -16,10 +16,12 @@ use cumulus_primitives_core::ParaId;
 use heiko_runtime::pallet_loans::{InterestRateModel, JumpModel, Market, MarketState};
 use hex_literal::hex;
 use parallel_runtime::{
-    opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, CouncilConfig, DemocracyConfig,
-    ElectionsConfig, GenesisConfig, LiquidStakingAgentMembershipConfig, LiquidStakingConfig,
-    LoansConfig, OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig,
-    SystemConfig, TechnicalCommitteeConfig, TokensConfig, VestingConfig, WASM_BINARY,
+    opaque::SessionKeys, pallet_nominee_election::NomineeCoefficients, BalancesConfig,
+    CollatorSelectionConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig,
+    LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig, NomineeElectionConfig,
+    OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
+    TechnicalCommitteeConfig, TokensConfig, ValidatorFeedersMembershipConfig, VestingConfig,
+    WASM_BINARY,
 };
 use primitives::*;
 use sc_service::ChainType;
@@ -146,6 +148,9 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
                         .parse()
                         .unwrap(),
                 ],
+                vec!["5FjH9a7RQmihmb7i4UzbNmecjPm9WVLyoJHfsixkrLGEKwsJ"
+                    .parse()
+                    .unwrap()],
                 // Parallel team accounts, ss58 prefix is 42
                 vec!["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
                     .parse()
@@ -169,6 +174,7 @@ fn testnet_genesis(
     invulnerables: Vec<(AccountId, AuraId)>,
     oracle_accounts: Vec<AccountId>,
     endowed_accounts: Vec<AccountId>,
+    validator_feeders: Vec<AccountId>,
     liquid_staking_agents: Vec<AccountId>,
     id: ParaId,
 ) -> GenesisConfig {
@@ -185,6 +191,7 @@ fn testnet_genesis(
             balances: {
                 let mut endowed_accounts = endowed_accounts.clone();
                 endowed_accounts.extend_from_slice(&oracle_accounts);
+                endowed_accounts.extend_from_slice(&validator_feeders);
                 endowed_accounts.extend(
                     invulnerables
                         .iter()
@@ -318,8 +325,19 @@ fn testnet_genesis(
             members: liquid_staking_agents,
             phantom: Default::default(),
         },
+        validator_feeders_membership: ValidatorFeedersMembershipConfig {
+            members: validator_feeders,
+            phantom: Default::default(),
+        },
         vesting: VestingConfig {
             vesting: vesting_list,
+        },
+        nominee_election: NomineeElectionConfig {
+            coefficients: NomineeCoefficients {
+                crf: 100,
+                nf: 1000,
+                epf: 10,
+            },
         },
     }
 }
