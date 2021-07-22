@@ -25,10 +25,15 @@ use sp_runtime::traits::IdentifyAccount;
 
 use primitives::{network::NetworkType, *};
 
+/// Generate chain properties for network.
+///
+/// For fields definition, see https://github.com/polkadot-js/apps/blob/bd78840d2142df121d182e8700b20308880dde0a/packages/react-api/src/Api.tsx#L115
 pub(crate) fn as_properties(network: NetworkType) -> Properties {
+    let (symbol, decimal) = network.token_info();
     json!({
         "ss58Format": network.ss58_addr_format_id(),
-        "network": network,
+        "tokenSymbol": symbol,
+        "tokenDecimals": decimal,
     })
     .as_object()
     .expect("Network properties are valid; qed")
