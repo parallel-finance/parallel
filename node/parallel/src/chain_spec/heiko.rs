@@ -32,8 +32,9 @@ use sp_runtime::{
     FixedPointNumber,
 };
 
-use super::as_properties;
-use crate::chain_spec::{get_account_id_from_seed, get_authority_keys_from_seed, Extensions};
+use crate::chain_spec::{
+    as_properties, get_account_id_from_seed, get_authority_keys_from_seed, Extensions,
+};
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
