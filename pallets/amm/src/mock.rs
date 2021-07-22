@@ -25,6 +25,7 @@ use sp_runtime::{
 };
 
 pub const ALICE: AccountId = 0;
+pub const BOB: AccountId = 1;
 
 type AccountId = u128;
 type Block = frame_system::mocking::MockBlock<Runtime>;
@@ -121,6 +122,8 @@ impl Default for ExtBuilder {
             balances: vec![
                 (ALICE, CurrencyId::DOT, token_units(1000).unwrap()),
                 (ALICE, CurrencyId::xDOT, token_units(1000).unwrap()),
+                (BOB, CurrencyId::DOT, token_units(1000).unwrap()),
+                (BOB, CurrencyId::xDOT, token_units(1000).unwrap()),
             ],
         }
     }
@@ -133,7 +136,7 @@ impl ExtBuilder {
             .unwrap();
 
         crate::GenesisConfig::<Runtime> {
-            exchange_rate: Rate::saturating_from_rational(2, 100),
+            exchange_rate: Rate::saturating_from_rational(100, 100),
             ..Default::default()
         }
         .assimilate_storage(&mut t)

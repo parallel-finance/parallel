@@ -46,10 +46,10 @@ mod pallet {
         ArithmeticError, DispatchError, FixedPointNumber,
     };
 
-    // Amplification Coefficient Weight
+    // Amplification Coefficient Weight.
     //
-    // In this pallet, the amplification coefficient will be `exchange_rate` * `ACW`.
-    const ACW: Rate = Rate::from_inner(Rate::DIV / 100 * 40);
+    // In this pallet, the actual amplification coefficient will be `exchange_rate` * `ACW`.
+    const ACW: Rate = Rate::from_inner(Rate::DIV / 100 * 50); // 50%
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
@@ -168,7 +168,7 @@ mod pallet {
             let f = || {
                 let ak = Self::amplification_coeficient_mul(k)?;
                 let _4ax = 4u128.checked_mul(Self::amplification_coeficient_mul(x)?)?;
-                let _4ak = 4u128.checked_mul(Self::amplification_coeficient_mul(k)?)?;
+                let _4ak = 4u128.checked_mul(ak)?;
                 let dividend = k.checked_mul(_4ak.checked_add(k)?.checked_sub(_4ax)?)?;
                 let divisor = 4u128.checked_mul(ak.checked_add(x)?)?;
                 dividend.checked_div(divisor)
