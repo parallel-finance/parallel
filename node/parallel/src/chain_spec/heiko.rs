@@ -180,7 +180,10 @@ fn testnet_genesis(
     id: ParaId,
 ) -> GenesisConfig {
     let vesting_list: Vec<(AccountId, BlockNumber, BlockNumber, u32, Balance)> =
-        serde_json::from_str("[]").unwrap();
+        serde_json::from_str(include_str!(
+            "../../../../resources/heiko-vesting-HKO.json"
+        ))
+        .unwrap();
     GenesisConfig {
         system: SystemConfig {
             code: WASM_BINARY
