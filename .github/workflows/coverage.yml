@@ -13,7 +13,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-latest]
         rust: [nightly-2021-03-24]
 
     steps:
@@ -68,7 +68,7 @@ jobs:
 
       - name: Generate code coverage
         run: |
-          cargo +nightly-2021-03-24 tarpaulin --verbose --no-fail-fast -p pallet-loans -p pallet-liquid-staking -p pallet-prices -p pallet-liquidation --timeout 300 --out Xml
+          cargo +nightly-2021-03-24 tarpaulin --verbose --no-fail-fast -p pallet-loans -p pallet-liquid-staking -p pallet-nominee-election -p pallet-prices -p pallet-liquidation --timeout 300 --out Xml
 
       - name: Upload To Codecov.io
         uses: codecov/codecov-action@v1

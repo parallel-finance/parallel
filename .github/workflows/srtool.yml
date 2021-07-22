@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        chain: ["heiko", "parallel"]
+        chain: ["heiko", "parallel", "vanilla"]
     steps:
       - uses: actions/checkout@v2
       - name: Srtool build

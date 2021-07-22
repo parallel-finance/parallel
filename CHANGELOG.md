@@ -1,13 +1,17 @@
 # CHANGE LOG
 
+## 2021.07.20
+
+-   Add nominee-election pallet (#306)
+
 ## 2021.07.19
 
 -   Remove type Multiplier
--   Fix the wrong return types of JSON-RPC loans_getAccountLiquidity  
+-   Fix the wrong return types of JSON-RPC loans_getAccountLiquidity
 
 ## 2021.07.15
 
--   Upgrade polkadot to v0.9.8
+-   Upgrade polkadot to v0.9.8 (#301)
 
 ## 2021.07.08
 

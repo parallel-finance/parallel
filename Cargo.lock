@@ -1672,7 +1672,7 @@ dependencies = [
 [[package]]
 name = "cumulus-primitives-core"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/cumulus.git?branch=polkadot-v0.9.8#4e51d32fdc4636f2d207204a25534e01d5fddf75"
+source = "git+https://github.com/paritytech/cumulus.git?branch=polkadot-v0.9.8#a2b469d24e987be368df17e74df0a378361d49ab"
 dependencies = [
  "frame-support",
  "impl-trait-for-tuples",
@@ -2870,6 +2870,7 @@ dependencies = [
  "orml-traits",
  "orml-unknown-tokens",
  "orml-utilities",
+ "orml-vesting",
  "orml-xcm-support",
  "orml-xtokens",
  "pallet-aura",
@@ -2886,6 +2887,7 @@ dependencies = [
  "pallet-loans-rpc-runtime-api",
  "pallet-membership",
  "pallet-multisig",
+ "pallet-nominee-election",
  "pallet-prices",
  "pallet-scheduler",
  "pallet-session",
@@ -4868,7 +4870,7 @@ dependencies = [
 [[package]]
 name = "orml-currencies"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#ca054d3078a8d157d0c176ed319d6ff49f38d349"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#33cd6dcd52e9d9f81cbff8b57dbdeaaa48ed2bf4"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -4884,7 +4886,7 @@ dependencies = [
 [[package]]
 name = "orml-oracle"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#ca054d3078a8d157d0c176ed319d6ff49f38d349"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#33cd6dcd52e9d9f81cbff8b57dbdeaaa48ed2bf4"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -4901,7 +4903,7 @@ dependencies = [
 [[package]]
 name = "orml-oracle-rpc"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#ca054d3078a8d157d0c176ed319d6ff49f38d349"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#33cd6dcd52e9d9f81cbff8b57dbdeaaa48ed2bf4"
 dependencies = [
  "jsonrpc-core",
  "jsonrpc-core-client",
@@ -4916,7 +4918,7 @@ dependencies = [
 [[package]]
 name = "orml-oracle-rpc-runtime-api"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#ca054d3078a8d157d0c176ed319d6ff49f38d349"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#33cd6dcd52e9d9f81cbff8b57dbdeaaa48ed2bf4"
 dependencies = [
  "parity-scale-codec",
  "sp-api",
@@ -4926,7 +4928,7 @@ dependencies = [
 [[package]]
 name = "orml-tokens"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#ca054d3078a8d157d0c176ed319d6ff49f38d349"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#33cd6dcd52e9d9f81cbff8b57dbdeaaa48ed2bf4"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -4941,7 +4943,7 @@ dependencies = [
 [[package]]
 name = "orml-traits"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#ca054d3078a8d157d0c176ed319d6ff49f38d349"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#33cd6dcd52e9d9f81cbff8b57dbdeaaa48ed2bf4"
 dependencies = [
  "frame-support",
  "impl-trait-for-tuples",
@@ -4958,7 +4960,7 @@ dependencies = [
 [[package]]
 name = "orml-unknown-tokens"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#ca054d3078a8d157d0c176ed319d6ff49f38d349"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#33cd6dcd52e9d9f81cbff8b57dbdeaaa48ed2bf4"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -4972,7 +4974,7 @@ dependencies = [
 [[package]]
 name = "orml-utilities"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#ca054d3078a8d157d0c176ed319d6ff49f38d349"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#33cd6dcd52e9d9f81cbff8b57dbdeaaa48ed2bf4"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -4983,9 +4985,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "orml-vesting"
+version = "0.4.1-dev"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#33cd6dcd52e9d9f81cbff8b57dbdeaaa48ed2bf4"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "max-encoded-len",
+ "parity-scale-codec",
+ "serde",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "orml-xcm-support"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#ca054d3078a8d157d0c176ed319d6ff49f38d349"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#33cd6dcd52e9d9f81cbff8b57dbdeaaa48ed2bf4"
 dependencies = [
  "frame-support",
  "orml-traits",
@@ -4999,7 +5016,7 @@ dependencies = [
 [[package]]
 name = "orml-xtokens"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#ca054d3078a8d157d0c176ed319d6ff49f38d349"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#33cd6dcd52e9d9f81cbff8b57dbdeaaa48ed2bf4"
 dependencies = [
  "cumulus-primitives-core",
  "frame-support",
@@ -5538,6 +5555,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-nominee-election"
+version = "3.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-offences"
 version = "3.0.0"
 source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.8#1b758b2a8d151d97d2242260c465b6df9cb8a7a4"
@@ -6051,6 +6082,7 @@ dependencies = [
  "orml-traits",
  "orml-unknown-tokens",
  "orml-utilities",
+ "orml-vesting",
  "orml-xcm-support",
  "orml-xtokens",
  "pallet-aura",
@@ -6067,6 +6099,7 @@ dependencies = [
  "pallet-loans-rpc-runtime-api",
  "pallet-membership",
  "pallet-multisig",
+ "pallet-nominee-election",
  "pallet-prices",
  "pallet-scheduler",
  "pallet-session",
@@ -11428,7 +11461,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04f8ab788026715fa63b31960869617cba39117e520eb415b0139543e325ab59"
 dependencies = [
  "cfg-if 0.1.10",
- "rand 0.7.3",
+ "rand 0.3.23",
  "static_assertions",
 ]
 
@@ -11616,6 +11649,7 @@ dependencies = [
  "pallet-loans-rpc-runtime-api",
  "pallet-membership",
  "pallet-multisig",
+ "pallet-nominee-election",
  "pallet-prices",
  "pallet-scheduler",
  "pallet-sudo",
