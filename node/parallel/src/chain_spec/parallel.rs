@@ -21,7 +21,7 @@ use parallel_runtime::{
     LoansConfig, OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig,
     SystemConfig, TechnicalCommitteeConfig, TokensConfig, WASM_BINARY,
 };
-use primitives::*;
+use primitives::{network::NetworkType, *};
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::crypto::UncheckedInto;
@@ -31,7 +31,9 @@ use sp_runtime::{
     FixedPointNumber,
 };
 
-use crate::chain_spec::{get_account_id_from_seed, get_authority_keys_from_seed, Extensions};
+use crate::chain_spec::{
+    as_properties, get_account_id_from_seed, get_authority_keys_from_seed, Extensions,
+};
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
@@ -71,8 +73,8 @@ pub fn development_config(id: ParaId) -> ChainSpec {
         },
         vec![],
         None,
-        None,
-        None,
+        Some("dev"),
+        Some(as_properties(NetworkType::Parallel)),
         Extensions {
             relay_chain: "rococo-local".into(),
             para_id: id.into(),
@@ -155,8 +157,8 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
         },
         vec![],
         None,
-        None,
-        None,
+        Some("dev"),
+        Some(as_properties(NetworkType::Parallel)),
         Extensions {
             relay_chain: "polkadot".into(),
             para_id: id.into(),

@@ -15,12 +15,25 @@
 pub mod heiko;
 pub mod parallel;
 
-use primitives::*;
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
+use sc_service::Properties;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::IdentifyAccount;
+
+use primitives::{network::NetworkType, *};
+
+pub(crate) fn as_properties(network: NetworkType) -> Properties {
+    json!({
+        "ss58Format": network.ss58_addr_format_id(),
+        "network": network,
+    })
+    .as_object()
+    .expect("Network properties are valid; qed")
+    .to_owned()
+}
 
 /// Helper function to generate a crypto pair from seed
 pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {

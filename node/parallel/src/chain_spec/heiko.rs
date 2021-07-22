@@ -32,6 +32,7 @@ use sp_runtime::{
     FixedPointNumber,
 };
 
+use super::as_properties;
 use crate::chain_spec::{get_account_id_from_seed, get_authority_keys_from_seed, Extensions};
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
@@ -72,8 +73,8 @@ pub fn development_config(id: ParaId) -> ChainSpec {
         },
         vec![],
         None,
-        None,
-        None,
+        Some("dev"),
+        Some(as_properties(network::NetworkType::Heiko)),
         Extensions {
             relay_chain: "rococo-local".into(),
             para_id: id.into(),
@@ -156,8 +157,8 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
         },
         vec![],
         None,
-        None,
-        None,
+        Some("dev"),
+        Some(as_properties(network::NetworkType::Heiko)),
         Extensions {
             relay_chain: "kusama".into(),
             para_id: id.into(),
