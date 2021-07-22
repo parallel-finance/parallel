@@ -160,7 +160,8 @@ impl MockPriceFeeder {
                 vec![DOT, KSM, USDT, XDOT]
                     .iter()
                     .map(|&x| (x, Some((Price::saturating_from_integer(1), 1))))
-                    .collect())
+                    .collect()
+            )
         };
     }
 

@@ -36,7 +36,9 @@ use frame_system::pallet_prelude::*;
 pub use market::{Market, MarketState};
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 pub use pallet::*;
-use primitives::{Amount, Balance, CurrencyId, Price, PriceFeeder, Rate, Ratio, Timestamp};
+use primitives::{
+    Amount, Balance, CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall, Timestamp,
+};
 use sp_runtime::ArithmeticError;
 use sp_runtime::{
     traits::{
@@ -824,7 +826,7 @@ impl<T: Config> Pallet<T> {
 
     pub fn get_account_liquidity(
         account: &T::AccountId,
-    ) -> Result<(FixedU128, FixedU128), DispatchError> {
+    ) -> Result<(Liquidity, Shortfall), DispatchError> {
         let total_borrow_value = Self::total_borrowed_value(account)?;
         let total_collateral_value = Self::total_collateral_value(account)?;
         if total_collateral_value > total_borrow_value {
