@@ -39,7 +39,9 @@ use sp_runtime::traits::{
 };
 use sp_runtime::DispatchError;
 use sp_runtime::{
-    create_runtime_str, generic, impl_opaque_keys, traits,
+    create_runtime_str, generic, impl_opaque_keys,
+    offchain::storage_lock::BlockNumberProvider,
+    traits,
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, KeyTypeId, Percent, SaturatedConversion,
 };
@@ -1048,6 +1050,35 @@ impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
     type WeightInfo = ();
 }
 
+parameter_types! {
+    pub MinVestedTransfer: Balance = 0;
+    pub const MaxVestingSchedules: u32 = 100;
+}
+
+pub struct RelaychainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
+
+impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
+    for RelaychainBlockNumberProvider<T>
+{
+    type BlockNumber = BlockNumber;
+
+    fn current_block_number() -> Self::BlockNumber {
+        cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
+            .map(|d| d.relay_parent_number)
+            .unwrap_or_default()
+    }
+}
+
+impl orml_vesting::Config for Runtime {
+    type Event = Event;
+    type Currency = Balances;
+    type MinVestedTransfer = MinVestedTransfer;
+    type VestedTransferOrigin = frame_system::EnsureSigned<AccountId>;
+    type WeightInfo = ();
+    type MaxVestingSchedules = MaxVestingSchedules;
+    type BlockNumberProvider = RelaychainBlockNumberProvider<Runtime>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -1097,6 +1128,7 @@ construct_runtime!(
         Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
         XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
         UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event},
+        Vesting: orml_vesting::{Pallet, Storage, Call, Event<T>, Config<T>},
 
         // Loans
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},

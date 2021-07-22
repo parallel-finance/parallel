@@ -97,7 +97,7 @@ pub use frame_support::{
 use pallet_xcm::XcmPassthrough;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
-pub use sp_runtime::{Perbill, Permill};
+pub use sp_runtime::{offchain::storage_lock::BlockNumberProvider, Perbill, Permill};
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -1048,6 +1048,35 @@ impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
     type WeightInfo = ();
 }
 
+parameter_types! {
+    pub MinVestedTransfer: Balance = 0;
+    pub const MaxVestingSchedules: u32 = 100;
+}
+
+pub struct RelaychainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
+
+impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
+    for RelaychainBlockNumberProvider<T>
+{
+    type BlockNumber = BlockNumber;
+
+    fn current_block_number() -> Self::BlockNumber {
+        cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
+            .map(|d| d.relay_parent_number)
+            .unwrap_or_default()
+    }
+}
+
+impl orml_vesting::Config for Runtime {
+    type Event = Event;
+    type Currency = Balances;
+    type MinVestedTransfer = MinVestedTransfer;
+    type VestedTransferOrigin = frame_system::EnsureSigned<AccountId>;
+    type WeightInfo = ();
+    type MaxVestingSchedules = MaxVestingSchedules;
+    type BlockNumberProvider = RelaychainBlockNumberProvider<Runtime>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -1097,6 +1126,7 @@ construct_runtime!(
         Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
         XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
         UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event},
+        Vesting: orml_vesting::{Pallet, Storage, Call, Event<T>, Config<T>},
 
         // Loans
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},

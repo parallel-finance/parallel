@@ -20,7 +20,8 @@ use parallel_runtime::{
     CollatorSelectionConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig,
     LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig, NomineeElectionConfig,
     OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeConfig, TokensConfig, ValidatorFeedersMembershipConfig, WASM_BINARY,
+    TechnicalCommitteeConfig, TokensConfig, ValidatorFeedersMembershipConfig, VestingConfig,
+    WASM_BINARY,
 };
 use primitives::*;
 use sc_service::ChainType;
@@ -63,7 +64,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                 ],
                 vec![get_account_id_from_seed::<sr25519::Public>("Eve")],
-                // Multisig account combined by Alice, Bob and Charile, ss58 prefix is 42
+                // Multisig account combined by Alice, Bob and Charile, ss58 prefix is 42
                 vec!["5DjYJStmdZ2rcqXbXGX7TW85JsrW6uG4y9MUcLq2BoPMpRA7"
                     .parse()
                     .unwrap()],
@@ -150,7 +151,7 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
                 vec!["5FjH9a7RQmihmb7i4UzbNmecjPm9WVLyoJHfsixkrLGEKwsJ"
                     .parse()
                     .unwrap()],
-                // Parallel team accounts, ss58 prefix is 42
+                // Parallel team accounts, ss58 prefix is 42
                 vec!["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
                     .parse()
                     .unwrap()],
@@ -177,6 +178,11 @@ fn testnet_genesis(
     liquid_staking_agents: Vec<AccountId>,
     id: ParaId,
 ) -> GenesisConfig {
+    let vesting_list: Vec<(AccountId, BlockNumber, BlockNumber, u32, Balance)> =
+        serde_json::from_str(include_str!(
+            "../../../../resources/parallel-vesting-PARA.json"
+        ))
+        .unwrap();
     GenesisConfig {
         system: SystemConfig {
             code: WASM_BINARY
@@ -325,6 +331,9 @@ fn testnet_genesis(
         validator_feeders_membership: ValidatorFeedersMembershipConfig {
             members: validator_feeders,
             phantom: Default::default(),
+        },
+        vesting: VestingConfig {
+            vesting: vesting_list,
         },
         nominee_election: NomineeElectionConfig {
             coefficients: NomineeCoefficients {
