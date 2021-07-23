@@ -1,0 +1,49 @@
+relaychain:
+  image: parity/polkadot:v0.9.8
+  chain: rococo-local
+  runtimeGenesisConfig:
+    parachainsConfiguration:
+      config:
+        validation_upgrade_frequency: 1
+        validation_upgrade_delay: 1
+  env:
+    RUST_LOG: parachain::candidate-backing=trace,parachain::candidate-selection=trace,parachain::pvf=trace,parachain::collator-protocol=trace,parachain::provisioner=trace
+  flags:
+    - --rpc-methods=unsafe
+    - --wasm-execution=compiled
+    - --execution=wasm
+    - --no-beefy
+  nodes:
+    - name: alice
+    - name: bob
+    - name: charlie
+
+parachains:
+  - image: parallelfinance/parallel:latest
+    chain:
+      base: heiko-dev
+      collators:
+        - alice
+        - bob
+        - charlie
+      sudo: alice
+    id: 2000
+    parachain: true
+    flags:
+      - --rpc-methods=unsafe
+      - --force-authoring
+      - --wasm-execution=compiled
+      - --execution=wasm
+    relaychainFlags:
+      - --wasm-execution=compiled
+      - --execution=wasm
+      - --no-beefy
+    env:
+      RUST_LOG: sc_basic_authorship=trace,cumulus-consensus=trace,cumulus-collator=trace,collator_protocol=trace,collation_generation=trace,aura=debug
+    nodes:
+      - flags:
+          - --alice
+      - flags:
+          - --bob
+      - flags:
+          - --charlie

@@ -5,10 +5,11 @@ services:
       - "30333:30333"
       - "9933:9933"
       - "9944:9944"
-    image: parallelfinance/parallel:latest
+    image: parallelfinance/parallel-dev:latest
     volumes:
       - "data:/data"
     restart: always
+    command: -d /data --dev --ws-external
     networks:
       testing_net:
         ipv4_address: 172.28.1.1

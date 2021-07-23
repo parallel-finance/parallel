@@ -1,5 +1,12 @@
 # CHANGE LOG
 
+## 2021.07.24
+
+-   Integrate parachain-launch (#325)
+-   Split docker images (#325)
+-   Add subwasm (#325)
+-   Annonce new release to discord channel (#325)
+
 ## 2021.07.20
 
 -   Add nominee-election pallet (#306)
