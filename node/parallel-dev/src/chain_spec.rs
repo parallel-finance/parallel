@@ -25,11 +25,10 @@ use sp_runtime::{
 };
 use vanilla_runtime::{
     pallet_loans::{InterestRateModel, JumpModel, Market, MarketState},
-    pallet_nominee_election::NomineeCoefficients,
     AuraConfig, BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig,
-    GrandpaConfig, LiquidStakingConfig, LoansConfig, NomineeElectionConfig, OracleMembershipConfig,
-    SudoConfig, SystemConfig, TechnicalCommitteeConfig, TokensConfig,
-    ValidatorFeedersMembershipConfig, WASM_BINARY,
+    GrandpaConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig, SudoConfig,
+    SystemConfig, TechnicalCommitteeConfig, TokensConfig, ValidatorFeedersMembershipConfig,
+    WASM_BINARY,
 };
 
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
@@ -298,13 +297,6 @@ fn testnet_genesis(
         validator_feeders_membership: ValidatorFeedersMembershipConfig {
             members: validator_feeders,
             phantom: Default::default(),
-        },
-        nominee_election: NomineeElectionConfig {
-            coefficients: NomineeCoefficients {
-                crf: 100,
-                nf: 1000,
-                epf: 10,
-            },
         },
     }
 }

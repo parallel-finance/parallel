@@ -104,8 +104,6 @@ pub enum DataProviderId {
     Aggregated = 0,
 }
 
-pub type XcmExecutionResult = sp_std::result::Result<Outcome, DispatchError>;
-
 #[derive(Encode, Decode, Debug, Default, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct PriceWithDecimal {

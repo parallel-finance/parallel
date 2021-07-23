@@ -16,12 +16,11 @@ use cumulus_primitives_core::ParaId;
 use heiko_runtime::pallet_loans::{InterestRateModel, JumpModel, Market, MarketState};
 use hex_literal::hex;
 use parallel_runtime::{
-    opaque::SessionKeys, pallet_nominee_election::NomineeCoefficients, BalancesConfig,
-    CollatorSelectionConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig,
-    LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig, NomineeElectionConfig,
-    OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeConfig, TokensConfig, ValidatorFeedersMembershipConfig, VestingConfig,
-    WASM_BINARY,
+    opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, CouncilConfig, DemocracyConfig,
+    ElectionsConfig, GenesisConfig, LiquidStakingAgentMembershipConfig, LiquidStakingConfig,
+    LoansConfig, OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig,
+    SystemConfig, TechnicalCommitteeConfig, TokensConfig, ValidatorFeedersMembershipConfig,
+    VestingConfig, WASM_BINARY,
 };
 use primitives::*;
 use sc_service::ChainType;
@@ -334,13 +333,6 @@ fn testnet_genesis(
         },
         vesting: VestingConfig {
             vesting: vesting_list,
-        },
-        nominee_election: NomineeElectionConfig {
-            coefficients: NomineeCoefficients {
-                crf: 100,
-                nf: 1000,
-                epf: 10,
-            },
         },
     }
 }

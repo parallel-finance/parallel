@@ -17,23 +17,6 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok};
 use mock::*;
-use sp_runtime::traits::BadOrigin;
-
-#[test]
-fn set_coefficients_works() {
-    ExtBuilder::default().build().execute_with(|| {
-        assert_eq!(NomineeElection::coefficients(), MOCK_OLD_COEFFICIENTS);
-        assert_noop!(
-            NomineeElection::set_coefficients(Origin::signed(2), MOCK_NEW_COEFFICIENTS.clone()),
-            BadOrigin
-        );
-        assert_ok!(NomineeElection::set_coefficients(
-            Origin::signed(1),
-            MOCK_NEW_COEFFICIENTS
-        ));
-        assert_eq!(NomineeElection::coefficients(), MOCK_NEW_COEFFICIENTS);
-    });
-}
 
 #[test]
 fn set_validators_works() {
@@ -47,19 +30,6 @@ fn set_validators_works() {
             NomineeElection::set_validators(Origin::signed(6), vec![]),
             Error::<Runtime>::NoEmptyValidators
         );
-        assert_ok!(NomineeElection::add_whitelist_validator(
-            Origin::signed(2),
-            3
-        ),);
-        assert_ok!(NomineeElection::set_validators(
-            Origin::signed(6),
-            vec![MOCK_VALIDATOR_THREE]
-        ));
-        assert_eq!(NomineeElection::validators(), vec![]);
-        assert_ok!(NomineeElection::remove_whitelisted_validator(
-            Origin::signed(2),
-            3
-        ),);
         assert_ok!(NomineeElection::set_validators(
             Origin::signed(6),
             vec![MOCK_VALIDATOR_THREE]
@@ -72,70 +42,5 @@ fn set_validators_works() {
             ),
             Error::<Runtime>::MaxValidatorsExceeded
         );
-    });
-}
-
-#[test]
-fn add_whitelist_validator_works() {
-    ExtBuilder::default().build().execute_with(|| {
-        assert_eq!(NomineeElection::whitelisted_validators(), vec![]);
-        assert_noop!(
-            NomineeElection::add_whitelist_validator(Origin::signed(1), 1),
-            BadOrigin
-        );
-        assert_ok!(NomineeElection::add_whitelist_validator(
-            Origin::signed(2),
-            1
-        ),);
-        assert_eq!(NomineeElection::whitelisted_validators(), vec![1]);
-        assert_noop!(
-            NomineeElection::add_whitelist_validator(Origin::signed(2), 2),
-            Error::<Runtime>::MaxValidatorsExceeded
-        );
-    });
-}
-
-#[test]
-fn remove_whitelisted_validator_works() {
-    ExtBuilder::default().build().execute_with(|| {
-        assert_eq!(NomineeElection::whitelisted_validators(), vec![]);
-        assert_noop!(
-            NomineeElection::remove_whitelisted_validator(Origin::signed(1), 1),
-            BadOrigin
-        );
-        assert_ok!(NomineeElection::add_whitelist_validator(
-            Origin::signed(2),
-            1
-        ));
-        assert_eq!(NomineeElection::whitelisted_validators(), vec![1]);
-        assert_ok!(NomineeElection::remove_whitelisted_validator(
-            Origin::signed(2),
-            1
-        ));
-        assert_noop!(
-            NomineeElection::remove_whitelisted_validator(Origin::signed(2), 1),
-            Error::<Runtime>::ValidatorNotFound
-        );
-        assert_eq!(NomineeElection::whitelisted_validators(), vec![]);
-    });
-}
-
-#[test]
-fn reset_whitelisted_validators_works() {
-    ExtBuilder::default().build().execute_with(|| {
-        assert_eq!(NomineeElection::whitelisted_validators(), vec![]);
-        assert_noop!(
-            NomineeElection::reset_whitelisted_validators(Origin::signed(1)),
-            BadOrigin
-        );
-        assert_ok!(NomineeElection::add_whitelist_validator(
-            Origin::signed(2),
-            1
-        ));
-        assert_eq!(NomineeElection::whitelisted_validators(), vec![1]);
-        assert_ok!(NomineeElection::reset_whitelisted_validators(
-            Origin::signed(2)
-        ));
-        assert_eq!(NomineeElection::whitelisted_validators(), vec![]);
     });
 }
