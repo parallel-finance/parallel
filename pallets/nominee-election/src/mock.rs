@@ -78,7 +78,6 @@ impl SortedMembers<AccountId> for Six {
 impl Config for Runtime {
     type Event = Event;
     type UpdateOrigin = EnsureSignedBy<One, AccountId>;
-    type WhitelistUpdateOrigin = EnsureSignedBy<Two, AccountId>;
     type MaxValidators = MaxValidators;
     type Members = Six;
 }
@@ -93,7 +92,7 @@ construct_runtime!(
         UncheckedExtrinsic = UncheckedExtrinsic
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-        NomineeElection: pallet_nominee_election::{Pallet, Call, Storage, Event<T>, Config},
+        NomineeElection: pallet_nominee_election::{Pallet, Call, Storage, Event<T>},
     }
 );
 
@@ -104,18 +103,6 @@ impl Default for ExtBuilder {
         ExtBuilder
     }
 }
-
-pub const MOCK_OLD_COEFFICIENTS: NomineeCoefficients = NomineeCoefficients {
-    crf: 100,
-    nf: 1000,
-    epf: 10,
-};
-
-pub const MOCK_NEW_COEFFICIENTS: NomineeCoefficients = NomineeCoefficients {
-    crf: 10,
-    nf: 100,
-    epf: 1000,
-};
 
 pub const MOCK_VALIDATOR_THREE: ValidatorInfo<AccountId> = ValidatorInfo {
     name: None,
@@ -133,15 +120,9 @@ pub const MOCK_VALIDATOR_FOUR: ValidatorInfo<AccountId> = ValidatorInfo {
 
 impl ExtBuilder {
     pub fn build(self) -> sp_io::TestExternalities {
-        let mut t = frame_system::GenesisConfig::default()
+        let t = frame_system::GenesisConfig::default()
             .build_storage::<Runtime>()
             .unwrap();
-
-        pallet_nominee_election::GenesisConfig {
-            coefficients: MOCK_OLD_COEFFICIENTS,
-        }
-        .assimilate_storage::<Runtime>(&mut t)
-        .unwrap();
 
         t.into()
     }

@@ -53,8 +53,10 @@ use xcm::v0::{Junction, MultiAsset, MultiLocation, Outcome};
 
 // Import ORML dependcies
 use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::MultiCurrency;
-use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended, XcmTransfer};
+use orml_traits::{
+    parameter_type_with_key, DataProvider, DataProviderExtended, MultiCurrency, XcmExecutionResult,
+    XcmTransfer,
+};
 
 // Import Parallel dependencies
 /// Constant values used within the runtime.
@@ -415,11 +417,6 @@ type EnsureRootOrHalfCouncil = EnsureOneOf<
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>,
 >;
-type EnsureRootOrHalfTechnical = EnsureOneOf<
-    AccountId,
-    EnsureRoot<AccountId>,
-    pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, TechnicalCollective>,
->;
 impl pallet_membership::Config<pallet_membership::Instance1> for Runtime {
     type Event = Event;
     type AddOrigin = EnsureRootOrHalfCouncil;
@@ -445,7 +442,7 @@ impl pallet_scheduler::Config for Runtime {
     type PalletsOrigin = OriginCaller;
     type Call = Call;
     type MaximumWeight = MaximumSchedulerWeight;
-    type ScheduleOrigin = EnsureRootOrHalfTechnical;
+    type ScheduleOrigin = EnsureRoot<AccountId>;
     type MaxScheduledPerBlock = MaxScheduledPerBlock;
     type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
 }
@@ -682,7 +679,6 @@ impl pallet_membership::Config<ValidatorFeedersMembershipInstance> for Runtime {
 impl pallet_nominee_election::Config for Runtime {
     type Event = Event;
     type UpdateOrigin = EnsureRootOrHalfCouncil;
-    type WhitelistUpdateOrigin = EnsureRootOrHalfCouncil;
     type MaxValidators = MaxValidators;
     type Members = ValidatorFeedersMembership;
 }
@@ -804,7 +800,7 @@ construct_runtime!(
 
         // LiquidStaking
         LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config},
-        NomineeElection: pallet_nominee_election::{Pallet, Call, Storage, Event<T>, Config},
+        NomineeElection: pallet_nominee_election::{Pallet, Call, Storage, Event<T>},
         ValidatorFeedersMembership: pallet_membership::<Instance4>::{Pallet, Call, Storage, Event<T>, Config<T>}
     }
 );

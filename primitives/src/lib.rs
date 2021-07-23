@@ -19,10 +19,9 @@
 use codec::{Decode, Encode};
 use sp_runtime::{
     traits::{CheckedDiv, IdentifyAccount, Verify},
-    DispatchError, FixedU128, MultiSignature, Permill, RuntimeDebug,
+    FixedU128, MultiSignature, Permill, RuntimeDebug,
 };
 use sp_std::{cmp::Ordering, convert::Into, prelude::*};
-use xcm::v0::Outcome;
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -103,8 +102,6 @@ pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 pub enum DataProviderId {
     Aggregated = 0,
 }
-
-pub type XcmExecutionResult = sp_std::result::Result<Outcome, DispatchError>;
 
 #[derive(Encode, Decode, Debug, Default, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]

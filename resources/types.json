@@ -106,17 +106,13 @@
 		},
 		"Shortfall": "FixedU128",
 		"Liquidity": "FixedU128",
-		"NomineeCoefficients": {
-			"crf": "u32",
-			"nf": "u32",
-			"epf": "u32"
-		},
 		"ValidatorInfo": {
 			"name": "Option<Text>",
 			"address": "AccountId",
 			"stakes": "u128",
 			"score": "u128"
-		}
+		},
+		"ValidatorSet": "Vec<ValidatorInfo>"
 	},
 	"typesAlias": {
 		"tokens": {
