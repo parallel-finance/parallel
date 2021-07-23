@@ -9,7 +9,6 @@ on:
 
 jobs:
   srtool:
-    if: github.repository == 'parallel-finance/parallel'
     runs-on: ubuntu-latest
     strategy:
       matrix:
