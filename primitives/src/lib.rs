@@ -19,10 +19,9 @@
 use codec::{Decode, Encode};
 use sp_runtime::{
     traits::{CheckedDiv, IdentifyAccount, Verify},
-    DispatchError, FixedU128, MultiSignature, Permill, RuntimeDebug,
+    FixedU128, MultiSignature, Permill, RuntimeDebug,
 };
 use sp_std::{cmp::Ordering, convert::Into, prelude::*};
-use xcm::v0::Outcome;
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
