@@ -8,8 +8,12 @@ on:
 
 jobs:
   dockerimage:
-    if: github.repository == 'parallel-finance/parallel'
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        node: ["parallel", "parallel-dev"]
+
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -36,6 +40,7 @@ jobs:
         with:
           file: Dockerfile.release
           push: true
-          tags: ${{ secrets.DOCKERHUB_REPO }}:${{ steps.docker_tag.outputs.value }}
+          build-args: NODE=${{ matrix.node }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.node }}:${{ steps.docker_tag.outputs.value }}
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
