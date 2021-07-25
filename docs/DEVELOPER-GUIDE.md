@@ -150,7 +150,7 @@ Run Heiko Dev Network (via parachain-launch 1.0.2)
 ```
 parachain-launch generate
 cd output
-docker-compose -d build
+docker-compose up -d --build
 ```
 
 Generate heiko-dev's genesis state & wasm

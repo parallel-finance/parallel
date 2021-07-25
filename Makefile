@@ -92,7 +92,7 @@ polkadot-launch:
 parachain-launch:
 	parachain-launch generate
 	cd output
-	docker-compose -d build
+	docker-compose up -d --build
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?' Makefile | cut -d: -f1 | sort
