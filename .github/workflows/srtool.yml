@@ -75,7 +75,7 @@ jobs:
             ${{ steps.srtool_build.outputs.wasm_compressed }}
           draft: false
           prerelease: false
-          name: Release ${{ steps.git_tag.outputs.tag }}
+          name: Parallel ${{ steps.git_tag.outputs.tag }}
           body: |
             `${{ matrix.chain }}_runtime-v${{ steps.runtime_version.outputs.version }}.compact.compressed.wasm - ${{ steps.runtime_proposal_hash.outputs.hash }}`
         env:
