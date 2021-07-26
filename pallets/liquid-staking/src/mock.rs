@@ -176,7 +176,7 @@ type EnsureRootOrSix =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<Six, AccountId>>;
 
 parameter_types! {
-    pub const LiquidStakingPalletId: PalletId = PalletId(*b"par/lqst");
+    pub const LiquidStakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = DOT;
     pub const LiquidCurrency: CurrencyId = XDOT;
     pub const MaxWithdrawAmount: Balance = 10;
