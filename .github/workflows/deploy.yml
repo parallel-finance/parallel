@@ -27,5 +27,5 @@ jobs:
             docker container rm parallel || true
             docker volume create chains || true
             docker run --restart=always --name parallel -d -p 9944:9944 \
-              -v "chains:/data" parallelfinance/parallel:latest \
-              parallel-dev -d /data --dev --ws-external
+              -v "chains:/data" parallelfinance/parallel-dev:latest \
+              -d /data --dev --ws-external

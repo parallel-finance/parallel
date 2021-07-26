@@ -76,22 +76,23 @@ restart: purge run
 
 .PHONY: resources
 resources:
-	target/release/parallel export-genesis-state --chain heiko-dev --parachain-id 200 > ./resources/para-200-genesis
-	target/release/parallel export-genesis-wasm --chain heiko-dev > ./resources/para-200.wasm
+	target/release/parallel export-genesis-state --chain heiko-dev --parachain-id 2000 > ./resources/para-2000-genesis
+	target/release/parallel export-genesis-wasm --chain heiko-dev > ./resources/para-2000.wasm
 
 .PHONY: docker-resources
 docker-resources:
-	docker run --rm  parallelfinance/parallel:latest parallel export-genesis-state --chain heiko-dev --parachain-id 200 > ./resources/para-200-genesis
-	docker run --rm  parallelfinance/parallel:latest parallel export-genesis-wasm --chain heiko-dev > ./resources/para-200.wasm
+	docker run --rm parallelfinance/parallel:latest export-genesis-state --chain heiko-dev --parachain-id 2000 > ./resources/para-2000-genesis
+	docker run --rm parallelfinance/parallel:latest export-genesis-wasm --chain heiko-dev > ./resources/para-2000.wasm
 
-.PHONY: launch
-launch:
+.PHONY: polkadot-launch
+polkadot-launch:
 	polkadot-launch config.json
 
-.PHONY: docker-launch
-docker-launch:
-	docker-compose -f docker-compose-heiko.yml down --remove-orphans
-	docker-compose -f docker-compose-heiko.yml up -d
+.PHONY: parachain-launch
+parachain-launch:
+	parachain-launch generate
+	cd output
+	docker-compose up -d --build
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?' Makefile | cut -d: -f1 | sort
