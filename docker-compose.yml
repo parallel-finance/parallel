@@ -8,11 +8,8 @@ services:
     image: parallelfinance/parallel-dev:latest
     volumes:
       - "data:/data"
-    restart: always
     command: -d /data --dev --ws-external
-    networks:
-      testing_net:
-        ipv4_address: 172.28.1.1
+    restart: always
 
   parallel-dapp:
     ports:
@@ -21,26 +18,13 @@ services:
     links:
       - "parallel:parallel"
     restart: always
-    networks:
-      testing_net:
-        ipv4_address: 172.28.1.2
 
   oracle:
     image: parallelfinance/oracle-client:latest
     links:
       - "parallel:parallel"
-    command: start -w ws://172.28.1.1:9944
+    command: start -w ws://parallel:9944
     restart: always
-    networks:
-      testing_net:
-        ipv4_address: 172.28.1.3
 
 volumes:
   data:
-
-networks:
-  testing_net:
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.28.0.0/16
