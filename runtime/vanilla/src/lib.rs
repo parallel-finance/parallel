@@ -600,7 +600,7 @@ impl pallet_prices::Config for Runtime {
 }
 
 parameter_types! {
-    pub const StakingPalletId: PalletId = PalletId(*b"par/stak");
+    pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = CurrencyId::KSM;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xKSM;
     pub const MaxWithdrawAmount: Balance = 1000_000_000_000_000;
