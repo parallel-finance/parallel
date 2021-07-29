@@ -1,7 +1,7 @@
 use crate::{
     mock::{Loans, MockPriceFeeder, Origin, Runtime, ALICE, BOB, DOT, KSM, USDT},
     tests::{million_dollar, ExtBuilder},
-    Config, Error,
+    Config, Error, MarketState,
 };
 use frame_support::{assert_noop, assert_ok};
 use orml_traits::MultiCurrency;
@@ -120,6 +120,23 @@ fn full_workflow_works_as_expected() {
             Loans::exchange_rate(DOT)
                 .saturating_mul_int(Loans::account_deposits(DOT, BOB).voucher_balance),
             110000000000000000000,
+        );
+    })
+}
+
+#[test]
+fn liquidator_cannot_take_inactive_market_currency() {
+    ExtBuilder::default().build().execute_with(|| {
+        initial_setup();
+        alice_borrows_100_ksm();
+        // Adjust KSM price to make shortfall
+        MockPriceFeeder::set_price(KSM, 2.into());
+        assert_ok!(Loans::mutate_market(&DOT, |stored_market| {
+            stored_market.state = MarketState::Supervision;
+        }));
+        assert_noop!(
+            Loans::liquidate_borrow(Origin::signed(BOB), ALICE, KSM, million_dollar(50), DOT),
+            Error::<Runtime>::CurrencyNotEnabled
         );
     })
 }

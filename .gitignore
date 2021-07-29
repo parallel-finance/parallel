@@ -33,3 +33,5 @@ dist/
 chains/
 
 **/keystore*
+
+output/

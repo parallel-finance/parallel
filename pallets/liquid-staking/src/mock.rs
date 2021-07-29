@@ -8,9 +8,9 @@ use frame_support::{
     PalletId,
 };
 use frame_system::{self as system, EnsureOneOf, EnsureRoot, EnsureSignedBy};
-use orml_traits::XcmTransfer;
 use orml_traits::{parameter_type_with_key, MultiCurrency};
-use primitives::{Amount, Balance, CurrencyId, Rate, Ratio, XcmExecutionResult};
+use orml_traits::{XcmExecutionResult, XcmTransfer};
+use primitives::{Amount, Balance, CurrencyId, Rate, Ratio};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
@@ -176,7 +176,7 @@ type EnsureRootOrSix =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<Six, AccountId>>;
 
 parameter_types! {
-    pub const LiquidStakingPalletId: PalletId = PalletId(*b"par/liqu");
+    pub const LiquidStakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = DOT;
     pub const LiquidCurrency: CurrencyId = XDOT;
     pub const MaxWithdrawAmount: Balance = 10;

@@ -1,60 +1,126 @@
 {
-    "relaychain": {
-        "bin": "../polkadot/target/release/polkadot",
-        "chain": "rococo-local",
-        "nodes": [
-            {
-                "name": "alice",
-                "wsPort": 9944,
-                "port": 30444
-            },
-            {
-                "name": "bob",
-                "wsPort": 9955,
-                "port": 30555
-            },
-            {
-                "name": "charlie",
-                "wsPort": 9966,
-                "port": 30666
-            }
-        ],
-        "runtime_genesis_config": {
-            "parachainsConfiguration": {
-                "config": {
-                    "validation_upgrade_frequency": 1,
-                    "validation_upgrade_delay": 1
-                }
-            }
-        }
-    },
-    "parachains": [
-        {
-            "bin": "./target/release/parallel",
-            "id": "200",
-            "balance": "1000000000000000000000",
-            "chain": "heiko-dev",
-            "nodes": [
-                {
-                    "wsPort": 9977,
-                    "port": 31200,
-                    "flags": ["--alice", "--", "--execution=wasm"]
-                },
-                {
-                    "wsPort": 9988,
-                    "port": 31300,
-                    "flags": ["--bob", "--", "--execution=wasm"]
-                },
-                {
-                    "wsPort": 9999,
-                    "port": 31400,
-                    "flags": ["--charlie", "--", "--execution=wasm"]
-                }
-            ]
-        }
-    ],
-    "simpleParachains": [],
-    "hrmpChannels": [],
-    "types": {},
-    "finalization": false
+	"relaychain": {
+		"bin": "../polkadot/target/release/polkadot",
+		"chain": "rococo-local",
+		"nodes": [
+			{
+				"name": "alice",
+				"wsPort": 9944,
+				"port": 30333,
+				"flags": [
+					"--validator",
+					"--rpc-external",
+					"--ws-external",
+					"--rpc-cors=all",
+					"--rpc-methods=unsafe",
+					"--wasm-execution=compiled",
+					"--execution=wasm",
+					"--no-beefy"
+				]
+			},
+			{
+				"name": "bob",
+				"wsPort": 9945,
+				"port": 30334,
+				"flags": [
+					"--validator",
+					"--rpc-external",
+					"--ws-external",
+					"--rpc-cors=all",
+					"--rpc-methods=unsafe",
+					"--wasm-execution=compiled",
+					"--execution=wasm",
+					"--no-beefy"
+				]
+			},
+			{
+				"name": "charlie",
+				"wsPort": 9946,
+				"port": 30335,
+				"flags": [
+					"--validator",
+					"--rpc-external",
+					"--ws-external",
+					"--rpc-cors=all",
+					"--rpc-methods=unsafe",
+					"--wasm-execution=compiled",
+					"--execution=wasm",
+					"--no-beefy"
+				]
+			}
+		],
+		"runtime_genesis_config": {
+			"parachainsConfiguration": {
+				"config": {
+					"validation_upgrade_frequency": 1,
+					"validation_upgrade_delay": 1
+				}
+			}
+		}
+	},
+	"parachains": [
+		{
+			"bin": "./target/release/parallel",
+			"id": "2000",
+			"balance": "1000000000000000000000",
+			"chain": "heiko-dev",
+			"nodes": [
+				{
+					"wsPort": 9947,
+					"port": 30336,
+					"flags": [
+						"--alice",
+						"--rpc-external",
+						"--ws-external",
+						"--rpc-cors=all",
+						"--rpc-methods=unsafe",
+						"--wasm-execution=compiled",
+						"--execution=wasm",
+						"--",
+						"--wasm-execution=compiled",
+						"--execution=wasm",
+						"--no-beefy"
+					]
+				},
+				{
+					"wsPort": 9948,
+					"port": 30337,
+					"flags": [
+						"--bob",
+						"--rpc-external",
+						"--ws-external",
+						"--rpc-cors=all",
+						"--rpc-methods=unsafe",
+						"--wasm-execution=compiled",
+						"--execution=wasm",
+						"--",
+						"--wasm-execution=compiled",
+						"--execution=wasm",
+						"--no-beefy"
+					]
+				},
+				{
+					"wsPort": 9949,
+					"port": 30338,
+					"flags": [
+						"--charlie",
+						"--rpc-external",
+						"--ws-external",
+						"--rpc-cors=all",
+						"--rpc-methods=unsafe",
+						"--wasm-execution=compiled",
+						"--execution=wasm",
+						"--",
+						"--wasm-execution=compiled",
+						"--execution=wasm",
+						"--no-beefy"
+					]
+				}
+			]
+		}
+	],
+	"simpleParachains": [],
+	"hrmpChannels": [],
+	"types": {},
+	"finalization": false
 }

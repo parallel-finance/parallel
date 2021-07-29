@@ -393,13 +393,12 @@ impl pallet_membership::Config<ValidatorFeedersMembershipInstance> for Runtime {
 impl pallet_nominee_election::Config for Runtime {
     type Event = Event;
     type UpdateOrigin = EnsureRootOrHalfCouncil;
-    type WhitelistUpdateOrigin = EnsureRootOrHalfCouncil;
     type MaxValidators = MaxValidators;
     type Members = ValidatorFeedersMembership;
 }
 
 parameter_types! {
-    pub const StakingPalletId: PalletId = PalletId(*b"par/stak");
+    pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = CurrencyId::KSM;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xKSM;
     pub const MaxWithdrawAmount: Balance = 1000_000_000_000_000;
@@ -533,7 +532,7 @@ impl pallet_session::Config for Runtime {
 }
 
 parameter_types! {
-    pub const PotId: PalletId = PalletId(*b"PotStake");
+    pub const PotId: PalletId = PalletId(*b"par/pstk");
     pub const MaxCandidates: u32 = 1000;
     pub const MinCandidates: u32 = 1;
     pub const MaxInvulnerables: u32 = 100;
@@ -958,11 +957,6 @@ type EnsureRootOrHalfCouncil = EnsureOneOf<
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>,
 >;
-type EnsureRootOrHalfTechnical = EnsureOneOf<
-    AccountId,
-    EnsureRoot<AccountId>,
-    pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, TechnicalCollective>,
->;
 impl pallet_membership::Config<pallet_membership::Instance1> for Runtime {
     type Event = Event;
     type AddOrigin = EnsureRootOrHalfCouncil;
@@ -988,7 +982,7 @@ impl pallet_scheduler::Config for Runtime {
     type PalletsOrigin = OriginCaller;
     type Call = Call;
     type MaximumWeight = MaximumSchedulerWeight;
-    type ScheduleOrigin = EnsureRootOrHalfTechnical;
+    type ScheduleOrigin = EnsureRoot<AccountId>;
     type MaxScheduledPerBlock = MaxScheduledPerBlock;
     type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
 }
@@ -1139,7 +1133,7 @@ construct_runtime!(
         // LiquidStaking
         LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config},
         LiquidStakingAgentMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>},
-        NomineeElection: pallet_nominee_election::{Pallet, Call, Storage, Event<T>, Config},
+        NomineeElection: pallet_nominee_election::{Pallet, Call, Storage, Event<T>},
         ValidatorFeedersMembership: pallet_membership::<Instance4>::{Pallet, Call, Storage, Event<T>, Config<T>}
     }
 );

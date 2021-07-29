@@ -16,12 +16,11 @@ use cumulus_primitives_core::ParaId;
 use heiko_runtime::pallet_loans::{InterestRateModel, JumpModel, Market, MarketState};
 use hex_literal::hex;
 use parallel_runtime::{
-    opaque::SessionKeys, pallet_nominee_election::NomineeCoefficients, BalancesConfig,
-    CollatorSelectionConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig,
-    LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig, NomineeElectionConfig,
-    OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeConfig, TokensConfig, ValidatorFeedersMembershipConfig, VestingConfig,
-    WASM_BINARY,
+    opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, CouncilConfig, DemocracyConfig,
+    ElectionsConfig, GenesisConfig, LiquidStakingAgentMembershipConfig, LiquidStakingConfig,
+    LoansConfig, OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig,
+    SystemConfig, TechnicalCommitteeConfig, TokensConfig, ValidatorFeedersMembershipConfig,
+    VestingConfig, WASM_BINARY,
 };
 use primitives::{network::NetworkType, *};
 use sc_service::ChainType;
@@ -49,7 +48,10 @@ pub fn development_config(id: ParaId) -> ChainSpec {
         ChainType::Development,
         move || {
             testnet_genesis(
-                get_account_id_from_seed::<sr25519::Public>("Alice"),
+                // Multisig account combined by Alice, Bob and Charile, ss58 prefix is 42
+                "5DjYJStmdZ2rcqXbXGX7TW85JsrW6uG4y9MUcLq2BoPMpRA7"
+                    .parse()
+                    .unwrap(),
                 vec![
                     get_authority_keys_from_seed("Alice"),
                     get_authority_keys_from_seed("Bob"),
@@ -66,7 +68,6 @@ pub fn development_config(id: ParaId) -> ChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                 ],
                 vec![get_account_id_from_seed::<sr25519::Public>("Eve")],
-                // Multisig account combined by Alice, Bob and Charile, ss58 prefix is 42
                 vec!["5DjYJStmdZ2rcqXbXGX7TW85JsrW6uG4y9MUcLq2BoPMpRA7"
                     .parse()
                     .unwrap()],
@@ -93,7 +94,14 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
         ChainType::Local,
         move || {
             testnet_genesis(
-                "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                // Multisig account combined by:
+                //
+                // 5DAVaLenPCb12vHeEhxBMxikjAWc7h6ZDK172uUcWft2uJGG
+                // 5GLFqA1cnPEY3wRPRsKuEc68UbghxGgNw8zLJ5sKGhEQDLrd
+                // 5C5QP2Rdcr2HkFyeTJ9GdwRVJqqM5Ckagjav6T2sYs8WkeCP
+                //
+                // ss58 prefix is 42
+                "5CJJrY9SYxWLVA1P2CUSW4qyYT5fUhh9db29FcLmNbh48p9o"
                     .parse()
                     .unwrap(),
                 vec![
@@ -123,7 +131,7 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
                     .parse()
                     .unwrap()],
                 vec![
-                    // Parallel team accounts
+                    // Faucet accounts
                     "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
                         .parse()
                         .unwrap(),
@@ -153,8 +161,7 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
                 vec!["5FjH9a7RQmihmb7i4UzbNmecjPm9WVLyoJHfsixkrLGEKwsJ"
                     .parse()
                     .unwrap()],
-                // Parallel team accounts, ss58 prefix is 42
-                vec!["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                vec!["5CJJrY9SYxWLVA1P2CUSW4qyYT5fUhh9db29FcLmNbh48p9o"
                     .parse()
                     .unwrap()],
                 id,
@@ -236,10 +243,20 @@ fn testnet_genesis(
             balances: endowed_accounts
                 .iter()
                 .flat_map(|x| {
-                    vec![
-                        (x.clone(), CurrencyId::DOT, 10_u128.pow(13)),
-                        (x.clone(), CurrencyId::USDT, 10_u128.pow(9)),
-                    ]
+                    if x == &"5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                        .parse()
+                        .unwrap()
+                    {
+                        vec![
+                            (x.clone(), CurrencyId::DOT, 10_u128.pow(13)),
+                            (x.clone(), CurrencyId::USDT, 10_u128.pow(15)),
+                        ]
+                    } else {
+                        vec![
+                            (x.clone(), CurrencyId::DOT, 10_u128.pow(13)),
+                            (x.clone(), CurrencyId::USDT, 10_u128.pow(9)),
+                        ]
+                    }
                 })
                 .collect(),
         },
@@ -336,13 +353,6 @@ fn testnet_genesis(
         },
         vesting: VestingConfig {
             vesting: vesting_list,
-        },
-        nominee_election: NomineeElectionConfig {
-            coefficients: NomineeCoefficients {
-                crf: 100,
-                nf: 1000,
-                epf: 10,
-            },
         },
     }
 }
