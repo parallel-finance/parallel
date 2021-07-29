@@ -76,7 +76,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
         },
         vec![],
         None,
-        Some("dev"),
+        Some("parallel-dev"),
         Some(as_properties(NetworkType::Parallel)),
         Extensions {
             relay_chain: "rococo-local".into(),
@@ -169,7 +169,7 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
         },
         vec![],
         None,
-        Some("dev"),
+        Some("parallel-local"),
         Some(as_properties(NetworkType::Parallel)),
         Extensions {
             relay_chain: "polkadot".into(),

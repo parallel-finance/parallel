@@ -23,13 +23,16 @@ use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::IdentifyAccount;
 
-use primitives::{network::NetworkType, *};
+use primitives::{
+    network::{NetworkType, HEIKO_TOKEN, PARALLEL_TOKEN},
+    *,
+};
 
 /// Generate chain properties for network.
 ///
 /// For fields definition, see https://github.com/polkadot-js/apps/blob/bd78840d2142df121d182e8700b20308880dde0a/packages/react-api/src/Api.tsx#L115
 pub(crate) fn as_properties(network: NetworkType) -> Properties {
-    let (symbol, decimal) = network.token_info();
+    let (symbol, decimal) = token_info(&network);
     json!({
         "ss58Format": network.ss58_addr_format_id(),
         "tokenSymbol": symbol,
@@ -38,6 +41,14 @@ pub(crate) fn as_properties(network: NetworkType) -> Properties {
     .as_object()
     .expect("Network properties are valid; qed")
     .to_owned()
+}
+
+/// Return (token_symbol, token_decimal) of this network.
+fn token_info(network: &NetworkType) -> (&str, u8) {
+    match network {
+        NetworkType::Heiko => (HEIKO_TOKEN, 12),
+        NetworkType::Parallel => (PARALLEL_TOKEN, 12),
+    }
 }
 
 /// Helper function to generate a crypto pair from seed

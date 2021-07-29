@@ -77,7 +77,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
         },
         vec![],
         None,
-        Some("dev"),
+        Some("heiko-dev"),
         Some(as_properties(network::NetworkType::Heiko)),
         Extensions {
             relay_chain: "rococo-local".into(),
@@ -170,7 +170,7 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
         },
         vec![],
         None,
-        Some("dev"),
+        Some("heiko-local"),
         Some(as_properties(network::NetworkType::Heiko)),
         Extensions {
             relay_chain: "kusama".into(),
