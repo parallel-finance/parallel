@@ -1,4 +1,4 @@
-![github img](https://user-images.githubusercontent.com/4702705/127575970-11f1215b-37a2-4c3c-88c5-cc74c9b4a9bc.png)
+![ghimage](https://user-images.githubusercontent.com/4702705/127602037-7ba2faf1-8459-493b-b1d6-2dc062aa6249.png)
 
 
 [![GitHub last commit](https://img.shields.io/github/last-commit/parallel-finance/parallel)](https://github.com/parallel-finance/parallel/commits/master)
