@@ -124,33 +124,33 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
-        /// Insufficient liquidity to borrow more or disable collateral
+        /// Insufficient liquidity, You will need to repay your loan and disable the collateral toggle.
         InsufficientLiquidity,
-        /// Insufficient deposit to redeem
+        /// The withdraw amount and fees exceed the supplied amount. Enter an amount equal to or less than the supplied amount.
         InsufficientDeposit,
-        /// Repay amount greater than allowed
+        /// The repay amount is greater than the loan. Enter a repay amount equal to or less than the loan amount.
         TooMuchRepay,
-        /// Asset already enabled/disabled collateral
+        /// Duplicate operation on the collateral toggle - Please try again.
         DuplicateOperation,
-        /// No deposit asset
+        /// Please deposit your asset first and try enabling the collateral toggle again.
         NoDeposit,
-        /// Repay amount more than collateral amount
+        /// Your loan amount exceeds your collateral assets value and your wallet does not have sufficient funds to repay your loan amount at this time. Please deposit more asset to repay your loans.
         InsufficientCollateral,
-        /// Liquidator is same as borrower
+        /// You cannot liquidate a lender's non-collateralized assets like deposits.
         LiquidatorIsBorrower,
-        /// Deposits are not used as a collateral
+        /// You cannot liquidate this account due to insufficient shortfall to repay.
         DepositsAreNotCollateral,
         /// Insufficient shortfall to repay
         InsufficientShortfall,
-        /// Liquidate value overflow
+        /// We are currently experiencing an error with liquidate value overflow.
         LiquidateValueOverflow,
-        /// Insufficient reserves
+        /// We are currently experiencing an issue with insufficient reserves.
         InsufficientReserves,
         /// Invalid rate model params
         InvalidRateModelParam,
-        /// Currency not enabled
+        /// There's currently an issue processing this currency.
         CurrencyNotEnabled,
-        /// Currency's oracle price not ready
+        /// There's currently an issue with the oracle price.
         PriceOracleNotReady,
         /// Market does not exist
         MarketDoesNotExist,
