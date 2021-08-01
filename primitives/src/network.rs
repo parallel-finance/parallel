@@ -22,7 +22,3 @@ impl NetworkType {
 
 pub const HEIKO_PREFIX: u8 = 110;
 pub const PARALLEL_PREFIX: u8 = 172;
-/// Token symbol of heiko network.
-pub const HEIKO_TOKEN: &str = "HKO";
-/// Token symbol of parallel network.
-pub const PARALLEL_TOKEN: &str = "PARA";

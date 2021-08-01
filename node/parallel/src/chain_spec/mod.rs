@@ -23,10 +23,12 @@ use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::IdentifyAccount;
 
-use primitives::{
-    network::{NetworkType, HEIKO_TOKEN, PARALLEL_TOKEN},
-    *,
-};
+use primitives::{network::NetworkType, *};
+
+/// Token symbol of heiko network.
+pub const HEIKO_TOKEN: &str = "HKO";
+/// Token symbol of parallel network.
+pub const PARALLEL_TOKEN: &str = "PARA";
 
 /// Generate chain properties for network.
 ///
