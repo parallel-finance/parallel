@@ -129,6 +129,8 @@ pub mod pallet {
         MaxAccountProcessingUnstakeExceeded,
         /// Not approved agent
         IllegalAgent,
+        /// Amount too small to pay cross chain fees
+        AmountTooSmallToPayCrossChainFees,
     }
 
     #[pallet::event]
@@ -162,8 +164,8 @@ pub mod pallet {
 
     /// The total amount of reserve.
     #[pallet::storage]
-    #[pallet::getter(fn total_reserve)]
-    pub type TotalReserve<T: Config> = StorageValue<_, Balance, ValueQuery>;
+    #[pallet::getter(fn total_reserves)]
+    pub type TotalReserves<T: Config> = StorageValue<_, Balance, ValueQuery>;
 
     /// The total amount of a staking asset.
     #[pallet::storage]
@@ -261,11 +263,36 @@ pub mod pallet {
         #[transactional]
         pub fn stake(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
+            let xcm_weight = T::BaseXcmWeight::get() as Balance;
+
+            ensure!(
+                amount > xcm_weight,
+                Error::<T>::AmountTooSmallToPayCrossChainFees
+            );
+
+            // TODO depending on the frequency of withdraw, multiple stakers can afford one xcm fee together
+            let reserves = Self::reserve_factor()
+                .mul_floor(
+                    amount
+                        .checked_sub(xcm_weight)
+                        .ok_or(ArithmeticError::Underflow)?,
+                )
+                .checked_add(xcm_weight)
+                .ok_or(ArithmeticError::Overflow)?;
+
+            TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_add(reserves).ok_or(ArithmeticError::Overflow)?;
+                Ok(())
+            })?;
+
+            let left_amount = amount
+                .checked_sub(reserves)
+                .ok_or(ArithmeticError::Underflow)?;
 
             let exchange_rate = ExchangeRate::<T>::get();
             let voucher_amount = exchange_rate
                 .reciprocal()
-                .and_then(|r| r.checked_mul_int(amount))
+                .and_then(|r| r.checked_mul_int(left_amount))
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
             T::Currency::transfer(
                 T::StakingCurrency::get(),
@@ -281,13 +308,15 @@ pub mod pallet {
                 Ok(())
             })?;
             TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
+                *b = b
+                    .checked_add(left_amount)
+                    .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
 
             StakingPersonTimes::<T>::mutate(|b| *b = b.saturating_add(1));
 
-            Self::deposit_event(Event::Staked(sender, amount));
+            Self::deposit_event(Event::Staked(sender, left_amount));
             Ok(().into())
         }
 
@@ -312,6 +341,7 @@ pub mod pallet {
                 Error::<T>::ExcessWithdrawThreshold
             );
 
+            // xcm use MultiAsset to pay fees
             T::XcmTransfer::transfer(
                 Self::account_id(),
                 T::StakingCurrency::get(),
@@ -347,19 +377,8 @@ pub mod pallet {
             T::WithdrawOrigin::ensure_origin(origin)?;
             ensure!(T::Members::contains(&agent), Error::<T>::IllegalAgent);
 
-            let reserve = Self::reserve_factor().mul_floor(amount);
-            TotalReserve::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_add(reserve).ok_or(ArithmeticError::Overflow)?;
-                Ok(())
-            })?;
-
-            let left_amount = amount
-                .checked_sub(reserve)
-                .ok_or(ArithmeticError::Overflow)?;
             TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b
-                    .checked_add(left_amount)
-                    .ok_or(ArithmeticError::Overflow)?;
+                *b = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
             let exchange_rate = Rate::checked_from_rational(
@@ -390,16 +409,29 @@ pub mod pallet {
             T::WithdrawOrigin::ensure_origin(origin)?;
             ensure!(T::Members::contains(&agent), Error::<T>::IllegalAgent);
 
-            TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
-                Ok(())
-            })?;
-            let exchange_rate = Rate::checked_from_rational(
-                TotalStakingAsset::<T>::get(),
-                TotalVoucher::<T>::get(),
-            )
-            .ok_or(Error::<T>::InvalidExchangeRate)?;
-            ExchangeRate::<T>::put(exchange_rate);
+            let reserves = Self::total_reserves();
+            let left_reserves = reserves.saturating_sub(amount);
+            let left_slashes = reserves
+                .checked_sub(left_reserves)
+                .and_then(|reduced| amount.checked_sub(reduced))
+                .ok_or(ArithmeticError::Underflow)?;
+
+            if left_slashes > 0 {
+                TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
+                    *b = b
+                        .checked_sub(left_slashes)
+                        .ok_or(ArithmeticError::Underflow)?;
+                    Ok(())
+                })?;
+                let exchange_rate = Rate::checked_from_rational(
+                    TotalStakingAsset::<T>::get(),
+                    TotalVoucher::<T>::get(),
+                )
+                .ok_or(Error::<T>::InvalidExchangeRate)?;
+                ExchangeRate::<T>::put(exchange_rate);
+            }
+
+            TotalReserves::<T>::put(left_reserves);
 
             Self::deposit_event(Event::SlashRecorded(agent, amount));
             Ok(().into())
@@ -571,7 +603,7 @@ pub mod pallet {
                 T::StakingCurrency::get(),
                 &Self::account_id(),
                 &owner,
-                amount - T::BaseXcmWeight::get() as u128,
+                amount,
             )?;
 
             Self::deposit_event(Event::UnstakeProcessed(agent, owner, amount));
