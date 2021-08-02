@@ -56,7 +56,7 @@ use frame_system::{
 };
 use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 use polkadot_parachain::primitives::Sibling;
-use primitives::*;
+use primitives::{network::HEIKO_PREFIX, *};
 use static_assertions::const_assert;
 use xcm::v0::{Junction, Junction::*, MultiAsset, MultiLocation, MultiLocation::*, NetworkId, Xcm};
 use xcm_builder::{
@@ -180,8 +180,7 @@ parameter_types! {
         })
         .avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
         .build_or_panic();
-    // TODO register parallel's SS58Prefix
-    pub const SS58Prefix: u8 = 42;
+    pub const SS58Prefix: u8 = HEIKO_PREFIX;
 }
 
 // Configure FRAME pallets to include in runtime.
