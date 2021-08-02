@@ -15,14 +15,10 @@ services:
     ports:
       - "8080:80"
     image: parallelfinance/parallel-dapp:latest
-    links:
-      - "parallel:parallel"
     restart: always
 
   oracle:
     image: parallelfinance/oracle-client:latest
-    links:
-      - "parallel:parallel"
     command: start -w ws://parallel:9944
     restart: always
 
