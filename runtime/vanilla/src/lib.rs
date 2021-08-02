@@ -175,7 +175,7 @@ impl frame_system::Config for Runtime {
     /// The data to be stored in an account.
     type AccountData = pallet_balances::AccountData<Balance>;
     /// Weight information for the extrinsics of this pallet.
-    type SystemWeightInfo = ();
+    type SystemWeightInfo = frame_system::weights::SubstrateWeight<Runtime>;
     /// This is used as an identifier of the chain. 42 is the generic substrate prefix.
     type SS58Prefix = SS58Prefix;
     type OnSetCode = ();
@@ -213,7 +213,7 @@ impl pallet_timestamp::Config for Runtime {
     type Moment = Moment;
     type OnTimestampSet = Aura;
     type MinimumPeriod = MinimumPeriod;
-    type WeightInfo = ();
+    type WeightInfo = pallet_timestamp::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -273,7 +273,7 @@ impl pallet_multisig::Config for Runtime {
     type DepositBase = DepositBase;
     type DepositFactor = DepositFactor;
     type MaxSignatories = MaxSignatories;
-    type WeightInfo = ();
+    type WeightInfo = pallet_multisig::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -499,7 +499,7 @@ impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
     type MembershipInitialized = ();
     type MembershipChanged = ();
     type MaxMembers = OracleMaxMembers;
-    type WeightInfo = ();
+    type WeightInfo = pallet_membership::weights::SubstrateWeight<Runtime>;
 }
 
 // Configure ORML pallets to include in runtime.
@@ -673,7 +673,7 @@ impl pallet_membership::Config<ValidatorFeedersMembershipInstance> for Runtime {
     type MembershipInitialized = ();
     type MembershipChanged = ();
     type MaxMembers = ValidatorFeedersMembershipMaxMembers;
-    type WeightInfo = ();
+    type WeightInfo = pallet_membership::weights::SubstrateWeight<Runtime>;
 }
 
 impl pallet_nominee_election::Config for Runtime {
