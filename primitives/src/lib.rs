@@ -16,6 +16,8 @@
 #![allow(clippy::unnecessary_cast)]
 #![allow(clippy::upper_case_acronyms)]
 
+pub mod network;
+
 use codec::{Decode, Encode};
 use sp_runtime::{
     traits::{CheckedDiv, IdentifyAccount, Verify},
