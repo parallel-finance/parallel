@@ -185,7 +185,7 @@ fn testnet_genesis(
 
                 endowed_accounts
                     .into_iter()
-                    .map(|k| (k, 10_u128.pow(21)))
+                    .map(|k| (k, 10_u128.pow(16)))
                     .collect()
             },
         },
@@ -199,8 +199,8 @@ fn testnet_genesis(
                         .unwrap()
                     {
                         vec![
-                            (x.clone(), CurrencyId::KSM, 10_u128.pow(21)),
-                            (x.clone(), CurrencyId::USDT, 10_u128.pow(15)),
+                            (x.clone(), CurrencyId::KSM, 10_u128.pow(20)),
+                            (x.clone(), CurrencyId::USDT, 10_u128.pow(14)),
                         ]
                     } else {
                         vec![
