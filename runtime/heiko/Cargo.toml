@@ -41,6 +41,7 @@ pallet-timestamp                           = { git = 'https://github.com/parityt
 pallet-transaction-payment                 = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.8', default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.8', default-features = false }
 pallet-treasury                            = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.8', default-features = false }
+pallet-utility                             = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.8', default-features = false }
 sp-api                                     = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.8', default-features = false }
 sp-block-builder                           = { git = 'https://github.com/paritytech/substrate.git', version = '3.0.0', branch = 'polkadot-v0.9.8', default-features = false }
 sp-consensus-aura                          = { git = 'https://github.com/paritytech/substrate.git', version = '0.9.0', branch = 'polkadot-v0.9.8', default-features = false }
@@ -165,6 +166,7 @@ std                = [
   'pallet-liquidation/std',
   'pallet-prices/std',
   'pallet-multisig/std',
+  'pallet-utility/std',
   'pallet-aura/std',
   'orml-oracle/std',
   'orml-oracle-rpc-runtime-api/std',
