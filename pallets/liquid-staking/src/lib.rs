@@ -451,12 +451,12 @@ pub mod pallet {
                 ExchangeRate::<T>::put(exchange_rate);
             }
 
-            TotalReserves::<T>::put(left_reserves);
             T::Currency::withdraw(
                 T::StakingCurrency::get(),
                 &Self::account_id(),
                 reduced_reserves,
             )?;
+            TotalReserves::<T>::put(left_reserves);
 
             Self::deposit_event(Event::SlashRecorded(agent, amount));
             Ok(().into())
@@ -502,7 +502,7 @@ pub mod pallet {
                 *b = b.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
                 Ok(())
             })?;
-            // TODO should it update after applied onbond operation?
+            // TODO should it update after applied unbond operation?
             TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b
                     .checked_sub(asset_amount)
