@@ -341,11 +341,17 @@ pub mod pallet {
                 Error::<T>::ExcessWithdrawThreshold
             );
 
-            // xcm use MultiAsset to pay fees
+            let xcm_weight = T::BaseXcmWeight::get();
+            // The insurance pool will try to afford xcm fees
+            // TODO if slashes happen too frequently, the insurance pool may run out of balance
+            let xcm_amount = amount
+                .checked_add(xcm_weight as Balance)
+                .ok_or(ArithmeticError::Overflow)?;
+
             T::XcmTransfer::transfer(
                 Self::account_id(),
                 T::StakingCurrency::get(),
-                amount,
+                xcm_amount,
                 MultiLocation::X2(
                     Junction::Parent,
                     Junction::AccountId32 {
@@ -353,7 +359,7 @@ pub mod pallet {
                         id: agent.clone().into(),
                     },
                 ),
-                T::BaseXcmWeight::get(),
+                xcm_weight,
             )?;
 
             Self::deposit_event(Event::WithdrawSuccess(agent, amount));
