@@ -180,9 +180,9 @@ parameter_types! {
     pub const LiquidStakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = DOT;
     pub const LiquidCurrency: CurrencyId = XDOT;
-    pub const MaxWithdrawAmount: Balance = 10;
+    pub const MaxWithdrawAmount: Balance = 10 * DOT_DECIMAL;
     pub const MaxAccountProcessingUnstake: u32 = 5;
-    pub const BaseXcmWeight: Weight = 0;
+    pub const BaseXcmWeight: Weight = 100_000_000;
 }
 
 impl pallet_liquid_staking::Config for Test {

@@ -116,8 +116,6 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
-        /// The withdraw exceeded the current pool balance
-        ExcessPoolBalance,
         /// ExchangeRate is invalid
         InvalidExchangeRate,
         /// The withdraw assets exceed the threshold
@@ -341,11 +339,6 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::WithdrawOrigin::ensure_origin(origin)?;
             ensure!(T::Members::contains(&agent), Error::<T>::IllegalAgent);
-
-            ensure!(
-                amount <= TotalStakingAsset::<T>::get(),
-                Error::<T>::ExcessPoolBalance
-            );
 
             ensure!(
                 amount <= T::MaxWithdrawAmount::get(),

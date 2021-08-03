@@ -148,8 +148,8 @@ pub mod pallet {
         InsufficientReserves,
         /// Invalid rate model params
         InvalidRateModelParam,
-        /// Currency not enabled
-        CurrencyNotEnabled,
+        /// Market not activated
+        MarketNotActivated,
         /// Currency's oracle price not ready
         PriceOracleNotReady,
         /// Market does not exist
@@ -1253,7 +1253,7 @@ impl<T: Config> Pallet<T> {
         if Self::active_markets().any(|(currency, _)| &currency == currency_id) {
             Ok(())
         } else {
-            Err(<Error<T>>::CurrencyNotEnabled.into())
+            Err(<Error<T>>::MarketNotActivated.into())
         }
     }
 
