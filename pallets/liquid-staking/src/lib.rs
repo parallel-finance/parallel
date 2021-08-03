@@ -624,6 +624,14 @@ pub mod pallet {
                 },
             )?;
 
+            let xcm_weight = T::BaseXcmWeight::get() as Balance;
+            TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b
+                    .checked_sub(xcm_weight)
+                    .ok_or(ArithmeticError::Underflow)?;
+                Ok(())
+            })?;
+
             T::Currency::transfer(
                 T::StakingCurrency::get(),
                 &Self::account_id(),
