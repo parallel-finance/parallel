@@ -25,7 +25,10 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use orml_traits::XcmTransfer;
-use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber, RuntimeDebug};
+use sp_runtime::{
+    traits::{AccountIdConversion, Zero},
+    ArithmeticError, FixedPointNumber, RuntimeDebug,
+};
 use sp_std::convert::TryInto;
 use sp_std::prelude::*;
 use xcm::v0::{Junction, MultiLocation, NetworkId};
@@ -344,6 +347,12 @@ pub mod pallet {
             let xcm_weight = T::BaseXcmWeight::get();
             // The insurance pool will try to afford xcm fees
             // TODO if slashes happen too frequently, the insurance pool may run out of balance
+            TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b
+                    .checked_sub(xcm_weight as Balance)
+                    .ok_or(ArithmeticError::Underflow)?;
+                Ok(())
+            })?;
             let xcm_amount = amount
                 .checked_add(xcm_weight as Balance)
                 .ok_or(ArithmeticError::Overflow)?;
@@ -422,7 +431,7 @@ pub mod pallet {
                 .and_then(|reduced| amount.checked_sub(reduced))
                 .ok_or(ArithmeticError::Underflow)?;
 
-            if left_slashes > 0 {
+            if !left_slashes.is_zero() {
                 TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
                     *b = b
                         .checked_sub(left_slashes)

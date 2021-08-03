@@ -47,8 +47,8 @@ pub mod time {
 /// Fee-related.
 pub mod fee {
     use frame_support::weights::{
-        constants::ExtrinsicBaseWeight, WeightToFeeCoefficient, WeightToFeeCoefficients,
-        WeightToFeePolynomial,
+        constants::{ExtrinsicBaseWeight, WEIGHT_PER_SECOND},
+        WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
     };
     use primitives::Balance;
     use smallvec::smallvec;
@@ -72,7 +72,8 @@ pub mod fee {
         type Balance = Balance;
         fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
             // in Kusama, extrinsic base weight (smallest non-zero weight) is mapped to 1/10 CENT:
-            // in Statemine, we map to 1/10 of that, or 1/100 CENT
+            // in Statemine, it's mapped to 1/10 of that, or 1/100 CENT
+            // in Parallel, it's mapped to 1/100 CENT
             let p = super::currency::CENTS;
             let q = 100 * Balance::from(ExtrinsicBaseWeight::get());
             smallvec![WeightToFeeCoefficient {
@@ -82,5 +83,12 @@ pub mod fee {
                 coeff_integer: p / q,
             }]
         }
+    }
+
+    pub fn dot_per_second() -> u128 {
+        let base_weight = Balance::from(ExtrinsicBaseWeight::get());
+        let base_tx_per_second = (WEIGHT_PER_SECOND as u128) / base_weight;
+        let para_per_second = base_tx_per_second * super::currency::CENTS / 10;
+        para_per_second / 10
     }
 }
