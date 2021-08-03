@@ -26,6 +26,7 @@ pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const XDOT: CurrencyId = CurrencyId::xDOT;
 pub const NATIVE: CurrencyId = CurrencyId::HKO;
 pub const DOT_DECIMAL: u128 = 10u128.pow(10);
+
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
@@ -247,7 +248,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .unwrap();
     orml_tokens::GenesisConfig::<Test> {
         balances: vec![
-            (1.into(), CurrencyId::DOT, 100),
+            (1.into(), CurrencyId::DOT, 100 * DOT_DECIMAL),
             (11.into(), CurrencyId::DOT, 100 * DOT_DECIMAL),
         ],
     }

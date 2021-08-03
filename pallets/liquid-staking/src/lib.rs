@@ -116,6 +116,8 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
+        /// The withdraw exceeded the current pool balance
+        ExcessPoolBalance,
         /// ExchangeRate is invalid
         InvalidExchangeRate,
         /// The withdraw assets exceed the threshold
@@ -341,6 +343,11 @@ pub mod pallet {
             ensure!(T::Members::contains(&agent), Error::<T>::IllegalAgent);
 
             ensure!(
+                amount <= TotalStakingAsset::<T>::get(),
+                Error::<T>::ExcessPoolBalance
+            );
+
+            ensure!(
                 amount <= T::MaxWithdrawAmount::get(),
                 Error::<T>::ExcessWithdrawThreshold
             );
@@ -354,7 +361,6 @@ pub mod pallet {
                     .ok_or(ArithmeticError::Underflow)?;
                 Ok(())
             })?;
-            T::Currency::withdraw(T::StakingCurrency::get(), &Self::account_id(), xcm_weight)?;
 
             let xcm_amount = amount
                 .checked_add(xcm_weight)
