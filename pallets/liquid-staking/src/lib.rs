@@ -273,7 +273,8 @@ pub mod pallet {
                 Error::<T>::AmountTooSmallToPayCrossChainFees
             );
 
-            // TODO depending on the frequency of withdraw, multiple stakers can afford one xcm fee together
+            // TODO depending on the frequency of withdraw, multiple stakers maybe can afford xcm fees together
+            // now every staker will need to afford xcm fees
             let reserves = Self::reserve_factor()
                 .mul_floor(
                     amount
@@ -344,19 +345,20 @@ pub mod pallet {
                 Error::<T>::ExcessWithdrawThreshold
             );
 
-            let xcm_weight = T::BaseXcmWeight::get();
-            // The insurance pool will try to afford xcm fees
-            // TODO if slashes happen too frequently, the insurance pool may run out of balance
+            let xcm_weight = T::BaseXcmWeight::get() as Balance;
+            // The reserves will try to afford xcm fees
+            // TODO if slashes happen too frequently, the reserves may be exhausted
             TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b
-                    .checked_sub(xcm_weight as Balance)
+                    .checked_sub(xcm_weight)
                     .ok_or(ArithmeticError::Underflow)?;
                 Ok(())
             })?;
-            let xcm_amount = amount
-                .checked_add(xcm_weight as Balance)
-                .ok_or(ArithmeticError::Overflow)?;
+            T::Currency::withdraw(T::StakingCurrency::get(), &Self::account_id(), xcm_weight)?;
 
+            let xcm_amount = amount
+                .checked_add(xcm_weight)
+                .ok_or(ArithmeticError::Overflow)?;
             T::XcmTransfer::transfer(
                 Self::account_id(),
                 T::StakingCurrency::get(),
@@ -368,7 +370,7 @@ pub mod pallet {
                         id: agent.clone().into(),
                     },
                 ),
-                xcm_weight,
+                T::BaseXcmWeight::get(),
             )?;
 
             Self::deposit_event(Event::WithdrawSuccess(agent, amount));
@@ -426,9 +428,12 @@ pub mod pallet {
 
             let reserves = Self::total_reserves();
             let left_reserves = reserves.saturating_sub(amount);
-            let left_slashes = reserves
+            let reduced_reserves = reserves
                 .checked_sub(left_reserves)
-                .and_then(|reduced| amount.checked_sub(reduced))
+                .ok_or(ArithmeticError::Underflow)?;
+
+            let left_slashes = amount
+                .checked_sub(reduced_reserves)
                 .ok_or(ArithmeticError::Underflow)?;
 
             if !left_slashes.is_zero() {
@@ -447,6 +452,11 @@ pub mod pallet {
             }
 
             TotalReserves::<T>::put(left_reserves);
+            T::Currency::withdraw(
+                T::StakingCurrency::get(),
+                &Self::account_id(),
+                reduced_reserves,
+            )?;
 
             Self::deposit_event(Event::SlashRecorded(agent, amount));
             Ok(().into())
