@@ -20,6 +20,8 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+mod weights;
+
 use codec::Encode;
 use frame_support::{
     dispatch::Weight,
@@ -232,7 +234,7 @@ impl frame_system::Config for Runtime {
     /// The data to be stored in an account.
     type AccountData = pallet_balances::AccountData<Balance>;
     /// Weight information for the extrinsics of this pallet.
-    type SystemWeightInfo = ();
+    type SystemWeightInfo = weights::frame_system::WeightInfo<Runtime>;
     /// This is used as an identifier of the chain. 42 is the generic substrate prefix.
     type SS58Prefix = SS58Prefix;
     /// The set code logic.
@@ -370,7 +372,7 @@ impl pallet_membership::Config<LiquidStakingAgentMembershipInstance> for Runtime
     type MembershipInitialized = ();
     type MembershipChanged = ();
     type MaxMembers = LiquidStakingAgentMaxMembers;
-    type WeightInfo = ();
+    type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -412,7 +414,7 @@ impl pallet_membership::Config<ValidatorFeedersMembershipInstance> for Runtime {
     type MembershipInitialized = ();
     type MembershipChanged = ();
     type MaxMembers = ValidatorFeedersMembershipMaxMembers;
-    type WeightInfo = ();
+    type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
 }
 
 impl pallet_nominee_election::Config for Runtime {
@@ -497,7 +499,7 @@ impl pallet_timestamp::Config for Runtime {
     type Moment = u64;
     type OnTimestampSet = ();
     type MinimumPeriod = MinimumPeriod;
-    type WeightInfo = ();
+    type WeightInfo = weights::pallet_timestamp::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -815,7 +817,7 @@ impl pallet_multisig::Config for Runtime {
     type DepositBase = DepositBase;
     type DepositFactor = DepositFactor;
     type MaxSignatories = MaxSignatories;
-    type WeightInfo = ();
+    type WeightInfo = weights::pallet_multisig::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1041,7 +1043,7 @@ impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
     type MembershipInitialized = ();
     type MembershipChanged = ();
     type MaxMembers = OracleMaxMembers;
-    type WeightInfo = ();
+    type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1342,6 +1344,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_loans, LoansBench::<Runtime>);
             add_benchmark!(params, batches, pallet_liquid_staking, LiquidStaking);
             add_benchmark!(params, batches, pallet_multisig, Multisig);
+            add_benchmark!(params, batches, pallet_membership, TechnicalMembership);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)
