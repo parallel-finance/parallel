@@ -1,7 +1,7 @@
 use super::*;
 use crate::{mock::*, Error};
 use frame_support::{assert_noop, assert_ok};
-use sp_runtime::traits::BadOrigin;
+use sp_runtime::{traits::BadOrigin, FixedU128};
 
 #[test]
 fn stake_should_work() {
@@ -135,6 +135,54 @@ fn record_slash_should_work() {
         );
         assert_eq!(TotalStakingAsset::<Test>::get(), 5);
         assert_eq!(TotalVoucher::<Test>::get(), 500);
+    })
+}
+
+#[test]
+fn reserves_cover_all_slashes_should_work() {
+    new_test_ext().execute_with(|| {
+        let _ = LiquidStaking::stake(Origin::signed(11.into()), 10 * DOT_DECIMAL);
+        assert_ok!(LiquidStaking::record_rewards(
+            Origin::signed(6.into()),
+            2.into(),
+            10 * DOT_DECIMAL
+        ));
+        // Check storage is correct
+        assert_eq!(
+            ExchangeRate::<Test>::get(),
+            FixedU128::from_inner(39900000000000000)
+        );
+        assert_eq!(TotalStakingAsset::<Test>::get(), 199500000000);
+        assert_eq!(TotalVoucher::<Test>::get(), 5000000000000);
+        assert_eq!(TotalReserves::<Test>::get(), 500000000);
+
+        // record one slash
+        assert_ok!(LiquidStaking::record_slash(
+            Origin::signed(6.into()),
+            2.into(),
+            500000000
+        ));
+
+        // Check storage is correct
+        assert_eq!(
+            ExchangeRate::<Test>::get(),
+            FixedU128::from_inner(39900000000000000)
+        );
+        assert_eq!(TotalReserves::<Test>::get(), 0);
+
+        // record another slash
+        assert_ok!(LiquidStaking::record_slash(
+            Origin::signed(6.into()),
+            2.into(),
+            500000000
+        ));
+
+        // Check storage is correct
+        assert_eq!(
+            ExchangeRate::<Test>::get(),
+            FixedU128::from_inner(39800000000000000)
+        );
+        assert_eq!(TotalReserves::<Test>::get(), 0);
     })
 }
 
@@ -698,7 +746,7 @@ fn record_rewards_deduct_reserve_should_work() {
         assert_eq!(TotalStakingAsset::<Test>::get(), total_staking);
         let total_voucher = 500 * DOT_DECIMAL;
         assert_eq!(TotalVoucher::<Test>::get(), total_voucher);
-        assert_eq!(TotalReserve::<Test>::get(), 5 * 10u128.pow(7));
+        assert_eq!(TotalReserves::<Test>::get(), 5 * 10u128.pow(7));
         assert_eq!(
             ExchangeRate::<Test>::get(),
             Rate::saturating_from_rational(total_staking, total_voucher)

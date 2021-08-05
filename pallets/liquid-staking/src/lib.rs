@@ -25,7 +25,10 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use orml_traits::XcmTransfer;
-use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber, RuntimeDebug};
+use sp_runtime::{
+    traits::{AccountIdConversion, Zero},
+    ArithmeticError, FixedPointNumber, RuntimeDebug,
+};
 use sp_std::convert::TryInto;
 use sp_std::prelude::*;
 use xcm::v0::{Junction, MultiLocation, NetworkId};
@@ -160,10 +163,10 @@ pub mod pallet {
     #[pallet::getter(fn reserve_factor)]
     pub type ReserveFactor<T: Config> = StorageValue<_, Ratio, ValueQuery>;
 
-    /// The total amount of reserve.
+    /// The total amount of reserves.
     #[pallet::storage]
-    #[pallet::getter(fn total_reserve)]
-    pub type TotalReserve<T: Config> = StorageValue<_, Balance, ValueQuery>;
+    #[pallet::getter(fn total_reserves)]
+    pub type TotalReserves<T: Config> = StorageValue<_, Balance, ValueQuery>;
 
     /// The total amount of a staking asset.
     #[pallet::storage]
@@ -347,15 +350,15 @@ pub mod pallet {
             T::WithdrawOrigin::ensure_origin(origin)?;
             ensure!(T::Members::contains(&agent), Error::<T>::IllegalAgent);
 
-            let reserve = Self::reserve_factor().mul_floor(amount);
-            TotalReserve::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_add(reserve).ok_or(ArithmeticError::Overflow)?;
+            let reserves = Self::reserve_factor().mul_floor(amount);
+            TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_add(reserves).ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
 
             let left_amount = amount
-                .checked_sub(reserve)
-                .ok_or(ArithmeticError::Overflow)?;
+                .checked_sub(reserves)
+                .ok_or(ArithmeticError::Underflow)?;
             TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b
                     .checked_add(left_amount)
@@ -390,16 +393,37 @@ pub mod pallet {
             T::WithdrawOrigin::ensure_origin(origin)?;
             ensure!(T::Members::contains(&agent), Error::<T>::IllegalAgent);
 
-            TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
-                Ok(())
-            })?;
-            let exchange_rate = Rate::checked_from_rational(
-                TotalStakingAsset::<T>::get(),
-                TotalVoucher::<T>::get(),
-            )
-            .ok_or(Error::<T>::InvalidExchangeRate)?;
-            ExchangeRate::<T>::put(exchange_rate);
+            let reserves = Self::total_reserves();
+            let left_reserves = reserves.saturating_sub(amount);
+            let reduced_reserves = reserves
+                .checked_sub(left_reserves)
+                .ok_or(ArithmeticError::Underflow)?;
+
+            let left_slashes = amount
+                .checked_sub(reduced_reserves)
+                .ok_or(ArithmeticError::Underflow)?;
+
+            if !left_slashes.is_zero() {
+                TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
+                    *b = b
+                        .checked_sub(left_slashes)
+                        .ok_or(ArithmeticError::Underflow)?;
+                    Ok(())
+                })?;
+                let exchange_rate = Rate::checked_from_rational(
+                    TotalStakingAsset::<T>::get(),
+                    TotalVoucher::<T>::get(),
+                )
+                .ok_or(Error::<T>::InvalidExchangeRate)?;
+                ExchangeRate::<T>::put(exchange_rate);
+            }
+
+            T::Currency::withdraw(
+                T::StakingCurrency::get(),
+                &Self::account_id(),
+                reduced_reserves,
+            )?;
+            TotalReserves::<T>::put(left_reserves);
 
             Self::deposit_event(Event::SlashRecorded(agent, amount));
             Ok(().into())
