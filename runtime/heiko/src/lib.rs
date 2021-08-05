@@ -29,7 +29,7 @@ use frame_support::{
     PalletId,
 };
 use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended};
+use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended, MultiCurrency};
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use sp_api::impl_runtime_apis;
 use sp_core::{
@@ -62,10 +62,11 @@ use primitives::{network::HEIKO_PREFIX, *};
 use static_assertions::const_assert;
 use xcm::v0::{Junction, Junction::*, MultiAsset, MultiLocation, MultiLocation::*, NetworkId, Xcm};
 use xcm_builder::{
-    AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds,
-    LocationInverter, ParentAsSuperuser, ParentIsDefault, RelayChainAsNative,
-    SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-    SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
+    AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin,
+    FixedRateOfConcreteFungible, FixedWeightBounds, LocationInverter, ParentAsSuperuser,
+    ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
+    SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue,
+    TakeWeightCredit,
 };
 use xcm_executor::{Config, XcmExecutor};
 
@@ -422,6 +423,21 @@ impl pallet_liquid_staking::Config for Runtime {
 }
 
 parameter_types! {
+    pub StakingPoolAccount: AccountId = StakingPalletId::get().into_account();
+}
+
+pub struct ToStakingPool;
+impl TakeRevenue for ToStakingPool {
+    fn take_revenue(revenue: MultiAsset) {
+        if let MultiAsset::ConcreteFungible { id, amount } = revenue {
+            if let Some(currency_id) = CurrencyIdConvert::convert(id) {
+                let _ = Currencies::deposit(currency_id, &StakingPoolAccount::get(), amount);
+            }
+        }
+    }
+}
+
+parameter_types! {
     pub const LockPeriod: u64 = 20000; // in milli-seconds
     pub const LiquidateFactor: Percent = Percent::from_percent(50);
 }
@@ -724,7 +740,8 @@ pub type XcmOriginToTransactDispatchOrigin = (
 );
 
 parameter_types! {
-    pub UnitWeightCost: Weight = 1_000;
+    pub UnitWeightCost: Weight = 200_000_000;
+    pub KsmPerSecond: (MultiLocation, u128) = (X1(Parent), ksm_per_second());
 }
 
 parameter_types! {
@@ -752,7 +769,7 @@ impl Config for XcmConfig {
     type LocationInverter = LocationInverter<Ancestry>;
     type Barrier = Barrier;
     type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
-    type Trader = UsingComponents<IdentityFee<Balance>, RelayLocation, AccountId, Balances, ()>;
+    type Trader = FixedRateOfConcreteFungible<KsmPerSecond, ToStakingPool>;
     type ResponseHandler = (); // Don't handle responses for now.
 }
 
