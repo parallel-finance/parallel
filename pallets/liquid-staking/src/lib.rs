@@ -132,6 +132,8 @@ pub mod pallet {
         MaxAccountProcessingUnstakeExceeded,
         /// Not approved agent
         IllegalAgent,
+        /// Cross chain transfer failed
+        XcmTransferFailed
     }
 
     #[pallet::event]
