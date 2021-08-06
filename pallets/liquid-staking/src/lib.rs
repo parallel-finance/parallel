@@ -31,7 +31,7 @@ use sp_runtime::{
 };
 use sp_std::convert::TryInto;
 use sp_std::prelude::*;
-use xcm::v0::{Junction, MultiLocation, NetworkId};
+use xcm::v0::{Junction, MultiLocation, NetworkId, Outcome};
 
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 
@@ -315,7 +315,7 @@ pub mod pallet {
                 Error::<T>::ExcessWithdrawThreshold
             );
 
-            T::XcmTransfer::transfer(
+            let xcm_result = T::XcmTransfer::transfer(
                 Self::account_id(),
                 T::StakingCurrency::get(),
                 amount,
@@ -328,6 +328,11 @@ pub mod pallet {
                 ),
                 T::BaseXcmWeight::get(),
             )?;
+
+            ensure!(
+                matches!(xcm_result, Outcome::Complete(_)),
+                Error::<T>::XcmTransferFailed
+            );
 
             Self::deposit_event(Event::WithdrawSuccess(agent, amount));
             Ok(().into())
