@@ -133,7 +133,7 @@ pub mod pallet {
         /// Not approved agent
         IllegalAgent,
         /// Cross chain transfer failed
-        XcmTransferFailed
+        XcmTransferFailed,
     }
 
     #[pallet::event]
