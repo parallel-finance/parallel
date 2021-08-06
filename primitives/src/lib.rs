@@ -31,6 +31,8 @@ use serde::{Deserialize, Serialize};
 /// An index to a block.
 pub type BlockNumber = u32;
 
+pub type EraIndex = u32;
+
 /// Alias to 512-bit hash when used in the context of a transaction signature on
 /// the chain.
 pub type Signature = MultiSignature;
@@ -148,4 +150,11 @@ pub trait EmergencyPriceFeeder<CurrencyId, PriceWithDecimal> {
 
 pub trait ExchangeRateProvider {
     fn get_exchange_rate() -> Rate;
+}
+
+//todo change the return type
+pub trait LiquidStakingProtocol {
+    fn stake() -> ();
+    fn unstake() -> ();
+    fn claim() -> ();
 }
