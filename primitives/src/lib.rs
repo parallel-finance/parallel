@@ -19,6 +19,7 @@
 pub mod network;
 
 use codec::{Decode, Encode};
+use frame_support::pallet_prelude::DispatchResultWithPostInfo;
 use sp_runtime::{
     traits::{CheckedDiv, IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
@@ -153,8 +154,8 @@ pub trait ExchangeRateProvider {
 }
 
 //todo change the return type
-pub trait LiquidStakingProtocol {
-    fn stake() -> ();
-    fn unstake() -> ();
-    fn claim() -> ();
+pub trait LiquidStakingProtocol<AccountId> {
+    fn stake(who: &AccountId, amount: Balance) -> DispatchResultWithPostInfo;
+    fn unstake(who: &AccountId, amount: Balance) -> DispatchResultWithPostInfo;
+    fn claim(who: &AccountId) -> DispatchResultWithPostInfo;
 }
