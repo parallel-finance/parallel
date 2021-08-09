@@ -17,6 +17,15 @@
 //! ## Overview
 //!
 //! This pallet manages the NPoS operations for relay chain asset.
+
+// 1. update parachain era before relaychain era updated, a few blocks in advance,
+// 2. calculate parachain status, whether bond/unbond/rebond,
+// 3. invoke relaychain staking methods, bond/unbond/rebond,
+// 4. invoke parachain method record relaychain resonse, whether bond/unbond successed or failed,
+// 5. waiting relaychain era updated, get the reward amount.
+// 6. record in parachain with blocknumber when real relaychain era updated.
+// 7. record reward on parachain. update parachain exchange rate.
+// 8. if step-4 successed, mint/deposit xToken out according to current exchangerate(after record reward),
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::{
@@ -32,35 +41,58 @@ use xcm::v0::{Junction, MultiLocation, NetworkId};
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 
 pub use pallet::*;
-use primitives::{Amount, Balance, CurrencyId, EraIndex, LiquidStakingProtocol, ExchangeRateProvider, Rate, Ratio};
+use primitives::{
+    Amount, Balance, BlockNumber, CurrencyId, EraIndex, ExchangeRateProvider,
+    LiquidStakingProtocol, Rate, Ratio,
+};
 
 #[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
 pub enum StakingOperationType {
-	Bond,
-	BondExtra,
-	Unbond,
-	Rebond,
-	TransferToRelaychain,
-	RecordReward,
-	RecordSlash,
+    Bond,
+    BondExtra,
+    Unbond,
+    Rebond,
+    TransferToRelaychain,
+    RecordReward,
+    RecordSlash,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
 pub enum Phase {
-	Started,
-	UpdateEraIndex,
-	RecordReward,
-	EmitEventToRelaychain,
-	RecordStakingOperation,
-	Finished,
+    Started,
+    OnNewEra,
+    RecordReward,
+    EmitEventToRelaychain,
+    RecordStakingOperation,
+    Finished,
+}
+
+impl Default for Phase {
+    fn default() -> Self {
+        Self::Finished
+    }
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
 pub enum ResponseStatus {
-	Ready,
-	Processing,
-	Successed,
-	Failed,
+    Ready,
+    Processing,
+    Successed,
+    Failed,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
+pub struct Operation {
+    amount: Balance,
+    status: ResponseStatus,
+    block_number: BlockNumber,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug)]
+pub struct MatchingBuffer<AccountId> {
+    stability_pool: Option<AccountId>,
+    total_unstake_amount: Balance,
+    total_stake_amount: Balance,
 }
 
 #[frame_support::pallet]
@@ -121,7 +153,7 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// The assets get staked successfully
         Staked(T::AccountId, Balance),
-        /// The voucher get unstaked successfully
+        /// The xtoken gets unstaked successfully
         Unstaked(T::AccountId, Balance, Balance),
         /// The withdraw request is successful
         Claimed(T::AccountId, Balance),
@@ -151,28 +183,34 @@ pub mod pallet {
     #[pallet::getter(fn staking_pool)]
     pub type StakingPool<T: Config> = StorageValue<_, Balance, ValueQuery>;
 
-    /// The queue stores all the pending unstaking requests.
-    /// Key is the owner of assets.
+    /// Store total stake amount and total unstake amount during current era,
+    /// this is all about one user, stability pool
+    /// And will update when trigger new era.
     #[pallet::storage]
-    #[pallet::getter(fn account_pending_unstake)]
-    pub type Unstakes<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, Vec<(EraIndex,Balance)>>;
+    #[pallet::getter(fn matching_pool)]
+    pub type MatchingPool<T: Config> =
+        StorageMap<_, Twox64Concat, EraIndex, MatchingBuffer<T::AccountId>, ValueQuery>;
 
     /// Current era index on Relaychain.
-	///
-	/// CurrentEra: EraIndex
-	#[pallet::storage]
-	#[pallet::getter(fn current_era)]
-	pub type CurrentEra<T: Config> = StorageValue<_, EraIndex, ValueQuery>;
+    ///
+    /// CurrentEra: EraIndex
+    #[pallet::storage]
+    #[pallet::getter(fn current_era)]
+    pub type CurrentEra<T: Config> = StorageValue<_, EraIndex, ValueQuery>;
 
-    // #[pallet::storage]
-    // #[pallet::getter(fn staking_operation_history)]
-    // pub type StakingOperationHistory<T: Config> = 
-    //     StorageMap<_, Blake2_128Concat, EraIndex, BTreeMap<StakingOperationType,(Balance,ResponseStatus)>>;
+    /// Store operations and corresponding status during each era
+    ///
+    /// The operation include: bond/bond_extra/unbond/rebond/on_new_era/transfer_to_relaychain/record_reward/record_slash
+    /// The status include: start/processing/successed/failed
+    #[pallet::storage]
+    #[pallet::getter(fn staking_operation_history)]
+    pub type StakingOperationHistory<T: Config> =
+        StorageDoubleMap<_, Twox64Concat, EraIndex, Twox64Concat, StakingOperationType, Operation>;
 
-    // #[pallet::storage]
-	// #[pallet::getter(fn current_phase)]
-	// pub type CurrentPhase<T: Config> = StorageValue<_, Phase, ValueQuery>;
+    /// Store current phase during each era
+    #[pallet::storage]
+    #[pallet::getter(fn current_phase)]
+    pub type CurrentPhase<T: Config> = StorageValue<_, Phase, ValueQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig {
@@ -203,69 +241,74 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn trigger_new_era(origin: OriginFor<T>,era_index: EraIndex) -> DispatchResultWithPostInfo {
+        pub fn trigger_new_era(
+            origin: OriginFor<T>,
+            era_index: EraIndex,
+        ) -> DispatchResultWithPostInfo {
             Ok(().into())
         }
-        
+
         //todo，record reward on each era, invoked by stake-client
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn record_reward(origin: OriginFor<T>,) -> DispatchResultWithPostInfo {
+        pub fn record_reward(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             Ok(().into())
         }
-    
+
         //todo invoked by stake-client, considering insurrance pool
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn record_slash(origin: OriginFor<T>,) -> DispatchResultWithPostInfo {
+        pub fn record_slash(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             Ok(().into())
         }
-    
+
         // bond/unbond/rebond/bond_extra may be merge into one
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn record_bond_response(origin: OriginFor<T>,) -> DispatchResultWithPostInfo {
+        pub fn record_bond_response(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             Ok(().into())
         }
-    
+
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn record_bond_extra_response(origin: OriginFor<T>,) -> DispatchResultWithPostInfo {
+        pub fn record_bond_extra_response(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             Ok(().into())
         }
-    
+
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn record_rebond_response(origin: OriginFor<T>,) -> DispatchResultWithPostInfo {
+        pub fn record_rebond_response(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             Ok(().into())
         }
-    
+
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn record_unbond_response(origin: OriginFor<T>,) -> DispatchResultWithPostInfo {
+        pub fn record_unbond_response(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             Ok(().into())
         }
-    
+
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn transfer_to_relaychain(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
+        pub fn transfer_to_relaychain(
+            origin: OriginFor<T>,
+            amount: Balance,
+        ) -> DispatchResultWithPostInfo {
             // todo xcm transfer
             // maybe multiple in one era
             Ok(().into())
         }
 
-
         // todo below three method should be remove while stablity pool is ready
         #[pallet::weight(10_000)]
         #[transactional]
         pub fn stake(
-            origin: OriginFor<T>, 
-            #[pallet::compact] amount: Balance
+            origin: OriginFor<T>,
+            #[pallet::compact] amount: Balance,
         ) -> DispatchResultWithPostInfo {
-            <Self as LiquidStakingProtocol>::stake();
+            let who = ensure_signed(origin)?;
+            <Self as LiquidStakingProtocol<T::AccountId>>::stake(&who, amount)?;
             Ok(().into())
         }
 
@@ -275,7 +318,8 @@ pub mod pallet {
             origin: OriginFor<T>,
             #[pallet::compact] amount: Balance,
         ) -> DispatchResultWithPostInfo {
-            <Self as LiquidStakingProtocol>::unstake();
+            let who = ensure_signed(origin)?;
+            <Self as LiquidStakingProtocol<T::AccountId>>::unstake(&who, amount)?;
             Ok(().into())
         }
 
@@ -285,9 +329,64 @@ pub mod pallet {
             origin: OriginFor<T>,
             #[pallet::compact] amount: Balance,
         ) -> DispatchResultWithPostInfo {
-            <Self as LiquidStakingProtocol>::claim();
+            let who = ensure_signed(origin)?;
+            <Self as LiquidStakingProtocol<T::AccountId>>::claim(&who)?;
             Ok(().into())
         }
+    }
+}
+
+impl<T: Config> LiquidStakingProtocol<T::AccountId> for Pallet<T> {
+    // After confirmed bond on relaychain, and then mint/deposit xKSM.
+    // before record_reward.
+    fn stake(who: &T::AccountId, amount: Balance) -> DispatchResultWithPostInfo {
+        T::Currency::transfer(T::StakingCurrency::get(), who, &Self::account_id(), amount)?;
+        MatchingPool::<T>::try_mutate(&Self::current_era(), |matching_buffer| -> DispatchResult {
+            let stability_pool = matching_buffer.stability_pool.clone().or(Some(who.clone()));
+            let total_stake_amount = matching_buffer
+                .total_stake_amount
+                .checked_add(amount)
+                .ok_or(ArithmeticError::Overflow)?;
+            *matching_buffer = MatchingBuffer {
+                stability_pool,
+                total_stake_amount,
+                total_unstake_amount: matching_buffer.total_unstake_amount,
+            };
+            Ok(())
+        })?;
+        Self::deposit_event(Event::Staked(who.clone(), amount));
+        Ok(().into())
+    }
+
+    // After confirmed unbond on relaychain, and then burn/withdraw xKSM.
+    fn unstake(who: &T::AccountId, amount: Balance) -> DispatchResultWithPostInfo {
+        T::Currency::transfer(T::LiquidCurrency::get(), who, &Self::account_id(), amount)?;
+
+        let exchange_rate = ExchangeRate::<T>::get();
+        let asset_amount = exchange_rate
+            .checked_mul_int(amount)
+            .ok_or(Error::<T>::InvalidExchangeRate)?;
+
+        MatchingPool::<T>::try_mutate(&Self::current_era(), |matching_buffer| -> DispatchResult {
+            let stability_pool = matching_buffer.stability_pool.clone().or(Some(who.clone()));
+            let total_unstake_amount = matching_buffer
+                .total_unstake_amount
+                .checked_add(asset_amount)
+                .ok_or(ArithmeticError::Overflow)?;
+            *matching_buffer = MatchingBuffer {
+                stability_pool,
+                total_stake_amount: matching_buffer.total_stake_amount,
+                total_unstake_amount,
+            };
+            Ok(())
+        })?;
+        Self::deposit_event(Event::Unstaked(who.clone(), amount, asset_amount));
+        Ok(().into())
+    }
+
+    fn claim(who: &T::AccountId) -> DispatchResultWithPostInfo {
+        // let block_number = frame_system::Pallet::<T>::block_number();
+        Ok(().into())
     }
 }
 
@@ -300,19 +399,5 @@ impl<T: Config> Pallet<T> {
 impl<T: Config> ExchangeRateProvider for Pallet<T> {
     fn get_exchange_rate() -> Rate {
         ExchangeRate::<T>::get()
-    }
-}
-
-impl<T: Config> LiquidStakingProtocol for Pallet<T> {
-    fn stake() -> () {
-        // Ok(().into())
-    }
-
-    fn unstake() -> () {
-        // Ok(().into())
-    }
-
-    fn claim() -> () {
-        // Ok(().into())
     }
 }
