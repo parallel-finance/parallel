@@ -46,6 +46,8 @@ use primitives::{
     LiquidStakingProtocol, Rate, Ratio,
 };
 
+pub const MAX_UNSTAKE_CHUNKS: usize = 5;
+
 #[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
 pub enum StakingOperationType {
     Bond,
@@ -81,16 +83,21 @@ pub enum ResponseStatus {
     Failed,
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
+impl Default for ResponseStatus {
+    fn default() -> Self {
+        Self::Ready
+    }
+}
+
+#[derive(Copy, Clone, Eq, Default, PartialEq, Encode, Decode, RuntimeDebug)]
 pub struct Operation {
     amount: Balance,
-    status: ResponseStatus,
     block_number: BlockNumber,
+    status: ResponseStatus,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug)]
-pub struct MatchingBuffer<AccountId> {
-    stability_pool: Option<AccountId>,
+pub struct MatchingBuffer {
     total_unstake_amount: Balance,
     total_stake_amount: Balance,
 }
@@ -130,16 +137,20 @@ pub mod pallet {
         type PalletId: Get<PalletId>;
 
         /// The origin which can withdraw staking assets.
-        type WithdrawOrigin: EnsureOrigin<Self::Origin>;
+        // type WithdrawOrigin: EnsureOrigin<Self::Origin>;
 
         /// XCM transfer
-        type XcmTransfer: XcmTransfer<Self::AccountId, Balance, CurrencyId>;
+        // type XcmTransfer: XcmTransfer<Self::AccountId, Balance, CurrencyId>;
 
         /// Approved agent list on relaychain
-        type Members: SortedMembers<Self::AccountId>;
+        // type Members: SortedMembers<Self::AccountId>;
 
         /// Base xcm weight to use for cross chain transfer
-        type BaseXcmWeight: Get<Weight>;
+        // type BaseXcmWeight: Get<Weight>;
+
+        /// The maximum size of Unstake
+        // #[pallet::constant]
+        type MaxUnstake: Get<u32>;
     }
 
     #[pallet::error]
@@ -184,12 +195,34 @@ pub mod pallet {
     pub type StakingPool<T: Config> = StorageValue<_, Balance, ValueQuery>;
 
     /// Store total stake amount and total unstake amount during current era,
-    /// this is all about one user, stability pool
-    /// And will update when trigger new era.
+    /// And will update when trigger new era, calculate whether bond/unbond/rebond,
+    /// Will be remove when corresponding era has been finished success.
     #[pallet::storage]
     #[pallet::getter(fn matching_pool)]
     pub type MatchingPool<T: Config> =
-        StorageMap<_, Twox64Concat, EraIndex, MatchingBuffer<T::AccountId>, ValueQuery>;
+        StorageMap<_, Blake2_128Concat, EraIndex, MatchingBuffer, ValueQuery>;
+
+    /// Store single user's stake and unstake request during each era,
+    ///
+    /// For stake request, after all xtoken have been mint, this may take 6 hours in Kusama, and one day in Polkadot
+    /// The data can be removed after user claim their xToken
+    /// the corresponding era's operation in `StakingOperationHistory` should also be successed.
+    ///
+    /// For unstake request, xtoken need to be burn, and get token back,
+    /// the data can be removed after the lock period passed and user claim.
+    /// this may take 7 days in Kusama, and 28 days in Polkadot.
+    /// the corresponding era's operation in `StakingOperationHistory` should also be successed.
+    #[pallet::storage]
+    #[pallet::getter(fn stake_queue)]
+    pub type MatchingQueue<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        Blake2_128Concat,
+        EraIndex,
+        MatchingBuffer,
+        ValueQuery,
+    >;
 
     /// Current era index on Relaychain.
     ///
@@ -204,37 +237,44 @@ pub mod pallet {
     /// The status include: start/processing/successed/failed
     #[pallet::storage]
     #[pallet::getter(fn staking_operation_history)]
-    pub type StakingOperationHistory<T: Config> =
-        StorageDoubleMap<_, Twox64Concat, EraIndex, Twox64Concat, StakingOperationType, Operation>;
+    pub type StakingOperationHistory<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        EraIndex,
+        Blake2_128Concat,
+        StakingOperationType,
+        Operation,
+        ValueQuery,
+    >;
 
     /// Store current phase during each era
     #[pallet::storage]
     #[pallet::getter(fn current_phase)]
     pub type CurrentPhase<T: Config> = StorageValue<_, Phase, ValueQuery>;
 
-    #[pallet::genesis_config]
-    pub struct GenesisConfig {
-        pub exchange_rate: Rate,
-        pub reserve_factor: Ratio,
-    }
+    // #[pallet::genesis_config]
+    // pub struct GenesisConfig {
+    //     pub exchange_rate: Rate,
+    //     pub reserve_factor: Ratio,
+    // }
 
-    #[cfg(feature = "std")]
-    impl Default for GenesisConfig {
-        fn default() -> Self {
-            Self {
-                exchange_rate: Rate::default(),
-                reserve_factor: Ratio::default(),
-            }
-        }
-    }
+    // #[cfg(feature = "std")]
+    // impl Default for GenesisConfig {
+    //     fn default() -> Self {
+    //         Self {
+    //             exchange_rate: Rate::default(),
+    //             reserve_factor: Ratio::default(),
+    //         }
+    //     }
+    // }
 
-    #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig {
-        fn build(&self) {
-            ExchangeRate::<T>::put(self.exchange_rate);
-            ReserveFactor::<T>::put(self.reserve_factor);
-        }
-    }
+    // #[pallet::genesis_build]
+    // impl<T: Config> GenesisBuild<T> for GenesisConfig {
+    //     fn build(&self) {
+    //         ExchangeRate::<T>::put(self.exchange_rate);
+    //         ReserveFactor::<T>::put(self.reserve_factor);
+    //     }
+    // }
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
@@ -325,7 +365,7 @@ pub mod pallet {
 
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn claim(
+        pub fn claim_token(
             origin: OriginFor<T>,
             #[pallet::compact] amount: Balance,
         ) -> DispatchResultWithPostInfo {
@@ -333,32 +373,49 @@ pub mod pallet {
             <Self as LiquidStakingProtocol<T::AccountId>>::claim(&who)?;
             Ok(().into())
         }
+
+        // pub fn claim_xtoken(){
+
+        // }
     }
 }
 
 impl<T: Config> LiquidStakingProtocol<T::AccountId> for Pallet<T> {
-    // After confirmed bond on relaychain, and then mint/deposit xKSM.
-    // before record_reward.
+    // After confirmed bond on relaychain,
+    // after update exchangerate (record_reward),
+    // and then mint/deposit xKSM.
     fn stake(who: &T::AccountId, amount: Balance) -> DispatchResultWithPostInfo {
+        //todo reserve, insurance pool
         T::Currency::transfer(T::StakingCurrency::get(), who, &Self::account_id(), amount)?;
-        MatchingPool::<T>::try_mutate(&Self::current_era(), |matching_buffer| -> DispatchResult {
-            let stability_pool = matching_buffer.stability_pool.clone().or(Some(who.clone()));
-            let total_stake_amount = matching_buffer
+
+        MatchingQueue::<T>::try_mutate(
+            who,
+            &Self::current_era(),
+            |user_buffer| -> DispatchResult {
+                user_buffer.total_stake_amount = user_buffer
+                    .total_stake_amount
+                    .checked_add(amount)
+                    .ok_or(ArithmeticError::Overflow)?;
+
+                Ok(())
+            },
+        )?;
+
+        MatchingPool::<T>::try_mutate(&Self::current_era(), |pool_buffer| -> DispatchResult {
+            pool_buffer.total_stake_amount = pool_buffer
                 .total_stake_amount
                 .checked_add(amount)
                 .ok_or(ArithmeticError::Overflow)?;
-            *matching_buffer = MatchingBuffer {
-                stability_pool,
-                total_stake_amount,
-                total_unstake_amount: matching_buffer.total_unstake_amount,
-            };
+
             Ok(())
         })?;
         Self::deposit_event(Event::Staked(who.clone(), amount));
         Ok(().into())
     }
 
-    // After confirmed unbond on relaychain, and then burn/withdraw xKSM.
+    // After confirmed unbond on relaychain,
+    // and then burn/withdraw xKSM.
+    // before update exchangerate (record_reward)
     fn unstake(who: &T::AccountId, amount: Balance) -> DispatchResultWithPostInfo {
         T::Currency::transfer(T::LiquidCurrency::get(), who, &Self::account_id(), amount)?;
 
@@ -367,17 +424,25 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId> for Pallet<T> {
             .checked_mul_int(amount)
             .ok_or(Error::<T>::InvalidExchangeRate)?;
 
-        MatchingPool::<T>::try_mutate(&Self::current_era(), |matching_buffer| -> DispatchResult {
-            let stability_pool = matching_buffer.stability_pool.clone().or(Some(who.clone()));
-            let total_unstake_amount = matching_buffer
+        MatchingQueue::<T>::try_mutate(
+            who,
+            &Self::current_era(),
+            |user_buffer| -> DispatchResult {
+                user_buffer.total_unstake_amount = user_buffer
+                    .total_unstake_amount
+                    .checked_add(asset_amount)
+                    .ok_or(ArithmeticError::Overflow)?;
+
+                Ok(())
+            },
+        )?;
+
+        MatchingPool::<T>::try_mutate(&Self::current_era(), |pool_buffer| -> DispatchResult {
+            pool_buffer.total_unstake_amount = pool_buffer
                 .total_unstake_amount
                 .checked_add(asset_amount)
                 .ok_or(ArithmeticError::Overflow)?;
-            *matching_buffer = MatchingBuffer {
-                stability_pool,
-                total_stake_amount: matching_buffer.total_stake_amount,
-                total_unstake_amount,
-            };
+
             Ok(())
         })?;
         Self::deposit_event(Event::Unstaked(who.clone(), amount, asset_amount));
