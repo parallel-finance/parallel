@@ -146,6 +146,8 @@ pub mod pallet {
     pub enum Error<T> {
         /// ExchangeRate is invalid
         InvalidExchangeRate,
+        /// Operation is not allowed
+        OperationNotAllowed,
     }
 
     #[pallet::event]
@@ -247,45 +249,116 @@ pub mod pallet {
             origin: OriginFor<T>,
             era_index: EraIndex,
         ) -> DispatchResultWithPostInfo {
+            ensure_signed(origin)?; //TODO(Alan): Who can call this extrinsic?
+            CurrentEra::<T>::put(era_index);
+            // TODO(Alan): Should we deposit event?
             Ok(().into())
         }
 
-        //todo，record reward on each era, invoked by stake-client
+        /// Invoked by offchain stake client. Declare reward received.
+        ///
+        /// `origin` should be approved account.(not implement yet).
+        ///
+        /// Q: What's the agent?
+        /// Q: Should update exchange_rate?
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn record_reward(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+        pub fn record_reward(
+            origin: OriginFor<T>,
+            agent: T::AccountId,
+            #[pallet::compact] amount: Balance,
+            block_number: BlockNumber,
+        ) -> DispatchResultWithPostInfo {
+            let _sender = ensure_signed(origin)?;
+            MatchingPool::<T>::try_mutate(
+                Self::current_era(),
+                |matching_buffer| -> DispatchResult {
+                    let total_stake_amount = matching_buffer
+                        .total_stake_amount
+                        .checked_add(amount)
+                        .ok_or(ArithmeticError::Overflow)?;
+                    *matching_buffer = MatchingBuffer {
+                        total_stake_amount,
+                        ..matching_buffer.clone()
+                    };
+                    Ok(().into())
+                },
+            )?;
+
+            StakingOperationHistory::<T>::insert(
+                Self::current_era(),
+                StakingOperationType::RecordReward,
+                Operation {
+                    status: ResponseStatus::Successed,
+                    amount,
+                    block_number,
+                },
+            );
             Ok(().into())
         }
 
-        //todo invoked by stake-client, considering insurrance pool
+        /// Invoked by offchain stake client. Declare reward received.
+        ///
+        /// `origin` should be approved account.(not implement yet).
+        ///
+        /// Q: Should update exchange_rate?
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn record_slash(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+        pub fn record_slash(
+            origin: OriginFor<T>,
+            agent: T::AccountId,
+            #[pallet::compact] amount: Balance,
+            block_number: BlockNumber,
+        ) -> DispatchResultWithPostInfo {
+            let _sender = ensure_signed(origin)?;
+            MatchingPool::<T>::try_mutate(
+                Self::current_era(),
+                |matching_buffer| -> DispatchResult {
+                    let total_stake_amount = matching_buffer
+                        .total_stake_amount
+                        .checked_sub(amount)
+                        .ok_or(ArithmeticError::Underflow)?;
+                    *matching_buffer = MatchingBuffer {
+                        total_stake_amount,
+                        ..matching_buffer.clone()
+                    };
+                    Ok(().into())
+                },
+            )?;
+
+            StakingOperationHistory::<T>::insert(
+                Self::current_era(),
+                StakingOperationType::RecordSlash,
+                Operation {
+                    status: ResponseStatus::Successed,
+                    amount,
+                    block_number,
+                },
+            );
             Ok(().into())
         }
 
-        // bond/unbond/rebond/bond_extra may be merge into one
+        /// Invoked by offchain stake client.
+        ///
+        /// Record bond operation and corresponding data.
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn record_bond_response(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
-            Ok(().into())
-        }
-
-        #[pallet::weight(10_000)]
-        #[transactional]
-        pub fn record_bond_extra_response(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
-            Ok(().into())
-        }
-
-        #[pallet::weight(10_000)]
-        #[transactional]
-        pub fn record_rebond_response(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
-            Ok(().into())
-        }
-
-        #[pallet::weight(10_000)]
-        #[transactional]
-        pub fn record_unbond_response(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+        pub fn record_bond_response(
+            origin: OriginFor<T>,
+            bond_type: StakingOperationType,
+            operation: Operation,
+        ) -> DispatchResultWithPostInfo {
+            let _sender = ensure_signed(origin)?;
+            match bond_type {
+                StakingOperationType::Bond
+                | StakingOperationType::Unbond
+                | StakingOperationType::Rebond
+                | StakingOperationType::BondExtra => {
+                    StakingOperationHistory::<T>::insert(Self::current_era(), bond_type, operation);
+                    Ok(())
+                }
+                _ => Err(Error::<T>::OperationNotAllowed),
+            }?;
             Ok(().into())
         }
 
