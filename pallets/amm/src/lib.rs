@@ -37,6 +37,7 @@ mod pallet {
     use orml_traits::MultiCurrencyExtended;
     use parallel_primitives::{Amount, Balance, CurrencyId, Rate};
     use sp_arithmetic::traits::BaseArithmetic;
+    use sp_runtime::Perbill;
 
     #[pallet::call]
     impl<T: Config<I>, I: 'static> Pallet<T, I> {}
@@ -51,18 +52,17 @@ mod pallet {
         >;
         type Curve: AMMCurve;
         type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
-        type LpFee: Get<Rate>;
+        type LpFee: Get<Perbill>;
         type PalletId: Get<PalletId>;
         type PoolId: Default + BaseArithmetic + Parameter;
         type PoolManager: EnsureOrigin<Self::Origin>;
         type StabilityPool: StabilityPool;
         type TreasuryAccount: Get<Self::AccountId>;
-        type TreasuryFee: Get<Rate>;
+        type TreasuryFee: Get<Perbill>;
     }
 
     #[pallet::error]
-    pub enum Error<T, I = ()> {
-    }
+    pub enum Error<T, I = ()> {}
 
     #[pallet::event]
     pub enum Event<T: Config<I>, I: 'static = ()> {}
