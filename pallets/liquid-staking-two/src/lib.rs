@@ -148,6 +148,10 @@ pub mod pallet {
         InvalidExchangeRate,
         /// Operation is not allowed
         OperationNotAllowed,
+        /// Caller is not approved.
+        IllegalAgent,
+        /// Slash or reword event is recored.
+        EventRecorded,
     }
 
     #[pallet::event]
@@ -163,6 +167,10 @@ pub mod pallet {
         RewardsRecorded(T::AccountId, Balance),
         /// The slash is recorded
         SlashRecorded(T::AccountId, Balance),
+        /// Era advanced.
+        EraIndexUpdated(EraIndex),
+        /// A staking operation reponse recorded.
+        ResponseRecorded(StakingOperationType, Balance, ResponseStatus, BlockNumber),
     }
 
     /// The exchange rate converts staking native token to voucher.
@@ -247,11 +255,13 @@ pub mod pallet {
         #[transactional]
         pub fn trigger_new_era(
             origin: OriginFor<T>,
+            agent: T::AccountId,
             era_index: EraIndex,
         ) -> DispatchResultWithPostInfo {
-            ensure_signed(origin)?; //TODO(Alan): Who can call this extrinsic?
+            T::WithdrawOrigin::ensure_origin(origin)?;
+            ensure!(T::Members::contains(&agent), Error::<T>::IllegalAgent);
             CurrentEra::<T>::put(era_index);
-            // TODO(Alan): Should we deposit event?
+            Self::deposit_event(Event::<T>::EraIndexUpdated(era_index));
             Ok(().into())
         }
 
@@ -269,21 +279,28 @@ pub mod pallet {
             #[pallet::compact] amount: Balance,
             block_number: BlockNumber,
         ) -> DispatchResultWithPostInfo {
-            let _sender = ensure_signed(origin)?;
-            MatchingPool::<T>::try_mutate(
-                Self::current_era(),
-                |matching_buffer| -> DispatchResult {
-                    let total_stake_amount = matching_buffer
-                        .total_stake_amount
-                        .checked_add(amount)
-                        .ok_or(ArithmeticError::Overflow)?;
-                    *matching_buffer = MatchingBuffer {
-                        total_stake_amount,
-                        ..matching_buffer.clone()
-                    };
-                    Ok(().into())
-                },
-            )?;
+            T::WithdrawOrigin::ensure_origin(origin)?;
+            ensure!(T::Members::contains(&agent), Error::<T>::IllegalAgent);
+            ensure!(
+                !StakingOperationHistory::<T>::contains_key(
+                    Self::current_era(),
+                    StakingOperationType::RecordReward
+                ),
+                Error::<T>::EventRecorded
+            );
+
+            StakingPool::<T>::try_mutate(|m| -> DispatchResult {
+                *m = m.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
+                Ok(())
+            })?;
+
+            let exchange_rate = Rate::checked_from_rational(
+                StakingPool::<T>::get(),
+                T::Currency::free_balance(T::LiquidCurrency::get(), &agent),
+            )
+            .ok_or(Error::<T>::InvalidExchangeRate)?;
+
+            ExchangeRate::<T>::put(exchange_rate);
 
             StakingOperationHistory::<T>::insert(
                 Self::current_era(),
@@ -294,6 +311,7 @@ pub mod pallet {
                     block_number,
                 },
             );
+            Self::deposit_event(Event::<T>::RewardsRecorded(agent, amount));
             Ok(().into())
         }
 
@@ -310,21 +328,27 @@ pub mod pallet {
             #[pallet::compact] amount: Balance,
             block_number: BlockNumber,
         ) -> DispatchResultWithPostInfo {
-            let _sender = ensure_signed(origin)?;
-            MatchingPool::<T>::try_mutate(
-                Self::current_era(),
-                |matching_buffer| -> DispatchResult {
-                    let total_stake_amount = matching_buffer
-                        .total_stake_amount
-                        .checked_sub(amount)
-                        .ok_or(ArithmeticError::Underflow)?;
-                    *matching_buffer = MatchingBuffer {
-                        total_stake_amount,
-                        ..matching_buffer.clone()
-                    };
-                    Ok(().into())
-                },
-            )?;
+            T::WithdrawOrigin::ensure_origin(origin)?;
+            ensure!(T::Members::contains(&agent), Error::<T>::IllegalAgent);
+            ensure!(
+                !StakingOperationHistory::<T>::contains_key(
+                    Self::current_era(),
+                    StakingOperationType::RecordSlash
+                ),
+                Error::<T>::EventRecorded
+            );
+            StakingPool::<T>::try_mutate(|m| -> DispatchResult {
+                *m = m.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
+                Ok(())
+            })?;
+
+            let exchange_rate = Rate::checked_from_rational(
+                StakingPool::<T>::get(),
+                T::Currency::free_balance(T::LiquidCurrency::get(), &agent),
+            )
+            .ok_or(Error::<T>::InvalidExchangeRate)?;
+
+            ExchangeRate::<T>::put(exchange_rate);
 
             StakingOperationHistory::<T>::insert(
                 Self::current_era(),
@@ -335,6 +359,7 @@ pub mod pallet {
                     block_number,
                 },
             );
+            Self::deposit_event(Event::<T>::SlashRecorded(agent, amount));
             Ok(().into())
         }
 
@@ -343,12 +368,12 @@ pub mod pallet {
         /// Record bond operation and corresponding data.
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn record_bond_response(
+        pub fn record_staking_operation_response(
             origin: OriginFor<T>,
             bond_type: StakingOperationType,
             operation: Operation,
         ) -> DispatchResultWithPostInfo {
-            let _sender = ensure_signed(origin)?;
+            T::WithdrawOrigin::ensure_origin(origin)?;
             match bond_type {
                 StakingOperationType::Bond
                 | StakingOperationType::Unbond
@@ -359,6 +384,12 @@ pub mod pallet {
                 }
                 _ => Err(Error::<T>::OperationNotAllowed),
             }?;
+            Self::deposit_event(Event::<T>::ResponseRecorded(
+                bond_type,
+                operation.amount,
+                operation.status,
+                operation.block_number,
+            ));
             Ok(().into())
         }
 
