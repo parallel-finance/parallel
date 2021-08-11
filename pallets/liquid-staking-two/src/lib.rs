@@ -51,28 +51,12 @@ pub const MAX_UNSTAKE_CHUNKS: usize = 5;
 #[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
 pub enum StakingOperationType {
     Bond,
-    BondExtra,
     Unbond,
     Rebond,
+    Matching,
     TransferToRelaychain,
     RecordReward,
     RecordSlash,
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
-pub enum Phase {
-    Started,
-    OnNewEra,
-    RecordReward,
-    EmitEventToRelaychain,
-    RecordStakingOperation,
-    Finished,
-}
-
-impl Default for Phase {
-    fn default() -> Self {
-        Self::Finished
-    }
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
@@ -90,16 +74,37 @@ impl Default for ResponseStatus {
 }
 
 #[derive(Copy, Clone, Eq, Default, PartialEq, Encode, Decode, RuntimeDebug)]
-pub struct Operation {
+pub struct Operation<BlockNumber> {
     amount: Balance,
     block_number: BlockNumber,
     status: ResponseStatus,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug)]
-pub struct MatchingBuffer {
+pub struct MatchingPoolBuffer {
     total_unstake_amount: Balance,
     total_stake_amount: Balance,
+    operation_type: Option<StakingOperationType>,
+}
+
+/// The single user's stake/unsatke amount in each era
+#[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug)]
+pub struct MatchingUserBuffer {
+    /// The token amount that user unstake during this era, will be calculated 
+    /// by exchangerate and xToken amount
+    total_unstake_amount: Balance,
+    /// The token amount that user stake during this era, this amounut is equal 
+    /// to what the user input.
+    total_stake_amount: Balance,
+    /// The token amount that user have alreay claimed before the lock period, 
+    /// this will happen because, in matching pool total_unstake_amount and 
+    /// total_stake_amount can match each other
+    claimed_unstake_amount: Balance,
+    /// The token amount that user have alreay claimed before the lock period, 
+    claimed_stake_amount: Balance,
+    /// To confirm that before lock period, user can only claim once because of 
+    /// the matching.
+    claimed_matching: bool,
 }
 
 #[frame_support::pallet]
@@ -135,6 +140,14 @@ pub mod pallet {
         /// The pallet id of liquid staking, keeps all the staking assets.
         #[pallet::constant]
         type PalletId: Get<PalletId>;
+
+        /// Number of eras that user can get xToken back after stake on parachain.
+		#[pallet::constant]
+		type StakingDuration: Get<EraIndex>;
+
+        /// Number of eras that staked funds must remain bonded for.
+		#[pallet::constant]
+		type BondingDuration: Get<EraIndex>;
 
         /// The origin which can withdraw staking assets.
         // type WithdrawOrigin: EnsureOrigin<Self::Origin>;
@@ -172,6 +185,8 @@ pub mod pallet {
         RewardsRecorded(T::AccountId, Balance),
         /// The slash is recorded
         SlashRecorded(T::AccountId, Balance),
+
+        DepositEventToRelaychain(T::AccountId,EraIndex,StakingOperationType,Balance )
     }
 
     /// The exchange rate converts staking native token to voucher.
@@ -200,7 +215,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn matching_pool)]
     pub type MatchingPool<T: Config> =
-        StorageMap<_, Blake2_128Concat, EraIndex, MatchingBuffer, ValueQuery>;
+        StorageMap<_, Blake2_128Concat, EraIndex, MatchingPoolBuffer, ValueQuery>;
 
     /// Store single user's stake and unstake request during each era,
     ///
@@ -213,16 +228,23 @@ pub mod pallet {
     /// this may take 7 days in Kusama, and 28 days in Polkadot.
     /// the corresponding era's operation in `StakingOperationHistory` should also be successed.
     #[pallet::storage]
-    #[pallet::getter(fn stake_queue)]
+    #[pallet::getter(fn matching_queue)]
     pub type MatchingQueue<T: Config> = StorageDoubleMap<
         _,
         Blake2_128Concat,
         T::AccountId,
         Blake2_128Concat,
         EraIndex,
-        MatchingBuffer,
+        MatchingUserBuffer,
         ValueQuery,
     >;
+
+    /// Previous era index on Parachain.
+    ///
+    /// Considering that in case stake client cannot update era index one by one.
+    #[pallet::storage]
+    #[pallet::getter(fn previous_era)]
+    pub type PreviousEra<T: Config> = StorageValue<_, EraIndex, ValueQuery>;
 
     /// Current era index on Relaychain.
     ///
@@ -243,14 +265,9 @@ pub mod pallet {
         EraIndex,
         Blake2_128Concat,
         StakingOperationType,
-        Operation,
+        Operation<T::BlockNumber>,
         ValueQuery,
     >;
-
-    /// Store current phase during each era
-    #[pallet::storage]
-    #[pallet::getter(fn current_phase)]
-    pub type CurrentPhase<T: Config> = StorageValue<_, Phase, ValueQuery>;
 
     // #[pallet::genesis_config]
     // pub struct GenesisConfig {
@@ -287,6 +304,11 @@ pub mod pallet {
             origin: OriginFor<T>,
             era_index: EraIndex,
         ) -> DispatchResultWithPostInfo {
+            let _who = ensure_signed(origin)?; 
+            let current_era = Self::current_era();
+            PreviousEra::<T>::put(current_era);
+
+            CurrentEra::<T>::put(era_index);
             Ok(().into())
         }
 
@@ -308,6 +330,14 @@ pub mod pallet {
         #[pallet::weight(10_000)]
         #[transactional]
         pub fn record_bond_response(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+            //todo we need to mint more xToken, and transfer to Self::account_id
+            // bond response may be done before record_reward, so we could mint more xToken out 
+
+            // but actually we can also done it after record_reward, because user can only claim 
+            // after this method make the status successed.
+            // so when user claim, the exchangerate won't be smaller than current "mint time" 
+
+            // same as "record_unbond_response"
             Ok(().into())
         }
 
@@ -326,6 +356,9 @@ pub mod pallet {
         #[pallet::weight(10_000)]
         #[transactional]
         pub fn record_unbond_response(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+            // todo we need to burn some xToken, and widthdraw from Self::account_id
+            // unbond response may be done after record_reward, so we could burn less xToken 
+            // after record_reward is ok too, see "record_bond_response" comment
             Ok(().into())
         }
 
@@ -340,7 +373,45 @@ pub mod pallet {
             Ok(().into())
         }
 
-        // todo below three method should be remove while stablity pool is ready
+        // this method must be called after update the era index, so we use previous era to calculate
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn deposit_event_to_relaychain(
+            origin: OriginFor<T>,
+        ) -> DispatchResultWithPostInfo {
+            //todo ensure that this method is called after update era index.
+            let who =ensure_signed(origin)?;
+            // match stake and unstake,
+            let previous_era = Self::previous_era();
+            let pool_buffer = MatchingPool::<T>::get(&previous_era);
+            let pool_stake_amount = pool_buffer.total_stake_amount;
+            let pool_unstake_amount = pool_buffer.total_unstake_amount;
+            let (operation_type,amount) = if  pool_stake_amount > pool_unstake_amount {
+                (StakingOperationType::Bond, pool_stake_amount - pool_unstake_amount)
+            } else if pool_stake_amount < pool_unstake_amount {
+                (StakingOperationType::Unbond,pool_unstake_amount - pool_stake_amount)
+            } else {
+                (StakingOperationType::Matching,0)
+            };
+            StakingOperationHistory::<T>::try_mutate(
+                &previous_era, 
+                &operation_type, 
+                |operation| -> DispatchResult {
+                    ensure!(operation.status == ResponseStatus::Ready, "error" );
+                    operation.amount = amount;
+                    operation.block_number = frame_system::Pallet::<T>::block_number();
+                    Ok(())
+                }
+            )?;
+            MatchingPool::<T>::try_mutate(&previous_era, |pool_buffer| -> DispatchResult {
+                pool_buffer.operation_type = Some(operation_type);
+                Ok(())
+            })?;
+            // Deposit event, Offchain stake-client need to listen this
+            Self::deposit_event(Event::DepositEventToRelaychain(who, previous_era, operation_type, amount));
+            Ok(().into())
+        }
+
         #[pallet::weight(10_000)]
         #[transactional]
         pub fn stake(
@@ -365,18 +436,13 @@ pub mod pallet {
 
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn claim_token(
+        pub fn claim(
             origin: OriginFor<T>,
-            #[pallet::compact] amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             <Self as LiquidStakingProtocol<T::AccountId>>::claim(&who)?;
             Ok(().into())
         }
-
-        // pub fn claim_xtoken(){
-
-        // }
     }
 }
 
@@ -417,6 +483,7 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId> for Pallet<T> {
     // and then burn/withdraw xKSM.
     // before update exchangerate (record_reward)
     fn unstake(who: &T::AccountId, amount: Balance) -> DispatchResultWithPostInfo {
+        // can not burn directly because we have match mechanism
         T::Currency::transfer(T::LiquidCurrency::get(), who, &Self::account_id(), amount)?;
 
         let exchange_rate = ExchangeRate::<T>::get();
@@ -450,7 +517,64 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId> for Pallet<T> {
     }
 
     fn claim(who: &T::AccountId) -> DispatchResultWithPostInfo {
-        // let block_number = frame_system::Pallet::<T>::block_number();
+        // ensure!(token == T::LiquidCurrency::get() || token == T::StakingCurrency::get(),"error");
+        let mut free_token_amount = 0u128;
+        let mut free_xtoken_amount_before_exchange = 0u128;
+        let _ = MatchingQueue::<T>::iter_prefix(who).filter_map(|(era_index,user_buffer)|{
+            let pool_buffer = MatchingPool::<T>::get(&era_index);
+            pool_buffer.operation_type.and_then(|t| {
+                let operation =  StakingOperationHistory::<T>::get(&era_index,&t);
+                if operation.status != ResponseStatus::Successed {
+                    return None;
+                }
+                let current_era = Self::current_era();
+                match t {
+                    StakingOperationType::Bond => {
+                        // if bond, need to wait 1 era or get the matching part
+                        if era_index + T::StakingDuration::get() > current_era {
+                            if !user_buffer.claimed_matching {
+                                MatchingQueue::<T>::try_mutate(
+                                    who,
+                                    &era_index,
+                                    |b| -> DispatchResult {
+                                        b.claimed_matching = true;
+                                        Ok(())
+                                    },
+                                ).ok().and_then(|_|{
+                                    // after matching mechanism in function `deposit_event_to_relaychain`,
+                                    // the user can get back part of their token directly
+
+
+                                    Some(())
+                                })
+                            } else {
+                                None
+                            }
+                        } else {
+
+
+                            Some(())
+                        }
+                    },
+                    StakingOperationType::Unbond =>{
+                        // if unbond, need to wait 28 eras
+                        if era_index + T::BondingDuration::get() > current_era {
+                            None
+                        }else {
+                            Some(())
+                        }
+                    },
+                    StakingOperationType::Matching => {
+                        // todo if matching, can claim all directly
+                        Some(())
+                    },
+                    _ => None,
+                }
+            })
+        });
+
+        
+
         Ok(().into())
     }
 }
