@@ -90,19 +90,19 @@ pub struct MatchingPoolBuffer {
 /// The single user's stake/unsatke amount in each era
 #[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug)]
 pub struct MatchingUserBuffer {
-    /// The token amount that user unstake during this era, will be calculated 
+    /// The token amount that user unstake during this era, will be calculated
     /// by exchangerate and xToken amount
     total_unstake_amount: Balance,
-    /// The token amount that user stake during this era, this amounut is equal 
+    /// The token amount that user stake during this era, this amounut is equal
     /// to what the user input.
     total_stake_amount: Balance,
-    /// The token amount that user have alreay claimed before the lock period, 
-    /// this will happen because, in matching pool total_unstake_amount and 
+    /// The token amount that user have alreay claimed before the lock period,
+    /// this will happen because, in matching pool total_unstake_amount and
     /// total_stake_amount can match each other
     claimed_unstake_amount: Balance,
-    /// The token amount that user have alreay claimed before the lock period, 
+    /// The token amount that user have alreay claimed before the lock period,
     claimed_stake_amount: Balance,
-    /// To confirm that before lock period, user can only claim once because of 
+    /// To confirm that before lock period, user can only claim once because of
     /// the matching.
     claimed_matching: bool,
 }
@@ -142,12 +142,12 @@ pub mod pallet {
         type PalletId: Get<PalletId>;
 
         /// Number of eras that user can get xToken back after stake on parachain.
-		#[pallet::constant]
-		type StakingDuration: Get<EraIndex>;
+        #[pallet::constant]
+        type StakingDuration: Get<EraIndex>;
 
         /// Number of eras that staked funds must remain bonded for.
-		#[pallet::constant]
-		type BondingDuration: Get<EraIndex>;
+        #[pallet::constant]
+        type BondingDuration: Get<EraIndex>;
 
         /// The origin which can withdraw staking assets.
         // type WithdrawOrigin: EnsureOrigin<Self::Origin>;
@@ -186,7 +186,7 @@ pub mod pallet {
         /// The slash is recorded
         SlashRecorded(T::AccountId, Balance),
 
-        DepositEventToRelaychain(T::AccountId,EraIndex,StakingOperationType,Balance )
+        DepositEventToRelaychain(T::AccountId, EraIndex, StakingOperationType, Balance),
     }
 
     /// The exchange rate converts staking native token to voucher.
@@ -304,7 +304,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             era_index: EraIndex,
         ) -> DispatchResultWithPostInfo {
-            let _who = ensure_signed(origin)?; 
+            let _who = ensure_signed(origin)?;
             let current_era = Self::current_era();
             PreviousEra::<T>::put(current_era);
 
@@ -331,13 +331,6 @@ pub mod pallet {
         #[transactional]
         pub fn record_bond_response(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             //todo we need to mint more xToken, and transfer to Self::account_id
-            // bond response may be done before record_reward, so we could mint more xToken out 
-
-            // but actually we can also done it after record_reward, because user can only claim 
-            // after this method make the status successed.
-            // so when user claim, the exchangerate won't be smaller than current "mint time" 
-
-            // same as "record_unbond_response"
             Ok(().into())
         }
 
@@ -357,8 +350,6 @@ pub mod pallet {
         #[transactional]
         pub fn record_unbond_response(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             // todo we need to burn some xToken, and widthdraw from Self::account_id
-            // unbond response may be done after record_reward, so we could burn less xToken 
-            // after record_reward is ok too, see "record_bond_response" comment
             Ok(().into())
         }
 
@@ -376,39 +367,48 @@ pub mod pallet {
         // this method must be called after update the era index, so we use previous era to calculate
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn deposit_event_to_relaychain(
-            origin: OriginFor<T>,
-        ) -> DispatchResultWithPostInfo {
+        pub fn deposit_event_to_relaychain(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             //todo ensure that this method is called after update era index.
-            let who =ensure_signed(origin)?;
+            let who = ensure_signed(origin)?;
             // match stake and unstake,
             let previous_era = Self::previous_era();
             let pool_buffer = MatchingPool::<T>::get(&previous_era);
             let pool_stake_amount = pool_buffer.total_stake_amount;
             let pool_unstake_amount = pool_buffer.total_unstake_amount;
-            let (operation_type,amount) = if  pool_stake_amount > pool_unstake_amount {
-                (StakingOperationType::Bond, pool_stake_amount - pool_unstake_amount)
+            let (operation_type, amount) = if pool_stake_amount > pool_unstake_amount {
+                (
+                    StakingOperationType::Bond,
+                    pool_stake_amount - pool_unstake_amount,
+                )
             } else if pool_stake_amount < pool_unstake_amount {
-                (StakingOperationType::Unbond,pool_unstake_amount - pool_stake_amount)
+                (
+                    StakingOperationType::Unbond,
+                    pool_unstake_amount - pool_stake_amount,
+                )
             } else {
-                (StakingOperationType::Matching,0)
+                (StakingOperationType::Matching, 0)
             };
             StakingOperationHistory::<T>::try_mutate(
-                &previous_era, 
-                &operation_type, 
+                &previous_era,
+                &operation_type,
                 |operation| -> DispatchResult {
-                    ensure!(operation.status == ResponseStatus::Ready, "error" );
+                    ensure!(operation.status == ResponseStatus::Ready, "error");
                     operation.amount = amount;
                     operation.block_number = frame_system::Pallet::<T>::block_number();
                     Ok(())
-                }
+                },
             )?;
             MatchingPool::<T>::try_mutate(&previous_era, |pool_buffer| -> DispatchResult {
                 pool_buffer.operation_type = Some(operation_type);
                 Ok(())
             })?;
             // Deposit event, Offchain stake-client need to listen this
-            Self::deposit_event(Event::DepositEventToRelaychain(who, previous_era, operation_type, amount));
+            Self::deposit_event(Event::DepositEventToRelaychain(
+                who,
+                previous_era,
+                operation_type,
+                amount,
+            ));
             Ok(().into())
         }
 
@@ -436,9 +436,7 @@ pub mod pallet {
 
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn claim(
-            origin: OriginFor<T>,
-        ) -> DispatchResultWithPostInfo {
+        pub fn claim(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             <Self as LiquidStakingProtocol<T::AccountId>>::claim(&who)?;
             Ok(().into())
@@ -520,10 +518,10 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId> for Pallet<T> {
         // ensure!(token == T::LiquidCurrency::get() || token == T::StakingCurrency::get(),"error");
         let mut free_token_amount = 0u128;
         let mut free_xtoken_amount_before_exchange = 0u128;
-        let _ = MatchingQueue::<T>::iter_prefix(who).filter_map(|(era_index,user_buffer)|{
+        let _ = MatchingQueue::<T>::iter_prefix(who).filter_map(|(era_index, user_buffer)| {
             let pool_buffer = MatchingPool::<T>::get(&era_index);
             pool_buffer.operation_type.and_then(|t| {
-                let operation =  StakingOperationHistory::<T>::get(&era_index,&t);
+                let operation = StakingOperationHistory::<T>::get(&era_index, &t);
                 if operation.status != ResponseStatus::Successed {
                     return None;
                 }
@@ -540,10 +538,11 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId> for Pallet<T> {
                                         b.claimed_matching = true;
                                         Ok(())
                                     },
-                                ).ok().and_then(|_|{
+                                )
+                                .ok()
+                                .and_then(|_| {
                                     // after matching mechanism in function `deposit_event_to_relaychain`,
                                     // the user can get back part of their token directly
-
 
                                     Some(())
                                 })
@@ -551,29 +550,25 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId> for Pallet<T> {
                                 None
                             }
                         } else {
-
-
                             Some(())
                         }
-                    },
-                    StakingOperationType::Unbond =>{
+                    }
+                    StakingOperationType::Unbond => {
                         // if unbond, need to wait 28 eras
                         if era_index + T::BondingDuration::get() > current_era {
                             None
-                        }else {
+                        } else {
                             Some(())
                         }
-                    },
+                    }
                     StakingOperationType::Matching => {
                         // todo if matching, can claim all directly
                         Some(())
-                    },
+                    }
                     _ => None,
                 }
             })
         });
-
-        
 
         Ok(().into())
     }
