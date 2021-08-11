@@ -34,6 +34,7 @@ pub enum SwapType {
     Sell,
 }
 
+#[derive(Debug)]
 // Wrapper around the result of `Pallet::calculate_amount`
 pub struct AmountEvaluation {
     pub account_amount: Balance,
@@ -82,7 +83,7 @@ pub trait AMMCurve {
         exchange_rate: Rate,
         new_amount: Balance,
         pool: &Pool,
-    ) -> Result<AmountEvaluation, DispatchError>;
+    ) -> Result<Balance, DispatchError>;
 }
 
 impl AMMCurve for StandardSwap {
@@ -91,15 +92,15 @@ impl AMMCurve for StandardSwap {
         _: Rate,
         new_amount: Balance,
         pool: &Pool,
-    ) -> Result<AmountEvaluation, DispatchError> {
+    ) -> Result<Balance, DispatchError> {
         let k = pool
             .base_amount
             .checked_mul(pool.quote_amount)
             .ok_or_else::<DispatchError, _>(|| ArithmeticError::Overflow.into())?;
-        let rslt = k
+        let result = k
             .checked_div(new_amount)
             .ok_or_else::<DispatchError, _>(|| ArithmeticError::DivisionByZero.into())?;
-        calculate_amount_evaluation(rslt, pool)
+        Ok(result)
     }
 }
 
@@ -109,27 +110,32 @@ impl AMMCurve for StableSwap {
         exchange_rate: Rate,
         new_amount: Balance,
         pool: &Pool,
-    ) -> Result<AmountEvaluation, DispatchError> {
+    ) -> Result<Balance, DispatchError> {
         let k = pool
             .base_amount
             .checked_add(pool.quote_amount)
             .ok_or_else::<DispatchError, _>(|| ArithmeticError::Overflow.into())?;
-        let f = || {
-            let ak = amplification_coeficient_mul(exchange_rate, k)?;
-            let _4ax =
+        let evaluation_option = || {
+            let a_multiplied_by_k = amplification_coeficient_mul(exchange_rate, k)?;
+            let _4_multiplied_by_a_multiplied_by_x =
                 4u128.checked_mul(amplification_coeficient_mul(exchange_rate, new_amount)?)?;
-            let _4ak = 4u128.checked_mul(ak)?;
-            let dividend = k.checked_mul(_4ak.checked_add(k)?.checked_sub(_4ax)?)?;
-            let divisor = 4u128.checked_mul(ak.checked_add(new_amount)?)?;
+            let _4_multiplied_by_a_multiplied_by_k = 4u128.checked_mul(a_multiplied_by_k)?;
+            let dividend = k.checked_mul(
+                _4_multiplied_by_a_multiplied_by_k
+                    .checked_add(k)?
+                    .checked_sub(_4_multiplied_by_a_multiplied_by_x)?,
+            )?;
+            let divisor = 4u128.checked_mul(a_multiplied_by_k.checked_add(new_amount)?)?;
             dividend.checked_div(divisor)
         };
-        let rslt = f().ok_or_else::<DispatchError, _>(|| ArithmeticError::DivisionByZero.into())?;
-        calculate_amount_evaluation(rslt, pool)
+        let result = evaluation_option()
+            .ok_or_else::<DispatchError, _>(|| ArithmeticError::DivisionByZero.into())?;
+        Ok(result)
     }
 }
 
 impl AMMCurve for StakingSwap {
-    fn calculate_amount(_: Rate, _: Balance, _: &Pool) -> Result<AmountEvaluation, DispatchError> {
+    fn calculate_amount(_: Rate, _: Balance, _: &Pool) -> Result<Balance, DispatchError> {
         unimplemented!()
     }
 }
@@ -142,20 +148,33 @@ fn amplification_coeficient_mul(exchange_rate: Rate, n: u128) -> Option<u128> {
     amplif_coefficient.checked_mul_int(n)
 }
 
-fn calculate_amount_evaluation(
-    pool_amount: Balance,
-    pool: &Pool,
-) -> Result<AmountEvaluation, DispatchError> {
-    let [greater, lesser] = if pool.quote_amount > pool_amount {
-        [pool.quote_amount, pool_amount]
-    } else {
-        [pool_amount, pool.quote_amount]
+#[cfg(test)]
+mod tests {
+    use super::{AMMCurve, Pool, StableSwap, StandardSwap};
+    use parallel_primitives::CurrencyId;
+
+    const DEFAULT_DYNAMIC_POOL: Pool = Pool {
+        base_amount: 40,
+        base_asset: CurrencyId::DOT,
+        quote_amount: 60,
+        quote_asset: CurrencyId::xDOT,
     };
-    let diff = greater
-        .checked_sub(lesser)
-        .ok_or_else::<DispatchError, _>(|| ArithmeticError::Underflow.into())?;
-    Ok(AmountEvaluation {
-        account_amount: diff,
-        pool_amount,
-    })
+    const DEFAULT_STABLE_POOL: Pool = Pool {
+        base_asset: CurrencyId::DOT,
+        quote_asset: CurrencyId::xDOT,
+        base_amount: 40,
+        quote_amount: 60,
+    };
+
+    #[test]
+    fn dynamic_curve_correctly_evaluates() {
+        let amount = StandardSwap::calculate_amount(1.into(), 20, &DEFAULT_DYNAMIC_POOL).unwrap();
+        assert_eq!(amount, 120);
+    }
+
+    #[test]
+    fn stable_curve_correctly_evaluates() {
+        let amount = StableSwap::calculate_amount(1.into(), 20, &DEFAULT_STABLE_POOL).unwrap();
+        assert_eq!(amount, 85);
+    }
 }
