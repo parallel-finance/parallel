@@ -537,10 +537,12 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId> for Pallet<T> {
     }
 
     fn claim(who: &T::AccountId) -> DispatchResultWithPostInfo {
-        // ensure!(token == T::LiquidCurrency::get() || token == T::StakingCurrency::get(),"error");
         let mut withdrawable_stake_amount = 0u128;
         let mut withdrawable_unstake_amount = 0u128;
-        let _ = MatchingQueue::<T>::iter_prefix(who).filter_map(|(era_index, user_buffer)| {
+        let mut remove = vec![];
+        MatchingQueue::<T>::iter_prefix(who).for_each(|(era_index, user_buffer)| {
+            let mut claim_unstake_each_era = 0u128;
+            let mut claim_stake_each_era = 0u128;
             let pool_buffer = MatchingPool::<T>::get(&era_index);
             pool_buffer.operation_type.and_then(|t| {
                 let operation = StakingOperationHistory::<T>::get(&era_index, &t);
@@ -550,9 +552,10 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId> for Pallet<T> {
                 let current_era = Self::current_era();
                 match t {
                     StakingOperationType::Bond => {
-                        // if bond, need to wait 1 era or get the matching part
+                        // if bond, need to wait 1 era or get the matching part instantly
                         if era_index + T::StakingDuration::get() > current_era {
                             if !user_buffer.claimed_matching {
+                                // get the matching part only
                                 MatchingQueue::<T>::try_mutate(
                                     who,
                                     &era_index,
@@ -563,42 +566,136 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId> for Pallet<T> {
                                 )
                                 .ok()
                                 .and_then(|_| {
-                                    // after matching mechanism，
-                                    // for bond operation, user can get all unstake amount directly
-                                    withdrawable_unstake_amount += user_buffer.total_unstake_amount
-                                        - user_buffer.claimed_unstake_amount;
-                                    // check_add, 考虑精度和溢出
-                                    withdrawable_stake_amount += (user_buffer.total_stake_amount
-                                        / pool_buffer.total_stake_amount)
-                                        * pool_buffer.total_unstake_amount;
-
-                                    //todo 修改存储
-
+                                    // after matching mechanism，for bond operation, user who unstake can get all amount directly
+                                    claim_unstake_each_era = user_buffer.total_unstake_amount;
+                                    claim_stake_each_era = Rate::saturating_from_rational(
+                                        user_buffer.total_stake_amount,
+                                        pool_buffer.total_stake_amount,
+                                    )
+                                    .saturating_mul_int(pool_buffer.total_unstake_amount);
                                     Some(())
-                                })
-                            } else {
-                                None
+                                });
                             }
                         } else {
-                            Some(())
+                            // why users who unstake can get KSM back directly?
+                            // because this era is about bond operation,
+                            // so all user who unstake in this era, no need wait 28 eras.
+                            claim_unstake_each_era = user_buffer
+                                .total_unstake_amount
+                                .saturating_sub(user_buffer.claimed_unstake_amount);
+
+                            // after waiting 1 era, users who stake get the left part
+                            claim_stake_each_era = user_buffer
+                                .total_stake_amount
+                                .saturating_sub(user_buffer.claimed_stake_amount);
                         }
                     }
                     StakingOperationType::Unbond => {
                         // if unbond, need to wait 28 eras
                         if era_index + T::BondingDuration::get() > current_era {
-                            None
+                            if !user_buffer.claimed_matching {
+                                // get the matching part only
+                                MatchingQueue::<T>::try_mutate(
+                                    who,
+                                    &era_index,
+                                    |b| -> DispatchResult {
+                                        b.claimed_matching = true;
+                                        Ok(())
+                                    },
+                                )
+                                .ok()
+                                .and_then(|_| {
+                                    // after matching mechanism，for unbond operation, user who stake can get all amount directly
+                                    claim_stake_each_era = user_buffer.total_stake_amount;
+                                    claim_unstake_each_era = Rate::saturating_from_rational(
+                                        user_buffer.total_unstake_amount,
+                                        pool_buffer.total_unstake_amount,
+                                    )
+                                    .saturating_mul_int(pool_buffer.total_stake_amount);
+                                    Some(())
+                                });
+                            }
                         } else {
-                            Some(())
+                            // after waiting 28 eras, users who unstake get the left part
+                            claim_unstake_each_era = user_buffer
+                                .total_unstake_amount
+                                .saturating_sub(user_buffer.claimed_unstake_amount);
+
+                            // in case users who stake but forget to claim in 28 eras.
+                            claim_stake_each_era = user_buffer
+                                .total_stake_amount
+                                .saturating_sub(user_buffer.claimed_stake_amount);
                         }
                     }
                     StakingOperationType::Matching => {
-                        // todo if matching, can claim all directly
-                        Some(())
+                        //if matching, can claim all directly
+                        claim_unstake_each_era = user_buffer
+                            .total_unstake_amount
+                            .saturating_sub(user_buffer.claimed_unstake_amount);
+
+                        claim_stake_each_era = user_buffer
+                            .total_stake_amount
+                            .saturating_sub(user_buffer.claimed_stake_amount);
                     }
-                    _ => None,
-                }
-            })
+                    _ => (),
+                };
+
+                MatchingQueue::<T>::try_mutate(who, &era_index, |b| -> DispatchResult {
+                    b.claimed_unstake_amount = b
+                        .claimed_unstake_amount
+                        .saturating_add(claim_unstake_each_era);
+                    b.claimed_stake_amount =
+                        b.claimed_stake_amount.saturating_add(claim_stake_each_era);
+
+                    if b.total_stake_amount == b.claimed_stake_amount
+                        && b.total_unstake_amount == b.claimed_unstake_amount
+                    {
+                        // user have already claimed all he can claim in this era, remove it from MatchingQueue
+                        remove.push(era_index);
+                    }
+                    Ok(())
+                })
+                .ok()
+                .and_then(|_| {
+                    withdrawable_unstake_amount =
+                        withdrawable_unstake_amount.saturating_add(claim_unstake_each_era);
+                    withdrawable_stake_amount =
+                        withdrawable_stake_amount.saturating_add(claim_stake_each_era);
+                    Some(())
+                })
+            });
         });
+
+        // remove finished records from MatchingQueue
+        if remove.len() > 0 {
+            remove.iter().for_each(|era_index| {
+                MatchingQueue::<T>::remove(who, era_index);
+            });
+        }
+
+        // transfer xKSM from palletId to who
+        if withdrawable_stake_amount > 0 {
+            let xtoken_amount = ExchangeRate::<T>::get()
+                .reciprocal()
+                .and_then(|r| r.checked_mul_int(withdrawable_stake_amount))
+                .ok_or(Error::<T>::InvalidExchangeRate)?;
+            T::Currency::transfer(
+                T::LiquidCurrency::get(),
+                &Self::account_id(),
+                who,
+                xtoken_amount,
+            )?;
+        }
+
+        // transfer KSM from palletId to who
+        if withdrawable_unstake_amount > 0 {
+            T::Currency::transfer(
+                T::StakingCurrency::get(),
+                &Self::account_id(),
+                who,
+                withdrawable_unstake_amount,
+            )?;
+        }
 
         Ok(().into())
     }
