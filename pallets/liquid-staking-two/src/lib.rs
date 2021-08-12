@@ -104,7 +104,7 @@ pub struct MatchingUserBuffer {
 #[frame_support::pallet]
 pub mod pallet {
 
-    use sp_runtime::Either;
+    use sp_runtime::{offchain::storage_lock::BlockNumberProvider, Either};
 
     use super::*;
 
@@ -323,6 +323,7 @@ pub mod pallet {
         pub fn record_reward(
             origin: OriginFor<T>,
             agent: T::AccountId,
+            era_index: EraIndex,
             #[pallet::compact] amount: Balance,
         ) -> DispatchResultWithPostInfo {
             // T::WithdrawOrigin::ensure_origin(origin)?;
@@ -340,21 +341,30 @@ pub mod pallet {
             .ok_or(Error::<T>::InvalidExchangeRate)?;
             ExchangeRate::<T>::put(exchange_rate);
 
-            // FIXME(Alan WANG): Should era index passed in args? The exact era index should be
-            // recorded when stake client was down and try to recover.
+            StakingOperationHistory::<T>::insert(
+                era_index,
+                StakingOperationType::RecordReward,
+                Operation::<_> {
+                    amount,
+                    block_number: frame_system::Pallet::<T>::block_number(),
+                    status: ResponseStatus::Successed,
+                },
+            );
 
             Self::deposit_event(Event::<T>::RewardsRecorded(agent, amount));
             Ok(().into())
         }
 
-        //todo invoked by stake-client, considering insurrance pool
-        // StakingPool = StakingPool - slash amount
-        // StakingPool/T::currency::total_issuance
+        /// Record slash event from relaychain.
+        ///
+        /// Can only invoked by stake client. Decrease asset amount in `StakingPool` and change
+        /// exchange rate.
         #[pallet::weight(10_000)]
         #[transactional]
         pub fn record_slash(
             origin: OriginFor<T>,
             agent: T::AccountId,
+            era_index: EraIndex,
             #[pallet::compact] amount: Balance,
         ) -> DispatchResultWithPostInfo {
             // T::WithdrawOrigin::ensure_origin(origin)?;
@@ -372,6 +382,16 @@ pub mod pallet {
             .ok_or(Error::<T>::InvalidExchangeRate)?;
             ExchangeRate::<T>::put(exchange_rate);
 
+            StakingOperationHistory::<T>::insert(
+                era_index,
+                StakingOperationType::RecordSlash,
+                Operation::<_> {
+                    amount,
+                    block_number: frame_system::Pallet::<T>::block_number(),
+                    status: ResponseStatus::Successed,
+                },
+            );
+
             Self::deposit_event(Event::<T>::SlashRecorded(agent, amount));
             Ok(().into())
         }
@@ -381,10 +401,10 @@ pub mod pallet {
         #[transactional]
         pub fn record_bond_response(
             origin: OriginFor<T>,
-            _era_index: Option<EraIndex>,
+            era_index: Option<EraIndex>,
         ) -> DispatchResultWithPostInfo {
             let _who = ensure_signed(origin)?;
-            let era_index = Self::current_era();
+            let era_index = era_index.unwrap_or(Self::current_era());
 
             let op = StakingOperationHistory::<T>::try_mutate(
                 era_index,
@@ -407,16 +427,16 @@ pub mod pallet {
             Ok(().into())
         }
 
+        /// Invoked when unbonding extrinsic finished. Burn previously transfered xksm if
+        /// successed.
         #[pallet::weight(10_000)]
         #[transactional]
         pub fn record_unbond_response(
             origin: OriginFor<T>,
-            _era_index: Option<EraIndex>,
+            era_index: Option<EraIndex>,
         ) -> DispatchResultWithPostInfo {
-            // todo we need to burn some xToken, and widthdraw from Self::account_id
-            // T::Currency::withdraw()
             let _who = ensure_signed(origin)?;
-            let era_index = Self::current_era();
+            let era_index = era_index.unwrap_or(Self::current_era());
 
             let op = StakingOperationHistory::<T>::try_mutate(
                 &era_index,
@@ -445,8 +465,20 @@ pub mod pallet {
             origin: OriginFor<T>,
             amount: Balance,
         ) -> DispatchResultWithPostInfo {
-            // todo xcm transfer
-            // maybe multiple in one era
+            // let _who = ensure_signed(origin)?;
+            // T::XcmTransfer::transfer(
+            //     Self::account_id(),
+            //     T::StakingCurrency::get(),
+            //     amout,
+            //     MultiLocation::X2(
+            //         Junction::Parent,
+            //         Junction::AccountId32 {
+            //             network: NetworkId::Any,
+            //             id: agent.clone().into(),
+            //         },
+            //     ),
+            //     T::BaseXcmWeight::get(),
+            // )?;
             Ok(().into())
         }
 
