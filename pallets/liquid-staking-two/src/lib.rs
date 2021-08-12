@@ -313,6 +313,8 @@ pub mod pallet {
         }
 
         //todo，record reward on each era, invoked by stake-client
+        // StakingPool = StakingPool + reward amount
+        // StakingPool/T::currency::total_issuance
         #[pallet::weight(10_000)]
         #[transactional]
         pub fn record_reward(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
@@ -320,6 +322,8 @@ pub mod pallet {
         }
 
         //todo invoked by stake-client, considering insurrance pool
+        // StakingPool = StakingPool - slash amount
+        // StakingPool/T::currency::total_issuance
         #[pallet::weight(10_000)]
         #[transactional]
         pub fn record_slash(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
@@ -340,6 +344,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        // no need do it now
         #[pallet::weight(10_000)]
         #[transactional]
         pub fn record_rebond_response(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
@@ -516,8 +521,8 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId> for Pallet<T> {
 
     fn claim(who: &T::AccountId) -> DispatchResultWithPostInfo {
         // ensure!(token == T::LiquidCurrency::get() || token == T::StakingCurrency::get(),"error");
-        let mut free_token_amount = 0u128;
-        let mut free_xtoken_amount_before_exchange = 0u128;
+        let mut withdrawable_stake_amount = 0u128;
+        let mut withdrawable_unstake_amount = 0u128;
         let _ = MatchingQueue::<T>::iter_prefix(who).filter_map(|(era_index, user_buffer)| {
             let pool_buffer = MatchingPool::<T>::get(&era_index);
             pool_buffer.operation_type.and_then(|t| {
@@ -541,8 +546,16 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId> for Pallet<T> {
                                 )
                                 .ok()
                                 .and_then(|_| {
-                                    // after matching mechanism in function `deposit_event_to_relaychain`,
-                                    // the user can get back part of their token directly
+                                    // after matching mechanism，
+                                    // for bond operation, user can get all unstake amount directly
+                                    withdrawable_unstake_amount += user_buffer.total_unstake_amount
+                                        - user_buffer.claimed_unstake_amount;
+                                    // check_add, 考虑精度和溢出
+                                    withdrawable_stake_amount += (user_buffer.total_stake_amount
+                                        / pool_buffer.total_stake_amount)
+                                        * pool_buffer.total_unstake_amount;
+
+                                    //todo 修改存储
 
                                     Some(())
                                 })
