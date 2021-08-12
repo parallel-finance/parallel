@@ -266,7 +266,6 @@ pub mod pallet {
         Blake2_128Concat,
         StakingOperationType,
         Operation<T::BlockNumber>,
-        ValueQuery,
     >;
 
     // #[pallet::genesis_config]
@@ -413,10 +412,15 @@ pub mod pallet {
             StakingOperationHistory::<T>::try_mutate(
                 &previous_era,
                 &operation_type,
-                |operation| -> DispatchResult {
-                    ensure!(operation.status == ResponseStatus::Ready, "error");
-                    operation.amount = amount;
-                    operation.block_number = frame_system::Pallet::<T>::block_number();
+                |o| -> DispatchResult {
+                    ensure!(*o == None, "error");
+                    o.as_mut().and_then(|operation| {
+                        operation.status = ResponseStatus::Ready;
+                        operation.amount = amount;
+                        operation.block_number = frame_system::Pallet::<T>::block_number();
+                        Some(())
+                    });
+
                     Ok(())
                 },
             )?;
@@ -546,9 +550,12 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId> for Pallet<T> {
             let pool_buffer = MatchingPool::<T>::get(&era_index);
             pool_buffer.operation_type.and_then(|t| {
                 let operation = StakingOperationHistory::<T>::get(&era_index, &t);
-                if operation.status != ResponseStatus::Successed {
-                    return None;
-                }
+                match operation {
+                    None => return None,
+                    Some(o) if o.status != ResponseStatus::Successed => return None,
+                    _ => (),
+                };
+
                 let current_era = Self::current_era();
                 match t {
                     StakingOperationType::Bond => {
