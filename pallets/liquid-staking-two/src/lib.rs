@@ -314,10 +314,13 @@ pub mod pallet {
 
         //todo，record reward on each era, invoked by stake-client
         // StakingPool = StakingPool + reward amount
-        // StakingPool/T::currency::total_issuance
+        // StakingPool/T::currency::total_issuance(liquidcurrency)
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn record_reward(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+        pub fn record_reward(
+            origin: OriginFor<T>,
+            #[pallet::compact] amount: Balance,
+        ) -> DispatchResultWithPostInfo {
             Ok(().into())
         }
 
@@ -326,35 +329,49 @@ pub mod pallet {
         // StakingPool/T::currency::total_issuance
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn record_slash(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+        pub fn record_slash(
+            origin: OriginFor<T>,
+            #[pallet::compact] amount: Balance,
+        ) -> DispatchResultWithPostInfo {
             Ok(().into())
         }
 
         // bond/unbond/rebond/bond_extra may be merge into one
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn record_bond_response(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
-            //todo we need to mint more xToken, and transfer to Self::account_id
+        pub fn record_bond_response(
+            origin: OriginFor<T>,
+            era_index: Option<EraIndex>,
+        ) -> DispatchResultWithPostInfo {
+            //todo we need to mint more xToken, and deposit to Self::account_id
+            // T::Currency::deposit()
             Ok(().into())
         }
 
-        #[pallet::weight(10_000)]
-        #[transactional]
-        pub fn record_bond_extra_response(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
-            Ok(().into())
-        }
+        // #[pallet::weight(10_000)]
+        // #[transactional]
+        // pub fn record_bond_extra_response(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+        //     Ok(().into())
+        // }
 
         // no need do it now
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn record_rebond_response(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+        pub fn record_rebond_response(
+            origin: OriginFor<T>,
+            era_index: Option<EraIndex>,
+        ) -> DispatchResultWithPostInfo {
             Ok(().into())
         }
 
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn record_unbond_response(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+        pub fn record_unbond_response(
+            origin: OriginFor<T>,
+            era_index: Option<EraIndex>,
+        ) -> DispatchResultWithPostInfo {
             // todo we need to burn some xToken, and widthdraw from Self::account_id
+            // T::Currency::withdraw()
             Ok(().into())
         }
 
