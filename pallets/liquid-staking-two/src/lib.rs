@@ -67,13 +67,7 @@ pub enum ResponseStatus {
     Failed,
 }
 
-impl Default for ResponseStatus {
-    fn default() -> Self {
-        Self::Ready
-    }
-}
-
-#[derive(Copy, Clone, Eq, Default, PartialEq, Encode, Decode, RuntimeDebug)]
+#[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
 pub struct Operation<BlockNumber> {
     amount: Balance,
     block_number: BlockNumber,
@@ -109,6 +103,8 @@ pub struct MatchingUserBuffer {
 
 #[frame_support::pallet]
 pub mod pallet {
+
+    use sp_runtime::{offchain::storage_lock::BlockNumberProvider, Either};
 
     use super::*;
 
@@ -153,13 +149,13 @@ pub mod pallet {
         // type WithdrawOrigin: EnsureOrigin<Self::Origin>;
 
         /// XCM transfer
-        // type XcmTransfer: XcmTransfer<Self::AccountId, Balance, CurrencyId>;
+        type XcmTransfer: XcmTransfer<Self::AccountId, Balance, CurrencyId>;
 
         /// Approved agent list on relaychain
         // type Members: SortedMembers<Self::AccountId>;
 
         /// Base xcm weight to use for cross chain transfer
-        // type BaseXcmWeight: Get<Weight>;
+        type BaseXcmWeight: Get<Weight>;
 
         /// The maximum size of Unstake
         // #[pallet::constant]
@@ -170,6 +166,10 @@ pub mod pallet {
     pub enum Error<T> {
         /// ExchangeRate is invalid
         InvalidExchangeRate,
+        /// Agent is not approved.
+        IllegalAgent,
+        /// Operation is not ready for processing
+        OperationNotReady,
     }
 
     #[pallet::event]
@@ -187,6 +187,10 @@ pub mod pallet {
         SlashRecorded(T::AccountId, Balance),
 
         DepositEventToRelaychain(T::AccountId, EraIndex, StakingOperationType, Balance),
+        /// Bond operation in relaychain was successed.
+        BondSucceed(EraIndex),
+        /// Unbond operation in relaychain was successed.
+        UnbondSucceed(EraIndex),
     }
 
     /// The exchange rate converts staking native token to voucher.
@@ -296,17 +300,20 @@ pub mod pallet {
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
     #[pallet::call]
-    impl<T: Config> Pallet<T> {
+    impl<T: Config> Pallet<T>
+    where
+        [u8; 32]: From<<T as frame_system::Config>::AccountId>,
+    {
         #[pallet::weight(10_000)]
         #[transactional]
         pub fn trigger_new_era(
             origin: OriginFor<T>,
             era_index: EraIndex,
         ) -> DispatchResultWithPostInfo {
+            // T::WithdrawOrigin::ensure_origin(origin)?;
             let _who = ensure_signed(origin)?;
             let current_era = Self::current_era();
             PreviousEra::<T>::put(current_era);
-
             CurrentEra::<T>::put(era_index);
             Ok(().into())
         }
@@ -318,20 +325,77 @@ pub mod pallet {
         #[transactional]
         pub fn record_reward(
             origin: OriginFor<T>,
+            agent: T::AccountId,
+            era_index: EraIndex,
             #[pallet::compact] amount: Balance,
         ) -> DispatchResultWithPostInfo {
+            // T::WithdrawOrigin::ensure_origin(origin)?;
+            let _who = ensure_signed(origin)?;
+            // ensure!(T::Members::contains(&agent), Error::<T>::IllegalAgent);
+            StakingPool::<T>::try_mutate(|m| -> DispatchResult {
+                *m = m.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
+                Ok(())
+            })?;
+
+            let exchange_rate = Rate::checked_from_rational(
+                StakingPool::<T>::get(),
+                T::Currency::total_issuance(T::LiquidCurrency::get()),
+            )
+            .ok_or(Error::<T>::InvalidExchangeRate)?;
+            ExchangeRate::<T>::put(exchange_rate);
+
+            StakingOperationHistory::<T>::insert(
+                era_index,
+                StakingOperationType::RecordReward,
+                Operation::<_> {
+                    amount,
+                    block_number: frame_system::Pallet::<T>::block_number(),
+                    status: ResponseStatus::Successed,
+                },
+            );
+
+            Self::deposit_event(Event::<T>::RewardsRecorded(agent, amount));
             Ok(().into())
         }
 
-        //todo invoked by stake-client, considering insurrance pool
-        // StakingPool = StakingPool - slash amount
-        // StakingPool/T::currency::total_issuance
+        /// Record slash event from relaychain.
+        ///
+        /// Can only invoked by stake client. Decrease asset amount in `StakingPool` and change
+        /// exchange rate.
         #[pallet::weight(10_000)]
         #[transactional]
         pub fn record_slash(
             origin: OriginFor<T>,
+            agent: T::AccountId,
+            era_index: EraIndex,
             #[pallet::compact] amount: Balance,
         ) -> DispatchResultWithPostInfo {
+            // T::WithdrawOrigin::ensure_origin(origin)?;
+            let _who = ensure_signed(origin)?;
+            // ensure!(T::Members::contains(&agent), Error::<T>::IllegalAgent);
+            StakingPool::<T>::try_mutate(|m| -> DispatchResult {
+                *m = m.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
+                Ok(())
+            })?;
+
+            let exchange_rate = Rate::checked_from_rational(
+                StakingPool::<T>::get(),
+                T::Currency::total_issuance(T::LiquidCurrency::get()),
+            )
+            .ok_or(Error::<T>::InvalidExchangeRate)?;
+            ExchangeRate::<T>::put(exchange_rate);
+
+            StakingOperationHistory::<T>::insert(
+                era_index,
+                StakingOperationType::RecordSlash,
+                Operation::<_> {
+                    amount,
+                    block_number: frame_system::Pallet::<T>::block_number(),
+                    status: ResponseStatus::Successed,
+                },
+            );
+
+            Self::deposit_event(Event::<T>::SlashRecorded(agent, amount));
             Ok(().into())
         }
 
@@ -342,35 +406,59 @@ pub mod pallet {
             origin: OriginFor<T>,
             era_index: Option<EraIndex>,
         ) -> DispatchResultWithPostInfo {
-            //todo we need to mint more xToken, and deposit to Self::account_id
-            // T::Currency::deposit()
+            let _who = ensure_signed(origin)?;
+            let era_index = era_index.unwrap_or(Self::current_era());
+
+            let op = StakingOperationHistory::<T>::try_mutate(
+                era_index,
+                StakingOperationType::Bond,
+                |op| -> Result<Operation<_>, DispatchError> {
+                    let next_op = op
+                        .clone()
+                        .filter(|op| op.status == ResponseStatus::Ready)
+                        .map(|op| Operation {
+                            status: ResponseStatus::Successed,
+                            ..op
+                        })
+                        .ok_or(Error::<T>::OperationNotReady)?;
+                    *op = Some(next_op.clone());
+                    Ok(next_op)
+                },
+            )?;
+            T::Currency::deposit(T::LiquidCurrency::get(), &Self::account_id(), op.amount)?;
+            Self::deposit_event(Event::<T>::BondSucceed(era_index));
             Ok(().into())
         }
 
-        // #[pallet::weight(10_000)]
-        // #[transactional]
-        // pub fn record_bond_extra_response(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
-        //     Ok(().into())
-        // }
-
-        // no need do it now
-        #[pallet::weight(10_000)]
-        #[transactional]
-        pub fn record_rebond_response(
-            origin: OriginFor<T>,
-            era_index: Option<EraIndex>,
-        ) -> DispatchResultWithPostInfo {
-            Ok(().into())
-        }
-
+        /// Invoked when unbonding extrinsic finished. Burn previously transfered xksm if
+        /// successed.
         #[pallet::weight(10_000)]
         #[transactional]
         pub fn record_unbond_response(
             origin: OriginFor<T>,
             era_index: Option<EraIndex>,
         ) -> DispatchResultWithPostInfo {
-            // todo we need to burn some xToken, and widthdraw from Self::account_id
-            // T::Currency::withdraw()
+            let _who = ensure_signed(origin)?;
+            let era_index = era_index.unwrap_or(Self::current_era());
+
+            let op = StakingOperationHistory::<T>::try_mutate(
+                &era_index,
+                StakingOperationType::Bond,
+                |op| -> Result<Operation<_>, DispatchError> {
+                    let next_op = op
+                        .clone()
+                        .filter(|op| op.status == ResponseStatus::Ready)
+                        .map(|op| Operation {
+                            status: ResponseStatus::Successed,
+                            ..op
+                        })
+                        .ok_or(Error::<T>::OperationNotReady)?;
+                    *op = Some(next_op.clone());
+                    Ok(next_op)
+                },
+            )?;
+            T::Currency::withdraw(T::LiquidCurrency::get(), &Self::account_id(), op.amount)?;
+            Self::deposit_event(Event::<T>::UnbondSucceed(era_index));
             Ok(().into())
         }
 
@@ -379,9 +467,23 @@ pub mod pallet {
         pub fn transfer_to_relaychain(
             origin: OriginFor<T>,
             amount: Balance,
+            agent: T::AccountId,
         ) -> DispatchResultWithPostInfo {
-            // todo xcm transfer
-            // maybe multiple in one era
+            let _who = ensure_signed(origin)?;
+            // TODO(Alan WANG): Check agent is approved.
+            T::XcmTransfer::transfer(
+                Self::account_id(),
+                T::StakingCurrency::get(),
+                amount,
+                MultiLocation::X2(
+                    Junction::Parent,
+                    Junction::AccountId32 {
+                        network: NetworkId::Any,
+                        id: agent.into(),
+                    },
+                ),
+                T::BaseXcmWeight::get(),
+            )?;
             Ok(().into())
         }
 
@@ -549,12 +651,10 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId> for Pallet<T> {
             let mut claim_stake_each_era = 0u128;
             let pool_buffer = MatchingPool::<T>::get(&era_index);
             pool_buffer.operation_type.and_then(|t| {
-                let operation = StakingOperationHistory::<T>::get(&era_index, &t);
-                match operation {
-                    Some(o) if o.status == ResponseStatus::Successed => (),
-                    _ => return None,
-                };
-
+                let operation = StakingOperationHistory::<T>::get(&era_index, &t)?;
+                if operation.status != ResponseStatus::Successed {
+                    return None;
+                }
                 let current_era = Self::current_era();
                 match t {
                     StakingOperationType::Bond => {
