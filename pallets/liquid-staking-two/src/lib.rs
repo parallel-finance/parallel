@@ -551,9 +551,8 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId> for Pallet<T> {
             pool_buffer.operation_type.and_then(|t| {
                 let operation = StakingOperationHistory::<T>::get(&era_index, &t);
                 match operation {
-                    None => return None,
-                    Some(o) if o.status != ResponseStatus::Successed => return None,
-                    _ => (),
+                    Some(o) if o.status == ResponseStatus::Successed => (),
+                    _ => return None,
                 };
 
                 let current_era = Self::current_era();
