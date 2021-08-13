@@ -149,13 +149,13 @@ pub mod pallet {
         // type WithdrawOrigin: EnsureOrigin<Self::Origin>;
 
         /// XCM transfer
-        // type XcmTransfer: XcmTransfer<Self::AccountId, Balance, CurrencyId>;
+        type XcmTransfer: XcmTransfer<Self::AccountId, Balance, CurrencyId>;
 
         /// Approved agent list on relaychain
         // type Members: SortedMembers<Self::AccountId>;
 
         /// Base xcm weight to use for cross chain transfer
-        // type BaseXcmWeight: Get<Weight>;
+        type BaseXcmWeight: Get<Weight>;
 
         /// The maximum size of Unstake
         // #[pallet::constant]
@@ -300,7 +300,10 @@ pub mod pallet {
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
     #[pallet::call]
-    impl<T: Config> Pallet<T> {
+    impl<T: Config> Pallet<T>
+    where
+        [u8; 32]: From<<T as frame_system::Config>::AccountId>,
+    {
         #[pallet::weight(10_000)]
         #[transactional]
         pub fn trigger_new_era(
@@ -464,21 +467,23 @@ pub mod pallet {
         pub fn transfer_to_relaychain(
             origin: OriginFor<T>,
             amount: Balance,
+            agent: T::AccountId,
         ) -> DispatchResultWithPostInfo {
-            // let _who = ensure_signed(origin)?;
-            // T::XcmTransfer::transfer(
-            //     Self::account_id(),
-            //     T::StakingCurrency::get(),
-            //     amout,
-            //     MultiLocation::X2(
-            //         Junction::Parent,
-            //         Junction::AccountId32 {
-            //             network: NetworkId::Any,
-            //             id: agent.clone().into(),
-            //         },
-            //     ),
-            //     T::BaseXcmWeight::get(),
-            // )?;
+            let _who = ensure_signed(origin)?;
+            // TODO(Alan WANG): Check agent is approved.
+            T::XcmTransfer::transfer(
+                Self::account_id(),
+                T::StakingCurrency::get(),
+                amount,
+                MultiLocation::X2(
+                    Junction::Parent,
+                    Junction::AccountId32 {
+                        network: NetworkId::Any,
+                        id: agent.into(),
+                    },
+                ),
+                T::BaseXcmWeight::get(),
+            )?;
             Ok(().into())
         }
 
