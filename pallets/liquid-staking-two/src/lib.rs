@@ -509,11 +509,15 @@ pub mod pallet {
             StakingOperationHistory::<T>::try_mutate(
                 &previous_era,
                 &operation_type,
-                |operation| -> DispatchResult {
-                    let mut operation = operation.ok_or(Error::<T>::OperationNotReady)?;
-                    ensure!(operation.status == ResponseStatus::Ready, "error");
-                    operation.amount = amount;
-                    operation.block_number = frame_system::Pallet::<T>::block_number();
+                |o| -> DispatchResult {
+                    ensure!(*o == None, "error");
+                    o.as_mut().and_then(|operation| {
+                        operation.status = ResponseStatus::Ready;
+                        operation.amount = amount;
+                        operation.block_number = frame_system::Pallet::<T>::block_number();
+                        Some(())
+                    });
+
                     Ok(())
                 },
             )?;
