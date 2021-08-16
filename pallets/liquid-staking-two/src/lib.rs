@@ -28,135 +28,28 @@
 // 8. if step-4 successed, mint/deposit xToken out according to current exchangerate(after record reward),
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{
-    pallet_prelude::*, traits::SortedMembers, transactional, BoundedVec, PalletId,
-};
+mod traits;
+mod types;
+
+use frame_support::{pallet_prelude::*, transactional, PalletId};
 use frame_system::pallet_prelude::*;
 use orml_traits::XcmTransfer;
-use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber, RuntimeDebug};
-
+use orml_traits::{MultiCurrency, MultiCurrencyExtended};
+use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber};
 use sp_std::prelude::*;
 use xcm::v0::{Junction, MultiLocation, NetworkId};
 
-use orml_traits::{MultiCurrency, MultiCurrencyExtended};
+use primitives::{Amount, Balance, CurrencyId, EraIndex, ExchangeRateProvider, Rate, Ratio};
+
+use self::traits::*;
+use self::types::*;
 
 pub use pallet::*;
-use primitives::{
-    Amount, Balance, CurrencyId, EraIndex, ExchangeRateProvider,
-    LiquidStakingProtocol, Rate, Ratio,
-};
 
 pub const MAX_UNSTAKE_CHUNKS: usize = 5;
 
-#[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
-pub enum StakingOperationType {
-    Bond,
-    Unbond,
-    Rebond,
-    Matching,
-    TransferToRelaychain,
-    RecordReward,
-    RecordSlash,
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
-pub enum ResponseStatus {
-    Ready,
-    Processing,
-    Successed,
-    Failed,
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
-pub struct Operation<BlockNumber> {
-    amount: Balance,
-    block_number: BlockNumber,
-    status: ResponseStatus,
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug)]
-pub struct PoolLedgerPerEra {
-    total_unstake_amount: Balance,
-    total_stake_amount: Balance,
-    operation_type: Option<StakingOperationType>,
-}
-
-impl PoolLedgerPerEra {
-    fn matching_in_era(&self) -> (StakingOperationType, Balance) {
-        if self.total_stake_amount > self.total_unstake_amount {
-            (
-                StakingOperationType::Bond,
-                self.total_stake_amount - self.total_unstake_amount,
-            )
-        } else if self.total_stake_amount < self.total_unstake_amount {
-            (
-                StakingOperationType::Unbond,
-                self.total_unstake_amount - self.total_stake_amount,
-            )
-        } else {
-            (StakingOperationType::Matching, 0)
-        }
-    }
-}
-
-/// The single user's stake/unsatke amount in each era
-#[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug)]
-pub struct UserLedgerPerEra {
-    /// The token amount that user unstake during this era, will be calculated
-    /// by exchangerate and xToken amount
-    total_unstake_amount: Balance,
-    /// The token amount that user stake during this era, this amount is equal
-    /// to what the user input.
-    total_stake_amount: Balance,
-    /// The token amount that user have alreay claimed before the lock period,
-    /// this will happen because, in matching pool total_unstake_amount and
-    /// total_stake_amount can match each other
-    claimed_unstake_amount: Balance,
-    /// The token amount that user have alreay claimed before the lock period,
-    claimed_stake_amount: Balance,
-    /// To confirm that before lock period, user can only claim once because of
-    /// the matching.
-    claimed_matching: bool,
-}
-
-// (claim_unstake_amount_each_era,claim_stake_amount_each_era)
-type WithdrawalAmount = (Balance, Balance);
-
-impl UserLedgerPerEra {
-    fn remaining_withdrawal_limit(&self) -> WithdrawalAmount {
-        (
-            self.total_unstake_amount
-                .saturating_sub(self.claimed_unstake_amount),
-            self.total_stake_amount
-                .saturating_sub(self.claimed_stake_amount),
-        )
-    }
-
-    // after matching mechanism，for bond operation, user who unstake can get all amount directly
-    // and user who stake only get the matching part
-    fn instant_withdrawal_by_bond(&self, pool: &PoolLedgerPerEra) -> WithdrawalAmount {
-        (
-            self.total_unstake_amount,
-            Rate::saturating_from_rational(self.total_stake_amount, pool.total_stake_amount)
-                .saturating_mul_int(pool.total_unstake_amount),
-        )
-    }
-
-    // after matching mechanism，for unbond operation, user who stake can get all amount directly
-    // and user who unstake only get the matching part
-    fn instant_withdrawal_by_unbond(&self, pool: &PoolLedgerPerEra) -> WithdrawalAmount {
-        (
-            Rate::saturating_from_rational(self.total_unstake_amount, pool.total_unstake_amount)
-                .saturating_mul_int(pool.total_stake_amount),
-            self.total_stake_amount,
-        )
-    }
-}
-
 #[frame_support::pallet]
 pub mod pallet {
-
-    
 
     use super::*;
 
@@ -585,7 +478,7 @@ pub mod pallet {
             #[pallet::compact] amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            <Self as LiquidStakingProtocol<T::AccountId>>::stake(&who, amount)?;
+            <Self as LiquidStakingProtocol<T::AccountId, Balance>>::stake(&who, amount)?;
             Ok(().into())
         }
 
@@ -596,7 +489,7 @@ pub mod pallet {
             #[pallet::compact] amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            <Self as LiquidStakingProtocol<T::AccountId>>::unstake(&who, amount)?;
+            <Self as LiquidStakingProtocol<T::AccountId, Balance>>::unstake(&who, amount)?;
             Ok(().into())
         }
 
@@ -604,17 +497,17 @@ pub mod pallet {
         #[transactional]
         pub fn claim(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            <Self as LiquidStakingProtocol<T::AccountId>>::claim(&who)?;
+            <Self as LiquidStakingProtocol<T::AccountId, Balance>>::claim(&who)?;
             Ok(().into())
         }
     }
 }
 
-impl<T: Config> LiquidStakingProtocol<T::AccountId> for Pallet<T> {
+impl<T: Config> LiquidStakingProtocol<T::AccountId, Balance> for Pallet<T> {
     // After confirmed bond on relaychain,
     // after update exchangerate (record_reward),
     // and then mint/deposit xKSM.
-    fn stake(who: &T::AccountId, amount: Balance) -> DispatchResultWithPostInfo {
+    fn stake(who: &T::AccountId, amount: Balance) -> DispatchResult {
         //todo reserve, insurance pool
         T::Currency::transfer(T::StakingCurrency::get(), who, &Self::account_id(), amount)?;
 
@@ -649,7 +542,7 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId> for Pallet<T> {
     // After confirmed unbond on relaychain,
     // and then burn/withdraw xKSM.
     // before update exchangerate (record_reward)
-    fn unstake(who: &T::AccountId, amount: Balance) -> DispatchResultWithPostInfo {
+    fn unstake(who: &T::AccountId, amount: Balance) -> DispatchResult {
         // can not burn directly because we have match mechanism
         T::Currency::transfer(T::LiquidCurrency::get(), who, &Self::account_id(), amount)?;
 
@@ -686,7 +579,7 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId> for Pallet<T> {
         Ok(().into())
     }
 
-    fn claim(who: &T::AccountId) -> DispatchResultWithPostInfo {
+    fn claim(who: &T::AccountId) -> DispatchResult {
         let mut withdrawable_stake_amount = 0u128;
         let mut withdrawable_unstake_amount = 0u128;
         let mut remove_record_from_user_queue = Vec::<EraIndex>::new();
@@ -817,7 +710,7 @@ impl<T: Config> Pallet<T> {
                 MatchingQueueByUser::<T>::mutate(who, claim_era, |b| {
                     b.claimed_matching = true;
                 });
-        
+
                 user_ledger_per_era.instant_withdrawal_by_bond(pool_ledger_per_era)
             } else {
                 (0, 0)

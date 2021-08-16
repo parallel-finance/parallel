@@ -152,10 +152,3 @@ pub trait EmergencyPriceFeeder<CurrencyId, PriceWithDecimal> {
 pub trait ExchangeRateProvider {
     fn get_exchange_rate() -> Rate;
 }
-
-//todo change the return type
-pub trait LiquidStakingProtocol<AccountId> {
-    fn stake(who: &AccountId, amount: Balance) -> DispatchResultWithPostInfo;
-    fn unstake(who: &AccountId, amount: Balance) -> DispatchResultWithPostInfo;
-    fn claim(who: &AccountId) -> DispatchResultWithPostInfo;
-}
