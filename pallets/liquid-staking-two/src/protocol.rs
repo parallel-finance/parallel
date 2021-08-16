@@ -1,23 +1,26 @@
 use frame_support::traits::Get;
 use orml_traits::MultiCurrency;
-use sp_runtime::{ArithmeticError, DispatchResult, FixedPointNumber};
+use sp_runtime::{ArithmeticError, DispatchError, DispatchResult, FixedPointNumber};
 
-use primitives::{Balance, EraIndex};
+use primitives::EraIndex;
 
-use crate::{Config, Error, Event, ExchangeRate, MatchingPoolByEra, MatchingQueueByUser, Pallet};
+use crate::{Config, Error, ExchangeRate, MatchingPoolByEra, MatchingQueueByUser, Pallet};
+
+pub(crate) type BalanceOf<T> =
+    <<T as Config>::Currency as MultiCurrency<<T as frame_system::Config>::AccountId>>::Balance;
 
 //todo change the return type
 pub trait LiquidStakingProtocol<AccountId, Balance> {
     fn stake(who: &AccountId, amount: Balance) -> DispatchResult;
-    fn unstake(who: &AccountId, amount: Balance) -> DispatchResult;
+    fn unstake(who: &AccountId, amount: Balance) -> Result<Balance, DispatchError>;
     fn claim(who: &AccountId) -> DispatchResult;
 }
 
-impl<T: Config> LiquidStakingProtocol<T::AccountId, Balance> for Pallet<T> {
+impl<T: Config> LiquidStakingProtocol<T::AccountId, BalanceOf<T>> for Pallet<T> {
     // After confirmed bond on relaychain,
     // after update exchangerate (record_reward),
     // and then mint/deposit xKSM.
-    fn stake(who: &T::AccountId, amount: Balance) -> DispatchResult {
+    fn stake(who: &T::AccountId, amount: BalanceOf<T>) -> DispatchResult {
         //todo reserve, insurance pool
         T::Currency::transfer(T::StakingCurrency::get(), who, &Self::account_id(), amount)?;
 
@@ -51,7 +54,7 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId, Balance> for Pallet<T> {
     // After confirmed unbond on relaychain,
     // and then burn/withdraw xKSM.
     // before update exchangerate (record_reward)
-    fn unstake(who: &T::AccountId, amount: Balance) -> DispatchResult {
+    fn unstake(who: &T::AccountId, amount: BalanceOf<T>) -> Result<BalanceOf<T>, DispatchError> {
         // can not burn directly because we have match mechanism
         T::Currency::transfer(T::LiquidCurrency::get(), who, &Self::account_id(), amount)?;
 
@@ -84,7 +87,7 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId, Balance> for Pallet<T> {
                 Ok(())
             },
         )?;
-        Ok(().into())
+        Ok(asset_amount)
     }
 
     fn claim(who: &T::AccountId) -> DispatchResult {

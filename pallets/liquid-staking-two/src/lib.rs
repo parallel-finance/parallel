@@ -39,7 +39,7 @@ use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber}
 use sp_std::prelude::*;
 use xcm::v0::{Junction, MultiLocation, NetworkId};
 
-use primitives::{Amount, Balance, CurrencyId, EraIndex, ExchangeRateProvider, Rate, Ratio};
+use primitives::{Amount, Balance, CurrencyId, EraIndex, Rate, Ratio};
 
 use self::protocol::*;
 use self::types::*;
@@ -94,7 +94,7 @@ pub mod pallet {
         // type WithdrawOrigin: EnsureOrigin<Self::Origin>;
 
         /// XCM transfer
-        type XcmTransfer: XcmTransfer<Self::AccountId, Balance, CurrencyId>;
+        type XcmTransfer: XcmTransfer<Self::AccountId, BalanceOf<Self>, CurrencyId>;
 
         /// Approved agent list on relaychain
         // type Members: SortedMembers<Self::AccountId>;
@@ -123,17 +123,17 @@ pub mod pallet {
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         /// The assets get staked successfully
-        Staked(T::AccountId, Balance),
+        Staked(T::AccountId, BalanceOf<T>),
         /// The xtoken gets unstaked successfully
-        Unstaked(T::AccountId, Balance, Balance),
+        Unstaked(T::AccountId, BalanceOf<T>, BalanceOf<T>),
         /// The withdraw request is successful
         Claimed(T::AccountId),
         /// The rewards are recorded
-        RewardsRecorded(Balance),
+        RewardsRecorded(BalanceOf<T>),
         /// The slash is recorded
-        SlashRecorded(Balance),
+        SlashRecorded(BalanceOf<T>),
 
-        DepositEventToRelaychain(T::AccountId, EraIndex, StakingOperationType, Balance),
+        DepositEventToRelaychain(T::AccountId, EraIndex, StakingOperationType, BalanceOf<T>),
         /// Bond operation in relaychain was successed.
         BondSucceed(EraIndex),
         /// Unbond operation in relaychain was successed.
@@ -155,12 +155,12 @@ pub mod pallet {
     /// The total amount of insurance pool.
     #[pallet::storage]
     #[pallet::getter(fn insurance_pool)]
-    pub type InsurancePool<T: Config> = StorageValue<_, Balance, ValueQuery>;
+    pub type InsurancePool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     /// The total amount of staking pool.
     #[pallet::storage]
     #[pallet::getter(fn staking_pool)]
-    pub type StakingPool<T: Config> = StorageValue<_, Balance, ValueQuery>;
+    pub type StakingPool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     /// Store total stake amount and total unstake amount during current era,
     /// And will update when trigger new era, calculate whether bond/unbond/rebond,
@@ -248,7 +248,7 @@ pub mod pallet {
         pub fn record_reward(
             origin: OriginFor<T>,
             era_index: EraIndex,
-            #[pallet::compact] amount: Balance,
+            #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let _who = ensure_signed(origin)?;
             Self::ensure_op_not_exists(era_index, StakingOperationType::RecordReward)?;
@@ -279,7 +279,7 @@ pub mod pallet {
         pub fn record_slash(
             origin: OriginFor<T>,
             era_index: EraIndex,
-            #[pallet::compact] amount: Balance,
+            #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let _who = ensure_signed(origin)?;
             Self::ensure_op_not_exists(era_index, StakingOperationType::RecordSlash)?;
@@ -333,7 +333,7 @@ pub mod pallet {
         #[transactional]
         pub fn transfer_to_relaychain(
             origin: OriginFor<T>,
-            amount: Balance,
+            amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let _who = ensure_signed(origin)?;
             // TODO(Alan WANG): Check agent is approved.
@@ -397,10 +397,10 @@ pub mod pallet {
         #[transactional]
         pub fn stake(
             origin: OriginFor<T>,
-            #[pallet::compact] amount: Balance,
+            #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            <Self as LiquidStakingProtocol<T::AccountId, Balance>>::stake(&who, amount)?;
+            <Self as LiquidStakingProtocol<T::AccountId, BalanceOf<T>>>::stake(&who, amount)?;
             Self::deposit_event(Event::<T>::Staked(who.clone(), amount));
             Ok(().into())
         }
@@ -409,10 +409,11 @@ pub mod pallet {
         #[transactional]
         pub fn unstake(
             origin: OriginFor<T>,
-            #[pallet::compact] amount: Balance,
+            #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            <Self as LiquidStakingProtocol<T::AccountId, Balance>>::unstake(&who, amount)?;
+            let asset_amount =
+                <Self as LiquidStakingProtocol<T::AccountId, BalanceOf<T>>>::unstake(&who, amount)?;
             Self::deposit_event(Event::<T>::Unstaked(who.clone(), amount, asset_amount));
             Ok(().into())
         }
@@ -421,7 +422,7 @@ pub mod pallet {
         #[transactional]
         pub fn claim(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            <Self as LiquidStakingProtocol<T::AccountId, Balance>>::claim(&who)?;
+            <Self as LiquidStakingProtocol<T::AccountId, BalanceOf<T>>>::claim(&who)?;
             Self::deposit_event(Event::<T>::Claimed(who));
             Ok(().into())
         }
@@ -547,7 +548,7 @@ impl<T: Config> Pallet<T> {
 
 impl<T: Config> Pallet<T> {
     #[inline]
-    fn increase_staked_asset(amount: Balance) -> DispatchResult {
+    fn increase_staked_asset(amount: BalanceOf<T>) -> DispatchResult {
         StakingPool::<T>::try_mutate(|m| -> DispatchResult {
             *m = m.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
             Ok(())
@@ -555,7 +556,7 @@ impl<T: Config> Pallet<T> {
     }
 
     #[inline]
-    fn decrease_staked_asset(amount: Balance) -> DispatchResult {
+    fn decrease_staked_asset(amount: BalanceOf<T>) -> DispatchResult {
         StakingPool::<T>::try_mutate(|m| -> DispatchResult {
             *m = m.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
             Ok(())
@@ -577,11 +578,11 @@ impl<T: Config> Pallet<T> {
     fn try_mark_op_succeed(
         era_index: EraIndex,
         op_type: StakingOperationType,
-    ) -> Result<Balance, DispatchError> {
+    ) -> Result<BalanceOf<T>, DispatchError> {
         StakingOperationHistory::<T>::try_mutate(
             era_index,
             op_type,
-            |op| -> Result<Balance, DispatchError> {
+            |op| -> Result<BalanceOf<T>, DispatchError> {
                 let next_op = op
                     .filter(|op| op.status == ResponseStatus::Ready)
                     .map(|op| Operation {
