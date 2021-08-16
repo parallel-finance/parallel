@@ -28,7 +28,7 @@
 // 8. if step-4 successed, mint/deposit xToken out according to current exchangerate(after record reward),
 #![cfg_attr(not(feature = "std"), no_std)]
 
-mod traits;
+mod protocol;
 mod types;
 
 use frame_support::{pallet_prelude::*, transactional, PalletId};
@@ -41,7 +41,7 @@ use xcm::v0::{Junction, MultiLocation, NetworkId};
 
 use primitives::{Amount, Balance, CurrencyId, EraIndex, ExchangeRateProvider, Rate, Ratio};
 
-use self::traits::*;
+use self::protocol::*;
 use self::types::*;
 
 pub use pallet::*;
@@ -136,6 +136,8 @@ pub mod pallet {
         BondSucceed(EraIndex),
         /// Unbond operation in relaychain was successed.
         UnbondSucceed(EraIndex),
+        /// Era index was updated.
+        EraUpdated(EraIndex),
     }
 
     /// The exchange rate converts staking native token to voucher.
@@ -217,33 +219,6 @@ pub mod pallet {
         Operation<T::BlockNumber>,
     >;
 
-    // #[pallet::genesis_config]
-    // pub struct GenesisConfig {
-    //     pub exchange_rate: Rate,
-    //     pub reserve_factor: Ratio,
-    // }
-
-    // #[cfg(feature = "std")]
-    // impl Default for GenesisConfig {
-    //     fn default() -> Self {
-    //         Self {
-    //             exchange_rate: Rate::default(),
-    //             reserve_factor: Ratio::default(),
-    //         }
-    //     }
-    // }
-
-    // #[pallet::genesis_build]
-    // impl<T: Config> GenesisBuild<T> for GenesisConfig {
-    //     fn build(&self) {
-    //         ExchangeRate::<T>::put(self.exchange_rate);
-    //         ReserveFactor::<T>::put(self.reserve_factor);
-    //     }
-    // }
-
-    #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
-
     #[pallet::call]
     impl<T: Config> Pallet<T>
     where
@@ -255,17 +230,17 @@ pub mod pallet {
             origin: OriginFor<T>,
             era_index: EraIndex,
         ) -> DispatchResultWithPostInfo {
-            // T::WithdrawOrigin::ensure_origin(origin)?;
             let _who = ensure_signed(origin)?;
             let current_era = Self::current_era();
             PreviousEra::<T>::put(current_era);
             CurrentEra::<T>::put(era_index);
+            Self::deposit_event(Event::<T>::EraUpdated(era_index));
             Ok(().into())
         }
 
-        //todo，record reward on each era, invoked by stake-client
-        // StakingPool = StakingPool + reward amount
-        // StakingPool/T::currency::total_issuance(liquidcurrency)
+        /// Record reward on each era, invoked by stake-client
+        /// StakingPool = StakingPool + reward amount
+        /// StakingPool/T::currency::total_issuance(liquidcurrency)
         #[pallet::weight(10_000)]
         #[transactional]
         pub fn record_reward(
@@ -274,14 +249,9 @@ pub mod pallet {
             era_index: EraIndex,
             #[pallet::compact] amount: Balance,
         ) -> DispatchResultWithPostInfo {
-            // T::WithdrawOrigin::ensure_origin(origin)?;
             let _who = ensure_signed(origin)?;
-            // ensure!(T::Members::contains(&agent), Error::<T>::IllegalAgent);
-            StakingPool::<T>::try_mutate(|m| -> DispatchResult {
-                *m = m.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
-                Ok(())
-            })?;
 
+            Self::increase_staked_asset(amount)?;
             let exchange_rate = Rate::checked_from_rational(
                 StakingPool::<T>::get(),
                 T::Currency::total_issuance(T::LiquidCurrency::get()),
@@ -503,132 +473,6 @@ pub mod pallet {
     }
 }
 
-impl<T: Config> LiquidStakingProtocol<T::AccountId, Balance> for Pallet<T> {
-    // After confirmed bond on relaychain,
-    // after update exchangerate (record_reward),
-    // and then mint/deposit xKSM.
-    fn stake(who: &T::AccountId, amount: Balance) -> DispatchResult {
-        //todo reserve, insurance pool
-        T::Currency::transfer(T::StakingCurrency::get(), who, &Self::account_id(), amount)?;
-
-        MatchingQueueByUser::<T>::try_mutate(
-            who,
-            &Self::current_era(),
-            |user_ledger_per_era| -> DispatchResult {
-                user_ledger_per_era.total_stake_amount = user_ledger_per_era
-                    .total_stake_amount
-                    .checked_add(amount)
-                    .ok_or(ArithmeticError::Overflow)?;
-
-                Ok(())
-            },
-        )?;
-
-        MatchingPoolByEra::<T>::try_mutate(
-            &Self::current_era(),
-            |pool_ledger_per_era| -> DispatchResult {
-                pool_ledger_per_era.total_stake_amount = pool_ledger_per_era
-                    .total_stake_amount
-                    .checked_add(amount)
-                    .ok_or(ArithmeticError::Overflow)?;
-
-                Ok(())
-            },
-        )?;
-        Self::deposit_event(Event::Staked(who.clone(), amount));
-        Ok(().into())
-    }
-
-    // After confirmed unbond on relaychain,
-    // and then burn/withdraw xKSM.
-    // before update exchangerate (record_reward)
-    fn unstake(who: &T::AccountId, amount: Balance) -> DispatchResult {
-        // can not burn directly because we have match mechanism
-        T::Currency::transfer(T::LiquidCurrency::get(), who, &Self::account_id(), amount)?;
-
-        let exchange_rate = ExchangeRate::<T>::get();
-        let asset_amount = exchange_rate
-            .checked_mul_int(amount)
-            .ok_or(Error::<T>::InvalidExchangeRate)?;
-
-        MatchingQueueByUser::<T>::try_mutate(
-            who,
-            &Self::current_era(),
-            |user_ledger_per_era| -> DispatchResult {
-                user_ledger_per_era.total_unstake_amount = user_ledger_per_era
-                    .total_unstake_amount
-                    .checked_add(asset_amount)
-                    .ok_or(ArithmeticError::Overflow)?;
-
-                Ok(())
-            },
-        )?;
-
-        MatchingPoolByEra::<T>::try_mutate(
-            &Self::current_era(),
-            |pool_ledger_per_era| -> DispatchResult {
-                pool_ledger_per_era.total_unstake_amount = pool_ledger_per_era
-                    .total_unstake_amount
-                    .checked_add(asset_amount)
-                    .ok_or(ArithmeticError::Overflow)?;
-
-                Ok(())
-            },
-        )?;
-        Self::deposit_event(Event::Unstaked(who.clone(), amount, asset_amount));
-        Ok(().into())
-    }
-
-    fn claim(who: &T::AccountId) -> DispatchResult {
-        let mut withdrawable_stake_amount = 0u128;
-        let mut withdrawable_unstake_amount = 0u128;
-        let mut remove_record_from_user_queue = Vec::<EraIndex>::new();
-        MatchingQueueByUser::<T>::iter_prefix(who).for_each(|(era_index, user_ledger_per_era)| {
-            Self::accumulate_claim_by_era(
-                who,
-                era_index,
-                user_ledger_per_era,
-                &mut withdrawable_stake_amount,
-                &mut withdrawable_unstake_amount,
-                &mut remove_record_from_user_queue,
-            );
-        });
-
-        // remove finished records from MatchingQueue
-        if remove_record_from_user_queue.len() > 0 {
-            remove_record_from_user_queue.iter().for_each(|era_index| {
-                MatchingQueueByUser::<T>::remove(who, era_index);
-            });
-        }
-
-        // transfer xKSM from palletId to who
-        if withdrawable_stake_amount > 0 {
-            let xtoken_amount = ExchangeRate::<T>::get()
-                .reciprocal()
-                .and_then(|r| r.checked_mul_int(withdrawable_stake_amount))
-                .ok_or(Error::<T>::InvalidExchangeRate)?;
-            T::Currency::transfer(
-                T::LiquidCurrency::get(),
-                &Self::account_id(),
-                who,
-                xtoken_amount,
-            )?;
-        }
-
-        // transfer KSM from palletId to who
-        if withdrawable_unstake_amount > 0 {
-            T::Currency::transfer(
-                T::StakingCurrency::get(),
-                &Self::account_id(),
-                who,
-                withdrawable_unstake_amount,
-            )?;
-        }
-
-        Ok(().into())
-    }
-}
-
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> T::AccountId {
         T::PalletId::get().into_account()
@@ -749,5 +593,15 @@ impl<T: Config> Pallet<T> {
 impl<T: Config> ExchangeRateProvider for Pallet<T> {
     fn get_exchange_rate() -> Rate {
         ExchangeRate::<T>::get()
+    }
+}
+
+impl<T: Config> Pallet<T> {
+    #[inline]
+    fn increase_staked_asset(amount: Balance) -> DispatchResult {
+        StakingPool::<T>::try_mutate(|m| -> DispatchResult {
+            *m = m.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
+            Ok(())
+        })
     }
 }
