@@ -115,6 +115,8 @@ pub mod pallet {
         IllegalAgent,
         /// Operation is not ready for processing
         OperationNotReady,
+        /// Operation has been performed,
+        OperationAlreadyPerformed,
     }
 
     #[pallet::event]
@@ -125,7 +127,7 @@ pub mod pallet {
         /// The xtoken gets unstaked successfully
         Unstaked(T::AccountId, Balance, Balance),
         /// The withdraw request is successful
-        Claimed(T::AccountId, Balance),
+        Claimed(T::AccountId),
         /// The rewards are recorded
         RewardsRecorded(Balance),
         /// The slash is recorded
@@ -249,6 +251,7 @@ pub mod pallet {
             #[pallet::compact] amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let _who = ensure_signed(origin)?;
+            Self::ensure_op_not_exists(era_index, StakingOperationType::RecordReward)?;
 
             Self::increase_staked_asset(amount)?;
             Self::update_exchange_rate()?;
@@ -279,6 +282,7 @@ pub mod pallet {
             #[pallet::compact] amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let _who = ensure_signed(origin)?;
+            Self::ensure_op_not_exists(era_index, StakingOperationType::RecordSlash)?;
             Self::decrease_staked_asset(amount)?;
             Self::update_exchange_rate()?;
 
@@ -397,6 +401,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             <Self as LiquidStakingProtocol<T::AccountId, Balance>>::stake(&who, amount)?;
+            Self::deposit_event(Event::<T>::Staked(who.clone(), amount));
             Ok(().into())
         }
 
@@ -408,6 +413,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             <Self as LiquidStakingProtocol<T::AccountId, Balance>>::unstake(&who, amount)?;
+            Self::deposit_event(Event::<T>::Unstaked(who.clone(), amount, asset_amount));
             Ok(().into())
         }
 
@@ -416,6 +422,7 @@ pub mod pallet {
         pub fn claim(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             <Self as LiquidStakingProtocol<T::AccountId, Balance>>::claim(&who)?;
+            Self::deposit_event(Event::<T>::Claimed(who));
             Ok(().into())
         }
     }
@@ -538,12 +545,6 @@ impl<T: Config> Pallet<T> {
     }
 }
 
-impl<T: Config> ExchangeRateProvider for Pallet<T> {
-    fn get_exchange_rate() -> Rate {
-        ExchangeRate::<T>::get()
-    }
-}
-
 impl<T: Config> Pallet<T> {
     #[inline]
     fn increase_staked_asset(amount: Balance) -> DispatchResult {
@@ -592,5 +593,13 @@ impl<T: Config> Pallet<T> {
                 Ok(next_op.amount)
             },
         )
+    }
+
+    fn ensure_op_not_exists(era_index: EraIndex, op_type: StakingOperationType) -> DispatchResult {
+        ensure!(
+            StakingOperationHistory::<T>::get(era_index, op_type).is_none(),
+            Error::<T>::OperationAlreadyPerformed,
+        );
+        Ok(())
     }
 }

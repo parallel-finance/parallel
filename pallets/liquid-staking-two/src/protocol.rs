@@ -45,7 +45,6 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId, Balance> for Pallet<T> {
                 Ok(())
             },
         )?;
-        Self::deposit_event(Event::Staked(who.clone(), amount));
         Ok(().into())
     }
 
@@ -85,7 +84,6 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId, Balance> for Pallet<T> {
                 Ok(())
             },
         )?;
-        Self::deposit_event(Event::Unstaked(who.clone(), amount, asset_amount));
         Ok(().into())
     }
 
@@ -134,7 +132,6 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId, Balance> for Pallet<T> {
                 withdrawable_unstake_amount,
             )?;
         }
-
         Ok(().into())
     }
 }
