@@ -443,7 +443,7 @@ pub mod pallet {
 
             let op = StakingOperationHistory::<T>::try_mutate(
                 &era_index,
-                StakingOperationType::Bond,
+                StakingOperationType::Unbond,
                 |op| -> Result<Operation<_>, DispatchError> {
                     let next_op = op
                         .clone()
