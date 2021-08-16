@@ -300,7 +300,8 @@ pub mod pallet {
             Ok(().into())
         }
 
-        // bond/unbond/rebond/bond_extra may be merge into one
+        /// Invoked when unbonding extrinsic finished. Mint xksm if
+        /// succeeded.
         #[pallet::weight(10_000)]
         #[transactional]
         pub fn record_bond_response(
@@ -315,7 +316,7 @@ pub mod pallet {
         }
 
         /// Invoked when unbonding extrinsic finished. Burn previously transfered xksm if
-        /// successed.
+        /// succeeded.
         #[pallet::weight(10_000)]
         #[transactional]
         pub fn record_unbond_response(
