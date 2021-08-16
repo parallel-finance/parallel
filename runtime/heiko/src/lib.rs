@@ -182,7 +182,9 @@ parameter_types! {
         })
         .avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
         .build_or_panic();
-    pub const SS58Prefix: u8 = HEIKO_PREFIX;
+    // TODO use PARALLEL_PREFIX after upgrading to polkadot v0.9.9
+    // pub const SS58Prefix: u8 = HEIKO_PREFIX;
+    pub const SS58Prefix: u8 = 42;
 }
 
 // Configure FRAME pallets to include in runtime.
