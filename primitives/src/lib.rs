@@ -21,8 +21,8 @@ pub mod network;
 use codec::{Decode, Encode};
 use frame_support::pallet_prelude::DispatchResultWithPostInfo;
 use sp_runtime::{
-    traits::{CheckedDiv, IdentifyAccount, Verify},
-    FixedU128, MultiSignature, Permill, RuntimeDebug,
+    traits::{CheckedAdd, CheckedDiv, CheckedMul, IdentifyAccount, Verify},
+    ArithmeticError, DispatchError, FixedU128, MultiSignature, Permill, RuntimeDebug,
 };
 use sp_std::{cmp::Ordering, convert::Into, prelude::*};
 
