@@ -48,7 +48,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
         ChainType::Development,
         move || {
             testnet_genesis(
-                get_account_id_from_seed::<sr25519::public>("Dave"),
+                get_account_id_from_seed::<sr25519::Public>("Dave"),
                 vec![
                     get_authority_keys_from_seed("Alice"),
                     get_authority_keys_from_seed("Bob"),
@@ -69,7 +69,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                 ],
                 vec![get_account_id_from_seed::<sr25519::Public>("Eve")],
-                vec![get_account_id_from_seed::<sr25519::public>("Dave")],
+                vec![get_account_id_from_seed::<sr25519::Public>("Dave")],
                 id,
             )
         },
