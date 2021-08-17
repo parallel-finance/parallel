@@ -5404,6 +5404,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-liquid-staking-v2"
+version = "3.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "orml-currencies",
+ "orml-tokens",
+ "orml-traits",
+ "pallet-balances",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "sp-core",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-liquidation"
 version = "3.0.0"
 dependencies = [

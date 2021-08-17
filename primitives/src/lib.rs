@@ -51,6 +51,9 @@ pub type AccountIndex = u32;
 /// Index of a transaction in the chain. 32-bit should be plenty.
 pub type Index = u32;
 
+/// Index of era in relaychain.
+pub type EraIndex = u32;
+
 /// A hash of some data used by the chain.
 pub type Hash = sp_core::H256;
 
