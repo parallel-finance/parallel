@@ -338,7 +338,7 @@ pub mod pallet {
             amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let _who = ensure_signed(origin)?;
-            // TODO(Alan WANG): Check agent is approved.
+            // TODO (Alan WANG): Check agent is approved.
             T::XcmTransfer::transfer(
                 Self::account_id(),
                 T::StakingCurrency::get(),
@@ -359,7 +359,7 @@ pub mod pallet {
         #[pallet::weight(10_000)]
         #[transactional]
         pub fn deposit_event_to_relaychain(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
-            //TODO: ensure that this method is called after update era index.
+            // TODO ensure that this method is called after update era index.
             let who = ensure_signed(origin)?;
             // match stake and unstake,
             let previous_era = Self::previous_era();
@@ -445,47 +445,48 @@ impl<T: Config> Pallet<T> {
                 .map(|_| ty)
         });
 
-        if let Some(staking_operation_type) = success_operation {
-            let current_era = Self::current_era();
-            let (claim_unstake_each_era, claim_stake_each_era) = match staking_operation_type {
-                StakingOperationType::Bond => Self::claim_in_bond_operation(
-                    who,
-                    era_index,
-                    current_era,
-                    &user_ledger_per_era,
-                    &pool_ledger_per_era,
-                ),
-                StakingOperationType::Unbond => Self::claim_in_unbond_operation(
-                    who,
-                    era_index,
-                    current_era,
-                    &user_ledger_per_era,
-                    &pool_ledger_per_era,
-                ),
-                StakingOperationType::Matching => user_ledger_per_era.remaining_withdrawal_limit(), //if matching, can claim all directly
-                _ => (Zero::zero(), Zero::zero()),
-            };
-
-            MatchingQueueByUser::<T>::mutate(who, &era_index, |b| {
-                b.claimed_unstake_amount = b
-                    .claimed_unstake_amount
-                    .saturating_add(claim_unstake_each_era);
-                b.claimed_stake_amount =
-                    b.claimed_stake_amount.saturating_add(claim_stake_each_era);
-
-                if b.total_stake_amount == b.claimed_stake_amount
-                    && b.total_unstake_amount == b.claimed_unstake_amount
-                {
-                    // user have already claimed all he can claim in this era, remove it from MatchingQueue
-                    remove_record_from_user_queue.push(era_index);
-                }
-            });
-
-            *withdrawable_unstake_amount =
-                withdrawable_unstake_amount.saturating_add(claim_unstake_each_era);
-            *withdrawable_stake_amount =
-                withdrawable_stake_amount.saturating_add(claim_stake_each_era);
+        if success_operation.is_none() {
+            return;
         }
+
+        let current_era = Self::current_era();
+        // This unwrap is safe because we checked it's not none
+        let (claim_unstake_each_era, claim_stake_each_era) = match success_operation.unwrap() {
+            StakingOperationType::Bond => Self::claim_in_bond_operation(
+                who,
+                era_index,
+                current_era,
+                &user_ledger_per_era,
+                &pool_ledger_per_era,
+            ),
+            StakingOperationType::Unbond => Self::claim_in_unbond_operation(
+                who,
+                era_index,
+                current_era,
+                &user_ledger_per_era,
+                &pool_ledger_per_era,
+            ),
+            StakingOperationType::Matching => user_ledger_per_era.remaining_withdrawal_limit(), //if matching, can claim all directly
+            _ => (Zero::zero(), Zero::zero()),
+        };
+
+        MatchingQueueByUser::<T>::mutate(who, &era_index, |b| {
+            b.claimed_unstake_amount = b
+                .claimed_unstake_amount
+                .saturating_add(claim_unstake_each_era);
+            b.claimed_stake_amount = b.claimed_stake_amount.saturating_add(claim_stake_each_era);
+
+            if b.total_stake_amount == b.claimed_stake_amount
+                && b.total_unstake_amount == b.claimed_unstake_amount
+            {
+                // user have already claimed all he can claim in this era, remove it from MatchingQueue
+                remove_record_from_user_queue.push(era_index);
+            }
+        });
+
+        *withdrawable_unstake_amount =
+            withdrawable_unstake_amount.saturating_add(claim_unstake_each_era);
+        *withdrawable_stake_amount = withdrawable_stake_amount.saturating_add(claim_stake_each_era);
     }
 
     // if bond, need to wait 1 era or get the matching part instantly
