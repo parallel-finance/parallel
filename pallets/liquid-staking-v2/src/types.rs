@@ -16,15 +16,15 @@ pub enum StakingOperationType {
     Rebond,
     Matching,
     TransferToRelaychain,
-    RecordReward,
-    RecordSlash,
+    RecordRewards,
+    RecordSlashes,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
 pub enum ResponseStatus {
-    Ready,
+    Pending,
     Processing,
-    Successed,
+    Succeeded,
     Failed,
 }
 
@@ -46,7 +46,7 @@ impl<Balance> PoolLedgerPerEra<Balance>
 where
     Balance: AtLeast32BitUnsigned + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default,
 {
-    pub fn matching_in_era(&self) -> (StakingOperationType, Balance) {
+    pub fn op_after_new_era(&self) -> (StakingOperationType, Balance) {
         if self.total_stake_amount > self.total_unstake_amount {
             (
                 StakingOperationType::Bond,
@@ -65,7 +65,7 @@ where
 
 /// The single user's stake/unsatke amount in each era
 #[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug)]
-pub struct UserLedgerPerEra<Balance> {
+pub struct UserLedger<Balance> {
     /// The token amount that user unstake during this era, will be calculated
     /// by exchangerate and xToken amount
     pub total_unstake_amount: Balance,
@@ -86,7 +86,7 @@ pub struct UserLedgerPerEra<Balance> {
 // (claim_unstake_amount_each_era,claim_stake_amount_each_era)
 pub type WithdrawalAmount<Balance> = (Balance, Balance);
 
-impl<Balance> UserLedgerPerEra<Balance>
+impl<Balance> UserLedger<Balance>
 where
     Balance: AtLeast32BitUnsigned
         + FullCodec
@@ -109,7 +109,7 @@ where
     // and user who stake only get the matching part
     pub fn instant_withdrawal_by_bond(
         &self,
-        pool: &PoolLedgerPerEra<Balance>,
+        pool: &PoolLedger<Balance>,
     ) -> WithdrawalAmount<Balance> {
         (
             self.total_unstake_amount,
@@ -122,7 +122,7 @@ where
     // and user who unstake only get the matching part
     pub fn instant_withdrawal_by_unbond(
         &self,
-        pool: &PoolLedgerPerEra<Balance>,
+        pool: &PoolLedger<Balance>,
     ) -> WithdrawalAmount<Balance> {
         (
             Rate::saturating_from_rational(self.total_unstake_amount, pool.total_unstake_amount)

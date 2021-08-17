@@ -135,12 +135,11 @@ pub mod pallet {
         RewardsRecorded(BalanceOf<T>),
         /// The slash is recorded
         SlashRecorded(BalanceOf<T>),
-
         DepositEventToRelaychain(T::AccountId, EraIndex, StakingOperationType, BalanceOf<T>),
         /// Bond operation in relaychain was successed.
-        BondSucceed(EraIndex),
+        BondSucceeded(EraIndex),
         /// Unbond operation in relaychain was successed.
-        UnbondSucceed(EraIndex),
+        UnbondSucceeded(EraIndex),
         /// Era index was updated.
         EraUpdated(EraIndex),
     }
@@ -171,7 +170,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn matching_pool_by_era)]
     pub type MatchingPoolByEra<T: Config> =
-        StorageMap<_, Blake2_128Concat, EraIndex, PoolLedgerPerEra<BalanceOf<T>>, ValueQuery>;
+        StorageMap<_, Blake2_128Concat, EraIndex, PoolLedger<BalanceOf<T>>, ValueQuery>;
 
     /// Store single user's stake and unstake request during each era,
     ///
@@ -191,7 +190,7 @@ pub mod pallet {
         T::AccountId,
         Blake2_128Concat,
         EraIndex,
-        UserLedgerPerEra<BalanceOf<T>>,
+        UserLedger<BalanceOf<T>>,
         ValueQuery,
     >;
 
@@ -249,22 +248,22 @@ pub mod pallet {
         /// StakingPool/T::currency::total_issuance(liquidcurrency)
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn record_reward(
+        pub fn record_rewards(
             origin: OriginFor<T>,
             era_index: EraIndex,
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let _who = ensure_signed(origin)?;
-            Self::ensure_op_not_exists(era_index, StakingOperationType::RecordReward)?;
+            Self::ensure_op_not_exists(era_index, StakingOperationType::RecordRewards)?;
             Self::increase_staked_asset(amount)?;
 
             StakingOperationHistory::<T>::insert(
                 era_index,
-                StakingOperationType::RecordReward,
+                StakingOperationType::RecordRewards,
                 Operation {
                     amount,
                     block_number: frame_system::Pallet::<T>::block_number(),
-                    status: ResponseStatus::Successed,
+                    status: ResponseStatus::Succeeded,
                 },
             );
 
@@ -278,22 +277,22 @@ pub mod pallet {
         /// exchange rate.
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn record_slash(
+        pub fn record_slashes(
             origin: OriginFor<T>,
             era_index: EraIndex,
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let _who = ensure_signed(origin)?;
-            Self::ensure_op_not_exists(era_index, StakingOperationType::RecordSlash)?;
+            Self::ensure_op_not_exists(era_index, StakingOperationType::RecordSlashes)?;
             Self::decrease_staked_asset(amount)?;
 
             StakingOperationHistory::<T>::insert(
                 era_index,
-                StakingOperationType::RecordSlash,
+                StakingOperationType::RecordSlashes,
                 Operation {
                     amount,
                     block_number: frame_system::Pallet::<T>::block_number(),
-                    status: ResponseStatus::Successed,
+                    status: ResponseStatus::Succeeded,
                 },
             );
 
@@ -310,9 +309,9 @@ pub mod pallet {
             era_index: EraIndex,
         ) -> DispatchResultWithPostInfo {
             let _who = ensure_signed(origin)?;
-            let amount = Self::try_mark_op_succeed(era_index, StakingOperationType::Bond)?;
+            let amount = Self::try_mark_op_succeeded(era_index, StakingOperationType::Bond)?;
             T::Currency::deposit(T::LiquidCurrency::get(), &Self::account_id(), amount)?;
-            Self::deposit_event(Event::<T>::BondSucceed(era_index));
+            Self::deposit_event(Event::<T>::BondSucceeded(era_index));
             Ok(().into())
         }
 
@@ -325,9 +324,9 @@ pub mod pallet {
             era_index: EraIndex,
         ) -> DispatchResultWithPostInfo {
             let _who = ensure_signed(origin)?;
-            let amount = Self::try_mark_op_succeed(era_index, StakingOperationType::Unbond)?;
+            let amount = Self::try_mark_op_succeeded(era_index, StakingOperationType::Unbond)?;
             T::Currency::withdraw(T::LiquidCurrency::get(), &Self::account_id(), amount)?;
-            Self::deposit_event(Event::<T>::UnbondSucceed(era_index));
+            Self::deposit_event(Event::<T>::UnbondSucceeded(era_index));
             Ok(().into())
         }
 
@@ -365,13 +364,13 @@ pub mod pallet {
             let previous_era = Self::previous_era();
             let pool_ledger_per_era = MatchingPoolByEra::<T>::get(&previous_era);
 
-            let (operation_type, amount) = pool_ledger_per_era.matching_in_era();
+            let (operation_type, amount) = pool_ledger_per_era.op_after_new_era();
             Self::ensure_op_not_exists(previous_era, operation_type)?;
             StakingOperationHistory::<T>::insert(
                 previous_era,
                 operation_type,
                 Operation {
-                    status: ResponseStatus::Ready,
+                    status: ResponseStatus::Pending,
                     amount,
                     block_number: frame_system::Pallet::<T>::block_number(),
                 },
@@ -433,7 +432,7 @@ impl<T: Config> Pallet<T> {
     fn accumulate_claim_by_era(
         who: &T::AccountId,
         era_index: EraIndex,
-        user_ledger_per_era: UserLedgerPerEra<BalanceOf<T>>,
+        user_ledger_per_era: UserLedger<BalanceOf<T>>,
         withdrawable_unstake_amount: &mut u128,
         withdrawable_stake_amount: &mut u128,
         remove_record_from_user_queue: &mut Vec<EraIndex>,
@@ -441,7 +440,7 @@ impl<T: Config> Pallet<T> {
         let pool_ledger_per_era = MatchingPoolByEra::<T>::get(&era_index);
         let success_operation = pool_ledger_per_era.operation_type.and_then(|t| {
             let operation = StakingOperationHistory::<T>::get(&era_index, &t)?;
-            if operation.status == ResponseStatus::Successed {
+            if operation.status == ResponseStatus::Succeeded {
                 return Some(t);
             }
             None
@@ -452,15 +451,15 @@ impl<T: Config> Pallet<T> {
             let (claim_unstake_each_era, claim_stake_each_era) = match staking_operation_type {
                 StakingOperationType::Bond => Self::claim_in_bond_operation(
                     who,
-                    &era_index,
-                    &current_era,
+                    era_index,
+                    current_era,
                     &user_ledger_per_era,
                     &pool_ledger_per_era,
                 ),
                 StakingOperationType::Unbond => Self::claim_in_unbond_operation(
                     who,
-                    &era_index,
-                    &current_era,
+                    era_index,
+                    current_era,
                     &user_ledger_per_era,
                     &pool_ledger_per_era,
                 ),
@@ -496,10 +495,10 @@ impl<T: Config> Pallet<T> {
     // after waiting 1 era, users who stake get the left part
     fn claim_in_bond_operation(
         who: &T::AccountId,
-        claim_era: &EraIndex,
-        current_era: &EraIndex,
-        user_ledger_per_era: &UserLedgerPerEra<BalanceOf<T>>,
-        pool_ledger_per_era: &PoolLedgerPerEra<BalanceOf<T>>,
+        claim_era: EraIndex,
+        current_era: EraIndex,
+        user_ledger_per_era: &UserLedger<BalanceOf<T>>,
+        pool_ledger_per_era: &PoolLedger<BalanceOf<T>>,
     ) -> WithdrawalAmount<BalanceOf<T>> {
         if claim_era.clone() + T::StakingDuration::get() <= current_era.clone() {
             return user_ledger_per_era.remaining_withdrawal_limit();
@@ -520,12 +519,12 @@ impl<T: Config> Pallet<T> {
     // considering users who stake and forget to claim within 28 eras.
     fn claim_in_unbond_operation(
         who: &T::AccountId,
-        claim_era: &EraIndex,
-        current_era: &EraIndex,
-        user_ledger_per_era: &UserLedgerPerEra<BalanceOf<T>>,
-        pool_ledger_per_era: &PoolLedgerPerEra<BalanceOf<T>>,
+        claim_era: EraIndex,
+        current_era: EraIndex,
+        user_ledger_per_era: &UserLedger<BalanceOf<T>>,
+        pool_ledger_per_era: &PoolLedger<BalanceOf<T>>,
     ) -> WithdrawalAmount<BalanceOf<T>> {
-        if claim_era.clone() + T::BondingDuration::get() <= current_era.clone() {
+        if claim_era + T::BondingDuration::get() <= current_era {
             return user_ledger_per_era.remaining_withdrawal_limit();
         }
 
@@ -574,7 +573,7 @@ impl<T: Config> Pallet<T> {
     }
 
     #[inline]
-    fn try_mark_op_succeed(
+    fn try_mark_op_succeeded(
         era_index: EraIndex,
         op_type: StakingOperationType,
     ) -> Result<BalanceOf<T>, DispatchError> {
@@ -582,19 +581,25 @@ impl<T: Config> Pallet<T> {
             era_index,
             op_type,
             |op| -> Result<BalanceOf<T>, DispatchError> {
-                let next_op = op
-                    .filter(|op| op.status == ResponseStatus::Ready)
-                    .map(|op| Operation {
-                        status: ResponseStatus::Successed,
-                        ..op
+                let (next_op, amount) = op
+                    .filter(|op| op.status == ResponseStatus::Pending)
+                    .map(|op| {
+                        (
+                            Operation {
+                                status: ResponseStatus::Succeeded,
+                                ..op
+                            },
+                            op.amount,
+                        )
                     })
                     .ok_or(Error::<T>::OperationNotReady)?;
-                *op = Some(next_op.clone());
-                Ok(next_op.amount)
+                *op = Some(next_op);
+                Ok(amount)
             },
         )
     }
 
+    #[inline]
     fn ensure_op_not_exists(era_index: EraIndex, op_type: StakingOperationType) -> DispatchResult {
         ensure!(
             StakingOperationHistory::<T>::get(era_index, op_type).is_none(),
