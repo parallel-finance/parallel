@@ -1,8 +1,13 @@
-use codec::{Decode, Encode};
-use sp_runtime::{FixedPointNumber, RuntimeDebug};
+use codec::{Decode, Encode, FullCodec};
+use sp_runtime::{
+    traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize},
+    FixedPointNumber, FixedPointOperand, RuntimeDebug,
+};
+use sp_std::fmt::Debug;
 
-//TODO(wangyafei): use associated type.
-use primitives::{Balance, Rate};
+use primitives::Rate;
+
+use crate::{BalanceOf, Config};
 
 #[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
 pub enum StakingOperationType {
@@ -24,20 +29,23 @@ pub enum ResponseStatus {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
-pub struct Operation<BlockNumber> {
+pub struct Operation<BlockNumber, Balance> {
     pub amount: Balance,
     pub block_number: BlockNumber,
     pub status: ResponseStatus,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug)]
-pub struct PoolLedgerPerEra {
+pub struct PoolLedgerPerEra<Balance> {
     pub total_unstake_amount: Balance,
     pub total_stake_amount: Balance,
     pub operation_type: Option<StakingOperationType>,
 }
 
-impl PoolLedgerPerEra {
+impl<Balance> PoolLedgerPerEra<Balance>
+where
+    Balance: AtLeast32BitUnsigned + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default,
+{
     pub fn matching_in_era(&self) -> (StakingOperationType, Balance) {
         if self.total_stake_amount > self.total_unstake_amount {
             (
@@ -50,14 +58,14 @@ impl PoolLedgerPerEra {
                 self.total_unstake_amount - self.total_stake_amount,
             )
         } else {
-            (StakingOperationType::Matching, 0)
+            (StakingOperationType::Matching, 0u32.into())
         }
     }
 }
 
 /// The single user's stake/unsatke amount in each era
 #[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug)]
-pub struct UserLedgerPerEra {
+pub struct UserLedgerPerEra<Balance> {
     /// The token amount that user unstake during this era, will be calculated
     /// by exchangerate and xToken amount
     pub total_unstake_amount: Balance,
@@ -76,10 +84,19 @@ pub struct UserLedgerPerEra {
 }
 
 // (claim_unstake_amount_each_era,claim_stake_amount_each_era)
-pub type WithdrawalAmount = (Balance, Balance);
+pub type WithdrawalAmount<Balance> = (Balance, Balance);
 
-impl UserLedgerPerEra {
-    pub fn remaining_withdrawal_limit(&self) -> WithdrawalAmount {
+impl<Balance> UserLedgerPerEra<Balance>
+where
+    Balance: AtLeast32BitUnsigned
+        + FullCodec
+        + Copy
+        + MaybeSerializeDeserialize
+        + Debug
+        + Default
+        + FixedPointOperand,
+{
+    pub fn remaining_withdrawal_limit(&self) -> WithdrawalAmount<Balance> {
         (
             self.total_unstake_amount
                 .saturating_sub(self.claimed_unstake_amount),
@@ -90,7 +107,10 @@ impl UserLedgerPerEra {
 
     // after matching mechanism，for bond operation, user who unstake can get all amount directly
     // and user who stake only get the matching part
-    pub fn instant_withdrawal_by_bond(&self, pool: &PoolLedgerPerEra) -> WithdrawalAmount {
+    pub fn instant_withdrawal_by_bond(
+        &self,
+        pool: &PoolLedgerPerEra<Balance>,
+    ) -> WithdrawalAmount<Balance> {
         (
             self.total_unstake_amount,
             Rate::saturating_from_rational(self.total_stake_amount, pool.total_stake_amount)
@@ -100,7 +120,10 @@ impl UserLedgerPerEra {
 
     // after matching mechanism，for unbond operation, user who stake can get all amount directly
     // and user who unstake only get the matching part
-    pub fn instant_withdrawal_by_unbond(&self, pool: &PoolLedgerPerEra) -> WithdrawalAmount {
+    pub fn instant_withdrawal_by_unbond(
+        &self,
+        pool: &PoolLedgerPerEra<Balance>,
+    ) -> WithdrawalAmount<Balance> {
         (
             Rate::saturating_from_rational(self.total_unstake_amount, pool.total_unstake_amount)
                 .saturating_mul_int(pool.total_stake_amount),

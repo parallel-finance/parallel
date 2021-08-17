@@ -1,13 +1,13 @@
+use frame_benchmarking::Zero;
 use frame_support::traits::Get;
 use orml_traits::MultiCurrency;
 use sp_runtime::{ArithmeticError, DispatchError, DispatchResult, FixedPointNumber};
 
 use primitives::EraIndex;
 
-use crate::{Config, Error, ExchangeRate, MatchingPoolByEra, MatchingQueueByUser, Pallet};
-
-pub(crate) type BalanceOf<T> =
-    <<T as Config>::Currency as MultiCurrency<<T as frame_system::Config>::AccountId>>::Balance;
+use crate::{
+    BalanceOf, Config, Error, ExchangeRate, MatchingPoolByEra, MatchingQueueByUser, Pallet,
+};
 
 //todo change the return type
 pub trait LiquidStakingProtocol<AccountId, Balance> {
@@ -106,7 +106,7 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId, BalanceOf<T>> for Pallet<T> 
         });
 
         // remove finished records from MatchingQueue
-        if remove_record_from_user_queue.len() > 0 {
+        if !remove_record_from_user_queue.is_empty() {
             remove_record_from_user_queue.iter().for_each(|era_index| {
                 MatchingQueueByUser::<T>::remove(who, era_index);
             });
