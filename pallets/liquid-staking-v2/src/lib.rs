@@ -167,7 +167,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn matching_pool_by_era)]
     pub type MatchingPoolByEra<T: Config> =
-        StorageMap<_, Blake2_128Concat, EraIndex, PoolLedgerPerEra, ValueQuery>;
+        StorageMap<_, Blake2_128Concat, EraIndex, PoolLedger, ValueQuery>;
 
     /// Store single user's stake and unstake request during each era,
     ///
@@ -187,7 +187,7 @@ pub mod pallet {
         T::AccountId,
         Blake2_128Concat,
         EraIndex,
-        UserLedgerPerEra,
+        UserLedger,
         ValueQuery,
     >;
 
@@ -363,7 +363,7 @@ pub mod pallet {
             let previous_era = Self::previous_era();
             let pool_ledger_per_era = MatchingPoolByEra::<T>::get(&previous_era);
 
-            let (operation_type, amount) = pool_ledger_per_era.matching_in_era();
+            let (operation_type, amount) = pool_ledger_per_era.op_after_new_era();
             // FIXME(Alan WANG): IT WON'T SUCCEED! CAUSE `and_then` WILL NEVER BE EXECUTED!
             StakingOperationHistory::<T>::try_mutate(
                 &previous_era,
@@ -437,7 +437,7 @@ impl<T: Config> Pallet<T> {
     fn accumulate_claim_by_era(
         who: &T::AccountId,
         era_index: EraIndex,
-        user_ledger_per_era: UserLedgerPerEra,
+        user_ledger_per_era: UserLedger,
         withdrawable_unstake_amount: &mut u128,
         withdrawable_stake_amount: &mut u128,
         remove_record_from_user_queue: &mut Vec<EraIndex>,
@@ -502,8 +502,8 @@ impl<T: Config> Pallet<T> {
         who: &T::AccountId,
         claim_era: EraIndex,
         current_era: EraIndex,
-        user_ledger_per_era: &UserLedgerPerEra,
-        pool_ledger_per_era: &PoolLedgerPerEra,
+        user_ledger_per_era: &UserLedger,
+        pool_ledger_per_era: &PoolLedger,
     ) -> WithdrawalAmount {
         if claim_era + T::StakingDuration::get() <= current_era {
             return user_ledger_per_era.remaining_withdrawal_limit();
@@ -527,8 +527,8 @@ impl<T: Config> Pallet<T> {
         who: &T::AccountId,
         claim_era: EraIndex,
         current_era: EraIndex,
-        user_ledger_per_era: &UserLedgerPerEra,
-        pool_ledger_per_era: &PoolLedgerPerEra,
+        user_ledger_per_era: &UserLedger,
+        pool_ledger_per_era: &PoolLedger,
     ) -> WithdrawalAmount {
         if claim_era + T::BondingDuration::get() > current_era {
             return user_ledger_per_era.remaining_withdrawal_limit();

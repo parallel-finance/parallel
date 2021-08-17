@@ -32,7 +32,7 @@ pub struct Operation<BlockNumber> {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug)]
-pub struct PoolLedgerPerEra {
+pub struct PoolLedger {
     #[codec(compact)]
     pub total_unstake_amount: Balance,
     #[codec(compact)]
@@ -40,8 +40,8 @@ pub struct PoolLedgerPerEra {
     pub operation_type: Option<StakingOperationType>,
 }
 
-impl PoolLedgerPerEra {
-    pub fn matching_in_era(&self) -> (StakingOperationType, Balance) {
+impl PoolLedger {
+    pub fn op_after_new_era(&self) -> (StakingOperationType, Balance) {
         if self.total_stake_amount > self.total_unstake_amount {
             (
                 StakingOperationType::Bond,
@@ -60,7 +60,7 @@ impl PoolLedgerPerEra {
 
 /// The single user's stake/unsatke amount in each era
 #[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug)]
-pub struct UserLedgerPerEra {
+pub struct UserLedger {
     /// The token amount that user unstake during this era, will be calculated
     /// by exchangerate and xToken amount
     #[codec(compact)]
@@ -85,7 +85,7 @@ pub struct UserLedgerPerEra {
 // (claim_unstake_amount_each_era,claim_stake_amount_each_era)
 pub type WithdrawalAmount = (Balance, Balance);
 
-impl UserLedgerPerEra {
+impl UserLedger {
     pub fn remaining_withdrawal_limit(&self) -> WithdrawalAmount {
         (
             self.total_unstake_amount
@@ -97,7 +97,7 @@ impl UserLedgerPerEra {
 
     // after matching mechanism，for bond operation, user who unstake can get all amount directly
     // and user who stake only get the matching part
-    pub fn instant_withdrawal_by_bond(&self, pool: &PoolLedgerPerEra) -> WithdrawalAmount {
+    pub fn instant_withdrawal_by_bond(&self, pool: &PoolLedger) -> WithdrawalAmount {
         (
             self.total_unstake_amount,
             Rate::saturating_from_rational(self.total_stake_amount, pool.total_stake_amount)
@@ -107,7 +107,7 @@ impl UserLedgerPerEra {
 
     // after matching mechanism，for unbond operation, user who stake can get all amount directly
     // and user who unstake only get the matching part
-    pub fn instant_withdrawal_by_unbond(&self, pool: &PoolLedgerPerEra) -> WithdrawalAmount {
+    pub fn instant_withdrawal_by_unbond(&self, pool: &PoolLedger) -> WithdrawalAmount {
         (
             Rate::saturating_from_rational(self.total_unstake_amount, pool.total_unstake_amount)
                 .saturating_mul_int(pool.total_stake_amount),
