@@ -490,7 +490,7 @@ impl<T: Config> Pallet<T> {
         user_ledger_per_era: &UserLedger<BalanceOf<T>>,
         pool_ledger_per_era: &PoolLedger<BalanceOf<T>>,
     ) -> WithdrawalAmount<BalanceOf<T>> {
-        if claim_era.clone() + T::StakingDuration::get() <= current_era.clone() {
+        if claim_era + T::StakingDuration::get() <= current_era {
             return user_ledger_per_era.remaining_withdrawal_limit();
         }
 

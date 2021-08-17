@@ -129,7 +129,7 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId, BalanceOf<T>> for Pallet<T> 
         }
 
         // transfer KSM from palletId to who
-        if !withdrawable_unstake_amount > 0 {
+        if withdrawable_unstake_amount > 0 {
             T::Currency::transfer(
                 T::StakingCurrency::get(),
                 &Self::account_id(),
