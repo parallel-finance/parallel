@@ -94,21 +94,11 @@ pub mod pallet {
         #[pallet::constant]
         type BondingDuration: Get<EraIndex>;
 
-        /// The origin which can withdraw staking assets.
-        // type WithdrawOrigin: EnsureOrigin<Self::Origin>;
-
         /// XCM transfer
         type XcmTransfer: XcmTransfer<Self::AccountId, BalanceOf<Self>, CurrencyId>;
 
-        /// Approved agent list on relaychain
-        // type Members: SortedMembers<Self::AccountId>;
-
         /// Base xcm weight to use for cross chain transfer
         type BaseXcmWeight: Get<Weight>;
-
-        /// The maximum size of Unstake
-        // #[pallet::constant]
-        type MaxUnstake: Get<u32>;
     }
 
     #[pallet::error]
@@ -397,7 +387,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             <Self as LiquidStakingProtocol<T::AccountId, BalanceOf<T>>>::stake(&who, amount)?;
-            Self::deposit_event(Event::<T>::Staked(who.clone(), amount));
+            Self::deposit_event(Event::<T>::Staked(who, amount));
             Ok(().into())
         }
 
@@ -410,7 +400,7 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             let asset_amount =
                 <Self as LiquidStakingProtocol<T::AccountId, BalanceOf<T>>>::unstake(&who, amount)?;
-            Self::deposit_event(Event::<T>::Unstaked(who.clone(), amount, asset_amount));
+            Self::deposit_event(Event::<T>::Unstaked(who, amount, asset_amount));
             Ok(().into())
         }
 

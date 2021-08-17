@@ -88,6 +88,7 @@ orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-r
 
 # Parallel dependencies
 pallet-liquid-staking        = { path = '../../pallets/liquid-staking', default-features = false }
+pallet-liquid-staking-v2     = { path = '../../pallets/liquid-staking-v2', default-features = false }
 pallet-liquidation           = { path = '../../pallets/liquidation', default-features = false }
 pallet-loans                 = { path = '../../pallets/loans', default-features = false }
 pallet-loans-benchmarking    = { path = '../../pallets/loans/benchmarking', default-features = false, optional = true }
@@ -165,6 +166,7 @@ std                = [
   'pallet-loans-rpc-runtime-api/std',
   'pallet-nominee-election/std',
   'pallet-liquid-staking/std',
+  'pallet-liquid-staking-v2/std',
   'pallet-liquidation/std',
   'pallet-prices/std',
   'pallet-multisig/std',

@@ -77,6 +77,7 @@ pub use constants::{currency, fee, time};
 pub use impls::DealWithFees;
 
 pub use pallet_liquid_staking;
+pub use pallet_liquid_staking_v2;
 pub use pallet_liquidation;
 pub use pallet_loans;
 pub use pallet_multisig;
@@ -421,6 +422,22 @@ impl pallet_liquid_staking::Config for Runtime {
     type XcmTransfer = XTokens;
     type Members = LiquidStakingAgentMembership;
     type BaseXcmWeight = BaseXcmWeight;
+}
+
+parameter_types! {
+    pub const StakingDuration: EraIndex = 1;
+    pub const BondingDuration: EraIndex = 28;
+}
+impl pallet_liquid_staking_v2::Config for Runtime {
+    type Event = Event;
+    type Currency = Currencies;
+    type PalletId = StakingPalletId;
+    type StakingCurrency = StakingCurrency;
+    type LiquidCurrency = LiquidCurrency;
+    type XcmTransfer = XTokens;
+    type BaseXcmWeight = BaseXcmWeight;
+    type StakingDuration = StakingDuration;
+    type BondingDuration = BondingDuration;
 }
 
 parameter_types! {
@@ -1142,6 +1159,7 @@ construct_runtime!(
 
         // LiquidStaking
         LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config},
+        LiquidStakingV2: pallet_liquid_staking_v2::{Pallet, Call, Storage, Event<T>},
         LiquidStakingAgentMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>},
         NomineeElection: pallet_nominee_election::{Pallet, Call, Storage, Event<T>},
         ValidatorFeedersMembership: pallet_membership::<Instance4>::{Pallet, Call, Storage, Event<T>, Config<T>}
