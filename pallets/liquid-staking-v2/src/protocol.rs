@@ -1,6 +1,6 @@
 use frame_support::{require_transactional, traits::Get};
 use orml_traits::MultiCurrency;
-use sp_runtime::{ArithmeticError, DispatchError, DispatchResult, FixedPointNumber};
+use sp_runtime::{traits::Zero, ArithmeticError, DispatchError, DispatchResult, FixedPointNumber};
 use sp_std::vec::Vec;
 
 use primitives::EraIndex;
@@ -28,8 +28,8 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId, BalanceOf<T>> for Pallet<T> 
         MatchingQueueByUser::<T>::try_mutate(
             who,
             &Self::current_era(),
-            |user_ledger_per_era| -> DispatchResult {
-                user_ledger_per_era.total_stake_amount = user_ledger_per_era
+            |user_ledger| -> DispatchResult {
+                user_ledger.total_stake_amount = user_ledger
                     .total_stake_amount
                     .checked_add(amount)
                     .ok_or(ArithmeticError::Overflow)?;
@@ -69,8 +69,8 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId, BalanceOf<T>> for Pallet<T> 
         MatchingQueueByUser::<T>::try_mutate(
             who,
             &Self::current_era(),
-            |user_ledger_per_era| -> DispatchResult {
-                user_ledger_per_era.total_unstake_amount = user_ledger_per_era
+            |user_ledger| -> DispatchResult {
+                user_ledger.total_unstake_amount = user_ledger
                     .total_unstake_amount
                     .checked_add(asset_amount)
                     .ok_or(ArithmeticError::Overflow)?;
@@ -95,14 +95,14 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId, BalanceOf<T>> for Pallet<T> 
 
     #[require_transactional]
     fn claim(who: &T::AccountId) -> DispatchResult {
-        let mut withdrawable_stake_amount = 0u128;
-        let mut withdrawable_unstake_amount = 0u128;
+        let mut withdrawable_stake_amount: BalanceOf<T> = Zero::zero();
+        let mut withdrawable_unstake_amount: BalanceOf<T> = Zero::zero();
         let mut remove_record_from_user_queue = Vec::<EraIndex>::new();
-        MatchingQueueByUser::<T>::iter_prefix(who).for_each(|(era_index, user_ledger_per_era)| {
+        MatchingQueueByUser::<T>::iter_prefix(who).for_each(|(era_index, user_ledger)| {
             Self::accumulate_claim_by_era(
                 who,
                 era_index,
-                user_ledger_per_era,
+                user_ledger,
                 &mut withdrawable_stake_amount,
                 &mut withdrawable_unstake_amount,
                 &mut remove_record_from_user_queue,

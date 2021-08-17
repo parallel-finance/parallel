@@ -244,7 +244,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let _who = ensure_signed(origin)?;
             Self::ensure_op_not_exists(era_index, StakingOperationType::RecordRewards)?;
-            Self::increase_staked_asset(amount)?;
+            Self::do_record_rewards(amount)?;
 
             StakingOperationHistory::<T>::insert(
                 era_index,
@@ -273,7 +273,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let _who = ensure_signed(origin)?;
             Self::ensure_op_not_exists(era_index, StakingOperationType::RecordSlashes)?;
-            Self::decrease_staked_asset(amount)?;
+            Self::do_record_slashes(amount)?;
 
             StakingOperationHistory::<T>::insert(
                 era_index,
@@ -360,9 +360,9 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             // match stake and unstake,
             let previous_era = Self::previous_era();
-            let pool_ledger_per_era = MatchingPoolByEra::<T>::get(&previous_era);
+            let pool_ledger = MatchingPoolByEra::<T>::get(&previous_era);
 
-            let (operation_type, amount) = pool_ledger_per_era.op_after_new_era();
+            let (operation_type, amount) = pool_ledger.op_after_new_era();
             Self::ensure_op_not_exists(previous_era, operation_type)?;
             StakingOperationHistory::<T>::insert(
                 previous_era,
@@ -373,8 +373,8 @@ pub mod pallet {
                     block_number: frame_system::Pallet::<T>::block_number(),
                 },
             );
-            MatchingPoolByEra::<T>::mutate(&previous_era, |pool_ledger_per_era| {
-                pool_ledger_per_era.operation_type = Some(operation_type);
+            MatchingPoolByEra::<T>::mutate(&previous_era, |pool_ledger| {
+                pool_ledger.operation_type = Some(operation_type);
             });
             // Deposit event, Offchain stake-client need to listen this
             Self::deposit_event(Event::DepositEventToRelaychain(
@@ -430,13 +430,13 @@ impl<T: Config> Pallet<T> {
     fn accumulate_claim_by_era(
         who: &T::AccountId,
         era_index: EraIndex,
-        user_ledger_per_era: UserLedger<BalanceOf<T>>,
-        withdrawable_unstake_amount: &mut u128,
-        withdrawable_stake_amount: &mut u128,
+        user_ledger: UserLedger<BalanceOf<T>>,
+        withdrawable_unstake_amount: &mut BalanceOf<T>,
+        withdrawable_stake_amount: &mut BalanceOf<T>,
         remove_record_from_user_queue: &mut Vec<EraIndex>,
     ) {
-        let pool_ledger_per_era = MatchingPoolByEra::<T>::get(&era_index);
-        let success_operation = pool_ledger_per_era.operation_type.and_then(|ty| {
+        let pool_ledger = MatchingPoolByEra::<T>::get(&era_index);
+        let success_operation = pool_ledger.operation_type.and_then(|ty| {
             StakingOperationHistory::<T>::get(&era_index, &ty)
                 .filter(|op| op.status == ResponseStatus::Succeeded)
                 .map(|_| ty)
@@ -448,30 +448,28 @@ impl<T: Config> Pallet<T> {
 
         let current_era = Self::current_era();
         // This unwrap is safe because we checked it's not none
-        let (claim_unstake_each_era, claim_stake_each_era) = match success_operation.unwrap() {
+        let (claim_unstake, claim_stake) = match success_operation.unwrap() {
             StakingOperationType::Bond => Self::claim_in_bond_operation(
                 who,
                 era_index,
                 current_era,
-                &user_ledger_per_era,
-                &pool_ledger_per_era,
+                &user_ledger,
+                &pool_ledger,
             ),
             StakingOperationType::Unbond => Self::claim_in_unbond_operation(
                 who,
                 era_index,
                 current_era,
-                &user_ledger_per_era,
-                &pool_ledger_per_era,
+                &user_ledger,
+                &pool_ledger,
             ),
-            StakingOperationType::Matching => user_ledger_per_era.remaining_withdrawal_limit(), //if matching, can claim all directly
+            StakingOperationType::Matching => user_ledger.remaining_withdrawal_limit(), //if matching, can claim all directly
             _ => (Zero::zero(), Zero::zero()),
         };
 
         MatchingQueueByUser::<T>::mutate(who, &era_index, |b| {
-            b.claimed_unstake_amount = b
-                .claimed_unstake_amount
-                .saturating_add(claim_unstake_each_era);
-            b.claimed_stake_amount = b.claimed_stake_amount.saturating_add(claim_stake_each_era);
+            b.claimed_unstake_amount = b.claimed_unstake_amount.saturating_add(claim_unstake);
+            b.claimed_stake_amount = b.claimed_stake_amount.saturating_add(claim_stake);
 
             if b.total_stake_amount == b.claimed_stake_amount
                 && b.total_unstake_amount == b.claimed_unstake_amount
@@ -481,9 +479,8 @@ impl<T: Config> Pallet<T> {
             }
         });
 
-        *withdrawable_unstake_amount =
-            withdrawable_unstake_amount.saturating_add(claim_unstake_each_era);
-        *withdrawable_stake_amount = withdrawable_stake_amount.saturating_add(claim_stake_each_era);
+        *withdrawable_unstake_amount = withdrawable_unstake_amount.saturating_add(claim_unstake);
+        *withdrawable_stake_amount = withdrawable_stake_amount.saturating_add(claim_stake);
     }
 
     // if bond, need to wait 1 era or get the matching part instantly
@@ -494,14 +491,14 @@ impl<T: Config> Pallet<T> {
         who: &T::AccountId,
         claim_era: EraIndex,
         current_era: EraIndex,
-        user_ledger_per_era: &UserLedger<BalanceOf<T>>,
-        pool_ledger_per_era: &PoolLedger<BalanceOf<T>>,
+        user_ledger: &UserLedger<BalanceOf<T>>,
+        pool_ledger: &PoolLedger<BalanceOf<T>>,
     ) -> WithdrawalAmount<BalanceOf<T>> {
         if claim_era + T::StakingDuration::get() <= current_era {
-            return user_ledger_per_era.remaining_withdrawal_limit();
+            return user_ledger.remaining_withdrawal_limit();
         }
 
-        if user_ledger_per_era.claimed_matching {
+        if user_ledger.claimed_matching {
             return (Zero::zero(), Zero::zero());
         }
 
@@ -509,7 +506,7 @@ impl<T: Config> Pallet<T> {
             b.claimed_matching = true;
         });
 
-        user_ledger_per_era.instant_withdrawal_by_bond(pool_ledger_per_era)
+        user_ledger.instant_withdrawal_by_bond(pool_ledger)
     }
 
     // if unbond, normally need to wait 28 eras
@@ -519,14 +516,14 @@ impl<T: Config> Pallet<T> {
         who: &T::AccountId,
         claim_era: EraIndex,
         current_era: EraIndex,
-        user_ledger_per_era: &UserLedger<BalanceOf<T>>,
-        pool_ledger_per_era: &PoolLedger<BalanceOf<T>>,
+        user_ledger: &UserLedger<BalanceOf<T>>,
+        pool_ledger: &PoolLedger<BalanceOf<T>>,
     ) -> WithdrawalAmount<BalanceOf<T>> {
         if claim_era + T::BondingDuration::get() <= current_era {
-            return user_ledger_per_era.remaining_withdrawal_limit();
+            return user_ledger.remaining_withdrawal_limit();
         }
 
-        if user_ledger_per_era.claimed_matching {
+        if user_ledger.claimed_matching {
             return (Zero::zero(), Zero::zero());
         }
 
@@ -534,14 +531,14 @@ impl<T: Config> Pallet<T> {
             b.claimed_matching = true;
         });
 
-        user_ledger_per_era.instant_withdrawal_by_unbond(pool_ledger_per_era)
+        user_ledger.instant_withdrawal_by_unbond(pool_ledger)
     }
 }
 
 impl<T: Config> Pallet<T> {
     /// Increase staked asset and update exchange_rate later.
     #[inline]
-    fn increase_staked_asset(amount: BalanceOf<T>) -> DispatchResult {
+    fn do_record_rewards(amount: BalanceOf<T>) -> DispatchResult {
         StakingPool::<T>::try_mutate(|m| -> DispatchResult {
             *m = m.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
             Ok(())
@@ -551,7 +548,7 @@ impl<T: Config> Pallet<T> {
 
     /// Decrease staked asset and update exchange_rate later.
     #[inline]
-    fn decrease_staked_asset(amount: BalanceOf<T>) -> DispatchResult {
+    fn do_record_slashes(amount: BalanceOf<T>) -> DispatchResult {
         StakingPool::<T>::try_mutate(|m| -> DispatchResult {
             *m = m.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
             Ok(())
