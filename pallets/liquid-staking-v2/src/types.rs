@@ -36,13 +36,13 @@ pub struct Operation<BlockNumber, Balance> {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug)]
-pub struct PoolLedgerPerEra<Balance> {
+pub struct PoolLedger<Balance> {
     pub total_unstake_amount: Balance,
     pub total_stake_amount: Balance,
     pub operation_type: Option<StakingOperationType>,
 }
 
-impl<Balance> PoolLedgerPerEra<Balance>
+impl<Balance> PoolLedger<Balance>
 where
     Balance: AtLeast32BitUnsigned + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default,
 {
