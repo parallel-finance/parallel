@@ -1,6 +1,7 @@
 use frame_support::{require_transactional, traits::Get};
 use orml_traits::MultiCurrency;
 use sp_runtime::{ArithmeticError, DispatchError, DispatchResult, FixedPointNumber};
+use sp_std::vec::Vec;
 
 use primitives::EraIndex;
 
@@ -48,6 +49,7 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId, BalanceOf<T>> for Pallet<T> 
                 Ok(())
             },
         )?;
+
         Ok(().into())
     }
 

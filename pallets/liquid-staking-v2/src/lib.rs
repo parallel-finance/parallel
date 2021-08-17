@@ -41,13 +41,11 @@ use sp_runtime::{
 use sp_std::prelude::*;
 use xcm::v0::{Junction, MultiLocation, NetworkId};
 
-use primitives::{Amount, Balance, CurrencyId, EraIndex, Rate, Ratio};
+use primitives::{Amount, Balance, CurrencyId, EraIndex, Rate};
 
 use self::{protocol::*, types::*};
 
 pub use pallet::*;
-
-pub const MAX_UNSTAKE_CHUNKS: usize = 5;
 
 pub(crate) type BalanceOf<T> =
     <<T as Config>::Currency as MultiCurrency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -125,7 +123,7 @@ pub mod pallet {
         /// The rewards are recorded
         RewardsRecorded(BalanceOf<T>),
         /// The slash is recorded
-        SlashRecorded(BalanceOf<T>),
+        SlashesRecorded(BalanceOf<T>),
         DepositEventToRelaychain(T::AccountId, EraIndex, StakingOperationType, BalanceOf<T>),
         /// Bond operation in relaychain was successed.
         BondSucceeded(EraIndex),
@@ -140,15 +138,15 @@ pub mod pallet {
     #[pallet::getter(fn exchange_rate)]
     pub type ExchangeRate<T: Config> = StorageValue<_, Rate, ValueQuery>;
 
-    /// Fraction of staking currency currently set aside for insurance pool
-    #[pallet::storage]
-    #[pallet::getter(fn reserve_factor)]
-    pub type ReserveFactor<T: Config> = StorageValue<_, Ratio, ValueQuery>;
+    // /// Fraction of staking currency currently set aside for insurance pool
+    // #[pallet::storage]
+    // #[pallet::getter(fn reserve_factor)]
+    // pub type ReserveFactor<T: Config> = StorageValue<_, Ratio, ValueQuery>;
 
-    /// The total amount of insurance pool.
-    #[pallet::storage]
-    #[pallet::getter(fn insurance_pool)]
-    pub type InsurancePool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+    // /// The total amount of insurance pool.
+    // #[pallet::storage]
+    // #[pallet::getter(fn insurance_pool)]
+    // pub type InsurancePool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     /// The total amount of staking pool.
     #[pallet::storage]
@@ -287,7 +285,7 @@ pub mod pallet {
                 },
             );
 
-            Self::deposit_event(Event::<T>::SlashRecorded(amount));
+            Self::deposit_event(Event::<T>::SlashesRecorded(amount));
             Ok(().into())
         }
 
@@ -342,6 +340,15 @@ pub mod pallet {
                 ),
                 T::BaseXcmWeight::get(),
             )?;
+            StakingOperationHistory::<T>::insert(
+                Self::current_era(),
+                StakingOperationType::TransferToRelaychain,
+                Operation {
+                    status: ResponseStatus::Pending,
+                    amount,
+                    block_number: frame_system::Pallet::<T>::block_number(),
+                },
+            );
             Ok(().into())
         }
 
@@ -497,6 +504,7 @@ impl<T: Config> Pallet<T> {
         if user_ledger_per_era.claimed_matching {
             return (Zero::zero(), Zero::zero());
         }
+
         MatchingQueueByUser::<T>::mutate(who, claim_era, |b| {
             b.claimed_matching = true;
         });
