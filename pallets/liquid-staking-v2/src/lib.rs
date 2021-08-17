@@ -244,20 +244,19 @@ pub mod pallet {
         /// StakingPool/T::currency::total_issuance(liquidcurrency)
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn record_reward(
+        pub fn record_rewards(
             origin: OriginFor<T>,
             era_index: EraIndex,
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let _who = ensure_signed(origin)?;
-            Self::ensure_op_not_exists(era_index, StakingOperationType::RecordReward)?;
+            Self::ensure_op_not_exists(era_index, StakingOperationType::RecordRewards)?;
 
-            Self::increase_staked_asset(amount)?;
-            Self::update_exchange_rate()?;
+            Self::do_record_rewards(amount)?;
 
             StakingOperationHistory::<T>::insert(
                 era_index,
-                StakingOperationType::RecordReward,
+                StakingOperationType::RecordRewards,
                 Operation {
                     amount,
                     block_number: frame_system::Pallet::<T>::block_number(),
@@ -275,19 +274,18 @@ pub mod pallet {
         /// exchange rate.
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn record_slash(
+        pub fn record_slashes(
             origin: OriginFor<T>,
             era_index: EraIndex,
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let _who = ensure_signed(origin)?;
-            Self::ensure_op_not_exists(era_index, StakingOperationType::RecordSlash)?;
-            Self::decrease_staked_asset(amount)?;
-            Self::update_exchange_rate()?;
+            Self::ensure_op_not_exists(era_index, StakingOperationType::RecordSlashes)?;
+            Self::do_record_slashes(amount)?;
 
             StakingOperationHistory::<T>::insert(
                 era_index,
-                StakingOperationType::RecordSlash,
+                StakingOperationType::RecordSlashes,
                 Operation {
                     amount,
                     block_number: frame_system::Pallet::<T>::block_number(),
@@ -308,7 +306,7 @@ pub mod pallet {
             era_index: EraIndex,
         ) -> DispatchResultWithPostInfo {
             let _who = ensure_signed(origin)?;
-            let amount = Self::try_mark_op_succeed(era_index, StakingOperationType::Bond)?;
+            let amount = Self::try_mark_op_succeeded(era_index, StakingOperationType::Bond)?;
             T::Currency::deposit(T::LiquidCurrency::get(), &Self::account_id(), amount)?;
             Self::deposit_event(Event::<T>::BondSucceeded(era_index));
             Ok(().into())
@@ -323,7 +321,7 @@ pub mod pallet {
             era_index: EraIndex,
         ) -> DispatchResultWithPostInfo {
             let _who = ensure_signed(origin)?;
-            let amount = Self::try_mark_op_succeed(era_index, StakingOperationType::Unbond)?;
+            let amount = Self::try_mark_op_succeeded(era_index, StakingOperationType::Unbond)?;
             T::Currency::withdraw(T::LiquidCurrency::get(), &Self::account_id(), amount)?;
             Self::deposit_event(Event::<T>::UnbondSucceeded(era_index));
             Ok(().into())
@@ -548,19 +546,23 @@ impl<T: Config> Pallet<T> {
 
 impl<T: Config> Pallet<T> {
     #[inline]
-    fn increase_staked_asset(amount: BalanceOf<T>) -> DispatchResult {
+    fn do_record_rewards(amount: BalanceOf<T>) -> DispatchResult {
         StakingPool::<T>::try_mutate(|m| -> DispatchResult {
             *m = m.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
             Ok(())
-        })
+        })?;
+
+        Self::update_exchange_rate()
     }
 
     #[inline]
-    fn decrease_staked_asset(amount: BalanceOf<T>) -> DispatchResult {
+    fn do_record_slashes(amount: BalanceOf<T>) -> DispatchResult {
         StakingPool::<T>::try_mutate(|m| -> DispatchResult {
             *m = m.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
             Ok(())
-        })
+        })?;
+
+        Self::update_exchange_rate()
     }
 
     #[inline]
@@ -575,7 +577,7 @@ impl<T: Config> Pallet<T> {
     }
 
     #[inline]
-    fn try_mark_op_succeed(
+    fn try_mark_op_succeeded(
         era_index: EraIndex,
         op_type: StakingOperationType,
     ) -> Result<BalanceOf<T>, DispatchError> {
@@ -583,19 +585,25 @@ impl<T: Config> Pallet<T> {
             era_index,
             op_type,
             |op| -> Result<BalanceOf<T>, DispatchError> {
-                let next_op = op
+                let (next_op, amount) = op
                     .filter(|op| op.status == ResponseStatus::Pending)
-                    .map(|op| Operation {
-                        status: ResponseStatus::Succeeded,
-                        ..op
+                    .map(|op| {
+                        (
+                            Operation {
+                                status: ResponseStatus::Succeeded,
+                                ..op
+                            },
+                            op.amount,
+                        )
                     })
                     .ok_or(Error::<T>::OperationNotReady)?;
-                *op = Some(next_op.clone());
-                Ok(next_op.amount)
+                *op = Some(next_op);
+                Ok(amount)
             },
         )
     }
 
+    #[inline]
     fn ensure_op_not_exists(era_index: EraIndex, op_type: StakingOperationType) -> DispatchResult {
         ensure!(
             StakingOperationHistory::<T>::get(era_index, op_type).is_none(),
