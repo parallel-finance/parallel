@@ -262,7 +262,7 @@ pub mod pallet {
                 Operation {
                     amount,
                     block_number: frame_system::Pallet::<T>::block_number(),
-                    status: ResponseStatus::Successed,
+                    status: ResponseStatus::Succeeded,
                 },
             );
 
@@ -292,7 +292,7 @@ pub mod pallet {
                 Operation {
                     amount,
                     block_number: frame_system::Pallet::<T>::block_number(),
-                    status: ResponseStatus::Successed,
+                    status: ResponseStatus::Succeeded,
                 },
             );
 
@@ -372,7 +372,7 @@ pub mod pallet {
                 |o| -> DispatchResult {
                     ensure!(*o == None, "error");
                     o.as_mut().and_then(|operation| {
-                        operation.status = ResponseStatus::Ready;
+                        operation.status = ResponseStatus::Pending;
                         operation.amount = amount;
                         operation.block_number = frame_system::Pallet::<T>::block_number();
                         Some(())
@@ -446,7 +446,7 @@ impl<T: Config> Pallet<T> {
         let pool_ledger_per_era = MatchingPoolByEra::<T>::get(&era_index);
         let success_operation = pool_ledger_per_era.operation_type.and_then(|t| {
             let operation = StakingOperationHistory::<T>::get(&era_index, &t)?;
-            if operation.status == ResponseStatus::Successed {
+            if operation.status == ResponseStatus::Succeeded {
                 return Some(t);
             }
             None
@@ -457,15 +457,15 @@ impl<T: Config> Pallet<T> {
             let (claim_unstake_each_era, claim_stake_each_era) = match staking_operation_type {
                 StakingOperationType::Bond => Self::claim_in_bond_operation(
                     who,
-                    &era_index,
-                    &current_era,
+                    era_index,
+                    current_era,
                     &user_ledger_per_era,
                     &pool_ledger_per_era,
                 ),
                 StakingOperationType::Unbond => Self::claim_in_unbond_operation(
                     who,
-                    &era_index,
-                    &current_era,
+                    era_index,
+                    current_era,
                     &user_ledger_per_era,
                     &pool_ledger_per_era,
                 ),
@@ -501,24 +501,24 @@ impl<T: Config> Pallet<T> {
     // after waiting 1 era, users who stake get the left part
     fn claim_in_bond_operation(
         who: &T::AccountId,
-        claim_era: &EraIndex,
-        current_era: &EraIndex,
+        claim_era: EraIndex,
+        current_era: EraIndex,
         user_ledger_per_era: &UserLedgerPerEra,
         pool_ledger_per_era: &PoolLedgerPerEra,
     ) -> WithdrawalAmount {
-        if claim_era.clone() + T::StakingDuration::get() > current_era.clone() {
-            if !user_ledger_per_era.claimed_matching {
-                MatchingQueueByUser::<T>::mutate(who, claim_era, |b| {
-                    b.claimed_matching = true;
-                });
-
-                user_ledger_per_era.instant_withdrawal_by_bond(pool_ledger_per_era)
-            } else {
-                (0, 0)
-            }
-        } else {
-            user_ledger_per_era.remaining_withdrawal_limit()
+        if claim_era + T::StakingDuration::get() <= current_era {
+            return user_ledger_per_era.remaining_withdrawal_limit();
         }
+
+        if user_ledger_per_era.claimed_matching {
+            return (0, 0);
+        }
+
+        MatchingQueueByUser::<T>::mutate(who, claim_era, |b| {
+            b.claimed_matching = true;
+        });
+
+        user_ledger_per_era.instant_withdrawal_by_bond(pool_ledger_per_era)
     }
 
     // if unbond, normally need to wait 28 eras
@@ -526,24 +526,24 @@ impl<T: Config> Pallet<T> {
     // considering users who stake and forget to claim within 28 eras.
     fn claim_in_unbond_operation(
         who: &T::AccountId,
-        claim_era: &EraIndex,
-        current_era: &EraIndex,
+        claim_era: EraIndex,
+        current_era: EraIndex,
         user_ledger_per_era: &UserLedgerPerEra,
         pool_ledger_per_era: &PoolLedgerPerEra,
     ) -> WithdrawalAmount {
-        if claim_era.clone() + T::BondingDuration::get() > current_era.clone() {
-            if !user_ledger_per_era.claimed_matching {
-                MatchingQueueByUser::<T>::mutate(who, claim_era, |b| {
-                    b.claimed_matching = true;
-                });
-
-                user_ledger_per_era.instant_withdrawal_by_unbond(pool_ledger_per_era)
-            } else {
-                (0, 0)
-            }
-        } else {
-            user_ledger_per_era.remaining_withdrawal_limit()
+        if claim_era + T::BondingDuration::get() > current_era {
+            return user_ledger_per_era.remaining_withdrawal_limit();
         }
+
+        if user_ledger_per_era.claimed_matching {
+            return (0, 0);
+        }
+
+        MatchingQueueByUser::<T>::mutate(who, claim_era, |b| {
+            b.claimed_matching = true;
+        });
+
+        user_ledger_per_era.instant_withdrawal_by_unbond(pool_ledger_per_era)
     }
 }
 
@@ -585,9 +585,9 @@ impl<T: Config> Pallet<T> {
             op_type,
             |op| -> Result<BalanceOf<T>, DispatchError> {
                 let next_op = op
-                    .filter(|op| op.status == ResponseStatus::Ready)
+                    .filter(|op| op.status == ResponseStatus::Pending)
                     .map(|op| Operation {
-                        status: ResponseStatus::Successed,
+                        status: ResponseStatus::Succeeded,
                         ..op
                     })
                     .ok_or(Error::<T>::OperationNotReady)?;

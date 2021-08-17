@@ -5404,7 +5404,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-liquid-staking-two"
+name = "pallet-liquid-staking-v2"
 version = "3.0.0"
 dependencies = [
  "frame-benchmarking",

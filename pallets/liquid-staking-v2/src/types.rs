@@ -17,9 +17,9 @@ pub enum StakingOperationType {
 
 #[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
 pub enum ResponseStatus {
-    Ready,
+    Pending,
     Processing,
-    Successed,
+    Succeeded,
     Failed,
 }
 

@@ -1,6 +1,6 @@
-use frame_support::traits::Get;
+use frame_support::{require_transactional, traits::Get};
 use orml_traits::MultiCurrency;
-use sp_runtime::{ArithmeticError, DispatchError, DispatchResult, FixedPointNumber};
+use sp_runtime::{traits::Zero, ArithmeticError, DispatchError, DispatchResult, FixedPointNumber};
 
 use primitives::EraIndex;
 
@@ -20,6 +20,7 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId, BalanceOf<T>> for Pallet<T> 
     // After confirmed bond on relaychain,
     // after update exchangerate (record_reward),
     // and then mint/deposit xKSM.
+    #[require_transactional]
     fn stake(who: &T::AccountId, amount: BalanceOf<T>) -> DispatchResult {
         //todo reserve, insurance pool
         T::Currency::transfer(T::StakingCurrency::get(), who, &Self::account_id(), amount)?;
@@ -54,6 +55,7 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId, BalanceOf<T>> for Pallet<T> 
     // After confirmed unbond on relaychain,
     // and then burn/withdraw xKSM.
     // before update exchangerate (record_reward)
+    #[require_transactional]
     fn unstake(who: &T::AccountId, amount: BalanceOf<T>) -> Result<BalanceOf<T>, DispatchError> {
         // can not burn directly because we have match mechanism
         T::Currency::transfer(T::LiquidCurrency::get(), who, &Self::account_id(), amount)?;
@@ -90,6 +92,7 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId, BalanceOf<T>> for Pallet<T> 
         Ok(asset_amount)
     }
 
+    #[require_transactional]
     fn claim(who: &T::AccountId) -> DispatchResult {
         let mut withdrawable_stake_amount = 0u128;
         let mut withdrawable_unstake_amount = 0u128;
@@ -106,14 +109,14 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId, BalanceOf<T>> for Pallet<T> 
         });
 
         // remove finished records from MatchingQueue
-        if remove_record_from_user_queue.len() > 0 {
+        if !remove_record_from_user_queue.is_empty() {
             remove_record_from_user_queue.iter().for_each(|era_index| {
                 MatchingQueueByUser::<T>::remove(who, era_index);
             });
         }
 
         // transfer xKSM from palletId to who
-        if withdrawable_stake_amount > 0 {
+        if !withdrawable_stake_amount.is_zero() {
             let xtoken_amount = ExchangeRate::<T>::get()
                 .reciprocal()
                 .and_then(|r| r.checked_mul_int(withdrawable_stake_amount))
@@ -127,7 +130,7 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId, BalanceOf<T>> for Pallet<T> 
         }
 
         // transfer KSM from palletId to who
-        if withdrawable_unstake_amount > 0 {
+        if !withdrawable_unstake_amount.is_zero() {
             T::Currency::transfer(
                 T::StakingCurrency::get(),
                 &Self::account_id(),
