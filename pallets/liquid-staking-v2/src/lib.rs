@@ -33,16 +33,17 @@ mod types;
 
 use frame_support::{pallet_prelude::*, transactional, PalletId};
 use frame_system::pallet_prelude::*;
-use orml_traits::XcmTransfer;
-use orml_traits::{MultiCurrency, MultiCurrencyExtended};
-use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber};
+use orml_traits::{MultiCurrency, MultiCurrencyExtended, XcmTransfer};
+use sp_runtime::{
+    traits::{AccountIdConversion, Zero},
+    ArithmeticError, FixedPointNumber,
+};
 use sp_std::prelude::*;
 use xcm::v0::{Junction, MultiLocation, NetworkId};
 
 use primitives::{Amount, Balance, CurrencyId, EraIndex, Rate, Ratio};
 
-use self::protocol::*;
-use self::types::*;
+use self::{protocol::*, types::*};
 
 pub use pallet::*;
 
@@ -441,12 +442,10 @@ impl<T: Config> Pallet<T> {
         remove_record_from_user_queue: &mut Vec<EraIndex>,
     ) {
         let pool_ledger_per_era = MatchingPoolByEra::<T>::get(&era_index);
-        let success_operation = pool_ledger_per_era.operation_type.and_then(|t| {
-            let operation = StakingOperationHistory::<T>::get(&era_index, &t)?;
-            if operation.status == ResponseStatus::Succeeded {
-                return Some(t);
-            }
-            None
+        let success_operation = pool_ledger_per_era.operation_type.and_then(|ty| {
+            StakingOperationHistory::<T>::get(&era_index, &ty)
+                .filter(|op| op.status == ResponseStatus::Succeeded)
+                .map(|_| ty)
         });
 
         if let Some(staking_operation_type) = success_operation {
@@ -467,7 +466,7 @@ impl<T: Config> Pallet<T> {
                     &pool_ledger_per_era,
                 ),
                 StakingOperationType::Matching => user_ledger_per_era.remaining_withdrawal_limit(), //if matching, can claim all directly
-                _ => (0, 0),
+                _ => (Zero::zero(), Zero::zero()),
             };
 
             MatchingQueueByUser::<T>::mutate(who, &era_index, |b| {
@@ -508,7 +507,7 @@ impl<T: Config> Pallet<T> {
         }
 
         if user_ledger_per_era.claimed_matching {
-            return (0, 0);
+            return (Zero::zero(), Zero::zero());
         }
 
         MatchingQueueByUser::<T>::mutate(who, claim_era, |b| {
@@ -533,7 +532,7 @@ impl<T: Config> Pallet<T> {
         }
 
         if user_ledger_per_era.claimed_matching {
-            return (0, 0);
+            return (Zero::zero(), Zero::zero());
         }
 
         MatchingQueueByUser::<T>::mutate(who, claim_era, |b| {
