@@ -528,7 +528,7 @@ impl<T: Config> Pallet<T> {
         user_ledger_per_era: &UserLedger,
         pool_ledger_per_era: &PoolLedger,
     ) -> WithdrawalAmount {
-        if claim_era + T::BondingDuration::get() > current_era {
+        if claim_era + T::BondingDuration::get() <= current_era {
             return user_ledger_per_era.remaining_withdrawal_limit();
         }
 
