@@ -7,8 +7,6 @@ use sp_std::fmt::Debug;
 
 use primitives::Rate;
 
-
-
 #[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
 pub enum StakingOperationType {
     Bond,
