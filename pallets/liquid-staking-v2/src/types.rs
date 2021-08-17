@@ -25,6 +25,7 @@ pub enum ResponseStatus {
 
 #[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
 pub struct Operation<BlockNumber> {
+    #[codec(compact)]
     pub amount: Balance,
     pub block_number: BlockNumber,
     pub status: ResponseStatus,
@@ -32,7 +33,9 @@ pub struct Operation<BlockNumber> {
 
 #[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug)]
 pub struct PoolLedgerPerEra {
+    #[codec(compact)]
     pub total_unstake_amount: Balance,
+    #[codec(compact)]
     pub total_stake_amount: Balance,
     pub operation_type: Option<StakingOperationType>,
 }
@@ -60,15 +63,19 @@ impl PoolLedgerPerEra {
 pub struct UserLedgerPerEra {
     /// The token amount that user unstake during this era, will be calculated
     /// by exchangerate and xToken amount
+    #[codec(compact)]
     pub total_unstake_amount: Balance,
     /// The token amount that user stake during this era, this amount is equal
     /// to what the user input.
+    #[codec(compact)]
     pub total_stake_amount: Balance,
     /// The token amount that user have alreay claimed before the lock period,
     /// this will happen because, in matching pool total_unstake_amount and
     /// total_stake_amount can match each other
+    #[codec(compact)]
     pub claimed_unstake_amount: Balance,
     /// The token amount that user have alreay claimed before the lock period,
+    #[codec(compact)]
     pub claimed_stake_amount: Balance,
     /// To confirm that before lock period, user can only claim once because of
     /// the matching.
