@@ -132,12 +132,11 @@ pub mod pallet {
         RewardsRecorded(BalanceOf<T>),
         /// The slash is recorded
         SlashRecorded(BalanceOf<T>),
-
         DepositEventToRelaychain(T::AccountId, EraIndex, StakingOperationType, BalanceOf<T>),
         /// Bond operation in relaychain was successed.
-        BondSucceed(EraIndex),
+        BondSucceeded(EraIndex),
         /// Unbond operation in relaychain was successed.
-        UnbondSucceed(EraIndex),
+        UnbondSucceeded(EraIndex),
         /// Era index was updated.
         EraUpdated(EraIndex),
     }
@@ -311,7 +310,7 @@ pub mod pallet {
             let _who = ensure_signed(origin)?;
             let amount = Self::try_mark_op_succeed(era_index, StakingOperationType::Bond)?;
             T::Currency::deposit(T::LiquidCurrency::get(), &Self::account_id(), amount)?;
-            Self::deposit_event(Event::<T>::BondSucceed(era_index));
+            Self::deposit_event(Event::<T>::BondSucceeded(era_index));
             Ok(().into())
         }
 
@@ -326,7 +325,7 @@ pub mod pallet {
             let _who = ensure_signed(origin)?;
             let amount = Self::try_mark_op_succeed(era_index, StakingOperationType::Unbond)?;
             T::Currency::withdraw(T::LiquidCurrency::get(), &Self::account_id(), amount)?;
-            Self::deposit_event(Event::<T>::UnbondSucceed(era_index));
+            Self::deposit_event(Event::<T>::UnbondSucceeded(era_index));
             Ok(().into())
         }
 
