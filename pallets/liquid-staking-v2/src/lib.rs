@@ -97,14 +97,16 @@ mod pallet {
         /// Set era index. Usually happend when era advanced in relaychain.
         #[pallet::weight(<T as Config>::WeightInfo::set_era_index())]
         #[transactional]
-        pub fn set_era_index(
+        pub fn trigger_new_era(
             origin: OriginFor<T>,
             era_index: EraIndex,
         ) -> DispatchResultWithPostInfo {
             let _who = ensure_signed(origin)?;
-            let (_, current_era_index) = Self::era_index_pair();
+            let current_era_index = Self::current_era();
             ensure!(current_era_index < era_index, Error::<T>::EraAlreadyPushed,);
-            EraIndexPair::<T>::put((Some(current_era_index), era_index));
+
+            PreviousEra::<T>::put(current_era_index);
+            CurrentEra::<T>::put(era_index);
             Self::deposit_event(Event::<T>::EraIndexUpdated(current_era_index, era_index));
             Ok(().into())
         }
@@ -151,12 +153,15 @@ mod pallet {
         BalanceOf<T>,
     >;
 
-    /// Pair of (last_era_index, current_era_index).
-    ///
-    /// Note: In case of offchain-worker crashed, the last_era_index should also be recorded.
+    /// Last updated era index.
     #[pallet::storage]
-    #[pallet::getter(fn era_index_pair)]
-    pub type EraIndexPair<T: Config> = StorageValue<_, (Option<EraIndex>, EraIndex), ValueQuery>;
+    #[pallet::getter(fn previous_era)]
+    pub type PreviousEra<T: Config> = StorageValue<_, EraIndex, ValueQuery>;
+
+    /// Current era_index.
+    #[pallet::storage]
+    #[pallet::getter(fn current_era)]
+    pub type CurrentEra<T: Config> = StorageValue<_, EraIndex, ValueQuery>;
 
     impl<T: Config> Pallet<T> {
         #[inline]

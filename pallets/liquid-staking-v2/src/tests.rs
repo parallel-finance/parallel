@@ -4,7 +4,7 @@ use primitives::Rate;
 
 use crate::types::StakeingSettlementKind;
 use crate::Error;
-use crate::{mock::*, EraIndexPair};
+use crate::{mock::*, CurrentEra, PreviousEra};
 
 #[test]
 fn test_record_staking_settlement_ok() {
@@ -46,10 +46,11 @@ fn test_duplicated_record_staking_settlement() {
 #[test]
 fn test_set_era_index() {
     new_test_ext().execute_with(|| {
-        assert_ok!(LiquidStaking::set_era_index(Origin::signed(Alice), 1));
-        assert_eq!(EraIndexPair::<Test>::get(), (Some(0u32), 1u32));
+        assert_ok!(LiquidStaking::trigger_new_era(Origin::signed(Alice), 1));
+        assert_eq!(LiquidStaking::previous_era(), 0u32);
+        assert_eq!(LiquidStaking::current_era(), 1u32);
         assert_err!(
-            LiquidStaking::set_era_index(Origin::signed(Alice), 1),
+            LiquidStaking::trigger_new_era(Origin::signed(Alice), 1),
             Error::<Test>::EraAlreadyPushed
         );
     })
