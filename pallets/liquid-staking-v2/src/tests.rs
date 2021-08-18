@@ -1,43 +1,43 @@
 use frame_support::{assert_err, assert_ok};
 
-use primitives::{EraIndex, Rate, CurrencyId};
-use sp_runtime::{traits::{One}, FixedPointNumber};
-use crate::types::{StakeingSettlementKind, StakeMisc};
+use crate::types::{StakeMisc, StakeingSettlementKind};
 use crate::{mock::*, *};
 use orml_traits::MultiCurrency;
+use primitives::{CurrencyId, EraIndex, Rate};
+use sp_runtime::{traits::One, FixedPointNumber};
 
 #[test]
 fn stake_should_work() {
-	new_test_ext().execute_with(|| {
-		let currency_era: EraIndex = 100;
-		CurrentEra::<Test>::put(currency_era);
-		assert_ok!(LiquidStaking::stake(Origin::signed(Alice), 10));
-		// Check storage is correct
-		assert_eq!(
-			ExchangeRate::<Test>::get(),
-			Rate::one()
-		);
-		assert_eq!(StakingPool::<Test>::get(), 10);
-		let stake_misc = LiquidStaking::stake_on_eras(currency_era, &Alice);
-		assert_eq!(stake_misc, StakeMisc{
-			staking_amount: 10,
-			liquid_amount: 10,
-		});
+    new_test_ext().execute_with(|| {
+        let currency_era: EraIndex = 100;
+        CurrentEra::<Test>::put(currency_era);
+        assert_ok!(LiquidStaking::stake(Origin::signed(Alice), 10));
+        // Check storage is correct
+        assert_eq!(ExchangeRate::<Test>::get(), Rate::one());
+        assert_eq!(StakingPool::<Test>::get(), 10);
+        let stake_misc = LiquidStaking::stake_on_eras(currency_era, &Alice);
+        assert_eq!(
+            stake_misc,
+            StakeMisc {
+                staking_amount: 10,
+                liquid_amount: 10,
+            }
+        );
 
-		// Check balance is correct
-		assert_eq!(
-			<Test as Config>::Currency::free_balance(CurrencyId::DOT, &Alice),
-			90
-		);
-		assert_eq!(
-			<Test as Config>::Currency::free_balance(CurrencyId::xDOT, &Alice),
-			110
-		);
-		assert_eq!(
-			<Test as Config>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::account_id()),
-			10
-		);
-	})
+        // Check balance is correct
+        assert_eq!(
+            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &Alice),
+            90
+        );
+        assert_eq!(
+            <Test as Config>::Currency::free_balance(CurrencyId::xDOT, &Alice),
+            110
+        );
+        assert_eq!(
+            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::account_id()),
+            10
+        );
+    })
 }
 
 #[test]

@@ -3,10 +3,10 @@ use orml_traits::{parameter_type_with_key, MultiCurrency};
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
-    traits::{One, BlakeTwo256, IdentityLookup},
+    traits::{BlakeTwo256, IdentityLookup, One},
 };
 
-use primitives::{Amount, Rate, Balance, CurrencyId};
+use primitives::{Amount, Balance, CurrencyId, Rate};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -101,10 +101,10 @@ parameter_types! {
 impl crate::Config for Test {
     type Event = Event;
     type Currency = Currencies;
-	type StakingCurrency = StakingCurrency;
-	type LiquidCurrency = LiquidCurrency;
-	type PalletId = LiquidStakingPalletId;
-	type WeightInfo = ();
+    type StakingCurrency = StakingCurrency;
+    type LiquidCurrency = LiquidCurrency;
+    type PalletId = LiquidStakingPalletId;
+    type WeightInfo = ();
 }
 
 construct_runtime!(
@@ -141,11 +141,11 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     .assimilate_storage(&mut storage)
     .unwrap();
 
-	crate::GenesisConfig {
-		exchange_rate: Rate::one(),
-	}
-	.assimilate_storage::<Test>(&mut storage)
-	.unwrap();
+    crate::GenesisConfig {
+        exchange_rate: Rate::one(),
+    }
+    .assimilate_storage::<Test>(&mut storage)
+    .unwrap();
 
     storage.into()
 }
