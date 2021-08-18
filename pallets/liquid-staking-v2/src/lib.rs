@@ -33,18 +33,18 @@ pub use self::pallet::*;
 mod pallet {
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
-        ensure,
-        pallet_prelude::{StorageDoubleMap, StorageValue, ValueQuery},
+        ensure, PalletId,
+        pallet_prelude::*,
         traits::{Get, IsType},
         transactional, Twox64Concat,
     };
     use frame_system::{ensure_signed, pallet_prelude::OriginFor};
     use orml_traits::{MultiCurrency, MultiCurrencyExtended};
-    use sp_runtime::{ArithmeticError, FixedPointNumber};
+    use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber};
 
     use primitives::{Amount, Balance, CurrencyId, EraIndex, Rate};
 
-    use crate::types::StakeingSettlementKind;
+    use crate::types::{StakeingSettlementKind, StakeMisc};
     use crate::weights::WeightInfo;
 
     pub(crate) type BalanceOf<T> =
@@ -66,14 +66,26 @@ mod pallet {
             Amount = Amount,
         >;
 
+		/// The staking currency id.
+		#[pallet::constant]
+		type StakingCurrency: Get<CurrencyId>;
+
         /// The liquid voucher currency id.
+		#[pallet::constant]
         type LiquidCurrency: Get<CurrencyId>;
+
+		/// The pallet id of liquid staking, keeps all the staking assets.
+		#[pallet::constant]
+		type PalletId: Get<PalletId>;
+
         type WeightInfo: WeightInfo;
     }
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
+		/// The assets get staked successfully
+		Staked(T::AccountId, Balance),
         /// Reward/Slash has been recorded.
         StakeingSettlementRecorded(StakeingSettlementKind, BalanceOf<T>),
         /// Era index updated.
@@ -92,8 +104,95 @@ mod pallet {
         EraAlreadyPushed,
     }
 
-    #[pallet::call]
+	#[pallet::genesis_config]
+	pub struct GenesisConfig {
+		pub exchange_rate: Rate,
+	}
+
+	#[cfg(feature = "std")]
+	impl Default for GenesisConfig {
+		fn default() -> Self {
+			Self {
+				exchange_rate: Rate::default(),
+			}
+		}
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config> GenesisBuild<T> for GenesisConfig {
+		fn build(&self) {
+			ExchangeRate::<T>::put(self.exchange_rate);
+		}
+	}
+
+	#[cfg(feature = "std")]
+	impl GenesisConfig {
+		/// Direct implementation of `GenesisBuild::build_storage`.
+		///
+		/// Kept in order not to break dependency.
+		pub fn build_storage<T: Config>(&self) -> Result<sp_runtime::Storage, String> {
+			<Self as GenesisBuild<T>>::build_storage(self)
+		}
+
+		/// Direct implementation of `GenesisBuild::assimilate_storage`.
+		///
+		/// Kept in order not to break dependency.
+		pub fn assimilate_storage<T: Config>(
+			&self,
+			storage: &mut sp_runtime::Storage,
+		) -> Result<(), String> {
+			<Self as GenesisBuild<T>>::assimilate_storage(self, storage)
+		}
+	}
+
+	#[pallet::call]
     impl<T: Config> Pallet<T> {
+		/// Put assets under staking, the native assets will be transferred to the account
+        /// owned by the pallet, user receive derivative in return, such derivative can be
+        /// further used as collateral for lending.
+        ///
+        /// - `amount`: the amount of staking assets
+		#[pallet::weight(T::WeightInfo::stake())]
+		#[transactional]
+		pub fn stake(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			let exchange_rate = ExchangeRate::<T>::get();
+			let derivative_amount = exchange_rate
+				.reciprocal()
+				.and_then(|r| r.checked_mul_int(amount))
+				.ok_or(Error::<T>::InvalidExchangeRate)?;
+			T::Currency::transfer(
+				T::StakingCurrency::get(),
+				&who,
+				&Self::account_id(),
+				amount,
+			)?;
+			T::Currency::deposit(T::LiquidCurrency::get(), &who, derivative_amount)?;
+			StakingPool::<T>::try_mutate(|b| -> DispatchResult {
+				*b = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
+				Ok(())
+			})?;
+
+			// During the same era, accumulate liquid & stake amount for each account
+			StakeOnEras::<T>::try_mutate(Self::current_era(), &who, |stake_misc| -> DispatchResult {
+				let new_liquid_amount = stake_misc.liquid_amount
+					.checked_add(derivative_amount)
+					.ok_or(ArithmeticError::Overflow)?;
+				let new_staking_amount = stake_misc.staking_amount
+					.checked_add(amount)
+					.ok_or(ArithmeticError::Overflow)?;
+				*stake_misc = StakeMisc{
+					liquid_amount: new_liquid_amount,
+					staking_amount: new_staking_amount,
+				};
+				Ok(())
+			})?;
+
+			Self::deposit_event(Event::Staked(who, amount));
+			Ok(().into())
+		}
+
         /// Set era index. Usually happend when era advanced in relaychain.
         #[pallet::weight(<T as Config>::WeightInfo::set_era_index())]
         #[transactional]
@@ -136,10 +235,23 @@ mod pallet {
     #[pallet::getter(fn exchange_rate)]
     pub type ExchangeRate<T: Config> = StorageValue<_, Rate, ValueQuery>;
 
-    /// Total amount of staked assets in relaycahin.
+    /// The total amount of a staking asset.
     #[pallet::storage]
     #[pallet::getter(fn staking_pool)]
     pub type StakingPool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+	/// Records stake detail during each era.
+	#[pallet::storage]
+	#[pallet::getter(fn stake_on_eras)]
+	pub type StakeOnEras<T: Config> = StorageDoubleMap<
+		_,
+		Twox64Concat,
+		EraIndex,
+		Twox64Concat,
+		T::AccountId,
+		StakeMisc,
+		ValueQuery,
+	>;
 
     /// Records reward or slash during each era.
     #[pallet::storage]
@@ -207,5 +319,9 @@ mod pallet {
             ExchangeRate::<T>::put(exchange_rate);
             Ok(())
         }
-    }
+
+		pub fn account_id() -> T::AccountId {
+			T::PalletId::get().into_account()
+		}
+	}
 }
