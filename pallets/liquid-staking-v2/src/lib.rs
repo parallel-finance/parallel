@@ -123,7 +123,7 @@ mod pallet {
             Self::ensure_settlement_not_recorded(era_index, kind)?;
             Self::update_staking_pool(kind, amount)?;
 
-            StakeingSettlementRecords::<T>::insert(era_index, kind, amount);
+            StakingSettlementRecords::<T>::insert(era_index, kind, amount);
             Self::deposit_event(Event::<T>::StakeingSettlementRecorded(kind, amount));
             Ok(().into())
         }
@@ -142,7 +142,7 @@ mod pallet {
     /// Records reward or slash during each era.
     #[pallet::storage]
     #[pallet::getter(fn reward_records)]
-    pub type StakeingSettlementRecords<T: Config> = StorageDoubleMap<
+    pub type StakingSettlementRecords<T: Config> = StorageDoubleMap<
         _,
         Twox64Concat,
         EraIndex,
@@ -165,7 +165,7 @@ mod pallet {
             kind: StakeingSettlementKind,
         ) -> DispatchResult {
             ensure!(
-                !StakeingSettlementRecords::<T>::contains_key(era_index, kind),
+                !StakingSettlementRecords::<T>::contains_key(era_index, kind),
                 Error::<T>::StakeingSettlementAlreadyRecorded
             );
             Ok(())
