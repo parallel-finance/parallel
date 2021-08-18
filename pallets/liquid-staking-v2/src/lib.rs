@@ -57,12 +57,16 @@ mod pallet {
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
+        /// Liquid/Staked asset currency.
         type Currency: MultiCurrencyExtended<
             Self::AccountId,
             CurrencyId = CurrencyId,
             Balance = Balance,
             Amount = Amount,
         >;
+
+        /// The liquid voucher currency id.
         type LiquidCurrency: Get<CurrencyId>;
         type WeightInfo: WeightInfo;
     }
@@ -70,7 +74,12 @@ mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
+        /// Reward/Slash has been recorded.
         StakeingSettlementRecorded(StakeingSettlementKind, BalanceOf<T>),
+        /// Era index updated.
+        ///
+        /// Constructed by (last_era_index, current_era_index).
+        EraIndexUpdated(EraIndex, EraIndex),
     }
 
     #[pallet::error]
@@ -79,10 +88,28 @@ mod pallet {
         StakeingSettlementAlreadyRecorded,
         /// Exchange rate is invalid.
         InvalidExchangeRate,
+        /// Era has been pushed before.
+        EraAlreadyPushed,
     }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        /// Set era index. Usually happend when era advanced in relaychain.
+        #[pallet::weight(<T as Config>::WeightInfo::set_era_index())]
+        #[transactional]
+        pub fn set_era_index(
+            origin: OriginFor<T>,
+            era_index: EraIndex,
+        ) -> DispatchResultWithPostInfo {
+            let _who = ensure_signed(origin)?;
+            let (_, current_era_index) = Self::era_index_pair();
+            ensure!(current_era_index < era_index, Error::<T>::EraAlreadyPushed,);
+            EraIndexPair::<T>::put((Some(current_era_index), era_index));
+            Self::deposit_event(Event::<T>::EraIndexUpdated(current_era_index, era_index));
+            Ok(().into())
+        }
+
+        /// Handle staking settlement at the end of an era, such as getting reward or been slashed in relaychain.
         #[pallet::weight(<T as Config>::WeightInfo::record_rewards())]
         #[transactional]
         pub fn record_staking_settlement(
@@ -124,6 +151,13 @@ mod pallet {
         BalanceOf<T>,
     >;
 
+    /// Pair of (last_era_index, current_era_index).
+    ///
+    /// Note: In case of offchain-worker crashed, the last_era_index should also be recorded.
+    #[pallet::storage]
+    #[pallet::getter(fn era_index_pair)]
+    pub type EraIndexPair<T: Config> = StorageValue<_, (Option<EraIndex>, EraIndex), ValueQuery>;
+
     impl<T: Config> Pallet<T> {
         #[inline]
         pub(crate) fn ensure_settlement_not_recorded(
@@ -139,6 +173,7 @@ mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
+        /// Increase/Decrease staked asset in staking pool, and synchronized the exchange rate.
         pub(crate) fn update_staking_pool(
             kind: StakeingSettlementKind,
             amount: BalanceOf<T>,
