@@ -2,9 +2,9 @@ use frame_support::{assert_err, assert_ok};
 
 use primitives::Rate;
 
-use crate::types::StakeingSettlementKind;
+use crate::mock::*;
+use crate::types::StakingSettlementKind;
 use crate::Error;
-use crate::{mock::*, CurrentEra, PreviousEra};
 
 #[test]
 fn test_record_staking_settlement_ok() {
@@ -13,7 +13,7 @@ fn test_record_staking_settlement_ok() {
             Origin::signed(Alice),
             1,
             100,
-            StakeingSettlementKind::Reward
+            StakingSettlementKind::Reward
         ));
 
         assert_eq!(LiquidStaking::exchange_rate(), Rate::from(1));
@@ -27,7 +27,7 @@ fn test_duplicated_record_staking_settlement() {
             Origin::signed(Alice),
             1,
             100,
-            StakeingSettlementKind::Reward,
+            StakingSettlementKind::Reward,
         )
         .unwrap();
 
@@ -36,9 +36,9 @@ fn test_duplicated_record_staking_settlement() {
                 Origin::signed(Alice),
                 1,
                 100,
-                StakeingSettlementKind::Reward
+                StakingSettlementKind::Reward
             ),
-            Error::<Test>::StakeingSettlementAlreadyRecorded
+            Error::<Test>::StakingSettlementAlreadyRecorded
         )
     })
 }

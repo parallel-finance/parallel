@@ -1,4 +1,4 @@
-use frame_support::{construct_runtime, parameter_types, sp_io, traits::GenesisBuild};
+use frame_support::{construct_runtime, parameter_types, sp_io, traits::GenesisBuild, PalletId};
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::{
@@ -94,12 +94,14 @@ impl orml_currencies::Config for Test {
 
 parameter_types! {
     pub const LiquidCurrency : CurrencyId = CurrencyId::xDOT;
+    pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
 }
 
 impl crate::Config for Test {
     type Event = Event;
     type Currency = Currencies;
     type LiquidCurrency = LiquidCurrency;
+    type PalletId = StakingPalletId;
     type WeightInfo = ();
 }
 
