@@ -13,3 +13,9 @@ pub struct StakeMisc {
     pub liquid_amount: Balance,
     pub staking_amount: Balance,
 }
+
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, Default, RuntimeDebug)]
+pub struct UnstakeMisc {
+    pub pending_amount: Balance,
+    pub free_amount: Balance,
+}

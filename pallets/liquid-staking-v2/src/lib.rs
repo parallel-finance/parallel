@@ -44,7 +44,7 @@ mod pallet {
 
     use primitives::{Amount, Balance, CurrencyId, EraIndex, Rate};
 
-    use crate::types::{StakeMisc, StakeingSettlementKind};
+    use crate::types::{StakeMisc, StakeingSettlementKind, UnstakeMisc};
     use crate::weights::WeightInfo;
 
     pub(crate) type BalanceOf<T> =
@@ -86,6 +86,8 @@ mod pallet {
     pub enum Event<T: Config> {
         /// The assets get staked successfully
         Staked(T::AccountId, Balance),
+        /// The derivative get unstaked successfully
+        Unstaked(T::AccountId, Balance, Balance),
         /// Reward/Slash has been recorded.
         StakeingSettlementRecorded(StakeingSettlementKind, BalanceOf<T>),
         /// Era index updated.
@@ -170,7 +172,7 @@ mod pallet {
             })?;
 
             // During the same era, accumulate liquid & stake amount for each account
-            StakeOnEras::<T>::try_mutate(
+            AccountStake::<T>::try_mutate(
                 Self::current_era(),
                 &who,
                 |stake_misc| -> DispatchResult {
@@ -191,6 +193,50 @@ mod pallet {
             )?;
 
             Self::deposit_event(Event::Staked(who, amount));
+            Ok(().into())
+        }
+
+        /// Unstake by exchange derivative for assets, the assets will not be avaliable immediately.
+        /// Instead, the request is recorded and pending for the nomination accounts in relay
+        /// chain to do the `unbond` operation.
+        ///
+        /// - `amount`: the amount of derivative
+        #[pallet::weight(T::WeightInfo::unstake())]
+        #[transactional]
+        pub fn unstake(origin: OriginFor<T>, liquid_amount: Balance) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+
+            let exchange_rate = ExchangeRate::<T>::get();
+            let asset_amount = exchange_rate
+                .checked_mul_int(liquid_amount)
+                .ok_or(Error::<T>::InvalidExchangeRate)?;
+
+            // During the same era, accumulate unstake amount for each account
+            AccountUnstake::<T>::try_mutate(
+                Self::current_era(),
+                &who,
+                |unstake_misc| -> DispatchResult {
+                    let new_derivative_amount = unstake_misc
+                        .pending_amount
+                        .checked_add(asset_amount)
+                        .ok_or(ArithmeticError::Overflow)?;
+                    *unstake_misc = UnstakeMisc {
+                        pending_amount: new_derivative_amount,
+                        free_amount: 0,
+                    };
+                    Ok(())
+                },
+            )?;
+
+            T::Currency::withdraw(T::LiquidCurrency::get(), &who, liquid_amount)?;
+            StakingPool::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b
+                    .checked_sub(asset_amount)
+                    .ok_or(ArithmeticError::Underflow)?;
+                Ok(())
+            })?;
+
+            Self::deposit_event(Event::Unstaked(who, liquid_amount, asset_amount));
             Ok(().into())
         }
 
@@ -243,14 +289,28 @@ mod pallet {
 
     /// Records stake detail during each era.
     #[pallet::storage]
-    #[pallet::getter(fn stake_on_eras)]
-    pub type StakeOnEras<T: Config> = StorageDoubleMap<
+    #[pallet::getter(fn account_stake)]
+    pub type AccountStake<T: Config> = StorageDoubleMap<
         _,
         Twox64Concat,
         EraIndex,
         Twox64Concat,
         T::AccountId,
         StakeMisc,
+        ValueQuery,
+    >;
+
+    /// Record all the pending unstaking requests.
+    /// Key is the owner of assets.
+    #[pallet::storage]
+    #[pallet::getter(fn account_unstake)]
+    pub type AccountUnstake<T: Config> = StorageDoubleMap<
+        _,
+        Twox64Concat,
+        EraIndex,
+        Twox64Concat,
+        T::AccountId,
+        UnstakeMisc,
         ValueQuery,
     >;
 
