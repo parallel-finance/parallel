@@ -44,7 +44,7 @@ impl<Balance> PoolLedger<Balance>
 where
     Balance: AtLeast32BitUnsigned + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default,
 {
-    pub fn op_after_new_era(&self) -> (StakingOperationType, Balance) {
+    pub fn todo_after_new_era(&self) -> (StakingOperationType, Balance) {
         if self.total_stake_amount > self.total_unstake_amount {
             (
                 StakingOperationType::Bond,

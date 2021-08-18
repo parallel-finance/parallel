@@ -362,7 +362,7 @@ pub mod pallet {
             let previous_era = Self::previous_era();
             let pool_ledger = MatchingPoolByEra::<T>::get(&previous_era);
 
-            let (operation_type, amount) = pool_ledger.op_after_new_era();
+            let (operation_type, amount) = pool_ledger.todo_after_new_era();
             Self::ensure_op_not_exists(previous_era, operation_type)?;
             StakingOperationHistory::<T>::insert(
                 previous_era,

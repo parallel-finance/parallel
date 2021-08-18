@@ -40,8 +40,8 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId, BalanceOf<T>> for Pallet<T> 
 
         MatchingPoolByEra::<T>::try_mutate(
             &Self::current_era(),
-            |pool_ledger_per_era| -> DispatchResult {
-                pool_ledger_per_era.total_stake_amount = pool_ledger_per_era
+            |pool_ledger| -> DispatchResult {
+                pool_ledger.total_stake_amount = pool_ledger
                     .total_stake_amount
                     .checked_add(amount)
                     .ok_or(ArithmeticError::Overflow)?;
@@ -81,8 +81,8 @@ impl<T: Config> LiquidStakingProtocol<T::AccountId, BalanceOf<T>> for Pallet<T> 
 
         MatchingPoolByEra::<T>::try_mutate(
             &Self::current_era(),
-            |pool_ledger_per_era| -> DispatchResult {
-                pool_ledger_per_era.total_unstake_amount = pool_ledger_per_era
+            |pool_ledger| -> DispatchResult {
+                pool_ledger.total_unstake_amount = pool_ledger
                     .total_unstake_amount
                     .checked_add(asset_amount)
                     .ok_or(ArithmeticError::Overflow)?;
