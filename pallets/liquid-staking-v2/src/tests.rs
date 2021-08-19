@@ -55,8 +55,8 @@ fn unstake_should_work() {
         assert_eq!(
             AccountUnstake::<Test>::get(Alice, currency_era),
             UnstakeMisc {
-                pending_amount: 6,
-                free_amount: 0,
+                total_amount: 6,
+                claimed_amount: 0,
             }
         );
         assert_eq!(

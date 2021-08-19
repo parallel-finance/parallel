@@ -11,10 +11,10 @@ pub enum StakeingSettlementKind {
 /// The user's unstake state in one era
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, Default, RuntimeDebug)]
 pub struct UnstakeMisc {
-    /// The pending asset need to match or unbond_withdraw
-    pub pending_amount: Balance,
-    /// The free asset can be claimed
-    pub free_amount: Balance,
+    /// The total asset that want to withdraw unbond
+    pub total_amount: Balance,
+    /// The claimed asset
+    pub claimed_amount: Balance,
 }
 
 /// The matching pool's total stake & unstake amount in one era

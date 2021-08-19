@@ -208,10 +208,10 @@ mod pallet {
                 Self::current_era(),
                 |unstake_misc| -> DispatchResult {
                     let new_pending_amount = unstake_misc
-                        .pending_amount
+                        .total_amount
                         .checked_add(asset_amount)
                         .ok_or(ArithmeticError::Overflow)?;
-                    unstake_misc.pending_amount = new_pending_amount;
+                    unstake_misc.total_amount = new_pending_amount;
                     Ok(())
                 },
             )?;
@@ -252,6 +252,7 @@ mod pallet {
 
             PreviousEra::<T>::put(current_era_index);
             CurrentEra::<T>::put(era_index);
+
             Self::deposit_event(Event::<T>::EraIndexUpdated(current_era_index, era_index));
             Ok(().into())
         }
