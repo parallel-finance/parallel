@@ -339,6 +339,10 @@ mod pallet {
             Ok(().into())
         }
 
+        /// claim staking currency for given (owner, era_index)
+        ///
+        /// - `owner`: unstaker
+        /// - `era_index`: era_index in which user unstaked
         #[pallet::weight(T::WeightInfo::claim())]
         #[transactional]
         pub fn claim(
@@ -390,10 +394,6 @@ mod pallet {
                 &owner,
                 amount,
             )?;
-            StakingPool::<T>::try_mutate(|p| -> DispatchResult {
-                *p = p.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
-                Ok(())
-            })?;
 
             AccountUnstake::<T>::try_mutate(&owner, era_index, |unstake_misc| -> DispatchResult {
                 let new_claimed_amount = unstake_misc
