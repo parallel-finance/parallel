@@ -364,7 +364,6 @@ mod pallet {
                 *op = Some(next_op);
                 Ok(())
             })?;
-            // TODO(wangyafei): Might transfer rest part to user.
             Ok(().into())
         }
     }
