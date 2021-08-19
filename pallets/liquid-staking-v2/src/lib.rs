@@ -305,7 +305,7 @@ mod pallet {
         }
 
         /// Set era index. Usually happend when era advanced in relaychain.
-        #[pallet::weight(<T as Config>::WeightInfo::set_era_index())]
+        #[pallet::weight(<T as Config>::WeightInfo::trigger_new_era())]
         #[transactional]
         pub fn trigger_new_era(
             origin: OriginFor<T>,
@@ -323,7 +323,7 @@ mod pallet {
         }
 
         /// Handle staking settlement at the end of an era, such as getting reward or been slashed in relaychain.
-        #[pallet::weight(<T as Config>::WeightInfo::record_rewards())]
+        #[pallet::weight(<T as Config>::WeightInfo::record_staking_settlement())]
         #[transactional]
         pub fn record_staking_settlement(
             origin: OriginFor<T>,
@@ -345,7 +345,7 @@ mod pallet {
         ///
         /// It's invoked when an unbond operation succeeded in relaychain and reported by
         /// stake-client.
-        #[pallet::weight(<T as Config>::WeightInfo::record_bond_response())]
+        #[pallet::weight(<T as Config>::WeightInfo::record_withdrawal_unbond_response())]
         #[transactional]
         pub fn record_withdrawal_unbond_response(
             origin: OriginFor<T>,
