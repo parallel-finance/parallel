@@ -44,7 +44,7 @@ mod pallet {
 
     use primitives::{Amount, Balance, CurrencyId, EraIndex, Rate};
 
-    use crate::types::{StakeMisc, StakeingSettlementKind, UnstakeMisc};
+    use crate::types::{MatchingLedger, StakeingSettlementKind, UnstakeMisc};
     use crate::weights::WeightInfo;
 
     pub(crate) type BalanceOf<T> =
@@ -160,34 +160,25 @@ mod pallet {
             let who = ensure_signed(origin)?;
 
             let exchange_rate = ExchangeRate::<T>::get();
-            let derivative_amount = exchange_rate
+            let liquid_amount = exchange_rate
                 .reciprocal()
                 .and_then(|r| r.checked_mul_int(amount))
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
             T::Currency::transfer(T::StakingCurrency::get(), &who, &Self::account_id(), amount)?;
-            T::Currency::deposit(T::LiquidCurrency::get(), &who, derivative_amount)?;
+            T::Currency::deposit(T::LiquidCurrency::get(), &who, liquid_amount)?;
             StakingPool::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
 
-            // During the same era, accumulate liquid & stake amount for each account
-            AccountStake::<T>::try_mutate(
+            EraMatchingPool::<T>::try_mutate(
                 Self::current_era(),
-                &who,
-                |stake_misc| -> DispatchResult {
-                    let new_liquid_amount = stake_misc
-                        .liquid_amount
-                        .checked_add(derivative_amount)
-                        .ok_or(ArithmeticError::Overflow)?;
-                    let new_staking_amount = stake_misc
-                        .staking_amount
+                |matching_ledger| -> DispatchResult {
+                    let new_stake_amount = matching_ledger
+                        .total_stake_amount
                         .checked_add(amount)
                         .ok_or(ArithmeticError::Overflow)?;
-                    *stake_misc = StakeMisc {
-                        liquid_amount: new_liquid_amount,
-                        staking_amount: new_staking_amount,
-                    };
+                    matching_ledger.total_stake_amount = new_stake_amount;
                     Ok(())
                 },
             )?;
@@ -213,17 +204,25 @@ mod pallet {
 
             // During the same era, accumulate unstake amount for each account
             AccountUnstake::<T>::try_mutate(
-                Self::current_era(),
                 &who,
+                Self::current_era(),
                 |unstake_misc| -> DispatchResult {
-                    let new_derivative_amount = unstake_misc
+                    let new_pending_amount = unstake_misc
                         .pending_amount
                         .checked_add(asset_amount)
                         .ok_or(ArithmeticError::Overflow)?;
-                    *unstake_misc = UnstakeMisc {
-                        pending_amount: new_derivative_amount,
-                        free_amount: 0,
-                    };
+                    unstake_misc.pending_amount = new_pending_amount;
+                    Ok(())
+                },
+            )?;
+            EraMatchingPool::<T>::try_mutate(
+                Self::current_era(),
+                |matching_ledger| -> DispatchResult {
+                    let new_unstake_amount = matching_ledger
+                        .total_unstake_amount
+                        .checked_add(asset_amount)
+                        .ok_or(ArithmeticError::Overflow)?;
+                    matching_ledger.total_unstake_amount = new_unstake_amount;
                     Ok(())
                 },
             )?;
@@ -287,19 +286,6 @@ mod pallet {
     #[pallet::getter(fn staking_pool)]
     pub type StakingPool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
-    /// Records stake detail during each era.
-    #[pallet::storage]
-    #[pallet::getter(fn account_stake)]
-    pub type AccountStake<T: Config> = StorageDoubleMap<
-        _,
-        Twox64Concat,
-        EraIndex,
-        Twox64Concat,
-        T::AccountId,
-        StakeMisc,
-        ValueQuery,
-    >;
-
     /// Record all the pending unstaking requests.
     /// Key is the owner of assets.
     #[pallet::storage]
@@ -307,19 +293,26 @@ mod pallet {
     pub type AccountUnstake<T: Config> = StorageDoubleMap<
         _,
         Twox64Concat,
-        EraIndex,
-        Twox64Concat,
         T::AccountId,
+        Blake2_128Concat,
+        EraIndex,
         UnstakeMisc,
         ValueQuery,
     >;
+
+    /// Store total stake amount and unstake amount in each era,
+    /// And will update when stake/unstake occurred.
+    #[pallet::storage]
+    #[pallet::getter(fn era_matching_pool)]
+    pub type EraMatchingPool<T: Config> =
+        StorageMap<_, Blake2_128Concat, EraIndex, MatchingLedger<BalanceOf<T>>, ValueQuery>;
 
     /// Records reward or slash during each era.
     #[pallet::storage]
     #[pallet::getter(fn reward_records)]
     pub type StakingSettlementRecords<T: Config> = StorageDoubleMap<
         _,
-        Twox64Concat,
+        Blake2_128Concat,
         EraIndex,
         Twox64Concat,
         StakeingSettlementKind,

@@ -1,6 +1,6 @@
 use frame_support::{assert_err, assert_ok};
 
-use crate::types::{StakeMisc, StakeingSettlementKind, UnstakeMisc};
+use crate::types::{MatchingLedger, StakeingSettlementKind, UnstakeMisc};
 use crate::{mock::*, *};
 use orml_traits::MultiCurrency;
 use primitives::{CurrencyId, EraIndex, Rate};
@@ -16,12 +16,11 @@ fn stake_should_work() {
         // Check storage is correct
         assert_eq!(ExchangeRate::<Test>::get(), Rate::one());
         assert_eq!(StakingPool::<Test>::get(), 10);
-        let stake_misc = LiquidStaking::account_stake(currency_era, &Alice);
         assert_eq!(
-            stake_misc,
-            StakeMisc {
-                staking_amount: 10,
-                liquid_amount: 10,
+            EraMatchingPool::<Test>::get(currency_era),
+            MatchingLedger {
+                total_stake_amount: 10,
+                total_unstake_amount: 0,
             }
         );
 
@@ -54,10 +53,17 @@ fn unstake_should_work() {
         assert_eq!(ExchangeRate::<Test>::get(), Rate::one());
         assert_eq!(StakingPool::<Test>::get(), 4);
         assert_eq!(
-            AccountUnstake::<Test>::get(currency_era, Alice),
+            AccountUnstake::<Test>::get(Alice, currency_era),
             UnstakeMisc {
                 pending_amount: 6,
                 free_amount: 0,
+            }
+        );
+        assert_eq!(
+            EraMatchingPool::<Test>::get(currency_era),
+            MatchingLedger {
+                total_stake_amount: 10,
+                total_unstake_amount: 6,
             }
         );
 
