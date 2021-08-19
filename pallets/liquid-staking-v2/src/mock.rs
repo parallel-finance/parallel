@@ -1,5 +1,10 @@
-use frame_support::{construct_runtime, parameter_types, sp_io, traits::GenesisBuild, PalletId};
-use orml_traits::{parameter_type_with_key, MultiCurrency};
+use frame_support::{
+    construct_runtime, parameter_types, sp_io,
+    traits::{GenesisBuild, SortedMembers},
+    PalletId,
+};
+use frame_system::EnsureSignedBy;
+use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
@@ -92,6 +97,15 @@ impl orml_currencies::Config for Test {
     type WeightInfo = ();
 }
 
+pub struct AliceOrigin;
+impl SortedMembers<AccountId> for AliceOrigin {
+    fn sorted_members() -> Vec<AccountId> {
+        vec![1u32.into()]
+    }
+}
+
+pub type BridgeOrigin = EnsureSignedBy<AliceOrigin, AccountId>;
+
 parameter_types! {
     pub const LiquidStakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
@@ -104,6 +118,7 @@ impl crate::Config for Test {
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
     type PalletId = LiquidStakingPalletId;
+    type BridgeOrigin = BridgeOrigin;
     type WeightInfo = ();
 }
 
