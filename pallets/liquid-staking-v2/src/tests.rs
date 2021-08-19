@@ -72,18 +72,18 @@ fn test_set_era_index() {
 fn test_record_unbond_response() {
     new_test_ext().execute_with(|| {
         assert_err!(
-            LiquidStaking::record_unbond_response(Origin::signed(Alice), 1u32),
+            LiquidStaking::record_withdrawal_unbond_response(Origin::signed(Alice), 1u32),
             Error::<Test>::OperationNotReady
         );
 
         t_insert_pending_op(1u32);
-        assert_ok!(LiquidStaking::record_unbond_response(
+        assert_ok!(LiquidStaking::record_withdrawal_unbond_response(
             Origin::signed(Alice),
             1u32
         ));
 
         assert_err!(
-            LiquidStaking::record_unbond_response(Origin::signed(Alice), 1u32),
+            LiquidStaking::record_withdrawal_unbond_response(Origin::signed(Alice), 1u32),
             Error::<Test>::OperationNotReady
         );
     })

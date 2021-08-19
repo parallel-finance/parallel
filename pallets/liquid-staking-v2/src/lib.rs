@@ -177,13 +177,13 @@ mod pallet {
             Ok(().into())
         }
 
-        /// Handle unbonding response.
+        /// Handle `withdrawal_unbond` response.
         ///
         /// It's invoked when an unbond operation succeeded in relaychain and reported by
         /// stake-client.
         #[pallet::weight(<T as Config>::WeightInfo::record_bond_response())]
         #[transactional]
-        pub fn record_unbond_response(
+        pub fn record_withdrawal_unbond_response(
             origin: OriginFor<T>,
             era_index: EraIndex,
         ) -> DispatchResultWithPostInfo {
