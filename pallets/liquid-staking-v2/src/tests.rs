@@ -195,7 +195,7 @@ fn test_matching_pool_summary() {
         assert_ok!(LiquidStaking::trigger_new_era(Origin::signed(Alice), 1));
 
         assert_eq!(
-            StakingOperationHistory::<Test>::get(0, StakingOperationType::Bond),
+            StakingOperationHistory::<Test>::get(current_era, StakingOperationType::Bond),
             Some(Operation {
                 status: OperationSatus::Pending,
                 block_number: 0_u64,
@@ -207,7 +207,10 @@ fn test_matching_pool_summary() {
 
         assert_ok!(LiquidStaking::unstake(Origin::signed(Alice), 5));
 
-        assert_ok!(LiquidStaking::trigger_new_era(Origin::signed(Alice), 2));
+        assert_ok!(LiquidStaking::trigger_new_era(
+            Origin::signed(Alice),
+            current_era + 2
+        ));
 
         assert_eq!(
             StakingOperationHistory::<Test>::get(current_era + 1, StakingOperationType::Unbond),
