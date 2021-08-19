@@ -71,6 +71,9 @@ mod pallet {
             Amount = Amount,
         >;
 
+        /// Offchain bridge accout who manages staking currency in relaychain.
+        type BridgeOrigin: EnsureOrigin<Self::Origin>;
+
         /// The staking currency id.
         #[pallet::constant]
         type StakingCurrency: Get<CurrencyId>;
@@ -88,11 +91,12 @@ mod pallet {
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
+    #[pallet::metadata(T::AccountId = "Account", BalanceOf<T> = "Balance")]
     pub enum Event<T: Config> {
         /// The assets get staked successfully
-        Staked(T::AccountId, Balance),
+        Staked(T::AccountId, BalanceOf<T>),
         /// The derivative get unstaked successfully
-        Unstaked(T::AccountId, Balance, Balance),
+        Unstaked(T::AccountId, BalanceOf<T>, BalanceOf<T>),
         /// Reward/Slash has been recorded.
         StakeingSettlementRecorded(StakingSettlementKind, BalanceOf<T>),
         /// Era index updated.
@@ -160,7 +164,7 @@ mod pallet {
         T::AccountId,
         Blake2_128Concat,
         EraIndex,
-        UnstakeMisc,
+        UnstakeMisc<BalanceOf<T>>,
         ValueQuery,
     >;
 
@@ -221,7 +225,7 @@ mod pallet {
         /// - `amount`: the amount of staking assets
         #[pallet::weight(T::WeightInfo::stake())]
         #[transactional]
-        pub fn stake(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
+        pub fn stake(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
             let exchange_rate = ExchangeRate::<T>::get();
@@ -259,7 +263,10 @@ mod pallet {
         /// - `amount`: the amount of derivative
         #[pallet::weight(T::WeightInfo::unstake())]
         #[transactional]
-        pub fn unstake(origin: OriginFor<T>, liquid_amount: Balance) -> DispatchResultWithPostInfo {
+        pub fn unstake(
+            origin: OriginFor<T>,
+            liquid_amount: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
             let exchange_rate = ExchangeRate::<T>::get();
@@ -311,7 +318,7 @@ mod pallet {
             origin: OriginFor<T>,
             era_index: EraIndex,
         ) -> DispatchResultWithPostInfo {
-            let _who = ensure_signed(origin)?;
+            T::BridgeOrigin::ensure_origin(origin)?;
             let current_era_index = Self::current_era();
             ensure!(current_era_index < era_index, Error::<T>::EraAlreadyPushed,);
 
@@ -331,8 +338,7 @@ mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
             kind: StakingSettlementKind,
         ) -> DispatchResultWithPostInfo {
-            // TODO(wangyafei): Check if approved.
-            let _who = ensure_signed(origin)?;
+            T::BridgeOrigin::ensure_origin(origin)?;
             Self::ensure_settlement_not_recorded(era_index, kind)?;
             Self::update_staking_pool(kind, amount)?;
 
@@ -351,7 +357,7 @@ mod pallet {
             origin: OriginFor<T>,
             era_index: EraIndex,
         ) -> DispatchResultWithPostInfo {
-            let _who = ensure_signed(origin)?;
+            T::BridgeOrigin::ensure_origin(origin)?;
             // try to mark operation succeeded.
             UnbondingOperationHistory::<T>::try_mutate(era_index, |op| -> DispatchResult {
                 let next_op = op
@@ -369,6 +375,7 @@ mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
+        /// Ensure settlement not recorded for this `era_index`.
         #[inline]
         pub(crate) fn ensure_settlement_not_recorded(
             era_index: EraIndex,

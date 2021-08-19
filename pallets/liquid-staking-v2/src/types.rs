@@ -1,5 +1,4 @@
 use codec::{Decode, Encode};
-use primitives::Balance;
 use sp_runtime::RuntimeDebug;
 
 /// Category of staking settlement at the end of era.
@@ -26,7 +25,7 @@ pub enum ResponseStatus {
 
 /// The user's unstake state in one era
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, Default, RuntimeDebug)]
-pub struct UnstakeMisc {
+pub struct UnstakeMisc<Balance> {
     /// The total asset that want to withdraw unbond
     pub total_amount: Balance,
     /// The claimed asset
