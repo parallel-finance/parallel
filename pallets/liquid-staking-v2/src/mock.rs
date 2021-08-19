@@ -1,12 +1,12 @@
-use frame_support::{construct_runtime, parameter_types, sp_io, traits::GenesisBuild};
-use orml_traits::parameter_type_with_key;
+use frame_support::{construct_runtime, parameter_types, sp_io, traits::GenesisBuild, PalletId};
+use orml_traits::{parameter_type_with_key, MultiCurrency};
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
-    traits::{BlakeTwo256, IdentityLookup},
+    traits::{BlakeTwo256, IdentityLookup, One},
 };
 
-use primitives::{Amount, Balance, CurrencyId};
+use primitives::{Amount, Balance, CurrencyId, Rate};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -93,13 +93,17 @@ impl orml_currencies::Config for Test {
 }
 
 parameter_types! {
-    pub const LiquidCurrency : CurrencyId = CurrencyId::xDOT;
+    pub const LiquidStakingPalletId: PalletId = PalletId(*b"par/lqsk");
+    pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
+    pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
 }
 
 impl crate::Config for Test {
     type Event = Event;
     type Currency = Currencies;
+    type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
+    type PalletId = LiquidStakingPalletId;
     type WeightInfo = ();
 }
 
@@ -135,6 +139,12 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         ],
     }
     .assimilate_storage(&mut storage)
+    .unwrap();
+
+    crate::GenesisConfig {
+        exchange_rate: Rate::one(),
+    }
+    .assimilate_storage::<Test>(&mut storage)
     .unwrap();
 
     storage.into()
