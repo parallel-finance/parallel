@@ -38,13 +38,18 @@ mod pallet {
         traits::{Get, IsType},
         transactional, PalletId, Twox64Concat,
     };
-    use frame_system::{ensure_signed, pallet_prelude::OriginFor};
+    use frame_system::{
+        ensure_signed,
+        pallet_prelude::{BlockNumberFor, OriginFor},
+    };
     use orml_traits::{MultiCurrency, MultiCurrencyExtended};
     use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber};
 
     use primitives::{Amount, Balance, CurrencyId, EraIndex, Rate};
 
-    use crate::types::{MatchingLedger, StakeingSettlementKind, UnstakeMisc};
+    use crate::types::{
+        MatchingLedger, Operation, ResponseStatus, StakingSettlementKind, UnstakeMisc,
+    };
     use crate::weights::WeightInfo;
 
     pub(crate) type BalanceOf<T> =
@@ -89,7 +94,7 @@ mod pallet {
         /// The derivative get unstaked successfully
         Unstaked(T::AccountId, Balance, Balance),
         /// Reward/Slash has been recorded.
-        StakeingSettlementRecorded(StakeingSettlementKind, BalanceOf<T>),
+        StakeingSettlementRecorded(StakingSettlementKind, BalanceOf<T>),
         /// Era index updated.
         ///
         /// Constructed by (last_era_index, current_era_index).
@@ -104,7 +109,67 @@ mod pallet {
         InvalidExchangeRate,
         /// Era has been pushed before.
         EraAlreadyPushed,
+        /// Operation wasn't submitted to relaychain or has been processed.
+        OperationNotReady,
     }
+
+    /// The exchange rate between relaychain native asset and the voucher.
+    #[pallet::storage]
+    #[pallet::getter(fn exchange_rate)]
+    pub type ExchangeRate<T: Config> = StorageValue<_, Rate, ValueQuery>;
+
+    /// Total amount of staked assets in relaycahin.
+    #[pallet::storage]
+    #[pallet::getter(fn staking_pool)]
+    pub type StakingPool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+    /// Records reward or slash during each era.
+    #[pallet::storage]
+    #[pallet::getter(fn reward_records)]
+    pub type StakingSettlementRecords<T: Config> = StorageDoubleMap<
+        _,
+        Twox64Concat,
+        EraIndex,
+        Twox64Concat,
+        StakingSettlementKind,
+        BalanceOf<T>,
+    >;
+
+    /// Last updated era index.
+    #[pallet::storage]
+    #[pallet::getter(fn previous_era)]
+    pub type PreviousEra<T: Config> = StorageValue<_, EraIndex, ValueQuery>;
+
+    /// Current era_index.
+    #[pallet::storage]
+    #[pallet::getter(fn current_era)]
+    pub type CurrentEra<T: Config> = StorageValue<_, EraIndex, ValueQuery>;
+
+    /// Records relay operations during each era.
+    #[pallet::storage]
+    pub type UnbondingOperationHistory<T: Config> =
+        StorageMap<_, Twox64Concat, EraIndex, Operation<BlockNumberFor<T>, BalanceOf<T>>>;
+
+    /// Record all the pending unstaking requests.
+    /// Key is the owner of assets.
+    #[pallet::storage]
+    #[pallet::getter(fn account_unstake)]
+    pub type AccountUnstake<T: Config> = StorageDoubleMap<
+        _,
+        Twox64Concat,
+        T::AccountId,
+        Blake2_128Concat,
+        EraIndex,
+        UnstakeMisc,
+        ValueQuery,
+    >;
+
+    /// Store total stake amount and unstake amount in each era,
+    /// And will update when stake/unstake occurred.
+    #[pallet::storage]
+    #[pallet::getter(fn era_matching_pool)]
+    pub type EraMatchingPool<T: Config> =
+        StorageMap<_, Blake2_128Concat, EraIndex, MatchingLedger<BalanceOf<T>>, ValueQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig {
@@ -240,7 +305,7 @@ mod pallet {
         }
 
         /// Set era index. Usually happend when era advanced in relaychain.
-        #[pallet::weight(<T as Config>::WeightInfo::set_era_index())]
+        #[pallet::weight(<T as Config>::WeightInfo::trigger_new_era())]
         #[transactional]
         pub fn trigger_new_era(
             origin: OriginFor<T>,
@@ -258,13 +323,13 @@ mod pallet {
         }
 
         /// Handle staking settlement at the end of an era, such as getting reward or been slashed in relaychain.
-        #[pallet::weight(<T as Config>::WeightInfo::record_rewards())]
+        #[pallet::weight(<T as Config>::WeightInfo::record_staking_settlement())]
         #[transactional]
         pub fn record_staking_settlement(
             origin: OriginFor<T>,
             era_index: EraIndex,
             #[pallet::compact] amount: BalanceOf<T>,
-            kind: StakeingSettlementKind,
+            kind: StakingSettlementKind,
         ) -> DispatchResultWithPostInfo {
             // TODO(wangyafei): Check if approved.
             let _who = ensure_signed(origin)?;
@@ -275,66 +340,39 @@ mod pallet {
             Self::deposit_event(Event::<T>::StakeingSettlementRecorded(kind, amount));
             Ok(().into())
         }
+
+        /// Handle `withdrawal_unbond` response.
+        ///
+        /// It's invoked when an unbond operation succeeded in relaychain and reported by
+        /// stake-client.
+        #[pallet::weight(<T as Config>::WeightInfo::record_withdrawal_unbond_response())]
+        #[transactional]
+        pub fn record_withdrawal_unbond_response(
+            origin: OriginFor<T>,
+            era_index: EraIndex,
+        ) -> DispatchResultWithPostInfo {
+            let _who = ensure_signed(origin)?;
+            // try to mark operation succeeded.
+            UnbondingOperationHistory::<T>::try_mutate(era_index, |op| -> DispatchResult {
+                let next_op = op
+                    .filter(|op| op.status == ResponseStatus::Pending)
+                    .map(|op| Operation {
+                        status: ResponseStatus::Succeeded,
+                        ..op
+                    })
+                    .ok_or(Error::<T>::OperationNotReady)?;
+                *op = Some(next_op);
+                Ok(())
+            })?;
+            Ok(().into())
+        }
     }
-
-    /// The exchange rate between relaychain native asset and the voucher.
-    #[pallet::storage]
-    #[pallet::getter(fn exchange_rate)]
-    pub type ExchangeRate<T: Config> = StorageValue<_, Rate, ValueQuery>;
-
-    /// The total amount of a staking asset.
-    #[pallet::storage]
-    #[pallet::getter(fn staking_pool)]
-    pub type StakingPool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
-
-    /// Record all the pending unstaking requests.
-    /// Key is the owner of assets.
-    #[pallet::storage]
-    #[pallet::getter(fn account_unstake)]
-    pub type AccountUnstake<T: Config> = StorageDoubleMap<
-        _,
-        Twox64Concat,
-        T::AccountId,
-        Blake2_128Concat,
-        EraIndex,
-        UnstakeMisc,
-        ValueQuery,
-    >;
-
-    /// Store total stake amount and unstake amount in each era,
-    /// And will update when stake/unstake occurred.
-    #[pallet::storage]
-    #[pallet::getter(fn era_matching_pool)]
-    pub type EraMatchingPool<T: Config> =
-        StorageMap<_, Blake2_128Concat, EraIndex, MatchingLedger<BalanceOf<T>>, ValueQuery>;
-
-    /// Records reward or slash during each era.
-    #[pallet::storage]
-    #[pallet::getter(fn reward_records)]
-    pub type StakingSettlementRecords<T: Config> = StorageDoubleMap<
-        _,
-        Blake2_128Concat,
-        EraIndex,
-        Twox64Concat,
-        StakeingSettlementKind,
-        BalanceOf<T>,
-    >;
-
-    /// Last updated era index.
-    #[pallet::storage]
-    #[pallet::getter(fn previous_era)]
-    pub type PreviousEra<T: Config> = StorageValue<_, EraIndex, ValueQuery>;
-
-    /// Current era_index.
-    #[pallet::storage]
-    #[pallet::getter(fn current_era)]
-    pub type CurrentEra<T: Config> = StorageValue<_, EraIndex, ValueQuery>;
 
     impl<T: Config> Pallet<T> {
         #[inline]
         pub(crate) fn ensure_settlement_not_recorded(
             era_index: EraIndex,
-            kind: StakeingSettlementKind,
+            kind: StakingSettlementKind,
         ) -> DispatchResult {
             ensure!(
                 !StakingSettlementRecords::<T>::contains_key(era_index, kind),
@@ -347,17 +385,17 @@ mod pallet {
     impl<T: Config> Pallet<T> {
         /// Increase/Decrease staked asset in staking pool, and synchronized the exchange rate.
         pub(crate) fn update_staking_pool(
-            kind: StakeingSettlementKind,
+            kind: StakingSettlementKind,
             amount: BalanceOf<T>,
         ) -> DispatchResult {
             match kind {
-                StakeingSettlementKind::Reward => {
+                StakingSettlementKind::Reward => {
                     StakingPool::<T>::try_mutate(|p| -> DispatchResult {
                         *p = p.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
                         Ok(())
                     })
                 }
-                StakeingSettlementKind::Slash => {
+                StakingSettlementKind::Slash => {
                     StakingPool::<T>::try_mutate(|p| -> DispatchResult {
                         *p = p.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
                         Ok(())

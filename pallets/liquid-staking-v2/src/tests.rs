@@ -1,10 +1,21 @@
 use frame_support::{assert_err, assert_ok};
-
-use crate::types::{MatchingLedger, StakeingSettlementKind, UnstakeMisc};
-use crate::{mock::*, *};
 use orml_traits::MultiCurrency;
 use primitives::{CurrencyId, EraIndex, Rate};
 use sp_runtime::{traits::One, FixedPointNumber};
+
+use crate::{mock::*, types::*, *};
+
+fn t_insert_pending_op(era_index: EraIndex) {
+    let block_number = System::block_number();
+    UnbondingOperationHistory::<Test>::insert(
+        era_index,
+        Operation {
+            amount: 1u64.into(),
+            block_number,
+            status: crate::types::ResponseStatus::Pending,
+        },
+    )
+}
 
 #[test]
 fn stake_should_work() {
@@ -90,7 +101,7 @@ fn test_record_staking_settlement_ok() {
             Origin::signed(Alice),
             1,
             100,
-            StakeingSettlementKind::Reward
+            StakingSettlementKind::Reward
         ));
 
         assert_eq!(LiquidStaking::exchange_rate(), Rate::from(1));
@@ -104,7 +115,7 @@ fn test_duplicated_record_staking_settlement() {
             Origin::signed(Alice),
             1,
             100,
-            StakeingSettlementKind::Reward,
+            StakingSettlementKind::Reward,
         )
         .unwrap();
 
@@ -113,7 +124,7 @@ fn test_duplicated_record_staking_settlement() {
                 Origin::signed(Alice),
                 1,
                 100,
-                StakeingSettlementKind::Reward
+                StakingSettlementKind::Reward
             ),
             Error::<Test>::StakeingSettlementAlreadyRecorded
         )
@@ -129,6 +140,27 @@ fn test_set_era_index() {
         assert_err!(
             LiquidStaking::trigger_new_era(Origin::signed(Alice), 1),
             Error::<Test>::EraAlreadyPushed
+        );
+    })
+}
+
+#[test]
+fn test_record_unbond_response() {
+    new_test_ext().execute_with(|| {
+        assert_err!(
+            LiquidStaking::record_withdrawal_unbond_response(Origin::signed(Alice), 1u32),
+            Error::<Test>::OperationNotReady
+        );
+
+        t_insert_pending_op(1u32);
+        assert_ok!(LiquidStaking::record_withdrawal_unbond_response(
+            Origin::signed(Alice),
+            1u32
+        ));
+
+        assert_err!(
+            LiquidStaking::record_withdrawal_unbond_response(Origin::signed(Alice), 1u32),
+            Error::<Test>::OperationNotReady
         );
     })
 }
