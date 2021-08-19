@@ -40,7 +40,10 @@ mod pallet {
     };
     use frame_system::{ensure_signed, pallet_prelude::*};
     use orml_traits::{MultiCurrency, MultiCurrencyExtended, XcmTransfer};
-    use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber};
+    use sp_runtime::{
+        traits::{AccountIdConversion, Zero},
+        ArithmeticError, FixedPointNumber,
+    };
     use xcm::v0::MultiLocation;
 
     use primitives::{Amount, Balance, CurrencyId, EraIndex, Rate};
@@ -85,6 +88,10 @@ mod pallet {
         #[pallet::constant]
         type PalletId: Get<PalletId>;
 
+        /// Number of eras that staked funds must remain bonded for.
+        #[pallet::constant]
+        type BondingDuration: Get<EraIndex>;
+
         /// Weight information for extrinsics in this pallet.
         type WeightInfo: WeightInfo;
 
@@ -111,10 +118,8 @@ mod pallet {
         StakingSettlementRecorded(StakingSettlementKind, BalanceOf<T>),
         /// Era index updated.  Constructed by (last_era_index, current_era_index).
         EraIndexUpdated(EraIndex, EraIndex),
-        /// Requesting to bond assets on relaychain
-        RequestBonding(EraIndex, BalanceOf<T>),
-        /// Requesting to unbond assets on relaychain
-        RequestUnbonding(EraIndex, BalanceOf<T>),
+        /// The assets get claimed successfully
+        Claimed(T::AccountId, T::AccountId, BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -127,6 +132,10 @@ mod pallet {
         EraAlreadyPushed,
         /// Operation wasn't submitted to relaychain or has been processed.
         OperationNotPending,
+        /// There is nothing to claim for the given account and era.
+        NothingToClaim,
+        /// The given era didn't start or finish yet.
+        EraNotStartOrFinishedYet,
     }
 
     /// Total amount of staked assets on relaycahin.
@@ -149,7 +158,7 @@ mod pallet {
         T::AccountId,
         Blake2_128Concat,
         EraIndex,
-        UnstakeMisc<BalanceOf<T>>,
+        UnstakeMisc,
         ValueQuery,
     >;
 
@@ -330,6 +339,71 @@ mod pallet {
             Ok(().into())
         }
 
+        #[pallet::weight(T::WeightInfo::claim())]
+        #[transactional]
+        pub fn claim(
+            origin: OriginFor<T>,
+            owner: T::AccountId,
+            era_index: EraIndex,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            Self::ensure_era_finished(era_index)?;
+
+            let unstake_misc = Self::account_unstake(&owner, era_index);
+            let matching_ledger = Self::matching_pool(era_index);
+            if unstake_misc.total_amount.is_zero()
+                || unstake_misc.claimed_amount >= unstake_misc.total_amount
+            {
+                return Err(Error::<T>::NothingToClaim.into());
+            }
+
+            let current_era = Self::current_era();
+
+            // TODO check withdrawal_unbonded
+            // passed bonding duration & assets has been withdrawn to pallet account
+            //
+            // OR
+            //
+            // this era's stake amount is greater than or equal to unstake amount
+            let amount = if era_index + T::BondingDuration::get() < current_era
+                || matching_ledger.total_stake_amount >= matching_ledger.total_unstake_amount
+            {
+                unstake_misc.total_amount - unstake_misc.claimed_amount
+            // still in bonding duration but user can already claim part of funds back
+            } else if unstake_misc.claimed_amount.is_zero() {
+                let percent = Rate::checked_from_rational(
+                    unstake_misc.total_amount,
+                    matching_ledger.total_unstake_amount,
+                )
+                .ok_or(ArithmeticError::Underflow)?;
+
+                percent
+                    .checked_mul_int(matching_ledger.total_stake_amount)
+                    .ok_or(ArithmeticError::Overflow)?
+            } else {
+                return Err(Error::<T>::NothingToClaim.into());
+            };
+
+            T::Currency::transfer(
+                T::StakingCurrency::get(),
+                &Self::account_id(),
+                &owner,
+                amount,
+            )?;
+
+            AccountUnstake::<T>::try_mutate(&owner, era_index, |unstake_misc| -> DispatchResult {
+                let new_claimed_amount = unstake_misc
+                    .claimed_amount
+                    .checked_add(amount)
+                    .ok_or(ArithmeticError::Overflow)?;
+                unstake_misc.claimed_amount = new_claimed_amount;
+                Ok(())
+            })?;
+
+            Self::deposit_event(Event::Claimed(who, owner, amount));
+            Ok(().into())
+        }
+
         /// Set era index. Usually happend when era advanced in relaychain.
         #[pallet::weight(<T as Config>::WeightInfo::trigger_new_era())]
         #[transactional]
@@ -423,6 +497,15 @@ mod pallet {
             ensure!(
                 !StakingSettlementRecords::<T>::contains_key(era_index, kind),
                 Error::<T>::StakingSettlementAlreadyRecorded
+            );
+            Ok(())
+        }
+
+        /// Ensure given era has finished.
+        fn ensure_era_finished(era_index: EraIndex) -> DispatchResult {
+            ensure!(
+                Self::current_era() > era_index,
+                Error::<T>::EraNotStartOrFinishedYet
             );
             Ok(())
         }

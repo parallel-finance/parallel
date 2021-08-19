@@ -16,7 +16,7 @@ use sp_runtime::{
 };
 use xcm::v0::{Junction, MultiAsset, MultiLocation, NetworkId, Outcome};
 
-use primitives::{Amount, Balance, CurrencyId, Rate};
+use primitives::{Amount, Balance, CurrencyId, EraIndex, Rate};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -114,6 +114,8 @@ parameter_types! {
     pub const LiquidStakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
+    pub const BondingDuration: EraIndex = 28;
+    pub const BaseXcmWeight: Weight = 100_000_000;
     pub const RelayAgentLocation: MultiLocation = MultiLocation::X2(
         Junction::Parent,
         Junction::AccountId32 {
@@ -121,7 +123,6 @@ parameter_types! {
             id: [0u8; 32],
         },
     );
-    pub const BaseXcmWeight: Weight = 100_000_000;
 }
 
 pub struct MockXcmTransfer;
@@ -159,6 +160,7 @@ impl crate::Config for Test {
     type BridgeOrigin = BridgeOrigin;
     type XcmTransfer = MockXcmTransfer;
     type RelayAgentLocation = RelayAgentLocation;
+    type BondingDuration = BondingDuration;
     type BaseXcmWeight = BaseXcmWeight;
     type WeightInfo = ();
 }
@@ -178,7 +180,6 @@ construct_runtime!(
 );
 
 pub const Alice: AccountId = 1;
-pub const Bob: AccountId = 2;
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut storage = frame_system::GenesisConfig::default()

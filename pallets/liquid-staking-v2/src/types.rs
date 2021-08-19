@@ -11,7 +11,7 @@ pub enum StakingSettlementKind {
 
 /// The user's unstake state in one era
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, Default, RuntimeDebug)]
-pub struct UnstakeMisc<Balance> {
+pub struct UnstakeMisc {
     /// The total asset that want to withdraw unbond
     pub total_amount: Balance,
     /// The claimed asset

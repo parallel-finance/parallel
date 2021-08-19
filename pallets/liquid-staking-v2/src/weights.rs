@@ -9,6 +9,7 @@ pub trait WeightInfo {
     fn record_staking_settlement() -> Weight;
     fn trigger_new_era() -> Weight;
     fn record_withdrawal_unbond_response() -> Weight;
+    fn claim() -> Weight;
 }
 
 impl WeightInfo for () {
@@ -25,6 +26,9 @@ impl WeightInfo for () {
         0u64.into()
     }
     fn record_withdrawal_unbond_response() -> Weight {
+        0u64.into()
+    }
+    fn claim() -> Weight {
         0u64.into()
     }
 }
