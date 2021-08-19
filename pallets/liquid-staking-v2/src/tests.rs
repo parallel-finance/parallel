@@ -1,18 +1,23 @@
+use crate::types::{
+    MatchingLedger, OperationSatus, StakingOperationType, StakingSettlementKind, UnstakeMisc,
+};
+use crate::{mock::*, *};
 use frame_support::{assert_err, assert_ok};
 use orml_traits::MultiCurrency;
 use primitives::{CurrencyId, EraIndex, Rate};
-use sp_runtime::{traits::One, FixedPointNumber};
+use sp_runtime::traits::One;
 
-use crate::{mock::*, types::*, *};
+use crate::types::*;
 
 fn t_insert_pending_op(era_index: EraIndex) {
     let block_number = System::block_number();
-    UnbondingOperationHistory::<Test>::insert(
+    StakingOperationHistory::<Test>::insert(
         era_index,
+        StakingOperationType::WithdrawUnbonded,
         Operation {
             amount: 1u64.into(),
             block_number,
-            status: crate::types::ResponseStatus::Pending,
+            status: OperationSatus::Pending,
         },
     )
 }
@@ -28,7 +33,7 @@ fn stake_should_work() {
         assert_eq!(ExchangeRate::<Test>::get(), Rate::one());
         assert_eq!(StakingPool::<Test>::get(), 10);
         assert_eq!(
-            EraMatchingPool::<Test>::get(currency_era),
+            MatchingPool::<Test>::get(currency_era),
             MatchingLedger {
                 total_stake_amount: 10,
                 total_unstake_amount: 0,
@@ -71,7 +76,7 @@ fn unstake_should_work() {
             }
         );
         assert_eq!(
-            EraMatchingPool::<Test>::get(currency_era),
+            MatchingPool::<Test>::get(currency_era),
             MatchingLedger {
                 total_stake_amount: 10,
                 total_unstake_amount: 6,
@@ -97,14 +102,20 @@ fn unstake_should_work() {
 #[test]
 fn test_record_staking_settlement_ok() {
     new_test_ext().execute_with(|| {
+        assert_ok!(LiquidStaking::stake(Origin::signed(Alice), 100));
+        assert_eq!(
+            <Test as Config>::Currency::total_issuance(CurrencyId::xDOT,),
+            200
+        );
+        assert_eq!(LiquidStaking::exchange_rate(), Rate::from(1));
         assert_ok!(LiquidStaking::record_staking_settlement(
             Origin::signed(Alice),
             1,
-            100,
+            300,
             StakingSettlementKind::Reward
         ));
 
-        assert_eq!(LiquidStaking::exchange_rate(), Rate::from(1));
+        assert_eq!(LiquidStaking::exchange_rate(), Rate::from(2));
     })
 }
 
@@ -126,13 +137,13 @@ fn test_duplicated_record_staking_settlement() {
                 100,
                 StakingSettlementKind::Reward
             ),
-            Error::<Test>::StakeingSettlementAlreadyRecorded
+            Error::<Test>::StakingSettlementAlreadyRecorded
         )
     })
 }
 
 #[test]
-fn test_set_era_index() {
+fn test_trigger_new_era() {
     new_test_ext().execute_with(|| {
         assert_ok!(LiquidStaking::trigger_new_era(Origin::signed(Alice), 1));
         assert_eq!(LiquidStaking::previous_era(), 0u32);
@@ -145,11 +156,11 @@ fn test_set_era_index() {
 }
 
 #[test]
-fn test_record_unbond_response() {
+fn test_record_withdrawal_response() {
     new_test_ext().execute_with(|| {
         assert_err!(
             LiquidStaking::record_withdrawal_unbond_response(Origin::signed(Alice), 1u32),
-            Error::<Test>::OperationNotReady
+            Error::<Test>::OperationNotPending
         );
 
         t_insert_pending_op(1u32);
@@ -160,7 +171,51 @@ fn test_record_unbond_response() {
 
         assert_err!(
             LiquidStaking::record_withdrawal_unbond_response(Origin::signed(Alice), 1u32),
-            Error::<Test>::OperationNotReady
+            Error::<Test>::OperationNotPending
+        );
+    });
+}
+
+#[test]
+fn test_matching_pool_summary() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(LiquidStaking::stake(Origin::signed(Alice), 10));
+        assert_ok!(LiquidStaking::unstake(Origin::signed(Alice), 5));
+
+        let current_era = LiquidStaking::current_era();
+
+        assert_eq!(
+            MatchingPool::<Test>::get(current_era),
+            MatchingLedger {
+                total_stake_amount: 10,
+                total_unstake_amount: 5,
+            }
+        );
+
+        assert_ok!(LiquidStaking::trigger_new_era(Origin::signed(Alice), 1));
+
+        assert_eq!(
+            StakingOperationHistory::<Test>::get(0, StakingOperationType::Bond),
+            Some(Operation {
+                status: OperationSatus::Pending,
+                block_number: 0_u64,
+                amount: 5
+            })
+        );
+
+        System::set_block_number(1);
+
+        assert_ok!(LiquidStaking::unstake(Origin::signed(Alice), 5));
+
+        assert_ok!(LiquidStaking::trigger_new_era(Origin::signed(Alice), 2));
+
+        assert_eq!(
+            StakingOperationHistory::<Test>::get(current_era + 1, StakingOperationType::Unbond),
+            Some(Operation {
+                status: OperationSatus::Pending,
+                block_number: 1_u64,
+                amount: 5
+            })
         );
     })
 }

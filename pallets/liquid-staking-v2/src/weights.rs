@@ -24,7 +24,6 @@ impl WeightInfo for () {
     fn trigger_new_era() -> Weight {
         0u64.into()
     }
-
     fn record_withdrawal_unbond_response() -> Weight {
         0u64.into()
     }

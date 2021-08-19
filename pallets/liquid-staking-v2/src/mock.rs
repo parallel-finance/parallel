@@ -1,23 +1,27 @@
+#![allow(non_upper_case_globals)]
+
 use frame_support::{
-    construct_runtime, parameter_types, sp_io,
+    construct_runtime,
+    pallet_prelude::*,
+    parameter_types, sp_io,
     traits::{GenesisBuild, SortedMembers},
     PalletId,
 };
 use frame_system::EnsureSignedBy;
-use orml_traits::parameter_type_with_key;
+use orml_traits::{parameter_type_with_key, XcmExecutionResult, XcmTransfer};
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup, One},
 };
+use xcm::v0::{Junction, MultiAsset, MultiLocation, NetworkId, Outcome};
 
 use primitives::{Amount, Balance, CurrencyId, Rate};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
-pub(crate) type AccountId = u64;
-const DOT_DECIMAL: u128 = 10u128.pow(10);
+type AccountId = u64;
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
@@ -110,6 +114,40 @@ parameter_types! {
     pub const LiquidStakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
+    pub const RelayAgentLocation: MultiLocation = MultiLocation::X2(
+        Junction::Parent,
+        Junction::AccountId32 {
+            network: NetworkId::Any,
+            id: [0u8; 32],
+        },
+    );
+    pub const BaseXcmWeight: Weight = 100_000_000;
+}
+
+pub struct MockXcmTransfer;
+
+impl<AccountId, Balance, CurrencyId> XcmTransfer<AccountId, Balance, CurrencyId>
+    for MockXcmTransfer
+{
+    fn transfer(
+        _who: AccountId,
+        _currency_id: CurrencyId,
+        _amount: Balance,
+        _dest: MultiLocation,
+        _dest_weight: Weight,
+    ) -> XcmExecutionResult {
+        Ok(Outcome::Complete(0))
+    }
+
+    /// Transfer `MultiAsset`
+    fn transfer_multi_asset(
+        _who: AccountId,
+        _asset: MultiAsset,
+        _dest: MultiLocation,
+        _dest_weight: Weight,
+    ) -> XcmExecutionResult {
+        Ok(Outcome::Complete(0))
+    }
 }
 
 impl crate::Config for Test {
@@ -119,6 +157,9 @@ impl crate::Config for Test {
     type LiquidCurrency = LiquidCurrency;
     type PalletId = LiquidStakingPalletId;
     type BridgeOrigin = BridgeOrigin;
+    type XcmTransfer = MockXcmTransfer;
+    type RelayAgentLocation = RelayAgentLocation;
+    type BaseXcmWeight = BaseXcmWeight;
     type WeightInfo = ();
 }
 
@@ -136,12 +177,10 @@ construct_runtime!(
     }
 );
 
-#[allow(non_upper_case_globals)]
-pub(crate) const Alice: AccountId = 1;
-#[allow(non_upper_case_globals)]
-pub(crate) const Bob: AccountId = 2;
+pub const Alice: AccountId = 1;
+pub const Bob: AccountId = 2;
 
-pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
+pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut storage = frame_system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap();
@@ -150,7 +189,6 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         balances: vec![
             (Alice, CurrencyId::DOT, 100),
             (Alice, CurrencyId::xDOT, 100),
-            (Bob, CurrencyId::DOT, 100 * DOT_DECIMAL),
         ],
     }
     .assimilate_storage(&mut storage)
