@@ -156,21 +156,33 @@ fn test_trigger_new_era() {
 }
 
 #[test]
-fn test_record_withdrawal_response() {
+fn test_record_operation_response() {
     new_test_ext().execute_with(|| {
         assert_err!(
-            LiquidStaking::record_withdrawal_unbond_response(Origin::signed(Alice), 1u32),
+            LiquidStaking::record_operation_status(
+                Origin::signed(Alice),
+                1u32,
+                StakingOperationType::WithdrawUnbonded,
+                OperationSatus::Succeeded
+            ),
             Error::<Test>::OperationNotPending
         );
 
         t_insert_pending_op(1u32);
-        assert_ok!(LiquidStaking::record_withdrawal_unbond_response(
+        assert_ok!(LiquidStaking::record_operation_status(
             Origin::signed(Alice),
-            1u32
+            1u32,
+            StakingOperationType::WithdrawUnbonded,
+            OperationSatus::Succeeded
         ));
 
         assert_err!(
-            LiquidStaking::record_withdrawal_unbond_response(Origin::signed(Alice), 1u32),
+            LiquidStaking::record_operation_status(
+                Origin::signed(Alice),
+                1u32,
+                StakingOperationType::WithdrawUnbonded,
+                OperationSatus::Succeeded
+            ),
             Error::<Test>::OperationNotPending
         );
     });

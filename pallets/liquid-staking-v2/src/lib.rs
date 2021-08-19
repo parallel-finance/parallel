@@ -363,7 +363,7 @@ mod pallet {
 
             let current_era = Self::current_era();
 
-            // TODO check withdrawal_unbonded
+            // TODO check if asset has been transferred back from relaychain
             // passed bonding duration & assets has been withdrawn to pallet account
             //
             // OR
@@ -460,33 +460,27 @@ mod pallet {
             Ok(().into())
         }
 
-        /// Handle `withdrawal_unbond` response.
+        /// Handle `staking_operation` response.
         ///
-        /// It's invoked when an unbond operation succeeded in relaychain and reported by
+        /// It's invoked when an bond/unbond/withdraw_unbonded operation succeeded/failed on relaychain and reported by
         /// stake-client.
-        #[pallet::weight(<T as Config>::WeightInfo::record_withdrawal_unbond_response())]
+        #[pallet::weight(<T as Config>::WeightInfo::record_operation_status())]
         #[transactional]
-        pub fn record_withdrawal_unbond_response(
+        pub fn record_operation_status(
             origin: OriginFor<T>,
             era_index: EraIndex,
+            op_type: StakingOperationType,
+            status: OperationSatus,
         ) -> DispatchResultWithPostInfo {
             T::BridgeOrigin::ensure_origin(origin)?;
-            // try to mark operation succeeded.
-            StakingOperationHistory::<T>::try_mutate(
-                era_index,
-                StakingOperationType::WithdrawUnbonded,
-                |op| -> DispatchResult {
-                    let next_op = op
-                        .filter(|op| op.status == OperationSatus::Pending)
-                        .map(|op| Operation {
-                            status: OperationSatus::Succeeded,
-                            ..op
-                        })
-                        .ok_or(Error::<T>::OperationNotPending)?;
-                    *op = Some(next_op);
-                    Ok(())
-                },
-            )?;
+            StakingOperationHistory::<T>::try_mutate(era_index, op_type, |op| -> DispatchResult {
+                let next_op = op
+                    .filter(|op| op.status == OperationSatus::Pending)
+                    .map(|op| Operation { status, ..op })
+                    .ok_or(Error::<T>::OperationNotPending)?;
+                *op = Some(next_op);
+                Ok(())
+            })?;
             Ok(().into())
         }
     }
