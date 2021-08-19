@@ -8,13 +8,6 @@ pub enum StakingSettlementKind {
     Slash,
 }
 
-/// Category of staking operations
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug)]
-pub enum StakingOperationType {
-    Bond,
-    Unbond,
-}
-
 #[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
 pub struct Operation<BlockNumber, Balance> {
     pub amount: Balance,

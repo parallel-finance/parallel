@@ -34,7 +34,7 @@ mod pallet {
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         ensure,
-        pallet_prelude::{StorageDoubleMap, StorageValue, ValueQuery},
+        pallet_prelude::{StorageDoubleMap, StorageMap, StorageValue, ValueQuery},
         traits::{Get, IsType},
         transactional, PalletId, Twox64Concat,
     };
@@ -43,13 +43,11 @@ mod pallet {
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
     use orml_traits::{MultiCurrency, MultiCurrencyExtended};
-    use sp_runtime::{
-        traits::AccountIdConversion, ArithmeticError, DispatchError, FixedPointNumber,
-    };
+    use sp_runtime::{ArithmeticError, FixedPointNumber};
 
     use primitives::{Amount, Balance, CurrencyId, EraIndex, Rate};
 
-    use crate::types::{Operation, ResponseStatus, StakingOperationType, StakingSettlementKind};
+    use crate::types::{Operation, ResponseStatus, StakingSettlementKind};
     use crate::weights::WeightInfo;
 
     pub(crate) type BalanceOf<T> =
@@ -75,6 +73,7 @@ mod pallet {
         type LiquidCurrency: Get<CurrencyId>;
 
         /// The pallet id of current pallet, which keeps all staking asset.
+        /// FIXME(Alan WANG): currently useless.
         #[pallet::constant]
         type PalletId: Get<PalletId>;
         type WeightInfo: WeightInfo;
@@ -137,14 +136,8 @@ mod pallet {
 
     /// Records relay operations during each era.
     #[pallet::storage]
-    pub type StakingOperationHistory<T: Config> = StorageDoubleMap<
-        _,
-        Twox64Concat,
-        EraIndex,
-        Twox64Concat,
-        StakingOperationType,
-        Operation<BlockNumberFor<T>, BalanceOf<T>>,
-    >;
+    pub type UnbondingOperationHistory<T: Config> =
+        StorageMap<_, Twox64Concat, EraIndex, Operation<BlockNumberFor<T>, BalanceOf<T>>>;
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
@@ -184,22 +177,6 @@ mod pallet {
             Ok(().into())
         }
 
-        /// Handle bonding response.
-        ///
-        /// It's invoked when a bond operation succeeded in relaychain and reported by
-        /// stake-client.
-        #[pallet::weight(<T as Config>::WeightInfo::record_bond_response())]
-        #[transactional]
-        pub fn record_bond_response(
-            origin: OriginFor<T>,
-            era_index: EraIndex,
-        ) -> DispatchResultWithPostInfo {
-            let _who = ensure_signed(origin)?;
-            let amount = Self::try_mark_op_succeeded(era_index, StakingOperationType::Bond)?;
-            T::Currency::withdraw(T::LiquidCurrency::get(), &Self::account_id(), amount)?;
-            Ok(().into())
-        }
-
         /// Handle unbonding response.
         ///
         /// It's invoked when an unbond operation succeeded in relaychain and reported by
@@ -211,8 +188,19 @@ mod pallet {
             era_index: EraIndex,
         ) -> DispatchResultWithPostInfo {
             let _who = ensure_signed(origin)?;
-            let amount = Self::try_mark_op_succeeded(era_index, StakingOperationType::Unbond)?;
-            T::Currency::deposit(T::LiquidCurrency::get(), &Self::account_id(), amount)?;
+            // try to mark operation succeeded.
+            UnbondingOperationHistory::<T>::try_mutate(era_index, |op| -> DispatchResult {
+                let next_op = op
+                    .filter(|op| op.status == ResponseStatus::Pending)
+                    .map(|op| Operation {
+                        status: ResponseStatus::Succeeded,
+                        ..op
+                    })
+                    .ok_or(Error::<T>::OperationNotReady)?;
+                *op = Some(next_op);
+                Ok(())
+            })?;
+            // TODO(wangyafei): Might transfer rest part to user.
             Ok(().into())
         }
     }
@@ -232,9 +220,6 @@ mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        pub(crate) fn account_id() -> T::AccountId {
-            T::PalletId::get().into_account()
-        }
         /// Increase/Decrease staked asset in staking pool, and synchronized the exchange rate.
         pub(crate) fn update_staking_pool(
             kind: StakingSettlementKind,
@@ -263,34 +248,6 @@ mod pallet {
             .ok_or(Error::<T>::InvalidExchangeRate)?;
             ExchangeRate::<T>::put(exchange_rate);
             Ok(())
-        }
-        /// Mark a staking operations succeeded.
-        ///
-        /// NOTE: It should be in `Pending` status, otherwise, `OperationNotReady` will be raised.
-        pub(crate) fn try_mark_op_succeeded(
-            era_index: EraIndex,
-            op_type: StakingOperationType,
-        ) -> Result<BalanceOf<T>, DispatchError> {
-            StakingOperationHistory::<T>::try_mutate(
-                era_index,
-                op_type,
-                |op| -> Result<BalanceOf<T>, DispatchError> {
-                    let (next_op, amount) = op
-                        .filter(|op| op.status == ResponseStatus::Pending)
-                        .map(|op| {
-                            (
-                                Operation {
-                                    status: ResponseStatus::Succeeded,
-                                    ..op
-                                },
-                                op.amount,
-                            )
-                        })
-                        .ok_or(Error::<T>::OperationNotReady)?;
-                    *op = Some(next_op);
-                    Ok(amount)
-                },
-            )
         }
     }
 }
