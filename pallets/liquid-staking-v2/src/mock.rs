@@ -1,6 +1,6 @@
 use frame_support::{
     construct_runtime, parameter_types, sp_io,
-    traits::{GenesisBuild, Contains, SortedMembers},
+    traits::{Contains, GenesisBuild, SortedMembers},
     PalletId,
 };
 use frame_system::EnsureSignedBy;
