@@ -1,7 +1,12 @@
+use crate::{
+    mock::*,
+    types::{MatchingLedger, StakingSettlementKind, UnstakeMisc},
+    *,
+};
 use frame_support::{assert_err, assert_ok};
 use orml_traits::MultiCurrency;
 use primitives::{CurrencyId, EraIndex, Rate};
-use sp_runtime::{traits::One, FixedPointNumber};
+use sp_runtime::traits::One;
 
 use crate::{mock::*, types::*, *};
 
