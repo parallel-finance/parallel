@@ -63,8 +63,6 @@ pub struct LiquidityProviderAmounts {
 pub struct Pool {
     pub base_amount: Balance,
     pub quote_amount: Balance,
-    pub base_asset: CurrencyId,
-    pub quote_asset: CurrencyId,
 }
 
 pub struct StandardSwap;
@@ -155,13 +153,9 @@ mod tests {
 
     const DEFAULT_DYNAMIC_POOL: Pool = Pool {
         base_amount: 40,
-        base_asset: CurrencyId::DOT,
         quote_amount: 60,
-        quote_asset: CurrencyId::xDOT,
     };
     const DEFAULT_STABLE_POOL: Pool = Pool {
-        base_asset: CurrencyId::DOT,
-        quote_asset: CurrencyId::xDOT,
         base_amount: 40,
         quote_amount: 60,
     };

@@ -32,7 +32,7 @@ mod pallet {
     use frame_support::{
         pallet_prelude::{StorageDoubleMap, StorageMap, StorageValue, ValueQuery},
         traits::{EnsureOrigin, GenesisBuild, Get, Hooks, IsType},
-        Blake2_128Concat, PalletId, Parameter,
+        Blake2_128Concat, PalletId, Parameter, Twox64Concat,
     };
     use orml_traits::MultiCurrencyExtended;
     use parallel_primitives::{Amount, Balance, CurrencyId, Rate};
@@ -115,9 +115,5 @@ mod pallet {
     /// A bag of liquidity composed by two different assets
     #[pallet::storage]
     pub type Pools<T: Config<I>, I: 'static = ()> =
-        StorageMap<_, Blake2_128Concat, T::PoolId, Pool>;
-
-    /// Auxiliary storage used to track pool ids
-    #[pallet::storage]
-    pub type PoolsCounter<T: Config<I>, I: 'static = ()> = StorageValue<_, T::PoolId, ValueQuery>;
+        StorageDoubleMap<_, Twox64Concat, CurrencyId, Twox64Concat, CurrencyId, Pool>;
 }
