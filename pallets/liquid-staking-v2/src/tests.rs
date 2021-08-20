@@ -8,7 +8,7 @@ use orml_traits::MultiCurrency;
 use primitives::{CurrencyId, EraIndex, Rate};
 use sp_runtime::traits::One;
 
-use crate::{mock::*, types::*, *};
+use crate::types::*;
 
 fn t_insert_pending_op(era_index: EraIndex) {
     let block_number = System::block_number();
