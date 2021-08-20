@@ -25,7 +25,7 @@ mod weights;
 use codec::Encode;
 use frame_support::{
     dispatch::Weight,
-    traits::{All, LockIdentifier, U128CurrencyToVote},
+    traits::{All, Contains, LockIdentifier, U128CurrencyToVote},
     PalletId,
 };
 use orml_currencies::BasicCurrencyAdapter;
@@ -39,11 +39,10 @@ use sp_core::{
 use sp_runtime::traits::{
     AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, Zero,
 };
-use sp_runtime::DispatchError;
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys, traits,
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, KeyTypeId, Percent, SaturatedConversion,
+    ApplyExtrinsicResult, DispatchError, KeyTypeId, Percent, SaturatedConversion,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -248,6 +247,19 @@ parameter_types! {
    pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
 }
 
+pub struct DustRemovalWhitelist;
+impl Contains<AccountId> for DustRemovalWhitelist {
+    fn contains(a: &AccountId) -> bool {
+        vec![
+            LoansPalletId::get().into_account(),
+            TreasuryPalletId::get().into_account(),
+            StakingPalletId::get().into_account(),
+            PotId::get().into_account(),
+        ]
+        .contains(a)
+    }
+}
+
 impl orml_tokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
@@ -257,6 +269,12 @@ impl orml_tokens::Config for Runtime {
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
     type MaxLocks = MaxLocks;
+    type DustRemovalWhitelist = DustRemovalWhitelist;
+}
+
+impl orml_xcm::Config for Runtime {
+    type Event = Event;
+    type SovereignOrigin = EnsureRootOrHalfTechnicalCommittee;
 }
 
 parameter_types! {
@@ -731,7 +749,7 @@ parameter_types! {
     // 1_000_000_000_000 => 1 unit of asset for 1 unit of Weight.
     // TODO Should take the actual weight price. This is just 1_000 KSM per second of weight.
     pub const WeightPrice: (MultiLocation, u128) = (MultiLocation::X1(Junction::Parent), 1_000);
-    pub AllowUnpaidFrom: Vec<MultiLocation> = vec![ MultiLocation::X1(Junction::Parent) ];
+    // pub AllowUnpaidFrom: Vec<MultiLocation> = vec![ MultiLocation::X1(Junction::Parent) ];
 }
 
 pub type Barrier = (
@@ -964,6 +982,11 @@ type EnsureRootOrHalfCouncil = EnsureOneOf<
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>,
 >;
+type EnsureRootOrHalfTechnicalCommittee = EnsureOneOf<
+    AccountId,
+    EnsureRoot<AccountId>,
+    pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, TechnicalCollective>,
+>;
 impl pallet_membership::Config<pallet_membership::Instance1> for Runtime {
     type Event = Event;
     type AddOrigin = EnsureRootOrHalfCouncil;
@@ -1119,8 +1142,8 @@ construct_runtime!(
         Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
 
         // Consensus
-        Aura: pallet_aura::{Pallet, Config<T>},
-        AuraExt: cumulus_pallet_aura_ext::{Pallet, Config},
+        Aura: pallet_aura::{Pallet, Config<T>, Storage},
+        AuraExt: cumulus_pallet_aura_ext::{Pallet, Config, Storage},
 
         // ORML
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
@@ -1128,6 +1151,7 @@ construct_runtime!(
         Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
         XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
         UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event},
+        OrmlXcm: orml_xcm::{Pallet, Call, Event<T>},
         Vesting: orml_vesting::{Pallet, Storage, Call, Event<T>, Config<T>},
 
         // Loans

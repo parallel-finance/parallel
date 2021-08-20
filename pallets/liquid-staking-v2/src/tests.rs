@@ -4,7 +4,7 @@ use crate::types::{MatchingLedger, StakeingSettlementKind, UnstakeMisc};
 use crate::{mock::*, *};
 use orml_traits::MultiCurrency;
 use primitives::{CurrencyId, EraIndex, Rate};
-use sp_runtime::{traits::One, FixedPointNumber};
+use sp_runtime::{traits::One};
 
 #[test]
 fn stake_should_work() {

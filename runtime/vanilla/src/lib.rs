@@ -14,7 +14,9 @@ use static_assertions::const_assert;
 use frame_support::PalletId;
 pub use frame_support::{
     construct_runtime, log, parameter_types,
-    traits::{IsInVec, KeyOwnerProofSystem, LockIdentifier, Randomness, U128CurrencyToVote},
+    traits::{
+        Contains, IsInVec, KeyOwnerProofSystem, LockIdentifier, Randomness, U128CurrencyToVote,
+    },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
         DispatchClass, IdentityFee, Weight,
@@ -35,27 +37,25 @@ use sp_core::{
 };
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
-use sp_runtime::DispatchError;
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{
         self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, NumberFor, Zero,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, Percent, SaturatedConversion,
+    ApplyExtrinsicResult, DispatchError, DispatchResult, Percent, SaturatedConversion,
 };
 pub use sp_runtime::{Perbill, Permill};
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
-use xcm::v0::{Junction, MultiAsset, MultiLocation, Outcome};
+use xcm::v0::{Junction, MultiAsset, MultiLocation};
 
 // Import ORML dependcies
 use orml_currencies::BasicCurrencyAdapter;
 use orml_traits::{
-    parameter_type_with_key, DataProvider, DataProviderExtended, MultiCurrency, XcmExecutionResult,
-    XcmTransfer,
+    parameter_type_with_key, DataProvider, DataProviderExtended, MultiCurrency, XcmTransfer,
 };
 
 // Import Parallel dependencies
@@ -514,6 +514,18 @@ parameter_types! {
    pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
 }
 
+pub struct DustRemovalWhitelist;
+impl Contains<AccountId> for DustRemovalWhitelist {
+    fn contains(a: &AccountId) -> bool {
+        vec![
+            LoansPalletId::get().into_account(),
+            TreasuryPalletId::get().into_account(),
+            StakingPalletId::get().into_account(),
+        ]
+        .contains(a)
+    }
+}
+
 impl orml_tokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
@@ -523,6 +535,7 @@ impl orml_tokens::Config for Runtime {
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
     type MaxLocks = MaxLocks;
+    type DustRemovalWhitelist = DustRemovalWhitelist;
 }
 
 parameter_types! {
@@ -616,7 +629,7 @@ impl XcmTransfer<AccountId, Balance, CurrencyId> for XcmTransferT {
         amount: Balance,
         mut to: MultiLocation,
         _dest_weight: Weight,
-    ) -> XcmExecutionResult {
+    ) -> DispatchResult {
         <Runtime as orml_currencies::Config>::MultiCurrency::withdraw(currency_id, &who, amount)?;
         if let Some(Junction::AccountId32 {
             id: account_id32, ..
@@ -629,7 +642,7 @@ impl XcmTransfer<AccountId, Balance, CurrencyId> for XcmTransferT {
                 amount,
             )?;
         }
-        Ok(Outcome::Complete(0))
+        Ok(().into())
     }
 
     fn transfer_multi_asset(
@@ -637,8 +650,8 @@ impl XcmTransfer<AccountId, Balance, CurrencyId> for XcmTransferT {
         _asset: MultiAsset,
         _dest: MultiLocation,
         _dest_weight: Weight,
-    ) -> XcmExecutionResult {
-        unimplemented!()
+    ) -> DispatchResult {
+        Ok(().into())
     }
 }
 
