@@ -160,7 +160,7 @@ impl<T: Config> Pallet<T> {
             b"liquidate::lock",
             Duration::from_millis(T::LockPeriod::get()),
         );
-        if let Err(_) = lock.try_lock() {
+        if lock.try_lock().is_err() {
             return Err(Error::<T>::GetLockFailed);
         }
 
@@ -324,9 +324,9 @@ impl<T: Config> Pallet<T> {
         match signer.send_signed_transaction(|_account| {
             Call::liquidate_borrow(
                 borrower.clone(),
-                loan_currency.clone(),
-                liquidation_value.clone(),
-                collateral_currency.clone(),
+                loan_currency,
+                liquidation_value,
+                collateral_currency,
             )
         }) {
             None => log::info!("No available accounts for liquidation"),

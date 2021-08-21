@@ -334,7 +334,7 @@ pub mod pallet {
                 ExchangeRate::<T>::insert(currency_id, self.exchange_rate);
                 Markets::<T>::insert(currency_id, market)
             });
-            LastBlockTimestamp::<T>::put(self.last_block_timestamp.clone());
+            LastBlockTimestamp::<T>::put(self.last_block_timestamp);
         }
     }
 

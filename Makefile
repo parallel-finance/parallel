@@ -1,52 +1,25 @@
 .PHONY: run
 run:
-	cargo run --manifest-path node/parallel-dev/Cargo.toml -- --dev -lruntime=debug
+	cargo run --bin parallel-dev -- --dev -lruntime=debug
 
 .PHONY: build
 build: build-dev build-parallel
 
 .PHONY: build-dev
 build-dev:
-	cargo build --manifest-path node/parallel-dev/Cargo.toml --locked
+	cargo build --bin parallel-dev --locked
 
 .PHONY: build-parallel
 build-parallel:
-	cargo build --manifest-path node/parallel/Cargo.toml --locked
+	cargo build --bin parallel --locked
 
 .PHONY: check
-check: check-dev check-parallel check-benchmarks
-	SKIP_WASM_BUILD= cargo check
-
-.PHONY: check-tests
-check-tests:
-	SKIP_WASM_BUILD= cargo check --tests --workspace
-
-.PHONY: check-dev
-check-dev:
-	SKIP_WASM_BUILD= cargo check --manifest-path node/parallel-dev/Cargo.toml --tests --workspace
-
-.PHONY: check-parallel
-check-parallel:
-	SKIP_WASM_BUILD= cargo check --manifest-path node/parallel/Cargo.toml --tests --workspace
-
-.PHONY: check-benchmarks
-check-benchmarks:
-	SKIP_WASM_BUILD= cargo check --manifest-path node/parallel/Cargo.toml --tests --workspace --features runtime-benchmarks
-
-.PHONY: check-debug
-check-debug:
-	RUSTFLAGS="-Z macro-backtrace" SKIP_WASM_BUILD= cargo +nightly check
+check:
+	SKIP_WASM_BUILD= cargo check --all-targets --all-features
 
 .PHONY: test
-test: test-dev test-parallel
-
-.PHONY: test-dev
-test-dev:
-	SKIP_WASM_BUILD= cargo test --manifest-path node/parallel-dev/Cargo.toml -p pallet-loans -p pallet-liquidation -p pallet-liquid-staking -p pallet-prices -p pallet-nominee-election -p pallet-liquid-staking-v2 -- --nocapture
-
-.PHONY: test-parallel
-test-parallel:
-	SKIP_WASM_BUILD= cargo test --manifest-path node/parallel/Cargo.toml --workspace
+test:
+	SKIP_WASM_BUILD= cargo test --workspace --exclude parallel --exclude parallel-dev --exclude parallel-runtime --exclude vanilla-runtime --exclude heiko-runtime --exclude pallet-loans-benchmarking -- --nocapture
 
 .PHONY: bench
 bench: bench-loans bench-liquid-staking
@@ -61,11 +34,11 @@ bench-liquid-staking:
 
 .PHONY: lint
 lint:
-	SKIP_WASM_BUILD= cargo clippy -- -D warnings
+	SKIP_WASM_BUILD= cargo clippy --workspace --exclude parallel --exclude parallel-dev --exclude parallel-runtime --exclude vanilla-runtime --exclude heiko-runtime --exclude pallet-loans-benchmarking -- -A clippy::type_complexity -D warnings
 
 .PHONY: fmt
 fmt:
-	SKIP_WASM_BUILD= cargo fmt
+	SKIP_WASM_BUILD= cargo fmt --all -- --check
 
 .PHONY: purge
 purge:
@@ -76,23 +49,12 @@ restart: purge run
 
 .PHONY: resources
 resources:
-	target/release/parallel export-genesis-state --chain heiko-dev --parachain-id 2000 > ./resources/para-2000-genesis
-	target/release/parallel export-genesis-wasm --chain heiko-dev > ./resources/para-2000.wasm
-
-.PHONY: docker-resources
-docker-resources:
 	docker run --rm parallelfinance/parallel:latest export-genesis-state --chain heiko-dev --parachain-id 2000 > ./resources/para-2000-genesis
 	docker run --rm parallelfinance/parallel:latest export-genesis-wasm --chain heiko-dev > ./resources/para-2000.wasm
 
-.PHONY: polkadot-launch
-polkadot-launch:
-	polkadot-launch config.json
-
-.PHONY: parachain-launch
-parachain-launch:
-	parachain-launch generate
-	cd output
-	docker-compose up -d --build
+.PHONY: launch
+launch:
+	parachain-launch generate && cd output && docker-compose up -d --build
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?' Makefile | cut -d: -f1 | sort

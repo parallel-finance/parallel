@@ -553,7 +553,7 @@ pub mod pallet {
                         info.as_mut()
                             .map_or(Err(Error::<T>::NoProcessingUnstake), |v| {
                                 match v.iter().position(|i| i.amount == amount) {
-                                    None => return Err(Error::<T>::InvalidProcessedUnstakeAmount),
+                                    None => Err(Error::<T>::InvalidProcessedUnstakeAmount),
                                     Some(p) => {
                                         v.remove(p);
                                         Ok(v)
