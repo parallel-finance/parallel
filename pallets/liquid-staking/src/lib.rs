@@ -446,7 +446,7 @@ pub mod pallet {
                 *b = b.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
                 Ok(())
             })?;
-            // TODO should it update after applied onbond operation?
+            // TODO should it update after applied unbond operation?
             TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b
                     .checked_sub(asset_amount)
