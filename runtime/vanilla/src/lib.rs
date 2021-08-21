@@ -580,7 +580,7 @@ parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = CurrencyId::KSM;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xKSM;
-    pub const MaxWithdrawAmount: Balance = 1000_000_000_000_000;
+    pub const MaxWithdrawAmount: Balance = 1_000_000_000_000_000;
     pub const MaxAccountProcessingUnstake: u32 = 5;
     pub const BaseXcmWeight: Weight = 0;
 }
@@ -606,7 +606,7 @@ impl XcmTransfer<AccountId, Balance, CurrencyId> for XcmTransferT {
                 amount,
             )?;
         }
-        Ok(().into())
+        Ok(())
     }
 
     fn transfer_multi_asset(
@@ -615,7 +615,7 @@ impl XcmTransfer<AccountId, Balance, CurrencyId> for XcmTransferT {
         _dest: MultiLocation,
         _dest_weight: Weight,
     ) -> DispatchResult {
-        Ok(().into())
+        Ok(())
     }
 }
 
@@ -709,11 +709,7 @@ where
         let (call, extra, _) = raw_payload.deconstruct();
         Some((
             call,
-            (
-                sp_runtime::MultiAddress::Id(address),
-                signature.into(),
-                extra,
-            ),
+            (sp_runtime::MultiAddress::Id(address), signature, extra),
         ))
     }
 }

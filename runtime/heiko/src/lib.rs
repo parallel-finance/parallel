@@ -25,7 +25,7 @@ mod weights;
 use codec::Encode;
 use frame_support::{
     dispatch::Weight,
-    traits::{All, Contains},
+    traits::{All, Contains, Filter},
     PalletId,
 };
 use orml_currencies::BasicCurrencyAdapter;
@@ -184,11 +184,44 @@ parameter_types! {
     pub const SS58Prefix: u8 = HEIKO_PREFIX;
 }
 
-// Configure FRAME pallets to include in runtime.
+pub struct BaseCallFilter;
+impl Filter<Call> for BaseCallFilter {
+    fn filter(call: &Call) -> bool {
+        matches!(
+            call,
+            // System, Utility, Currencies
+            Call::System(_) | Call::Timestamp(_) | Call::Multisig(_)  | Call::Utility(_) | Call::Balances(_) |
+            // Governance
+            Call::Sudo(_) | Call::Democracy(_) | Call::Council(_) | Call::TechnicalCommittee(_) | Call::Treasury(_) | Call::Scheduler(_) |
+            // Parachain
+            Call::ParachainSystem(_) | Call::XcmpQueue(_) | Call::DmpQueue(_) | Call::PolkadotXcm(_) | Call::CumulusXcm(_) |
+            // Consensus
+            Call::Authorship(_) | Call::CollatorSelection(_) | Call::Session(_) |
+            // 3rd Party
+            Call::Currencies(_) |
+            Call::Oracle(_) |
+            Call::XTokens(_) |
+            Call::OrmlXcm(_) |
+            Call::Vesting(_) |
+            // Loans
+            Call::Loans(_) |
+            Call::Liquidation(_) |
+            Call::Prices(_) |
+            // LiquidStaking
+            Call::LiquidStaking(_) |
+            Call::NomineeElection(_) |
+            // Membership
+            Call::TechnicalMembership(_) |
+            Call::OracleMembership(_) |
+            Call::LiquidStakingAgentMembership(_) |
+            Call::ValidatorFeedersMembership(_)
+        )
+    }
+}
 
 impl frame_system::Config for Runtime {
     /// The basic call filter to use in dispatchable.
-    type BaseCallFilter = ();
+    type BaseCallFilter = BaseCallFilter;
     /// Block & extrinsics weights: base values and limits.
     type BlockWeights = RuntimeBlockWeights;
     /// The maximum length of a block (in bytes).
@@ -394,7 +427,7 @@ parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = CurrencyId::KSM;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xKSM;
-    pub const MaxWithdrawAmount: Balance = 1000_000_000_000_000;
+    pub const MaxWithdrawAmount: Balance = 1_000_000_000_000_000;
     pub const MaxAccountProcessingUnstake: u32 = 5;
 }
 
