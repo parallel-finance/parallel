@@ -4,23 +4,22 @@ use codec::{Decode, Encode};
 use frame_support::{
     dispatch::Weight,
     parameter_types,
-    traits::{GenesisBuild, MaxEncodedLen, SortedMembers},
+    traits::{Contains, GenesisBuild, MaxEncodedLen, SortedMembers},
     PalletId,
 };
 use frame_system::{self as system, EnsureOneOf, EnsureRoot, EnsureSignedBy};
-use orml_traits::{parameter_type_with_key, MultiCurrency};
-use orml_traits::{XcmExecutionResult, XcmTransfer};
+use orml_traits::{parameter_type_with_key, MultiCurrency, XcmTransfer};
 use primitives::{Amount, Balance, CurrencyId, Rate, Ratio};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
-    traits::{BlakeTwo256, IdentityLookup},
-    FixedPointNumber, RuntimeDebug,
+    traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
+    DispatchResult, FixedPointNumber, RuntimeDebug,
 };
 use sp_std::convert::TryInto;
-use xcm::v0::{Junction, MultiAsset, MultiLocation, Outcome};
+use xcm::v0::{Junction, MultiAsset, MultiLocation};
 
 pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const XDOT: CurrencyId = CurrencyId::xDOT;
@@ -141,6 +140,13 @@ parameter_type_with_key! {
     };
 }
 
+pub struct DustRemovalWhitelist;
+impl Contains<AccountId> for DustRemovalWhitelist {
+    fn contains(a: &AccountId) -> bool {
+        vec![StakingPalletId::get().into_account()].contains(a)
+    }
+}
+
 impl orml_tokens::Config for Test {
     type Event = Event;
     type Balance = Balance;
@@ -150,6 +156,7 @@ impl orml_tokens::Config for Test {
     type ExistentialDeposits = ExistentialDeposits;
     type WeightInfo = ();
     type MaxLocks = MaxLocks;
+    type DustRemovalWhitelist = DustRemovalWhitelist;
 }
 
 parameter_types! {
@@ -176,7 +183,7 @@ type EnsureRootOrSix =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<Six, AccountId>>;
 
 parameter_types! {
-    pub const LiquidStakingPalletId: PalletId = PalletId(*b"par/lqsk");
+    pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = DOT;
     pub const LiquidCurrency: CurrencyId = XDOT;
     pub const MaxWithdrawAmount: Balance = 10;
@@ -187,7 +194,7 @@ parameter_types! {
 impl pallet_liquid_staking::Config for Test {
     type Event = Event;
     type Currency = Currencies;
-    type PalletId = LiquidStakingPalletId;
+    type PalletId = StakingPalletId;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
     type WithdrawOrigin = EnsureRootOrSix;
@@ -214,7 +221,7 @@ impl XcmTransfer<AccountId, Balance, CurrencyId> for Currencies {
         amount: Balance,
         mut to: MultiLocation,
         _dest_weight: Weight,
-    ) -> XcmExecutionResult {
+    ) -> DispatchResult {
         <Test as orml_currencies::Config>::MultiCurrency::withdraw(currency_id, &who, amount)?;
         if let Some(Junction::AccountId32 {
             id: account_id32, ..
@@ -227,7 +234,7 @@ impl XcmTransfer<AccountId, Balance, CurrencyId> for Currencies {
                 amount,
             )?;
         }
-        Ok(Outcome::Complete(0))
+        Ok(().into())
     }
 
     fn transfer_multi_asset(
@@ -235,8 +242,8 @@ impl XcmTransfer<AccountId, Balance, CurrencyId> for Currencies {
         _asset: MultiAsset,
         _dest: MultiLocation,
         _dest_weight: Weight,
-    ) -> XcmExecutionResult {
-        unimplemented!()
+    ) -> DispatchResult {
+        Ok(().into())
     }
 }
 

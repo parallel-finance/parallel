@@ -1,6 +1,6 @@
 use frame_support::{
     construct_runtime, parameter_types, sp_io,
-    traits::{GenesisBuild, SortedMembers},
+    traits::{Contains, GenesisBuild, SortedMembers},
     PalletId,
 };
 use frame_system::EnsureSignedBy;
@@ -8,7 +8,7 @@ use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
-    traits::{BlakeTwo256, IdentityLookup, One},
+    traits::{AccountIdConversion, BlakeTwo256, IdentityLookup, One},
 };
 
 use primitives::{Amount, Balance, CurrencyId, Rate};
@@ -73,6 +73,13 @@ parameter_type_with_key! {
     };
 }
 
+pub struct DustRemovalWhitelist;
+impl Contains<AccountId> for DustRemovalWhitelist {
+    fn contains(a: &AccountId) -> bool {
+        vec![StakingPalletId::get().into_account()].contains(a)
+    }
+}
+
 impl orml_tokens::Config for Test {
     type Event = Event;
     type Balance = Balance;
@@ -82,6 +89,7 @@ impl orml_tokens::Config for Test {
     type ExistentialDeposits = ExistentialDeposits;
     type WeightInfo = ();
     type MaxLocks = MaxLocks;
+    type DustRemovalWhitelist = DustRemovalWhitelist;
 }
 
 parameter_types! {
@@ -107,7 +115,7 @@ impl SortedMembers<AccountId> for AliceOrigin {
 pub type BridgeOrigin = EnsureSignedBy<AliceOrigin, AccountId>;
 
 parameter_types! {
-    pub const LiquidStakingPalletId: PalletId = PalletId(*b"par/lqsk");
+    pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
 }
@@ -117,7 +125,7 @@ impl crate::Config for Test {
     type Currency = Currencies;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type PalletId = LiquidStakingPalletId;
+    type PalletId = StakingPalletId;
     type BridgeOrigin = BridgeOrigin;
     type WeightInfo = ();
 }

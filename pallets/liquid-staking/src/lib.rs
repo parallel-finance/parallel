@@ -56,6 +56,7 @@ pub struct UnstakeInfo<BlockNumber> {
 
 #[frame_support::pallet]
 pub mod pallet {
+
     use super::*;
 
     #[pallet::pallet]
