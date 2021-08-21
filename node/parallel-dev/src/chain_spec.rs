@@ -16,8 +16,7 @@ use hex_literal::hex;
 use primitives::*;
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::crypto::UncheckedInto;
-use sp_core::{sr25519, Pair, Public};
+use sp_core::{crypto::UncheckedInto, sr25519, Pair, Public};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::{
     traits::{IdentifyAccount, One, Verify},
@@ -25,10 +24,9 @@ use sp_runtime::{
 };
 use vanilla_runtime::{
     pallet_loans::{InterestRateModel, JumpModel, Market, MarketState},
-    AuraConfig, BalancesConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GenesisConfig,
-    GrandpaConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig, SudoConfig,
-    SystemConfig, TechnicalCommitteeConfig, TokensConfig, ValidatorFeedersMembershipConfig,
-    WASM_BINARY,
+    AuraConfig, BalancesConfig, CouncilConfig, DemocracyConfig, GenesisConfig, GrandpaConfig,
+    LiquidStakingConfig, LoansConfig, OracleMembershipConfig, SudoConfig, SystemConfig,
+    TechnicalCommitteeConfig, TokensConfig, ValidatorFeedersMembershipConfig, WASM_BINARY,
 };
 
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
@@ -271,14 +269,6 @@ fn testnet_genesis(
             reserve_factor: Ratio::from_perthousand(5),
         },
         democracy: DemocracyConfig::default(),
-        elections: ElectionsConfig {
-            members: endowed_accounts
-                .iter()
-                .take((endowed_accounts.len() + 1) / 2)
-                .cloned()
-                .map(|member| (member, 0))
-                .collect(),
-        },
         council: CouncilConfig::default(),
         technical_committee: TechnicalCommitteeConfig {
             members: endowed_accounts
