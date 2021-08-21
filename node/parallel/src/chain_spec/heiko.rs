@@ -49,10 +49,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
         ChainType::Development,
         move || {
             testnet_genesis(
-                // Multisig account combined by Alice, Bob and Charile, ss58 prefix is 42
-                "5DjYJStmdZ2rcqXbXGX7TW85JsrW6uG4y9MUcLq2BoPMpRA7"
-                    .parse()
-                    .unwrap(),
+                get_account_id_from_seed::<sr25519::Public>("Dave"),
                 vec![
                     get_authority_keys_from_seed("Alice"),
                     get_authority_keys_from_seed("Bob"),
@@ -60,6 +57,10 @@ pub fn development_config(id: ParaId) -> ChainSpec {
                 ],
                 vec![get_account_id_from_seed::<sr25519::Public>("Ferdie")],
                 vec![
+                    // Faucet accounts
+                    "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                        .parse()
+                        .unwrap(),
                     get_account_id_from_seed::<sr25519::Public>("Dave"),
                     get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
@@ -69,9 +70,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                 ],
                 vec![get_account_id_from_seed::<sr25519::Public>("Eve")],
-                vec!["5DjYJStmdZ2rcqXbXGX7TW85JsrW6uG4y9MUcLq2BoPMpRA7"
-                    .parse()
-                    .unwrap()],
+                vec![get_account_id_from_seed::<sr25519::Public>("Dave")],
                 id,
             )
         },
@@ -210,7 +209,16 @@ fn testnet_genesis(
 
                 endowed_accounts
                     .into_iter()
-                    .map(|k| (k, 10_u128.pow(16)))
+                    .map(|k| {
+                        if k == "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                            .parse()
+                            .unwrap()
+                        {
+                            (k, 10_u128.pow(20))
+                        } else {
+                            (k, 10_u128.pow(16))
+                        }
+                    })
                     .collect()
             },
         },
@@ -245,7 +253,7 @@ fn testnet_genesis(
                         .parse()
                         .unwrap()
                     {
-                        vec![(x.clone(), CurrencyId::USDT, 10_u128.pow(14))]
+                        vec![(x.clone(), CurrencyId::USDT, 10_u128.pow(20))]
                     } else {
                         vec![(x.clone(), CurrencyId::USDT, 10_u128.pow(9))]
                     }
