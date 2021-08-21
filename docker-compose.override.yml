@@ -1,0 +1,17 @@
+version: "3.7"
+services:
+  parallel-dapp:
+    ports:
+      - "8080:80"
+    image: parallelfinance/parallel-dapp:latest
+    restart: always
+
+  oracle:
+    image: parallelfinance/oracle-client:latest
+    command: start -m 12000 -w ws://parachain-2085-0:9944
+    restart: always
+
+  nominate-client:
+    image: parallelfinance/nominate-client:latest
+    command: --relay-ws ws://relaychain-alice:9944 --para-ws ws://parachain-2085-0:9944 --tick 120000
+    restart: always

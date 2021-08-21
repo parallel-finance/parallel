@@ -1,6 +1,6 @@
 relaychain:
-  image: parity/polkadot:v0.9.8
-  chain: rococo-local
+  image: parallelfinance/polkadot:v0.9.8
+  chain: westend-local
   runtimeGenesisConfig:
     parachainsConfiguration:
       config:

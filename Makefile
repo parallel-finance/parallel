@@ -54,7 +54,7 @@ resources:
 
 .PHONY: launch
 launch:
-	parachain-launch generate && cd output && docker-compose up -d --build
+	parachain-launch generate && cp docker-compose.override.yml output && cd output && docker-compose up -d --build
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?' Makefile | cut -d: -f1 | sort
