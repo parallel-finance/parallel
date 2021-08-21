@@ -73,20 +73,16 @@ jobs:
 
       - name: Check Build
         run: |
-          SKIP_WASM_BUILD= cargo check --all-targets --all-features
+          make check
 
-      # - name: Check Wasm
-      #   run: |
-      #     cargo check --release --manifest-path runtime/Cargo.toml --target wasm32-unknown-unknown --no-default-features
-
-      # - name: Check Clippy Warnings
-      #  run: |
-      #    SKIP_WASM_BUILD= cargo clippy
+      - name: Check Clippy Warnings
+        run: |
+          make lint
 
       - name: Check Format
         run: |
-          SKIP_WASM_BUILD= cargo fmt --all -- --check
+          make fmt
 
       - name: Check Test
         run: |
-          SKIP_WASM_BUILD= cargo test --manifest-path node/parallel-dev/Cargo.toml -p pallet-loans -p pallet-liquidation -p pallet-liquid-staking
+          make test
