@@ -43,7 +43,7 @@ use sp_runtime::{
         self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, Zero,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, DispatchError, KeyTypeId, Percent, SaturatedConversion,
+    ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Percent, Permill, SaturatedConversion,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -99,7 +99,6 @@ pub use frame_support::{
 use pallet_xcm::XcmPassthrough;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
-pub use sp_runtime::{Perbill, Permill};
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -1074,64 +1073,60 @@ construct_runtime!(
         NodeBlock = opaque::Block,
         UncheckedExtrinsic = UncheckedExtrinsic,
     {
-        // System, Utility
-        System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
-        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-        Utility: pallet_utility::{Pallet, Call, Event},
-        Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>},
+        // System, Utility, Currencies
+        System: frame_system::{Pallet, Call, Storage, Config, Event<T>} = 0,
+        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 1,
+        Utility: pallet_utility::{Pallet, Call, Event} = 2,
+        Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 3,
+        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 4,
+        TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 5,
 
         // Governance
-        Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>},
-        Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>},
-        Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
-        TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
-        Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>},
-        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
-        TechnicalMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>},
-
-        // Currencies
-        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-        TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
+        Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
+        Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>} = 11,
+        Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 12,
+        TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 13,
+        Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>} = 14,
+        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 15,
 
         // Parachain
-        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Storage, Inherent, Event<T>},
-        ParachainInfo: parachain_info::{Pallet, Storage, Config},
-        XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>},
-        DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>},
-        PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin},
-        CumulusXcm: cumulus_pallet_xcm::{Pallet, Call, Event<T>, Origin},
-
-        // Collator
-        Authorship: pallet_authorship::{Pallet, Call, Storage},
-        CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>},
-        Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
+        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Storage, Inherent, Event<T>} = 20,
+        ParachainInfo: parachain_info::{Pallet, Storage, Config} = 21,
+        XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>} = 22,
+        DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 23,
+        PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin} = 24,
+        CumulusXcm: cumulus_pallet_xcm::{Pallet, Call, Event<T>, Origin} = 25,
 
         // Consensus
-        Aura: pallet_aura::{Pallet, Config<T>, Storage},
-        AuraExt: cumulus_pallet_aura_ext::{Pallet, Config, Storage},
+        Authorship: pallet_authorship::{Pallet, Call, Storage} = 30,
+        CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 31,
+        Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 32,
+        Aura: pallet_aura::{Pallet, Config<T>, Storage} = 33,
+        AuraExt: cumulus_pallet_aura_ext::{Pallet, Config, Storage} = 34,
 
-        // ORML
-        Currencies: orml_currencies::{Pallet, Call, Event<T>},
-        Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
-        Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
-        XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
-        UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event},
-        OrmlXcm: orml_xcm::{Pallet, Call, Event<T>},
-        Vesting: orml_vesting::{Pallet, Storage, Call, Event<T>, Config<T>},
+        // 3rd Party
+        Currencies: orml_currencies::{Pallet, Call, Event<T>} = 40,
+        Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>} = 41,
+        Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>} = 42,
+        XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>} = 43,
+        UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event} = 44,
+        OrmlXcm: orml_xcm::{Pallet, Call, Event<T>} = 45,
+        Vesting: orml_vesting::{Pallet, Storage, Call, Event<T>, Config<T>} = 46,
 
         // Loans
-        Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
-        Liquidation: pallet_liquidation::{Pallet, Call},
-        Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
-
-        // Oracles
-        OracleMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>},
+        Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config} = 50,
+        Liquidation: pallet_liquidation::{Pallet, Call} = 51,
+        Prices: pallet_prices::{Pallet, Storage, Call, Event<T>} = 52,
 
         // LiquidStaking
-        LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config},
-        LiquidStakingAgentMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>},
-        NomineeElection: pallet_nominee_election::{Pallet, Call, Storage, Event<T>},
-        ValidatorFeedersMembership: pallet_membership::<Instance4>::{Pallet, Call, Storage, Event<T>, Config<T>}
+        LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config} = 60,
+        NomineeElection: pallet_nominee_election::{Pallet, Call, Storage, Event<T>} = 61,
+
+        // Membership
+        TechnicalMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 70,
+        OracleMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>} = 71,
+        LiquidStakingAgentMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
+        ValidatorFeedersMembership: pallet_membership::<Instance4>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73
     }
 );
 

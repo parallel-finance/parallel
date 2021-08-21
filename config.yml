@@ -1,6 +1,6 @@
 relaychain:
-  image: parity/polkadot:v0.9.8
-  chain: rococo-local
+  image: parallelfinance/polkadot:v0.9.8
+  chain: westend-local
   runtimeGenesisConfig:
     parachainsConfiguration:
       config:
@@ -25,7 +25,7 @@ parachains:
         - bob
         - charlie
       sudo: dave
-    id: 2000
+    id: 2085
     parachain: true
     flags:
       - --rpc-methods=unsafe
