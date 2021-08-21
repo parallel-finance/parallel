@@ -16,18 +16,16 @@ use cumulus_primitives_core::ParaId;
 use heiko_runtime::{
     opaque::SessionKeys,
     pallet_loans::{InterestRateModel, JumpModel, Market, MarketState},
-    BalancesConfig, CollatorSelectionConfig, CouncilConfig, DemocracyConfig, ElectionsConfig,
-    GenesisConfig, LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig,
-    OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeConfig, TokensConfig, ValidatorFeedersMembershipConfig, VestingConfig,
-    WASM_BINARY,
+    BalancesConfig, CollatorSelectionConfig, CouncilConfig, DemocracyConfig, GenesisConfig,
+    LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig,
+    ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig,
+    TokensConfig, ValidatorFeedersMembershipConfig, VestingConfig, WASM_BINARY,
 };
 use hex_literal::hex;
 use primitives::*;
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::crypto::UncheckedInto;
-use sp_core::sr25519;
+use sp_core::{crypto::UncheckedInto, sr25519};
 use sp_runtime::{
     traits::{One, Zero},
     FixedPointNumber,
@@ -320,14 +318,6 @@ fn testnet_genesis(
             reserve_factor: Ratio::from_perthousand(5),
         },
         democracy: DemocracyConfig::default(),
-        elections: ElectionsConfig {
-            members: endowed_accounts
-                .iter()
-                .take((endowed_accounts.len() + 1) / 2)
-                .cloned()
-                .map(|member| (member, 0))
-                .collect(),
-        },
         council: CouncilConfig::default(),
         technical_committee: TechnicalCommitteeConfig {
             members: endowed_accounts
