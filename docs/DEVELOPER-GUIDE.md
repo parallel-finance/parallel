@@ -55,7 +55,7 @@ Substrate Parachain Template:
 
 ```
 # this command assumes the chain spec is in a directory named polkadot that is a sibling of the working directory
-./target/release/parallel -d local-test --collator --alice --chain heiko-dev --ws-port 9915 --parachain-id 2000 -- --chain ../polkadot/rococo_local.json \
+./target/release/parallel -d local-test --collator --alice --chain heiko-dev --ws-port 9915 --parachain-id 2085 -- --chain ../polkadot/rococo_local.json \
         --bootnodes /ip4/127.0.0.1/tcp/50555/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp
 ```
 
@@ -65,7 +65,7 @@ In order to produce blocks you will need to register the parachain as detailed i
 
 Developer -> sudo -> paraSudoWrapper -> sudoScheduleParaInitialize(id, genesis)
 
-Ensure you set the `ParaId` to `2000` and the `parachain: Bool` to `Yes`.
+Ensure you set the `ParaId` to `2085` and the `parachain: Bool` to `Yes`.
 
 The files you will need are in the `./resources` folder, if you need to build them because you modified the code you can use the following commands
 
@@ -78,8 +78,8 @@ cargo build --release
 
 
 # export genesis state and wasm
-./target/release/parallel export-genesis-state --parachain-id 2000 > ./resources/para-2000-genesis
-./target/release/parallel export-genesis-wasm > ./resources/para-2000.wasm
+./target/release/parallel export-genesis-state --parachain-id 2085 > ./resources/para-2085-genesis
+./target/release/parallel export-genesis-wasm > ./resources/para-2085.wasm
 ```
 
 ### Embedded Docs
@@ -158,6 +158,6 @@ Generate heiko-dev's genesis state & wasm
 ```
 docker run --rm  parity/polkadot:latest build-spec --chain rococo-local --raw --disable-default-bootnode > rococo-local.json
 
-docker run --rm  parallelfinance/parallel:latest export-genesis-state --chain heiko-dev --parachain-id 2000 > ./para-2000-genesis
-docker run --rm  parallelfinance/parallel:latest export-genesis-wasm --chain heiko-dev > ./para-2000.wasm
+docker run --rm  parallelfinance/parallel:latest export-genesis-state --chain heiko-dev --parachain-id 2085 > ./para-2085-genesis
+docker run --rm  parallelfinance/parallel:latest export-genesis-wasm --chain heiko-dev > ./para-2085.wasm
 ```
