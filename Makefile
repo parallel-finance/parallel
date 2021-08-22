@@ -56,5 +56,9 @@ resources:
 launch:
 	parachain-launch generate && cp docker-compose.override.yml output && cd output && docker-compose up -d --build
 
+.PHONY: wasm
+wasm:
+	./scripts/srtool-build.sh
+
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?' Makefile | cut -d: -f1 | sort
