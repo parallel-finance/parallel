@@ -161,3 +161,10 @@ docker run --rm  parity/polkadot:latest build-spec --chain rococo-local --raw --
 docker run --rm  parallelfinance/parallel:latest export-genesis-state --chain heiko-dev --parachain-id 2085 > ./para-2085-genesis
 docker run --rm  parallelfinance/parallel:latest export-genesis-wasm --chain heiko-dev > ./para-2085.wasm
 ```
+
+### Wasm
+
+```
+make wasm
+make PACKAGE=parallel-runtime wasm
+```
