@@ -8,7 +8,7 @@ use frame_support::{
     PalletId,
 };
 use frame_system::EnsureSignedBy;
-use orml_traits::{parameter_type_with_key, XcmTransfer};
+use orml_traits::{parameter_type_with_key, MultiCurrency, XcmTransfer};
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
 use sp_runtime::{
@@ -16,7 +16,7 @@ use sp_runtime::{
     traits::{AccountIdConversion, BlakeTwo256, IdentityLookup, One},
 };
 use sp_std::convert::TryInto;
-// use xcm::v0::*;
+use xcm::v0::{Junction, MultiAsset, MultiLocation};
 
 use primitives::{Amount, Balance, CurrencyId, Rate};
 
@@ -168,9 +168,9 @@ impl crate::Config for Test {
     type LiquidCurrency = LiquidCurrency;
     type PalletId = StakingPalletId;
     type BridgeOrigin = BridgeOrigin;
-    // type BaseXcmWeight = BaseXcmWeight;
-    // type XcmTransfer = ();
-    // type Agent = Agent;
+    type BaseXcmWeight = BaseXcmWeight;
+    type XcmTransfer = Currencies;
+    type Agent = Agent;
     type WeightInfo = ();
 }
 
@@ -192,6 +192,39 @@ construct_runtime!(
 pub(crate) const Alice: AccountId = AccountId(1u64);
 #[allow(non_upper_case_globals)]
 pub(crate) const Bob: AccountId = AccountId(2u64);
+
+impl XcmTransfer<AccountId, Balance, CurrencyId> for Currencies {
+    fn transfer(
+        who: AccountId,
+        currency_id: CurrencyId,
+        amount: Balance,
+        mut to: MultiLocation,
+        _dest_weight: Weight,
+    ) -> DispatchResult {
+        <Test as orml_currencies::Config>::MultiCurrency::withdraw(currency_id, &who, amount)?;
+        if let Some(Junction::AccountId32 {
+            id: account_id32, ..
+        }) = to.take_last()
+        {
+            let account_id: AccountId = account_id32.into();
+            <Test as orml_currencies::Config>::MultiCurrency::deposit(
+                currency_id,
+                &account_id,
+                amount,
+            )?;
+        }
+        Ok(().into())
+    }
+
+    fn transfer_multi_asset(
+        _who: AccountId,
+        _asset: MultiAsset,
+        _dest: MultiLocation,
+        _dest_weight: Weight,
+    ) -> DispatchResult {
+        Ok(().into())
+    }
+}
 
 pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     let mut storage = frame_system::GenesisConfig::default()

@@ -46,7 +46,7 @@ mod pallet {
     };
     use orml_traits::{MultiCurrency, MultiCurrencyExtended, XcmTransfer};
     use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber};
-    // use xcm::v0::{Junction, MultiLocation, NetworkId};
+    use xcm::v0::{Junction, MultiLocation, NetworkId};
 
     use primitives::{Amount, Balance, CurrencyId, EraIndex, Rate};
 
@@ -88,12 +88,12 @@ mod pallet {
         type PalletId: Get<PalletId>;
 
         /// XCM transfer
-        // type XcmTransfer: XcmTransfer<Self::AccountId, Balance, CurrencyId>;
-        //
-        // /// Base xcm transaction weight
-        // type BaseXcmWeight: Get<Weight>;
-        //
-        // type Agent: Get<Self::AccountId>;
+        type XcmTransfer: XcmTransfer<Self::AccountId, Balance, CurrencyId>;
+
+        /// Base xcm transaction weight
+        type BaseXcmWeight: Get<Weight>;
+
+        type Agent: Get<Self::AccountId>;
 
         type WeightInfo: WeightInfo;
     }
@@ -358,20 +358,19 @@ mod pallet {
             T::BridgeOrigin::ensure_origin(origin)?;
             let (bond_amount, rebond_amount, unbond_amount) =
                 MatchingPool::<T>::take().matching(unbonding_amount);
-            //TODO(Alan WANG): XcmTransfer `amount` to relaychain
-            // T::XcmTransfer::transfer(
-            //     Self::account_id(),
-            //     T::StakingCurrency::get(),
-            //     bond_amount,
-            //     MultiLocation::X2(
-            //         Junction::Parent,
-            //         Junction::AccountId32 {
-            //             network: NetworkId::Any,
-            //             id: T::Agent::get().into(),
-            //         },
-            //     ),
-            //     T::BaseXcmWeight::get(),
-            // )?;
+            T::XcmTransfer::transfer(
+                Self::account_id(),
+                T::StakingCurrency::get(),
+                bond_amount,
+                MultiLocation::X2(
+                    Junction::Parent,
+                    Junction::AccountId32 {
+                        network: NetworkId::Any,
+                        id: T::Agent::get().into(),
+                    },
+                ),
+                T::BaseXcmWeight::get(),
+            )?;
             Self::deposit_event(Event::<T>::StakingOpRequrest(
                 bond_amount,
                 rebond_amount,

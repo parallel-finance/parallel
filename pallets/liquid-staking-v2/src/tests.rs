@@ -5,7 +5,7 @@ use crate::{
 };
 use frame_support::{assert_err, assert_ok, traits::Hooks};
 use orml_traits::MultiCurrency;
-use primitives::{Balance, CurrencyId, EraIndex, Rate};
+use primitives::{Balance, CurrencyId, Rate};
 use sp_runtime::traits::One;
 
 #[test]
@@ -128,8 +128,10 @@ fn test_settlement_should_work() {
     use StakeOp::*;
     new_test_ext().execute_with(|| {
         let test_case: Vec<(Vec<StakeOp>, Balance, (Balance, Balance, Balance), Balance)> = vec![
-            (vec![Stake(10), Unstake(5)], 0, (5, 0, 0), 0),
-            // (vec![Stake(10), Unstake(5), Unstake(10), 0, (0, 0, 5), 10]),
+            (vec![Stake(30), Unstake(5)], 0, (25, 0, 0), 0),
+            // Calculate right here.
+            (vec![Unstake(10), Unstake(5), Stake(10)], 0, (0, 0, 5), 10),
+            (vec![], 0, (0, 0, 0), 0),
         ];
 
         for (stake_ops, unbonding_amount, matching_result, pallet_balance) in test_case.into_iter()
