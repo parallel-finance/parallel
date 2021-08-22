@@ -777,7 +777,7 @@ pub type XcmOriginToTransactDispatchOrigin = (
 
 parameter_types! {
     pub UnitWeightCost: Weight = 100_000_000;
-         pub KsmPerSecond: (MultiLocation, u128) = (X1(Parent), ksm_per_second());
+    pub KsmPerSecond: (MultiLocation, u128) = (X1(Parent), ksm_per_second());
 }
 
 parameter_types! {

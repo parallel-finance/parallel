@@ -777,7 +777,7 @@ pub type XcmOriginToTransactDispatchOrigin = (
 
 parameter_types! {
     pub UnitWeightCost: Weight = 100_000_000;
-     pub DotPerSecond: (MultiLocation, u128) = (X1(Parent), dot_per_second());
+    pub DotPerSecond: (MultiLocation, u128) = (X1(Parent), dot_per_second());
 }
 
 parameter_types! {
