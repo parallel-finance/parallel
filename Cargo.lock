@@ -5437,15 +5437,18 @@ version = "3.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
+ "max-encoded-len",
  "orml-currencies",
  "orml-tokens",
  "orml-traits",
  "pallet-balances",
  "parallel-primitives",
  "parity-scale-codec",
+ "serde",
  "sp-core",
  "sp-runtime",
  "sp-std",
+ "xcm",
 ]
 
 [[package]]

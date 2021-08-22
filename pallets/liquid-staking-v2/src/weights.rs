@@ -8,8 +8,8 @@ pub trait WeightInfo {
     fn stake() -> Weight;
     fn unstake() -> Weight;
     fn record_staking_settlement() -> Weight;
-    fn trigger_new_era() -> Weight;
-    fn record_withdrawal_unbond_response() -> Weight;
+    fn settlement() -> Weight;
+    fn pop_queue() -> Weight;
 }
 
 impl WeightInfo for () {
@@ -22,11 +22,10 @@ impl WeightInfo for () {
     fn record_staking_settlement() -> Weight {
         0u64.into()
     }
-    fn trigger_new_era() -> Weight {
+    fn settlement() -> Weight {
         0u64.into()
     }
-
-    fn record_withdrawal_unbond_response() -> Weight {
-        0u64.into()
+    fn pop_queue() -> Weight {
+        10000u64.into()
     }
 }
