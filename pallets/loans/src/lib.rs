@@ -39,15 +39,13 @@ pub use pallet::*;
 use primitives::{
     Amount, Balance, CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall, Timestamp,
 };
-use sp_runtime::ArithmeticError;
 use sp_runtime::{
     traits::{
         AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, StaticLookup, Zero,
     },
-    FixedPointNumber, FixedU128,
+    ArithmeticError, FixedPointNumber, FixedU128,
 };
-use sp_std::result::Result;
-use sp_std::vec::Vec;
+use sp_std::{result::Result, vec::Vec};
 pub use weights::WeightInfo;
 
 mod market;

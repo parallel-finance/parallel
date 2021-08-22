@@ -20,22 +20,21 @@ do
 		--chain=$parallelChain \
 		--execution=wasm \
 		--wasm-execution=compiled \
-		--pallet=$p  \
+		--pallet=$p \
 		--extrinsic='*' \
-		--steps=$steps  \
+		--steps=$steps \
 		--repeat=$repeat \
-		--raw  \
+		--raw \
 		--output=$parallelOutput/$p.rs
 
 	./target/release/parallel benchmark \
 		--chain=$heikoChain \
 		--execution=wasm \
 		--wasm-execution=compiled \
-		--pallet=$p  \
+		--pallet=$p \
 		--extrinsic='*' \
-		--steps=$steps  \
+		--steps=$steps \
 		--repeat=$repeat \
-		--raw  \
+		--raw \
 		--output=$heikoOutput/$p.rs
-
 done
