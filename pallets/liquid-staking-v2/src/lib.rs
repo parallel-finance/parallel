@@ -220,16 +220,18 @@ mod pallet {
                     .expect("Has been checked before.")
                     .clone();
 
-                if let Err(_) = T::Currency::transfer(
+                if T::Currency::transfer(
                     T::StakingCurrency::get(),
                     &Self::account_id(),
                     &who,
                     amount,
-                ) {
+                )
+                .is_err()
+                {
                     break;
                 }
 
-                remaining_weight = remaining_weight - base_weight;
+                remaining_weight -= base_weight;
                 UnstakeQueue::<T>::mutate(|v| {
                     v.remove(0);
                 })
@@ -297,12 +299,14 @@ mod pallet {
                 .checked_mul_int(liquid_amount)
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
 
-            if let Err(_) = T::Currency::transfer(
+            if T::Currency::transfer(
                 T::StakingCurrency::get(),
                 &Self::account_id(),
                 &who,
                 asset_amount,
-            ) {
+            )
+            .is_err()
+            {
                 Self::push_unstake_task(&who, asset_amount);
             }
             T::Currency::withdraw(T::LiquidCurrency::get(), &who, liquid_amount)?;
