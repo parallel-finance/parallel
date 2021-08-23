@@ -27,12 +27,6 @@ cargo build --release
 make help
 ```
 
-## Run Heiko Node (via polkadot-launch 1.7.0)
-
-```
-make launch
-```
-
 ## Run Heiko Node (manually)
 
 ### Local Testnet
@@ -145,7 +139,7 @@ docker run --restart=always --name parallel -d -p 9944:9944 \
     -d /data --chain /usr/local/bin/live.json --rpc-cors all --unsafe-ws-external
 ```
 
-Run Heiko Dev Network (via parachain-launch 1.0.2)
+Run Heiko Dev Network (via parachain-launch 1.0.3)
 
 ```
 parachain-launch generate
