@@ -22,50 +22,77 @@ extern crate alloc;
 
 mod pool_structs;
 
+use core::marker::PhantomData;
+use frame_support::pallet_prelude::*;
+use frame_support::{
+	dispatch::DispatchResult,
+    pallet_prelude::{StorageDoubleMap, StorageValue, ValueQuery},
+    traits::{EnsureOrigin, GenesisBuild, Get, Hooks, IsType},
+    Blake2_128Concat, PalletId, Parameter, Twox64Concat,
+};
+use frame_system::ensure_signed;
+use frame_system::pallet_prelude::OriginFor;
+use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 pub use pallet::*;
+use parallel_primitives::{Amount, Balance, CurrencyId, Rate};
 use pool_structs::{AMMCurve, LiquidityProviderAmounts, Pool, StabilityPool};
+use sp_arithmetic::traits::BaseArithmetic;
+use sp_runtime::traits::AccountIdConversion;
+use sp_runtime::Perbill;
 
 #[frame_support::pallet]
-mod pallet {
-    use crate::{AMMCurve, LiquidityProviderAmounts, Pool, StabilityPool};
-    use core::marker::PhantomData;
-    use frame_support::{
-        pallet_prelude::{StorageDoubleMap, StorageMap, StorageValue, ValueQuery},
-        traits::{EnsureOrigin, GenesisBuild, Get, Hooks, IsType},
-        Blake2_128Concat, PalletId, Parameter, Twox64Concat,
-    };
-    use orml_traits::MultiCurrencyExtended;
-    use parallel_primitives::{Amount, Balance, CurrencyId, Rate};
-    use sp_arithmetic::traits::BaseArithmetic;
-    use sp_runtime::Perbill;
-
-    #[pallet::call]
-    impl<T: Config<I>, I: 'static> Pallet<T, I> {}
+pub mod pallet {
+    use super::*;
 
     #[pallet::config]
     pub trait Config<I: 'static = ()>: frame_system::Config {
+        type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
+
+		/// Currency type for deposit/withdraw assets to/from amm
+		/// module
         type Currency: MultiCurrencyExtended<
             Self::AccountId,
             CurrencyId = CurrencyId,
             Balance = Balance,
             Amount = Amount,
         >;
+
         type Curve: AMMCurve;
-        type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
+
         type LpFee: Get<Perbill>;
+
+        #[pallet::constant]
         type PalletId: Get<PalletId>;
+
         type PoolId: Default + BaseArithmetic + Parameter;
+
         type PoolManager: EnsureOrigin<Self::Origin>;
+
         type StabilityPool: StabilityPool;
+
         type TreasuryAccount: Get<Self::AccountId>;
+
         type TreasuryFee: Get<Perbill>;
     }
 
     #[pallet::error]
-    pub enum Error<T, I = ()> {}
+    pub enum Error<T, I = ()> {
+		/// No Pool
+		NoPool,
+		/// No Liquidity Provider
+		NoLiquidityProvider
+	}
 
     #[pallet::event]
-    pub enum Event<T: Config<I>, I: 'static = ()> {}
+	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
+    pub enum Event<T: Config<I>, I: 'static = ()> {
+		/// Add liquidity into pool
+		/// [sender, currency_id, currency_id]
+		LiquidityAdded(T::AccountId, CurrencyId, CurrencyId),
+		/// Remove liquidity from pool
+		/// [sender, currency_id, currency_id]
+		LiquidityRemoved(T::AccountId, CurrencyId, CurrencyId),
+	}
 
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
@@ -94,7 +121,6 @@ mod pallet {
     impl<T: Config<I>, I: 'static> Hooks<T::BlockNumber> for Pallet<T, I> {}
 
     #[pallet::pallet]
-
     pub struct Pallet<T, I = ()>(_);
 
     /// The exchange rate from the underlying to the internal collateral
@@ -103,17 +129,81 @@ mod pallet {
 
     /// Accounts that deposits and withdraw assets in one or more pools
     #[pallet::storage]
-    pub type LiquidityProviders<T: Config<I>, I: 'static = ()> = StorageDoubleMap<
+	#[pallet::getter(fn liquidity_providers)]
+    pub type LiquidityProviders<T: Config<I>, I: 'static = ()> = StorageNMap<
         _,
-        Blake2_128Concat,
-        T::PoolId,
-        Blake2_128Concat,
-        T::AccountId,
+        (
+            NMapKey<Blake2_128Concat, T::AccountId>,
+            NMapKey<Blake2_128Concat, CurrencyId>,
+            NMapKey<Blake2_128Concat, CurrencyId>,
+        ),
         LiquidityProviderAmounts,
     >;
 
     /// A bag of liquidity composed by two different assets
     #[pallet::storage]
+	#[pallet::getter(fn pools)]
     pub type Pools<T: Config<I>, I: 'static = ()> =
         StorageDoubleMap<_, Twox64Concat, CurrencyId, Twox64Concat, CurrencyId, Pool>;
+
+    #[pallet::call]
+    impl<T: Config<I>, I: 'static> Pallet<T, I> {
+        /// Allow users to add liquidity to a given pool
+        ///
+        /// - `pool`: Currency pool, in which liquidity will be added
+        /// - `liquidity_amounts`: Liquidity amounts to be added in pool
+        #[pallet::weight(10_000)]
+        pub fn add_liquidity(
+            origin: OriginFor<T>,
+            pool: (CurrencyId, CurrencyId),
+            liquidity_amounts: (Balance, Balance),
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+
+			let base_asset = pool.0;
+            let quote_asset = pool.1;
+            let base_amount = liquidity_amounts.0;
+            let quote_amount = liquidity_amounts.1;
+
+			ensure!(
+                Pools::<T>::contains_key(base_asset, &quote_asset),
+                Error::<T>::NoPool
+            );
+
+			let amm_pool = Pool{
+				base_amount,
+				quote_amount
+			};
+			Pools::<T>::insert(base_asset, &quote_asset, amm_pool);
+
+            T::Currency::transfer(base_asset, &who, &Self::account_id(), base_amount)?;
+            T::Currency::transfer(quote_asset, &who, &Self::account_id(), quote_amount)?;
+
+			Self::deposit_event(Event::<T>::LiquidityAdded(who, base_asset, quote_asset));
+            Ok(().into())
+        }
+
+        /// Allow users to remove liquidity from a given pool
+        ///
+        /// - `pool`: Currency pool, in which liquidity will be removed
+        /// - `liquidity_amounts`: Liquidity amounts to be removed from pool
+        #[pallet::weight(10_000)]
+        pub fn remove_liquidity(
+            _origin: OriginFor<T>,
+            _pool: (CurrencyId, CurrencyId),
+            _liquidity_amounts: (Balance, Balance),
+        ) -> DispatchResult {
+            unimplemented!()
+        }
+    }
+}
+
+impl<T: Config<I>, I: 'static> Pallet<T, I> {
+    pub fn account_id() -> T::AccountId {
+        T::PalletId::get().into_account()
+    }
+
+    fn get_upper_currency(_curr_a: CurrencyId, _curr_b: CurrencyId) -> CurrencyId {
+        unimplemented!()
+    }
 }
