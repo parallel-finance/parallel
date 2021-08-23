@@ -25,7 +25,7 @@ mod weights;
 use codec::Encode;
 use frame_support::{
     dispatch::Weight,
-    traits::{All, Contains, Filter},
+    traits::{Contains, Everything},
     PalletId,
 };
 use orml_currencies::BasicCurrencyAdapter;
@@ -38,9 +38,9 @@ use sp_core::{
 };
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
-    offchain::storage_lock::BlockNumberProvider,
     traits::{
-        self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, Zero,
+        self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT,
+        BlockNumberProvider, Convert, Zero,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Percent, Permill, SaturatedConversion,
@@ -60,7 +60,7 @@ use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset}
 use polkadot_parachain::primitives::Sibling;
 use primitives::{network::PARALLEL_PREFIX, *};
 
-use xcm::v0::{Junction, Junction::*, MultiAsset, MultiLocation, MultiLocation::*, NetworkId, Xcm};
+use xcm::v0::{Junction, Junction::*, MultiAsset, MultiLocation, MultiLocation::*, NetworkId};
 use xcm_builder::{
     AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin,
     FixedRateOfConcreteFungible, FixedWeightBounds, LocationInverter, ParentAsSuperuser,
@@ -186,8 +186,8 @@ parameter_types! {
 }
 
 pub struct BaseCallFilter;
-impl Filter<Call> for BaseCallFilter {
-    fn filter(call: &Call) -> bool {
+impl Contains<Call> for BaseCallFilter {
+    fn contains(call: &Call) -> bool {
         matches!(
             call,
             // System, Utility, Currencies
@@ -609,6 +609,7 @@ impl pallet_collator_selection::Config for Runtime {
 
 impl pallet_aura::Config for Runtime {
     type AuthorityId = AuraId;
+    type DisabledValidators = ();
 }
 
 impl cumulus_pallet_aura_ext::Config for Runtime {}
@@ -673,12 +674,13 @@ impl pallet_xcm::Config for Runtime {
     type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
     type XcmRouter = XcmRouter;
     type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
-    type XcmExecuteFilter = All<(MultiLocation, Xcm<Call>)>;
-    type XcmReserveTransferFilter = All<(MultiLocation, Vec<MultiAsset>)>;
+    type XcmExecuteFilter = Everything;
+    type XcmReserveTransferFilter = Everything;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     // Teleporting is disabled.
     type XcmTeleportFilter = ();
     type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+    type LocationInverter = LocationInverter<Ancestry>;
 }
 
 impl cumulus_pallet_xcm::Config for Runtime {
@@ -787,10 +789,7 @@ parameter_types! {
     // pub AllowUnpaidFrom: Vec<MultiLocation> = vec![ MultiLocation::X1(Junction::Parent) ];
 }
 
-pub type Barrier = (
-    TakeWeightCredit,
-    AllowTopLevelPaidExecutionFrom<All<MultiLocation>>,
-);
+pub type Barrier = (TakeWeightCredit, AllowTopLevelPaidExecutionFrom<Everything>);
 
 pub struct ToTreasury;
 impl TakeRevenue for ToTreasury {
@@ -1136,7 +1135,7 @@ construct_runtime!(
         Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 15,
 
         // Parachain
-        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Storage, Inherent, Event<T>} = 20,
+        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 20,
         ParachainInfo: parachain_info::{Pallet, Storage, Config} = 21,
         XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>} = 22,
         DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 23,

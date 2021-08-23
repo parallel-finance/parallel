@@ -341,6 +341,29 @@ impl sc_client_api::StorageProvider<Block, crate::service::FullBackend> for Clie
         }
     }
 
+    fn child_storage_keys_iter<'a>(
+        &self,
+        id: &BlockId,
+        child_info: ChildInfo,
+        prefix: Option<&'a StorageKey>,
+        start_key: Option<&StorageKey>,
+    ) -> sp_blockchain::Result<
+        KeyIterator<
+            'a,
+            <crate::service::FullBackend as sc_client_api::Backend<Block>>::State,
+            Block,
+        >,
+    > {
+        match self {
+            Self::Parallel(client) => {
+                client.child_storage_keys_iter(id, child_info, prefix, start_key)
+            }
+            Self::Heiko(client) => {
+                client.child_storage_keys_iter(id, child_info, prefix, start_key)
+            }
+        }
+    }
+
     fn child_storage_hash(
         &self,
         id: &BlockId,
