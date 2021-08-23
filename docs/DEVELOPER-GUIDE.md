@@ -66,14 +66,14 @@ The files you will need are in the `./resources` folder, if you need to build th
 ```
 cargo build --release
 # Build the Chain spec
-./target/release/parallel build-spec --disable-default-bootnode > ./resources/template-local-plain.json
+./target/release/parallel build-spec --chain heiko-dev --disable-default-bootnode > ./resources/template-local-plain.json
 # Build the raw file
 ./target/release/parallel build-spec --chain=./resources/template-local-plain.json --raw --disable-default-bootnode > ./resources/template-local.json
 
 
 # export genesis state and wasm
-./target/release/parallel export-genesis-state --parachain-id 2085 > ./resources/para-2085-genesis
-./target/release/parallel export-genesis-wasm > ./resources/para-2085.wasm
+./target/release/parallel export-genesis-state --chain heiko-dev --parachain-id 2085 > ./resources/para-2085-genesis
+./target/release/parallel export-genesis-wasm --chain heiko-dev > ./resources/para-2085.wasm
 ```
 
 ### Embedded Docs
@@ -142,9 +142,7 @@ docker run --restart=always --name parallel -d -p 9944:9944 \
 Run Heiko Dev Network (via parachain-launch 1.0.3)
 
 ```
-parachain-launch generate
-cd output
-docker-compose up -d --build
+make launch
 ```
 
 Generate heiko-dev's genesis state & wasm
@@ -161,4 +159,10 @@ docker run --rm  parallelfinance/parallel:latest export-genesis-wasm --chain hei
 ```
 make wasm
 make PACKAGE=parallel-runtime wasm
+```
+
+### Image
+
+```
+make image
 ```
