@@ -1110,9 +1110,9 @@ dependencies = [
 
 [[package]]
 name = "ckb-merkle-mountain-range"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e486fe53bb9f2ca0f58cb60e8679a5354fd6687a839942ef0a75967250289ca6"
+checksum = "4f061f97d64fd1822664bdfb722f7ae5469a97b77567390f7442be5b5dc82a5b"
 dependencies = [
  "cfg-if 0.1.10",
 ]
@@ -4991,7 +4991,7 @@ dependencies = [
 [[package]]
 name = "orml-currencies"
 version = "0.4.1-dev"
-source = "git+https://github.com/parallel-finance/open-runtime-module-library.git#1f1f089a2568ec00401a8c8beeae188dedf20594"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#8d5432c3458702a7df14b374bddde43a2a20aa43"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5007,7 +5007,7 @@ dependencies = [
 [[package]]
 name = "orml-oracle"
 version = "0.4.1-dev"
-source = "git+https://github.com/parallel-finance/open-runtime-module-library.git#1f1f089a2568ec00401a8c8beeae188dedf20594"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#8d5432c3458702a7df14b374bddde43a2a20aa43"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5024,7 +5024,7 @@ dependencies = [
 [[package]]
 name = "orml-oracle-rpc"
 version = "0.4.1-dev"
-source = "git+https://github.com/parallel-finance/open-runtime-module-library.git#1f1f089a2568ec00401a8c8beeae188dedf20594"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#8d5432c3458702a7df14b374bddde43a2a20aa43"
 dependencies = [
  "jsonrpc-core",
  "jsonrpc-core-client",
@@ -5039,7 +5039,7 @@ dependencies = [
 [[package]]
 name = "orml-oracle-rpc-runtime-api"
 version = "0.4.1-dev"
-source = "git+https://github.com/parallel-finance/open-runtime-module-library.git#1f1f089a2568ec00401a8c8beeae188dedf20594"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#8d5432c3458702a7df14b374bddde43a2a20aa43"
 dependencies = [
  "parity-scale-codec",
  "sp-api",
@@ -5049,7 +5049,7 @@ dependencies = [
 [[package]]
 name = "orml-tokens"
 version = "0.4.1-dev"
-source = "git+https://github.com/parallel-finance/open-runtime-module-library.git#1f1f089a2568ec00401a8c8beeae188dedf20594"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#8d5432c3458702a7df14b374bddde43a2a20aa43"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5063,7 +5063,7 @@ dependencies = [
 [[package]]
 name = "orml-traits"
 version = "0.4.1-dev"
-source = "git+https://github.com/parallel-finance/open-runtime-module-library.git#1f1f089a2568ec00401a8c8beeae188dedf20594"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#8d5432c3458702a7df14b374bddde43a2a20aa43"
 dependencies = [
  "frame-support",
  "impl-trait-for-tuples",
@@ -5080,7 +5080,7 @@ dependencies = [
 [[package]]
 name = "orml-unknown-tokens"
 version = "0.4.1-dev"
-source = "git+https://github.com/parallel-finance/open-runtime-module-library.git#1f1f089a2568ec00401a8c8beeae188dedf20594"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#8d5432c3458702a7df14b374bddde43a2a20aa43"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5094,7 +5094,7 @@ dependencies = [
 [[package]]
 name = "orml-utilities"
 version = "0.4.1-dev"
-source = "git+https://github.com/parallel-finance/open-runtime-module-library.git#1f1f089a2568ec00401a8c8beeae188dedf20594"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#8d5432c3458702a7df14b374bddde43a2a20aa43"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -5107,7 +5107,7 @@ dependencies = [
 [[package]]
 name = "orml-vesting"
 version = "0.4.1-dev"
-source = "git+https://github.com/parallel-finance/open-runtime-module-library.git#1f1f089a2568ec00401a8c8beeae188dedf20594"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#8d5432c3458702a7df14b374bddde43a2a20aa43"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5121,7 +5121,7 @@ dependencies = [
 [[package]]
 name = "orml-xcm"
 version = "0.4.1-dev"
-source = "git+https://github.com/parallel-finance/open-runtime-module-library.git#1f1f089a2568ec00401a8c8beeae188dedf20594"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#8d5432c3458702a7df14b374bddde43a2a20aa43"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5133,7 +5133,7 @@ dependencies = [
 [[package]]
 name = "orml-xcm-support"
 version = "0.4.1-dev"
-source = "git+https://github.com/parallel-finance/open-runtime-module-library.git#1f1f089a2568ec00401a8c8beeae188dedf20594"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#8d5432c3458702a7df14b374bddde43a2a20aa43"
 dependencies = [
  "frame-support",
  "orml-traits",
@@ -5147,7 +5147,7 @@ dependencies = [
 [[package]]
 name = "orml-xtokens"
 version = "0.4.1-dev"
-source = "git+https://github.com/parallel-finance/open-runtime-module-library.git#1f1f089a2568ec00401a8c8beeae188dedf20594"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#8d5432c3458702a7df14b374bddde43a2a20aa43"
 dependencies = [
  "cumulus-primitives-core",
  "frame-support",

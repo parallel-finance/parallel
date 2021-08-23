@@ -74,17 +74,17 @@ pallet-collator-selection       = { git = 'https://github.com/paritytech/cumulus
 parachain-info                  = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.9', default-features = false }
 
 # ORML dependencies
-orml-currencies             = { git = 'https://github.com/parallel-finance/open-runtime-module-library.git', default-features = false }
-orml-oracle                 = { git = 'https://github.com/parallel-finance/open-runtime-module-library.git', default-features = false }
-orml-oracle-rpc-runtime-api = { git = 'https://github.com/parallel-finance/open-runtime-module-library.git', default-features = false }
-orml-tokens                 = { git = 'https://github.com/parallel-finance/open-runtime-module-library.git', default-features = false }
-orml-traits                 = { git = 'https://github.com/parallel-finance/open-runtime-module-library.git', default-features = false }
-orml-unknown-tokens         = { git = 'https://github.com/parallel-finance/open-runtime-module-library.git', default-features = false }
-orml-utilities              = { git = 'https://github.com/parallel-finance/open-runtime-module-library.git', default-features = false }
-orml-vesting                = { git = 'https://github.com/parallel-finance/open-runtime-module-library.git', default-features = false }
-orml-xcm                    = { git = 'https://github.com/parallel-finance/open-runtime-module-library.git', default-features = false }
-orml-xcm-support            = { git = 'https://github.com/parallel-finance/open-runtime-module-library.git', default-features = false }
-orml-xtokens                = { git = 'https://github.com/parallel-finance/open-runtime-module-library.git', default-features = false }
+orml-currencies             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-oracle                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-oracle-rpc-runtime-api = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-tokens                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-traits                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-unknown-tokens         = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-utilities              = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-vesting                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-xcm                    = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-xcm-support            = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 
 # Parallel dependencies
 pallet-liquid-staking        = { path = '../../pallets/liquid-staking', default-features = false }
