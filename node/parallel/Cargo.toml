@@ -77,11 +77,10 @@ cumulus-client-service                = { git = 'https://github.com/paritytech/c
 cumulus-primitives-core               = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.9' }
 cumulus-primitives-parachain-inherent = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.9' }
 
-polkadot-cli          = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.9' }
-polkadot-parachain    = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.9' }
-polkadot-primitives   = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.9' }
-polkadot-service      = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.9' }
-polkadot-test-service = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.9' }
+polkadot-cli        = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.9' }
+polkadot-parachain  = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.9' }
+polkadot-primitives = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.9' }
+polkadot-service    = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.9' }
 
 [build-dependencies]
 substrate-build-script-utils = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
