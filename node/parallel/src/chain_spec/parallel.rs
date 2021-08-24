@@ -170,7 +170,7 @@ pub fn parallel_local_testnet_config(id: ParaId) -> ChainSpec {
         Some("parallel-local"),
         Some(as_properties(NetworkType::Parallel)),
         Extensions {
-            relay_chain: "polkadot".into(),
+            relay_chain: "westend-local".into(),
             para_id: id.into(),
         },
     )
