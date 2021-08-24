@@ -14,12 +14,16 @@
 
 use std::path::PathBuf;
 
+use sc_cli::{KeySubcommand, SignCmd, VanityCmd, VerifyCmd};
 use structopt::StructOpt;
 
 /// Sub-commands supported by the collator.
 #[derive(Debug, StructOpt)]
 pub enum Subcommand {
-    Key(sc_cli::KeySubcommand),
+    Key(KeySubcommand),
+    Sign(SignCmd),
+    Vanity(VanityCmd),
+    Verify(VerifyCmd),
     /// Export the genesis state of the parachain.
     #[structopt(name = "export-genesis-state")]
     ExportGenesisState(ExportGenesisStateCommand),

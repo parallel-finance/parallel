@@ -241,6 +241,7 @@ fn testnet_genesis(
         },
         aura: Default::default(),
         aura_ext: Default::default(),
+        parachain_system: Default::default(),
         sudo: SudoConfig { key: root_key },
         parachain_info: ParachainInfoConfig { parachain_id: id },
         tokens: TokensConfig {
