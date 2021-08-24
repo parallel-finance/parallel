@@ -126,7 +126,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("heiko"),
     impl_name: create_runtime_str!("heiko"),
     authoring_version: 1,
-    spec_version: 130,
+    spec_version: 140,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -193,7 +193,7 @@ impl Contains<Call> for BaseCallFilter {
             // System, Utility, Currencies
             Call::System(_) | Call::Timestamp(_) | Call::Multisig(_)  | Call::Utility(_) | Call::Balances(_) |
             // Governance
-            Call::Sudo(_) | Call::Democracy(_) | Call::Council(_) | Call::TechnicalCommittee(_) | Call::Treasury(_) | Call::Scheduler(_) |
+            Call::Sudo(_) | Call::Democracy(_) | Call::GeneralCouncil(_) | Call::TechnicalCommittee(_) | Call::Treasury(_) | Call::Scheduler(_) |
             // Parachain
             Call::ParachainSystem(_) | Call::XcmpQueue(_) | Call::DmpQueue(_) | Call::PolkadotXcm(_) | Call::CumulusXcm(_) |
             // Consensus
@@ -216,7 +216,7 @@ impl Contains<Call> for BaseCallFilter {
         // Call::LiquidStaking(_) |
         // Call::NomineeElection(_) |
         // // Membership
-        // Call::CouncilMembership(_) |
+        // Call::GeneralCouncilMembership(_) |
         // Call::TechnicalCommitteeMembership(_) |
         // Call::OracleMembership(_) |
         // Call::LiquidStakingAgentMembership(_) |
@@ -312,7 +312,7 @@ impl orml_tokens::Config for Runtime {
 
 impl orml_xcm::Config for Runtime {
     type Event = Event;
-    type SovereignOrigin = EnsureRootOrMoreThanHalfCouncil;
+    type SovereignOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
 }
 
 parameter_types! {
@@ -404,8 +404,8 @@ impl pallet_loans::Config for Runtime {
     type Currency = Currencies;
     type PalletId = LoansPalletId;
     type PriceFeeder = Prices;
-    type ReserveOrigin = EnsureRootOrMoreThanHalfCouncil;
-    type UpdateOrigin = EnsureRootOrMoreThanHalfCouncil;
+    type ReserveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_loans::weights::SubstrateWeight<Runtime>;
     type UnixTime = Timestamp;
 }
@@ -417,11 +417,11 @@ parameter_types! {
 type LiquidStakingAgentMembershipInstance = pallet_membership::Instance4;
 impl pallet_membership::Config<LiquidStakingAgentMembershipInstance> for Runtime {
     type Event = Event;
-    type AddOrigin = EnsureRootOrMoreThanHalfCouncil;
-    type RemoveOrigin = EnsureRootOrMoreThanHalfCouncil;
-    type SwapOrigin = EnsureRootOrMoreThanHalfCouncil;
-    type ResetOrigin = EnsureRootOrMoreThanHalfCouncil;
-    type PrimeOrigin = EnsureRootOrMoreThanHalfCouncil;
+    type AddOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type RemoveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type SwapOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type ResetOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type PrimeOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type MembershipInitialized = ();
     type MembershipChanged = ();
     type MaxMembers = LiquidStakingAgentMaxMembers;
@@ -459,11 +459,11 @@ parameter_types! {
 type ValidatorFeedersMembershipInstance = pallet_membership::Instance5;
 impl pallet_membership::Config<ValidatorFeedersMembershipInstance> for Runtime {
     type Event = Event;
-    type AddOrigin = EnsureRootOrMoreThanHalfCouncil;
-    type RemoveOrigin = EnsureRootOrMoreThanHalfCouncil;
-    type SwapOrigin = EnsureRootOrMoreThanHalfCouncil;
-    type ResetOrigin = EnsureRootOrMoreThanHalfCouncil;
-    type PrimeOrigin = EnsureRootOrMoreThanHalfCouncil;
+    type AddOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type RemoveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type SwapOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type ResetOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type PrimeOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type MembershipInitialized = ();
     type MembershipChanged = ();
     type MaxMembers = ValidatorFeedersMembershipMaxMembers;
@@ -472,7 +472,7 @@ impl pallet_membership::Config<ValidatorFeedersMembershipInstance> for Runtime {
 
 impl pallet_nominee_election::Config for Runtime {
     type Event = Event;
-    type UpdateOrigin = EnsureRootOrMoreThanHalfCouncil;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type MaxValidators = MaxValidators;
     type Members = ValidatorFeedersMembership;
 }
@@ -598,7 +598,7 @@ parameter_types! {
 impl pallet_collator_selection::Config for Runtime {
     type Event = Event;
     type Currency = Balances;
-    type UpdateOrigin = EnsureRootOrMoreThanHalfCouncil;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type PotId = PotId;
     type MaxCandidates = MaxCandidates;
     type MinCandidates = MinCandidates;
@@ -701,7 +701,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 impl cumulus_pallet_dmp_queue::Config for Runtime {
     type Event = Event;
     type XcmExecutor = XcmExecutor<XcmConfig>;
-    type ExecuteOverweightOrigin = EnsureRootOrMoreThanHalfCouncil;
+    type ExecuteOverweightOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
 }
 
 parameter_types! {
@@ -890,15 +890,15 @@ impl pallet_multisig::Config for Runtime {
     type WeightInfo = weights::pallet_multisig::WeightInfo<Runtime>;
 }
 
-type EnsureRootOrMoreThanHalfCouncil = EnsureOneOf<
+type EnsureRootOrMoreThanHalfGeneralCouncil = EnsureOneOf<
     AccountId,
     EnsureRoot<AccountId>,
-    pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>,
+    pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, GeneralCouncilCollective>,
 >;
-type EnsureRootOrAtLeastThreeFifthsCouncil = EnsureOneOf<
+type EnsureRootOrAtLeastThreeFifthsGeneralCouncil = EnsureOneOf<
     AccountId,
     EnsureRoot<AccountId>,
-    pallet_collective::EnsureProportionAtLeast<_3, _5, AccountId, CouncilCollective>,
+    pallet_collective::EnsureProportionAtLeast<_3, _5, AccountId, GeneralCouncilCollective>,
 >;
 
 type EnsureAllTechnicalComittee = EnsureOneOf<
@@ -931,14 +931,14 @@ impl pallet_democracy::Config for Runtime {
     type MinimumDeposit = MinimumDeposit;
     /// A straight majority of the council can decide what their next motion is.
     type ExternalOrigin =
-        pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId, CouncilCollective>;
+        pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId, GeneralCouncilCollective>;
     /// A super-majority can have the next scheduled referendum be a straight majority-carries vote.
     type ExternalMajorityOrigin =
-        pallet_collective::EnsureProportionAtLeast<_3, _4, AccountId, CouncilCollective>;
+        pallet_collective::EnsureProportionAtLeast<_3, _4, AccountId, GeneralCouncilCollective>;
     /// A unanimous council can have the next scheduled referendum be a straight default-carries
     /// (NTB) vote.
     type ExternalDefaultOrigin =
-        pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>;
+        pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, GeneralCouncilCollective>;
     /// Two thirds of the technical committee can have an ExternalMajority/ExternalDefault vote
     /// be tabled immediately and with a shorter voting/enactment period.
     type FastTrackOrigin =
@@ -949,7 +949,7 @@ impl pallet_democracy::Config for Runtime {
     type FastTrackVotingPeriod = FastTrackVotingPeriod;
     // To cancel a proposal which has been passed, 2/3 of the council must agree to it.
     type CancellationOrigin =
-        pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, CouncilCollective>;
+        pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, GeneralCouncilCollective>;
     // To cancel a proposal before it has been passed, the technical committee must be unanimous or
     // Root must agree.
     type CancelProposalOrigin = EnsureAllTechnicalComittee;
@@ -959,7 +959,7 @@ impl pallet_democracy::Config for Runtime {
     type VetoOrigin = pallet_collective::EnsureMember<AccountId, TechnicalCollective>;
     type CooloffPeriod = CooloffPeriod;
     type PreimageByteDeposit = PreimageByteDeposit;
-    type OperationalPreimageOrigin = pallet_collective::EnsureMember<AccountId, CouncilCollective>;
+    type OperationalPreimageOrigin = pallet_collective::EnsureMember<AccountId, GeneralCouncilCollective>;
     type Slash = Treasury;
     type Scheduler = Scheduler;
     type PalletsOrigin = OriginCaller;
@@ -969,34 +969,34 @@ impl pallet_democracy::Config for Runtime {
 }
 
 parameter_types! {
-    pub const CouncilMotionDuration: BlockNumber = 3 * DAYS;
-    pub const CouncilMaxProposals: u32 = 100;
-    pub const CouncilMaxMembers: u32 = 100;
+    pub const GeneralCouncilMotionDuration: BlockNumber = 3 * DAYS;
+    pub const GeneralCouncilMaxProposals: u32 = 100;
+    pub const GeneralCouncilMaxMembers: u32 = 100;
 }
 
-type CouncilCollective = pallet_collective::Instance1;
-impl pallet_collective::Config<CouncilCollective> for Runtime {
+type GeneralCouncilCollective = pallet_collective::Instance1;
+impl pallet_collective::Config<GeneralCouncilCollective> for Runtime {
     type Origin = Origin;
     type Proposal = Call;
     type Event = Event;
-    type MotionDuration = CouncilMotionDuration;
-    type MaxProposals = CouncilMaxProposals;
-    type MaxMembers = CouncilMaxMembers;
+    type MotionDuration = GeneralCouncilMotionDuration;
+    type MaxProposals = GeneralCouncilMaxProposals;
+    type MaxMembers = GeneralCouncilMaxMembers;
     type DefaultVote = pallet_collective::PrimeDefaultVote;
     type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
 }
 
-type CouncilMembershipInstance = pallet_membership::Instance1;
-impl pallet_membership::Config<CouncilMembershipInstance> for Runtime {
+type GeneralCouncilMembershipInstance = pallet_membership::Instance1;
+impl pallet_membership::Config<GeneralCouncilMembershipInstance> for Runtime {
     type Event = Event;
-    type AddOrigin = EnsureRootOrMoreThanHalfCouncil;
-    type RemoveOrigin = EnsureRootOrMoreThanHalfCouncil;
-    type SwapOrigin = EnsureRootOrMoreThanHalfCouncil;
-    type ResetOrigin = EnsureRootOrMoreThanHalfCouncil;
-    type PrimeOrigin = EnsureRootOrMoreThanHalfCouncil;
-    type MembershipInitialized = Council;
-    type MembershipChanged = Council;
-    type MaxMembers = CouncilMaxMembers;
+    type AddOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type RemoveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type SwapOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type ResetOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type PrimeOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type MembershipInitialized = GeneralCouncil;
+    type MembershipChanged = GeneralCouncil;
+    type MaxMembers = GeneralCouncilMaxMembers;
     type WeightInfo = pallet_membership::weights::SubstrateWeight<Runtime>;
 }
 
@@ -1021,11 +1021,11 @@ impl pallet_collective::Config<TechnicalCollective> for Runtime {
 type TechnicalCommitteeMembershipInstance = pallet_membership::Instance2;
 impl pallet_membership::Config<TechnicalCommitteeMembershipInstance> for Runtime {
     type Event = Event;
-    type AddOrigin = EnsureRootOrMoreThanHalfCouncil;
-    type RemoveOrigin = EnsureRootOrMoreThanHalfCouncil;
-    type SwapOrigin = EnsureRootOrMoreThanHalfCouncil;
-    type ResetOrigin = EnsureRootOrMoreThanHalfCouncil;
-    type PrimeOrigin = EnsureRootOrMoreThanHalfCouncil;
+    type AddOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type RemoveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type SwapOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type ResetOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type PrimeOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type MembershipInitialized = TechnicalCommittee;
     type MembershipChanged = TechnicalCommittee;
     type MaxMembers = TechnicalMaxMembers;
@@ -1061,8 +1061,8 @@ parameter_types! {
 impl pallet_treasury::Config for Runtime {
     type PalletId = TreasuryPalletId;
     type Currency = Balances;
-    type ApproveOrigin = EnsureRootOrAtLeastThreeFifthsCouncil;
-    type RejectOrigin = EnsureRootOrMoreThanHalfCouncil;
+    type ApproveOrigin = EnsureRootOrAtLeastThreeFifthsGeneralCouncil;
+    type RejectOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type Event = Event;
     type OnSlash = ();
     type ProposalBond = ProposalBond;
@@ -1082,11 +1082,11 @@ parameter_types! {
 type OracleMembershipInstance = pallet_membership::Instance3;
 impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
     type Event = Event;
-    type AddOrigin = EnsureRootOrMoreThanHalfCouncil;
-    type RemoveOrigin = EnsureRootOrMoreThanHalfCouncil;
-    type SwapOrigin = EnsureRootOrMoreThanHalfCouncil;
-    type ResetOrigin = EnsureRootOrMoreThanHalfCouncil;
-    type PrimeOrigin = EnsureRootOrMoreThanHalfCouncil;
+    type AddOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type RemoveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type SwapOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type ResetOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type PrimeOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type MembershipInitialized = ();
     type MembershipChanged = ();
     type MaxMembers = OracleMaxMembers;
@@ -1140,7 +1140,7 @@ construct_runtime!(
         // Governance
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
         Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>} = 11,
-        Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 12,
+        GeneralCouncil: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 12,
         TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 13,
         Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>} = 14,
         Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 15,
@@ -1179,7 +1179,7 @@ construct_runtime!(
         NomineeElection: pallet_nominee_election::{Pallet, Call, Storage, Event<T>} = 61,
 
         // Membership
-        CouncilMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 70,
+        GeneralCouncilMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 70,
         TechnicalCommitteeMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>} = 71,
         OracleMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
         LiquidStakingAgentMembership: pallet_membership::<Instance4>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,

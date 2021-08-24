@@ -19,8 +19,8 @@ use heiko_runtime::{
 };
 use hex_literal::hex;
 use parallel_runtime::{
-    opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, CouncilConfig,
-    CouncilMembershipConfig, DemocracyConfig, GenesisConfig, LiquidStakingAgentMembershipConfig,
+    opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, GeneralCouncilConfig,
+    GeneralCouncilMembershipConfig, DemocracyConfig, GenesisConfig, LiquidStakingAgentMembershipConfig,
     LiquidStakingConfig, LoansConfig, OracleMembershipConfig, ParachainInfoConfig, SessionConfig,
     SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig, TokensConfig,
     ValidatorFeedersMembershipConfig, VestingConfig, WASM_BINARY,
@@ -394,8 +394,8 @@ fn parallel_genesis(
             reserve_factor: Ratio::from_perthousand(5),
         },
         democracy: DemocracyConfig::default(),
-        council: CouncilConfig::default(),
-        council_membership: CouncilMembershipConfig {
+        general_council: GeneralCouncilConfig::default(),
+        general_council_membership: GeneralCouncilMembershipConfig {
             members: council,
             phantom: Default::default(),
         },

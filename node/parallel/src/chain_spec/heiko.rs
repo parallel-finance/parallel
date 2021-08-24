@@ -15,7 +15,7 @@
 use cumulus_primitives_core::ParaId;
 use heiko_runtime::{
     currency::EXISTENTIAL_DEPOSIT, opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig,
-    CouncilConfig, CouncilMembershipConfig, DemocracyConfig, GenesisConfig,
+    GeneralCouncilConfig, GeneralCouncilMembershipConfig, DemocracyConfig, GenesisConfig,
     LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig,
     ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
     TechnicalCommitteeMembershipConfig, TokensConfig, ValidatorFeedersMembershipConfig,
@@ -284,8 +284,8 @@ fn heiko_genesis(
             reserve_factor: Ratio::from_perthousand(5),
         },
         democracy: DemocracyConfig::default(),
-        council: CouncilConfig::default(),
-        council_membership: CouncilMembershipConfig {
+        general_council: GeneralCouncilConfig::default(),
+        general_council_membership: GeneralCouncilMembershipConfig {
             members: council,
             phantom: Default::default(),
         },
