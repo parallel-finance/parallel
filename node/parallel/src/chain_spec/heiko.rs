@@ -161,12 +161,13 @@ pub fn heiko_config(id: ParaId) -> ChainSpec {
             let oracle_accounts = vec![];
             let validator_feeders = vec![];
             let liquid_staking_agents = vec![];
-            let initial_allocation: Vec<(AccountId, Balance)> =
-                vec!["5CfaMb7d21Zh5wSthPXxLLj4D6sdb9YpdFKW8kM8cAdQ22fF"
-                    .parse()
-                    .unwrap()]
+            let initial_allocation: Vec<(AccountId, Balance)> = serde_json::from_str(include_str!(
+                "../../../../resources/heiko-allocation-HKO.json"
+            ))
+            .unwrap();
+            let initial_allocation: Vec<(AccountId, Balance)> = initial_allocation
                 .iter()
-                .flat_map(|k: &AccountId| vec![(k.clone(), 10_u128.pow(21))])
+                .cloned()
                 .chain(
                     invulnerables
                         .iter()
