@@ -64,6 +64,7 @@ sp-keystore         = { git = 'https://github.com/paritytech/substrate.git', bra
 sp-offchain         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
 sp-runtime          = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
 sp-session          = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
+sp-std              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
 sp-storage          = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
 sp-timestamp        = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
 sp-transaction-pool = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
@@ -89,9 +90,10 @@ substrate-build-script-utils = { git = 'https://github.com/paritytech/substrate.
 name = 'parallel'
 
 [features]
-default            = []
+default            = ['std']
 runtime-benchmarks = [
   'parallel-runtime/runtime-benchmarks',
   'heiko-runtime/runtime-benchmarks',
   'polkadot-service/runtime-benchmarks',
 ]
+std                = []

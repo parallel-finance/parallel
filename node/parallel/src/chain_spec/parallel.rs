@@ -38,15 +38,15 @@ use crate::chain_spec::{
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
 
-pub fn development_config(id: ParaId) -> ChainSpec {
+pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
     ChainSpec::from_genesis(
         // Name
-        "Parallel Development",
+        "Parallel Dev",
         // ID
         "parallel-dev",
         ChainType::Development,
         move || {
-            testnet_genesis(
+            parallel_genesis(
                 get_account_id_from_seed::<sr25519::Public>("Dave"),
                 vec![
                     get_authority_keys_from_seed("Alice"),
@@ -83,7 +83,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
     )
 }
 
-pub fn local_testnet_config(id: ParaId) -> ChainSpec {
+pub fn parallel_local_testnet_config(id: ParaId) -> ChainSpec {
     ChainSpec::from_genesis(
         // Name
         "Parallel Testnet",
@@ -91,7 +91,7 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
         "parallel-local",
         ChainType::Local,
         move || {
-            testnet_genesis(
+            parallel_genesis(
                 // Multisig account combined by:
                 //
                 // 5DAVaLenPCb12vHeEhxBMxikjAWc7h6ZDK172uUcWft2uJGG
@@ -176,7 +176,7 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
     )
 }
 
-fn testnet_genesis(
+fn parallel_genesis(
     root_key: AccountId,
     invulnerables: Vec<(AccountId, AuraId)>,
     oracle_accounts: Vec<AccountId>,
