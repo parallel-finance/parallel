@@ -112,7 +112,7 @@ mod pallet {
         /// Request to perform bond/rebond/unbond in relay chain
         ///
         /// Send `(bond_amount, rebond_amount, unbond_amount)` as args.
-        StakingOpRequrest(BalanceOf<T>, BalanceOf<T>, BalanceOf<T>),
+        StakingOpRequest(BalanceOf<T>, BalanceOf<T>, BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -389,7 +389,7 @@ mod pallet {
                 )?;
             }
 
-            Self::deposit_event(Event::<T>::StakingOpRequrest(
+            Self::deposit_event(Event::<T>::StakingOpRequest(
                 bond_amount,
                 rebond_amount,
                 unbond_amount,

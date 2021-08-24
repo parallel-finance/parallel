@@ -1,10 +1,10 @@
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::dispatch::DispatchResult;
 use frame_support::{
     construct_runtime,
     dispatch::Weight,
     parameter_types, sp_io,
-    traits::{Contains, GenesisBuild, MaxEncodedLen, SortedMembers},
+    traits::{Contains, GenesisBuild, SortedMembers},
     PalletId,
 };
 use frame_system::EnsureSignedBy;
