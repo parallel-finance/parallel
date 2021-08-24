@@ -15,10 +15,11 @@
 use cumulus_primitives_core::ParaId;
 use heiko_runtime::{
     currency::EXISTENTIAL_DEPOSIT, opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig,
-    CouncilConfig, DemocracyConfig, GenesisConfig, LiquidStakingAgentMembershipConfig,
-    LiquidStakingConfig, LoansConfig, OracleMembershipConfig, ParachainInfoConfig, SessionConfig,
-    SudoConfig, SystemConfig, TechnicalCommitteeConfig, TokensConfig,
-    ValidatorFeedersMembershipConfig, VestingConfig, WASM_BINARY,
+    CouncilConfig, CouncilMembershipConfig, DemocracyConfig, GenesisConfig,
+    LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig,
+    ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
+    TechnicalCommitteeMembershipConfig, TokensConfig, ValidatorFeedersMembershipConfig,
+    VestingConfig, WASM_BINARY,
 };
 use hex_literal::hex;
 use primitives::*;
@@ -228,7 +229,7 @@ fn heiko_genesis(
     initial_allocation: Vec<(AccountId, Balance)>,
     validator_feeders: Vec<AccountId>,
     liquid_staking_agents: Vec<AccountId>,
-    _council: Vec<AccountId>,
+    council: Vec<AccountId>,
     technical_committee: Vec<AccountId>,
     id: ParaId,
 ) -> GenesisConfig {
@@ -281,11 +282,15 @@ fn heiko_genesis(
         },
         democracy: DemocracyConfig::default(),
         council: CouncilConfig::default(),
-        technical_committee: TechnicalCommitteeConfig {
+        council_membership: CouncilMembershipConfig {
+            members: council,
+            phantom: Default::default(),
+        },
+        technical_committee: Default::default(),
+        technical_committee_membership: TechnicalCommitteeMembershipConfig {
             members: technical_committee,
             phantom: Default::default(),
         },
-        technical_membership: Default::default(),
         treasury: Default::default(),
         oracle_membership: OracleMembershipConfig {
             members: oracle_accounts,

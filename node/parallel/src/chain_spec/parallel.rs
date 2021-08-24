@@ -16,11 +16,11 @@ use cumulus_primitives_core::ParaId;
 use heiko_runtime::pallet_loans::{InterestRateModel, JumpModel, Market, MarketState};
 use hex_literal::hex;
 use parallel_runtime::{
-    opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, CouncilConfig, DemocracyConfig,
-    GenesisConfig, LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig,
-    OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeConfig, TokensConfig, ValidatorFeedersMembershipConfig, VestingConfig,
-    WASM_BINARY,
+    opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, CouncilConfig,
+    CouncilMembershipConfig, DemocracyConfig, GenesisConfig, LiquidStakingAgentMembershipConfig,
+    LiquidStakingConfig, LoansConfig, OracleMembershipConfig, ParachainInfoConfig, SessionConfig,
+    SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig, TokensConfig,
+    ValidatorFeedersMembershipConfig, VestingConfig, WASM_BINARY,
 };
 use primitives::{network::NetworkType, *};
 use sc_service::ChainType;
@@ -323,7 +323,9 @@ fn parallel_genesis(
         },
         democracy: DemocracyConfig::default(),
         council: CouncilConfig::default(),
-        technical_committee: TechnicalCommitteeConfig {
+        council_membership: CouncilMembershipConfig::default(),
+        technical_committee: Default::default(),
+        technical_committee_membership: TechnicalCommitteeMembershipConfig {
             members: endowed_accounts
                 .iter()
                 .take((endowed_accounts.len() + 1) / 2)
@@ -331,7 +333,6 @@ fn parallel_genesis(
                 .collect(),
             phantom: Default::default(),
         },
-        technical_membership: Default::default(),
         treasury: Default::default(),
         oracle_membership: OracleMembershipConfig {
             members: oracle_accounts,
