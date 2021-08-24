@@ -24,6 +24,11 @@ impl<Balance> MatchingLedger<Balance>
 where
     Balance: AtLeast32BitUnsigned + Copy + Clone,
 {
+    /// Matching requests in current period.
+    ///
+    /// `unbonding_amount` is the total amount of the unbonding asset in relaychain.
+    ///
+    /// the returned tri-tuple is formed as `(bond_amount, rebond_amount, unbond_amount)`.
     pub fn matching(&self, unbonding_amount: Balance) -> (Balance, Balance, Balance) {
         match self.total_stake_amount.cmp(&self.total_unstake_amount) {
             Ordering::Greater => {

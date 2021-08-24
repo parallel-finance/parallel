@@ -5437,7 +5437,6 @@ version = "3.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
- "max-encoded-len",
  "orml-currencies",
  "orml-tokens",
  "orml-traits",

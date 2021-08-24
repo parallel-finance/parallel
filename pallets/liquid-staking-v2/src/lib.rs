@@ -93,6 +93,7 @@ mod pallet {
         /// Base xcm transaction weight
         type BaseXcmWeight: Get<Weight>;
 
+        /// Account manages the staking assets.
         type Agent: Get<Self::AccountId>;
 
         type WeightInfo: WeightInfo;
@@ -154,6 +155,9 @@ mod pallet {
     #[pallet::getter(fn matching_pool)]
     pub type MatchingPool<T: Config> = StorageValue<_, MatchingLedger<BalanceOf<T>>, ValueQuery>;
 
+    /// Manage which we should pay off to.
+    ///
+    /// Insert a new record while user can't be paid instantly in unstaking operation.
     #[pallet::storage]
     #[pallet::getter(fn unstake_queue)]
     pub type UnstakeQueue<T: Config> =
@@ -202,6 +206,12 @@ mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        /// Try to pay off over the `UnstakeQueue` while blockchain is on idle.
+        ///
+        /// It breaks when:
+        ///     - Pallet's balance is insufficiant.
+        ///     - Queue is empty.
+        ///     - `remaining_weight` is less than one pop_queue needed.
         fn on_idle(_n: BlockNumberFor<T>, remaining_weight: Weight) -> Weight {
             let mut remaining_weight = remaining_weight;
             let base_weight = T::WeightInfo::pop_queue();
@@ -362,19 +372,23 @@ mod pallet {
             T::BridgeOrigin::ensure_origin(origin)?;
             let (bond_amount, rebond_amount, unbond_amount) =
                 MatchingPool::<T>::take().matching(unbonding_amount);
-            T::XcmTransfer::transfer(
-                Self::account_id(),
-                T::StakingCurrency::get(),
-                bond_amount,
-                MultiLocation::X2(
-                    Junction::Parent,
-                    Junction::AccountId32 {
-                        network: NetworkId::Any,
-                        id: T::Agent::get().into(),
-                    },
-                ),
-                T::BaseXcmWeight::get(),
-            )?;
+
+            if bond_amount > 0 {
+                T::XcmTransfer::transfer(
+                    Self::account_id(),
+                    T::StakingCurrency::get(),
+                    bond_amount,
+                    MultiLocation::X2(
+                        Junction::Parent,
+                        Junction::AccountId32 {
+                            network: NetworkId::Any,
+                            id: T::Agent::get().into(),
+                        },
+                    ),
+                    T::BaseXcmWeight::get(),
+                )?;
+            }
+
             Self::deposit_event(Event::<T>::StakingOpRequrest(
                 bond_amount,
                 rebond_amount,
