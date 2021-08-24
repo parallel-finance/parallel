@@ -25,6 +25,8 @@ use sp_runtime::traits::IdentifyAccount;
 
 use primitives::{network::NetworkType, *};
 
+pub const TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
+
 /// Token symbol of heiko network.
 pub const HEIKO_TOKEN: &str = "HKO";
 /// Token symbol of parallel network.

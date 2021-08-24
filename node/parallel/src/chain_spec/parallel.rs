@@ -13,67 +13,129 @@
 // limitations under the License.
 
 use cumulus_primitives_core::ParaId;
-use heiko_runtime::pallet_loans::{InterestRateModel, JumpModel, Market, MarketState};
+use heiko_runtime::{
+    currency::EXISTENTIAL_DEPOSIT,
+    pallet_loans::{InterestRateModel, JumpModel, Market, MarketState},
+};
 use hex_literal::hex;
 use parallel_runtime::{
-    opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, CouncilConfig, DemocracyConfig,
-    GenesisConfig, LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig,
-    OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeConfig, TokensConfig, ValidatorFeedersMembershipConfig, VestingConfig,
-    WASM_BINARY,
+    opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, DemocracyConfig,
+    GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
+    LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig,
+    ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
+    TechnicalCommitteeMembershipConfig, TokensConfig, ValidatorFeedersMembershipConfig,
+    VestingConfig, WASM_BINARY,
 };
 use primitives::{network::NetworkType, *};
 use sc_service::ChainType;
+use sc_telemetry::TelemetryEndpoints;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::UncheckedInto, sr25519};
 use sp_runtime::{
     traits::{One, Zero},
     FixedPointNumber,
 };
+#[cfg(feature = "std")]
+use sp_std::collections::btree_map::BTreeMap;
 
 use crate::chain_spec::{
     as_properties, get_account_id_from_seed, get_authority_keys_from_seed, Extensions,
+    TELEMETRY_URL,
 };
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
 
-pub fn development_config(id: ParaId) -> ChainSpec {
+pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
     ChainSpec::from_genesis(
         // Name
-        "Parallel Development",
+        "Parallel Dev",
         // ID
         "parallel-dev",
         ChainType::Development,
         move || {
-            testnet_genesis(
+            let root_key = get_account_id_from_seed::<sr25519::Public>("Dave");
+            let invulnerables = vec![
+                get_authority_keys_from_seed("Alice"),
+                get_authority_keys_from_seed("Bob"),
+                get_authority_keys_from_seed("Charlie"),
+            ];
+            let oracle_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Ferdie")];
+            let validator_feeders = vec![get_account_id_from_seed::<sr25519::Public>("Eve")];
+            let liquid_staking_agents = vec![get_account_id_from_seed::<sr25519::Public>("Dave")];
+            let initial_allocation: Vec<(AccountId, Balance)> = vec![
+                // Faucet accounts
+                "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                    .parse()
+                    .unwrap(),
+                get_account_id_from_seed::<sr25519::Public>("Alice"),
+                get_account_id_from_seed::<sr25519::Public>("Bob"),
+                get_account_id_from_seed::<sr25519::Public>("Charlie"),
                 get_account_id_from_seed::<sr25519::Public>("Dave"),
-                vec![
-                    get_authority_keys_from_seed("Alice"),
-                    get_authority_keys_from_seed("Bob"),
-                    get_authority_keys_from_seed("Charlie"),
-                ],
-                vec![get_account_id_from_seed::<sr25519::Public>("Ferdie")],
-                vec![
-                    // Faucet accounts
-                    "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                        .parse()
-                        .unwrap(),
-                    get_account_id_from_seed::<sr25519::Public>("Dave"),
-                    get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-                ],
-                vec![get_account_id_from_seed::<sr25519::Public>("Eve")],
-                vec![get_account_id_from_seed::<sr25519::Public>("Dave")],
+                get_account_id_from_seed::<sr25519::Public>("Eve"),
+                get_account_id_from_seed::<sr25519::Public>("Ferdie"),
+                get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+                get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+                get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+                get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
+                get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
+                get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+            ]
+            .iter()
+            .flat_map(|x| {
+                if x == &"5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                    .parse()
+                    .unwrap()
+                {
+                    vec![(x.clone(), 10_u128.pow(20))]
+                } else {
+                    vec![(x.clone(), 10_u128.pow(16))]
+                }
+            })
+            .chain(
+                invulnerables
+                    .iter()
+                    .cloned()
+                    .map(|k| (k.0, EXISTENTIAL_DEPOSIT)),
+            )
+            .fold(
+                BTreeMap::<AccountId, Balance>::new(),
+                |mut acc, (account_id, amount)| {
+                    if let Some(balance) = acc.get_mut(&account_id) {
+                        *balance = balance.checked_add(amount).unwrap()
+                    } else {
+                        acc.insert(account_id.clone(), amount);
+                    }
+                    acc
+                },
+            )
+            .into_iter()
+            .collect::<Vec<(AccountId, Balance)>>();
+            let council = vec![
+                get_account_id_from_seed::<sr25519::Public>("Alice"),
+                get_account_id_from_seed::<sr25519::Public>("Bob"),
+                get_account_id_from_seed::<sr25519::Public>("Charlie"),
+            ];
+            let technical_committee = vec![
+                get_account_id_from_seed::<sr25519::Public>("Dave"),
+                get_account_id_from_seed::<sr25519::Public>("Eve"),
+                get_account_id_from_seed::<sr25519::Public>("Ferdie"),
+            ];
+
+            parallel_genesis(
+                root_key,
+                invulnerables,
+                oracle_accounts,
+                initial_allocation,
+                validator_feeders,
+                liquid_staking_agents,
+                council,
+                technical_committee,
                 id,
             )
         },
         vec![],
-        None,
+        TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
         Some("parallel-dev"),
         Some(as_properties(NetworkType::Parallel)),
         Extensions {
@@ -83,106 +145,140 @@ pub fn development_config(id: ParaId) -> ChainSpec {
     )
 }
 
-pub fn local_testnet_config(id: ParaId) -> ChainSpec {
+pub fn parallel_local_testnet_config(id: ParaId) -> ChainSpec {
     ChainSpec::from_genesis(
         // Name
-        "Parallel Testnet",
+        "Parallel Local Testnet",
         // ID
         "parallel-local",
         ChainType::Local,
         move || {
-            testnet_genesis(
-                // Multisig account combined by:
-                //
-                // 5DAVaLenPCb12vHeEhxBMxikjAWc7h6ZDK172uUcWft2uJGG
-                // 5GLFqA1cnPEY3wRPRsKuEc68UbghxGgNw8zLJ5sKGhEQDLrd
-                // 5C5QP2Rdcr2HkFyeTJ9GdwRVJqqM5Ckagjav6T2sYs8WkeCP
-                //
-                // ss58 prefix is 42
-                "5CJJrY9SYxWLVA1P2CUSW4qyYT5fUhh9db29FcLmNbh48p9o"
+            let root_key = "5Hgbc62tVKhXr8ovtLFNGdb4Ye3RY6RchK1gLEg2ZjktZMjv"
+                .parse()
+                .unwrap();
+            let invulnerables: Vec<(AccountId, AuraId)> = vec![(
+                // 5Hgbc62tVKhXr8ovtLFNGdb4Ye3RY6RchK1gLEg2ZjktZMjv//collator
+                hex!["48bc67ff7bb9ee70ff7229dd8d89e5dd9e3a171eb5876e3fe8d617f9e67d9f5b"].into(),
+                hex!["48bc67ff7bb9ee70ff7229dd8d89e5dd9e3a171eb5876e3fe8d617f9e67d9f5b"]
+                    .unchecked_into(),
+            )];
+            // 5Hgbc62tVKhXr8ovtLFNGdb4Ye3RY6RchK1gLEg2ZjktZMjv//oracle
+            let oracle_accounts = vec!["5DLKFBGUSpr5FuqxsAyUab1u3uvtBypbV5mqtsRP5ZX73u1R"
+                .parse()
+                .unwrap()];
+            // 5Hgbc62tVKhXr8ovtLFNGdb4Ye3RY6RchK1gLEg2ZjktZMjv//validator_feeder
+            let validator_feeders = vec!["5DRwhn5ajqck2pZmL9Rp1ebSKrErWzQqKQC9ZvqR7Cn8TBN5"
+                .parse()
+                .unwrap()];
+            // 5Hgbc62tVKhXr8ovtLFNGdb4Ye3RY6RchK1gLEg2ZjktZMjv//agent
+            let liquid_staking_agents = vec!["5C5PQJQvvTuq5zQJLN4GtxXn6Pp8YTB4ko7yXmhvxyQF5CHn"
+                .parse()
+                .unwrap()];
+            let initial_allocation = vec![
+                // Faucet accounts
+                "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
                     .parse()
                     .unwrap(),
-                vec![
-                    (
-                        // 5DFScwjDYWMG7oAcotAaWdxnjZKyBd3PvG7QbzMCisEWPquY
-                        hex!["346ca44fd617b87fcd050c4a4bb7ef369a2e2e4d7f44233ab12b9bea56290461"]
-                            .into(),
-                        hex!["346ca44fd617b87fcd050c4a4bb7ef369a2e2e4d7f44233ab12b9bea56290461"]
-                            .unchecked_into(),
-                    ),
-                    (
-                        // 5GEwvVsMiZvLY9TsRYVd9NUuTUuAHCEL7uX1GTrLufXf8pKV
-                        hex!["b8c0bd039e40de150100a5c7c7dce7e5e2a3006ff4147cdc7caedb7ef0092b76"]
-                            .into(),
-                        hex!["b8c0bd039e40de150100a5c7c7dce7e5e2a3006ff4147cdc7caedb7ef0092b76"]
-                            .unchecked_into(),
-                    ),
-                    (
-                        // 5EbjqR169aiZibNdzMRMcJGjh8fLyXWtA5RSMJRonpdMjunU
-                        hex!["7023bbf7ff4780bef4b34759f6df004a341e6e5893df7d74a83b91af2055203d"]
-                            .into(),
-                        hex!["7023bbf7ff4780bef4b34759f6df004a341e6e5893df7d74a83b91af2055203d"]
-                            .unchecked_into(),
-                    ),
-                ],
-                vec!["5GTb3uLbk9VsyGD6taPyk69p2Hfa21GuzmMF52oJnqTQh2AA"
+                // Team members accounts
+                "5G4fc9GN6DeFQm4h2HKq3d9hBTsBJWSLWkyuk35cKHh2sqEz"
                     .parse()
-                    .unwrap()],
-                vec![
-                    // Faucet accounts
-                    "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                        .parse()
-                        .unwrap(),
-                    // Team members accounts
-                    "5G4fc9GN6DeFQm4h2HKq3d9hBTsBJWSLWkyuk35cKHh2sqEz"
-                        .parse()
-                        .unwrap(),
-                    "5DhZeTQqotvntGtrg69T2VK9pzUPXHiVyGUTmp5XFTDTT7ME"
-                        .parse()
-                        .unwrap(),
-                    "5GBykvvrUz3vwTttgHzUEPdm7G1FND1reBfddQLdiaCbhoMd"
-                        .parse()
-                        .unwrap(),
-                    "5G3f6iLDU6mbyEiJH8icoLhFy4RZ6TvWUZSkDwtg1nXTV3QK"
-                        .parse()
-                        .unwrap(),
-                    "5G97JLuuT1opraWvfS6Smt4jaAZuyDquP9GjamKVcPC366qU"
-                        .parse()
-                        .unwrap(),
-                    "5G9eFoXB95fdwFJK9utBf1AgiLvhPUvzArYR2knzXKrKtZPZ"
-                        .parse()
-                        .unwrap(),
-                    "1Gu7GSgLSPrhc1Wci9wAGP6nvzQfaUCYqbfXxjYjMG9bob6"
-                        .parse()
-                        .unwrap(),
-                ],
-                vec!["5FjH9a7RQmihmb7i4UzbNmecjPm9WVLyoJHfsixkrLGEKwsJ"
+                    .unwrap(),
+                "5DhZeTQqotvntGtrg69T2VK9pzUPXHiVyGUTmp5XFTDTT7ME"
                     .parse()
-                    .unwrap()],
-                vec!["5CJJrY9SYxWLVA1P2CUSW4qyYT5fUhh9db29FcLmNbh48p9o"
+                    .unwrap(),
+                "5GBykvvrUz3vwTttgHzUEPdm7G1FND1reBfddQLdiaCbhoMd"
                     .parse()
-                    .unwrap()],
+                    .unwrap(),
+                "5G3f6iLDU6mbyEiJH8icoLhFy4RZ6TvWUZSkDwtg1nXTV3QK"
+                    .parse()
+                    .unwrap(),
+                "5G97JLuuT1opraWvfS6Smt4jaAZuyDquP9GjamKVcPC366qU"
+                    .parse()
+                    .unwrap(),
+                "5G9eFoXB95fdwFJK9utBf1AgiLvhPUvzArYR2knzXKrKtZPZ"
+                    .parse()
+                    .unwrap(),
+                "1Gu7GSgLSPrhc1Wci9wAGP6nvzQfaUCYqbfXxjYjMG9bob6"
+                    .parse()
+                    .unwrap(),
+            ]
+            .iter()
+            .flat_map(|x: &AccountId| {
+                if x == &"5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                    .parse()
+                    .unwrap()
+                {
+                    vec![(x.clone(), 10_u128.pow(20))]
+                } else {
+                    vec![(x.clone(), 10_u128.pow(16))]
+                }
+            })
+            .chain(
+                invulnerables
+                    .iter()
+                    .cloned()
+                    .map(|k| (k.0, EXISTENTIAL_DEPOSIT)),
+            )
+            .fold(
+                BTreeMap::<AccountId, Balance>::new(),
+                |mut acc, (account_id, amount)| {
+                    if let Some(balance) = acc.get_mut(&account_id) {
+                        *balance = balance.checked_add(amount).unwrap()
+                    } else {
+                        acc.insert(account_id.clone(), amount);
+                    }
+                    acc
+                },
+            )
+            .into_iter()
+            .collect::<Vec<(AccountId, Balance)>>();
+            let council = vec![
+                "5G3f6iLDU6mbyEiJH8icoLhFy4RZ6TvWUZSkDwtg1nXTV3QK"
+                    .parse()
+                    .unwrap(),
+                "5GBykvvrUz3vwTttgHzUEPdm7G1FND1reBfddQLdiaCbhoMd"
+                    .parse()
+                    .unwrap(),
+                "5DhZeTQqotvntGtrg69T2VK9pzUPXHiVyGUTmp5XFTDTT7ME"
+                    .parse()
+                    .unwrap(),
+            ];
+            let technical_committee = vec!["1Gu7GSgLSPrhc1Wci9wAGP6nvzQfaUCYqbfXxjYjMG9bob6"
+                .parse()
+                .unwrap()];
+
+            parallel_genesis(
+                root_key,
+                invulnerables,
+                oracle_accounts,
+                initial_allocation,
+                validator_feeders,
+                liquid_staking_agents,
+                council,
+                technical_committee,
                 id,
             )
         },
         vec![],
-        None,
+        TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
         Some("parallel-local"),
         Some(as_properties(NetworkType::Parallel)),
         Extensions {
-            relay_chain: "polkadot".into(),
+            relay_chain: "westend-local".into(),
             para_id: id.into(),
         },
     )
 }
 
-fn testnet_genesis(
+fn parallel_genesis(
     root_key: AccountId,
     invulnerables: Vec<(AccountId, AuraId)>,
     oracle_accounts: Vec<AccountId>,
-    endowed_accounts: Vec<AccountId>,
+    initial_allocation: Vec<(AccountId, Balance)>,
     validator_feeders: Vec<AccountId>,
     liquid_staking_agents: Vec<AccountId>,
+    council: Vec<AccountId>,
+    technical_committee: Vec<AccountId>,
     id: ParaId,
 ) -> GenesisConfig {
     let vesting_list: Vec<(AccountId, BlockNumber, BlockNumber, u32, Balance)> =
@@ -198,30 +294,7 @@ fn testnet_genesis(
             changes_trie_config: Default::default(),
         },
         balances: BalancesConfig {
-            balances: {
-                let mut endowed_accounts = endowed_accounts.clone();
-                endowed_accounts.extend_from_slice(&oracle_accounts);
-                endowed_accounts.extend_from_slice(&validator_feeders);
-                endowed_accounts.extend(
-                    invulnerables
-                        .iter()
-                        .map(|invulnerable| invulnerable.0.clone()),
-                );
-
-                endowed_accounts
-                    .into_iter()
-                    .map(|k| {
-                        if k == "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                            .parse()
-                            .unwrap()
-                        {
-                            (k, 10_u128.pow(20))
-                        } else {
-                            (k, 10_u128.pow(16))
-                        }
-                    })
-                    .collect()
-            },
+            balances: initial_allocation.clone(),
         },
         collator_selection: CollatorSelectionConfig {
             invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
@@ -248,9 +321,9 @@ fn testnet_genesis(
         sudo: SudoConfig { key: root_key },
         parachain_info: ParachainInfoConfig { parachain_id: id },
         tokens: TokensConfig {
-            balances: endowed_accounts
+            balances: initial_allocation
                 .iter()
-                .flat_map(|x| {
+                .flat_map(|(x, _)| {
                     if x == &"5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
                         .parse()
                         .unwrap()
@@ -265,6 +338,7 @@ fn testnet_genesis(
         loans: LoansConfig {
             borrow_index: Rate::one(),                             // 1
             exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
+            last_block_timestamp: 0,
             markets: vec![
                 (
                     CurrencyId::DOT,
@@ -315,23 +389,22 @@ fn testnet_genesis(
                     },
                 ),
             ],
-            last_block_timestamp: 0,
         },
         liquid_staking: LiquidStakingConfig {
             exchange_rate: Rate::saturating_from_rational(100, 100), // 1
             reserve_factor: Ratio::from_perthousand(5),
         },
         democracy: DemocracyConfig::default(),
-        council: CouncilConfig::default(),
-        technical_committee: TechnicalCommitteeConfig {
-            members: endowed_accounts
-                .iter()
-                .take((endowed_accounts.len() + 1) / 2)
-                .cloned()
-                .collect(),
+        general_council: GeneralCouncilConfig::default(),
+        general_council_membership: GeneralCouncilMembershipConfig {
+            members: council,
             phantom: Default::default(),
         },
-        technical_membership: Default::default(),
+        technical_committee: Default::default(),
+        technical_committee_membership: TechnicalCommitteeMembershipConfig {
+            members: technical_committee,
+            phantom: Default::default(),
+        },
         treasury: Default::default(),
         oracle_membership: OracleMembershipConfig {
             members: oracle_accounts,

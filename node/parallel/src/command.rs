@@ -42,11 +42,11 @@ fn load_spec(
     para_id: ParaId,
 ) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
     Ok(match id {
-        "heiko-dev" => Box::new(chain_spec::heiko::development_config(para_id)),
-        "parallel-dev" => Box::new(chain_spec::parallel::development_config(para_id)),
-        "" | "heiko" | "heiko-local" => Box::new(chain_spec::heiko::local_testnet_config(para_id)),
+        "heiko-dev" => Box::new(chain_spec::heiko::heiko_dev_config(para_id)),
+        "" | "heiko" => Box::new(chain_spec::heiko::heiko_config(para_id)),
+        "parallel-dev" => Box::new(chain_spec::parallel::parallel_dev_config(para_id)),
         "parallel" | "parallel-local" => {
-            Box::new(chain_spec::parallel::local_testnet_config(para_id))
+            Box::new(chain_spec::parallel::parallel_local_testnet_config(para_id))
         }
         path => {
             let path = std::path::PathBuf::from(path);
