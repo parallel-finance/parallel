@@ -25,7 +25,7 @@ mod pool_structs;
 use core::marker::PhantomData;
 use frame_support::pallet_prelude::*;
 use frame_support::{
-	dispatch::DispatchResult,
+    dispatch::DispatchResult,
     pallet_prelude::{StorageDoubleMap, StorageValue, ValueQuery},
     traits::{EnsureOrigin, GenesisBuild, Get, Hooks, IsType},
     Blake2_128Concat, PalletId, Parameter, Twox64Concat,
@@ -35,7 +35,7 @@ use frame_system::pallet_prelude::OriginFor;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 pub use pallet::*;
 use parallel_primitives::{Amount, Balance, CurrencyId, Rate};
-use pool_structs::{AMMCurve, LiquidityProviderAmounts, Pool, StabilityPool};
+use pool_structs::{AMMCurve, PoolLiquidityAmount, StabilityPool};
 use sp_arithmetic::traits::BaseArithmetic;
 use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::Perbill;
@@ -48,8 +48,8 @@ pub mod pallet {
     pub trait Config<I: 'static = ()>: frame_system::Config {
         type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
 
-		/// Currency type for deposit/withdraw assets to/from amm
-		/// module
+        /// Currency type for deposit/withdraw assets to/from amm
+        /// module
         type Currency: MultiCurrencyExtended<
             Self::AccountId,
             CurrencyId = CurrencyId,
@@ -77,22 +77,22 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T, I = ()> {
-		/// No Pool
-		NoPool,
-		/// No Liquidity Provider
-		NoLiquidityProvider
-	}
+        /// Pool already exists
+        PoolAlreadyExists,
+        /// Liquidity Provider already exists
+        LiquidityProviderAlreadyExists,
+    }
 
     #[pallet::event]
-	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
+    #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config<I>, I: 'static = ()> {
-		/// Add liquidity into pool
-		/// [sender, currency_id, currency_id]
-		LiquidityAdded(T::AccountId, CurrencyId, CurrencyId),
-		/// Remove liquidity from pool
-		/// [sender, currency_id, currency_id]
-		LiquidityRemoved(T::AccountId, CurrencyId, CurrencyId),
-	}
+        /// Add liquidity into pool
+        /// [sender, currency_id, currency_id]
+        LiquidityAdded(T::AccountId, CurrencyId, CurrencyId),
+        /// Remove liquidity from pool
+        /// [sender, currency_id, currency_id]
+        LiquidityRemoved(T::AccountId, CurrencyId, CurrencyId),
+    }
 
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
@@ -129,7 +129,7 @@ pub mod pallet {
 
     /// Accounts that deposits and withdraw assets in one or more pools
     #[pallet::storage]
-	#[pallet::getter(fn liquidity_providers)]
+    #[pallet::getter(fn liquidity_providers)]
     pub type LiquidityProviders<T: Config<I>, I: 'static = ()> = StorageNMap<
         _,
         (
@@ -137,14 +137,20 @@ pub mod pallet {
             NMapKey<Blake2_128Concat, CurrencyId>,
             NMapKey<Blake2_128Concat, CurrencyId>,
         ),
-        LiquidityProviderAmounts,
+        PoolLiquidityAmount,
     >;
 
     /// A bag of liquidity composed by two different assets
     #[pallet::storage]
-	#[pallet::getter(fn pools)]
-    pub type Pools<T: Config<I>, I: 'static = ()> =
-        StorageDoubleMap<_, Twox64Concat, CurrencyId, Twox64Concat, CurrencyId, Pool>;
+    #[pallet::getter(fn pools)]
+    pub type Pools<T: Config<I>, I: 'static = ()> = StorageDoubleMap<
+        _,
+        Twox64Concat,
+        CurrencyId,
+        Twox64Concat,
+        CurrencyId,
+        PoolLiquidityAmount,
+    >;
 
     #[pallet::call]
     impl<T: Config<I>, I: 'static> Pallet<T, I> {
@@ -159,27 +165,29 @@ pub mod pallet {
             liquidity_amounts: (Balance, Balance),
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
+            let sorted_assets = &Self::get_upper_currency(pool.0, pool.1);
 
-			let base_asset = pool.0;
-            let quote_asset = pool.1;
+            let base_asset = sorted_assets.0;
+            let quote_asset = sorted_assets.1;
             let base_amount = liquidity_amounts.0;
             let quote_amount = liquidity_amounts.1;
 
-			ensure!(
-                Pools::<T>::contains_key(base_asset, &quote_asset),
-                Error::<T>::NoPool
+            ensure!(
+                !Pools::<T, I>::contains_key(base_asset, &quote_asset),
+                Error::<T, I>::PoolAlreadyExists
             );
 
-			let amm_pool = Pool{
-				base_amount,
-				quote_amount
-			};
-			Pools::<T>::insert(base_asset, &quote_asset, amm_pool);
+            let amm_pool = PoolLiquidityAmount {
+                base_amount,
+                quote_amount,
+            };
+            Pools::<T, I>::insert(base_asset, &quote_asset, amm_pool.clone());
+            LiquidityProviders::<T, I>::insert((who.clone(), base_asset, quote_asset), amm_pool);
 
             T::Currency::transfer(base_asset, &who, &Self::account_id(), base_amount)?;
             T::Currency::transfer(quote_asset, &who, &Self::account_id(), quote_amount)?;
 
-			Self::deposit_event(Event::<T>::LiquidityAdded(who, base_asset, quote_asset));
+            Self::deposit_event(Event::<T, I>::LiquidityAdded(who, base_asset, quote_asset));
             Ok(().into())
         }
 
@@ -203,7 +211,11 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         T::PalletId::get().into_account()
     }
 
-    fn get_upper_currency(_curr_a: CurrencyId, _curr_b: CurrencyId) -> CurrencyId {
-        unimplemented!()
+    pub fn get_upper_currency(curr_a: CurrencyId, curr_b: CurrencyId) -> (CurrencyId, CurrencyId) {
+        if curr_a > curr_b {
+            (curr_a, curr_b)
+        } else {
+            (curr_b, curr_a)
+        }
     }
 }
