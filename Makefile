@@ -1,52 +1,28 @@
+PARA_ID  := 2085
+CHAIN    := heiko-dev
+
 .PHONY: run
 run:
-	cargo run --manifest-path node/parallel-dev/Cargo.toml -- --dev -lruntime=debug
+	cargo run --bin parallel-dev -- --dev -lruntime=debug
 
 .PHONY: build
 build: build-dev build-parallel
 
 .PHONY: build-dev
 build-dev:
-	cargo build --manifest-path node/parallel-dev/Cargo.toml --locked
+	cargo build --bin parallel-dev --locked
 
 .PHONY: build-parallel
 build-parallel:
-	cargo build --manifest-path node/parallel/Cargo.toml --locked
+	cargo build --bin parallel --locked
 
 .PHONY: check
-check: check-dev check-parallel check-benchmarks
-	SKIP_WASM_BUILD= cargo check
-
-.PHONY: check-tests
-check-tests:
-	SKIP_WASM_BUILD= cargo check --tests --workspace
-
-.PHONY: check-dev
-check-dev:
-	SKIP_WASM_BUILD= cargo check --manifest-path node/parallel-dev/Cargo.toml --tests --workspace
-
-.PHONY: check-parallel
-check-parallel:
-	SKIP_WASM_BUILD= cargo check --manifest-path node/parallel/Cargo.toml --tests --workspace
-
-.PHONY: check-benchmarks
-check-benchmarks:
-	SKIP_WASM_BUILD= cargo check --manifest-path node/parallel/Cargo.toml --tests --workspace --features runtime-benchmarks
-
-.PHONY: check-debug
-check-debug:
-	RUSTFLAGS="-Z macro-backtrace" SKIP_WASM_BUILD= cargo +nightly check
+check:
+	SKIP_WASM_BUILD= cargo check --all-targets --all-features
 
 .PHONY: test
-test: test-dev test-parallel
-
-.PHONY: test-dev
-test-dev:
-	SKIP_WASM_BUILD= cargo test --manifest-path node/parallel-dev/Cargo.toml -p pallet-loans -p pallet-liquidation -p pallet-liquid-staking -p pallet-prices -p pallet-nominee-election -p pallet-liquid-staking-v2 -- --nocapture
-
-.PHONY: test-parallel
-test-parallel:
-	SKIP_WASM_BUILD= cargo test --manifest-path node/parallel/Cargo.toml --workspace
+test:
+	SKIP_WASM_BUILD= cargo test --workspace --exclude parallel --exclude parallel-dev --exclude parallel-runtime --exclude vanilla-runtime --exclude heiko-runtime --exclude pallet-loans-benchmarking -- --nocapture
 
 .PHONY: bench
 bench: bench-loans bench-liquid-staking
@@ -61,11 +37,11 @@ bench-liquid-staking:
 
 .PHONY: lint
 lint:
-	SKIP_WASM_BUILD= cargo clippy -- -D warnings
+	SKIP_WASM_BUILD= cargo clippy --workspace --exclude parallel --exclude parallel-dev --exclude pallet-loans-benchmarking -- -A clippy::type_complexity -A clippy::identity_op -D warnings
 
 .PHONY: fmt
 fmt:
-	SKIP_WASM_BUILD= cargo fmt
+	SKIP_WASM_BUILD= cargo fmt --all -- --check
 
 .PHONY: purge
 purge:
@@ -76,23 +52,28 @@ restart: purge run
 
 .PHONY: resources
 resources:
-	target/release/parallel export-genesis-state --chain heiko-dev --parachain-id 2000 > ./resources/para-2000-genesis
-	target/release/parallel export-genesis-wasm --chain heiko-dev > ./resources/para-2000.wasm
+	docker run --rm parallelfinance/parallel:latest export-genesis-state --chain heiko-dev --parachain-id $(PARA_ID) > ./resources/para-$(PARA_ID)-genesis
+	docker run --rm parallelfinance/parallel:latest export-genesis-wasm --chain heiko-dev > ./resources/para-$(PARA_ID).wasm
 
-.PHONY: docker-resources
-docker-resources:
-	docker run --rm parallelfinance/parallel:latest export-genesis-state --chain heiko-dev --parachain-id 2000 > ./resources/para-2000-genesis
-	docker run --rm parallelfinance/parallel:latest export-genesis-wasm --chain heiko-dev > ./resources/para-2000.wasm
+.PHONY: launch
+launch:
+	parachain-launch generate && cp docker-compose.override.yml output && cd output && docker-compose up -d --build
 
-.PHONY: polkadot-launch
-polkadot-launch:
-	polkadot-launch config.json
+.PHONY: wasm
+wasm:
+	./scripts/srtool-build.sh
 
-.PHONY: parachain-launch
-parachain-launch:
-	parachain-launch generate
-	cd output
-	docker-compose up -d --build
+.PHONY: spec
+spec:
+	docker run --rm parallelfinance/parallel:latest build-spec --chain $(CHAIN) --disable-default-bootnode > ./resources/$(CHAIN)-plain.json
+	docker run --rm -v $(PWD)/resources:/app/resources parallelfinance/parallel:latest build-spec --chain=/app/resources/$(CHAIN)-plain.json --raw --disable-default-bootnode > ./resources/$(CHAIN)-raw.json
+
+.PHONY: image
+image:
+	docker build --build-arg BIN=parallel \
+		-t parallelfinance/parallel:latest \
+		-f Dockerfile.release \
+		. --network=host
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?' Makefile | cut -d: -f1 | sort

@@ -136,7 +136,7 @@ fn liquidator_cannot_take_inactive_market_currency() {
         }));
         assert_noop!(
             Loans::liquidate_borrow(Origin::signed(BOB), ALICE, KSM, million_dollar(50), DOT),
-            Error::<Runtime>::CurrencyNotEnabled
+            Error::<Runtime>::MarketNotActivated
         );
     })
 }

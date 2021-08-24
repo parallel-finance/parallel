@@ -140,7 +140,7 @@ impl JumpModel {
                 .checked_div(&self.jump_utilization.into())?
                 .checked_add(&self.base_rate)?;
 
-            Some(result.into())
+            Some(result)
         } else {
             // (utilization - jump_utilization)*(full_rate - jump_rate) / ( 1 - jump_utilization) + jump_rate
             let excess_util = utilization.saturating_sub(self.jump_utilization);
@@ -151,7 +151,7 @@ impl JumpModel {
                 .checked_div(&(Ratio::one().saturating_sub(self.jump_utilization).into()))?
                 .checked_add(&self.jump_rate)?;
 
-            Some(result.into())
+            Some(result)
         }
     }
 }

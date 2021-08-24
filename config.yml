@@ -1,8 +1,8 @@
 relaychain:
-  image: parity/polkadot:v0.9.8
-  chain: rococo-local
+  image: parallelfinance/polkadot:v0.9.9-1
+  chain: westend-local
   runtimeGenesisConfig:
-    parachainsConfiguration:
+    configuration:
       config:
         validation_upgrade_frequency: 1
         validation_upgrade_delay: 1
@@ -24,8 +24,8 @@ parachains:
         - alice
         - bob
         - charlie
-      sudo: alice
-    id: 2000
+      sudo: dave
+    id: 2085
     parachain: true
     flags:
       - --rpc-methods=unsafe

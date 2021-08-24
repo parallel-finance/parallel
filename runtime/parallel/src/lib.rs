@@ -25,27 +25,25 @@ mod weights;
 use codec::Encode;
 use frame_support::{
     dispatch::Weight,
-    traits::{All, LockIdentifier, U128CurrencyToVote},
+    traits::{Contains, Everything},
     PalletId,
 };
 use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended};
+use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended, MultiCurrency};
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use sp_api::impl_runtime_apis;
 use sp_core::{
     u32_trait::{_1, _2, _3, _4, _5},
     OpaqueMetadata,
 };
-use sp_runtime::traits::{
-    AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, Zero,
-};
-use sp_runtime::DispatchError;
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
-    offchain::storage_lock::BlockNumberProvider,
-    traits,
+    traits::{
+        self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT,
+        BlockNumberProvider, Convert, Zero,
+    },
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, KeyTypeId, Percent, SaturatedConversion,
+    ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Percent, Permill, SaturatedConversion,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -61,13 +59,14 @@ use frame_system::{
 use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 use polkadot_parachain::primitives::Sibling;
 use primitives::{network::PARALLEL_PREFIX, *};
-use static_assertions::const_assert;
-use xcm::v0::{Junction, Junction::*, MultiAsset, MultiLocation, MultiLocation::*, NetworkId, Xcm};
+
+use xcm::v0::{Junction, Junction::*, MultiAsset, MultiLocation, MultiLocation::*, NetworkId};
 use xcm_builder::{
-    AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds,
-    LocationInverter, ParentAsSuperuser, ParentIsDefault, RelayChainAsNative,
-    SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-    SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
+    AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin,
+    FixedRateOfConcreteFungible, FixedWeightBounds, LocationInverter, ParentAsSuperuser,
+    ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
+    SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue,
+    TakeWeightCredit,
 };
 use xcm_executor::{Config, XcmExecutor};
 
@@ -101,7 +100,6 @@ pub use frame_support::{
 use pallet_xcm::XcmPassthrough;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
-pub use sp_runtime::{Perbill, Permill};
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -128,7 +126,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("parallel"),
     impl_name: create_runtime_str!("parallel"),
     authoring_version: 1,
-    spec_version: 120,
+    spec_version: 130,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -187,11 +185,44 @@ parameter_types! {
     pub const SS58Prefix: u8 = PARALLEL_PREFIX;
 }
 
-// Configure FRAME pallets to include in runtime.
+pub struct BaseCallFilter;
+impl Contains<Call> for BaseCallFilter {
+    fn contains(call: &Call) -> bool {
+        matches!(
+            call,
+            // System, Utility, Currencies
+            Call::System(_) | Call::Timestamp(_) | Call::Multisig(_)  | Call::Utility(_) | Call::Balances(_) |
+            // Governance
+            Call::Sudo(_) | Call::Democracy(_) | Call::Council(_) | Call::TechnicalCommittee(_) | Call::Treasury(_) | Call::Scheduler(_) |
+            // Parachain
+            Call::ParachainSystem(_) | Call::XcmpQueue(_) | Call::DmpQueue(_) | Call::PolkadotXcm(_) | Call::CumulusXcm(_) |
+            // Consensus
+            Call::Authorship(_) | Call::CollatorSelection(_) | Call::Session(_) |
+            // 3rd Party
+            Call::Currencies(_) |
+            Call::Oracle(_) |
+            Call::XTokens(_) |
+            Call::OrmlXcm(_) |
+            Call::Vesting(_) |
+            // Loans
+            Call::Loans(_) |
+            Call::Liquidation(_) |
+            Call::Prices(_) |
+            // LiquidStaking
+            Call::LiquidStaking(_) |
+            Call::NomineeElection(_) |
+            // Membership
+            Call::TechnicalMembership(_) |
+            Call::OracleMembership(_) |
+            Call::LiquidStakingAgentMembership(_) |
+            Call::ValidatorFeedersMembership(_)
+        )
+    }
+}
 
 impl frame_system::Config for Runtime {
     /// The basic call filter to use in dispatchable.
-    type BaseCallFilter = ();
+    type BaseCallFilter = BaseCallFilter;
     /// Block & extrinsics weights: base values and limits.
     type BlockWeights = RuntimeBlockWeights;
     /// The maximum length of a block (in bytes).
@@ -250,6 +281,19 @@ parameter_types! {
    pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
 }
 
+pub struct DustRemovalWhitelist;
+impl Contains<AccountId> for DustRemovalWhitelist {
+    fn contains(a: &AccountId) -> bool {
+        vec![
+            LoansPalletId::get().into_account(),
+            TreasuryPalletId::get().into_account(),
+            StakingPalletId::get().into_account(),
+            PotId::get().into_account(),
+        ]
+        .contains(a)
+    }
+}
+
 impl orml_tokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
@@ -259,6 +303,12 @@ impl orml_tokens::Config for Runtime {
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
     type MaxLocks = MaxLocks;
+    type DustRemovalWhitelist = DustRemovalWhitelist;
+}
+
+impl orml_xcm::Config for Runtime {
+    type Event = Event;
+    type SovereignOrigin = EnsureRootOrHalfTechnicalCommittee;
 }
 
 parameter_types! {
@@ -559,6 +609,7 @@ impl pallet_collator_selection::Config for Runtime {
 
 impl pallet_aura::Config for Runtime {
     type AuthorityId = AuraId;
+    type DisabledValidators = ();
 }
 
 impl cumulus_pallet_aura_ext::Config for Runtime {}
@@ -623,12 +674,13 @@ impl pallet_xcm::Config for Runtime {
     type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
     type XcmRouter = XcmRouter;
     type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
-    type XcmExecuteFilter = All<(MultiLocation, Xcm<Call>)>;
-    type XcmReserveTransferFilter = All<(MultiLocation, Vec<MultiAsset>)>;
+    type XcmExecuteFilter = Everything;
+    type XcmReserveTransferFilter = Everything;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     // Teleporting is disabled.
     type XcmTeleportFilter = ();
     type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+    type LocationInverter = LocationInverter<Ancestry>;
 }
 
 impl cumulus_pallet_xcm::Config for Runtime {
@@ -726,20 +778,29 @@ pub type XcmOriginToTransactDispatchOrigin = (
 );
 
 parameter_types! {
-    pub UnitWeightCost: Weight = 1_000;
+    pub UnitWeightCost: Weight = 100_000_000;
+    pub DotPerSecond: (MultiLocation, u128) = (X1(Parent), dot_per_second());
 }
 
 parameter_types! {
     // 1_000_000_000_000 => 1 unit of asset for 1 unit of Weight.
     // TODO Should take the actual weight price. This is just 1_000 DOT per second of weight.
     pub const WeightPrice: (MultiLocation, u128) = (MultiLocation::X1(Junction::Parent), 1_000);
-    pub AllowUnpaidFrom: Vec<MultiLocation> = vec![ MultiLocation::X1(Junction::Parent) ];
+    // pub AllowUnpaidFrom: Vec<MultiLocation> = vec![ MultiLocation::X1(Junction::Parent) ];
 }
 
-pub type Barrier = (
-    TakeWeightCredit,
-    AllowTopLevelPaidExecutionFrom<All<MultiLocation>>,
-);
+pub type Barrier = (TakeWeightCredit, AllowTopLevelPaidExecutionFrom<Everything>);
+
+pub struct ToTreasury;
+impl TakeRevenue for ToTreasury {
+    fn take_revenue(revenue: MultiAsset) {
+        if let MultiAsset::ConcreteFungible { id, amount } = revenue {
+            if let Some(currency_id) = CurrencyIdConvert::convert(id) {
+                let _ = Currencies::deposit(currency_id, &TreasuryAccount::get(), amount);
+            }
+        }
+    }
+}
 
 pub struct XcmConfig;
 impl Config for XcmConfig {
@@ -754,7 +815,7 @@ impl Config for XcmConfig {
     type LocationInverter = LocationInverter<Ancestry>;
     type Barrier = Barrier;
     type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
-    type Trader = UsingComponents<IdentityFee<Balance>, RelayLocation, AccountId, Balances, ()>;
+    type Trader = FixedRateOfConcreteFungible<DotPerSecond, ToTreasury>;
     type ResponseHandler = (); // Don't handle responses for now.
 }
 
@@ -909,41 +970,6 @@ impl pallet_collective::Config<CouncilCollective> for Runtime {
 }
 
 parameter_types! {
-    pub const CandidacyBond: Balance = 10 * DOLLARS;
-    // 1 storage item created, key size is 32 bytes, value size is 16+16.
-    pub const VotingBondBase: Balance = deposit(1, 64);
-    // additional data per vote is 32 bytes (account id).
-    pub const VotingBondFactor: Balance = deposit(0, 32);
-    pub const TermDuration: BlockNumber = 7 * DAYS;
-    pub const DesiredMembers: u32 = 13;
-    pub const DesiredRunnersUp: u32 = 7;
-    pub const ElectionsPhragmenPalletId: LockIdentifier = *b"phrelect";
-}
-
-// Make sure that there are no more than `MaxMembers` members elected via elections-phragmen.
-const_assert!(DesiredMembers::get() <= CouncilMaxMembers::get());
-
-impl pallet_elections_phragmen::Config for Runtime {
-    type Event = Event;
-    type PalletId = ElectionsPhragmenPalletId;
-    type Currency = Balances;
-    type ChangeMembers = Council;
-    // NOTE: this implies that council's genesis members cannot be set directly and must come from
-    // this module.
-    type InitializeMembers = Council;
-    type CurrencyToVote = U128CurrencyToVote;
-    type CandidacyBond = CandidacyBond;
-    type VotingBondBase = VotingBondBase;
-    type VotingBondFactor = VotingBondFactor;
-    type LoserCandidate = ();
-    type KickedMember = ();
-    type DesiredMembers = DesiredMembers;
-    type DesiredRunnersUp = DesiredRunnersUp;
-    type TermDuration = TermDuration;
-    type WeightInfo = pallet_elections_phragmen::weights::SubstrateWeight<Runtime>;
-}
-
-parameter_types! {
     pub const TechnicalMotionDuration: BlockNumber = 1 * DAYS;
     pub const TechnicalMaxProposals: u32 = 100;
     pub const TechnicalMaxMembers: u32 = 100;
@@ -965,6 +991,11 @@ type EnsureRootOrHalfCouncil = EnsureOneOf<
     AccountId,
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>,
+>;
+type EnsureRootOrHalfTechnicalCommittee = EnsureOneOf<
+    AccountId,
+    EnsureRoot<AccountId>,
+    pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, TechnicalCollective>,
 >;
 impl pallet_membership::Config<pallet_membership::Instance1> for Runtime {
     type Event = Event;
@@ -1003,7 +1034,7 @@ parameter_types! {
     pub const Burn: Permill = Permill::from_percent(50);
     pub const TipCountdown: BlockNumber = 1 * DAYS;
     pub const TipFindersFee: Percent = Percent::from_percent(20);
-    pub const TipReportDepositBase: Balance = 1 * DOLLARS;
+    pub const TipReportDepositBase: Balance = DOLLARS;
     pub const TreasuryPalletId: PalletId = PalletId(*b"par/trsy");
     pub const MaxApprovals: u32 = 100;
 }
@@ -1087,64 +1118,60 @@ construct_runtime!(
         NodeBlock = opaque::Block,
         UncheckedExtrinsic = UncheckedExtrinsic,
     {
-        // System, Utility
-        System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
-        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-        Utility: pallet_utility::{Pallet, Call, Event},
-        Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>},
+        // System, Utility, Currencies
+        System: frame_system::{Pallet, Call, Storage, Config, Event<T>} = 0,
+        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 1,
+        Utility: pallet_utility::{Pallet, Call, Event} = 2,
+        Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 3,
+        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 4,
+        TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 5,
 
         // Governance
-        Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>},
-        Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>},
-        Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
-        TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
-        Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>},
-        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
-        Elections: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>},
-        TechnicalMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>},
-
-        // Currencies
-        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-        TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
+        Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
+        Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>} = 11,
+        Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 12,
+        TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 13,
+        Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>} = 14,
+        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 15,
 
         // Parachain
-        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Storage, Inherent, Event<T>},
-        ParachainInfo: parachain_info::{Pallet, Storage, Config},
-        XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>},
-        DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>},
-        PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin},
-        CumulusXcm: cumulus_pallet_xcm::{Pallet, Call, Event<T>, Origin},
-
-        // Collator
-        Authorship: pallet_authorship::{Pallet, Call, Storage},
-        CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>},
-        Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
+        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 20,
+        ParachainInfo: parachain_info::{Pallet, Storage, Config} = 21,
+        XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>} = 22,
+        DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 23,
+        PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin} = 24,
+        CumulusXcm: cumulus_pallet_xcm::{Pallet, Call, Event<T>, Origin} = 25,
 
         // Consensus
-        Aura: pallet_aura::{Pallet, Config<T>},
-        AuraExt: cumulus_pallet_aura_ext::{Pallet, Config},
+        Authorship: pallet_authorship::{Pallet, Call, Storage} = 30,
+        CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 31,
+        Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 32,
+        Aura: pallet_aura::{Pallet, Config<T>, Storage} = 33,
+        AuraExt: cumulus_pallet_aura_ext::{Pallet, Config, Storage} = 34,
 
-        // ORML
-        Currencies: orml_currencies::{Pallet, Call, Event<T>},
-        Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
-        Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
-        XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
-        UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event},
-        Vesting: orml_vesting::{Pallet, Storage, Call, Event<T>, Config<T>},
+        // 3rd Party
+        Currencies: orml_currencies::{Pallet, Call, Event<T>} = 40,
+        Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>} = 41,
+        Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>} = 42,
+        XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>} = 43,
+        UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event} = 44,
+        OrmlXcm: orml_xcm::{Pallet, Call, Event<T>} = 45,
+        Vesting: orml_vesting::{Pallet, Storage, Call, Event<T>, Config<T>} = 46,
 
         // Loans
-        Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config},
-        Liquidation: pallet_liquidation::{Pallet, Call},
-        Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
-
-        // Oracles
-        OracleMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>},
+        Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config} = 50,
+        Liquidation: pallet_liquidation::{Pallet, Call} = 51,
+        Prices: pallet_prices::{Pallet, Storage, Call, Event<T>} = 52,
 
         // LiquidStaking
-        LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config},
-        LiquidStakingAgentMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>},
-        NomineeElection: pallet_nominee_election::{Pallet, Call, Storage, Event<T>},
-        ValidatorFeedersMembership: pallet_membership::<Instance4>::{Pallet, Call, Storage, Event<T>, Config<T>}
+        LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config} = 60,
+        NomineeElection: pallet_nominee_election::{Pallet, Call, Storage, Event<T>} = 61,
+
+        // Membership
+        TechnicalMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 70,
+        OracleMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>} = 71,
+        LiquidStakingAgentMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
+        ValidatorFeedersMembership: pallet_membership::<Instance4>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73
     }
 );
 
@@ -1317,6 +1344,34 @@ impl_runtime_apis! {
 
     #[cfg(feature = "runtime-benchmarks")]
     impl frame_benchmarking::Benchmark<Block> for Runtime {
+        fn benchmark_metadata(extra: bool) -> (
+            Vec<frame_benchmarking::BenchmarkList>,
+            Vec<frame_support::traits::StorageInfo>,
+        ) {
+            use frame_benchmarking::{list_benchmark, Benchmarking, BenchmarkList};
+            use frame_support::traits::StorageInfoTrait;
+
+            // Trying to add benchmarks directly to the Session Pallet caused cyclic dependency
+            // issues. To get around that, we separated the Session benchmarks into its own crate,
+            // which is why we need these two lines below.
+            use pallet_loans_benchmarking::Pallet as LoansBench;
+            use frame_system_benchmarking::Pallet as SystemBench;
+
+            let mut list = Vec::<BenchmarkList>::new();
+
+            list_benchmark!(list, extra, pallet_balances, Balances);
+            list_benchmark!(list, extra, pallet_membership, TechnicalMembership);
+            list_benchmark!(list, extra, pallet_liquid_staking, LiquidStaking);
+            list_benchmark!(list, extra, pallet_multisig, Multisig);
+            list_benchmark!(list, extra, pallet_loans, LoansBench::<Runtime>);
+            list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
+            list_benchmark!(list, extra, pallet_timestamp, Timestamp);
+
+            let storage_info = AllPalletsWithSystem::storage_info();
+
+            return (list, storage_info)
+        }
+
         fn dispatch_benchmark(
             config: frame_benchmarking::BenchmarkConfig
         ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {

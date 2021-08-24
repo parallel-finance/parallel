@@ -130,7 +130,7 @@ impl Ord for PriceWithDecimal {
                 return price.cmp(&other_price);
             }
         }
-        return self.price.cmp(&other.price);
+        self.price.cmp(&other.price)
     }
 }
 impl PartialOrd for PriceWithDecimal {

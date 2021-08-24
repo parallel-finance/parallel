@@ -20,7 +20,7 @@ mod loans {
 
 use loans::*;
 
-use frame_support::{construct_runtime, parameter_types, PalletId};
+use frame_support::{construct_runtime, parameter_types, traits::Contains, PalletId};
 use frame_system::EnsureRoot;
 use orml_traits::parameter_type_with_key;
 use primitives::{Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate};
@@ -110,6 +110,13 @@ parameter_type_with_key! {
     };
 }
 
+pub struct DustRemovalWhitelist;
+impl Contains<AccountId> for DustRemovalWhitelist {
+    fn contains(a: &AccountId) -> bool {
+        vec![LoansPalletId::get().into_account()].contains(a)
+    }
+}
+
 impl orml_tokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
@@ -119,6 +126,7 @@ impl orml_tokens::Config for Runtime {
     type OnDust = ();
     type ExistentialDeposits = ExistentialDeposits;
     type MaxLocks = MaxLocks;
+    type DustRemovalWhitelist = DustRemovalWhitelist;
 }
 
 parameter_types! {

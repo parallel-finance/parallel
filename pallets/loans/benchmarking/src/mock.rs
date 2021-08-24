@@ -19,7 +19,7 @@ use super::*;
 
 use frame_support::{
     construct_runtime, ord_parameter_types, parameter_types,
-    traits::{SortedMembers, Time},
+    traits::{Contains, SortedMembers, Time},
     PalletId,
 };
 use frame_system::EnsureRoot;
@@ -31,7 +31,11 @@ use primitives::{
     Amount, Balance, CurrencyId, ExchangeRateProvider, Moment, Price, PriceWithDecimal,
 };
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, FixedPointNumber};
+use sp_runtime::{
+    testing::Header,
+    traits::{AccountIdConversion, IdentityLookup},
+    FixedPointNumber,
+};
 use sp_std::vec::Vec;
 use std::cell::RefCell;
 
@@ -110,6 +114,13 @@ parameter_type_with_key! {
     };
 }
 
+pub struct DustRemovalWhitelist;
+impl Contains<AccountId> for DustRemovalWhitelist {
+    fn contains(a: &AccountId) -> bool {
+        vec![LoansPalletId::get().into_account()].contains(a)
+    }
+}
+
 impl orml_tokens::Config for Test {
     type Event = Event;
     type Balance = Balance;
@@ -119,6 +130,7 @@ impl orml_tokens::Config for Test {
     type OnDust = ();
     type ExistentialDeposits = ExistentialDeposits;
     type MaxLocks = MaxLocks;
+    type DustRemovalWhitelist = DustRemovalWhitelist;
 }
 
 parameter_types! {

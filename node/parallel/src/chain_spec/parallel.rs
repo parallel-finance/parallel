@@ -17,16 +17,15 @@ use heiko_runtime::pallet_loans::{InterestRateModel, JumpModel, Market, MarketSt
 use hex_literal::hex;
 use parallel_runtime::{
     opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, CouncilConfig, DemocracyConfig,
-    ElectionsConfig, GenesisConfig, LiquidStakingAgentMembershipConfig, LiquidStakingConfig,
-    LoansConfig, OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig,
-    SystemConfig, TechnicalCommitteeConfig, TokensConfig, ValidatorFeedersMembershipConfig,
-    VestingConfig, WASM_BINARY,
+    GenesisConfig, LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig,
+    OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
+    TechnicalCommitteeConfig, TokensConfig, ValidatorFeedersMembershipConfig, VestingConfig,
+    WASM_BINARY,
 };
 use primitives::{network::NetworkType, *};
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::crypto::UncheckedInto;
-use sp_core::sr25519;
+use sp_core::{crypto::UncheckedInto, sr25519};
 use sp_runtime::{
     traits::{One, Zero},
     FixedPointNumber,
@@ -48,10 +47,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
         ChainType::Development,
         move || {
             testnet_genesis(
-                // Multisig account combined by Alice, Bob and Charile, ss58 prefix is 42
-                "5DjYJStmdZ2rcqXbXGX7TW85JsrW6uG4y9MUcLq2BoPMpRA7"
-                    .parse()
-                    .unwrap(),
+                get_account_id_from_seed::<sr25519::Public>("Dave"),
                 vec![
                     get_authority_keys_from_seed("Alice"),
                     get_authority_keys_from_seed("Bob"),
@@ -59,6 +55,10 @@ pub fn development_config(id: ParaId) -> ChainSpec {
                 ],
                 vec![get_account_id_from_seed::<sr25519::Public>("Ferdie")],
                 vec![
+                    // Faucet accounts
+                    "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                        .parse()
+                        .unwrap(),
                     get_account_id_from_seed::<sr25519::Public>("Dave"),
                     get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
@@ -68,9 +68,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                 ],
                 vec![get_account_id_from_seed::<sr25519::Public>("Eve")],
-                vec!["5DjYJStmdZ2rcqXbXGX7TW85JsrW6uG4y9MUcLq2BoPMpRA7"
-                    .parse()
-                    .unwrap()],
+                vec![get_account_id_from_seed::<sr25519::Public>("Dave")],
                 id,
             )
         },
@@ -212,7 +210,16 @@ fn testnet_genesis(
 
                 endowed_accounts
                     .into_iter()
-                    .map(|k| (k, 10_u128.pow(16)))
+                    .map(|k| {
+                        if k == "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                            .parse()
+                            .unwrap()
+                        {
+                            (k, 10_u128.pow(20))
+                        } else {
+                            (k, 10_u128.pow(16))
+                        }
+                    })
                     .collect()
             },
         },
@@ -237,6 +244,7 @@ fn testnet_genesis(
         },
         aura: Default::default(),
         aura_ext: Default::default(),
+        parachain_system: Default::default(),
         sudo: SudoConfig { key: root_key },
         parachain_info: ParachainInfoConfig { parachain_id: id },
         tokens: TokensConfig {
@@ -247,7 +255,7 @@ fn testnet_genesis(
                         .parse()
                         .unwrap()
                     {
-                        vec![(x.clone(), CurrencyId::USDT, 10_u128.pow(16))]
+                        vec![(x.clone(), CurrencyId::USDT, 10_u128.pow(20))]
                     } else {
                         vec![(x.clone(), CurrencyId::USDT, 10_u128.pow(9))]
                     }
@@ -314,14 +322,6 @@ fn testnet_genesis(
             reserve_factor: Ratio::from_perthousand(5),
         },
         democracy: DemocracyConfig::default(),
-        elections: ElectionsConfig {
-            members: endowed_accounts
-                .iter()
-                .take((endowed_accounts.len() + 1) / 2)
-                .cloned()
-                .map(|member| (member, 0))
-                .collect(),
-        },
         council: CouncilConfig::default(),
         technical_committee: TechnicalCommitteeConfig {
             members: endowed_accounts

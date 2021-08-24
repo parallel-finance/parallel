@@ -27,17 +27,11 @@ cargo build --release
 make help
 ```
 
-## Run Heiko Node (via polkadot-launch 1.7.0)
-
-```
-make launch
-```
-
 ## Run Heiko Node (manually)
 
 ### Local Testnet
 
-Polkadot (release-v0.9.8 branch)
+Polkadot (v0.9.9-1 branch)
 
 ```
 cargo build --release
@@ -55,7 +49,7 @@ Substrate Parachain Template:
 
 ```
 # this command assumes the chain spec is in a directory named polkadot that is a sibling of the working directory
-./target/release/parallel -d local-test --collator --alice --chain heiko-dev --ws-port 9915 --parachain-id 2000 -- --chain ../polkadot/rococo_local.json \
+./target/release/parallel -d local-test --collator --alice --chain heiko-dev --ws-port 9915 --parachain-id 2085 -- --chain ../polkadot/rococo_local.json \
         --bootnodes /ip4/127.0.0.1/tcp/50555/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp
 ```
 
@@ -65,21 +59,21 @@ In order to produce blocks you will need to register the parachain as detailed i
 
 Developer -> sudo -> paraSudoWrapper -> sudoScheduleParaInitialize(id, genesis)
 
-Ensure you set the `ParaId` to `2000` and the `parachain: Bool` to `Yes`.
+Ensure you set the `ParaId` to `2085` and the `parachain: Bool` to `Yes`.
 
 The files you will need are in the `./resources` folder, if you need to build them because you modified the code you can use the following commands
 
 ```
 cargo build --release
 # Build the Chain spec
-./target/release/parallel build-spec --disable-default-bootnode > ./resources/template-local-plain.json
+./target/release/parallel build-spec --chain heiko-dev --disable-default-bootnode > ./resources/template-local-plain.json
 # Build the raw file
 ./target/release/parallel build-spec --chain=./resources/template-local-plain.json --raw --disable-default-bootnode > ./resources/template-local.json
 
 
 # export genesis state and wasm
-./target/release/parallel export-genesis-state --parachain-id 2000 > ./resources/para-2000-genesis
-./target/release/parallel export-genesis-wasm > ./resources/para-2000.wasm
+./target/release/parallel export-genesis-state --chain heiko-dev --parachain-id 2085 > ./resources/para-2085-genesis
+./target/release/parallel export-genesis-wasm --chain heiko-dev > ./resources/para-2085.wasm
 ```
 
 ### Embedded Docs
@@ -145,12 +139,10 @@ docker run --restart=always --name parallel -d -p 9944:9944 \
     -d /data --chain /usr/local/bin/live.json --rpc-cors all --unsafe-ws-external
 ```
 
-Run Heiko Dev Network (via parachain-launch 1.0.2)
+Run Heiko Dev Network (via parachain-launch 1.0.3)
 
 ```
-parachain-launch generate
-cd output
-docker-compose up -d --build
+make launch
 ```
 
 Generate heiko-dev's genesis state & wasm
@@ -158,6 +150,19 @@ Generate heiko-dev's genesis state & wasm
 ```
 docker run --rm  parity/polkadot:latest build-spec --chain rococo-local --raw --disable-default-bootnode > rococo-local.json
 
-docker run --rm  parallelfinance/parallel:latest export-genesis-state --chain heiko-dev --parachain-id 2000 > ./para-2000-genesis
-docker run --rm  parallelfinance/parallel:latest export-genesis-wasm --chain heiko-dev > ./para-2000.wasm
+docker run --rm  parallelfinance/parallel:latest export-genesis-state --chain heiko-dev --parachain-id 2085 > ./para-2085-genesis
+docker run --rm  parallelfinance/parallel:latest export-genesis-wasm --chain heiko-dev > ./para-2085.wasm
+```
+
+### Wasm
+
+```
+make wasm
+make PACKAGE=parallel-runtime wasm
+```
+
+### Image
+
+```
+make image
 ```

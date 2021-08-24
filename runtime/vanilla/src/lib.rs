@@ -8,13 +8,14 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use codec::Encode;
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
-use static_assertions::const_assert;
 
 // Import Substrate dependencies
 use frame_support::PalletId;
 pub use frame_support::{
     construct_runtime, log, parameter_types,
-    traits::{IsInVec, KeyOwnerProofSystem, LockIdentifier, Randomness, U128CurrencyToVote},
+    traits::{
+        Contains, IsInVec, KeyOwnerProofSystem, LockIdentifier, Randomness, U128CurrencyToVote,
+    },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
         DispatchClass, IdentityFee, Weight,
@@ -35,27 +36,25 @@ use sp_core::{
 };
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
-use sp_runtime::DispatchError;
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{
         self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, NumberFor, Zero,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, Percent, SaturatedConversion,
+    ApplyExtrinsicResult, DispatchError, DispatchResult, Percent, SaturatedConversion,
 };
 pub use sp_runtime::{Perbill, Permill};
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
-use xcm::v0::{Junction, MultiAsset, MultiLocation, Outcome};
+use xcm::v0::{Junction, MultiAsset, MultiLocation};
 
 // Import ORML dependcies
 use orml_currencies::BasicCurrencyAdapter;
 use orml_traits::{
-    parameter_type_with_key, DataProvider, DataProviderExtended, MultiCurrency, XcmExecutionResult,
-    XcmTransfer,
+    parameter_type_with_key, DataProvider, DataProviderExtended, MultiCurrency, XcmTransfer,
 };
 
 // Import Parallel dependencies
@@ -103,7 +102,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("vanilla"),
     impl_name: create_runtime_str!("vanilla"),
     authoring_version: 1,
-    spec_version: 120,
+    spec_version: 130,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -183,6 +182,7 @@ impl frame_system::Config for Runtime {
 
 impl pallet_aura::Config for Runtime {
     type AuthorityId = AuraId;
+    type DisabledValidators = ();
 }
 
 impl pallet_grandpa::Config for Runtime {
@@ -360,41 +360,6 @@ impl pallet_collective::Config<CouncilCollective> for Runtime {
 }
 
 parameter_types! {
-    pub const CandidacyBond: Balance = 10 * DOLLARS;
-    // 1 storage item created, key size is 32 bytes, value size is 16+16.
-    pub const VotingBondBase: Balance = deposit(1, 64);
-    // additional data per vote is 32 bytes (account id).
-    pub const VotingBondFactor: Balance = deposit(0, 32);
-    pub const TermDuration: BlockNumber = 7 * DAYS;
-    pub const DesiredMembers: u32 = 13;
-    pub const DesiredRunnersUp: u32 = 7;
-    pub const ElectionsPhragmenPalletId: LockIdentifier = *b"phrelect";
-}
-
-// Make sure that there are no more than `MaxMembers` members elected via elections-phragmen.
-const_assert!(DesiredMembers::get() <= CouncilMaxMembers::get());
-
-impl pallet_elections_phragmen::Config for Runtime {
-    type Event = Event;
-    type PalletId = ElectionsPhragmenPalletId;
-    type Currency = Balances;
-    type ChangeMembers = Council;
-    // NOTE: this implies that council's genesis members cannot be set directly and must come from
-    // this module.
-    type InitializeMembers = Council;
-    type CurrencyToVote = U128CurrencyToVote;
-    type CandidacyBond = CandidacyBond;
-    type VotingBondBase = VotingBondBase;
-    type VotingBondFactor = VotingBondFactor;
-    type LoserCandidate = ();
-    type KickedMember = ();
-    type DesiredMembers = DesiredMembers;
-    type DesiredRunnersUp = DesiredRunnersUp;
-    type TermDuration = TermDuration;
-    type WeightInfo = pallet_elections_phragmen::weights::SubstrateWeight<Runtime>;
-}
-
-parameter_types! {
     pub const TechnicalMotionDuration: BlockNumber = 1 * DAYS;
     pub const TechnicalMaxProposals: u32 = 100;
     pub const TechnicalMaxMembers: u32 = 100;
@@ -514,6 +479,18 @@ parameter_types! {
    pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
 }
 
+pub struct DustRemovalWhitelist;
+impl Contains<AccountId> for DustRemovalWhitelist {
+    fn contains(a: &AccountId) -> bool {
+        vec![
+            LoansPalletId::get().into_account(),
+            TreasuryPalletId::get().into_account(),
+            StakingPalletId::get().into_account(),
+        ]
+        .contains(a)
+    }
+}
+
 impl orml_tokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
@@ -523,6 +500,7 @@ impl orml_tokens::Config for Runtime {
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
     type MaxLocks = MaxLocks;
+    type DustRemovalWhitelist = DustRemovalWhitelist;
 }
 
 parameter_types! {
@@ -603,7 +581,7 @@ parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = CurrencyId::KSM;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xKSM;
-    pub const MaxWithdrawAmount: Balance = 1000_000_000_000_000;
+    pub const MaxWithdrawAmount: Balance = 1_000_000_000_000_000;
     pub const MaxAccountProcessingUnstake: u32 = 5;
     pub const BaseXcmWeight: Weight = 0;
 }
@@ -616,7 +594,7 @@ impl XcmTransfer<AccountId, Balance, CurrencyId> for XcmTransferT {
         amount: Balance,
         mut to: MultiLocation,
         _dest_weight: Weight,
-    ) -> XcmExecutionResult {
+    ) -> DispatchResult {
         <Runtime as orml_currencies::Config>::MultiCurrency::withdraw(currency_id, &who, amount)?;
         if let Some(Junction::AccountId32 {
             id: account_id32, ..
@@ -629,7 +607,7 @@ impl XcmTransfer<AccountId, Balance, CurrencyId> for XcmTransferT {
                 amount,
             )?;
         }
-        Ok(Outcome::Complete(0))
+        Ok(())
     }
 
     fn transfer_multi_asset(
@@ -637,8 +615,8 @@ impl XcmTransfer<AccountId, Balance, CurrencyId> for XcmTransferT {
         _asset: MultiAsset,
         _dest: MultiLocation,
         _dest_weight: Weight,
-    ) -> XcmExecutionResult {
-        unimplemented!()
+    ) -> DispatchResult {
+        Ok(())
     }
 }
 
@@ -732,11 +710,7 @@ where
         let (call, extra, _) = raw_payload.deconstruct();
         Some((
             call,
-            (
-                sp_runtime::MultiAddress::Id(address),
-                signature.into(),
-                extra,
-            ),
+            (sp_runtime::MultiAddress::Id(address), signature, extra),
         ))
     }
 }
@@ -782,7 +756,6 @@ construct_runtime!(
         TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
         Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>},
         Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
-        Elections: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>, Config<T>},
         TechnicalMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>},
 
         // Oracles
@@ -926,6 +899,11 @@ impl_runtime_apis! {
             Grandpa::grandpa_authorities()
         }
 
+
+        fn current_set_id() -> fg_primitives::SetId {
+            Grandpa::current_set_id()
+        }
+
         fn submit_report_equivocation_unsigned_extrinsic(
             _equivocation_proof: fg_primitives::EquivocationProof<
                 <Block as BlockT>::Hash,
@@ -996,6 +974,32 @@ impl_runtime_apis! {
 
     #[cfg(feature = "runtime-benchmarks")]
     impl frame_benchmarking::Benchmark<Block> for Runtime {
+        fn benchmark_metadata(extra: bool) -> (
+            Vec<frame_benchmarking::BenchmarkList>,
+            Vec<frame_support::traits::StorageInfo>,
+        ) {
+            use frame_benchmarking::{list_benchmark, Benchmarking, BenchmarkList};
+            use frame_support::traits::StorageInfoTrait;
+
+            // Trying to add benchmarks directly to the Session Pallet caused cyclic dependency
+            // issues. To get around that, we separated the Session benchmarks into its own crate,
+            // which is why we need these two lines below.
+            use pallet_loans_benchmarking::Pallet as LoansBench;
+            use frame_system_benchmarking::Pallet as SystemBench;
+
+            let mut list = Vec::<BenchmarkList>::new();
+
+            list_benchmark!(list, extra, pallet_balances, Balances);
+            list_benchmark!(list, extra, pallet_liquid_staking, LiquidStaking);
+            list_benchmark!(list, extra, pallet_loans, LoansBench::<Runtime>);
+            list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
+            list_benchmark!(list, extra, pallet_timestamp, Timestamp);
+
+            let storage_info = AllPalletsWithSystem::storage_info();
+
+            return (list, storage_info)
+        }
+
         fn dispatch_benchmark(
             config: frame_benchmarking::BenchmarkConfig
         ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {

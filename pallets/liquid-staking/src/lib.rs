@@ -56,6 +56,7 @@ pub struct UnstakeInfo<BlockNumber> {
 
 #[frame_support::pallet]
 pub mod pallet {
+
     use super::*;
 
     #[pallet::pallet]
@@ -445,7 +446,7 @@ pub mod pallet {
                 *b = b.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
                 Ok(())
             })?;
-            // TODO should it update after applied onbond operation?
+            // TODO should it update after applied unbond operation?
             TotalStakingAsset::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b
                     .checked_sub(asset_amount)
@@ -552,7 +553,7 @@ pub mod pallet {
                         info.as_mut()
                             .map_or(Err(Error::<T>::NoProcessingUnstake), |v| {
                                 match v.iter().position(|i| i.amount == amount) {
-                                    None => return Err(Error::<T>::InvalidProcessedUnstakeAmount),
+                                    None => Err(Error::<T>::InvalidProcessedUnstakeAmount),
                                     Some(p) => {
                                         v.remove(p);
                                         Ok(v)

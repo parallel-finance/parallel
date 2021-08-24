@@ -18,10 +18,10 @@ use std::sync::Arc;
 
 use primitives::{AccountId, Balance, CurrencyId, DataProviderId, Index, TimeStampedPrice};
 pub use sc_rpc_api::DenyUnsafe;
+use sc_transaction_pool_api::TransactionPool;
 use sp_api::ProvideRuntimeApi;
 use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
-use sp_transaction_pool::TransactionPool;
 use vanilla_runtime::opaque::Block;
 
 /// Full client dependencies.
@@ -35,7 +35,9 @@ pub struct FullDeps<C, P> {
 }
 
 /// Instantiate all full RPC extensions.
-pub fn create_full<C, P>(deps: FullDeps<C, P>) -> jsonrpc_core::IoHandler<sc_rpc::Metadata>
+pub fn create_full<C, P>(
+    deps: FullDeps<C, P>,
+) -> Result<jsonrpc_core::IoHandler<sc_rpc::Metadata>, sc_service::Error>
 where
     C: ProvideRuntimeApi<Block>,
     C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError> + 'static,
@@ -77,5 +79,5 @@ where
 
     io.extend_with(LoansApi::to_delegate(Loans::new(client.clone())));
 
-    io
+    Ok(io)
 }

@@ -39,15 +39,13 @@ pub use pallet::*;
 use primitives::{
     Amount, Balance, CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall, Timestamp,
 };
-use sp_runtime::ArithmeticError;
 use sp_runtime::{
     traits::{
         AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, StaticLookup, Zero,
     },
-    FixedPointNumber, FixedU128,
+    ArithmeticError, FixedPointNumber, FixedU128,
 };
-use sp_std::result::Result;
-use sp_std::vec::Vec;
+use sp_std::{result::Result, vec::Vec};
 pub use weights::WeightInfo;
 
 mod market;
@@ -148,8 +146,8 @@ pub mod pallet {
         InsufficientReserves,
         /// Invalid rate model params
         InvalidRateModelParam,
-        /// Currency not enabled
-        CurrencyNotEnabled,
+        /// Market not activated
+        MarketNotActivated,
         /// Currency's oracle price not ready
         PriceOracleNotReady,
         /// Market does not exist
@@ -334,7 +332,7 @@ pub mod pallet {
                 ExchangeRate::<T>::insert(currency_id, self.exchange_rate);
                 Markets::<T>::insert(currency_id, market)
             });
-            LastBlockTimestamp::<T>::put(self.last_block_timestamp.clone());
+            LastBlockTimestamp::<T>::put(self.last_block_timestamp);
         }
     }
 
@@ -1253,7 +1251,7 @@ impl<T: Config> Pallet<T> {
         if Self::active_markets().any(|(currency, _)| &currency == currency_id) {
             Ok(())
         } else {
-            Err(<Error<T>>::CurrencyNotEnabled.into())
+            Err(<Error<T>>::MarketNotActivated.into())
         }
     }
 
