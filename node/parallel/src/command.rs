@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::chain_spec::set_default_ss58_version;
 use crate::service::IdentifyVariant;
 use crate::{
     chain_spec,
@@ -196,6 +197,8 @@ pub fn run() -> Result<()> {
             let runner = cli.create_runner(cmd)?;
             let chain_spec = &runner.config().chain_spec;
 
+            set_default_ss58_version(chain_spec);
+
             switch_runtime!(chain_spec, {
                 runner.async_run(|config| {
                     let PartialComponents {
@@ -212,6 +215,8 @@ pub fn run() -> Result<()> {
             let runner = cli.create_runner(cmd)?;
             let chain_spec = &runner.config().chain_spec;
 
+            set_default_ss58_version(chain_spec);
+
             switch_runtime!(chain_spec, {
                 runner.async_run(|config| {
                     let PartialComponents {
@@ -227,6 +232,8 @@ pub fn run() -> Result<()> {
             let runner = cli.create_runner(cmd)?;
             let chain_spec = &runner.config().chain_spec;
 
+            set_default_ss58_version(chain_spec);
+
             switch_runtime!(chain_spec, {
                 runner.async_run(|config| {
                     let PartialComponents {
@@ -241,6 +248,8 @@ pub fn run() -> Result<()> {
         Some(Subcommand::ImportBlocks(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             let chain_spec = &runner.config().chain_spec;
+
+            set_default_ss58_version(chain_spec);
 
             switch_runtime!(chain_spec, {
                 runner.async_run(|config| {
@@ -281,6 +290,9 @@ pub fn run() -> Result<()> {
         Some(Subcommand::Revert(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             let chain_spec = &runner.config().chain_spec;
+
+            set_default_ss58_version(chain_spec);
+
             switch_runtime!(chain_spec, {
                 runner.async_run(|config| {
                     let PartialComponents {
@@ -297,6 +309,8 @@ pub fn run() -> Result<()> {
             if cfg!(feature = "runtime-benchmarks") {
                 let runner = cli.create_runner(cmd)?;
                 let chain_spec = &runner.config().chain_spec;
+
+                set_default_ss58_version(chain_spec);
 
                 switch_runtime!(chain_spec, {
                     runner.sync_run(|config| cmd.run::<Block, Executor>(config))
@@ -359,6 +373,8 @@ pub fn run() -> Result<()> {
         None => {
             let runner = cli.create_runner(&cli.run.normalize())?;
             let chain_spec = &runner.config().chain_spec;
+
+            set_default_ss58_version(chain_spec);
 
             switch_runtime!(chain_spec, {
                 runner.run_node_until_exit(|config| async move {
