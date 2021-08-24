@@ -47,6 +47,7 @@ pub struct AmountEvaluation {
     parity_scale_codec::Decode,
     parity_scale_codec::Encode,
     sp_runtime::RuntimeDebug,
+	Default
 )]
 pub struct PoolLiquidityAmount {
     pub base_amount: Balance,

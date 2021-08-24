@@ -21,7 +21,6 @@
 extern crate alloc;
 
 mod pool_structs;
-
 use core::marker::PhantomData;
 use frame_support::pallet_prelude::*;
 use frame_support::{
@@ -38,6 +37,7 @@ use parallel_primitives::{Amount, Balance, CurrencyId, Rate};
 use pool_structs::{AMMCurve, PoolLiquidityAmount, StabilityPool};
 use sp_arithmetic::traits::BaseArithmetic;
 use sp_runtime::traits::AccountIdConversion;
+use sp_runtime::ArithmeticError;
 use sp_runtime::Perbill;
 
 #[frame_support::pallet]
@@ -138,6 +138,8 @@ pub mod pallet {
             NMapKey<Blake2_128Concat, CurrencyId>,
         ),
         PoolLiquidityAmount,
+		ValueQuery,
+		GetDefault,
     >;
 
     /// A bag of liquidity composed by two different assets
@@ -150,6 +152,7 @@ pub mod pallet {
         Twox64Concat,
         CurrencyId,
         PoolLiquidityAmount,
+        ValueQuery,
     >;
 
     #[pallet::call]
@@ -197,11 +200,59 @@ pub mod pallet {
         /// - `liquidity_amounts`: Liquidity amounts to be removed from pool
         #[pallet::weight(10_000)]
         pub fn remove_liquidity(
-            _origin: OriginFor<T>,
-            _pool: (CurrencyId, CurrencyId),
-            _liquidity_amounts: (Balance, Balance),
+            origin: OriginFor<T>,
+            pool: (CurrencyId, CurrencyId),
+            liquidity_amounts: (Balance, Balance),
         ) -> DispatchResult {
-            unimplemented!()
+            let who = ensure_signed(origin)?;
+            let sorted_assets = &Self::get_upper_currency(pool.0, pool.1);
+
+            let base_asset = sorted_assets.0;
+            let quote_asset = sorted_assets.1;
+            let base_amount = liquidity_amounts.0;
+            let quote_amount = liquidity_amounts.1;
+
+            Pools::<T, I>::try_mutate(
+                &base_asset,
+                &quote_asset,
+                |pool_liquidity_amount| -> DispatchResult {
+                    pool_liquidity_amount.base_amount = pool_liquidity_amount
+                        .base_amount
+                        .checked_sub(base_amount)
+                        .ok_or(ArithmeticError::Underflow)?;
+                    pool_liquidity_amount.quote_amount = pool_liquidity_amount
+                        .quote_amount
+                        .checked_sub(quote_amount)
+                        .ok_or(ArithmeticError::Underflow)?;
+                    Ok(())
+                },
+            )?;
+
+            LiquidityProviders::<T, I>::try_mutate(
+                (who.clone(), base_asset, quote_asset),
+                |pool_liquidity_amount| -> DispatchResult {
+                    pool_liquidity_amount.base_amount = pool_liquidity_amount
+                        .base_amount
+                        .checked_sub(base_amount)
+                        .ok_or(ArithmeticError::Underflow)?;
+                    pool_liquidity_amount.quote_amount = pool_liquidity_amount
+                        .quote_amount
+                        .checked_sub(quote_amount)
+                        .ok_or(ArithmeticError::Underflow)?;
+                    Ok(())
+                },
+            )?;
+
+            T::Currency::transfer(base_asset, &Self::account_id(), &who, base_amount)?;
+            T::Currency::transfer(quote_asset, &Self::account_id(), &who, quote_amount)?;
+
+            Self::deposit_event(Event::<T, I>::LiquidityRemoved(
+                who,
+                base_asset,
+                quote_asset,
+            ));
+
+            Ok(().into())
         }
     }
 }
