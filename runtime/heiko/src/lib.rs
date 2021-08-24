@@ -700,7 +700,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 impl cumulus_pallet_dmp_queue::Config for Runtime {
     type Event = Event;
     type XcmExecutor = XcmExecutor<XcmConfig>;
-    type ExecuteOverweightOrigin = EnsureRootOrHalfCouncil<AccountId>;
+    type ExecuteOverweightOrigin = EnsureRootOrHalfCouncil;
 }
 
 parameter_types! {
@@ -1074,11 +1074,11 @@ parameter_types! {
 type OracleMembershipInstance = pallet_membership::Instance2;
 impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
     type Event = Event;
-    type AddOrigin = EnsureRootOrHalfCouncil<AccountId>;
-    type RemoveOrigin = EnsureRootOrHalfCouncil<AccountId>;
-    type SwapOrigin = EnsureRootOrHalfCouncil<AccountId>;
-    type ResetOrigin = EnsureRootOrHalfCouncil<AccountId>;
-    type PrimeOrigin = EnsureRootOrHalfCouncil<AccountId>;
+    type AddOrigin = EnsureRootOrHalfCouncil;
+    type RemoveOrigin = EnsureRootOrHalfCouncil;
+    type SwapOrigin = EnsureRootOrHalfCouncil;
+    type ResetOrigin = EnsureRootOrHalfCouncil;
+    type PrimeOrigin = EnsureRootOrHalfCouncil;
     type MembershipInitialized = ();
     type MembershipChanged = ();
     type MaxMembers = OracleMaxMembers;

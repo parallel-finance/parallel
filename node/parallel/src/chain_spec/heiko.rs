@@ -197,6 +197,7 @@ pub fn heiko_config(id: ParaId) -> ChainSpec {
                     .unwrap(),
             ];
             let technical_committee = vec![];
+
             heiko_genesis(
                 root_key,
                 invulnerables,
