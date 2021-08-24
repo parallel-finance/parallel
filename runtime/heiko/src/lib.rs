@@ -199,24 +199,27 @@ impl Contains<Call> for BaseCallFilter {
             // Consensus
             Call::Authorship(_) | Call::CollatorSelection(_) | Call::Session(_) |
             // 3rd Party
-            Call::Currencies(_) |
-            Call::Oracle(_) |
-            Call::XTokens(_) |
-            Call::OrmlXcm(_) |
-            Call::Vesting(_) |
-            // Loans
-            Call::Loans(_) |
-            Call::Liquidation(_) |
-            Call::Prices(_) |
-            // LiquidStaking
-            Call::LiquidStaking(_) |
-            Call::NomineeElection(_) |
-            // Membership
-            Call::TechnicalMembership(_) |
-            Call::OracleMembership(_) |
-            Call::LiquidStakingAgentMembership(_) |
-            Call::ValidatorFeedersMembership(_)
+            Call::Vesting(_)
         )
+
+        // // 3rd Party
+        // Call::Currencies(_) |
+        // Call::Oracle(_) |
+        // Call::XTokens(_) |
+        // Call::OrmlXcm(_) |
+        // Call::Vesting(_) |
+        // // Loans
+        // Call::Loans(_) |
+        // Call::Liquidation(_) |
+        // Call::Prices(_) |
+        // // LiquidStaking
+        // Call::LiquidStaking(_) |
+        // Call::NomineeElection(_) |
+        // // Membership
+        // Call::TechnicalMembership(_) |
+        // Call::OracleMembership(_) |
+        // Call::LiquidStakingAgentMembership(_) |
+        // Call::ValidatorFeedersMembership(_)
     }
 }
 
@@ -308,7 +311,7 @@ impl orml_tokens::Config for Runtime {
 
 impl orml_xcm::Config for Runtime {
     type Event = Event;
-    type SovereignOrigin = EnsureRootOrHalfTechnicalCommittee;
+    type SovereignOrigin = EnsureRootOrHalfCouncil;
 }
 
 parameter_types! {
@@ -697,7 +700,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 impl cumulus_pallet_dmp_queue::Config for Runtime {
     type Event = Event;
     type XcmExecutor = XcmExecutor<XcmConfig>;
-    type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
+    type ExecuteOverweightOrigin = EnsureRootOrHalfCouncil<AccountId>;
 }
 
 parameter_types! {
@@ -1071,11 +1074,11 @@ parameter_types! {
 type OracleMembershipInstance = pallet_membership::Instance2;
 impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
     type Event = Event;
-    type AddOrigin = EnsureRoot<AccountId>;
-    type RemoveOrigin = EnsureRoot<AccountId>;
-    type SwapOrigin = EnsureRoot<AccountId>;
-    type ResetOrigin = EnsureRoot<AccountId>;
-    type PrimeOrigin = EnsureRoot<AccountId>;
+    type AddOrigin = EnsureRootOrHalfCouncil<AccountId>;
+    type RemoveOrigin = EnsureRootOrHalfCouncil<AccountId>;
+    type SwapOrigin = EnsureRootOrHalfCouncil<AccountId>;
+    type ResetOrigin = EnsureRootOrHalfCouncil<AccountId>;
+    type PrimeOrigin = EnsureRootOrHalfCouncil<AccountId>;
     type MembershipInitialized = ();
     type MembershipChanged = ();
     type MaxMembers = OracleMaxMembers;

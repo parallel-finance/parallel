@@ -86,7 +86,7 @@ pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
 pub fn parallel_local_testnet_config(id: ParaId) -> ChainSpec {
     ChainSpec::from_genesis(
         // Name
-        "Parallel Testnet",
+        "Parallel Local Testnet",
         // ID
         "parallel-local",
         ChainType::Local,
