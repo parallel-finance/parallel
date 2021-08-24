@@ -57,7 +57,10 @@ resources:
 
 .PHONY: launch
 launch:
-	parachain-launch generate && cp docker-compose.override.yml output && cd output && docker-compose up -d --build
+	docker-compose -f output/docker-compose.yml down --remove-orphans > /dev/null 2>&1 || true
+	rm -fr output || true
+	docker volume prune -f
+	parachain-launch generate && cp docker-compose.override.yml output && docker-compose -f output/docker-compose.yml up -d --build
 
 .PHONY: wasm
 wasm:
