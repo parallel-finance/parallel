@@ -1,8 +1,8 @@
 relaychain:
-  image: parallelfinance/polkadot:v0.9.8
+  image: parallelfinance/polkadot:v0.9.9-1
   chain: westend-local
   runtimeGenesisConfig:
-    parachainsConfiguration:
+    configuration:
       config:
         validation_upgrade_frequency: 1
         validation_upgrade_delay: 1

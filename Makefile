@@ -1,3 +1,6 @@
+PARA_ID  := 2085
+CHAIN    := heiko-dev
+
 .PHONY: run
 run:
 	cargo run --bin parallel-dev -- --dev -lruntime=debug
@@ -49,8 +52,8 @@ restart: purge run
 
 .PHONY: resources
 resources:
-	docker run --rm parallelfinance/parallel:latest export-genesis-state --chain heiko-dev --parachain-id 2085 > ./resources/para-2085-genesis
-	docker run --rm parallelfinance/parallel:latest export-genesis-wasm --chain heiko-dev > ./resources/para-2085.wasm
+	docker run --rm parallelfinance/parallel:latest export-genesis-state --chain heiko-dev --parachain-id $(PARA_ID) > ./resources/para-$(PARA_ID)-genesis
+	docker run --rm parallelfinance/parallel:latest export-genesis-wasm --chain heiko-dev > ./resources/para-$(PARA_ID).wasm
 
 .PHONY: launch
 launch:
@@ -59,6 +62,18 @@ launch:
 .PHONY: wasm
 wasm:
 	./scripts/srtool-build.sh
+
+.PHONY: spec
+spec:
+	docker run --rm parallelfinance/parallel:latest build-spec --chain $(CHAIN) --disable-default-bootnode > ./resources/$(CHAIN)-plain.json
+	docker run --rm -v $(PWD)/resources:/app/resources parallelfinance/parallel:latest build-spec --chain=/app/resources/$(CHAIN)-plain.json --raw --disable-default-bootnode > ./resources/$(CHAIN)-raw.json
+
+.PHONY: image
+image:
+	docker build --build-arg BIN=parallel \
+		-t parallelfinance/parallel:latest \
+		-f Dockerfile.release \
+		. --network=host
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?' Makefile | cut -d: -f1 | sort

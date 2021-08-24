@@ -80,7 +80,7 @@ pub fn new_partial<RuntimeApi, Executor>(
         FullClient<RuntimeApi, Executor>,
         FullBackend,
         (),
-        sp_consensus::DefaultImportQueue<Block, FullClient<RuntimeApi, Executor>>,
+        sc_consensus::DefaultImportQueue<Block, FullClient<RuntimeApi, Executor>>,
         sc_transaction_pool::FullPool<Block, FullClient<RuntimeApi, Executor>>,
         (Option<Telemetry>, Option<TelemetryWorkerHandle>),
     >,
@@ -228,6 +228,7 @@ where
             import_queue: import_queue.clone(),
             on_demand: None,
             block_announce_validator_builder: Some(Box::new(|_| block_announce_validator)),
+            warp_sync: None,
         })?;
 
     let rpc_extensions_builder = {

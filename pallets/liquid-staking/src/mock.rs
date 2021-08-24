@@ -1,10 +1,10 @@
 use crate as pallet_liquid_staking;
 
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
     dispatch::Weight,
     parameter_types,
-    traits::{Contains, GenesisBuild, MaxEncodedLen, SortedMembers},
+    traits::{Contains, GenesisBuild, SortedMembers},
     PalletId,
 };
 use frame_system::{self as system, EnsureOneOf, EnsureRoot, EnsureSignedBy};

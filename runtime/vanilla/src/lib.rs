@@ -102,7 +102,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("vanilla"),
     impl_name: create_runtime_str!("vanilla"),
     authoring_version: 1,
-    spec_version: 120,
+    spec_version: 130,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -182,6 +182,7 @@ impl frame_system::Config for Runtime {
 
 impl pallet_aura::Config for Runtime {
     type AuthorityId = AuraId;
+    type DisabledValidators = ();
 }
 
 impl pallet_grandpa::Config for Runtime {
@@ -898,6 +899,11 @@ impl_runtime_apis! {
             Grandpa::grandpa_authorities()
         }
 
+
+        fn current_set_id() -> fg_primitives::SetId {
+            Grandpa::current_set_id()
+        }
+
         fn submit_report_equivocation_unsigned_extrinsic(
             _equivocation_proof: fg_primitives::EquivocationProof<
                 <Block as BlockT>::Hash,
@@ -968,6 +974,32 @@ impl_runtime_apis! {
 
     #[cfg(feature = "runtime-benchmarks")]
     impl frame_benchmarking::Benchmark<Block> for Runtime {
+        fn benchmark_metadata(extra: bool) -> (
+            Vec<frame_benchmarking::BenchmarkList>,
+            Vec<frame_support::traits::StorageInfo>,
+        ) {
+            use frame_benchmarking::{list_benchmark, Benchmarking, BenchmarkList};
+            use frame_support::traits::StorageInfoTrait;
+
+            // Trying to add benchmarks directly to the Session Pallet caused cyclic dependency
+            // issues. To get around that, we separated the Session benchmarks into its own crate,
+            // which is why we need these two lines below.
+            use pallet_loans_benchmarking::Pallet as LoansBench;
+            use frame_system_benchmarking::Pallet as SystemBench;
+
+            let mut list = Vec::<BenchmarkList>::new();
+
+            list_benchmark!(list, extra, pallet_balances, Balances);
+            list_benchmark!(list, extra, pallet_liquid_staking, LiquidStaking);
+            list_benchmark!(list, extra, pallet_loans, LoansBench::<Runtime>);
+            list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
+            list_benchmark!(list, extra, pallet_timestamp, Timestamp);
+
+            let storage_info = AllPalletsWithSystem::storage_info();
+
+            return (list, storage_info)
+        }
+
         fn dispatch_benchmark(
             config: frame_benchmarking::BenchmarkConfig
         ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
