@@ -14,7 +14,7 @@
 
 // Groups common pool related structures
 
-use parallel_primitives::{Balance, Rate};
+use primitives::{Balance, Rate};
 use sp_runtime::{traits::Saturating, ArithmeticError, DispatchError, FixedPointNumber};
 
 // Amplification Coefficient Weight.
@@ -22,13 +22,7 @@ use sp_runtime::{traits::Saturating, ArithmeticError, DispatchError, FixedPointN
 // In this pallet, the actual amplification coefficient will be `exchange_rate` * `ACW`.
 const ACW: Rate = Rate::from_inner(Rate::DIV / 100 * 50); // 50%
 
-#[derive(
-    Clone,
-    PartialEq,
-    parity_scale_codec::Decode,
-    parity_scale_codec::Encode,
-    sp_runtime::RuntimeDebug,
-)]
+#[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
 pub enum SwapType {
     Buy,
     Sell,
@@ -41,14 +35,7 @@ pub struct AmountEvaluation {
     pub pool_amount: Balance,
 }
 
-#[derive(
-    Clone,
-    PartialEq,
-    parity_scale_codec::Decode,
-    parity_scale_codec::Encode,
-    sp_runtime::RuntimeDebug,
-	Default
-)]
+#[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug, Default)]
 pub struct PoolLiquidityAmount {
     pub base_amount: Balance,
     pub quote_amount: Balance,
@@ -142,7 +129,6 @@ fn amplification_coeficient_mul(exchange_rate: Rate, n: u128) -> Option<u128> {
 #[cfg(test)]
 mod tests {
     use super::{AMMCurve, PoolLiquidityAmount, StableSwap, StandardSwap};
-    use parallel_primitives::CurrencyId;
 
     const DEFAULT_DYNAMIC_POOL: PoolLiquidityAmount = PoolLiquidityAmount {
         base_amount: 40,

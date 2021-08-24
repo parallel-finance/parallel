@@ -20,25 +20,29 @@
 
 extern crate alloc;
 
+#[cfg(test)]
+mod mock;
 mod pool_structs;
+
+#[cfg(test)]
+mod tests;
+
 use core::marker::PhantomData;
 use frame_support::pallet_prelude::*;
 use frame_support::{
     dispatch::DispatchResult,
     pallet_prelude::{StorageDoubleMap, StorageValue, ValueQuery},
-    traits::{EnsureOrigin, GenesisBuild, Get, Hooks, IsType},
-    Blake2_128Concat, PalletId, Parameter, Twox64Concat,
+    traits::{GenesisBuild, Get, Hooks, IsType},
+    Blake2_128Concat, PalletId, Twox64Concat,
 };
 use frame_system::ensure_signed;
 use frame_system::pallet_prelude::OriginFor;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 pub use pallet::*;
-use parallel_primitives::{Amount, Balance, CurrencyId, Rate};
-use pool_structs::{AMMCurve, PoolLiquidityAmount, StabilityPool};
-use sp_arithmetic::traits::BaseArithmetic;
+use pool_structs::PoolLiquidityAmount;
+use primitives::{Amount, Balance, CurrencyId, Rate};
 use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::ArithmeticError;
-use sp_runtime::Perbill;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -57,22 +61,8 @@ pub mod pallet {
             Amount = Amount,
         >;
 
-        type Curve: AMMCurve;
-
-        type LpFee: Get<Perbill>;
-
         #[pallet::constant]
         type PalletId: Get<PalletId>;
-
-        type PoolId: Default + BaseArithmetic + Parameter;
-
-        type PoolManager: EnsureOrigin<Self::Origin>;
-
-        type StabilityPool: StabilityPool;
-
-        type TreasuryAccount: Get<Self::AccountId>;
-
-        type TreasuryFee: Get<Perbill>;
     }
 
     #[pallet::error]
@@ -138,8 +128,8 @@ pub mod pallet {
             NMapKey<Blake2_128Concat, CurrencyId>,
         ),
         PoolLiquidityAmount,
-		ValueQuery,
-		GetDefault,
+        ValueQuery,
+        GetDefault,
     >;
 
     /// A bag of liquidity composed by two different assets
@@ -178,6 +168,11 @@ pub mod pallet {
             ensure!(
                 !Pools::<T, I>::contains_key(base_asset, &quote_asset),
                 Error::<T, I>::PoolAlreadyExists
+            );
+
+            ensure!(
+                !LiquidityProviders::<T, I>::contains_key((who.clone(), base_asset, &quote_asset)),
+                Error::<T, I>::LiquidityProviderAlreadyExists
             );
 
             let amm_pool = PoolLiquidityAmount {
