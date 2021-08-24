@@ -995,11 +995,6 @@ type EnsureRootOrHalfCouncil = EnsureOneOf<
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>,
 >;
-type EnsureRootOrHalfTechnicalCommittee = EnsureOneOf<
-    AccountId,
-    EnsureRoot<AccountId>,
-    pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, TechnicalCollective>,
->;
 impl pallet_membership::Config<pallet_membership::Instance1> for Runtime {
     type Event = Event;
     type AddOrigin = EnsureRootOrHalfCouncil;
