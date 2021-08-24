@@ -187,17 +187,19 @@ pub fn heiko_config(id: ParaId) -> ChainSpec {
                 .into_iter()
                 .collect::<Vec<(AccountId, Balance)>>();
             let council = vec![
+                "5G3f6iLDU6mbyEiJH8icoLhFy4RZ6TvWUZSkDwtg1nXTV3QK"
+                    .parse()
+                    .unwrap(),
                 "5GBykvvrUz3vwTttgHzUEPdm7G1FND1reBfddQLdiaCbhoMd"
                     .parse()
                     .unwrap(),
                 "5DhZeTQqotvntGtrg69T2VK9pzUPXHiVyGUTmp5XFTDTT7ME"
                     .parse()
                     .unwrap(),
-                "1Gu7GSgLSPrhc1Wci9wAGP6nvzQfaUCYqbfXxjYjMG9bob6"
-                    .parse()
-                    .unwrap(),
             ];
-            let technical_committee = vec![];
+            let technical_committee = vec!["1Gu7GSgLSPrhc1Wci9wAGP6nvzQfaUCYqbfXxjYjMG9bob6"
+                .parse()
+                .unwrap()];
 
             heiko_genesis(
                 root_key,
