@@ -19,11 +19,12 @@ use heiko_runtime::{
 };
 use hex_literal::hex;
 use parallel_runtime::{
-    opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, GeneralCouncilConfig,
-    GeneralCouncilMembershipConfig, DemocracyConfig, GenesisConfig, LiquidStakingAgentMembershipConfig,
-    LiquidStakingConfig, LoansConfig, OracleMembershipConfig, ParachainInfoConfig, SessionConfig,
-    SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig, TokensConfig,
-    ValidatorFeedersMembershipConfig, VestingConfig, WASM_BINARY,
+    opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, DemocracyConfig,
+    GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
+    LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig,
+    ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
+    TechnicalCommitteeMembershipConfig, TokensConfig, ValidatorFeedersMembershipConfig,
+    VestingConfig, WASM_BINARY,
 };
 use primitives::{network::NetworkType, *};
 use sc_service::ChainType;

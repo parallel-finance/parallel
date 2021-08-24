@@ -15,7 +15,7 @@
 use cumulus_primitives_core::ParaId;
 use heiko_runtime::{
     currency::EXISTENTIAL_DEPOSIT, opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig,
-    GeneralCouncilConfig, GeneralCouncilMembershipConfig, DemocracyConfig, GenesisConfig,
+    DemocracyConfig, GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
     LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig,
     ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
     TechnicalCommitteeMembershipConfig, TokensConfig, ValidatorFeedersMembershipConfig,
