@@ -46,7 +46,7 @@ mod pallet {
     };
     use orml_traits::{MultiCurrency, MultiCurrencyExtended, XcmTransfer};
     use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber};
-    use xcm::v0::{Junction, MultiLocation, NetworkId};
+    use xcm::v0::MultiLocation;
 
     use primitives::{Amount, Balance, CurrencyId, EraIndex, Rate};
 
@@ -94,7 +94,7 @@ mod pallet {
         type BaseXcmWeight: Get<Weight>;
 
         /// Account manages the staking assets.
-        type Agent: Get<Self::AccountId>;
+        type Agent: Get<MultiLocation>;
 
         type WeightInfo: WeightInfo;
     }
@@ -225,6 +225,7 @@ mod pallet {
                     break;
                 }
 
+                // get the front of the queue.
                 let (who, amount) = Self::unstake_queue()
                     .first()
                     .expect("Has been checked before.")
@@ -238,10 +239,13 @@ mod pallet {
                 )
                 .is_err()
                 {
+                    // break if we cannot afford this
                     break;
                 }
 
+                // substract weight of this action if succeed.
                 remaining_weight -= base_weight;
+                // pop the request.
                 UnstakeQueue::<T>::mutate(|v| {
                     v.remove(0);
                 })
@@ -251,10 +255,7 @@ mod pallet {
     }
 
     #[pallet::call]
-    impl<T: Config> Pallet<T>
-    where
-        [u8; 32]: From<<T as frame_system::Config>::AccountId>,
-    {
+    impl<T: Config> Pallet<T> {
         /// Put assets under staking, the native assets will be transferred to the account
         /// owned by the pallet, user receive derivative in return, such derivative can be
         /// further used as collateral for lending.
@@ -378,13 +379,7 @@ mod pallet {
                     Self::account_id(),
                     T::StakingCurrency::get(),
                     bond_amount,
-                    MultiLocation::X2(
-                        Junction::Parent,
-                        Junction::AccountId32 {
-                            network: NetworkId::Any,
-                            id: T::Agent::get().into(),
-                        },
-                    ),
+                    T::Agent::get(),
                     T::BaseXcmWeight::get(),
                 )?;
             }
