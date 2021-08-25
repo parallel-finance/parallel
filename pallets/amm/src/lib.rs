@@ -152,6 +152,7 @@ pub mod pallet {
         /// - `pool`: Currency pool, in which liquidity will be added
         /// - `liquidity_amounts`: Liquidity amounts to be added in pool
         #[pallet::weight(10_000)]
+        #[transactional]
         pub fn add_liquidity(
             origin: OriginFor<T>,
             pool: (CurrencyId, CurrencyId),
