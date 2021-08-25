@@ -33,7 +33,7 @@ use frame_support::{
     dispatch::DispatchResult,
     pallet_prelude::{StorageDoubleMap, StorageValue, ValueQuery},
     traits::{GenesisBuild, Get, Hooks, IsType},
-    Blake2_128Concat, PalletId, Twox64Concat,
+    transactional, Blake2_128Concat, PalletId, Twox64Concat,
 };
 use frame_system::ensure_signed;
 use frame_system::pallet_prelude::OriginFor;
@@ -159,12 +159,8 @@ pub mod pallet {
             liquidity_amounts: (Balance, Balance),
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
-            let sorted_assets = &Self::get_upper_currency(pool.0, pool.1);
-
-            let base_asset = sorted_assets.0;
-            let quote_asset = sorted_assets.1;
-            let base_amount = liquidity_amounts.0;
-            let quote_amount = liquidity_amounts.1;
+            let (base_asset, quote_asset) = &Self::get_upper_currency(pool.0, pool.1);
+            let (base_amount, quote_amount) = liquidity_amounts;
 
             ensure!(
                 !Pools::<T, I>::contains_key(base_asset, &quote_asset),
@@ -204,10 +200,8 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             let sorted_assets = &Self::get_upper_currency(pool.0, pool.1);
 
-            let base_asset = sorted_assets.0;
-            let quote_asset = sorted_assets.1;
-            let base_amount = liquidity_amounts.0;
-            let quote_amount = liquidity_amounts.1;
+            let (base_asset, quote_asset) = &Self::get_upper_currency(pool.0, pool.1);
+            let (base_amount, quote_amount) = liquidity_amounts;
 
             Pools::<T, I>::try_mutate(
                 &base_asset,
