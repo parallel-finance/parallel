@@ -1,23 +1,20 @@
 use crate as pallet_amm;
 
-use codec::{Decode, Encode};
-use frame_support::{
-    parameter_types,
-    traits::{GenesisBuild, MaxEncodedLen},
-    PalletId,
-};
+use codec::{Decode, Encode, MaxEncodedLen};
+use frame_support::traits::Contains;
+use frame_support::{parameter_types, traits::GenesisBuild, PalletId};
 use frame_system as system;
 use orml_traits::parameter_type_with_key;
 use primitives::{Amount, Balance, CurrencyId};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
+use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
     RuntimeDebug,
 };
-use sp_std::convert::TryInto;
 
 pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const XDOT: CurrencyId = CurrencyId::xDOT;
@@ -51,20 +48,6 @@ impl sp_std::fmt::Display for AccountId {
 impl From<u64> for AccountId {
     fn from(account_id: u64) -> Self {
         Self(account_id)
-    }
-}
-
-impl From<AccountId> for [u8; 32] {
-    fn from(account_id: AccountId) -> Self {
-        let mut b: Vec<u8> = account_id.0.to_be_bytes().iter().cloned().collect();
-        b.resize_with(32, Default::default);
-        b.try_into().unwrap()
-    }
-}
-
-impl From<[u8; 32]> for AccountId {
-    fn from(account_id32: [u8; 32]) -> Self {
-        AccountId::from(u64::from_be_bytes(account_id32[0..8].try_into().unwrap()))
     }
 }
 
@@ -137,6 +120,13 @@ parameter_type_with_key! {
     };
 }
 
+pub struct DustRemovalWhitelist;
+impl Contains<AccountId> for DustRemovalWhitelist {
+    fn contains(a: &AccountId) -> bool {
+        vec![AMMPalletId::get().into_account()].contains(a)
+    }
+}
+
 impl orml_tokens::Config for Test {
     type Event = Event;
     type Balance = Balance;
@@ -146,6 +136,7 @@ impl orml_tokens::Config for Test {
     type ExistentialDeposits = ExistentialDeposits;
     type WeightInfo = ();
     type MaxLocks = MaxLocks;
+    type DustRemovalWhitelist = DustRemovalWhitelist;
 }
 
 parameter_types! {
