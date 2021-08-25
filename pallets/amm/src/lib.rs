@@ -159,7 +159,7 @@ pub mod pallet {
             liquidity_amounts: (Balance, Balance),
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
-            let (base_asset, quote_asset) = &Self::get_upper_currency(pool.0, pool.1);
+            let (base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
             let (base_amount, quote_amount) = liquidity_amounts;
 
             ensure!(
@@ -198,9 +198,8 @@ pub mod pallet {
             liquidity_amounts: (Balance, Balance),
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
-            let sorted_assets = &Self::get_upper_currency(pool.0, pool.1);
 
-            let (base_asset, quote_asset) = &Self::get_upper_currency(pool.0, pool.1);
+            let (base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
             let (base_amount, quote_amount) = liquidity_amounts;
 
             Pools::<T, I>::try_mutate(
