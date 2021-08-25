@@ -1,6 +1,6 @@
 use super::*;
-use crate::{mock::*, Error};
-use frame_support::{assert_noop, assert_ok};
+use crate::mock::*;
+use frame_support::assert_ok;
 
 #[test]
 fn add_liquidity_should_work() {
@@ -26,18 +26,6 @@ fn add_liquidity_should_work() {
         assert_eq!(
             <Test as Config>::Currency::free_balance(CurrencyId::xDOT, &1.into()),
             90
-        );
-    })
-}
-
-#[test]
-fn add_liquidity_should_not_work() {
-    new_test_ext().execute_with(|| {
-        let _ = AMM::add_liquidity(Origin::signed(1.into()), (DOT, XDOT), (10, 20));
-
-        assert_noop!(
-            AMM::add_liquidity(Origin::signed(1.into()), (DOT, XDOT), (10, 20)),
-            Error::<Test>::PoolAlreadyExists,
         );
     })
 }

@@ -66,12 +66,7 @@ pub mod pallet {
     }
 
     #[pallet::error]
-    pub enum Error<T, I = ()> {
-        /// Pool already exists
-        PoolAlreadyExists,
-        /// Liquidity Provider already exists
-        LiquidityProviderAlreadyExists,
-    }
+    pub enum Error<T, I = ()> {}
 
     #[pallet::event]
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
@@ -162,22 +157,36 @@ pub mod pallet {
             let (base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
             let (base_amount, quote_amount) = liquidity_amounts;
 
-            ensure!(
-                !Pools::<T, I>::contains_key(base_asset, &quote_asset),
-                Error::<T, I>::PoolAlreadyExists
-            );
+            Pools::<T, I>::try_mutate(
+                &base_asset,
+                &quote_asset,
+                |pool_liquidity_amount| -> DispatchResult {
+                    pool_liquidity_amount.base_amount = pool_liquidity_amount
+                        .base_amount
+                        .checked_add(base_amount)
+                        .ok_or(ArithmeticError::Overflow)?;
+                    pool_liquidity_amount.quote_amount = pool_liquidity_amount
+                        .quote_amount
+                        .checked_add(quote_amount)
+                        .ok_or(ArithmeticError::Overflow)?;
+                    Ok(())
+                },
+            )?;
 
-            ensure!(
-                !LiquidityProviders::<T, I>::contains_key((who.clone(), base_asset, &quote_asset)),
-                Error::<T, I>::LiquidityProviderAlreadyExists
-            );
-
-            let amm_pool = PoolLiquidityAmount {
-                base_amount,
-                quote_amount,
-            };
-            Pools::<T, I>::insert(base_asset, &quote_asset, amm_pool.clone());
-            LiquidityProviders::<T, I>::insert((who.clone(), base_asset, quote_asset), amm_pool);
+            LiquidityProviders::<T, I>::try_mutate(
+                (who.clone(), base_asset, quote_asset),
+                |pool_liquidity_amount| -> DispatchResult {
+                    pool_liquidity_amount.base_amount = pool_liquidity_amount
+                        .base_amount
+                        .checked_add(base_amount)
+                        .ok_or(ArithmeticError::Overflow)?;
+                    pool_liquidity_amount.quote_amount = pool_liquidity_amount
+                        .quote_amount
+                        .checked_add(quote_amount)
+                        .ok_or(ArithmeticError::Overflow)?;
+                    Ok(())
+                },
+            )?;
 
             T::Currency::transfer(base_asset, &who, &Self::account_id(), base_amount)?;
             T::Currency::transfer(quote_asset, &who, &Self::account_id(), quote_amount)?;
