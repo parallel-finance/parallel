@@ -42,7 +42,7 @@ lint:
 
 .PHONY: fmt
 fmt:
-	SKIP_WASM_BUILD= cargo fmt --all -- --check
+	SKIP_WASM_BUILD= cargo fmt --all
 
 .PHONY: purge
 purge:
