@@ -63,6 +63,10 @@ launch:
 	docker volume prune -f
 	parachain-launch generate $(LAUNCH_CONFIG) && (cp -r keystore output || true) && cp docker-compose.override.yml output && docker-compose -f output/docker-compose.yml up -d --build
 
+.PHONY: logs
+logs:
+	docker-compose -f output/docker-compose.yml logs -f
+
 .PHONY: wasm
 wasm:
 	./scripts/srtool-build.sh
