@@ -96,8 +96,8 @@ mod pallet {
         /// Base xcm transaction weight
         type BaseXcmWeight: Get<Weight>;
 
-        /// Account manages the staking assets.
-        type Agent: Get<MultiLocation>;
+        /// Account manages the staking assets in relaychain.
+        type RelayAgent: Get<MultiLocation>;
 
         type WeightInfo: WeightInfo;
     }
@@ -382,7 +382,7 @@ mod pallet {
                     Self::account_id(),
                     T::StakingCurrency::get(),
                     bond_amount,
-                    T::Agent::get(),
+                    T::RelayAgent::get(),
                     T::BaseXcmWeight::get(),
                 )?;
             }

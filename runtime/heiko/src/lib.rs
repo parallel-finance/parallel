@@ -432,7 +432,7 @@ parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = CurrencyId::KSM;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xKSM;
-    pub Agent: MultiLocation = X2(Parent, Parachain(ParachainInfo::parachain_id().into()));
+    pub RelayAgent: MultiLocation = X2(Parent, Parachain(ParachainInfo::parachain_id().into()));
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -444,7 +444,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type BridgeOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
     type XcmTransfer = XTokens;
-    type Agent = Agent;
+    type RelayAgent = RelayAgent;
     type BaseXcmWeight = BaseXcmWeight;
 }
 
