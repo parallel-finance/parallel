@@ -206,7 +206,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::Vesting(_) |
             // Loans
             Call::Loans(_) |
-            Call::Liquidation(_) |
+            // Call::Liquidation(_) |
             Call::Prices(_) |
             // LiquidStaking
             Call::LiquidStaking(_) |
