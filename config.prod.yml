@@ -1,0 +1,39 @@
+relaychain:
+  image: parallelfinance/polkadot:v0.9.9-1
+  chain: westend-local
+  runtimeGenesisConfig:
+    configuration:
+      config:
+        validation_upgrade_frequency: 1
+        validation_upgrade_delay: 1
+  flags:
+    - --rpc-methods=unsafe
+    - --wasm-execution=compiled
+    - --execution=wasm
+    - --no-beefy
+  nodes:
+    - name: alice
+    - name: bob
+    - name: charlie
+
+parachains:
+  - image: parallelfinance/parallel:latest
+    chain:
+      base: heiko
+      collators:
+        - 5GuwhbAaZd8bdkzSqSw1bpT9E86GH62DjLXaA55AdRtqFLG2
+      sudo: 5CfaMb7d21Zh5wSthPXxLLj4D6sdb9YpdFKW8kM8cAdQ22fF
+    id: 2085
+    parachain: true
+    flags:
+      - --rpc-methods=unsafe
+      - --force-authoring
+      - --wasm-execution=compiled
+      - --execution=wasm
+    relaychainFlags:
+      - --wasm-execution=compiled
+      - --execution=wasm
+      - --no-beefy
+    nodes:
+      - flags:
+          - --keystore-path=/app/keystore
