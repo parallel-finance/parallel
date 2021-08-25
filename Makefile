@@ -1,5 +1,6 @@
-PARA_ID  := 2085
-CHAIN    := heiko-dev
+PARA_ID  			:= 2085
+CHAIN    			:= heiko-dev
+LAUNCH_CONFIG := config.yml
 
 .PHONY: run
 run:
@@ -60,7 +61,7 @@ launch:
 	docker-compose -f output/docker-compose.yml down --remove-orphans > /dev/null 2>&1 || true
 	rm -fr output || true
 	docker volume prune -f
-	parachain-launch generate && cp docker-compose.override.yml output && docker-compose -f output/docker-compose.yml up -d --build
+	parachain-launch generate $(LAUNCH_CONFIG) && (cp -r keystore output || true) && cp docker-compose.override.yml output && docker-compose -f output/docker-compose.yml up -d --build
 
 .PHONY: wasm
 wasm:
