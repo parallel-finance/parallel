@@ -58,10 +58,10 @@ resources:
 
 .PHONY: launch
 launch:
-	docker-compose -f output/docker-compose.yml down --remove-orphans > /dev/null 2>&1 || true
+	docker-compose -f output/docker-compose.yml -f output/docker-compose.override.yml down --remove-orphans > /dev/null 2>&1 || true
 	rm -fr output || true
 	docker volume prune -f
-	parachain-launch generate $(LAUNCH_CONFIG) && (cp -r keystore output || true) && cp docker-compose.override.yml output && docker-compose -f output/docker-compose.yml up -d --build
+	parachain-launch generate $(LAUNCH_CONFIG) && (cp -r keystore output || true) && cp docker-compose.override.yml output && docker-compose -f output/docker-compose.yml -f output/docker-compose.override.yml up -d --build
 
 .PHONY: logs
 logs:
