@@ -432,8 +432,7 @@ parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = CurrencyId::KSM;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xKSM;
-    pub const MaxWithdrawAmount: Balance = 1_000_000_000_000_000;
-    pub const MaxAccountProcessingUnstake: u32 = 5;
+    pub Agent: MultiLocation = X2(Parent, Parachain(ParachainInfo::parachain_id().into()));
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -442,12 +441,10 @@ impl pallet_liquid_staking::Config for Runtime {
     type PalletId = StakingPalletId;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type WithdrawOrigin = EnsureRoot<AccountId>;
-    type MaxWithdrawAmount = MaxWithdrawAmount;
-    type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
-    type WeightInfo = pallet_liquid_staking::weights::SubstrateWeight<Runtime>;
+    type BridgeOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = ();
     type XcmTransfer = XTokens;
-    type Members = LiquidStakingAgentMembership;
+    type Agent = Agent;
     type BaseXcmWeight = BaseXcmWeight;
 }
 

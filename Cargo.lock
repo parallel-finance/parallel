@@ -2967,7 +2967,7 @@ dependencies = [
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-democracy",
- "pallet-liquid-staking",
+ "pallet-liquid-staking-v2",
  "pallet-liquidation",
  "pallet-loans",
  "pallet-loans-benchmarking",

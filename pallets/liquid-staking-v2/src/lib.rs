@@ -27,6 +27,8 @@ mod tests;
 pub mod types;
 pub mod weights;
 
+use primitives::ExchangeRateProvider;
+
 pub use self::pallet::*;
 
 #[frame_support::pallet]
@@ -46,6 +48,7 @@ mod pallet {
     };
     use orml_traits::{MultiCurrency, MultiCurrencyExtended, XcmTransfer};
     use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber};
+    use sp_std::vec::Vec;
     use xcm::v0::MultiLocation;
 
     use primitives::{Amount, Balance, CurrencyId, EraIndex, Rate};
@@ -448,5 +451,11 @@ mod pallet {
         pub(crate) fn push_unstake_task(who: &T::AccountId, amount: BalanceOf<T>) {
             UnstakeQueue::<T>::mutate(|q| q.push((who.clone(), amount)))
         }
+    }
+}
+
+impl<T: Config> ExchangeRateProvider for Pallet<T> {
+    fn get_exchange_rate() -> primitives::Rate {
+        ExchangeRate::<T>::get()
     }
 }
