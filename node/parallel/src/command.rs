@@ -381,6 +381,7 @@ pub fn run() -> Result<()> {
                     let extension = chain_spec::Extensions::try_get(&*config.chain_spec);
                     let relay_chain_id = extension.map(|e| e.relay_chain.clone());
                     let para_id = extension.map(|e| e.para_id);
+                    info!("Relaychain Chain Id: {:?}", relay_chain_id);
 
                     let polkadot_cli = RelayChainCli::new(
                         config.base_path.as_ref().map(|x| x.path().join("polkadot")),
@@ -389,8 +390,7 @@ pub fn run() -> Result<()> {
                             .iter()
                             .chain(cli.relaychain_args.iter()),
                     );
-                  
-                    info!("Relaychain Chain Id: {:?}", relay_chain_id);
+
                     info!("Relaychain Args: {}", cli.relaychain_args.join(" "));
 
                     let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(2085));
