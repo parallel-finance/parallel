@@ -43,7 +43,7 @@ use sp_runtime::{
         BlockNumberProvider, Convert, Zero,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Percent, Permill, SaturatedConversion,
+    ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Permill, SaturatedConversion,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -78,7 +78,7 @@ pub use constants::{currency, fee, time};
 pub use impls::DealWithFees;
 
 pub use pallet_liquid_staking;
-pub use pallet_liquidation;
+// pub use pallet_liquidation;
 pub use pallet_loans;
 pub use pallet_multisig;
 pub use pallet_nominee_election;
@@ -206,7 +206,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::Vesting(_) |
             // Loans
             Call::Loans(_) |
-            Call::Liquidation(_) |
+            // Call::Liquidation(_) |
             Call::Prices(_) |
             // LiquidStaking
             Call::LiquidStaking(_) |
@@ -474,15 +474,15 @@ impl pallet_nominee_election::Config for Runtime {
     type Members = ValidatorFeedersMembership;
 }
 
-parameter_types! {
-    pub const LockPeriod: u64 = 20000; // in milli-seconds
-    pub const LiquidateFactor: Percent = Percent::from_percent(50);
-}
-impl pallet_liquidation::Config for Runtime {
-    type AuthorityId = pallet_liquidation::crypto::AuthId;
-    type LockPeriod = LockPeriod;
-    type LiquidateFactor = LiquidateFactor;
-}
+// parameter_types! {
+//     pub const LockPeriod: u64 = 20000; // in milli-seconds
+//     pub const LiquidateFactor: Percent = Percent::from_percent(50);
+// }
+// impl pallet_liquidation::Config for Runtime {
+//     type AuthorityId = pallet_liquidation::crypto::AuthId;
+//     type LockPeriod = LockPeriod;
+//     type LiquidateFactor = LiquidateFactor;
+// }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
 where
@@ -1169,8 +1169,8 @@ construct_runtime!(
 
         // Loans
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config} = 50,
-        Liquidation: pallet_liquidation::{Pallet, Call} = 51,
-        Prices: pallet_prices::{Pallet, Storage, Call, Event<T>} = 52,
+        Prices: pallet_prices::{Pallet, Storage, Call, Event<T>} = 51,
+        // Liquidation: pallet_liquidation::{Pallet, Call} = 52,
 
         // LiquidStaking
         LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config} = 60,
