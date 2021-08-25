@@ -1,39 +1,22 @@
 use crate::{
     mock::*,
-    types::{MatchingLedger, StakingSettlementKind, UnstakeMisc},
+    types::{MatchingLedger, StakingSettlementKind},
     *,
 };
-use frame_support::{assert_err, assert_ok};
+use frame_support::{assert_err, assert_ok, traits::Hooks};
 use orml_traits::MultiCurrency;
-use primitives::{CurrencyId, EraIndex, Rate};
+use primitives::{Balance, CurrencyId, Rate};
 use sp_runtime::traits::One;
-
-use crate::types::*;
-
-fn t_insert_pending_op(era_index: EraIndex) {
-    let block_number = System::block_number();
-    UnbondingOperationHistory::<Test>::insert(
-        era_index,
-        Operation {
-            amount: 1u64.into(),
-            block_number,
-            status: crate::types::ResponseStatus::Pending,
-        },
-    )
-}
 
 #[test]
 fn stake_should_work() {
     new_test_ext().execute_with(|| {
-        let currency_era: EraIndex = 100;
-        CurrentEra::<Test>::put(currency_era);
-
         assert_ok!(LiquidStaking::stake(Origin::signed(Alice), 10));
         // Check storage is correct
         assert_eq!(ExchangeRate::<Test>::get(), Rate::one());
         assert_eq!(StakingPool::<Test>::get(), 10);
         assert_eq!(
-            EraMatchingPool::<Test>::get(currency_era),
+            MatchingPool::<Test>::get(),
             MatchingLedger {
                 total_stake_amount: 10,
                 total_unstake_amount: 0,
@@ -59,9 +42,6 @@ fn stake_should_work() {
 #[test]
 fn unstake_should_work() {
     new_test_ext().execute_with(|| {
-        let currency_era: EraIndex = 100;
-        CurrentEra::<Test>::put(currency_era);
-
         assert_ok!(LiquidStaking::stake(Origin::signed(Alice), 10));
         assert_ok!(LiquidStaking::unstake(Origin::signed(Alice), 6));
 
@@ -69,14 +49,7 @@ fn unstake_should_work() {
         assert_eq!(ExchangeRate::<Test>::get(), Rate::one());
         assert_eq!(StakingPool::<Test>::get(), 4);
         assert_eq!(
-            AccountUnstake::<Test>::get(Alice, currency_era),
-            UnstakeMisc {
-                total_amount: 6,
-                claimed_amount: 0,
-            }
-        );
-        assert_eq!(
-            EraMatchingPool::<Test>::get(currency_era),
+            MatchingPool::<Test>::get(),
             MatchingLedger {
                 total_stake_amount: 10,
                 total_unstake_amount: 6,
@@ -86,7 +59,7 @@ fn unstake_should_work() {
         // Check balance is correct
         assert_eq!(
             <Test as Config>::Currency::free_balance(CurrencyId::DOT, &Alice),
-            90
+            96
         );
         assert_eq!(
             <Test as Config>::Currency::free_balance(CurrencyId::xDOT, &Alice),
@@ -94,7 +67,7 @@ fn unstake_should_work() {
         );
         assert_eq!(
             <Test as Config>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::account_id()),
-            10
+            4
         );
     })
 }
@@ -136,36 +109,50 @@ fn test_duplicated_record_staking_settlement() {
     })
 }
 
-#[test]
-fn test_set_era_index() {
-    new_test_ext().execute_with(|| {
-        assert_ok!(LiquidStaking::trigger_new_era(Origin::signed(Alice), 1));
-        assert_eq!(LiquidStaking::previous_era(), 0u32);
-        assert_eq!(LiquidStaking::current_era(), 1u32);
-        assert_err!(
-            LiquidStaking::trigger_new_era(Origin::signed(Alice), 1),
-            Error::<Test>::EraAlreadyPushed
-        );
-    })
+enum StakeOp {
+    Stake(Balance),
+    Unstake(Balance),
+}
+
+impl StakeOp {
+    fn execute(self) {
+        match self {
+            Self::Stake(amount) => LiquidStaking::stake(Origin::signed(Alice), amount).unwrap(),
+            Self::Unstake(amount) => LiquidStaking::unstake(Origin::signed(Alice), amount).unwrap(),
+        };
+    }
 }
 
 #[test]
-fn test_record_unbond_response() {
+fn test_settlement_should_work() {
+    use StakeOp::*;
     new_test_ext().execute_with(|| {
-        assert_err!(
-            LiquidStaking::record_withdrawal_unbond_response(Origin::signed(Alice), 1u32),
-            Error::<Test>::OperationNotReady
-        );
+        let test_case: Vec<(Vec<StakeOp>, Balance, (Balance, Balance, Balance), Balance)> = vec![
+            (vec![Stake(30), Unstake(5)], 0, (25, 0, 0), 0),
+            // Calculate right here.
+            (vec![Unstake(10), Unstake(5), Stake(10)], 0, (0, 0, 5), 10),
+            (vec![], 0, (0, 0, 0), 0),
+        ];
 
-        t_insert_pending_op(1u32);
-        assert_ok!(LiquidStaking::record_withdrawal_unbond_response(
-            Origin::signed(Alice),
-            1u32
-        ));
-
-        assert_err!(
-            LiquidStaking::record_withdrawal_unbond_response(Origin::signed(Alice), 1u32),
-            Error::<Test>::OperationNotReady
-        );
+        for (stake_ops, unbonding_amount, matching_result, pallet_balance) in test_case.into_iter()
+        {
+            stake_ops.into_iter().for_each(StakeOp::execute);
+            assert_eq!(
+                LiquidStaking::matching_pool().matching(unbonding_amount),
+                matching_result
+            );
+            assert_ok!(LiquidStaking::settlement(
+                Origin::signed(Alice),
+                unbonding_amount
+            ));
+            assert_eq!(
+                <Test as Config>::Currency::free_balance(
+                    CurrencyId::DOT,
+                    &LiquidStaking::account_id()
+                ),
+                pallet_balance
+            );
+            Pallet::<Test>::on_idle(0, 10000);
+        }
     })
 }

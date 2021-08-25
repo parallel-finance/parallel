@@ -5592,9 +5592,11 @@ dependencies = [
  "pallet-balances",
  "parallel-primitives",
  "parity-scale-codec",
+ "serde",
  "sp-core",
  "sp-runtime",
  "sp-std",
+ "xcm",
 ]
 
 [[package]]

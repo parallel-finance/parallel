@@ -1,35 +1,13 @@
 use codec::{Decode, Encode};
+use sp_runtime::traits::AtLeast32BitUnsigned;
 use sp_runtime::RuntimeDebug;
+use sp_std::cmp::Ordering;
 
 /// Category of staking settlement at the end of era.
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug)]
 pub enum StakingSettlementKind {
     Reward,
     Slash,
-}
-
-/// Unbonding operation
-#[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
-pub struct Operation<BlockNumber, Balance> {
-    pub amount: Balance,
-    pub block_number: BlockNumber,
-    pub status: ResponseStatus,
-}
-
-/// Unbonding operation status
-#[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
-pub enum ResponseStatus {
-    Pending,
-    Succeeded,
-}
-
-/// The user's unstake state in one era
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, Default, RuntimeDebug)]
-pub struct UnstakeMisc<Balance> {
-    /// The total asset that want to withdraw unbond
-    pub total_amount: Balance,
-    /// The claimed asset
-    pub claimed_amount: Balance,
 }
 
 /// The matching pool's total stake & unstake amount in one era
@@ -40,4 +18,32 @@ pub struct MatchingLedger<Balance> {
     /// The total unstake amount in one era
     /// **NOTE** will be calculated by: exchangeRate * xToken amount
     pub total_unstake_amount: Balance,
+}
+
+impl<Balance> MatchingLedger<Balance>
+where
+    Balance: AtLeast32BitUnsigned + Copy + Clone,
+{
+    /// Matching requests in current period.
+    ///
+    /// `unbonding_amount` is the total amount of the unbonding asset in relaychain.
+    ///
+    /// the returned tri-tuple is formed as `(bond_amount, rebond_amount, unbond_amount)`.
+    pub fn matching(&self, unbonding_amount: Balance) -> (Balance, Balance, Balance) {
+        match self.total_stake_amount.cmp(&self.total_unstake_amount) {
+            Ordering::Greater => {
+                let amount = self.total_stake_amount - self.total_unstake_amount;
+                if amount < unbonding_amount {
+                    (0u32.into(), amount, 0u32.into())
+                } else {
+                    (amount - unbonding_amount, unbonding_amount, 0u32.into())
+                }
+            }
+            Ordering::Less => {
+                let amount = self.total_unstake_amount - self.total_stake_amount;
+                (0u32.into(), 0u32.into(), amount)
+            }
+            Ordering::Equal => (0u32.into(), 0u32.into(), 0u32.into()),
+        }
+    }
 }
