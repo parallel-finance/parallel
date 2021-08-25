@@ -53,8 +53,8 @@ restart: purge run
 
 .PHONY: resources
 resources:
-	docker run --rm parallelfinance/parallel:latest export-genesis-state --chain heiko-dev --parachain-id $(PARA_ID) > ./resources/para-$(PARA_ID)-genesis
-	docker run --rm parallelfinance/parallel:latest export-genesis-wasm --chain heiko-dev > ./resources/para-$(PARA_ID).wasm
+	docker run --rm parallelfinance/parallel:latest export-genesis-state --chain $(CHAIN) --parachain-id $(PARA_ID) > ./resources/para-$(PARA_ID)-genesis
+	docker run --rm parallelfinance/parallel:latest export-genesis-wasm --chain $(CHAIN) > ./resources/para-$(PARA_ID).wasm
 
 .PHONY: launch
 launch:
@@ -62,6 +62,10 @@ launch:
 	rm -fr output || true
 	docker volume prune -f
 	parachain-launch generate $(LAUNCH_CONFIG) && (cp -r keystore output || true) && cp docker-compose.override.yml output && docker-compose -f output/docker-compose.yml up -d --build
+
+.PHONY: logs
+logs:
+	docker-compose -f output/docker-compose.yml logs -f
 
 .PHONY: wasm
 wasm:
@@ -75,6 +79,7 @@ spec:
 .PHONY: image
 image:
 	docker build --build-arg BIN=parallel \
+		-c 512 \
 		-t parallelfinance/parallel:latest \
 		-f Dockerfile.release \
 		. --network=host

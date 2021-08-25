@@ -25,12 +25,29 @@ use sp_runtime::traits::IdentifyAccount;
 
 use primitives::{network::NetworkType, *};
 
+use crate::service::IdentifyVariant;
+
 pub const TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
 
 /// Token symbol of heiko network.
 pub const HEIKO_TOKEN: &str = "HKO";
 /// Token symbol of parallel network.
 pub const PARALLEL_TOKEN: &str = "PARA";
+
+/// set default ss58
+pub fn set_default_ss58_version(spec: &Box<dyn sc_service::ChainSpec>) {
+    use sp_core::crypto::Ss58AddressFormat;
+
+    let ss58_version = if spec.is_heiko() {
+        Ss58AddressFormat::HeikoAccount
+    } else if spec.is_parallel() {
+        Ss58AddressFormat::ParallelAccount
+    } else {
+        Ss58AddressFormat::SubstrateAccount
+    };
+
+    sp_core::crypto::set_default_ss58_version(ss58_version);
+}
 
 /// Generate chain properties for network.
 ///

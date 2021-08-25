@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::chain_spec::set_default_ss58_version;
 use crate::service::IdentifyVariant;
 use crate::{
     chain_spec,
@@ -196,6 +197,8 @@ pub fn run() -> Result<()> {
             let runner = cli.create_runner(cmd)?;
             let chain_spec = &runner.config().chain_spec;
 
+            set_default_ss58_version(chain_spec);
+
             switch_runtime!(chain_spec, {
                 runner.async_run(|config| {
                     let PartialComponents {
@@ -212,6 +215,8 @@ pub fn run() -> Result<()> {
             let runner = cli.create_runner(cmd)?;
             let chain_spec = &runner.config().chain_spec;
 
+            set_default_ss58_version(chain_spec);
+
             switch_runtime!(chain_spec, {
                 runner.async_run(|config| {
                     let PartialComponents {
@@ -227,6 +232,8 @@ pub fn run() -> Result<()> {
             let runner = cli.create_runner(cmd)?;
             let chain_spec = &runner.config().chain_spec;
 
+            set_default_ss58_version(chain_spec);
+
             switch_runtime!(chain_spec, {
                 runner.async_run(|config| {
                     let PartialComponents {
@@ -241,6 +248,8 @@ pub fn run() -> Result<()> {
         Some(Subcommand::ImportBlocks(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             let chain_spec = &runner.config().chain_spec;
+
+            set_default_ss58_version(chain_spec);
 
             switch_runtime!(chain_spec, {
                 runner.async_run(|config| {
@@ -282,6 +291,8 @@ pub fn run() -> Result<()> {
             let runner = cli.create_runner(cmd)?;
             let chain_spec = &runner.config().chain_spec;
 
+            set_default_ss58_version(chain_spec);
+
             switch_runtime!(chain_spec, {
                 runner.async_run(|config| {
                     let PartialComponents {
@@ -298,6 +309,8 @@ pub fn run() -> Result<()> {
             if cfg!(feature = "runtime-benchmarks") {
                 let runner = cli.create_runner(cmd)?;
                 let chain_spec = &runner.config().chain_spec;
+
+                set_default_ss58_version(chain_spec);
 
                 switch_runtime!(chain_spec, {
                     runner.sync_run(|config| cmd.run::<Block, Executor>(config))
@@ -361,11 +374,14 @@ pub fn run() -> Result<()> {
             let runner = cli.create_runner(&cli.run.normalize())?;
             let chain_spec = &runner.config().chain_spec;
 
+            set_default_ss58_version(chain_spec);
+
             switch_runtime!(chain_spec, {
                 runner.run_node_until_exit(|config| async move {
                     let extension = chain_spec::Extensions::try_get(&*config.chain_spec);
                     let relay_chain_id = extension.map(|e| e.relay_chain.clone());
                     let para_id = extension.map(|e| e.para_id);
+                    info!("Relaychain Chain Id: {:?}", relay_chain_id);
 
                     let polkadot_cli = RelayChainCli::new(
                         config.base_path.as_ref().map(|x| x.path().join("polkadot")),
@@ -375,7 +391,7 @@ pub fn run() -> Result<()> {
                             .chain(cli.relaychain_args.iter()),
                     );
 
-                    info!("Relaychain Args: {:?}", cli.relaychain_args.join(" "));
+                    info!("Relaychain Args: {}", cli.relaychain_args.join(" "));
 
                     let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(2085));
 
