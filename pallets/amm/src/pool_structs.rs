@@ -39,6 +39,7 @@ pub struct AmountEvaluation {
 pub struct PoolLiquidityAmount {
     pub base_amount: Balance,
     pub quote_amount: Balance,
+    pub ownership: Balance,
 }
 
 pub struct StandardSwap;

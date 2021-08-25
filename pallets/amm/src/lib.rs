@@ -42,6 +42,7 @@ pub use pallet::*;
 use pool_structs::PoolLiquidityAmount;
 use primitives::{Amount, Balance, CurrencyId, Rate};
 use sp_runtime::traits::AccountIdConversion;
+use sp_runtime::traits::IntegerSquareRoot;
 use sp_runtime::ArithmeticError;
 
 #[frame_support::pallet]
@@ -157,36 +158,63 @@ pub mod pallet {
             let (base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
             let (base_amount, quote_amount) = liquidity_amounts;
 
-            Pools::<T, I>::try_mutate(
-                &base_asset,
-                &quote_asset,
-                |pool_liquidity_amount| -> DispatchResult {
-                    pool_liquidity_amount.base_amount = pool_liquidity_amount
-                        .base_amount
-                        .checked_add(base_amount)
-                        .ok_or(ArithmeticError::Overflow)?;
-                    pool_liquidity_amount.quote_amount = pool_liquidity_amount
-                        .quote_amount
-                        .checked_add(quote_amount)
-                        .ok_or(ArithmeticError::Overflow)?;
-                    Ok(())
-                },
-            )?;
+            if Pools::<T, I>::contains_key(base_asset, quote_asset) {
+                let pool_liquidity_amount: PoolLiquidityAmount =
+                    Self::pools(base_asset, quote_asset);
+                let ownership = sp_std::cmp::min(
+                    (base_amount.saturating_mul(pool_liquidity_amount.ownership))
+                        .checked_div(pool_liquidity_amount.base_amount)
+                        .expect("cannot overflow with positive divisor; qed"),
+                    (quote_amount.saturating_mul(pool_liquidity_amount.ownership))
+                        .checked_div(pool_liquidity_amount.quote_amount)
+                        .expect("cannot overflow with positive divisor; qed"),
+                );
 
-            LiquidityProviders::<T, I>::try_mutate(
-                (who.clone(), base_asset, quote_asset),
-                |pool_liquidity_amount| -> DispatchResult {
-                    pool_liquidity_amount.base_amount = pool_liquidity_amount
-                        .base_amount
-                        .checked_add(base_amount)
-                        .ok_or(ArithmeticError::Overflow)?;
-                    pool_liquidity_amount.quote_amount = pool_liquidity_amount
-                        .quote_amount
-                        .checked_add(quote_amount)
-                        .ok_or(ArithmeticError::Overflow)?;
-                    Ok(())
-                },
-            )?;
+                Pools::<T, I>::try_mutate(
+                    &base_asset,
+                    &quote_asset,
+                    |pool_liquidity_amount| -> DispatchResult {
+                        pool_liquidity_amount.base_amount = pool_liquidity_amount
+                            .base_amount
+                            .checked_add(base_amount)
+                            .ok_or(ArithmeticError::Overflow)?;
+                        pool_liquidity_amount.quote_amount = pool_liquidity_amount
+                            .quote_amount
+                            .checked_add(quote_amount)
+                            .ok_or(ArithmeticError::Overflow)?;
+                        pool_liquidity_amount.ownership = ownership;
+                        Ok(())
+                    },
+                )?;
+
+                LiquidityProviders::<T, I>::try_mutate(
+                    (who.clone(), base_asset, quote_asset),
+                    |pool_liquidity_amount| -> DispatchResult {
+                        pool_liquidity_amount.base_amount = pool_liquidity_amount
+                            .base_amount
+                            .checked_add(base_amount)
+                            .ok_or(ArithmeticError::Overflow)?;
+                        pool_liquidity_amount.quote_amount = pool_liquidity_amount
+                            .quote_amount
+                            .checked_add(quote_amount)
+                            .ok_or(ArithmeticError::Overflow)?;
+                        pool_liquidity_amount.ownership = ownership;
+                        Ok(())
+                    },
+                )?;
+            } else {
+                let ownership = base_amount.saturating_mul(quote_amount).integer_sqrt();
+                let amm_pool = PoolLiquidityAmount {
+                    base_amount,
+                    quote_amount,
+                    ownership,
+                };
+                Pools::<T, I>::insert(base_asset, &quote_asset, amm_pool.clone());
+                LiquidityProviders::<T, I>::insert(
+                    (who.clone(), base_asset, quote_asset),
+                    amm_pool,
+                );
+            }
 
             T::Currency::transfer(base_asset, &who, &Self::account_id(), base_amount)?;
             T::Currency::transfer(quote_asset, &who, &Self::account_id(), quote_amount)?;
@@ -204,12 +232,20 @@ pub mod pallet {
         pub fn remove_liquidity(
             origin: OriginFor<T>,
             pool: (CurrencyId, CurrencyId),
-            liquidity_amounts: (Balance, Balance),
+            ownership_to_remove: Balance,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
             let (base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
-            let (base_amount, quote_amount) = liquidity_amounts;
+            let pool_liquidity_amount: PoolLiquidityAmount = Self::pools(base_asset, quote_asset);
+            let user_ownership: Balance =
+                Self::liquidity_providers((who.clone(), base_asset, quote_asset)).ownership;
+            let base_amount = (user_ownership.saturating_mul(pool_liquidity_amount.base_amount))
+                .checked_div(pool_liquidity_amount.ownership)
+                .expect("cannot overflow with positive divisor; qed");
+            let quote_amount = (user_ownership.saturating_mul(pool_liquidity_amount.quote_amount))
+                .checked_div(pool_liquidity_amount.ownership)
+                .expect("cannot overflow with positive divisor; qed");
 
             Pools::<T, I>::try_mutate(
                 &base_asset,
@@ -222,6 +258,10 @@ pub mod pallet {
                     pool_liquidity_amount.quote_amount = pool_liquidity_amount
                         .quote_amount
                         .checked_sub(quote_amount)
+                        .ok_or(ArithmeticError::Underflow)?;
+                    pool_liquidity_amount.ownership = pool_liquidity_amount
+                        .ownership
+                        .checked_sub(ownership_to_remove)
                         .ok_or(ArithmeticError::Underflow)?;
                     Ok(())
                 },
@@ -237,6 +277,10 @@ pub mod pallet {
                     pool_liquidity_amount.quote_amount = pool_liquidity_amount
                         .quote_amount
                         .checked_sub(quote_amount)
+                        .ok_or(ArithmeticError::Underflow)?;
+                    pool_liquidity_amount.ownership = pool_liquidity_amount
+                        .ownership
+                        .checked_sub(ownership_to_remove)
                         .ok_or(ArithmeticError::Underflow)?;
                     Ok(())
                 },
