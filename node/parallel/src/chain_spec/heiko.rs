@@ -31,11 +31,9 @@ use sp_runtime::{
     traits::{One, Zero},
     FixedPointNumber,
 };
-#[cfg(feature = "std")]
-use sp_std::collections::btree_map::BTreeMap;
 
 use crate::chain_spec::{
-    as_properties, get_account_id_from_seed, get_authority_keys_from_seed, Extensions,
+    as_properties, dedup, get_account_id_from_seed, get_authority_keys_from_seed, Extensions,
     TELEMETRY_URL,
 };
 
@@ -59,54 +57,43 @@ pub fn heiko_dev_config(id: ParaId) -> ChainSpec {
             let oracle_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Ferdie")];
             let validator_feeders = vec![get_account_id_from_seed::<sr25519::Public>("Eve")];
             let liquid_staking_agents = vec![get_account_id_from_seed::<sr25519::Public>("Dave")];
-            let initial_allocation: Vec<(AccountId, Balance)> = vec![
-                // Faucet accounts
-                "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                    .parse()
-                    .unwrap(),
-                get_account_id_from_seed::<sr25519::Public>("Alice"),
-                get_account_id_from_seed::<sr25519::Public>("Bob"),
-                get_account_id_from_seed::<sr25519::Public>("Charlie"),
-                get_account_id_from_seed::<sr25519::Public>("Dave"),
-                get_account_id_from_seed::<sr25519::Public>("Eve"),
-                get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-                get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-                get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-                get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-                get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-            ]
-            .iter()
-            .flat_map(|x| {
-                if x == &"5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                    .parse()
-                    .unwrap()
-                {
-                    vec![(x.clone(), 10_u128.pow(20))]
-                } else {
-                    vec![(x.clone(), 10_u128.pow(16))]
-                }
-            })
-            .chain(
-                invulnerables
-                    .iter()
-                    .cloned()
-                    .map(|k| (k.0, EXISTENTIAL_DEPOSIT)),
-            )
-            .fold(
-                BTreeMap::<AccountId, Balance>::new(),
-                |mut acc, (account_id, amount)| {
-                    if let Some(balance) = acc.get_mut(&account_id) {
-                        *balance = balance.checked_add(amount).unwrap()
+            let initial_allocation: Vec<(AccountId, Balance)> = dedup(
+                vec![
+                    // Faucet accounts
+                    "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                        .parse()
+                        .unwrap(),
+                    get_account_id_from_seed::<sr25519::Public>("Alice"),
+                    get_account_id_from_seed::<sr25519::Public>("Bob"),
+                    get_account_id_from_seed::<sr25519::Public>("Charlie"),
+                    get_account_id_from_seed::<sr25519::Public>("Dave"),
+                    get_account_id_from_seed::<sr25519::Public>("Eve"),
+                    get_account_id_from_seed::<sr25519::Public>("Ferdie"),
+                    get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+                ]
+                .iter()
+                .flat_map(|x| {
+                    if x == &"5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                        .parse()
+                        .unwrap()
+                    {
+                        vec![(x.clone(), 10_u128.pow(20))]
                     } else {
-                        acc.insert(account_id.clone(), amount);
+                        vec![(x.clone(), 10_u128.pow(16))]
                     }
-                    acc
-                },
-            )
-            .into_iter()
-            .collect::<Vec<(AccountId, Balance)>>();
+                })
+                .chain(
+                    invulnerables
+                        .iter()
+                        .cloned()
+                        .map(|k| (k.0, EXISTENTIAL_DEPOSIT)),
+                ),
+            );
             let council = vec![
                 get_account_id_from_seed::<sr25519::Public>("Alice"),
                 get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -165,42 +152,16 @@ pub fn heiko_config(id: ParaId) -> ChainSpec {
                 "../../../../resources/heiko-allocation-HKO.json"
             ))
             .unwrap();
-            let initial_allocation: Vec<(AccountId, Balance)> = initial_allocation
-                .iter()
-                .cloned()
-                .chain(
+            let initial_allocation: Vec<(AccountId, Balance)> = dedup(
+                initial_allocation.into_iter().chain(
                     invulnerables
                         .iter()
                         .cloned()
                         .map(|k| (k.0, EXISTENTIAL_DEPOSIT)),
-                )
-                .fold(
-                    BTreeMap::<AccountId, Balance>::new(),
-                    |mut acc, (account_id, amount)| {
-                        if let Some(balance) = acc.get_mut(&account_id) {
-                            *balance = balance.checked_add(amount).unwrap()
-                        } else {
-                            acc.insert(account_id.clone(), amount);
-                        }
-                        acc
-                    },
-                )
-                .into_iter()
-                .collect::<Vec<(AccountId, Balance)>>();
-            let council = vec![
-                "5G3f6iLDU6mbyEiJH8icoLhFy4RZ6TvWUZSkDwtg1nXTV3QK"
-                    .parse()
-                    .unwrap(),
-                "5GBykvvrUz3vwTttgHzUEPdm7G1FND1reBfddQLdiaCbhoMd"
-                    .parse()
-                    .unwrap(),
-                "5DhZeTQqotvntGtrg69T2VK9pzUPXHiVyGUTmp5XFTDTT7ME"
-                    .parse()
-                    .unwrap(),
-            ];
-            let technical_committee = vec!["1Gu7GSgLSPrhc1Wci9wAGP6nvzQfaUCYqbfXxjYjMG9bob6"
-                .parse()
-                .unwrap()];
+                ),
+            );
+            let council = vec![];
+            let technical_committee = vec![];
 
             heiko_genesis(
                 root_key,

@@ -22,6 +22,8 @@ use serde_json::json;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::IdentifyAccount;
+#[cfg(feature = "std")]
+use sp_std::collections::btree_map::BTreeMap;
 
 use primitives::{network::NetworkType, *};
 
@@ -34,7 +36,24 @@ pub const HEIKO_TOKEN: &str = "HKO";
 /// Token symbol of parallel network.
 pub const PARALLEL_TOKEN: &str = "PARA";
 
-/// set default ss58
+/// remove duplicated balances
+pub fn dedup(iter: impl Iterator<Item = (AccountId, Balance)>) -> Vec<(AccountId, Balance)> {
+    iter.fold(
+        BTreeMap::<AccountId, Balance>::new(),
+        |mut acc, (account_id, amount)| {
+            if let Some(balance) = acc.get_mut(&account_id) {
+                *balance = balance.checked_add(amount).unwrap()
+            } else {
+                acc.insert(account_id.clone(), amount);
+            }
+            acc
+        },
+    )
+    .into_iter()
+    .collect::<Vec<(AccountId, Balance)>>()
+}
+
+/// set default ss58 crypto
 pub fn set_default_ss58_version(spec: &Box<dyn sc_service::ChainSpec>) {
     use sp_core::crypto::Ss58AddressFormat;
 

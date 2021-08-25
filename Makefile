@@ -56,11 +56,17 @@ resources:
 	docker run --rm parallelfinance/parallel:latest export-genesis-state --chain $(CHAIN) --parachain-id $(PARA_ID) > ./resources/para-$(PARA_ID)-genesis
 	docker run --rm parallelfinance/parallel:latest export-genesis-wasm --chain $(CHAIN) > ./resources/para-$(PARA_ID).wasm
 
-.PHONY: launch
-launch:
+.PHONY: shutdown
+shutdown:
 	docker-compose -f output/docker-compose.yml -f output/docker-compose.override.yml down --remove-orphans > /dev/null 2>&1 || true
 	rm -fr output || true
 	docker volume prune -f
+
+.PHONY: launch
+launch: shutdown
+	docker image pull parallelfinance/polkadot:v0.9.9-1
+	docker image pull parallelfinance/parallel:latest
+	docker image pull parallelfinance/parallel-dapp:latest
 	parachain-launch generate $(LAUNCH_CONFIG) && (cp -r keystore output || true) && cp docker-compose.override.yml output && docker-compose -f output/docker-compose.yml -f output/docker-compose.override.yml up -d --build
 
 .PHONY: logs
