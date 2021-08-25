@@ -195,6 +195,7 @@ pub mod pallet {
         /// - `pool`: Currency pool, in which liquidity will be removed
         /// - `liquidity_amounts`: Liquidity amounts to be removed from pool
         #[pallet::weight(10_000)]
+        #[transactional]
         pub fn remove_liquidity(
             origin: OriginFor<T>,
             pool: (CurrencyId, CurrencyId),
