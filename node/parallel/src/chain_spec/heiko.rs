@@ -139,12 +139,26 @@ pub fn heiko_config(id: ParaId) -> ChainSpec {
             let root_key: AccountId = "5CfaMb7d21Zh5wSthPXxLLj4D6sdb9YpdFKW8kM8cAdQ22fF"
                 .parse()
                 .unwrap();
-            let invulnerables: Vec<(AccountId, AuraId)> = vec![(
-                // 5GuwhbAaZd8bdkzSqSw1bpT9E86GH62DjLXaA55AdRtqFLG2
-                hex!["d67e8f550de6438476394ba0908a711fffbdfeb7f2cfb5bcc0ff0a834160100a"].into(),
-                hex!["d67e8f550de6438476394ba0908a711fffbdfeb7f2cfb5bcc0ff0a834160100a"]
-                    .unchecked_into(),
-            )];
+            let invulnerables: Vec<(AccountId, AuraId)> = vec![
+                (
+                    // 5GuwhbAaZd8bdkzSqSw1bpT9E86GH62DjLXaA55AdRtqFLG2
+                    hex!["d67e8f550de6438476394ba0908a711fffbdfeb7f2cfb5bcc0ff0a834160100a"].into(),
+                    hex!["d67e8f550de6438476394ba0908a711fffbdfeb7f2cfb5bcc0ff0a834160100a"]
+                        .unchecked_into(),
+                ),
+                (
+                    // 5EUmwapW8qScFGh4KGug1xb5Dnm4FYQtzrjTcvjynyRAMRR3
+                    hex!["6ad41b69e5ff9ec7fa541b9e61f56bc9dd5761e8ab69cf82a3c0722ba227dc5e"].into(),
+                    hex!["6ad41b69e5ff9ec7fa541b9e61f56bc9dd5761e8ab69cf82a3c0722ba227dc5e"]
+                        .unchecked_into(),
+                ),
+                (
+                    // 5DJd3duMMEeEo9Gi5az1esvuNRB31V8Fds91VkBMrZUCFyUn
+                    hex!["36d97965e462e9ca63079c1102db04f4293e59bca83713703a9a772d0017894d"].into(),
+                    hex!["36d97965e462e9ca63079c1102db04f4293e59bca83713703a9a772d0017894d"]
+                        .unchecked_into(),
+                ),
+            ];
             let oracle_accounts = vec![];
             let validator_feeders = vec![];
             let liquid_staking_agents = vec![];
