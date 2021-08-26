@@ -460,8 +460,7 @@ parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = CurrencyId::KSM;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xKSM;
-    pub const MaxWithdrawAmount: Balance = 1_000_000_000_000_000;
-    pub const MaxAccountProcessingUnstake: u32 = 5;
+    pub RelayAgent: MultiLocation = X2(Parent, Parachain(ParachainInfo::parachain_id().into()));
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -470,12 +469,10 @@ impl pallet_liquid_staking::Config for Runtime {
     type PalletId = StakingPalletId;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type WithdrawOrigin = EnsureRoot<AccountId>;
-    type MaxWithdrawAmount = MaxWithdrawAmount;
-    type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
-    type WeightInfo = pallet_liquid_staking::weights::SubstrateWeight<Runtime>;
+    type BridgeOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = ();
     type XcmTransfer = XTokens;
-    type Members = LiquidStakingAgentMembership;
+    type RelayAgent = RelayAgent;
     type BaseXcmWeight = BaseXcmWeight;
 }
 
@@ -1444,7 +1441,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_balances, Balances);
             add_benchmark!(params, batches, pallet_timestamp, Timestamp);
             add_benchmark!(params, batches, pallet_loans, LoansBench::<Runtime>);
-            add_benchmark!(params, batches, pallet_liquid_staking, LiquidStaking);
+            // add_benchmark!(params, batches, pallet_liquid_staking, LiquidStaking);
             add_benchmark!(params, batches, pallet_multisig, Multisig);
             add_benchmark!(params, batches, pallet_membership, TechnicalCommitteeMembership);
 

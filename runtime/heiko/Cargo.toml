@@ -87,7 +87,7 @@ orml-xcm-support            = { git = 'https://github.com/open-web3-stack/open-r
 orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 
 # Parallel dependencies
-pallet-liquid-staking        = { path = '../../pallets/liquid-staking', default-features = false }
+pallet-liquid-staking        = { path = '../../pallets/liquid-staking-v2',package = 'pallet-liquid-staking-v2', default-features = false }
 pallet-liquidation           = { path = '../../pallets/liquidation', default-features = false }
 pallet-loans                 = { path = '../../pallets/loans', default-features = false }
 pallet-loans-benchmarking    = { path = '../../pallets/loans/benchmarking', default-features = false, optional = true }
@@ -115,7 +115,6 @@ runtime-benchmarks = [
   'pallet-balances/runtime-benchmarks',
   'pallet-timestamp/runtime-benchmarks',
   'pallet-loans-benchmarking',
-  'pallet-liquid-staking/runtime-benchmarks',
   'pallet-collective/runtime-benchmarks',
   'pallet-xcm/runtime-benchmarks',
   'xcm-builder/runtime-benchmarks',
