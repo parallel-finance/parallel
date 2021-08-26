@@ -439,28 +439,9 @@ impl pallet_loans::Config for Runtime {
 }
 
 parameter_types! {
-    pub const LiquidStakingAgentMaxMembers: u32 = 100;
-}
-
-type LiquidStakingAgentMembershipInstance = pallet_membership::Instance4;
-impl pallet_membership::Config<LiquidStakingAgentMembershipInstance> for Runtime {
-    type Event = Event;
-    type AddOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type RemoveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type SwapOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type ResetOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type PrimeOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type MembershipInitialized = ();
-    type MembershipChanged = ();
-    type MaxMembers = LiquidStakingAgentMaxMembers;
-    type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
-}
-
-parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = CurrencyId::KSM;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xKSM;
-    pub RelayAgent: MultiLocation = X2(Parent, Parachain(ParachainInfo::parachain_id().into()));
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -472,7 +453,6 @@ impl pallet_liquid_staking::Config for Runtime {
     type BridgeOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
     type XcmTransfer = XTokens;
-    type RelayAgent = RelayAgent;
     type BaseXcmWeight = BaseXcmWeight;
 }
 
@@ -1201,15 +1181,14 @@ construct_runtime!(
         // Liquidation: pallet_liquidation::{Pallet, Call} = 52,
 
         // LiquidStaking
-        LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config} = 60,
+        LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config<T>} = 60,
         NomineeElection: pallet_nominee_election::{Pallet, Call, Storage, Event<T>} = 61,
 
         // Membership
         GeneralCouncilMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 70,
         TechnicalCommitteeMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>} = 71,
         OracleMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
-        LiquidStakingAgentMembership: pallet_membership::<Instance4>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,
-        ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74
+        ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73
     }
 );
 

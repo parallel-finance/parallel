@@ -49,7 +49,7 @@ mod pallet {
     use orml_traits::{MultiCurrency, MultiCurrencyExtended, XcmTransfer};
     use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber};
     use sp_std::vec::Vec;
-    use xcm::v0::MultiLocation;
+    use xcm::v0::{Junction, MultiLocation, NetworkId};
 
     use primitives::{Amount, Balance, CurrencyId, EraIndex, Rate};
 
@@ -96,9 +96,6 @@ mod pallet {
         /// Base xcm transaction weight
         type BaseXcmWeight: Get<Weight>;
 
-        /// Account manages the staking assets in relaychain.
-        type RelayAgent: Get<MultiLocation>;
-
         type WeightInfo: WeightInfo;
     }
 
@@ -129,6 +126,11 @@ mod pallet {
         /// Operation wasn't submitted to relaychain or has been processed.
         OperationNotReady,
     }
+
+    /// Account manages the staking assets.
+    #[pallet::storage]
+    #[pallet::getter(fn relay_agent)]
+    pub type RelayAgent<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
 
     /// The exchange rate between relaychain native asset and the voucher.
     #[pallet::storage]
@@ -167,43 +169,26 @@ mod pallet {
         StorageValue<_, Vec<(T::AccountId, BalanceOf<T>)>, ValueQuery>;
 
     #[pallet::genesis_config]
-    pub struct GenesisConfig {
+    pub struct GenesisConfig<T: Config> {
         pub exchange_rate: Rate,
+        pub relay_agent: T::AccountId,
     }
 
     #[cfg(feature = "std")]
-    impl Default for GenesisConfig {
+    impl<T: Config> Default for GenesisConfig<T> {
         fn default() -> Self {
             Self {
                 exchange_rate: Rate::default(),
+                relay_agent: T::AccountId::default(),
             }
         }
     }
 
     #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig {
+    impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
         fn build(&self) {
-            ExchangeRate::<T>::put(self.exchange_rate);
-        }
-    }
-
-    #[cfg(feature = "std")]
-    impl GenesisConfig {
-        /// Direct implementation of `GenesisBuild::build_storage`.
-        ///
-        /// Kept in order not to break dependency.
-        pub fn build_storage<T: Config>(&self) -> Result<sp_runtime::Storage, String> {
-            <Self as GenesisBuild<T>>::build_storage(self)
-        }
-
-        /// Direct implementation of `GenesisBuild::assimilate_storage`.
-        ///
-        /// Kept in order not to break dependency.
-        pub fn assimilate_storage<T: Config>(
-            &self,
-            storage: &mut sp_runtime::Storage,
-        ) -> Result<(), String> {
-            <Self as GenesisBuild<T>>::assimilate_storage(self, storage)
+            ExchangeRate::<T>::put(self.exchange_rate.clone());
+            RelayAgent::<T>::put(self.relay_agent.clone());
         }
     }
 
@@ -258,7 +243,10 @@ mod pallet {
     }
 
     #[pallet::call]
-    impl<T: Config> Pallet<T> {
+    impl<T: Config> Pallet<T>
+    where
+        [u8; 32]: From<<T as frame_system::Config>::AccountId>,
+    {
         /// Put assets under staking, the native assets will be transferred to the account
         /// owned by the pallet, user receive derivative in return, such derivative can be
         /// further used as collateral for lending.
@@ -382,7 +370,13 @@ mod pallet {
                     Self::account_id(),
                     T::StakingCurrency::get(),
                     bond_amount,
-                    T::RelayAgent::get(),
+                    MultiLocation::X2(
+                        Junction::Parent,
+                        Junction::AccountId32 {
+                            network: NetworkId::Any,
+                            id: RelayAgent::<T>::get().into(),
+                        },
+                    ),
                     T::BaseXcmWeight::get(),
                 )?;
             }

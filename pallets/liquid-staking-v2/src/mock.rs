@@ -158,13 +158,6 @@ parameter_types! {
     pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
     pub const BaseXcmWeight: Weight = 0;
-    pub const Agent: MultiLocation = MultiLocation::X2(
-        Junction::Parent,
-        Junction::AccountId32 {
-           network: xcm::v0::NetworkId::Any,
-           id: [0; 32]
-    }
-    );
 }
 
 impl crate::Config for Test {
@@ -176,7 +169,6 @@ impl crate::Config for Test {
     type BridgeOrigin = BridgeOrigin;
     type BaseXcmWeight = BaseXcmWeight;
     type XcmTransfer = Currencies;
-    type RelayAgent = Agent;
     type WeightInfo = ();
 }
 
@@ -247,10 +239,11 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     .assimilate_storage(&mut storage)
     .unwrap();
 
-    crate::GenesisConfig {
+    crate::GenesisConfig::<Test> {
         exchange_rate: Rate::one(),
+        ..Default::default()
     }
-    .assimilate_storage::<Test>(&mut storage)
+    .assimilate_storage(&mut storage)
     .unwrap();
 
     storage.into()
