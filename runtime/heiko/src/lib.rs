@@ -1402,7 +1402,7 @@ impl_runtime_apis! {
 
             list_benchmark!(list, extra, pallet_balances, Balances);
             list_benchmark!(list, extra, pallet_membership, TechnicalCommitteeMembership);
-            list_benchmark!(list, extra, pallet_liquid_staking, LiquidStaking);
+            // list_benchmark!(list, extra, pallet_liquid_staking, LiquidStaking);
             list_benchmark!(list, extra, pallet_multisig, Multisig);
             list_benchmark!(list, extra, pallet_loans, LoansBench::<Runtime>);
             list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
