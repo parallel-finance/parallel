@@ -5,15 +5,15 @@ name    = 'pallet-loans-rpc'
 version = '3.0.0'
 
 [dependencies]
-codec                           = { package = 'parity-scale-codec', version = '2.0.0' }
-jsonrpc-core                    = '15.0.0'
-jsonrpc-core-client             = '15.0.0'
-jsonrpc-derive                  = '15.0.0'
-serde                           = { version = '1.0.124', features = ['derive'] }
-sp-runtime                      = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9' }
-sp-api                          = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9' }
-sp-blockchain                   = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9' }
-sp-core                         = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9' }
-primitives                      = { package = 'parallel-primitives', path = '../../../primitives', default-features = false }
+codec               = { package = 'parity-scale-codec', version = '2.0.0' }
+jsonrpc-core        = '15.0.0'
+jsonrpc-core-client = '15.0.0'
+jsonrpc-derive      = '15.0.0'
+primitives          = { package = 'parallel-primitives', path = '../../../primitives', default-features = false }
+serde               = { version = '1.0.124', features = ['derive'] }
+sp-api              = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9' }
+sp-blockchain       = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9' }
+sp-core             = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9' }
+sp-runtime          = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9' }
 
-pallet-loans-rpc-runtime-api    = { path = 'runtime-api', default-features = false, version = '3.0.0' }
+pallet-loans-rpc-runtime-api = { path = 'runtime-api', default-features = false, version = '3.0.0' }

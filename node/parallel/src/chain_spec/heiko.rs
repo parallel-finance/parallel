@@ -21,21 +21,20 @@ use heiko_runtime::{
     TechnicalCommitteeMembershipConfig, TokensConfig, ValidatorFeedersMembershipConfig,
     VestingConfig, WASM_BINARY,
 };
-use hex_literal::hex;
+
 use primitives::*;
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::{crypto::UncheckedInto, sr25519};
+
+use sp_core::sr25519;
 use sp_runtime::{
     traits::{One, Zero},
     FixedPointNumber,
 };
-#[cfg(feature = "std")]
-use sp_std::collections::btree_map::BTreeMap;
 
 use crate::chain_spec::{
-    as_properties, get_account_id_from_seed, get_authority_keys_from_seed, Extensions,
+    accumulate, as_properties, get_account_id_from_seed, get_authority_keys_from_seed, Extensions,
     TELEMETRY_URL,
 };
 
@@ -59,54 +58,43 @@ pub fn heiko_dev_config(id: ParaId) -> ChainSpec {
             let oracle_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Ferdie")];
             let validator_feeders = vec![get_account_id_from_seed::<sr25519::Public>("Eve")];
             let liquid_staking_agents = vec![get_account_id_from_seed::<sr25519::Public>("Dave")];
-            let initial_allocation: Vec<(AccountId, Balance)> = vec![
-                // Faucet accounts
-                "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                    .parse()
-                    .unwrap(),
-                get_account_id_from_seed::<sr25519::Public>("Alice"),
-                get_account_id_from_seed::<sr25519::Public>("Bob"),
-                get_account_id_from_seed::<sr25519::Public>("Charlie"),
-                get_account_id_from_seed::<sr25519::Public>("Dave"),
-                get_account_id_from_seed::<sr25519::Public>("Eve"),
-                get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-                get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-                get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-                get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-                get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-            ]
-            .iter()
-            .flat_map(|x| {
-                if x == &"5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                    .parse()
-                    .unwrap()
-                {
-                    vec![(x.clone(), 10_u128.pow(20))]
-                } else {
-                    vec![(x.clone(), 10_u128.pow(16))]
-                }
-            })
-            .chain(
-                invulnerables
-                    .iter()
-                    .cloned()
-                    .map(|k| (k.0, EXISTENTIAL_DEPOSIT)),
-            )
-            .fold(
-                BTreeMap::<AccountId, Balance>::new(),
-                |mut acc, (account_id, amount)| {
-                    if let Some(balance) = acc.get_mut(&account_id) {
-                        *balance = balance.checked_add(amount).unwrap()
+            let initial_allocation: Vec<(AccountId, Balance)> = accumulate(
+                vec![
+                    // Faucet accounts
+                    "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                        .parse()
+                        .unwrap(),
+                    get_account_id_from_seed::<sr25519::Public>("Alice"),
+                    get_account_id_from_seed::<sr25519::Public>("Bob"),
+                    get_account_id_from_seed::<sr25519::Public>("Charlie"),
+                    get_account_id_from_seed::<sr25519::Public>("Dave"),
+                    get_account_id_from_seed::<sr25519::Public>("Eve"),
+                    get_account_id_from_seed::<sr25519::Public>("Ferdie"),
+                    get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
+                    get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+                ]
+                .iter()
+                .flat_map(|x| {
+                    if x == &"5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+                        .parse()
+                        .unwrap()
+                    {
+                        vec![(x.clone(), 10_u128.pow(20))]
                     } else {
-                        acc.insert(account_id.clone(), amount);
+                        vec![(x.clone(), 10_u128.pow(16))]
                     }
-                    acc
-                },
-            )
-            .into_iter()
-            .collect::<Vec<(AccountId, Balance)>>();
+                })
+                .chain(
+                    invulnerables
+                        .iter()
+                        .cloned()
+                        .map(|k| (k.0, EXISTENTIAL_DEPOSIT)),
+                ),
+            );
             let council = vec![
                 get_account_id_from_seed::<sr25519::Public>("Alice"),
                 get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -141,88 +129,81 @@ pub fn heiko_dev_config(id: ParaId) -> ChainSpec {
     )
 }
 
-pub fn heiko_config(id: ParaId) -> ChainSpec {
-    ChainSpec::from_genesis(
-        // Name
-        "Heiko",
-        // ID
-        "heiko",
-        ChainType::Live,
-        move || {
-            let root_key: AccountId = "5CfaMb7d21Zh5wSthPXxLLj4D6sdb9YpdFKW8kM8cAdQ22fF"
-                .parse()
-                .unwrap();
-            let invulnerables: Vec<(AccountId, AuraId)> = vec![(
-                // 5GuwhbAaZd8bdkzSqSw1bpT9E86GH62DjLXaA55AdRtqFLG2
-                hex!["d67e8f550de6438476394ba0908a711fffbdfeb7f2cfb5bcc0ff0a834160100a"].into(),
-                hex!["d67e8f550de6438476394ba0908a711fffbdfeb7f2cfb5bcc0ff0a834160100a"]
-                    .unchecked_into(),
-            )];
-            let oracle_accounts = vec![];
-            let validator_feeders = vec![];
-            let liquid_staking_agents = vec![];
-            let initial_allocation: Vec<(AccountId, Balance)> = serde_json::from_str(include_str!(
-                "../../../../resources/heiko-allocation-HKO.json"
-            ))
-            .unwrap();
-            let initial_allocation: Vec<(AccountId, Balance)> = initial_allocation
-                .iter()
-                .cloned()
-                .chain(
-                    invulnerables
-                        .iter()
-                        .cloned()
-                        .map(|k| (k.0, EXISTENTIAL_DEPOSIT)),
-                )
-                .fold(
-                    BTreeMap::<AccountId, Balance>::new(),
-                    |mut acc, (account_id, amount)| {
-                        if let Some(balance) = acc.get_mut(&account_id) {
-                            *balance = balance.checked_add(amount).unwrap()
-                        } else {
-                            acc.insert(account_id.clone(), amount);
-                        }
-                        acc
-                    },
-                )
-                .into_iter()
-                .collect::<Vec<(AccountId, Balance)>>();
-            let council = vec![
-                "5G3f6iLDU6mbyEiJH8icoLhFy4RZ6TvWUZSkDwtg1nXTV3QK"
-                    .parse()
-                    .unwrap(),
-                "5GBykvvrUz3vwTttgHzUEPdm7G1FND1reBfddQLdiaCbhoMd"
-                    .parse()
-                    .unwrap(),
-                "5DhZeTQqotvntGtrg69T2VK9pzUPXHiVyGUTmp5XFTDTT7ME"
-                    .parse()
-                    .unwrap(),
-            ];
-            let technical_committee = vec!["1Gu7GSgLSPrhc1Wci9wAGP6nvzQfaUCYqbfXxjYjMG9bob6"
-                .parse()
-                .unwrap()];
-
-            heiko_genesis(
-                root_key,
-                invulnerables,
-                oracle_accounts,
-                initial_allocation,
-                validator_feeders,
-                liquid_staking_agents,
-                council,
-                technical_committee,
-                id,
-            )
-        },
-        vec![],
-        TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
-        Some("heiko"),
-        Some(as_properties(network::NetworkType::Heiko)),
-        Extensions {
-            relay_chain: "kusama".into(),
-            para_id: id.into(),
-        },
-    )
+pub fn heiko_config(_id: ParaId) -> Result<ChainSpec, String> {
+    ChainSpec::from_json_bytes(&include_bytes!("../../res/heiko.json")[..])
+    // Ok(ChainSpec::from_genesis(
+    //     // Name
+    //     "Heiko",
+    //     // ID
+    //     "heiko",
+    //     ChainType::Live,
+    //     move || {
+    //         let root_key: AccountId = "5CfaMb7d21Zh5wSthPXxLLj4D6sdb9YpdFKW8kM8cAdQ22fF"
+    //             .parse()
+    //             .unwrap();
+    //         let invulnerables: Vec<(AccountId, AuraId)> = vec![
+    //             (
+    //                 // 5DfKxDtYyHkWnXkoc8Ek9KaPZE3FBD5kDByDziiRtHsd8D1x
+    //                 hex!["46a4161c87a0c6d58dec1e01b8c360123e1373ffafcf100efd1a9999fbacf161"].into(),
+    //                 hex!["46a4161c87a0c6d58dec1e01b8c360123e1373ffafcf100efd1a9999fbacf161"]
+    //                     .unchecked_into(),
+    //             ),
+    //             (
+    //                 // 5EUmwapW8qScFGh4KGug1xb5Dnm4FYQtzrjTcvjynyRAMRR3
+    //                 hex!["6ad41b69e5ff9ec7fa541b9e61f56bc9dd5761e8ab69cf82a3c0722ba227dc5e"].into(),
+    //                 hex!["6ad41b69e5ff9ec7fa541b9e61f56bc9dd5761e8ab69cf82a3c0722ba227dc5e"]
+    //                     .unchecked_into(),
+    //             ),
+    //             (
+    //                 // 5DJd3duMMEeEo9Gi5az1esvuNRB31V8Fds91VkBMrZUCFyUn
+    //                 hex!["36d97965e462e9ca63079c1102db04f4293e59bca83713703a9a772d0017894d"].into(),
+    //                 hex!["36d97965e462e9ca63079c1102db04f4293e59bca83713703a9a772d0017894d"]
+    //                     .unchecked_into(),
+    //             ),
+    //         ];
+    //         let oracle_accounts = vec![];
+    //         let validator_feeders = vec![];
+    //         let liquid_staking_agents = vec![];
+    //         let initial_allocation: Vec<(AccountId, Balance)> = serde_json::from_str(include_str!(
+    //             "../../../../resources/heiko-allocation-HKO.json"
+    //         ))
+    //         .unwrap();
+    //         let initial_allocation: Vec<(AccountId, Balance)> = accumulate(
+    //             initial_allocation.into_iter().chain(
+    //                 invulnerables
+    //                     .iter()
+    //                     .cloned()
+    //                     .map(|k| (k.0, EXISTENTIAL_DEPOSIT)),
+    //             ),
+    //         );
+    //         let council = vec![];
+    //         let technical_committee = vec![];
+    //
+    //         heiko_genesis(
+    //             root_key,
+    //             invulnerables,
+    //             oracle_accounts,
+    //             initial_allocation,
+    //             validator_feeders,
+    //             liquid_staking_agents,
+    //             council,
+    //             technical_committee,
+    //             id,
+    //         )
+    //     },
+    //     vec![
+    //         "/dns/heiko-bootnode-0.parallel.fi/tcp/30333/p2p/12D3KooWLUTzbrJJDowUKMPfEZrDY6eH8HXvm8hrG6YrdUmdrKPz".parse().unwrap(),
+    //         "/dns/heiko-bootnode-1.parallel.fi/tcp/30333/p2p/12D3KooWEckTASdnkQC8MfBNnzKGfQJmdmzCBWrwra26nTqY4Hmu".parse().unwrap(),
+    //         "/dns/heiko-bootnode-2.parallel.fi/tcp/30333/p2p/12D3KooWFJe4LfS15nTBUduq3cMKmHEWwKYrJFmMnAa7wT5W1eZE".parse().unwrap(),
+    //     ],
+    //     TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
+    //     Some("heiko"),
+    //     Some(as_properties(network::NetworkType::Heiko)),
+    //     Extensions {
+    //         relay_chain: "kusama".into(),
+    //         para_id: id.into(),
+    //     },
+    // ))
 }
 
 fn heiko_genesis(

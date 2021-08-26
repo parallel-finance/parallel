@@ -35,3 +35,5 @@ chains/
 **/keystore*
 
 output/
+
+config.prod.yml

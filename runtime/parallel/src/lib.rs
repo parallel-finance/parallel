@@ -126,7 +126,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("parallel"),
     impl_name: create_runtime_str!("parallel"),
     authoring_version: 1,
-    spec_version: 150,
+    spec_version: 160,
     impl_version: 10,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,

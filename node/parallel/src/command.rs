@@ -44,7 +44,7 @@ fn load_spec(
 ) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
     Ok(match id {
         "heiko-dev" => Box::new(chain_spec::heiko::heiko_dev_config(para_id)),
-        "" | "heiko" => Box::new(chain_spec::heiko::heiko_config(para_id)),
+        "" | "heiko" => Box::new(chain_spec::heiko::heiko_config(para_id)?),
         "parallel-dev" => Box::new(chain_spec::parallel::parallel_dev_config(para_id)),
         "parallel" | "parallel-local" => {
             Box::new(chain_spec::parallel::parallel_local_testnet_config(para_id))

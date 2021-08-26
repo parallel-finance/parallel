@@ -22,6 +22,8 @@ use serde_json::json;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::IdentifyAccount;
+#[cfg(feature = "std")]
+use sp_std::collections::btree_map::BTreeMap;
 
 use primitives::{network::NetworkType, *};
 
@@ -34,7 +36,25 @@ pub const HEIKO_TOKEN: &str = "HKO";
 /// Token symbol of parallel network.
 pub const PARALLEL_TOKEN: &str = "PARA";
 
-/// set default ss58
+/// accumulate account balances
+pub fn accumulate(
+    iter: impl IntoIterator<Item = (AccountId, Balance)>,
+) -> Vec<(AccountId, Balance)> {
+    let acc = BTreeMap::<AccountId, Balance>::new();
+    iter.into_iter()
+        .fold(acc, |mut acc, (account_id, amount)| {
+            if let Some(balance) = acc.get_mut(&account_id) {
+                *balance = balance.checked_add(amount).unwrap()
+            } else {
+                acc.insert(account_id.clone(), amount);
+            }
+            acc
+        })
+        .into_iter()
+        .collect()
+}
+
+/// set default ss58 crypto
 pub fn set_default_ss58_version(spec: &Box<dyn sc_service::ChainSpec>) {
     use sp_core::crypto::Ss58AddressFormat;
 
@@ -110,4 +130,117 @@ where
     AccountPublic: From<<TPublic::Pair as Pair>::Public>,
 {
     AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn single_accumulate_test() {
+        let balances: Vec<(AccountId, Balance)> = vec![
+            (
+                "5DJd3duMMEeEo9Gi5az1esvuNRB31V8Fds91VkBMrZUCFyUn"
+                    .parse()
+                    .unwrap(),
+                1000,
+            ),
+            (
+                "5EUmwapW8qScFGh4KGug1xb5Dnm4FYQtzrjTcvjynyRAMRR3"
+                    .parse()
+                    .unwrap(),
+                1000,
+            ),
+        ];
+
+        assert_eq!(
+            accumulate(balances),
+            vec![
+                (
+                    "5DJd3duMMEeEo9Gi5az1esvuNRB31V8Fds91VkBMrZUCFyUn"
+                        .parse()
+                        .unwrap(),
+                    1000,
+                ),
+                (
+                    "5EUmwapW8qScFGh4KGug1xb5Dnm4FYQtzrjTcvjynyRAMRR3"
+                        .parse()
+                        .unwrap(),
+                    1000
+                )
+            ]
+        );
+    }
+
+    #[test]
+    fn complex_accumulate_test() {
+        let balances: Vec<(AccountId, Balance)> = vec![
+            (
+                "5DJd3duMMEeEo9Gi5az1esvuNRB31V8Fds91VkBMrZUCFyUn"
+                    .parse()
+                    .unwrap(),
+                1000,
+            ),
+            (
+                "5DJd3duMMEeEo9Gi5az1esvuNRB31V8Fds91VkBMrZUCFyUn"
+                    .parse()
+                    .unwrap(),
+                100,
+            ),
+            (
+                "5DJd3duMMEeEo9Gi5az1esvuNRB31V8Fds91VkBMrZUCFyUn"
+                    .parse()
+                    .unwrap(),
+                10,
+            ),
+            (
+                "5DJd3duMMEeEo9Gi5az1esvuNRB31V8Fds91VkBMrZUCFyUn"
+                    .parse()
+                    .unwrap(),
+                1,
+            ),
+            (
+                "5EUmwapW8qScFGh4KGug1xb5Dnm4FYQtzrjTcvjynyRAMRR3"
+                    .parse()
+                    .unwrap(),
+                1000,
+            ),
+            (
+                "5EUmwapW8qScFGh4KGug1xb5Dnm4FYQtzrjTcvjynyRAMRR3"
+                    .parse()
+                    .unwrap(),
+                100,
+            ),
+            (
+                "5EUmwapW8qScFGh4KGug1xb5Dnm4FYQtzrjTcvjynyRAMRR3"
+                    .parse()
+                    .unwrap(),
+                10,
+            ),
+            (
+                "5EUmwapW8qScFGh4KGug1xb5Dnm4FYQtzrjTcvjynyRAMRR3"
+                    .parse()
+                    .unwrap(),
+                1,
+            ),
+        ];
+
+        assert_eq!(
+            accumulate(balances),
+            vec![
+                (
+                    "5DJd3duMMEeEo9Gi5az1esvuNRB31V8Fds91VkBMrZUCFyUn"
+                        .parse()
+                        .unwrap(),
+                    1111,
+                ),
+                (
+                    "5EUmwapW8qScFGh4KGug1xb5Dnm4FYQtzrjTcvjynyRAMRR3"
+                        .parse()
+                        .unwrap(),
+                    1111
+                )
+            ]
+        );
+    }
 }
