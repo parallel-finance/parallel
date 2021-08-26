@@ -22,10 +22,12 @@ use heiko_runtime::{
     VestingConfig, WASM_BINARY,
 };
 
+// use hex_literal::hex;
 use primitives::*;
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+// use sp_core::crypto::UncheckedInto;
 
 use sp_core::sr25519;
 use sp_runtime::{
@@ -138,7 +140,7 @@ pub fn heiko_config(_id: ParaId) -> Result<ChainSpec, String> {
     //     "heiko",
     //     ChainType::Live,
     //     move || {
-    //         let root_key: AccountId = "5CfaMb7d21Zh5wSthPXxLLj4D6sdb9YpdFKW8kM8cAdQ22fF"
+    //         let root_key: AccountId = "GsWfh29m9pyNP3yBSAdcThrvpKRwrHi4EhcVzqeGrquneem"
     //             .parse()
     //             .unwrap();
     //         let invulnerables: Vec<(AccountId, AuraId)> = vec![

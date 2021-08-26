@@ -1,5 +1,7 @@
 PARA_ID  			:= 2085
 CHAIN    			:= heiko-dev
+KEYSTORE_PATH := keystore
+SURI          := //Alice
 LAUNCH_CONFIG := config.yml
 
 .PHONY: run
@@ -88,6 +90,14 @@ image:
 		-t parallelfinance/parallel:latest \
 		-f Dockerfile.release \
 		. --network=host
+
+.PHONY: keystore
+keystore:
+	docker run --name keystore \
+		-t parallelfinance/parallel:latest \
+		key insert -d . --keystore-path $(KEYSTORE_PATH) --suri "$(SURI)" --key-type aura
+	docker cp keystore:/parallel/$(KEYSTORE_PATH) .
+	docker rm keystore
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?' Makefile | cut -d: -f1 | sort
