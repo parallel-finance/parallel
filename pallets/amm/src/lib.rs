@@ -70,6 +70,8 @@ pub mod pallet {
     pub enum Error<T, I = ()> {
         /// Pool does not exust
         PoolDoesNotExist,
+        /// More liquidity than user's liquidity
+        MoreLiquidity,
     }
 
     #[pallet::event]
@@ -252,6 +254,11 @@ pub mod pallet {
             );
 
             let pool_liquidity_amount: PoolLiquidityAmount = Self::pools(base_asset, quote_asset);
+
+            ensure!(
+                pool_liquidity_amount.ownership >= ownership_to_remove,
+                Error::<T, I>::MoreLiquidity
+            );
 
             let base_amount = (ownership_to_remove
                 .saturating_mul(pool_liquidity_amount.base_amount))

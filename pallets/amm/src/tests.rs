@@ -212,3 +212,19 @@ fn remove_liquidity_when_pool_does_not_exist_should_not_work() {
         );
     })
 }
+
+#[test]
+fn remove_liquidity_with_more_liquidity_should_not_work() {
+    new_test_ext().execute_with(|| {
+        // A pool with a single LP provider
+        // who deposit tokens and withdraws their whole share
+        // (most simple case)
+
+        let _ = AMM::add_liquidity(Origin::signed(1.into()), (DOT, XDOT), (10, 90));
+
+        assert_noop!(
+            AMM::remove_liquidity(Origin::signed(1.into()), (DOT, XDOT), 300),
+            Error::<Test>::MoreLiquidity
+        );
+    })
+}
