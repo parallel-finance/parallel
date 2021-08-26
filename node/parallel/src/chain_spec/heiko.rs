@@ -264,7 +264,7 @@ fn heiko_genesis(
         },
         liquid_staking: LiquidStakingConfig {
             exchange_rate: Rate::saturating_from_rational(100, 100), // 1
-            // reserve_factor: Ratio::from_perthousand(5),
+            reserve_factor: Ratio::from_perthousand(5),
         },
         democracy: DemocracyConfig::default(),
         general_council: GeneralCouncilConfig::default(),
