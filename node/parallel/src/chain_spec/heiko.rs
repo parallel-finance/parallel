@@ -144,9 +144,9 @@ pub fn heiko_config(id: ParaId) -> Result<ChainSpec, String> {
                 .unwrap();
             let invulnerables: Vec<(AccountId, AuraId)> = vec![
                 (
-                    // 5GuwhbAaZd8bdkzSqSw1bpT9E86GH62DjLXaA55AdRtqFLG2
-                    hex!["d67e8f550de6438476394ba0908a711fffbdfeb7f2cfb5bcc0ff0a834160100a"].into(),
-                    hex!["d67e8f550de6438476394ba0908a711fffbdfeb7f2cfb5bcc0ff0a834160100a"]
+                    // 5DfKxDtYyHkWnXkoc8Ek9KaPZE3FBD5kDByDziiRtHsd8D1x
+                    hex!["46a4161c87a0c6d58dec1e01b8c360123e1373ffafcf100efd1a9999fbacf161"].into(),
+                    hex!["46a4161c87a0c6d58dec1e01b8c360123e1373ffafcf100efd1a9999fbacf161"]
                         .unchecked_into(),
                 ),
                 (
@@ -192,7 +192,11 @@ pub fn heiko_config(id: ParaId) -> Result<ChainSpec, String> {
                 id,
             )
         },
-        vec![],
+        vec![
+            "/dns/heiko-bootnode-0.parallel.fi/tcp/30333/p2p/12D3KooWLUTzbrJJDowUKMPfEZrDY6eH8HXvm8hrG6YrdUmdrKPz".parse().unwrap(),
+            "/dns/heiko-bootnode-1.parallel.fi/tcp/30333/p2p/12D3KooWEckTASdnkQC8MfBNnzKGfQJmdmzCBWrwra26nTqY4Hmu".parse().unwrap(),
+            "/dns/heiko-bootnode-2.parallel.fi/tcp/30333/p2p/12D3KooWFJe4LfS15nTBUduq3cMKmHEWwKYrJFmMnAa7wT5W1eZE".parse().unwrap(),
+        ],
         TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
         Some("heiko"),
         Some(as_properties(network::NetworkType::Heiko)),
