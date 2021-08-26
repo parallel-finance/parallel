@@ -22,10 +22,12 @@ use heiko_runtime::{
     VestingConfig, WASM_BINARY,
 };
 
+use hex_literal::hex;
 use primitives::*;
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+use sp_core::crypto::UncheckedInto;
 use sp_core::sr25519;
 use sp_runtime::{
     traits::{One, Zero},
@@ -128,77 +130,77 @@ pub fn heiko_dev_config(id: ParaId) -> ChainSpec {
     )
 }
 
-pub fn heiko_config(_id: ParaId) -> Result<ChainSpec, String> {
-    ChainSpec::from_json_bytes(&include_bytes!("../../res/heiko.json")[..])
-    // ChainSpec::from_genesis(
-    //     // Name
-    //     "Heiko",
-    //     // ID
-    //     "heiko",
-    //     ChainType::Live,
-    //     move || {
-    //         let root_key: AccountId = "5CfaMb7d21Zh5wSthPXxLLj4D6sdb9YpdFKW8kM8cAdQ22fF"
-    //             .parse()
-    //             .unwrap();
-    //         let invulnerables: Vec<(AccountId, AuraId)> = vec![
-    //             (
-    //                 // 5GuwhbAaZd8bdkzSqSw1bpT9E86GH62DjLXaA55AdRtqFLG2
-    //                 hex!["d67e8f550de6438476394ba0908a711fffbdfeb7f2cfb5bcc0ff0a834160100a"].into(),
-    //                 hex!["d67e8f550de6438476394ba0908a711fffbdfeb7f2cfb5bcc0ff0a834160100a"]
-    //                     .unchecked_into(),
-    //             ),
-    //             (
-    //                 // 5EUmwapW8qScFGh4KGug1xb5Dnm4FYQtzrjTcvjynyRAMRR3
-    //                 hex!["6ad41b69e5ff9ec7fa541b9e61f56bc9dd5761e8ab69cf82a3c0722ba227dc5e"].into(),
-    //                 hex!["6ad41b69e5ff9ec7fa541b9e61f56bc9dd5761e8ab69cf82a3c0722ba227dc5e"]
-    //                     .unchecked_into(),
-    //             ),
-    //             (
-    //                 // 5DJd3duMMEeEo9Gi5az1esvuNRB31V8Fds91VkBMrZUCFyUn
-    //                 hex!["36d97965e462e9ca63079c1102db04f4293e59bca83713703a9a772d0017894d"].into(),
-    //                 hex!["36d97965e462e9ca63079c1102db04f4293e59bca83713703a9a772d0017894d"]
-    //                     .unchecked_into(),
-    //             ),
-    //         ];
-    //         let oracle_accounts = vec![];
-    //         let validator_feeders = vec![];
-    //         let liquid_staking_agents = vec![];
-    //         let initial_allocation: Vec<(AccountId, Balance)> = serde_json::from_str(include_str!(
-    //             "../../../../resources/heiko-allocation-HKO.json"
-    //         ))
-    //         .unwrap();
-    //         let initial_allocation: Vec<(AccountId, Balance)> = dedup(
-    //             initial_allocation.into_iter().chain(
-    //                 invulnerables
-    //                     .iter()
-    //                     .cloned()
-    //                     .map(|k| (k.0, EXISTENTIAL_DEPOSIT)),
-    //             ),
-    //         );
-    //         let council = vec![];
-    //         let technical_committee = vec![];
-    //
-    //         heiko_genesis(
-    //             root_key,
-    //             invulnerables,
-    //             oracle_accounts,
-    //             initial_allocation,
-    //             validator_feeders,
-    //             liquid_staking_agents,
-    //             council,
-    //             technical_committee,
-    //             id,
-    //         )
-    //     },
-    //     vec![],
-    //     TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
-    //     Some("heiko"),
-    //     Some(as_properties(network::NetworkType::Heiko)),
-    //     Extensions {
-    //         relay_chain: "kusama".into(),
-    //         para_id: id.into(),
-    //     },
-    // )
+pub fn heiko_config(id: ParaId) -> Result<ChainSpec, String> {
+    // ChainSpec::from_json_bytes(&include_bytes!("../../res/heiko.json")[..])
+    Ok(ChainSpec::from_genesis(
+        // Name
+        "Heiko",
+        // ID
+        "heiko",
+        ChainType::Live,
+        move || {
+            let root_key: AccountId = "5CfaMb7d21Zh5wSthPXxLLj4D6sdb9YpdFKW8kM8cAdQ22fF"
+                .parse()
+                .unwrap();
+            let invulnerables: Vec<(AccountId, AuraId)> = vec![
+                (
+                    // 5GuwhbAaZd8bdkzSqSw1bpT9E86GH62DjLXaA55AdRtqFLG2
+                    hex!["d67e8f550de6438476394ba0908a711fffbdfeb7f2cfb5bcc0ff0a834160100a"].into(),
+                    hex!["d67e8f550de6438476394ba0908a711fffbdfeb7f2cfb5bcc0ff0a834160100a"]
+                        .unchecked_into(),
+                ),
+                (
+                    // 5EUmwapW8qScFGh4KGug1xb5Dnm4FYQtzrjTcvjynyRAMRR3
+                    hex!["6ad41b69e5ff9ec7fa541b9e61f56bc9dd5761e8ab69cf82a3c0722ba227dc5e"].into(),
+                    hex!["6ad41b69e5ff9ec7fa541b9e61f56bc9dd5761e8ab69cf82a3c0722ba227dc5e"]
+                        .unchecked_into(),
+                ),
+                (
+                    // 5DJd3duMMEeEo9Gi5az1esvuNRB31V8Fds91VkBMrZUCFyUn
+                    hex!["36d97965e462e9ca63079c1102db04f4293e59bca83713703a9a772d0017894d"].into(),
+                    hex!["36d97965e462e9ca63079c1102db04f4293e59bca83713703a9a772d0017894d"]
+                        .unchecked_into(),
+                ),
+            ];
+            let oracle_accounts = vec![];
+            let validator_feeders = vec![];
+            let liquid_staking_agents = vec![];
+            let initial_allocation: Vec<(AccountId, Balance)> = serde_json::from_str(include_str!(
+                "../../../../resources/heiko-allocation-HKO.json"
+            ))
+            .unwrap();
+            let initial_allocation: Vec<(AccountId, Balance)> = accumulate(
+                initial_allocation.into_iter().chain(
+                    invulnerables
+                        .iter()
+                        .cloned()
+                        .map(|k| (k.0, EXISTENTIAL_DEPOSIT)),
+                ),
+            );
+            let council = vec![];
+            let technical_committee = vec![];
+
+            heiko_genesis(
+                root_key,
+                invulnerables,
+                oracle_accounts,
+                initial_allocation,
+                validator_feeders,
+                liquid_staking_agents,
+                council,
+                technical_committee,
+                id,
+            )
+        },
+        vec![],
+        TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
+        Some("heiko"),
+        Some(as_properties(network::NetworkType::Heiko)),
+        Extensions {
+            relay_chain: "kusama".into(),
+            para_id: id.into(),
+        },
+    ))
 }
 
 fn heiko_genesis(
