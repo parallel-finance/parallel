@@ -2933,7 +2933,7 @@ dependencies = [
 
 [[package]]
 name = "heiko-runtime"
-version = "0.0.1"
+version = "1.0.0"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -2967,7 +2967,7 @@ dependencies = [
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-democracy",
- "pallet-liquid-staking",
+ "pallet-liquid-staking-v2",
  "pallet-liquidation",
  "pallet-loans",
  "pallet-loans-benchmarking",
@@ -5595,9 +5595,11 @@ dependencies = [
  "pallet-balances",
  "parallel-primitives",
  "parity-scale-codec",
+ "serde",
  "sp-core",
  "sp-runtime",
  "sp-std",
+ "xcm",
 ]
 
 [[package]]
@@ -6209,6 +6211,7 @@ dependencies = [
  "sp-offchain",
  "sp-runtime",
  "sp-session",
+ "sp-std",
  "sp-storage",
  "sp-timestamp",
  "sp-transaction-pool",
@@ -6287,7 +6290,7 @@ dependencies = [
 
 [[package]]
 name = "parallel-runtime"
-version = "0.0.1"
+version = "1.0.0"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",

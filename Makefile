@@ -1,5 +1,8 @@
-PARA_ID  := 2085
-CHAIN    := heiko-dev
+PARA_ID  			:= 2085
+CHAIN    			:= heiko-dev
+KEYSTORE_PATH := keystore
+SURI          := //Alice
+LAUNCH_CONFIG := config.yml
 
 .PHONY: run
 run:
@@ -41,7 +44,7 @@ lint:
 
 .PHONY: fmt
 fmt:
-	SKIP_WASM_BUILD= cargo fmt --all -- --check
+	SKIP_WASM_BUILD= cargo fmt --all
 
 .PHONY: purge
 purge:
@@ -52,12 +55,24 @@ restart: purge run
 
 .PHONY: resources
 resources:
-	docker run --rm parallelfinance/parallel:latest export-genesis-state --chain heiko-dev --parachain-id $(PARA_ID) > ./resources/para-$(PARA_ID)-genesis
-	docker run --rm parallelfinance/parallel:latest export-genesis-wasm --chain heiko-dev > ./resources/para-$(PARA_ID).wasm
+	docker run --rm parallelfinance/parallel:latest export-genesis-state --chain $(CHAIN) --parachain-id $(PARA_ID) > ./resources/para-$(PARA_ID)-genesis
+	docker run --rm parallelfinance/parallel:latest export-genesis-wasm --chain $(CHAIN) > ./resources/para-$(PARA_ID).wasm
+
+.PHONY: shutdown
+shutdown:
+	docker-compose -f output/docker-compose.yml -f output/docker-compose.override.yml down --remove-orphans > /dev/null 2>&1 || true
+	rm -fr output || true
+	docker volume prune -f
 
 .PHONY: launch
-launch:
-	parachain-launch generate && cp docker-compose.override.yml output && cd output && docker-compose up -d --build
+launch: shutdown
+	docker image pull parallelfinance/polkadot:v0.9.9-1
+	docker image pull parallelfinance/parallel-dapp:latest
+	parachain-launch generate $(LAUNCH_CONFIG) && (cp -r keystore* output || true) && cp docker-compose.override.yml output && docker-compose -f output/docker-compose.yml -f output/docker-compose.override.yml up -d --build
+
+.PHONY: logs
+logs:
+	docker-compose -f output/docker-compose.yml logs -f
 
 .PHONY: wasm
 wasm:
@@ -71,9 +86,18 @@ spec:
 .PHONY: image
 image:
 	docker build --build-arg BIN=parallel \
+		-c 512 \
 		-t parallelfinance/parallel:latest \
 		-f Dockerfile.release \
 		. --network=host
+
+.PHONY: keystore
+keystore:
+	docker run --name keystore \
+		-t parallelfinance/parallel:latest \
+		key insert -d . --keystore-path $(KEYSTORE_PATH) --suri "$(SURI)" --key-type aura
+	docker cp keystore:/parallel/$(KEYSTORE_PATH) .
+	docker rm keystore
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?' Makefile | cut -d: -f1 | sort
