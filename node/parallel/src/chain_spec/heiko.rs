@@ -22,7 +22,6 @@ use heiko_runtime::{
     VestingConfig, WASM_BINARY,
 };
 
-
 use primitives::*;
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
