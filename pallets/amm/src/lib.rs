@@ -67,7 +67,10 @@ pub mod pallet {
     }
 
     #[pallet::error]
-    pub enum Error<T, I = ()> {}
+    pub enum Error<T, I = ()> {
+        /// Pool does not exust
+        PoolDoesNotExist,
+    }
 
     #[pallet::event]
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
@@ -242,6 +245,12 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
 
             let (_, base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
+
+            ensure!(
+                Pools::<T, I>::contains_key(base_asset, quote_asset),
+                Error::<T, I>::PoolDoesNotExist
+            );
+
             let pool_liquidity_amount: PoolLiquidityAmount = Self::pools(base_asset, quote_asset);
 
             let base_amount = (ownership_to_remove

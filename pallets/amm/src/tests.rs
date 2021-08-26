@@ -204,13 +204,11 @@ fn remove_liquidity_user_more_liquidity_should_work() {
 }
 
 #[test]
-#[should_panic(expected = "cannot overflow with positive divisor; qed")]
 fn remove_liquidity_user_dont_have_should_not_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(AMM::remove_liquidity(
-            Origin::signed(1.into()),
-            (DOT, XDOT),
-            15
-        ));
+        assert_noop!(
+            AMM::remove_liquidity(Origin::signed(1.into()), (DOT, XDOT), 15),
+            Error::<Test>::PoolDoesNotExist
+        );
     })
 }
