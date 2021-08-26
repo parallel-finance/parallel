@@ -36,19 +36,17 @@ pub const HEIKO_TOKEN: &str = "HKO";
 /// Token symbol of parallel network.
 pub const PARALLEL_TOKEN: &str = "PARA";
 
-/// remove duplicated balances
-pub fn dedup(iter: impl Iterator<Item = (AccountId, Balance)>) -> Vec<(AccountId, Balance)> {
-    iter.fold(
-        BTreeMap::<AccountId, Balance>::new(),
-        |mut acc, (account_id, amount)| {
-            if let Some(balance) = acc.get_mut(&account_id) {
-                *balance = balance.checked_add(amount).unwrap()
-            } else {
-                acc.insert(account_id.clone(), amount);
-            }
-            acc
-        },
-    )
+/// accumulate account balances
+pub fn accumulate(iter: impl Iterator<Item = (AccountId, Balance)>) -> Vec<(AccountId, Balance)> {
+    let acc = BTreeMap::<AccountId, Balance>::new();
+    iter.fold(acc, |mut acc, (account_id, amount)| {
+        if let Some(balance) = acc.get_mut(&account_id) {
+            *balance = balance.checked_add(amount).unwrap()
+        } else {
+            acc.insert(account_id.clone(), amount);
+        }
+        acc
+    })
     .into_iter()
     .collect::<Vec<(AccountId, Balance)>>()
 }

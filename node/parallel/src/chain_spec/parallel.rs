@@ -37,7 +37,7 @@ use sp_runtime::{
 };
 
 use crate::chain_spec::{
-    as_properties, dedup, get_account_id_from_seed, get_authority_keys_from_seed, Extensions,
+    accumulate, as_properties, get_account_id_from_seed, get_authority_keys_from_seed, Extensions,
     TELEMETRY_URL,
 };
 
@@ -61,7 +61,7 @@ pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
             let oracle_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Ferdie")];
             let validator_feeders = vec![get_account_id_from_seed::<sr25519::Public>("Eve")];
             let liquid_staking_agents = vec![get_account_id_from_seed::<sr25519::Public>("Dave")];
-            let initial_allocation: Vec<(AccountId, Balance)> = dedup(
+            let initial_allocation: Vec<(AccountId, Balance)> = accumulate(
                 vec![
                     // Faucet accounts
                     "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
@@ -161,7 +161,7 @@ pub fn parallel_local_testnet_config(id: ParaId) -> ChainSpec {
             let liquid_staking_agents = vec!["5C5PQJQvvTuq5zQJLN4GtxXn6Pp8YTB4ko7yXmhvxyQF5CHn"
                 .parse()
                 .unwrap()];
-            let initial_allocation = dedup(
+            let initial_allocation = accumulate(
                 vec![
                     // Faucet accounts
                     "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
