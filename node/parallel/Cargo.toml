@@ -23,11 +23,11 @@ log                    = '0.4.13'
 
 primitives = { package = 'parallel-primitives', path = '../../primitives' }
 
-heiko-runtime                              = { version = '0.0.1', path = '../../runtime/heiko' }
-pallet-loans-rpc                           = { version = '3.0.0', path = '../../pallets/loans/rpc' }
+heiko-runtime                              = { path = '../../runtime/heiko' }
+pallet-loans-rpc                           = { path = '../../pallets/loans/rpc' }
 pallet-transaction-payment-rpc             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
 pallet-transaction-payment-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
-parallel-runtime                           = { version = '0.0.1', path = '../../runtime/parallel' }
+parallel-runtime                           = { path = '../../runtime/parallel' }
 
 sc-basic-authorship     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
 sc-chain-spec           = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }

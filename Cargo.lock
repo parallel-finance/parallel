@@ -2933,7 +2933,7 @@ dependencies = [
 
 [[package]]
 name = "heiko-runtime"
-version = "0.0.1"
+version = "1.0.0"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -6287,7 +6287,7 @@ dependencies = [
 
 [[package]]
 name = "parallel-runtime"
-version = "0.0.1"
+version = "1.0.0"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
