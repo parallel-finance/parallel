@@ -1,6 +1,6 @@
 use super::*;
 use crate::mock::*;
-use frame_support::assert_ok;
+use frame_support::{assert_noop, assert_ok};
 
 #[test]
 fn add_liquidity_should_work() {
@@ -27,6 +27,72 @@ fn add_liquidity_should_work() {
             <Test as Config>::Currency::free_balance(CurrencyId::xDOT, &1.into()),
             80
         );
+    })
+}
+
+#[test]
+fn add_more_liquidity_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::add_liquidity(
+            Origin::signed(1.into()),
+            (DOT, XDOT),
+            (10, 20)
+        ));
+
+        assert_ok!(AMM::add_liquidity(
+            Origin::signed(1.into()),
+            (DOT, XDOT),
+            (30, 40)
+        ));
+
+        assert_eq!(AMM::pools(XDOT, DOT).base_amount, 60);
+    })
+}
+
+#[test]
+fn add_more_liquidity_with_low_balance_should_not_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::add_liquidity(
+            Origin::signed(1.into()),
+            (DOT, XDOT),
+            (10, 20)
+        ));
+
+        assert_ok!(AMM::add_liquidity(
+            Origin::signed(1.into()),
+            (DOT, XDOT),
+            (30, 40)
+        ));
+
+        assert_noop!(
+            AMM::add_liquidity(Origin::signed(1.into()), (DOT, XDOT), (50, 60)),
+            orml_tokens::Error::<Test>::BalanceTooLow,
+        );
+    })
+}
+
+#[test]
+fn add_liquidity_by_another_user_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::add_liquidity(
+            Origin::signed(1.into()),
+            (DOT, XDOT),
+            (10, 20)
+        ));
+
+        assert_ok!(AMM::add_liquidity(
+            Origin::signed(1.into()),
+            (DOT, XDOT),
+            (30, 40)
+        ));
+
+        assert_ok!(AMM::add_liquidity(
+            Origin::signed(2.into()),
+            (DOT, XDOT),
+            (5, 10)
+        ));
+
+        assert_eq!(AMM::pools(XDOT, DOT).base_amount, 70);
     })
 }
 
@@ -134,5 +200,17 @@ fn remove_liquidity_user_more_liquidity_should_work() {
             <Test as Config>::Currency::free_balance(CurrencyId::xDOT, &1.into()),
             90
         );
+    })
+}
+
+#[test]
+#[should_panic(expected = "cannot overflow with positive divisor; qed")]
+fn remove_liquidity_user_dont_have_should_not_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::remove_liquidity(
+            Origin::signed(1.into()),
+            (DOT, XDOT),
+            15
+        ));
     })
 }

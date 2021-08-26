@@ -171,6 +171,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         balances: vec![
             (1.into(), CurrencyId::DOT, 100),
             (1.into(), CurrencyId::xDOT, 100),
+            (2.into(), CurrencyId::DOT, 100),
+            (2.into(), CurrencyId::xDOT, 100),
         ],
     }
     .assimilate_storage(&mut t)
