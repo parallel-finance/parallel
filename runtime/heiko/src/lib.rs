@@ -192,6 +192,8 @@ impl Contains<Call> for BaseCallFilter {
             call,
             // System
             Call::Timestamp(_) |
+            // Utility
+            Call::Multisig(_) |
             // Governance
             Call::Sudo(_)  |
             // Parachain
@@ -210,7 +212,6 @@ impl Contains<Call> for BaseCallFilter {
         // Call::CumulusXcm(_) |
 
         // // Utility, Currencies
-        // Call::Multisig(_) |
         // Call::Utility(_) |
         // Call::Balances(_) |
 
