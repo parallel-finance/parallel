@@ -460,7 +460,8 @@ parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = CurrencyId::KSM;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xKSM;
-    pub RelayAgent: MultiLocation = X2(Parent, Parachain(ParachainInfo::parachain_id().into()));
+    pub const MaxWithdrawAmount: Balance = 1_000_000_000_000_000;
+    pub const MaxAccountProcessingUnstake: u32 = 5;
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -469,10 +470,12 @@ impl pallet_liquid_staking::Config for Runtime {
     type PalletId = StakingPalletId;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type BridgeOrigin = EnsureRoot<AccountId>;
-    type WeightInfo = ();
+    type WithdrawOrigin = EnsureRoot<AccountId>;
+    type MaxWithdrawAmount = MaxWithdrawAmount;
+    type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
+    type WeightInfo = pallet_liquid_staking::weights::SubstrateWeight<Runtime>;
     type XcmTransfer = XTokens;
-    type RelayAgent = RelayAgent;
+    type Members = LiquidStakingAgentMembership;
     type BaseXcmWeight = BaseXcmWeight;
 }
 
@@ -1399,7 +1402,7 @@ impl_runtime_apis! {
 
             list_benchmark!(list, extra, pallet_balances, Balances);
             list_benchmark!(list, extra, pallet_membership, TechnicalCommitteeMembership);
-            list_benchmark!(list, extra, pallet_liquid_staking, LiquidStaking);
+            // list_benchmark!(list, extra, pallet_liquid_staking, LiquidStaking);
             list_benchmark!(list, extra, pallet_multisig, Multisig);
             list_benchmark!(list, extra, pallet_loans, LoansBench::<Runtime>);
             list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
@@ -1441,7 +1444,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_balances, Balances);
             add_benchmark!(params, batches, pallet_timestamp, Timestamp);
             add_benchmark!(params, batches, pallet_loans, LoansBench::<Runtime>);
-            // add_benchmark!(params, batches, pallet_liquid_staking, LiquidStaking);
+            add_benchmark!(params, batches, pallet_liquid_staking, LiquidStaking);
             add_benchmark!(params, batches, pallet_multisig, Multisig);
             add_benchmark!(params, batches, pallet_membership, TechnicalCommitteeMembership);
 

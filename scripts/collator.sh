@@ -15,7 +15,7 @@ PARA_RPC_PORT=9940
 PARA_P2P_PORT=30340
 
 PARA_CHAIN="heiko"
-RELAY_CHAIN="kusama"
+RELAY_CHAIN="westend"
 VOLUME="chains"
 NODE_KEY="$1"
 KEYSTORE_PATH="$2"
@@ -35,13 +35,14 @@ docker run --restart=always --name heiko-collator \
   -p $RELAY_RPC_PORT:$RELAY_RPC_PORT \
   -p $RELAY_P2P_PORT:$RELAY_P2P_PORT \
   -v "$VOLUME:/data" \
+  -v "$KEYSTORE_PATH:/app/keystore" \
   parallelfinance/parallel:latest \
     -d /data \
-    --chain=$RARA_CHAIN \
+    --chain=$PARA_CHAIN \
     --validator \
     --ws-port=$PARA_WS_PORT \
     --rpc-port=$PARA_RPC_PORT \
-    --keystore-path=$KEYSTORE_PATH \
+    --keystore-path=/app/keystore \
     --node-key=$NODE_KEY \
     --ws-external \
     --rpc-external \
