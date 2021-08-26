@@ -155,12 +155,17 @@ pub mod pallet {
             liquidity_amounts: (Balance, Balance),
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
-            let (base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
-            let (base_amount, quote_amount) = liquidity_amounts;
+            let (is_inverted, base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
+
+            let (base_amount, quote_amount) = match is_inverted {
+                true => (liquidity_amounts.1, liquidity_amounts.0),
+                false => (liquidity_amounts.0, liquidity_amounts.1),
+            };
 
             if Pools::<T, I>::contains_key(base_asset, quote_asset) {
                 let pool_liquidity_amount: PoolLiquidityAmount =
                     Self::pools(base_asset, quote_asset);
+
                 let ownership = sp_std::cmp::min(
                     (base_amount.saturating_mul(pool_liquidity_amount.ownership))
                         .checked_div(pool_liquidity_amount.base_amount)
@@ -236,16 +241,18 @@ pub mod pallet {
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
-            let (base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
+            let (_, base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
             let pool_liquidity_amount: PoolLiquidityAmount = Self::pools(base_asset, quote_asset);
-            let user_ownership: Balance =
-                Self::liquidity_providers((who.clone(), base_asset, quote_asset)).ownership;
-            let base_amount = (user_ownership.saturating_mul(pool_liquidity_amount.base_amount))
-                .checked_div(pool_liquidity_amount.ownership)
-                .expect("cannot overflow with positive divisor; qed");
-            let quote_amount = (user_ownership.saturating_mul(pool_liquidity_amount.quote_amount))
-                .checked_div(pool_liquidity_amount.ownership)
-                .expect("cannot overflow with positive divisor; qed");
+
+            let base_amount = (ownership_to_remove
+                .saturating_mul(pool_liquidity_amount.base_amount))
+            .checked_div(pool_liquidity_amount.ownership)
+            .expect("cannot overflow with positive divisor; qed");
+
+            let quote_amount = (ownership_to_remove
+                .saturating_mul(pool_liquidity_amount.quote_amount))
+            .checked_div(pool_liquidity_amount.ownership)
+            .expect("cannot overflow with positive divisor; qed");
 
             Pools::<T, I>::try_mutate(
                 &base_asset,
@@ -305,11 +312,14 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         T::PalletId::get().into_account()
     }
 
-    pub fn get_upper_currency(curr_a: CurrencyId, curr_b: CurrencyId) -> (CurrencyId, CurrencyId) {
+    pub fn get_upper_currency(
+        curr_a: CurrencyId,
+        curr_b: CurrencyId,
+    ) -> (bool, CurrencyId, CurrencyId) {
         if curr_a > curr_b {
-            (curr_a, curr_b)
+            (false, curr_a, curr_b)
         } else {
-            (curr_b, curr_a)
+            (true, curr_b, curr_a)
         }
     }
 }
