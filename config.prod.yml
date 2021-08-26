@@ -36,4 +36,8 @@ parachains:
       - --no-beefy
     nodes:
       - flags:
-          - --keystore-path=/app/keystore
+          - --keystore-path=/app/keystore1
+      - flags:
+          - --keystore-path=/app/keystore2
+      - flags:
+          - --keystore-path=/app/keystore3
