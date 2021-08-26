@@ -134,10 +134,12 @@ mod tests {
     const DEFAULT_DYNAMIC_POOL: PoolLiquidityAmount = PoolLiquidityAmount {
         base_amount: 40,
         quote_amount: 60,
+        ownership: 40,
     };
     const DEFAULT_STABLE_POOL: PoolLiquidityAmount = PoolLiquidityAmount {
         base_amount: 40,
         quote_amount: 60,
+        ownership: 40,
     };
 
     #[test]
