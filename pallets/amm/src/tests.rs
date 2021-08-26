@@ -204,7 +204,7 @@ fn remove_liquidity_user_more_liquidity_should_work() {
 }
 
 #[test]
-fn remove_liquidity_user_dont_have_should_not_work() {
+fn remove_liquidity_when_pool_does_not_exist_should_not_work() {
     new_test_ext().execute_with(|| {
         assert_noop!(
             AMM::remove_liquidity(Origin::signed(1.into()), (DOT, XDOT), 15),
