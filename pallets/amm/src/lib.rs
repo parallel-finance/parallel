@@ -230,7 +230,7 @@ pub mod pallet {
             T::Currency::transfer(quote_asset, &who, &Self::account_id(), quote_amount)?;
 
             Self::deposit_event(Event::<T, I>::LiquidityAdded(who, base_asset, quote_asset));
-            Ok(().into())
+            Ok(())
         }
 
         /// Allow users to remove liquidity from a given pool
@@ -318,7 +318,7 @@ pub mod pallet {
                 quote_asset,
             ));
 
-            Ok(().into())
+            Ok(())
         }
     }
 }
