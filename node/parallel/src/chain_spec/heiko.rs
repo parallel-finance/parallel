@@ -140,7 +140,7 @@ pub fn heiko_config(_id: ParaId) -> Result<ChainSpec, String> {
     //     "heiko",
     //     ChainType::Live,
     //     move || {
-    //         let root_key: AccountId = "GsWfh29m9pyNP3yBSAdcThrvpKRwrHi4EhcVzqeGrquneem"
+    //         let root_key: AccountId = "5HhBURCf5Mf7g1ztTemkW5XMru6m3b2FTisXAuvwve4WEwhc"
     //             .parse()
     //             .unwrap();
     //         let invulnerables: Vec<(AccountId, AuraId)> = vec![
