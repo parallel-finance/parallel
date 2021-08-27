@@ -14,8 +14,8 @@
 
 use cumulus_primitives_core::ParaId;
 use heiko_runtime::{
-    opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig,
-    DemocracyConfig, GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
+    opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, DemocracyConfig,
+    GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
     LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig,
     ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
     TechnicalCommitteeMembershipConfig, TokensConfig, ValidatorFeedersMembershipConfig,
@@ -89,7 +89,7 @@ pub fn heiko_dev_config(id: ParaId) -> ChainSpec {
                     } else {
                         vec![(x.clone(), 10_u128.pow(16))]
                     }
-                })
+                }),
             );
             let council = vec![
                 get_account_id_from_seed::<sr25519::Public>("Alice"),
