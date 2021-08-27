@@ -5,13 +5,13 @@ name    = 'pallet-router'
 version = '3.0.0'
 
 [dependencies]
-frame-support = { branch = 'polkadot-v0.9.9', default-features = false, git = 'https://github.com/paritytech/substrate' }
-frame-system = { branch = 'polkadot-v0.9.9', default-features = false, git = 'https://github.com/paritytech/substrate' }
-orml-traits = { default-features = false, git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
-parallel-primitives = { default-features = false, path = '../../primitives' }
-parity-scale-codec = { default-features = false, features = ['derive'], version = '2.0' }
-sp-arithmetic = { branch = 'polkadot-v0.9.9', default-features = false, git = 'https://github.com/paritytech/substrate' }
-sp-runtime = { branch = 'polkadot-v0.9.9', default-features = false, git = 'https://github.com/paritytech/substrate' }
+frame-support      = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
+frame-system       = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
+orml-traits        = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+parity-scale-codec = { version = '2.0', default-features = false, features = ['derive'] }
+primitives         = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
+sp-arithmetic      = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
+sp-runtime         = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
 
 [features]
 default = ['std']
@@ -19,8 +19,8 @@ std = [
     'frame-support/std',
     'frame-system/std',
     'orml-traits/std',
-    'parallel-primitives/std',
     'parity-scale-codec/std',
+    'primitives/std',
     'sp-arithmetic/std',
     'sp-runtime/std',
 ]

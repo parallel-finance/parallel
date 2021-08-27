@@ -20,11 +20,8 @@
 
 pub use crate::pallet::*;
 
-mod weights;
-
 #[frame_support::pallet]
 pub mod pallet {
-    use crate::weights::WeightInfo;
     use frame_support::{
         pallet_prelude::{DispatchResult, DispatchResultWithPostInfo},
         traits::{Get, Hooks, IsType},
@@ -34,8 +31,8 @@ pub mod pallet {
         ensure_signed,
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
-    use orml_traits::MultiCurrency;
-    use parallel_primitives::CurrencyId;
+    use orml_traits::{MultiCurrency, MultiCurrencyExtended};
+    use primitives::CurrencyId;
 
     pub(crate) type BalanceOf<T> =
         <<T as Config>::Currency as MultiCurrency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -69,9 +66,7 @@ pub mod pallet {
         /// Specify all the AMMs we are routing between
         type AMMs: Get<Vec<Route>>;
 
-        type Currency: MultiCurrency<Self::AccountId>;
-
-        type WeightInfo: WeightInfo;
+        type Currency: MultiCurrencyExtended<Self::AccountId>;
     }
 
     #[pallet::pallet]
@@ -89,8 +84,7 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        // #[allow(unused_variables)]
-        #[pallet::weight(T::WeightInfo::trade())]
+        #[pallet::weight(10_000)]
         #[transactional]
         pub fn trade(
             origin: OriginFor<T>,
