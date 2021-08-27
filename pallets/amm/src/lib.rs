@@ -24,6 +24,7 @@ extern crate alloc;
 mod mock;
 mod pool_structs;
 
+mod benchmarking;
 #[cfg(test)]
 mod tests;
 
