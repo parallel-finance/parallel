@@ -87,6 +87,7 @@ orml-xcm-support            = { git = 'https://github.com/open-web3-stack/open-r
 orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 
 # Parallel dependencies
+pallet-amm                   = { path = '../../pallets/amm', default-features = false }
 pallet-liquid-staking        = { path = '../../pallets/liquid-staking', default-features = false }
 pallet-liquidation           = { path = '../../pallets/liquidation', default-features = false }
 pallet-loans                 = { path = '../../pallets/loans', default-features = false }
@@ -190,4 +191,5 @@ std                = [
   'orml-xtokens/std',
   'orml-xcm/std',
   'orml-vesting/std',
+  'pallet-amm/std',
 ]
