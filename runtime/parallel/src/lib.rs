@@ -28,6 +28,7 @@ use frame_support::{
     traits::{Contains, Everything},
     PalletId,
 };
+use hex_literal::hex;
 use orml_currencies::BasicCurrencyAdapter;
 use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended, MultiCurrency};
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
@@ -41,7 +42,7 @@ use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{
         self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT,
-        BlockNumberProvider, Convert, Zero,
+        BlockNumberProvider, Convert, IdentifyAccount, Zero,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Permill, SaturatedConversion,
@@ -411,7 +412,10 @@ parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
-    pub RelayAgent: MultiLocation = MultiLocation::Null;
+    pub RelayAgent: MultiLocation = X2(Junction::Parent, Junction::AccountId32 {
+        network: NetworkId::Any,
+        id: hex!["306721211d5404bd9da88e0204360a1a9ab8b87c66c1bc2fcdd37f3c2222cc20"] // id of "//Dave"
+    });
 }
 
 impl pallet_liquid_staking::Config for Runtime {
