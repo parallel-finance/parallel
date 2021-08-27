@@ -92,11 +92,7 @@ image:
 
 .PHONY: keystore
 keystore:
-	docker run --name keystore \
-		-t parallelfinance/parallel:latest \
-		key insert -d . --keystore-path $(KEYSTORE_PATH) --suri "$(SURI)" --key-type aura
-	docker cp keystore:/parallel/$(KEYSTORE_PATH) .
-	docker rm keystore
+	./target/debug/parallel key insert -d . --keystore-path $(KEYSTORE_PATH) --suri "$(SURI)" --key-type aura
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?' Makefile | cut -d: -f1 | sort

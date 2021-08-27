@@ -1,7 +1,7 @@
 [package]
 authors = ['Parallel Team']
 edition = '2018'
-name = 'pallet-amm'
+name    = 'pallet-amm'
 version = '3.0.0'
 
 [package.metadata.docs.rs]
@@ -22,11 +22,11 @@ sp-runtime              = { branch = 'polkadot-v0.9.9', default-features = false
 serde                   = { version = '1', features = ['derive'] }
 
 [dev-dependencies]
-orml-tokens         = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
-pallet-balances     = { branch = 'polkadot-v0.9.9', git = 'https://github.com/paritytech/substrate' }
-sp-core             = { branch = 'polkadot-v0.9.9', git = 'https://github.com/paritytech/substrate' }
-sp-io               = { branch = 'polkadot-v0.9.9', git = 'https://github.com/paritytech/substrate' }
-serde               = { version = '1' }
+orml-tokens     = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
+pallet-balances = { branch = 'polkadot-v0.9.9', git = 'https://github.com/paritytech/substrate' }
+serde           = { version = '1' }
+sp-core         = { branch = 'polkadot-v0.9.9', git = 'https://github.com/paritytech/substrate' }
+sp-io           = { branch = 'polkadot-v0.9.9', git = 'https://github.com/paritytech/substrate' }
 
 [features]
 default = ['std']
