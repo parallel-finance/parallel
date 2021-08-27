@@ -56,7 +56,7 @@ use cumulus_primitives_core::ParaId;
 use frame_support::log;
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureOneOf, EnsureRoot,
+    EnsureOneOf, EnsureRoot, EnsureSigned,
 };
 use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 use polkadot_parachain::primitives::Sibling;
@@ -424,7 +424,8 @@ impl pallet_liquid_staking::Config for Runtime {
     type PalletId = StakingPalletId;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type BridgeOrigin = EnsureRoot<AccountId>;
+    // FIXME(Alan WANG): use EnsureSignedBy
+    type BridgeOrigin = EnsureSigned<AccountId>;
     type WeightInfo = ();
     type XcmTransfer = XTokens;
     type RelayAgent = RelayAgent;
