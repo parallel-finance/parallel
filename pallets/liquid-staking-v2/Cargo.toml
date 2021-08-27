@@ -8,7 +8,7 @@ version = '3.0.0'
 targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
-codec         = { package = 'parity-scale-codec', version = '2.0.0', features= ["max-encoded-len"], default-features = false }
+codec         = { package = 'parity-scale-codec', version = '2.2.0', features = ['max-encoded-len'], default-features = false }
 frame-support = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
 frame-system  = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
 orml-traits   = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
@@ -23,8 +23,8 @@ primitives = { package = 'parallel-primitives', path = '../../primitives', defau
 orml-currencies = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-tokens     = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 pallet-balances = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
-sp-core         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
 serde           = { version = '1' }
+sp-core         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
 
 [features]
 default = ['std']
