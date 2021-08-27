@@ -26,6 +26,11 @@ if [ $# -lt 2 ]; then
   echo "help: ./collator.sh <NODE_KEY> <KEYSTORE_PATH>" && exit 1
 fi
 
+docker container stop heiko-collator || true
+docker container rm heiko-collator || true
+
+# docker volume rm $VOLUME || true
+
 docker volume create $VOLUME || true
 
 docker run --restart=always --name heiko-collator \
@@ -37,7 +42,7 @@ docker run --restart=always --name heiko-collator \
   -p $RELAY_RPC_PORT:$RELAY_RPC_PORT \
   -p $RELAY_P2P_PORT:$RELAY_P2P_PORT \
   -v "$VOLUME:/data" \
-  -v "$KEYSTORE_PATH:/app/keystore" \
+  -v "$(realpath $KEYSTORE_PATH):/app/keystore" \
   parallelfinance/parallel:latest \
     -d /data \
     --chain=$PARA_CHAIN \
@@ -69,4 +74,4 @@ docker run --restart=always --name heiko-collator \
     --listen-addr=/ip4/0.0.0.0/tcp/$RELAY_P2P_PORT \
     --no-beefy
 
-docker logs -f heiko-collator
+# docker logs -f heiko-collator
