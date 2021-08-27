@@ -20,11 +20,10 @@ use heiko_runtime::{
 use hex_literal::hex;
 use parallel_runtime::{
     opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, DemocracyConfig,
-    GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
-    LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig,
-    ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeMembershipConfig, TokensConfig, ValidatorFeedersMembershipConfig,
-    VestingConfig, WASM_BINARY,
+    GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig, LiquidStakingConfig,
+    LoansConfig, OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig,
+    SystemConfig, TechnicalCommitteeMembershipConfig, TokensConfig,
+    ValidatorFeedersMembershipConfig, VestingConfig, WASM_BINARY,
 };
 use primitives::{network::NetworkType, *};
 use sc_service::ChainType;
@@ -62,7 +61,6 @@ pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
             ];
             let oracle_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Ferdie")];
             let validator_feeders = vec![get_account_id_from_seed::<sr25519::Public>("Eve")];
-            let liquid_staking_agents = vec![get_account_id_from_seed::<sr25519::Public>("Dave")];
             let initial_allocation: Vec<(AccountId, Balance)> = vec![
                 // Faucet accounts
                 "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
@@ -128,7 +126,6 @@ pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
                 oracle_accounts,
                 initial_allocation,
                 validator_feeders,
-                liquid_staking_agents,
                 council,
                 technical_committee,
                 id,
@@ -168,10 +165,6 @@ pub fn parallel_local_testnet_config(id: ParaId) -> ChainSpec {
                 .unwrap()];
             // 5Hgbc62tVKhXr8ovtLFNGdb4Ye3RY6RchK1gLEg2ZjktZMjv//validator_feeder
             let validator_feeders = vec!["5DRwhn5ajqck2pZmL9Rp1ebSKrErWzQqKQC9ZvqR7Cn8TBN5"
-                .parse()
-                .unwrap()];
-            // 5Hgbc62tVKhXr8ovtLFNGdb4Ye3RY6RchK1gLEg2ZjktZMjv//agent
-            let liquid_staking_agents = vec!["5C5PQJQvvTuq5zQJLN4GtxXn6Pp8YTB4ko7yXmhvxyQF5CHn"
                 .parse()
                 .unwrap()];
             let initial_allocation = vec![
@@ -253,7 +246,6 @@ pub fn parallel_local_testnet_config(id: ParaId) -> ChainSpec {
                 oracle_accounts,
                 initial_allocation,
                 validator_feeders,
-                liquid_staking_agents,
                 council,
                 technical_committee,
                 id,
@@ -276,7 +268,6 @@ fn parallel_genesis(
     oracle_accounts: Vec<AccountId>,
     initial_allocation: Vec<(AccountId, Balance)>,
     validator_feeders: Vec<AccountId>,
-    liquid_staking_agents: Vec<AccountId>,
     council: Vec<AccountId>,
     technical_committee: Vec<AccountId>,
     id: ParaId,
@@ -392,7 +383,6 @@ fn parallel_genesis(
         },
         liquid_staking: LiquidStakingConfig {
             exchange_rate: Rate::saturating_from_rational(100, 100), // 1
-            reserve_factor: Ratio::from_perthousand(5),
         },
         democracy: DemocracyConfig::default(),
         general_council: GeneralCouncilConfig::default(),
@@ -408,10 +398,6 @@ fn parallel_genesis(
         treasury: Default::default(),
         oracle_membership: OracleMembershipConfig {
             members: oracle_accounts,
-            phantom: Default::default(),
-        },
-        liquid_staking_agent_membership: LiquidStakingAgentMembershipConfig {
-            members: liquid_staking_agents,
             phantom: Default::default(),
         },
         validator_feeders_membership: ValidatorFeedersMembershipConfig {
