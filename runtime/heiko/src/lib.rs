@@ -192,8 +192,6 @@ impl Contains<Call> for BaseCallFilter {
             call,
             // System
             Call::Timestamp(_) |
-            // Utility
-            Call::Multisig(_) |
             // Governance
             Call::Sudo(_)  |
             // Parachain
@@ -214,6 +212,7 @@ impl Contains<Call> for BaseCallFilter {
         // // Utility, Currencies
         // Call::Utility(_) |
         // Call::Balances(_) |
+        // Call::Multisig(_) |
 
         // // Consensus
         // Call::CollatorSelection(_) |

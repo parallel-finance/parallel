@@ -14,7 +14,7 @@
 
 use cumulus_primitives_core::ParaId;
 use heiko_runtime::{
-    currency::EXISTENTIAL_DEPOSIT, opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig,
+    opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig,
     DemocracyConfig, GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
     LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig,
     ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
@@ -90,12 +90,6 @@ pub fn heiko_dev_config(id: ParaId) -> ChainSpec {
                         vec![(x.clone(), 10_u128.pow(16))]
                     }
                 })
-                .chain(
-                    invulnerables
-                        .iter()
-                        .cloned()
-                        .map(|k| (k.0, EXISTENTIAL_DEPOSIT)),
-                ),
             );
             let council = vec![
                 get_account_id_from_seed::<sr25519::Public>("Alice"),
@@ -140,7 +134,7 @@ pub fn heiko_config(_id: ParaId) -> Result<ChainSpec, String> {
     //     "heiko",
     //     ChainType::Live,
     //     move || {
-    //         let root_key: AccountId = "5HhBURCf5Mf7g1ztTemkW5XMru6m3b2FTisXAuvwve4WEwhc"
+    //         let root_key: AccountId = "5CLbxwBcUf8PG4zzf56w27YwwJzkyGv4ULsBNfkCBGEdRGKv"
     //             .parse()
     //             .unwrap();
     //         let invulnerables: Vec<(AccountId, AuraId)> = vec![
@@ -170,14 +164,7 @@ pub fn heiko_config(_id: ParaId) -> Result<ChainSpec, String> {
     //             "../../../../resources/heiko-allocation-HKO.json"
     //         ))
     //         .unwrap();
-    //         let initial_allocation: Vec<(AccountId, Balance)> = accumulate(
-    //             initial_allocation.into_iter().chain(
-    //                 invulnerables
-    //                     .iter()
-    //                     .cloned()
-    //                     .map(|k| (k.0, EXISTENTIAL_DEPOSIT)),
-    //             ),
-    //         );
+    //         let initial_allocation: Vec<(AccountId, Balance)> = accumulate(initial_allocation);
     //         let council = vec![];
     //         let technical_committee = vec![];
     //
