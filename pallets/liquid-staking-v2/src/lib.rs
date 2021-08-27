@@ -271,7 +271,7 @@ mod pallet {
                 Ok(())
             })?;
 
-            Self::deposit_event(Event::Staked(who, amount));
+            Self::deposit_event(Event::<T>::Staked(who, amount));
             Ok(().into())
         }
 
@@ -319,7 +319,7 @@ mod pallet {
                 Ok(())
             })?;
 
-            Self::deposit_event(Event::Unstaked(who, liquid_amount, asset_amount));
+            Self::deposit_event(Event::<T>::Unstaked(who, liquid_amount, asset_amount));
             Ok(().into())
         }
 
