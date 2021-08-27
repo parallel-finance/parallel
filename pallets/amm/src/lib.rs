@@ -27,12 +27,11 @@ mod pool_structs;
 #[cfg(test)]
 mod tests;
 
-use core::marker::PhantomData;
 use frame_support::pallet_prelude::*;
 use frame_support::{
     dispatch::DispatchResult,
     pallet_prelude::{StorageDoubleMap, StorageValue, ValueQuery},
-    traits::{GenesisBuild, Get, Hooks, IsType},
+    traits::{Get, Hooks, IsType},
     transactional, Blake2_128Concat, PalletId, Twox64Concat,
 };
 use frame_system::ensure_signed;
@@ -83,29 +82,6 @@ pub mod pallet {
         /// Remove liquidity from pool
         /// [sender, currency_id, currency_id]
         LiquidityRemoved(T::AccountId, CurrencyId, CurrencyId),
-    }
-
-    #[pallet::genesis_config]
-    pub struct GenesisConfig<T: Config<I>, I: 'static = ()> {
-        pub exchange_rate: Rate,
-        pub phantom: PhantomData<(T, I)>,
-    }
-
-    #[cfg(feature = "std")]
-    impl<T: Config<I>, I: 'static> Default for GenesisConfig<T, I> {
-        fn default() -> Self {
-            GenesisConfig {
-                exchange_rate: Default::default(),
-                phantom: PhantomData,
-            }
-        }
-    }
-
-    #[pallet::genesis_build]
-    impl<T: Config<I>, I: 'static> GenesisBuild<T, I> for GenesisConfig<T, I> {
-        fn build(&self) {
-            ExchangeRate::<T, I>::put(self.exchange_rate);
-        }
     }
 
     #[pallet::hooks]
