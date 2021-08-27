@@ -176,7 +176,7 @@ impl crate::Config for Test {
     type BridgeOrigin = BridgeOrigin;
     type BaseXcmWeight = BaseXcmWeight;
     type XcmTransfer = Currencies;
-    type Agent = Agent;
+    type RelayAgent = Agent;
     type WeightInfo = ();
 }
 
