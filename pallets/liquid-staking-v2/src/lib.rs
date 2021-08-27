@@ -108,7 +108,7 @@ mod pallet {
         /// The derivative get unstaked successfully
         Unstaked(T::AccountId, BalanceOf<T>, BalanceOf<T>),
         /// Reward/Slash has been recorded.
-        StakeingSettlementRecorded(StakingSettlementKind, BalanceOf<T>),
+        StakingSettlementRecorded(StakingSettlementKind, BalanceOf<T>),
         /// Request to perform bond/rebond/unbond in relay chain
         ///
         /// Send `(bond_amount, rebond_amount, unbond_amount)` as args.
@@ -118,7 +118,7 @@ mod pallet {
     #[pallet::error]
     pub enum Error<T> {
         /// Reward/Slash has been recorded.
-        StakeingSettlementAlreadyRecorded,
+        StakingSettlementAlreadyRecorded,
         /// Exchange rate is invalid.
         InvalidExchangeRate,
         /// Era has been pushed before.
@@ -354,7 +354,7 @@ mod pallet {
             Self::update_staking_pool(kind, amount)?;
 
             StakingSettlementRecords::<T>::insert(era_index, kind, amount);
-            Self::deposit_event(Event::<T>::StakeingSettlementRecorded(kind, amount));
+            Self::deposit_event(Event::<T>::StakingSettlementRecorded(kind, amount));
             Ok(().into())
         }
 
@@ -402,7 +402,7 @@ mod pallet {
         ) -> DispatchResult {
             ensure!(
                 !StakingSettlementRecords::<T>::contains_key(era_index, kind),
-                Error::<T>::StakeingSettlementAlreadyRecorded
+                Error::<T>::StakingSettlementAlreadyRecorded
             );
             Ok(())
         }
