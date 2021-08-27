@@ -14,6 +14,8 @@ PARA_WS_PORT=9951
 PARA_RPC_PORT=9940
 PARA_P2P_PORT=30340
 
+PARA_ID=2085
+
 PARA_CHAIN="heiko"
 RELAY_CHAIN="westend"
 VOLUME="chains"
@@ -40,6 +42,7 @@ docker run --restart=always --name heiko-collator \
     -d /data \
     --chain=$PARA_CHAIN \
     --validator \
+    --parachain-id=$PARA_ID \
     --ws-port=$PARA_WS_PORT \
     --rpc-port=$PARA_RPC_PORT \
     --keystore-path=/app/keystore \
