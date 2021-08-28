@@ -160,6 +160,7 @@ impl pallet_amm::Config for Test {
     type Event = Event;
     type Currency = Currencies;
     type PalletId = AMMPalletId;
+    type WeightInfo = ();
 }
 
 // Build genesis storage according to the mock runtime.

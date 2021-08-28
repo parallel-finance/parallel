@@ -122,6 +122,7 @@ runtime-benchmarks = [
   'xcm-builder/runtime-benchmarks',
   'pallet-multisig/runtime-benchmarks',
   'pallet-membership/runtime-benchmarks',
+  'pallet-amm/runtime-benchmarks',
 ]
 std                = [
   'codec/std',
