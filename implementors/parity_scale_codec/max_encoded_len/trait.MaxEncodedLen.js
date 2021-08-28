@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["pallet_liquidation"] = [{"text":"impl MaxEncodedLen for <a class=\"struct\" href=\"pallet_liquidation/crypto/struct.Public.html\" title=\"struct pallet_liquidation::crypto::Public\">Public</a>","synthetic":false,"types":["pallet_liquidation::crypto::Public"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

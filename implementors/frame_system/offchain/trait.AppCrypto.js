@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["pallet_liquidation"] = [{"text":"impl AppCrypto&lt;MultiSigner, MultiSignature&gt; for <a class=\"struct\" href=\"pallet_liquidation/crypto/struct.AuthId.html\" title=\"struct pallet_liquidation::crypto::AuthId\">AuthId</a>","synthetic":false,"types":["pallet_liquidation::crypto::AuthId"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

@@ -1,0 +1,12 @@
+var N = null;var sourcesIndex = {};
+sourcesIndex["pallet_amm"] = {"name":"","files":["lib.rs","pool_structs.rs"]};
+sourcesIndex["pallet_liquid_staking"] = {"name":"","files":["lib.rs","weights.rs"]};
+sourcesIndex["pallet_liquid_staking_v2"] = {"name":"","files":["lib.rs","types.rs","weights.rs"]};
+sourcesIndex["pallet_liquidation"] = {"name":"","files":["lib.rs"]};
+sourcesIndex["pallet_loans"] = {"name":"","files":["lib.rs","market.rs","rate_model.rs","weights.rs"]};
+sourcesIndex["pallet_loans_rpc"] = {"name":"","files":["lib.rs"]};
+sourcesIndex["pallet_loans_rpc_runtime_api"] = {"name":"","files":["lib.rs"]};
+sourcesIndex["pallet_nominee_election"] = {"name":"","files":["lib.rs"]};
+sourcesIndex["pallet_prices"] = {"name":"","files":["lib.rs"]};
+sourcesIndex["parallel_primitives"] = {"name":"","files":["lib.rs","network.rs"]};
+createSourceSidebar();

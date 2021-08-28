@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["StakingSettlementKind","Category of staking settlement at the end of era."]],"struct":[["MatchingLedger","The matching pool’s total stake & unstake amount in one era"]]});
