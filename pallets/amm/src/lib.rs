@@ -27,6 +27,7 @@ mod pool_structs;
 mod benchmarking;
 #[cfg(test)]
 mod tests;
+pub mod weights;
 
 use frame_support::pallet_prelude::*;
 use frame_support::{
@@ -44,6 +45,7 @@ use primitives::{Amount, Balance, CurrencyId, Rate};
 use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::traits::IntegerSquareRoot;
 use sp_runtime::ArithmeticError;
+pub use weights::WeightInfo;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -64,6 +66,9 @@ pub mod pallet {
 
         #[pallet::constant]
         type PalletId: Get<PalletId>;
+
+        /// Weight information for extrinsics in this pallet.
+        type WeightInfo: WeightInfo;
     }
 
     #[pallet::error]
@@ -129,7 +134,18 @@ pub mod pallet {
         ///
         /// - `pool`: Currency pool, in which liquidity will be added
         /// - `liquidity_amounts`: Liquidity amounts to be added in pool
-        #[pallet::weight(10_000)]
+        #[pallet::weight(
+		{
+			let p = *pool;
+			let (_, base_asset, quote_asset) =
+				Pallet::<T, I>::get_upper_currency(p.0, p.1);
+			if Pools::< T, I >::contains_key(base_asset, quote_asset) {
+				T::WeightInfo::add_liquidity_existing_pool()
+			} else {
+				T::WeightInfo::add_liquidity_non_existing_pool()
+			}
+		}
+		)]
         #[transactional]
         pub fn add_liquidity(
             origin: OriginFor<T>,
@@ -214,7 +230,7 @@ pub mod pallet {
         ///
         /// - `pool`: Currency pool, in which liquidity will be removed
         /// - `liquidity_amounts`: Liquidity amounts to be removed from pool
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::remove_liquidity())]
         #[transactional]
         pub fn remove_liquidity(
             origin: OriginFor<T>,

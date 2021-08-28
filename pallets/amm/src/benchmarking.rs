@@ -27,12 +27,23 @@ fn initial_set_up<T: Config<I>, I: 'static>(caller: T::AccountId) {
 }
 
 benchmarks_instance_pallet! {
-    add_liquidity {
+    add_liquidity_non_existing_pool {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T, I>(caller.clone());
         let base_amount = 100_000;
         let quote_amount = 200_000;
-    }: _(SystemOrigin::Signed(caller.clone()), (BASE_ASSET, QUOTE_ASSET), (base_amount, quote_amount))
+    }: add_liquidity(SystemOrigin::Signed(caller.clone()), (BASE_ASSET, QUOTE_ASSET), (base_amount, quote_amount))
+    verify {
+        assert_last_event::<T, I>(Event::LiquidityAdded(caller, BASE_ASSET, QUOTE_ASSET).into());
+    }
+
+    add_liquidity_existing_pool {
+        let caller: T::AccountId = whitelisted_caller();
+        initial_set_up::<T, I>(caller.clone());
+        let base_amount = 100_000;
+        let quote_amount = 200_000;
+        assert_ok!(AMM::<T, I>::add_liquidity(SystemOrigin::Signed(caller.clone()).into(), (BASE_ASSET, QUOTE_ASSET), (base_amount, quote_amount)));
+    }: add_liquidity(SystemOrigin::Signed(caller.clone()), (BASE_ASSET, QUOTE_ASSET), (base_amount, quote_amount))
     verify {
         assert_last_event::<T, I>(Event::LiquidityAdded(caller, BASE_ASSET, QUOTE_ASSET).into());
     }
