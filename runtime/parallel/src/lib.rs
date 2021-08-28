@@ -1120,6 +1120,16 @@ impl orml_vesting::Config for Runtime {
     type BlockNumberProvider = RelaychainBlockNumberProvider<Runtime>;
 }
 
+parameter_types! {
+    pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
+}
+
+impl pallet_amm::Config for Runtime {
+    type Event = Event;
+    type Currency = Currencies;
+    type PalletId = AMMPalletId;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -1181,7 +1191,10 @@ construct_runtime!(
         TechnicalCommitteeMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>} = 71,
         OracleMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
         LiquidStakingAgentMembership: pallet_membership::<Instance4>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,
-        ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74
+        ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74,
+
+        // AMM
+        AMM: pallet_amm::{Pallet, Call, Storage, Event<T>} = 80,
     }
 );
 

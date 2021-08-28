@@ -129,7 +129,7 @@ pub fn heiko_config(_id: ParaId) -> Result<ChainSpec, String> {
     ChainSpec::from_json_bytes(&include_bytes!("../../../../resources/specs/heiko.json")[..])
     // Ok(ChainSpec::from_genesis(
     //     // Name
-    //     "Heiko",
+    //     "Parallel Heiko",
     //     // ID
     //     "heiko",
     //     ChainType::Live,
