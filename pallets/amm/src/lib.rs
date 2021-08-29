@@ -197,6 +197,11 @@ pub mod pallet {
                         Ok(())
                     },
                 )?;
+                T::Currency::transfer(base_asset, &who, &Self::account_id(), base_amount)?;
+                T::Currency::transfer(quote_asset, &who, &Self::account_id(), quote_amount)?;
+
+                Self::deposit_event(Event::<T, I>::LiquidityAdded(who, base_asset, quote_asset));
+                Ok(Some(T::WeightInfo::add_liquidity_non_existing_pool()).into())
             } else {
                 let ownership = base_amount.saturating_mul(quote_amount).integer_sqrt();
                 let amm_pool = PoolLiquidityAmount {
@@ -209,13 +214,12 @@ pub mod pallet {
                     (who.clone(), base_asset, quote_asset),
                     amm_pool,
                 );
+                T::Currency::transfer(base_asset, &who, &Self::account_id(), base_amount)?;
+                T::Currency::transfer(quote_asset, &who, &Self::account_id(), quote_amount)?;
+
+                Self::deposit_event(Event::<T, I>::LiquidityAdded(who, base_asset, quote_asset));
+                Ok(Some(T::WeightInfo::add_liquidity_existing_pool()).into())
             }
-
-            T::Currency::transfer(base_asset, &who, &Self::account_id(), base_amount)?;
-            T::Currency::transfer(quote_asset, &who, &Self::account_id(), quote_amount)?;
-
-            Self::deposit_event(Event::<T, I>::LiquidityAdded(who, base_asset, quote_asset));
-            Ok(().into())
         }
 
         /// Allow users to remove liquidity from a given pool
