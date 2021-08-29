@@ -1129,6 +1129,7 @@ impl pallet_amm::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
     type PalletId = AMMPalletId;
+    type WeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -1390,6 +1391,7 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_loans, LoansBench::<Runtime>);
             list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
             list_benchmark!(list, extra, pallet_timestamp, Timestamp);
+            list_benchmark!(list, extra, pallet_amm, AMM);
 
             let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1430,6 +1432,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_liquid_staking, LiquidStaking);
             add_benchmark!(params, batches, pallet_multisig, Multisig);
             add_benchmark!(params, batches, pallet_membership, TechnicalCommitteeMembership);
+            add_benchmark!(params, batches, pallet_amm, AMM);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)

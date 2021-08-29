@@ -24,8 +24,10 @@ extern crate alloc;
 mod mock;
 mod pool_structs;
 
+mod benchmarking;
 #[cfg(test)]
 mod tests;
+pub mod weights;
 
 use frame_support::pallet_prelude::*;
 use frame_support::{
@@ -43,6 +45,7 @@ use primitives::{Amount, Balance, CurrencyId, Rate};
 use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::traits::IntegerSquareRoot;
 use sp_runtime::ArithmeticError;
+pub use weights::WeightInfo;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -63,6 +66,9 @@ pub mod pallet {
 
         #[pallet::constant]
         type PalletId: Get<PalletId>;
+
+        /// Weight information for extrinsics in this pallet.
+        type WeightInfo: WeightInfo;
     }
 
     #[pallet::error]
@@ -128,13 +134,16 @@ pub mod pallet {
         ///
         /// - `pool`: Currency pool, in which liquidity will be added
         /// - `liquidity_amounts`: Liquidity amounts to be added in pool
-        #[pallet::weight(10_000)]
+        #[pallet::weight(
+		T::WeightInfo::add_liquidity_non_existing_pool() // Adds liquidity in already existing account.
+		.max(T::WeightInfo::add_liquidity_existing_pool()) // Adds liquidity in new account
+		)]
         #[transactional]
         pub fn add_liquidity(
             origin: OriginFor<T>,
             pool: (CurrencyId, CurrencyId),
             liquidity_amounts: (Balance, Balance),
-        ) -> DispatchResult {
+        ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             let (is_inverted, base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
 
@@ -188,6 +197,11 @@ pub mod pallet {
                         Ok(())
                     },
                 )?;
+                T::Currency::transfer(base_asset, &who, &Self::account_id(), base_amount)?;
+                T::Currency::transfer(quote_asset, &who, &Self::account_id(), quote_amount)?;
+
+                Self::deposit_event(Event::<T, I>::LiquidityAdded(who, base_asset, quote_asset));
+                Ok(Some(T::WeightInfo::add_liquidity_non_existing_pool()).into())
             } else {
                 let ownership = base_amount.saturating_mul(quote_amount).integer_sqrt();
                 let amm_pool = PoolLiquidityAmount {
@@ -200,20 +214,19 @@ pub mod pallet {
                     (who.clone(), base_asset, quote_asset),
                     amm_pool,
                 );
+                T::Currency::transfer(base_asset, &who, &Self::account_id(), base_amount)?;
+                T::Currency::transfer(quote_asset, &who, &Self::account_id(), quote_amount)?;
+
+                Self::deposit_event(Event::<T, I>::LiquidityAdded(who, base_asset, quote_asset));
+                Ok(Some(T::WeightInfo::add_liquidity_existing_pool()).into())
             }
-
-            T::Currency::transfer(base_asset, &who, &Self::account_id(), base_amount)?;
-            T::Currency::transfer(quote_asset, &who, &Self::account_id(), quote_amount)?;
-
-            Self::deposit_event(Event::<T, I>::LiquidityAdded(who, base_asset, quote_asset));
-            Ok(())
         }
 
         /// Allow users to remove liquidity from a given pool
         ///
         /// - `pool`: Currency pool, in which liquidity will be removed
         /// - `liquidity_amounts`: Liquidity amounts to be removed from pool
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::remove_liquidity())]
         #[transactional]
         pub fn remove_liquidity(
             origin: OriginFor<T>,
