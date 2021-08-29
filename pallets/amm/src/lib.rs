@@ -135,23 +135,15 @@ pub mod pallet {
         /// - `pool`: Currency pool, in which liquidity will be added
         /// - `liquidity_amounts`: Liquidity amounts to be added in pool
         #[pallet::weight(
-		{
-			let p = *pool;
-			let (_, base_asset, quote_asset) =
-				Pallet::<T, I>::get_upper_currency(p.0, p.1);
-			if Pools::< T, I >::contains_key(base_asset, quote_asset) {
-				T::WeightInfo::add_liquidity_existing_pool()
-			} else {
-				T::WeightInfo::add_liquidity_non_existing_pool()
-			}
-		}
+		T::WeightInfo::add_liquidity_non_existing_pool() // Adds liquidity in already existing account.
+		.max(T::WeightInfo::add_liquidity_existing_pool()) // Adds liquidity in new account
 		)]
         #[transactional]
         pub fn add_liquidity(
             origin: OriginFor<T>,
             pool: (CurrencyId, CurrencyId),
             liquidity_amounts: (Balance, Balance),
-        ) -> DispatchResult {
+        ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             let (is_inverted, base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
 
@@ -223,7 +215,7 @@ pub mod pallet {
             T::Currency::transfer(quote_asset, &who, &Self::account_id(), quote_amount)?;
 
             Self::deposit_event(Event::<T, I>::LiquidityAdded(who, base_asset, quote_asset));
-            Ok(())
+            Ok(().into())
         }
 
         /// Allow users to remove liquidity from a given pool
