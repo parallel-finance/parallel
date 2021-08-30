@@ -6,13 +6,13 @@ cd $DIR
 
 set -xe
 
-RELAY_WS_PORT=9950
-RELAY_RPC_PORT=9939
-RELAY_P2P_PORT=30339
+RELAY_WS_PORT=9945
+RELAY_RPC_PORT=9934
+RELAY_P2P_PORT=30334
 
-PARA_WS_PORT=9951
-PARA_RPC_PORT=9940
-PARA_P2P_PORT=30340
+PARA_WS_PORT=9944
+PARA_RPC_PORT=9933
+PARA_P2P_PORT=30333
 
 PARA_ID=2085
 
@@ -53,9 +53,6 @@ docker run --restart=always --name heiko-collator \
     --rpc-port=$PARA_RPC_PORT \
     --keystore-path=/app/keystore \
     --node-key=$NODE_KEY \
-    --ws-external \
-    --rpc-external \
-    --rpc-cors all \
     --pruning archive \
     --wasm-execution=compiled \
     --execution=wasm \
@@ -65,13 +62,10 @@ docker run --restart=always --name heiko-collator \
     --chain=$RELAY_CHAIN \
     --ws-port=$RELAY_WS_PORT \
     --rpc-port=$RELAY_RPC_PORT \
-    --ws-external \
-    --rpc-external \
-    --rpc-cors all \
     --wasm-execution=compiled \
     --execution=wasm \
     --pruning archive \
     --listen-addr=/ip4/0.0.0.0/tcp/$RELAY_P2P_PORT \
-    --name="$NODE_NAME (Embedded Relay)"
+    --name="${NODE_NAME}_Embedded_Relay"
 
 # docker logs -f heiko-collator
