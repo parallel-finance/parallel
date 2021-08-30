@@ -32,7 +32,8 @@ benchmarks_instance_pallet! {
         initial_set_up::<T, I>(caller.clone());
         let base_amount = 100_000;
         let quote_amount = 200_000;
-    }: add_liquidity(SystemOrigin::Signed(caller.clone()), (BASE_ASSET, QUOTE_ASSET), (base_amount, quote_amount))
+    }: add_liquidity(SystemOrigin::Signed(caller.clone()), (BASE_ASSET, QUOTE_ASSET), (base_amount, quote_amount),
+            (5, 5))
     verify {
         assert_last_event::<T, I>(Event::LiquidityAdded(caller, BASE_ASSET, QUOTE_ASSET).into());
     }
@@ -42,8 +43,11 @@ benchmarks_instance_pallet! {
         initial_set_up::<T, I>(caller.clone());
         let base_amount = 100_000;
         let quote_amount = 200_000;
-        assert_ok!(AMM::<T, I>::add_liquidity(SystemOrigin::Signed(caller.clone()).into(), (BASE_ASSET, QUOTE_ASSET), (base_amount, quote_amount)));
-    }: add_liquidity(SystemOrigin::Signed(caller.clone()), (BASE_ASSET, QUOTE_ASSET), (base_amount, quote_amount))
+        assert_ok!(AMM::<T, I>::add_liquidity(SystemOrigin::Signed(caller.clone()).into(),
+            (BASE_ASSET, QUOTE_ASSET), (base_amount, quote_amount),
+            (5, 5)));
+    }: add_liquidity(SystemOrigin::Signed(caller.clone()), (BASE_ASSET, QUOTE_ASSET),
+        (base_amount, quote_amount), (5, 5))
     verify {
         assert_last_event::<T, I>(Event::LiquidityAdded(caller, BASE_ASSET, QUOTE_ASSET).into());
     }
@@ -53,7 +57,9 @@ benchmarks_instance_pallet! {
         initial_set_up::<T, I>(caller.clone());
         let base_amount = 100_000;
         let quote_amount = 900_000;
-        assert_ok!(AMM::<T, I>::add_liquidity(SystemOrigin::Signed(caller.clone()).into(), (BASE_ASSET, QUOTE_ASSET), (base_amount, quote_amount)));
+        assert_ok!(AMM::<T, I>::add_liquidity(SystemOrigin::Signed(caller.clone()).into(),
+            (BASE_ASSET, QUOTE_ASSET), (base_amount, quote_amount),
+            (5, 5)));
     }: _(SystemOrigin::Signed(caller.clone()), (BASE_ASSET, QUOTE_ASSET), 300_000)
     verify {
         assert_last_event::<T, I>(Event::LiquidityRemoved(caller, BASE_ASSET, QUOTE_ASSET).into());

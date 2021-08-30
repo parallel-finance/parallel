@@ -180,10 +180,10 @@ pub mod pallet {
                 let (minimum_base_amount, minimum_quote_amount) = minimum_amounts;
 
                 ensure!(
-                    ideal_base_amount > minimum_base_amount
-                        && ideal_quote_amount > minimum_quote_amount
-                        && ideal_base_amount < base_amount
-                        && ideal_quote_amount < quote_amount,
+                    ideal_base_amount >= minimum_base_amount
+                        && ideal_quote_amount >= minimum_quote_amount
+                        && ideal_base_amount <= base_amount
+                        && ideal_quote_amount <= quote_amount,
                     Error::<T, I>::NotAIdealPriceRatio
                 );
 
