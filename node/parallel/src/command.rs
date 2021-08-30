@@ -526,6 +526,10 @@ impl CliConfiguration<Self> for RelayChainCli {
         self.base.base.rpc_ws_max_connections()
     }
 
+    fn rpc_http_threads(&self) -> Result<Option<usize>> {
+        self.base.base.rpc_http_threads()
+    }
+
     fn rpc_cors(&self, is_dev: bool) -> Result<Option<Vec<String>>> {
         self.base.base.rpc_cors(is_dev)
     }
@@ -552,5 +556,12 @@ impl CliConfiguration<Self> for RelayChainCli {
 
     fn announce_block(&self) -> Result<bool> {
         self.base.base.announce_block()
+    }
+
+    fn telemetry_endpoints(
+        &self,
+        chain_spec: &Box<dyn ChainSpec>,
+    ) -> Result<Option<sc_telemetry::TelemetryEndpoints>> {
+        self.base.base.telemetry_endpoints(chain_spec)
     }
 }
