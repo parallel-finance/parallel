@@ -19,22 +19,15 @@ PARA_ID=2085
 PARA_CHAIN="heiko"
 RELAY_CHAIN="kusama"
 VOLUME="chains"
-NODE_KEY="$1"
-KEYSTORE_PATH="$2"
-NODE_NAME="$3"
 
-if [ $# -lt 3 ]; then
-  echo "help: ./collator.sh <NODE_KEY> <KEYSTORE_PATH> <NODE_NAME>" && exit 1
-fi
-
-docker container stop heiko-collator || true
-docker container rm heiko-collator || true
+docker container stop heiko-fullnode || true
+docker container rm heiko-fullnode || true
 
 # docker volume rm $VOLUME || true
 
 docker volume create $VOLUME || true
 
-docker run --restart=always --name heiko-collator \
+docker run --restart=always --name heiko-fullnode \
   -d \
   -p $PARA_WS_PORT:$PARA_WS_PORT \
   -p $PARA_RPC_PORT:$PARA_RPC_PORT \
@@ -43,16 +36,12 @@ docker run --restart=always --name heiko-collator \
   -p $RELAY_RPC_PORT:$RELAY_RPC_PORT \
   -p $RELAY_P2P_PORT:$RELAY_P2P_PORT \
   -v "$VOLUME:/data" \
-  -v "$(realpath $KEYSTORE_PATH):/app/keystore" \
   parallelfinance/parallel:v1.0.0 \
     -d /data \
     --chain=$PARA_CHAIN \
-    --collator \
     --parachain-id=$PARA_ID \
     --ws-port=$PARA_WS_PORT \
     --rpc-port=$PARA_RPC_PORT \
-    --keystore-path=/app/keystore \
-    --node-key=$NODE_KEY \
     --ws-external \
     --rpc-external \
     --rpc-cors all \
@@ -60,7 +49,6 @@ docker run --restart=always --name heiko-collator \
     --wasm-execution=compiled \
     --execution=wasm \
     --listen-addr=/ip4/0.0.0.0/tcp/$PARA_P2P_PORT \
-    --name=$NODE_NAME \
   -- \
     --chain=$RELAY_CHAIN \
     --ws-port=$RELAY_WS_PORT \
@@ -71,7 +59,6 @@ docker run --restart=always --name heiko-collator \
     --wasm-execution=compiled \
     --execution=wasm \
     --pruning archive \
-    --listen-addr=/ip4/0.0.0.0/tcp/$RELAY_P2P_PORT \
-    --name="$NODE_NAME (Embedded Relay)"
+    --listen-addr=/ip4/0.0.0.0/tcp/$RELAY_P2P_PORT
 
-# docker logs -f heiko-collator
+# docker logs -f heiko-fullnode
