@@ -177,7 +177,10 @@ pub mod pallet {
                         (optimal_base_amount, quote_amount)
                     };
 
-                let (minimum_base_amount, minimum_quote_amount) = minimum_amounts;
+                let (minimum_base_amount, minimum_quote_amount) = match is_inverted {
+                    true => (minimum_amounts.1, minimum_amounts.0),
+                    false => (minimum_amounts.0, minimum_amounts.1),
+                };
 
                 ensure!(
                     ideal_base_amount >= minimum_base_amount
