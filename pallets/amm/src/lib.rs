@@ -171,8 +171,8 @@ pub mod pallet {
                     } else {
                         let optimal_base_amount = Self::quote(
                             quote_amount,
-                            pool_liquidity_amount.base_amount,
                             pool_liquidity_amount.quote_amount,
+                            pool_liquidity_amount.base_amount,
                         );
                         (optimal_base_amount, quote_amount)
                     };
