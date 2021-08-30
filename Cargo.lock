@@ -5887,7 +5887,6 @@ dependencies = [
  "orml-traits",
  "parallel-primitives",
  "parity-scale-codec",
- "sp-arithmetic",
  "sp-runtime",
 ]
 

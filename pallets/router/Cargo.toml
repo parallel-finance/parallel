@@ -10,7 +10,6 @@ frame-system       = { git = 'https://github.com/paritytech/substrate', branch =
 orml-traits        = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 parity-scale-codec = { version = '2.0', default-features = false, features = ['derive'] }
 primitives         = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
-sp-arithmetic      = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
 sp-runtime         = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
 
 [features]
@@ -21,6 +20,5 @@ std = [
     'orml-traits/std',
     'parity-scale-codec/std',
     'primitives/std',
-    'sp-arithmetic/std',
     'sp-runtime/std',
 ]

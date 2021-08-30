@@ -23,6 +23,7 @@ pub use crate::pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
     use frame_support::{
+        ensure,
         pallet_prelude::DispatchResultWithPostInfo,
         traits::{Get, Hooks, IsType},
         transactional, PalletId,
@@ -33,18 +34,23 @@ pub mod pallet {
     };
     use orml_traits::{MultiCurrency, MultiCurrencyExtended};
     use primitives::{CurrencyId, AMM};
+    use sp_runtime::traits::Zero;
 
     pub(crate) type BalanceOf<T> =
         <<T as Config>::Currency as MultiCurrency<<T as frame_system::Config>::AccountId>>::Balance;
 
-    pub type Route = Vec<(
+    pub(crate) type CurrencyIdOf<T> = <<T as Config>::Currency as MultiCurrency<
+        <T as frame_system::Config>::AccountId,
+    >>::CurrencyId;
+
+    pub type Route<T> = Vec<(
         // ID of the AMM to use, as specified in the `Config` trait. Setting this
         // to 0 would take the first AMM instance specified in `type AMMs`.
         u8,
         // Base asset
-        CurrencyId,
+        CurrencyIdOf<T>,
         // Quote asset
-        CurrencyId,
+        CurrencyIdOf<T>,
     )>;
 
     #[pallet::config]
@@ -54,7 +60,7 @@ pub mod pallet {
         type PalletId: Get<PalletId>;
 
         /// Specify all the AMMs we are routing between
-        type AMMs: Get<Vec<Route>>;
+        type AMMs: Get<Route<Self>>;
 
         /// Trade interface
         type AMM: AMM<Self::AccountId, CurrencyId, BalanceOf<Self>>;
@@ -67,32 +73,79 @@ pub mod pallet {
     pub struct Pallet<T>(_);
 
     #[pallet::error]
-    pub enum Error<T> {}
+    pub enum Error<T> {
+        BalanceLow,
+        EnptyRouters,
+        InsufficientBalance,
+        NotSupportRouter,
+        TooSmallExpiry,
+    }
 
     #[pallet::event]
-    pub enum Event<T: Config> {}
+    #[pallet::metadata(T::AccountId = "AccountId", BalanceOf<T> = "Balance")]
+    #[pallet::generate_deposit(pub (crate) fn deposit_event)]
+    pub enum Event<T: Config> {
+        /// Event emitted when swap is successful
+        /// [sender, amount_in, route, amount_out]
+        TradedSuccessfully(T::AccountId, BalanceOf<T>, Route<T>, BalanceOf<T>),
+    }
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        #[allow(unused_variables)]
         #[pallet::weight(10_000)]
         #[transactional]
         pub fn trade(
             origin: OriginFor<T>,
-            route: Route,
+            route: Route<T>,
             #[pallet::compact] amount_in: BalanceOf<T>,
             #[pallet::compact] min_amount_out: BalanceOf<T>,
             #[pallet::compact] expiry: BlockNumberFor<T>,
         ) -> DispatchResultWithPostInfo {
             let trader = ensure_signed(origin)?;
 
+            // Ensure the length of routers should be >= 1 at least.
+            ensure!(!route.is_empty(), Error::<T>::EnptyRouters);
+
+            // Ensure balances user input is bigger than zero.
+            ensure!(
+                amount_in > Zero::zero() && min_amount_out > Zero::zero(),
+                Error::<T>::BalanceLow
+            );
+
+            // Ensure user iput a valid block number.
+            let current_block_num = <frame_system::Pallet<T>>::block_number();
+            ensure!(expiry > current_block_num, Error::<T>::TooSmallExpiry);
+
+            // Ensure the trader has enough tokens for transaction.
+            let (_, from_currency_id, _) = route[0];
+            ensure!(
+                T::Currency::free_balance(from_currency_id, &trader) > amount_in,
+                Error::<T>::InsufficientBalance
+            );
+
+            // Get all AMM routers we're supporting now.
             let all_routers = T::AMMs::get();
 
+            // Ensure the routers user input is valid.
+            ensure!(
+                route
+                    .iter()
+                    .all(|router| all_routers.iter().any(|r| r == router)),
+                Error::<T>::NotSupportRouter
+            );
+
             // router implementation
-            // T::AMM::trade(...);
+            // let amount_out = T::AMM::trade(&trader, (from_currency_id, to_currency_id), amount_in, min_amount_out))?;
+
+            // Self::deposit_event(Event::TradedSuccessfully(
+            //     trader,
+            //     amount_in,
+            //     route,
+            //     amount_out,
+            // ));
 
             Ok(().into())
         }
