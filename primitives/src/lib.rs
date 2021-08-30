@@ -19,6 +19,7 @@
 pub mod network;
 
 use codec::{Decode, Encode};
+use frame_support::pallet_prelude::DispatchResult;
 use sp_runtime::{
     traits::{CheckedDiv, IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
@@ -151,4 +152,13 @@ pub trait EmergencyPriceFeeder<CurrencyId, PriceWithDecimal> {
 
 pub trait ExchangeRateProvider {
     fn get_exchange_rate() -> Rate;
+}
+
+pub trait AMM<AccountId, CurrencyId, Balance> {
+    fn trade(
+        who: &AccountId,
+        pair: (CurrencyId, CurrencyId),
+        amount_in: Balance,
+        min_amount_out: Balance,
+    ) -> DispatchResult;
 }

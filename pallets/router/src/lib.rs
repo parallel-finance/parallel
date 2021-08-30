@@ -23,7 +23,7 @@ pub use crate::pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
     use frame_support::{
-        pallet_prelude::{DispatchResult, DispatchResultWithPostInfo},
+        pallet_prelude::DispatchResultWithPostInfo,
         traits::{Get, Hooks, IsType},
         transactional, PalletId,
     };
@@ -32,7 +32,7 @@ pub mod pallet {
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
     use orml_traits::{MultiCurrency, MultiCurrencyExtended};
-    use primitives::CurrencyId;
+    use primitives::{CurrencyId, AMM};
 
     pub(crate) type BalanceOf<T> =
         <<T as Config>::Currency as MultiCurrency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -47,16 +47,6 @@ pub mod pallet {
         CurrencyId,
     )>;
 
-    pub trait AMM<T: Config> {
-        fn trade(
-            &self,
-            who: &T::AccountId,
-            pair: (CurrencyId, CurrencyId),
-            amount_in: BalanceOf<T>,
-            min_amount_out: BalanceOf<T>,
-        ) -> DispatchResult;
-    }
-
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
@@ -65,6 +55,9 @@ pub mod pallet {
 
         /// Specify all the AMMs we are routing between
         type AMMs: Get<Vec<Route>>;
+
+        /// Trade interface
+        type AMM: AMM<Self::AccountId, CurrencyId, BalanceOf<Self>>;
 
         type Currency: MultiCurrencyExtended<Self::AccountId>;
     }
@@ -84,6 +77,7 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        #[allow(unused_variables)]
         #[pallet::weight(10_000)]
         #[transactional]
         pub fn trade(
@@ -98,6 +92,7 @@ pub mod pallet {
             let all_routers = T::AMMs::get();
 
             // router implementation
+            // T::AMM::trade(...);
 
             Ok(().into())
         }
