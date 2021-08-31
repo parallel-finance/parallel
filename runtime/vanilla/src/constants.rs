@@ -14,6 +14,7 @@
 
 pub mod currency {
     use primitives::Balance;
+
     pub const MILLICENTS: Balance = 10_000_000;
     pub const CENTS: Balance = 1_000 * MILLICENTS; // assume this is worth about a cent.
     pub const DOLLARS: Balance = 100 * CENTS;
@@ -27,12 +28,15 @@ pub mod currency {
 
 pub mod time {
     use primitives::{BlockNumber, Moment};
+    /// This determines the average expected block time that we are targetting.
+    /// Blocks will be produced at a minimum duration defined by `SLOT_DURATION`.
+    /// `SLOT_DURATION` is picked up by `pallet_timestamp` which is in turn picked
+    /// up by `pallet_aura` to implement `fn slot_duration()`.
+    ///
     /// Change this to adjust the block time.
-    pub const MILLISECS_PER_BLOCK: Moment = 6000;
+    pub const MILLISECS_PER_BLOCK: Moment = 12000;
 
-    // NOTE: Currently it is not possible to change the slot duration after the chain has started.
-    //       Attempting to do so will brick block production.
-    pub const SLOT_DURATION: Moment = MILLISECS_PER_BLOCK;
+    pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
 
     // Time is measured by number of blocks.
     pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
@@ -43,8 +47,8 @@ pub mod time {
 /// Fee-related.
 pub mod fee {
     use frame_support::weights::{
-        constants::ExtrinsicBaseWeight, WeightToFeeCoefficient, WeightToFeeCoefficients,
-        WeightToFeePolynomial,
+        constants::{ExtrinsicBaseWeight, WEIGHT_PER_SECOND},
+        WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
     };
     use primitives::Balance;
     use smallvec::smallvec;
@@ -78,5 +82,12 @@ pub mod fee {
                 coeff_integer: p / q,
             }]
         }
+    }
+
+    pub fn ksm_per_second() -> u128 {
+        let base_weight = Balance::from(ExtrinsicBaseWeight::get());
+        let base_tx_per_second = (WEIGHT_PER_SECOND as u128) / base_weight;
+        let hko_per_second = base_tx_per_second * super::currency::CENTS / 10;
+        hko_per_second / 100
     }
 }

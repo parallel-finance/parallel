@@ -28,6 +28,7 @@ pallet-loans-rpc                           = { path = '../../pallets/loans/rpc' 
 pallet-transaction-payment-rpc             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
 pallet-transaction-payment-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
 parallel-runtime                           = { path = '../../runtime/parallel' }
+vanilla-runtime                            = { path = '../../runtime/vanilla' }
 
 sc-basic-authorship     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
 sc-chain-spec           = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
@@ -94,6 +95,7 @@ default            = ['std']
 runtime-benchmarks = [
   'parallel-runtime/runtime-benchmarks',
   'heiko-runtime/runtime-benchmarks',
+  'vanilla-runtime/runtime-benchmarks',
   'polkadot-service/runtime-benchmarks',
 ]
 std                = []

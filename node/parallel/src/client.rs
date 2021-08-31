@@ -160,15 +160,38 @@ pub enum Client {
     Heiko(
         Arc<crate::service::FullClient<heiko_runtime::RuntimeApi, crate::service::HeikoExecutor>>,
     ),
+    Vanilla(
+        Arc<
+            crate::service::FullClient<
+                vanilla_runtime::RuntimeApi,
+                crate::service::VanillaExecutor,
+            >,
+        >,
+    ),
+}
+
+macro_rules! with_client {
+	{
+		$self:ident,
+		$client:ident,
+		{
+			$( $code:tt )*
+		}
+	} => {
+		match $self {
+			Self::Parallel($client) => { $( $code )* },
+			Self::Heiko($client) => { $( $code )* },
+            Self::Vanilla($client) => { $( $code )* }
+		}
+	}
 }
 
 impl ClientHandle for Client {
     fn execute_with<T: ExecuteWithClient>(&self, t: T) -> T::Output {
-        match self {
-            Self::Parallel(client) => {
-                T::execute_with_client::<_, _, crate::service::FullBackend>(t, client.clone())
-            }
-            Self::Heiko(client) => {
+        with_client! {
+            self,
+            client,
+            {
                 T::execute_with_client::<_, _, crate::service::FullBackend>(t, client.clone())
             }
         }
@@ -177,9 +200,12 @@ impl ClientHandle for Client {
 
 impl sc_client_api::UsageProvider<Block> for Client {
     fn usage_info(&self) -> sc_client_api::ClientInfo<Block> {
-        match self {
-            Self::Parallel(client) => client.usage_info(),
-            Self::Heiko(client) => client.usage_info(),
+        with_client! {
+            self,
+            client,
+            {
+                client.usage_info()
+            }
         }
     }
 }
@@ -189,37 +215,52 @@ impl sc_client_api::BlockBackend<Block> for Client {
         &self,
         id: &BlockId,
     ) -> sp_blockchain::Result<Option<Vec<<Block as BlockT>::Extrinsic>>> {
-        match self {
-            Self::Parallel(client) => client.block_body(id),
-            Self::Heiko(client) => client.block_body(id),
+        with_client! {
+            self,
+            client,
+            {
+                client.block_body(id)
+            }
         }
     }
 
     fn block_indexed_body(&self, id: &BlockId) -> sp_blockchain::Result<Option<Vec<Vec<u8>>>> {
-        match self {
-            Self::Parallel(client) => client.block_indexed_body(id),
-            Self::Heiko(client) => client.block_indexed_body(id),
+        with_client! {
+            self,
+            client,
+            {
+                 client.block_indexed_body(id)
+            }
         }
     }
 
     fn block(&self, id: &BlockId) -> sp_blockchain::Result<Option<SignedBlock<Block>>> {
-        match self {
-            Self::Parallel(client) => client.block(id),
-            Self::Heiko(client) => client.block(id),
+        with_client! {
+            self,
+            client,
+            {
+                client.block(id)
+            }
         }
     }
 
     fn block_status(&self, id: &BlockId) -> sp_blockchain::Result<BlockStatus> {
-        match self {
-            Self::Parallel(client) => client.block_status(id),
-            Self::Heiko(client) => client.block_status(id),
+        with_client! {
+            self,
+            client,
+            {
+                client.block_status(id)
+            }
         }
     }
 
     fn justifications(&self, id: &BlockId) -> sp_blockchain::Result<Option<Justifications>> {
-        match self {
-            Self::Parallel(client) => client.justifications(id),
-            Self::Heiko(client) => client.justifications(id),
+        with_client! {
+            self,
+            client,
+            {
+                 client.justifications(id)
+            }
         }
     }
 
@@ -227,9 +268,12 @@ impl sc_client_api::BlockBackend<Block> for Client {
         &self,
         number: NumberFor<Block>,
     ) -> sp_blockchain::Result<Option<<Block as BlockT>::Hash>> {
-        match self {
-            Self::Parallel(client) => client.block_hash(number),
-            Self::Heiko(client) => client.block_hash(number),
+        with_client! {
+            self,
+            client,
+            {
+                client.block_hash(number)
+            }
         }
     }
 
@@ -237,9 +281,12 @@ impl sc_client_api::BlockBackend<Block> for Client {
         &self,
         hash: &<Block as BlockT>::Hash,
     ) -> sp_blockchain::Result<Option<Vec<u8>>> {
-        match self {
-            Self::Parallel(client) => client.indexed_transaction(hash),
-            Self::Heiko(client) => client.indexed_transaction(hash),
+        with_client! {
+            self,
+            client,
+            {
+                client.indexed_transaction(hash)
+            }
         }
     }
 
@@ -247,9 +294,12 @@ impl sc_client_api::BlockBackend<Block> for Client {
         &self,
         hash: &<Block as BlockT>::Hash,
     ) -> sp_blockchain::Result<bool> {
-        match self {
-            Self::Parallel(client) => client.has_indexed_transaction(hash),
-            Self::Heiko(client) => client.has_indexed_transaction(hash),
+        with_client! {
+            self,
+            client,
+            {
+                 client.has_indexed_transaction(hash)
+            }
         }
     }
 }
@@ -260,9 +310,12 @@ impl sc_client_api::StorageProvider<Block, crate::service::FullBackend> for Clie
         id: &BlockId,
         key: &StorageKey,
     ) -> sp_blockchain::Result<Option<StorageData>> {
-        match self {
-            Self::Parallel(client) => client.storage(id, key),
-            Self::Heiko(client) => client.storage(id, key),
+        with_client! {
+            self,
+            client,
+            {
+                client.storage(id, key)
+            }
         }
     }
 
@@ -271,9 +324,12 @@ impl sc_client_api::StorageProvider<Block, crate::service::FullBackend> for Clie
         id: &BlockId,
         key_prefix: &StorageKey,
     ) -> sp_blockchain::Result<Vec<StorageKey>> {
-        match self {
-            Self::Parallel(client) => client.storage_keys(id, key_prefix),
-            Self::Heiko(client) => client.storage_keys(id, key_prefix),
+        with_client! {
+            self,
+            client,
+            {
+                client.storage_keys(id, key_prefix)
+            }
         }
     }
 
@@ -282,9 +338,12 @@ impl sc_client_api::StorageProvider<Block, crate::service::FullBackend> for Clie
         id: &BlockId,
         key: &StorageKey,
     ) -> sp_blockchain::Result<Option<<Block as BlockT>::Hash>> {
-        match self {
-            Self::Parallel(client) => client.storage_hash(id, key),
-            Self::Heiko(client) => client.storage_hash(id, key),
+        with_client! {
+            self,
+            client,
+            {
+                 client.storage_hash(id, key)
+            }
         }
     }
 
@@ -293,9 +352,12 @@ impl sc_client_api::StorageProvider<Block, crate::service::FullBackend> for Clie
         id: &BlockId,
         key_prefix: &StorageKey,
     ) -> sp_blockchain::Result<Vec<(StorageKey, StorageData)>> {
-        match self {
-            Self::Parallel(client) => client.storage_pairs(id, key_prefix),
-            Self::Heiko(client) => client.storage_pairs(id, key_prefix),
+        with_client! {
+            self,
+            client,
+            {
+                client.storage_pairs(id, key_prefix)
+            }
         }
     }
 
@@ -311,9 +373,12 @@ impl sc_client_api::StorageProvider<Block, crate::service::FullBackend> for Clie
             Block,
         >,
     > {
-        match self {
-            Self::Parallel(client) => client.storage_keys_iter(id, prefix, start_key),
-            Self::Heiko(client) => client.storage_keys_iter(id, prefix, start_key),
+        with_client! {
+            self,
+            client,
+            {
+                client.storage_keys_iter(id, prefix, start_key)
+            }
         }
     }
 
@@ -323,9 +388,12 @@ impl sc_client_api::StorageProvider<Block, crate::service::FullBackend> for Clie
         child_info: &ChildInfo,
         key: &StorageKey,
     ) -> sp_blockchain::Result<Option<StorageData>> {
-        match self {
-            Self::Parallel(client) => client.child_storage(id, child_info, key),
-            Self::Heiko(client) => client.child_storage(id, child_info, key),
+        with_client! {
+            self,
+            client,
+            {
+                client.child_storage(id, child_info, key)
+            }
         }
     }
 
@@ -335,9 +403,12 @@ impl sc_client_api::StorageProvider<Block, crate::service::FullBackend> for Clie
         child_info: &ChildInfo,
         key_prefix: &StorageKey,
     ) -> sp_blockchain::Result<Vec<StorageKey>> {
-        match self {
-            Self::Parallel(client) => client.child_storage_keys(id, child_info, key_prefix),
-            Self::Heiko(client) => client.child_storage_keys(id, child_info, key_prefix),
+        with_client! {
+            self,
+            client,
+            {
+                client.child_storage_keys(id, child_info, key_prefix)
+            }
         }
     }
 
@@ -354,11 +425,10 @@ impl sc_client_api::StorageProvider<Block, crate::service::FullBackend> for Clie
             Block,
         >,
     > {
-        match self {
-            Self::Parallel(client) => {
-                client.child_storage_keys_iter(id, child_info, prefix, start_key)
-            }
-            Self::Heiko(client) => {
+        with_client! {
+            self,
+            client,
+            {
                 client.child_storage_keys_iter(id, child_info, prefix, start_key)
             }
         }
@@ -370,9 +440,12 @@ impl sc_client_api::StorageProvider<Block, crate::service::FullBackend> for Clie
         child_info: &ChildInfo,
         key: &StorageKey,
     ) -> sp_blockchain::Result<Option<<Block as BlockT>::Hash>> {
-        match self {
-            Self::Parallel(client) => client.child_storage_hash(id, child_info, key),
-            Self::Heiko(client) => client.child_storage_hash(id, child_info, key),
+        with_client! {
+            self,
+            client,
+            {
+                client.child_storage_hash(id, child_info, key)
+            }
         }
     }
 
@@ -381,9 +454,12 @@ impl sc_client_api::StorageProvider<Block, crate::service::FullBackend> for Clie
         first: NumberFor<Block>,
         last: BlockId,
     ) -> sp_blockchain::Result<Option<(NumberFor<Block>, BlockId)>> {
-        match self {
-            Self::Parallel(client) => client.max_key_changes_range(first, last),
-            Self::Heiko(client) => client.max_key_changes_range(first, last),
+        with_client! {
+            self,
+            client,
+            {
+                client.max_key_changes_range(first, last)
+            }
         }
     }
 
@@ -394,46 +470,64 @@ impl sc_client_api::StorageProvider<Block, crate::service::FullBackend> for Clie
         storage_key: Option<&PrefixedStorageKey>,
         key: &StorageKey,
     ) -> sp_blockchain::Result<Vec<(NumberFor<Block>, u32)>> {
-        match self {
-            Self::Parallel(client) => client.key_changes(first, last, storage_key, key),
-            Self::Heiko(client) => client.key_changes(first, last, storage_key, key),
+        with_client! {
+            self,
+            client,
+            {
+                client.key_changes(first, last, storage_key, key)
+            }
         }
     }
 }
 
 impl sp_blockchain::HeaderBackend<Block> for Client {
     fn header(&self, id: BlockId) -> sp_blockchain::Result<Option<Header>> {
-        match self {
-            Self::Parallel(client) => client.header(&id),
-            Self::Heiko(client) => client.header(&id),
+        with_client! {
+            self,
+            client,
+            {
+                client.header(&id)
+            }
         }
     }
 
     fn info(&self) -> sp_blockchain::Info<Block> {
-        match self {
-            Self::Parallel(client) => client.info(),
-            Self::Heiko(client) => client.info(),
+        with_client! {
+            self,
+            client,
+            {
+                client.info()
+            }
         }
     }
 
     fn status(&self, id: BlockId) -> sp_blockchain::Result<sp_blockchain::BlockStatus> {
-        match self {
-            Self::Parallel(client) => client.status(id),
-            Self::Heiko(client) => client.status(id),
+        with_client! {
+            self,
+            client,
+            {
+                client.status(id)
+            }
         }
     }
 
     fn number(&self, hash: Hash) -> sp_blockchain::Result<Option<BlockNumber>> {
-        match self {
-            Self::Parallel(client) => client.number(hash),
-            Self::Heiko(client) => client.number(hash),
+        with_client! {
+            self,
+            client,
+            {
+                client.number(hash)
+            }
         }
     }
 
     fn hash(&self, number: BlockNumber) -> sp_blockchain::Result<Option<Hash>> {
-        match self {
-            Self::Parallel(client) => client.hash(number),
-            Self::Heiko(client) => client.hash(number),
+        with_client! {
+            self,
+            client,
+            {
+                client.hash(number)
+            }
         }
     }
 }

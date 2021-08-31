@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        bin: ["parallel", "parallel-dev"]
+        bin: ["parallel"]
 
     steps:
       - name: Checkout github repo (+ download lfs dependencies)
