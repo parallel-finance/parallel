@@ -2933,7 +2933,7 @@ dependencies = [
 
 [[package]]
 name = "heiko-runtime"
-version = "0.0.1"
+version = "1.0.0"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -5176,17 +5176,21 @@ dependencies = [
 name = "pallet-amm"
 version = "3.0.0"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "orml-currencies",
  "orml-tokens",
  "orml-traits",
  "pallet-balances",
  "parallel-primitives",
  "parity-scale-codec",
+ "serde",
  "sp-arithmetic",
  "sp-core",
  "sp-io",
  "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -6216,56 +6220,6 @@ dependencies = [
  "structopt",
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
-]
-
-[[package]]
-name = "parallel-dev"
-version = "1.0.0"
-dependencies = [
- "derive_more 0.15.0",
- "frame-benchmarking",
- "frame-benchmarking-cli",
- "hex-literal 0.2.1",
- "jsonrpc-core",
- "log",
- "orml-oracle-rpc",
- "pallet-loans-rpc",
- "pallet-transaction-payment-rpc",
- "parallel-primitives",
- "parity-scale-codec",
- "sc-basic-authorship",
- "sc-chain-spec",
- "sc-cli",
- "sc-client-api",
- "sc-consensus",
- "sc-consensus-aura",
- "sc-executor",
- "sc-finality-grandpa",
- "sc-keystore",
- "sc-rpc",
- "sc-rpc-api",
- "sc-service",
- "sc-telemetry",
- "sc-tracing",
- "sc-transaction-pool",
- "sc-transaction-pool-api",
- "serde",
- "sp-api",
- "sp-block-builder",
- "sp-blockchain",
- "sp-consensus",
- "sp-consensus-aura",
- "sp-core",
- "sp-finality-grandpa",
- "sp-inherents",
- "sp-keystore",
- "sp-runtime",
- "sp-timestamp",
- "sp-transaction-pool",
- "sp-trie",
- "structopt",
- "substrate-build-script-utils",
- "substrate-frame-rpc-system",
  "vanilla-runtime",
 ]
 
@@ -6287,7 +6241,7 @@ dependencies = [
 
 [[package]]
 name = "parallel-runtime"
-version = "0.0.1"
+version = "1.0.0"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -6315,13 +6269,14 @@ dependencies = [
  "orml-xcm",
  "orml-xcm-support",
  "orml-xtokens",
+ "pallet-amm",
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-democracy",
- "pallet-liquid-staking-v2",
+ "pallet-liquid-staking",
  "pallet-liquidation",
  "pallet-loans",
  "pallet-loans-benchmarking",
@@ -11885,8 +11840,16 @@ dependencies = [
 
 [[package]]
 name = "vanilla-runtime"
-version = "0.0.1"
+version = "1.0.0"
 dependencies = [
+ "cumulus-pallet-aura-ext",
+ "cumulus-pallet-dmp-queue",
+ "cumulus-pallet-parachain-system",
+ "cumulus-pallet-xcm",
+ "cumulus-pallet-xcmp-queue",
+ "cumulus-primitives-core",
+ "cumulus-primitives-timestamp",
+ "cumulus-primitives-utility",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",
@@ -11899,12 +11862,19 @@ dependencies = [
  "orml-oracle-rpc-runtime-api",
  "orml-tokens",
  "orml-traits",
+ "orml-unknown-tokens",
  "orml-utilities",
+ "orml-vesting",
+ "orml-xcm",
+ "orml-xcm-support",
+ "orml-xtokens",
+ "pallet-amm",
  "pallet-aura",
+ "pallet-authorship",
  "pallet-balances",
+ "pallet-collator-selection",
  "pallet-collective",
  "pallet-democracy",
- "pallet-grandpa",
  "pallet-liquid-staking",
  "pallet-liquidation",
  "pallet-loans",
@@ -11915,14 +11885,18 @@ dependencies = [
  "pallet-nominee-election",
  "pallet-prices",
  "pallet-scheduler",
+ "pallet-session",
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
  "pallet-utility",
+ "pallet-xcm",
+ "parachain-info",
  "parallel-primitives",
  "parity-scale-codec",
+ "polkadot-parachain",
  "polkadot-runtime-common",
  "serde",
  "smallvec 1.6.1",
@@ -11931,6 +11905,7 @@ dependencies = [
  "sp-consensus-aura",
  "sp-core",
  "sp-inherents",
+ "sp-io",
  "sp-offchain",
  "sp-runtime",
  "sp-session",
@@ -11940,6 +11915,8 @@ dependencies = [
  "static_assertions",
  "substrate-wasm-builder",
  "xcm",
+ "xcm-builder",
+ "xcm-executor",
 ]
 
 [[package]]

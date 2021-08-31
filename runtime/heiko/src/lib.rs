@@ -122,11 +122,12 @@ pub mod opaque {
     }
 }
 
+#[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("heiko"),
     impl_name: create_runtime_str!("heiko"),
     authoring_version: 1,
-    spec_version: 150,
+    spec_version: 160,
     impl_version: 10,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -190,31 +191,58 @@ impl Contains<Call> for BaseCallFilter {
     fn contains(call: &Call) -> bool {
         matches!(
             call,
-            // System, Utility, Currencies
-            Call::System(_) | Call::Timestamp(_) | Call::Multisig(_)  | Call::Utility(_) | Call::Balances(_) |
+            // System
+            Call::Timestamp(_) |
             // Governance
-            Call::Sudo(_) | Call::Democracy(_) | Call::GeneralCouncil(_) | Call::TechnicalCommittee(_) | Call::Treasury(_) | Call::Scheduler(_) |
+            Call::Sudo(_)  |
             // Parachain
-            Call::ParachainSystem(_) | Call::XcmpQueue(_) | Call::DmpQueue(_) | Call::PolkadotXcm(_) | Call::CumulusXcm(_) |
+            Call::ParachainSystem(_) |
             // Consensus
-            Call::Authorship(_) | Call::CollatorSelection(_) | Call::Session(_) |
-            // 3rd Party
-            Call::Vesting(_)
+            Call::Authorship(_)
         )
 
+        // // System
+        // Call::System(_) |
+
+        // // Parachain
+        // Call::XcmpQueue(_) |
+        // Call::DmpQueue(_) |
+        // Call::PolkadotXcm(_) |
+        // Call::CumulusXcm(_) |
+
+        // // Utility, Currencies
+        // Call::Utility(_) |
+        // Call::Balances(_) |
+        // Call::Multisig(_) |
+
+        // // Consensus
+        // Call::CollatorSelection(_) |
+        // Call::Session(_) |
+
+        // // Governance
+        // Call::Democracy(_) |
+        // Call::GeneralCouncil(_) |
+        // Call::TechnicalCommittee(_) |
+        // Call::Treasury(_) |
+        // Call::Scheduler(_) |
+
         // // 3rd Party
+        // Call::Vesting(_) |
         // Call::Currencies(_) |
         // Call::Oracle(_) |
         // Call::XTokens(_) |
         // Call::OrmlXcm(_) |
         // Call::Vesting(_) |
+
         // // Loans
         // Call::Loans(_) |
         // Call::Liquidation(_) |
         // Call::Prices(_) |
+
         // // LiquidStaking
         // Call::LiquidStaking(_) |
         // Call::NomineeElection(_) |
+
         // // Membership
         // Call::GeneralCouncilMembership(_) |
         // Call::TechnicalCommitteeMembership(_) |
@@ -782,7 +810,7 @@ pub type XcmOriginToTransactDispatchOrigin = (
 );
 
 parameter_types! {
-    pub UnitWeightCost: Weight = 100_000_000;
+    pub UnitWeightCost: Weight = 20_000_000;
     pub KsmPerSecond: (MultiLocation, u128) = (X1(Parent), ksm_per_second());
 }
 

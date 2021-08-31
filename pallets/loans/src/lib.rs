@@ -45,7 +45,7 @@ use sp_runtime::{
     },
     ArithmeticError, FixedPointNumber, FixedU128,
 };
-use sp_std::{result::Result, vec::Vec};
+use sp_std::result::Result;
 pub use weights::WeightInfo;
 
 mod market;

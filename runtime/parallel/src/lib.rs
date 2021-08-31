@@ -28,13 +28,11 @@ use frame_support::{
     traits::{Contains, Everything},
     PalletId,
 };
-use hex_literal::hex;
 use orml_currencies::BasicCurrencyAdapter;
 use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended, MultiCurrency};
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use sp_api::impl_runtime_apis;
 use sp_core::{
-    sr25519,
     u32_trait::{_1, _2, _3, _4, _5},
     OpaqueMetadata,
 };
@@ -42,7 +40,7 @@ use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{
         self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT,
-        BlockNumberProvider, Convert, IdentifyAccount, Zero,
+        BlockNumberProvider, Convert, Zero,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Permill, SaturatedConversion,
@@ -56,7 +54,7 @@ use cumulus_primitives_core::ParaId;
 use frame_support::log;
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureOneOf, EnsureRoot, EnsureSigned,
+    EnsureOneOf, EnsureRoot,
 };
 use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 use polkadot_parachain::primitives::Sibling;
@@ -81,6 +79,7 @@ pub use impls::DealWithFees;
 
 pub use pallet_liquid_staking;
 // pub use pallet_liquidation;
+pub use pallet_amm;
 pub use pallet_loans;
 pub use pallet_multisig;
 pub use pallet_nominee_election;
@@ -124,11 +123,12 @@ pub mod opaque {
     }
 }
 
+#[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("parallel"),
     impl_name: create_runtime_str!("parallel"),
     authoring_version: 1,
-    spec_version: 150,
+    spec_version: 160,
     impl_version: 10,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -193,13 +193,28 @@ impl Contains<Call> for BaseCallFilter {
         matches!(
             call,
             // System, Utility, Currencies
-            Call::System(_) | Call::Timestamp(_) | Call::Multisig(_)  | Call::Utility(_) | Call::Balances(_) |
+            Call::System(_) |
+            Call::Timestamp(_) |
+            Call::Multisig(_)  |
+            Call::Utility(_) |
+            Call::Balances(_) |
             // Governance
-            Call::Sudo(_) | Call::Democracy(_) | Call::GeneralCouncil(_) | Call::TechnicalCommittee(_) | Call::Treasury(_) | Call::Scheduler(_) |
+            Call::Sudo(_) |
+            Call::Democracy(_) |
+            Call::GeneralCouncil(_) |
+            Call::TechnicalCommittee(_) |
+            Call::Treasury(_) |
+            Call::Scheduler(_) |
             // Parachain
-            Call::ParachainSystem(_) | Call::XcmpQueue(_) | Call::DmpQueue(_) | Call::PolkadotXcm(_) | Call::CumulusXcm(_) |
+            Call::ParachainSystem(_) |
+            Call::XcmpQueue(_) |
+            Call::DmpQueue(_) |
+            Call::PolkadotXcm(_) |
+            Call::CumulusXcm(_) |
             // Consensus
-            Call::Authorship(_) | Call::CollatorSelection(_) | Call::Session(_) |
+            Call::Authorship(_) |
+            Call::CollatorSelection(_) |
+            Call::Session(_) |
             // 3rd Party
             Call::Currencies(_) |
             Call::Oracle(_) |
@@ -217,7 +232,10 @@ impl Contains<Call> for BaseCallFilter {
             Call::GeneralCouncilMembership(_) |
             Call::TechnicalCommitteeMembership(_) |
             Call::OracleMembership(_) |
-            Call::ValidatorFeedersMembership(_)
+            Call::LiquidStakingAgentMembership(_) |
+            Call::ValidatorFeedersMembership(_) |
+            // AMM
+            Call::AMM(_)
         )
     }
 }
@@ -291,6 +309,7 @@ impl Contains<AccountId> for DustRemovalWhitelist {
             TreasuryPalletId::get().into_account(),
             StakingPalletId::get().into_account(),
             PotId::get().into_account(),
+            AMMPalletId::get().into_account(),
         ]
         .contains(a)
     }
@@ -409,13 +428,29 @@ impl pallet_loans::Config for Runtime {
 }
 
 parameter_types! {
+    pub const LiquidStakingAgentMaxMembers: u32 = 100;
+}
+
+type LiquidStakingAgentMembershipInstance = pallet_membership::Instance4;
+impl pallet_membership::Config<LiquidStakingAgentMembershipInstance> for Runtime {
+    type Event = Event;
+    type AddOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type RemoveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type SwapOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type ResetOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type PrimeOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type MembershipInitialized = ();
+    type MembershipChanged = ();
+    type MaxMembers = LiquidStakingAgentMaxMembers;
+    type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
+}
+
+parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
-    pub RelayAgent: MultiLocation = X2(Junction::Parent, Junction::AccountId32 {
-        network: NetworkId::Any,
-        id: hex!["306721211d5404bd9da88e0204360a1a9ab8b87c66c1bc2fcdd37f3c2222cc20"] // id of "//Dave"
-    });
+    pub const MaxWithdrawAmount: Balance = 10_000_000_000_000;
+    pub const MaxAccountProcessingUnstake: u32 = 5;
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -424,11 +459,12 @@ impl pallet_liquid_staking::Config for Runtime {
     type PalletId = StakingPalletId;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    // FIXME(Alan WANG): use EnsureSignedBy
-    type BridgeOrigin = EnsureSigned<AccountId>;
-    type WeightInfo = ();
+    type WithdrawOrigin = EnsureRoot<AccountId>;
+    type MaxWithdrawAmount = MaxWithdrawAmount;
+    type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
+    type WeightInfo = pallet_liquid_staking::weights::SubstrateWeight<Runtime>;
     type XcmTransfer = XTokens;
-    type RelayAgent = RelayAgent;
+    type Members = LiquidStakingAgentMembership;
     type BaseXcmWeight = BaseXcmWeight;
 }
 
@@ -763,7 +799,7 @@ pub type XcmOriginToTransactDispatchOrigin = (
 );
 
 parameter_types! {
-    pub UnitWeightCost: Weight = 100_000_000;
+    pub UnitWeightCost: Weight = 20_000_000;
     pub DotPerSecond: (MultiLocation, u128) = (X1(Parent), dot_per_second());
 }
 
@@ -1104,6 +1140,17 @@ impl orml_vesting::Config for Runtime {
     type BlockNumberProvider = RelaychainBlockNumberProvider<Runtime>;
 }
 
+parameter_types! {
+    pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
+}
+
+impl pallet_amm::Config for Runtime {
+    type Event = Event;
+    type Currency = Currencies;
+    type PalletId = AMMPalletId;
+    type WeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -1164,7 +1211,11 @@ construct_runtime!(
         GeneralCouncilMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 70,
         TechnicalCommitteeMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>} = 71,
         OracleMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
-        ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73
+        LiquidStakingAgentMembership: pallet_membership::<Instance4>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,
+        ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74,
+
+        // AMM
+        AMM: pallet_amm::{Pallet, Call, Storage, Event<T>} = 80,
     }
 );
 
@@ -1359,6 +1410,7 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_loans, LoansBench::<Runtime>);
             list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
             list_benchmark!(list, extra, pallet_timestamp, Timestamp);
+            list_benchmark!(list, extra, pallet_amm, AMM);
 
             let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1399,6 +1451,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_liquid_staking, LiquidStaking);
             add_benchmark!(params, batches, pallet_multisig, Multisig);
             add_benchmark!(params, batches, pallet_membership, TechnicalCommitteeMembership);
+            add_benchmark!(params, batches, pallet_amm, AMM);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)

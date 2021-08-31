@@ -14,7 +14,7 @@
 
 // Groups common pool related structures
 
-use parallel_primitives::{Balance, CurrencyId, Rate};
+use primitives::{Balance, Rate};
 use sp_runtime::{traits::Saturating, ArithmeticError, DispatchError, FixedPointNumber};
 
 // Amplification Coefficient Weight.
@@ -22,13 +22,7 @@ use sp_runtime::{traits::Saturating, ArithmeticError, DispatchError, FixedPointN
 // In this pallet, the actual amplification coefficient will be `exchange_rate` * `ACW`.
 const ACW: Rate = Rate::from_inner(Rate::DIV / 100 * 50); // 50%
 
-#[derive(
-    Clone,
-    PartialEq,
-    parity_scale_codec::Decode,
-    parity_scale_codec::Encode,
-    sp_runtime::RuntimeDebug,
-)]
+#[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
 pub enum SwapType {
     Buy,
     Sell,
@@ -41,30 +35,11 @@ pub struct AmountEvaluation {
     pub pool_amount: Balance,
 }
 
-#[derive(
-    Clone,
-    PartialEq,
-    parity_scale_codec::Decode,
-    parity_scale_codec::Encode,
-    sp_runtime::RuntimeDebug,
-)]
-pub struct LiquidityProviderAmounts {
+#[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug, Default)]
+pub struct PoolLiquidityAmount {
     pub base_amount: Balance,
     pub quote_amount: Balance,
-}
-
-#[derive(
-    Clone,
-    PartialEq,
-    parity_scale_codec::Decode,
-    parity_scale_codec::Encode,
-    sp_runtime::RuntimeDebug,
-)]
-pub struct Pool {
-    pub base_amount: Balance,
-    pub quote_amount: Balance,
-    pub base_asset: CurrencyId,
-    pub quote_asset: CurrencyId,
+    pub ownership: Balance,
 }
 
 pub struct StandardSwap;
@@ -82,7 +57,7 @@ pub trait AMMCurve {
     fn calculate_amount(
         exchange_rate: Rate,
         new_amount: Balance,
-        pool: &Pool,
+        pool: &PoolLiquidityAmount,
     ) -> Result<Balance, DispatchError>;
 }
 
@@ -91,7 +66,7 @@ impl AMMCurve for StandardSwap {
     fn calculate_amount(
         _: Rate,
         new_amount: Balance,
-        pool: &Pool,
+        pool: &PoolLiquidityAmount,
     ) -> Result<Balance, DispatchError> {
         let k = pool
             .base_amount
@@ -109,7 +84,7 @@ impl AMMCurve for StableSwap {
     fn calculate_amount(
         exchange_rate: Rate,
         new_amount: Balance,
-        pool: &Pool,
+        pool: &PoolLiquidityAmount,
     ) -> Result<Balance, DispatchError> {
         let k = pool
             .base_amount
@@ -135,7 +110,11 @@ impl AMMCurve for StableSwap {
 }
 
 impl AMMCurve for StakingSwap {
-    fn calculate_amount(_: Rate, _: Balance, _: &Pool) -> Result<Balance, DispatchError> {
+    fn calculate_amount(
+        _: Rate,
+        _: Balance,
+        _: &PoolLiquidityAmount,
+    ) -> Result<Balance, DispatchError> {
         unimplemented!()
     }
 }
@@ -150,20 +129,17 @@ fn amplification_coeficient_mul(exchange_rate: Rate, n: u128) -> Option<u128> {
 
 #[cfg(test)]
 mod tests {
-    use super::{AMMCurve, Pool, StableSwap, StandardSwap};
-    use parallel_primitives::CurrencyId;
+    use super::{AMMCurve, PoolLiquidityAmount, StableSwap, StandardSwap};
 
-    const DEFAULT_DYNAMIC_POOL: Pool = Pool {
+    const DEFAULT_DYNAMIC_POOL: PoolLiquidityAmount = PoolLiquidityAmount {
         base_amount: 40,
-        base_asset: CurrencyId::DOT,
         quote_amount: 60,
-        quote_asset: CurrencyId::xDOT,
+        ownership: 40,
     };
-    const DEFAULT_STABLE_POOL: Pool = Pool {
-        base_asset: CurrencyId::DOT,
-        quote_asset: CurrencyId::xDOT,
+    const DEFAULT_STABLE_POOL: PoolLiquidityAmount = PoolLiquidityAmount {
         base_amount: 40,
         quote_amount: 60,
+        ownership: 40,
     };
 
     #[test]

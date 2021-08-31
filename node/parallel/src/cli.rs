@@ -21,8 +21,11 @@ use structopt::StructOpt;
 #[derive(Debug, StructOpt)]
 pub enum Subcommand {
     Key(KeySubcommand),
+
     Sign(SignCmd),
+
     Vanity(VanityCmd),
+
     Verify(VerifyCmd),
     /// Export the genesis state of the parachain.
     #[structopt(name = "export-genesis-state")]

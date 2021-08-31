@@ -19,7 +19,7 @@ relaychain:
 parachains:
   - image: parallelfinance/parallel:latest
     chain:
-      base: heiko-dev
+      base: vanilla-dev
       collators:
         - alice
         - bob
