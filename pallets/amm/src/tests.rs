@@ -49,6 +49,20 @@ fn add_more_liquidity_should_work() {
         ));
 
         assert_eq!(AMM::pools(XDOT, DOT).base_amount, 60);
+
+        assert_eq!(
+            AMM::liquidity_providers((AccountId(1u64), XDOT, DOT)).base_amount,
+            60
+        );
+
+        assert_eq!(
+            AMM::liquidity_providers((AccountId(1u64), XDOT, DOT)).quote_amount,
+            30
+        );
+
+        assert_eq!(AMM::pools(XDOT, DOT).base_amount, 60);
+
+        assert_eq!(AMM::pools(XDOT, DOT).quote_amount, 30);
     })
 }
 
