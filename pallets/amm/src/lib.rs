@@ -77,6 +77,8 @@ pub mod pallet {
         PoolDoesNotExist,
         /// More liquidity than user's liquidity
         MoreLiquidity,
+        /// Not a ideal price ratio
+        NotAIdealPriceRatio,
     }
 
     #[pallet::event]
@@ -143,6 +145,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             pool: (CurrencyId, CurrencyId),
             liquidity_amounts: (Balance, Balance),
+            minimum_amounts: (Balance, Balance),
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             let (is_inverted, base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
@@ -156,6 +159,39 @@ pub mod pallet {
                 let pool_liquidity_amount: PoolLiquidityAmount =
                     Self::pools(base_asset, quote_asset);
 
+                let optimal_quote_amount = Self::quote(
+                    base_amount,
+                    pool_liquidity_amount.base_amount,
+                    pool_liquidity_amount.quote_amount,
+                );
+
+                let (ideal_base_amount, ideal_quote_amount): (Balance, Balance) =
+                    if optimal_quote_amount <= quote_amount {
+                        (base_amount, optimal_quote_amount)
+                    } else {
+                        let optimal_base_amount = Self::quote(
+                            quote_amount,
+                            pool_liquidity_amount.quote_amount,
+                            pool_liquidity_amount.base_amount,
+                        );
+                        (optimal_base_amount, quote_amount)
+                    };
+
+                let (minimum_base_amount, minimum_quote_amount) = if is_inverted {
+                    (minimum_amounts.1, minimum_amounts.0)
+                } else {
+                    (minimum_amounts.0, minimum_amounts.1)
+                };
+
+                ensure!(
+                    ideal_base_amount >= minimum_base_amount
+                        && ideal_quote_amount >= minimum_quote_amount
+                        && ideal_base_amount <= base_amount
+                        && ideal_quote_amount <= quote_amount,
+                    Error::<T, I>::NotAIdealPriceRatio
+                );
+
+                let (base_amount, quote_amount) = (ideal_base_amount, ideal_quote_amount);
                 let ownership = sp_std::cmp::min(
                     (base_amount.saturating_mul(pool_liquidity_amount.ownership))
                         .checked_div(pool_liquidity_amount.base_amount)
@@ -326,5 +362,11 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         } else {
             (true, curr_b, curr_a)
         }
+    }
+
+    pub fn quote(amount: Balance, base_pool: Balance, quote_pool: Balance) -> Balance {
+        (amount.saturating_mul(quote_pool))
+            .checked_div(base_pool)
+            .expect("cannot overflow with positive divisor; qed")
     }
 }
