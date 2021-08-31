@@ -14,7 +14,7 @@ check:
 
 .PHONY: test
 test:
-	SKIP_WASM_BUILD= cargo test --workspace --exclude parallel --exclude --exclude parallel-runtime --exclude vanilla-runtime --exclude heiko-runtime --exclude pallet-loans-benchmarking -- --nocapture
+	SKIP_WASM_BUILD= cargo test --workspace --exclude parallel --exclude parallel-runtime --exclude vanilla-runtime --exclude heiko-runtime --exclude pallet-loans-benchmarking -- --nocapture
 
 .PHONY: bench
 bench: bench-loans bench-liquid-staking
