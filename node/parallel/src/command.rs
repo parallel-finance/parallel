@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::chain_spec::set_default_ss58_version;
-use crate::service::IdentifyVariant;
 use crate::{
-    chain_spec,
+    chain_spec::{self, set_default_ss58_version},
     cli::{Cli, RelayChainCli, Subcommand},
+    service::IdentifyVariant,
 };
 use codec::Encode;
 use cumulus_client_service::genesis::generate_genesis_block;
@@ -46,8 +45,12 @@ fn load_spec(
         "heiko-dev" => Box::new(chain_spec::heiko::heiko_dev_config(para_id)),
         "" | "heiko" => Box::new(chain_spec::heiko::heiko_config(para_id)?),
         "parallel-dev" => Box::new(chain_spec::parallel::parallel_dev_config(para_id)),
+        "vanilla-dev" => Box::new(chain_spec::vanilla::vanilla_dev_config(para_id)),
         "parallel" | "parallel-local" => {
             Box::new(chain_spec::parallel::parallel_local_testnet_config(para_id))
+        }
+        "vanilla" | "vanilla-local" => {
+            Box::new(chain_spec::vanilla::vanilla_local_testnet_config(para_id))
         }
         path => {
             let path = std::path::PathBuf::from(path);
@@ -62,8 +65,10 @@ fn load_spec(
                 Box::new(chain_spec::parallel::ChainSpec::from_json_file(path)?)
             } else if starts_with("heiko") {
                 Box::new(chain_spec::heiko::ChainSpec::from_json_file(path)?)
+            } else if starts_with("vanilla") {
+                Box::new(chain_spec::vanilla::ChainSpec::from_json_file(path)?)
             } else {
-                return Err("chain_spec's filename must start with parallel or heiko".into());
+                return Err("chain_spec's filename must start with parallel/heiko/vanilla".into());
             }
         }
     })
@@ -103,6 +108,8 @@ impl SubstrateCli for Cli {
             &parallel_runtime::VERSION
         } else if chain_spec.is_heiko() {
             &heiko_runtime::VERSION
+        } else if chain_spec.is_vanilla() {
+            &vanilla_runtime::VERSION
         } else {
             unreachable!()
         }
@@ -172,6 +179,13 @@ macro_rules! switch_runtime {
             use crate::service::HeikoExecutor as Executor;
 			#[allow(unused_imports)]
             use heiko_runtime::{RuntimeApi, Block};
+
+			$( $code )*
+        } else if $chain_spec.is_vanilla() {
+			#[allow(unused_imports)]
+            use crate::service::VanillaExecutor as Executor;
+			#[allow(unused_imports)]
+            use vanilla_runtime::{RuntimeApi, Block};
 
 			$( $code )*
         } else {

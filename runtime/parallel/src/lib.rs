@@ -79,6 +79,7 @@ pub use impls::DealWithFees;
 
 pub use pallet_liquid_staking;
 // pub use pallet_liquidation;
+pub use pallet_amm;
 pub use pallet_loans;
 pub use pallet_multisig;
 pub use pallet_nominee_election;
@@ -192,13 +193,28 @@ impl Contains<Call> for BaseCallFilter {
         matches!(
             call,
             // System, Utility, Currencies
-            Call::System(_) | Call::Timestamp(_) | Call::Multisig(_)  | Call::Utility(_) | Call::Balances(_) |
+            Call::System(_) |
+            Call::Timestamp(_) |
+            Call::Multisig(_)  |
+            Call::Utility(_) |
+            Call::Balances(_) |
             // Governance
-            Call::Sudo(_) | Call::Democracy(_) | Call::GeneralCouncil(_) | Call::TechnicalCommittee(_) | Call::Treasury(_) | Call::Scheduler(_) |
+            Call::Sudo(_) |
+            Call::Democracy(_) |
+            Call::GeneralCouncil(_) |
+            Call::TechnicalCommittee(_) |
+            Call::Treasury(_) |
+            Call::Scheduler(_) |
             // Parachain
-            Call::ParachainSystem(_) | Call::XcmpQueue(_) | Call::DmpQueue(_) | Call::PolkadotXcm(_) | Call::CumulusXcm(_) |
+            Call::ParachainSystem(_) |
+            Call::XcmpQueue(_) |
+            Call::DmpQueue(_) |
+            Call::PolkadotXcm(_) |
+            Call::CumulusXcm(_) |
             // Consensus
-            Call::Authorship(_) | Call::CollatorSelection(_) | Call::Session(_) |
+            Call::Authorship(_) |
+            Call::CollatorSelection(_) |
+            Call::Session(_) |
             // 3rd Party
             Call::Currencies(_) |
             Call::Oracle(_) |
@@ -217,7 +233,9 @@ impl Contains<Call> for BaseCallFilter {
             Call::TechnicalCommitteeMembership(_) |
             Call::OracleMembership(_) |
             Call::LiquidStakingAgentMembership(_) |
-            Call::ValidatorFeedersMembership(_)
+            Call::ValidatorFeedersMembership(_) |
+            // AMM
+            Call::AMM(_)
         )
     }
 }
@@ -291,6 +309,7 @@ impl Contains<AccountId> for DustRemovalWhitelist {
             TreasuryPalletId::get().into_account(),
             StakingPalletId::get().into_account(),
             PotId::get().into_account(),
+            AMMPalletId::get().into_account(),
         ]
         .contains(a)
     }

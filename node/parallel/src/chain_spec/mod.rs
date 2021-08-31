@@ -14,6 +14,7 @@
 
 pub mod heiko;
 pub mod parallel;
+pub mod vanilla;
 
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::Properties;

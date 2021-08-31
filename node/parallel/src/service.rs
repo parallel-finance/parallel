@@ -50,6 +50,13 @@ native_executor_instance!(
     frame_benchmarking::benchmarking::HostFunctions,
 );
 
+native_executor_instance!(
+    pub VanillaExecutor,
+    vanilla_runtime::api::dispatch,
+    vanilla_runtime::native_version,
+    frame_benchmarking::benchmarking::HostFunctions,
+);
+
 pub type FullBackend = sc_service::TFullBackend<Block>;
 pub type FullClient<RuntimeApi, Executor> = sc_service::TFullClient<Block, RuntimeApi, Executor>;
 
@@ -57,6 +64,8 @@ pub trait IdentifyVariant {
     fn is_parallel(&self) -> bool;
 
     fn is_heiko(&self) -> bool;
+
+    fn is_vanilla(&self) -> bool;
 }
 
 impl IdentifyVariant for Box<dyn sc_service::ChainSpec> {
@@ -66,6 +75,10 @@ impl IdentifyVariant for Box<dyn sc_service::ChainSpec> {
 
     fn is_heiko(&self) -> bool {
         self.id().starts_with("heiko")
+    }
+
+    fn is_vanilla(&self) -> bool {
+        self.id().starts_with("vanilla")
     }
 }
 

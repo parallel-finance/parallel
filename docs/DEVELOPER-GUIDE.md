@@ -87,58 +87,6 @@ subcommands:
 
 ### Docker
 
-Run Vanilla Dev Node
-
-```
-docker run --restart=always -d -p 9944:9944 \
-    -v "$(pwd):/data" \
-    parallelfinance/parallel-dev:latest \
-    -d /data --dev --ws-external
-```
-
-Run Vanilla Live Validator Node
-
-```
-docker volume create chains
-
-docker run --restart=always --name parallel -d -p 9944:9944 -p 9933:9933 \
-    -v "chains:/data" \
-    -v "$(pwd)/live.json:/usr/local/bin/live.json" \
-    parallelfinance/parallel-dev:latest \
-    -d /data --chain /usr/local/bin/live.json --validator --rpc-cors all --rpc-methods=Unsafe --unsafe-rpc-external --unsafe-ws-external
-
-# insert aura & gran keys to keystore
-curl http://localhost:9933 -H "Content-Type:application/json;charset=utf-8" -d "@aura.json"
-curl http://localhost:9933 -H "Content-Type:application/json;charset=utf-8" -d "@gran.json"
-
-docker exec -it parallel bash
-
-# setup liquidation account
-parallel-dev key insert --chain=/usr/local/bin/live.json --suri "<validator's seed>" --key-type pool -d /data
-
-# restart and allow only p2p connections
-docker container stop parallel
-docker container rm parallel
-
-docker run --restart=always --name parallel -d -p 30333:30333 \
-    -v "chains:/data" \
-    -v "$(pwd)/live.json:/usr/local/bin/live.json" \
-    parallelfinance/parallel-dev:latest  \
-    -d /data --chain /usr/local/bin/live.json --validator
-```
-
-Run Vanilla Live Full Node
-
-```
-docker volume create chains
-
-docker run --restart=always --name parallel -d -p 9944:9944 \
-    -v "chains:/data" \
-    -v "$(pwd)/live.json:/usr/local/bin/live.json" \
-    parallelfinance/parallel-dev:latest \
-    -d /data --chain /usr/local/bin/live.json --rpc-cors all --unsafe-ws-external
-```
-
 Run Heiko Dev Network (via parachain-launch 1.0.3)
 
 ```

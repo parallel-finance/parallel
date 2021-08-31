@@ -14,15 +14,6 @@
 
 use cumulus_primitives_core::ParaId;
 use hex_literal::hex;
-use parallel_runtime::{
-    opaque::SessionKeys,
-    pallet_loans::{InterestRateModel, JumpModel, Market, MarketState},
-    BalancesConfig, CollatorSelectionConfig, DemocracyConfig, GeneralCouncilConfig,
-    GeneralCouncilMembershipConfig, GenesisConfig, LiquidStakingAgentMembershipConfig,
-    LiquidStakingConfig, LoansConfig, OracleMembershipConfig, ParachainInfoConfig, SessionConfig,
-    SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig, TokensConfig,
-    ValidatorFeedersMembershipConfig, VestingConfig, WASM_BINARY,
-};
 use primitives::{network::NetworkType, *};
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
@@ -31,6 +22,15 @@ use sp_core::{crypto::UncheckedInto, sr25519};
 use sp_runtime::{
     traits::{One, Zero},
     FixedPointNumber,
+};
+use vanilla_runtime::{
+    opaque::SessionKeys,
+    pallet_loans::{InterestRateModel, JumpModel, Market, MarketState},
+    BalancesConfig, CollatorSelectionConfig, DemocracyConfig, GeneralCouncilConfig,
+    GeneralCouncilMembershipConfig, GenesisConfig, LiquidStakingAgentMembershipConfig,
+    LiquidStakingConfig, LoansConfig, OracleMembershipConfig, ParachainInfoConfig, SessionConfig,
+    SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig, TokensConfig,
+    ValidatorFeedersMembershipConfig, VestingConfig, WASM_BINARY,
 };
 
 use crate::chain_spec::{
@@ -41,12 +41,12 @@ use crate::chain_spec::{
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
 
-pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
+pub fn vanilla_dev_config(id: ParaId) -> ChainSpec {
     ChainSpec::from_genesis(
         // Name
-        "Parallel Dev",
+        "Vanilla Dev",
         // ID
-        "parallel-dev",
+        "vanilla-dev",
         ChainType::Development,
         move || {
             let root_key = get_account_id_from_seed::<sr25519::Public>("Dave");
@@ -100,7 +100,7 @@ pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
                 get_account_id_from_seed::<sr25519::Public>("Ferdie"),
             ];
 
-            parallel_genesis(
+            vanilla_genesis(
                 root_key,
                 invulnerables,
                 oracle_accounts,
@@ -114,8 +114,8 @@ pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
         },
         vec![],
         TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
-        Some("parallel-dev"),
-        Some(as_properties(NetworkType::Parallel)),
+        Some("vanilla-dev"),
+        Some(as_properties(NetworkType::Heiko)),
         Extensions {
             relay_chain: "westend-local".into(),
             para_id: id.into(),
@@ -123,33 +123,33 @@ pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
     )
 }
 
-pub fn parallel_local_testnet_config(id: ParaId) -> ChainSpec {
+pub fn vanilla_local_testnet_config(id: ParaId) -> ChainSpec {
     ChainSpec::from_genesis(
         // Name
-        "Parallel Local Testnet",
+        "Vanilla Local Testnet",
         // ID
-        "parallel-local",
+        "vanilla-local",
         ChainType::Local,
         move || {
-            let root_key = "5Hgbc62tVKhXr8ovtLFNGdb4Ye3RY6RchK1gLEg2ZjktZMjv"
+            let root_key = "5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf"
                 .parse()
                 .unwrap();
             let invulnerables: Vec<(AccountId, AuraId)> = vec![(
-                // 5Hgbc62tVKhXr8ovtLFNGdb4Ye3RY6RchK1gLEg2ZjktZMjv//collator
-                hex!["48bc67ff7bb9ee70ff7229dd8d89e5dd9e3a171eb5876e3fe8d617f9e67d9f5b"].into(),
-                hex!["48bc67ff7bb9ee70ff7229dd8d89e5dd9e3a171eb5876e3fe8d617f9e67d9f5b"]
+                // 5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf//collator
+                hex!["0af2d7eedd51f8ef80ad82140631d58582034a6108f350d7ab04ded94c9d253f"].into(),
+                hex!["0af2d7eedd51f8ef80ad82140631d58582034a6108f350d7ab04ded94c9d253f"]
                     .unchecked_into(),
             )];
-            // 5Hgbc62tVKhXr8ovtLFNGdb4Ye3RY6RchK1gLEg2ZjktZMjv//oracle
-            let oracle_accounts = vec!["5DLKFBGUSpr5FuqxsAyUab1u3uvtBypbV5mqtsRP5ZX73u1R"
+            // 5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf//oracle
+            let oracle_accounts = vec!["5DCp1LrGsmtPj5R1jLnxC5kPvSYJTgY1zxbF3TzrHHMoqsvt"
                 .parse()
                 .unwrap()];
-            // 5Hgbc62tVKhXr8ovtLFNGdb4Ye3RY6RchK1gLEg2ZjktZMjv//validator_feeder
-            let validator_feeders = vec!["5DRwhn5ajqck2pZmL9Rp1ebSKrErWzQqKQC9ZvqR7Cn8TBN5"
+            // 5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf//validator_feeder
+            let validator_feeders = vec!["5CQ5wx8MYTWGzHY3DUspGBfMnyuMg2L84bWyxJJNq7AugUj6"
                 .parse()
                 .unwrap()];
-            // 5Hgbc62tVKhXr8ovtLFNGdb4Ye3RY6RchK1gLEg2ZjktZMjv//agent
-            let liquid_staking_agents = vec!["5C5PQJQvvTuq5zQJLN4GtxXn6Pp8YTB4ko7yXmhvxyQF5CHn"
+            // 5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf//agent
+            let liquid_staking_agents = vec!["5FFCMw8pyzK7QN9jiMeAg8fD45o5dVU1PGcJDAeCC94GVVWC"
                 .parse()
                 .unwrap()];
             let initial_allocation = accumulate(
@@ -209,7 +209,7 @@ pub fn parallel_local_testnet_config(id: ParaId) -> ChainSpec {
             ];
             let technical_committee = vec![];
 
-            parallel_genesis(
+            vanilla_genesis(
                 root_key,
                 invulnerables,
                 oracle_accounts,
@@ -223,8 +223,8 @@ pub fn parallel_local_testnet_config(id: ParaId) -> ChainSpec {
         },
         vec![],
         TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
-        Some("parallel-local"),
-        Some(as_properties(NetworkType::Parallel)),
+        Some("vanilla-local"),
+        Some(as_properties(NetworkType::Heiko)),
         Extensions {
             relay_chain: "westend".into(),
             para_id: id.into(),
@@ -232,7 +232,7 @@ pub fn parallel_local_testnet_config(id: ParaId) -> ChainSpec {
     )
 }
 
-fn parallel_genesis(
+fn vanilla_genesis(
     root_key: AccountId,
     invulnerables: Vec<(AccountId, AuraId)>,
     oracle_accounts: Vec<AccountId>,
@@ -245,7 +245,7 @@ fn parallel_genesis(
 ) -> GenesisConfig {
     let vesting_list: Vec<(AccountId, BlockNumber, BlockNumber, u32, Balance)> =
         serde_json::from_str(include_str!(
-            "../../../../resources/parallel-vesting-PARA.json"
+            "../../../../resources/vanilla-vesting-HKO.json"
         ))
         .unwrap();
     GenesisConfig {
@@ -303,7 +303,7 @@ fn parallel_genesis(
             last_block_timestamp: 0,
             markets: vec![
                 (
-                    CurrencyId::DOT,
+                    CurrencyId::KSM,
                     Market {
                         close_factor: Ratio::from_percent(50),
                         collateral_factor: Ratio::from_percent(50),
@@ -335,7 +335,7 @@ fn parallel_genesis(
                     },
                 ),
                 (
-                    CurrencyId::xDOT,
+                    CurrencyId::xKSM,
                     Market {
                         close_factor: Ratio::from_percent(50),
                         collateral_factor: Ratio::from_percent(50),

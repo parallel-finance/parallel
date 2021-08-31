@@ -119,7 +119,7 @@ pub fn heiko_dev_config(id: ParaId) -> ChainSpec {
         Some("heiko-dev"),
         Some(as_properties(network::NetworkType::Heiko)),
         Extensions {
-            relay_chain: "rococo-local".into(),
+            relay_chain: "westend-local".into(),
             para_id: id.into(),
         },
     )
