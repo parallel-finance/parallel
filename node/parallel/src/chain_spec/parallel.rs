@@ -19,9 +19,10 @@ use parallel_runtime::{
     pallet_loans::{InterestRateModel, JumpModel, Market, MarketState},
     BalancesConfig, CollatorSelectionConfig, DemocracyConfig, GeneralCouncilConfig,
     GeneralCouncilMembershipConfig, GenesisConfig, LiquidStakingAgentMembershipConfig,
-    LiquidStakingConfig, LoansConfig, OracleMembershipConfig, ParachainInfoConfig, SessionConfig,
-    SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig, TokensConfig,
-    ValidatorFeedersMembershipConfig, OrmlVestingConfig, WASM_BINARY,
+    LiquidStakingConfig, LoansConfig, OracleMembershipConfig, OrmlVestingConfig,
+    ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
+    TechnicalCommitteeMembershipConfig, TokensConfig, ValidatorFeedersMembershipConfig,
+    WASM_BINARY,
 };
 use primitives::{network::NetworkType, *};
 use sc_service::ChainType;

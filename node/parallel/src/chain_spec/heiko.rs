@@ -17,9 +17,9 @@ use heiko_runtime::{
     opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, DemocracyConfig,
     GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
     LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig,
-    ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
+    OrmlVestingConfig, ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
     TechnicalCommitteeMembershipConfig, TokensConfig, ValidatorFeedersMembershipConfig,
-    OrmlVestingConfig, WASM_BINARY,
+    WASM_BINARY,
 };
 
 // use hex_literal::hex;

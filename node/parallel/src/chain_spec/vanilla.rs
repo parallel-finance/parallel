@@ -28,9 +28,9 @@ use vanilla_runtime::{
     pallet_loans::{InterestRateModel, JumpModel, Market, MarketState},
     BalancesConfig, CollatorSelectionConfig, DemocracyConfig, GeneralCouncilConfig,
     GeneralCouncilMembershipConfig, GenesisConfig, LiquidStakingConfig, LoansConfig,
-    OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeMembershipConfig, TokensConfig, ValidatorFeedersMembershipConfig,
-	OrmlVestingConfig, WASM_BINARY,
+    OracleMembershipConfig, OrmlVestingConfig, ParachainInfoConfig, SessionConfig, SudoConfig,
+    SystemConfig, TechnicalCommitteeMembershipConfig, TokensConfig,
+    ValidatorFeedersMembershipConfig, WASM_BINARY,
 };
 
 use crate::chain_spec::{
