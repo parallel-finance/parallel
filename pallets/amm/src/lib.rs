@@ -323,7 +323,7 @@ pub mod pallet {
                         .ownership
                         .checked_sub(ownership_to_remove)
                         .ok_or(ArithmeticError::Underflow)?;
-                    *pool_liquidity_amount = Some(liquidity_amount.clone());
+                    *pool_liquidity_amount = Some(liquidity_amount);
 
                     LiquidityProviders::<T, I>::try_mutate(
                         (who.clone(), base_asset, quote_asset),
