@@ -221,4 +221,9 @@ try-runtime        = [
   'orml-xcm/try-runtime',
   'orml-vesting/try-runtime',
   'frame-try-runtime',
+  'pallet-loans/try-runtime',
+  'pallet-liquid-staking/try-runtime',
+  'pallet-liquidation/try-runtime',
+  'pallet-nominee-election/try-runtime',
+  'pallet-prices/try-runtime',
 ]

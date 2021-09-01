@@ -46,3 +46,4 @@ std                = [
   'pallet-timestamp/std',
   'serde',
 ]
+try-runtime = ['frame-support/try-runtime']
