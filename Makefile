@@ -1,5 +1,7 @@
 PARA_ID  			:= 2085
 CHAIN    			:= vanilla-dev
+BLOCK_AT      := 0x0000000000000000000000000000000000000000000000000000000000000000
+URL           := ws://localhost:9947
 KEYSTORE_PATH := keystore
 SURI          := //Alice
 LAUNCH_CONFIG := config.yml
@@ -76,6 +78,14 @@ image:
 .PHONY: keystore
 keystore:
 	./target/debug/parallel key insert -d . --keystore-path $(KEYSTORE_PATH) --suri "$(SURI)" --key-type aura
+
+.PHONY: snapshot
+snapshot:
+	cargo run --bin parallel --features try-runtime -- try-runtime --wasm-execution=compiled --block-at=$(BLOCK_AT) --url=$(URL) on-runtime-upgrade live -s snapshot.bin
+
+.PHONY: try-runtime-upgrade
+try-runtime-upgrade:
+	cargo run --bin parallel --features try-runtime -- try-runtime --wasm-execution=compiled --block-at=$(BLOCK_AT) on-runtime-upgrade snap -s snapshot.bin
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?' Makefile | cut -d: -f1 | sort
