@@ -29,6 +29,7 @@ bench-liquid-staking:
 
 .PHONY: lint
 lint:
+	SKIP_WASM_BUILD= cargo fmt --all -- --check
 	SKIP_WASM_BUILD= cargo clippy --workspace --exclude parallel --exclude pallet-loans-benchmarking -- -A clippy::type_complexity -A clippy::identity_op -D warnings
 
 .PHONY: fmt

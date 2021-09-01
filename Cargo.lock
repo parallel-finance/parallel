@@ -2949,6 +2949,7 @@ dependencies = [
  "frame-system",
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
+ "frame-try-runtime",
  "hex-literal 0.3.3",
  "orml-currencies",
  "orml-oracle",
@@ -6220,6 +6221,7 @@ dependencies = [
  "structopt",
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
+ "try-runtime-cli",
  "vanilla-runtime",
 ]
 
@@ -6257,6 +6259,7 @@ dependencies = [
  "frame-system",
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
+ "frame-try-runtime",
  "hex-literal 0.3.3",
  "orml-currencies",
  "orml-oracle",
@@ -11856,6 +11859,7 @@ dependencies = [
  "frame-system",
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
+ "frame-try-runtime",
  "hex-literal 0.3.3",
  "orml-currencies",
  "orml-oracle",
