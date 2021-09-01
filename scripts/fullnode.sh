@@ -47,6 +47,7 @@ docker run --restart=always --name heiko-fullnode \
     --rpc-cors all \
     --pruning archive \
     --wasm-execution=compiled \
+    --ws-max-connections 1024 \
     --execution=wasm \
     --listen-addr=/ip4/0.0.0.0/tcp/$PARA_P2P_PORT \
   -- \
