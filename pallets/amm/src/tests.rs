@@ -12,7 +12,7 @@ fn add_liquidity_should_work() {
             (5, 5)
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).base_amount, 20);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 20);
 
         assert_eq!(
             AMM::liquidity_providers((AccountId(1u64), XDOT, DOT)).base_amount,
@@ -48,7 +48,7 @@ fn add_more_liquidity_should_work() {
             (5, 5)
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).base_amount, 60);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 60);
 
         assert_eq!(
             AMM::liquidity_providers((AccountId(1u64), XDOT, DOT)).base_amount,
@@ -60,9 +60,9 @@ fn add_more_liquidity_should_work() {
             30
         );
 
-        assert_eq!(AMM::pools(XDOT, DOT).base_amount, 60);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 60);
 
-        assert_eq!(AMM::pools(XDOT, DOT).quote_amount, 30);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 30);
     })
 }
 
@@ -131,7 +131,7 @@ fn add_liquidity_by_another_user_should_work() {
             (5, 5)
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).base_amount, 70);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 70);
     })
 }
 
@@ -155,7 +155,7 @@ fn remove_liquidity_whole_share_should_work() {
             0
         );
 
-        assert_eq!(AMM::pools(XDOT, DOT).ownership, 0);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().ownership, 0);
 
         // Check balance is correct
         assert_eq!(
@@ -189,7 +189,7 @@ fn remove_liquidity_only_portion_should_work() {
             15
         );
 
-        assert_eq!(AMM::pools(XDOT, DOT).ownership, 15);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().ownership, 15);
 
         // Check balance is correct
         assert_eq!(
@@ -230,7 +230,7 @@ fn remove_liquidity_user_more_liquidity_should_work() {
             3
         );
 
-        assert_eq!(AMM::pools(XDOT, DOT).ownership, 3);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().ownership, 3);
 
         // Check balance is correct
         assert_eq!(
