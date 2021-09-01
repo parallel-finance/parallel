@@ -196,10 +196,10 @@ pub mod pallet {
                         let ownership = sp_std::cmp::min(
                             (base_amount.saturating_mul(liquidity_amount.ownership))
                                 .checked_div(liquidity_amount.base_amount)
-                                .expect("cannot overflow with positive divisor; qed"),
+                                .ok_or(ArithmeticError::Overflow)?,
                             (quote_amount.saturating_mul(liquidity_amount.ownership))
                                 .checked_div(liquidity_amount.quote_amount)
-                                .expect("cannot overflow with positive divisor; qed"),
+                                .ok_or(ArithmeticError::Overflow)?,
                         );
 
                         liquidity_amount.base_amount = liquidity_amount
@@ -304,12 +304,12 @@ pub mod pallet {
                     let base_amount = (ownership_to_remove
                         .saturating_mul(liquidity_amount.base_amount))
                     .checked_div(liquidity_amount.ownership)
-                    .expect("cannot overflow with positive divisor; qed");
+                    .ok_or(ArithmeticError::Underflow)?;
 
                     let quote_amount = (ownership_to_remove
                         .saturating_mul(liquidity_amount.quote_amount))
                     .checked_div(liquidity_amount.ownership)
-                    .expect("cannot overflow with positive divisor; qed");
+                    .ok_or(ArithmeticError::Underflow)?;
 
                     liquidity_amount.base_amount = liquidity_amount
                         .base_amount
