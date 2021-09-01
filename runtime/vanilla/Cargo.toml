@@ -116,14 +116,13 @@ runtime-benchmarks = [
   'pallet-balances/runtime-benchmarks',
   'pallet-timestamp/runtime-benchmarks',
   'pallet-loans-benchmarking',
-  
   'pallet-amm/runtime-benchmarks',
   'pallet-collective/runtime-benchmarks',
   'pallet-xcm/runtime-benchmarks',
   'xcm-builder/runtime-benchmarks',
   'pallet-multisig/runtime-benchmarks',
   'pallet-membership/runtime-benchmarks',
-]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 # 'pallet-liquid-staking/runtime-benchmarks',
+]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    # 'pallet-liquid-staking/runtime-benchmarks',
 std                = [
   'codec/std',
   'serde',
