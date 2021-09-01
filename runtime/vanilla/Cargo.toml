@@ -14,7 +14,7 @@ targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
 codec             = { package = 'parity-scale-codec', version = '2.2.0', default-features = false, features = ['derive'] }
-hex-literal       = { version = '0.3.1', optional = true }
+hex-literal       = '0.3.1'
 serde             = { version = '1', features = ['derive'], optional = true }
 smallvec          = '1.6.1'
 static_assertions = '1.1.0'
@@ -88,7 +88,7 @@ orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-r
 
 # Parallel dependencies
 pallet-amm                   = { path = '../../pallets/amm', default-features = false }
-pallet-liquid-staking        = { path = '../../pallets/liquid-staking', default-features = false }
+pallet-liquid-staking        = { path = '../../pallets/liquid-staking-v2', package = 'pallet-liquid-staking-v2', default-features = false }
 pallet-liquidation           = { path = '../../pallets/liquidation', default-features = false }
 pallet-loans                 = { path = '../../pallets/loans', default-features = false }
 pallet-loans-benchmarking    = { path = '../../pallets/loans/benchmarking', default-features = false, optional = true }
@@ -111,12 +111,11 @@ runtime-benchmarks = [
   'frame-benchmarking',
   'frame-support/runtime-benchmarks',
   'frame-system-benchmarking',
-  'hex-literal',
   'frame-system/runtime-benchmarks',
   'pallet-balances/runtime-benchmarks',
   'pallet-timestamp/runtime-benchmarks',
   'pallet-loans-benchmarking',
-  'pallet-liquid-staking/runtime-benchmarks',
+  # 'pallet-liquid-staking/runtime-benchmarks',
   'pallet-amm/runtime-benchmarks',
   'pallet-collective/runtime-benchmarks',
   'pallet-xcm/runtime-benchmarks',

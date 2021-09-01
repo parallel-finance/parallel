@@ -176,7 +176,7 @@ impl crate::Config for Test {
     type BridgeOrigin = BridgeOrigin;
     type BaseXcmWeight = BaseXcmWeight;
     type XcmTransfer = Currencies;
-    type Agent = Agent;
+    type RelayAgent = Agent;
     type WeightInfo = ();
 }
 
@@ -247,10 +247,12 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     .assimilate_storage(&mut storage)
     .unwrap();
 
-    crate::GenesisConfig {
-        exchange_rate: Rate::one(),
-    }
-    .assimilate_storage::<Test>(&mut storage)
+    GenesisBuild::<Test>::assimilate_storage(
+        &crate::GenesisConfig {
+            exchange_rate: Rate::one(),
+        },
+        &mut storage,
+    )
     .unwrap();
 
     storage.into()

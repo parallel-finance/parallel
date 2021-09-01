@@ -27,10 +27,10 @@ use vanilla_runtime::{
     opaque::SessionKeys,
     pallet_loans::{InterestRateModel, JumpModel, Market, MarketState},
     BalancesConfig, CollatorSelectionConfig, DemocracyConfig, GeneralCouncilConfig,
-    GeneralCouncilMembershipConfig, GenesisConfig, LiquidStakingAgentMembershipConfig,
-    LiquidStakingConfig, LoansConfig, OracleMembershipConfig, ParachainInfoConfig, SessionConfig,
-    SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig, TokensConfig,
-    ValidatorFeedersMembershipConfig, VestingConfig, WASM_BINARY,
+    GeneralCouncilMembershipConfig, GenesisConfig, LiquidStakingConfig, LoansConfig,
+    OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
+    TechnicalCommitteeMembershipConfig, TokensConfig, ValidatorFeedersMembershipConfig,
+    VestingConfig, WASM_BINARY,
 };
 
 use crate::chain_spec::{
@@ -57,7 +57,6 @@ pub fn vanilla_dev_config(id: ParaId) -> ChainSpec {
             ];
             let oracle_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Ferdie")];
             let validator_feeders = vec![get_account_id_from_seed::<sr25519::Public>("Eve")];
-            let liquid_staking_agents = vec![get_account_id_from_seed::<sr25519::Public>("Dave")];
             let initial_allocation: Vec<(AccountId, Balance)> = accumulate(
                 vec![
                     // Faucet accounts
@@ -106,7 +105,6 @@ pub fn vanilla_dev_config(id: ParaId) -> ChainSpec {
                 oracle_accounts,
                 initial_allocation,
                 validator_feeders,
-                liquid_staking_agents,
                 council,
                 technical_committee,
                 id,
@@ -146,10 +144,6 @@ pub fn vanilla_local_testnet_config(id: ParaId) -> ChainSpec {
                 .unwrap()];
             // 5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf//validator_feeder
             let validator_feeders = vec!["5CQ5wx8MYTWGzHY3DUspGBfMnyuMg2L84bWyxJJNq7AugUj6"
-                .parse()
-                .unwrap()];
-            // 5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf//agent
-            let liquid_staking_agents = vec!["5FFCMw8pyzK7QN9jiMeAg8fD45o5dVU1PGcJDAeCC94GVVWC"
                 .parse()
                 .unwrap()];
             let initial_allocation = accumulate(
@@ -215,7 +209,6 @@ pub fn vanilla_local_testnet_config(id: ParaId) -> ChainSpec {
                 oracle_accounts,
                 initial_allocation,
                 validator_feeders,
-                liquid_staking_agents,
                 council,
                 technical_committee,
                 id,
@@ -238,7 +231,6 @@ fn vanilla_genesis(
     oracle_accounts: Vec<AccountId>,
     initial_allocation: Vec<(AccountId, Balance)>,
     validator_feeders: Vec<AccountId>,
-    liquid_staking_agents: Vec<AccountId>,
     council: Vec<AccountId>,
     technical_committee: Vec<AccountId>,
     id: ParaId,
@@ -354,7 +346,6 @@ fn vanilla_genesis(
         },
         liquid_staking: LiquidStakingConfig {
             exchange_rate: Rate::saturating_from_rational(100, 100), // 1
-            reserve_factor: Ratio::from_perthousand(5),
         },
         democracy: DemocracyConfig::default(),
         general_council: GeneralCouncilConfig::default(),
@@ -370,10 +361,6 @@ fn vanilla_genesis(
         treasury: Default::default(),
         oracle_membership: OracleMembershipConfig {
             members: oracle_accounts,
-            phantom: Default::default(),
-        },
-        liquid_staking_agent_membership: LiquidStakingAgentMembershipConfig {
-            members: liquid_staking_agents,
             phantom: Default::default(),
         },
         validator_feeders_membership: ValidatorFeedersMembershipConfig {

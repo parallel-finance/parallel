@@ -27,6 +27,8 @@ mod tests;
 pub mod types;
 pub mod weights;
 
+use primitives::ExchangeRateProvider;
+
 pub use self::pallet::*;
 
 #[frame_support::pallet]
@@ -46,6 +48,7 @@ mod pallet {
     };
     use orml_traits::{MultiCurrency, MultiCurrencyExtended, XcmTransfer};
     use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber};
+    use sp_std::vec::Vec;
     use xcm::v0::MultiLocation;
 
     use primitives::{Amount, Balance, CurrencyId, EraIndex, Rate};
@@ -94,7 +97,7 @@ mod pallet {
         type BaseXcmWeight: Get<Weight>;
 
         /// Account manages the staking assets.
-        type Agent: Get<MultiLocation>;
+        type RelayAgent: Get<MultiLocation>;
 
         type WeightInfo: WeightInfo;
     }
@@ -108,7 +111,7 @@ mod pallet {
         /// The derivative get unstaked successfully
         Unstaked(T::AccountId, BalanceOf<T>, BalanceOf<T>),
         /// Reward/Slash has been recorded.
-        StakeingSettlementRecorded(StakingSettlementKind, BalanceOf<T>),
+        StakingSettlementRecorded(StakingSettlementKind, BalanceOf<T>),
         /// Request to perform bond/rebond/unbond in relay chain
         ///
         /// Send `(bond_amount, rebond_amount, unbond_amount)` as args.
@@ -118,7 +121,7 @@ mod pallet {
     #[pallet::error]
     pub enum Error<T> {
         /// Reward/Slash has been recorded.
-        StakeingSettlementAlreadyRecorded,
+        StakingSettlementAlreadyRecorded,
         /// Exchange rate is invalid.
         InvalidExchangeRate,
         /// Era has been pushed before.
@@ -181,26 +184,6 @@ mod pallet {
     impl<T: Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
             ExchangeRate::<T>::put(self.exchange_rate);
-        }
-    }
-
-    #[cfg(feature = "std")]
-    impl GenesisConfig {
-        /// Direct implementation of `GenesisBuild::build_storage`.
-        ///
-        /// Kept in order not to break dependency.
-        pub fn build_storage<T: Config>(&self) -> Result<sp_runtime::Storage, String> {
-            <Self as GenesisBuild<T>>::build_storage(self)
-        }
-
-        /// Direct implementation of `GenesisBuild::assimilate_storage`.
-        ///
-        /// Kept in order not to break dependency.
-        pub fn assimilate_storage<T: Config>(
-            &self,
-            storage: &mut sp_runtime::Storage,
-        ) -> Result<(), String> {
-            <Self as GenesisBuild<T>>::assimilate_storage(self, storage)
         }
     }
 
@@ -288,7 +271,7 @@ mod pallet {
                 Ok(())
             })?;
 
-            Self::deposit_event(Event::Staked(who, amount));
+            Self::deposit_event(Event::<T>::Staked(who, amount));
             Ok(().into())
         }
 
@@ -336,7 +319,7 @@ mod pallet {
                 Ok(())
             })?;
 
-            Self::deposit_event(Event::Unstaked(who, liquid_amount, asset_amount));
+            Self::deposit_event(Event::<T>::Unstaked(who, liquid_amount, asset_amount));
             Ok(().into())
         }
 
@@ -354,7 +337,7 @@ mod pallet {
             Self::update_staking_pool(kind, amount)?;
 
             StakingSettlementRecords::<T>::insert(era_index, kind, amount);
-            Self::deposit_event(Event::<T>::StakeingSettlementRecorded(kind, amount));
+            Self::deposit_event(Event::<T>::StakingSettlementRecorded(kind, amount));
             Ok(().into())
         }
 
@@ -379,7 +362,7 @@ mod pallet {
                     Self::account_id(),
                     T::StakingCurrency::get(),
                     bond_amount,
-                    T::Agent::get(),
+                    T::RelayAgent::get(),
                     T::BaseXcmWeight::get(),
                 )?;
             }
@@ -402,7 +385,7 @@ mod pallet {
         ) -> DispatchResult {
             ensure!(
                 !StakingSettlementRecords::<T>::contains_key(era_index, kind),
-                Error::<T>::StakeingSettlementAlreadyRecorded
+                Error::<T>::StakingSettlementAlreadyRecorded
             );
             Ok(())
         }
@@ -448,5 +431,11 @@ mod pallet {
         pub(crate) fn push_unstake_task(who: &T::AccountId, amount: BalanceOf<T>) {
             UnstakeQueue::<T>::mutate(|q| q.push((who.clone(), amount)))
         }
+    }
+}
+
+impl<T: Config> ExchangeRateProvider for Pallet<T> {
+    fn get_exchange_rate() -> primitives::Rate {
+        ExchangeRate::<T>::get()
     }
 }

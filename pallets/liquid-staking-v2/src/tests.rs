@@ -104,7 +104,7 @@ fn test_duplicated_record_staking_settlement() {
                 100,
                 StakingSettlementKind::Reward
             ),
-            Error::<Test>::StakeingSettlementAlreadyRecorded
+            Error::<Test>::StakingSettlementAlreadyRecorded
         )
     })
 }

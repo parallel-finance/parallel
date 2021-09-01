@@ -23,13 +23,22 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 mod weights;
 
 use codec::Encode;
+use cumulus_primitives_core::ParaId;
+use frame_support::log;
 use frame_support::{
     dispatch::Weight,
     traits::{Contains, Everything},
     PalletId,
 };
+use frame_system::{
+    limits::{BlockLength, BlockWeights},
+    EnsureOneOf, EnsureRoot, EnsureSigned,
+};
+use hex_literal::hex;
 use orml_currencies::BasicCurrencyAdapter;
 use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended, MultiCurrency};
+use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
+use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use sp_api::impl_runtime_apis;
 use sp_core::{
@@ -49,17 +58,6 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
-
-use cumulus_primitives_core::ParaId;
-use frame_support::log;
-use frame_system::{
-    limits::{BlockLength, BlockWeights},
-    EnsureOneOf, EnsureRoot,
-};
-use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
-use polkadot_parachain::primitives::Sibling;
-use primitives::{network::HEIKO_PREFIX, *};
-
 use xcm::v0::{Junction, Junction::*, MultiAsset, MultiLocation, MultiLocation::*, NetworkId};
 use xcm_builder::{
     AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin,
@@ -69,6 +67,8 @@ use xcm_builder::{
     TakeWeightCredit,
 };
 use xcm_executor::{Config, XcmExecutor};
+
+use primitives::{network::HEIKO_PREFIX, *};
 
 pub mod constants;
 pub mod impls;
@@ -232,7 +232,6 @@ impl Contains<Call> for BaseCallFilter {
             Call::GeneralCouncilMembership(_) |
             Call::TechnicalCommitteeMembership(_) |
             Call::OracleMembership(_) |
-            Call::LiquidStakingAgentMembership(_) |
             Call::ValidatorFeedersMembership(_) |
             // AMM
             Call::AMM(_)
@@ -431,26 +430,17 @@ parameter_types! {
     pub const LiquidStakingAgentMaxMembers: u32 = 100;
 }
 
-type LiquidStakingAgentMembershipInstance = pallet_membership::Instance4;
-impl pallet_membership::Config<LiquidStakingAgentMembershipInstance> for Runtime {
-    type Event = Event;
-    type AddOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type RemoveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type SwapOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type ResetOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type PrimeOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type MembershipInitialized = ();
-    type MembershipChanged = ();
-    type MaxMembers = LiquidStakingAgentMaxMembers;
-    type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
-}
-
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = CurrencyId::KSM;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xKSM;
-    pub const MaxWithdrawAmount: Balance = 1_000_000_000_000_000;
-    pub const MaxAccountProcessingUnstake: u32 = 5;
+    pub RelayAgent: MultiLocation = MultiLocation::X2(
+        Junction::Parent,
+        Junction::AccountId32{
+            network: NetworkId::Any,
+            id: hex!["306721211d5404bd9da88e0204360a1a9ab8b87c66c1bc2fcdd37f3c2222cc20"] // account id of "//Dave"
+        }
+    );
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -459,12 +449,10 @@ impl pallet_liquid_staking::Config for Runtime {
     type PalletId = StakingPalletId;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type WithdrawOrigin = EnsureRoot<AccountId>;
-    type MaxWithdrawAmount = MaxWithdrawAmount;
-    type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
-    type WeightInfo = pallet_liquid_staking::weights::SubstrateWeight<Runtime>;
+    type BridgeOrigin = EnsureSigned<AccountId>;
+    type WeightInfo = ();
     type XcmTransfer = XTokens;
-    type Members = LiquidStakingAgentMembership;
+    type RelayAgent = RelayAgent;
     type BaseXcmWeight = BaseXcmWeight;
 }
 
@@ -1211,7 +1199,6 @@ construct_runtime!(
         GeneralCouncilMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 70,
         TechnicalCommitteeMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>} = 71,
         OracleMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
-        LiquidStakingAgentMembership: pallet_membership::<Instance4>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,
         ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74,
 
         // AMM
@@ -1405,7 +1392,7 @@ impl_runtime_apis! {
 
             list_benchmark!(list, extra, pallet_balances, Balances);
             list_benchmark!(list, extra, pallet_membership, TechnicalCommitteeMembership);
-            list_benchmark!(list, extra, pallet_liquid_staking, LiquidStaking);
+            // list_benchmark!(list, extra, pallet_liquid_staking, LiquidStaking);
             list_benchmark!(list, extra, pallet_multisig, Multisig);
             list_benchmark!(list, extra, pallet_loans, LoansBench::<Runtime>);
             list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
@@ -1448,7 +1435,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_balances, Balances);
             add_benchmark!(params, batches, pallet_timestamp, Timestamp);
             add_benchmark!(params, batches, pallet_loans, LoansBench::<Runtime>);
-            add_benchmark!(params, batches, pallet_liquid_staking, LiquidStaking);
+            // add_benchmark!(params, batches, pallet_liquid_staking, LiquidStaking);
             add_benchmark!(params, batches, pallet_multisig, Multisig);
             add_benchmark!(params, batches, pallet_membership, TechnicalCommitteeMembership);
             add_benchmark!(params, batches, pallet_amm, AMM);
