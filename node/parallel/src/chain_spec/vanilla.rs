@@ -30,7 +30,7 @@ use vanilla_runtime::{
     GeneralCouncilMembershipConfig, GenesisConfig, LiquidStakingConfig, LoansConfig,
     OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
     TechnicalCommitteeMembershipConfig, TokensConfig, ValidatorFeedersMembershipConfig,
-    VestingConfig, WASM_BINARY,
+	OrmlVestingConfig, WASM_BINARY,
 };
 
 use crate::chain_spec::{
@@ -367,7 +367,7 @@ fn vanilla_genesis(
             members: validator_feeders,
             phantom: Default::default(),
         },
-        vesting: VestingConfig {
+        orml_vesting: OrmlVestingConfig {
             vesting: vesting_list,
         },
     }

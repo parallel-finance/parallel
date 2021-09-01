@@ -19,7 +19,7 @@ use heiko_runtime::{
     LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig,
     ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
     TechnicalCommitteeMembershipConfig, TokensConfig, ValidatorFeedersMembershipConfig,
-    VestingConfig, WASM_BINARY,
+    OrmlVestingConfig, WASM_BINARY,
 };
 
 // use hex_literal::hex;
@@ -277,7 +277,7 @@ fn heiko_genesis(
             members: validator_feeders,
             phantom: Default::default(),
         },
-        vesting: VestingConfig {
+        orml_vesting: OrmlVestingConfig {
             vesting: vesting_list,
         },
     }

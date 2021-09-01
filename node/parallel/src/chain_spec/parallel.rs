@@ -21,7 +21,7 @@ use parallel_runtime::{
     GeneralCouncilMembershipConfig, GenesisConfig, LiquidStakingAgentMembershipConfig,
     LiquidStakingConfig, LoansConfig, OracleMembershipConfig, ParachainInfoConfig, SessionConfig,
     SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig, TokensConfig,
-    ValidatorFeedersMembershipConfig, VestingConfig, WASM_BINARY,
+    ValidatorFeedersMembershipConfig, OrmlVestingConfig, WASM_BINARY,
 };
 use primitives::{network::NetworkType, *};
 use sc_service::ChainType;
@@ -380,7 +380,7 @@ fn parallel_genesis(
             members: validator_feeders,
             phantom: Default::default(),
         },
-        vesting: VestingConfig {
+        orml_vesting: OrmlVestingConfig {
             vesting: vesting_list,
         },
     }

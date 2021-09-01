@@ -227,7 +227,7 @@ impl Contains<Call> for BaseCallFilter {
         // Call::Scheduler(_) |
 
         // // 3rd Party
-        // Call::Vesting(_) |
+        // Call::OrmlVesting(_) |
         // Call::Currencies(_) |
         // Call::Oracle(_) |
         // Call::XTokens(_) |
@@ -1196,7 +1196,7 @@ construct_runtime!(
         XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>} = 43,
         UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event} = 44,
         OrmlXcm: orml_xcm::{Pallet, Call, Event<T>} = 45,
-        Vesting: orml_vesting::{Pallet, Storage, Call, Event<T>, Config<T>} = 46,
+        OrmlVesting: orml_vesting::{Pallet, Storage, Call, Event<T>, Config<T>} = 46,
 
         // Loans
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config} = 50,
