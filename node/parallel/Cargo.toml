@@ -46,6 +46,7 @@ sc-transaction-pool     = { git = 'https://github.com/paritytech/substrate.git',
 sc-transaction-pool-api = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
 
 frame-system-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
+try-runtime-cli              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', optional = true }
 
 serde      = { version = '1.0.119', features = ['derive'] }
 serde_json = '1.0.64'
@@ -99,3 +100,9 @@ runtime-benchmarks = [
   'polkadot-service/runtime-benchmarks',
 ]
 std                = []
+try-runtime        = [
+  'heiko-runtime/try-runtime',
+  'parallel-runtime/try-runtime',
+  'vanilla-runtime/try-runtime',
+  'try-runtime-cli',
+]

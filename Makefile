@@ -1,5 +1,7 @@
 PARA_ID  			:= 2085
 CHAIN    			:= vanilla-dev
+BLOCK_AT      := 0x0000000000000000000000000000000000000000000000000000000000000000
+URL           := ws://localhost:9947
 KEYSTORE_PATH := keystore
 SURI          := //Alice
 LAUNCH_CONFIG := config.yml
@@ -29,6 +31,7 @@ bench-liquid-staking:
 
 .PHONY: lint
 lint:
+	SKIP_WASM_BUILD= cargo fmt --all -- --check
 	SKIP_WASM_BUILD= cargo clippy --workspace --exclude parallel --exclude pallet-loans-benchmarking -- -A clippy::type_complexity -A clippy::identity_op -D warnings
 
 .PHONY: fmt
@@ -75,6 +78,14 @@ image:
 .PHONY: keystore
 keystore:
 	./target/debug/parallel key insert -d . --keystore-path $(KEYSTORE_PATH) --suri "$(SURI)" --key-type aura
+
+.PHONY: snapshot
+snapshot:
+	RUST_LOG=debug cargo run --bin parallel --features try-runtime -- try-runtime --chain $(CHAIN) --wasm-execution=compiled --block-at=$(BLOCK_AT) --url=$(URL) on-runtime-upgrade live -s snapshot.bin
+
+.PHONY: try-runtime-upgrade
+try-runtime-upgrade:
+	RUST_LOG=debug cargo run --bin parallel --features try-runtime -- try-runtime --chain $(CHAIN) --wasm-execution=compiled --block-at=$(BLOCK_AT) on-runtime-upgrade snap -s snapshot.bin
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?' Makefile | cut -d: -f1 | sort

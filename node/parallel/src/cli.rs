@@ -27,6 +27,11 @@ pub enum Subcommand {
     Vanity(VanityCmd),
 
     Verify(VerifyCmd),
+
+    /// Try some command against runtime state.
+    #[cfg(feature = "try-runtime")]
+    TryRuntime(try_runtime_cli::TryRuntimeCmd),
+
     /// Export the genesis state of the parachain.
     #[structopt(name = "export-genesis-state")]
     ExportGenesisState(ExportGenesisStateCommand),

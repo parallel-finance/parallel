@@ -32,3 +32,4 @@ std     = [
   'orml-oracle/std',
   'primitives/std',
 ]
+try-runtime = ['frame-support/try-runtime']
