@@ -215,7 +215,7 @@ pub mod pallet {
                         *pool_liquidity_amount = Some(liquidity_amount.clone());
 
                         LiquidityProviders::<T, I>::try_mutate(
-                            (who.clone(), base_asset, quote_asset),
+                            (&who, base_asset, quote_asset),
                             |pool_liquidity_amount| -> DispatchResult {
                                 pool_liquidity_amount.base_amount = pool_liquidity_amount
                                     .base_amount
@@ -252,7 +252,7 @@ pub mod pallet {
                         };
                         *pool_liquidity_amount = Some(amm_pool.clone());
                         LiquidityProviders::<T, I>::insert(
-                            (who.clone(), base_asset, quote_asset),
+                            (&who, base_asset, quote_asset),
                             amm_pool,
                         );
                         T::Currency::transfer(base_asset, &who, &Self::account_id(), base_amount)?;
@@ -326,7 +326,7 @@ pub mod pallet {
                     *pool_liquidity_amount = Some(liquidity_amount);
 
                     LiquidityProviders::<T, I>::try_mutate(
-                        (who.clone(), base_asset, quote_asset),
+                        (&who, base_asset, quote_asset),
                         |pool_liquidity_amount| -> DispatchResult {
                             pool_liquidity_amount.base_amount = pool_liquidity_amount
                                 .base_amount
