@@ -46,4 +46,9 @@ where
             Ordering::Equal => (0u32.into(), 0u32.into(), 0u32.into()),
         }
     }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.total_stake_amount == 0u32.into() && self.total_unstake_amount == 0u32.into()
+    }
 }

@@ -99,6 +99,10 @@ mod pallet {
         /// Account manages the staking assets.
         type RelayAgent: Get<MultiLocation>;
 
+        /// Basis of period.
+        #[pallet::constant]
+        type PeriodBasis: Get<BlockNumberFor<Self>>;
+
         type WeightInfo: WeightInfo;
     }
 
@@ -116,6 +120,12 @@ mod pallet {
         ///
         /// Send `(bond_amount, rebond_amount, unbond_amount)` as args.
         StakingOpRequest(BalanceOf<T>, BalanceOf<T>, BalanceOf<T>),
+        /// Period terminated.
+        ///
+        /// Emit when a period is finished which is defined by `PeriodBasis`. While current block
+        /// height is accurately multiple of the basis, the event would be deposited during finalization of
+        /// the block.
+        PeriodTerminated,
     }
 
     #[pallet::error]
@@ -234,6 +244,22 @@ mod pallet {
                 })
             }
             remaining_weight
+        }
+
+        fn on_finalize(n: BlockNumberFor<T>) {
+            let basis = T::PeriodBasis::get();
+
+            // Check if current period end.
+            if n % basis != 0u32.into() {
+                return;
+            }
+
+            // Check if there are staking to be settled.
+            if Self::matching_pool().is_empty() {
+                return;
+            }
+
+            Self::deposit_event(Event::<T>::PeriodTerminated);
         }
     }
 
