@@ -100,4 +100,9 @@ runtime-benchmarks = [
   'polkadot-service/runtime-benchmarks',
 ]
 std                = []
-try-runtime        = ['heiko-runtime/try-runtime', 'try-runtime-cli']
+try-runtime        = [
+  'heiko-runtime/try-runtime',
+  'parallel-runtime/try-runtime',
+  'vanilla-runtime/try-runtime',
+  'try-runtime-cli',
+]
