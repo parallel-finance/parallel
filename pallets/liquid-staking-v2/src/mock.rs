@@ -18,7 +18,7 @@ use sp_runtime::{
 use sp_std::convert::TryInto;
 use xcm::v0::{Junction, MultiAsset, MultiLocation};
 
-use primitives::{Amount, Balance, CurrencyId, Rate};
+use primitives::{Amount, Balance, CurrencyId, Rate, Ratio};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -251,6 +251,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     GenesisBuild::<Test>::assimilate_storage(
         &crate::GenesisConfig {
             exchange_rate: Rate::one(),
+            reserve_factor: Ratio::from_perthousand(5),
         },
         &mut storage,
     )
