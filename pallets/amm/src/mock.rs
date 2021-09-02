@@ -62,7 +62,8 @@ frame_support::construct_runtime!(
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
         Tokens: orml_tokens::{Pallet, Storage, Config<T>, Event<T>},
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
-        AMM: pallet_amm::{Pallet, Call, Storage, Event<T>},
+        AMM: pallet_amm::<Instance1>::{Pallet, Call, Storage, Event<T>},
+        PermissionedAMM: pallet_amm::<Instance2>::{Pallet, Call, Storage, Event<T>},
     }
 );
 
@@ -154,13 +155,24 @@ impl orml_currencies::Config for Test {
 
 parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
+    pub const AllowPermissionlessPoolCreation: bool = true;
+      pub const AllowPermissionedPoolCreation: bool = false;
 }
 
-impl pallet_amm::Config for Test {
+impl pallet_amm::Config<pallet_amm::Instance1> for Test {
     type Event = Event;
     type Currency = Currencies;
     type PalletId = AMMPalletId;
     type WeightInfo = ();
+    type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
+}
+
+impl pallet_amm::Config<pallet_amm::Instance2> for Test {
+    type Event = Event;
+    type Currency = Currencies;
+    type PalletId = AMMPalletId;
+    type WeightInfo = ();
+    type AllowPermissionlessPoolCreation = AllowPermissionedPoolCreation;
 }
 
 // Build genesis storage according to the mock runtime.
