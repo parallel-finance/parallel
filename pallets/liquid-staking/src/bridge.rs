@@ -1,6 +1,8 @@
-use super::pallet::*;
-use super::types::{RewardDestination, StakingBondCall, StakingBondExtraCall};
-use super::{BalanceOf, Config, Pallet};
+use super::{
+    pallet::*,
+    types::{RewardDestination, StakingBondCall, StakingBondExtraCall, StakingUnbondCall},
+    BalanceOf, Config, Pallet,
+};
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
 use sp_runtime::{traits::StaticLookup, DispatchResult};
@@ -104,6 +106,43 @@ where
             }
             Err(_e) => {
                 return Err(Error::<T>::BondExtraCallFailed.into());
+            }
+        }
+        Ok(())
+    }
+
+    /// unbond on relaychain via xcm.transact
+    pub fn unbond(origin: OriginFor<T>, value: Balance) -> DispatchResult {
+        T::BridgeOrigin::ensure_origin(origin)?;
+        let call = StakingUnbondCall::<T> {
+            call_index: [6, 2],
+            value,
+        };
+
+        let msg = WithdrawAsset {
+            assets: vec![MultiAsset::ConcreteFungible {
+                id: MultiLocation::Null,
+                amount: 1_000_000_000_000,
+            }],
+            effects: vec![BuyExecution {
+                fees: MultiAsset::All,
+                weight: 800_000_000,
+                debt: 600_000_000,
+                halt_on_error: true,
+                xcm: vec![Transact {
+                    origin_type: OriginKind::SovereignAccount,
+                    require_weight_at_most: 1_000_000_000,
+                    call: call.encode().into(),
+                }],
+            }],
+        };
+
+        match T::XcmSender::send_xcm(MultiLocation::X1(Junction::Parent), msg) {
+            Ok(()) => {
+                Self::deposit_event(Event::<T>::UnbondCallSent(value));
+            }
+            Err(_e) => {
+                return Err(Error::<T>::UnbondCallFailed.into());
             }
         }
         Ok(())

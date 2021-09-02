@@ -90,7 +90,7 @@ orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-r
 
 # Parallel dependencies
 pallet-amm                   = { path = '../../pallets/amm', default-features = false }
-pallet-liquid-staking        = { path = '../../pallets/liquid-staking', default-features = false }
+pallet-liquid-staking        = { path = '../../pallets/liquid-staking-v2', package = 'pallet-liquid-staking-v2', default-features = false }
 pallet-liquidation           = { path = '../../pallets/liquidation', default-features = false }
 pallet-loans                 = { path = '../../pallets/loans', default-features = false }
 pallet-loans-benchmarking    = { path = '../../pallets/loans/benchmarking', default-features = false, optional = true }

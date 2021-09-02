@@ -95,3 +95,13 @@ pub struct StakingBondExtraCall<T: Config> {
     #[codec(compact)]
     pub value: BalanceOf<T>,
 }
+
+/// Relaychain staking.unbond call arguments
+#[derive(Clone, Encode, Decode, RuntimeDebug)]
+pub struct StakingUnbondCall<T: Config> {
+    /// [pallet index, call index]
+    pub call_index: [u8; 2],
+    /// Bonded amount
+    #[codec(compact)]
+    pub value: BalanceOf<T>,
+}

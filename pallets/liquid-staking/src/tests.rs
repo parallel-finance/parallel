@@ -163,8 +163,9 @@ fn test_settlement_should_work() {
     });
     Relay::execute_with(|| {
         assert_eq!(
-            RelayBalances::free_balance(&[0u8; 32].into()),
-            25 * DOT_DECIMAL
+            RelayBalances::free_balance(&AccountId::from(create_relay_agent(0))),
+            // FIXME: weight should be take into account
+            249200000000
         );
     });
 }
@@ -234,5 +235,36 @@ fn test_transact_bond_extra_work() {
     Relay::execute_with(|| {
         let ledger = RelayStaking::ledger(ALICE).unwrap();
         assert_eq!(ledger.total, 5 * DOT_DECIMAL);
+    });
+}
+
+#[test]
+fn test_transact_unbond_work() {
+    TestNet::reset();
+
+    ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::bond(
+            Origin::signed(ALICE),
+            para_a_account(),
+            3 * DOT_DECIMAL,
+            RewardDestination::Staked
+        ));
+        assert_ok!(LiquidStaking::unbond(
+            Origin::signed(ALICE),
+            3 * DOT_DECIMAL
+        ));
+    });
+
+    Relay::execute_with(|| {
+        assert_eq!(
+            events::<westend_runtime::Runtime>()[3],
+            westend_runtime::Event::Staking(RelayStakingEvent::Unbonded(
+                para_a_account(),
+                3 * DOT_DECIMAL
+            )),
+        );
+        let ledger = RelayStaking::ledger(para_a_account()).unwrap();
+        assert_eq!(ledger.total, 3 * DOT_DECIMAL);
+        assert_eq!(ledger.active, 0u128);
     });
 }

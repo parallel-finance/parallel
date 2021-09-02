@@ -39,3 +39,5 @@ output/
 config.prod.yml
 
 snapshot.bin
+
+.vimspector.json
