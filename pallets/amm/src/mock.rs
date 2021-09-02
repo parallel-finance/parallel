@@ -172,7 +172,7 @@ impl pallet_amm::Config<pallet_amm::Instance2> for Test {
     type Currency = Currencies;
     type PalletId = AMMPalletId;
     type WeightInfo = ();
-    type AllowPermissionlessPoolCreation = AllowPermissionedPoolCreation;
+    type AllowPermissionlessPoolCreation = ForbidPermissionlessPoolCreation;
 }
 
 // Build genesis storage according to the mock runtime.
