@@ -156,7 +156,7 @@ impl orml_currencies::Config for Test {
 parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
     pub const AllowPermissionlessPoolCreation: bool = true;
-      pub const AllowPermissionedPoolCreation: bool = false;
+      pub const ForbidPermissionlessPoolCreation: bool = false;
 }
 
 impl pallet_amm::Config<pallet_amm::Instance1> for Test {
