@@ -108,7 +108,7 @@ mod pallet {
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
-    #[pallet::metadata(T::AccountId = "Account", BalanceOf<T> = "Balance")]
+    #[pallet::metadata(T::AccountId = "AccountId", BalanceOf<T> = "Balance")]
     pub enum Event<T: Config> {
         /// The assets get staked successfully
         Staked(T::AccountId, BalanceOf<T>),
