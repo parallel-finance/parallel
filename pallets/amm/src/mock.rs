@@ -156,7 +156,6 @@ impl orml_currencies::Config for Test {
 parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
     pub const AllowPermissionlessPoolCreation: bool = true;
-      pub const ForbidPermissionlessPoolCreation: bool = false;
 }
 
 impl pallet_amm::Config<pallet_amm::Instance1> for Test {
@@ -167,10 +166,15 @@ impl pallet_amm::Config<pallet_amm::Instance1> for Test {
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
 }
 
+parameter_types! {
+    pub const PermissionedAMMPalletId: PalletId = PalletId(*b"parms/am");
+      pub const ForbidPermissionlessPoolCreation: bool = false;
+}
+
 impl pallet_amm::Config<pallet_amm::Instance2> for Test {
     type Event = Event;
     type Currency = Currencies;
-    type PalletId = AMMPalletId;
+    type PalletId = PermissionedAMMPalletId;
     type WeightInfo = ();
     type AllowPermissionlessPoolCreation = ForbidPermissionlessPoolCreation;
 }
