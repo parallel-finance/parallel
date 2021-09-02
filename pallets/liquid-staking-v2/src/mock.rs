@@ -163,8 +163,8 @@ parameter_types! {
         Junction::AccountId32 {
            network: xcm::v0::NetworkId::Any,
            id: [0; 32]
-    }
-    );
+    });
+    pub const PeriodBasis: BlockNumber = 5u64;
 }
 
 impl crate::Config for Test {
@@ -177,6 +177,7 @@ impl crate::Config for Test {
     type BaseXcmWeight = BaseXcmWeight;
     type XcmTransfer = Currencies;
     type RelayAgent = Agent;
+    type PeriodBasis = PeriodBasis;
     type WeightInfo = ();
 }
 

@@ -441,6 +441,7 @@ parameter_types! {
             id: hex!["306721211d5404bd9da88e0204360a1a9ab8b87c66c1bc2fcdd37f3c2222cc20"] // account id of "//Dave"
         }
     );
+    pub const PeriodBasis: BlockNumber = 1000u32;
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -453,6 +454,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type WeightInfo = ();
     type XcmTransfer = XTokens;
     type RelayAgent = RelayAgent;
+    type PeriodBasis = PeriodBasis;
     type BaseXcmWeight = BaseXcmWeight;
 }
 
