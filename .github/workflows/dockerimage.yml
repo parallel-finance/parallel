@@ -8,7 +8,7 @@ on:
 
 jobs:
   dockerimage:
-    if: github.repository == 'parallel-finance/parallel'
+    # if: github.repository == 'parallel-finance/parallel'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
