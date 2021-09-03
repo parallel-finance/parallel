@@ -192,6 +192,28 @@ fn add_liquidity_should_work_if_created_by_root() {
 }
 
 #[test]
+fn add_liquidity_by_root_should_not_work_if_pool_already_exists() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::add_liquidity(
+            Origin::signed(1.into()),
+            (DOT, XDOT),
+            (10, 20),
+            (5, 5)
+        ));
+
+        assert_noop!(
+            AMM::force_create_pool(
+                frame_system::RawOrigin::Root.into(),
+                (DOT, XDOT),
+                (10, 20),
+                1.into()
+            ),
+            Error::<Test, Instance1>::PoolAlreadyExists,
+        );
+    })
+}
+
+#[test]
 fn remove_liquidity_whole_share_should_work() {
     new_test_ext().execute_with(|| {
         // A pool with a single LP provider

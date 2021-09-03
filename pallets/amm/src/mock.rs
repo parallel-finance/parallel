@@ -64,7 +64,7 @@ frame_support::construct_runtime!(
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         AMM: pallet_amm::<Instance1>::{Pallet, Call, Storage, Event<T>},
         PermissionedAMM: pallet_amm::<Instance2>::{Pallet, Call, Storage, Event<T>},
-          DefaultAMM: pallet_amm::{Pallet, Call, Storage, Event<T>},
+        DefaultAMM: pallet_amm::{Pallet, Call, Storage, Event<T>},
     }
 );
 
@@ -168,7 +168,7 @@ impl pallet_amm::Config<pallet_amm::Instance1> for Test {
 }
 
 parameter_types! {
-    pub const PermissionedAMMPalletId: PalletId = PalletId(*b"parms/am");
+    pub const PermissionedAMMPalletId: PalletId = PalletId(*b"par/ampe");
     pub const ForbidPermissionlessPoolCreation: bool = false;
 }
 

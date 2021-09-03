@@ -78,7 +78,7 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T, I = ()> {
-        /// Pool does not exust
+        /// Pool does not exist
         PoolDoesNotExist,
         /// More liquidity than user's liquidity
         MoreLiquidity,
@@ -86,6 +86,8 @@ pub mod pallet {
         NotAIdealPriceRatio,
         /// Pool creation has been disabled
         PoolCreationDisabled,
+        /// Pool does not exist
+        PoolAlreadyExists,
     }
 
     #[pallet::event]
@@ -385,7 +387,13 @@ pub mod pallet {
             lptoken_receiver: T::AccountId,
         ) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
+
             let (is_inverted, base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
+
+            ensure!(
+                !Pools::<T, I>::contains_key(base_asset, quote_asset),
+                Error::<T, I>::PoolAlreadyExists
+            );
 
             let (base_amount, quote_amount) = match is_inverted {
                 true => (liquidity_amounts.1, liquidity_amounts.0),
