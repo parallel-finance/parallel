@@ -1,9 +1,34 @@
 # CHANGE LOG
 
+## 2021.09.02
+
+- Implement permisionless and permissioned pool creation (#516)
+
+## 2021.09.01
+
+- DB Access Optimization in AMM pallet (#505)
+
 ## 2021.08.31
 
 - Remove parallel-dev (#501)
 - Adjust vanilla-runtime to be used in parachain (#501)
+
+## 2021.08.30
+
+- Add Liquidity Ratio support in AMM pallet (#494)
+
+## 2021.08.28
+
+- Integrate AMM pallet into runtime (#482)
+
+## 2021.08.27
+
+- Add benchmarking of AMM pallet (#481)
+
+## 2021.08.24
+
+- Modify AMM pallet pools in storage to allow for a more efficient implementation (#450)
+- Support liquidity providing (#450)
 
 ## 2021.07.24
 
@@ -11,6 +36,10 @@
 - Split docker images (#325)
 - Add subwasm (#325)
 - Annonce new release to discord channel (#325)
+
+## 2021.07.22
+
+- Add ORML Vesting (#316)
 
 ## 2021.07.20
 

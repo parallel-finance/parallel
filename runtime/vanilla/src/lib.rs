@@ -1132,6 +1132,7 @@ impl orml_vesting::Config for Runtime {
 
 parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
+      pub const AllowPermissionlessPoolCreation: bool = true;
 }
 
 impl pallet_amm::Config for Runtime {
@@ -1139,6 +1140,7 @@ impl pallet_amm::Config for Runtime {
     type Currency = Currencies;
     type PalletId = AMMPalletId;
     type WeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
+    type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

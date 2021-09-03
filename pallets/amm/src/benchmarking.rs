@@ -64,6 +64,17 @@ benchmarks_instance_pallet! {
     verify {
         assert_last_event::<T, I>(Event::LiquidityRemoved(caller, BASE_ASSET, QUOTE_ASSET).into());
     }
+
+  force_create_pool {
+        let caller: T::AccountId = whitelisted_caller();
+        initial_set_up::<T, I>(caller.clone());
+        let base_amount = 100_000;
+        let quote_amount = 200_000;
+    }: _(SystemOrigin::Root, (BASE_ASSET, QUOTE_ASSET), (base_amount, quote_amount),
+            caller.clone())
+    verify {
+        assert_last_event::<T, I>(Event::LiquidityAdded(caller, BASE_ASSET, QUOTE_ASSET).into());
+    }
 }
 
 impl_benchmark_test_suite!(AMM, crate::mock::new_test_ext(), crate::mock::Test,);

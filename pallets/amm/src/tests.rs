@@ -21,11 +21,17 @@ fn add_liquidity_should_work() {
 
         // Check balance is correct
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &1.into()),
+            <Test as Config<pallet_balances::Instance1>>::Currency::free_balance(
+                CurrencyId::DOT,
+                &1.into()
+            ),
             90
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::xDOT, &1.into()),
+            <Test as Config<pallet_balances::Instance1>>::Currency::free_balance(
+                CurrencyId::xDOT,
+                &1.into()
+            ),
             80
         );
     })
@@ -78,7 +84,22 @@ fn add_more_liquidity_should_not_work_if_minimum_base_amount_is_higher() {
 
         assert_noop!(
             AMM::add_liquidity(Origin::signed(1.into()), (DOT, XDOT), (30, 40), (55, 5)),
-            Error::<Test>::NotAIdealPriceRatio
+            Error::<Test, Instance1>::NotAIdealPriceRatio
+        );
+    })
+}
+
+#[test]
+fn add_liquidity_should_not_work_if_not_allowed_for_normal_user() {
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            PermissionedAMM::add_liquidity(
+                Origin::signed(1.into()),
+                (DOT, XDOT),
+                (30, 40),
+                (55, 5)
+            ),
+            Error::<Test, Instance2>::PoolCreationDisabled
         );
     })
 }
@@ -136,6 +157,63 @@ fn add_liquidity_by_another_user_should_work() {
 }
 
 #[test]
+fn add_liquidity_should_work_if_created_by_root() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::force_create_pool(
+            frame_system::RawOrigin::Root.into(),
+            (DOT, XDOT),
+            (10, 20),
+            1.into()
+        ));
+
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 20);
+
+        assert_eq!(
+            AMM::liquidity_providers((AccountId(1u64), XDOT, DOT)).base_amount,
+            20
+        );
+
+        // Check balance is correct
+        assert_eq!(
+            <Test as Config<pallet_balances::Instance1>>::Currency::free_balance(
+                CurrencyId::DOT,
+                &1.into()
+            ),
+            90
+        );
+        assert_eq!(
+            <Test as Config<pallet_balances::Instance1>>::Currency::free_balance(
+                CurrencyId::xDOT,
+                &1.into()
+            ),
+            80
+        );
+    })
+}
+
+#[test]
+fn add_liquidity_by_root_should_not_work_if_pool_already_exists() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::add_liquidity(
+            Origin::signed(1.into()),
+            (DOT, XDOT),
+            (10, 20),
+            (5, 5)
+        ));
+
+        assert_noop!(
+            AMM::force_create_pool(
+                frame_system::RawOrigin::Root.into(),
+                (DOT, XDOT),
+                (10, 20),
+                1.into()
+            ),
+            Error::<Test, Instance1>::PoolAlreadyExists,
+        );
+    })
+}
+
+#[test]
 fn remove_liquidity_whole_share_should_work() {
     new_test_ext().execute_with(|| {
         // A pool with a single LP provider
@@ -159,11 +237,17 @@ fn remove_liquidity_whole_share_should_work() {
 
         // Check balance is correct
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &1.into()),
+            <Test as Config<pallet_balances::Instance1>>::Currency::free_balance(
+                CurrencyId::DOT,
+                &1.into()
+            ),
             100
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::xDOT, &1.into()),
+            <Test as Config<pallet_balances::Instance1>>::Currency::free_balance(
+                CurrencyId::xDOT,
+                &1.into()
+            ),
             100
         );
     })
@@ -193,11 +277,17 @@ fn remove_liquidity_only_portion_should_work() {
 
         // Check balance is correct
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &1.into()),
+            <Test as Config<pallet_balances::Instance1>>::Currency::free_balance(
+                CurrencyId::DOT,
+                &1.into()
+            ),
             95
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::xDOT, &1.into()),
+            <Test as Config<pallet_balances::Instance1>>::Currency::free_balance(
+                CurrencyId::xDOT,
+                &1.into()
+            ),
             55
         );
     })
@@ -234,11 +324,17 @@ fn remove_liquidity_user_more_liquidity_should_work() {
 
         // Check balance is correct
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &1.into()),
+            <Test as Config<pallet_balances::Instance1>>::Currency::free_balance(
+                CurrencyId::DOT,
+                &1.into()
+            ),
             96
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::xDOT, &1.into()),
+            <Test as Config<pallet_balances::Instance1>>::Currency::free_balance(
+                CurrencyId::xDOT,
+                &1.into()
+            ),
             90
         );
     })
@@ -249,7 +345,7 @@ fn remove_liquidity_when_pool_does_not_exist_should_not_work() {
     new_test_ext().execute_with(|| {
         assert_noop!(
             AMM::remove_liquidity(Origin::signed(1.into()), (DOT, XDOT), 15),
-            Error::<Test>::PoolDoesNotExist
+            Error::<Test, Instance1>::PoolDoesNotExist
         );
     })
 }
@@ -265,7 +361,7 @@ fn remove_liquidity_with_more_liquidity_should_not_work() {
 
         assert_noop!(
             AMM::remove_liquidity(Origin::signed(1.into()), (DOT, XDOT), 300),
-            Error::<Test>::MoreLiquidity
+            Error::<Test, Instance1>::MoreLiquidity
         );
     })
 }

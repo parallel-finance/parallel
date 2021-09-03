@@ -50,6 +50,7 @@ pub use weights::WeightInfo;
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
+    use frame_system::ensure_root;
 
     #[pallet::config]
     pub trait Config<I: 'static = ()>: frame_system::Config {
@@ -69,16 +70,24 @@ pub mod pallet {
 
         /// Weight information for extrinsics in this pallet.
         type WeightInfo: WeightInfo;
+
+        /// A configuration flag to enable or disable the creation of new pools by "normal" users.
+        #[pallet::constant]
+        type AllowPermissionlessPoolCreation: Get<bool>;
     }
 
     #[pallet::error]
     pub enum Error<T, I = ()> {
-        /// Pool does not exust
+        /// Pool does not exist
         PoolDoesNotExist,
         /// More liquidity than user's liquidity
         MoreLiquidity,
         /// Not a ideal price ratio
         NotAIdealPriceRatio,
+        /// Pool creation has been disabled
+        PoolCreationDisabled,
+        /// Pool does not exist
+        PoolAlreadyExists,
     }
 
     #[pallet::event]
@@ -136,6 +145,7 @@ pub mod pallet {
         ///
         /// - `pool`: Currency pool, in which liquidity will be added
         /// - `liquidity_amounts`: Liquidity amounts to be added in pool
+        /// - `minimum_amounts`: specifying its "worst case" ratio when pool already exists
         #[pallet::weight(
 		T::WeightInfo::add_liquidity_non_existing_pool() // Adds liquidity in already existing account.
 		.max(T::WeightInfo::add_liquidity_existing_pool()) // Adds liquidity in new account
@@ -244,6 +254,11 @@ pub mod pallet {
                         ));
                         Ok(Some(T::WeightInfo::add_liquidity_non_existing_pool()).into())
                     } else {
+                        ensure!(
+                            T::AllowPermissionlessPoolCreation::get(),
+                            Error::<T, I>::PoolCreationDisabled
+                        );
+
                         let ownership = base_amount.saturating_mul(quote_amount).integer_sqrt();
                         let amm_pool = PoolLiquidityAmount {
                             base_amount,
@@ -277,7 +292,7 @@ pub mod pallet {
         /// Allow users to remove liquidity from a given pool
         ///
         /// - `pool`: Currency pool, in which liquidity will be removed
-        /// - `liquidity_amounts`: Liquidity amounts to be removed from pool
+        /// - `ownership_to_remove`: Ownership to be removed from user's ownership
         #[pallet::weight(T::WeightInfo::remove_liquidity())]
         #[transactional]
         pub fn remove_liquidity(
@@ -356,6 +371,65 @@ pub mod pallet {
                     Ok(())
                 },
             )
+        }
+
+        /// "force" the creation of a new pool by root
+        ///
+        /// - `pool`: Currency pool, in which liquidity will be added
+        /// - `liquidity_amounts`: Liquidity amounts to be added in pool
+        /// - `lptoken_receiver`: Allocate any liquidity tokens to lptoken_receiver
+        #[pallet::weight(T::WeightInfo::force_create_pool())]
+        #[transactional]
+        pub fn force_create_pool(
+            origin: OriginFor<T>,
+            pool: (CurrencyId, CurrencyId),
+            liquidity_amounts: (Balance, Balance),
+            lptoken_receiver: T::AccountId,
+        ) -> DispatchResultWithPostInfo {
+            ensure_root(origin)?;
+
+            let (is_inverted, base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
+
+            ensure!(
+                !Pools::<T, I>::contains_key(base_asset, quote_asset),
+                Error::<T, I>::PoolAlreadyExists
+            );
+
+            let (base_amount, quote_amount) = match is_inverted {
+                true => (liquidity_amounts.1, liquidity_amounts.0),
+                false => (liquidity_amounts.0, liquidity_amounts.1),
+            };
+
+            let ownership = base_amount.saturating_mul(quote_amount).integer_sqrt();
+            let amm_pool = PoolLiquidityAmount {
+                base_amount,
+                quote_amount,
+                ownership,
+            };
+            Pools::<T, I>::insert(base_asset, quote_asset, amm_pool.clone());
+            LiquidityProviders::<T, I>::insert(
+                (&lptoken_receiver, base_asset, quote_asset),
+                amm_pool,
+            );
+            T::Currency::transfer(
+                base_asset,
+                &lptoken_receiver,
+                &Self::account_id(),
+                base_amount,
+            )?;
+            T::Currency::transfer(
+                quote_asset,
+                &lptoken_receiver,
+                &Self::account_id(),
+                quote_amount,
+            )?;
+
+            Self::deposit_event(Event::<T, I>::LiquidityAdded(
+                lptoken_receiver,
+                base_asset,
+                quote_asset,
+            ));
+            Ok(().into())
         }
     }
 }
