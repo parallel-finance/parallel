@@ -50,8 +50,8 @@ use primitives::{Amount, Balance, CurrencyId, Rate};
 use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::traits::IntegerSquareRoot;
 use sp_runtime::ArithmeticError;
-pub use weights::WeightInfo;
 pub use sp_runtime::Perbill;
+pub use weights::WeightInfo;
 
 #[frame_support::pallet]
 pub mod pallet {

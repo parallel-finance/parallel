@@ -1143,6 +1143,8 @@ impl orml_vesting::Config for Runtime {
 parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
     pub const AllowPermissionlessPoolCreation: bool = true;
+    pub const DefaultLpFee: Perbill = Perbill::from_perthousand(3);         // 0.3%
+    pub const DefaultProtocolFee: Perbill = Perbill::from_perthousand(2);   // 0.2%
 }
 
 impl pallet_amm::Config for Runtime {
@@ -1151,8 +1153,8 @@ impl pallet_amm::Config for Runtime {
     type PalletId = AMMPalletId;
     type WeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
-    type LpFee = sp_runtime::Perbill;
-    type ProtocolFee = sp_runtime::Perbill;
+    type LpFee = DefaultLpFee;
+    type ProtocolFee = DefaultProtocolFee;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
