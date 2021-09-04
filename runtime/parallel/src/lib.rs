@@ -1151,6 +1151,8 @@ impl pallet_amm::Config for Runtime {
     type PalletId = AMMPalletId;
     type WeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
+    type LpFee = sp_runtime::Perbill;
+    type ProtocolFee = sp_runtime::Perbill;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

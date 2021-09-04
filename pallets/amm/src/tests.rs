@@ -365,3 +365,111 @@ fn remove_liquidity_with_more_liquidity_should_not_work() {
         );
     })
 }
+
+#[test]
+fn trade_should_work() {
+    new_test_ext().execute_with(|| {
+        // create pool and add liquidity
+        AMM::add_liquidity(
+            Origin::signed(3.into()),
+            (DOT, XDOT),
+            (100_000, 100_000),
+            (99_999, 99_999),
+        )
+        .expect("Error initalizing AMM");
+
+        // check that pool was funded correctly
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 100_000); // XDOT
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_000); // DOT
+
+        // calculate amount out
+        let amount_out = AMM::trade(&AccountId::from(4_u64), (DOT, XDOT), 1_000, 980);
+        // lp fee is 0.03% or 3/1000 or         0.003*1000=3
+        // protocol fee is 0.02% or 2/1000 or   0.002*1000=2
+        // total fee is 0.05% or 5/1000 or      0.005*1000=5
+
+        // amount out should be 987
+        assert_eq!(amount_out.unwrap(), 985);
+
+        // // pools values should be updated - we should have less XDOT
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 99_013);
+
+        // // pools values should be updated - we should have more DOT in the pool
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 101_000);
+    })
+}
+
+#[test]
+fn trade_should_work_flipped_currencies() {
+    new_test_ext().execute_with(|| {
+        // create pool and add liquidity
+        AMM::add_liquidity(Origin::signed(1.into()), (DOT, XDOT), (100, 50), (90, 90))
+            .expect("Error initalizing AMM");
+
+        // check that pool was funded correctly
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100); // DOT
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 50); // XDOT
+
+        // calculate amount out
+        let amount_out = AMM::trade(&AccountId::from(2_u64), (XDOT, DOT), 10, 15);
+        // fee is 0.03% or 3/1000 or 0.003*16=0.048
+        // lp fee is 0.03% or 3/1000 or         0.003*16=0.048
+        // protocol fee is 0.02% or 2/1000 or   0.002*16=0.032
+        // total fee is 0.05% or 5/1000 or      0.005*16=0.08
+        // this is returned as 0
+
+        // amount out should be 16
+        assert_eq!(amount_out.unwrap(), 16);
+
+        // pools values should be updated - we should have less DOT in the pool
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 84);
+
+        // pools values should be updated - we should have more XDOT
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 60);
+    })
+}
+
+#[test]
+fn trade_should_not_work_if_amount_less_than_miniumum() {
+    new_test_ext().execute_with(|| {
+        // create pool and add liquidity
+        AMM::add_liquidity(Origin::signed(1.into()), (DOT, XDOT), (100, 100), (90, 90))
+            .expect("Error initalizing AMM");
+
+        // check that pool was funded correctly
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 100);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100);
+
+        // amount out is less than minimum_amount_out
+        assert_noop!(
+            AMM::trade(&AccountId::from(2_u64), (DOT, XDOT), 10, 10),
+            Error::<Test, Instance1>::InsufficientAmountOut
+        );
+    })
+}
+
+#[test]
+fn trade_should_not_work_if_amount_in_is_zero() {
+    new_test_ext().execute_with(|| {
+        // create pool and add liquidity
+        AMM::add_liquidity(Origin::signed(1.into()), (DOT, XDOT), (100, 100), (90, 90))
+            .expect("Error initalizing AMM");
+
+        // fail if amount_in is zero
+        assert_noop!(
+            AMM::trade(&AccountId::from(2_u64), (DOT, XDOT), 0, 0),
+            Error::<Test, Instance1>::InsufficientAmountOut
+        );
+    })
+}
+
+#[test]
+fn trade_should_not_work_if_pool_does_not_exist() {
+    new_test_ext().execute_with(|| {
+        // try to trade in pool with no liquidity
+        assert_noop!(
+            AMM::trade(&AccountId::from(2_u64), (DOT, XDOT), 10, 10),
+            Error::<Test, Instance1>::PoolDoesNotExist
+        );
+    })
+}

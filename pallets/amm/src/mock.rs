@@ -1,5 +1,7 @@
 use crate as pallet_amm;
 
+pub use sp_runtime::Perbill;
+
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::traits::Contains;
 use frame_support::{parameter_types, traits::GenesisBuild, PalletId};
@@ -157,6 +159,8 @@ impl orml_currencies::Config for Test {
 parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
     pub const AllowPermissionlessPoolCreation: bool = true;
+    pub const DefaultLpFee: Perbill = Perbill::from_perthousand(3);         // 0.3%
+    pub const DefaultProtocolFee: Perbill = Perbill::from_perthousand(2);   // 0.2%
 }
 
 impl pallet_amm::Config<pallet_amm::Instance1> for Test {
@@ -165,6 +169,9 @@ impl pallet_amm::Config<pallet_amm::Instance1> for Test {
     type PalletId = AMMPalletId;
     type WeightInfo = ();
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
+    type LpFee = DefaultLpFee;
+    type ProtocolFee = DefaultProtocolFee;
+    // type ProtocolFeeHandler = ();
 }
 
 parameter_types! {
@@ -178,6 +185,9 @@ impl pallet_amm::Config<pallet_amm::Instance2> for Test {
     type PalletId = PermissionedAMMPalletId;
     type WeightInfo = ();
     type AllowPermissionlessPoolCreation = ForbidPermissionlessPoolCreation;
+    type LpFee = DefaultLpFee;
+    type ProtocolFee = DefaultProtocolFee;
+    // type ProtocolFeeHandler = ();
 }
 
 impl pallet_amm::Config for Test {
@@ -186,6 +196,9 @@ impl pallet_amm::Config for Test {
     type PalletId = AMMPalletId;
     type WeightInfo = ();
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
+    type LpFee = DefaultLpFee;
+    type ProtocolFee = DefaultProtocolFee;
+    // type ProtocolFeeHandler = ();
 }
 
 // Build genesis storage according to the mock runtime.
@@ -199,6 +212,10 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             (1.into(), CurrencyId::xDOT, 100),
             (2.into(), CurrencyId::DOT, 100),
             (2.into(), CurrencyId::xDOT, 100),
+            (3.into(), CurrencyId::DOT, 100_000),
+            (3.into(), CurrencyId::xDOT, 100_000),
+            (4.into(), CurrencyId::DOT, 100_000),
+            (4.into(), CurrencyId::xDOT, 100_000),
         ],
     }
     .assimilate_storage(&mut t)
