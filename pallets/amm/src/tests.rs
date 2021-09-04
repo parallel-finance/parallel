@@ -392,7 +392,7 @@ fn trade_should_work() {
         assert_eq!(amount_out.unwrap(), 985);
 
         // // pools values should be updated - we should have less XDOT
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 99_013);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 99_015);
 
         // // pools values should be updated - we should have more DOT in the pool
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 101_000);
