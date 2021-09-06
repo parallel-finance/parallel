@@ -2962,6 +2962,7 @@ dependencies = [
  "orml-xcm",
  "orml-xcm-support",
  "orml-xtokens",
+ "pallet-assets",
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
@@ -5195,6 +5196,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-assets"
+version = "4.0.0-dev"
+source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.9#91061a7d925b5bc597804293da283477512ba4ff"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-aura"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.9#91061a7d925b5bc597804293da283477512ba4ff"
@@ -5632,6 +5645,7 @@ dependencies = [
  "orml-tokens",
  "orml-traits",
  "orml-utilities",
+ "pallet-assets",
  "pallet-balances",
  "pallet-timestamp",
  "parallel-primitives",
@@ -5654,6 +5668,7 @@ dependencies = [
  "orml-oracle",
  "orml-tokens",
  "orml-traits",
+ "pallet-assets",
  "pallet-balances",
  "pallet-loans",
  "pallet-prices",
@@ -6273,6 +6288,7 @@ dependencies = [
  "orml-xcm-support",
  "orml-xtokens",
  "pallet-amm",
+ "pallet-assets",
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
@@ -11873,6 +11889,7 @@ dependencies = [
  "orml-xcm-support",
  "orml-xtokens",
  "pallet-amm",
+ "pallet-assets",
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
