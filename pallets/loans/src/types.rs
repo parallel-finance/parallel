@@ -53,7 +53,10 @@ pub struct Market {
     pub close_factor: Ratio,
     /// Liquidation incentive ratio
     pub liquidate_incentive: Rate,
-    /// Current model being used
+    /// Current interest rate model being used
     pub rate_model: InterestRateModel,
+    /// Current market state
     pub state: MarketState,
+    /// PToken asset Id
+    pub ptokenId: u32,
 }
