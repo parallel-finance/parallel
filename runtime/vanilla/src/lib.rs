@@ -24,9 +24,9 @@ mod weights;
 
 use codec::Encode;
 use cumulus_primitives_core::ParaId;
-use frame_support::log;
 use frame_support::{
     dispatch::Weight,
+    log,
     traits::{Contains, Everything},
     PalletId,
 };
