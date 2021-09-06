@@ -29,7 +29,7 @@ use frame_support::{
     log,
     pallet_prelude::*,
     storage::{with_transaction, TransactionOutcome},
-    traits::UnixTime,
+    traits::{UnixTime, tokens::fungibles::{Transfer, Inspect, Mutate}},
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
@@ -92,6 +92,9 @@ pub mod pallet {
 
         /// Unix time
         type UnixTime: UnixTime;
+
+	  	/// PToken assets
+	  	type PTokens: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
     }
 
     #[pallet::error]
