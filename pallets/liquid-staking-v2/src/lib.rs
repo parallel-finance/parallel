@@ -217,8 +217,8 @@ mod pallet {
         ///     - Queue is empty.
         ///     - `remaining_weight` is less than one pop_queue needed.
         fn on_idle(_n: BlockNumberFor<T>, mut remaining_weight: Weight) -> Weight {
-            /// TODO should use T::WeightInfo::on_idle instead
-            /// on_idle shouldn't run out of all remaining_weight normally
+            // TODO should use T::WeightInfo::on_idle instead
+            // on_idle shouldn't run out of all remaining_weight normally
             let base_weight = T::WeightInfo::pop_queue();
             loop {
                 // Check weight is enough
