@@ -1,10 +1,9 @@
 use crate::{
-    mock::MARKET_MOCK,
-    mock::{Loans, Origin, Runtime, ALICE, DOT, NATIVE},
+    mock::{Loans, Origin, Runtime, ALICE, DOT, MARKET_MOCK, NATIVE, XKSM},
     tests::ExtBuilder,
     Error, InterestRateModel, Market, MarketState,
 };
-use frame_support::{assert_noop, error::BadOrigin};
+use frame_support::{assert_noop, assert_ok, error::BadOrigin};
 use primitives::{Rate, Ratio};
 use sp_runtime::FixedPointNumber;
 
@@ -19,8 +18,8 @@ macro_rules! rate_model_sanity_check {
         ExtBuilder::default().build().execute_with(|| {
             // Invalid base_rate
             assert_noop!(
-                Loans::$call(Origin::root(), DOT, {
-                    let mut market = MARKET_MOCK;
+                Loans::$call(Origin::root(), XKSM, {
+                    let mut market = PENDING_MARKET_MOCK;
                     market.rate_model = InterestRateModel::new_jump_model(
                         Rate::saturating_from_rational(36, 100),
                         Rate::saturating_from_rational(15, 100),
@@ -33,8 +32,8 @@ macro_rules! rate_model_sanity_check {
             );
             // Invalid jump_rate
             assert_noop!(
-                Loans::$call(Origin::root(), DOT, {
-                    let mut market = MARKET_MOCK;
+                Loans::$call(Origin::root(), XKSM, {
+                    let mut market = PENDING_MARKET_MOCK;
                     market.rate_model = InterestRateModel::new_jump_model(
                         Rate::saturating_from_rational(5, 100),
                         Rate::saturating_from_rational(36, 100),
@@ -47,8 +46,8 @@ macro_rules! rate_model_sanity_check {
             );
             // Invalid full_rate
             assert_noop!(
-                Loans::$call(Origin::root(), DOT, {
-                    let mut market = MARKET_MOCK;
+                Loans::$call(Origin::root(), XKSM, {
+                    let mut market = PENDING_MARKET_MOCK;
                     market.rate_model = InterestRateModel::new_jump_model(
                         Rate::saturating_from_rational(5, 100),
                         Rate::saturating_from_rational(15, 100),
@@ -61,8 +60,8 @@ macro_rules! rate_model_sanity_check {
             );
             // base_rate greater than jump_rate
             assert_noop!(
-                Loans::$call(Origin::root(), DOT, {
-                    let mut market = MARKET_MOCK;
+                Loans::$call(Origin::root(), XKSM, {
+                    let mut market = PENDING_MARKET_MOCK;
                     market.rate_model = InterestRateModel::new_jump_model(
                         Rate::saturating_from_rational(10, 100),
                         Rate::saturating_from_rational(9, 100),
@@ -75,8 +74,8 @@ macro_rules! rate_model_sanity_check {
             );
             // jump_rate greater than full_rate
             assert_noop!(
-                Loans::$call(Origin::root(), DOT, {
-                    let mut market = MARKET_MOCK;
+                Loans::$call(Origin::root(), XKSM, {
+                    let mut market = PENDING_MARKET_MOCK;
                     market.rate_model = InterestRateModel::new_jump_model(
                         Rate::saturating_from_rational(5, 100),
                         Rate::saturating_from_rational(15, 100),
@@ -94,10 +93,10 @@ macro_rules! rate_model_sanity_check {
 #[test]
 fn active_market_sets_state_to_active() {
     ExtBuilder::default().build().execute_with(|| {
-        Loans::add_market(Origin::root(), DOT, PENDING_MARKET_MOCK).unwrap();
-        assert_eq!(Loans::market(&DOT).unwrap().state, MarketState::Pending);
-        Loans::active_market(Origin::root(), DOT).unwrap();
-        assert_eq!(Loans::market(&DOT).unwrap().state, MarketState::Active);
+        Loans::add_market(Origin::root(), XKSM, PENDING_MARKET_MOCK).unwrap();
+        assert_eq!(Loans::market(&XKSM).unwrap().state, MarketState::Pending);
+        Loans::active_market(Origin::root(), XKSM).unwrap();
+        assert_eq!(Loans::market(&XKSM).unwrap().state, MarketState::Active);
     })
 }
 
@@ -122,20 +121,10 @@ fn add_market_can_only_be_used_by_root() {
 }
 
 #[test]
-fn add_market_does_not_insert_a_new_market_with_unknown_market_currencies() {
-    ExtBuilder::default().build().execute_with(|| {
-        assert_noop!(
-            Loans::add_market(Origin::root(), NATIVE, MARKET_MOCK),
-            Error::<Runtime>::MarketDoesNotExist
-        );
-    })
-}
-
-#[test]
 fn add_market_ensures_that_market_state_must_be_pending() {
     ExtBuilder::default().build().execute_with(|| {
         assert_noop!(
-            Loans::add_market(Origin::root(), DOT, MARKET_MOCK),
+            Loans::add_market(Origin::root(), XKSM, MARKET_MOCK),
             Error::<Runtime>::NewMarketMustHavePendingState
         );
     })
@@ -149,8 +138,19 @@ fn add_market_has_sanity_checks_for_rate_models() {
 #[test]
 fn add_market_successfully_stores_a_new_market() {
     ExtBuilder::default().build().execute_with(|| {
-        Loans::add_market(Origin::root(), DOT, PENDING_MARKET_MOCK).unwrap();
-        assert_eq!(Loans::market(&DOT).unwrap(), PENDING_MARKET_MOCK);
+        Loans::add_market(Origin::root(), XKSM, PENDING_MARKET_MOCK).unwrap();
+        assert_eq!(Loans::market(&XKSM).unwrap(), PENDING_MARKET_MOCK);
+    })
+}
+
+#[test]
+fn add_market_ensures_that_market_does_not_exist() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_ok!(Loans::add_market(Origin::root(), XKSM, PENDING_MARKET_MOCK));
+        assert_noop!(
+            Loans::add_market(Origin::root(), XKSM, PENDING_MARKET_MOCK),
+            Error::<Runtime>::MarketAlredyExists
+        );
     })
 }
 

@@ -91,6 +91,7 @@ pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const KSM: CurrencyId = CurrencyId::KSM;
 pub const USDT: CurrencyId = CurrencyId::USDT;
 pub const XDOT: CurrencyId = CurrencyId::xDOT;
+pub const XKSM: CurrencyId = CurrencyId::xKSM;
 pub const NATIVE: CurrencyId = CurrencyId::HKO;
 
 parameter_types! {
