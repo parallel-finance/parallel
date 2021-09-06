@@ -46,7 +46,7 @@ construct_runtime!(
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Loans: loans::{Pallet, Storage, Call, Config, Event<T>},
         TimestampPallet: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-       	PTokens: pallet_assets::<Instance2>::{Pallet, Call, Storage, Event<T>},
+           PTokens: pallet_assets::<Instance2>::{Pallet, Call, Storage, Event<T>},
     }
 );
 
@@ -197,28 +197,28 @@ impl PriceFeeder for MockPriceFeeder {
 }
 
 parameter_types! {
-	pub const AssetDeposit: u64 = 1;
-	pub const ApprovalDeposit: u64 = 1;
-	pub const StringLimit: u32 = 50;
-	pub const MetadataDepositBase: u64 = 1;
-	pub const MetadataDepositPerByte: u64 = 1;
+    pub const AssetDeposit: u64 = 1;
+    pub const ApprovalDeposit: u64 = 1;
+    pub const StringLimit: u32 = 50;
+    pub const MetadataDepositBase: u64 = 1;
+    pub const MetadataDepositPerByte: u64 = 1;
 }
 
 type PTokensInstance = pallet_assets::Instance2;
 impl pallet_assets::Config<PTokensInstance> for Runtime {
-  type Event = Event;
-  type Balance = u64;
-  type AssetId = u32;
-  type Currency = Balances;
-  type ForceOrigin = EnsureRoot<AccountId>;
-  type AssetDeposit = AssetDeposit;
-  type MetadataDepositBase = MetadataDepositBase;
-  type MetadataDepositPerByte = MetadataDepositPerByte;
-  type ApprovalDeposit = ApprovalDeposit;
-  type StringLimit = StringLimit;
-  type Freezer = ();
-  type WeightInfo = ();
-  type Extra = ();
+    type Event = Event;
+    type Balance = u64;
+    type AssetId = u32;
+    type Currency = Balances;
+    type ForceOrigin = EnsureRoot<AccountId>;
+    type AssetDeposit = AssetDeposit;
+    type MetadataDepositBase = MetadataDepositBase;
+    type MetadataDepositPerByte = MetadataDepositPerByte;
+    type ApprovalDeposit = ApprovalDeposit;
+    type StringLimit = StringLimit;
+    type Freezer = ();
+    type WeightInfo = ();
+    type Extra = ();
 }
 
 impl Config for Runtime {
@@ -230,7 +230,7 @@ impl Config for Runtime {
     type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
     type UnixTime = TimestampPallet;
-  	type PTokens = PTokens;
+    type PTokens = PTokens;
 }
 
 parameter_types! {

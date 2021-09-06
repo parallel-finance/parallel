@@ -416,27 +416,27 @@ impl orml_unknown_tokens::Config for Runtime {
 }
 
 parameter_types! {
-	pub const AssetDeposit: u64 = 1;
-	pub const ApprovalDeposit: u64 = 1;
-	pub const StringLimit: u32 = 50;
-	pub const MetadataDepositBase: u64 = 1;
-	pub const MetadataDepositPerByte: u64 = 1;
+    pub const AssetDeposit: u64 = 1;
+    pub const ApprovalDeposit: u64 = 1;
+    pub const StringLimit: u32 = 50;
+    pub const MetadataDepositBase: u64 = 1;
+    pub const MetadataDepositPerByte: u64 = 1;
 }
 
 impl pallet_assets::Config for Runtime {
-  type Event = Event;
-  type Balance = u64;
-  type AssetId = u32;
-  type Currency = Balances;
-  type ForceOrigin = EnsureRoot<AccountId>;
-  type AssetDeposit = AssetDeposit;
-  type MetadataDepositBase = MetadataDepositBase;
-  type MetadataDepositPerByte = MetadataDepositPerByte;
-  type ApprovalDeposit = ApprovalDeposit;
-  type StringLimit = StringLimit;
-  type Freezer = ();
-  type WeightInfo = ();
-  type Extra = ();
+    type Event = Event;
+    type Balance = u64;
+    type AssetId = u32;
+    type Currency = Balances;
+    type ForceOrigin = EnsureRoot<AccountId>;
+    type AssetDeposit = AssetDeposit;
+    type MetadataDepositBase = MetadataDepositBase;
+    type MetadataDepositPerByte = MetadataDepositPerByte;
+    type ApprovalDeposit = ApprovalDeposit;
+    type StringLimit = StringLimit;
+    type Freezer = ();
+    type WeightInfo = ();
+    type Extra = ();
 }
 
 impl pallet_loans::Config for Runtime {
@@ -448,7 +448,7 @@ impl pallet_loans::Config for Runtime {
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_loans::weights::SubstrateWeight<Runtime>;
     type UnixTime = Timestamp;
-  	type PTokens = PTokens;
+    type PTokens = PTokens;
 }
 
 parameter_types! {
