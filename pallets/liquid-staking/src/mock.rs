@@ -1,97 +1,37 @@
-use crate as pallet_liquid_staking;
-
 use codec::{Decode, Encode, MaxEncodedLen};
+use frame_support::dispatch::DispatchResult;
 use frame_support::{
+    construct_runtime,
     dispatch::Weight,
-    parameter_types,
+    parameter_types, sp_io,
     traits::{Contains, GenesisBuild, SortedMembers},
     PalletId,
 };
-use frame_system::{self as system, EnsureOneOf, EnsureRoot, EnsureSignedBy};
+use frame_system::EnsureSignedBy;
 use orml_traits::{parameter_type_with_key, MultiCurrency, XcmTransfer};
-use primitives::{Amount, Balance, CurrencyId, Rate, Ratio};
-#[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
-    traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
-    DispatchResult, FixedPointNumber, RuntimeDebug,
+    traits::{AccountIdConversion, BlakeTwo256, IdentityLookup, One},
 };
 use sp_std::convert::TryInto;
 use xcm::v0::{Junction, MultiAsset, MultiLocation};
 
-pub const DOT: CurrencyId = CurrencyId::DOT;
-pub const XDOT: CurrencyId = CurrencyId::xDOT;
-pub const NATIVE: CurrencyId = CurrencyId::HKO;
-pub const DOT_DECIMAL: u128 = 10u128.pow(10);
+use primitives::{Amount, Balance, CurrencyId, Rate, Ratio};
+
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
 
-#[derive(
-    Encode,
-    Decode,
-    Default,
-    Eq,
-    PartialEq,
-    Copy,
-    Clone,
-    RuntimeDebug,
-    PartialOrd,
-    Ord,
-    MaxEncodedLen,
-)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
-pub struct AccountId(u64);
-
-impl sp_std::fmt::Display for AccountId {
-    fn fmt(&self, f: &mut sp_std::fmt::Formatter<'_>) -> sp_std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<u64> for AccountId {
-    fn from(account_id: u64) -> Self {
-        Self(account_id)
-    }
-}
-
-impl From<AccountId> for [u8; 32] {
-    fn from(account_id: AccountId) -> Self {
-        let mut b: Vec<u8> = account_id.0.to_be_bytes().iter().cloned().collect();
-        b.resize_with(32, Default::default);
-        b.try_into().unwrap()
-    }
-}
-
-impl From<[u8; 32]> for AccountId {
-    fn from(account_id32: [u8; 32]) -> Self {
-        AccountId::from(u64::from_be_bytes(account_id32[0..8].try_into().unwrap()))
-    }
-}
-
-// Configure a mock runtime to test the pallet.
-frame_support::construct_runtime!(
-    pub enum Test where
-        Block = Block,
-        NodeBlock = Block,
-        UncheckedExtrinsic = UncheckedExtrinsic,
-    {
-        System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-        Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
-        Tokens: orml_tokens::{Pallet, Storage, Config<T>, Event<T>},
-        Currencies: orml_currencies::{Pallet, Call, Event<T>},
-        LiquidStaking: pallet_liquid_staking::{Pallet, Storage, Call, Config, Event<T>},
-    }
-);
+const DOT_DECIMAL: u128 = 10u128.pow(10);
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
     pub const SS58Prefix: u8 = 42;
 }
 
-impl system::Config for Test {
+impl frame_system::Config for Test {
     type BaseCallFilter = ();
     type BlockWeights = ();
     type BlockLength = ();
@@ -160,7 +100,7 @@ impl orml_tokens::Config for Test {
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = NATIVE;
+    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::HKO;
 }
 
 impl orml_currencies::Config for Test {
@@ -172,47 +112,93 @@ impl orml_currencies::Config for Test {
     type WeightInfo = ();
 }
 
-pub struct Six;
-impl SortedMembers<AccountId> for Six {
+pub struct AliceOrigin;
+impl SortedMembers<AccountId> for AliceOrigin {
     fn sorted_members() -> Vec<AccountId> {
-        vec![AccountId::from(6_u64)]
+        vec![1u64.into()]
     }
 }
 
-type EnsureRootOrSix =
-    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<Six, AccountId>>;
+#[derive(
+    Encode, Decode, Default, Eq, PartialEq, Copy, Clone, Debug, PartialOrd, Ord, MaxEncodedLen,
+)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
+pub struct AccountId(u64);
+
+impl sp_std::fmt::Display for AccountId {
+    fn fmt(&self, f: &mut sp_std::fmt::Formatter<'_>) -> sp_std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl From<u64> for AccountId {
+    fn from(account_id: u64) -> Self {
+        Self(account_id)
+    }
+}
+
+impl From<AccountId> for [u8; 32] {
+    fn from(account_id: AccountId) -> Self {
+        let mut b: Vec<u8> = account_id.0.to_be_bytes().iter().cloned().collect();
+        b.resize_with(32, Default::default);
+        b.try_into().unwrap()
+    }
+}
+
+impl From<[u8; 32]> for AccountId {
+    fn from(account_id32: [u8; 32]) -> Self {
+        AccountId::from(u64::from_be_bytes(account_id32[0..8].try_into().unwrap()))
+    }
+}
+
+pub type BridgeOrigin = EnsureSignedBy<AliceOrigin, AccountId>;
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const StakingCurrency: CurrencyId = DOT;
-    pub const LiquidCurrency: CurrencyId = XDOT;
-    pub const MaxWithdrawAmount: Balance = 10;
-    pub const MaxAccountProcessingUnstake: u32 = 5;
+    pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
+    pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
     pub const BaseXcmWeight: Weight = 0;
+    pub const Agent: MultiLocation = MultiLocation::X2(
+        Junction::Parent,
+        Junction::AccountId32 {
+           network: xcm::v0::NetworkId::Any,
+           id: [0; 32]
+    });
+    pub const PeriodBasis: BlockNumber = 5u64;
 }
 
-impl pallet_liquid_staking::Config for Test {
+impl crate::Config for Test {
     type Event = Event;
     type Currency = Currencies;
-    type PalletId = StakingPalletId;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type WithdrawOrigin = EnsureRootOrSix;
-    type MaxWithdrawAmount = MaxWithdrawAmount;
-    type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
-    type WeightInfo = ();
-    type XcmTransfer = Currencies;
-    type Members = Members;
+    type PalletId = StakingPalletId;
+    type BridgeOrigin = BridgeOrigin;
     type BaseXcmWeight = BaseXcmWeight;
+    type XcmTransfer = Currencies;
+    type RelayAgent = Agent;
+    type PeriodBasis = PeriodBasis;
+    type WeightInfo = ();
 }
 
-pub struct Members;
-
-impl SortedMembers<AccountId> for Members {
-    fn sorted_members() -> Vec<AccountId> {
-        vec![2.into(), 10000.into()]
+construct_runtime!(
+    pub enum Test where
+        Block = Block,
+        NodeBlock = Block,
+        UncheckedExtrinsic = UncheckedExtrinsic,
+    {
+        System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+        Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
+        Tokens: orml_tokens::{Pallet, Storage, Config<T>, Event<T>},
+        Currencies: orml_currencies::{Pallet, Call, Event<T>},
+        LiquidStaking: crate::{Pallet, Storage, Call, Event<T>},
     }
-}
+);
+
+#[allow(non_upper_case_globals)]
+pub(crate) const Alice: AccountId = AccountId(1u64);
+#[allow(non_upper_case_globals)]
+pub(crate) const Bob: AccountId = AccountId(2u64);
 
 impl XcmTransfer<AccountId, Balance, CurrencyId> for Currencies {
     fn transfer(
@@ -247,24 +233,29 @@ impl XcmTransfer<AccountId, Balance, CurrencyId> for Currencies {
     }
 }
 
-// Build genesis storage according to the mock runtime.
-pub fn new_test_ext() -> sp_io::TestExternalities {
-    let mut t = system::GenesisConfig::default()
+pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
+    let mut storage = frame_system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap();
+
     orml_tokens::GenesisConfig::<Test> {
         balances: vec![
-            (1.into(), CurrencyId::DOT, 100),
-            (11.into(), CurrencyId::DOT, 100 * DOT_DECIMAL),
+            (Alice, CurrencyId::DOT, 100),
+            (Alice, CurrencyId::xDOT, 100),
+            (Bob, CurrencyId::DOT, 100 * DOT_DECIMAL),
         ],
     }
-    .assimilate_storage(&mut t)
+    .assimilate_storage(&mut storage)
     .unwrap();
-    pallet_liquid_staking::GenesisConfig {
-        exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
-        reserve_factor: Ratio::from_perthousand(5),
-    }
-    .assimilate_storage::<Test>(&mut t)
+
+    GenesisBuild::<Test>::assimilate_storage(
+        &crate::GenesisConfig {
+            exchange_rate: Rate::one(),
+            reserve_factor: Ratio::from_perthousand(5),
+        },
+        &mut storage,
+    )
     .unwrap();
-    t.into()
+
+    storage.into()
 }
