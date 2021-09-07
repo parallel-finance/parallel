@@ -1,5 +1,5 @@
 use crate::{
-    mock::{Loans, Origin, Runtime, ALICE, DOT, MARKET_MOCK, NATIVE, XKSM},
+    mock::{Loans, Origin, Test, ALICE, DOT, MARKET_MOCK, NATIVE, XKSM},
     tests::ExtBuilder,
     Error, InterestRateModel, Market, MarketState,
 };
@@ -28,7 +28,7 @@ macro_rules! rate_model_sanity_check {
                     );
                     market
                 }),
-                Error::<Runtime>::InvalidRateModelParam
+                Error::<Test>::InvalidRateModelParam
             );
             // Invalid jump_rate
             assert_noop!(
@@ -42,7 +42,7 @@ macro_rules! rate_model_sanity_check {
                     );
                     market
                 }),
-                Error::<Runtime>::InvalidRateModelParam
+                Error::<Test>::InvalidRateModelParam
             );
             // Invalid full_rate
             assert_noop!(
@@ -56,7 +56,7 @@ macro_rules! rate_model_sanity_check {
                     );
                     market
                 }),
-                Error::<Runtime>::InvalidRateModelParam
+                Error::<Test>::InvalidRateModelParam
             );
             // base_rate greater than jump_rate
             assert_noop!(
@@ -70,7 +70,7 @@ macro_rules! rate_model_sanity_check {
                     );
                     market
                 }),
-                Error::<Runtime>::InvalidRateModelParam
+                Error::<Test>::InvalidRateModelParam
             );
             // jump_rate greater than full_rate
             assert_noop!(
@@ -84,7 +84,7 @@ macro_rules! rate_model_sanity_check {
                     );
                     market
                 }),
-                Error::<Runtime>::InvalidRateModelParam
+                Error::<Test>::InvalidRateModelParam
             );
         })
     };
@@ -105,7 +105,7 @@ fn active_market_does_not_modify_unknown_market_currencies() {
     ExtBuilder::default().build().execute_with(|| {
         assert_noop!(
             Loans::active_market(Origin::root(), NATIVE),
-            Error::<Runtime>::MarketDoesNotExist
+            Error::<Test>::MarketDoesNotExist
         );
     })
 }
@@ -125,7 +125,7 @@ fn add_market_ensures_that_market_state_must_be_pending() {
     ExtBuilder::default().build().execute_with(|| {
         assert_noop!(
             Loans::add_market(Origin::root(), XKSM, MARKET_MOCK),
-            Error::<Runtime>::NewMarketMustHavePendingState
+            Error::<Test>::NewMarketMustHavePendingState
         );
     })
 }
@@ -149,7 +149,7 @@ fn add_market_ensures_that_market_does_not_exist() {
         assert_ok!(Loans::add_market(Origin::root(), XKSM, PENDING_MARKET_MOCK));
         assert_noop!(
             Loans::add_market(Origin::root(), XKSM, PENDING_MARKET_MOCK),
-            Error::<Runtime>::MarketAlredyExists
+            Error::<Test>::MarketAlredyExists
         );
     })
 }
@@ -177,7 +177,7 @@ fn update_market_ensures_that_it_is_not_possible_to_modify_unknown_market_curren
     ExtBuilder::default().build().execute_with(|| {
         assert_noop!(
             Loans::update_market(Origin::root(), NATIVE, MARKET_MOCK),
-            Error::<Runtime>::MarketDoesNotExist
+            Error::<Test>::MarketDoesNotExist
         );
     })
 }

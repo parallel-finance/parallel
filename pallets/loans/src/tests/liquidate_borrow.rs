@@ -1,5 +1,5 @@
 use crate::{
-    mock::{Loans, MockPriceFeeder, Origin, Runtime, ALICE, BOB, DOT, KSM, USDT},
+    mock::{Loans, MockPriceFeeder, Origin, Test, ALICE, BOB, DOT, KSM, USDT},
     tests::{million_dollar, ExtBuilder},
     Config, Error, MarketState,
 };
@@ -15,7 +15,7 @@ fn liquidate_borrow_allowed_works() {
         let dot_market = Loans::market(&DOT).unwrap();
         assert_noop!(
             Loans::liquidate_borrow_allowed(&ALICE, DOT, 100, &dot_market),
-            Error::<Runtime>::InsufficientShortfall
+            Error::<Test>::InsufficientShortfall
         );
         initial_setup();
         alice_borrows_100_ksm();
@@ -24,7 +24,7 @@ fn liquidate_borrow_allowed_works() {
         let ksm_market = Loans::market(&KSM).unwrap();
         assert_noop!(
             Loans::liquidate_borrow_allowed(&ALICE, KSM, million_dollar(51), &ksm_market),
-            Error::<Runtime>::TooMuchRepay
+            Error::<Test>::TooMuchRepay
         );
         assert_ok!(Loans::liquidate_borrow_allowed(
             &ALICE,
@@ -45,11 +45,11 @@ fn deposit_of_borrower_must_be_collateral() {
         let market = Loans::market(&KSM).unwrap();
         assert_noop!(
             Loans::liquidate_borrow_allowed(&ALICE, KSM, million_dollar(51), &market),
-            Error::<Runtime>::TooMuchRepay
+            Error::<Test>::TooMuchRepay
         );
         assert_noop!(
             Loans::liquidate_borrow(Origin::signed(BOB), ALICE, KSM, 10, USDT),
-            Error::<Runtime>::DepositsAreNotCollateral
+            Error::<Test>::DepositsAreNotCollateral
         );
     })
 }
@@ -66,7 +66,7 @@ fn collateral_value_must_be_greater_than_liquidation_value() {
         .unwrap();
         assert_noop!(
             Loans::liquidate_borrow(Origin::signed(BOB), ALICE, KSM, million_dollar(50), DOT),
-            Error::<Runtime>::InsufficientCollateral
+            Error::<Test>::InsufficientCollateral
         );
     })
 }
@@ -96,7 +96,7 @@ fn full_workflow_works_as_expected() {
         // Bob KSM: cash - deposit - repay = 1000 - 200 - 50 = 750
         // Bob DOT collateral: incentive = 110
         assert_eq!(
-            <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
+            <Test as Config>::Currency::free_balance(DOT, &ALICE),
             million_dollar(800),
         );
         assert_eq!(
@@ -105,7 +105,7 @@ fn full_workflow_works_as_expected() {
             90000000000000000000,
         );
         assert_eq!(
-            <Runtime as Config>::Currency::free_balance(KSM, &ALICE),
+            <Test as Config>::Currency::free_balance(KSM, &ALICE),
             million_dollar(1100),
         );
         assert_eq!(
@@ -113,7 +113,7 @@ fn full_workflow_works_as_expected() {
             million_dollar(50)
         );
         assert_eq!(
-            <Runtime as Config>::Currency::free_balance(KSM, &BOB),
+            <Test as Config>::Currency::free_balance(KSM, &BOB),
             million_dollar(750)
         );
         assert_eq!(
@@ -136,7 +136,7 @@ fn liquidator_cannot_take_inactive_market_currency() {
         }));
         assert_noop!(
             Loans::liquidate_borrow(Origin::signed(BOB), ALICE, KSM, million_dollar(50), DOT),
-            Error::<Runtime>::MarketNotActivated
+            Error::<Test>::MarketNotActivated
         );
     })
 }
@@ -149,7 +149,7 @@ fn liquidator_can_not_repay_more_than_the_close_factor_pct_multiplier() {
         MockPriceFeeder::set_price(KSM, 20.into());
         assert_noop!(
             Loans::liquidate_borrow(Origin::signed(BOB), ALICE, KSM, million_dollar(51), DOT),
-            Error::<Runtime>::TooMuchRepay
+            Error::<Test>::TooMuchRepay
         );
     })
 }
@@ -160,7 +160,7 @@ fn liquidator_must_not_be_borrower() {
         initial_setup();
         assert_noop!(
             Loans::liquidate_borrow(Origin::signed(ALICE), ALICE, KSM, 0, DOT),
-            Error::<Runtime>::LiquidatorIsBorrower
+            Error::<Test>::LiquidatorIsBorrower
         );
     })
 }

@@ -1,5 +1,5 @@
 use crate::{
-    mock::{Loans, Origin, Runtime, ALICE, DOT},
+    mock::{Loans, Origin, Test, ALICE, DOT},
     tests::{million_dollar, process_block, run_to_block, ExtBuilder},
     InterestRateModel, Markets,
 };
@@ -60,7 +60,7 @@ fn interest_rate_model_works() {
                 .unwrap();
             total_borrows = interest_accumulated + total_borrows;
             assert_eq!(Loans::total_borrows(DOT), total_borrows);
-            total_reserves = Markets::<Runtime>::get(&DOT)
+            total_reserves = Markets::<Test>::get(&DOT)
                 .unwrap()
                 .reserve_factor
                 .mul_floor(interest_accumulated)
