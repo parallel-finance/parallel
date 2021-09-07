@@ -30,9 +30,9 @@ use mock::*;
 #[test]
 fn mock_genesis_ok() {
     ExtBuilder::default().build().execute_with(|| {
-        assert_eq!(BorrowIndex::<Runtime>::get(USDT), Rate::one());
+        assert_eq!(BorrowIndex::<Test>::get(USDT), Rate::one());
         assert_eq!(
-            Markets::<Runtime>::get(&KSM).unwrap().collateral_factor,
+            Markets::<Test>::get(&KSM).unwrap().collateral_factor,
             Ratio::from_percent(50)
         );
     });
@@ -76,7 +76,7 @@ fn mint_works() {
             million_dollar(100)
         );
         assert_eq!(
-            <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
+            <Test as Config>::Currency::free_balance(DOT, &ALICE),
             million_dollar(900),
         );
     })
@@ -90,11 +90,11 @@ fn mint_must_return_err_when_overflows_occur() {
         // Verify token balance first
         assert_noop!(
             Loans::mint(Origin::signed(CHARLIE), DOT, MAX_VALUE),
-            orml_tokens::Error::<Runtime>::BalanceTooLow
+            orml_tokens::Error::<Test>::BalanceTooLow
         );
 
         // Deposit MAX_VALUE DOT for CHARLIE
-        assert_ok!(<Runtime as Config>::Currency::deposit(
+        assert_ok!(<Test as Config>::Currency::deposit(
             DOT, &CHARLIE, MAX_VALUE
         ));
 
@@ -106,7 +106,7 @@ fn mint_must_return_err_when_overflows_occur() {
         );
 
         // Exchange rate must ge greater than zero
-        ExchangeRate::<Runtime>::insert(DOT, Rate::zero());
+        ExchangeRate::<Test>::insert(DOT, Rate::zero());
         assert_noop!(
             Loans::mint(Origin::signed(CHARLIE), DOT, 100),
             ArithmeticError::Underflow
@@ -125,12 +125,12 @@ fn redeem_allowed_works() {
         // Redeem 201 KSM should cause InsufficientDeposit
         assert_noop!(
             Loans::redeem_allowed(&KSM, &ALICE, 10050, &MARKET_MOCK),
-            Error::<Runtime>::InsufficientDeposit
+            Error::<Test>::InsufficientDeposit
         );
         // Redeem 200 DOT should cause InsufficientDeposit
         assert_noop!(
             Loans::redeem_allowed(&DOT, &ALICE, 10000, &MARKET_MOCK),
-            Error::<Runtime>::InsufficientDeposit
+            Error::<Test>::InsufficientDeposit
         );
         // Redeem 200 KSM is ok
         assert_ok!(Loans::redeem_allowed(&KSM, &ALICE, 10000, &MARKET_MOCK));
@@ -141,7 +141,7 @@ fn redeem_allowed_works() {
         // Redeem 101 KSM should cause InsufficientLiquidity
         assert_noop!(
             Loans::redeem_allowed(&KSM, &ALICE, 5050, &MARKET_MOCK),
-            Error::<Runtime>::InsufficientLiquidity
+            Error::<Test>::InsufficientLiquidity
         );
         // Redeem 100 KSM is ok
         assert_ok!(Loans::redeem_allowed(&KSM, &ALICE, 5000, &MARKET_MOCK));
@@ -168,7 +168,7 @@ fn redeem_works() {
             million_dollar(80)
         );
         assert_eq!(
-            <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
+            <Test as Config>::Currency::free_balance(DOT, &ALICE),
             million_dollar(920),
         );
     })
@@ -185,7 +185,7 @@ fn redeem_must_return_err_when_overflows_occur() {
         );
 
         // Exchange rate must ge greater than zero
-        ExchangeRate::<Runtime>::insert(DOT, Rate::zero());
+        ExchangeRate::<Test>::insert(DOT, Rate::zero());
         assert_noop!(
             Loans::redeem(Origin::signed(ALICE), DOT, 100),
             ArithmeticError::Underflow
@@ -209,10 +209,10 @@ fn redeem_all_works() {
             0,
         );
         assert_eq!(
-            <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
+            <Test as Config>::Currency::free_balance(DOT, &ALICE),
             million_dollar(1000),
         );
-        assert!(!AccountDeposits::<Runtime>::contains_key(DOT, &ALICE))
+        assert!(!AccountDeposits::<Test>::contains_key(DOT, &ALICE))
     })
 }
 
@@ -225,7 +225,7 @@ fn borrow_allowed_works() {
         // Borrow 101 DOT should cause InsufficientLiquidity
         assert_noop!(
             Loans::borrow_allowed(&DOT, &ALICE, 101),
-            Error::<Runtime>::InsufficientLiquidity
+            Error::<Test>::InsufficientLiquidity
         );
         // Borrow 100 DOT is ok
         assert_ok!(Loans::borrow_allowed(&DOT, &ALICE, 100));
@@ -257,7 +257,7 @@ fn borrow_works() {
         assert_eq!(borrow_snapshot.principal, million_dollar(100));
         assert_eq!(borrow_snapshot.borrow_index, Loans::borrow_index(DOT));
         assert_eq!(
-            <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
+            <Test as Config>::Currency::free_balance(DOT, &ALICE),
             million_dollar(900),
         );
     })
@@ -294,7 +294,7 @@ fn repay_borrow_works() {
         assert_eq!(borrow_snapshot.principal, million_dollar(70));
         assert_eq!(borrow_snapshot.borrow_index, Loans::borrow_index(DOT));
         assert_eq!(
-            <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
+            <Test as Config>::Currency::free_balance(DOT, &ALICE),
             million_dollar(870),
         );
     })
@@ -323,7 +323,7 @@ fn repay_borrow_all_works() {
         // KSM: cash + borrow - repay = 1000 + 50 - 50 = 1000
         // KSM borrow balance: borrow - repay = 50 - 50 = 0
         assert_eq!(
-            <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
+            <Test as Config>::Currency::free_balance(DOT, &ALICE),
             million_dollar(800),
         );
         assert_eq!(
@@ -343,7 +343,7 @@ fn collateral_asset_works() {
         // No collateral assets
         assert_noop!(
             Loans::collateral_asset(Origin::signed(ALICE), DOT, true),
-            Error::<Runtime>::NoDeposit
+            Error::<Test>::NoDeposit
         );
         // Deposit 200 DOT as collateral
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, 200));
@@ -351,13 +351,13 @@ fn collateral_asset_works() {
         assert_eq!(Loans::account_deposits(DOT, ALICE).is_collateral, true);
         assert_noop!(
             Loans::collateral_asset(Origin::signed(ALICE), DOT, true),
-            Error::<Runtime>::DuplicateOperation
+            Error::<Test>::DuplicateOperation
         );
         // Borrow 100 DOT base on the collateral of 200 DOT
         assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, 100));
         assert_noop!(
             Loans::collateral_asset(Origin::signed(ALICE), DOT, false),
-            Error::<Runtime>::InsufficientLiquidity
+            Error::<Test>::InsufficientLiquidity
         );
         // Repay all the borrows
         assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), DOT));
@@ -365,7 +365,7 @@ fn collateral_asset_works() {
         assert_eq!(Loans::account_deposits(DOT, ALICE).is_collateral, false);
         assert_noop!(
             Loans::collateral_asset(Origin::signed(ALICE), DOT, false),
-            Error::<Runtime>::DuplicateOperation
+            Error::<Test>::DuplicateOperation
         );
     })
 }
@@ -403,11 +403,11 @@ fn add_reserves_works() {
 
         assert_eq!(Loans::total_reserves(DOT), million_dollar(100));
         assert_eq!(
-            <Runtime as Config>::Currency::free_balance(DOT, &Loans::account_id()),
+            <Test as Config>::Currency::free_balance(DOT, &Loans::account_id()),
             million_dollar(100),
         );
         assert_eq!(
-            <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
+            <Test as Config>::Currency::free_balance(DOT, &ALICE),
             million_dollar(900),
         );
     })
@@ -434,11 +434,11 @@ fn reduce_reserves_works() {
 
         assert_eq!(Loans::total_reserves(DOT), million_dollar(80));
         assert_eq!(
-            <Runtime as Config>::Currency::free_balance(DOT, &Loans::account_id()),
+            <Test as Config>::Currency::free_balance(DOT, &Loans::account_id()),
             million_dollar(80),
         );
         assert_eq!(
-            <Runtime as Config>::Currency::free_balance(DOT, &ALICE),
+            <Test as Config>::Currency::free_balance(DOT, &ALICE),
             million_dollar(920),
         );
     })
@@ -455,7 +455,7 @@ fn reduce_reserve_reduce_amount_must_be_less_than_total_reserves() {
         ));
         assert_noop!(
             Loans::reduce_reserves(Origin::root(), ALICE, DOT, million_dollar(200)),
-            Error::<Runtime>::InsufficientReserves
+            Error::<Test>::InsufficientReserves
         );
     })
 }
@@ -577,7 +577,7 @@ fn update_exchange_rate_works() {
         );
 
         // total_supply = 0
-        TotalSupply::<Runtime>::insert(DOT, 0);
+        TotalSupply::<Test>::insert(DOT, 0);
         assert_ok!(Loans::update_exchange_rate(DOT));
         assert_eq!(
             Loans::exchange_rate(DOT),
@@ -588,8 +588,8 @@ fn update_exchange_rate_works() {
         // 10 + 5 - 1 / 500
         // total_cash = 10, total_supply = 500
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, million_dollar(10)));
-        TotalBorrows::<Runtime>::insert(DOT, million_dollar(5));
-        TotalReserves::<Runtime>::insert(DOT, million_dollar(1));
+        TotalBorrows::<Test>::insert(DOT, million_dollar(5));
+        TotalReserves::<Test>::insert(DOT, million_dollar(1));
         assert_ok!(Loans::update_exchange_rate(DOT));
         assert_eq!(
             Loans::exchange_rate(DOT),
@@ -602,7 +602,7 @@ fn update_exchange_rate_works() {
 fn current_borrow_balance_works() {
     ExtBuilder::default().build().execute_with(|| {
         // snapshot.principal = 0
-        AccountBorrows::<Runtime>::insert(
+        AccountBorrows::<Test>::insert(
             DOT,
             ALICE,
             BorrowSnapshot {
@@ -613,7 +613,7 @@ fn current_borrow_balance_works() {
         assert_eq!(Loans::current_borrow_balance(&ALICE, &DOT).unwrap(), 0);
 
         // snapshot.borrow_index = 0
-        AccountBorrows::<Runtime>::insert(
+        AccountBorrows::<Test>::insert(
             DOT,
             ALICE,
             BorrowSnapshot {
@@ -624,8 +624,8 @@ fn current_borrow_balance_works() {
         assert_eq!(Loans::current_borrow_balance(&ALICE, &DOT).unwrap(), 0);
 
         // borrow_index = 1.2, snapshot.borrow_index = 1, snapshot.principal = 100
-        BorrowIndex::<Runtime>::insert(DOT, Rate::saturating_from_rational(12, 10));
-        AccountBorrows::<Runtime>::insert(
+        BorrowIndex::<Test>::insert(DOT, Rate::saturating_from_rational(12, 10));
+        AccountBorrows::<Test>::insert(
             DOT,
             ALICE,
             BorrowSnapshot {

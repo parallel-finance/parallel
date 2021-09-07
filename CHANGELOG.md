@@ -1,5 +1,9 @@
 # CHANGE LOG
 
+## 2021.09.07
+
+- Fix loans.add_market call (#538)
+
 ## 2021.09.02
 
 - Implement permisionless and permissioned pool creation (#516)

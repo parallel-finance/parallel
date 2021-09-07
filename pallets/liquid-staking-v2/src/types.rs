@@ -1,6 +1,5 @@
 use codec::{Decode, Encode};
-use sp_runtime::traits::AtLeast32BitUnsigned;
-use sp_runtime::RuntimeDebug;
+use sp_runtime::{traits::AtLeast32BitUnsigned, RuntimeDebug};
 use sp_std::cmp::Ordering;
 
 /// Category of staking settlement at the end of era.
@@ -30,8 +29,9 @@ where
     ///
     /// the returned tri-tuple is formed as `(bond_amount, rebond_amount, unbond_amount)`.
     pub fn matching(&self, unbonding_amount: Balance) -> (Balance, Balance, Balance) {
+        use Ordering::*;
         match self.total_stake_amount.cmp(&self.total_unstake_amount) {
-            Ordering::Greater => {
+            Greater => {
                 let amount = self.total_stake_amount - self.total_unstake_amount;
                 if amount < unbonding_amount {
                     (0u32.into(), amount, 0u32.into())
@@ -39,16 +39,16 @@ where
                     (amount - unbonding_amount, unbonding_amount, 0u32.into())
                 }
             }
-            Ordering::Less => {
+            Less => {
                 let amount = self.total_unstake_amount - self.total_stake_amount;
                 (0u32.into(), 0u32.into(), amount)
             }
-            Ordering::Equal => (0u32.into(), 0u32.into(), 0u32.into()),
+            Equal => (0u32.into(), 0u32.into(), 0u32.into()),
         }
     }
 
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.total_stake_amount == 0u32.into() && self.total_unstake_amount == 0u32.into()
+        self.total_stake_amount.is_zero() && self.total_unstake_amount.is_zero()
     }
 }

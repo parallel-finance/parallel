@@ -56,6 +56,7 @@ construct_runtime!(
         Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
         TimestampPallet: pallet_timestamp::{Pallet, Call, Storage, Inherent},
+        Assets: pallet_assets::<Instance2>::{Pallet, Call, Storage, Event<T>},
     }
 );
 
@@ -269,6 +270,31 @@ impl pallet_prices::Config for Test {
     type LiquidStakingExchangeRateProvider = LiquidStakingExchangeRateProvider;
 }
 
+parameter_types! {
+    pub const AssetDeposit: u64 = 1;
+    pub const ApprovalDeposit: u64 = 1;
+    pub const StringLimit: u32 = 50;
+    pub const MetadataDepositBase: u64 = 1;
+    pub const MetadataDepositPerByte: u64 = 1;
+}
+
+type PTokensInstance = pallet_assets::Instance2;
+impl pallet_assets::Config<PTokensInstance> for Test {
+    type Event = Event;
+    type Balance = u64;
+    type AssetId = u32;
+    type Currency = Balances;
+    type ForceOrigin = EnsureRoot<AccountId>;
+    type AssetDeposit = AssetDeposit;
+    type MetadataDepositBase = MetadataDepositBase;
+    type MetadataDepositPerByte = MetadataDepositPerByte;
+    type ApprovalDeposit = ApprovalDeposit;
+    type StringLimit = StringLimit;
+    type Freezer = ();
+    type WeightInfo = ();
+    type Extra = ();
+}
+
 impl pallet_loans::Config for Test {
     type Event = Event;
     type Currency = Currencies;
@@ -278,6 +304,7 @@ impl pallet_loans::Config for Test {
     type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
     type UnixTime = TimestampPallet;
+    type Assets = Assets;
 }
 
 impl crate::Config for Test {}
