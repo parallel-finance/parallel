@@ -38,7 +38,7 @@ pub enum TokenSymbol {
 pub enum CurrencyId {
     Token(TokenSymbol),
     LPToken(
-        sp_core::H256,
+        Hash,
         TokenSymbol, // Base asset
         TokenSymbol, // Quote asset
     ),
