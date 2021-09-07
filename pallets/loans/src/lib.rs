@@ -126,6 +126,8 @@ pub mod pallet {
         PriceOracleNotReady,
         /// Market does not exist
         MarketDoesNotExist,
+        /// Market already exists
+        MarketAlredyExists,
         /// New markets must have a pending state
         NewMarketMustHavePendingState,
     }
@@ -407,14 +409,18 @@ pub mod pallet {
             market: Market,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
-            let _ = Self::market(&currency_id)?;
+            ensure!(
+                !Markets::<T>::contains_key(&currency_id),
+                Error::<T>::MarketAlredyExists
+            );
+            ensure!(
+                market.state == MarketState::Pending,
+                Error::<T>::NewMarketMustHavePendingState
+            );
             ensure!(
                 market.rate_model.check_model(),
                 Error::<T>::InvalidRateModelParam
             );
-            if market.state != MarketState::Pending {
-                return Err(Error::<T>::NewMarketMustHavePendingState.into());
-            }
             Markets::<T>::insert(currency_id, market.clone());
             Self::deposit_event(Event::<T>::NewMarket(market));
             Ok(().into())
