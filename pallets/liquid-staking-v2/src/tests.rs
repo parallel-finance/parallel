@@ -5,7 +5,7 @@ use crate::{
 };
 use frame_support::{assert_err, assert_ok, traits::Hooks};
 use orml_traits::MultiCurrency;
-use primitives::{Balance, CurrencyId, Rate};
+use primitives::{Balance, CurrencyId, Rate, TokenSymbol};
 use sp_runtime::traits::One;
 
 #[test]
@@ -25,15 +25,18 @@ fn stake_should_work() {
 
         // Check balance is correct
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &Alice),
+            <Test as Config>::Currency::free_balance(CurrencyId::Token(TokenSymbol::DOT), &Alice),
             90
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::xDOT, &Alice),
+            <Test as Config>::Currency::free_balance(CurrencyId::Token(TokenSymbol::xDOT), &Alice),
             110
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::account_id()),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::DOT),
+                &LiquidStaking::account_id()
+            ),
             10
         );
     })
@@ -58,15 +61,18 @@ fn unstake_should_work() {
 
         // Check balance is correct
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &Alice),
+            <Test as Config>::Currency::free_balance(CurrencyId::Token(TokenSymbol::DOT), &Alice),
             96
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::xDOT, &Alice),
+            <Test as Config>::Currency::free_balance(CurrencyId::Token(TokenSymbol::xDOT), &Alice),
             104
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::account_id()),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::DOT),
+                &LiquidStaking::account_id()
+            ),
             4
         );
     })
@@ -147,7 +153,7 @@ fn test_settlement_should_work() {
             ));
             assert_eq!(
                 <Test as Config>::Currency::free_balance(
-                    CurrencyId::DOT,
+                    CurrencyId::Token(TokenSymbol::DOT),
                     &LiquidStaking::account_id()
                 ),
                 pallet_balance

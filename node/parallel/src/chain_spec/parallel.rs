@@ -290,9 +290,17 @@ fn parallel_genesis(
                         .parse()
                         .unwrap()
                     {
-                        vec![(x.clone(), CurrencyId::USDT, 10_u128.pow(20))]
+                        vec![(
+                            x.clone(),
+                            CurrencyId::Token(TokenSymbol::USDT),
+                            10_u128.pow(20),
+                        )]
                     } else {
-                        vec![(x.clone(), CurrencyId::USDT, 10_u128.pow(9))]
+                        vec![(
+                            x.clone(),
+                            CurrencyId::Token(TokenSymbol::USDT),
+                            10_u128.pow(9),
+                        )]
                     }
                 })
                 .collect(),
@@ -303,7 +311,7 @@ fn parallel_genesis(
             last_block_timestamp: 0,
             markets: vec![
                 (
-                    CurrencyId::DOT,
+                    CurrencyId::Token(TokenSymbol::DOT),
                     Market {
                         close_factor: Ratio::from_percent(50),
                         collateral_factor: Ratio::from_percent(50),
@@ -319,7 +327,7 @@ fn parallel_genesis(
                     },
                 ),
                 (
-                    CurrencyId::USDT,
+                    CurrencyId::Token(TokenSymbol::USDT),
                     Market {
                         close_factor: Ratio::from_percent(50),
                         collateral_factor: Ratio::from_percent(50),
@@ -335,7 +343,7 @@ fn parallel_genesis(
                     },
                 ),
                 (
-                    CurrencyId::xDOT,
+                    CurrencyId::Token(TokenSymbol::xDOT),
                     Market {
                         close_factor: Ratio::from_percent(50),
                         collateral_factor: Ratio::from_percent(50),

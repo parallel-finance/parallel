@@ -16,9 +16,11 @@
 #![allow(clippy::unnecessary_cast)]
 #![allow(clippy::upper_case_acronyms)]
 
+pub mod currency;
 pub mod network;
 
 use codec::{Decode, Encode};
+pub use currency::{CurrencyId, TokenSymbol};
 use sp_runtime::{
     traits::{CheckedDiv, IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
@@ -71,20 +73,6 @@ pub type Rate = FixedU128;
 
 /// The fixed point number, range from 0 to 1.
 pub type Ratio = Permill;
-
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
-pub enum CurrencyId {
-    DOT = 0,
-    KSM = 1,
-    USDT = 2,
-    #[allow(non_camel_case_types)]
-    xDOT = 3,
-    #[allow(non_camel_case_types)]
-    xKSM = 4,
-    HKO = 5,
-    PARA = 6,
-}
 
 pub type Liquidity = FixedU128;
 

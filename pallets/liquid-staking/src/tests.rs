@@ -1,6 +1,7 @@
 use super::*;
 use crate::{mock::*, Error};
 use frame_support::{assert_noop, assert_ok};
+use primitives::TokenSymbol;
 use sp_runtime::traits::BadOrigin;
 
 #[test]
@@ -17,15 +18,24 @@ fn stake_should_work() {
 
         // Check balance is correct
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &1.into()),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::DOT),
+                &1.into()
+            ),
             90
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::xDOT, &1.into()),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::xDOT),
+                &1.into()
+            ),
             500
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::account_id()),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::DOT),
+                &LiquidStaking::account_id()
+            ),
             10
         );
 
@@ -51,15 +61,24 @@ fn withdraw_should_work() {
 
         // Check balance is correct
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &AccountId::from(2_u64)),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::DOT),
+                &AccountId::from(2_u64)
+            ),
             10
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &AccountId::from(1_u64)),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::DOT),
+                &AccountId::from(1_u64)
+            ),
             90
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::account_id()),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::DOT),
+                &LiquidStaking::account_id()
+            ),
             0
         );
     })
@@ -173,15 +192,24 @@ fn unstake_should_work() {
 
         // Check balance is correct
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &1.into()),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::DOT),
+                &1.into()
+            ),
             90
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::xDOT, &1.into()),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::xDOT),
+                &1.into()
+            ),
             0
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::account_id()),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::DOT),
+                &LiquidStaking::account_id()
+            ),
             10
         );
     })
@@ -431,15 +459,24 @@ fn finish_processed_unstake_should_work() {
 
         // Check balance is correct
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &1.into()),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::DOT),
+                &1.into()
+            ),
             100
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::xDOT, &1.into()),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::xDOT),
+                &1.into()
+            ),
             0
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::account_id()),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::DOT),
+                &LiquidStaking::account_id()
+            ),
             0
         );
     })
@@ -596,15 +633,24 @@ fn finish_processed_unstake_with_multiple_processing_should_work() {
 
         // Check balance is correct
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &1.into()),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::DOT),
+                &1.into()
+            ),
             95
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::xDOT, &1.into()),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::xDOT),
+                &1.into()
+            ),
             0
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::account_id()),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::DOT),
+                &LiquidStaking::account_id()
+            ),
             5
         );
 
@@ -632,15 +678,24 @@ fn finish_processed_unstake_with_multiple_processing_should_work() {
 
         // Check balance is correct
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &1.into()),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::DOT),
+                &1.into()
+            ),
             99
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::xDOT, &1.into()),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::xDOT),
+                &1.into()
+            ),
             0
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::account_id()),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::DOT),
+                &LiquidStaking::account_id()
+            ),
             1
         );
 
@@ -663,15 +718,24 @@ fn finish_processed_unstake_with_multiple_processing_should_work() {
 
         // Check balance is correct
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &1.into()),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::DOT),
+                &1.into()
+            ),
             100
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::xDOT, &1.into()),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::xDOT),
+                &1.into()
+            ),
             0
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::account_id()),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::DOT),
+                &LiquidStaking::account_id()
+            ),
             0
         );
     })

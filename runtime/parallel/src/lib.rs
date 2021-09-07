@@ -333,7 +333,7 @@ impl orml_xcm::Config for Runtime {
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::PARA;
+    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::PARA);
 
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
 }
@@ -350,8 +350,8 @@ pub struct CurrencyIdConvert;
 impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
-            CurrencyId::DOT => Some(X1(Parent)),
-            CurrencyId::xDOT => Some(X3(
+            CurrencyId::Token(TokenSymbol::DOT) => Some(X1(Parent)),
+            CurrencyId::Token(TokenSymbol::xDOT) => Some(X3(
                 Parent,
                 Parachain(ParachainInfo::parachain_id().into()),
                 GeneralKey(b"xDOT".to_vec()),
@@ -364,11 +364,11 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
 impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
     fn convert(location: MultiLocation) -> Option<CurrencyId> {
         match location {
-            X1(Parent) => Some(CurrencyId::DOT),
+            X1(Parent) => Some(CurrencyId::Token(TokenSymbol::DOT)),
             X3(Parent, Parachain(id), GeneralKey(key))
                 if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xDOT".to_vec() =>
             {
-                Some(CurrencyId::xDOT)
+                Some(CurrencyId::Token(TokenSymbol::xDOT))
             }
             _ => None,
         }
@@ -447,8 +447,8 @@ impl pallet_membership::Config<LiquidStakingAgentMembershipInstance> for Runtime
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
-    pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
+    pub const StakingCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
+    pub const LiquidCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::xDOT);
     pub const MaxWithdrawAmount: Balance = 10_000_000_000_000;
     pub const MaxAccountProcessingUnstake: u32 = 5;
 }
