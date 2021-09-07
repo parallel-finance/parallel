@@ -29,7 +29,10 @@ use frame_support::{
     log,
     pallet_prelude::*,
     storage::{with_transaction, TransactionOutcome},
-    traits::UnixTime,
+    traits::{
+        tokens::fungibles::{Inspect, Mutate, Transfer},
+        UnixTime,
+    },
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
@@ -58,6 +61,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
+
     use super::*;
 
     #[pallet::config]
@@ -92,6 +96,9 @@ pub mod pallet {
 
         /// Unix time
         type UnixTime: UnixTime;
+
+        /// Assets type for deposit/withdraw collateral assets to/from loans module
+        type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
     }
 
     #[pallet::error]

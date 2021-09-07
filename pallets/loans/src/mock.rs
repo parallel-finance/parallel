@@ -31,11 +31,11 @@ use sp_std::vec::Vec;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
-type Block = frame_system::mocking::MockBlock<Runtime>;
+type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
+type Block = frame_system::mocking::MockBlock<Test>;
 
 construct_runtime!(
-    pub enum Runtime where
+    pub enum Test where
         Block = Block,
         NodeBlock = Block,
         UncheckedExtrinsic = UncheckedExtrinsic,
@@ -46,6 +46,7 @@ construct_runtime!(
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Loans: loans::{Pallet, Storage, Call, Config, Event<T>},
         TimestampPallet: pallet_timestamp::{Pallet, Call, Storage, Inherent},
+        Assets: pallet_assets::<Instance1>::{Pallet, Call, Storage, Event<T>},
     }
 );
 
@@ -54,7 +55,7 @@ parameter_types! {
     pub const SS58Prefix: u8 = 42;
 }
 
-impl frame_system::Config for Runtime {
+impl frame_system::Config for Test {
     type BaseCallFilter = ();
     type BlockWeights = ();
     type BlockLength = ();
@@ -98,7 +99,7 @@ parameter_types! {
     pub const MinimumPeriod: u64 = 5;
 }
 
-impl pallet_timestamp::Config for Runtime {
+impl pallet_timestamp::Config for Test {
     type Moment = u64;
     type OnTimestampSet = ();
     type MinimumPeriod = MinimumPeriod;
@@ -118,7 +119,7 @@ impl Contains<AccountId> for DustRemovalWhitelist {
     }
 }
 
-impl orml_tokens::Config for Runtime {
+impl orml_tokens::Config for Test {
     type Event = Event;
     type Balance = Balance;
     type Amount = Amount;
@@ -134,11 +135,11 @@ parameter_types! {
     pub const GetNativeCurrencyId: CurrencyId = NATIVE;
 }
 
-impl orml_currencies::Config for Runtime {
+impl orml_currencies::Config for Test {
     type Event = Event;
     type MultiCurrency = Tokens;
     type NativeCurrency =
-        orml_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+        orml_currencies::BasicCurrencyAdapter<Test, Balances, Amount, BlockNumber>;
     type GetNativeCurrencyId = GetNativeCurrencyId;
     type WeightInfo = ();
 }
@@ -148,7 +149,7 @@ parameter_types! {
     pub const MaxLocks: u32 = 50;
 }
 
-impl pallet_balances::Config for Runtime {
+impl pallet_balances::Config for Test {
     type MaxLocks = MaxLocks;
     type Balance = Balance;
     type Event = Event;
@@ -157,7 +158,7 @@ impl pallet_balances::Config for Runtime {
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];
     type AccountStore = System;
-    type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = pallet_balances::weights::SubstrateWeight<Test>;
 }
 
 pub struct MockPriceFeeder;
@@ -195,7 +196,32 @@ impl PriceFeeder for MockPriceFeeder {
     }
 }
 
-impl Config for Runtime {
+parameter_types! {
+    pub const AssetDeposit: u64 = 1;
+    pub const ApprovalDeposit: u64 = 1;
+    pub const StringLimit: u32 = 50;
+    pub const MetadataDepositBase: u64 = 1;
+    pub const MetadataDepositPerByte: u64 = 1;
+}
+
+type AssetsInstance = pallet_assets::Instance1;
+impl pallet_assets::Config<AssetsInstance> for Test {
+    type Event = Event;
+    type Balance = u64;
+    type AssetId = u32;
+    type Currency = Balances;
+    type ForceOrigin = EnsureRoot<AccountId>;
+    type AssetDeposit = AssetDeposit;
+    type MetadataDepositBase = MetadataDepositBase;
+    type MetadataDepositPerByte = MetadataDepositPerByte;
+    type ApprovalDeposit = ApprovalDeposit;
+    type StringLimit = StringLimit;
+    type Freezer = ();
+    type WeightInfo = ();
+    type Extra = ();
+}
+
+impl Config for Test {
     type Event = Event;
     type Currency = Currencies;
     type PalletId = LoansPalletId;
@@ -204,6 +230,7 @@ impl Config for Runtime {
     type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
     type UnixTime = TimestampPallet;
+    type Assets = Assets;
 }
 
 parameter_types! {
@@ -232,10 +259,10 @@ impl Default for ExtBuilder {
 impl ExtBuilder {
     pub fn build(self) -> sp_io::TestExternalities {
         let mut t = frame_system::GenesisConfig::default()
-            .build_storage::<Runtime>()
+            .build_storage::<Test>()
             .unwrap();
 
-        orml_tokens::GenesisConfig::<Runtime> {
+        orml_tokens::GenesisConfig::<Test> {
             balances: self.balances.clone(),
         }
         .assimilate_storage(&mut t)
@@ -252,7 +279,7 @@ impl ExtBuilder {
             ],
             last_block_timestamp: 0,
         }
-        .assimilate_storage::<Runtime>(&mut t)
+        .assimilate_storage::<Test>(&mut t)
         .unwrap();
 
         // t.into()

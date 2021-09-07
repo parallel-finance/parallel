@@ -15,6 +15,7 @@ orml-currencies  = { git = 'https://github.com/open-web3-stack/open-runtime-modu
 orml-tokens      = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-traits      = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-utilities   = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+pallet-assets    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
 pallet-balances  = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
 pallet-timestamp = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
 
