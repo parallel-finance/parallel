@@ -96,8 +96,8 @@ pub mod pallet {
         /// Unix time
         type UnixTime: UnixTime;
 
-        /// PToken assets
-        type PTokens: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
+        /// Assets type for deposit/withdraw collateral assets to/from loans module
+        type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
     }
 
     #[pallet::error]

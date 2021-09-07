@@ -57,6 +57,4 @@ pub struct Market {
     pub rate_model: InterestRateModel,
     /// Current market state
     pub state: MarketState,
-    /// PToken asset Id
-    pub ptokenId: u32,
 }

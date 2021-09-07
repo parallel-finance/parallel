@@ -46,7 +46,7 @@ construct_runtime!(
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Loans: loans::{Pallet, Storage, Call, Config, Event<T>},
         TimestampPallet: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-           PTokens: pallet_assets::<Instance2>::{Pallet, Call, Storage, Event<T>},
+        Assets: pallet_assets::<Instance1>::{Pallet, Call, Storage, Event<T>},
     }
 );
 
@@ -204,7 +204,7 @@ parameter_types! {
     pub const MetadataDepositPerByte: u64 = 1;
 }
 
-type PTokensInstance = pallet_assets::Instance2;
+type PTokensInstance = pallet_assets::Instance1;
 impl pallet_assets::Config<PTokensInstance> for Runtime {
     type Event = Event;
     type Balance = u64;
@@ -230,7 +230,7 @@ impl Config for Runtime {
     type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
     type UnixTime = TimestampPallet;
-    type PTokens = PTokens;
+    type Assets = Assets;
 }
 
 parameter_types! {

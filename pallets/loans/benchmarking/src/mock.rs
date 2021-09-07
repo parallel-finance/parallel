@@ -56,7 +56,7 @@ construct_runtime!(
         Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
         TimestampPallet: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-        PTokens: pallet_assets::<Instance2>::{Pallet, Call, Storage, Event<T>},
+        Assets: pallet_assets::<Instance2>::{Pallet, Call, Storage, Event<T>},
     }
 );
 
@@ -304,7 +304,7 @@ impl pallet_loans::Config for Test {
     type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
     type UnixTime = TimestampPallet;
-    type PTokens = PTokens;
+    type Assets = Assets;
 }
 
 impl crate::Config for Test {}
