@@ -1,6 +1,6 @@
-use frame_support::dispatch::DispatchResult;
 use frame_support::{
     construct_runtime,
+    dispatch::DispatchResult,
     dispatch::Weight,
     parameter_types, sp_io,
     traits::{Contains, GenesisBuild, SortedMembers},
@@ -23,8 +23,6 @@ type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
 type AccountId = u64;
-
-const DOT_DECIMAL: u128 = 10u128.pow(10);
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
@@ -164,7 +162,6 @@ construct_runtime!(
 );
 
 pub const ALICE: AccountId = 1u64;
-pub const BOB: AccountId = 2u64;
 
 pub struct MockXcmTransfer;
 impl XcmTransfer<AccountId, Balance, CurrencyId> for MockXcmTransfer {
@@ -197,7 +194,6 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         balances: vec![
             (ALICE, CurrencyId::DOT, 100),
             (ALICE, CurrencyId::xDOT, 100),
-            (BOB, CurrencyId::DOT, 100 * DOT_DECIMAL),
         ],
     }
     .assimilate_storage(&mut storage)
