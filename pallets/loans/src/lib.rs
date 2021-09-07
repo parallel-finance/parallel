@@ -61,7 +61,10 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
+
     use super::*;
+
+    type AssetIdOf<T> = <<T as Config>::Assets as pallet_assets::Config>::AssetId;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
