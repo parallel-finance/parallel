@@ -2950,7 +2950,7 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
- "hex-literal 0.3.3",
+ "hex-literal",
  "orml-currencies",
  "orml-oracle",
  "orml-oracle-rpc-runtime-api",
@@ -3030,28 +3030,9 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hex-literal"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "961de220ec9a91af2e1e5bd80d02109155695e516771762381ef8581317066e0"
-dependencies = [
- "hex-literal-impl",
- "proc-macro-hack",
-]
-
-[[package]]
-name = "hex-literal"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "21e4590e13640f19f249fe3e4eca5113bc4289f2497710378190e7f4bd96f45b"
-
-[[package]]
-name = "hex-literal-impl"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "853f769599eb31de176303197b7ba4973299c38c7a7604a6bc88c3eef05b9b46"
-dependencies = [
- "proc-macro-hack",
-]
 
 [[package]]
 name = "hex_fmt"
@@ -3720,7 +3701,7 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
- "hex-literal 0.3.3",
+ "hex-literal",
  "log",
  "pallet-authority-discovery",
  "pallet-authorship",
@@ -5579,20 +5560,16 @@ dependencies = [
 name = "pallet-liquid-staking"
 version = "3.0.0"
 dependencies = [
- "frame-benchmarking",
  "frame-support",
  "frame-system",
  "orml-currencies",
  "orml-tokens",
  "orml-traits",
- "orml-utilities",
  "pallet-balances",
- "pallet-timestamp",
  "parallel-primitives",
  "parity-scale-codec",
  "serde",
  "sp-core",
- "sp-io",
  "sp-runtime",
  "sp-std",
  "xcm",
@@ -6187,7 +6164,7 @@ dependencies = [
  "frame-benchmarking-cli",
  "frame-system-rpc-runtime-api",
  "heiko-runtime",
- "hex-literal 0.2.1",
+ "hex-literal",
  "jsonrpc-core",
  "log",
  "orml-oracle-rpc",
@@ -6275,7 +6252,7 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
- "hex-literal 0.3.3",
+ "hex-literal",
  "orml-currencies",
  "orml-oracle",
  "orml-oracle-rpc-runtime-api",
@@ -7459,7 +7436,7 @@ source = "git+https://github.com/paritytech/polkadot.git?branch=release-v0.9.9#7
 dependencies = [
  "bitvec 0.20.4",
  "frame-system",
- "hex-literal 0.3.3",
+ "hex-literal",
  "parity-scale-codec",
  "parity-util-mem",
  "polkadot-core-primitives",
@@ -7530,7 +7507,7 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
- "hex-literal 0.3.3",
+ "hex-literal",
  "log",
  "pallet-authority-discovery",
  "pallet-authorship",
@@ -7682,7 +7659,7 @@ dependencies = [
  "beefy-primitives",
  "frame-system-rpc-runtime-api",
  "futures 0.3.16",
- "hex-literal 0.3.3",
+ "hex-literal",
  "kusama-runtime",
  "kvdb",
  "kvdb-rocksdb",
@@ -8469,7 +8446,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "frame-system-rpc-runtime-api",
- "hex-literal 0.3.3",
+ "hex-literal",
  "log",
  "pallet-authority-discovery",
  "pallet-authorship",
@@ -11876,7 +11853,7 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
- "hex-literal 0.3.3",
+ "hex-literal",
  "orml-currencies",
  "orml-oracle",
  "orml-oracle-rpc-runtime-api",
@@ -11896,7 +11873,7 @@ dependencies = [
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-democracy",
- "pallet-liquid-staking-v2",
+ "pallet-liquid-staking",
  "pallet-liquidation",
  "pallet-loans",
  "pallet-loans-benchmarking",
@@ -12378,7 +12355,7 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
- "hex-literal 0.3.3",
+ "hex-literal",
  "log",
  "pallet-authority-discovery",
  "pallet-authorship",

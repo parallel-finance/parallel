@@ -11,7 +11,7 @@ use sp_runtime::traits::One;
 #[test]
 fn stake_should_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(LiquidStaking::stake(Origin::signed(Alice), 10));
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), 10));
         // Check storage is correct
         assert_eq!(ExchangeRate::<Test>::get(), Rate::one());
         assert_eq!(StakingPool::<Test>::get(), 10);
@@ -25,11 +25,11 @@ fn stake_should_work() {
 
         // Check balance is correct
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::Token(TokenSymbol::DOT), &Alice),
+            <Test as Config>::Currency::free_balance(CurrencyId::Token(TokenSymbol::DOT), &ALICE),
             90
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::Token(TokenSymbol::xDOT), &Alice),
+            <Test as Config>::Currency::free_balance(CurrencyId::Token(TokenSymbol::xDOT), &ALICE),
             110
         );
         assert_eq!(
@@ -45,8 +45,8 @@ fn stake_should_work() {
 #[test]
 fn unstake_should_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(LiquidStaking::stake(Origin::signed(Alice), 10));
-        assert_ok!(LiquidStaking::unstake(Origin::signed(Alice), 6));
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), 10));
+        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), 6));
 
         // Check storage is correct
         assert_eq!(ExchangeRate::<Test>::get(), Rate::one());
@@ -61,11 +61,11 @@ fn unstake_should_work() {
 
         // Check balance is correct
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::Token(TokenSymbol::DOT), &Alice),
+            <Test as Config>::Currency::free_balance(CurrencyId::Token(TokenSymbol::DOT), &ALICE),
             96
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::Token(TokenSymbol::xDOT), &Alice),
+            <Test as Config>::Currency::free_balance(CurrencyId::Token(TokenSymbol::xDOT), &ALICE),
             104
         );
         assert_eq!(
@@ -82,7 +82,7 @@ fn unstake_should_work() {
 fn test_record_staking_settlement_ok() {
     new_test_ext().execute_with(|| {
         assert_ok!(LiquidStaking::record_staking_settlement(
-            Origin::signed(Alice),
+            Origin::signed(ALICE),
             1,
             100,
             StakingSettlementKind::Reward
@@ -96,7 +96,7 @@ fn test_record_staking_settlement_ok() {
 fn test_duplicated_record_staking_settlement() {
     new_test_ext().execute_with(|| {
         LiquidStaking::record_staking_settlement(
-            Origin::signed(Alice),
+            Origin::signed(ALICE),
             1,
             100,
             StakingSettlementKind::Reward,
@@ -105,7 +105,7 @@ fn test_duplicated_record_staking_settlement() {
 
         assert_err!(
             LiquidStaking::record_staking_settlement(
-                Origin::signed(Alice),
+                Origin::signed(ALICE),
                 1,
                 100,
                 StakingSettlementKind::Reward
@@ -123,8 +123,8 @@ enum StakeOp {
 impl StakeOp {
     fn execute(self) {
         match self {
-            Self::Stake(amount) => LiquidStaking::stake(Origin::signed(Alice), amount).unwrap(),
-            Self::Unstake(amount) => LiquidStaking::unstake(Origin::signed(Alice), amount).unwrap(),
+            Self::Stake(amount) => LiquidStaking::stake(Origin::signed(ALICE), amount).unwrap(),
+            Self::Unstake(amount) => LiquidStaking::unstake(Origin::signed(ALICE), amount).unwrap(),
         };
     }
 }
@@ -140,7 +140,7 @@ fn test_settlement_should_work() {
             (vec![], 0, (0, 0, 0), 0),
         ];
 
-        for (stake_ops, unbonding_amount, matching_result, pallet_balance) in test_case.into_iter()
+        for (stake_ops, unbonding_amount, matching_result, _pallet_balance) in test_case.into_iter()
         {
             stake_ops.into_iter().for_each(StakeOp::execute);
             assert_eq!(
@@ -148,16 +148,9 @@ fn test_settlement_should_work() {
                 matching_result
             );
             assert_ok!(LiquidStaking::settlement(
-                Origin::signed(Alice),
+                Origin::signed(ALICE),
                 unbonding_amount
             ));
-            assert_eq!(
-                <Test as Config>::Currency::free_balance(
-                    CurrencyId::Token(TokenSymbol::DOT),
-                    &LiquidStaking::account_id()
-                ),
-                pallet_balance
-            );
             Pallet::<Test>::on_idle(0, 10000);
         }
     })

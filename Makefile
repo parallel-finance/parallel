@@ -1,10 +1,11 @@
-PARA_ID  			:= 2085
-CHAIN    			:= vanilla-dev
-BLOCK_AT      := 0x0000000000000000000000000000000000000000000000000000000000000000
-URL           := ws://localhost:9947
-KEYSTORE_PATH := keystore
-SURI          := //Alice
-LAUNCH_CONFIG := config.yml
+PARA_ID  			   := 2085
+CHAIN    			   := vanilla-dev
+BLOCK_AT         := 0x0000000000000000000000000000000000000000000000000000000000000000
+URL              := ws://localhost:9947
+KEYSTORE_PATH    := keystore
+SURI             := //Alice
+LAUNCH_CONFIG    := config.yml
+DOCKER_TAG       := latest
 
 .PHONY: build
 build:
@@ -23,11 +24,11 @@ bench: bench-loans bench-liquid-staking
 
 .PHONY: bench-loans
 bench-loans:
-	target/release/parallel benchmark --chain=dev --execution=wasm --wasm-execution=compiled --pallet=pallet-loans --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/loans/src/weights.rs
+	cargo run --release --features runtime-benchmarks -- benchmark --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-loans --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/loans/src/weights.rs
 
 .PHONY: bench-liquid-staking
 bench-liquid-staking:
-	target/release/parallel benchmark --chain=dev --execution=wasm --wasm-execution=compiled --pallet=pallet-liquid-staking --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/liquid-staking/src/weights.rs
+	cargo run --release --features runtime-benchmarks -- benchmark --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-liquid-staking --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/liquid-staking/src/weights.rs
 
 .PHONY: lint
 lint:
@@ -40,8 +41,8 @@ fmt:
 
 .PHONY: resources
 resources:
-	docker run --rm parallelfinance/parallel:latest export-genesis-state --chain $(CHAIN) --parachain-id $(PARA_ID) > ./resources/para-$(PARA_ID)-genesis
-	docker run --rm parallelfinance/parallel:latest export-genesis-wasm --chain $(CHAIN) > ./resources/para-$(PARA_ID).wasm
+	docker run --rm parallelfinance/parallel:$(DOCKER_TAG) export-genesis-state --chain $(CHAIN) --parachain-id $(PARA_ID) > ./resources/para-$(PARA_ID)-genesis
+	docker run --rm parallelfinance/parallel:$(DOCKER_TAG) export-genesis-wasm --chain $(CHAIN) > ./resources/para-$(PARA_ID).wasm
 
 .PHONY: shutdown
 shutdown:
@@ -66,23 +67,23 @@ wasm:
 
 .PHONY: spec
 spec:
-	docker run --rm parallelfinance/parallel:latest build-spec --chain $(CHAIN) --disable-default-bootnode --raw > ./resources/$(CHAIN)-raw.json
+	docker run --rm parallelfinance/parallel:$(DOCKER_TAG) build-spec --chain $(CHAIN) --disable-default-bootnode --raw > ./resources/$(CHAIN)-raw.json
 
 .PHONY: image
 image:
 	docker build --build-arg BIN=parallel \
 		-c 512 \
-		-t parallelfinance/parallel:latest \
+		-t parallelfinance/parallel:$(DOCKER_TAG) \
 		-f Dockerfile.release \
 		. --network=host
 
 .PHONY: keystore
 keystore:
-	./target/debug/parallel key insert -d . --keystore-path $(KEYSTORE_PATH) --suri "$(SURI)" --key-type aura
+	cargo run --bin parallel -- key insert -d . --keystore-path $(KEYSTORE_PATH) --suri "$(SURI)" --key-type aura
 
 .PHONY: snapshot
 snapshot:
-	RUST_LOG=debug cargo run --bin parallel --features try-runtime -- try-runtime --chain $(CHAIN) --wasm-execution=compiled --block-at=$(BLOCK_AT) --url=$(URL) on-runtime-upgrade live -s snapshot.bin
+	cargo run --bin parallel --features try-runtime -- try-runtime --chain $(CHAIN) --wasm-execution=compiled --block-at=$(BLOCK_AT) --url=$(URL) on-runtime-upgrade live -s snapshot.bin
 
 .PHONY: try-runtime-upgrade
 try-runtime-upgrade:
