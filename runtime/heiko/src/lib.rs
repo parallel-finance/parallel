@@ -492,7 +492,8 @@ parameter_types! {
         Junction::Parent,
         Junction::AccountId32{
             network: NetworkId::Any,
-            id: hex!["306721211d5404bd9da88e0204360a1a9ab8b87c66c1bc2fcdd37f3c2222cc20"] // account id of "//Dave"
+            // Dave
+            id: hex!["306721211d5404bd9da88e0204360a1a9ab8b87c66c1bc2fcdd37f3c2222cc20"]
         }
     );
     pub const PeriodBasis: BlockNumber = 1000u32;
