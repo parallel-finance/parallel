@@ -55,8 +55,8 @@ impl CurrencyId {
     }
 }
 
-impl Into<CurrencyId> for TokenSymbol {
-    fn into(self) -> CurrencyId {
-        CurrencyId::Token(self)
+impl From<TokenSymbol> for CurrencyId {
+    fn from(token_symbol: TokenSymbol) -> CurrencyId {
+        CurrencyId::Token(token_symbol)
     }
 }

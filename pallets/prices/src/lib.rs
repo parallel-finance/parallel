@@ -157,7 +157,7 @@ impl<T: Config> PriceFeeder for Pallet<T> {
                     })
                 })
             } else {
-                T::Source::get(&currency_id).and_then(|p| {
+                T::Source::get(currency_id).and_then(|p| {
                     10u128.checked_pow(p.value.decimal.into()).and_then(|d| {
                         p.value
                             .price
