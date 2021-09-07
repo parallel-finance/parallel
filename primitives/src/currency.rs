@@ -56,14 +56,6 @@ impl CurrencyId {
 
 impl Into<CurrencyId> for TokenSymbol {
     fn into(self) -> CurrencyId {
-        match self {
-            TokenSymbol::DOT => CurrencyId::Token(TokenSymbol::DOT),
-            TokenSymbol::KSM => CurrencyId::Token(TokenSymbol::KSM),
-            TokenSymbol::USDT => CurrencyId::Token(TokenSymbol::USDT),
-            TokenSymbol::xDOT => CurrencyId::Token(TokenSymbol::xDOT),
-            TokenSymbol::xKSM => CurrencyId::Token(TokenSymbol::xKSM),
-            TokenSymbol::HKO => CurrencyId::Token(TokenSymbol::HKO),
-            TokenSymbol::PARA => CurrencyId::Token(TokenSymbol::PARA),
-        }
+        CurrencyId::Token(self)
     }
 }
