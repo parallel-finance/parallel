@@ -54,12 +54,13 @@ use cumulus_primitives_core::ParaId;
 use frame_support::log;
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureOneOf, EnsureRoot,
+    EnsureOneOf, EnsureRoot, EnsureSigned,
 };
 use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 use polkadot_parachain::primitives::Sibling;
 use primitives::{network::HEIKO_PREFIX, *};
 
+use hex_literal::hex;
 use xcm::v0::{Junction, Junction::*, MultiAsset, MultiLocation, MultiLocation::*, NetworkId};
 use xcm_builder::{
     AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin,
@@ -487,8 +488,15 @@ parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = CurrencyId::KSM;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xKSM;
-    pub const MaxWithdrawAmount: Balance = 1_000_000_000_000_000;
-    pub const MaxAccountProcessingUnstake: u32 = 5;
+    pub RelayAgent: MultiLocation = MultiLocation::X2(
+        Junction::Parent,
+        Junction::AccountId32{
+            network: NetworkId::Any,
+            // Dave
+            id: hex!["306721211d5404bd9da88e0204360a1a9ab8b87c66c1bc2fcdd37f3c2222cc20"]
+        }
+    );
+    pub const PeriodBasis: BlockNumber = 1000u32;
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -497,12 +505,11 @@ impl pallet_liquid_staking::Config for Runtime {
     type PalletId = StakingPalletId;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type WithdrawOrigin = EnsureRoot<AccountId>;
-    type MaxWithdrawAmount = MaxWithdrawAmount;
-    type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
-    type WeightInfo = pallet_liquid_staking::weights::SubstrateWeight<Runtime>;
+    type BridgeOrigin = EnsureSigned<AccountId>;
+    type WeightInfo = ();
     type XcmTransfer = XTokens;
-    type Members = LiquidStakingAgentMembership;
+    type RelayAgent = RelayAgent;
+    type PeriodBasis = PeriodBasis;
     type BaseXcmWeight = BaseXcmWeight;
 }
 
@@ -1431,7 +1438,6 @@ impl_runtime_apis! {
 
             list_benchmark!(list, extra, pallet_balances, Balances);
             list_benchmark!(list, extra, pallet_membership, TechnicalCommitteeMembership);
-            list_benchmark!(list, extra, pallet_liquid_staking, LiquidStaking);
             list_benchmark!(list, extra, pallet_multisig, Multisig);
             list_benchmark!(list, extra, pallet_loans, LoansBench::<Runtime>);
             list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
@@ -1473,7 +1479,6 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_balances, Balances);
             add_benchmark!(params, batches, pallet_timestamp, Timestamp);
             add_benchmark!(params, batches, pallet_loans, LoansBench::<Runtime>);
-            add_benchmark!(params, batches, pallet_liquid_staking, LiquidStaking);
             add_benchmark!(params, batches, pallet_multisig, Multisig);
             add_benchmark!(params, batches, pallet_membership, TechnicalCommitteeMembership);
 
