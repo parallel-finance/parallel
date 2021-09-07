@@ -169,8 +169,8 @@ pub mod pallet {
             };
 
             Pools::<T, I>::try_mutate(
-                base_asset.clone(),
-                quote_asset.clone(),
+                base_asset,
+                quote_asset,
                 |pool_liquidity_amount| -> DispatchResultWithPostInfo {
                     if let Some(liquidity_amount) = pool_liquidity_amount {
                         let optimal_quote_amount = Self::quote(
@@ -242,14 +242,9 @@ pub mod pallet {
                                 Ok(())
                             },
                         )?;
+                        T::Currency::transfer(base_asset, &who, &Self::account_id(), base_amount)?;
                         T::Currency::transfer(
-                            base_asset.clone(),
-                            &who,
-                            &Self::account_id(),
-                            base_amount,
-                        )?;
-                        T::Currency::transfer(
-                            quote_asset.clone(),
+                            quote_asset,
                             &who,
                             &Self::account_id(),
                             quote_amount,
@@ -278,14 +273,9 @@ pub mod pallet {
                             (&who, &base_asset, &quote_asset),
                             amm_pool,
                         );
+                        T::Currency::transfer(base_asset, &who, &Self::account_id(), base_amount)?;
                         T::Currency::transfer(
-                            base_asset.clone(),
-                            &who,
-                            &Self::account_id(),
-                            base_amount,
-                        )?;
-                        T::Currency::transfer(
-                            quote_asset.clone(),
+                            quote_asset,
                             &who,
                             &Self::account_id(),
                             quote_amount,
@@ -319,8 +309,8 @@ pub mod pallet {
                 Self::get_upper_currency(pool.0, pool.1).ok_or(Error::<T, I>::InvalidCurrencyId)?;
 
             Pools::<T, I>::try_mutate(
-                base_asset.clone(),
-                quote_asset.clone(),
+                base_asset,
+                quote_asset,
                 |pool_liquidity_amount| -> DispatchResult {
                     let mut liquidity_amount = pool_liquidity_amount
                         .take()
@@ -373,18 +363,8 @@ pub mod pallet {
                         },
                     )?;
 
-                    T::Currency::transfer(
-                        base_asset.clone(),
-                        &Self::account_id(),
-                        &who,
-                        base_amount,
-                    )?;
-                    T::Currency::transfer(
-                        quote_asset.clone(),
-                        &Self::account_id(),
-                        &who,
-                        quote_amount,
-                    )?;
+                    T::Currency::transfer(base_asset, &Self::account_id(), &who, base_amount)?;
+                    T::Currency::transfer(quote_asset, &Self::account_id(), &who, quote_amount)?;
 
                     Self::deposit_event(Event::<T, I>::LiquidityRemoved(
                         who,
@@ -437,13 +417,13 @@ pub mod pallet {
                 amm_pool,
             );
             T::Currency::transfer(
-                base_asset.clone(),
+                base_asset,
                 &lptoken_receiver,
                 &Self::account_id(),
                 base_amount,
             )?;
             T::Currency::transfer(
-                quote_asset.clone(),
+                quote_asset,
                 &lptoken_receiver,
                 &Self::account_id(),
                 quote_amount,
