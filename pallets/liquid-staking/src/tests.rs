@@ -7,6 +7,7 @@ use frame_support::{assert_err, assert_ok, traits::Hooks};
 use orml_traits::MultiCurrency;
 use primitives::{Balance, CurrencyId, Rate, TokenSymbol};
 use sp_runtime::traits::One;
+use xcm_simulator::TestExt;
 
 #[test]
 fn stake_should_work() {
@@ -132,9 +133,15 @@ impl StakeOp {
 #[test]
 fn test_settlement_should_work() {
     use StakeOp::*;
-    new_test_ext().execute_with(|| {
+    TestNet::reset();
+    ParaA::execute_with(|| {
         let test_case: Vec<(Vec<StakeOp>, Balance, (Balance, Balance, Balance), Balance)> = vec![
-            (vec![Stake(30), Unstake(5)], 0, (25, 0, 0), 0),
+            (
+                vec![Stake(30 * DOT_DECIMAL), Unstake(5 * DOT_DECIMAL)],
+                0,
+                (25 * DOT_DECIMAL, 0, 0),
+                0,
+            ),
             // Calculate right here.
             (vec![Unstake(10), Unstake(5), Stake(10)], 0, (0, 0, 5), 10),
             (vec![], 0, (0, 0, 0), 0),
@@ -153,5 +160,11 @@ fn test_settlement_should_work() {
             ));
             Pallet::<Test>::on_idle(0, 10000);
         }
-    })
+    });
+    Relay::execute_with(|| {
+        assert_eq!(
+            RelayBalances::free_balance(&[0u8; 32].into()),
+            25 * DOT_DECIMAL
+        );
+    });
 }
