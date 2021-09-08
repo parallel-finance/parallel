@@ -8,6 +8,7 @@ use frame_support::{
 };
 use frame_system::EnsureSignedBy;
 use orml_traits::{parameter_type_with_key, XcmTransfer};
+use primitives::TokenSymbol;
 
 use sp_core::H256;
 use sp_runtime::{
@@ -98,7 +99,7 @@ impl orml_tokens::Config for Test {
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::HKO;
+    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::HKO);
 }
 
 impl orml_currencies::Config for Test {
@@ -121,8 +122,8 @@ pub type BridgeOrigin = EnsureSignedBy<AliceOrigin, AccountId>;
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
-    pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
+    pub const StakingCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
+    pub const LiquidCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::xDOT);
     pub const BaseXcmWeight: Weight = 0;
     pub const Agent: MultiLocation = MultiLocation::X2(
         Junction::Parent,
@@ -192,8 +193,8 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 
     orml_tokens::GenesisConfig::<Test> {
         balances: vec![
-            (ALICE, CurrencyId::DOT, 100),
-            (ALICE, CurrencyId::xDOT, 100),
+            (ALICE, CurrencyId::Token(TokenSymbol::DOT), 100),
+            (ALICE, CurrencyId::Token(TokenSymbol::xDOT), 100),
         ],
     }
     .assimilate_storage(&mut storage)

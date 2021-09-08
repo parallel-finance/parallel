@@ -31,7 +31,10 @@ fn get_price_from_oracle() {
         );
 
         // currency not exist
-        assert_eq!(Prices::get_price(&CurrencyId::xDOT), None);
+        assert_eq!(
+            Prices::get_price(&CurrencyId::Token(TokenSymbol::xDOT)),
+            None
+        );
     });
 }
 
@@ -191,12 +194,12 @@ fn reset_price_call_work() {
 fn get_liquid_price_work() {
     ExtBuilder::default().build().execute_with(|| {
         assert_eq!(
-            Prices::get_price(&CurrencyId::KSM),
+            Prices::get_price(&CurrencyId::Token(TokenSymbol::KSM)),
             Some((Price::from_inner(500 * 1_000_000 * PRICE_ONE), 0))
         );
 
         assert_eq!(
-            Prices::get_price(&CurrencyId::xKSM),
+            Prices::get_price(&CurrencyId::Token(TokenSymbol::xKSM)),
             LiquidStakingExchangeRateProvider::get_exchange_rate()
                 .checked_mul_int(500 * 1_000_000 * PRICE_ONE)
                 .map(|i| (Price::from_inner(i), 0))

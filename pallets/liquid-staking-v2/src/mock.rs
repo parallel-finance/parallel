@@ -17,7 +17,7 @@ use sp_runtime::{
 
 use xcm::v0::{Junction, MultiAsset, MultiLocation};
 
-use primitives::{Amount, Balance, CurrencyId, Rate, Ratio};
+use primitives::{Amount, Balance, CurrencyId, Rate, Ratio, TokenSymbol};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -98,7 +98,7 @@ impl orml_tokens::Config for Test {
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::HKO;
+    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::HKO);
 }
 
 impl orml_currencies::Config for Test {
@@ -121,8 +121,8 @@ pub type BridgeOrigin = EnsureSignedBy<AliceOrigin, AccountId>;
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
-    pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
+    pub const StakingCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
+    pub const LiquidCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::xDOT);
     pub const BaseXcmWeight: Weight = 0;
     pub const Agent: MultiLocation = MultiLocation::X2(
         Junction::Parent,
@@ -192,8 +192,8 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 
     orml_tokens::GenesisConfig::<Test> {
         balances: vec![
-            (ALICE, CurrencyId::DOT, 100),
-            (ALICE, CurrencyId::xDOT, 100),
+            (ALICE, CurrencyId::Token(TokenSymbol::DOT), 100),
+            (ALICE, CurrencyId::Token(TokenSymbol::xDOT), 100),
         ],
     }
     .assimilate_storage(&mut storage)

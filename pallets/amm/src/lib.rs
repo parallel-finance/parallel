@@ -88,6 +88,8 @@ pub mod pallet {
         PoolCreationDisabled,
         /// Pool does not exist
         PoolAlreadyExists,
+        /// Invalid Currency Id
+        InvalidCurrencyId,
     }
 
     #[pallet::event]
@@ -158,7 +160,8 @@ pub mod pallet {
             minimum_amounts: (Balance, Balance),
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            let (is_inverted, base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
+            let (is_inverted, base_asset, quote_asset) =
+                Self::get_upper_currency(pool.0, pool.1).ok_or(Error::<T, I>::InvalidCurrencyId)?;
 
             let (base_amount, quote_amount) = match is_inverted {
                 true => (liquidity_amounts.1, liquidity_amounts.0),
@@ -166,8 +169,8 @@ pub mod pallet {
             };
 
             Pools::<T, I>::try_mutate(
-                &base_asset,
-                &quote_asset,
+                base_asset,
+                quote_asset,
                 |pool_liquidity_amount| -> DispatchResultWithPostInfo {
                     if let Some(liquidity_amount) = pool_liquidity_amount {
                         let optimal_quote_amount = Self::quote(
@@ -225,7 +228,7 @@ pub mod pallet {
                         *pool_liquidity_amount = Some(liquidity_amount.clone());
 
                         LiquidityProviders::<T, I>::try_mutate(
-                            (&who, base_asset, quote_asset),
+                            (&who, &base_asset, &quote_asset),
                             |pool_liquidity_amount| -> DispatchResult {
                                 pool_liquidity_amount.base_amount = pool_liquidity_amount
                                     .base_amount
@@ -267,7 +270,7 @@ pub mod pallet {
                         };
                         *pool_liquidity_amount = Some(amm_pool.clone());
                         LiquidityProviders::<T, I>::insert(
-                            (&who, base_asset, quote_asset),
+                            (&who, &base_asset, &quote_asset),
                             amm_pool,
                         );
                         T::Currency::transfer(base_asset, &who, &Self::account_id(), base_amount)?;
@@ -302,11 +305,12 @@ pub mod pallet {
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
-            let (_, base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
+            let (_, base_asset, quote_asset) =
+                Self::get_upper_currency(pool.0, pool.1).ok_or(Error::<T, I>::InvalidCurrencyId)?;
 
             Pools::<T, I>::try_mutate(
-                &base_asset,
-                &quote_asset,
+                base_asset,
+                quote_asset,
                 |pool_liquidity_amount| -> DispatchResult {
                     let mut liquidity_amount = pool_liquidity_amount
                         .take()
@@ -341,7 +345,7 @@ pub mod pallet {
                     *pool_liquidity_amount = Some(liquidity_amount);
 
                     LiquidityProviders::<T, I>::try_mutate(
-                        (&who, base_asset, quote_asset),
+                        (&who, &base_asset, &quote_asset),
                         |pool_liquidity_amount| -> DispatchResult {
                             pool_liquidity_amount.base_amount = pool_liquidity_amount
                                 .base_amount
@@ -388,10 +392,11 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
 
-            let (is_inverted, base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
+            let (is_inverted, base_asset, quote_asset) =
+                Self::get_upper_currency(pool.0, pool.1).ok_or(Error::<T, I>::InvalidCurrencyId)?;
 
             ensure!(
-                !Pools::<T, I>::contains_key(base_asset, quote_asset),
+                !Pools::<T, I>::contains_key(&base_asset, &quote_asset),
                 Error::<T, I>::PoolAlreadyExists
             );
 
@@ -406,9 +411,9 @@ pub mod pallet {
                 quote_amount,
                 ownership,
             };
-            Pools::<T, I>::insert(base_asset, quote_asset, amm_pool.clone());
+            Pools::<T, I>::insert(&base_asset, &quote_asset, amm_pool.clone());
             LiquidityProviders::<T, I>::insert(
-                (&lptoken_receiver, base_asset, quote_asset),
+                (&lptoken_receiver, &base_asset, &quote_asset),
                 amm_pool,
             );
             T::Currency::transfer(
@@ -442,11 +447,15 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     pub fn get_upper_currency(
         curr_a: CurrencyId,
         curr_b: CurrencyId,
-    ) -> (bool, CurrencyId, CurrencyId) {
-        if curr_a > curr_b {
-            (false, curr_a, curr_b)
+    ) -> Option<(bool, CurrencyId, CurrencyId)> {
+        if curr_a.is_token_currency_id() && curr_b.is_token_currency_id() {
+            if curr_a > curr_b {
+                Some((false, curr_a, curr_b))
+            } else {
+                Some((true, curr_b, curr_a))
+            }
         } else {
-            (true, curr_b, curr_a)
+            None
         }
     }
 

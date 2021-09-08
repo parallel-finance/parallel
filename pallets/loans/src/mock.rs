@@ -23,7 +23,7 @@ use loans::*;
 use frame_support::{construct_runtime, parameter_types, traits::Contains, PalletId};
 use frame_system::EnsureRoot;
 use orml_traits::parameter_type_with_key;
-use primitives::{Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate};
+use primitives::{Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate, TokenSymbol};
 use sp_core::H256;
 use sp_runtime::traits::One;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
@@ -88,12 +88,12 @@ pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CHARLIE: AccountId = 3;
 
-pub const DOT: CurrencyId = CurrencyId::DOT;
-pub const KSM: CurrencyId = CurrencyId::KSM;
-pub const USDT: CurrencyId = CurrencyId::USDT;
-pub const XDOT: CurrencyId = CurrencyId::xDOT;
-pub const XKSM: CurrencyId = CurrencyId::xKSM;
-pub const NATIVE: CurrencyId = CurrencyId::HKO;
+pub const DOT: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
+pub const KSM: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
+pub const USDT: CurrencyId = CurrencyId::Token(TokenSymbol::USDT);
+pub const XDOT: CurrencyId = CurrencyId::Token(TokenSymbol::xDOT);
+pub const XKSM: CurrencyId = CurrencyId::Token(TokenSymbol::xKSM);
+pub const NATIVE: CurrencyId = CurrencyId::Token(TokenSymbol::HKO);
 
 parameter_types! {
     pub const MinimumPeriod: u64 = 5;
@@ -272,10 +272,10 @@ impl ExtBuilder {
             borrow_index: Rate::one(),                             // 1
             exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
             markets: vec![
-                (CurrencyId::DOT, MARKET_MOCK),
-                (CurrencyId::KSM, MARKET_MOCK),
-                (CurrencyId::USDT, MARKET_MOCK),
-                (CurrencyId::xDOT, MARKET_MOCK),
+                (CurrencyId::Token(TokenSymbol::DOT), MARKET_MOCK),
+                (CurrencyId::Token(TokenSymbol::KSM), MARKET_MOCK),
+                (CurrencyId::Token(TokenSymbol::USDT), MARKET_MOCK),
+                (CurrencyId::Token(TokenSymbol::xDOT), MARKET_MOCK),
             ],
             last_block_timestamp: 0,
         }

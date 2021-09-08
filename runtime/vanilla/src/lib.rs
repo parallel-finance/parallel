@@ -332,7 +332,7 @@ impl orml_xcm::Config for Runtime {
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::HKO;
+    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::HKO);
 
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
 }
@@ -349,8 +349,8 @@ pub struct CurrencyIdConvert;
 impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
-            CurrencyId::KSM => Some(X1(Parent)),
-            CurrencyId::xKSM => Some(X3(
+            CurrencyId::Token(TokenSymbol::KSM) => Some(X1(Parent)),
+            CurrencyId::Token(TokenSymbol::xKSM) => Some(X3(
                 Parent,
                 Parachain(ParachainInfo::parachain_id().into()),
                 GeneralKey(b"xKSM".to_vec()),
@@ -363,11 +363,11 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
 impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
     fn convert(location: MultiLocation) -> Option<CurrencyId> {
         match location {
-            X1(Parent) => Some(CurrencyId::KSM),
+            X1(Parent) => Some(CurrencyId::Token(TokenSymbol::KSM)),
             X3(Parent, Parachain(id), GeneralKey(key))
                 if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xKSM".to_vec() =>
             {
-                Some(CurrencyId::xKSM)
+                Some(CurrencyId::Token(TokenSymbol::xKSM))
             }
             _ => None,
         }
@@ -455,8 +455,8 @@ impl pallet_loans::Config for Runtime {
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const StakingCurrency: CurrencyId = CurrencyId::KSM;
-    pub const LiquidCurrency: CurrencyId = CurrencyId::xKSM;
+    pub const StakingCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
+    pub const LiquidCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::xKSM);
     pub RelayAgent: MultiLocation = MultiLocation::X2(
         Junction::Parent,
         Junction::AccountId32{
@@ -1504,7 +1504,7 @@ impl cumulus_pallet_parachain_system::CheckInherents<Block> for CheckInherents {
             .create_inherent_data()
             .expect("Could not create the timestamp inherent data");
 
-        inherent_data.check_extrinsics(&block)
+        inherent_data.check_extrinsics(block)
     }
 }
 

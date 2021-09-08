@@ -27,8 +27,8 @@ mod prices {
     pub use super::super::*;
 }
 
-pub const DOT: CurrencyId = CurrencyId::DOT;
-pub const KSM: CurrencyId = CurrencyId::KSM;
+pub const DOT: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
+pub const KSM: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
@@ -103,8 +103,8 @@ impl ExchangeRateProvider for LiquidStakingExchangeRateProvider {
 
 ord_parameter_types! {
     pub const One: AccountId = 1;
-    pub const StakingCurrency: CurrencyId = CurrencyId::KSM;
-    pub const LiquidCurrency: CurrencyId = CurrencyId::xKSM;
+    pub const StakingCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
+    pub const LiquidCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::xKSM);
 }
 
 impl Config for Runtime {
