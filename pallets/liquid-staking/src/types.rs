@@ -79,7 +79,7 @@ pub struct StakingBondCall<T: Config> {
     pub call_index: [u8; 2],
     /// Controller account
     pub controller: <T::Lookup as StaticLookup>::Source,
-    /// Bonded amount
+    /// Bond amount
     #[codec(compact)]
     pub value: BalanceOf<T>,
     /// A destination account for payment.
@@ -91,7 +91,7 @@ pub struct StakingBondCall<T: Config> {
 pub struct StakingBondExtraCall<T: Config> {
     /// [pallet index, call index]
     pub call_index: [u8; 2],
-    /// Bonded amount
+    /// Bond amount
     #[codec(compact)]
     pub value: BalanceOf<T>,
 }
@@ -101,7 +101,7 @@ pub struct StakingBondExtraCall<T: Config> {
 pub struct StakingUnbondCall<T: Config> {
     /// [pallet index, call index]
     pub call_index: [u8; 2],
-    /// Bonded amount
+    /// Unbond amount
     #[codec(compact)]
     pub value: BalanceOf<T>,
 }
@@ -111,7 +111,15 @@ pub struct StakingUnbondCall<T: Config> {
 pub struct StakingRebondCall<T: Config> {
     /// [pallet index, call index]
     pub call_index: [u8; 2],
-    /// Bonded amount
+    /// Rebond amount
     #[codec(compact)]
     pub value: BalanceOf<T>,
+}
+
+/// Relaychain staking.withdraw_unbonded call arguments
+#[derive(Clone, Encode, Decode, RuntimeDebug)]
+pub struct StakingWithdrawUnbondedCall<T: Config> {
+    /// [pallet index, call index]
+    pub call_index: [u8; 2],
+    pub num_slashing_spans: u32,
 }
