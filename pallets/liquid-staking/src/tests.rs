@@ -268,3 +268,37 @@ fn test_transact_unbond_work() {
         assert_eq!(ledger.active, 0u128);
     });
 }
+
+#[test]
+fn test_transact_rebond_work() {
+    TestNet::reset();
+
+    ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::bond(
+            Origin::signed(ALICE),
+            para_a_account(),
+            3 * DOT_DECIMAL,
+            RewardDestination::Staked
+        ));
+        assert_ok!(LiquidStaking::unbond(
+            Origin::signed(ALICE),
+            3 * DOT_DECIMAL
+        ));
+        assert_ok!(LiquidStaking::rebond(
+            Origin::signed(ALICE),
+            3 * DOT_DECIMAL
+        ));
+    });
+
+    Relay::execute_with(|| {
+        assert_eq!(
+            events::<westend_runtime::Runtime>()[6],
+            westend_runtime::Event::Staking(
+                RelayStakingEvent::Bonded(para_a_account(), 3 * DOT_DECIMAL)
+            ),
+        );
+        let ledger = RelayStaking::ledger(para_a_account()).unwrap();
+        assert_eq!(ledger.total, 3 * DOT_DECIMAL);
+        assert_eq!(ledger.active, 3 * DOT_DECIMAL);
+    });
+}

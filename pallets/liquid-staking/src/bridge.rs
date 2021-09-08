@@ -1,6 +1,9 @@
 use super::{
     pallet::*,
-    types::{RewardDestination, StakingBondCall, StakingBondExtraCall, StakingUnbondCall},
+    types::{
+        RewardDestination, StakingBondCall, StakingBondExtraCall, StakingRebondCall,
+        StakingUnbondCall,
+    },
     BalanceOf, Config, Pallet,
 };
 use frame_support::pallet_prelude::*;
@@ -143,6 +146,43 @@ where
             }
             Err(_e) => {
                 return Err(Error::<T>::UnbondCallFailed.into());
+            }
+        }
+        Ok(())
+    }
+
+    /// rebond on relaychain via xcm.transact
+    pub fn rebond(origin: OriginFor<T>, value: Balance) -> DispatchResult {
+        T::BridgeOrigin::ensure_origin(origin)?;
+        let call = StakingRebondCall::<T> {
+            call_index: [6, 19],
+            value,
+        };
+
+        let msg = WithdrawAsset {
+            assets: vec![MultiAsset::ConcreteFungible {
+                id: MultiLocation::Null,
+                amount: 1_000_000_000_000,
+            }],
+            effects: vec![BuyExecution {
+                fees: MultiAsset::All,
+                weight: 800_000_000,
+                debt: 600_000_000,
+                halt_on_error: true,
+                xcm: vec![Transact {
+                    origin_type: OriginKind::SovereignAccount,
+                    require_weight_at_most: 1_000_000_000,
+                    call: call.encode().into(),
+                }],
+            }],
+        };
+
+        match T::XcmSender::send_xcm(MultiLocation::X1(Junction::Parent), msg) {
+            Ok(()) => {
+                Self::deposit_event(Event::<T>::RebondCallSent(value));
+            }
+            Err(_e) => {
+                return Err(Error::<T>::RebondCallFailed.into());
             }
         }
         Ok(())
