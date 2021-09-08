@@ -5573,6 +5573,7 @@ dependencies = [
  "orml-xcm-support",
  "orml-xtokens",
  "pallet-balances",
+ "pallet-staking",
  "pallet-xcm",
  "parachain-info",
  "parallel-primitives",

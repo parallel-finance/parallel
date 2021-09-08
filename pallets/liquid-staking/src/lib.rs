@@ -20,6 +20,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub mod bridge;
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
@@ -52,14 +53,14 @@ mod pallet {
         ArithmeticError, FixedPointNumber,
     };
     use sp_std::vec::Vec;
-    use xcm::v0::MultiLocation;
+    use xcm::v0::{MultiLocation, SendXcm};
 
     use primitives::{Amount, Balance, CurrencyId, EraIndex, Rate, Ratio};
 
-    use crate::types::{MatchingLedger, StakingSettlementKind};
+    use crate::types::{MatchingLedger, RewardDestination, StakingSettlementKind};
     use crate::weights::WeightInfo;
 
-    type BalanceOf<T> =
+    pub type BalanceOf<T> =
         <<T as Config>::Currency as MultiCurrency<<T as frame_system::Config>::AccountId>>::Balance;
 
     #[pallet::pallet]
@@ -96,6 +97,9 @@ mod pallet {
         /// XCM transfer
         type XcmTransfer: XcmTransfer<Self::AccountId, Balance, CurrencyId>;
 
+        /// XCM transact
+        type XcmSender: SendXcm;
+
         /// Base xcm transaction weight
         type BaseXcmWeight: Get<Weight>;
 
@@ -129,6 +133,10 @@ mod pallet {
         /// height is accurately multiple of the basis, the event would be deposited during finalization of
         /// the block.
         PeriodTerminated,
+        /// Send staking.bond call to relaychain
+        BondCallSent(T::AccountId, BalanceOf<T>, RewardDestination<T::AccountId>),
+        /// Send staking.bond_extra call to relaychain
+        BondExtraCallSent(BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -141,6 +149,10 @@ mod pallet {
         EraAlreadyPushed,
         /// Operation wasn't submitted to relaychain or has been processed.
         OperationNotReady,
+        /// Failed sent staking.bond call
+        BondCallFailed,
+        /// Failed sent staking.bond_extra call
+        BondExtraCallFailed,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
