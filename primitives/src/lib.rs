@@ -19,7 +19,7 @@
 pub mod network;
 
 use codec::{Decode, Encode};
-use frame_support::pallet_prelude::DispatchResult;
+use frame_support::pallet_prelude::DispatchError;
 use sp_runtime::{
     traits::{CheckedDiv, IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
@@ -156,9 +156,15 @@ pub trait ExchangeRateProvider {
 
 pub trait AMM<AccountId, CurrencyId, Balance> {
     fn trade(
+        &self,
         who: &AccountId,
         pair: (CurrencyId, CurrencyId),
         amount_in: Balance,
         min_amount_out: Balance,
-    ) -> DispatchResult;
+    ) -> Result<Balance, DispatchError>;
+}
+
+/// Get amm instance by id
+pub trait AMMAdaptor<AccountId, CurrencyId, Balance> {
+    fn get_amm_instance(id: u8) -> Box<dyn AMM<AccountId, CurrencyId, Balance>>;
 }

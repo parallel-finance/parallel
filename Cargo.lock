@@ -5884,9 +5884,14 @@ version = "3.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
+ "orml-currencies",
+ "orml-tokens",
  "orml-traits",
+ "pallet-balances",
  "parallel-primitives",
  "parity-scale-codec",
+ "sp-core",
+ "sp-io",
  "sp-runtime",
 ]
 

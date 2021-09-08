@@ -12,13 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # Router for Automatic Market Maker (AMM)
+//! # Route for Automatic Market Maker (AMM)
 //!
-//! Given a supported `router` like this `(0, USDT, KSM)`, we can get corresponding AMM or pool.
+//! Given a supported `route` like this `(0, USDT, KSM)`, we can get corresponding AMM or pool.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use crate::pallet::*;
+
+#[cfg(test)]
+mod mock;
+#[cfg(test)]
+mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -33,7 +38,7 @@ pub mod pallet {
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
     use orml_traits::{MultiCurrency, MultiCurrencyExtended};
-    use primitives::{CurrencyId, AMM};
+    use primitives::AMMAdaptor;
     use sp_runtime::traits::Zero;
 
     pub(crate) type BalanceOf<T> =
@@ -57,13 +62,19 @@ pub mod pallet {
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-        type PalletId: Get<PalletId>;
+        /// Route pallet id
+        #[pallet::constant]
+        type RoutePalletId: Get<PalletId>;
 
         /// Specify all the AMMs we are routing between
-        type AMMs: Get<Route<Self>>;
+        type AMMAdaptor: AMMAdaptor<Self::AccountId, CurrencyIdOf<Self>, BalanceOf<Self>>;
 
-        /// Trade interface
-        type AMM: AMM<Self::AccountId, CurrencyId, BalanceOf<Self>>;
+        /// Specify all the AMMs we are routing between
+        type Routes: Get<Route<Self>>;
+
+        /// How many routes we support at most
+        #[pallet::constant]
+        type MaxLengthRoute: Get<u8>;
 
         type Currency: MultiCurrencyExtended<Self::AccountId>;
     }
@@ -74,11 +85,20 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
-        BalanceLow,
-        EnptyRouters,
+        /// Zero balance is not resonable
+        ZeroBalance,
+        /// Must input one route at least
+        EmptyRoute,
+        /// User hasn't enough tokens for transaction
         InsufficientBalance,
-        NotSupportRouter,
+        /// Input wrong route that we don't support now
+        NotSupportedRoute,
+        /// The expiry is smaller than current block number
         TooSmallExpiry,
+        /// Exceed the max length of routes we allow
+        ExceedMaxLengthRoute,
+        /// Input duplicated route
+        DuplicatedRoute,
     }
 
     #[pallet::event]
@@ -95,6 +115,13 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        /// According specified route order to execute which pool or AMM instance.
+        ///
+        /// - `origin`: the trader.
+        /// - `route`: the route user inputs
+        /// - `amount_in`: the amount of trading assets
+        /// - `min_amount_out`:
+        /// - `expiry`:
         #[pallet::weight(10_000)]
         #[transactional]
         pub fn trade(
@@ -106,13 +133,18 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let trader = ensure_signed(origin)?;
 
-            // Ensure the length of routers should be >= 1 at least.
-            ensure!(!route.is_empty(), Error::<T>::EnptyRouters);
+            // Ensure the length of routes should be >= 1 at least.
+            ensure!(!route.is_empty(), Error::<T>::EmptyRoute);
+            // Ensure user do not input too many routes.
+            ensure!(
+                route.len() <= T::MaxLengthRoute::get() as usize,
+                Error::<T>::ExceedMaxLengthRoute
+            );
 
             // Ensure balances user input is bigger than zero.
             ensure!(
-                amount_in > Zero::zero() && min_amount_out > Zero::zero(),
-                Error::<T>::BalanceLow
+                amount_in >= Zero::zero() && min_amount_out >= Zero::zero(),
+                Error::<T>::ZeroBalance
             );
 
             // Ensure user iput a valid block number.
@@ -126,26 +158,32 @@ pub mod pallet {
                 Error::<T>::InsufficientBalance
             );
 
-            // Get all AMM routers we're supporting now.
-            let all_routers = T::AMMs::get();
+            // Get all AMM routes we're supporting now.
+            let all_routes = T::Routes::get();
 
-            // Ensure the routers user input is valid.
+            // Ensure the routes user input are valid.
             ensure!(
-                route
-                    .iter()
-                    .all(|router| all_routers.iter().any(|r| r == router)),
-                Error::<T>::NotSupportRouter
+                route.iter().all(|r| all_routes.iter().any(|_r| r == _r)),
+                Error::<T>::NotSupportedRoute
             );
 
-            // router implementation
-            // let amount_out = T::AMM::trade(&trader, (from_currency_id, to_currency_id), amount_in, min_amount_out))?;
+            let mut amount_out: BalanceOf<T> = Zero::zero();
+            for sub_route in route.iter() {
+                let (id, from_currency_id, to_currency_id) = sub_route;
+                let amm_instance = T::AMMAdaptor::get_amm_instance(*id);
 
-            // Self::deposit_event(Event::TradedSuccessfully(
-            //     trader,
-            //     amount_in,
-            //     route,
-            //     amount_out,
-            // ));
+                amount_out = amount_in;
+                amount_out = amm_instance.trade(
+                    &trader,
+                    (*from_currency_id, *to_currency_id),
+                    amount_out,
+                    min_amount_out,
+                )?;
+            }
+
+            Self::deposit_event(Event::TradedSuccessfully(
+                trader, amount_in, route, amount_out,
+            ));
 
             Ok(().into())
         }
