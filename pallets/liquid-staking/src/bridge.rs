@@ -69,7 +69,7 @@ where
                 return Err(Error::<T>::BondCallFailed.into());
             }
         }
-        Ok(().into())
+        Ok(())
     }
 
     /// Bond_extra on relaychain via xcm.transact
@@ -106,6 +106,6 @@ where
                 return Err(Error::<T>::BondExtraCallFailed.into());
             }
         }
-        Ok(().into())
+        Ok(())
     }
 }
