@@ -15,7 +15,10 @@
 use crate::Hash;
 use codec::{Decode, Encode};
 use sp_runtime::RuntimeDebug;
-use sp_std::{convert::Into, prelude::*};
+use sp_std::{
+    convert::{Into, TryFrom},
+    prelude::*,
+};
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -58,5 +61,15 @@ impl CurrencyId {
 impl From<TokenSymbol> for CurrencyId {
     fn from(token_symbol: TokenSymbol) -> CurrencyId {
         CurrencyId::Token(token_symbol)
+    }
+}
+
+impl TryFrom<CurrencyId> for TokenSymbol {
+    type Error = ();
+    fn try_from(val: CurrencyId) -> Result<Self, Self::Error> {
+        match val {
+            CurrencyId::Token(token_symbol) => Ok(token_symbol),
+            _ => Err(()),
+        }
     }
 }

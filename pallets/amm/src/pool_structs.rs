@@ -14,7 +14,7 @@
 
 // Groups common pool related structures
 
-use primitives::{Balance, Rate};
+use primitives::{Balance, CurrencyId, Hash, Rate, TokenSymbol};
 use sp_runtime::{traits::Saturating, ArithmeticError, DispatchError, FixedPointNumber};
 
 // Amplification Coefficient Weight.
@@ -35,11 +35,21 @@ pub struct AmountEvaluation {
     pub pool_amount: Balance,
 }
 
-#[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug, Default)]
+#[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
 pub struct PoolLiquidityAmount {
     pub base_amount: Balance,
     pub quote_amount: Balance,
-    pub ownership: Balance,
+    pub lp_token: CurrencyId,
+}
+
+impl Default for PoolLiquidityAmount {
+    fn default() -> Self {
+        Self {
+            base_amount: Balance::default(),
+            quote_amount: Balance::default(),
+            lp_token: CurrencyId::LPToken(Hash::default(), TokenSymbol::DOT, TokenSymbol::DOT),
+        }
+    }
 }
 
 pub struct StandardSwap;
