@@ -72,18 +72,26 @@ pub enum RewardDestination<AccountId> {
     None,
 }
 
+/// Relaychain staking.bond call arguments
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
 pub struct StakingBondCall<T: Config> {
+    /// [pallet index, call index]
     pub call_index: [u8; 2],
+    /// Controller account
     pub controller: <T::Lookup as StaticLookup>::Source,
+    /// Bonded amount
     #[codec(compact)]
     pub value: BalanceOf<T>,
+    /// A destination account for payment.
     pub payee: RewardDestination<T::AccountId>,
 }
 
+/// Relaychain staking.bond_extra call arguments
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
 pub struct StakingBondExtraCall<T: Config> {
+    /// [pallet index, call index]
     pub call_index: [u8; 2],
+    /// Bonded amount
     #[codec(compact)]
     pub value: BalanceOf<T>,
 }

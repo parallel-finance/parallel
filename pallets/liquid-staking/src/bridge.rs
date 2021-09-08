@@ -8,7 +8,9 @@ use sp_runtime::{traits::StaticLookup, DispatchResult};
 use primitives::Balance;
 use sp_std::prelude::*;
 use xcm::v0::{
-    Junction, MultiAsset, MultiLocation, NetworkId, Order, OriginKind, SendXcm,
+    Junction, MultiAsset, MultiLocation, NetworkId,
+    Order::{BuyExecution, DepositAsset},
+    OriginKind, SendXcm,
     Xcm::{Transact, WithdrawAsset},
 };
 
@@ -16,6 +18,7 @@ impl<T: Config> Pallet<T>
 where
     [u8; 32]: From<<T as frame_system::Config>::AccountId>,
 {
+    /// Bond on relaychain via xcm.transact
     pub fn bond(
         origin: OriginFor<T>,
         controller: T::AccountId,
@@ -37,7 +40,7 @@ where
                 amount: 1_000_000_000_000,
             }],
             effects: vec![
-                Order::BuyExecution {
+                BuyExecution {
                     fees: MultiAsset::All,
                     weight: 800_000_000,
                     debt: 600_000_000,
@@ -48,7 +51,7 @@ where
                         call: call.encode().into(),
                     }],
                 },
-                Order::DepositAsset {
+                DepositAsset {
                     assets: vec![MultiAsset::All],
                     dest: MultiLocation::X1(Junction::AccountId32 {
                         network: NetworkId::Any,
@@ -69,6 +72,7 @@ where
         Ok(().into())
     }
 
+    /// Bond_extra on relaychain via xcm.transact
     pub fn bond_extra(origin: OriginFor<T>, value: Balance) -> DispatchResult {
         T::BridgeOrigin::ensure_origin(origin)?;
         let call = StakingBondExtraCall::<T> {
@@ -81,7 +85,7 @@ where
                 id: MultiLocation::Null,
                 amount: 1_000_000_000_000,
             }],
-            effects: vec![Order::BuyExecution {
+            effects: vec![BuyExecution {
                 fees: MultiAsset::All,
                 weight: 800_000_000,
                 debt: 600_000_000,
