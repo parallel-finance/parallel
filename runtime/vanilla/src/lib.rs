@@ -480,6 +480,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type RelayAgent = RelayAgent;
     type PeriodBasis = PeriodBasis;
     type BaseXcmWeight = BaseXcmWeight;
+    type XcmSender = XcmRouter;
 }
 
 parameter_types! {
