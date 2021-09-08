@@ -13,7 +13,7 @@ use primitives::TokenSymbol;
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
-    traits::{AccountIdConversion, BlakeTwo256, Convert, IdentityLookup, One},
+    traits::{AccountIdConversion, AccountIdLookup, BlakeTwo256, Convert, One},
     AccountId32,
 };
 
@@ -235,7 +235,7 @@ impl frame_system::Config for Test {
     type Hash = H256;
     type Hashing = BlakeTwo256;
     type AccountId = AccountId;
-    type Lookup = IdentityLookup<Self::AccountId>;
+    type Lookup = AccountIdLookup<AccountId, ()>;
     type Header = Header;
     type Event = Event;
     type BlockHashCount = BlockHashCount;
@@ -338,6 +338,7 @@ impl crate::Config for Test {
     type RelayAgent = Agent;
     type PeriodBasis = PeriodBasis;
     type WeightInfo = ();
+    type XcmSender = XcmRouter;
 }
 
 construct_runtime!(
@@ -418,6 +419,12 @@ decl_test_network! {
 }
 
 pub type RelayBalances = pallet_balances::Pallet<westend_runtime::Runtime>;
+pub type RelayStaking = pallet_staking::Pallet<westend_runtime::Runtime>;
+pub type RelayStakingEvent = pallet_staking::Event<westend_runtime::Runtime>;
+
+pub fn para_a_account() -> AccountId {
+    ParaId::from(1).into_account()
+}
 
 pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
     let mut t = frame_system::GenesisConfig::default()
@@ -459,13 +466,15 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
 
 pub fn relay_ext() -> sp_io::TestExternalities {
     use westend_runtime::{Runtime, System};
-    let para_a = ParaId::from(1).into_account();
     let mut t = frame_system::GenesisConfig::default()
         .build_storage::<Runtime>()
         .unwrap();
 
     pallet_balances::GenesisConfig::<Runtime> {
-        balances: vec![(ALICE, 100 * DOT_DECIMAL), (para_a, 100 * DOT_DECIMAL)],
+        balances: vec![
+            (ALICE, 100 * DOT_DECIMAL),
+            (para_a_account(), 1_000_000 * DOT_DECIMAL),
+        ],
     }
     .assimilate_storage(&mut t)
     .unwrap();

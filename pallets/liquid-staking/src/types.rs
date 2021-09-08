@@ -1,5 +1,9 @@
+use super::{BalanceOf, Config};
 use codec::{Decode, Encode};
-use sp_runtime::{traits::AtLeast32BitUnsigned, RuntimeDebug};
+use sp_runtime::{
+    traits::{AtLeast32BitUnsigned, StaticLookup},
+    RuntimeDebug,
+};
 use sp_std::cmp::Ordering;
 
 /// Category of staking settlement at the end of era.
@@ -51,4 +55,35 @@ where
     pub fn is_empty(&self) -> bool {
         self.total_stake_amount.is_zero() && self.total_unstake_amount.is_zero()
     }
+}
+
+/// A destination account for payment.
+#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug)]
+pub enum RewardDestination<AccountId> {
+    /// Pay into the stash account, increasing the amount at stake accordingly.
+    Staked,
+    /// Pay into the stash account, not increasing the amount at stake.
+    Stash,
+    /// Pay into the controller account.
+    Controller,
+    /// Pay into a specified account.
+    Account(AccountId),
+    /// Receive no reward.
+    None,
+}
+
+#[derive(Clone, Encode, Decode, RuntimeDebug)]
+pub struct StakingBondCall<T: Config> {
+    pub call_index: [u8; 2],
+    pub controller: <T::Lookup as StaticLookup>::Source,
+    #[codec(compact)]
+    pub value: BalanceOf<T>,
+    pub payee: RewardDestination<T::AccountId>,
+}
+
+#[derive(Clone, Encode, Decode, RuntimeDebug)]
+pub struct StakingBondExtraCall<T: Config> {
+    pub call_index: [u8; 2],
+    #[codec(compact)]
+    pub value: BalanceOf<T>,
 }

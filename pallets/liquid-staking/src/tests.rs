@@ -1,6 +1,6 @@
 use crate::{
     mock::*,
-    types::{MatchingLedger, StakingSettlementKind},
+    types::{MatchingLedger, RewardDestination, StakingSettlementKind},
     *,
 };
 use frame_support::{assert_err, assert_ok, traits::Hooks};
@@ -166,5 +166,73 @@ fn test_settlement_should_work() {
             RelayBalances::free_balance(&[0u8; 32].into()),
             25 * DOT_DECIMAL
         );
+    });
+}
+
+fn events<T: frame_system::Config>() -> Vec<<T as frame_system::Config>::Event> {
+    let evt = frame_system::Pallet::<T>::events()
+        .into_iter()
+        .map(|evt| evt.event)
+        .collect::<Vec<_>>();
+    frame_system::Pallet::<T>::reset_events();
+    evt
+}
+
+#[test]
+fn test_transact_bond_work() {
+    TestNet::reset();
+
+    ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::bond(
+            Origin::signed(ALICE),
+            ALICE,
+            3 * DOT_DECIMAL,
+            RewardDestination::Staked
+        ));
+
+        assert_eq!(
+            events::<Test>(),
+            [mock::Event::LiquidStaking(crate::Event::BondCallSent(
+                ALICE,
+                3 * DOT_DECIMAL,
+                RewardDestination::Staked
+            )),]
+        );
+    });
+
+    Relay::execute_with(|| {
+        assert_eq!(
+            events::<westend_runtime::Runtime>()[0],
+            westend_runtime::Event::Staking(RelayStakingEvent::Bonded(
+                para_a_account(),
+                3 * DOT_DECIMAL
+            )),
+        );
+        let ledger = RelayStaking::ledger(ALICE).unwrap();
+        assert_eq!(ledger.total, 3 * DOT_DECIMAL);
+    });
+}
+
+#[test]
+fn test_transact_bond_extra_work() {
+    TestNet::reset();
+
+    ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::bond(
+            Origin::signed(ALICE),
+            ALICE,
+            2 * DOT_DECIMAL,
+            RewardDestination::Staked
+        ));
+
+        assert_ok!(LiquidStaking::bond_extra(
+            Origin::signed(ALICE),
+            3 * DOT_DECIMAL
+        ));
+    });
+
+    Relay::execute_with(|| {
+        let ledger = RelayStaking::ledger(ALICE).unwrap();
+        assert_eq!(ledger.total, 5 * DOT_DECIMAL);
     });
 }
