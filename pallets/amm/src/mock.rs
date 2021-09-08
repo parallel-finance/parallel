@@ -161,6 +161,7 @@ parameter_types! {
     pub const AllowPermissionlessPoolCreation: bool = true;
     pub const DefaultLpFee: Perbill = Perbill::from_perthousand(3);         // 0.3%
     pub const DefaultProtocolFee: Perbill = Perbill::from_perthousand(2);   // 0.2%
+    pub const DefaultProtocolFeeReceiver: AccountId = AccountId(4_u64);
 }
 
 impl pallet_amm::Config<pallet_amm::Instance1> for Test {
@@ -171,7 +172,7 @@ impl pallet_amm::Config<pallet_amm::Instance1> for Test {
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
     type LpFee = DefaultLpFee;
     type ProtocolFee = DefaultProtocolFee;
-    // type ProtocolFeeHandler = ();
+    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
 }
 
 parameter_types! {
@@ -187,7 +188,7 @@ impl pallet_amm::Config<pallet_amm::Instance2> for Test {
     type AllowPermissionlessPoolCreation = ForbidPermissionlessPoolCreation;
     type LpFee = DefaultLpFee;
     type ProtocolFee = DefaultProtocolFee;
-    // type ProtocolFeeHandler = ();
+    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
 }
 
 impl pallet_amm::Config for Test {
@@ -198,7 +199,7 @@ impl pallet_amm::Config for Test {
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
     type LpFee = DefaultLpFee;
     type ProtocolFee = DefaultProtocolFee;
-    // type ProtocolFeeHandler = ();
+    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
 }
 
 // Build genesis storage according to the mock runtime.
@@ -212,10 +213,10 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             (1.into(), CurrencyId::xDOT, 100),
             (2.into(), CurrencyId::DOT, 100),
             (2.into(), CurrencyId::xDOT, 100),
-            (3.into(), CurrencyId::DOT, 100_000),
-            (3.into(), CurrencyId::xDOT, 100_000),
-            (4.into(), CurrencyId::DOT, 100_000),
-            (4.into(), CurrencyId::xDOT, 100_000),
+            (3.into(), CurrencyId::DOT, 100_000_000),
+            (3.into(), CurrencyId::xDOT, 100_000_000),
+            (4.into(), CurrencyId::DOT, 100_000_000),
+            (4.into(), CurrencyId::xDOT, 100_000_000),
         ],
     }
     .assimilate_storage(&mut t)

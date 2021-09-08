@@ -31,10 +31,6 @@ pub mod weights;
 
 use frame_support::pallet_prelude::*;
 
-// -- TODO --
-// use frame_support::traits::tokens::fungibles::{Balanced, CreditOf, Imbalance};
-// use frame_support::traits::OnUnbalanced;
-
 use frame_support::{
     dispatch::DispatchResult,
     pallet_prelude::{StorageDoubleMap, StorageValue, ValueQuery},
@@ -88,8 +84,8 @@ pub mod pallet {
         /// How much the protocol is taking out of each trade.
         type ProtocolFee: Get<Perbill>;
 
-        // -- TODO --
-        // type ProtocolFeeHandler: OnUnbalanced<CreditOf<Self, I>>;
+        /// Who/where to send the protocol fees
+        type ProtocolFeeReceiver: Get<Self::AccountId>;
     }
 
     #[pallet::error]
@@ -106,6 +102,8 @@ pub mod pallet {
         PoolAlreadyExists,
         /// Amount out is too small
         InsufficientAmountOut,
+        /// Amount in is too small
+        InsufficientAmountIn,
     }
 
     #[pallet::event]
@@ -476,13 +474,15 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .checked_div(base_pool)
             .expect("cannot overflow with positive divisor; qed")
     }
+}
 
-    pub fn trade(
+impl<T: Config<I>, I: 'static> primitives::AMM<T> for Pallet<T, I> {
+    fn trade(
         who: &T::AccountId,
         pair: (CurrencyId, CurrencyId),
         amount_in: Balance,
         minimum_amount_out: Balance,
-    ) -> Result<Balance, DispatchError> {
+    ) -> Result<Balance, sp_runtime::DispatchError> {
         // Sort pair to interact with the correct pool.
         let (is_inverted, base_asset, quote_asset) = Self::get_upper_currency(pair.0, pair.1);
 
@@ -503,33 +503,35 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                     (liquidity_amount.base_amount, liquidity_amount.quote_amount)
                 };
 
+                // amount must incur at least 1 in lp fees
+                ensure!(
+                    amount_in >= T::LpFee::get().saturating_reciprocal_mul(1)
+                        && amount_in >= T::ProtocolFee::get().saturating_reciprocal_mul(1),
+                    Error::<T, I>::InsufficientAmountIn
+                );
+
                 // 2. Compute all fees to be taken out, see @Fees
-                let lp_fees = T::LpFee::get() * amount_in;
-                let protocol_fees = T::ProtocolFee::get() * amount_in;
+                // we round down for trader convenience
+                let lp_fees = T::LpFee::get().mul_floor(amount_in);
+                let protocol_fees = T::ProtocolFee::get().mul_floor(amount_in);
 
-                // -- TODO --
-                // Use the Balanced trait (or a similar equivalent for your tokens pallet)
-                // to withdraw protocol_fees from T::PalletId::get().
-                // The function should return you a CreditOf Imbalance which we will call protocol_imbalance.
-
-                // let protocol_imbalance: CreditOf<Imbalance> =
-                //     Balanced::withdraw(pair.0, &Self::account_id(), &Self::account_id());
-                // T::ProtocolFeeHandler::on_unbalanced(protocol_imbalance);
-
-                // subtract fees from amount_in
-                let amount_in_after_fees = amount_in
-                    .checked_sub(lp_fees)
-                    .ok_or(ArithmeticError::Underflow)?
+                // subtract protocol fees from amount_in
+                let amount_without_protocol_fees = amount_in
                     .checked_sub(protocol_fees)
+                    .ok_or(ArithmeticError::Underflow)?;
+
+                // subtract lp fees from amount_in minus protocol fees
+                let amount_in_after_all_fees = amount_without_protocol_fees
+                    .checked_sub(lp_fees)
                     .ok_or(ArithmeticError::Underflow)?;
 
                 // 3. Given the input amount amount_in left after fees, compute amount_out
                 // let amount_out = amount_in * supply_out / (supply_in + amount_in)
-                let amount_out = amount_in_after_fees
+                let amount_out = amount_in_after_all_fees
                     .saturating_mul(supply_out)
                     .checked_div(
                         supply_in
-                            .checked_add(amount_in_after_fees)
+                            .checked_add(amount_in_after_all_fees)
                             .ok_or(ArithmeticError::Overflow)?,
                     )
                     .ok_or(ArithmeticError::Underflow)?;
@@ -546,7 +548,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 if is_inverted {
                     liquidity_amount.quote_amount = liquidity_amount
                         .quote_amount
-                        .checked_add(amount_in)
+                        .checked_add(amount_without_protocol_fees)
                         .ok_or(ArithmeticError::Overflow)?;
 
                     liquidity_amount.base_amount = liquidity_amount
@@ -556,7 +558,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 } else {
                     liquidity_amount.base_amount = liquidity_amount
                         .base_amount
-                        .checked_add(amount_in)
+                        .checked_add(amount_without_protocol_fees)
                         .ok_or(ArithmeticError::Overflow)?;
 
                     liquidity_amount.quote_amount = liquidity_amount
@@ -567,13 +569,18 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 *pool_liquidity_amount = Some(liquidity_amount);
 
                 // 6. Wire amount_in of the input token (identified by pair.0) from who to PalletId
-                T::Currency::transfer(pair.0, who, &Self::account_id(), amount_in)?;
+                T::Currency::transfer(
+                    pair.0,
+                    &who,
+                    &Self::account_id(),
+                    amount_without_protocol_fees,
+                )?;
 
                 // 7. Wire amount_out of the output token (identified by pair.1) to who from PalletId
-                T::Currency::transfer(pair.1, &Self::account_id(), who, amount_out)?;
+                T::Currency::transfer(pair.1, &Self::account_id(), &who, amount_out)?;
 
-                // -- TODO --
-                // 8. Wire protocol fees as needed
+                // 8. Wire protocol fees as needed (input token)
+                T::Currency::transfer(pair.0, &who, &T::ProtocolFeeReceiver::get(), protocol_fees)?;
 
                 // Emit event of trade with rate calculated
                 Self::deposit_event(Event::<T, I>::Trade(

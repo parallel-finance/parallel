@@ -369,6 +369,44 @@ fn remove_liquidity_with_more_liquidity_should_not_work() {
 #[test]
 fn trade_should_work() {
     new_test_ext().execute_with(|| {
+        use primitives::AMM as _;
+
+        let trader = AccountId::from(4_u64);
+
+        // create pool and add liquidity
+        AMM::add_liquidity(
+            Origin::signed(3.into()),
+            (DOT, XDOT),
+            (100_000_000, 100_000_000),
+            (99_999, 99_999),
+        )
+        .expect("Error initalizing AMM");
+
+        // check that pool was funded correctly
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 100_000_000); // XDOT
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_000_000); // DOT
+
+        // calculate amount out
+        let amount_out = AMM::trade(&trader, (DOT, XDOT), 1_000, 980);
+
+        // amount out should be 985
+        assert_eq!(amount_out.unwrap(), 994);
+
+        // // pools values should be updated - we should have less XDOT
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 99_999_006);
+
+        // // pools values should be updated - we should have more DOT in the pool
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_000_998);
+    })
+}
+
+#[test]
+fn trade_should_not_work_if_insufficient_amount_in() {
+    new_test_ext().execute_with(|| {
+        use primitives::AMM as _;
+
+        let trader = AccountId::from(4_u64);
+
         // create pool and add liquidity
         AMM::add_liquidity(
             Origin::signed(3.into()),
@@ -382,67 +420,74 @@ fn trade_should_work() {
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 100_000); // XDOT
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_000); // DOT
 
-        // calculate amount out
-        let amount_out = AMM::trade(&AccountId::from(4_u64), (DOT, XDOT), 1_000, 980);
-        // lp fee is 0.03% or 3/1000 or         0.003*1000=3
-        // protocol fee is 0.02% or 2/1000 or   0.002*1000=2
-        // total fee is 0.05% or 5/1000 or      0.005*1000=5
-
-        // amount out should be 987
-        assert_eq!(amount_out.unwrap(), 985);
-
-        // // pools values should be updated - we should have less XDOT
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 99_015);
-
-        // // pools values should be updated - we should have more DOT in the pool
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 101_000);
+        // amount out is less than minimum_amount_out
+        assert_noop!(
+            AMM::trade(&trader, (DOT, XDOT), 332, 300),
+            Error::<Test, Instance1>::InsufficientAmountIn
+        );
     })
 }
 
 #[test]
 fn trade_should_work_flipped_currencies() {
     new_test_ext().execute_with(|| {
+        use primitives::AMM as _;
+
+        let trader = AccountId::from(4_u64);
+
         // create pool and add liquidity
-        AMM::add_liquidity(Origin::signed(1.into()), (DOT, XDOT), (100, 50), (90, 90))
-            .expect("Error initalizing AMM");
+        AMM::add_liquidity(
+            Origin::signed(3.into()),
+            (DOT, XDOT),
+            (100_000, 50_000),
+            (99_999, 49_999),
+        )
+        .expect("Error initalizing AMM");
 
         // check that pool was funded correctly
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100); // DOT
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 50); // XDOT
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_000); // DOT
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 50_000); // XDOT
 
         // calculate amount out
-        let amount_out = AMM::trade(&AccountId::from(2_u64), (XDOT, DOT), 10, 15);
-        // fee is 0.03% or 3/1000 or 0.003*16=0.048
-        // lp fee is 0.03% or 3/1000 or         0.003*16=0.048
-        // protocol fee is 0.02% or 2/1000 or   0.002*16=0.032
-        // total fee is 0.05% or 5/1000 or      0.005*16=0.08
-        // this is returned as 0
+        let amount_out = AMM::trade(&trader, (XDOT, DOT), 500, 800);
+        // fees
+        // lp = 1.5 (rounded to 1)
+        // protocol = 1
+        // total = 2
 
         // amount out should be 16
-        assert_eq!(amount_out.unwrap(), 16);
+        assert_eq!(amount_out.unwrap(), 986);
 
         // pools values should be updated - we should have less DOT in the pool
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 84);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 99_014);
 
         // pools values should be updated - we should have more XDOT
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 60);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 50_499);
     })
 }
 
 #[test]
 fn trade_should_not_work_if_amount_less_than_miniumum() {
     new_test_ext().execute_with(|| {
-        // create pool and add liquidity
-        AMM::add_liquidity(Origin::signed(1.into()), (DOT, XDOT), (100, 100), (90, 90))
-            .expect("Error initalizing AMM");
+        use primitives::AMM as _;
 
+        let trader = AccountId::from(4_u64);
+
+        // create pool and add liquidity
+        AMM::add_liquidity(
+            Origin::signed(3.into()),
+            (DOT, XDOT),
+            (100_000, 100_000),
+            (99_999, 99_999),
+        )
+        .expect("Error initalizing AMM");
         // check that pool was funded correctly
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 100);
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 100_000);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_000);
 
         // amount out is less than minimum_amount_out
         assert_noop!(
-            AMM::trade(&AccountId::from(2_u64), (DOT, XDOT), 10, 10),
+            AMM::trade(&trader, (DOT, XDOT), 1_000, 1_000),
             Error::<Test, Instance1>::InsufficientAmountOut
         );
     })
@@ -451,14 +496,18 @@ fn trade_should_not_work_if_amount_less_than_miniumum() {
 #[test]
 fn trade_should_not_work_if_amount_in_is_zero() {
     new_test_ext().execute_with(|| {
+        use primitives::AMM as _;
+
+        let trader = AccountId::from(4_u64);
+
         // create pool and add liquidity
         AMM::add_liquidity(Origin::signed(1.into()), (DOT, XDOT), (100, 100), (90, 90))
             .expect("Error initalizing AMM");
 
         // fail if amount_in is zero
         assert_noop!(
-            AMM::trade(&AccountId::from(2_u64), (DOT, XDOT), 0, 0),
-            Error::<Test, Instance1>::InsufficientAmountOut
+            AMM::trade(&trader, (DOT, XDOT), 0, 0),
+            Error::<Test, Instance1>::InsufficientAmountIn
         );
     })
 }
@@ -466,9 +515,13 @@ fn trade_should_not_work_if_amount_in_is_zero() {
 #[test]
 fn trade_should_not_work_if_pool_does_not_exist() {
     new_test_ext().execute_with(|| {
+        use primitives::AMM as _;
+
+        let trader = AccountId::from(4_u64);
+
         // try to trade in pool with no liquidity
         assert_noop!(
-            AMM::trade(&AccountId::from(2_u64), (DOT, XDOT), 10, 10),
+            AMM::trade(&trader, (DOT, XDOT), 10, 10),
             Error::<Test, Instance1>::PoolDoesNotExist
         );
     })

@@ -1135,6 +1135,7 @@ parameter_types! {
     pub const AllowPermissionlessPoolCreation: bool = true;
     pub const DefaultLpFee: Perbill = Perbill::from_perthousand(3);         // 0.3%
     pub const DefaultProtocolFee: Perbill = Perbill::from_perthousand(2);   // 0.2%
+    pub DefaultProtocolFeeReceiver: AccountId = TreasuryPalletId::get().into_account();
 }
 
 impl pallet_amm::Config for Runtime {
@@ -1145,6 +1146,7 @@ impl pallet_amm::Config for Runtime {
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
     type LpFee = DefaultLpFee;
     type ProtocolFee = DefaultProtocolFee;
+    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
