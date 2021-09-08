@@ -30,7 +30,6 @@ mod tests;
 pub mod weights;
 
 use frame_support::pallet_prelude::*;
-
 use frame_support::{
     dispatch::DispatchResult,
     pallet_prelude::{StorageDoubleMap, StorageValue, ValueQuery},

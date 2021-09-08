@@ -389,7 +389,7 @@ fn trade_should_work() {
         // calculate amount out
         let amount_out = AMM::trade(&trader, (DOT, XDOT), 1_000, 980);
 
-        // amount out should be 985
+        // amount out should be 994
         assert_eq!(amount_out.unwrap(), 994);
 
         // // pools values should be updated - we should have less XDOT
@@ -455,7 +455,7 @@ fn trade_should_work_flipped_currencies() {
         // protocol = 1
         // total = 2
 
-        // amount out should be 16
+        // amount out should be 986
         assert_eq!(amount_out.unwrap(), 986);
 
         // pools values should be updated - we should have less DOT in the pool

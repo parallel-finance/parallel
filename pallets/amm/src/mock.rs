@@ -1,7 +1,6 @@
 use crate as pallet_amm;
 
 pub use sp_runtime::Perbill;
-
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::traits::Contains;
 use frame_support::{parameter_types, traits::GenesisBuild, PalletId};
