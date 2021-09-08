@@ -176,7 +176,7 @@ pub mod pallet {
                 false => (liquidity_amounts.0, liquidity_amounts.1),
             };
             let lp_token = CurrencyId::LPToken(
-			  sp_core::H256::from(""),
+			  sp_core::H256::from(who),
                 TokenSymbol::try_from(base_asset).ok().ok_or(Error::<T, I>::InvalidCurrencyId)?,
                 TokenSymbol::try_from(quote_asset).ok().ok_or(Error::<T, I>::InvalidCurrencyId)?,
             );
