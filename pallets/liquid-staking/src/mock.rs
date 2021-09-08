@@ -87,9 +87,6 @@ parameter_types! {
     pub DotPerSecond: (MultiLocation, u128) = (X1(Parent), 1);
 }
 
-// pub type LocalAssetTransactor =
-//     XcmCurrencyAdapter<ParaTokens::CurrencyAdapter, IsConcrete<DotLocation>, LocationToAccountId, AccountId, ()>;
-
 pub type LocalAssetTransactor = MultiCurrencyAdapter<
     Tokens,
     (),
