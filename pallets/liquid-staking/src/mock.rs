@@ -313,17 +313,28 @@ impl SortedMembers<AccountId> for AliceOrigin {
 
 pub type BridgeOrigin = EnsureSignedBy<AliceOrigin, AccountId>;
 
+pub fn create_relay_agent(index: u16) -> [u8; 32] {
+    Utility::derivative_account_id(para_a_account(), index).into()
+}
+
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
     pub const LiquidCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::xDOT);
-    pub const Agent: MultiLocation = MultiLocation::X2(
+    pub RelayAgent: MultiLocation = MultiLocation::X2(
         Junction::Parent,
         Junction::AccountId32 {
-           network: xcm::v0::NetworkId::Any,
-           id: [0; 32]
-    });
+            network: NetworkId::Any,
+            id: create_relay_agent(0)
+        },
+    );
     pub const PeriodBasis: BlockNumber = 5u64;
+}
+
+impl pallet_utility::Config for Test {
+    type Event = Event;
+    type Call = Call;
+    type WeightInfo = pallet_utility::weights::SubstrateWeight<Test>;
 }
 
 impl crate::Config for Test {
@@ -335,7 +346,7 @@ impl crate::Config for Test {
     type BridgeOrigin = BridgeOrigin;
     type BaseXcmWeight = BaseXcmWeight;
     type XcmTransfer = XTokens;
-    type RelayAgent = Agent;
+    type RelayAgent = RelayAgent;
     type PeriodBasis = PeriodBasis;
     type WeightInfo = ();
     type XcmSender = XcmRouter;
@@ -349,6 +360,7 @@ construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
+        Utility: pallet_utility::{Pallet, Call, Event},
         Tokens: orml_tokens::{Pallet, Storage, Config<T>, Event<T>},
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         LiquidStaking: crate::{Pallet, Storage, Call, Event<T>},
@@ -421,6 +433,9 @@ decl_test_network! {
 pub type RelayBalances = pallet_balances::Pallet<westend_runtime::Runtime>;
 pub type RelayStaking = pallet_staking::Pallet<westend_runtime::Runtime>;
 pub type RelayStakingEvent = pallet_staking::Event<westend_runtime::Runtime>;
+pub type RelaySystem = frame_system::Pallet<westend_runtime::Runtime>;
+pub type RelayEvent = westend_runtime::Event;
+pub type ParaSystem = frame_system::Pallet<Test>;
 
 pub fn para_a_account() -> AccountId {
     ParaId::from(1).into_account()

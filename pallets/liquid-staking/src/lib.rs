@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # Liquid staking pallet v2
+//! # Liquid staking pallet
 //!
 //! ## Overview
 //!
@@ -57,8 +57,10 @@ mod pallet {
 
     use primitives::{Amount, Balance, CurrencyId, EraIndex, Rate, Ratio};
 
-    use crate::types::{MatchingLedger, RewardDestination, StakingSettlementKind};
-    use crate::weights::WeightInfo;
+    use crate::{
+        types::{MatchingLedger, RewardDestination, StakingSettlementKind},
+        weights::WeightInfo,
+    };
 
     pub type BalanceOf<T> =
         <<T as Config>::Currency as MultiCurrency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -133,10 +135,16 @@ mod pallet {
         /// height is accurately multiple of the basis, the event would be deposited during finalization of
         /// the block.
         PeriodTerminated,
-        /// Send staking.bond call to relaychain
+        /// Sent staking.bond call to relaychain
         BondCallSent(T::AccountId, BalanceOf<T>, RewardDestination<T::AccountId>),
-        /// Send staking.bond_extra call to relaychain
+        /// Sent staking.bond_extra call to relaychain
         BondExtraCallSent(BalanceOf<T>),
+        /// Sent staking.unbond call to relaychain
+        UnbondCallSent(BalanceOf<T>),
+        /// Sent staking.rebond call to relaychain
+        RebondCallSent(BalanceOf<T>),
+        /// Sent staking.withdraw_unbonded call to relaychain
+        WithdrawUnbondedCallSent(u32),
     }
 
     #[pallet::error]
@@ -149,10 +157,16 @@ mod pallet {
         EraAlreadyPushed,
         /// Operation wasn't submitted to relaychain or has been processed.
         OperationNotReady,
-        /// Failed sent staking.bond call
+        /// Failed to send staking.bond call
         BondCallFailed,
-        /// Failed sent staking.bond_extra call
+        /// Failed to send staking.bond_extra call
         BondExtraCallFailed,
+        /// Failed to send staking.unbond call
+        UnbondCallFailed,
+        /// Failed to send staking.rebond call
+        RebondCallFailed,
+        /// Failed to send staking.withdraw_unbonded call
+        WithdrawUnbondedCallFailed,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
