@@ -433,6 +433,9 @@ decl_test_network! {
 pub type RelayBalances = pallet_balances::Pallet<westend_runtime::Runtime>;
 pub type RelayStaking = pallet_staking::Pallet<westend_runtime::Runtime>;
 pub type RelayStakingEvent = pallet_staking::Event<westend_runtime::Runtime>;
+pub type RelaySystem = frame_system::Pallet<westend_runtime::Runtime>;
+pub type RelayEvent = westend_runtime::Event;
+pub type ParaSystem = frame_system::Pallet<Test>;
 
 pub fn para_a_account() -> AccountId {
     ParaId::from(1).into_account()

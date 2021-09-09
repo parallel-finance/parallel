@@ -22,12 +22,14 @@ xcm             = { git = 'https://github.com/paritytech/polkadot.git', branch =
 primitives = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 
 [dev-dependencies]
-pallet-balances = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
-pallet-staking  = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
-pallet-utility  = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
-serde           = { version = '1' }
-sp-core         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
-sp-io           = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
+pallet-balances  = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
+pallet-session   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
+pallet-staking   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
+pallet-timestamp = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
+pallet-utility   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
+serde            = { version = '1' }
+sp-core          = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
+sp-io            = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
 
 pallet-xcm                  = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.9' }
 polkadot-core-primitives    = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.9' }
