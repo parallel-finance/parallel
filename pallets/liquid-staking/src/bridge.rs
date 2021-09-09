@@ -3,7 +3,7 @@ use super::{
     pallet::*,
     types::{
         RewardDestination, StakingBondCall, StakingBondExtraCall, StakingRebondCall,
-        StakingUnbondCall,
+        StakingUnbondCall, StakingWithdrawUnbondedCall,
     },
     BalanceOf, Config, Pallet,
 };
@@ -178,6 +178,42 @@ where
             }
             Err(_e) => {
                 return Err(Error::<T>::RebondCallFailed.into());
+            }
+        }
+        Ok(())
+    }
+
+    /// withdraw unbonded on relaychain via xcm.transact
+    pub(crate) fn withdraw_unbonded(num_slashing_spans: u32) -> DispatchResult {
+        let call = StakingWithdrawUnbondedCall {
+            call_index: [6, 3],
+            num_slashing_spans,
+        };
+
+        let msg = WithdrawAsset {
+            assets: vec![MultiAsset::ConcreteFungible {
+                id: MultiLocation::Null,
+                amount: 1_000_000_000_000,
+            }],
+            effects: vec![BuyExecution {
+                fees: MultiAsset::All,
+                weight: 800_000_000,
+                debt: 600_000_000,
+                halt_on_error: true,
+                xcm: vec![Transact {
+                    origin_type: OriginKind::SovereignAccount,
+                    require_weight_at_most: 1_000_000_000,
+                    call: call.encode().into(),
+                }],
+            }],
+        };
+
+        match T::XcmSender::send_xcm(MultiLocation::X1(Junction::Parent), msg) {
+            Ok(()) => {
+                Self::deposit_event(Event::<T>::WithdrawUnbondedCallSent(num_slashing_spans));
+            }
+            Err(_e) => {
+                return Err(Error::<T>::WithdrawUnbondedCallFailed.into());
             }
         }
         Ok(())

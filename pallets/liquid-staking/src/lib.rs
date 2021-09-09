@@ -143,6 +143,8 @@ mod pallet {
         UnbondCallSent(BalanceOf<T>),
         /// Sent staking.rebond call to relaychain
         RebondCallSent(BalanceOf<T>),
+        /// Sent staking.withdraw_unbonded call to relaychain
+        WithdrawUnbondedCallSent(u32),
     }
 
     #[pallet::error]
@@ -163,6 +165,8 @@ mod pallet {
         UnbondCallFailed,
         /// Failed to send staking.rebond call
         RebondCallFailed,
+        /// Failed to send staking.withdraw_unbonded call
+        WithdrawUnbondedCallFailed,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
