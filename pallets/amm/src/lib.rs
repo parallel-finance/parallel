@@ -491,9 +491,13 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T> for Pallet<T, I> {
         amount_in: Balance,
         minimum_amount_out: Balance,
     ) -> Result<Balance, sp_runtime::DispatchError> {
+        // expand variables
+        let (input_token, output_token) = pair;
+
         // Sort pair to interact with the correct pool.
         let (is_inverted, base_asset, quote_asset) =
-            Self::get_upper_currency(pair.0, pair.1).ok_or(Error::<T, I>::InvalidCurrencyId)?;
+            Self::get_upper_currency(input_token, output_token)
+                .ok_or(Error::<T, I>::InvalidCurrencyId)?;
 
         // If the pool exists, update pool base_amount and quote_amount by trade amounts
         Pools::<T, I>::try_mutate(
@@ -579,17 +583,22 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T> for Pallet<T, I> {
 
                 // 6. Wire amount_in of the input token (identified by pair.0) from who to PalletId
                 T::Currency::transfer(
-                    pair.0,
-                    &who,
+                    input_token,
+                    who,
                     &Self::account_id(),
                     amount_without_protocol_fees,
                 )?;
 
                 // 7. Wire amount_out of the output token (identified by pair.1) to who from PalletId
-                T::Currency::transfer(pair.1, &Self::account_id(), &who, amount_out)?;
+                T::Currency::transfer(output_token, &Self::account_id(), who, amount_out)?;
 
                 // 8. Wire protocol fees as needed (input token)
-                T::Currency::transfer(pair.0, &who, &T::ProtocolFeeReceiver::get(), protocol_fees)?;
+                T::Currency::transfer(
+                    input_token,
+                    who,
+                    &T::ProtocolFeeReceiver::get(),
+                    protocol_fees,
+                )?;
 
                 // Emit event of trade with rate calculated
                 Self::deposit_event(Event::<T, I>::Trade(
