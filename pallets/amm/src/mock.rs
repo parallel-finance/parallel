@@ -1,6 +1,5 @@
 use crate as pallet_amm;
 
-pub use sp_runtime::Perbill;
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::traits::Contains;
 use frame_support::{parameter_types, traits::GenesisBuild, PalletId};
@@ -11,6 +10,7 @@ use primitives::{Amount, Balance, CurrencyId, TokenSymbol};
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
 use sp_runtime::traits::AccountIdConversion;
+pub use sp_runtime::Perbill;
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
@@ -208,18 +208,14 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .unwrap();
     orml_tokens::GenesisConfig::<Test> {
         balances: vec![
-            (1.into(), CurrencyId::DOT, 100),
-            (1.into(), CurrencyId::xDOT, 100),
-            (2.into(), CurrencyId::DOT, 100),
-            (2.into(), CurrencyId::xDOT, 100),
-            (3.into(), CurrencyId::DOT, 100_000_000),
-            (3.into(), CurrencyId::xDOT, 100_000_000),
-            (4.into(), CurrencyId::DOT, 100_000_000),
-            (4.into(), CurrencyId::xDOT, 100_000_000),
             (1.into(), TokenSymbol::DOT.into(), 100),
             (1.into(), TokenSymbol::xDOT.into(), 100),
             (2.into(), TokenSymbol::DOT.into(), 100),
             (2.into(), TokenSymbol::xDOT.into(), 100),
+            (3.into(), TokenSymbol::DOT.into(), 100_000_000),
+            (3.into(), TokenSymbol::xDOT.into(), 100_000_000),
+            (4.into(), TokenSymbol::DOT.into(), 100_000_000),
+            (4.into(), TokenSymbol::xDOT.into(), 100_000_000),
         ],
     }
     .assimilate_storage(&mut t)

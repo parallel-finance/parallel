@@ -492,7 +492,8 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T> for Pallet<T, I> {
         minimum_amount_out: Balance,
     ) -> Result<Balance, sp_runtime::DispatchError> {
         // Sort pair to interact with the correct pool.
-        let (is_inverted, base_asset, quote_asset) = Self::get_upper_currency(pair.0, pair.1);
+        let (is_inverted, base_asset, quote_asset) =
+            Self::get_upper_currency(pair.0, pair.1).ok_or(Error::<T, I>::InvalidCurrencyId)?;
 
         // If the pool exists, update pool base_amount and quote_amount by trade amounts
         Pools::<T, I>::try_mutate(

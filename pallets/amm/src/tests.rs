@@ -375,13 +375,12 @@ fn trade_should_work() {
         let trader = AccountId::from(4_u64);
 
         // create pool and add liquidity
-        AMM::add_liquidity(
+        assert_ok!(AMM::add_liquidity(
             Origin::signed(3.into()),
             (DOT, XDOT),
             (100_000_000, 100_000_000),
             (99_999, 99_999),
-        )
-        .expect("Error initalizing AMM");
+        ));
 
         // check that pool was funded correctly
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 100_000_000); // XDOT
@@ -409,13 +408,12 @@ fn trade_should_not_work_if_insufficient_amount_in() {
         let trader = AccountId::from(4_u64);
 
         // create pool and add liquidity
-        AMM::add_liquidity(
+        assert_ok!(AMM::add_liquidity(
             Origin::signed(3.into()),
             (DOT, XDOT),
             (100_000, 100_000),
             (99_999, 99_999),
-        )
-        .expect("Error initalizing AMM");
+        ));
 
         // check that pool was funded correctly
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 100_000); // XDOT
@@ -437,13 +435,12 @@ fn trade_should_work_flipped_currencies() {
         let trader = AccountId::from(4_u64);
 
         // create pool and add liquidity
-        AMM::add_liquidity(
+        assert_ok!(AMM::add_liquidity(
             Origin::signed(3.into()),
             (DOT, XDOT),
             (100_000, 50_000),
             (99_999, 49_999),
-        )
-        .expect("Error initalizing AMM");
+        ));
 
         // check that pool was funded correctly
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_000); // DOT
@@ -475,13 +472,12 @@ fn trade_should_not_work_if_amount_less_than_miniumum() {
         let trader = AccountId::from(4_u64);
 
         // create pool and add liquidity
-        AMM::add_liquidity(
+        assert_ok!(AMM::add_liquidity(
             Origin::signed(3.into()),
             (DOT, XDOT),
             (100_000, 100_000),
             (99_999, 99_999),
-        )
-        .expect("Error initalizing AMM");
+        ));
         // check that pool was funded correctly
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 100_000);
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_000);
@@ -502,8 +498,12 @@ fn trade_should_not_work_if_amount_in_is_zero() {
         let trader = AccountId::from(4_u64);
 
         // create pool and add liquidity
-        AMM::add_liquidity(Origin::signed(1.into()), (DOT, XDOT), (100, 100), (90, 90))
-            .expect("Error initalizing AMM");
+        assert_ok!(AMM::add_liquidity(
+            Origin::signed(1.into()),
+            (DOT, XDOT),
+            (100, 100),
+            (90, 90)
+        ));
 
         // fail if amount_in is zero
         assert_noop!(
