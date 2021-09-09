@@ -29,7 +29,10 @@ use frame_support::{
     log,
     pallet_prelude::*,
     storage::{with_transaction, TransactionOutcome},
-    traits::UnixTime,
+    traits::{
+        tokens::fungibles::{Inspect, Mutate, Transfer},
+        UnixTime,
+    },
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
@@ -58,6 +61,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
+
     use super::*;
 
     #[pallet::config]
@@ -92,6 +96,9 @@ pub mod pallet {
 
         /// Unix time
         type UnixTime: UnixTime;
+
+        /// Assets type for deposit/withdraw collateral assets to/from loans module
+        type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
     }
 
     #[pallet::error]
@@ -126,6 +133,8 @@ pub mod pallet {
         PriceOracleNotReady,
         /// Market does not exist
         MarketDoesNotExist,
+        /// Market already exists
+        MarketAlredyExists,
         /// New markets must have a pending state
         NewMarketMustHavePendingState,
     }
@@ -407,14 +416,18 @@ pub mod pallet {
             market: Market,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
-            let _ = Self::market(&currency_id)?;
+            ensure!(
+                !Markets::<T>::contains_key(&currency_id),
+                Error::<T>::MarketAlredyExists
+            );
+            ensure!(
+                market.state == MarketState::Pending,
+                Error::<T>::NewMarketMustHavePendingState
+            );
             ensure!(
                 market.rate_model.check_model(),
                 Error::<T>::InvalidRateModelParam
             );
-            if market.state != MarketState::Pending {
-                return Err(Error::<T>::NewMarketMustHavePendingState.into());
-            }
             Markets::<T>::insert(currency_id, market.clone());
             Self::deposit_event(Event::<T>::NewMarket(market));
             Ok(().into())
@@ -1059,7 +1072,7 @@ impl<T: Config> Pallet<T> {
         }
 
         // The liquidator may not repay more than 50%(close_factor) of the borrower's borrow balance.
-        let account_borrows = Self::current_borrow_balance(&borrower, &liquidate_currency_id)?;
+        let account_borrows = Self::current_borrow_balance(borrower, &liquidate_currency_id)?;
         if market.close_factor.mul_ceil(account_borrows) < repay_amount {
             return Err(Error::<T>::TooMuchRepay.into());
         }

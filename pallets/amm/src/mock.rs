@@ -6,7 +6,7 @@ use frame_support::traits::Contains;
 use frame_support::{parameter_types, traits::GenesisBuild, PalletId};
 use frame_system as system;
 use orml_traits::parameter_type_with_key;
-use primitives::{Amount, Balance, CurrencyId};
+use primitives::{Amount, Balance, CurrencyId, TokenSymbol};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
@@ -17,9 +17,9 @@ use sp_runtime::{
     RuntimeDebug,
 };
 
-pub const DOT: CurrencyId = CurrencyId::DOT;
-pub const XDOT: CurrencyId = CurrencyId::xDOT;
-pub const NATIVE: CurrencyId = CurrencyId::HKO;
+pub const DOT: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
+pub const XDOT: CurrencyId = CurrencyId::Token(TokenSymbol::xDOT);
+pub const NATIVE: CurrencyId = CurrencyId::Token(TokenSymbol::HKO);
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
@@ -216,6 +216,10 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             (3.into(), CurrencyId::xDOT, 100_000_000),
             (4.into(), CurrencyId::DOT, 100_000_000),
             (4.into(), CurrencyId::xDOT, 100_000_000),
+            (1.into(), TokenSymbol::DOT.into(), 100),
+            (1.into(), TokenSymbol::xDOT.into(), 100),
+            (2.into(), TokenSymbol::DOT.into(), 100),
+            (2.into(), TokenSymbol::xDOT.into(), 100),
         ],
     }
     .assimilate_storage(&mut t)

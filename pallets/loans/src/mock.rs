@@ -23,7 +23,7 @@ use loans::*;
 use frame_support::{construct_runtime, parameter_types, traits::Contains, PalletId};
 use frame_system::EnsureRoot;
 use orml_traits::parameter_type_with_key;
-use primitives::{Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate};
+use primitives::{Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate, TokenSymbol};
 use sp_core::H256;
 use sp_runtime::traits::One;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
@@ -31,11 +31,11 @@ use sp_std::vec::Vec;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
-type Block = frame_system::mocking::MockBlock<Runtime>;
+type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
+type Block = frame_system::mocking::MockBlock<Test>;
 
 construct_runtime!(
-    pub enum Runtime where
+    pub enum Test where
         Block = Block,
         NodeBlock = Block,
         UncheckedExtrinsic = UncheckedExtrinsic,
@@ -46,6 +46,7 @@ construct_runtime!(
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Loans: loans::{Pallet, Storage, Call, Config, Event<T>},
         TimestampPallet: pallet_timestamp::{Pallet, Call, Storage, Inherent},
+        Assets: pallet_assets::<Instance1>::{Pallet, Call, Storage, Event<T>},
     }
 );
 
@@ -54,7 +55,7 @@ parameter_types! {
     pub const SS58Prefix: u8 = 42;
 }
 
-impl frame_system::Config for Runtime {
+impl frame_system::Config for Test {
     type BaseCallFilter = ();
     type BlockWeights = ();
     type BlockLength = ();
@@ -87,17 +88,18 @@ pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CHARLIE: AccountId = 3;
 
-pub const DOT: CurrencyId = CurrencyId::DOT;
-pub const KSM: CurrencyId = CurrencyId::KSM;
-pub const USDT: CurrencyId = CurrencyId::USDT;
-pub const XDOT: CurrencyId = CurrencyId::xDOT;
-pub const NATIVE: CurrencyId = CurrencyId::HKO;
+pub const DOT: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
+pub const KSM: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
+pub const USDT: CurrencyId = CurrencyId::Token(TokenSymbol::USDT);
+pub const XDOT: CurrencyId = CurrencyId::Token(TokenSymbol::xDOT);
+pub const XKSM: CurrencyId = CurrencyId::Token(TokenSymbol::xKSM);
+pub const NATIVE: CurrencyId = CurrencyId::Token(TokenSymbol::HKO);
 
 parameter_types! {
     pub const MinimumPeriod: u64 = 5;
 }
 
-impl pallet_timestamp::Config for Runtime {
+impl pallet_timestamp::Config for Test {
     type Moment = u64;
     type OnTimestampSet = ();
     type MinimumPeriod = MinimumPeriod;
@@ -117,7 +119,7 @@ impl Contains<AccountId> for DustRemovalWhitelist {
     }
 }
 
-impl orml_tokens::Config for Runtime {
+impl orml_tokens::Config for Test {
     type Event = Event;
     type Balance = Balance;
     type Amount = Amount;
@@ -133,11 +135,11 @@ parameter_types! {
     pub const GetNativeCurrencyId: CurrencyId = NATIVE;
 }
 
-impl orml_currencies::Config for Runtime {
+impl orml_currencies::Config for Test {
     type Event = Event;
     type MultiCurrency = Tokens;
     type NativeCurrency =
-        orml_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+        orml_currencies::BasicCurrencyAdapter<Test, Balances, Amount, BlockNumber>;
     type GetNativeCurrencyId = GetNativeCurrencyId;
     type WeightInfo = ();
 }
@@ -147,7 +149,7 @@ parameter_types! {
     pub const MaxLocks: u32 = 50;
 }
 
-impl pallet_balances::Config for Runtime {
+impl pallet_balances::Config for Test {
     type MaxLocks = MaxLocks;
     type Balance = Balance;
     type Event = Event;
@@ -156,7 +158,7 @@ impl pallet_balances::Config for Runtime {
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];
     type AccountStore = System;
-    type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = pallet_balances::weights::SubstrateWeight<Test>;
 }
 
 pub struct MockPriceFeeder;
@@ -194,7 +196,32 @@ impl PriceFeeder for MockPriceFeeder {
     }
 }
 
-impl Config for Runtime {
+parameter_types! {
+    pub const AssetDeposit: u64 = 1;
+    pub const ApprovalDeposit: u64 = 1;
+    pub const StringLimit: u32 = 50;
+    pub const MetadataDepositBase: u64 = 1;
+    pub const MetadataDepositPerByte: u64 = 1;
+}
+
+type AssetsInstance = pallet_assets::Instance1;
+impl pallet_assets::Config<AssetsInstance> for Test {
+    type Event = Event;
+    type Balance = u64;
+    type AssetId = u32;
+    type Currency = Balances;
+    type ForceOrigin = EnsureRoot<AccountId>;
+    type AssetDeposit = AssetDeposit;
+    type MetadataDepositBase = MetadataDepositBase;
+    type MetadataDepositPerByte = MetadataDepositPerByte;
+    type ApprovalDeposit = ApprovalDeposit;
+    type StringLimit = StringLimit;
+    type Freezer = ();
+    type WeightInfo = ();
+    type Extra = ();
+}
+
+impl Config for Test {
     type Event = Event;
     type Currency = Currencies;
     type PalletId = LoansPalletId;
@@ -203,6 +230,7 @@ impl Config for Runtime {
     type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
     type UnixTime = TimestampPallet;
+    type Assets = Assets;
 }
 
 parameter_types! {
@@ -231,10 +259,10 @@ impl Default for ExtBuilder {
 impl ExtBuilder {
     pub fn build(self) -> sp_io::TestExternalities {
         let mut t = frame_system::GenesisConfig::default()
-            .build_storage::<Runtime>()
+            .build_storage::<Test>()
             .unwrap();
 
-        orml_tokens::GenesisConfig::<Runtime> {
+        orml_tokens::GenesisConfig::<Test> {
             balances: self.balances.clone(),
         }
         .assimilate_storage(&mut t)
@@ -244,14 +272,14 @@ impl ExtBuilder {
             borrow_index: Rate::one(),                             // 1
             exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
             markets: vec![
-                (CurrencyId::DOT, MARKET_MOCK),
-                (CurrencyId::KSM, MARKET_MOCK),
-                (CurrencyId::USDT, MARKET_MOCK),
-                (CurrencyId::xDOT, MARKET_MOCK),
+                (CurrencyId::Token(TokenSymbol::DOT), MARKET_MOCK),
+                (CurrencyId::Token(TokenSymbol::KSM), MARKET_MOCK),
+                (CurrencyId::Token(TokenSymbol::USDT), MARKET_MOCK),
+                (CurrencyId::Token(TokenSymbol::xDOT), MARKET_MOCK),
             ],
             last_block_timestamp: 0,
         }
-        .assimilate_storage::<Runtime>(&mut t)
+        .assimilate_storage::<Test>(&mut t)
         .unwrap();
 
         // t.into()

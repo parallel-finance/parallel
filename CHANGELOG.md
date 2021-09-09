@@ -1,5 +1,13 @@
 # CHANGE LOG
 
+## 2021.09.07
+
+- Replace pallet-liquid-staking by v2 for future xcm.Transact impls (#539)
+
+## 2021.09.07
+
+- Fix loans.add_market call (#538)
+
 ## 2021.09.02
 
 - Implement permisionless and permissioned pool creation (#516)

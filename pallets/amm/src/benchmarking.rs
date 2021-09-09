@@ -11,10 +11,11 @@ use frame_benchmarking::{
 use frame_support::assert_ok;
 use frame_system::{self, RawOrigin as SystemOrigin};
 use orml_traits::MultiCurrency;
+use primitives::TokenSymbol;
 use sp_std::prelude::*;
 
-const BASE_ASSET: CurrencyId = CurrencyId::xDOT;
-const QUOTE_ASSET: CurrencyId = CurrencyId::DOT;
+const BASE_ASSET: CurrencyId = CurrencyId::Token(TokenSymbol::xDOT);
+const QUOTE_ASSET: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
 const INITIAL_AMOUNT: u128 = 1000_000_000_000_000;
 
 fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::Event) {

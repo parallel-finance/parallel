@@ -1,6 +1,7 @@
 use super::*;
 use crate::mock::*;
 use frame_support::{assert_noop, assert_ok};
+use primitives::TokenSymbol;
 
 #[test]
 fn add_liquidity_should_work() {
@@ -22,14 +23,14 @@ fn add_liquidity_should_work() {
         // Check balance is correct
         assert_eq!(
             <Test as Config<pallet_balances::Instance1>>::Currency::free_balance(
-                CurrencyId::DOT,
+                CurrencyId::Token(TokenSymbol::DOT),
                 &1.into()
             ),
             90
         );
         assert_eq!(
             <Test as Config<pallet_balances::Instance1>>::Currency::free_balance(
-                CurrencyId::xDOT,
+                CurrencyId::Token(TokenSymbol::xDOT),
                 &1.into()
             ),
             80
@@ -176,14 +177,14 @@ fn add_liquidity_should_work_if_created_by_root() {
         // Check balance is correct
         assert_eq!(
             <Test as Config<pallet_balances::Instance1>>::Currency::free_balance(
-                CurrencyId::DOT,
+                CurrencyId::Token(TokenSymbol::DOT),
                 &1.into()
             ),
             90
         );
         assert_eq!(
             <Test as Config<pallet_balances::Instance1>>::Currency::free_balance(
-                CurrencyId::xDOT,
+                CurrencyId::Token(TokenSymbol::xDOT),
                 &1.into()
             ),
             80
@@ -238,14 +239,14 @@ fn remove_liquidity_whole_share_should_work() {
         // Check balance is correct
         assert_eq!(
             <Test as Config<pallet_balances::Instance1>>::Currency::free_balance(
-                CurrencyId::DOT,
+                CurrencyId::Token(TokenSymbol::DOT),
                 &1.into()
             ),
             100
         );
         assert_eq!(
             <Test as Config<pallet_balances::Instance1>>::Currency::free_balance(
-                CurrencyId::xDOT,
+                CurrencyId::Token(TokenSymbol::xDOT),
                 &1.into()
             ),
             100
@@ -278,14 +279,14 @@ fn remove_liquidity_only_portion_should_work() {
         // Check balance is correct
         assert_eq!(
             <Test as Config<pallet_balances::Instance1>>::Currency::free_balance(
-                CurrencyId::DOT,
+                CurrencyId::Token(TokenSymbol::DOT),
                 &1.into()
             ),
             95
         );
         assert_eq!(
             <Test as Config<pallet_balances::Instance1>>::Currency::free_balance(
-                CurrencyId::xDOT,
+                CurrencyId::Token(TokenSymbol::xDOT),
                 &1.into()
             ),
             55
@@ -325,14 +326,14 @@ fn remove_liquidity_user_more_liquidity_should_work() {
         // Check balance is correct
         assert_eq!(
             <Test as Config<pallet_balances::Instance1>>::Currency::free_balance(
-                CurrencyId::DOT,
+                CurrencyId::Token(TokenSymbol::DOT),
                 &1.into()
             ),
             96
         );
         assert_eq!(
             <Test as Config<pallet_balances::Instance1>>::Currency::free_balance(
-                CurrencyId::xDOT,
+                CurrencyId::Token(TokenSymbol::xDOT),
                 &1.into()
             ),
             90

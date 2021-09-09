@@ -24,9 +24,9 @@ mod weights;
 
 use codec::Encode;
 use cumulus_primitives_core::ParaId;
-use frame_support::log;
 use frame_support::{
     dispatch::Weight,
+    log,
     traits::{Contains, Everything},
     PalletId,
 };
@@ -332,7 +332,7 @@ impl orml_xcm::Config for Runtime {
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::HKO;
+    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::HKO);
 
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
 }
@@ -349,8 +349,8 @@ pub struct CurrencyIdConvert;
 impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
-            CurrencyId::KSM => Some(X1(Parent)),
-            CurrencyId::xKSM => Some(X3(
+            CurrencyId::Token(TokenSymbol::KSM) => Some(X1(Parent)),
+            CurrencyId::Token(TokenSymbol::xKSM) => Some(X3(
                 Parent,
                 Parachain(ParachainInfo::parachain_id().into()),
                 GeneralKey(b"xKSM".to_vec()),
@@ -363,11 +363,11 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
 impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
     fn convert(location: MultiLocation) -> Option<CurrencyId> {
         match location {
-            X1(Parent) => Some(CurrencyId::KSM),
+            X1(Parent) => Some(CurrencyId::Token(TokenSymbol::KSM)),
             X3(Parent, Parachain(id), GeneralKey(key))
                 if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xKSM".to_vec() =>
             {
-                Some(CurrencyId::xKSM)
+                Some(CurrencyId::Token(TokenSymbol::xKSM))
             }
             _ => None,
         }
@@ -415,6 +415,32 @@ impl orml_unknown_tokens::Config for Runtime {
     type Event = Event;
 }
 
+parameter_types! {
+    pub const AssetDeposit: Balance = DOLLARS; // 1 UNIT deposit to create asset
+    pub const ApprovalDeposit: Balance = EXISTENTIAL_DEPOSIT;
+    pub const AssetsStringLimit: u32 = 50;
+    /// Key = 32 bytes, Value = 36 bytes (32+1+1+1+1)
+    // https://github.com/paritytech/substrate/blob/069917b/frame/assets/src/lib.rs#L257L271
+    pub const MetadataDepositBase: Balance = deposit(1, 68);
+    pub const MetadataDepositPerByte: Balance = deposit(0, 1);
+}
+
+impl pallet_assets::Config for Runtime {
+    type Event = Event;
+    type Balance = Balance;
+    type AssetId = u32;
+    type Currency = Balances;
+    type ForceOrigin = EnsureRoot<AccountId>;
+    type AssetDeposit = AssetDeposit;
+    type MetadataDepositBase = MetadataDepositBase;
+    type MetadataDepositPerByte = MetadataDepositPerByte;
+    type ApprovalDeposit = ApprovalDeposit;
+    type StringLimit = AssetsStringLimit;
+    type Freezer = ();
+    type WeightInfo = ();
+    type Extra = ();
+}
+
 impl pallet_loans::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
@@ -424,21 +450,19 @@ impl pallet_loans::Config for Runtime {
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_loans::weights::SubstrateWeight<Runtime>;
     type UnixTime = Timestamp;
-}
-
-parameter_types! {
-    pub const LiquidStakingAgentMaxMembers: u32 = 100;
+    type Assets = Assets;
 }
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const StakingCurrency: CurrencyId = CurrencyId::KSM;
-    pub const LiquidCurrency: CurrencyId = CurrencyId::xKSM;
+    pub const StakingCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
+    pub const LiquidCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::xKSM);
     pub RelayAgent: MultiLocation = MultiLocation::X2(
         Junction::Parent,
         Junction::AccountId32{
             network: NetworkId::Any,
-            id: hex!["306721211d5404bd9da88e0204360a1a9ab8b87c66c1bc2fcdd37f3c2222cc20"] // account id of "//Dave"
+            // Dave
+            id: hex!["306721211d5404bd9da88e0204360a1a9ab8b87c66c1bc2fcdd37f3c2222cc20"]
         }
     );
     pub const PeriodBasis: BlockNumber = 1000u32;
@@ -1163,6 +1187,7 @@ construct_runtime!(
         Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 3,
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 4,
         TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 5,
+        Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 6,
 
         // Governance
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
@@ -1485,7 +1510,7 @@ impl cumulus_pallet_parachain_system::CheckInherents<Block> for CheckInherents {
             .create_inherent_data()
             .expect("Could not create the timestamp inherent data");
 
-        inherent_data.check_extrinsics(&block)
+        inherent_data.check_extrinsics(block)
     }
 }
 

@@ -17,7 +17,7 @@ codec                  = { package = 'parity-scale-codec', version = '2.2.0' }
 derive_more            = '0.15.0'
 frame-benchmarking     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
 frame-benchmarking-cli = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
-hex-literal            = '0.2.1'
+hex-literal            = '0.3.1'
 jsonrpc-core           = '15.1.0'
 log                    = '0.4.13'
 
