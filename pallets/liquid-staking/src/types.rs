@@ -106,7 +106,7 @@ pub struct StakingUnbondCall<T: Config> {
     pub value: BalanceOf<T>,
 }
 
-/// Relaychain staking.unbond call arguments
+/// Relaychain staking.rebond call arguments
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
 pub struct StakingRebondCall<T: Config> {
     /// [pallet index, call index]
