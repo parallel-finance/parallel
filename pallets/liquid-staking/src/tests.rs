@@ -293,9 +293,10 @@ fn test_transact_rebond_work() {
     Relay::execute_with(|| {
         assert_eq!(
             events::<westend_runtime::Runtime>()[6],
-            westend_runtime::Event::Staking(
-                RelayStakingEvent::Bonded(para_a_account(), 3 * DOT_DECIMAL)
-            ),
+            westend_runtime::Event::Staking(RelayStakingEvent::Bonded(
+                para_a_account(),
+                3 * DOT_DECIMAL
+            )),
         );
         let ledger = RelayStaking::ledger(para_a_account()).unwrap();
         assert_eq!(ledger.total, 3 * DOT_DECIMAL);
