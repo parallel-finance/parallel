@@ -115,11 +115,3 @@ pub struct StakingRebondCall<T: Config> {
     #[codec(compact)]
     pub value: BalanceOf<T>,
 }
-
-/// Relaychain staking.withdraw_unbonded call arguments
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
-pub struct StakingWithdrawUnbondedCall<T: Config> {
-    /// [pallet index, call index]
-    pub call_index: [u8; 2],
-    pub num_slashing_spans: u32,
-}
