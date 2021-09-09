@@ -122,6 +122,5 @@ pub struct StakingWithdrawUnbondedCall {
     /// [pallet index, call index]
     pub call_index: [u8; 2],
     /// Withdraw amount
-    #[codec(compact)]
     pub num_slashing_spans: u32,
 }

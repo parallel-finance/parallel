@@ -20,9 +20,9 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-pub mod bridge;
 #[cfg(test)]
 mod mock;
+pub mod relaychain;
 #[cfg(test)]
 mod tests;
 pub mod types;
