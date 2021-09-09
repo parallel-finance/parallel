@@ -43,9 +43,8 @@ use frame_system::pallet_prelude::OriginFor;
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 pub use pallet::*;
 use pool_structs::PoolLiquidityAmount;
-use primitives::{AccountId, Amount, Balance, CurrencyId, Rate};
+use primitives::{Amount, Balance, CurrencyId, Rate};
 use sp_runtime::traits::AccountIdConversion;
-use sp_runtime::traits::Hash;
 use sp_runtime::traits::IntegerSquareRoot;
 use sp_runtime::ArithmeticError;
 use std::convert::TryFrom;
@@ -57,7 +56,6 @@ pub mod pallet {
     use frame_benchmarking::frame_support::StorageHasher;
     use frame_system::ensure_root;
     use primitives::TokenSymbol;
-    use sp_core::H256;
 
     #[pallet::config]
     pub trait Config<I: 'static = ()>: frame_system::Config {
@@ -262,7 +260,7 @@ pub mod pallet {
                             },
                         )?;
 
-                        T::Currency::mint_into(lp_token, &who, ownership);
+                        T::Currency::mint_into(lp_token, &who, ownership)?;
                         T::Currency::transfer(base_asset, &who, &Self::account_id(), base_amount)?;
                         T::Currency::transfer(
                             quote_asset,
@@ -294,7 +292,7 @@ pub mod pallet {
                             (&who, &base_asset, &quote_asset),
                             amm_pool,
                         );
-                        T::Currency::mint_into(lp_token, &who, ownership);
+                        T::Currency::mint_into(lp_token, &who, ownership)?;
                         T::Currency::transfer(base_asset, &who, &Self::account_id(), base_amount)?;
                         T::Currency::transfer(
                             quote_asset,
@@ -313,151 +311,155 @@ pub mod pallet {
                 },
             )
         }
-        //
-        // /// Allow users to remove liquidity from a given pool
-        // ///
-        // /// - `pool`: Currency pool, in which liquidity will be removed
-        // /// - `ownership_to_remove`: Ownership to be removed from user's ownership
-        // #[pallet::weight(T::WeightInfo::remove_liquidity())]
-        // #[transactional]
-        // pub fn remove_liquidity(
-        //     origin: OriginFor<T>,
-        //     pool: (CurrencyId, CurrencyId),
-        //     ownership_to_remove: Balance,
-        // ) -> DispatchResult {
-        //     let who = ensure_signed(origin)?;
-        //
-        //     let (_, base_asset, quote_asset) =
-        //         Self::get_upper_currency(pool.0, pool.1).ok_or(Error::<T, I>::InvalidCurrencyId)?;
-        //
-        //     Pools::<T, I>::try_mutate(
-        //         base_asset,
-        //         quote_asset,
-        //         |pool_liquidity_amount| -> DispatchResult {
-        //             let mut liquidity_amount = pool_liquidity_amount
-        //                 .take()
-        //                 .ok_or(Error::<T, I>::PoolDoesNotExist)?;
-        //             ensure!(
-        //                 liquidity_amount.ownership >= ownership_to_remove,
-        //                 Error::<T, I>::MoreLiquidity
-        //             );
-        //
-        //             let base_amount = (ownership_to_remove
-        //                 .saturating_mul(liquidity_amount.base_amount))
-        //             .checked_div(liquidity_amount.ownership)
-        //             .ok_or(ArithmeticError::Underflow)?;
-        //
-        //             let quote_amount = (ownership_to_remove
-        //                 .saturating_mul(liquidity_amount.quote_amount))
-        //             .checked_div(liquidity_amount.ownership)
-        //             .ok_or(ArithmeticError::Underflow)?;
-        //
-        //             liquidity_amount.base_amount = liquidity_amount
-        //                 .base_amount
-        //                 .checked_sub(base_amount)
-        //                 .ok_or(ArithmeticError::Underflow)?;
-        //             liquidity_amount.quote_amount = liquidity_amount
-        //                 .quote_amount
-        //                 .checked_sub(quote_amount)
-        //                 .ok_or(ArithmeticError::Underflow)?;
-        //             liquidity_amount.ownership = liquidity_amount
-        //                 .ownership
-        //                 .checked_sub(ownership_to_remove)
-        //                 .ok_or(ArithmeticError::Underflow)?;
-        //             *pool_liquidity_amount = Some(liquidity_amount);
-        //
-        //             LiquidityProviders::<T, I>::try_mutate(
-        //                 (&who, &base_asset, &quote_asset),
-        //                 |pool_liquidity_amount| -> DispatchResult {
-        //                     pool_liquidity_amount.base_amount = pool_liquidity_amount
-        //                         .base_amount
-        //                         .checked_sub(base_amount)
-        //                         .ok_or(ArithmeticError::Underflow)?;
-        //                     pool_liquidity_amount.quote_amount = pool_liquidity_amount
-        //                         .quote_amount
-        //                         .checked_sub(quote_amount)
-        //                         .ok_or(ArithmeticError::Underflow)?;
-        //                     pool_liquidity_amount.ownership = pool_liquidity_amount
-        //                         .ownership
-        //                         .checked_sub(ownership_to_remove)
-        //                         .ok_or(ArithmeticError::Underflow)?;
-        //                     Ok(())
-        //                 },
-        //             )?;
-        //
-        //             T::Currency::transfer(base_asset, &Self::account_id(), &who, base_amount)?;
-        //             T::Currency::transfer(quote_asset, &Self::account_id(), &who, quote_amount)?;
-        //
-        //             Self::deposit_event(Event::<T, I>::LiquidityRemoved(
-        //                 who,
-        //                 base_asset,
-        //                 quote_asset,
-        //             ));
-        //
-        //             Ok(())
-        //         },
-        //     )
-        // }
-        //
-        // /// "force" the creation of a new pool by root
-        // ///
-        // /// - `pool`: Currency pool, in which liquidity will be added
-        // /// - `liquidity_amounts`: Liquidity amounts to be added in pool
-        // /// - `lptoken_receiver`: Allocate any liquidity tokens to lptoken_receiver
-        // #[pallet::weight(T::WeightInfo::force_create_pool())]
-        // #[transactional]
-        // pub fn force_create_pool(
-        //     origin: OriginFor<T>,
-        //     pool: (CurrencyId, CurrencyId),
-        //     liquidity_amounts: (Balance, Balance),
-        //     lptoken_receiver: T::AccountId,
-        // ) -> DispatchResultWithPostInfo {
-        //     ensure_root(origin)?;
-        //
-        //     let (is_inverted, base_asset, quote_asset) =
-        //         Self::get_upper_currency(pool.0, pool.1).ok_or(Error::<T, I>::InvalidCurrencyId)?;
-        //
-        //     ensure!(
-        //         !Pools::<T, I>::contains_key(&base_asset, &quote_asset),
-        //         Error::<T, I>::PoolAlreadyExists
-        //     );
-        //
-        //     let (base_amount, quote_amount) = match is_inverted {
-        //         true => (liquidity_amounts.1, liquidity_amounts.0),
-        //         false => (liquidity_amounts.0, liquidity_amounts.1),
-        //     };
-        //
-        //     let ownership = base_amount.saturating_mul(quote_amount).integer_sqrt();
-        //     let amm_pool = PoolLiquidityAmount {
-        //         base_amount,
-        //         quote_amount,
-        //         ownership,
-        //     };
-        //     Pools::<T, I>::insert(&base_asset, &quote_asset, amm_pool.clone());
-        //     LiquidityProviders::<T, I>::insert(
-        //         (&lptoken_receiver, &base_asset, &quote_asset),
-        //         amm_pool,
-        //     );
-        //     T::Currency::transfer(
-        //         base_asset,
-        //         &lptoken_receiver,
-        //         &Self::account_id(),
-        //         base_amount,
-        //     )?;
-        //     T::Currency::transfer(
-        //         quote_asset,
-        //         &lptoken_receiver,
-        //         &Self::account_id(),
-        //         quote_amount,
-        //     )?;
-        //
-        //     Self::deposit_event(Event::<T, I>::LiquidityAdded(
-        //         lptoken_receiver,
-        //         base_asset,
-        //         quote_asset,
-        //     ));
-        //     Ok(().into())
-        // }
+
+        /// Allow users to remove liquidity from a given pool
+        ///
+        /// - `pool`: Currency pool, in which liquidity will be removed
+        /// - `ownership_to_remove`: Ownership to be removed from user's ownership
+        #[pallet::weight(T::WeightInfo::remove_liquidity())]
+        #[transactional]
+        pub fn remove_liquidity(
+            origin: OriginFor<T>,
+            pool: (CurrencyId, CurrencyId),
+            ownership_to_remove: Balance,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+
+            let (_, base_asset, quote_asset) =
+                Self::get_upper_currency(pool.0, pool.1).ok_or(Error::<T, I>::InvalidCurrencyId)?;
+
+            Pools::<T, I>::try_mutate(
+                base_asset,
+                quote_asset,
+                |pool_liquidity_amount| -> DispatchResult {
+                    let mut liquidity_amount = pool_liquidity_amount
+                        .take()
+                        .ok_or(Error::<T, I>::PoolDoesNotExist)?;
+                    let total_ownership = T::Currency::total_issuance(liquidity_amount.lp_token);
+                    ensure!(
+                        total_ownership >= ownership_to_remove,
+                        Error::<T, I>::MoreLiquidity
+                    );
+
+                    let base_amount = (ownership_to_remove
+                        .saturating_mul(liquidity_amount.base_amount))
+                    .checked_div(total_ownership)
+                    .ok_or(ArithmeticError::Underflow)?;
+
+                    let quote_amount = (ownership_to_remove
+                        .saturating_mul(liquidity_amount.quote_amount))
+                    .checked_div(total_ownership)
+                    .ok_or(ArithmeticError::Underflow)?;
+
+                    liquidity_amount.base_amount = liquidity_amount
+                        .base_amount
+                        .checked_sub(base_amount)
+                        .ok_or(ArithmeticError::Underflow)?;
+                    liquidity_amount.quote_amount = liquidity_amount
+                        .quote_amount
+                        .checked_sub(quote_amount)
+                        .ok_or(ArithmeticError::Underflow)?;
+
+                    LiquidityProviders::<T, I>::try_mutate(
+                        (&who, &base_asset, &quote_asset),
+                        |pool_liquidity_amount| -> DispatchResult {
+                            pool_liquidity_amount.base_amount = pool_liquidity_amount
+                                .base_amount
+                                .checked_sub(base_amount)
+                                .ok_or(ArithmeticError::Underflow)?;
+                            pool_liquidity_amount.quote_amount = pool_liquidity_amount
+                                .quote_amount
+                                .checked_sub(quote_amount)
+                                .ok_or(ArithmeticError::Underflow)?;
+
+                            Ok(())
+                        },
+                    )?;
+                    T::Currency::burn_from(liquidity_amount.lp_token, &who, ownership_to_remove)?;
+                    T::Currency::transfer(base_asset, &Self::account_id(), &who, base_amount)?;
+                    T::Currency::transfer(quote_asset, &Self::account_id(), &who, quote_amount)?;
+
+                    Self::deposit_event(Event::<T, I>::LiquidityRemoved(
+                        who,
+                        base_asset,
+                        quote_asset,
+                    ));
+
+                    Ok(())
+                },
+            )
+        }
+
+        /// "force" the creation of a new pool by root
+        ///
+        /// - `pool`: Currency pool, in which liquidity will be added
+        /// - `liquidity_amounts`: Liquidity amounts to be added in pool
+        /// - `lptoken_receiver`: Allocate any liquidity tokens to lptoken_receiver
+        #[pallet::weight(T::WeightInfo::force_create_pool())]
+        #[transactional]
+        pub fn force_create_pool(
+            origin: OriginFor<T>,
+            pool: (CurrencyId, CurrencyId),
+            liquidity_amounts: (Balance, Balance),
+            lptoken_receiver: T::AccountId,
+        ) -> DispatchResultWithPostInfo {
+            ensure_root(origin)?;
+
+            let (is_inverted, base_asset, quote_asset) =
+                Self::get_upper_currency(pool.0, pool.1).ok_or(Error::<T, I>::InvalidCurrencyId)?;
+
+            ensure!(
+                !Pools::<T, I>::contains_key(&base_asset, &quote_asset),
+                Error::<T, I>::PoolAlreadyExists
+            );
+
+            let (base_amount, quote_amount) = match is_inverted {
+                true => (liquidity_amounts.1, liquidity_amounts.0),
+                false => (liquidity_amounts.0, liquidity_amounts.1),
+            };
+
+            let lp_token = CurrencyId::LPToken(
+                Blake2_256::hash(&Self::account_id().encode()),
+                TokenSymbol::try_from(base_asset)
+                    .ok()
+                    .ok_or(Error::<T, I>::InvalidCurrencyId)?,
+                TokenSymbol::try_from(quote_asset)
+                    .ok()
+                    .ok_or(Error::<T, I>::InvalidCurrencyId)?,
+            );
+
+            let ownership = base_amount.saturating_mul(quote_amount).integer_sqrt();
+            let amm_pool = PoolLiquidityAmount {
+                base_amount,
+                quote_amount,
+                lp_token,
+            };
+            Pools::<T, I>::insert(&base_asset, &quote_asset, amm_pool.clone());
+            LiquidityProviders::<T, I>::insert(
+                (&lptoken_receiver, &base_asset, &quote_asset),
+                amm_pool,
+            );
+            T::Currency::mint_into(lp_token, &lptoken_receiver, ownership)?;
+            T::Currency::transfer(
+                base_asset,
+                &lptoken_receiver,
+                &Self::account_id(),
+                base_amount,
+            )?;
+            T::Currency::transfer(
+                quote_asset,
+                &lptoken_receiver,
+                &Self::account_id(),
+                quote_amount,
+            )?;
+
+            Self::deposit_event(Event::<T, I>::LiquidityAdded(
+                lptoken_receiver,
+                base_asset,
+                quote_asset,
+            ));
+            Ok(().into())
+        }
     }
 }
 

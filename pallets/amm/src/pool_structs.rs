@@ -14,7 +14,7 @@
 
 // Groups common pool related structures
 
-use primitives::{Balance, CurrencyId, Hash, Rate, TokenSymbol};
+use primitives::{Balance, CurrencyId, Rate, TokenSymbol};
 use sp_runtime::{traits::Saturating, ArithmeticError, DispatchError, FixedPointNumber};
 
 // Amplification Coefficient Weight.
