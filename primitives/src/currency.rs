@@ -42,7 +42,7 @@ pub enum TokenSymbol {
 pub enum CurrencyId {
     Token(TokenSymbol),
     LPToken(
-        Hash,
+        [u8; 32],
         TokenSymbol, // Base asset
         TokenSymbol, // Quote asset
     ),

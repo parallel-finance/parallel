@@ -47,7 +47,7 @@ impl Default for PoolLiquidityAmount {
         Self {
             base_amount: Balance::default(),
             quote_amount: Balance::default(),
-            lp_token: CurrencyId::LPToken(Hash::default(), TokenSymbol::DOT, TokenSymbol::DOT),
+            lp_token: CurrencyId::LPToken(Default::default(), TokenSymbol::DOT, TokenSymbol::DOT),
         }
     }
 }

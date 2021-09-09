@@ -54,11 +54,12 @@ pub use weights::WeightInfo;
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
+    use frame_benchmarking::frame_support::StorageHasher;
     use frame_system::ensure_root;
     use primitives::TokenSymbol;
-  use sp_core::H256;
+    use sp_core::H256;
 
-  #[pallet::config]
+    #[pallet::config]
     pub trait Config<I: 'static = ()>: frame_system::Config {
         type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
 
@@ -176,9 +177,13 @@ pub mod pallet {
                 false => (liquidity_amounts.0, liquidity_amounts.1),
             };
             let lp_token = CurrencyId::LPToken(
-			  sp_core::H256::from(who),
-                TokenSymbol::try_from(base_asset).ok().ok_or(Error::<T, I>::InvalidCurrencyId)?,
-                TokenSymbol::try_from(quote_asset).ok().ok_or(Error::<T, I>::InvalidCurrencyId)?,
+                Blake2_256::hash(&Self::account_id().encode()),
+                TokenSymbol::try_from(base_asset)
+                    .ok()
+                    .ok_or(Error::<T, I>::InvalidCurrencyId)?,
+                TokenSymbol::try_from(quote_asset)
+                    .ok()
+                    .ok_or(Error::<T, I>::InvalidCurrencyId)?,
             );
             Pools::<T, I>::try_mutate(
                 base_asset,
@@ -218,6 +223,15 @@ pub mod pallet {
                         );
 
                         let (base_amount, quote_amount) = (ideal_base_amount, ideal_quote_amount);
+                        let total_ownership = T::Currency::total_issuance(lp_token);
+                        let ownership = sp_std::cmp::min(
+                            (base_amount.saturating_mul(total_ownership))
+                                .checked_div(liquidity_amount.base_amount)
+                                .ok_or(ArithmeticError::Overflow)?,
+                            (quote_amount.saturating_mul(total_ownership))
+                                .checked_div(liquidity_amount.quote_amount)
+                                .ok_or(ArithmeticError::Overflow)?,
+                        );
 
                         liquidity_amount.base_amount = liquidity_amount
                             .base_amount
@@ -248,8 +262,7 @@ pub mod pallet {
                             },
                         )?;
 
-                        T::Currency::mint_into(base_asset, &who, base_amount);
-                        T::Currency::mint_into(quote_asset, &who, quote_amount);
+                        T::Currency::mint_into(lp_token, &who, ownership);
                         T::Currency::transfer(base_asset, &who, &Self::account_id(), base_amount)?;
                         T::Currency::transfer(
                             quote_asset,
@@ -270,6 +283,7 @@ pub mod pallet {
                             Error::<T, I>::PoolCreationDisabled
                         );
 
+                        let ownership = base_amount.saturating_mul(quote_amount).integer_sqrt();
                         let amm_pool = PoolLiquidityAmount {
                             base_amount,
                             quote_amount,
@@ -280,8 +294,7 @@ pub mod pallet {
                             (&who, &base_asset, &quote_asset),
                             amm_pool,
                         );
-                        T::Currency::mint_into(base_asset, &who, base_amount);
-                        T::Currency::mint_into(quote_asset, &who, quote_amount);
+                        T::Currency::mint_into(lp_token, &who, ownership);
                         T::Currency::transfer(base_asset, &who, &Self::account_id(), base_amount)?;
                         T::Currency::transfer(
                             quote_asset,
