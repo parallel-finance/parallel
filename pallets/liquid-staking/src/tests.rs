@@ -185,7 +185,6 @@ fn test_transact_bond_work() {
 
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
-            Origin::signed(ALICE),
             ALICE,
             3 * DOT_DECIMAL,
             RewardDestination::Staked
@@ -220,16 +219,12 @@ fn test_transact_bond_extra_work() {
 
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
-            Origin::signed(ALICE),
             ALICE,
             2 * DOT_DECIMAL,
             RewardDestination::Staked
         ));
 
-        assert_ok!(LiquidStaking::bond_extra(
-            Origin::signed(ALICE),
-            3 * DOT_DECIMAL
-        ));
+        assert_ok!(LiquidStaking::bond_extra(3 * DOT_DECIMAL));
     });
 
     Relay::execute_with(|| {
@@ -244,15 +239,11 @@ fn test_transact_unbond_work() {
 
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
-            Origin::signed(ALICE),
             para_a_account(),
             3 * DOT_DECIMAL,
             RewardDestination::Staked
         ));
-        assert_ok!(LiquidStaking::unbond(
-            Origin::signed(ALICE),
-            3 * DOT_DECIMAL
-        ));
+        assert_ok!(LiquidStaking::unbond(3 * DOT_DECIMAL));
     });
 
     Relay::execute_with(|| {
@@ -275,19 +266,12 @@ fn test_transact_rebond_work() {
 
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
-            Origin::signed(ALICE),
             para_a_account(),
             3 * DOT_DECIMAL,
             RewardDestination::Staked
         ));
-        assert_ok!(LiquidStaking::unbond(
-            Origin::signed(ALICE),
-            3 * DOT_DECIMAL
-        ));
-        assert_ok!(LiquidStaking::rebond(
-            Origin::signed(ALICE),
-            3 * DOT_DECIMAL
-        ));
+        assert_ok!(LiquidStaking::unbond(3 * DOT_DECIMAL));
+        assert_ok!(LiquidStaking::rebond(3 * DOT_DECIMAL));
     });
 
     Relay::execute_with(|| {

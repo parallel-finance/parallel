@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use super::{
     pallet::*,
     types::{
@@ -7,7 +8,6 @@ use super::{
     BalanceOf, Config, Pallet,
 };
 use frame_support::pallet_prelude::*;
-use frame_system::pallet_prelude::*;
 use sp_runtime::{traits::StaticLookup, DispatchResult};
 
 use primitives::Balance;
@@ -24,13 +24,11 @@ where
     [u8; 32]: From<<T as frame_system::Config>::AccountId>,
 {
     /// Bond on relaychain via xcm.transact
-    pub fn bond(
-        origin: OriginFor<T>,
+    pub(crate) fn bond(
         controller: T::AccountId,
         value: BalanceOf<T>,
         payee: RewardDestination<T::AccountId>,
     ) -> DispatchResult {
-        T::BridgeOrigin::ensure_origin(origin)?;
         let source = T::Lookup::unlookup(controller.clone());
         let call = StakingBondCall::<T> {
             call_index: [6, 0],
@@ -78,8 +76,7 @@ where
     }
 
     /// Bond_extra on relaychain via xcm.transact
-    pub fn bond_extra(origin: OriginFor<T>, value: Balance) -> DispatchResult {
-        T::BridgeOrigin::ensure_origin(origin)?;
+    pub(crate) fn bond_extra(value: Balance) -> DispatchResult {
         let call = StakingBondExtraCall::<T> {
             call_index: [6, 1],
             value,
@@ -115,8 +112,7 @@ where
     }
 
     /// unbond on relaychain via xcm.transact
-    pub fn unbond(origin: OriginFor<T>, value: Balance) -> DispatchResult {
-        T::BridgeOrigin::ensure_origin(origin)?;
+    pub(crate) fn unbond(value: Balance) -> DispatchResult {
         let call = StakingUnbondCall::<T> {
             call_index: [6, 2],
             value,
@@ -152,8 +148,7 @@ where
     }
 
     /// rebond on relaychain via xcm.transact
-    pub fn rebond(origin: OriginFor<T>, value: Balance) -> DispatchResult {
-        T::BridgeOrigin::ensure_origin(origin)?;
+    pub(crate) fn rebond(value: Balance) -> DispatchResult {
         let call = StakingRebondCall::<T> {
             call_index: [6, 19],
             value,
