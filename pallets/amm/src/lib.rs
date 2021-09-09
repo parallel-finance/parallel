@@ -45,6 +45,7 @@ use primitives::{Amount, Balance, CurrencyId, Rate};
 use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::traits::IntegerSquareRoot;
 use sp_runtime::ArithmeticError;
+pub use sp_runtime::Perbill;
 pub use weights::WeightInfo;
 
 #[frame_support::pallet]
@@ -74,6 +75,16 @@ pub mod pallet {
         /// A configuration flag to enable or disable the creation of new pools by "normal" users.
         #[pallet::constant]
         type AllowPermissionlessPoolCreation: Get<bool>;
+
+        /// Defines the fees taken out of each trade and sent back to the AMM pool,
+        /// typically 0.3%.
+        type LpFee: Get<Perbill>;
+
+        /// How much the protocol is taking out of each trade.
+        type ProtocolFee: Get<Perbill>;
+
+        /// Who/where to send the protocol fees
+        type ProtocolFeeReceiver: Get<Self::AccountId>;
     }
 
     #[pallet::error]
@@ -88,6 +99,10 @@ pub mod pallet {
         PoolCreationDisabled,
         /// Pool does not exist
         PoolAlreadyExists,
+        /// Amount out is too small
+        InsufficientAmountOut,
+        /// Amount in is too small
+        InsufficientAmountIn,
         /// Invalid Currency Id
         InvalidCurrencyId,
     }
@@ -101,6 +116,9 @@ pub mod pallet {
         /// Remove liquidity from pool
         /// [sender, currency_id, currency_id]
         LiquidityRemoved(T::AccountId, CurrencyId, CurrencyId),
+        /// Trade using liquidity
+        /// [trader, currency_id_in, currency_id_out, rate_out_for_in]
+        Trade(T::AccountId, CurrencyId, CurrencyId, Rate),
     }
 
     #[pallet::hooks]
@@ -463,5 +481,139 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         (amount.saturating_mul(quote_pool))
             .checked_div(base_pool)
             .expect("cannot overflow with positive divisor; qed")
+    }
+}
+
+impl<T: Config<I>, I: 'static> primitives::AMM<T> for Pallet<T, I> {
+    fn trade(
+        who: &T::AccountId,
+        pair: (CurrencyId, CurrencyId),
+        amount_in: Balance,
+        minimum_amount_out: Balance,
+    ) -> Result<Balance, sp_runtime::DispatchError> {
+        // expand variables
+        let (input_token, output_token) = pair;
+
+        // Sort pair to interact with the correct pool.
+        let (is_inverted, base_asset, quote_asset) =
+            Self::get_upper_currency(input_token, output_token)
+                .ok_or(Error::<T, I>::InvalidCurrencyId)?;
+
+        // If the pool exists, update pool base_amount and quote_amount by trade amounts
+        Pools::<T, I>::try_mutate(
+            &base_asset,
+            &quote_asset,
+            |pool_liquidity_amount| -> Result<Balance, DispatchError> {
+                // 1. If the pool we want to trade does not exist in the current instance, error
+                let mut liquidity_amount = pool_liquidity_amount
+                    .take()
+                    .ok_or(Error::<T, I>::PoolDoesNotExist)?;
+
+                // supply_in == liquidity_amount.base_amount unless inverted
+                let (supply_in, supply_out) = if is_inverted {
+                    (liquidity_amount.quote_amount, liquidity_amount.base_amount)
+                } else {
+                    (liquidity_amount.base_amount, liquidity_amount.quote_amount)
+                };
+
+                // amount must incur at least 1 in lp fees
+                ensure!(
+                    amount_in >= T::LpFee::get().saturating_reciprocal_mul(1)
+                        && amount_in >= T::ProtocolFee::get().saturating_reciprocal_mul(1),
+                    Error::<T, I>::InsufficientAmountIn
+                );
+
+                // 2. Compute all fees to be taken out, see @Fees
+                // we round down for trader convenience
+                let lp_fees = T::LpFee::get().mul_floor(amount_in);
+                let protocol_fees = T::ProtocolFee::get().mul_floor(amount_in);
+
+                // subtract protocol fees from amount_in
+                let amount_without_protocol_fees = amount_in
+                    .checked_sub(protocol_fees)
+                    .ok_or(ArithmeticError::Underflow)?;
+
+                // subtract lp fees from amount_in minus protocol fees
+                let amount_in_after_all_fees = amount_without_protocol_fees
+                    .checked_sub(lp_fees)
+                    .ok_or(ArithmeticError::Underflow)?;
+
+                // 3. Given the input amount amount_in left after fees, compute amount_out
+                // let amount_out = amount_in * supply_out / (supply_in + amount_in)
+                let amount_out = amount_in_after_all_fees
+                    .saturating_mul(supply_out)
+                    .checked_div(
+                        supply_in
+                            .checked_add(amount_in_after_all_fees)
+                            .ok_or(ArithmeticError::Overflow)?,
+                    )
+                    .ok_or(ArithmeticError::Underflow)?;
+
+                // 4. If `amount_out` is lower than `min_amount_out`, error
+                ensure!(
+                    amount_out >= minimum_amount_out && amount_in > 0,
+                    Error::<T, I>::InsufficientAmountOut
+                );
+
+                // 5. Update the `Pools` storage to track the `base_amount` and `quote_amount`
+                // variables (increase and decrease by `amount_in` and `amount_out`)
+                // increase liquidity_amount.base_amount by amount_in, unless inverted
+                if is_inverted {
+                    liquidity_amount.quote_amount = liquidity_amount
+                        .quote_amount
+                        .checked_add(amount_without_protocol_fees)
+                        .ok_or(ArithmeticError::Overflow)?;
+
+                    liquidity_amount.base_amount = liquidity_amount
+                        .base_amount
+                        .checked_sub(amount_out)
+                        .ok_or(ArithmeticError::Underflow)?;
+                } else {
+                    liquidity_amount.base_amount = liquidity_amount
+                        .base_amount
+                        .checked_add(amount_without_protocol_fees)
+                        .ok_or(ArithmeticError::Overflow)?;
+
+                    liquidity_amount.quote_amount = liquidity_amount
+                        .quote_amount
+                        .checked_sub(amount_out)
+                        .ok_or(ArithmeticError::Underflow)?;
+                }
+                *pool_liquidity_amount = Some(liquidity_amount);
+
+                // 6. Wire amount_in of the input token (identified by pair.0) from who to PalletId
+                T::Currency::transfer(
+                    input_token,
+                    who,
+                    &Self::account_id(),
+                    amount_without_protocol_fees,
+                )?;
+
+                // 7. Wire amount_out of the output token (identified by pair.1) to who from PalletId
+                T::Currency::transfer(output_token, &Self::account_id(), who, amount_out)?;
+
+                // 8. Wire protocol fees as needed (input token)
+                T::Currency::transfer(
+                    input_token,
+                    who,
+                    &T::ProtocolFeeReceiver::get(),
+                    protocol_fees,
+                )?;
+
+                // Emit event of trade with rate calculated
+                Self::deposit_event(Event::<T, I>::Trade(
+                    who.clone(),
+                    base_asset,
+                    quote_asset,
+                    amount_out
+                        .checked_div(amount_in)
+                        .ok_or(ArithmeticError::Underflow)?
+                        .into(),
+                ));
+
+                // Return amount out for router pallet
+                Ok(amount_out)
+            },
+        ) // return output of try_mutate as `trade` output
     }
 }

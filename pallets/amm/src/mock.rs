@@ -10,6 +10,7 @@ use primitives::{Amount, Balance, CurrencyId, TokenSymbol};
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
 use sp_runtime::traits::AccountIdConversion;
+pub use sp_runtime::Perbill;
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
@@ -157,6 +158,9 @@ impl orml_currencies::Config for Test {
 parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
     pub const AllowPermissionlessPoolCreation: bool = true;
+    pub const DefaultLpFee: Perbill = Perbill::from_perthousand(3);         // 0.3%
+    pub const DefaultProtocolFee: Perbill = Perbill::from_perthousand(2);   // 0.2%
+    pub const DefaultProtocolFeeReceiver: AccountId = AccountId(4_u64);
 }
 
 impl pallet_amm::Config<pallet_amm::Instance1> for Test {
@@ -165,6 +169,9 @@ impl pallet_amm::Config<pallet_amm::Instance1> for Test {
     type PalletId = AMMPalletId;
     type WeightInfo = ();
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
+    type LpFee = DefaultLpFee;
+    type ProtocolFee = DefaultProtocolFee;
+    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
 }
 
 parameter_types! {
@@ -178,6 +185,9 @@ impl pallet_amm::Config<pallet_amm::Instance2> for Test {
     type PalletId = PermissionedAMMPalletId;
     type WeightInfo = ();
     type AllowPermissionlessPoolCreation = ForbidPermissionlessPoolCreation;
+    type LpFee = DefaultLpFee;
+    type ProtocolFee = DefaultProtocolFee;
+    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
 }
 
 impl pallet_amm::Config for Test {
@@ -186,6 +196,9 @@ impl pallet_amm::Config for Test {
     type PalletId = AMMPalletId;
     type WeightInfo = ();
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
+    type LpFee = DefaultLpFee;
+    type ProtocolFee = DefaultProtocolFee;
+    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
 }
 
 // Build genesis storage according to the mock runtime.
@@ -199,6 +212,10 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             (1.into(), TokenSymbol::xDOT.into(), 100),
             (2.into(), TokenSymbol::DOT.into(), 100),
             (2.into(), TokenSymbol::xDOT.into(), 100),
+            (3.into(), TokenSymbol::DOT.into(), 100_000_000),
+            (3.into(), TokenSymbol::xDOT.into(), 100_000_000),
+            (4.into(), TokenSymbol::DOT.into(), 100_000_000),
+            (4.into(), TokenSymbol::xDOT.into(), 100_000_000),
         ],
     }
     .assimilate_storage(&mut t)
