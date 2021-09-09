@@ -8,8 +8,12 @@ LAUNCH_CONFIG    := config.yml
 DOCKER_TAG       := latest
 
 .PHONY: init
-init:
+init: submodules
 	rustup target add wasm32-unknown-unknown
+
+.PHONY: submodules
+submodules:
+	git submodule update --init --recursive
 
 .PHONY: build
 build:
