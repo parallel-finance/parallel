@@ -77,7 +77,7 @@ where
 
     /// Bond_extra on relaychain via xcm.transact
     pub(crate) fn bond_extra(value: Balance) -> DispatchResult {
-        let call = StakingBondExtraCall::<T> {
+        let call = StakingBondExtraCall::<BalanceOf<T>> {
             call_index: [6, 1],
             value,
         };
@@ -113,7 +113,7 @@ where
 
     /// unbond on relaychain via xcm.transact
     pub(crate) fn unbond(value: Balance) -> DispatchResult {
-        let call = StakingUnbondCall::<T> {
+        let call = StakingUnbondCall::<BalanceOf<T>> {
             call_index: [6, 2],
             value,
         };
@@ -149,7 +149,7 @@ where
 
     /// rebond on relaychain via xcm.transact
     pub(crate) fn rebond(value: Balance) -> DispatchResult {
-        let call = StakingRebondCall::<T> {
+        let call = StakingRebondCall::<BalanceOf<T>> {
             call_index: [6, 19],
             value,
         };

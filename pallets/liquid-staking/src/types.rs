@@ -88,7 +88,25 @@ pub struct StakingBondCall<T: Config> {
 
 /// Relaychain staking.bond_extra call arguments
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
+pub struct StakingBondExtraCall<Balance> {
+    /// [pallet index, call index]
+    pub call_index: [u8; 2],
+    /// Rebond amount
+    #[codec(compact)]
+    pub value: Balance,
+}
+
 /// Relaychain staking.unbond call arguments
+#[derive(Clone, Encode, Decode, RuntimeDebug)]
+pub struct StakingUnbondCall<Balance> {
+    /// [pallet index, call index]
+    pub call_index: [u8; 2],
+    /// Unbond amount
+    #[codec(compact)]
+    pub value: Balance,
+}
+
+/// Relaychain staking.rebond call arguments
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
 pub struct StakingRebondCall<Balance> {
     /// [pallet index, call index]
@@ -96,32 +114,6 @@ pub struct StakingRebondCall<Balance> {
     /// Rebond amount
     #[codec(compact)]
     pub value: Balance,
-}
-    /// [pallet index, call index]
-    pub call_index: [u8; 2],
-    /// Bond amount
-    #[codec(compact)]
-    pub value: BalanceOf<T>,
-}
-
-/// Relaychain staking.unbond call arguments
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
-pub struct StakingUnbondCall<T: Config> {
-    /// [pallet index, call index]
-    pub call_index: [u8; 2],
-    /// Unbond amount
-    #[codec(compact)]
-    pub value: BalanceOf<T>,
-}
-
-/// Relaychain staking.rebond call arguments
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
-pub struct StakingRebondCall<T: Config> {
-    /// [pallet index, call index]
-    pub call_index: [u8; 2],
-    /// Rebond amount
-    #[codec(compact)]
-    pub value: BalanceOf<T>,
 }
 
 /// Relaychain staking.withdraw_unbonded call arguments
