@@ -88,7 +88,15 @@ pub struct StakingBondCall<T: Config> {
 
 /// Relaychain staking.bond_extra call arguments
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
-pub struct StakingBondExtraCall<T: Config> {
+/// Relaychain staking.unbond call arguments
+#[derive(Clone, Encode, Decode, RuntimeDebug)]
+pub struct StakingRebondCall<Balance> {
+    /// [pallet index, call index]
+    pub call_index: [u8; 2],
+    /// Rebond amount
+    #[codec(compact)]
+    pub value: Balance,
+}
     /// [pallet index, call index]
     pub call_index: [u8; 2],
     /// Bond amount
