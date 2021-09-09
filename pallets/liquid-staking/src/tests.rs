@@ -170,15 +170,6 @@ fn test_settlement_should_work() {
     });
 }
 
-fn events<T: frame_system::Config>() -> Vec<<T as frame_system::Config>::Event> {
-    let evt = frame_system::Pallet::<T>::events()
-        .into_iter()
-        .map(|evt| evt.event)
-        .collect::<Vec<_>>();
-    frame_system::Pallet::<T>::reset_events();
-    evt
-}
-
 #[test]
 fn test_transact_bond_work() {
     TestNet::reset();
@@ -190,22 +181,16 @@ fn test_transact_bond_work() {
             RewardDestination::Staked
         ));
 
-        assert_eq!(
-            events::<Test>(),
-            [mock::Event::LiquidStaking(crate::Event::BondCallSent(
-                ALICE,
-                3 * DOT_DECIMAL,
-                RewardDestination::Staked
-            )),]
-        );
+        frame_system::Pallet::<Test>::assert_has_event(mock::Event::LiquidStaking(
+            crate::Event::BondCallSent(ALICE, 3 * DOT_DECIMAL, RewardDestination::Staked),
+        ));
     });
 
     Relay::execute_with(|| {
-        assert_eq!(
-            events::<westend_runtime::Runtime>()[0],
+        frame_system::Pallet::<westend_runtime::Runtime>::assert_has_event(
             westend_runtime::Event::Staking(RelayStakingEvent::Bonded(
                 para_a_account(),
-                3 * DOT_DECIMAL
+                3 * DOT_DECIMAL,
             )),
         );
         let ledger = RelayStaking::ledger(ALICE).unwrap();
@@ -247,11 +232,10 @@ fn test_transact_unbond_work() {
     });
 
     Relay::execute_with(|| {
-        assert_eq!(
-            events::<westend_runtime::Runtime>()[3],
+        frame_system::Pallet::<westend_runtime::Runtime>::assert_has_event(
             westend_runtime::Event::Staking(RelayStakingEvent::Unbonded(
                 para_a_account(),
-                3 * DOT_DECIMAL
+                3 * DOT_DECIMAL,
             )),
         );
         let ledger = RelayStaking::ledger(para_a_account()).unwrap();
@@ -275,11 +259,10 @@ fn test_transact_rebond_work() {
     });
 
     Relay::execute_with(|| {
-        assert_eq!(
-            events::<westend_runtime::Runtime>()[6],
+        frame_system::Pallet::<westend_runtime::Runtime>::assert_has_event(
             westend_runtime::Event::Staking(RelayStakingEvent::Bonded(
                 para_a_account(),
-                3 * DOT_DECIMAL
+                3 * DOT_DECIMAL,
             )),
         );
         let ledger = RelayStaking::ledger(para_a_account()).unwrap();
