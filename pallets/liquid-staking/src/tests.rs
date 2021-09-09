@@ -225,22 +225,28 @@ fn test_transact_unbond_work() {
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
             para_a_account(),
-            3 * DOT_DECIMAL,
+            5 * DOT_DECIMAL,
             RewardDestination::Staked
         ));
-        assert_ok!(LiquidStaking::unbond(3 * DOT_DECIMAL));
+        assert_ok!(LiquidStaking::unbond(2 * DOT_DECIMAL));
     });
 
     Relay::execute_with(|| {
         frame_system::Pallet::<westend_runtime::Runtime>::assert_has_event(
+            westend_runtime::Event::Staking(RelayStakingEvent::Bonded(
+                para_a_account(),
+                5 * DOT_DECIMAL,
+            )),
+        );
+        frame_system::Pallet::<westend_runtime::Runtime>::assert_has_event(
             westend_runtime::Event::Staking(RelayStakingEvent::Unbonded(
                 para_a_account(),
-                3 * DOT_DECIMAL,
+                2 * DOT_DECIMAL,
             )),
         );
         let ledger = RelayStaking::ledger(para_a_account()).unwrap();
-        assert_eq!(ledger.total, 3 * DOT_DECIMAL);
-        assert_eq!(ledger.active, 0u128);
+        assert_eq!(ledger.total, 5 * DOT_DECIMAL);
+        assert_eq!(ledger.active, 3 * DOT_DECIMAL);
     });
 }
 
@@ -251,10 +257,10 @@ fn test_transact_rebond_work() {
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
             para_a_account(),
-            3 * DOT_DECIMAL,
+            10 * DOT_DECIMAL,
             RewardDestination::Staked
         ));
-        assert_ok!(LiquidStaking::unbond(3 * DOT_DECIMAL));
+        assert_ok!(LiquidStaking::unbond(5 * DOT_DECIMAL));
         assert_ok!(LiquidStaking::rebond(3 * DOT_DECIMAL));
     });
 
@@ -262,11 +268,23 @@ fn test_transact_rebond_work() {
         frame_system::Pallet::<westend_runtime::Runtime>::assert_has_event(
             westend_runtime::Event::Staking(RelayStakingEvent::Bonded(
                 para_a_account(),
+                10 * DOT_DECIMAL,
+            )),
+        );
+        frame_system::Pallet::<westend_runtime::Runtime>::assert_has_event(
+            westend_runtime::Event::Staking(RelayStakingEvent::Unbonded(
+                para_a_account(),
+                5 * DOT_DECIMAL,
+            )),
+        );
+        frame_system::Pallet::<westend_runtime::Runtime>::assert_has_event(
+            westend_runtime::Event::Staking(RelayStakingEvent::Bonded(
+                para_a_account(),
                 3 * DOT_DECIMAL,
             )),
         );
         let ledger = RelayStaking::ledger(para_a_account()).unwrap();
-        assert_eq!(ledger.total, 3 * DOT_DECIMAL);
-        assert_eq!(ledger.active, 3 * DOT_DECIMAL);
+        assert_eq!(ledger.total, 10 * DOT_DECIMAL);
+        assert_eq!(ledger.active, 8 * DOT_DECIMAL);
     });
 }
