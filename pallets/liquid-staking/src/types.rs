@@ -124,3 +124,23 @@ pub struct StakingWithdrawUnbondedCall {
     /// Withdraw amount
     pub num_slashing_spans: u32,
 }
+
+/// Relaychain staking.nominate call arguments
+#[derive(Clone, Encode, Decode, RuntimeDebug)]
+pub struct StakingNominateCall<T: Config> {
+    /// [pallet index, call index]
+    pub call_index: [u8; 2],
+    /// List of nominate `targets`
+    pub targets: Vec<<T::Lookup as StaticLookup>::Source>,
+}
+
+/// Relaychain staking.payout_stakers call arguments
+#[derive(Clone, Encode, Decode, RuntimeDebug)]
+pub struct StakingPayoutStakersCall<AccountId> {
+    /// [pallet index, call index]
+    pub call_index: [u8; 2],
+    /// Stash account of validator
+    pub validator_stash: AccountId,
+    /// EraIndex
+    pub era: u32,
+}
