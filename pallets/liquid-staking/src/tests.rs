@@ -5,6 +5,7 @@ use crate::{
 };
 use frame_support::{assert_err, assert_ok, traits::Hooks};
 use orml_traits::MultiCurrency;
+use pallet_staking::{Exposure, IndividualExposure};
 use primitives::{Balance, CurrencyId, Rate, TokenSymbol};
 use sp_runtime::traits::One;
 use xcm_simulator::TestExt;
@@ -163,19 +164,11 @@ fn test_settlement_should_work() {
     });
     Relay::execute_with(|| {
         assert_eq!(
-            RelayBalances::free_balance(&[0u8; 32].into()),
-            25 * DOT_DECIMAL
+            RelayBalances::free_balance(&AccountId::from(create_relay_agent(0))),
+            // FIXME: weight should be take into account
+            249200000000
         );
     });
-}
-
-fn events<T: frame_system::Config>() -> Vec<<T as frame_system::Config>::Event> {
-    let evt = frame_system::Pallet::<T>::events()
-        .into_iter()
-        .map(|evt| evt.event)
-        .collect::<Vec<_>>();
-    frame_system::Pallet::<T>::reset_events();
-    evt
 }
 
 #[test]
@@ -184,30 +177,23 @@ fn test_transact_bond_work() {
 
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
-            Origin::signed(ALICE),
             ALICE,
             3 * DOT_DECIMAL,
             RewardDestination::Staked
         ));
 
-        assert_eq!(
-            events::<Test>(),
-            [mock::Event::LiquidStaking(crate::Event::BondCallSent(
-                ALICE,
-                3 * DOT_DECIMAL,
-                RewardDestination::Staked
-            )),]
-        );
+        ParaSystem::assert_has_event(mock::Event::LiquidStaking(crate::Event::BondCallSent(
+            ALICE,
+            3 * DOT_DECIMAL,
+            RewardDestination::Staked,
+        )));
     });
 
     Relay::execute_with(|| {
-        assert_eq!(
-            events::<westend_runtime::Runtime>()[0],
-            westend_runtime::Event::Staking(RelayStakingEvent::Bonded(
-                para_a_account(),
-                3 * DOT_DECIMAL
-            )),
-        );
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
+            para_a_account(),
+            3 * DOT_DECIMAL,
+        )));
         let ledger = RelayStaking::ledger(ALICE).unwrap();
         assert_eq!(ledger.total, 3 * DOT_DECIMAL);
     });
@@ -219,20 +205,144 @@ fn test_transact_bond_extra_work() {
 
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
-            Origin::signed(ALICE),
             ALICE,
             2 * DOT_DECIMAL,
             RewardDestination::Staked
         ));
 
-        assert_ok!(LiquidStaking::bond_extra(
-            Origin::signed(ALICE),
-            3 * DOT_DECIMAL
-        ));
+        assert_ok!(LiquidStaking::bond_extra(3 * DOT_DECIMAL));
     });
 
     Relay::execute_with(|| {
         let ledger = RelayStaking::ledger(ALICE).unwrap();
         assert_eq!(ledger.total, 5 * DOT_DECIMAL);
+    });
+}
+
+#[test]
+fn test_transact_unbond_work() {
+    TestNet::reset();
+
+    ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::bond(
+            para_a_account(),
+            5 * DOT_DECIMAL,
+            RewardDestination::Staked
+        ));
+        assert_ok!(LiquidStaking::unbond(2 * DOT_DECIMAL));
+    });
+
+    Relay::execute_with(|| {
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
+            para_a_account(),
+            5 * DOT_DECIMAL,
+        )));
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded(
+            para_a_account(),
+            2 * DOT_DECIMAL,
+        )));
+        let ledger = RelayStaking::ledger(para_a_account()).unwrap();
+        assert_eq!(ledger.total, 5 * DOT_DECIMAL);
+        assert_eq!(ledger.active, 3 * DOT_DECIMAL);
+    });
+}
+
+#[test]
+fn test_transact_rebond_work() {
+    TestNet::reset();
+
+    ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::bond(
+            para_a_account(),
+            10 * DOT_DECIMAL,
+            RewardDestination::Staked
+        ));
+        assert_ok!(LiquidStaking::unbond(5 * DOT_DECIMAL));
+        assert_ok!(LiquidStaking::rebond(3 * DOT_DECIMAL));
+    });
+
+    Relay::execute_with(|| {
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
+            para_a_account(),
+            10 * DOT_DECIMAL,
+        )));
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded(
+            para_a_account(),
+            5 * DOT_DECIMAL,
+        )));
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
+            para_a_account(),
+            3 * DOT_DECIMAL,
+        )));
+        let ledger = RelayStaking::ledger(para_a_account()).unwrap();
+        assert_eq!(ledger.total, 10 * DOT_DECIMAL);
+        assert_eq!(ledger.active, 8 * DOT_DECIMAL);
+    });
+}
+
+#[test]
+fn test_transact_nominate_work() {
+    TestNet::reset();
+
+    ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::bond(
+            para_a_account(),
+            10 * DOT_DECIMAL,
+            RewardDestination::Staked
+        ));
+
+        assert_ok!(LiquidStaking::nominate(vec![ALICE, BOB],));
+    });
+
+    Relay::execute_with(|| {
+        let ledger = RelayStaking::ledger(para_a_account()).unwrap();
+        assert_eq!(ledger.total, 10 * DOT_DECIMAL);
+        let nominators = RelayStaking::nominators(para_a_account()).unwrap();
+        assert_eq!(nominators.targets, vec![ALICE, BOB]);
+    });
+}
+
+#[test]
+fn test_transact_payout_stakers_work() {
+    TestNet::reset();
+    Relay::execute_with(|| {
+        let exposure = Exposure {
+            total: 100 * DOT_DECIMAL,
+            own: 33 * DOT_DECIMAL,
+            others: vec![IndividualExposure {
+                who: CHARILE,
+                value: 67 * DOT_DECIMAL,
+            }],
+        };
+        pallet_babe::Pallet::<westend_runtime::Runtime>::on_initialize(1);
+        pallet_staking::ErasStartSessionIndex::<westend_runtime::Runtime>::insert(0, 1);
+        pallet_session::Pallet::<westend_runtime::Runtime>::rotate_session();
+        pallet_staking::CurrentEra::<westend_runtime::Runtime>::put(0);
+        pallet_staking::ErasValidatorReward::<westend_runtime::Runtime>::insert(
+            0,
+            500 * DOT_DECIMAL,
+        );
+        pallet_staking::ErasStakersClipped::<westend_runtime::Runtime>::insert(
+            0,
+            para_a_account(),
+            exposure,
+        );
+        RelayStaking::reward_by_ids(vec![(para_a_account(), 100)]);
+    });
+
+    ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::bond(
+            para_a_account(),
+            1 * DOT_DECIMAL,
+            RewardDestination::Account(BOB),
+        ));
+
+        // weight is 31701208000
+        assert_ok!(LiquidStaking::payout_stakers(para_a_account(), 0));
+    });
+
+    // (33/100) * 500
+    Relay::execute_with(|| {
+        assert_eq!(RelayBalances::free_balance(BOB), 165 * DOT_DECIMAL);
     });
 }
