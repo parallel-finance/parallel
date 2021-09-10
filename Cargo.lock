@@ -5572,6 +5572,7 @@ dependencies = [
  "orml-traits",
  "orml-xcm-support",
  "orml-xtokens",
+ "pallet-babe",
  "pallet-balances",
  "pallet-session",
  "pallet-staking",

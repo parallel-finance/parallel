@@ -5,6 +5,7 @@ use crate::{
 };
 use frame_support::{assert_err, assert_ok, traits::Hooks};
 use orml_traits::MultiCurrency;
+use pallet_staking::{Exposure, IndividualExposure};
 use primitives::{Balance, CurrencyId, Rate, TokenSymbol};
 use sp_runtime::traits::One;
 use xcm_simulator::TestExt;
@@ -276,5 +277,72 @@ fn test_transact_rebond_work() {
         let ledger = RelayStaking::ledger(para_a_account()).unwrap();
         assert_eq!(ledger.total, 10 * DOT_DECIMAL);
         assert_eq!(ledger.active, 8 * DOT_DECIMAL);
+    });
+}
+
+#[test]
+fn test_transact_nominate_work() {
+    TestNet::reset();
+
+    ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::bond(
+            para_a_account(),
+            10 * DOT_DECIMAL,
+            RewardDestination::Staked
+        ));
+
+        assert_ok!(LiquidStaking::nominate(vec![ALICE, BOB],));
+    });
+
+    Relay::execute_with(|| {
+        let ledger = RelayStaking::ledger(para_a_account()).unwrap();
+        assert_eq!(ledger.total, 10 * DOT_DECIMAL);
+        let nominators = RelayStaking::nominators(para_a_account()).unwrap();
+        assert_eq!(nominators.targets, vec![ALICE, BOB]);
+    });
+}
+
+#[test]
+fn test_transact_payout_stakers_work() {
+    TestNet::reset();
+    Relay::execute_with(|| {
+        let exposure = Exposure {
+            total: 100 * DOT_DECIMAL,
+            own: 33 * DOT_DECIMAL,
+            others: vec![IndividualExposure {
+                who: CHARILE,
+                value: 67 * DOT_DECIMAL,
+            }],
+        };
+        pallet_babe::Pallet::<westend_runtime::Runtime>::on_initialize(1);
+        pallet_staking::ErasStartSessionIndex::<westend_runtime::Runtime>::insert(0, 1);
+        pallet_session::Pallet::<westend_runtime::Runtime>::rotate_session();
+        pallet_staking::CurrentEra::<westend_runtime::Runtime>::put(0);
+        pallet_staking::ErasValidatorReward::<westend_runtime::Runtime>::insert(
+            0,
+            500 * DOT_DECIMAL,
+        );
+        pallet_staking::ErasStakersClipped::<westend_runtime::Runtime>::insert(
+            0,
+            para_a_account(),
+            exposure,
+        );
+        RelayStaking::reward_by_ids(vec![(para_a_account(), 100)]);
+    });
+
+    ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::bond(
+            para_a_account(),
+            1 * DOT_DECIMAL,
+            RewardDestination::Account(BOB),
+        ));
+
+        // weight is 31701208000
+        assert_ok!(LiquidStaking::payout_stakers(para_a_account(), 0));
+    });
+
+    // (33/100) * 500
+    Relay::execute_with(|| {
+        assert_eq!(RelayBalances::free_balance(BOB), 165 * DOT_DECIMAL);
     });
 }
