@@ -140,16 +140,18 @@ fn amplification_coeficient_mul(exchange_rate: Rate, n: u128) -> Option<u128> {
 #[cfg(test)]
 mod tests {
     use super::{AMMCurve, PoolLiquidityAmount, StableSwap, StandardSwap};
+    use primitives::{CurrencyId, TokenSymbol};
 
+    const ALICE: [u8; 32] = *b"Alice\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
     const DEFAULT_DYNAMIC_POOL: PoolLiquidityAmount = PoolLiquidityAmount {
         base_amount: 40,
         quote_amount: 60,
-        ownership: 40,
+        lp_token: CurrencyId::LPToken(ALICE, TokenSymbol::DOT, TokenSymbol::DOT),
     };
     const DEFAULT_STABLE_POOL: PoolLiquidityAmount = PoolLiquidityAmount {
         base_amount: 40,
         quote_amount: 60,
-        ownership: 40,
+        lp_token: CurrencyId::LPToken(ALICE, TokenSymbol::DOT, TokenSymbol::DOT),
     };
 
     #[test]

@@ -30,8 +30,6 @@ mod tests;
 pub mod weights;
 
 use frame_support::pallet_prelude::*;
-use frame_support::traits::fungibles;
-use frame_support::traits::fungibles::Mutate;
 use frame_support::{
     dispatch::DispatchResult,
     pallet_prelude::{StorageDoubleMap, StorageValue, ValueQuery},
@@ -64,11 +62,11 @@ pub mod pallet {
         /// Currency type for deposit/withdraw assets to/from amm
         /// module
         type Currency: MultiCurrencyExtended<
-                Self::AccountId,
-                CurrencyId = CurrencyId,
-                Balance = Balance,
-                Amount = Amount,
-            > + fungibles::Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
+            Self::AccountId,
+            CurrencyId = CurrencyId,
+            Balance = Balance,
+            Amount = Amount,
+        >;
 
         #[pallet::constant]
         type PalletId: Get<PalletId>;
@@ -260,7 +258,7 @@ pub mod pallet {
                             },
                         )?;
 
-                        T::Currency::mint_into(lp_token, &who, ownership)?;
+                        T::Currency::deposit(lp_token, &who, ownership)?;
                         T::Currency::transfer(base_asset, &who, &Self::account_id(), base_amount)?;
                         T::Currency::transfer(
                             quote_asset,
@@ -292,7 +290,7 @@ pub mod pallet {
                             (&who, &base_asset, &quote_asset),
                             amm_pool,
                         );
-                        T::Currency::mint_into(lp_token, &who, ownership)?;
+                        T::Currency::deposit(lp_token, &who, ownership)?;
                         T::Currency::transfer(base_asset, &who, &Self::account_id(), base_amount)?;
                         T::Currency::transfer(
                             quote_asset,
@@ -375,7 +373,7 @@ pub mod pallet {
                             Ok(())
                         },
                     )?;
-                    T::Currency::burn_from(liquidity_amount.lp_token, &who, ownership_to_remove)?;
+                    T::Currency::withdraw(liquidity_amount.lp_token, &who, ownership_to_remove)?;
                     T::Currency::transfer(base_asset, &Self::account_id(), &who, base_amount)?;
                     T::Currency::transfer(quote_asset, &Self::account_id(), &who, quote_amount)?;
 
@@ -439,7 +437,7 @@ pub mod pallet {
                 (&lptoken_receiver, &base_asset, &quote_asset),
                 amm_pool,
             );
-            T::Currency::mint_into(lp_token, &lptoken_receiver, ownership)?;
+            T::Currency::deposit(lp_token, &lptoken_receiver, ownership)?;
             T::Currency::transfer(
                 base_asset,
                 &lptoken_receiver,

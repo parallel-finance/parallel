@@ -223,6 +223,13 @@ fn remove_liquidity_whole_share_should_work() {
 
         let _ = AMM::add_liquidity(Origin::signed(1.into()), (DOT, XDOT), (10, 90), (5, 5));
 
+        assert_eq!(
+            <Test as Config<pallet_balances::Instance1>>::Currency::total_issuance(
+                AMM::liquidity_providers((AccountId(1u64), XDOT, DOT)).lp_token
+            ),
+            30
+        );
+
         assert_ok!(AMM::remove_liquidity(
             Origin::signed(1.into()),
             (DOT, XDOT),
@@ -230,11 +237,11 @@ fn remove_liquidity_whole_share_should_work() {
         ));
 
         assert_eq!(
-            AMM::liquidity_providers((AccountId(1u64), XDOT, DOT)).ownership,
+            <Test as Config<pallet_balances::Instance1>>::Currency::total_issuance(
+                AMM::liquidity_providers((AccountId(1u64), XDOT, DOT)).lp_token
+            ),
             0
         );
-
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().ownership, 0);
 
         // Check balance is correct
         assert_eq!(
@@ -270,11 +277,11 @@ fn remove_liquidity_only_portion_should_work() {
         ));
 
         assert_eq!(
-            AMM::liquidity_providers((AccountId(1u64), XDOT, DOT)).ownership,
+            <Test as Config<pallet_balances::Instance1>>::Currency::total_issuance(
+                AMM::liquidity_providers((AccountId(1u64), XDOT, DOT)).lp_token
+            ),
             15
         );
-
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().ownership, 15);
 
         // Check balance is correct
         assert_eq!(
@@ -317,11 +324,11 @@ fn remove_liquidity_user_more_liquidity_should_work() {
         ));
 
         assert_eq!(
-            AMM::liquidity_providers((AccountId(1u64), XDOT, DOT)).ownership,
-            3
+            <Test as Config<pallet_balances::Instance1>>::Currency::total_issuance(
+                AMM::liquidity_providers((AccountId(1u64), XDOT, DOT)).lp_token
+            ),
+            18
         );
-
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().ownership, 3);
 
         // Check balance is correct
         assert_eq!(
@@ -329,14 +336,14 @@ fn remove_liquidity_user_more_liquidity_should_work() {
                 CurrencyId::Token(TokenSymbol::DOT),
                 &1.into()
             ),
-            96
+            88
         );
         assert_eq!(
             <Test as Config<pallet_balances::Instance1>>::Currency::free_balance(
                 CurrencyId::Token(TokenSymbol::xDOT),
                 &1.into()
             ),
-            90
+            70
         );
     })
 }
