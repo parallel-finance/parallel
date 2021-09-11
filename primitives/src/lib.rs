@@ -18,6 +18,7 @@
 
 pub mod currency;
 pub mod network;
+pub mod tokens;
 
 use codec::{Decode, Encode};
 pub use currency::{CurrencyId, TokenSymbol};

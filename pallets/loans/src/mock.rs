@@ -23,7 +23,9 @@ use loans::*;
 use frame_support::{construct_runtime, parameter_types, traits::Contains, PalletId};
 use frame_system::EnsureRoot;
 use orml_traits::parameter_type_with_key;
-use primitives::{Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate, TokenSymbol};
+use primitives::{
+    Amount, AssetId, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate, TokenSymbol,
+};
 use sp_core::H256;
 use sp_runtime::traits::One;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
@@ -88,12 +90,17 @@ pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CHARLIE: AccountId = 3;
 
-pub const DOT: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
-pub const KSM: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
-pub const USDT: CurrencyId = CurrencyId::Token(TokenSymbol::USDT);
-pub const XDOT: CurrencyId = CurrencyId::Token(TokenSymbol::xDOT);
-pub const XKSM: CurrencyId = CurrencyId::Token(TokenSymbol::xKSM);
+// pub const DOT: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
+// pub const KSM: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
+// pub const USDT: CurrencyId = CurrencyId::Token(TokenSymbol::USDT);
+// pub const XDOT: CurrencyId = CurrencyId::Token(TokenSymbol::xDOT);
+// pub const XKSM: CurrencyId = CurrencyId::Token(TokenSymbol::xKSM);
 pub const NATIVE: CurrencyId = CurrencyId::Token(TokenSymbol::HKO);
+
+pub const DOT: AssetId = 0;
+pub const KSM: AssetId = 1;
+pub const USDT: AssetId = 3;
+pub const XDOT: AssetId = 4;
 
 parameter_types! {
     pub const MinimumPeriod: u64 = 5;
@@ -165,7 +172,7 @@ pub struct MockPriceFeeder;
 
 impl MockPriceFeeder {
     thread_local! {
-        pub static PRICES: RefCell<HashMap<CurrencyId, Option<PriceDetail>>> = {
+        pub static PRICES: RefCell<HashMap<AssetId, Option<PriceDetail>>> = {
             RefCell::new(
                 vec![DOT, KSM, USDT, XDOT]
                     .iter()
@@ -175,9 +182,9 @@ impl MockPriceFeeder {
         };
     }
 
-    pub fn set_price(currency_id: CurrencyId, price: Price) {
+    pub fn set_price(asset_id: AssetId, price: Price) {
         Self::PRICES.with(|prices| {
-            prices.borrow_mut().insert(currency_id, Some((price, 1u64)));
+            prices.borrow_mut().insert(asset_id, Some((price, 1u64)));
         });
     }
 
@@ -191,8 +198,8 @@ impl MockPriceFeeder {
 }
 
 impl PriceFeeder for MockPriceFeeder {
-    fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
-        Self::PRICES.with(|prices| *prices.borrow().get(currency_id).unwrap())
+    fn get_price(asset_id: &AssetId) -> Option<PriceDetail> {
+        Self::PRICES.with(|prices| *prices.borrow().get(asset_id).unwrap())
     }
 }
 
@@ -245,12 +252,36 @@ impl Default for ExtBuilder {
     fn default() -> Self {
         Self {
             balances: vec![
-                (ALICE, DOT, million_dollar(1000)),
-                (ALICE, KSM, million_dollar(1000)),
-                (ALICE, USDT, million_dollar(1000)),
-                (BOB, DOT, million_dollar(1000)),
-                (BOB, KSM, million_dollar(1000)),
-                (BOB, USDT, million_dollar(1000)),
+                (
+                    ALICE,
+                    CurrencyId::Token(TokenSymbol::DOT),
+                    million_dollar(1000),
+                ),
+                (
+                    ALICE,
+                    CurrencyId::Token(TokenSymbol::KSM),
+                    million_dollar(1000),
+                ),
+                (
+                    ALICE,
+                    CurrencyId::Token(TokenSymbol::USDT),
+                    million_dollar(1000),
+                ),
+                (
+                    BOB,
+                    CurrencyId::Token(TokenSymbol::DOT),
+                    million_dollar(1000),
+                ),
+                (
+                    BOB,
+                    CurrencyId::Token(TokenSymbol::KSM),
+                    million_dollar(1000),
+                ),
+                (
+                    BOB,
+                    CurrencyId::Token(TokenSymbol::USDT),
+                    million_dollar(1000),
+                ),
             ],
         }
     }
@@ -285,6 +316,16 @@ impl ExtBuilder {
         // t.into()
         let mut ext = sp_io::TestExternalities::new(t);
         ext.execute_with(|| {
+            // Init assets
+            Assets::force_create(Origin::root(), DOT, ALICE, true, 1).unwrap();
+            Assets::force_create(Origin::root(), KSM, ALICE, true, 1).unwrap();
+            Assets::force_create(Origin::root(), USDT, ALICE, true, 1).unwrap();
+            Assets::force_create(Origin::root(), XDOT, ALICE, true, 1).unwrap();
+            Assets::mint(Origin::signed(ALICE), DOT, ALICE, 100).unwrap();
+            Assets::mint(Origin::signed(ALICE), USDT, ALICE, 100).unwrap();
+            Assets::mint(Origin::signed(ALICE), DOT, BOB, 100).unwrap();
+            Assets::mint(Origin::signed(ALICE), USDT, BOB, 100).unwrap();
+
             System::set_block_number(0);
             TimestampPallet::set_timestamp(6000);
         });

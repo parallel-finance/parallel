@@ -36,7 +36,7 @@ use frame_support::{
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
-use orml_traits::{MultiCurrency, MultiCurrencyExtended};
+use orml_traits::MultiCurrencyExtended;
 pub use pallet::*;
 use primitives::{
     Amount, AssetId, Balance, CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall,
@@ -55,9 +55,9 @@ pub use types::{BorrowSnapshot, Deposits, EarnedSnapshot, Market, MarketState};
 pub use weights::WeightInfo;
 
 mod interest;
-// mod mock;
+mod mock;
 mod rate_model;
-// mod tests;
+mod tests;
 mod types;
 
 pub mod weights;
@@ -320,7 +320,20 @@ pub mod pallet {
 
     #[pallet::genesis_build]
     impl<T: Config> GenesisBuild<T> for GenesisConfig {
-        fn build(&self) {}
+        fn build(&self) {
+            // self.markets.iter().for_each(|(currency_id, market)| {
+            // if !market.rate_model.check_model() {
+            //   panic!(
+            // 	"Could not initialize the interest rate model!!! {:#?}",
+            // 	currency_id
+            //   );
+            // }
+            // BorrowIndex::<T>::insert(currency_id, self.borrow_index);
+            // ExchangeRate::<T>::insert(currency_id, self.exchange_rate);
+            // Markets::<T>::insert(currency_id, market)
+            // });
+            // LastBlockTimestamp::<T>::put(self.last_block_timestamp);
+        }
     }
 
     #[cfg(feature = "std")]

@@ -43,7 +43,7 @@ use sp_std::prelude::*;
 
 pub use pallet::*;
 use pallet_loans::WeightInfo;
-use primitives::{PriceFeeder, Rate};
+use primitives::Rate;
 
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"pool");
 
@@ -212,8 +212,6 @@ where
             BTreeMap::<T::AccountId, (FixedU128, Vec<BorrowMisc<AssetIdOf<T>, BalanceOf<T>>>)>::new(
             ),
             |mut acc, (k1, k2, snapshot)| {
-                // let price = pallet_loans::Pallet::<T>::get_price(k1)?;
-
                 let loans_value = match pallet_loans::Pallet::<T>::get_price(k1).and_then(|price| {
                     let result =
                         pallet_loans::Pallet::<T>::current_balance_from_snapshot(k1, snapshot)
