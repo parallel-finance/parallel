@@ -1,5 +1,5 @@
 use crate::{
-    mock::{Loans, Origin, Runtime, ALICE, DOT, KSM},
+    mock::{Loans, Origin, Test, ALICE, DOT, KSM},
     tests::{million_dollar, run_to_block, ExtBuilder},
     Config,
 };
@@ -30,7 +30,7 @@ fn repay_borrow_all_no_underflow() {
         assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), KSM));
 
         assert_eq!(
-            <Runtime as Config>::Currency::free_balance(KSM, &ALICE),
+            <Test as Config>::Currency::free_balance(KSM, &ALICE),
             million_dollar(800) - 56,
         );
 

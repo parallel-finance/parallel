@@ -29,11 +29,13 @@ use frame_support::{
     log,
     pallet_prelude::*,
     storage::{with_transaction, TransactionOutcome},
-    traits::UnixTime,
+    traits::{
+        tokens::fungibles::{Inspect, Mutate, Transfer},
+        UnixTime,
+    },
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
-pub use market::{Market, MarketState};
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 pub use pallet::*;
 use primitives::{
@@ -45,45 +47,21 @@ use sp_runtime::{
     },
     ArithmeticError, FixedPointNumber, FixedU128,
 };
-use sp_std::{result::Result, vec::Vec};
+use sp_std::result::Result;
+pub use types::{BorrowSnapshot, Deposits, EarnedSnapshot, Market, MarketState};
 pub use weights::WeightInfo;
 
-mod market;
+mod interest;
 mod mock;
 mod rate_model;
 mod tests;
+mod types;
 
 pub mod weights;
 
-/// Container for borrow balance information
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
-pub struct BorrowSnapshot {
-    /// Principal Total balance (with accrued interest), after applying the most recent balance-changing action
-    pub principal: Balance,
-    /// InterestIndex Global borrowIndex as of the most recent balance-changing action
-    pub borrow_index: Rate,
-}
-
-/// Container for earned amount information
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
-pub struct EarnedSnapshot {
-    /// Total deposit interest, after applying the most recent balance-changing action
-    pub total_earned_prior: Balance,
-    /// Exchange rate, after applying the most recent balance-changing action
-    pub exchange_rate_prior: Rate,
-}
-
-/// Deposit information
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
-pub struct Deposits {
-    /// The voucher amount of the deposit
-    pub voucher_balance: Balance,
-    /// Can this deposit be used as collateral
-    pub is_collateral: bool,
-}
-
 #[frame_support::pallet]
 pub mod pallet {
+
     use super::*;
 
     #[pallet::config]
@@ -118,6 +96,9 @@ pub mod pallet {
 
         /// Unix time
         type UnixTime: UnixTime;
+
+        /// Assets type for deposit/withdraw collateral assets to/from loans module
+        type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
     }
 
     #[pallet::error]
@@ -152,6 +133,8 @@ pub mod pallet {
         PriceOracleNotReady,
         /// Market does not exist
         MarketDoesNotExist,
+        /// Market already exists
+        MarketAlredyExists,
         /// New markets must have a pending state
         NewMarketMustHavePendingState,
     }
@@ -433,14 +416,18 @@ pub mod pallet {
             market: Market,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
-            let _ = Self::market(&currency_id)?;
+            ensure!(
+                !Markets::<T>::contains_key(&currency_id),
+                Error::<T>::MarketAlredyExists
+            );
+            ensure!(
+                market.state == MarketState::Pending,
+                Error::<T>::NewMarketMustHavePendingState
+            );
             ensure!(
                 market.rate_model.check_model(),
                 Error::<T>::InvalidRateModelParam
             );
-            if market.state != MarketState::Pending {
-                return Err(Error::<T>::NewMarketMustHavePendingState.into());
-            }
             Markets::<T>::insert(currency_id, market.clone());
             Self::deposit_event(Event::<T>::NewMarket(market));
             Ok(().into())
@@ -1085,7 +1072,7 @@ impl<T: Config> Pallet<T> {
         }
 
         // The liquidator may not repay more than 50%(close_factor) of the borrower's borrow balance.
-        let account_borrows = Self::current_borrow_balance(&borrower, &liquidate_currency_id)?;
+        let account_borrows = Self::current_borrow_balance(borrower, &liquidate_currency_id)?;
         if market.close_factor.mul_ceil(account_borrows) < repay_amount {
             return Err(Error::<T>::TooMuchRepay.into());
         }
@@ -1253,109 +1240,6 @@ impl<T: Config> Pallet<T> {
         } else {
             Err(<Error<T>>::MarketNotActivated.into())
         }
-    }
-
-    fn accrue_interest() -> DispatchResult {
-        for (currency_id, market) in Self::active_markets() {
-            let total_cash = Self::get_total_cash(currency_id);
-            let total_borrows = Self::total_borrows(currency_id);
-            let total_reserves = Self::total_reserves(currency_id);
-            let util = Self::calc_utilization_ratio(total_cash, total_borrows, total_reserves)?;
-
-            let borrow_rate = market
-                .rate_model
-                .get_borrow_rate(util)
-                .ok_or(ArithmeticError::Overflow)?;
-            let supply_rate =
-                InterestRateModel::get_supply_rate(borrow_rate, util, market.reserve_factor);
-
-            UtilizationRatio::<T>::insert(currency_id, util);
-            BorrowRate::<T>::insert(currency_id, &borrow_rate);
-            SupplyRate::<T>::insert(currency_id, supply_rate);
-
-            Self::update_borrow_index(borrow_rate, currency_id, &market)?;
-            Self::update_exchange_rate(currency_id)?;
-        }
-
-        Ok(())
-    }
-
-    pub fn update_exchange_rate(currency_id: CurrencyId) -> DispatchResult {
-        // exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
-        let total_supply = Self::total_supply(currency_id);
-        if total_supply.is_zero() {
-            return Ok(());
-        }
-        let total_cash = Self::get_total_cash(currency_id);
-        let total_borrows = Self::total_borrows(currency_id);
-        let total_reserves = Self::total_reserves(currency_id);
-
-        let cash_plus_borrows_minus_reserves = total_cash
-            .checked_add(total_borrows)
-            .and_then(|r| r.checked_sub(total_reserves))
-            .ok_or(ArithmeticError::Overflow)?;
-        let exchange_rate =
-            Rate::checked_from_rational(cash_plus_borrows_minus_reserves, total_supply)
-                .ok_or(ArithmeticError::Underflow)?;
-
-        ExchangeRate::<T>::insert(currency_id, exchange_rate);
-
-        Ok(())
-    }
-
-    pub fn calc_utilization_ratio(
-        cash: Balance,
-        borrows: Balance,
-        reserves: Balance,
-    ) -> Result<Ratio, DispatchError> {
-        // utilization ratio is 0 when there are no borrows
-        if borrows.is_zero() {
-            return Ok(Ratio::zero());
-        }
-        // utilizationRatio = totalBorrows / (totalCash + totalBorrows − totalReserves)
-        let total = cash
-            .checked_add(borrows)
-            .and_then(|r| r.checked_sub(reserves))
-            .ok_or(ArithmeticError::Overflow)?;
-
-        Ok(Ratio::from_rational(borrows, total))
-    }
-
-    pub fn update_borrow_index(
-        borrow_rate: Rate,
-        currency_id: CurrencyId,
-        market: &Market,
-    ) -> DispatchResult {
-        // interestAccumulated = totalBorrows * borrowRate
-        // totalBorrows = interestAccumulated + totalBorrows
-        // totalReserves = interestAccumulated * reserveFactor + totalReserves
-        // borrowIndex = borrowIndex * (1 + borrowRate)
-        let borrows_prior = Self::total_borrows(currency_id);
-        let reserve_prior = Self::total_reserves(currency_id);
-        let delta_time = T::UnixTime::now()
-            .as_secs()
-            .checked_sub(Self::last_block_timestamp())
-            .ok_or(ArithmeticError::Underflow)?;
-        let interest_accumulated = accrued_interest(borrow_rate, borrows_prior, delta_time)
-            .ok_or(ArithmeticError::Overflow)?;
-        let total_borrows_new = interest_accumulated
-            .checked_add(borrows_prior)
-            .ok_or(ArithmeticError::Overflow)?;
-        let total_reserves_new = market
-            .reserve_factor
-            .mul_floor(interest_accumulated)
-            .checked_add(reserve_prior)
-            .ok_or(ArithmeticError::Overflow)?;
-        let borrow_index = Self::borrow_index(currency_id);
-        let borrow_index_new = increment_index(borrow_rate, borrow_index, delta_time)
-            .and_then(|r| r.checked_add(&borrow_index))
-            .ok_or(ArithmeticError::Overflow)?;
-
-        TotalBorrows::<T>::insert(currency_id, total_borrows_new);
-        TotalReserves::<T>::insert(currency_id, total_reserves_new);
-        BorrowIndex::<T>::insert(currency_id, borrow_index_new);
-
-        Ok(())
     }
 
     pub fn get_total_cash(currency_id: CurrencyId) -> Balance {

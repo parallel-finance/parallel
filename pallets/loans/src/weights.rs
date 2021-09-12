@@ -22,7 +22,7 @@
 //! EXECUTION: Some(Wasm), WASM-EXECUTION: Compiled, CHAIN: Some("dev"), DB CACHE: 128
 
 // Executed Command:
-// ./target/release/parallel-dev
+// ./target/release/parallel
 // benchmark
 // --chain=dev
 // --execution=wasm

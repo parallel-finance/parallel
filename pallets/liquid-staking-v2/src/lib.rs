@@ -27,6 +27,8 @@ mod tests;
 pub mod types;
 pub mod weights;
 
+use primitives::ExchangeRateProvider;
+
 pub use self::pallet::*;
 
 #[frame_support::pallet]
@@ -36,23 +38,28 @@ mod pallet {
         ensure,
         pallet_prelude::*,
         traits::{Get, IsType},
-        transactional, PalletId, Twox64Concat,
+        transactional,
+        weights::Weight,
+        PalletId, Twox64Concat,
     };
     use frame_system::{
         ensure_signed,
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
-    use orml_traits::{MultiCurrency, MultiCurrencyExtended};
-    use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber};
-
-    use primitives::{Amount, Balance, CurrencyId, EraIndex, Rate};
-
-    use crate::types::{
-        MatchingLedger, Operation, ResponseStatus, StakingSettlementKind, UnstakeMisc,
+    use orml_traits::{MultiCurrency, MultiCurrencyExtended, XcmTransfer};
+    use sp_runtime::{
+        traits::{AccountIdConversion, Zero},
+        ArithmeticError, FixedPointNumber,
     };
+    use sp_std::vec::Vec;
+    use xcm::v0::MultiLocation;
+
+    use primitives::{Amount, Balance, CurrencyId, EraIndex, Rate, Ratio};
+
+    use crate::types::{MatchingLedger, StakingSettlementKind};
     use crate::weights::WeightInfo;
 
-    pub(crate) type BalanceOf<T> =
+    type BalanceOf<T> =
         <<T as Config>::Currency as MultiCurrency<<T as frame_system::Config>::AccountId>>::Balance;
 
     #[pallet::pallet]
@@ -86,29 +93,48 @@ mod pallet {
         #[pallet::constant]
         type PalletId: Get<PalletId>;
 
+        /// XCM transfer
+        type XcmTransfer: XcmTransfer<Self::AccountId, Balance, CurrencyId>;
+
+        /// Base xcm transaction weight
+        type BaseXcmWeight: Get<Weight>;
+
+        /// Account manages the staking assets.
+        type RelayAgent: Get<MultiLocation>;
+
+        /// Basis of period.
+        #[pallet::constant]
+        type PeriodBasis: Get<BlockNumberFor<Self>>;
+
         type WeightInfo: WeightInfo;
     }
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
-    #[pallet::metadata(T::AccountId = "Account", BalanceOf<T> = "Balance")]
+    #[pallet::metadata(T::AccountId = "AccountId", BalanceOf<T> = "Balance")]
     pub enum Event<T: Config> {
         /// The assets get staked successfully
         Staked(T::AccountId, BalanceOf<T>),
         /// The derivative get unstaked successfully
         Unstaked(T::AccountId, BalanceOf<T>, BalanceOf<T>),
         /// Reward/Slash has been recorded.
-        StakeingSettlementRecorded(StakingSettlementKind, BalanceOf<T>),
-        /// Era index updated.
+        StakingSettlementRecorded(StakingSettlementKind, BalanceOf<T>),
+        /// Request to perform bond/rebond/unbond in relay chain
         ///
-        /// Constructed by (last_era_index, current_era_index).
-        EraIndexUpdated(EraIndex, EraIndex),
+        /// Send `(bond_amount, rebond_amount, unbond_amount)` as args.
+        StakingOpRequest(BalanceOf<T>, BalanceOf<T>, BalanceOf<T>),
+        /// Period terminated.
+        ///
+        /// Emit when a period is finished which is defined by `PeriodBasis`. While current block
+        /// height is accurately multiple of the basis, the event would be deposited during finalization of
+        /// the block.
+        PeriodTerminated,
     }
 
     #[pallet::error]
     pub enum Error<T> {
         /// Reward/Slash has been recorded.
-        StakeingSettlementAlreadyRecorded,
+        StakingSettlementAlreadyRecorded,
         /// Exchange rate is invalid.
         InvalidExchangeRate,
         /// Era has been pushed before.
@@ -127,57 +153,41 @@ mod pallet {
     #[pallet::getter(fn staking_pool)]
     pub type StakingPool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
-    /// Records reward or slash during each era.
+    /// Fraction of reward currently set aside for reserves
     #[pallet::storage]
-    #[pallet::getter(fn reward_records)]
+    #[pallet::getter(fn reserve_factor)]
+    pub type ReserveFactor<T: Config> = StorageValue<_, Ratio, ValueQuery>;
+
+    /// Records reward or slash of era.
+    #[pallet::storage]
+    #[pallet::getter(fn staking_settlement_records)]
     pub type StakingSettlementRecords<T: Config> = StorageDoubleMap<
         _,
-        Twox64Concat,
+        Blake2_128Concat,
         EraIndex,
         Twox64Concat,
         StakingSettlementKind,
         BalanceOf<T>,
     >;
 
-    /// Last updated era index.
-    #[pallet::storage]
-    #[pallet::getter(fn previous_era)]
-    pub type PreviousEra<T: Config> = StorageValue<_, EraIndex, ValueQuery>;
-
-    /// Current era_index.
-    #[pallet::storage]
-    #[pallet::getter(fn current_era)]
-    pub type CurrentEra<T: Config> = StorageValue<_, EraIndex, ValueQuery>;
-
-    /// Records relay operations during each era.
-    #[pallet::storage]
-    pub type UnbondingOperationHistory<T: Config> =
-        StorageMap<_, Twox64Concat, EraIndex, Operation<BlockNumberFor<T>, BalanceOf<T>>>;
-
-    /// Record all the pending unstaking requests.
-    /// Key is the owner of assets.
-    #[pallet::storage]
-    #[pallet::getter(fn account_unstake)]
-    pub type AccountUnstake<T: Config> = StorageDoubleMap<
-        _,
-        Twox64Concat,
-        T::AccountId,
-        Blake2_128Concat,
-        EraIndex,
-        UnstakeMisc<BalanceOf<T>>,
-        ValueQuery,
-    >;
-
     /// Store total stake amount and unstake amount in each era,
     /// And will update when stake/unstake occurred.
     #[pallet::storage]
-    #[pallet::getter(fn era_matching_pool)]
-    pub type EraMatchingPool<T: Config> =
-        StorageMap<_, Blake2_128Concat, EraIndex, MatchingLedger<BalanceOf<T>>, ValueQuery>;
+    #[pallet::getter(fn matching_pool)]
+    pub type MatchingPool<T: Config> = StorageValue<_, MatchingLedger<BalanceOf<T>>, ValueQuery>;
+
+    /// Manage which we should pay off to.
+    ///
+    /// Insert a new record while user can't be paid instantly in unstaking operation.
+    #[pallet::storage]
+    #[pallet::getter(fn unstake_queue)]
+    pub type UnstakeQueue<T: Config> =
+        StorageValue<_, Vec<(T::AccountId, BalanceOf<T>)>, ValueQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig {
         pub exchange_rate: Rate,
+        pub reserve_factor: Ratio,
     }
 
     #[cfg(feature = "std")]
@@ -185,6 +195,7 @@ mod pallet {
         fn default() -> Self {
             Self {
                 exchange_rate: Rate::default(),
+                reserve_factor: Ratio::default(),
             }
         }
     }
@@ -193,26 +204,72 @@ mod pallet {
     impl<T: Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
             ExchangeRate::<T>::put(self.exchange_rate);
+            ReserveFactor::<T>::put(self.reserve_factor);
         }
     }
 
-    #[cfg(feature = "std")]
-    impl GenesisConfig {
-        /// Direct implementation of `GenesisBuild::build_storage`.
+    #[pallet::hooks]
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        /// Try to pay off over the `UnstakeQueue` while blockchain is on idle.
         ///
-        /// Kept in order not to break dependency.
-        pub fn build_storage<T: Config>(&self) -> Result<sp_runtime::Storage, String> {
-            <Self as GenesisBuild<T>>::build_storage(self)
+        /// It breaks when:
+        ///     - Pallet's balance is insufficiant.
+        ///     - Queue is empty.
+        ///     - `remaining_weight` is less than one pop_queue needed.
+        fn on_idle(_n: BlockNumberFor<T>, mut remaining_weight: Weight) -> Weight {
+            // TODO should use T::WeightInfo::on_idle instead
+            // on_idle shouldn't run out of all remaining_weight normally
+            let base_weight = T::WeightInfo::pop_queue();
+            loop {
+                // Check weight is enough
+                if remaining_weight < base_weight {
+                    break;
+                }
+
+                if Self::unstake_queue().is_empty() {
+                    break;
+                }
+
+                // Get the front of the queue.
+                let (who, amount) = &Self::unstake_queue()[0];
+
+                if T::Currency::transfer(
+                    T::StakingCurrency::get(),
+                    &Self::account_id(),
+                    who,
+                    *amount,
+                )
+                .is_err()
+                {
+                    // break if we cannot afford this
+                    break;
+                }
+
+                // substract weight of this action if succeed.
+                remaining_weight -= base_weight;
+
+                // remove unstake request from queue
+                UnstakeQueue::<T>::mutate(|v| {
+                    v.remove(0);
+                })
+            }
+            remaining_weight
         }
 
-        /// Direct implementation of `GenesisBuild::assimilate_storage`.
-        ///
-        /// Kept in order not to break dependency.
-        pub fn assimilate_storage<T: Config>(
-            &self,
-            storage: &mut sp_runtime::Storage,
-        ) -> Result<(), String> {
-            <Self as GenesisBuild<T>>::assimilate_storage(self, storage)
+        fn on_finalize(n: BlockNumberFor<T>) {
+            let basis = T::PeriodBasis::get();
+
+            // Check if current period end.
+            if !(n % basis).is_zero() {
+                return;
+            }
+
+            // Check if there are staking to be settled.
+            if Self::matching_pool().is_empty() {
+                return;
+            }
+
+            Self::deposit_event(Event::<T>::PeriodTerminated);
         }
     }
 
@@ -225,7 +282,10 @@ mod pallet {
         /// - `amount`: the amount of staking assets
         #[pallet::weight(T::WeightInfo::stake())]
         #[transactional]
-        pub fn stake(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResultWithPostInfo {
+        pub fn stake(
+            origin: OriginFor<T>,
+            #[pallet::compact] amount: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
             let exchange_rate = ExchangeRate::<T>::get();
@@ -233,26 +293,24 @@ mod pallet {
                 .reciprocal()
                 .and_then(|r| r.checked_mul_int(amount))
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
+
             T::Currency::transfer(T::StakingCurrency::get(), &who, &Self::account_id(), amount)?;
             T::Currency::deposit(T::LiquidCurrency::get(), &who, liquid_amount)?;
+
             StakingPool::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
 
-            EraMatchingPool::<T>::try_mutate(
-                Self::current_era(),
-                |matching_ledger| -> DispatchResult {
-                    let new_stake_amount = matching_ledger
-                        .total_stake_amount
-                        .checked_add(amount)
-                        .ok_or(ArithmeticError::Overflow)?;
-                    matching_ledger.total_stake_amount = new_stake_amount;
-                    Ok(())
-                },
-            )?;
+            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                p.total_stake_amount = p
+                    .total_stake_amount
+                    .checked_add(amount)
+                    .ok_or(ArithmeticError::Overflow)?;
+                Ok(())
+            })?;
 
-            Self::deposit_event(Event::Staked(who, amount));
+            Self::deposit_event(Event::<T>::Staked(who, amount));
             Ok(().into())
         }
 
@@ -265,7 +323,7 @@ mod pallet {
         #[transactional]
         pub fn unstake(
             origin: OriginFor<T>,
-            liquid_amount: BalanceOf<T>,
+            #[pallet::compact] liquid_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
@@ -274,30 +332,16 @@ mod pallet {
                 .checked_mul_int(liquid_amount)
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
 
-            // During the same era, accumulate unstake amount for each account
-            AccountUnstake::<T>::try_mutate(
+            if T::Currency::transfer(
+                T::StakingCurrency::get(),
+                &Self::account_id(),
                 &who,
-                Self::current_era(),
-                |unstake_misc| -> DispatchResult {
-                    let new_pending_amount = unstake_misc
-                        .total_amount
-                        .checked_add(asset_amount)
-                        .ok_or(ArithmeticError::Overflow)?;
-                    unstake_misc.total_amount = new_pending_amount;
-                    Ok(())
-                },
-            )?;
-            EraMatchingPool::<T>::try_mutate(
-                Self::current_era(),
-                |matching_ledger| -> DispatchResult {
-                    let new_unstake_amount = matching_ledger
-                        .total_unstake_amount
-                        .checked_add(asset_amount)
-                        .ok_or(ArithmeticError::Overflow)?;
-                    matching_ledger.total_unstake_amount = new_unstake_amount;
-                    Ok(())
-                },
-            )?;
+                asset_amount,
+            )
+            .is_err()
+            {
+                Self::push_unstake_task(&who, asset_amount);
+            }
 
             T::Currency::withdraw(T::LiquidCurrency::get(), &who, liquid_amount)?;
             StakingPool::<T>::try_mutate(|b| -> DispatchResult {
@@ -307,25 +351,15 @@ mod pallet {
                 Ok(())
             })?;
 
-            Self::deposit_event(Event::Unstaked(who, liquid_amount, asset_amount));
-            Ok(().into())
-        }
+            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                p.total_unstake_amount = p
+                    .total_unstake_amount
+                    .checked_add(asset_amount)
+                    .ok_or(ArithmeticError::Overflow)?;
+                Ok(())
+            })?;
 
-        /// Set era index. Usually happend when era advanced in relaychain.
-        #[pallet::weight(<T as Config>::WeightInfo::trigger_new_era())]
-        #[transactional]
-        pub fn trigger_new_era(
-            origin: OriginFor<T>,
-            era_index: EraIndex,
-        ) -> DispatchResultWithPostInfo {
-            T::BridgeOrigin::ensure_origin(origin)?;
-            let current_era_index = Self::current_era();
-            ensure!(current_era_index < era_index, Error::<T>::EraAlreadyPushed,);
-
-            PreviousEra::<T>::put(current_era_index);
-            CurrentEra::<T>::put(era_index);
-
-            Self::deposit_event(Event::<T>::EraIndexUpdated(current_era_index, era_index));
+            Self::deposit_event(Event::<T>::Unstaked(who, liquid_amount, asset_amount));
             Ok(().into())
         }
 
@@ -343,33 +377,41 @@ mod pallet {
             Self::update_staking_pool(kind, amount)?;
 
             StakingSettlementRecords::<T>::insert(era_index, kind, amount);
-            Self::deposit_event(Event::<T>::StakeingSettlementRecorded(kind, amount));
+            Self::deposit_event(Event::<T>::StakingSettlementRecorded(kind, amount));
             Ok(().into())
         }
 
-        /// Handle `withdrawal_unbond` response.
+        /// Do settlement for matching pool.
         ///
-        /// It's invoked when an unbond operation succeeded in relaychain and reported by
-        /// stake-client.
-        #[pallet::weight(<T as Config>::WeightInfo::record_withdrawal_unbond_response())]
+        /// Calculate the imbalance of current state and send corresponding operations to
+        /// relay-chain.
+        ///
+        /// NOTE: currently it finished by stake-client.
+        #[pallet::weight(<T as Config>::WeightInfo::settlement())]
         #[transactional]
-        pub fn record_withdrawal_unbond_response(
+        pub fn settlement(
             origin: OriginFor<T>,
-            era_index: EraIndex,
+            #[pallet::compact] unbonding_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::BridgeOrigin::ensure_origin(origin)?;
-            // try to mark operation succeeded.
-            UnbondingOperationHistory::<T>::try_mutate(era_index, |op| -> DispatchResult {
-                let next_op = op
-                    .filter(|op| op.status == ResponseStatus::Pending)
-                    .map(|op| Operation {
-                        status: ResponseStatus::Succeeded,
-                        ..op
-                    })
-                    .ok_or(Error::<T>::OperationNotReady)?;
-                *op = Some(next_op);
-                Ok(())
-            })?;
+            let (bond_amount, rebond_amount, unbond_amount) =
+                MatchingPool::<T>::take().matching(unbonding_amount);
+
+            if !bond_amount.is_zero() {
+                T::XcmTransfer::transfer(
+                    Self::account_id(),
+                    T::StakingCurrency::get(),
+                    bond_amount,
+                    T::RelayAgent::get(),
+                    T::BaseXcmWeight::get(),
+                )?;
+            }
+
+            Self::deposit_event(Event::<T>::StakingOpRequest(
+                bond_amount,
+                rebond_amount,
+                unbond_amount,
+            ));
             Ok(().into())
         }
     }
@@ -377,13 +419,13 @@ mod pallet {
     impl<T: Config> Pallet<T> {
         /// Ensure settlement not recorded for this `era_index`.
         #[inline]
-        pub(crate) fn ensure_settlement_not_recorded(
+        fn ensure_settlement_not_recorded(
             era_index: EraIndex,
             kind: StakingSettlementKind,
         ) -> DispatchResult {
             ensure!(
                 !StakingSettlementRecords::<T>::contains_key(era_index, kind),
-                Error::<T>::StakeingSettlementAlreadyRecorded
+                Error::<T>::StakingSettlementAlreadyRecorded
             );
             Ok(())
         }
@@ -391,23 +433,20 @@ mod pallet {
 
     impl<T: Config> Pallet<T> {
         /// Increase/Decrease staked asset in staking pool, and synchronized the exchange rate.
-        pub(crate) fn update_staking_pool(
+        fn update_staking_pool(
             kind: StakingSettlementKind,
             amount: BalanceOf<T>,
         ) -> DispatchResult {
+            use StakingSettlementKind::*;
             match kind {
-                StakingSettlementKind::Reward => {
-                    StakingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        *p = p.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
-                        Ok(())
-                    })
-                }
-                StakingSettlementKind::Slash => {
-                    StakingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        *p = p.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
-                        Ok(())
-                    })
-                }
+                Reward => StakingPool::<T>::try_mutate(|p| -> DispatchResult {
+                    *p = p.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
+                    Ok(())
+                }),
+                Slash => StakingPool::<T>::try_mutate(|p| -> DispatchResult {
+                    *p = p.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
+                    Ok(())
+                }),
             }?;
 
             // Update exchange rate.
@@ -423,5 +462,17 @@ mod pallet {
         pub fn account_id() -> T::AccountId {
             T::PalletId::get().into_account()
         }
+
+        /// Push an unstake task into queue.
+        #[inline]
+        fn push_unstake_task(who: &T::AccountId, amount: BalanceOf<T>) {
+            UnstakeQueue::<T>::mutate(|q| q.push((who.clone(), amount)))
+        }
+    }
+}
+
+impl<T: Config> ExchangeRateProvider for Pallet<T> {
+    fn get_exchange_rate() -> primitives::Rate {
+        ExchangeRate::<T>::get()
     }
 }

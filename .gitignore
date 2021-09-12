@@ -35,3 +35,9 @@ chains/
 **/keystore*
 
 output/
+
+config.prod.yml
+
+snapshot.bin
+
+.vimspector.json

@@ -1,97 +1,229 @@
-use crate as pallet_liquid_staking;
-
-use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
+    construct_runtime,
     dispatch::Weight,
-    parameter_types,
-    traits::{Contains, GenesisBuild, SortedMembers},
+    parameter_types, sp_io,
+    traits::{Contains, Everything, GenesisBuild, SortedMembers},
+    weights::constants::WEIGHT_PER_SECOND,
     PalletId,
 };
-use frame_system::{self as system, EnsureOneOf, EnsureRoot, EnsureSignedBy};
-use orml_traits::{parameter_type_with_key, MultiCurrency, XcmTransfer};
-use primitives::{Amount, Balance, CurrencyId, Rate, Ratio};
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
+use frame_system::{EnsureRoot, EnsureSignedBy};
+use orml_traits::parameter_type_with_key;
+use primitives::TokenSymbol;
+
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
-    traits::{AccountIdConversion, BlakeTwo256, IdentityLookup},
-    DispatchResult, FixedPointNumber, RuntimeDebug,
+    traits::{AccountIdConversion, AccountIdLookup, BlakeTwo256, Convert, One},
+    AccountId32,
 };
-use sp_std::convert::TryInto;
-use xcm::v0::{Junction, MultiAsset, MultiLocation};
 
-pub const DOT: CurrencyId = CurrencyId::DOT;
-pub const XDOT: CurrencyId = CurrencyId::xDOT;
-pub const NATIVE: CurrencyId = CurrencyId::HKO;
-pub const DOT_DECIMAL: u128 = 10u128.pow(10);
+use primitives::{Amount, Balance, CurrencyId, Rate, Ratio};
+
+use cumulus_primitives_core::ParaId;
+use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter};
+use pallet_xcm::XcmPassthrough;
+use polkadot_parachain::primitives::Sibling;
+pub use xcm::v0::{
+    Error as XcmError,
+    Junction::{self, GeneralKey, Parachain, Parent},
+    MultiAsset,
+    MultiLocation::{self, X1, X2, X3},
+    NetworkId, Xcm,
+};
+pub use xcm_builder::{
+    AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom,
+    ChildParachainAsNative, ChildParachainConvertsVia, ChildSystemParachainAsSuperuser,
+    CurrencyAdapter as XcmCurrencyAdapter, EnsureXcmOrigin, FixedRateOfConcreteFungible,
+    FixedWeightBounds, IsConcrete, LocationInverter, NativeAsset, ParentAsSuperuser,
+    ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
+    SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
+};
+use xcm_executor::{Config, XcmExecutor};
+use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
+pub type AccountId = AccountId32;
+pub use westend_runtime;
+
+parameter_types! {
+    pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND / 4;
+    pub const ReservedDmpWeight: Weight = WEIGHT_PER_SECOND / 4;
+}
+
+impl cumulus_pallet_parachain_system::Config for Test {
+    type Event = Event;
+    type OnValidationData = ();
+    type SelfParaId = ParachainInfo;
+    type DmpMessageHandler = DmpQueue;
+    type ReservedDmpWeight = ReservedDmpWeight;
+    type OutboundXcmpMessageSource = XcmpQueue;
+    type XcmpMessageHandler = XcmpQueue;
+    type ReservedXcmpWeight = ReservedXcmpWeight;
+}
+
+impl parachain_info::Config for Test {}
+
+parameter_types! {
+    pub const DotLocation: MultiLocation = MultiLocation::X1(Parent);
+    pub const RelayNetwork: NetworkId = NetworkId::Kusama;
+    pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
+    pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
+}
+
+pub type LocationToAccountId = (
+    ParentIsDefault<AccountId>,
+    SiblingParachainConvertsVia<Sibling, AccountId>,
+    AccountId32Aliases<RelayNetwork, AccountId>,
+);
+
+pub type XcmOriginToCallOrigin = (
+    SovereignSignedViaLocation<LocationToAccountId, Origin>,
+    RelayChainAsNative<RelayChainOrigin, Origin>,
+    SiblingParachainAsNative<cumulus_pallet_xcm::Origin, Origin>,
+    SignedAccountId32AsNative<RelayNetwork, Origin>,
+    XcmPassthrough<Origin>,
+);
+
+parameter_types! {
+    pub const UnitWeightCost: Weight = 1;
+    pub DotPerSecond: (MultiLocation, u128) = (X1(Parent), 1);
+}
+
+pub type LocalAssetTransactor = MultiCurrencyAdapter<
+    Tokens,
+    (),
+    IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
+    AccountId,
+    LocationToAccountId,
+    CurrencyId,
+    CurrencyIdConvert,
+>;
+
+pub type XcmRouter = ParachainXcmRouter<ParachainInfo>;
+pub type Barrier = AllowUnpaidExecutionFrom<Everything>;
+
+pub struct XcmConfig;
+impl Config for XcmConfig {
+    type Call = Call;
+    type XcmSender = XcmRouter;
+    type AssetTransactor = LocalAssetTransactor;
+    type OriginConverter = XcmOriginToCallOrigin;
+    type IsReserve = NativeAsset;
+    type IsTeleporter = ();
+    type LocationInverter = LocationInverter<Ancestry>;
+    type Barrier = Barrier;
+    type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+    type Trader = FixedRateOfConcreteFungible<DotPerSecond, ()>;
+    type ResponseHandler = ();
+}
+
+impl cumulus_pallet_xcmp_queue::Config for Test {
+    type Event = Event;
+    type XcmExecutor = XcmExecutor<XcmConfig>;
+    type ChannelInfo = ParachainSystem;
+}
+
+impl cumulus_pallet_dmp_queue::Config for Test {
+    type Event = Event;
+    type XcmExecutor = XcmExecutor<XcmConfig>;
+    type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
+}
+
+impl cumulus_pallet_xcm::Config for Test {
+    type Event = Event;
+    type XcmExecutor = XcmExecutor<XcmConfig>;
+}
+
+pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNetwork>;
+
+impl pallet_xcm::Config for Test {
+    type Event = Event;
+    type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+    type XcmRouter = XcmRouter;
+    type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
+    type XcmExecuteFilter = Everything;
+    type XcmExecutor = XcmExecutor<XcmConfig>;
+    type XcmTeleportFilter = ();
+    type XcmReserveTransferFilter = Everything;
+    type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+    type LocationInverter = LocationInverter<Ancestry>;
+}
+
+pub struct CurrencyIdConvert;
+impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
+    fn convert(id: CurrencyId) -> Option<MultiLocation> {
+        match id {
+            CurrencyId::Token(TokenSymbol::DOT) => Some(X1(Parent)),
+            CurrencyId::Token(TokenSymbol::xDOT) => Some(X3(
+                Parent,
+                Parachain(ParachainInfo::parachain_id().into()),
+                GeneralKey(b"xDOT".to_vec()),
+            )),
+            _ => None,
+        }
+    }
+}
+
+impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
+    fn convert(location: MultiLocation) -> Option<CurrencyId> {
+        match location {
+            X1(Parent) => Some(CurrencyId::Token(TokenSymbol::DOT)),
+            X3(Parent, Parachain(id), GeneralKey(key))
+                if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xDOT".to_vec() =>
+            {
+                Some(CurrencyId::Token(TokenSymbol::xDOT))
+            }
+            _ => None,
+        }
+    }
+}
+
+impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
+    fn convert(a: MultiAsset) -> Option<CurrencyId> {
+        if let MultiAsset::ConcreteFungible { id, amount: _ } = a {
+            Self::convert(id)
+        } else {
+            None
+        }
+    }
+}
+
+pub struct AccountIdToMultiLocation;
+impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
+    fn convert(account_id: AccountId) -> MultiLocation {
+        MultiLocation::from(Junction::AccountId32 {
+            network: NetworkId::Any,
+            id: account_id.into(),
+        })
+    }
+}
+
+parameter_types! {
+    pub SelfLocation: MultiLocation = X2(Parent, Parachain(ParachainInfo::parachain_id().into()));
+    pub const BaseXcmWeight: Weight = 100_000_000;
+}
+
+impl orml_xtokens::Config for Test {
+    type Event = Event;
+    type Balance = Balance;
+    type CurrencyId = CurrencyId;
+    type CurrencyIdConvert = CurrencyIdConvert;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type SelfLocation = SelfLocation;
+    type XcmExecutor = XcmExecutor<XcmConfig>;
+    type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+    type BaseXcmWeight = BaseXcmWeight;
+}
+
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
-
-#[derive(
-    Encode,
-    Decode,
-    Default,
-    Eq,
-    PartialEq,
-    Copy,
-    Clone,
-    RuntimeDebug,
-    PartialOrd,
-    Ord,
-    MaxEncodedLen,
-)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
-pub struct AccountId(u64);
-
-impl sp_std::fmt::Display for AccountId {
-    fn fmt(&self, f: &mut sp_std::fmt::Formatter<'_>) -> sp_std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<u64> for AccountId {
-    fn from(account_id: u64) -> Self {
-        Self(account_id)
-    }
-}
-
-impl From<AccountId> for [u8; 32] {
-    fn from(account_id: AccountId) -> Self {
-        let mut b: Vec<u8> = account_id.0.to_be_bytes().iter().cloned().collect();
-        b.resize_with(32, Default::default);
-        b.try_into().unwrap()
-    }
-}
-
-impl From<[u8; 32]> for AccountId {
-    fn from(account_id32: [u8; 32]) -> Self {
-        AccountId::from(u64::from_be_bytes(account_id32[0..8].try_into().unwrap()))
-    }
-}
-
-// Configure a mock runtime to test the pallet.
-frame_support::construct_runtime!(
-    pub enum Test where
-        Block = Block,
-        NodeBlock = Block,
-        UncheckedExtrinsic = UncheckedExtrinsic,
-    {
-        System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-        Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
-        Tokens: orml_tokens::{Pallet, Storage, Config<T>, Event<T>},
-        Currencies: orml_currencies::{Pallet, Call, Event<T>},
-        LiquidStaking: pallet_liquid_staking::{Pallet, Storage, Call, Config, Event<T>},
-    }
-);
+pub const DOT_DECIMAL: u128 = 10u128.pow(10);
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
     pub const SS58Prefix: u8 = 42;
 }
 
-impl system::Config for Test {
+impl frame_system::Config for Test {
     type BaseCallFilter = ();
     type BlockWeights = ();
     type BlockLength = ();
@@ -103,7 +235,7 @@ impl system::Config for Test {
     type Hash = H256;
     type Hashing = BlakeTwo256;
     type AccountId = AccountId;
-    type Lookup = IdentityLookup<Self::AccountId>;
+    type Lookup = AccountIdLookup<AccountId, ()>;
     type Header = Header;
     type Event = Event;
     type BlockHashCount = BlockHashCount;
@@ -114,7 +246,7 @@ impl system::Config for Test {
     type OnKilledAccount = ();
     type SystemWeightInfo = ();
     type SS58Prefix = SS58Prefix;
-    type OnSetCode = ();
+    type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
 }
 
 parameter_types! {
@@ -160,7 +292,7 @@ impl orml_tokens::Config for Test {
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = NATIVE;
+    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::HKO);
 }
 
 impl orml_currencies::Config for Test {
@@ -172,99 +304,199 @@ impl orml_currencies::Config for Test {
     type WeightInfo = ();
 }
 
-pub struct Six;
-impl SortedMembers<AccountId> for Six {
+pub struct AliceOrigin;
+impl SortedMembers<AccountId> for AliceOrigin {
     fn sorted_members() -> Vec<AccountId> {
-        vec![AccountId::from(6_u64)]
+        vec![ALICE]
     }
 }
 
-type EnsureRootOrSix =
-    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<Six, AccountId>>;
+pub type BridgeOrigin = EnsureSignedBy<AliceOrigin, AccountId>;
+
+pub fn create_relay_agent(index: u16) -> [u8; 32] {
+    Utility::derivative_account_id(para_a_account(), index).into()
+}
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const StakingCurrency: CurrencyId = DOT;
-    pub const LiquidCurrency: CurrencyId = XDOT;
-    pub const MaxWithdrawAmount: Balance = 10;
-    pub const MaxAccountProcessingUnstake: u32 = 5;
-    pub const BaseXcmWeight: Weight = 0;
+    pub const StakingCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
+    pub const LiquidCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::xDOT);
+    pub RelayAgent: MultiLocation = MultiLocation::X2(
+        Junction::Parent,
+        Junction::AccountId32 {
+            network: NetworkId::Any,
+            id: create_relay_agent(0)
+        },
+    );
+    pub const PeriodBasis: BlockNumber = 5u64;
 }
 
-impl pallet_liquid_staking::Config for Test {
+impl pallet_utility::Config for Test {
+    type Event = Event;
+    type Call = Call;
+    type WeightInfo = pallet_utility::weights::SubstrateWeight<Test>;
+}
+
+impl crate::Config for Test {
     type Event = Event;
     type Currency = Currencies;
-    type PalletId = StakingPalletId;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type WithdrawOrigin = EnsureRootOrSix;
-    type MaxWithdrawAmount = MaxWithdrawAmount;
-    type MaxAccountProcessingUnstake = MaxAccountProcessingUnstake;
-    type WeightInfo = ();
-    type XcmTransfer = Currencies;
-    type Members = Members;
+    type PalletId = StakingPalletId;
+    type BridgeOrigin = BridgeOrigin;
     type BaseXcmWeight = BaseXcmWeight;
+    type XcmTransfer = XTokens;
+    type RelayAgent = RelayAgent;
+    type PeriodBasis = PeriodBasis;
+    type WeightInfo = ();
+    type XcmSender = XcmRouter;
 }
 
-pub struct Members;
+construct_runtime!(
+    pub enum Test where
+        Block = Block,
+        NodeBlock = Block,
+        UncheckedExtrinsic = UncheckedExtrinsic,
+    {
+        System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+        Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
+        Utility: pallet_utility::{Pallet, Call, Event},
+        Tokens: orml_tokens::{Pallet, Storage, Config<T>, Event<T>},
+        Currencies: orml_currencies::{Pallet, Call, Event<T>},
+        LiquidStaking: crate::{Pallet, Storage, Call, Event<T>},
+        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>},
+        ParachainInfo: parachain_info::{Pallet, Storage, Config},
+        XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>},
+        DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>},
+        CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin},
+        PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin},
 
-impl SortedMembers<AccountId> for Members {
-    fn sorted_members() -> Vec<AccountId> {
-        vec![2.into(), 10000.into()]
+        XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
     }
-}
+);
 
-impl XcmTransfer<AccountId, Balance, CurrencyId> for Currencies {
-    fn transfer(
-        who: AccountId,
-        currency_id: CurrencyId,
-        amount: Balance,
-        mut to: MultiLocation,
-        _dest_weight: Weight,
-    ) -> DispatchResult {
-        <Test as orml_currencies::Config>::MultiCurrency::withdraw(currency_id, &who, amount)?;
-        if let Some(Junction::AccountId32 {
-            id: account_id32, ..
-        }) = to.take_last()
-        {
-            let account_id: AccountId = account_id32.into();
-            <Test as orml_currencies::Config>::MultiCurrency::deposit(
-                currency_id,
-                &account_id,
-                amount,
-            )?;
-        }
-        Ok(().into())
-    }
+pub const ALICE: AccountId32 = AccountId32::new([1u8; 32]);
+pub const BOB: AccountId32 = AccountId32::new([2u8; 32]);
+pub const CHARILE: AccountId32 = AccountId32::new([3u8; 32]);
 
-    fn transfer_multi_asset(
-        _who: AccountId,
-        _asset: MultiAsset,
-        _dest: MultiLocation,
-        _dest_weight: Weight,
-    ) -> DispatchResult {
-        Ok(().into())
-    }
-}
-
-// Build genesis storage according to the mock runtime.
-pub fn new_test_ext() -> sp_io::TestExternalities {
-    let mut t = system::GenesisConfig::default()
+pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
+    let mut storage = frame_system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap();
+
     orml_tokens::GenesisConfig::<Test> {
         balances: vec![
-            (1.into(), CurrencyId::DOT, 100),
-            (11.into(), CurrencyId::DOT, 100 * DOT_DECIMAL),
+            (ALICE, CurrencyId::Token(TokenSymbol::DOT), 100),
+            (ALICE, CurrencyId::Token(TokenSymbol::xDOT), 100),
+        ],
+    }
+    .assimilate_storage(&mut storage)
+    .unwrap();
+
+    GenesisBuild::<Test>::assimilate_storage(
+        &crate::GenesisConfig {
+            exchange_rate: Rate::one(),
+            reserve_factor: Ratio::from_perthousand(5),
+        },
+        &mut storage,
+    )
+    .unwrap();
+
+    storage.into()
+}
+
+//initial parchain and relaychain for testing
+decl_test_parachain! {
+    pub struct ParaA {
+        Runtime = Test,
+        XcmpMessageHandler = XcmpQueue,
+        DmpMessageHandler = DmpQueue,
+        new_ext = para_ext(1),
+    }
+}
+
+decl_test_relay_chain! {
+    pub struct Relay {
+        Runtime = westend_runtime::Runtime,
+        XcmConfig = westend_runtime::XcmConfig,
+        new_ext = relay_ext(),
+    }
+}
+
+decl_test_network! {
+    pub struct TestNet {
+        relay_chain = Relay,
+        parachains = vec![
+            (1, ParaA),
+        ],
+    }
+}
+
+pub type RelayBalances = pallet_balances::Pallet<westend_runtime::Runtime>;
+pub type RelayStaking = pallet_staking::Pallet<westend_runtime::Runtime>;
+pub type RelayStakingEvent = pallet_staking::Event<westend_runtime::Runtime>;
+pub type RelaySystem = frame_system::Pallet<westend_runtime::Runtime>;
+pub type RelayEvent = westend_runtime::Event;
+pub type ParaSystem = frame_system::Pallet<Test>;
+
+pub fn para_a_account() -> AccountId {
+    ParaId::from(1).into_account()
+}
+
+pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
+    let mut t = frame_system::GenesisConfig::default()
+        .build_storage::<Test>()
+        .unwrap();
+
+    let parachain_info_config = parachain_info::GenesisConfig {
+        parachain_id: para_id.into(),
+    };
+    <parachain_info::GenesisConfig as GenesisBuild<Test, _>>::assimilate_storage(
+        &parachain_info_config,
+        &mut t,
+    )
+    .unwrap();
+
+    orml_tokens::GenesisConfig::<Test> {
+        balances: vec![(
+            ALICE,
+            CurrencyId::Token(TokenSymbol::DOT),
+            1_000 * DOT_DECIMAL,
+        )],
+    }
+    .assimilate_storage(&mut t)
+    .unwrap();
+
+    GenesisBuild::<Test>::assimilate_storage(
+        &crate::GenesisConfig {
+            exchange_rate: Rate::one(),
+            reserve_factor: Ratio::from_perthousand(5),
+        },
+        &mut t,
+    )
+    .unwrap();
+
+    let mut ext = sp_io::TestExternalities::new(t);
+    ext.execute_with(|| System::set_block_number(1));
+    ext
+}
+
+pub fn relay_ext() -> sp_io::TestExternalities {
+    use westend_runtime::{Runtime, System};
+    let mut t = frame_system::GenesisConfig::default()
+        .build_storage::<Runtime>()
+        .unwrap();
+
+    pallet_balances::GenesisConfig::<Runtime> {
+        balances: vec![
+            (ALICE, 100 * DOT_DECIMAL),
+            (para_a_account(), 1_000_000 * DOT_DECIMAL),
         ],
     }
     .assimilate_storage(&mut t)
     .unwrap();
-    pallet_liquid_staking::GenesisConfig {
-        exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
-        reserve_factor: Ratio::from_perthousand(5),
-    }
-    .assimilate_storage::<Test>(&mut t)
-    .unwrap();
-    t.into()
+
+    let mut ext = sp_io::TestExternalities::new(t);
+    ext.execute_with(|| System::set_block_number(1));
+    ext
 }

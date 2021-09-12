@@ -38,24 +38,17 @@ pub mod pallet {
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
     use orml_traits::{MultiCurrency, MultiCurrencyExtended};
-    use primitives::AMMAdaptor;
+    use primitives::{AMMAdaptor, Amount, Balance, CurrencyId};
     use sp_runtime::traits::Zero;
 
-    pub(crate) type BalanceOf<T> =
-        <<T as Config>::Currency as MultiCurrency<<T as frame_system::Config>::AccountId>>::Balance;
-
-    pub(crate) type CurrencyIdOf<T> = <<T as Config>::Currency as MultiCurrency<
-        <T as frame_system::Config>::AccountId,
-    >>::CurrencyId;
-
-    pub type Route<T> = Vec<(
+    pub type Route = Vec<(
         // ID of the AMM to use, as specified in the `Config` trait. Setting this
         // to 0 would take the first AMM instance specified in `type AMMs`.
         u8,
         // Base asset
-        CurrencyIdOf<T>,
+        CurrencyId,
         // Quote asset
-        CurrencyIdOf<T>,
+        CurrencyId,
     )>;
 
     #[pallet::config]
@@ -67,16 +60,21 @@ pub mod pallet {
         type RoutePalletId: Get<PalletId>;
 
         /// Specify all the AMMs we are routing between
-        type AMMAdaptor: AMMAdaptor<Self::AccountId, CurrencyIdOf<Self>, BalanceOf<Self>>;
+        type AMMAdaptor: AMMAdaptor<Self>;
 
         /// Specify all the AMMs we are routing between
-        type Routes: Get<Route<Self>>;
+        type Routes: Get<Route>;
 
         /// How many routes we support at most
         #[pallet::constant]
         type MaxLengthRoute: Get<u8>;
 
-        type Currency: MultiCurrencyExtended<Self::AccountId>;
+        type Currency: MultiCurrencyExtended<
+            Self::AccountId,
+            CurrencyId = CurrencyId,
+            Balance = Balance,
+            Amount = Amount,
+        >;
     }
 
     #[pallet::pallet]
@@ -107,7 +105,7 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// Event emitted when swap is successful
         /// [sender, amount_in, route, amount_out]
-        TradedSuccessfully(T::AccountId, BalanceOf<T>, Route<T>, BalanceOf<T>),
+        TradedSuccessfully(T::AccountId, Balance, Route, Balance),
     }
 
     #[pallet::hooks]
@@ -126,9 +124,9 @@ pub mod pallet {
         #[transactional]
         pub fn trade(
             origin: OriginFor<T>,
-            route: Route<T>,
-            #[pallet::compact] amount_in: BalanceOf<T>,
-            #[pallet::compact] min_amount_out: BalanceOf<T>,
+            route: Route,
+            #[pallet::compact] amount_in: Balance,
+            #[pallet::compact] min_amount_out: Balance,
             #[pallet::compact] expiry: BlockNumberFor<T>,
         ) -> DispatchResultWithPostInfo {
             let trader = ensure_signed(origin)?;
@@ -167,7 +165,7 @@ pub mod pallet {
                 Error::<T>::NotSupportedRoute
             );
 
-            let mut amount_out: BalanceOf<T> = Zero::zero();
+            let mut amount_out: Balance = Zero::zero();
             for sub_route in route.iter() {
                 let (id, from_currency_id, to_currency_id) = sub_route;
                 let amm_instance = T::AMMAdaptor::get_amm_instance(*id);

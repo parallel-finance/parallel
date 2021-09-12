@@ -21,9 +21,17 @@ use structopt::StructOpt;
 #[derive(Debug, StructOpt)]
 pub enum Subcommand {
     Key(KeySubcommand),
+
     Sign(SignCmd),
+
     Vanity(VanityCmd),
+
     Verify(VerifyCmd),
+
+    /// Try some command against runtime state.
+    #[cfg(feature = "try-runtime")]
+    TryRuntime(try_runtime_cli::TryRuntimeCmd),
+
     /// Export the genesis state of the parachain.
     #[structopt(name = "export-genesis-state")]
     ExportGenesisState(ExportGenesisStateCommand),
@@ -66,7 +74,7 @@ pub struct ExportGenesisStateCommand {
     pub output: Option<PathBuf>,
 
     /// Id of the parachain this state is for.
-    #[structopt(long, default_value = "200")]
+    #[structopt(long, default_value = "2085")]
     pub parachain_id: u32,
 
     /// Write output in binary. Default is to write in hex.

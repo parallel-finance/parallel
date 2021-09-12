@@ -20,7 +20,7 @@ use frame_support::traits::Contains;
 use frame_support::{construct_runtime, parameter_types, PalletId};
 use primitives::Amount;
 use primitives::Balance;
-use primitives::{CurrencyId};
+use primitives::CurrencyId;
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
@@ -124,7 +124,7 @@ impl pallet_balances::Config for Runtime {
 
 parameter_types! {
     pub const MaxLengthRoute: u8 = 10;
-    pub Routes: Route<Runtime> = vec![
+    pub Routes: Route = vec![
         (0, CurrencyId::DOT, CurrencyId::USDT),
         (1, CurrencyId::USDT, CurrencyId::DOT),
         (2, CurrencyId::USDT, CurrencyId::KSM),

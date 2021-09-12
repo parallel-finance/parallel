@@ -1,23 +1,28 @@
 use frame_support::{
-    construct_runtime, parameter_types, sp_io,
+    construct_runtime,
+    dispatch::DispatchResult,
+    dispatch::Weight,
+    parameter_types, sp_io,
     traits::{Contains, GenesisBuild, SortedMembers},
     PalletId,
 };
 use frame_system::EnsureSignedBy;
-use orml_traits::parameter_type_with_key;
+use orml_traits::{parameter_type_with_key, XcmTransfer};
+
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
     traits::{AccountIdConversion, BlakeTwo256, IdentityLookup, One},
 };
 
-use primitives::{Amount, Balance, CurrencyId, Rate};
+use xcm::v0::{Junction, MultiAsset, MultiLocation};
+
+use primitives::{Amount, Balance, CurrencyId, Rate, Ratio, TokenSymbol};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
-pub(crate) type AccountId = u64;
-const DOT_DECIMAL: u128 = 10u128.pow(10);
+type AccountId = u64;
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
@@ -93,7 +98,7 @@ impl orml_tokens::Config for Test {
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::HKO;
+    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::HKO);
 }
 
 impl orml_currencies::Config for Test {
@@ -108,7 +113,7 @@ impl orml_currencies::Config for Test {
 pub struct AliceOrigin;
 impl SortedMembers<AccountId> for AliceOrigin {
     fn sorted_members() -> Vec<AccountId> {
-        vec![1u32.into()]
+        vec![1u64.into()]
     }
 }
 
@@ -116,8 +121,16 @@ pub type BridgeOrigin = EnsureSignedBy<AliceOrigin, AccountId>;
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
-    pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
+    pub const StakingCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
+    pub const LiquidCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::xDOT);
+    pub const BaseXcmWeight: Weight = 0;
+    pub const Agent: MultiLocation = MultiLocation::X2(
+        Junction::Parent,
+        Junction::AccountId32 {
+           network: xcm::v0::NetworkId::Any,
+           id: [0; 32]
+    });
+    pub const PeriodBasis: BlockNumber = 5u64;
 }
 
 impl crate::Config for Test {
@@ -127,6 +140,10 @@ impl crate::Config for Test {
     type LiquidCurrency = LiquidCurrency;
     type PalletId = StakingPalletId;
     type BridgeOrigin = BridgeOrigin;
+    type BaseXcmWeight = BaseXcmWeight;
+    type XcmTransfer = MockXcmTransfer;
+    type RelayAgent = Agent;
+    type PeriodBasis = PeriodBasis;
     type WeightInfo = ();
 }
 
@@ -144,10 +161,29 @@ construct_runtime!(
     }
 );
 
-#[allow(non_upper_case_globals)]
-pub(crate) const Alice: AccountId = 1;
-#[allow(non_upper_case_globals)]
-pub(crate) const Bob: AccountId = 2;
+pub const ALICE: AccountId = 1u64;
+
+pub struct MockXcmTransfer;
+impl XcmTransfer<AccountId, Balance, CurrencyId> for MockXcmTransfer {
+    fn transfer(
+        _who: AccountId,
+        _currency_id: CurrencyId,
+        _amount: Balance,
+        _to: MultiLocation,
+        _dest_weight: Weight,
+    ) -> DispatchResult {
+        Ok(().into())
+    }
+
+    fn transfer_multi_asset(
+        _who: AccountId,
+        _asset: MultiAsset,
+        _dest: MultiLocation,
+        _dest_weight: Weight,
+    ) -> DispatchResult {
+        Ok(().into())
+    }
+}
 
 pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     let mut storage = frame_system::GenesisConfig::default()
@@ -156,18 +192,20 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 
     orml_tokens::GenesisConfig::<Test> {
         balances: vec![
-            (Alice, CurrencyId::DOT, 100),
-            (Alice, CurrencyId::xDOT, 100),
-            (Bob, CurrencyId::DOT, 100 * DOT_DECIMAL),
+            (ALICE, CurrencyId::Token(TokenSymbol::DOT), 100),
+            (ALICE, CurrencyId::Token(TokenSymbol::xDOT), 100),
         ],
     }
     .assimilate_storage(&mut storage)
     .unwrap();
 
-    crate::GenesisConfig {
-        exchange_rate: Rate::one(),
-    }
-    .assimilate_storage::<Test>(&mut storage)
+    GenesisBuild::<Test>::assimilate_storage(
+        &crate::GenesisConfig {
+            exchange_rate: Rate::one(),
+            reserve_factor: Ratio::from_perthousand(5),
+        },
+        &mut storage,
+    )
     .unwrap();
 
     storage.into()

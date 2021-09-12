@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::service::IdentifyVariant;
 use crate::{
-    chain_spec,
+    chain_spec::{self, set_default_ss58_version},
     cli::{Cli, RelayChainCli, Subcommand},
+    service::IdentifyVariant,
 };
 use codec::Encode;
 use cumulus_client_service::genesis::generate_genesis_block;
@@ -43,10 +43,14 @@ fn load_spec(
 ) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
     Ok(match id {
         "heiko-dev" => Box::new(chain_spec::heiko::heiko_dev_config(para_id)),
-        "" | "heiko" => Box::new(chain_spec::heiko::heiko_config(para_id)),
+        "" | "heiko" => Box::new(chain_spec::heiko::heiko_config(para_id)?),
         "parallel-dev" => Box::new(chain_spec::parallel::parallel_dev_config(para_id)),
+        "vanilla-dev" => Box::new(chain_spec::vanilla::vanilla_dev_config(para_id)),
         "parallel" | "parallel-local" => {
             Box::new(chain_spec::parallel::parallel_local_testnet_config(para_id))
+        }
+        "vanilla" | "vanilla-local" => {
+            Box::new(chain_spec::vanilla::vanilla_local_testnet_config(para_id))
         }
         path => {
             let path = std::path::PathBuf::from(path);
@@ -61,8 +65,10 @@ fn load_spec(
                 Box::new(chain_spec::parallel::ChainSpec::from_json_file(path)?)
             } else if starts_with("heiko") {
                 Box::new(chain_spec::heiko::ChainSpec::from_json_file(path)?)
+            } else if starts_with("vanilla") {
+                Box::new(chain_spec::vanilla::ChainSpec::from_json_file(path)?)
             } else {
-                return Err("chain_spec's filename must start with parallel or heiko".into());
+                return Err("chain_spec's filename must start with parallel/heiko/vanilla".into());
             }
         }
     })
@@ -94,7 +100,7 @@ impl SubstrateCli for Cli {
     }
 
     fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
-        load_spec(id, self.run.parachain_id.unwrap_or(200).into())
+        load_spec(id, self.run.parachain_id.unwrap_or(2085).into())
     }
 
     fn native_runtime_version(chain_spec: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
@@ -102,6 +108,8 @@ impl SubstrateCli for Cli {
             &parallel_runtime::VERSION
         } else if chain_spec.is_heiko() {
             &heiko_runtime::VERSION
+        } else if chain_spec.is_vanilla() {
+            &vanilla_runtime::VERSION
         } else {
             unreachable!()
         }
@@ -173,6 +181,13 @@ macro_rules! switch_runtime {
             use heiko_runtime::{RuntimeApi, Block};
 
 			$( $code )*
+        } else if $chain_spec.is_vanilla() {
+			#[allow(unused_imports)]
+            use crate::service::VanillaExecutor as Executor;
+			#[allow(unused_imports)]
+            use vanilla_runtime::{RuntimeApi, Block};
+
+			$( $code )*
         } else {
             unreachable!();
         }
@@ -196,6 +211,8 @@ pub fn run() -> Result<()> {
             let runner = cli.create_runner(cmd)?;
             let chain_spec = &runner.config().chain_spec;
 
+            set_default_ss58_version(chain_spec);
+
             switch_runtime!(chain_spec, {
                 runner.async_run(|config| {
                     let PartialComponents {
@@ -212,6 +229,8 @@ pub fn run() -> Result<()> {
             let runner = cli.create_runner(cmd)?;
             let chain_spec = &runner.config().chain_spec;
 
+            set_default_ss58_version(chain_spec);
+
             switch_runtime!(chain_spec, {
                 runner.async_run(|config| {
                     let PartialComponents {
@@ -227,6 +246,8 @@ pub fn run() -> Result<()> {
             let runner = cli.create_runner(cmd)?;
             let chain_spec = &runner.config().chain_spec;
 
+            set_default_ss58_version(chain_spec);
+
             switch_runtime!(chain_spec, {
                 runner.async_run(|config| {
                     let PartialComponents {
@@ -241,6 +262,8 @@ pub fn run() -> Result<()> {
         Some(Subcommand::ImportBlocks(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             let chain_spec = &runner.config().chain_spec;
+
+            set_default_ss58_version(chain_spec);
 
             switch_runtime!(chain_spec, {
                 runner.async_run(|config| {
@@ -281,6 +304,9 @@ pub fn run() -> Result<()> {
         Some(Subcommand::Revert(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             let chain_spec = &runner.config().chain_spec;
+
+            set_default_ss58_version(chain_spec);
+
             switch_runtime!(chain_spec, {
                 runner.async_run(|config| {
                     let PartialComponents {
@@ -297,6 +323,8 @@ pub fn run() -> Result<()> {
             if cfg!(feature = "runtime-benchmarks") {
                 let runner = cli.create_runner(cmd)?;
                 let chain_spec = &runner.config().chain_spec;
+
+                set_default_ss58_version(chain_spec);
 
                 switch_runtime!(chain_spec, {
                     runner.sync_run(|config| cmd.run::<Block, Executor>(config))
@@ -356,15 +384,38 @@ pub fn run() -> Result<()> {
 
             Ok(())
         }
+        #[cfg(feature = "try-runtime")]
+        Some(Subcommand::TryRuntime(cmd)) => {
+            let runner = cli.create_runner(cmd)?;
+            let chain_spec = &runner.config().chain_spec;
+
+            set_default_ss58_version(chain_spec);
+
+            switch_runtime!(chain_spec, {
+                runner.async_run(|config| {
+                    let registry = config.prometheus_config.as_ref().map(|cfg| &cfg.registry);
+                    let task_manager =
+                        sc_service::TaskManager::new(config.task_executor.clone(), registry)
+                            .map_err(|e| {
+                                sc_cli::Error::Service(sc_service::Error::Prometheus(e))
+                            })?;
+
+                    Ok((cmd.run::<Block, Executor>(config), task_manager))
+                })
+            })
+        }
         None => {
             let runner = cli.create_runner(&cli.run.normalize())?;
             let chain_spec = &runner.config().chain_spec;
+
+            set_default_ss58_version(chain_spec);
 
             switch_runtime!(chain_spec, {
                 runner.run_node_until_exit(|config| async move {
                     let extension = chain_spec::Extensions::try_get(&*config.chain_spec);
                     let relay_chain_id = extension.map(|e| e.relay_chain.clone());
                     let para_id = extension.map(|e| e.para_id);
+                    info!("Relaychain Chain Id: {:?}", relay_chain_id);
 
                     let polkadot_cli = RelayChainCli::new(
                         config.base_path.as_ref().map(|x| x.path().join("polkadot")),
@@ -374,7 +425,9 @@ pub fn run() -> Result<()> {
                             .chain(cli.relaychain_args.iter()),
                     );
 
-                    let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(200));
+                    info!("Relaychain Args: {}", cli.relaychain_args.join(" "));
+
+                    let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(2085));
 
                     let parachain_account =
                         AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(
@@ -507,6 +560,10 @@ impl CliConfiguration<Self> for RelayChainCli {
         self.base.base.rpc_ws_max_connections()
     }
 
+    fn rpc_http_threads(&self) -> Result<Option<usize>> {
+        self.base.base.rpc_http_threads()
+    }
+
     fn rpc_cors(&self, is_dev: bool) -> Result<Option<Vec<String>>> {
         self.base.base.rpc_cors(is_dev)
     }
@@ -533,5 +590,12 @@ impl CliConfiguration<Self> for RelayChainCli {
 
     fn announce_block(&self) -> Result<bool> {
         self.base.base.announce_block()
+    }
+
+    fn telemetry_endpoints(
+        &self,
+        chain_spec: &Box<dyn ChainSpec>,
+    ) -> Result<Option<sc_telemetry::TelemetryEndpoints>> {
+        self.base.base.telemetry_endpoints(chain_spec)
     }
 }

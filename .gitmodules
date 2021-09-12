@@ -1,0 +1,3 @@
+[submodule "resources/specs"]
+	path = resources/specs
+	url = https://github.com/parallel-finance/specs

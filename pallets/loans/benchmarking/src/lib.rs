@@ -13,7 +13,7 @@ use orml_traits::MultiCurrency;
 use pallet_loans::{Config as LoansConfig, InterestRateModel, Pallet as Loans};
 use pallet_loans::{JumpModel, Market, MarketState};
 use pallet_prices::{Config as PriceConfig, Pallet as Prices};
-use primitives::{CurrencyId, Price, PriceWithDecimal, Rate, Ratio};
+use primitives::{CurrencyId, Price, PriceWithDecimal, Rate, Ratio, TokenSymbol};
 use sp_runtime::traits::{One, StaticLookup};
 use sp_runtime::{ArithmeticError, FixedPointNumber, FixedU128};
 use sp_std::prelude::*;
@@ -55,8 +55,8 @@ where
     }
 }
 
-const DOT: CurrencyId = CurrencyId::DOT;
-const KSM: CurrencyId = CurrencyId::KSM;
+const DOT: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
+const KSM: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
 const INITIAL_AMOUNT: u128 = 100_000_000_000;
 const SEED: u32 = 0;
 const MARKET_MOCK: Market = Market {
@@ -110,7 +110,7 @@ benchmarks! {
     }: {
         let _ = Loans::<T>::add_market(
             SystemOrigin::Root.into(),
-            CurrencyId::DOT,
+            CurrencyId::Token(TokenSymbol::DOT),
             PENDING_MARKET_MOCK
         );
     }

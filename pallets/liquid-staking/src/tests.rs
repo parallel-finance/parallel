@@ -1,150 +1,45 @@
-use super::*;
-use crate::{mock::*, Error};
-use frame_support::{assert_noop, assert_ok};
-use sp_runtime::traits::BadOrigin;
+use crate::{
+    mock::*,
+    types::{MatchingLedger, RewardDestination, StakingSettlementKind},
+    *,
+};
+use frame_support::{assert_err, assert_ok, traits::Hooks};
+use orml_traits::MultiCurrency;
+use pallet_staking::{Exposure, IndividualExposure};
+use primitives::{Balance, CurrencyId, Rate, TokenSymbol};
+use sp_runtime::traits::One;
+use xcm_simulator::TestExt;
 
 #[test]
 fn stake_should_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(LiquidStaking::stake(Origin::signed(1.into()), 10));
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), 10));
         // Check storage is correct
+        assert_eq!(ExchangeRate::<Test>::get(), Rate::one());
+        assert_eq!(StakingPool::<Test>::get(), 10);
         assert_eq!(
-            ExchangeRate::<Test>::get(),
-            Rate::saturating_from_rational(2, 100)
+            MatchingPool::<Test>::get(),
+            MatchingLedger {
+                total_stake_amount: 10,
+                total_unstake_amount: 0,
+            }
         );
-        assert_eq!(TotalStakingAsset::<Test>::get(), 10);
-        assert_eq!(TotalVoucher::<Test>::get(), 500);
 
         // Check balance is correct
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &1.into()),
+            <Test as Config>::Currency::free_balance(CurrencyId::Token(TokenSymbol::DOT), &ALICE),
             90
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::xDOT, &1.into()),
-            500
+            <Test as Config>::Currency::free_balance(CurrencyId::Token(TokenSymbol::xDOT), &ALICE),
+            110
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::account_id()),
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::DOT),
+                &LiquidStaking::account_id()
+            ),
             10
-        );
-
-        // check StakingPersonTimes works correctly
-        assert_eq!(StakingPersonTimes::<Test>::get(), 1);
-        assert_ok!(LiquidStaking::stake(Origin::signed(1.into()), 10));
-        assert_eq!(StakingPersonTimes::<Test>::get(), 2);
-        StakingPersonTimes::<Test>::mutate(|b| *b = u128::MAX);
-        assert_ok!(LiquidStaking::stake(Origin::signed(1.into()), 10));
-        assert_eq!(StakingPersonTimes::<Test>::get(), u128::MAX);
-    })
-}
-
-#[test]
-fn withdraw_should_work() {
-    new_test_ext().execute_with(|| {
-        let _ = LiquidStaking::stake(Origin::signed(1.into()), 10);
-        assert_ok!(LiquidStaking::withdraw(
-            Origin::signed(6.into()),
-            2.into(),
-            10
-        ));
-
-        // Check balance is correct
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &AccountId::from(2_u64)),
-            10
-        );
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &AccountId::from(1_u64)),
-            90
-        );
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::account_id()),
-            0
-        );
-    })
-}
-
-#[test]
-fn withdraw_from_invalid_origin_should_fail() {
-    new_test_ext().execute_with(|| {
-        let _ = LiquidStaking::stake(Origin::signed(1.into()), 10);
-        assert_noop!(
-            LiquidStaking::withdraw(Origin::signed(1.into()), 2.into(), 11),
-            BadOrigin,
-        );
-    })
-}
-
-#[test]
-fn withdraw_too_much_should_fail() {
-    new_test_ext().execute_with(|| {
-        let _ = LiquidStaking::stake(Origin::signed(1.into()), 10);
-        assert_noop!(
-            LiquidStaking::withdraw(Origin::signed(6.into()), 2.into(), 11),
-            Error::<Test>::ExcessWithdrawThreshold,
-        );
-    })
-}
-
-#[test]
-fn record_rewards_should_work() {
-    new_test_ext().execute_with(|| {
-        let _ = LiquidStaking::stake(Origin::signed(1.into()), 10);
-        assert_ok!(LiquidStaking::record_rewards(
-            Origin::signed(6.into()),
-            2.into(),
-            10
-        ));
-
-        // Check storage is correct
-        assert_eq!(
-            ExchangeRate::<Test>::get(),
-            Rate::saturating_from_rational(4, 100)
-        );
-        assert_eq!(TotalStakingAsset::<Test>::get(), 20);
-        assert_eq!(TotalVoucher::<Test>::get(), 500);
-    })
-}
-
-#[test]
-fn record_rewards_from_invalid_origin_should_fail() {
-    new_test_ext().execute_with(|| {
-        let _ = LiquidStaking::stake(Origin::signed(1.into()), 10);
-        assert_noop!(
-            LiquidStaking::record_rewards(Origin::signed(1.into()), 2.into(), 10),
-            BadOrigin,
-        );
-    })
-}
-
-#[test]
-fn record_slash_should_work() {
-    new_test_ext().execute_with(|| {
-        let _ = LiquidStaking::stake(Origin::signed(1.into()), 10);
-        assert_ok!(LiquidStaking::record_slash(
-            Origin::signed(6.into()),
-            2.into(),
-            5
-        ));
-
-        // Check storage is correct
-        assert_eq!(
-            ExchangeRate::<Test>::get(),
-            Rate::saturating_from_rational(1, 100)
-        );
-        assert_eq!(TotalStakingAsset::<Test>::get(), 5);
-        assert_eq!(TotalVoucher::<Test>::get(), 500);
-    })
-}
-
-#[test]
-fn record_slash_from_invalid_origin_should_fail() {
-    new_test_ext().execute_with(|| {
-        let _ = LiquidStaking::stake(Origin::signed(1.into()), 10);
-        assert_noop!(
-            LiquidStaking::record_slash(Origin::signed(1.into()), 2.into(), 5),
-            BadOrigin,
         );
     })
 }
@@ -152,629 +47,302 @@ fn record_slash_from_invalid_origin_should_fail() {
 #[test]
 fn unstake_should_work() {
     new_test_ext().execute_with(|| {
-        let _ = LiquidStaking::stake(Origin::signed(1.into()), 10);
-        assert_ok!(LiquidStaking::unstake(Origin::signed(1.into()), 500));
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), 10));
+        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), 6));
 
         // Check storage is correct
+        assert_eq!(ExchangeRate::<Test>::get(), Rate::one());
+        assert_eq!(StakingPool::<Test>::get(), 4);
         assert_eq!(
-            ExchangeRate::<Test>::get(),
-            Rate::saturating_from_rational(2, 100)
-        );
-        assert_eq!(TotalStakingAsset::<Test>::get(), 0);
-        assert_eq!(TotalVoucher::<Test>::get(), 0);
-        assert_eq!(
-            AccountPendingUnstake::<Test>::get(&AccountId::from(1_u64)).unwrap(),
-            UnstakeInfo {
-                amount: 10,
-                block_number: frame_system::Pallet::<Test>::block_number(),
-                era_index: None,
+            MatchingPool::<Test>::get(),
+            MatchingLedger {
+                total_stake_amount: 10,
+                total_unstake_amount: 6,
             }
         );
 
         // Check balance is correct
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &1.into()),
-            90
+            <Test as Config>::Currency::free_balance(CurrencyId::Token(TokenSymbol::DOT), &ALICE),
+            96
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::xDOT, &1.into()),
-            0
+            <Test as Config>::Currency::free_balance(CurrencyId::Token(TokenSymbol::xDOT), &ALICE),
+            104
         );
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::account_id()),
-            10
-        );
-    })
-}
-
-#[test]
-fn unstake_amount_should_not_exceed_balance() {
-    new_test_ext().execute_with(|| {
-        let _ = LiquidStaking::stake(Origin::signed(1.into()), 10);
-        assert_noop!(
-            LiquidStaking::unstake(Origin::signed(1.into()), 501),
-            orml_tokens::Error::<Test>::BalanceTooLow,
-        );
-    })
-}
-
-#[test]
-fn process_pending_unstake_should_work() {
-    new_test_ext().execute_with(|| {
-        let _ = LiquidStaking::stake(Origin::signed(1.into()), 10);
-        let _ = LiquidStaking::unstake(Origin::signed(1.into()), 500);
-
-        assert_ok!(LiquidStaking::process_pending_unstake(
-            Origin::signed(6.into()),
-            10000.into(),
-            1.into(),
-            1,
-            10
-        ));
-
-        // Check storage is correct
-        assert_eq!(
-            AccountPendingUnstake::<Test>::get(&AccountId::from(1_u64)),
-            None,
-        );
-        let processing_unstake =
-            AccountProcessingUnstake::<Test>::get(&AccountId::from(10000_u64), &AccountId::from(1))
-                .unwrap();
-        assert_eq!(processing_unstake.len(), 1);
-        assert_eq!(processing_unstake[0].amount, 10);
-        assert_eq!(
-            processing_unstake[0].block_number,
-            frame_system::Pallet::<Test>::block_number()
-        );
-    })
-}
-
-#[test]
-fn process_pending_unstake_from_invalid_origin_should_fail() {
-    new_test_ext().execute_with(|| {
-        let _ = LiquidStaking::stake(Origin::signed(1.into()), 10);
-        let _ = LiquidStaking::unstake(Origin::signed(1.into()), 500);
-
-        assert_noop!(
-            LiquidStaking::process_pending_unstake(
-                Origin::signed(1.into()),
-                10000.into(),
-                1.into(),
-                1,
-                10
+            <Test as Config>::Currency::free_balance(
+                CurrencyId::Token(TokenSymbol::DOT),
+                &LiquidStaking::account_id()
             ),
-            BadOrigin
-        );
-    })
-}
-
-#[test]
-fn process_pending_unstake_with_empty_unstake_request_should_fail() {
-    new_test_ext().execute_with(|| {
-        let _ = LiquidStaking::stake(Origin::signed(1.into()), 10);
-
-        assert_noop!(
-            LiquidStaking::process_pending_unstake(
-                Origin::signed(6.into()),
-                10000.into(),
-                1.into(),
-                1,
-                10
-            ),
-            Error::<Test>::NoPendingUnstake
-        );
-    })
-}
-
-#[test]
-fn process_pending_unstake_with_excess_amount_should_fail() {
-    new_test_ext().execute_with(|| {
-        let _ = LiquidStaking::stake(Origin::signed(1.into()), 10);
-        let _ = LiquidStaking::unstake(Origin::signed(1.into()), 500);
-
-        assert_noop!(
-            LiquidStaking::process_pending_unstake(
-                Origin::signed(6.into()),
-                10000.into(),
-                1.into(),
-                1,
-                20,
-            ),
-            Error::<Test>::InvalidUnstakeAmount
-        );
-    })
-}
-
-#[test]
-fn process_pending_unstake_for_multiple_times_should_work() {
-    new_test_ext().execute_with(|| {
-        let _ = LiquidStaking::stake(Origin::signed(1.into()), 10);
-        let _ = LiquidStaking::unstake(Origin::signed(1.into()), 500);
-
-        // The first time
-        assert_ok!(LiquidStaking::process_pending_unstake(
-            Origin::signed(6.into()),
-            10000.into(),
-            1.into(),
-            1,
-            5
-        ));
-
-        // Check storage is correct
-        assert_eq!(
-            AccountPendingUnstake::<Test>::get(&AccountId::from(1_u64)),
-            Some(UnstakeInfo {
-                amount: 5,
-                block_number: frame_system::Pallet::<Test>::block_number(),
-                era_index: None,
-            }),
-        );
-        let processing_unstake = AccountProcessingUnstake::<Test>::get(
-            &AccountId::from(10000_u64),
-            &AccountId::from(1_u64),
-        )
-        .unwrap();
-        assert_eq!(processing_unstake.len(), 1);
-        assert_eq!(processing_unstake[0].amount, 5);
-        assert_eq!(
-            processing_unstake[0].block_number,
-            frame_system::Pallet::<Test>::block_number()
-        );
-        assert_eq!(processing_unstake[0].era_index, Some(1));
-
-        // The second time
-        assert_ok!(LiquidStaking::process_pending_unstake(
-            Origin::signed(6.into()),
-            10000.into(),
-            1.into(),
-            2,
             4
+        );
+    })
+}
+
+#[test]
+fn test_record_staking_settlement_ok() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(LiquidStaking::record_staking_settlement(
+            Origin::signed(ALICE),
+            1,
+            100,
+            StakingSettlementKind::Reward
         ));
 
-        // Check storage is correct
-        assert_eq!(
-            AccountPendingUnstake::<Test>::get(&AccountId::from(1_u64)),
-            Some(UnstakeInfo {
-                amount: 1,
-                block_number: frame_system::Pallet::<Test>::block_number(),
-                era_index: None,
-            }),
-        );
-        let processing_unstake = AccountProcessingUnstake::<Test>::get(
-            &AccountId::from(10000_u64),
-            &AccountId::from(1_u64),
+        assert_eq!(LiquidStaking::exchange_rate(), Rate::from(1));
+    })
+}
+
+#[test]
+fn test_duplicated_record_staking_settlement() {
+    new_test_ext().execute_with(|| {
+        LiquidStaking::record_staking_settlement(
+            Origin::signed(ALICE),
+            1,
+            100,
+            StakingSettlementKind::Reward,
         )
         .unwrap();
-        assert_eq!(processing_unstake.len(), 2);
-        assert_eq!(processing_unstake[0].amount, 5);
-        assert_eq!(
-            processing_unstake[0].block_number,
-            frame_system::Pallet::<Test>::block_number()
-        );
-        assert_eq!(processing_unstake[0].era_index, Some(1));
-        assert_eq!(processing_unstake[1].amount, 4);
-        assert_eq!(
-            processing_unstake[1].block_number,
-            frame_system::Pallet::<Test>::block_number()
-        );
-        assert_eq!(processing_unstake[1].era_index, Some(2));
 
-        // The third time
-        assert_ok!(LiquidStaking::process_pending_unstake(
-            Origin::signed(6.into()),
-            10000.into(),
-            1.into(),
-            3,
-            1
-        ));
-
-        // Check storage is correct
-        assert_eq!(
-            AccountPendingUnstake::<Test>::get(&AccountId::from(1_u64)),
-            None,
-        );
-        let processing_unstake = AccountProcessingUnstake::<Test>::get(
-            &AccountId::from(10000_u64),
-            &AccountId::from(1_u64),
-        )
-        .unwrap();
-        assert_eq!(processing_unstake.len(), 3);
-        assert_eq!(processing_unstake[0].amount, 5);
-        assert_eq!(
-            processing_unstake[0].block_number,
-            frame_system::Pallet::<Test>::block_number()
-        );
-        assert_eq!(processing_unstake[0].era_index, Some(1));
-        assert_eq!(processing_unstake[1].amount, 4);
-        assert_eq!(
-            processing_unstake[1].block_number,
-            frame_system::Pallet::<Test>::block_number()
-        );
-        assert_eq!(processing_unstake[1].era_index, Some(2));
-        assert_eq!(processing_unstake[2].amount, 1);
-        assert_eq!(
-            processing_unstake[2].block_number,
-            frame_system::Pallet::<Test>::block_number()
-        );
-        assert_eq!(processing_unstake[2].era_index, Some(3));
-    })
-}
-
-#[test]
-fn finish_processed_unstake_should_work() {
-    new_test_ext().execute_with(|| {
-        let _ = LiquidStaking::stake(Origin::signed(1.into()), 10);
-        let _ = LiquidStaking::unstake(Origin::signed(1.into()), 500);
-        let _ = LiquidStaking::process_pending_unstake(
-            Origin::signed(6.into()),
-            10000.into(),
-            1.into(),
-            1,
-            10,
-        );
-
-        assert_ok!(LiquidStaking::finish_processed_unstake(
-            Origin::signed(6.into()),
-            10000.into(),
-            1.into(),
-            10
-        ));
-
-        // Check storage is correct
-        assert_eq!(
-            AccountProcessingUnstake::<Test>::get(
-                &AccountId::from(10000_u64),
-                &AccountId::from(1_u64)
-            ),
-            None,
-        );
-
-        // Check balance is correct
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &1.into()),
-            100
-        );
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::xDOT, &1.into()),
-            0
-        );
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::account_id()),
-            0
-        );
-    })
-}
-
-#[test]
-fn finish_processed_unstake_from_invalid_origin_should_fail() {
-    new_test_ext().execute_with(|| {
-        let _ = LiquidStaking::stake(Origin::signed(1.into()), 10);
-        let _ = LiquidStaking::unstake(Origin::signed(1.into()), 500);
-        let _ = LiquidStaking::process_pending_unstake(
-            Origin::signed(6.into()),
-            10000.into(),
-            1.into(),
-            1,
-            10,
-        );
-
-        assert_noop!(
-            LiquidStaking::finish_processed_unstake(
-                Origin::signed(1.into()),
-                10000.into(),
-                1.into(),
-                10
-            ),
-            BadOrigin
-        );
-    })
-}
-
-#[test]
-fn finish_processed_unstake_without_processing_first_should_fail() {
-    new_test_ext().execute_with(|| {
-        let _ = LiquidStaking::stake(Origin::signed(1.into()), 10);
-        let _ = LiquidStaking::unstake(Origin::signed(1.into()), 500);
-
-        assert_noop!(
-            LiquidStaking::finish_processed_unstake(
-                Origin::signed(6.into()),
-                10000.into(),
-                1.into(),
-                10
-            ),
-            Error::<Test>::NoProcessingUnstake
-        );
-    })
-}
-
-#[test]
-fn finish_processed_unstake_with_incorrect_amount_should_fail() {
-    new_test_ext().execute_with(|| {
-        let _ = LiquidStaking::stake(Origin::signed(1.into()), 10);
-        let _ = LiquidStaking::unstake(Origin::signed(1.into()), 500);
-        let _ = LiquidStaking::process_pending_unstake(
-            Origin::signed(6.into()),
-            10000.into(),
-            1.into(),
-            1,
-            10,
-        );
-
-        assert_noop!(
-            LiquidStaking::finish_processed_unstake(
-                Origin::signed(6.into()),
-                10000.into(),
-                1.into(),
-                8,
-            ),
-            Error::<Test>::InvalidProcessedUnstakeAmount
-        );
-    })
-}
-
-#[test]
-fn finish_processed_unstake_with_another_incorrect_amount_should_fail() {
-    new_test_ext().execute_with(|| {
-        let _ = LiquidStaking::stake(Origin::signed(1.into()), 10);
-        let _ = LiquidStaking::unstake(Origin::signed(1.into()), 500);
-        let _ = LiquidStaking::process_pending_unstake(
-            Origin::signed(6.into()),
-            10000.into(),
-            1.into(),
-            1,
-            10,
-        );
-
-        assert_noop!(
-            LiquidStaking::finish_processed_unstake(
-                Origin::signed(6.into()),
-                10000.into(),
-                1.into(),
-                11,
-            ),
-            Error::<Test>::InvalidProcessedUnstakeAmount
-        );
-    })
-}
-
-#[test]
-fn finish_processed_unstake_with_multiple_processing_should_work() {
-    new_test_ext().execute_with(|| {
-        let _ = LiquidStaking::stake(Origin::signed(1.into()), 10);
-        let _ = LiquidStaking::unstake(Origin::signed(1.into()), 500);
-        let _ = LiquidStaking::process_pending_unstake(
-            Origin::signed(6.into()),
-            10000.into(),
-            1.into(),
-            3,
-            5,
-        );
-        let _ = LiquidStaking::process_pending_unstake(
-            Origin::signed(6.into()),
-            10000.into(),
-            1.into(),
-            3,
-            4,
-        );
-        let _ = LiquidStaking::process_pending_unstake(
-            Origin::signed(6.into()),
-            10000.into(),
-            1.into(),
-            3,
-            1,
-        );
-
-        // The first time
-        assert_ok!(LiquidStaking::finish_processed_unstake(
-            Origin::signed(6.into()),
-            10000.into(),
-            1.into(),
-            5,
-        ));
-
-        // Check storage is correct
-        assert_eq!(
-            AccountProcessingUnstake::<Test>::get(
-                &AccountId::from(10000_u64),
-                &AccountId::from(1_u64)
-            )
-            .unwrap(),
-            vec![
-                UnstakeInfo {
-                    amount: 4,
-                    block_number: frame_system::Pallet::<Test>::block_number(),
-                    era_index: Some(3),
-                },
-                UnstakeInfo {
-                    amount: 1,
-                    block_number: frame_system::Pallet::<Test>::block_number(),
-                    era_index: Some(3),
-                },
-            ],
-        );
-
-        // Check balance is correct
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &1.into()),
-            95
-        );
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::xDOT, &1.into()),
-            0
-        );
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::account_id()),
-            5
-        );
-
-        // The second time
-        assert_ok!(LiquidStaking::finish_processed_unstake(
-            Origin::signed(6.into()),
-            10000.into(),
-            1.into(),
-            4,
-        ));
-
-        // Check storage is correct
-        assert_eq!(
-            AccountProcessingUnstake::<Test>::get(
-                &AccountId::from(10000_u64),
-                &AccountId::from(1_u64)
-            )
-            .unwrap(),
-            vec![UnstakeInfo {
-                amount: 1,
-                block_number: frame_system::Pallet::<Test>::block_number(),
-                era_index: Some(3),
-            },],
-        );
-
-        // Check balance is correct
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &1.into()),
-            99
-        );
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::xDOT, &1.into()),
-            0
-        );
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::account_id()),
-            1
-        );
-
-        // The third time
-        assert_ok!(LiquidStaking::finish_processed_unstake(
-            Origin::signed(6.into()),
-            10000.into(),
-            1.into(),
-            1,
-        ));
-
-        // Check storage is correct
-        assert_eq!(
-            AccountProcessingUnstake::<Test>::get(
-                &AccountId::from(10000_u64),
-                &AccountId::from(1_u64)
-            ),
-            None,
-        );
-
-        // Check balance is correct
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &1.into()),
-            100
-        );
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::xDOT, &1.into()),
-            0
-        );
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::DOT, &LiquidStaking::account_id()),
-            0
-        );
-    })
-}
-
-#[test]
-fn record_rewards_deduct_reserve_should_work() {
-    new_test_ext().execute_with(|| {
-        let stake_amount = 10 * DOT_DECIMAL;
-        assert_ok!(LiquidStaking::stake(
-            Origin::signed(11.into()),
-            stake_amount
-        ));
-
-        let reward_amount = 1 * DOT_DECIMAL;
-        assert_ok!(LiquidStaking::record_rewards(
-            Origin::signed(6.into()),
-            2.into(),
-            reward_amount
-        ));
-
-        let reserve_factor = ReserveFactor::<Test>::get();
-        let total_staking = stake_amount + reward_amount - reserve_factor.mul_floor(reward_amount);
-        assert_eq!(TotalStakingAsset::<Test>::get(), total_staking);
-        let total_voucher = 500 * DOT_DECIMAL;
-        assert_eq!(TotalVoucher::<Test>::get(), total_voucher);
-        assert_eq!(TotalReserve::<Test>::get(), 5 * 10u128.pow(7));
-        assert_eq!(
-            ExchangeRate::<Test>::get(),
-            Rate::saturating_from_rational(total_staking, total_voucher)
-        );
-    })
-}
-
-#[test]
-fn process_pending_unstake_for_max_should_fail() {
-    new_test_ext().execute_with(|| {
-        assert_ok!(LiquidStaking::stake(Origin::signed(1.into()), 10));
-        assert_ok!(LiquidStaking::unstake(Origin::signed(1.into()), 500));
-        let max = <mock::Test as Config>::MaxAccountProcessingUnstake::get() as u32;
-        // in production, MaxAccountProcessingUnstake should be suitable
-        assert_eq!(max, 5);
-
-        for _i in 0..max {
-            assert_ok!(LiquidStaking::process_pending_unstake(
-                Origin::signed(6.into()),
-                10000.into(),
-                1.into(),
+        assert_err!(
+            LiquidStaking::record_staking_settlement(
+                Origin::signed(ALICE),
                 1,
-                1
+                100,
+                StakingSettlementKind::Reward
+            ),
+            Error::<Test>::StakingSettlementAlreadyRecorded
+        )
+    })
+}
+
+enum StakeOp {
+    Stake(Balance),
+    Unstake(Balance),
+}
+
+impl StakeOp {
+    fn execute(self) {
+        match self {
+            Self::Stake(amount) => LiquidStaking::stake(Origin::signed(ALICE), amount).unwrap(),
+            Self::Unstake(amount) => LiquidStaking::unstake(Origin::signed(ALICE), amount).unwrap(),
+        };
+    }
+}
+
+#[test]
+fn test_settlement_should_work() {
+    use StakeOp::*;
+    TestNet::reset();
+    ParaA::execute_with(|| {
+        let test_case: Vec<(Vec<StakeOp>, Balance, (Balance, Balance, Balance), Balance)> = vec![
+            (
+                vec![Stake(30 * DOT_DECIMAL), Unstake(5 * DOT_DECIMAL)],
+                0,
+                (25 * DOT_DECIMAL, 0, 0),
+                0,
+            ),
+            // Calculate right here.
+            (vec![Unstake(10), Unstake(5), Stake(10)], 0, (0, 0, 5), 10),
+            (vec![], 0, (0, 0, 0), 0),
+        ];
+
+        for (stake_ops, unbonding_amount, matching_result, _pallet_balance) in test_case.into_iter()
+        {
+            stake_ops.into_iter().for_each(StakeOp::execute);
+            assert_eq!(
+                LiquidStaking::matching_pool().matching(unbonding_amount),
+                matching_result
+            );
+            assert_ok!(LiquidStaking::settlement(
+                Origin::signed(ALICE),
+                unbonding_amount
             ));
+            Pallet::<Test>::on_idle(0, 10000);
         }
-
-        assert_noop!(
-            LiquidStaking::process_pending_unstake(
-                Origin::signed(6.into()),
-                10000.into(),
-                1.into(),
-                1,
-                1
-            ),
-            Error::<Test>::MaxAccountProcessingUnstakeExceeded,
+    });
+    Relay::execute_with(|| {
+        assert_eq!(
+            RelayBalances::free_balance(&AccountId::from(create_relay_agent(0))),
+            // FIXME: weight should be take into account
+            249200000000
         );
-    })
+    });
 }
 
 #[test]
-fn illegal_agent_should_fail() {
-    new_test_ext().execute_with(|| {
-        assert_noop!(
-            LiquidStaking::withdraw(Origin::signed(6.into()), 11.into(), 1),
-            Error::<Test>::IllegalAgent,
-        );
+fn test_transact_bond_work() {
+    TestNet::reset();
 
-        assert_noop!(
-            LiquidStaking::record_rewards(Origin::signed(6.into()), 11.into(), 1),
-            Error::<Test>::IllegalAgent,
-        );
+    ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::bond(
+            ALICE,
+            3 * DOT_DECIMAL,
+            RewardDestination::Staked
+        ));
 
-        assert_noop!(
-            LiquidStaking::record_slash(Origin::signed(6.into()), 11.into(), 1),
-            Error::<Test>::IllegalAgent,
-        );
+        ParaSystem::assert_has_event(mock::Event::LiquidStaking(crate::Event::BondCallSent(
+            ALICE,
+            3 * DOT_DECIMAL,
+            RewardDestination::Staked,
+        )));
+    });
 
-        assert_noop!(
-            LiquidStaking::process_pending_unstake(
-                Origin::signed(6.into()),
-                11.into(),
-                1.into(),
-                1,
-                1
-            ),
-            Error::<Test>::IllegalAgent,
-        );
+    Relay::execute_with(|| {
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
+            para_a_account(),
+            3 * DOT_DECIMAL,
+        )));
+        let ledger = RelayStaking::ledger(ALICE).unwrap();
+        assert_eq!(ledger.total, 3 * DOT_DECIMAL);
+    });
+}
 
-        assert_noop!(
-            LiquidStaking::finish_processed_unstake(
-                Origin::signed(6.into()),
-                11.into(),
-                1.into(),
-                1
-            ),
-            Error::<Test>::IllegalAgent,
+#[test]
+fn test_transact_bond_extra_work() {
+    TestNet::reset();
+
+    ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::bond(
+            ALICE,
+            2 * DOT_DECIMAL,
+            RewardDestination::Staked
+        ));
+
+        assert_ok!(LiquidStaking::bond_extra(3 * DOT_DECIMAL));
+    });
+
+    Relay::execute_with(|| {
+        let ledger = RelayStaking::ledger(ALICE).unwrap();
+        assert_eq!(ledger.total, 5 * DOT_DECIMAL);
+    });
+}
+
+#[test]
+fn test_transact_unbond_work() {
+    TestNet::reset();
+
+    ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::bond(
+            para_a_account(),
+            5 * DOT_DECIMAL,
+            RewardDestination::Staked
+        ));
+        assert_ok!(LiquidStaking::unbond(2 * DOT_DECIMAL));
+    });
+
+    Relay::execute_with(|| {
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
+            para_a_account(),
+            5 * DOT_DECIMAL,
+        )));
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded(
+            para_a_account(),
+            2 * DOT_DECIMAL,
+        )));
+        let ledger = RelayStaking::ledger(para_a_account()).unwrap();
+        assert_eq!(ledger.total, 5 * DOT_DECIMAL);
+        assert_eq!(ledger.active, 3 * DOT_DECIMAL);
+    });
+}
+
+#[test]
+fn test_transact_rebond_work() {
+    TestNet::reset();
+
+    ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::bond(
+            para_a_account(),
+            10 * DOT_DECIMAL,
+            RewardDestination::Staked
+        ));
+        assert_ok!(LiquidStaking::unbond(5 * DOT_DECIMAL));
+        assert_ok!(LiquidStaking::rebond(3 * DOT_DECIMAL));
+    });
+
+    Relay::execute_with(|| {
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
+            para_a_account(),
+            10 * DOT_DECIMAL,
+        )));
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded(
+            para_a_account(),
+            5 * DOT_DECIMAL,
+        )));
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
+            para_a_account(),
+            3 * DOT_DECIMAL,
+        )));
+        let ledger = RelayStaking::ledger(para_a_account()).unwrap();
+        assert_eq!(ledger.total, 10 * DOT_DECIMAL);
+        assert_eq!(ledger.active, 8 * DOT_DECIMAL);
+    });
+}
+
+#[test]
+fn test_transact_nominate_work() {
+    TestNet::reset();
+
+    ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::bond(
+            para_a_account(),
+            10 * DOT_DECIMAL,
+            RewardDestination::Staked
+        ));
+
+        assert_ok!(LiquidStaking::nominate(vec![ALICE, BOB],));
+    });
+
+    Relay::execute_with(|| {
+        let ledger = RelayStaking::ledger(para_a_account()).unwrap();
+        assert_eq!(ledger.total, 10 * DOT_DECIMAL);
+        let nominators = RelayStaking::nominators(para_a_account()).unwrap();
+        assert_eq!(nominators.targets, vec![ALICE, BOB]);
+    });
+}
+
+#[test]
+fn test_transact_payout_stakers_work() {
+    TestNet::reset();
+    Relay::execute_with(|| {
+        let exposure = Exposure {
+            total: 100 * DOT_DECIMAL,
+            own: 33 * DOT_DECIMAL,
+            others: vec![IndividualExposure {
+                who: CHARILE,
+                value: 67 * DOT_DECIMAL,
+            }],
+        };
+        pallet_babe::Pallet::<westend_runtime::Runtime>::on_initialize(1);
+        pallet_staking::ErasStartSessionIndex::<westend_runtime::Runtime>::insert(0, 1);
+        pallet_session::Pallet::<westend_runtime::Runtime>::rotate_session();
+        pallet_staking::CurrentEra::<westend_runtime::Runtime>::put(0);
+        pallet_staking::ErasValidatorReward::<westend_runtime::Runtime>::insert(
+            0,
+            500 * DOT_DECIMAL,
         );
-    })
+        pallet_staking::ErasStakersClipped::<westend_runtime::Runtime>::insert(
+            0,
+            para_a_account(),
+            exposure,
+        );
+        RelayStaking::reward_by_ids(vec![(para_a_account(), 100)]);
+    });
+
+    ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::bond(
+            para_a_account(),
+            1 * DOT_DECIMAL,
+            RewardDestination::Account(BOB),
+        ));
+
+        // weight is 31701208000
+        assert_ok!(LiquidStaking::payout_stakers(para_a_account(), 0));
+    });
+
+    // (33/100) * 500
+    Relay::execute_with(|| {
+        assert_eq!(RelayBalances::free_balance(BOB), 165 * DOT_DECIMAL);
+    });
 }

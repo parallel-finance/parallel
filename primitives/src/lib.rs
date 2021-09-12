@@ -16,10 +16,11 @@
 #![allow(clippy::unnecessary_cast)]
 #![allow(clippy::upper_case_acronyms)]
 
+pub mod currency;
 pub mod network;
 
 use codec::{Decode, Encode};
-use frame_support::pallet_prelude::DispatchError;
+pub use currency::{CurrencyId, TokenSymbol};
 use sp_runtime::{
     traits::{CheckedDiv, IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
@@ -72,20 +73,6 @@ pub type Rate = FixedU128;
 
 /// The fixed point number, range from 0 to 1.
 pub type Ratio = Permill;
-
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
-pub enum CurrencyId {
-    DOT = 0,
-    KSM = 1,
-    USDT = 2,
-    #[allow(non_camel_case_types)]
-    xDOT = 3,
-    #[allow(non_camel_case_types)]
-    xKSM = 4,
-    HKO = 5,
-    PARA = 6,
-}
 
 pub type Liquidity = FixedU128;
 
@@ -154,17 +141,21 @@ pub trait ExchangeRateProvider {
     fn get_exchange_rate() -> Rate;
 }
 
-pub trait AMM<AccountId, CurrencyId, Balance> {
-    fn trade(
-        &self,
-        who: &AccountId,
-        pair: (CurrencyId, CurrencyId),
-        amount_in: Balance,
-        min_amount_out: Balance,
-    ) -> Result<Balance, DispatchError>;
+/// Get amm instance by id
+pub trait AMMAdaptor<T: frame_system::Config> {
+    fn get_amm_instance(id: u8) -> Box<dyn AMM<T>>;
 }
 
-/// Get amm instance by id
-pub trait AMMAdaptor<AccountId, CurrencyId, Balance> {
-    fn get_amm_instance(id: u8) -> Box<dyn AMM<AccountId, CurrencyId, Balance>>;
+pub trait AMM<T: frame_system::Config> {
+    /// Handles a "trade" on the AMM side for "who".
+    /// This will move the `amount_in` funds to the AMM PalletId,
+    /// trade `pair.0` to `pair.1` and return a result with the amount
+    /// of currency that was sent back to the user.
+    fn trade(
+        &self,
+        who: &T::AccountId,
+        pair: (CurrencyId, CurrencyId),
+        amount_in: Balance,
+        minimum_amount_out: Balance,
+    ) -> Result<Balance, frame_support::pallet_prelude::DispatchError>;
 }
