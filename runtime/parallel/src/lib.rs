@@ -23,14 +23,24 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 mod weights;
 
 use codec::Encode;
+use cumulus_primitives_core::ParaId;
+use frame_support::log;
+use frame_support::traits::fungibles::{Inspect, Mutate, Transfer};
 use frame_support::{
     dispatch::Weight,
     traits::{Contains, Everything},
     PalletId,
 };
+use frame_system::{
+    limits::{BlockLength, BlockWeights},
+    EnsureOneOf, EnsureRoot, EnsureSigned,
+};
 use orml_currencies::BasicCurrencyAdapter;
 use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended, MultiCurrency};
+use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
+use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
+use primitives::{network::PARALLEL_PREFIX, *};
 use sp_api::impl_runtime_apis;
 use sp_core::{
     u32_trait::{_1, _2, _3, _4, _5},
@@ -49,16 +59,6 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
-
-use cumulus_primitives_core::ParaId;
-use frame_support::log;
-use frame_system::{
-    limits::{BlockLength, BlockWeights},
-    EnsureOneOf, EnsureRoot, EnsureSigned,
-};
-use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
-use polkadot_parachain::primitives::Sibling;
-use primitives::{network::PARALLEL_PREFIX, *};
 
 use hex_literal::hex;
 use xcm::v0::{Junction, Junction::*, MultiAsset, MultiLocation, MultiLocation::*, NetworkId};
@@ -90,6 +90,7 @@ use currency::*;
 use fee::*;
 use time::*;
 
+use frame_benchmarking::frame_support::traits::tokens::{DepositConsequence, WithdrawConsequence};
 pub use frame_support::{
     construct_runtime, parameter_types,
     traits::{KeyOwnerProofSystem, Randomness},
@@ -102,6 +103,7 @@ pub use frame_support::{
 use pallet_xcm::XcmPassthrough;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
+use std::marker::PhantomData;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -1182,6 +1184,60 @@ parameter_types! {
     pub DefaultProtocolFeeReceiver: AccountId = TreasuryPalletId::get().into_account();
 }
 
+pub struct Adapter<AccountId> {
+    phantom: PhantomData<AccountId>,
+}
+
+impl Inspect<AccountId> for Adapter<AccountId> {
+    type AssetId = CurrencyOrAsset;
+    type Balance = Balance;
+
+    fn total_issuance(asset: Self::AssetId) -> Self::Balance {
+        match asset {
+            CurrencyOrAsset::NativeCurrency => Balances::total_issuance(),
+            CurrencyOrAsset(asset_id) => Assets::total_issuance(asset_id),
+        }
+    }
+
+    fn balance(asset: Self::AssetId, who: &AccountId) -> Balance {
+        match asset {
+            CurrencyOrAsset::NativeCurrency => Balances::balance(who),
+            CurrencyOrAsset(asset_id) => Assets::balance(asset_id, who),
+        }
+    }
+
+    fn minimum_balance(asset: Self::AssetId) -> Balance {
+        match asset {
+            CurrencyOrAsset::NativeCurrency => Balances::minimum_balance(),
+            CurrencyOrAsset(asset_id) => Assets::minimum_balance(asset_id),
+        }
+    }
+
+    fn reducible_balance(asset: Self::AssetId, who: &AccountId, keep_alive: bool) -> Balance {
+        match asset {
+            CurrencyOrAsset::NativeCurrency => Balances::reducible_balance(who, keep_alive),
+            CurrencyOrAsset(asset_id) => Assets::reducible_balance(asset_id, who, keep_alive),
+        }
+    }
+
+    fn can_deposit(asset: Self::AssetId, who: &AccountId, amount: Balance) -> DepositConsequence {
+        match asset {
+            CurrencyOrAsset::NativeCurrency => Balances::can_deposit(who, amount),
+            CurrencyOrAsset(asset_id) => Assets::can_deposit(asset_id, who, amount),
+        }
+    }
+
+    fn can_withdraw(
+        asset: Self::AssetId,
+        who: &AccountId,
+        amount: Balance,
+    ) -> WithdrawConsequence<Balance> {
+        match asset {
+            CurrencyOrAsset::NativeCurrency => Balances::can_withdraw(who, amount),
+            CurrencyOrAsset(asset_id) => Assets::can_withdraw(asset_id, who, amount),
+        }
+    }
+}
 impl pallet_amm::Config for Runtime {
     type Event = Event;
     type Currency = Currencies;
