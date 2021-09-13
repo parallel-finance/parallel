@@ -100,6 +100,7 @@ mod pallet {
         type BaseXcmWeight: Get<Weight>;
 
         /// Account manages the staking assets.
+        #[pallet::constant]
         type RelayAgent: Get<MultiLocation>;
 
         /// Basis of period.

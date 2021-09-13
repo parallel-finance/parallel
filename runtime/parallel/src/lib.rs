@@ -475,8 +475,8 @@ impl pallet_membership::Config<LiquidStakingAgentMembershipInstance> for Runtime
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const StakingCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
-    pub const LiquidCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::xKSM);
+    pub const StakingCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
+    pub const LiquidCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::xDOT);
     pub RelayAgent: MultiLocation = MultiLocation::X2(
         Junction::Parent,
         Junction::AccountId32{
