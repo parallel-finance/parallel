@@ -139,14 +139,14 @@ pub enum StakingCall<T: Config> {
     BondExtra(StakingBondExtraCall<T>),
     #[codec(index = 2)]
     Unbond(StakingUnbondCall<T>),
-    #[codec(index = 19)]
-    Rebond(StakingRebondCall<T>),
     #[codec(index = 3)]
     WithdrawUnbonded(StakingWithdrawUnbondedCall),
     #[codec(index = 5)]
     Nominate(StakingNominateCall<T>),
     #[codec(index = 18)]
     PayoutStakers(StakingPayoutStakersCall<T>),
+    #[codec(index = 19)]
+    Rebond(StakingRebondCall<T>),
 }
 
 /// Relaychain balances.transfer_keep_alive call arguments
@@ -175,10 +175,10 @@ pub enum UtilityCall<RelaychainCall> {
 
 #[derive(Encode, Decode, RuntimeDebug)]
 pub enum RelaychainCall<T: Config> {
-    #[codec(index = 6)]
-    Staking(StakingCall<T>),
     #[codec(index = 4)]
     Balances(BalancesCall<T>),
+    #[codec(index = 6)]
+    Staking(StakingCall<T>),
     #[codec(index = 16)]
     Utility(Box<UtilityCall<Self>>),
 }
