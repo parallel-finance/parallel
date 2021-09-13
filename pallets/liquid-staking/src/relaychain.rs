@@ -26,11 +26,26 @@ where
         payee: RewardDestination<T::AccountId>,
     ) -> DispatchResult {
         let source = T::Lookup::unlookup(controller.clone());
-        let call = RelaychainCall::Staking::<T>(StakingCall::Bond(StakingBondCall {
-            controller: source,
-            value,
-            payee: payee.clone(),
-        }));
+        let call = RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
+            calls: vec![
+                RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
+                    BalancesTransferKeepAliveCall {
+                        dest: T::Lookup::unlookup(Self::derivative_account_id()),
+                        value,
+                    },
+                )),
+                RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                    UtilityAsDerivativeCall {
+                        index: T::DerivativeIndex::get(),
+                        call: RelaychainCall::Staking::<T>(StakingCall::Bond(StakingBondCall {
+                            controller: source,
+                            value,
+                            payee: payee.clone(),
+                        })),
+                    },
+                ))),
+            ],
+        })));
 
         let msg = Self::xcm_message(call.encode().into());
 
@@ -47,8 +62,24 @@ where
 
     /// Bond_extra on relaychain via xcm.transact
     pub(crate) fn bond_extra(value: Balance) -> DispatchResult {
-        let call =
-            RelaychainCall::Staking::<T>(StakingCall::BondExtra(StakingBondExtraCall { value }));
+        let call = RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
+            calls: vec![
+                RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
+                    BalancesTransferKeepAliveCall {
+                        dest: T::Lookup::unlookup(Self::derivative_account_id()),
+                        value,
+                    },
+                )),
+                RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                    UtilityAsDerivativeCall {
+                        index: T::DerivativeIndex::get(),
+                        call: RelaychainCall::Staking::<T>(StakingCall::BondExtra(
+                            StakingBondExtraCall { value },
+                        )),
+                    },
+                ))),
+            ],
+        })));
 
         let msg = Self::xcm_message(call.encode().into());
 
@@ -65,7 +96,14 @@ where
 
     /// unbond on relaychain via xcm.transact
     pub(crate) fn unbond(value: Balance) -> DispatchResult {
-        let call = RelaychainCall::Staking::<T>(StakingCall::Unbond(StakingUnbondCall { value }));
+        let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+            UtilityAsDerivativeCall {
+                index: T::DerivativeIndex::get(),
+                call: RelaychainCall::Staking::<T>(StakingCall::Unbond(StakingUnbondCall {
+                    value,
+                })),
+            },
+        )));
 
         let msg = Self::xcm_message(call.encode().into());
 

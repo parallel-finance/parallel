@@ -491,6 +491,10 @@ pub fn relay_ext() -> sp_io::TestExternalities {
     pallet_balances::GenesisConfig::<Runtime> {
         balances: vec![
             (ALICE, 100 * DOT_DECIMAL),
+            // (
+            //     LiquidStaking::derivative_account_id(),
+            //     1_000_000 * DOT_DECIMAL,
+            // ),
             (para_a_account(), 1_000_000 * DOT_DECIMAL),
         ],
     }

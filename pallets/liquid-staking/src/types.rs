@@ -166,11 +166,11 @@ pub enum BalancesCall<T: Config> {
 }
 
 #[derive(Encode, Decode, RuntimeDebug)]
-pub enum UtilityCall<T: Config> {
+pub enum UtilityCall<RelaychainCall> {
     #[codec(index = 1)]
-    AsDerivative(UtilityAsDerivativeCall<T>),
+    AsDerivative(UtilityAsDerivativeCall<RelaychainCall>),
     #[codec(index = 2)]
-    BatchAll(UtilityBatchAllCall<T>),
+    BatchAll(UtilityBatchAllCall<RelaychainCall>),
 }
 
 #[derive(Encode, Decode, RuntimeDebug)]
@@ -179,26 +179,22 @@ pub enum RelaychainCall<T: Config> {
     Staking(StakingCall<T>),
     #[codec(index = 4)]
     Balances(BalancesCall<T>),
-    // #[codec(index = 16)]
-    // Utility(Box<UtilityCall<T>>),
+    #[codec(index = 16)]
+    Utility(Box<UtilityCall<Self>>),
 }
 
 /// Relaychain utility.as_derivative call arguments
 #[derive(Encode, Decode, RuntimeDebug)]
-pub struct UtilityAsDerivativeCall<T: Config> {
-    // [pallet index, call index]
-    pub call_index: [u8; 2],
+pub struct UtilityAsDerivativeCall<RelaychainCall> {
     /// derivative index
     pub index: u16,
     /// call
-    pub call: RelaychainCall<T>,
+    pub call: RelaychainCall,
 }
 
 /// Relaychain utility.batch_all call arguments
 #[derive(Encode, Decode, RuntimeDebug)]
-pub struct UtilityBatchAllCall<T: Config> {
-    // [pallet index, call index]
-    pub call_index: [u8; 2],
+pub struct UtilityBatchAllCall<RelaychainCall> {
     /// calls
-    pub calls: Vec<RelaychainCall<T>>,
+    pub calls: Vec<RelaychainCall>,
 }
