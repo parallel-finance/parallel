@@ -449,7 +449,7 @@ mod pallet {
                         Junction::Parent,
                         Junction::AccountId32 {
                             network: NetworkId::Any,
-                            id: Self::derivative_account_id().into(),
+                            id: T::RelayAgent::get().into(),
                         },
                     ),
                     T::BaseXcmWeight::get(),
