@@ -186,9 +186,10 @@ pub mod pallet {
             let (is_inverted, base_asset, quote_asset) =
                 Self::get_upper_currency(pool.0, pool.1).ok_or(Error::<T, I>::InvalidCurrencyId)?;
 
-            let (base_amount, quote_amount) = match is_inverted {
-                true => (liquidity_amounts.1, liquidity_amounts.0),
-                false => (liquidity_amounts.0, liquidity_amounts.1),
+            let (base_amount, quote_amount) = if is_inverted {
+                (liquidity_amounts.1, liquidity_amounts.0)
+            } else {
+                (liquidity_amounts.0, liquidity_amounts.1)
             };
             let lp_token = CurrencyId::LPToken(
                 Blake2_256::hash(&Self::account_id().encode()),
@@ -429,11 +430,11 @@ pub mod pallet {
                 Error::<T, I>::PoolAlreadyExists
             );
 
-            let (base_amount, quote_amount) = match is_inverted {
-                true => (liquidity_amounts.1, liquidity_amounts.0),
-                false => (liquidity_amounts.0, liquidity_amounts.1),
+            let (base_amount, quote_amount) = if is_inverted {
+                (liquidity_amounts.1, liquidity_amounts.0)
+            } else {
+                (liquidity_amounts.0, liquidity_amounts.1)
             };
-
             let lp_token = CurrencyId::LPToken(
                 Blake2_256::hash(&Self::account_id().encode()),
                 TokenSymbol::try_from(base_asset)
