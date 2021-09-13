@@ -143,9 +143,29 @@ where
 
     /// withdraw unbonded on relaychain via xcm.transact
     pub(crate) fn withdraw_unbonded(num_slashing_spans: u32) -> DispatchResult {
-        let call = RelaychainCall::Staking::<T>(StakingCall::WithdrawUnbonded(
-            StakingWithdrawUnbondedCall { num_slashing_spans },
-        ));
+        let call = RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
+            calls: vec![
+                RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                    UtilityAsDerivativeCall {
+                        index: T::DerivativeIndex::get(),
+                        call: RelaychainCall::Staking::<T>(StakingCall::WithdrawUnbonded(
+                            StakingWithdrawUnbondedCall { num_slashing_spans },
+                        )),
+                    },
+                ))),
+                RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                    UtilityAsDerivativeCall {
+                        index: T::DerivativeIndex::get(),
+                        call: RelaychainCall::Balances::<T>(BalancesCall::TransferAll(
+                            BalancesTransferAllCall {
+                                dest: T::Lookup::unlookup(T::RelayAgent::get()),
+                                keep_alive: true,
+                            },
+                        )),
+                    },
+                ))),
+            ],
+        })));
 
         let msg = Self::xcm_message(call.encode().into());
 

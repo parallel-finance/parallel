@@ -245,6 +245,50 @@ fn test_transact_unbond_work() {
 }
 
 #[test]
+fn test_transact_withdraw_unbonded_work() {
+    TestNet::reset();
+
+    ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::bond(
+            5 * DOT_DECIMAL,
+            RewardDestination::Staked
+        ));
+        assert_ok!(LiquidStaking::unbond(2 * DOT_DECIMAL));
+    });
+
+    Relay::execute_with(|| {
+        let ledger = RelayStaking::ledger(LiquidStaking::derivative_account_id()).unwrap();
+        assert_eq!(ledger.total, 5 * DOT_DECIMAL);
+        assert_eq!(ledger.active, 3 * DOT_DECIMAL);
+        assert_eq!(ledger.unlocking.len(), 1);
+
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
+            LiquidStaking::derivative_account_id(),
+            5 * DOT_DECIMAL,
+        )));
+        RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded(
+            LiquidStaking::derivative_account_id(),
+            2 * DOT_DECIMAL,
+        )));
+
+        pallet_staking::CurrentEra::<WestendRuntime>::put(
+            <WestendRuntime as pallet_staking::Config>::BondingDuration::get(),
+        );
+    });
+
+    ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::withdraw_unbonded(0));
+    });
+
+    Relay::execute_with(|| {
+        let ledger = RelayStaking::ledger(LiquidStaking::derivative_account_id()).unwrap();
+        assert_eq!(ledger.total, 3 * DOT_DECIMAL);
+        assert_eq!(ledger.active, 3 * DOT_DECIMAL);
+        assert_eq!(ledger.unlocking.len(), 0);
+    });
+}
+
+#[test]
 fn test_transact_rebond_work() {
     TestNet::reset();
 
