@@ -25,7 +25,7 @@ mod weights;
 use codec::Encode;
 use frame_support::{
     dispatch::Weight,
-    traits::{Contains, Everything},
+    traits::{Contains, Everything, IsInVec},
     PalletId,
 };
 use orml_currencies::BasicCurrencyAdapter;
@@ -54,7 +54,7 @@ use cumulus_primitives_core::ParaId;
 use frame_support::log;
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureOneOf, EnsureRoot, EnsureSigned,
+    EnsureOneOf, EnsureRoot, EnsureSigned, EnsureSignedBy,
 };
 use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 use polkadot_parachain::primitives::Sibling;
@@ -486,6 +486,7 @@ parameter_types! {
         }
     );
     pub const PeriodBasis: BlockNumber = 1000u32;
+    pub BridgeOrigin: Vec<AccountId> = vec![hex!["306721211d5404bd9da88e0204360a1a9ab8b87c66c1bc2fcdd37f3c2222cc20"].into()];
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -494,7 +495,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type PalletId = StakingPalletId;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type BridgeOrigin = EnsureSigned<AccountId>;
+    type BridgeOrigin = EnsureSignedBy<IsInVec<BridgeOrigin>, AccountId>;
     type WeightInfo = ();
     type XcmTransfer = XTokens;
     type RelayAgent = RelayAgent;
