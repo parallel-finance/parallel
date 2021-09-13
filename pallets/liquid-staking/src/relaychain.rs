@@ -5,13 +5,15 @@ use sp_runtime::{traits::StaticLookup, DispatchResult};
 
 use primitives::Balance;
 use sp_std::prelude::*;
-use xcm::v0::{
-    Junction, MultiAsset, MultiLocation, NetworkId,
-    Order::{BuyExecution, DepositAsset},
-    OriginKind, SendXcm,
-    Xcm::{self, Transact, WithdrawAsset},
+use xcm::{
+    v0::{
+        Junction, MultiAsset, MultiLocation, NetworkId,
+        Order::{BuyExecution, DepositAsset},
+        OriginKind, SendXcm,
+        Xcm::{self, Transact, WithdrawAsset},
+    },
+    DoubleEncoded,
 };
-use xcm::DoubleEncoded;
 
 impl<T: Config> Pallet<T>
 where
