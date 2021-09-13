@@ -97,6 +97,7 @@ mod pallet {
         type XcmTransfer: XcmTransfer<Self::AccountId, Balance, CurrencyId>;
 
         /// Base xcm transaction weight
+        #[pallet::constant]
         type BaseXcmWeight: Get<Weight>;
 
         /// Account manages the staking assets.
