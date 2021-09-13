@@ -160,10 +160,20 @@ pub struct BalancesTransferKeepAliveCall<T: Config> {
     pub value: BalanceOf<T>,
 }
 
+/// Relaychain balances.transfer_all call arguments
+#[derive(Clone, Encode, Decode, RuntimeDebug)]
+pub struct BalancesTransferAllCall<T: Config> {
+    /// dest account
+    pub dest: <T::Lookup as StaticLookup>::Source,
+    pub keep_alive: bool,
+}
+
 #[derive(Encode, Decode, RuntimeDebug)]
 pub enum BalancesCall<T: Config> {
     #[codec(index = 3)]
     TransferKeepAlive(BalancesTransferKeepAliveCall<T>),
+    #[codec(index = 4)]
+    TransferAll(BalancesTransferAllCall<T>),
 }
 
 /// Relaychain utility.as_derivative call arguments
