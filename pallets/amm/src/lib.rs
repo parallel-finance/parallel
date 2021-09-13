@@ -189,7 +189,7 @@ pub mod pallet {
             let (base_amount, quote_amount) = if is_inverted {
                 (liquidity_amounts.1, liquidity_amounts.0)
             } else {
-                (liquidity_amounts.0, liquidity_amounts.1),
+                (liquidity_amounts.0, liquidity_amounts.1)
             };
             let lp_token = CurrencyId::LPToken(
                 Blake2_256::hash(&Self::account_id().encode()),
@@ -433,7 +433,7 @@ pub mod pallet {
             let (base_amount, quote_amount) = if is_inverted {
                 (liquidity_amounts.1, liquidity_amounts.0)
             } else {
-                (liquidity_amounts.0, liquidity_amounts.1),
+                (liquidity_amounts.0, liquidity_amounts.1)
             };
             let lp_token = CurrencyId::LPToken(
                 Blake2_256::hash(&Self::account_id().encode()),
