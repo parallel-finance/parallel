@@ -46,7 +46,7 @@ use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::traits::IntegerSquareRoot;
 use sp_runtime::ArithmeticError;
 pub use sp_runtime::Perbill;
-use std::convert::TryFrom;
+use sp_std::convert::TryFrom;
 pub use weights::WeightInfo;
 
 #[frame_support::pallet]

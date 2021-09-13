@@ -4,7 +4,7 @@ use sp_runtime::{
     traits::{AtLeast32BitUnsigned, StaticLookup},
     RuntimeDebug,
 };
-use sp_std::cmp::Ordering;
+use sp_std::{cmp::Ordering, vec::Vec};
 
 /// Category of staking settlement at the end of era.
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug)]
@@ -75,8 +75,6 @@ pub enum RewardDestination<AccountId> {
 /// Relaychain staking.bond call arguments
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
 pub struct StakingBondCall<T: Config> {
-    /// [pallet index, call index]
-    pub call_index: [u8; 2],
     /// Controller account
     pub controller: <T::Lookup as StaticLookup>::Source,
     /// Bond amount
@@ -88,39 +86,31 @@ pub struct StakingBondCall<T: Config> {
 
 /// Relaychain staking.bond_extra call arguments
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
-pub struct StakingBondExtraCall<Balance> {
-    /// [pallet index, call index]
-    pub call_index: [u8; 2],
+pub struct StakingBondExtraCall<T: Config> {
     /// Rebond amount
     #[codec(compact)]
-    pub value: Balance,
+    pub value: BalanceOf<T>,
 }
 
 /// Relaychain staking.unbond call arguments
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
-pub struct StakingUnbondCall<Balance> {
-    /// [pallet index, call index]
-    pub call_index: [u8; 2],
+pub struct StakingUnbondCall<T: Config> {
     /// Unbond amount
     #[codec(compact)]
-    pub value: Balance,
+    pub value: BalanceOf<T>,
 }
 
 /// Relaychain staking.rebond call arguments
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
-pub struct StakingRebondCall<Balance> {
-    /// [pallet index, call index]
-    pub call_index: [u8; 2],
+pub struct StakingRebondCall<T: Config> {
     /// Rebond amount
     #[codec(compact)]
-    pub value: Balance,
+    pub value: BalanceOf<T>,
 }
 
 /// Relaychain staking.withdraw_unbonded call arguments
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
 pub struct StakingWithdrawUnbondedCall {
-    /// [pallet index, call index]
-    pub call_index: [u8; 2],
     /// Withdraw amount
     pub num_slashing_spans: u32,
 }
@@ -128,19 +118,87 @@ pub struct StakingWithdrawUnbondedCall {
 /// Relaychain staking.nominate call arguments
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
 pub struct StakingNominateCall<T: Config> {
-    /// [pallet index, call index]
-    pub call_index: [u8; 2],
     /// List of nominate `targets`
     pub targets: Vec<<T::Lookup as StaticLookup>::Source>,
 }
 
 /// Relaychain staking.payout_stakers call arguments
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
-pub struct StakingPayoutStakersCall<AccountId> {
-    /// [pallet index, call index]
-    pub call_index: [u8; 2],
+pub struct StakingPayoutStakersCall<T: Config> {
     /// Stash account of validator
-    pub validator_stash: AccountId,
+    pub validator_stash: T::AccountId,
     /// EraIndex
     pub era: u32,
+}
+
+#[derive(Encode, Decode, RuntimeDebug)]
+pub enum StakingCall<T: Config> {
+    #[codec(index = 0)]
+    Bond(StakingBondCall<T>),
+    #[codec(index = 1)]
+    BondExtra(StakingBondExtraCall<T>),
+    #[codec(index = 2)]
+    Unbond(StakingUnbondCall<T>),
+    #[codec(index = 19)]
+    Rebond(StakingRebondCall<T>),
+    #[codec(index = 3)]
+    WithdrawUnbonded(StakingWithdrawUnbondedCall),
+    #[codec(index = 5)]
+    Nominate(StakingNominateCall<T>),
+    #[codec(index = 18)]
+    PayoutStakers(StakingPayoutStakersCall<T>),
+}
+
+/// Relaychain balances.transfer_keep_alive call arguments
+#[derive(Clone, Encode, Decode, RuntimeDebug)]
+pub struct BalancesTransferKeepAliveCall<T: Config> {
+    /// dest account
+    pub dest: <T::Lookup as StaticLookup>::Source,
+    /// transfer amount
+    #[codec(compact)]
+    pub value: BalanceOf<T>,
+}
+
+#[derive(Encode, Decode, RuntimeDebug)]
+pub enum BalancesCall<T: Config> {
+    #[codec(index = 3)]
+    TransferKeepAlive(BalancesTransferKeepAliveCall<T>),
+}
+
+#[derive(Encode, Decode, RuntimeDebug)]
+pub enum UtilityCall<T: Config> {
+    #[codec(index = 1)]
+    AsDerivative(UtilityAsDerivativeCall<T>),
+    #[codec(index = 2)]
+    BatchAll(UtilityBatchAllCall<T>),
+}
+
+#[derive(Encode, Decode, RuntimeDebug)]
+pub enum RelaychainCall<T: Config> {
+    #[codec(index = 6)]
+    Staking(StakingCall<T>),
+    #[codec(index = 4)]
+    Balances(BalancesCall<T>),
+    // #[codec(index = 16)]
+    // Utility(Box<UtilityCall<T>>),
+}
+
+/// Relaychain utility.as_derivative call arguments
+#[derive(Encode, Decode, RuntimeDebug)]
+pub struct UtilityAsDerivativeCall<T: Config> {
+    // [pallet index, call index]
+    pub call_index: [u8; 2],
+    /// derivative index
+    pub index: u16,
+    /// call
+    pub call: RelaychainCall<T>,
+}
+
+/// Relaychain utility.batch_all call arguments
+#[derive(Encode, Decode, RuntimeDebug)]
+pub struct UtilityBatchAllCall<T: Config> {
+    // [pallet index, call index]
+    pub call_index: [u8; 2],
+    /// calls
+    pub calls: Vec<RelaychainCall<T>>,
 }

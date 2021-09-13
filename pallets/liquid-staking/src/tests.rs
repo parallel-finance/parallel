@@ -164,7 +164,7 @@ fn test_settlement_should_work() {
     });
     Relay::execute_with(|| {
         assert_eq!(
-            RelayBalances::free_balance(&AccountId::from(create_relay_agent(0))),
+            RelayBalances::free_balance(&LiquidStaking::derivative_account_id()),
             // FIXME: weight should be take into account
             249200000000
         );
