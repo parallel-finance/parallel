@@ -30,32 +30,7 @@ where
             payee: payee.clone(),
         }));
 
-        let msg = WithdrawAsset {
-            assets: vec![MultiAsset::ConcreteFungible {
-                id: MultiLocation::Null,
-                amount: 1_000_000_000_000,
-            }],
-            effects: vec![
-                BuyExecution {
-                    fees: MultiAsset::All,
-                    weight: 800_000_000,
-                    debt: 600_000_000,
-                    halt_on_error: false,
-                    xcm: vec![Transact {
-                        origin_type: OriginKind::SovereignAccount,
-                        require_weight_at_most: 1_000_000_000,
-                        call: call.encode().into(),
-                    }],
-                },
-                DepositAsset {
-                    assets: vec![MultiAsset::All],
-                    dest: MultiLocation::X1(Junction::AccountId32 {
-                        network: NetworkId::Any,
-                        id: controller.clone().into(),
-                    }),
-                },
-            ],
-        };
+        let msg = Self::xcm_message(call.encode().into());
 
         match T::XcmSender::send_xcm(MultiLocation::X1(Junction::Parent), msg) {
             Ok(()) => {
@@ -189,17 +164,26 @@ where
                 id: MultiLocation::Null,
                 amount: 1_000_000_000_000,
             }],
-            effects: vec![BuyExecution {
-                fees: MultiAsset::All,
-                weight: 800_000_000,
-                debt: 600_000_000,
-                halt_on_error: true,
-                xcm: vec![Transact {
-                    origin_type: OriginKind::SovereignAccount,
-                    require_weight_at_most: 100_000_000_000,
-                    call,
-                }],
-            }],
+            effects: vec![
+                BuyExecution {
+                    fees: MultiAsset::All,
+                    weight: 800_000_000,
+                    debt: 600_000_000,
+                    halt_on_error: false,
+                    xcm: vec![Transact {
+                        origin_type: OriginKind::SovereignAccount,
+                        require_weight_at_most: 100_000_000_000,
+                        call,
+                    }],
+                },
+                DepositAsset {
+                    assets: vec![MultiAsset::All],
+                    dest: MultiLocation::X1(Junction::AccountId32 {
+                        network: NetworkId::Any,
+                        id: T::RelayAgent::get().into(),
+                    }),
+                },
+            ],
         }
     }
 }
