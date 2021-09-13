@@ -52,7 +52,9 @@ orml-xcm-support = { git = 'https://github.com/open-web3-stack/open-runtime-modu
 orml-xtokens     = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
 
 [features]
-default     = ['std']
+default     = ['std', 'westend']
+kusama      = []
+polkadot    = []
 std         = [
   'codec/std',
   'frame-support/std',
@@ -66,3 +68,4 @@ std         = [
   'xcm/std',
 ]
 try-runtime = ['frame-support/try-runtime']
+westend     = []
