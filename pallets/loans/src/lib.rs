@@ -45,7 +45,7 @@ use primitives::{
 use sp_runtime::{
     traits::{
         AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub,
-        Saturating, StaticLookup, Zero,
+        One, Saturating, StaticLookup, Zero,
     },
     ArithmeticError, FixedPointNumber, FixedPointOperand, FixedU128, SaturatedConversion,
 };
@@ -454,6 +454,11 @@ pub mod pallet {
                 Error::<T>::InvalidRateModelParam
             );
             Markets::<T>::insert(asset_id, market.clone());
+
+            // Init the ExchangeRate and BorrowIndex for asset
+            ExchangeRate::<T>::insert(asset_id, Rate::saturating_from_rational(2, 100));
+            BorrowIndex::<T>::insert(asset_id, Rate::one());
+
             Self::deposit_event(Event::<T>::NewMarket(market));
             Ok(().into())
         }

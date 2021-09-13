@@ -120,6 +120,7 @@ parameter_type_with_key! {
 }
 
 pub struct DustRemovalWhitelist;
+
 impl Contains<AccountId> for DustRemovalWhitelist {
     fn contains(a: &AccountId) -> bool {
         vec![LoansPalletId::get().into_account()].contains(a)
@@ -212,9 +213,10 @@ parameter_types! {
 }
 
 type AssetsInstance = pallet_assets::Instance1;
+
 impl pallet_assets::Config<AssetsInstance> for Test {
     type Event = Event;
-    type Balance = u64;
+    type Balance = u128;
     type AssetId = u32;
     type Currency = Balances;
     type ForceOrigin = EnsureRoot<AccountId>;
@@ -317,14 +319,25 @@ impl ExtBuilder {
         let mut ext = sp_io::TestExternalities::new(t);
         ext.execute_with(|| {
             // Init assets
+            // Balances::make_free_balance_be(&ALICE, 10);
+            // Balances::make_free_balance_be(&BOB, 10);
             Assets::force_create(Origin::root(), DOT, ALICE, true, 1).unwrap();
             Assets::force_create(Origin::root(), KSM, ALICE, true, 1).unwrap();
             Assets::force_create(Origin::root(), USDT, ALICE, true, 1).unwrap();
             Assets::force_create(Origin::root(), XDOT, ALICE, true, 1).unwrap();
-            Assets::mint(Origin::signed(ALICE), DOT, ALICE, 100).unwrap();
-            Assets::mint(Origin::signed(ALICE), USDT, ALICE, 100).unwrap();
-            Assets::mint(Origin::signed(ALICE), DOT, BOB, 100).unwrap();
-            Assets::mint(Origin::signed(ALICE), USDT, BOB, 100).unwrap();
+            Assets::mint(Origin::signed(ALICE), KSM, ALICE, dollar(1000)).unwrap();
+            Assets::mint(Origin::signed(ALICE), DOT, ALICE, dollar(1000)).unwrap();
+            Assets::mint(Origin::signed(ALICE), USDT, ALICE, dollar(1000)).unwrap();
+            Assets::mint(Origin::signed(ALICE), KSM, BOB, dollar(1000)).unwrap();
+            Assets::mint(Origin::signed(ALICE), DOT, BOB, dollar(1000)).unwrap();
+
+            // Init Markets
+            Loans::add_market(Origin::root(), KSM, MARKET_MOCK).unwrap();
+            Loans::active_market(Origin::root(), KSM).unwrap();
+            Loans::add_market(Origin::root(), DOT, MARKET_MOCK).unwrap();
+            Loans::active_market(Origin::root(), DOT).unwrap();
+            Loans::add_market(Origin::root(), USDT, MARKET_MOCK).unwrap();
+            Loans::active_market(Origin::root(), USDT).unwrap();
 
             System::set_block_number(0);
             TimestampPallet::set_timestamp(6000);
@@ -366,7 +379,7 @@ pub const MARKET_MOCK: Market = Market {
     close_factor: Ratio::from_percent(50),
     collateral_factor: Ratio::from_percent(50),
     liquidate_incentive: Rate::from_inner(Rate::DIV / 100 * 110),
-    state: MarketState::Active,
+    state: MarketState::Pending,
     rate_model: InterestRateModel::Jump(JumpModel {
         base_rate: Rate::from_inner(Rate::DIV / 100 * 2),
         jump_rate: Rate::from_inner(Rate::DIV / 100 * 10),
