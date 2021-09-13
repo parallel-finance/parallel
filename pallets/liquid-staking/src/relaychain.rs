@@ -21,16 +21,16 @@ where
 {
     /// Bond on relaychain via xcm.transact
     pub(crate) fn bond(
-        controller: T::AccountId,
         value: BalanceOf<T>,
         payee: RewardDestination<T::AccountId>,
     ) -> DispatchResult {
-        let source = T::Lookup::unlookup(controller.clone());
+        let stash = Self::derivative_account_id();
+        let controller = stash.clone();
         let call = RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
             calls: vec![
                 RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
                     BalancesTransferKeepAliveCall {
-                        dest: T::Lookup::unlookup(Self::derivative_account_id()),
+                        dest: T::Lookup::unlookup(stash),
                         value,
                     },
                 )),
@@ -38,7 +38,7 @@ where
                     UtilityAsDerivativeCall {
                         index: T::DerivativeIndex::get(),
                         call: RelaychainCall::Staking::<T>(StakingCall::Bond(StakingBondCall {
-                            controller: source,
+                            controller: T::Lookup::unlookup(controller.clone()),
                             value,
                             payee: payee.clone(),
                         })),
@@ -62,13 +62,11 @@ where
 
     /// Bond_extra on relaychain via xcm.transact
     pub(crate) fn bond_extra(value: Balance) -> DispatchResult {
+        let stash = T::Lookup::unlookup(Self::derivative_account_id());
         let call = RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
             calls: vec![
                 RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
-                    BalancesTransferKeepAliveCall {
-                        dest: T::Lookup::unlookup(Self::derivative_account_id()),
-                        value,
-                    },
+                    BalancesTransferKeepAliveCall { dest: stash, value },
                 )),
                 RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
                     UtilityAsDerivativeCall {

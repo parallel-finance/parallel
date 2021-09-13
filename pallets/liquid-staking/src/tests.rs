@@ -177,13 +177,12 @@ fn test_transact_bond_work() {
 
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
-            ALICE,
             3 * DOT_DECIMAL,
             RewardDestination::Staked
         ));
 
         ParaSystem::assert_has_event(mock::Event::LiquidStaking(crate::Event::BondCallSent(
-            ALICE,
+            LiquidStaking::derivative_account_id(),
             3 * DOT_DECIMAL,
             RewardDestination::Staked,
         )));
@@ -194,7 +193,7 @@ fn test_transact_bond_work() {
             LiquidStaking::derivative_account_id(),
             3 * DOT_DECIMAL,
         )));
-        let ledger = RelayStaking::ledger(ALICE).unwrap();
+        let ledger = RelayStaking::ledger(LiquidStaking::derivative_account_id()).unwrap();
         assert_eq!(ledger.total, 3 * DOT_DECIMAL);
     });
 }
@@ -205,7 +204,6 @@ fn test_transact_bond_extra_work() {
 
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
-            ALICE,
             2 * DOT_DECIMAL,
             RewardDestination::Staked
         ));
@@ -214,7 +212,7 @@ fn test_transact_bond_extra_work() {
     });
 
     Relay::execute_with(|| {
-        let ledger = RelayStaking::ledger(ALICE).unwrap();
+        let ledger = RelayStaking::ledger(LiquidStaking::derivative_account_id()).unwrap();
         assert_eq!(ledger.total, 5 * DOT_DECIMAL);
     });
 }
@@ -225,7 +223,6 @@ fn test_transact_unbond_work() {
 
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
-            LiquidStaking::derivative_account_id(),
             5 * DOT_DECIMAL,
             RewardDestination::Staked
         ));
@@ -253,7 +250,6 @@ fn test_transact_rebond_work() {
 
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
-            LiquidStaking::derivative_account_id(),
             10 * DOT_DECIMAL,
             RewardDestination::Staked
         ));
@@ -286,7 +282,6 @@ fn test_transact_nominate_work() {
 
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
-            LiquidStaking::derivative_account_id(),
             10 * DOT_DECIMAL,
             RewardDestination::Staked
         ));
@@ -330,7 +325,6 @@ fn test_transact_payout_stakers_work() {
 
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
-            LiquidStaking::derivative_account_id(),
             1 * DOT_DECIMAL,
             RewardDestination::Account(BOB),
         ));
