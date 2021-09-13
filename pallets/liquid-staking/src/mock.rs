@@ -8,7 +8,7 @@ use frame_support::{
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::parameter_type_with_key;
-use primitives::TokenSymbol;
+use primitives::{DerivativeProvider, TokenSymbol};
 
 use sp_core::H256;
 use sp_runtime::{
@@ -313,21 +313,12 @@ impl SortedMembers<AccountId> for AliceOrigin {
 
 pub type BridgeOrigin = EnsureSignedBy<AliceOrigin, AccountId>;
 
-pub fn create_relay_agent(index: u16) -> [u8; 32] {
-    Utility::derivative_account_id(para_a_account(), index).into()
-}
-
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const StakingCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
     pub const LiquidCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::xDOT);
-    pub RelayAgent: MultiLocation = MultiLocation::X2(
-        Junction::Parent,
-        Junction::AccountId32 {
-            network: NetworkId::Any,
-            id: create_relay_agent(0)
-        },
-    );
+    pub RelayAgent: AccountId = para_a_account();
+    pub const DerivativeIndex: u16 = 0;
     pub const PeriodBasis: BlockNumber = 5u64;
 }
 
@@ -335,6 +326,14 @@ impl pallet_utility::Config for Test {
     type Event = Event;
     type Call = Call;
     type WeightInfo = pallet_utility::weights::SubstrateWeight<Test>;
+}
+
+pub struct DerivativeProviderT;
+
+impl DerivativeProvider<AccountId> for DerivativeProviderT {
+    fn derivative_account_id(who: AccountId, index: u16) -> AccountId {
+        Utility::derivative_account_id(who, index)
+    }
 }
 
 impl crate::Config for Test {
@@ -350,6 +349,8 @@ impl crate::Config for Test {
     type PeriodBasis = PeriodBasis;
     type WeightInfo = ();
     type XcmSender = XcmRouter;
+    type DerivativeIndex = DerivativeIndex;
+    type DerivativeProvider = DerivativeProviderT;
 }
 
 construct_runtime!(
@@ -432,10 +433,11 @@ decl_test_network! {
     }
 }
 
-pub type RelayBalances = pallet_balances::Pallet<westend_runtime::Runtime>;
-pub type RelayStaking = pallet_staking::Pallet<westend_runtime::Runtime>;
-pub type RelayStakingEvent = pallet_staking::Event<westend_runtime::Runtime>;
-pub type RelaySystem = frame_system::Pallet<westend_runtime::Runtime>;
+pub type WestendRuntime = westend_runtime::Runtime;
+pub type RelayBalances = pallet_balances::Pallet<WestendRuntime>;
+pub type RelayStaking = pallet_staking::Pallet<WestendRuntime>;
+pub type RelayStakingEvent = pallet_staking::Event<WestendRuntime>;
+pub type RelaySystem = frame_system::Pallet<WestendRuntime>;
 pub type RelayEvent = westend_runtime::Event;
 pub type ParaSystem = frame_system::Pallet<Test>;
 

@@ -153,3 +153,7 @@ pub trait AMM<T: frame_system::Config> {
         minimum_amount_out: Balance,
     ) -> Result<Balance, frame_support::pallet_prelude::DispatchError>;
 }
+
+pub trait DerivativeProvider<AccountId> {
+    fn derivative_account_id(who: AccountId, index: u16) -> AccountId;
+}

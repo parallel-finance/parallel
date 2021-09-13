@@ -53,9 +53,9 @@ mod pallet {
         ArithmeticError, FixedPointNumber,
     };
     use sp_std::vec::Vec;
-    use xcm::v0::{MultiLocation, SendXcm};
+    use xcm::v0::{Junction, MultiLocation, NetworkId, SendXcm};
 
-    use primitives::{Amount, Balance, CurrencyId, EraIndex, Rate, Ratio};
+    use primitives::{Amount, Balance, CurrencyId, DerivativeProvider, EraIndex, Rate, Ratio};
 
     use crate::{
         types::{MatchingLedger, RewardDestination, StakingSettlementKind},
@@ -105,8 +105,14 @@ mod pallet {
         /// Base xcm transaction weight
         type BaseXcmWeight: Get<Weight>;
 
-        /// Account manages the staking assets.
-        type RelayAgent: Get<MultiLocation>;
+        /// Parachain account on relaychain
+        type RelayAgent: Get<Self::AccountId>;
+
+        /// Account derivative index
+        type DerivativeIndex: Get<u16>;
+
+        /// Account derivative functionality provider
+        type DerivativeProvider: DerivativeProvider<Self::AccountId>;
 
         /// Basis of period.
         #[pallet::constant]
@@ -308,7 +314,10 @@ mod pallet {
     }
 
     #[pallet::call]
-    impl<T: Config> Pallet<T> {
+    impl<T: Config> Pallet<T>
+    where
+        [u8; 32]: From<<T as frame_system::Config>::AccountId>,
+    {
         /// Put assets under staking, the native assets will be transferred to the account
         /// owned by the pallet, user receive derivative in return, such derivative can be
         /// further used as collateral for lending.
@@ -436,7 +445,13 @@ mod pallet {
                     Self::account_id(),
                     T::StakingCurrency::get(),
                     bond_amount,
-                    T::RelayAgent::get(),
+                    MultiLocation::X2(
+                        Junction::Parent,
+                        Junction::AccountId32 {
+                            network: NetworkId::Any,
+                            id: T::RelayAgent::get().into(),
+                        },
+                    ),
                     T::BaseXcmWeight::get(),
                 )?;
             }
@@ -463,9 +478,7 @@ mod pallet {
             );
             Ok(())
         }
-    }
 
-    impl<T: Config> Pallet<T> {
         /// Increase/Decrease staked asset in staking pool, and synchronized the exchange rate.
         fn update_staking_pool(
             kind: StakingSettlementKind,
@@ -493,14 +506,24 @@ mod pallet {
             Ok(())
         }
 
-        pub fn account_id() -> T::AccountId {
-            T::PalletId::get().into_account()
-        }
-
         /// Push an unstake task into queue.
         #[inline]
         fn push_unstake_task(who: &T::AccountId, amount: BalanceOf<T>) {
             UnstakeQueue::<T>::mutate(|q| q.push((who.clone(), amount)))
+        }
+    }
+
+    impl<T: Config> Pallet<T> {
+        pub fn account_id() -> T::AccountId {
+            T::PalletId::get().into_account()
+        }
+
+        /// account derived from parachain account
+        pub fn derivative_account_id() -> T::AccountId {
+            T::DerivativeProvider::derivative_account_id(
+                T::RelayAgent::get(),
+                T::DerivativeIndex::get(),
+            )
         }
     }
 }
