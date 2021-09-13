@@ -34,6 +34,7 @@ where
     /// the returned tri-tuple is formed as `(bond_amount, rebond_amount, unbond_amount)`.
     pub fn matching(&self, unbonding_amount: Balance) -> (Balance, Balance, Balance) {
         use Ordering::*;
+
         match self.total_stake_amount.cmp(&self.total_unstake_amount) {
             Greater => {
                 let amount = self.total_stake_amount - self.total_unstake_amount;
@@ -43,11 +44,11 @@ where
                     (amount - unbonding_amount, unbonding_amount, 0u32.into())
                 }
             }
-            Less => {
-                let amount = self.total_unstake_amount - self.total_stake_amount;
-                (0u32.into(), 0u32.into(), amount)
-            }
-            Equal => (0u32.into(), 0u32.into(), 0u32.into()),
+            Less | Equal => (
+                0u32.into(),
+                0u32.into(),
+                self.total_unstake_amount - self.total_stake_amount,
+            ),
         }
     }
 
