@@ -111,6 +111,7 @@ mod pallet {
         type RelayAgent: Get<Self::AccountId>;
 
         /// Account derivative index
+        #[pallet::constant]
         type DerivativeIndex: Get<u16>;
 
         /// Account derivative functionality provider
