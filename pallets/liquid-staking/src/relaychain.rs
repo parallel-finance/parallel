@@ -120,7 +120,14 @@ where
 
     /// rebond on relaychain via xcm.transact
     pub(crate) fn rebond(value: Balance) -> DispatchResult {
-        let call = RelaychainCall::Staking::<T>(StakingCall::Rebond(StakingRebondCall { value }));
+        let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+            UtilityAsDerivativeCall {
+                index: T::DerivativeIndex::get(),
+                call: RelaychainCall::Staking::<T>(StakingCall::Rebond(StakingRebondCall {
+                    value,
+                })),
+            },
+        )));
 
         let msg = Self::xcm_message(call.encode().into());
 

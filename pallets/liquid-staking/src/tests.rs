@@ -253,7 +253,7 @@ fn test_transact_rebond_work() {
 
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
-            para_a_account(),
+            LiquidStaking::derivative_account_id(),
             10 * DOT_DECIMAL,
             RewardDestination::Staked
         ));
@@ -263,18 +263,18 @@ fn test_transact_rebond_work() {
 
     Relay::execute_with(|| {
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
-            para_a_account(),
+            LiquidStaking::derivative_account_id(),
             10 * DOT_DECIMAL,
         )));
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded(
-            para_a_account(),
+            LiquidStaking::derivative_account_id(),
             5 * DOT_DECIMAL,
         )));
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
-            para_a_account(),
+            LiquidStaking::derivative_account_id(),
             3 * DOT_DECIMAL,
         )));
-        let ledger = RelayStaking::ledger(para_a_account()).unwrap();
+        let ledger = RelayStaking::ledger(LiquidStaking::derivative_account_id()).unwrap();
         assert_eq!(ledger.total, 10 * DOT_DECIMAL);
         assert_eq!(ledger.active, 8 * DOT_DECIMAL);
     });
