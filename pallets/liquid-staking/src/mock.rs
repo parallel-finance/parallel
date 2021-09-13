@@ -433,10 +433,11 @@ decl_test_network! {
     }
 }
 
-pub type RelayBalances = pallet_balances::Pallet<westend_runtime::Runtime>;
-pub type RelayStaking = pallet_staking::Pallet<westend_runtime::Runtime>;
-pub type RelayStakingEvent = pallet_staking::Event<westend_runtime::Runtime>;
-pub type RelaySystem = frame_system::Pallet<westend_runtime::Runtime>;
+pub type WestendRuntime = westend_runtime::Runtime;
+pub type RelayBalances = pallet_balances::Pallet<WestendRuntime>;
+pub type RelayStaking = pallet_staking::Pallet<WestendRuntime>;
+pub type RelayStakingEvent = pallet_staking::Event<WestendRuntime>;
+pub type RelaySystem = frame_system::Pallet<WestendRuntime>;
 pub type RelayEvent = westend_runtime::Event;
 pub type ParaSystem = frame_system::Pallet<Test>;
 
@@ -491,10 +492,6 @@ pub fn relay_ext() -> sp_io::TestExternalities {
     pallet_balances::GenesisConfig::<Runtime> {
         balances: vec![
             (ALICE, 100 * DOT_DECIMAL),
-            // (
-            //     LiquidStaking::derivative_account_id(),
-            //     1_000_000 * DOT_DECIMAL,
-            // ),
             (para_a_account(), 1_000_000 * DOT_DECIMAL),
         ],
     }

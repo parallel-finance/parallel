@@ -305,6 +305,7 @@ fn test_transact_nominate_work() {
 #[test]
 fn test_transact_payout_stakers_work() {
     TestNet::reset();
+
     Relay::execute_with(|| {
         let exposure = Exposure {
             total: 100 * DOT_DECIMAL,
@@ -314,19 +315,12 @@ fn test_transact_payout_stakers_work() {
                 value: 67 * DOT_DECIMAL,
             }],
         };
-        pallet_babe::Pallet::<westend_runtime::Runtime>::on_initialize(1);
-        pallet_staking::ErasStartSessionIndex::<westend_runtime::Runtime>::insert(0, 1);
-        pallet_session::Pallet::<westend_runtime::Runtime>::rotate_session();
-        pallet_staking::CurrentEra::<westend_runtime::Runtime>::put(0);
-        pallet_staking::ErasValidatorReward::<westend_runtime::Runtime>::insert(
-            0,
-            500 * DOT_DECIMAL,
-        );
-        pallet_staking::ErasStakersClipped::<westend_runtime::Runtime>::insert(
-            0,
-            para_a_account(),
-            exposure,
-        );
+        pallet_babe::Pallet::<WestendRuntime>::on_initialize(1);
+        pallet_staking::ErasStartSessionIndex::<WestendRuntime>::insert(0, 1);
+        pallet_session::Pallet::<WestendRuntime>::rotate_session();
+        pallet_staking::CurrentEra::<WestendRuntime>::put(0);
+        pallet_staking::ErasValidatorReward::<WestendRuntime>::insert(0, 500 * DOT_DECIMAL);
+        pallet_staking::ErasStakersClipped::<WestendRuntime>::insert(0, para_a_account(), exposure);
         RelayStaking::reward_by_ids(vec![(para_a_account(), 100)]);
     });
 
