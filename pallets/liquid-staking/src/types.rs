@@ -165,24 +165,6 @@ pub enum BalancesCall<T: Config> {
     TransferKeepAlive(BalancesTransferKeepAliveCall<T>),
 }
 
-#[derive(Encode, Decode, RuntimeDebug)]
-pub enum UtilityCall<RelaychainCall> {
-    #[codec(index = 1)]
-    AsDerivative(UtilityAsDerivativeCall<RelaychainCall>),
-    #[codec(index = 2)]
-    BatchAll(UtilityBatchAllCall<RelaychainCall>),
-}
-
-#[derive(Encode, Decode, RuntimeDebug)]
-pub enum RelaychainCall<T: Config> {
-    #[codec(index = 4)]
-    Balances(BalancesCall<T>),
-    #[codec(index = 6)]
-    Staking(StakingCall<T>),
-    #[codec(index = 16)]
-    Utility(Box<UtilityCall<Self>>),
-}
-
 /// Relaychain utility.as_derivative call arguments
 #[derive(Encode, Decode, RuntimeDebug)]
 pub struct UtilityAsDerivativeCall<RelaychainCall> {
@@ -197,4 +179,26 @@ pub struct UtilityAsDerivativeCall<RelaychainCall> {
 pub struct UtilityBatchAllCall<RelaychainCall> {
     /// calls
     pub calls: Vec<RelaychainCall>,
+}
+
+#[derive(Encode, Decode, RuntimeDebug)]
+pub enum UtilityCall<RelaychainCall> {
+    #[codec(index = 1)]
+    AsDerivative(UtilityAsDerivativeCall<RelaychainCall>),
+    #[codec(index = 2)]
+    BatchAll(UtilityBatchAllCall<RelaychainCall>),
+}
+
+pub mod westend {
+    use super::*;
+
+    #[derive(Encode, Decode, RuntimeDebug)]
+    pub enum RelaychainCall<T: Config> {
+        #[codec(index = 4)]
+        Balances(BalancesCall<T>),
+        #[codec(index = 6)]
+        Staking(StakingCall<T>),
+        #[codec(index = 16)]
+        Utility(Box<UtilityCall<Self>>),
+    }
 }

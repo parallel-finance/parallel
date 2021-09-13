@@ -1,5 +1,9 @@
 #![allow(dead_code)]
-use super::{pallet::*, types::*, BalanceOf, Config, Pallet};
+use super::{
+    pallet::*,
+    types::{westend::*, *},
+    BalanceOf, Config, Pallet,
+};
 use frame_support::pallet_prelude::*;
 use sp_runtime::{traits::StaticLookup, DispatchResult};
 
