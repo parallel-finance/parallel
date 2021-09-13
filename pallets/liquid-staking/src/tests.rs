@@ -286,7 +286,7 @@ fn test_transact_nominate_work() {
 
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
-            para_a_account(),
+            LiquidStaking::derivative_account_id(),
             10 * DOT_DECIMAL,
             RewardDestination::Staked
         ));
@@ -295,9 +295,9 @@ fn test_transact_nominate_work() {
     });
 
     Relay::execute_with(|| {
-        let ledger = RelayStaking::ledger(para_a_account()).unwrap();
+        let ledger = RelayStaking::ledger(LiquidStaking::derivative_account_id()).unwrap();
         assert_eq!(ledger.total, 10 * DOT_DECIMAL);
-        let nominators = RelayStaking::nominators(para_a_account()).unwrap();
+        let nominators = RelayStaking::nominators(LiquidStaking::derivative_account_id()).unwrap();
         assert_eq!(nominators.targets, vec![ALICE, BOB]);
     });
 }

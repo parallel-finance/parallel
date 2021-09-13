@@ -168,9 +168,15 @@ where
             .into_iter()
             .map(T::Lookup::unlookup)
             .collect();
-        let call = RelaychainCall::Staking::<T>(StakingCall::Nominate(StakingNominateCall {
-            targets: targets_source,
-        }));
+
+        let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+            UtilityAsDerivativeCall {
+                index: T::DerivativeIndex::get(),
+                call: RelaychainCall::Staking::<T>(StakingCall::Nominate(StakingNominateCall {
+                    targets: targets_source,
+                })),
+            },
+        )));
         let msg = Self::xcm_message(call.encode().into());
 
         match T::XcmSender::send_xcm(MultiLocation::X1(Junction::Parent), msg) {
