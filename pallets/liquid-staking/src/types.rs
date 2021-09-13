@@ -1,7 +1,7 @@
 use super::{BalanceOf, Config};
 use codec::{Decode, Encode};
 use sp_runtime::{
-    traits::{AtLeast32BitUnsigned, StaticLookup},
+    traits::{AtLeast32BitUnsigned, StaticLookup, Zero},
     RuntimeDebug,
 };
 use sp_std::{cmp::Ordering, vec::Vec};
@@ -39,14 +39,14 @@ where
             Greater => {
                 let amount = self.total_stake_amount - self.total_unstake_amount;
                 if amount < unbonding_amount {
-                    (0u32.into(), amount, 0u32.into())
+                    (Zero::zero(), amount, Zero::zero())
                 } else {
-                    (amount - unbonding_amount, unbonding_amount, 0u32.into())
+                    (amount - unbonding_amount, unbonding_amount, Zero::zero())
                 }
             }
             Less | Equal => (
-                0u32.into(),
-                0u32.into(),
+                Zero::zero(),
+                Zero::zero(),
                 self.total_unstake_amount - self.total_stake_amount,
             ),
         }
