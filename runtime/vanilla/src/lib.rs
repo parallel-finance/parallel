@@ -27,12 +27,12 @@ use cumulus_primitives_core::ParaId;
 use frame_support::{
     dispatch::Weight,
     log,
-    traits::{Contains, Everything},
+    traits::{Contains, Everything, IsInVec},
     PalletId,
 };
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureOneOf, EnsureRoot, EnsureSigned,
+    EnsureOneOf, EnsureRoot, EnsureSignedBy,
 };
 use hex_literal::hex;
 use orml_currencies::BasicCurrencyAdapter;
@@ -466,6 +466,7 @@ parameter_types! {
         }
     );
     pub const PeriodBasis: BlockNumber = 1000u32;
+    pub BridgeAccount: Vec<AccountId> = vec![hex!["306721211d5404bd9da88e0204360a1a9ab8b87c66c1bc2fcdd37f3c2222cc20"].into()];
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -474,7 +475,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type PalletId = StakingPalletId;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type BridgeOrigin = EnsureSigned<AccountId>;
+    type BridgeOrigin = EnsureSignedBy<IsInVec<BridgeAccount>, AccountId>;
     type WeightInfo = ();
     type XcmTransfer = XTokens;
     type RelayAgent = RelayAgent;

@@ -103,12 +103,15 @@ mod pallet {
         type XcmSender: SendXcm;
 
         /// Base xcm transaction weight
+        #[pallet::constant]
         type BaseXcmWeight: Get<Weight>;
 
         /// Parachain account on relaychain
+        #[pallet::constant]
         type RelayAgent: Get<Self::AccountId>;
 
         /// Account derivative index
+        #[pallet::constant]
         type DerivativeIndex: Get<u16>;
 
         /// Account derivative functionality provider
