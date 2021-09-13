@@ -320,19 +320,26 @@ fn test_transact_payout_stakers_work() {
         pallet_session::Pallet::<WestendRuntime>::rotate_session();
         pallet_staking::CurrentEra::<WestendRuntime>::put(0);
         pallet_staking::ErasValidatorReward::<WestendRuntime>::insert(0, 500 * DOT_DECIMAL);
-        pallet_staking::ErasStakersClipped::<WestendRuntime>::insert(0, para_a_account(), exposure);
-        RelayStaking::reward_by_ids(vec![(para_a_account(), 100)]);
+        pallet_staking::ErasStakersClipped::<WestendRuntime>::insert(
+            0,
+            LiquidStaking::derivative_account_id(),
+            exposure,
+        );
+        RelayStaking::reward_by_ids(vec![(LiquidStaking::derivative_account_id(), 100)]);
     });
 
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
-            para_a_account(),
+            LiquidStaking::derivative_account_id(),
             1 * DOT_DECIMAL,
             RewardDestination::Account(BOB),
         ));
 
         // weight is 31701208000
-        assert_ok!(LiquidStaking::payout_stakers(para_a_account(), 0));
+        assert_ok!(LiquidStaking::payout_stakers(
+            LiquidStaking::derivative_account_id(),
+            0
+        ));
     });
 
     // (33/100) * 500
