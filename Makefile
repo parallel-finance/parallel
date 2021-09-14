@@ -17,7 +17,7 @@ check:
 
 .PHONY: test
 test:
-	SKIP_WASM_BUILD= cargo test --workspace --exclude parallel --exclude parallel-runtime --exclude vanilla-runtime --exclude heiko-runtime --exclude pallet-loans-benchmarking -- --nocapture
+	SKIP_WASM_BUILD= cargo test --workspace --exclude parallel --exclude parallel-runtime --exclude vanilla-runtime --exclude heiko-runtime -- --nocapture
 
 .PHONY: bench
 bench: bench-loans bench-liquid-staking
@@ -33,7 +33,7 @@ bench-liquid-staking:
 .PHONY: lint
 lint:
 	SKIP_WASM_BUILD= cargo fmt --all -- --check
-	SKIP_WASM_BUILD= cargo clippy --workspace --exclude parallel --exclude pallet-loans-benchmarking -- -A clippy::type_complexity -A clippy::identity_op -D warnings
+	SKIP_WASM_BUILD= cargo clippy --workspace --exclude parallel -- -A clippy::type_complexity -A clippy::identity_op -D warnings
 
 .PHONY: fmt
 fmt:

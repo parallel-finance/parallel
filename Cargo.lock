@@ -2972,7 +2972,6 @@ dependencies = [
  "pallet-liquid-staking",
  "pallet-liquidation",
  "pallet-loans",
- "pallet-loans-benchmarking",
  "pallet-loans-rpc-runtime-api",
  "pallet-membership",
  "pallet-multisig",
@@ -5636,30 +5635,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-loans-benchmarking"
-version = "3.0.0"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "orml-currencies",
- "orml-oracle",
- "orml-tokens",
- "orml-traits",
- "pallet-assets",
- "pallet-balances",
- "pallet-loans",
- "pallet-prices",
- "pallet-timestamp",
- "parallel-primitives",
- "parity-scale-codec",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
 name = "pallet-loans-rpc"
 version = "3.0.0"
 dependencies = [
@@ -6276,7 +6251,6 @@ dependencies = [
  "pallet-liquid-staking",
  "pallet-liquidation",
  "pallet-loans",
- "pallet-loans-benchmarking",
  "pallet-loans-rpc-runtime-api",
  "pallet-membership",
  "pallet-multisig",
@@ -11877,7 +11851,6 @@ dependencies = [
  "pallet-liquid-staking",
  "pallet-liquidation",
  "pallet-loans",
- "pallet-loans-benchmarking",
  "pallet-loans-rpc-runtime-api",
  "pallet-membership",
  "pallet-multisig",
