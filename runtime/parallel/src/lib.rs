@@ -445,7 +445,6 @@ impl pallet_assets::Config for Runtime {
 
 impl pallet_loans::Config for Runtime {
     type Event = Event;
-    type Currency = Currencies;
     type PalletId = LoansPalletId;
     type PriceFeeder = Prices;
     type ReserveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
@@ -889,7 +888,7 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
     type CombineData =
         orml_oracle::DefaultCombineData<Runtime, MinimumCount, ExpiresIn, ParallelDataProvider>;
     type Time = Timestamp;
-    type OracleKey = CurrencyId;
+    type OracleKey = AssetId;
     type OracleValue = PriceWithDecimal;
     type RootOperatorAccountId = ZeroAccountId;
     type MaxHasDispatchedSize = MaxHasDispatchedSize;
@@ -899,28 +898,34 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
 
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<PriceWithDecimal, Moment>;
 pub struct AggregatedDataProvider;
-impl DataProvider<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
-    fn get(key: &CurrencyId) -> Option<TimeStampedPrice> {
+impl DataProvider<AssetId, TimeStampedPrice> for AggregatedDataProvider {
+    fn get(key: &AssetId) -> Option<TimeStampedPrice> {
         Oracle::get(key)
     }
 }
 
-impl DataProviderExtended<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
-    fn get_no_op(key: &CurrencyId) -> Option<TimeStampedPrice> {
+impl DataProviderExtended<AssetId, TimeStampedPrice> for AggregatedDataProvider {
+    fn get_no_op(key: &AssetId) -> Option<TimeStampedPrice> {
         Oracle::get_no_op(key)
     }
     #[allow(clippy::complexity)]
-    fn get_all_values() -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
+    fn get_all_values() -> Vec<(AssetId, Option<TimeStampedPrice>)> {
         Oracle::get_all_values()
     }
+}
+
+parameter_types! {
+    pub const KSM: AssetId = 100;
+    #[allow(non_camel_case_types)]
+    pub const xKSM: AssetId = 101;
 }
 
 impl pallet_prices::Config for Runtime {
     type Event = Event;
     type Source = AggregatedDataProvider;
     type FeederOrigin = EnsureRoot<AccountId>;
-    type StakingCurrency = StakingCurrency;
-    type LiquidCurrency = LiquidCurrency;
+    type StakingCurrency = KSM;
+    type LiquidCurrency = xKSM;
     type LiquidStakingExchangeRateProvider = LiquidStaking;
 }
 
@@ -1403,16 +1408,16 @@ impl_runtime_apis! {
     impl orml_oracle_rpc_runtime_api::OracleApi<
         Block,
         DataProviderId,
-        CurrencyId,
+        AssetId,
         TimeStampedPrice,
     > for Runtime {
-        fn get_value(provider_id: DataProviderId, key: CurrencyId) -> Option<TimeStampedPrice> {
+        fn get_value(provider_id: DataProviderId, key: AssetId) -> Option<TimeStampedPrice> {
             match provider_id {
                 DataProviderId::Aggregated => Prices::get_no_op(&key)
             }
         }
 
-        fn get_all_values(provider_id: DataProviderId) -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
+        fn get_all_values(provider_id: DataProviderId) -> Vec<(AssetId, Option<TimeStampedPrice>)> {
             match provider_id {
                 DataProviderId::Aggregated => Prices::get_all_values()
             }
@@ -1443,7 +1448,7 @@ impl_runtime_apis! {
             // Trying to add benchmarks directly to the Session Pallet caused cyclic dependency
             // issues. To get around that, we separated the Session benchmarks into its own crate,
             // which is why we need these two lines below.
-            use pallet_loans_benchmarking::Pallet as LoansBench;
+            // use pallet_loans_benchmarking::Pallet as LoansBench;
             use frame_system_benchmarking::Pallet as SystemBench;
 
             let mut list = Vec::<BenchmarkList>::new();
@@ -1451,7 +1456,7 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_balances, Balances);
             list_benchmark!(list, extra, pallet_membership, TechnicalCommitteeMembership);
             list_benchmark!(list, extra, pallet_multisig, Multisig);
-            list_benchmark!(list, extra, pallet_loans, LoansBench::<Runtime>);
+            list_benchmark!(list, extra, pallet_loans, Loans);
             list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
             list_benchmark!(list, extra, pallet_timestamp, Timestamp);
             list_benchmark!(list, extra, pallet_amm, AMM);
@@ -1466,10 +1471,10 @@ impl_runtime_apis! {
         ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
             use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark, TrackedStorageKey};
 
-            use pallet_loans_benchmarking::Pallet as LoansBench;
+            // use pallet_loans_benchmarking::Pallet as LoansBench;
             use frame_system_benchmarking::Pallet as SystemBench;
 
-            impl pallet_loans_benchmarking::Config for Runtime {}
+            // impl pallet_loans_benchmarking::Config for Runtime {}
             impl frame_system_benchmarking::Config for Runtime {}
 
             let whitelist: Vec<TrackedStorageKey> = vec![
@@ -1491,7 +1496,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, frame_system, SystemBench::<Runtime>);
             add_benchmark!(params, batches, pallet_balances, Balances);
             add_benchmark!(params, batches, pallet_timestamp, Timestamp);
-            add_benchmark!(params, batches, pallet_loans, LoansBench::<Runtime>);
+            add_benchmark!(params, batches, pallet_loans, Loans);
             add_benchmark!(params, batches, pallet_multisig, Multisig);
             add_benchmark!(params, batches, pallet_membership, TechnicalCommitteeMembership);
             add_benchmark!(params, batches, pallet_amm, AMM);

@@ -1,10 +1,10 @@
 use crate::InterestRateModel;
 use frame_support::pallet_prelude::*;
-use primitives::{Balance, Rate, Ratio};
+use primitives::{Rate, Ratio};
 
 /// Container for borrow balance information
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
-pub struct BorrowSnapshot {
+pub struct BorrowSnapshot<Balance> {
     /// Principal Total balance (with accrued interest), after applying the most recent balance-changing action
     pub principal: Balance,
     /// InterestIndex Global borrowIndex as of the most recent balance-changing action
@@ -13,7 +13,7 @@ pub struct BorrowSnapshot {
 
 /// Container for earned amount information
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
-pub struct EarnedSnapshot {
+pub struct EarnedSnapshot<Balance> {
     /// Total deposit interest, after applying the most recent balance-changing action
     pub total_earned_prior: Balance,
     /// Exchange rate, after applying the most recent balance-changing action
@@ -22,7 +22,7 @@ pub struct EarnedSnapshot {
 
 /// Deposit information
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
-pub struct Deposits {
+pub struct Deposits<Balance> {
     /// The voucher amount of the deposit
     pub voucher_balance: Balance,
     /// Can this deposit be used as collateral

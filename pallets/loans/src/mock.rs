@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![cfg(test)]
-
 mod loans {
     pub use super::super::*;
 }
@@ -23,9 +21,9 @@ use loans::*;
 use frame_support::{construct_runtime, parameter_types, traits::Contains, PalletId};
 use frame_system::EnsureRoot;
 use orml_traits::parameter_type_with_key;
-use primitives::{Amount, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate, TokenSymbol};
+use primitives::{AssetId, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate};
 use sp_core::H256;
-use sp_runtime::traits::One;
+
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 use sp_std::vec::Vec;
 use std::cell::RefCell;
@@ -41,9 +39,7 @@ construct_runtime!(
         UncheckedExtrinsic = UncheckedExtrinsic,
     {
         System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
-        Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
-        Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Loans: loans::{Pallet, Storage, Call, Config, Event<T>},
         TimestampPallet: pallet_timestamp::{Pallet, Call, Storage, Inherent},
         Assets: pallet_assets::<Instance1>::{Pallet, Call, Storage, Event<T>},
@@ -88,12 +84,10 @@ pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CHARLIE: AccountId = 3;
 
-pub const DOT: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
-pub const KSM: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
-pub const USDT: CurrencyId = CurrencyId::Token(TokenSymbol::USDT);
-pub const XDOT: CurrencyId = CurrencyId::Token(TokenSymbol::xDOT);
-pub const XKSM: CurrencyId = CurrencyId::Token(TokenSymbol::xKSM);
-pub const NATIVE: CurrencyId = CurrencyId::Token(TokenSymbol::HKO);
+pub const DOT: AssetId = 0;
+pub const KSM: AssetId = 1;
+pub const USDT: AssetId = 3;
+pub const XDOT: AssetId = 4;
 
 parameter_types! {
     pub const MinimumPeriod: u64 = 5;
@@ -113,35 +107,11 @@ parameter_type_with_key! {
 }
 
 pub struct DustRemovalWhitelist;
+
 impl Contains<AccountId> for DustRemovalWhitelist {
     fn contains(a: &AccountId) -> bool {
         vec![LoansPalletId::get().into_account()].contains(a)
     }
-}
-
-impl orml_tokens::Config for Test {
-    type Event = Event;
-    type Balance = Balance;
-    type Amount = Amount;
-    type CurrencyId = CurrencyId;
-    type WeightInfo = ();
-    type OnDust = ();
-    type ExistentialDeposits = ExistentialDeposits;
-    type MaxLocks = MaxLocks;
-    type DustRemovalWhitelist = DustRemovalWhitelist;
-}
-
-parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = NATIVE;
-}
-
-impl orml_currencies::Config for Test {
-    type Event = Event;
-    type MultiCurrency = Tokens;
-    type NativeCurrency =
-        orml_currencies::BasicCurrencyAdapter<Test, Balances, Amount, BlockNumber>;
-    type GetNativeCurrencyId = GetNativeCurrencyId;
-    type WeightInfo = ();
 }
 
 parameter_types! {
@@ -150,22 +120,22 @@ parameter_types! {
 }
 
 impl pallet_balances::Config for Test {
-    type MaxLocks = MaxLocks;
     type Balance = Balance;
-    type Event = Event;
     type DustRemoval = ();
+    type Event = Event;
     type ExistentialDeposit = ExistentialDeposit;
-    type MaxReserves = ();
-    type ReserveIdentifier = [u8; 8];
     type AccountStore = System;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Test>;
+    type MaxLocks = MaxLocks;
+    type MaxReserves = ();
+    type ReserveIdentifier = [u8; 8];
 }
 
 pub struct MockPriceFeeder;
 
 impl MockPriceFeeder {
     thread_local! {
-        pub static PRICES: RefCell<HashMap<CurrencyId, Option<PriceDetail>>> = {
+        pub static PRICES: RefCell<HashMap<AssetId, Option<PriceDetail>>> = {
             RefCell::new(
                 vec![DOT, KSM, USDT, XDOT]
                     .iter()
@@ -175,9 +145,9 @@ impl MockPriceFeeder {
         };
     }
 
-    pub fn set_price(currency_id: CurrencyId, price: Price) {
+    pub fn set_price(asset_id: AssetId, price: Price) {
         Self::PRICES.with(|prices| {
-            prices.borrow_mut().insert(currency_id, Some((price, 1u64)));
+            prices.borrow_mut().insert(asset_id, Some((price, 1u64)));
         });
     }
 
@@ -191,8 +161,8 @@ impl MockPriceFeeder {
 }
 
 impl PriceFeeder for MockPriceFeeder {
-    fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail> {
-        Self::PRICES.with(|prices| *prices.borrow().get(currency_id).unwrap())
+    fn get_price(asset_id: &AssetId) -> Option<PriceDetail> {
+        Self::PRICES.with(|prices| *prices.borrow().get(asset_id).unwrap())
     }
 }
 
@@ -205,9 +175,10 @@ parameter_types! {
 }
 
 type AssetsInstance = pallet_assets::Instance1;
+
 impl pallet_assets::Config<AssetsInstance> for Test {
     type Event = Event;
-    type Balance = u64;
+    type Balance = u128;
     type AssetId = u32;
     type Currency = Balances;
     type ForceOrigin = EnsureRoot<AccountId>;
@@ -217,15 +188,18 @@ impl pallet_assets::Config<AssetsInstance> for Test {
     type ApprovalDeposit = ApprovalDeposit;
     type StringLimit = StringLimit;
     type Freezer = ();
-    type WeightInfo = ();
     type Extra = ();
+    type WeightInfo = ();
+}
+
+parameter_types! {
+    pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
 }
 
 impl Config for Test {
     type Event = Event;
-    type Currency = Currencies;
-    type PalletId = LoansPalletId;
     type PriceFeeder = MockPriceFeeder;
+    type PalletId = LoansPalletId;
     type ReserveOrigin = EnsureRoot<AccountId>;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
@@ -233,63 +207,38 @@ impl Config for Test {
     type Assets = Assets;
 }
 
-parameter_types! {
-    pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
-}
-
-pub struct ExtBuilder {
-    balances: Vec<(AccountId, CurrencyId, Balance)>,
-}
-
-impl Default for ExtBuilder {
-    fn default() -> Self {
-        Self {
-            balances: vec![
-                (ALICE, DOT, million_dollar(1000)),
-                (ALICE, KSM, million_dollar(1000)),
-                (ALICE, USDT, million_dollar(1000)),
-                (BOB, DOT, million_dollar(1000)),
-                (BOB, KSM, million_dollar(1000)),
-                (BOB, USDT, million_dollar(1000)),
-            ],
-        }
-    }
-}
-
-impl ExtBuilder {
-    pub fn build(self) -> sp_io::TestExternalities {
-        let mut t = frame_system::GenesisConfig::default()
-            .build_storage::<Test>()
-            .unwrap();
-
-        orml_tokens::GenesisConfig::<Test> {
-            balances: self.balances.clone(),
-        }
-        .assimilate_storage(&mut t)
+pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
+    let t = frame_system::GenesisConfig::default()
+        .build_storage::<Test>()
         .unwrap();
 
-        loans::GenesisConfig {
-            borrow_index: Rate::one(),                             // 1
-            exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
-            markets: vec![
-                (CurrencyId::Token(TokenSymbol::DOT), MARKET_MOCK),
-                (CurrencyId::Token(TokenSymbol::KSM), MARKET_MOCK),
-                (CurrencyId::Token(TokenSymbol::USDT), MARKET_MOCK),
-                (CurrencyId::Token(TokenSymbol::xDOT), MARKET_MOCK),
-            ],
-            last_block_timestamp: 0,
-        }
-        .assimilate_storage::<Test>(&mut t)
-        .unwrap();
+    let mut ext = sp_io::TestExternalities::new(t);
+    ext.execute_with(|| {
+        // Init assets
+        // Balances::make_free_balance_be(&ALICE, 10);
+        // Balances::make_free_balance_be(&BOB, 10);
+        Assets::force_create(Origin::root(), DOT, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), KSM, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), USDT, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), XDOT, ALICE, true, 1).unwrap();
+        Assets::mint(Origin::signed(ALICE), KSM, ALICE, dollar(1000)).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, ALICE, dollar(1000)).unwrap();
+        Assets::mint(Origin::signed(ALICE), USDT, ALICE, dollar(1000)).unwrap();
+        Assets::mint(Origin::signed(ALICE), KSM, BOB, dollar(1000)).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, BOB, dollar(1000)).unwrap();
 
-        // t.into()
-        let mut ext = sp_io::TestExternalities::new(t);
-        ext.execute_with(|| {
-            System::set_block_number(0);
-            TimestampPallet::set_timestamp(6000);
-        });
-        ext
-    }
+        // Init Markets
+        Loans::add_market(Origin::root(), KSM, MARKET_MOCK).unwrap();
+        Loans::active_market(Origin::root(), KSM).unwrap();
+        Loans::add_market(Origin::root(), DOT, MARKET_MOCK).unwrap();
+        Loans::active_market(Origin::root(), DOT).unwrap();
+        Loans::add_market(Origin::root(), USDT, MARKET_MOCK).unwrap();
+        Loans::active_market(Origin::root(), USDT).unwrap();
+
+        System::set_block_number(0);
+        TimestampPallet::set_timestamp(6000);
+    });
+    ext
 }
 
 /// Progress to the given block, and then finalize the block.
@@ -325,7 +274,7 @@ pub const MARKET_MOCK: Market = Market {
     close_factor: Ratio::from_percent(50),
     collateral_factor: Ratio::from_percent(50),
     liquidate_incentive: Rate::from_inner(Rate::DIV / 100 * 110),
-    state: MarketState::Active,
+    state: MarketState::Pending,
     rate_model: InterestRateModel::Jump(JumpModel {
         base_rate: Rate::from_inner(Rate::DIV / 100 * 2),
         jump_rate: Rate::from_inner(Rate::DIV / 100 * 10),

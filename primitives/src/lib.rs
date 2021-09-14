@@ -18,6 +18,7 @@
 
 pub mod currency;
 pub mod network;
+pub mod tokens;
 
 use codec::{Decode, Encode};
 pub use currency::{CurrencyId, TokenSymbol};
@@ -82,6 +83,8 @@ pub type Price = FixedU128;
 
 pub type Timestamp = u64;
 
+pub type AssetId = u32;
+
 pub const SECONDS_PER_YEAR: Timestamp = 365 * 24 * 60 * 60;
 
 pub type PriceDetail = (Price, Timestamp);
@@ -129,12 +132,12 @@ impl PartialOrd for PriceWithDecimal {
 
 ////////////////////////////////////////////////////////////////////////////////
 pub trait PriceFeeder {
-    fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail>;
+    fn get_price(asset_id: &AssetId) -> Option<PriceDetail>;
 }
 
-pub trait EmergencyPriceFeeder<CurrencyId, PriceWithDecimal> {
-    fn set_emergency_price(currency_id: CurrencyId, price: PriceWithDecimal);
-    fn reset_emergency_price(currency_id: CurrencyId);
+pub trait EmergencyPriceFeeder<AssetId, PriceWithDecimal> {
+    fn set_emergency_price(asset_id: AssetId, price: PriceWithDecimal);
+    fn reset_emergency_price(asset_id: AssetId);
 }
 
 pub trait ExchangeRateProvider {

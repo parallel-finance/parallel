@@ -1,5 +1,10 @@
 # CHANGE LOG
 
+## 2021.09.14
+
+- Use pallet-assets in loans pallet (#577) 
+- Remove pallet-loans-benchmarking (#577)
+
 ## 2021.09.07
 
 - Replace pallet-liquid-staking by v2 for future xcm.Transact impls (#539)

@@ -24,7 +24,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{log, pallet_prelude::*, transactional};
+use frame_support::{log, pallet_prelude::*, traits::tokens::fungibles::Inspect, transactional};
 use frame_system::offchain::{
     AppCrypto, CreateSignedTransaction, ForAny, SendSignedTransaction, Signer,
 };
@@ -35,15 +35,15 @@ use sp_runtime::{
         storage_lock::{StorageLock, Time},
         Duration,
     },
-    traits::{CheckedAdd, CheckedMul, Zero},
-    FixedPointNumber, FixedU128, Percent,
+    traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedMul, Zero},
+    ArithmeticError, FixedPointNumber, FixedPointOperand, FixedU128, Percent, SaturatedConversion,
 };
 use sp_std::collections::btree_map::BTreeMap;
 use sp_std::prelude::*;
 
 pub use pallet::*;
 use pallet_loans::WeightInfo;
-use primitives::{Balance, CurrencyId, PriceFeeder, Rate};
+use primitives::Rate;
 
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"pool");
 
@@ -65,19 +65,26 @@ pub mod crypto {
 
 /// The miscellaneous information when transforming borrow records.
 #[derive(Clone, Debug)]
-struct BorrowMisc {
-    currency: CurrencyId,
+struct BorrowMisc<AssetId, Balance> {
+    currency: AssetId,
     amount: Balance,
     value: FixedU128,
 }
 
 /// The miscellaneous information when transforming collateral records.
 #[derive(Clone, Debug)]
-struct CollateralMisc {
-    currency: CurrencyId,
+struct CollateralMisc<AssetId, Balance> {
+    currency: AssetId,
     amount: Balance,
     value: FixedU128,
 }
+
+type AssetIdOf<T> = <<T as pallet_loans::Config>::Assets as Inspect<
+    <T as frame_system::Config>::AccountId,
+>>::AssetId;
+type BalanceOf<T> = <<T as pallet_loans::Config>::Assets as Inspect<
+    <T as frame_system::Config>::AccountId,
+>>::Balance;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -86,6 +93,9 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config:
         CreateSignedTransaction<Call<Self>> + frame_system::Config + pallet_loans::Config
+    where
+        BalanceOf<Self>: FixedPointOperand,
+        AssetIdOf<Self>: AtLeast32BitUnsigned,
     {
         /// The account type to perform liquidation
         type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
@@ -114,7 +124,11 @@ pub mod pallet {
     }
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T>
+    where
+        BalanceOf<T>: FixedPointOperand,
+        AssetIdOf<T>: AtLeast32BitUnsigned,
+    {
         fn offchain_worker(block_number: T::BlockNumber) {
             if let Err(e) = Self::liquidate(block_number) {
                 log::error!("Failed to run offchain liquidation: {:?}", e);
@@ -123,7 +137,11 @@ pub mod pallet {
     }
 
     #[pallet::call]
-    impl<T: Config> Pallet<T> {
+    impl<T: Config> Pallet<T>
+    where
+        BalanceOf<T>: FixedPointOperand,
+        AssetIdOf<T>: AtLeast32BitUnsigned,
+    {
         /// The same liquidate_borrow call in loans pallet.
         ///
         /// - `borrower`: the owner of a loan
@@ -135,9 +153,9 @@ pub mod pallet {
         pub fn liquidate_borrow(
             origin: OriginFor<T>,
             borrower: T::AccountId,
-            liquidate_currency: CurrencyId,
-            repay_amount: Balance,
-            collateral_currency: CurrencyId,
+            liquidate_currency: AssetIdOf<T>,
+            repay_amount: BalanceOf<T>,
+            collateral_currency: AssetIdOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
@@ -154,7 +172,11 @@ pub mod pallet {
     }
 }
 
-impl<T: Config> Pallet<T> {
+impl<T: Config> Pallet<T>
+where
+    BalanceOf<T>: FixedPointOperand,
+    AssetIdOf<T>: AtLeast32BitUnsigned,
+{
     fn liquidate(_block_number: T::BlockNumber) -> Result<(), Error<T>> {
         let mut lock = StorageLock::<Time>::with_deadline(
             b"liquidate::lock",
@@ -182,23 +204,27 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    fn transform_account_borrows(
-    ) -> Result<BTreeMap<T::AccountId, (FixedU128, Vec<BorrowMisc>)>, Error<T>> {
+    fn transform_account_borrows() -> Result<
+        BTreeMap<T::AccountId, (FixedU128, Vec<BorrowMisc<AssetIdOf<T>, BalanceOf<T>>>)>,
+        Error<T>,
+    > {
         let result = pallet_loans::AccountBorrows::<T>::iter().fold(
-            BTreeMap::<T::AccountId, (FixedU128, Vec<BorrowMisc>)>::new(),
+            BTreeMap::<T::AccountId, (FixedU128, Vec<BorrowMisc<AssetIdOf<T>, BalanceOf<T>>>)>::new(
+            ),
             |mut acc, (k1, k2, snapshot)| {
-                let loans_value = match T::PriceFeeder::get_price(&k1).and_then(|price_info| {
+                let loans_value = match pallet_loans::Pallet::<T>::get_price(k1).and_then(|price| {
                     let result =
-                        pallet_loans::Pallet::<T>::current_balance_from_snapshot(&k1, snapshot);
-                    price_info
-                        .0
-                        .checked_mul(&FixedU128::from_inner(result.ok()?))
+                        pallet_loans::Pallet::<T>::current_balance_from_snapshot(k1, snapshot)
+                            .map_err(|_| ArithmeticError::Overflow)?;
+                    price
+                        .checked_mul(&FixedU128::from_inner(result.saturated_into()))
+                        .ok_or_else(|| ArithmeticError::Overflow.into())
                 }) {
-                    None => {
+                    Err(_e) => {
                         acc.remove(&k2);
                         return acc;
                     }
-                    Some(v) => v,
+                    Ok(v) => v,
                 };
                 let default = (FixedU128::zero(), Vec::new());
                 let existing = acc.get(&k2).unwrap_or(&default);
@@ -222,63 +248,80 @@ impl<T: Config> Pallet<T> {
         Ok(result)
     }
 
-    fn transform_account_collateral(
-    ) -> Result<BTreeMap<T::AccountId, (FixedU128, Vec<CollateralMisc>)>, Error<T>> {
+    fn transform_account_collateral() -> Result<
+        BTreeMap<T::AccountId, (FixedU128, Vec<CollateralMisc<AssetIdOf<T>, BalanceOf<T>>>)>,
+        Error<T>,
+    > {
         let iter = pallet_loans::AccountDeposits::<T>::iter();
-        let result = iter.filter(|(.., deposits)| deposits.is_collateral).fold(
-            BTreeMap::<T::AccountId, (FixedU128, Vec<CollateralMisc>)>::new(),
-            |mut acc, (k1, k2, deposits)| {
-                let balance = match pallet_loans::ExchangeRate::<T>::get(&k1)
-                    .checked_mul_int(deposits.voucher_balance)
-                {
-                    None => {
-                        acc.remove(&k2);
-                        return acc;
-                    }
-                    Some(v) => v,
-                };
-                let collateral_value = match T::PriceFeeder::get_price(&k1).and_then(|price_info| {
-                    price_info.0.checked_mul(&FixedU128::from_inner(balance))
-                }) {
-                    None => {
-                        acc.remove(&k2);
-                        return acc;
-                    }
-                    Some(v) => v,
-                };
-                let collateral_factor: Rate = pallet_loans::Pallet::<T>::market(&k1)
-                    .map(|elem| elem.collateral_factor.into())
-                    .unwrap_or_default();
-                let under_collatoral_value = match collateral_value.checked_mul(&collateral_factor)
-                {
-                    None => {
-                        acc.remove(&k2);
-                        return acc;
-                    }
-                    Some(v) => v,
-                };
+        let result =
+            iter.filter(|(.., deposits)| deposits.is_collateral).fold(
+                BTreeMap::<
+                    T::AccountId,
+                    (FixedU128, Vec<CollateralMisc<AssetIdOf<T>, BalanceOf<T>>>),
+                >::new(),
+                |mut acc, (k1, k2, deposits)| {
+                    let balance = match pallet_loans::ExchangeRate::<T>::get(k1)
+                        .checked_mul_int(deposits.voucher_balance)
+                    {
+                        None => {
+                            acc.remove(&k2);
+                            return acc;
+                        }
+                        Some(v) => v,
+                    };
+                    let collateral_value =
+                        match pallet_loans::Pallet::<T>::get_price(k1).and_then(|price| {
+                            price
+                                .checked_mul(&FixedU128::from_inner(balance.saturated_into()))
+                                .ok_or_else(|| ArithmeticError::Overflow.into())
+                        }) {
+                            Err(_e) => {
+                                acc.remove(&k2);
+                                return acc;
+                            }
+                            Ok(v) => v,
+                        };
+                    let collateral_factor: Rate = pallet_loans::Pallet::<T>::market(k1)
+                        .map(|elem| elem.collateral_factor.into())
+                        .unwrap_or_default();
+                    let under_collatoral_value = match collateral_value
+                        .checked_mul(&collateral_factor)
+                        .ok_or(pallet_loans::Error::<T>::PriceOracleNotReady)
+                    {
+                        Err(_e) => {
+                            acc.remove(&k2);
+                            return acc;
+                        }
+                        Ok(v) => v,
+                    };
 
-                let default = (FixedU128::zero(), Vec::new());
-                let existing = acc.get(&k2).unwrap_or(&default);
-                let totoal_under_collatoral_value = existing.0 + under_collatoral_value;
-                let mut collatoral_detail = existing.1.clone();
-                collatoral_detail.push(CollateralMisc {
-                    currency: k1,
-                    amount: balance,
-                    value: collateral_value,
-                });
-                acc.insert(k2, (totoal_under_collatoral_value, collatoral_detail));
-                acc
-            },
-        );
+                    let default = (FixedU128::zero(), Vec::new());
+                    let existing = acc.get(&k2).unwrap_or(&default);
+                    let totoal_under_collatoral_value = existing.0 + under_collatoral_value;
+                    let mut collatoral_detail = existing.1.clone();
+                    collatoral_detail.push(CollateralMisc {
+                        currency: k1,
+                        amount: balance,
+                        value: collateral_value,
+                    });
+                    acc.insert(k2, (totoal_under_collatoral_value, collatoral_detail));
+                    acc
+                },
+            );
 
         Ok(result)
     }
 
     fn liquidate_underwater_accounts(
         signer: &Signer<T, <T as Config>::AuthorityId, ForAny>,
-        aggregated_account_borrows: BTreeMap<T::AccountId, (FixedU128, Vec<BorrowMisc>)>,
-        aggregated_account_collatoral: BTreeMap<T::AccountId, (FixedU128, Vec<CollateralMisc>)>,
+        aggregated_account_borrows: BTreeMap<
+            T::AccountId,
+            (FixedU128, Vec<BorrowMisc<AssetIdOf<T>, BalanceOf<T>>>),
+        >,
+        aggregated_account_collatoral: BTreeMap<
+            T::AccountId,
+            (FixedU128, Vec<CollateralMisc<AssetIdOf<T>, BalanceOf<T>>>),
+        >,
     ) -> Result<(), Error<T>> {
         aggregated_account_borrows.iter().for_each(
             |(account, (total_loans_value, loans_detail))| {
@@ -317,9 +360,9 @@ impl<T: Config> Pallet<T> {
     fn submit_liquidate_transaction(
         signer: &Signer<T, <T as Config>::AuthorityId, ForAny>,
         borrower: T::AccountId,
-        loan_currency: CurrencyId,
-        liquidation_value: Balance,
-        collateral_currency: CurrencyId,
+        loan_currency: AssetIdOf<T>,
+        liquidation_value: BalanceOf<T>,
+        collateral_currency: AssetIdOf<T>,
     ) {
         match signer.send_signed_transaction(|_account| {
             Call::liquidate_borrow(
