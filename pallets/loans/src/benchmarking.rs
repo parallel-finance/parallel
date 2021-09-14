@@ -10,11 +10,10 @@ use frame_support::assert_ok;
 use frame_system::{self, RawOrigin as SystemOrigin};
 use sp_std::prelude::*;
 
+const SEED: u32 = 0;
 const DOT: AssetId = 0;
 const KSM: AssetId = 1;
 
-const INITIAL_AMOUNT: u128 = 100_000_000_000;
-const SEED: u32 = 0;
 const MARKET_MOCK: Market = Market {
     close_factor: Ratio::from_percent(50),
     collateral_factor: Ratio::from_percent(50),
@@ -34,13 +33,33 @@ const PENDING_MARKET_MOCK: Market = {
     market
 };
 
+const INITIAL_AMOUNT: u32 = 500_000_000;
+
 fn transfer_initial_balance<T: Config>(caller: T::AccountId)
 where
     BalanceOf<T>: FixedPointOperand,
     AssetIdOf<T>: AtLeast32BitUnsigned,
 {
-    T::Assets::mint_into(DOT.into(), &caller, INITIAL_AMOUNT.saturated_into()).unwrap();
-    T::Assets::mint_into(KSM.into(), &caller, INITIAL_AMOUNT.saturated_into()).unwrap();
+    T::Assets::mint_into(DOT.into(), &caller, INITIAL_AMOUNT.into()).unwrap();
+    T::Assets::mint_into(KSM.into(), &caller, INITIAL_AMOUNT.into()).unwrap();
+}
+
+fn set_account_borrows<T: Config>(
+    who: T::AccountId,
+    asset_id: AssetIdOf<T>,
+    borrow_balance: BalanceOf<T>,
+) where
+    BalanceOf<T>: FixedPointOperand,
+    AssetIdOf<T>: AtLeast32BitUnsigned,
+{
+    AccountBorrows::<T>::insert(
+        asset_id,
+        who,
+        BorrowSnapshot {
+            principal: borrow_balance,
+            borrow_index: Rate::one(),
+        },
+    );
 }
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
@@ -55,16 +74,24 @@ benchmarks! {
     }
 
     add_market {
-    }: _(SystemOrigin::Root,DOT.into(),PENDING_MARKET_MOCK)
-    verify { }
+    }: _(SystemOrigin::Root, DOT.into(),PENDING_MARKET_MOCK)
+    verify {
+        assert_last_event::<T>(Event::<T>::NewMarket(PENDING_MARKET_MOCK).into());
+    }
 
     active_market {
+        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), PENDING_MARKET_MOCK));
     }: _(SystemOrigin::Root,DOT.into())
-    verify { }
+    verify {
+        assert_last_event::<T>(Event::<T>::ActivatedMarket(DOT.into()).into());
+    }
 
     update_market {
-    }: _(SystemOrigin::Root,DOT.into(),PENDING_MARKET_MOCK)
-    verify { }
+        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), PENDING_MARKET_MOCK));
+    }: _(SystemOrigin::Root,DOT.into(), PENDING_MARKET_MOCK)
+    verify {
+
+    }
 
     mint {
         let caller: T::AccountId = whitelisted_caller();
@@ -151,14 +178,14 @@ benchmarks! {
         transfer_initial_balance::<T>(alice.clone());
         transfer_initial_balance::<T>(bob.clone());
         let deposit_amount: u32 = 200_000_000;
-        let borrowed_amount: u32 = 100_000_000;
-        let liquidate_amount: u32 = 50_000_000;
+        let borrowed_amount: u32 = 200_000_000;
+        let liquidate_amount: u32 = 100_000_000;
         let incentive_amount: u32 = 110_000_000;
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(bob.clone()).into(), KSM.into(), deposit_amount.into()));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(alice.clone()).into(), DOT.into(), deposit_amount.into()));
         assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(alice.clone()).into(), DOT.into(), true));
-        assert_ok!(Loans::<T>::borrow(SystemOrigin::Signed(alice.clone()).into(), KSM.into(), borrowed_amount.into()));
-        // crate::mock::MockPriceFeeder::set_price(KSM, 2.into());
+        // assert_ok!(Loans::<T>::borrow(SystemOrigin::Signed(alice.clone()).into(), KSM.into(), borrowed_amount.into()));
+        set_account_borrows::<T>(alice.clone(), KSM.into(), borrowed_amount.into());
     }: _(SystemOrigin::Signed(bob.clone()), alice.clone(), KSM.into(), liquidate_amount.into(), DOT.into())
     verify {
         assert_last_event::<T>(Event::<T>::LiquidatedBorrow(bob.clone(), alice.clone(), KSM.into(), DOT.into(), liquidate_amount.into(), incentive_amount.into()).into());
