@@ -456,7 +456,6 @@ impl pallet_assets::Config for Runtime {
 
 impl pallet_loans::Config for Runtime {
     type Event = Event;
-    type Currency = Currencies;
     type PalletId = LoansPalletId;
     type PriceFeeder = Prices;
     type ReserveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;

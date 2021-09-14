@@ -36,7 +36,6 @@ use frame_support::{
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
-use orml_traits::MultiCurrencyExtended;
 pub use pallet::*;
 use primitives::{
     Amount, AssetId, Balance, CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall,
@@ -54,7 +53,6 @@ use sp_std::result::Result;
 pub use types::{BorrowSnapshot, Deposits, EarnedSnapshot, Market, MarketState};
 pub use weights::WeightInfo;
 
-mod benchmarking;
 mod interest;
 mod mock;
 mod rate_model;
@@ -76,15 +74,6 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-
-        /// Currency type for deposit/withdraw collateral assets to/from loans
-        /// module
-        type Currency: MultiCurrencyExtended<
-            Self::AccountId,
-            CurrencyId = CurrencyId,
-            Balance = Balance,
-            Amount = Amount,
-        >;
 
         /// The oracle price feeder
         type PriceFeeder: PriceFeeder;

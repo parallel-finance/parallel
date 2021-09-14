@@ -43,9 +43,7 @@ construct_runtime!(
         UncheckedExtrinsic = UncheckedExtrinsic,
     {
         System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
-        Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
-        Currencies: orml_currencies::{Pallet, Call, Event<T>},
         Loans: loans::{Pallet, Storage, Call, Config, Event<T>},
         TimestampPallet: pallet_timestamp::{Pallet, Call, Storage, Inherent},
         Assets: pallet_assets::<Instance1>::{Pallet, Call, Storage, Event<T>},
@@ -127,31 +125,6 @@ impl Contains<AccountId> for DustRemovalWhitelist {
     }
 }
 
-impl orml_tokens::Config for Test {
-    type Event = Event;
-    type Balance = Balance;
-    type Amount = Amount;
-    type CurrencyId = CurrencyId;
-    type WeightInfo = ();
-    type OnDust = ();
-    type ExistentialDeposits = ExistentialDeposits;
-    type MaxLocks = MaxLocks;
-    type DustRemovalWhitelist = DustRemovalWhitelist;
-}
-
-parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = NATIVE;
-}
-
-impl orml_currencies::Config for Test {
-    type Event = Event;
-    type MultiCurrency = Tokens;
-    type NativeCurrency =
-        orml_currencies::BasicCurrencyAdapter<Test, Balances, Amount, BlockNumber>;
-    type GetNativeCurrencyId = GetNativeCurrencyId;
-    type WeightInfo = ();
-}
-
 parameter_types! {
     pub const ExistentialDeposit: Balance = 1;
     pub const MaxLocks: u32 = 50;
@@ -230,9 +203,12 @@ impl pallet_assets::Config<AssetsInstance> for Test {
     type WeightInfo = ();
 }
 
+parameter_types! {
+    pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
+}
+
 impl Config for Test {
     type Event = Event;
-    type Currency = Currencies;
     type PriceFeeder = MockPriceFeeder;
     type PalletId = LoansPalletId;
     type ReserveOrigin = EnsureRoot<AccountId>;
@@ -240,10 +216,6 @@ impl Config for Test {
     type WeightInfo = ();
     type UnixTime = TimestampPallet;
     type Assets = Assets;
-}
-
-parameter_types! {
-    pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
 }
 
 pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
