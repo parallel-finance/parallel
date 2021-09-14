@@ -24,7 +24,7 @@ use frame_support::{construct_runtime, parameter_types, traits::Contains, Pallet
 use frame_system::EnsureRoot;
 use orml_traits::parameter_type_with_key;
 use primitives::{
-    Amount, AssetId, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate, TokenSymbol,
+    AssetId, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate, TokenSymbol,
 };
 use sp_core::H256;
 use sp_runtime::traits::One;

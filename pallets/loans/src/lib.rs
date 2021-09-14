@@ -38,7 +38,7 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 pub use pallet::*;
 use primitives::{
-    Amount, AssetId, Balance, CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall,
+    AssetId, CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall,
     Timestamp,
 };
 use sp_runtime::{

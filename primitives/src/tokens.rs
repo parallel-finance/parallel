@@ -14,6 +14,27 @@
 
 use crate::AssetId;
 
+pub const HKO: AssetId = 0;
+pub const DOT: AssetId = 1;
 pub const KSM: AssetId = 100;
-#[allow(non_camel_case_types)]
-pub const xKSM: AssetId = 101;
+pub const XKSM: AssetId = 1000;
+
+// Token Registration Information
+// +──────────+────────+────────────────────+
+// | Network  | Token  | Register in block  |
+// +──────────+────────+────────────────────+
+// | Kusama   | HKO    | N/A                |
+// | Kusama   | PARA   | N/A                |
+// | Kusama   | KSM    | N/A                |
+// | Kusama   | XKSM   | N/A                |
+// | Kusama   | DOT    | N/A                |
+// | Kusama   | XDOT   | N/A                |
+// | Kusama   | USDT   | N/A                |
+// | Pokadot  | HKO    | N/A                |
+// | Pokadot  | PARA   | N/A                |
+// | Pokadot  | KSM    | N/A                |
+// | Pokadot  | XKSM   | N/A                |
+// | Pokadot  | DOT    | N/A                |
+// | Pokadot  | XDOT   | N/A                |
+// | Pokadot  | USDT   | N/A                |
+// +──────────+────────+────────────────────+
