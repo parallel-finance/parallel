@@ -218,7 +218,7 @@ where
                             .map_err(|_| ArithmeticError::Overflow)?;
                     price
                         .checked_mul(&FixedU128::from_inner(result.saturated_into()))
-                        .ok_or(ArithmeticError::Overflow.into())
+                        .ok_or_else(|| ArithmeticError::Overflow.into())
                 }) {
                     Err(_e) => {
                         acc.remove(&k2);
@@ -273,7 +273,7 @@ where
                         match pallet_loans::Pallet::<T>::get_price(k1).and_then(|price| {
                             price
                                 .checked_mul(&FixedU128::from_inner(balance.saturated_into()))
-                                .ok_or(ArithmeticError::Overflow.into())
+                                .ok_or_else(|| ArithmeticError::Overflow.into())
                         }) {
                             Err(_e) => {
                                 acc.remove(&k2);

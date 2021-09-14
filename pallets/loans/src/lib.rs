@@ -1100,7 +1100,7 @@ where
         }
 
         // The liquidator may not repay more than 50%(close_factor) of the borrower's borrow balance.
-        let account_borrows = Self::current_borrow_balance(&borrower, liquidate_asset_id)?;
+        let account_borrows = Self::current_borrow_balance(borrower, liquidate_asset_id)?;
         if market.close_factor.mul_ceil(account_borrows) < repay_amount {
             return Err(Error::<T>::TooMuchRepay.into());
         }
