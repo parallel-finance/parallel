@@ -23,11 +23,9 @@ use loans::*;
 use frame_support::{construct_runtime, parameter_types, traits::Contains, PalletId};
 use frame_system::EnsureRoot;
 use orml_traits::parameter_type_with_key;
-use primitives::{
-    AssetId, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate, TokenSymbol,
-};
+use primitives::{AssetId, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate};
 use sp_core::H256;
-use sp_runtime::traits::One;
+
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 use sp_std::vec::Vec;
 use std::cell::RefCell;
@@ -87,13 +85,6 @@ pub type BlockNumber = u64;
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CHARLIE: AccountId = 3;
-
-// pub const DOT: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
-// pub const KSM: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
-// pub const USDT: CurrencyId = CurrencyId::Token(TokenSymbol::USDT);
-// pub const XDOT: CurrencyId = CurrencyId::Token(TokenSymbol::xDOT);
-// pub const XKSM: CurrencyId = CurrencyId::Token(TokenSymbol::xKSM);
-pub const NATIVE: CurrencyId = CurrencyId::Token(TokenSymbol::HKO);
 
 pub const DOT: AssetId = 0;
 pub const KSM: AssetId = 1;

@@ -1,5 +1,5 @@
 use crate::{
-    mock::{new_test_ext, Loans, Origin, Test, ALICE, DOT, MARKET_MOCK, NATIVE, XDOT},
+    mock::{new_test_ext, Loans, Origin, Test, ALICE, DOT, MARKET_MOCK, XDOT},
     Error, InterestRateModel, Market, MarketState,
 };
 use frame_support::{assert_noop, assert_ok, error::BadOrigin};
