@@ -54,6 +54,7 @@ use sp_std::result::Result;
 pub use types::{BorrowSnapshot, Deposits, EarnedSnapshot, Market, MarketState};
 pub use weights::WeightInfo;
 
+mod benchmarking;
 mod interest;
 mod mock;
 mod rate_model;

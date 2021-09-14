@@ -1,6 +1,6 @@
 use crate::{
-    mock::{Loans, Origin, Test, ALICE, DOT, KSM},
-    tests::{dollar, run_to_block, ExtBuilder},
+    mock::{new_test_ext, Loans, Origin, Test, ALICE, DOT, KSM},
+    tests::{dollar, run_to_block},
     Config,
 };
 use frame_support::assert_ok;
@@ -8,7 +8,7 @@ use sp_runtime::FixedPointNumber;
 
 #[test]
 fn repay_borrow_all_no_underflow() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Alice deposits 200 KSM as collateral
         assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, dollar(200)));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));

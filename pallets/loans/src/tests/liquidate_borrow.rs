@@ -1,6 +1,6 @@
 use crate::{
-    mock::{Loans, MockPriceFeeder, Origin, Test, ALICE, BOB, DOT, KSM, USDT},
-    tests::{dollar, ExtBuilder},
+    mock::{new_test_ext, Loans, MockPriceFeeder, Origin, Test, ALICE, BOB, DOT, KSM, USDT},
+    tests::dollar,
     Config, Error, MarketState,
 };
 use frame_support::{assert_noop, assert_ok};
@@ -9,7 +9,7 @@ use sp_runtime::FixedPointNumber;
 
 #[test]
 fn liquidate_borrow_allowed_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Borrower should have a positive shortfall
         let dot_market = Loans::market(DOT).unwrap();
         assert_noop!(
@@ -36,7 +36,7 @@ fn liquidate_borrow_allowed_works() {
 
 #[test]
 fn deposit_of_borrower_must_be_collateral() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         initial_setup();
         alice_borrows_100_ksm();
         // Adjust KSM price to make shortfall
@@ -55,7 +55,7 @@ fn deposit_of_borrower_must_be_collateral() {
 
 #[test]
 fn collateral_value_must_be_greater_than_liquidation_value() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         initial_setup();
         alice_borrows_100_ksm();
         MockPriceFeeder::set_price(KSM, Rate::from_float(2000.0));
@@ -72,7 +72,7 @@ fn collateral_value_must_be_greater_than_liquidation_value() {
 
 #[test]
 fn full_workflow_works_as_expected() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         initial_setup();
         alice_borrows_100_ksm();
         // adjust KSM price to make ALICE generate shortfall
@@ -113,7 +113,7 @@ fn full_workflow_works_as_expected() {
 
 #[test]
 fn liquidator_cannot_take_inactive_market_currency() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         initial_setup();
         alice_borrows_100_ksm();
         // Adjust KSM price to make shortfall
@@ -130,7 +130,7 @@ fn liquidator_cannot_take_inactive_market_currency() {
 
 #[test]
 fn liquidator_can_not_repay_more_than_the_close_factor_pct_multiplier() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         initial_setup();
         alice_borrows_100_ksm();
         MockPriceFeeder::set_price(KSM, 20.into());
@@ -143,7 +143,7 @@ fn liquidator_can_not_repay_more_than_the_close_factor_pct_multiplier() {
 
 #[test]
 fn liquidator_must_not_be_borrower() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         initial_setup();
         assert_noop!(
             Loans::liquidate_borrow(Origin::signed(ALICE), ALICE, KSM, 0, DOT),

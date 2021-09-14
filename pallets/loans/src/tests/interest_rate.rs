@@ -1,6 +1,6 @@
 use crate::{
-    mock::{process_block, Loans, Origin, Test, ALICE, DOT},
-    tests::{dollar, million_dollar, run_to_block, Assets, ExtBuilder},
+    mock::{new_test_ext, process_block, Loans, Origin, Test, ALICE, DOT},
+    tests::{dollar, million_dollar, run_to_block, Assets},
     InterestRateModel, Markets,
 };
 use frame_support::assert_ok;
@@ -36,7 +36,7 @@ fn utilization_rate_works() {
 
 #[test]
 fn interest_rate_model_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         let rate_decimal: u128 = 1_000_000_000_000_000_000;
         Assets::mint(
             Origin::signed(ALICE),
@@ -135,7 +135,7 @@ fn interest_rate_model_works() {
 
 #[test]
 fn with_transaction_commit_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         Assets::mint(
             Origin::signed(ALICE),
             DOT,
@@ -184,7 +184,7 @@ fn with_transaction_commit_works() {
 
 #[test]
 fn with_transaction_rollback_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         Assets::mint(
             Origin::signed(ALICE),
             DOT,

@@ -158,15 +158,15 @@ parameter_types! {
 }
 
 impl pallet_balances::Config for Test {
-    type MaxLocks = MaxLocks;
     type Balance = Balance;
-    type Event = Event;
     type DustRemoval = ();
+    type Event = Event;
     type ExistentialDeposit = ExistentialDeposit;
-    type MaxReserves = ();
-    type ReserveIdentifier = [u8; 8];
     type AccountStore = System;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Test>;
+    type MaxLocks = MaxLocks;
+    type MaxReserves = ();
+    type ReserveIdentifier = [u8; 8];
 }
 
 pub struct MockPriceFeeder;
@@ -226,15 +226,15 @@ impl pallet_assets::Config<AssetsInstance> for Test {
     type ApprovalDeposit = ApprovalDeposit;
     type StringLimit = StringLimit;
     type Freezer = ();
-    type WeightInfo = ();
     type Extra = ();
+    type WeightInfo = ();
 }
 
 impl Config for Test {
     type Event = Event;
     type Currency = Currencies;
-    type PalletId = LoansPalletId;
     type PriceFeeder = MockPriceFeeder;
+    type PalletId = LoansPalletId;
     type ReserveOrigin = EnsureRoot<AccountId>;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
@@ -246,104 +246,38 @@ parameter_types! {
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
 }
 
-pub struct ExtBuilder {
-    balances: Vec<(AccountId, CurrencyId, Balance)>,
-}
-
-impl Default for ExtBuilder {
-    fn default() -> Self {
-        Self {
-            balances: vec![
-                (
-                    ALICE,
-                    CurrencyId::Token(TokenSymbol::DOT),
-                    million_dollar(1000),
-                ),
-                (
-                    ALICE,
-                    CurrencyId::Token(TokenSymbol::KSM),
-                    million_dollar(1000),
-                ),
-                (
-                    ALICE,
-                    CurrencyId::Token(TokenSymbol::USDT),
-                    million_dollar(1000),
-                ),
-                (
-                    BOB,
-                    CurrencyId::Token(TokenSymbol::DOT),
-                    million_dollar(1000),
-                ),
-                (
-                    BOB,
-                    CurrencyId::Token(TokenSymbol::KSM),
-                    million_dollar(1000),
-                ),
-                (
-                    BOB,
-                    CurrencyId::Token(TokenSymbol::USDT),
-                    million_dollar(1000),
-                ),
-            ],
-        }
-    }
-}
-
-impl ExtBuilder {
-    pub fn build(self) -> sp_io::TestExternalities {
-        let mut t = frame_system::GenesisConfig::default()
-            .build_storage::<Test>()
-            .unwrap();
-
-        orml_tokens::GenesisConfig::<Test> {
-            balances: self.balances.clone(),
-        }
-        .assimilate_storage(&mut t)
+pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
+    let t = frame_system::GenesisConfig::default()
+        .build_storage::<Test>()
         .unwrap();
 
-        loans::GenesisConfig {
-            borrow_index: Rate::one(),                             // 1
-            exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
-            markets: vec![
-                (CurrencyId::Token(TokenSymbol::DOT), MARKET_MOCK),
-                (CurrencyId::Token(TokenSymbol::KSM), MARKET_MOCK),
-                (CurrencyId::Token(TokenSymbol::USDT), MARKET_MOCK),
-                (CurrencyId::Token(TokenSymbol::xDOT), MARKET_MOCK),
-            ],
-            last_block_timestamp: 0,
-        }
-        .assimilate_storage::<Test>(&mut t)
-        .unwrap();
+    let mut ext = sp_io::TestExternalities::new(t);
+    ext.execute_with(|| {
+        // Init assets
+        // Balances::make_free_balance_be(&ALICE, 10);
+        // Balances::make_free_balance_be(&BOB, 10);
+        Assets::force_create(Origin::root(), DOT, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), KSM, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), USDT, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), XDOT, ALICE, true, 1).unwrap();
+        Assets::mint(Origin::signed(ALICE), KSM, ALICE, dollar(1000)).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, ALICE, dollar(1000)).unwrap();
+        Assets::mint(Origin::signed(ALICE), USDT, ALICE, dollar(1000)).unwrap();
+        Assets::mint(Origin::signed(ALICE), KSM, BOB, dollar(1000)).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, BOB, dollar(1000)).unwrap();
 
-        // t.into()
-        let mut ext = sp_io::TestExternalities::new(t);
-        ext.execute_with(|| {
-            // Init assets
-            // Balances::make_free_balance_be(&ALICE, 10);
-            // Balances::make_free_balance_be(&BOB, 10);
-            Assets::force_create(Origin::root(), DOT, ALICE, true, 1).unwrap();
-            Assets::force_create(Origin::root(), KSM, ALICE, true, 1).unwrap();
-            Assets::force_create(Origin::root(), USDT, ALICE, true, 1).unwrap();
-            Assets::force_create(Origin::root(), XDOT, ALICE, true, 1).unwrap();
-            Assets::mint(Origin::signed(ALICE), KSM, ALICE, dollar(1000)).unwrap();
-            Assets::mint(Origin::signed(ALICE), DOT, ALICE, dollar(1000)).unwrap();
-            Assets::mint(Origin::signed(ALICE), USDT, ALICE, dollar(1000)).unwrap();
-            Assets::mint(Origin::signed(ALICE), KSM, BOB, dollar(1000)).unwrap();
-            Assets::mint(Origin::signed(ALICE), DOT, BOB, dollar(1000)).unwrap();
+        // Init Markets
+        Loans::add_market(Origin::root(), KSM, MARKET_MOCK).unwrap();
+        Loans::active_market(Origin::root(), KSM).unwrap();
+        Loans::add_market(Origin::root(), DOT, MARKET_MOCK).unwrap();
+        Loans::active_market(Origin::root(), DOT).unwrap();
+        Loans::add_market(Origin::root(), USDT, MARKET_MOCK).unwrap();
+        Loans::active_market(Origin::root(), USDT).unwrap();
 
-            // Init Markets
-            Loans::add_market(Origin::root(), KSM, MARKET_MOCK).unwrap();
-            Loans::active_market(Origin::root(), KSM).unwrap();
-            Loans::add_market(Origin::root(), DOT, MARKET_MOCK).unwrap();
-            Loans::active_market(Origin::root(), DOT).unwrap();
-            Loans::add_market(Origin::root(), USDT, MARKET_MOCK).unwrap();
-            Loans::active_market(Origin::root(), USDT).unwrap();
-
-            System::set_block_number(0);
-            TimestampPallet::set_timestamp(6000);
-        });
-        ext
-    }
+        System::set_block_number(0);
+        TimestampPallet::set_timestamp(6000);
+    });
+    ext
 }
 
 /// Progress to the given block, and then finalize the block.

@@ -31,7 +31,7 @@ use mock::*;
 
 #[test]
 fn init_minting_ok() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         assert_eq!(Assets::balance(KSM, ALICE), dollar(1000));
         assert_eq!(Assets::balance(DOT, ALICE), dollar(1000));
         assert_eq!(Assets::balance(USDT, ALICE), dollar(1000));
@@ -42,7 +42,7 @@ fn init_minting_ok() {
 
 #[test]
 fn init_markets_ok() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         assert_eq!(Loans::market(KSM).unwrap().state, MarketState::Active);
         assert_eq!(Loans::market(DOT).unwrap().state, MarketState::Active);
         assert_eq!(Loans::market(USDT).unwrap().state, MarketState::Active);
@@ -66,7 +66,7 @@ fn init_markets_ok() {
 
 #[test]
 fn mint_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Deposit 100 DOT
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(100)));
 
@@ -87,7 +87,7 @@ fn mint_works() {
 
 #[test]
 fn mint_must_return_err_when_overflows_occur() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // MAX_DEPOSIT = u128::MAX * exchangeRate
         const OVERFLOW_DEPOSIT: u128 = u128::MAX / 50 + 1;
 
@@ -123,7 +123,7 @@ fn mint_must_return_err_when_overflows_occur() {
 
 #[test]
 fn redeem_allowed_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Prepare: Bob Deposit 200 DOT
         assert_ok!(Loans::mint(Origin::signed(BOB), DOT, 200));
 
@@ -157,7 +157,7 @@ fn redeem_allowed_works() {
 
 #[test]
 fn redeem_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(100)));
         assert_ok!(Loans::redeem(Origin::signed(ALICE), DOT, dollar(20)));
 
@@ -174,7 +174,7 @@ fn redeem_works() {
 
 #[test]
 fn redeem_must_return_err_when_overflows_occur() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Amount is too large, max_value / 0.0X == Overflow
         // Underflow is used here redeem could also be 0
         assert_noop!(
@@ -193,7 +193,7 @@ fn redeem_must_return_err_when_overflows_occur() {
 
 #[test]
 fn redeem_all_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(100)));
         assert_ok!(Loans::redeem_all(Origin::signed(ALICE), DOT));
 
@@ -211,7 +211,7 @@ fn redeem_all_works() {
 
 #[test]
 fn borrow_allowed_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Deposit 200 DOT as collateral
         assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, 200));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
@@ -227,7 +227,7 @@ fn borrow_allowed_works() {
 
 #[test]
 fn borrow_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Deposit 200 DOT as collateral
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(200)));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
@@ -251,7 +251,7 @@ fn borrow_works() {
 
 #[test]
 fn repay_borrow_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Deposit 200 DOT as collateral
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(200)));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
@@ -277,7 +277,7 @@ fn repay_borrow_works() {
 
 #[test]
 fn repay_borrow_all_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Bob deposits 200 KSM
         assert_ok!(Loans::mint(Origin::signed(BOB), KSM, dollar(200)));
         // Alice deposit 200 DOT as collateral
@@ -307,7 +307,7 @@ fn repay_borrow_all_works() {
 
 #[test]
 fn collateral_asset_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // No collateral assets
         assert_noop!(
             Loans::collateral_asset(Origin::signed(ALICE), DOT, true),
@@ -340,7 +340,7 @@ fn collateral_asset_works() {
 
 #[test]
 fn total_collateral_value_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Mock the price for DOT = 1, KSM = 1
         let collateral_factor = Rate::saturating_from_rational(50, 100);
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(100)));
@@ -357,7 +357,7 @@ fn total_collateral_value_works() {
 
 #[test]
 fn add_reserves_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Add 100 DOT reserves
         assert_ok!(Loans::add_reserves(Origin::root(), ALICE, DOT, dollar(100)));
 
@@ -372,7 +372,7 @@ fn add_reserves_works() {
 
 #[test]
 fn reduce_reserves_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Add 100 DOT reserves
         assert_ok!(Loans::add_reserves(Origin::root(), ALICE, DOT, dollar(100)));
 
@@ -395,7 +395,7 @@ fn reduce_reserves_works() {
 
 #[test]
 fn reduce_reserve_reduce_amount_must_be_less_than_total_reserves() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         assert_ok!(Loans::add_reserves(Origin::root(), ALICE, DOT, dollar(100)));
         assert_noop!(
             Loans::reduce_reserves(Origin::root(), ALICE, DOT, dollar(200)),
@@ -406,7 +406,7 @@ fn reduce_reserve_reduce_amount_must_be_less_than_total_reserves() {
 
 #[test]
 fn ratio_and_rate_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Permill to FixedU128
         let ratio = Permill::from_percent(50);
         let rate: FixedU128 = ratio.into();
@@ -513,7 +513,7 @@ fn ratio_and_rate_works() {
 
 #[test]
 fn update_exchange_rate_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Initialize value of exchange rate is 0.02
         assert_eq!(
             Loans::exchange_rate(DOT),
@@ -544,7 +544,7 @@ fn update_exchange_rate_works() {
 
 #[test]
 fn current_borrow_balance_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // snapshot.principal = 0
         AccountBorrows::<Test>::insert(
             DOT,
