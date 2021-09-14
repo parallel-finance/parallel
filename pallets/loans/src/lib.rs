@@ -52,10 +52,14 @@ use sp_std::result::Result;
 pub use types::{BorrowSnapshot, Deposits, EarnedSnapshot, Market, MarketState};
 pub use weights::WeightInfo;
 
-mod interest;
+mod benchmarking;
+#[cfg(test)]
 mod mock;
-mod rate_model;
+#[cfg(test)]
 mod tests;
+
+mod interest;
+mod rate_model;
 mod types;
 
 pub mod weights;
@@ -648,23 +652,6 @@ pub mod pallet {
             Self::repay_borrow_internal(&who, asset_id, account_borrows, account_borrows)?;
 
             Self::deposit_event(Event::<T>::RepaidBorrow(who, asset_id, account_borrows));
-
-            Ok(().into())
-        }
-
-        /// Using for development
-        #[pallet::weight(T::WeightInfo::transfer_token())]
-        #[transactional]
-        pub fn transfer_token(
-            origin: OriginFor<T>,
-            to: T::AccountId,
-            asset_id: AssetIdOf<T>,
-            amount: BalanceOf<T>,
-        ) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
-            Self::ensure_currency(asset_id)?;
-
-            T::Assets::transfer(asset_id, &who, &to, amount, false)?;
 
             Ok(().into())
         }

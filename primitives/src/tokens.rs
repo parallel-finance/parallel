@@ -23,7 +23,7 @@ pub const XKSM: AssetId = 1000;
 // +──────────+────────+────────────────────+
 // | Network  | Token  | Register in block  |
 // +──────────+────────+────────────────────+
-// | Kusama   | HKO    | N/A                |
+// | Kusama   | HKO    | Native             |
 // | Kusama   | PARA   | N/A                |
 // | Kusama   | KSM    | N/A                |
 // | Kusama   | XKSM   | N/A                |
@@ -31,7 +31,7 @@ pub const XKSM: AssetId = 1000;
 // | Kusama   | XDOT   | N/A                |
 // | Kusama   | USDT   | N/A                |
 // | Pokadot  | HKO    | N/A                |
-// | Pokadot  | PARA   | N/A                |
+// | Pokadot  | PARA   | Native             |
 // | Pokadot  | KSM    | N/A                |
 // | Pokadot  | XKSM   | N/A                |
 // | Pokadot  | DOT    | N/A                |
