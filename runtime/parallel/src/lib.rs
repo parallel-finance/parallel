@@ -90,6 +90,7 @@ use currency::*;
 use fee::*;
 use time::*;
 
+use frame_benchmarking::frame_support::dispatch::DispatchResult;
 use frame_benchmarking::frame_support::traits::tokens::{DepositConsequence, WithdrawConsequence};
 pub use frame_support::{
     construct_runtime, parameter_types,
@@ -101,6 +102,7 @@ pub use frame_support::{
     StorageValue,
 };
 use pallet_xcm::XcmPassthrough;
+use primitives::currency::CurrencyOrAsset;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 use std::marker::PhantomData;
@@ -1195,52 +1197,95 @@ impl Inspect<AccountId> for Adapter<AccountId> {
     fn total_issuance(asset: Self::AssetId) -> Self::Balance {
         match asset {
             CurrencyOrAsset::NativeCurrency => Balances::total_issuance(),
-            CurrencyOrAsset(asset_id) => Assets::total_issuance(asset_id),
+            CurrencyOrAsset::Asset(asset_id) => Assets::total_issuance(asset_id),
         }
     }
 
-    fn balance(asset: Self::AssetId, who: &AccountId) -> Balance {
+    fn balance(asset: Self::AssetId, who: &AccountId) -> Self::Balance {
         match asset {
             CurrencyOrAsset::NativeCurrency => Balances::balance(who),
-            CurrencyOrAsset(asset_id) => Assets::balance(asset_id, who),
+            CurrencyOrAsset::Asset(asset_id) => Assets::balance(asset_id, who),
         }
     }
 
-    fn minimum_balance(asset: Self::AssetId) -> Balance {
+    fn minimum_balance(asset: Self::AssetId) -> Self::Balance {
         match asset {
             CurrencyOrAsset::NativeCurrency => Balances::minimum_balance(),
-            CurrencyOrAsset(asset_id) => Assets::minimum_balance(asset_id),
+            CurrencyOrAsset::Asset(asset_id) => Assets::minimum_balance(asset_id),
         }
     }
 
-    fn reducible_balance(asset: Self::AssetId, who: &AccountId, keep_alive: bool) -> Balance {
+    fn reducible_balance(asset: Self::AssetId, who: &AccountId, keep_alive: bool) -> Self::Balance {
         match asset {
             CurrencyOrAsset::NativeCurrency => Balances::reducible_balance(who, keep_alive),
-            CurrencyOrAsset(asset_id) => Assets::reducible_balance(asset_id, who, keep_alive),
+            CurrencyOrAsset::Asset(asset_id) => {
+                Assets::reducible_balance(asset_id, who, keep_alive)
+            }
         }
     }
 
-    fn can_deposit(asset: Self::AssetId, who: &AccountId, amount: Balance) -> DepositConsequence {
+    fn can_deposit(
+        asset: Self::AssetId,
+        who: &AccountId,
+        amount: Self::Balance,
+    ) -> DepositConsequence {
         match asset {
             CurrencyOrAsset::NativeCurrency => Balances::can_deposit(who, amount),
-            CurrencyOrAsset(asset_id) => Assets::can_deposit(asset_id, who, amount),
+            CurrencyOrAsset::Asset(asset_id) => Assets::can_deposit(asset_id, who, amount),
         }
     }
 
     fn can_withdraw(
         asset: Self::AssetId,
         who: &AccountId,
-        amount: Balance,
-    ) -> WithdrawConsequence<Balance> {
+        amount: Self::Balance,
+    ) -> WithdrawConsequence<Self::Balance> {
         match asset {
             CurrencyOrAsset::NativeCurrency => Balances::can_withdraw(who, amount),
-            CurrencyOrAsset(asset_id) => Assets::can_withdraw(asset_id, who, amount),
+            CurrencyOrAsset::Asset(asset_id) => Assets::can_withdraw(asset_id, who, amount),
+        }
+    }
+}
+
+impl Mutate<AccountId> for Adapter<AccountId> {
+    fn mint_into(asset: Self::AssetId, who: &AccountId, amount: Self::Balance) -> DispatchResult {
+        match asset {
+            CurrencyOrAsset::NativeCurrency => Balances::mint_into(who, amount),
+            CurrencyOrAsset::Asset(asset_id) => Assets::mint_into(asset_id, who, amount),
+        }
+    }
+
+    fn burn_from(
+        asset: Self::AssetId,
+        who: &AccountId,
+        amount: Balance,
+    ) -> Result<Balance, DispatchError> {
+        match asset {
+            CurrencyOrAsset::NativeCurrency => Balances::burn_from(who, amount),
+            CurrencyOrAsset::Asset(asset_id) => Assets::burn_from(asset_id, who, amount),
+        }
+    }
+}
+
+impl Transfer<AccountId> for Adapter<AccountId> {
+    fn transfer(
+        asset: Self::AssetId,
+        source: &AccountId,
+        dest: &AccountId,
+        amount: Self::Balance,
+        _keep_alive: bool,
+    ) -> Result<Balance, DispatchError> {
+        match asset {
+            CurrencyOrAsset::NativeCurrency => Balances::transfer(source, dest, amount, true),
+            CurrencyOrAsset::Asset(asset_id) => {
+                Assets::transfer(asset_id, source, dest, amount, true)
+            }
         }
     }
 }
 impl pallet_amm::Config for Runtime {
     type Event = Event;
-    type Currency = Currencies;
+    type Currency = Adapter<AccountId>;
     type PalletId = AMMPalletId;
     type WeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;

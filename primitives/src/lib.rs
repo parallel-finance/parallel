@@ -88,6 +88,7 @@ pub type PriceDetail = (Price, Timestamp);
 
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<PriceWithDecimal, Moment>;
 
+use crate::currency::CurrencyOrAsset;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
@@ -148,8 +149,18 @@ pub trait AMM<T: frame_system::Config> {
     /// of currency that was sent back to the user.
     fn trade(
         who: &T::AccountId,
-        pair: (CurrencyId, CurrencyId),
+        pair: (CurrencyOrAsset, CurrencyOrAsset),
         amount_in: Balance,
         minimum_amount_out: Balance,
     ) -> Result<Balance, frame_support::pallet_prelude::DispatchError>;
+}
+
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct PoolAssets(pub CurrencyOrAsset, pub CurrencyOrAsset);
+
+impl PoolAssets {
+    pub fn common_asset_id(&self) -> CurrencyOrAsset {
+        CurrencyOrAsset::common_asset_id(self.0, self.1).expect("Not valid asset id")
+    }
 }

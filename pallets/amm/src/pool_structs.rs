@@ -14,15 +14,21 @@
 
 // Groups common pool related structures
 
-use primitives::{Balance, CurrencyId, Rate, TokenSymbol};
-use sp_runtime::{traits::Saturating, ArithmeticError, DispatchError, FixedPointNumber};
+use codec::{Decode, Encode};
+use primitives::currency::CurrencyOrAsset;
+use primitives::{Balance, PoolAssets, Rate};
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
+use sp_runtime::{
+    traits::Saturating, ArithmeticError, DispatchError, FixedPointNumber, RuntimeDebug,
+};
 
 // Amplification Coefficient Weight.
 //
 // In this pallet, the actual amplification coefficient will be `exchange_rate` * `ACW`.
 const ACW: Rate = Rate::from_inner(Rate::DIV / 100 * 50); // 50%
 
-#[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
+#[derive(Clone, PartialEq, Decode, Encode, RuntimeDebug)]
 pub enum SwapType {
     Buy,
     Sell,
@@ -35,11 +41,12 @@ pub struct AmountEvaluation {
     pub pool_amount: Balance,
 }
 
-#[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct PoolLiquidityAmount {
     pub base_amount: Balance,
     pub quote_amount: Balance,
-    pub lp_token: CurrencyId,
+    pub pool_assets: PoolAssets,
 }
 
 impl Default for PoolLiquidityAmount {
@@ -47,7 +54,10 @@ impl Default for PoolLiquidityAmount {
         Self {
             base_amount: Balance::default(),
             quote_amount: Balance::default(),
-            lp_token: CurrencyId::LPToken(Default::default(), TokenSymbol::DOT, TokenSymbol::DOT),
+            pool_assets: PoolAssets(
+                CurrencyOrAsset::Asset(u32::default()),
+                CurrencyOrAsset::Asset(u32::default()),
+            ),
         }
     }
 }
