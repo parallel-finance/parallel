@@ -22,6 +22,7 @@ local-test
 *.tar.xz
 *.tar.gz
 *.tgz
+*.7z
 
 # The directory for creating release
 dist/
@@ -31,6 +32,7 @@ dist/
 *-local*.json
 
 chains/
+db/
 
 **/keystore*
 

@@ -58,13 +58,16 @@ docker run --restart=always --name heiko-collator \
     --execution=wasm \
     --listen-addr=/ip4/0.0.0.0/tcp/$PARA_P2P_PORT \
     --name=$NODE_NAME \
+    --prometheus-external \
   -- \
     --chain=$RELAY_CHAIN \
     --ws-port=$RELAY_WS_PORT \
     --rpc-port=$RELAY_RPC_PORT \
     --wasm-execution=compiled \
     --execution=wasm \
-    --pruning archive \
+    --database=RocksDb \
+    --unsafe-pruning \
+    --pruning=1000 \
     --listen-addr=/ip4/0.0.0.0/tcp/$RELAY_P2P_PORT \
     --name="${NODE_NAME}_Embedded_Relay"
 
