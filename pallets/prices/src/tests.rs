@@ -48,10 +48,7 @@ fn set_price_work() {
         // set DOT price
         EmergencyPrice::<Runtime>::insert(
             DOT,
-            PriceWithDecimal {
-                price: Price::saturating_from_integer(99),
-                decimal: 10,
-            },
+            Price::saturating_from_integer(99),
         );
         assert_eq!(
             Prices::get_price(&DOT),
@@ -70,10 +67,7 @@ fn reset_price_work() {
         // set DOT price
         EmergencyPrice::<Runtime>::insert(
             DOT,
-            PriceWithDecimal {
-                price: Price::saturating_from_integer(99),
-                decimal: 10,
-            },
+            Price::saturating_from_integer(99),
         );
         assert_eq!(
             Prices::get_price(&DOT),
@@ -103,20 +97,14 @@ fn set_price_call_work() {
             Prices::set_price(
                 Origin::signed(2),
                 DOT,
-                PriceWithDecimal {
-                    price: Price::saturating_from_integer(100),
-                    decimal: 10
-                }
+                Price::saturating_from_integer(100),
             ),
             BadOrigin
         );
         assert_ok!(Prices::set_price(
             Origin::signed(1),
             DOT,
-            PriceWithDecimal {
-                price: Price::saturating_from_integer(90),
-                decimal: 10
-            }
+            Price::saturating_from_integer(90),
         ));
         assert_eq!(
             Prices::get_price(&DOT),
@@ -126,10 +114,7 @@ fn set_price_call_work() {
         // check the event
         let set_price_event = Event::Prices(crate::Event::SetPrice(
             DOT,
-            PriceWithDecimal {
-                price: Price::saturating_from_integer(90),
-                decimal: 10,
-            },
+            Price::saturating_from_integer(90),
         ));
         assert!(System::events()
             .iter()
@@ -138,10 +123,7 @@ fn set_price_call_work() {
             Prices::set_price(
                 Origin::signed(1),
                 DOT,
-                PriceWithDecimal {
-                    price: Price::saturating_from_integer(90),
-                    decimal: 10
-                }
+                Price::saturating_from_integer(90),
             ),
             Ok(().into())
         );
@@ -161,10 +143,7 @@ fn reset_price_call_work() {
         assert_ok!(Prices::set_price(
             Origin::signed(1),
             DOT,
-            PriceWithDecimal {
-                price: Price::saturating_from_integer(90),
-                decimal: 10
-            }
+            Price::saturating_from_integer(90),
         ));
         assert_eq!(
             Prices::get_price(&DOT),
