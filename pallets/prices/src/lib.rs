@@ -66,7 +66,7 @@ pub mod pallet {
     #[pallet::generate_deposit(pub(crate) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Set emergency price. \[asset_id, price_detail\]
-        SetPrice(AssetId, PriceWithDecimal),
+        SetPrice(AssetId, Price),
         /// Reset emergency price. \[asset_id\]
         ResetPrice(AssetId),
     }
@@ -75,7 +75,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn emergency_price)]
     pub type EmergencyPrice<T: Config> =
-        StorageMap<_, Twox64Concat, AssetId, PriceWithDecimal, OptionQuery>;
+        StorageMap<_, Twox64Concat, AssetId, Price, OptionQuery>;
 
     #[pallet::pallet]
     pub struct Pallet<T>(PhantomData<T>);
@@ -91,10 +91,10 @@ pub mod pallet {
         pub fn set_price(
             origin: OriginFor<T>,
             asset_id: AssetId,
-            price: PriceWithDecimal,
+            price: Price,
         ) -> DispatchResultWithPostInfo {
             T::FeederOrigin::ensure_origin(origin)?;
-            <Pallet<T> as EmergencyPriceFeeder<AssetId, PriceWithDecimal>>::set_emergency_price(
+            <Pallet<T> as EmergencyPriceFeeder<AssetId, Price>>::set_emergency_price(
                 asset_id, price,
             );
             Ok(().into())
@@ -105,7 +105,7 @@ pub mod pallet {
         #[transactional]
         pub fn reset_price(origin: OriginFor<T>, asset_id: AssetId) -> DispatchResultWithPostInfo {
             T::FeederOrigin::ensure_origin(origin)?;
-            <Pallet<T> as EmergencyPriceFeeder<AssetId, PriceWithDecimal>>::reset_emergency_price(
+            <Pallet<T> as EmergencyPriceFeeder<AssetId, Price>>::reset_emergency_price(
                 asset_id,
             );
             Ok(().into())
@@ -163,9 +163,9 @@ impl<T: Config> PriceFeeder for Pallet<T> {
     }
 }
 
-impl<T: Config> EmergencyPriceFeeder<AssetId, PriceWithDecimal> for Pallet<T> {
+impl<T: Config> EmergencyPriceFeeder<AssetId, Price> for Pallet<T> {
     /// Set emergency price
-    fn set_emergency_price(asset_id: AssetId, price: PriceWithDecimal) {
+    fn set_emergency_price(asset_id: AssetId, price: Price) {
         // set price direct
         EmergencyPrice::<T>::insert(asset_id, price);
         <Pallet<T>>::deposit_event(Event::SetPrice(asset_id, price));
@@ -186,15 +186,11 @@ impl<T: Config> DataProviderExtended<AssetId, TimeStampedPrice> for Pallet<T> {
             Some((staking_currency, liquid_currency)) if &liquid_currency == asset_id => {
                 T::Source::get_no_op(&staking_currency).and_then(|p| {
                     p.value
-                        .price
-                        .checked_mul(&T::LiquidStakingExchangeRateProvider::get_exchange_rate())
-                        .map(|price| TimeStampedPrice {
-                            value: PriceWithDecimal {
-                                price,
-                                decimal: p.value.decimal,
-                            },
-                            timestamp: p.timestamp,
-                        })
+                    .checked_mul(&T::LiquidStakingExchangeRateProvider::get_exchange_rate())
+                    .map(|price| TimeStampedPrice {
+                        value: price,
+                        timestamp: p.timestamp,
+                    })
                 })
             }
             _ => T::Source::get_no_op(asset_id),
