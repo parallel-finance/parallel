@@ -231,21 +231,21 @@ impl ExtBuilder {
             .build_storage::<Runtime>()
             .unwrap();
 
-            let mut ext = sp_io::TestExternalities::new(t);
-            ext.execute_with(|| {
-                Assets::force_create(Origin::root(), DOT, ALICE, true, 1).unwrap();
-                Assets::force_create(Origin::root(), KSM, ALICE, true, 1).unwrap();
-                Assets::force_create(Origin::root(), xKSM, ALICE, true, 1).unwrap();
-                Assets::force_create(Origin::root(), xDOT, ALICE, true, 1).unwrap();
-                Assets::mint(Origin::signed(ALICE), KSM, ALICE, dollar(1000)).unwrap();
-                Assets::mint(Origin::signed(ALICE), DOT, ALICE, dollar(1000)).unwrap();
-                Assets::mint(Origin::signed(ALICE), xKSM, ALICE, dollar(1000)).unwrap();
-                Assets::mint(Origin::signed(ALICE), xDOT, ALICE, dollar(1000)).unwrap();
-                Assets::mint(Origin::signed(ALICE), KSM, BOB, dollar(1000)).unwrap();
-                Assets::mint(Origin::signed(ALICE), DOT, BOB, dollar(1000)).unwrap();
-        
-                System::set_block_number(0);
-            });
-            ext
+        let mut ext = sp_io::TestExternalities::new(t);
+        ext.execute_with(|| {
+            Assets::force_create(Origin::root(), DOT, ALICE, true, 1).unwrap();
+            Assets::force_create(Origin::root(), KSM, ALICE, true, 1).unwrap();
+            Assets::force_create(Origin::root(), xKSM, ALICE, true, 1).unwrap();
+            Assets::force_create(Origin::root(), xDOT, ALICE, true, 1).unwrap();
+            Assets::mint(Origin::signed(ALICE), KSM, ALICE, dollar(1000)).unwrap();
+            Assets::mint(Origin::signed(ALICE), DOT, ALICE, dollar(1000)).unwrap();
+            Assets::mint(Origin::signed(ALICE), xKSM, ALICE, dollar(1000)).unwrap();
+            Assets::mint(Origin::signed(ALICE), xDOT, ALICE, dollar(1000)).unwrap();
+            Assets::mint(Origin::signed(ALICE), KSM, BOB, dollar(1000)).unwrap();
+            Assets::mint(Origin::signed(ALICE), DOT, BOB, dollar(1000)).unwrap();
+
+            System::set_block_number(0);
+        });
+        ext
     }
 }

@@ -916,18 +916,13 @@ impl DataProviderExtended<AssetId, TimeStampedPrice> for AggregatedDataProvider 
     }
 }
 
-parameter_types! {
-    pub const KSM: AssetId = 100;
-    #[allow(non_camel_case_types)]
-    pub const xKSM: AssetId = 101;
-}
-
 pub struct Decimal;
 impl DecimalProvider for Decimal {
     fn get_decimal(asset_id: &AssetId) -> u8 {
         // pallet_assets::Metadata::<Runtime>::get(asset_id).decimals
         match *asset_id {
-            100 | 101 => 12,
+            KSM => 12,
+            xKSM => 12,
             _ => 0,
         }
     }
