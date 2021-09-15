@@ -67,8 +67,8 @@ impl frame_system::Config for Runtime {
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 pub struct MockDataProvider;
 impl DataProvider<AssetId, TimeStampedPrice> for MockDataProvider {
-    fn get(currency_id: &AssetId) -> Option<TimeStampedPrice> {
-        match *currency_id {
+    fn get(asset_id: &AssetId) -> Option<TimeStampedPrice> {
+        match *asset_id {
             DOT => Some(TimeStampedPrice {
                 value: Price::saturating_from_integer(100),
                 timestamp: 0,
@@ -105,9 +105,14 @@ ord_parameter_types! {
     pub const LiquidCurrency: AssetId = xKSM;
 }
 pub struct Decimal;
+#[allow(non_upper_case_globals)]
 impl DecimalProvider for Decimal {
-    fn get_decimal(_asset_id: &AssetId) -> u8 {
-        0
+    fn get_decimal(asset_id: &AssetId) -> u8 {
+        match *asset_id {
+            DOT | xDOT => 10,
+            KSM | xKSM => 12,
+            _ => 0,
+        }
     }
 }
 
