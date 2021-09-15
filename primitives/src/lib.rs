@@ -23,10 +23,10 @@ pub mod tokens;
 use codec::{Decode, Encode};
 pub use currency::{CurrencyId, TokenSymbol};
 use sp_runtime::{
-    traits::{CheckedDiv, IdentifyAccount, Verify},
+    traits::{IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
 };
-use sp_std::{cmp::Ordering, convert::Into, prelude::*};
+use sp_std::{convert::Into, prelude::*};
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -89,7 +89,7 @@ pub const SECONDS_PER_YEAR: Timestamp = 365 * 24 * 60 * 60;
 
 pub type PriceDetail = (Price, Timestamp);
 
-pub type TimeStampedPrice = orml_oracle::TimestampedValue<PriceWithDecimal, Moment>;
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 
@@ -99,44 +99,17 @@ pub enum DataProviderId {
     Aggregated = 0,
 }
 
-#[derive(Encode, Decode, Debug, Default, Copy, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct PriceWithDecimal {
-    pub price: Price,
-    pub decimal: u8,
-}
-impl Ord for PriceWithDecimal {
-    fn cmp(&self, other: &Self) -> Ordering {
-        if let Some((decimal, other_decimal)) = 10u128
-            .checked_pow(self.decimal.into())
-            .zip(10u128.checked_pow(other.decimal.into()))
-        {
-            if let Some((price, other_price)) =
-                self.price.checked_div(&FixedU128::from_inner(decimal)).zip(
-                    other
-                        .price
-                        .checked_div(&FixedU128::from_inner(other_decimal)),
-                )
-            {
-                return price.cmp(&other_price);
-            }
-        }
-        self.price.cmp(&other.price)
-    }
-}
-impl PartialOrd for PriceWithDecimal {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 pub trait PriceFeeder {
     fn get_price(asset_id: &AssetId) -> Option<PriceDetail>;
 }
 
-pub trait EmergencyPriceFeeder<AssetId, PriceWithDecimal> {
-    fn set_emergency_price(asset_id: AssetId, price: PriceWithDecimal);
+pub trait DecimalProvider {
+    fn get_decimal(asset_id: &AssetId) -> u8;
+}
+
+pub trait EmergencyPriceFeeder<AssetId, Price> {
+    fn set_emergency_price(asset_id: AssetId, price: Price);
     fn reset_emergency_price(asset_id: AssetId);
 }
 

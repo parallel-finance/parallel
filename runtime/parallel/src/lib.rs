@@ -891,14 +891,14 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
         orml_oracle::DefaultCombineData<Runtime, MinimumCount, ExpiresIn, ParallelDataProvider>;
     type Time = Timestamp;
     type OracleKey = AssetId;
-    type OracleValue = PriceWithDecimal;
+    type OracleValue = Price;
     type RootOperatorAccountId = ZeroAccountId;
     type MaxHasDispatchedSize = MaxHasDispatchedSize;
     type WeightInfo = ();
     type Members = OracleMembership;
 }
 
-pub type TimeStampedPrice = orml_oracle::TimestampedValue<PriceWithDecimal, Moment>;
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 pub struct AggregatedDataProvider;
 impl DataProvider<AssetId, TimeStampedPrice> for AggregatedDataProvider {
     fn get(key: &AssetId) -> Option<TimeStampedPrice> {
@@ -916,10 +916,15 @@ impl DataProviderExtended<AssetId, TimeStampedPrice> for AggregatedDataProvider 
     }
 }
 
-parameter_types! {
-    pub const KSM: AssetId = 100;
-    #[allow(non_camel_case_types)]
-    pub const xKSM: AssetId = 101;
+pub struct Decimal;
+impl DecimalProvider for Decimal {
+    fn get_decimal(asset_id: &AssetId) -> u8 {
+        // pallet_assets::Metadata::<Runtime>::get(asset_id).decimals
+        match *asset_id {
+            DOT | XDOT => 10,
+            _ => 0,
+        }
+    }
 }
 
 impl pallet_prices::Config for Runtime {
@@ -928,6 +933,7 @@ impl pallet_prices::Config for Runtime {
     type FeederOrigin = EnsureRoot<AccountId>;
     type LiquidStakingExchangeRateProvider = LiquidStaking;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
+    type Decimal = Decimal;
 }
 
 parameter_types! {
