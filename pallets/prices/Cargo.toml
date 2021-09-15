@@ -14,20 +14,16 @@ primitives    = { package = 'parallel-primitives', path = '../../primitives', de
 serde         = { version = '1.0.124', optional = true }
 sp-runtime    = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
 sp-std        = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
-pallet-assets = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
 
 [dev-dependencies]
 sp-core = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
 sp-io   = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
-pallet-balances = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
-
 [features]
 default = ['std']
 std     = [
   'serde',
   'codec/std',
   'sp-runtime/std',
-  'pallet-assets/std',
   'frame-support/std',
   'frame-system/std',
   'sp-std/std',
