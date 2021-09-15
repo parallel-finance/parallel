@@ -16,7 +16,7 @@
 
 use super::*;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types};
-use frame_system::EnsureSignedBy;
+use frame_system::{EnsureRoot, EnsureSignedBy};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, FixedPointNumber};
 
@@ -26,6 +26,9 @@ pub type BlockNumber = u64;
 mod prices {
     pub use super::super::*;
 }
+
+pub const ALICE: AccountId = 1;
+pub const BOB: AccountId = 2;
 
 pub const DOT: AssetId = 10;
 #[allow(non_upper_case_globals)]
@@ -54,7 +57,7 @@ impl frame_system::Config for Runtime {
     type BlockLength = ();
     type Version = ();
     type PalletInfo = PalletInfo;
-    type AccountData = ();
+    type AccountData = pallet_balances::AccountData<Balance>;
     type OnNewAccount = ();
     type OnKilledAccount = ();
     type DbWeight = ();
@@ -126,6 +129,65 @@ impl LiquidStakingCurrenciesProvider<AssetId> for LiquidStaking {
     }
 }
 
+pub mod currency {
+    use primitives::Balance;
+
+    pub const MILLICENTS: Balance = 10_000_000;
+    pub const CENTS: Balance = 1_000 * MILLICENTS; // assume this is worth about a cent.
+    pub const DOLLARS: Balance = 100 * CENTS;
+
+    pub const EXISTENTIAL_DEPOSIT: u128 = 10 * CENTS; // 0.1 Native Token Balance
+
+    pub const fn deposit(items: u32, bytes: u32) -> Balance {
+        items as Balance * 15 * CENTS + (bytes as Balance) * 6 * CENTS
+    }
+}
+use currency::*;
+parameter_types! {
+    pub const AssetDeposit: Balance = DOLLARS; // 1 UNIT deposit to create asset
+    pub const ApprovalDeposit: Balance = EXISTENTIAL_DEPOSIT;
+    pub const AssetsStringLimit: u32 = 50;
+    /// Key = 32 bytes, Value = 36 bytes (32+1+1+1+1)
+    // https://github.com/paritytech/substrate/blob/069917b/frame/assets/src/lib.rs#L257L271
+    pub const MetadataDepositBase: Balance = deposit(1, 68);
+    pub const MetadataDepositPerByte: Balance = deposit(0, 1);
+}
+
+impl pallet_assets::Config for Runtime {
+    type Event = Event;
+    type Balance = Balance;
+    type AssetId = AssetId;
+    type Currency = Balances;
+    type ForceOrigin = EnsureRoot<Self::AccountId>;
+    type AssetDeposit = AssetDeposit;
+    type MetadataDepositBase = MetadataDepositBase;
+    type MetadataDepositPerByte = MetadataDepositPerByte;
+    type ApprovalDeposit = ApprovalDeposit;
+    type StringLimit = AssetsStringLimit;
+    type Freezer = ();
+    type WeightInfo = ();
+    type Extra = ();
+}
+
+parameter_types! {
+    pub const ExistentialDeposit: u128 = currency::EXISTENTIAL_DEPOSIT;
+    pub const MaxLocks: u32 = 50;
+}
+
+impl pallet_balances::Config for Runtime {
+    type MaxLocks = MaxLocks;
+    /// The type for recording an account's balance.
+    type Balance = Balance;
+    /// The ubiquitous event type.
+    type Event = Event;
+    type DustRemoval = ();
+    type MaxReserves = ();
+    type ReserveIdentifier = [u8; 8];
+    type ExistentialDeposit = ExistentialDeposit;
+    type AccountStore = System;
+    type WeightInfo = ();
+}
+
 impl Config for Runtime {
     type Event = Event;
     type Source = MockDataProvider;
@@ -146,6 +208,8 @@ construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         Prices: prices::{Pallet, Storage, Call, Event<T>},
+        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+        Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
     }
 );
 
@@ -157,12 +221,31 @@ impl Default for ExtBuilder {
     }
 }
 
+pub fn dollar(d: u128) -> u128 {
+    d.saturating_mul(10_u128.pow(12))
+}
+
 impl ExtBuilder {
     pub fn build(self) -> sp_io::TestExternalities {
         let t = frame_system::GenesisConfig::default()
             .build_storage::<Runtime>()
             .unwrap();
 
-        t.into()
+            let mut ext = sp_io::TestExternalities::new(t);
+            ext.execute_with(|| {
+                Assets::force_create(Origin::root(), DOT, ALICE, true, 1).unwrap();
+                Assets::force_create(Origin::root(), KSM, ALICE, true, 1).unwrap();
+                Assets::force_create(Origin::root(), xKSM, ALICE, true, 1).unwrap();
+                Assets::force_create(Origin::root(), xDOT, ALICE, true, 1).unwrap();
+                Assets::mint(Origin::signed(ALICE), KSM, ALICE, dollar(1000)).unwrap();
+                Assets::mint(Origin::signed(ALICE), DOT, ALICE, dollar(1000)).unwrap();
+                Assets::mint(Origin::signed(ALICE), xKSM, ALICE, dollar(1000)).unwrap();
+                Assets::mint(Origin::signed(ALICE), xDOT, ALICE, dollar(1000)).unwrap();
+                Assets::mint(Origin::signed(ALICE), KSM, BOB, dollar(1000)).unwrap();
+                Assets::mint(Origin::signed(ALICE), DOT, BOB, dollar(1000)).unwrap();
+        
+                System::set_block_number(0);
+            });
+            ext
     }
 }

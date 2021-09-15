@@ -5840,6 +5840,8 @@ dependencies = [
  "frame-system",
  "orml-oracle",
  "orml-traits",
+ "pallet-assets",
+ "pallet-balances",
  "parallel-primitives",
  "parity-scale-codec",
  "serde",
