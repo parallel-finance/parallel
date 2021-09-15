@@ -25,11 +25,11 @@ mod weights;
 use codec::Encode;
 use frame_support::{
     dispatch::Weight,
-    traits::{Contains, Everything, IsInVec},
+    traits::{fungibles::Mutate, Contains, Everything, IsInVec},
     PalletId,
 };
 use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended, MultiCurrency};
+use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended};
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use sp_api::impl_runtime_apis;
 use sp_core::{
@@ -56,9 +56,14 @@ use frame_system::{
     limits::{BlockLength, BlockWeights},
     EnsureOneOf, EnsureRoot, EnsureSigned, EnsureSignedBy,
 };
-use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
+use orml_xcm_support::{IsNativeConcrete, MultiNativeAsset};
 use polkadot_parachain::primitives::Sibling;
-use primitives::{network::PARALLEL_PREFIX, *};
+use primitives::{
+    currency::MultiCurrencyAdapter,
+    network::PARALLEL_PREFIX,
+    tokens::{DOT, XDOT},
+    *,
+};
 
 use hex_literal::hex;
 use xcm::v0::{Junction, Junction::*, MultiAsset, MultiLocation, MultiLocation::*, NetworkId};
@@ -348,11 +353,11 @@ impl orml_currencies::Config for Runtime {
 }
 
 pub struct CurrencyIdConvert;
-impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
-    fn convert(id: CurrencyId) -> Option<MultiLocation> {
+impl Convert<AssetId, Option<MultiLocation>> for CurrencyIdConvert {
+    fn convert(id: AssetId) -> Option<MultiLocation> {
         match id {
-            CurrencyId::Token(TokenSymbol::DOT) => Some(X1(Parent)),
-            CurrencyId::Token(TokenSymbol::xDOT) => Some(X3(
+            DOT => Some(X1(Parent)),
+            XDOT => Some(X3(
                 Parent,
                 Parachain(ParachainInfo::parachain_id().into()),
                 GeneralKey(b"xDOT".to_vec()),
@@ -362,22 +367,22 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     }
 }
 
-impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
-    fn convert(location: MultiLocation) -> Option<CurrencyId> {
+impl Convert<MultiLocation, Option<AssetId>> for CurrencyIdConvert {
+    fn convert(location: MultiLocation) -> Option<AssetId> {
         match location {
-            X1(Parent) => Some(CurrencyId::Token(TokenSymbol::DOT)),
+            X1(Parent) => Some(DOT),
             X3(Parent, Parachain(id), GeneralKey(key))
                 if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xDOT".to_vec() =>
             {
-                Some(CurrencyId::Token(TokenSymbol::xDOT))
+                Some(XDOT)
             }
             _ => None,
         }
     }
 }
 
-impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
-    fn convert(a: MultiAsset) -> Option<CurrencyId> {
+impl Convert<MultiAsset, Option<AssetId>> for CurrencyIdConvert {
+    fn convert(a: MultiAsset) -> Option<AssetId> {
         if let MultiAsset::ConcreteFungible { id, amount: _ } = a {
             Self::convert(id)
         } else {
@@ -404,7 +409,7 @@ parameter_types! {
 impl orml_xtokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
-    type CurrencyId = CurrencyId;
+    type CurrencyId = AssetId;
     type CurrencyIdConvert = CurrencyIdConvert;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type SelfLocation = SelfLocation;
@@ -430,9 +435,9 @@ parameter_types! {
 impl pallet_assets::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
-    type AssetId = u32;
+    type AssetId = AssetId;
     type Currency = Balances;
-    type ForceOrigin = EnsureRoot<AccountId>;
+    type ForceOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
     type MetadataDepositPerByte = MetadataDepositPerByte;
@@ -490,16 +495,15 @@ parameter_types! {
 
 impl pallet_liquid_staking::Config for Runtime {
     type Event = Event;
-    type Currency = Currencies;
     type PalletId = StakingPalletId;
-    type StakingCurrency = StakingCurrency;
-    type LiquidCurrency = LiquidCurrency;
     type BridgeOrigin = EnsureSignedBy<IsInVec<BridgeOrigin>, AccountId>;
     type WeightInfo = ();
     type XcmTransfer = XTokens;
     type RelayAgent = RelayAgent;
     type PeriodBasis = PeriodBasis;
     type BaseXcmWeight = BaseXcmWeight;
+    type Assets = Assets;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
 }
 
 parameter_types! {
@@ -796,15 +800,13 @@ pub type LocationToAccountId = (
 /// Means for transacting assets on this chain.
 pub type LocalAssetTransactor = MultiCurrencyAdapter<
     // Use this currency:
-    Currencies,
-    UnknownTokens,
+    Assets,
     // Use this currency when it is a fungible asset matching the given location or name:
-    IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
+    IsNativeConcrete<AssetId, CurrencyIdConvert>,
     // Our chain's account ID type (we can't get away without mentioning it explicitly):
     AccountId,
     // Do a simple punn to convert an AccountId32 MultiLocation into a native chain account ID:
     LocationToAccountId,
-    CurrencyId,
     CurrencyIdConvert,
 >;
 
@@ -851,7 +853,7 @@ impl TakeRevenue for ToTreasury {
     fn take_revenue(revenue: MultiAsset) {
         if let MultiAsset::ConcreteFungible { id, amount } = revenue {
             if let Some(currency_id) = CurrencyIdConvert::convert(id) {
-                let _ = Currencies::deposit(currency_id, &TreasuryAccount::get(), amount);
+                let _ = Assets::mint_into(currency_id, &TreasuryAccount::get(), amount);
             }
         }
     }
@@ -924,9 +926,8 @@ impl pallet_prices::Config for Runtime {
     type Event = Event;
     type Source = AggregatedDataProvider;
     type FeederOrigin = EnsureRoot<AccountId>;
-    type StakingCurrency = KSM;
-    type LiquidCurrency = xKSM;
     type LiquidStakingExchangeRateProvider = LiquidStaking;
+    type LiquidStakingCurrenciesProvider = LiquidStaking;
 }
 
 parameter_types! {

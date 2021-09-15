@@ -14,8 +14,6 @@ use xcm::{
     DoubleEncoded,
 };
 
-use primitives::Balance;
-
 impl<T: Config> Pallet<T>
 where
     [u8; 32]: From<<T as frame_system::Config>::AccountId>,
@@ -62,7 +60,7 @@ where
     }
 
     /// Bond_extra on relaychain via xcm.transact
-    pub(crate) fn bond_extra(value: Balance) -> DispatchResult {
+    pub(crate) fn bond_extra(value: BalanceOf<T>) -> DispatchResult {
         let stash = T::Lookup::unlookup(Self::derivative_account_id());
         let call = RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
             calls: vec![
@@ -94,7 +92,7 @@ where
     }
 
     /// unbond on relaychain via xcm.transact
-    pub(crate) fn unbond(value: Balance) -> DispatchResult {
+    pub(crate) fn unbond(value: BalanceOf<T>) -> DispatchResult {
         let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
             UtilityAsDerivativeCall {
                 index: T::DerivativeIndex::get(),
@@ -118,7 +116,7 @@ where
     }
 
     /// rebond on relaychain via xcm.transact
-    pub(crate) fn rebond(value: Balance) -> DispatchResult {
+    pub(crate) fn rebond(value: BalanceOf<T>) -> DispatchResult {
         let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
             UtilityAsDerivativeCall {
                 index: T::DerivativeIndex::get(),

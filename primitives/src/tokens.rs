@@ -16,6 +16,7 @@ use crate::AssetId;
 
 pub const HKO: AssetId = 0;
 pub const DOT: AssetId = 1;
+pub const XDOT: AssetId = 10;
 pub const KSM: AssetId = 100;
 pub const XKSM: AssetId = 1000;
 
