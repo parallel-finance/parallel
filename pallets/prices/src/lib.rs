@@ -35,10 +35,10 @@ use sp_runtime::{
 };
 use sp_std::vec::Vec;
 
-// #[cfg(test)]
-// mod mock;
-// #[cfg(test)]
-// mod tests;
+#[cfg(test)]
+mod mock;
+#[cfg(test)]
+mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -60,6 +60,9 @@ pub mod pallet {
         /// The provider of the exchange rate between liquid currency and
         /// staking currency.
         type LiquidStakingExchangeRateProvider: ExchangeRateProvider;
+
+        /// Get decimal
+        type Decimal: DecimalProvider;
     }
 
     #[pallet::event]
@@ -74,8 +77,7 @@ pub mod pallet {
     /// Mapping from currency id to it's emergency price
     #[pallet::storage]
     #[pallet::getter(fn emergency_price)]
-    pub type EmergencyPrice<T: Config> =
-        StorageMap<_, Twox64Concat, AssetId, Price, OptionQuery>;
+    pub type EmergencyPrice<T: Config> = StorageMap<_, Twox64Concat, AssetId, Price, OptionQuery>;
 
     #[pallet::pallet]
     pub struct Pallet<T>(PhantomData<T>);
@@ -105,9 +107,7 @@ pub mod pallet {
         #[transactional]
         pub fn reset_price(origin: OriginFor<T>, asset_id: AssetId) -> DispatchResultWithPostInfo {
             T::FeederOrigin::ensure_origin(origin)?;
-            <Pallet<T> as EmergencyPriceFeeder<AssetId, Price>>::reset_emergency_price(
-                asset_id,
-            );
+            <Pallet<T> as EmergencyPriceFeeder<AssetId, Price>>::reset_emergency_price(asset_id);
             Ok(().into())
         }
     }
@@ -117,11 +117,12 @@ impl<T: Config> Pallet<T> {
     // get emergency price, the timestamp is zero
     fn get_emergency_price(asset_id: &AssetId) -> Option<PriceDetail> {
         Self::emergency_price(asset_id).and_then(|p| {
-            10u128.checked_pow(p.decimal.into()).and_then(|d| {
-                p.price
-                    .checked_div(&FixedU128::from_inner(d))
-                    .map(|price| (price, 0))
-            })
+            10u128
+                .checked_pow(T::Decimal::get_decimal(asset_id).into())
+                .and_then(|d| {
+                    p.checked_div(&FixedU128::from_inner(d))
+                        .map(|price| (price, 0))
+                })
         })
     }
 }

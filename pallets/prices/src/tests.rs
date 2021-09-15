@@ -31,10 +31,7 @@ fn get_price_from_oracle() {
         );
 
         // currency not exist
-        assert_eq!(
-            Prices::get_price(&CurrencyId::Token(TokenSymbol::xDOT)),
-            None
-        );
+        assert_eq!(Prices::get_price(&xDOT), None);
     });
 }
 
@@ -46,10 +43,7 @@ fn set_price_work() {
             Some((Price::from_inner(10_000_000_000 * PRICE_ONE), 0))
         );
         // set DOT price
-        EmergencyPrice::<Runtime>::insert(
-            DOT,
-            Price::saturating_from_integer(99),
-        );
+        EmergencyPrice::<Runtime>::insert(DOT, Price::saturating_from_integer(99));
         assert_eq!(
             Prices::get_price(&DOT),
             Some((Price::from_inner(9_900_000_000 * PRICE_ONE), 0))
@@ -65,10 +59,7 @@ fn reset_price_work() {
             Some((Price::from_inner(10_000_000_000 * PRICE_ONE), 0))
         );
         // set DOT price
-        EmergencyPrice::<Runtime>::insert(
-            DOT,
-            Price::saturating_from_integer(99),
-        );
+        EmergencyPrice::<Runtime>::insert(DOT, Price::saturating_from_integer(99));
         assert_eq!(
             Prices::get_price(&DOT),
             Some((Price::from_inner(9_900_000_000 * PRICE_ONE), 0))
@@ -94,11 +85,7 @@ fn set_price_call_work() {
             Some((FixedU128::from_inner(10_000_000_000 * PRICE_ONE), 0))
         );
         assert_noop!(
-            Prices::set_price(
-                Origin::signed(2),
-                DOT,
-                Price::saturating_from_integer(100),
-            ),
+            Prices::set_price(Origin::signed(2), DOT, Price::saturating_from_integer(100),),
             BadOrigin
         );
         assert_ok!(Prices::set_price(
@@ -120,11 +107,7 @@ fn set_price_call_work() {
             .iter()
             .any(|record| record.event == set_price_event));
         assert_eq!(
-            Prices::set_price(
-                Origin::signed(1),
-                DOT,
-                Price::saturating_from_integer(90),
-            ),
+            Prices::set_price(Origin::signed(1), DOT, Price::saturating_from_integer(90),),
             Ok(().into())
         );
     });
@@ -173,12 +156,12 @@ fn reset_price_call_work() {
 fn get_liquid_price_work() {
     ExtBuilder::default().build().execute_with(|| {
         assert_eq!(
-            Prices::get_price(&CurrencyId::Token(TokenSymbol::KSM)),
+            Prices::get_price(&KSM),
             Some((Price::from_inner(500 * 1_000_000 * PRICE_ONE), 0))
         );
 
         assert_eq!(
-            Prices::get_price(&CurrencyId::Token(TokenSymbol::xKSM)),
+            Prices::get_price(&xKSM),
             LiquidStakingExchangeRateProvider::get_exchange_rate()
                 .checked_mul_int(500 * 1_000_000 * PRICE_ONE)
                 .map(|i| (Price::from_inner(i), 0))

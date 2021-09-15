@@ -926,12 +926,26 @@ impl DataProviderExtended<AssetId, TimeStampedPrice> for AggregatedDataProvider 
     }
 }
 
+parameter_types! {
+    pub const KSM: AssetId = 100;
+    #[allow(non_camel_case_types)]
+    pub const xKSM: AssetId = 101;
+}
+
+pub struct Decimal;
+impl DecimalProvider for Decimal {
+    fn get_decimal(asset_id: &AssetId) -> u8 {
+        Assets::Metadata::<Runtime>::get(asset_id).decimals
+    }
+}
+
 impl pallet_prices::Config for Runtime {
     type Event = Event;
     type Source = AggregatedDataProvider;
     type FeederOrigin = EnsureRoot<AccountId>;
     type LiquidStakingExchangeRateProvider = LiquidStaking;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
+    type Decimal = Decimal;
 }
 
 parameter_types! {

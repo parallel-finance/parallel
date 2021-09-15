@@ -27,8 +27,12 @@ mod prices {
     pub use super::super::*;
 }
 
-pub const DOT: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
-pub const KSM: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
+pub const DOT: AssetId = 10;
+#[allow(non_upper_case_globals)]
+pub const xDOT: AssetId = 11;
+pub const KSM: AssetId = 20;
+#[allow(non_upper_case_globals)]
+pub const xKSM: AssetId = 21;
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
@@ -62,8 +66,8 @@ impl frame_system::Config for Runtime {
 
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 pub struct MockDataProvider;
-impl DataProvider<CurrencyId, TimeStampedPrice> for MockDataProvider {
-    fn get(currency_id: &CurrencyId) -> Option<TimeStampedPrice> {
+impl DataProvider<AssetId, TimeStampedPrice> for MockDataProvider {
+    fn get(currency_id: &AssetId) -> Option<TimeStampedPrice> {
         match *currency_id {
             DOT => Some(TimeStampedPrice {
                 value: Price::saturating_from_integer(100),
@@ -78,12 +82,12 @@ impl DataProvider<CurrencyId, TimeStampedPrice> for MockDataProvider {
     }
 }
 
-impl DataProviderExtended<CurrencyId, TimeStampedPrice> for MockDataProvider {
-    fn get_no_op(_key: &CurrencyId) -> Option<TimeStampedPrice> {
+impl DataProviderExtended<AssetId, TimeStampedPrice> for MockDataProvider {
+    fn get_no_op(_key: &AssetId) -> Option<TimeStampedPrice> {
         None
     }
 
-    fn get_all_values() -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
+    fn get_all_values() -> Vec<(AssetId, Option<TimeStampedPrice>)> {
         vec![]
     }
 }
@@ -97,8 +101,14 @@ impl ExchangeRateProvider for LiquidStakingExchangeRateProvider {
 
 ord_parameter_types! {
     pub const One: AccountId = 1;
-    pub const StakingCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
-    pub const LiquidCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::xKSM);
+    pub const StakingCurrency: AssetId = KSM;
+    pub const LiquidCurrency: AssetId = xKSM;
+}
+pub struct Decimal;
+impl DecimalProvider for Decimal {
+    fn get_decimal(_asset_id: &AssetId) -> u8 {
+        0
+    }
 }
 
 impl Config for Runtime {
@@ -108,6 +118,7 @@ impl Config for Runtime {
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
     type LiquidStakingExchangeRateProvider = LiquidStakingExchangeRateProvider;
+    type Decimal = Decimal;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;

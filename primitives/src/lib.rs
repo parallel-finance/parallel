@@ -23,10 +23,10 @@ pub mod tokens;
 use codec::{Decode, Encode};
 pub use currency::{CurrencyId, TokenSymbol};
 use sp_runtime::{
-    traits::{CheckedDiv, IdentifyAccount, Verify},
+    traits::{IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
 };
-use sp_std::{cmp::Ordering, convert::Into, prelude::*};
+use sp_std::{convert::Into, prelude::*};
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -102,6 +102,10 @@ pub enum DataProviderId {
 ////////////////////////////////////////////////////////////////////////////////
 pub trait PriceFeeder {
     fn get_price(asset_id: &AssetId) -> Option<PriceDetail>;
+}
+
+pub trait DecimalProvider {
+    fn get_decimal(asset_id: &AssetId) -> u8;
 }
 
 pub trait EmergencyPriceFeeder<AssetId, Price> {
