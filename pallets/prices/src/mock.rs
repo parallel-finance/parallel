@@ -116,12 +116,21 @@ impl DecimalProvider for Decimal {
     }
 }
 
+pub struct LiquidStaking;
+impl LiquidStakingCurrenciesProvider<AssetId> for LiquidStaking {
+    fn get_staking_currency() -> Option<AssetId> {
+        Some(KSM)
+    }
+    fn get_liquid_currency() -> Option<AssetId> {
+        Some(xKSM)
+    }
+}
+
 impl Config for Runtime {
     type Event = Event;
     type Source = MockDataProvider;
     type FeederOrigin = EnsureSignedBy<One, AccountId>;
-    type StakingCurrency = StakingCurrency;
-    type LiquidCurrency = LiquidCurrency;
+    type LiquidStakingCurrenciesProvider = LiquidStaking;
     type LiquidStakingExchangeRateProvider = LiquidStakingExchangeRateProvider;
     type Decimal = Decimal;
 }

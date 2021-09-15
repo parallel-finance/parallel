@@ -138,26 +138,28 @@ impl<T: Config> PriceFeeder for Pallet<T> {
             {
                 Some((staking_currency, liquid_currency)) if asset_id == &liquid_currency => {
                     T::Source::get(&staking_currency).and_then(|p| {
-                        10u128.checked_pow(T::Decimal::get_decimal(&staking_currency).into()).and_then(|d| {
-                            p.value
-                                .price
-                                .checked_div(&FixedU128::from_inner(d))
-                                .and_then(|staking_currency_price| {
-                                    staking_currency_price.checked_mul(
+                        10u128
+                            .checked_pow(T::Decimal::get_decimal(&staking_currency).into())
+                            .and_then(|d| {
+                                p.value
+                                    .checked_div(&FixedU128::from_inner(d))
+                                    .and_then(|staking_currency_price| {
+                                        staking_currency_price.checked_mul(
                                         &T::LiquidStakingExchangeRateProvider::get_exchange_rate(),
                                     )
-                                })
-                                .map(|price| (price, p.timestamp))
-                        })
+                                    })
+                                    .map(|price| (price, p.timestamp))
+                            })
                     })
                 }
                 _ => T::Source::get(asset_id).and_then(|p| {
-                    10u128.checked_pow(p.value.decimal.into()).and_then(|d| {
-                        p.value
-                            .price
-                            .checked_div(&FixedU128::from_inner(d))
-                            .map(|price| (price, p.timestamp))
-                    })
+                    10u128
+                        .checked_pow(T::Decimal::get_decimal(asset_id).into())
+                        .and_then(|d| {
+                            p.value
+                                .checked_div(&FixedU128::from_inner(d))
+                                .map(|price| (price, p.timestamp))
+                        })
                 }),
             }
         })
@@ -187,11 +189,11 @@ impl<T: Config> DataProviderExtended<AssetId, TimeStampedPrice> for Pallet<T> {
             Some((staking_currency, liquid_currency)) if &liquid_currency == asset_id => {
                 T::Source::get_no_op(&staking_currency).and_then(|p| {
                     p.value
-                    .checked_mul(&T::LiquidStakingExchangeRateProvider::get_exchange_rate())
-                    .map(|price| TimeStampedPrice {
-                        value: price,
-                        timestamp: p.timestamp,
-                    })
+                        .checked_mul(&T::LiquidStakingExchangeRateProvider::get_exchange_rate())
+                        .map(|price| TimeStampedPrice {
+                            value: price,
+                            timestamp: p.timestamp,
+                        })
                 })
             }
             _ => T::Source::get_no_op(asset_id),
