@@ -935,7 +935,12 @@ parameter_types! {
 pub struct Decimal;
 impl DecimalProvider for Decimal {
     fn get_decimal(asset_id: &AssetId) -> u8 {
-        Assets::Metadata::<Runtime>::get(asset_id).decimals
+        // TODO should find a way, get decimal from pallet_assets
+        // pallet_assets::Metadata::<Runtime>::get(asset_id).decimals
+        match *asset_id {
+            100 | 101 => 12,
+            _ => 0,
+        }
     }
 }
 
