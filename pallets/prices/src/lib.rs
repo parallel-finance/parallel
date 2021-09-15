@@ -138,7 +138,7 @@ impl<T: Config> PriceFeeder for Pallet<T> {
             {
                 Some((staking_currency, liquid_currency)) if asset_id == &liquid_currency => {
                     T::Source::get(&staking_currency).and_then(|p| {
-                        10u128.checked_pow(p.value.decimal.into()).and_then(|d| {
+                        10u128.checked_pow(T::Decimal::get_decimal(&staking_currency).into()).and_then(|d| {
                             p.value
                                 .price
                                 .checked_div(&FixedU128::from_inner(d))
