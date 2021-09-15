@@ -55,13 +55,7 @@ pub mod pallet {
         /// The origin which may set prices feed to system.
         type FeederOrigin: EnsureOrigin<Self::Origin>;
 
-        /// Currency used for staking
-        #[pallet::constant]
-        type StakingCurrency: Get<AssetId>;
-
-        /// Currency used for liquid voucher
-        #[pallet::constant]
-        type LiquidCurrency: Get<AssetId>;
+        type LiquidStakingCurrenciesProvider: LiquidStakingCurrenciesProvider<AssetId>;
 
         /// The provider of the exchange rate between liquid currency and
         /// staking currency.
@@ -138,29 +132,32 @@ impl<T: Config> PriceFeeder for Pallet<T> {
     fn get_price(asset_id: &AssetId) -> Option<PriceDetail> {
         // if emergency price exists, return it, otherwise return latest price from oracle.
         Self::get_emergency_price(asset_id).or_else(|| {
-            if asset_id == &T::LiquidCurrency::get() {
-                T::Source::get(&T::StakingCurrency::get()).and_then(|p| {
+            match T::LiquidStakingCurrenciesProvider::get_staking_currency()
+                .zip(T::LiquidStakingCurrenciesProvider::get_liquid_currency())
+            {
+                Some((staking_currency, liquid_currency)) if asset_id == &liquid_currency => {
+                    T::Source::get(&staking_currency).and_then(|p| {
+                        10u128.checked_pow(p.value.decimal.into()).and_then(|d| {
+                            p.value
+                                .price
+                                .checked_div(&FixedU128::from_inner(d))
+                                .and_then(|staking_currency_price| {
+                                    staking_currency_price.checked_mul(
+                                        &T::LiquidStakingExchangeRateProvider::get_exchange_rate(),
+                                    )
+                                })
+                                .map(|price| (price, p.timestamp))
+                        })
+                    })
+                }
+                _ => T::Source::get(asset_id).and_then(|p| {
                     10u128.checked_pow(p.value.decimal.into()).and_then(|d| {
                         p.value
                             .price
                             .checked_div(&FixedU128::from_inner(d))
-                            .and_then(|staking_currency_price| {
-                                staking_currency_price.checked_mul(
-                                    &T::LiquidStakingExchangeRateProvider::get_exchange_rate(),
-                                )
-                            })
                             .map(|price| (price, p.timestamp))
                     })
-                })
-            } else {
-                T::Source::get(asset_id).and_then(|p| {
-                    10u128.checked_pow(p.value.decimal.into()).and_then(|d| {
-                        p.value
-                            .price
-                            .checked_div(&FixedU128::from_inner(d))
-                            .map(|price| (price, p.timestamp))
-                    })
-                })
+                }),
             }
         })
     }
@@ -182,22 +179,25 @@ impl<T: Config> EmergencyPriceFeeder<AssetId, PriceWithDecimal> for Pallet<T> {
 }
 
 impl<T: Config> DataProviderExtended<AssetId, TimeStampedPrice> for Pallet<T> {
-    fn get_no_op(key: &AssetId) -> Option<TimeStampedPrice> {
-        if key == &T::LiquidCurrency::get() {
-            T::Source::get_no_op(&T::StakingCurrency::get()).and_then(|p| {
-                p.value
-                    .price
-                    .checked_mul(&T::LiquidStakingExchangeRateProvider::get_exchange_rate())
-                    .map(|price| TimeStampedPrice {
-                        value: PriceWithDecimal {
-                            price,
-                            decimal: p.value.decimal,
-                        },
-                        timestamp: p.timestamp,
-                    })
-            })
-        } else {
-            T::Source::get_no_op(key)
+    fn get_no_op(asset_id: &AssetId) -> Option<TimeStampedPrice> {
+        match T::LiquidStakingCurrenciesProvider::get_staking_currency()
+            .zip(T::LiquidStakingCurrenciesProvider::get_liquid_currency())
+        {
+            Some((staking_currency, liquid_currency)) if &liquid_currency == asset_id => {
+                T::Source::get_no_op(&staking_currency).and_then(|p| {
+                    p.value
+                        .price
+                        .checked_mul(&T::LiquidStakingExchangeRateProvider::get_exchange_rate())
+                        .map(|price| TimeStampedPrice {
+                            value: PriceWithDecimal {
+                                price,
+                                decimal: p.value.decimal,
+                            },
+                            timestamp: p.timestamp,
+                        })
+                })
+            }
+            _ => T::Source::get_no_op(asset_id),
         }
     }
 

@@ -136,8 +136,6 @@ parameter_types! {
 impl crate::Config for Test {
     type Event = Event;
     type Currency = Currencies;
-    type StakingCurrency = StakingCurrency;
-    type LiquidCurrency = LiquidCurrency;
     type PalletId = StakingPalletId;
     type BridgeOrigin = BridgeOrigin;
     type BaseXcmWeight = BaseXcmWeight;
@@ -145,6 +143,8 @@ impl crate::Config for Test {
     type RelayAgent = Agent;
     type PeriodBasis = PeriodBasis;
     type WeightInfo = ();
+    type Assets = Assets;
+    type UpdateOrigin = BridgeOrigin;
 }
 
 construct_runtime!(

@@ -144,6 +144,11 @@ pub trait ExchangeRateProvider {
     fn get_exchange_rate() -> Rate;
 }
 
+pub trait LiquidStakingCurrenciesProvider<AssetId> {
+    fn get_staking_currency() -> Option<AssetId>;
+    fn get_liquid_currency() -> Option<AssetId>;
+}
+
 pub trait AMM<T: frame_system::Config> {
     /// Handles a "trade" on the AMM side for "who".
     /// This will move the `amount_in` funds to the AMM PalletId,

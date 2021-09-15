@@ -10,22 +10,30 @@ pub trait WeightInfo {
     fn record_staking_settlement() -> Weight;
     fn settlement() -> Weight;
     fn pop_queue() -> Weight;
+    fn set_liquid_currency() -> Weight;
+    fn set_staking_currency() -> Weight;
 }
 
 impl WeightInfo for () {
     fn stake() -> Weight {
-        0u64.into()
+        10000u64.into()
     }
     fn unstake() -> Weight {
-        0u64.into()
+        10000u64.into()
     }
     fn record_staking_settlement() -> Weight {
-        0u64.into()
+        10000u64.into()
     }
     fn settlement() -> Weight {
-        0u64.into()
+        10000u64.into()
     }
     fn pop_queue() -> Weight {
+        10000u64.into()
+    }
+    fn set_liquid_currency() -> Weight {
+        10000u64.into()
+    }
+    fn set_staking_currency() -> Weight {
         10000u64.into()
     }
 }

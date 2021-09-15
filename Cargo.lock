@@ -5180,6 +5180,7 @@ name = "pallet-assets"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.9#91061a7d925b5bc597804293da283477512ba4ff"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "parity-scale-codec",
@@ -5571,6 +5572,7 @@ dependencies = [
  "orml-traits",
  "orml-xcm-support",
  "orml-xtokens",
+ "pallet-assets",
  "pallet-babe",
  "pallet-balances",
  "pallet-session",
@@ -5605,6 +5607,7 @@ dependencies = [
  "orml-currencies",
  "orml-tokens",
  "orml-traits",
+ "pallet-assets",
  "pallet-balances",
  "parallel-primitives",
  "parity-scale-codec",
@@ -6229,6 +6232,8 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+ "xcm",
+ "xcm-executor",
 ]
 
 [[package]]

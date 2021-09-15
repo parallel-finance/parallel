@@ -20,15 +20,15 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-#[cfg(test)]
-mod mock;
+// #[cfg(test)]
+// mod mock;
 pub mod relaychain;
-#[cfg(test)]
-mod tests;
+// #[cfg(test)]
+// mod tests;
 pub mod types;
 pub mod weights;
 
-use primitives::ExchangeRateProvider;
+use primitives::{ExchangeRateProvider, LiquidStakingCurrenciesProvider};
 
 pub use self::pallet::*;
 
@@ -38,7 +38,10 @@ mod pallet {
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         ensure,
         pallet_prelude::*,
-        traits::{Get, IsType},
+        traits::{
+            fungibles::{Inspect, Mutate, Transfer},
+            Get, IsType,
+        },
         transactional,
         weights::Weight,
         PalletId, Twox64Concat,
@@ -47,23 +50,25 @@ mod pallet {
         ensure_signed,
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
-    use orml_traits::{MultiCurrency, MultiCurrencyExtended, XcmTransfer};
+    use orml_traits::XcmTransfer;
     use sp_runtime::{
-        traits::{AccountIdConversion, Zero},
-        ArithmeticError, FixedPointNumber,
+        traits::{AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedSub, Zero},
+        ArithmeticError, FixedPointNumber, FixedPointOperand,
     };
     use sp_std::vec::Vec;
     use xcm::v0::{Junction, MultiLocation, NetworkId, SendXcm};
 
-    use primitives::{Amount, Balance, CurrencyId, DerivativeProvider, EraIndex, Rate, Ratio};
+    use primitives::{DerivativeProvider, EraIndex, Rate, Ratio};
 
     use crate::{
         types::{MatchingLedger, RewardDestination, StakingSettlementKind},
         weights::WeightInfo,
     };
 
+    pub type AssetIdOf<T> =
+        <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
     pub type BalanceOf<T> =
-        <<T as Config>::Currency as MultiCurrency<<T as frame_system::Config>::AccountId>>::Balance;
+        <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
@@ -73,31 +78,21 @@ mod pallet {
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-        /// Liquid/Staked asset currency.
-        type Currency: MultiCurrencyExtended<
-            Self::AccountId,
-            CurrencyId = CurrencyId,
-            Balance = Balance,
-            Amount = Amount,
-        >;
+        /// Assets for deposit/withdraw assets to/from pallet account
+        type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
 
         /// Offchain bridge accout who manages staking currency in relaychain.
         type BridgeOrigin: EnsureOrigin<Self::Origin>;
 
-        /// The staking currency id.
-        #[pallet::constant]
-        type StakingCurrency: Get<CurrencyId>;
-
-        /// The liquid voucher currency id.
-        #[pallet::constant]
-        type LiquidCurrency: Get<CurrencyId>;
+        /// The origin which can update liquid currency, staking currency
+        type UpdateOrigin: EnsureOrigin<Self::Origin>;
 
         /// The pallet id of liquid staking, keeps all the staking assets.
         #[pallet::constant]
         type PalletId: Get<PalletId>;
 
         /// XCM transfer
-        type XcmTransfer: XcmTransfer<Self::AccountId, Balance, CurrencyId>;
+        type XcmTransfer: XcmTransfer<Self::AccountId, BalanceOf<Self>, AssetIdOf<Self>>;
 
         /// XCM transact
         type XcmSender: SendXcm;
@@ -184,6 +179,8 @@ mod pallet {
         NominateCallFailed,
         /// Failed to send staking.payout_stakers call
         PayoutStakersCallFailed,
+        LiquidCurrencyNotSet,
+        StakingCurrencyNotSet,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -227,6 +224,16 @@ mod pallet {
     pub type UnstakeQueue<T: Config> =
         StorageValue<_, Vec<(T::AccountId, BalanceOf<T>)>, ValueQuery>;
 
+    /// Liquid currency asset id
+    #[pallet::storage]
+    #[pallet::getter(fn liquid_currency)]
+    pub type LiquidCurrency<T: Config> = StorageValue<_, AssetIdOf<T>, OptionQuery>;
+
+    /// Staking currency asset id
+    #[pallet::storage]
+    #[pallet::getter(fn staking_currency)]
+    pub type StakingCurrency<T: Config> = StorageValue<_, AssetIdOf<T>, OptionQuery>;
+
     #[pallet::genesis_config]
     pub struct GenesisConfig {
         pub exchange_rate: Rate,
@@ -252,7 +259,11 @@ mod pallet {
     }
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T>
+    where
+        BalanceOf<T>: FixedPointOperand,
+        AssetIdOf<T>: AtLeast32BitUnsigned,
+    {
         /// Try to pay off over the `UnstakeQueue` while blockchain is on idle.
         ///
         /// It breaks when:
@@ -263,6 +274,9 @@ mod pallet {
             // TODO should use T::WeightInfo::on_idle instead
             // on_idle shouldn't run out of all remaining_weight normally
             let base_weight = T::WeightInfo::pop_queue();
+            if Self::staking_currency().is_none() {
+                return 0;
+            }
             loop {
                 // Check weight is enough
                 if remaining_weight < base_weight {
@@ -276,11 +290,12 @@ mod pallet {
                 // Get the front of the queue.
                 let (who, amount) = &Self::unstake_queue()[0];
 
-                if T::Currency::transfer(
-                    T::StakingCurrency::get(),
+                if T::Assets::transfer(
+                    Self::staking_currency().unwrap(),
                     &Self::account_id(),
                     who,
                     *amount,
+                    true,
                 )
                 .is_err()
                 {
@@ -292,9 +307,7 @@ mod pallet {
                 remaining_weight -= base_weight;
 
                 // remove unstake request from queue
-                UnstakeQueue::<T>::mutate(|v| {
-                    v.remove(0);
-                })
+                Self::pop_unstake_task()
             }
             remaining_weight
         }
@@ -320,6 +333,8 @@ mod pallet {
     impl<T: Config> Pallet<T>
     where
         [u8; 32]: From<<T as frame_system::Config>::AccountId>,
+        BalanceOf<T>: FixedPointOperand,
+        AssetIdOf<T>: AtLeast32BitUnsigned,
     {
         /// Put assets under staking, the native assets will be transferred to the account
         /// owned by the pallet, user receive derivative in return, such derivative can be
@@ -340,18 +355,28 @@ mod pallet {
                 .and_then(|r| r.checked_mul_int(amount))
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
 
-            T::Currency::transfer(T::StakingCurrency::get(), &who, &Self::account_id(), amount)?;
-            T::Currency::deposit(T::LiquidCurrency::get(), &who, liquid_amount)?;
+            T::Assets::transfer(
+                Self::staking_currency().ok_or(Error::<T>::StakingCurrencyNotSet)?,
+                &who,
+                &Self::account_id(),
+                amount,
+                true,
+            )?;
+            T::Assets::mint_into(
+                Self::liquid_currency().ok_or(Error::<T>::LiquidCurrencyNotSet)?,
+                &who,
+                liquid_amount,
+            )?;
 
             StakingPool::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
+                *b = b.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
 
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
                 p.total_stake_amount = p
                     .total_stake_amount
-                    .checked_add(amount)
+                    .checked_add(&amount)
                     .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
@@ -378,21 +403,26 @@ mod pallet {
                 .checked_mul_int(liquid_amount)
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
 
-            if T::Currency::transfer(
-                T::StakingCurrency::get(),
+            if T::Assets::transfer(
+                Self::staking_currency().unwrap(),
                 &Self::account_id(),
                 &who,
                 asset_amount,
+                true,
             )
             .is_err()
             {
                 Self::push_unstake_task(&who, asset_amount);
             }
 
-            T::Currency::withdraw(T::LiquidCurrency::get(), &who, liquid_amount)?;
+            T::Assets::burn_from(
+                Self::liquid_currency().ok_or(Error::<T>::LiquidCurrencyNotSet)?,
+                &who,
+                liquid_amount,
+            )?;
             StakingPool::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b
-                    .checked_sub(asset_amount)
+                    .checked_sub(&asset_amount)
                     .ok_or(ArithmeticError::Underflow)?;
                 Ok(())
             })?;
@@ -400,7 +430,7 @@ mod pallet {
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
                 p.total_unstake_amount = p
                     .total_unstake_amount
-                    .checked_add(asset_amount)
+                    .checked_add(&asset_amount)
                     .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
@@ -446,7 +476,7 @@ mod pallet {
             if !bond_amount.is_zero() {
                 T::XcmTransfer::transfer(
                     Self::account_id(),
-                    T::StakingCurrency::get(),
+                    Self::staking_currency().ok_or(Error::<T>::StakingCurrencyNotSet)?,
                     bond_amount,
                     MultiLocation::X2(
                         Junction::Parent,
@@ -466,9 +496,34 @@ mod pallet {
             ));
             Ok(().into())
         }
+
+        /// set liquid currency via governance
+        #[pallet::weight(<T as Config>::WeightInfo::set_liquid_currency())]
+        #[transactional]
+        pub fn set_liquid_currency(origin: OriginFor<T>, asset_id: AssetIdOf<T>) -> DispatchResult {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            LiquidCurrency::<T>::put(asset_id);
+            Ok(())
+        }
+
+        /// set staking currency via governance
+        #[pallet::weight(<T as Config>::WeightInfo::set_staking_currency())]
+        #[transactional]
+        pub fn set_staking_currency(
+            origin: OriginFor<T>,
+            asset_id: AssetIdOf<T>,
+        ) -> DispatchResult {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            StakingCurrency::<T>::put(asset_id);
+            Ok(())
+        }
     }
 
-    impl<T: Config> Pallet<T> {
+    impl<T: Config> Pallet<T>
+    where
+        BalanceOf<T>: FixedPointOperand,
+        AssetIdOf<T>: AtLeast32BitUnsigned,
+    {
         /// Ensure settlement not recorded for this `era_index`.
         #[inline]
         fn ensure_settlement_not_recorded(
@@ -490,11 +545,11 @@ mod pallet {
             use StakingSettlementKind::*;
             match kind {
                 Reward => StakingPool::<T>::try_mutate(|p| -> DispatchResult {
-                    *p = p.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
+                    *p = p.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
                     Ok(())
                 }),
                 Slash => StakingPool::<T>::try_mutate(|p| -> DispatchResult {
-                    *p = p.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
+                    *p = p.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
                     Ok(())
                 }),
             }?;
@@ -502,7 +557,9 @@ mod pallet {
             // Update exchange rate.
             let exchange_rate = Rate::checked_from_rational(
                 StakingPool::<T>::get(),
-                T::Currency::total_issuance(T::LiquidCurrency::get()),
+                T::Assets::total_issuance(
+                    Self::liquid_currency().ok_or(Error::<T>::LiquidCurrencyNotSet)?,
+                ),
             )
             .ok_or(Error::<T>::InvalidExchangeRate)?;
             ExchangeRate::<T>::put(exchange_rate);
@@ -513,6 +570,12 @@ mod pallet {
         #[inline]
         fn push_unstake_task(who: &T::AccountId, amount: BalanceOf<T>) {
             UnstakeQueue::<T>::mutate(|q| q.push((who.clone(), amount)))
+        }
+
+        /// Pop an unstake task from queue.
+        #[inline]
+        fn pop_unstake_task() {
+            UnstakeQueue::<T>::mutate(|v| v.remove(0));
         }
     }
 
@@ -534,5 +597,15 @@ mod pallet {
 impl<T: Config> ExchangeRateProvider for Pallet<T> {
     fn get_exchange_rate() -> primitives::Rate {
         ExchangeRate::<T>::get()
+    }
+}
+
+impl<T: Config> LiquidStakingCurrenciesProvider<AssetIdOf<T>> for Pallet<T> {
+    fn get_staking_currency() -> Option<AssetIdOf<T>> {
+        Self::staking_currency()
+    }
+
+    fn get_liquid_currency() -> Option<AssetIdOf<T>> {
+        Self::liquid_currency()
     }
 }

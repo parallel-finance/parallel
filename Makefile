@@ -43,6 +43,10 @@ lint:
 	SKIP_WASM_BUILD= cargo fmt --all -- --check
 	SKIP_WASM_BUILD= cargo clippy --workspace --exclude parallel -- -A clippy::type_complexity -A clippy::identity_op -D warnings
 
+.PHONY: fix
+fix:
+	SKIP_WASM_BUILD= cargo fix --all-targets --allow-dirty --allow-staged
+
 .PHONY: fmt
 fmt:
 	SKIP_WASM_BUILD= cargo fmt --all
