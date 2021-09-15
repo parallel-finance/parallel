@@ -932,8 +932,7 @@ impl DecimalProvider for Decimal {
         // TODO should find a way, get decimal from pallet_assets
         // pallet_assets::Metadata::<Runtime>::get(asset_id).decimals
         match *asset_id {
-            KSM => 12,
-            xKSM => 12,
+            KSM | XKSM => 12,
             _ => 0,
         }
     }

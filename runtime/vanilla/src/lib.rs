@@ -899,8 +899,7 @@ impl DecimalProvider for Decimal {
     fn get_decimal(asset_id: &AssetId) -> u8 {
         // pallet_assets::Metadata::<Runtime>::get(asset_id).decimals
         match *asset_id {
-            KSM => 12,
-            xKSM => 12,
+            KSM | XKSM => 12,
             _ => 0,
         }
     }
