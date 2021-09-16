@@ -48,17 +48,18 @@ use sp_runtime::traits::IntegerSquareRoot;
 use sp_runtime::traits::StaticLookup;
 use sp_runtime::ArithmeticError;
 pub use sp_runtime::Perbill;
-use sp_runtime::SaturatedConversion;
-use sp_std::convert::TryFrom;
 pub use weights::WeightInfo;
 
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
     use frame_system::{ensure_root, RawOrigin};
+    use primitives::AssetId;
 
     #[pallet::config]
-    pub trait Config<I: 'static = ()>: frame_system::Config + pallet_assets::Config {
+    pub trait Config<I: 'static = ()>:
+        frame_system::Config + pallet_assets::Config<AssetId = AssetId, Balance = Balance>
+    {
         type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Currency type for deposit/withdraw assets to/from amm
@@ -163,10 +164,7 @@ pub mod pallet {
     >;
 
     #[pallet::call]
-    impl<T: Config<I>, I: 'static> Pallet<T, I>
-    where
-        u32: From<<T as pallet_assets::Config>::AssetId>,
-    {
+    impl<T: Config<I>, I: 'static> Pallet<T, I> {
         /// Allow users to add liquidity to a given pool
         ///
         /// - `pool`: Currency pool, in which liquidity will be added
@@ -192,7 +190,7 @@ pub mod pallet {
             } else {
                 (liquidity_amounts.0, liquidity_amounts.1)
             };
-            let currency_asset = CurrencyOrAsset::Asset(asset_id.saturated_into::<u32>());
+            let currency_asset = CurrencyOrAsset::Asset(asset_id);
 
             Pools::<T, I>::try_mutate(
                 base_asset,
@@ -313,8 +311,8 @@ pub mod pallet {
                             asset_id,
                             T::Lookup::unlookup(Self::account_id()),
                             false,
-                            1u128,
-                        );
+                            1,
+                        )?;
 
                         T::AMMCurrency::mint_into(currency_asset, &who, ownership)?;
                         T::AMMCurrency::transfer(
@@ -454,7 +452,7 @@ pub mod pallet {
             ensure_root(origin)?;
 
             let (is_inverted, base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
-            let currency_asset = CurrencyOrAsset::Asset(asset_id.saturated_into::<u32>());
+            let currency_asset = CurrencyOrAsset::Asset(asset_id);
             ensure!(
                 !Pools::<T, I>::contains_key(&base_asset, &quote_asset),
                 Error::<T, I>::PoolAlreadyExists
@@ -483,8 +481,8 @@ pub mod pallet {
                 asset_id,
                 T::Lookup::unlookup(Self::account_id()),
                 false,
-                1.into(),
-            );
+                1,
+            )?;
             T::AMMCurrency::mint_into(currency_asset, &lptoken_receiver, ownership)?;
             T::AMMCurrency::transfer(
                 base_asset,
