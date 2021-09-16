@@ -21,8 +21,6 @@
 //! determined by the supply and demand.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![allow(clippy::unused_unit)]
-#![allow(clippy::collapsible_if)]
 
 pub use crate::rate_model::*;
 use frame_support::{
@@ -47,8 +45,7 @@ use sp_runtime::{
     },
     ArithmeticError, FixedPointNumber, FixedPointOperand, FixedU128, SaturatedConversion,
 };
-use sp_std::convert::TryInto;
-use sp_std::result::Result;
+use sp_std::{convert::TryInto, result::Result};
 pub use types::{BorrowSnapshot, Deposits, EarnedSnapshot, Market, MarketState};
 pub use weights::WeightInfo;
 

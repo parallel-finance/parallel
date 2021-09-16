@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod loans {
-    pub use super::super::*;
-}
-
-use loans::*;
+use super::*;
 
 use frame_support::{construct_runtime, parameter_types, traits::Contains, PalletId};
 use frame_system::EnsureRoot;
@@ -26,8 +22,7 @@ use sp_core::H256;
 
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 use sp_std::vec::Vec;
-use std::cell::RefCell;
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -40,7 +35,7 @@ construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
-        Loans: loans::{Pallet, Storage, Call, Config, Event<T>},
+        Loans: crate::{Pallet, Storage, Call, Config, Event<T>},
         TimestampPallet: pallet_timestamp::{Pallet, Call, Storage, Inherent},
         Assets: pallet_assets::<Instance1>::{Pallet, Call, Storage, Event<T>},
     }

@@ -910,7 +910,7 @@ impl DataProviderExtended<AssetId, TimeStampedPrice> for AggregatedDataProvider 
     fn get_no_op(key: &AssetId) -> Option<TimeStampedPrice> {
         Oracle::get_no_op(key)
     }
-    #[allow(clippy::complexity)]
+
     fn get_all_values() -> Vec<(AssetId, Option<TimeStampedPrice>)> {
         Oracle::get_all_values()
     }

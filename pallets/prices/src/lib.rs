@@ -21,7 +21,6 @@
 //! by Oracle Collective.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![allow(clippy::unused_unit)]
 
 use frame_support::{pallet_prelude::*, transactional};
 use frame_system::pallet_prelude::*;
@@ -55,13 +54,14 @@ pub mod pallet {
         /// The origin which may set prices feed to system.
         type FeederOrigin: EnsureOrigin<Self::Origin>;
 
+        /// Liquid currency & staking currency provider
         type LiquidStakingCurrenciesProvider: LiquidStakingCurrenciesProvider<AssetId>;
 
         /// The provider of the exchange rate between liquid currency and
         /// staking currency.
         type LiquidStakingExchangeRateProvider: ExchangeRateProvider;
 
-        /// Get decimal
+        /// Decimal provider.
         type Decimal: DecimalProvider;
     }
 
@@ -200,7 +200,6 @@ impl<T: Config> DataProviderExtended<AssetId, TimeStampedPrice> for Pallet<T> {
         }
     }
 
-    #[allow(clippy::complexity)]
     fn get_all_values() -> Vec<(AssetId, Option<TimeStampedPrice>)> {
         T::Source::get_all_values()
     }

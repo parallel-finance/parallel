@@ -38,8 +38,7 @@ use sp_runtime::{
     traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedMul, Zero},
     ArithmeticError, FixedPointNumber, FixedPointOperand, FixedU128, Percent, SaturatedConversion,
 };
-use sp_std::collections::btree_map::BTreeMap;
-use sp_std::prelude::*;
+use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
 pub use pallet::*;
 use pallet_loans::WeightInfo;
