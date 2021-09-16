@@ -92,7 +92,6 @@ orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-r
 pallet-liquid-staking        = { path = '../../pallets/liquid-staking-v2', package = 'pallet-liquid-staking-v2', default-features = false }
 pallet-liquidation           = { path = '../../pallets/liquidation', default-features = false }
 pallet-loans                 = { path = '../../pallets/loans', default-features = false }
-pallet-loans-benchmarking    = { path = '../../pallets/loans/benchmarking', default-features = false, optional = true }
 pallet-loans-rpc-runtime-api = { path = '../../pallets/loans/rpc/runtime-api', default-features = false }
 pallet-nominee-election      = { path = '../../pallets/nominee-election', default-features = false }
 pallet-prices                = { path = '../../pallets/prices', default-features = false }
@@ -115,8 +114,8 @@ runtime-benchmarks = [
   'frame-system/runtime-benchmarks',
   'pallet-balances/runtime-benchmarks',
   'pallet-timestamp/runtime-benchmarks',
-  'pallet-loans-benchmarking',
   'pallet-collective/runtime-benchmarks',
+  'pallet-loans/runtime-benchmarks',
   'pallet-xcm/runtime-benchmarks',
   'xcm-builder/runtime-benchmarks',
   'pallet-multisig/runtime-benchmarks',

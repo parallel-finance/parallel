@@ -21,18 +21,18 @@ build:
 
 .PHONY: check
 check:
-	SKIP_WASM_BUILD= cargo check --all-targets --all-features
+	SKIP_WASM_BUILD= cargo check --all-targets --features runtime-benchmarks
 
 .PHONY: test
 test:
-	SKIP_WASM_BUILD= cargo test --workspace --exclude parallel --exclude parallel-runtime --exclude vanilla-runtime --exclude heiko-runtime --exclude pallet-loans-benchmarking -- --nocapture
+	SKIP_WASM_BUILD= cargo test --workspace --exclude parallel --exclude parallel-runtime --exclude vanilla-runtime --exclude heiko-runtime -- --nocapture
 
 .PHONY: bench
 bench: bench-loans bench-liquid-staking
 
 .PHONY: bench-loans
 bench-loans:
-	cargo run --release --features runtime-benchmarks -- benchmark --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-loans --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/loans/src/weights.rs
+	cargo run --features runtime-benchmarks -- benchmark --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-loans --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/loans/src/weights.rs
 
 .PHONY: bench-liquid-staking
 bench-liquid-staking:
@@ -41,7 +41,11 @@ bench-liquid-staking:
 .PHONY: lint
 lint:
 	SKIP_WASM_BUILD= cargo fmt --all -- --check
-	SKIP_WASM_BUILD= cargo clippy --workspace --exclude parallel --exclude pallet-loans-benchmarking -- -A clippy::type_complexity -A clippy::identity_op -D warnings
+	SKIP_WASM_BUILD= cargo clippy --workspace --exclude parallel -- -A clippy::unnecessary_cast -A clippy::unnecessary_mut_passed -A clippy::too_many_arguments -A clippy::type_complexity -A clippy::identity_op -D warnings
+
+.PHONY: fix
+fix:
+	SKIP_WASM_BUILD= cargo fix --all-targets --allow-dirty --allow-staged
 
 .PHONY: fmt
 fmt:

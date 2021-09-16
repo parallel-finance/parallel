@@ -12,96 +12,101 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![cfg(test)]
-
 mod edge_cases;
 mod interest_rate;
 mod liquidate_borrow;
 mod market;
 
-use frame_support::{assert_noop, assert_ok};
-use sp_runtime::traits::{CheckedDiv, One, Saturating};
-use sp_runtime::{FixedU128, Permill};
-
 use super::*;
+use frame_support::{assert_noop, assert_ok};
+use pallet_assets::Instance1;
+use sp_runtime::{
+    traits::{CheckedDiv, One, Saturating},
+    FixedU128, Permill,
+};
 
 use mock::*;
 
 #[test]
-fn mock_genesis_ok() {
-    ExtBuilder::default().build().execute_with(|| {
+fn init_minting_ok() {
+    new_test_ext().execute_with(|| {
+        assert_eq!(Assets::balance(KSM, ALICE), dollar(1000));
+        assert_eq!(Assets::balance(DOT, ALICE), dollar(1000));
+        assert_eq!(Assets::balance(USDT, ALICE), dollar(1000));
+        assert_eq!(Assets::balance(KSM, BOB), dollar(1000));
+        assert_eq!(Assets::balance(DOT, BOB), dollar(1000));
+    });
+}
+
+#[test]
+fn init_markets_ok() {
+    new_test_ext().execute_with(|| {
+        assert_eq!(Loans::market(KSM).unwrap().state, MarketState::Active);
+        assert_eq!(Loans::market(DOT).unwrap().state, MarketState::Active);
+        assert_eq!(Loans::market(USDT).unwrap().state, MarketState::Active);
+        assert_eq!(BorrowIndex::<Test>::get(KSM), Rate::one());
+        assert_eq!(BorrowIndex::<Test>::get(DOT), Rate::one());
         assert_eq!(BorrowIndex::<Test>::get(USDT), Rate::one());
         assert_eq!(
-            Markets::<Test>::get(&KSM).unwrap().collateral_factor,
-            Ratio::from_percent(50)
+            ExchangeRate::<Test>::get(KSM),
+            Rate::saturating_from_rational(2, 100)
+        );
+        assert_eq!(
+            ExchangeRate::<Test>::get(DOT),
+            Rate::saturating_from_rational(2, 100)
+        );
+        assert_eq!(
+            ExchangeRate::<Test>::get(USDT),
+            Rate::saturating_from_rational(2, 100)
         );
     });
 }
 
-// Test rate module
-#[test]
-fn utilization_rate_works() {
-    // 50% borrow
-    assert_eq!(
-        Loans::calc_utilization_ratio(1, 1, 0).unwrap(),
-        Ratio::from_percent(50)
-    );
-    assert_eq!(
-        Loans::calc_utilization_ratio(100, 100, 0).unwrap(),
-        Ratio::from_percent(50)
-    );
-    // no borrow
-    assert_eq!(
-        Loans::calc_utilization_ratio(1, 0, 0).unwrap(),
-        Ratio::zero()
-    );
-    // full borrow
-    assert_eq!(
-        Loans::calc_utilization_ratio(0, 1, 0).unwrap(),
-        Ratio::from_percent(100)
-    );
-}
-
 #[test]
 fn mint_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Deposit 100 DOT
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, million_dollar(100)));
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(100)));
 
         // DOT collateral: deposit = 100
         // DOT: cash - deposit = 1000 - 100 = 900
         assert_eq!(
             Loans::exchange_rate(DOT)
                 .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
-            million_dollar(100)
+            dollar(100)
         );
+        assert_eq!(<Test as Config>::Assets::balance(DOT, &ALICE), dollar(900),);
         assert_eq!(
-            <Test as Config>::Currency::free_balance(DOT, &ALICE),
-            million_dollar(900),
+            <Test as Config>::Assets::balance(DOT, &Loans::account_id()),
+            dollar(100),
         );
     })
 }
 
 #[test]
 fn mint_must_return_err_when_overflows_occur() {
-    ExtBuilder::default().build().execute_with(|| {
-        const MAX_VALUE: u128 = u128::MAX / 2;
+    new_test_ext().execute_with(|| {
+        // MAX_DEPOSIT = u128::MAX * exchangeRate
+        const OVERFLOW_DEPOSIT: u128 = u128::MAX / 50 + 1;
 
         // Verify token balance first
         assert_noop!(
-            Loans::mint(Origin::signed(CHARLIE), DOT, MAX_VALUE),
-            orml_tokens::Error::<Test>::BalanceTooLow
+            Loans::mint(Origin::signed(CHARLIE), DOT, OVERFLOW_DEPOSIT),
+            pallet_assets::Error::<Test, Instance1>::BalanceLow
         );
 
-        // Deposit MAX_VALUE DOT for CHARLIE
-        assert_ok!(<Test as Config>::Currency::deposit(
-            DOT, &CHARLIE, MAX_VALUE
+        // Deposit OVERFLOW_DEPOSIT DOT for CHARLIE
+        assert_ok!(Assets::mint(
+            Origin::signed(ALICE),
+            DOT,
+            CHARLIE,
+            OVERFLOW_DEPOSIT
         ));
 
-        // Amount is too large, MAX_VALUE / 0.0X == Overflow
+        // Amount is too large, OVERFLOW_DEPOSIT / 0.0X == Overflow
         // Underflow is used here redeem could also be 0
         assert_noop!(
-            Loans::mint(Origin::signed(CHARLIE), DOT, MAX_VALUE),
+            Loans::mint(Origin::signed(CHARLIE), DOT, OVERFLOW_DEPOSIT),
             ArithmeticError::Underflow
         );
 
@@ -116,7 +121,7 @@ fn mint_must_return_err_when_overflows_occur() {
 
 #[test]
 fn redeem_allowed_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Prepare: Bob Deposit 200 DOT
         assert_ok!(Loans::mint(Origin::signed(BOB), DOT, 200));
 
@@ -124,59 +129,50 @@ fn redeem_allowed_works() {
         assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, 200));
         // Redeem 201 KSM should cause InsufficientDeposit
         assert_noop!(
-            Loans::redeem_allowed(&KSM, &ALICE, 10050, &MARKET_MOCK),
+            Loans::redeem_allowed(KSM, &ALICE, 10050, &MARKET_MOCK),
             Error::<Test>::InsufficientDeposit
         );
-        // Redeem 200 DOT should cause InsufficientDeposit
+        // Redeem 1 DOT should cause InsufficientDeposit
         assert_noop!(
-            Loans::redeem_allowed(&DOT, &ALICE, 10000, &MARKET_MOCK),
+            Loans::redeem_allowed(DOT, &ALICE, 50, &MARKET_MOCK),
             Error::<Test>::InsufficientDeposit
         );
         // Redeem 200 KSM is ok
-        assert_ok!(Loans::redeem_allowed(&KSM, &ALICE, 10000, &MARKET_MOCK));
+        assert_ok!(Loans::redeem_allowed(KSM, &ALICE, 10000, &MARKET_MOCK));
 
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
         // Borrow 50 DOT will reduce 100 KSM liquidity for collateral_factor is 50%
         assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, 50));
         // Redeem 101 KSM should cause InsufficientLiquidity
         assert_noop!(
-            Loans::redeem_allowed(&KSM, &ALICE, 5050, &MARKET_MOCK),
+            Loans::redeem_allowed(KSM, &ALICE, 5050, &MARKET_MOCK),
             Error::<Test>::InsufficientLiquidity
         );
         // Redeem 100 KSM is ok
-        assert_ok!(Loans::redeem_allowed(&KSM, &ALICE, 5000, &MARKET_MOCK));
+        assert_ok!(Loans::redeem_allowed(KSM, &ALICE, 5000, &MARKET_MOCK));
     })
 }
 
 #[test]
 fn redeem_works() {
-    ExtBuilder::default().build().execute_with(|| {
-        // Deposit 100 DOT
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, million_dollar(100)));
-        // Redeem 20 DOT
-        assert_ok!(Loans::redeem(
-            Origin::signed(ALICE),
-            DOT,
-            million_dollar(20)
-        ));
+    new_test_ext().execute_with(|| {
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(100)));
+        assert_ok!(Loans::redeem(Origin::signed(ALICE), DOT, dollar(20)));
 
         // DOT collateral: deposit - redeem = 100 - 20 = 80
         // DOT: cash - deposit + redeem = 1000 - 100 + 20 = 920
         assert_eq!(
             Loans::exchange_rate(DOT)
                 .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
-            million_dollar(80)
+            dollar(80)
         );
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(DOT, &ALICE),
-            million_dollar(920),
-        );
+        assert_eq!(<Test as Config>::Assets::balance(DOT, &ALICE), dollar(920),);
     })
 }
 
 #[test]
 fn redeem_must_return_err_when_overflows_occur() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Amount is too large, max_value / 0.0X == Overflow
         // Underflow is used here redeem could also be 0
         assert_noop!(
@@ -195,10 +191,8 @@ fn redeem_must_return_err_when_overflows_occur() {
 
 #[test]
 fn redeem_all_works() {
-    ExtBuilder::default().build().execute_with(|| {
-        // Deposit 100 DOT
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, million_dollar(100)));
-        // Redeem all DOT
+    new_test_ext().execute_with(|| {
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(100)));
         assert_ok!(Loans::redeem_all(Origin::signed(ALICE), DOT));
 
         // DOT: cash - deposit + redeem = 1000 - 100 + 100 = 1000
@@ -208,42 +202,35 @@ fn redeem_all_works() {
                 .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
             0,
         );
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(DOT, &ALICE),
-            million_dollar(1000),
-        );
+        assert_eq!(<Test as Config>::Assets::balance(DOT, &ALICE), dollar(1000),);
         assert!(!AccountDeposits::<Test>::contains_key(DOT, &ALICE))
     })
 }
 
 #[test]
 fn borrow_allowed_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Deposit 200 DOT as collateral
         assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, 200));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
         // Borrow 101 DOT should cause InsufficientLiquidity
         assert_noop!(
-            Loans::borrow_allowed(&DOT, &ALICE, 101),
+            Loans::borrow_allowed(DOT, &ALICE, 101),
             Error::<Test>::InsufficientLiquidity
         );
         // Borrow 100 DOT is ok
-        assert_ok!(Loans::borrow_allowed(&DOT, &ALICE, 100));
+        assert_ok!(Loans::borrow_allowed(DOT, &ALICE, 100));
     })
 }
 
 #[test]
 fn borrow_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Deposit 200 DOT as collateral
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, million_dollar(200)));
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(200)));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
         // Borrow 100 DOT
-        assert_ok!(Loans::borrow(
-            Origin::signed(ALICE),
-            DOT,
-            million_dollar(100)
-        ));
+        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, dollar(100)));
 
         // DOT collateral: deposit = 200
         // DOT borrow balance: borrow = 100
@@ -251,36 +238,25 @@ fn borrow_works() {
         assert_eq!(
             Loans::exchange_rate(DOT)
                 .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
-            million_dollar(200)
+            dollar(200)
         );
         let borrow_snapshot = Loans::account_borrows(DOT, ALICE);
-        assert_eq!(borrow_snapshot.principal, million_dollar(100));
+        assert_eq!(borrow_snapshot.principal, dollar(100));
         assert_eq!(borrow_snapshot.borrow_index, Loans::borrow_index(DOT));
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(DOT, &ALICE),
-            million_dollar(900),
-        );
+        assert_eq!(<Test as Config>::Assets::balance(DOT, &ALICE), dollar(900),);
     })
 }
 
 #[test]
 fn repay_borrow_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Deposit 200 DOT as collateral
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, million_dollar(200)));
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(200)));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
         // Borrow 100 DOT
-        assert_ok!(Loans::borrow(
-            Origin::signed(ALICE),
-            DOT,
-            million_dollar(100)
-        ));
+        assert_ok!(Loans::borrow(Origin::signed(ALICE), DOT, dollar(100)));
         // Repay 30 DOT
-        assert_ok!(Loans::repay_borrow(
-            Origin::signed(ALICE),
-            DOT,
-            million_dollar(30)
-        ));
+        assert_ok!(Loans::repay_borrow(Origin::signed(ALICE), DOT, dollar(30)));
 
         // DOT collateral: deposit = 200
         // DOT borrow balance: borrow - repay = 100 - 30 = 70
@@ -288,32 +264,25 @@ fn repay_borrow_works() {
         assert_eq!(
             Loans::exchange_rate(DOT)
                 .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
-            million_dollar(200)
+            dollar(200)
         );
         let borrow_snapshot = Loans::account_borrows(DOT, ALICE);
-        assert_eq!(borrow_snapshot.principal, million_dollar(70));
+        assert_eq!(borrow_snapshot.principal, dollar(70));
         assert_eq!(borrow_snapshot.borrow_index, Loans::borrow_index(DOT));
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(DOT, &ALICE),
-            million_dollar(870),
-        );
+        assert_eq!(<Test as Config>::Assets::balance(DOT, &ALICE), dollar(870),);
     })
 }
 
 #[test]
 fn repay_borrow_all_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Bob deposits 200 KSM
-        assert_ok!(Loans::mint(Origin::signed(BOB), KSM, million_dollar(200)));
+        assert_ok!(Loans::mint(Origin::signed(BOB), KSM, dollar(200)));
         // Alice deposit 200 DOT as collateral
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, million_dollar(200)));
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(200)));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
         // Alice borrow 50 KSM
-        assert_ok!(Loans::borrow(
-            Origin::signed(ALICE),
-            KSM,
-            million_dollar(50)
-        ));
+        assert_ok!(Loans::borrow(Origin::signed(ALICE), KSM, dollar(50)));
 
         // Alice repay all borrow balance
         assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), KSM));
@@ -322,14 +291,11 @@ fn repay_borrow_all_works() {
         // DOT collateral: deposit = 200
         // KSM: cash + borrow - repay = 1000 + 50 - 50 = 1000
         // KSM borrow balance: borrow - repay = 50 - 50 = 0
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(DOT, &ALICE),
-            million_dollar(800),
-        );
+        assert_eq!(<Test as Config>::Assets::balance(DOT, &ALICE), dollar(800),);
         assert_eq!(
             Loans::exchange_rate(DOT)
                 .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
-            million_dollar(200)
+            dollar(200)
         );
         let borrow_snapshot = Loans::account_borrows(KSM, ALICE);
         assert_eq!(borrow_snapshot.principal, 0);
@@ -339,7 +305,7 @@ fn repay_borrow_all_works() {
 
 #[test]
 fn collateral_asset_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // No collateral assets
         assert_noop!(
             Loans::collateral_asset(Origin::signed(ALICE), DOT, true),
@@ -372,89 +338,65 @@ fn collateral_asset_works() {
 
 #[test]
 fn total_collateral_value_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
+        // Mock the price for DOT = 1, KSM = 1
         let collateral_factor = Rate::saturating_from_rational(50, 100);
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, million_dollar(100)));
-        assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, million_dollar(200)));
-        assert_ok!(Loans::mint(
-            Origin::signed(ALICE),
-            USDT,
-            million_dollar(300)
-        ));
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(100)));
+        assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, dollar(200)));
+        assert_ok!(Loans::mint(Origin::signed(ALICE), USDT, dollar(300)));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
         assert_eq!(
             Loans::total_collateral_value(&ALICE).unwrap(),
-            (collateral_factor.saturating_mul_int(100 + 200)).into()
+            (collateral_factor.saturating_mul(FixedU128::from_inner(dollar(100) + dollar(200))))
         );
     })
 }
 
 #[test]
 fn add_reserves_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Add 100 DOT reserves
-        assert_ok!(Loans::add_reserves(
-            Origin::root(),
-            ALICE,
-            DOT,
-            million_dollar(100)
-        ));
+        assert_ok!(Loans::add_reserves(Origin::root(), ALICE, DOT, dollar(100)));
 
-        assert_eq!(Loans::total_reserves(DOT), million_dollar(100));
+        assert_eq!(Loans::total_reserves(DOT), dollar(100));
         assert_eq!(
-            <Test as Config>::Currency::free_balance(DOT, &Loans::account_id()),
-            million_dollar(100),
+            <Test as Config>::Assets::balance(DOT, &Loans::account_id()),
+            dollar(100),
         );
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(DOT, &ALICE),
-            million_dollar(900),
-        );
+        assert_eq!(<Test as Config>::Assets::balance(DOT, &ALICE), dollar(900),);
     })
 }
 
 #[test]
 fn reduce_reserves_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Add 100 DOT reserves
-        assert_ok!(Loans::add_reserves(
-            Origin::root(),
-            ALICE,
-            DOT,
-            million_dollar(100)
-        ));
+        assert_ok!(Loans::add_reserves(Origin::root(), ALICE, DOT, dollar(100)));
 
         // Reduce 20 DOT reserves
         assert_ok!(Loans::reduce_reserves(
             Origin::root(),
             ALICE,
             DOT,
-            million_dollar(20)
+            dollar(20)
         ));
 
-        assert_eq!(Loans::total_reserves(DOT), million_dollar(80));
+        assert_eq!(Loans::total_reserves(DOT), dollar(80));
         assert_eq!(
-            <Test as Config>::Currency::free_balance(DOT, &Loans::account_id()),
-            million_dollar(80),
+            <Test as Config>::Assets::balance(DOT, &Loans::account_id()),
+            dollar(80),
         );
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(DOT, &ALICE),
-            million_dollar(920),
-        );
+        assert_eq!(<Test as Config>::Assets::balance(DOT, &ALICE), dollar(920),);
     })
 }
 
 #[test]
 fn reduce_reserve_reduce_amount_must_be_less_than_total_reserves() {
-    ExtBuilder::default().build().execute_with(|| {
-        assert_ok!(Loans::add_reserves(
-            Origin::root(),
-            ALICE,
-            DOT,
-            million_dollar(100)
-        ));
+    new_test_ext().execute_with(|| {
+        assert_ok!(Loans::add_reserves(Origin::root(), ALICE, DOT, dollar(100)));
         assert_noop!(
-            Loans::reduce_reserves(Origin::root(), ALICE, DOT, million_dollar(200)),
+            Loans::reduce_reserves(Origin::root(), ALICE, DOT, dollar(200)),
             Error::<Test>::InsufficientReserves
         );
     })
@@ -462,7 +404,7 @@ fn reduce_reserve_reduce_amount_must_be_less_than_total_reserves() {
 
 #[test]
 fn ratio_and_rate_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Permill to FixedU128
         let ratio = Permill::from_percent(50);
         let rate: FixedU128 = ratio.into();
@@ -569,7 +511,7 @@ fn ratio_and_rate_works() {
 
 #[test]
 fn update_exchange_rate_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // Initialize value of exchange rate is 0.02
         assert_eq!(
             Loans::exchange_rate(DOT),
@@ -584,12 +526,12 @@ fn update_exchange_rate_works() {
             Rate::saturating_from_rational(2, 100)
         );
 
-        // total_cash + total_borrows - total_reverse / total_supply
-        // 10 + 5 - 1 / 500
+        // exchange_rate = total_cash + total_borrows - total_reverse / total_supply
         // total_cash = 10, total_supply = 500
-        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, million_dollar(10)));
-        TotalBorrows::<Test>::insert(DOT, million_dollar(5));
-        TotalReserves::<Test>::insert(DOT, million_dollar(1));
+        // exchange_rate = 10 + 5 - 1 / 500
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, dollar(10)));
+        TotalBorrows::<Test>::insert(DOT, dollar(5));
+        TotalReserves::<Test>::insert(DOT, dollar(1));
         assert_ok!(Loans::update_exchange_rate(DOT));
         assert_eq!(
             Loans::exchange_rate(DOT),
@@ -600,7 +542,7 @@ fn update_exchange_rate_works() {
 
 #[test]
 fn current_borrow_balance_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // snapshot.principal = 0
         AccountBorrows::<Test>::insert(
             DOT,
@@ -610,7 +552,7 @@ fn current_borrow_balance_works() {
                 borrow_index: Rate::one(),
             },
         );
-        assert_eq!(Loans::current_borrow_balance(&ALICE, &DOT).unwrap(), 0);
+        assert_eq!(Loans::current_borrow_balance(&ALICE, DOT).unwrap(), 0);
 
         // snapshot.borrow_index = 0
         AccountBorrows::<Test>::insert(
@@ -621,7 +563,7 @@ fn current_borrow_balance_works() {
                 borrow_index: Rate::zero(),
             },
         );
-        assert_eq!(Loans::current_borrow_balance(&ALICE, &DOT).unwrap(), 0);
+        assert_eq!(Loans::current_borrow_balance(&ALICE, DOT).unwrap(), 0);
 
         // borrow_index = 1.2, snapshot.borrow_index = 1, snapshot.principal = 100
         BorrowIndex::<Test>::insert(DOT, Rate::saturating_from_rational(12, 10));
@@ -633,28 +575,31 @@ fn current_borrow_balance_works() {
                 borrow_index: Rate::one(),
             },
         );
-        assert_eq!(Loans::current_borrow_balance(&ALICE, &DOT).unwrap(), 120);
+        assert_eq!(Loans::current_borrow_balance(&ALICE, DOT).unwrap(), 120);
     })
 }
 
 #[test]
 fn calc_collateral_amount_works() {
-    let amount: u128 = 1000;
     let exchange_rate = Rate::saturating_from_rational(3, 10);
     assert_eq!(
-        Loans::calc_collateral_amount(amount, exchange_rate).unwrap(),
+        Loans::calc_collateral_amount(1000, exchange_rate).unwrap(),
         3333
+    );
+    assert_eq!(
+        Loans::calc_collateral_amount(u128::MAX, exchange_rate),
+        Err(DispatchError::Arithmetic(ArithmeticError::Underflow))
     );
 }
 
 #[test]
 fn get_price_works() {
     MockPriceFeeder::set_price(DOT, 0.into());
-    assert!(Loans::get_price(&DOT).is_err());
+    assert!(Loans::get_price(DOT).is_err());
 
     MockPriceFeeder::set_price(DOT, 2.into());
     assert_eq!(
-        Loans::get_price(&DOT).unwrap(),
+        Loans::get_price(DOT).unwrap(),
         Price::saturating_from_integer(2)
     );
 }

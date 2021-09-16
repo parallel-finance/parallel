@@ -56,7 +56,6 @@ pub trait WeightInfo {
     fn redeem_all() -> Weight;
     fn repay_borrow() -> Weight;
     fn repay_borrow_all() -> Weight;
-    fn transfer_token() -> Weight;
     fn collateral_asset() -> Weight;
     fn liquidate_borrow() -> Weight;
     fn add_reserves() -> Weight;
@@ -104,11 +103,6 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
         (72_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(5 as Weight))
             .saturating_add(T::DbWeight::get().writes(4 as Weight))
-    }
-    fn transfer_token() -> Weight {
-        (48_000_000 as Weight)
-            .saturating_add(T::DbWeight::get().reads(3 as Weight))
-            .saturating_add(T::DbWeight::get().writes(3 as Weight))
     }
     fn collateral_asset() -> Weight {
         (26_000_000 as Weight)
@@ -172,11 +166,6 @@ impl WeightInfo for () {
         (72_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(5 as Weight))
             .saturating_add(RocksDbWeight::get().writes(4 as Weight))
-    }
-    fn transfer_token() -> Weight {
-        (48_000_000 as Weight)
-            .saturating_add(RocksDbWeight::get().reads(3 as Weight))
-            .saturating_add(RocksDbWeight::get().writes(3 as Weight))
     }
     fn collateral_asset() -> Weight {
         (26_000_000 as Weight)

@@ -13,19 +13,19 @@
 // limitations under the License.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![allow(clippy::unnecessary_cast)]
-#![allow(clippy::upper_case_acronyms)]
 
 pub mod currency;
 pub mod network;
+pub mod tokens;
+
+pub use currency::{CurrencyId, TokenSymbol};
 
 use codec::{Decode, Encode};
-pub use currency::{CurrencyId, TokenSymbol};
 use sp_runtime::{
-    traits::{CheckedDiv, IdentifyAccount, Verify},
+    traits::{IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
 };
-use sp_std::{cmp::Ordering, convert::Into, prelude::*};
+use sp_std::{convert::Into, prelude::*};
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -82,11 +82,13 @@ pub type Price = FixedU128;
 
 pub type Timestamp = u64;
 
+pub type AssetId = u32;
+
 pub const SECONDS_PER_YEAR: Timestamp = 365 * 24 * 60 * 60;
 
 pub type PriceDetail = (Price, Timestamp);
 
-pub type TimeStampedPrice = orml_oracle::TimestampedValue<PriceWithDecimal, Moment>;
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 
 use crate::currency::CurrencyOrAsset;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -97,49 +99,27 @@ pub enum DataProviderId {
     Aggregated = 0,
 }
 
-#[derive(Encode, Decode, Debug, Default, Copy, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct PriceWithDecimal {
-    pub price: Price,
-    pub decimal: u8,
-}
-impl Ord for PriceWithDecimal {
-    fn cmp(&self, other: &Self) -> Ordering {
-        if let Some((decimal, other_decimal)) = 10u128
-            .checked_pow(self.decimal.into())
-            .zip(10u128.checked_pow(other.decimal.into()))
-        {
-            if let Some((price, other_price)) =
-                self.price.checked_div(&FixedU128::from_inner(decimal)).zip(
-                    other
-                        .price
-                        .checked_div(&FixedU128::from_inner(other_decimal)),
-                )
-            {
-                return price.cmp(&other_price);
-            }
-        }
-        self.price.cmp(&other.price)
-    }
-}
-impl PartialOrd for PriceWithDecimal {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 pub trait PriceFeeder {
-    fn get_price(currency_id: &CurrencyId) -> Option<PriceDetail>;
+    fn get_price(asset_id: &AssetId) -> Option<PriceDetail>;
 }
 
-pub trait EmergencyPriceFeeder<CurrencyId, PriceWithDecimal> {
-    fn set_emergency_price(currency_id: CurrencyId, price: PriceWithDecimal);
-    fn reset_emergency_price(currency_id: CurrencyId);
+pub trait DecimalProvider {
+    fn get_decimal(asset_id: &AssetId) -> u8;
+}
+
+pub trait EmergencyPriceFeeder<AssetId, Price> {
+    fn set_emergency_price(asset_id: AssetId, price: Price);
+    fn reset_emergency_price(asset_id: AssetId);
 }
 
 pub trait ExchangeRateProvider {
     fn get_exchange_rate() -> Rate;
+}
+
+pub trait LiquidStakingCurrenciesProvider<AssetId> {
+    fn get_staking_currency() -> Option<AssetId>;
+    fn get_liquid_currency() -> Option<AssetId>;
 }
 
 pub trait AMM<T: frame_system::Config> {
@@ -153,4 +133,8 @@ pub trait AMM<T: frame_system::Config> {
         amount_in: Balance,
         minimum_amount_out: Balance,
     ) -> Result<Balance, frame_support::pallet_prelude::DispatchError>;
+}
+
+pub trait DerivativeProvider<AccountId> {
+    fn derivative_account_id(who: AccountId, index: u16) -> AccountId;
 }

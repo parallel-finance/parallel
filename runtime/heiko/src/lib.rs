@@ -25,11 +25,11 @@ mod weights;
 use codec::Encode;
 use frame_support::{
     dispatch::Weight,
-    traits::{Contains, Everything},
+    traits::{fungibles::Mutate, Contains, Everything},
     PalletId,
 };
 use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended, MultiCurrency};
+use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended};
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use sp_api::impl_runtime_apis;
 use sp_core::{
@@ -56,9 +56,14 @@ use frame_system::{
     limits::{BlockLength, BlockWeights},
     EnsureOneOf, EnsureRoot, EnsureSigned,
 };
-use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
+use orml_xcm_support::{IsNativeConcrete, MultiNativeAsset};
 use polkadot_parachain::primitives::Sibling;
-use primitives::{network::HEIKO_PREFIX, *};
+use primitives::{
+    currency::MultiCurrencyAdapter,
+    network::HEIKO_PREFIX,
+    tokens::{KSM, XKSM},
+    *,
+};
 
 use hex_literal::hex;
 use xcm::v0::{Junction, Junction::*, MultiAsset, MultiLocation, MultiLocation::*, NetworkId};
@@ -359,11 +364,11 @@ impl orml_currencies::Config for Runtime {
 }
 
 pub struct CurrencyIdConvert;
-impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
-    fn convert(id: CurrencyId) -> Option<MultiLocation> {
+impl Convert<AssetId, Option<MultiLocation>> for CurrencyIdConvert {
+    fn convert(id: AssetId) -> Option<MultiLocation> {
         match id {
-            CurrencyId::Token(TokenSymbol::KSM) => Some(X1(Parent)),
-            CurrencyId::Token(TokenSymbol::xKSM) => Some(X3(
+            KSM => Some(X1(Parent)),
+            XKSM => Some(X3(
                 Parent,
                 Parachain(ParachainInfo::parachain_id().into()),
                 GeneralKey(b"xKSM".to_vec()),
@@ -373,22 +378,22 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     }
 }
 
-impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
-    fn convert(location: MultiLocation) -> Option<CurrencyId> {
+impl Convert<MultiLocation, Option<AssetId>> for CurrencyIdConvert {
+    fn convert(location: MultiLocation) -> Option<AssetId> {
         match location {
-            X1(Parent) => Some(CurrencyId::Token(TokenSymbol::KSM)),
+            X1(Parent) => Some(KSM),
             X3(Parent, Parachain(id), GeneralKey(key))
                 if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xKSM".to_vec() =>
             {
-                Some(CurrencyId::Token(TokenSymbol::xKSM))
+                Some(XKSM)
             }
             _ => None,
         }
     }
 }
 
-impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
-    fn convert(a: MultiAsset) -> Option<CurrencyId> {
+impl Convert<MultiAsset, Option<AssetId>> for CurrencyIdConvert {
+    fn convert(a: MultiAsset) -> Option<AssetId> {
         if let MultiAsset::ConcreteFungible { id, amount: _ } = a {
             Self::convert(id)
         } else {
@@ -415,7 +420,7 @@ parameter_types! {
 impl orml_xtokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
-    type CurrencyId = CurrencyId;
+    type CurrencyId = AssetId;
     type CurrencyIdConvert = CurrencyIdConvert;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type SelfLocation = SelfLocation;
@@ -441,9 +446,9 @@ parameter_types! {
 impl pallet_assets::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
-    type AssetId = u32;
+    type AssetId = AssetId;
     type Currency = Balances;
-    type ForceOrigin = EnsureRoot<AccountId>;
+    type ForceOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
     type MetadataDepositPerByte = MetadataDepositPerByte;
@@ -456,7 +461,6 @@ impl pallet_assets::Config for Runtime {
 
 impl pallet_loans::Config for Runtime {
     type Event = Event;
-    type Currency = Currencies;
     type PalletId = LoansPalletId;
     type PriceFeeder = Prices;
     type ReserveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
@@ -501,16 +505,15 @@ parameter_types! {
 
 impl pallet_liquid_staking::Config for Runtime {
     type Event = Event;
-    type Currency = Currencies;
     type PalletId = StakingPalletId;
-    type StakingCurrency = StakingCurrency;
-    type LiquidCurrency = LiquidCurrency;
     type BridgeOrigin = EnsureSigned<AccountId>;
     type WeightInfo = ();
     type XcmTransfer = XTokens;
     type RelayAgent = RelayAgent;
     type PeriodBasis = PeriodBasis;
     type BaseXcmWeight = BaseXcmWeight;
+    type Assets = Assets;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
 }
 
 parameter_types! {
@@ -807,15 +810,13 @@ pub type LocationToAccountId = (
 /// Means for transacting assets on this chain.
 pub type LocalAssetTransactor = MultiCurrencyAdapter<
     // Use this currency:
-    Currencies,
-    UnknownTokens,
+    Assets,
     // Use this currency when it is a fungible asset matching the given location or name:
-    IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
+    IsNativeConcrete<AssetId, CurrencyIdConvert>,
     // Our chain's account ID type (we can't get away without mentioning it explicitly):
     AccountId,
     // Do a simple punn to convert an AccountId32 MultiLocation into a native chain account ID:
     LocationToAccountId,
-    CurrencyId,
     CurrencyIdConvert,
 >;
 
@@ -862,7 +863,7 @@ impl TakeRevenue for ToTreasury {
     fn take_revenue(revenue: MultiAsset) {
         if let MultiAsset::ConcreteFungible { id, amount } = revenue {
             if let Some(currency_id) = CurrencyIdConvert::convert(id) {
-                let _ = Currencies::deposit(currency_id, &TreasuryAccount::get(), amount);
+                let _ = Assets::mint_into(currency_id, &TreasuryAccount::get(), amount);
             }
         }
     }
@@ -899,29 +900,41 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
     type CombineData =
         orml_oracle::DefaultCombineData<Runtime, MinimumCount, ExpiresIn, ParallelDataProvider>;
     type Time = Timestamp;
-    type OracleKey = CurrencyId;
-    type OracleValue = PriceWithDecimal;
+    type OracleKey = AssetId;
+    type OracleValue = Price;
     type RootOperatorAccountId = ZeroAccountId;
     type MaxHasDispatchedSize = MaxHasDispatchedSize;
     type WeightInfo = ();
     type Members = OracleMembership;
 }
 
-pub type TimeStampedPrice = orml_oracle::TimestampedValue<PriceWithDecimal, Moment>;
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 pub struct AggregatedDataProvider;
-impl DataProvider<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
-    fn get(key: &CurrencyId) -> Option<TimeStampedPrice> {
+impl DataProvider<AssetId, TimeStampedPrice> for AggregatedDataProvider {
+    fn get(key: &AssetId) -> Option<TimeStampedPrice> {
         Oracle::get(key)
     }
 }
 
-impl DataProviderExtended<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
-    fn get_no_op(key: &CurrencyId) -> Option<TimeStampedPrice> {
+impl DataProviderExtended<AssetId, TimeStampedPrice> for AggregatedDataProvider {
+    fn get_no_op(key: &AssetId) -> Option<TimeStampedPrice> {
         Oracle::get_no_op(key)
     }
-    #[allow(clippy::complexity)]
-    fn get_all_values() -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
+
+    fn get_all_values() -> Vec<(AssetId, Option<TimeStampedPrice>)> {
         Oracle::get_all_values()
+    }
+}
+
+pub struct Decimal;
+impl DecimalProvider for Decimal {
+    fn get_decimal(asset_id: &AssetId) -> u8 {
+        // TODO should find a way, get decimal from pallet_assets
+        // pallet_assets::Metadata::<Runtime>::get(asset_id).decimals
+        match *asset_id {
+            KSM | XKSM => 12,
+            _ => 0,
+        }
     }
 }
 
@@ -929,9 +942,9 @@ impl pallet_prices::Config for Runtime {
     type Event = Event;
     type Source = AggregatedDataProvider;
     type FeederOrigin = EnsureRoot<AccountId>;
-    type StakingCurrency = StakingCurrency;
-    type LiquidCurrency = LiquidCurrency;
     type LiquidStakingExchangeRateProvider = LiquidStaking;
+    type LiquidStakingCurrenciesProvider = LiquidStaking;
+    type Decimal = Decimal;
 }
 
 parameter_types! {
@@ -1391,16 +1404,16 @@ impl_runtime_apis! {
     impl orml_oracle_rpc_runtime_api::OracleApi<
         Block,
         DataProviderId,
-        CurrencyId,
+        AssetId,
         TimeStampedPrice,
     > for Runtime {
-        fn get_value(provider_id: DataProviderId, key: CurrencyId) -> Option<TimeStampedPrice> {
+        fn get_value(provider_id: DataProviderId, key: AssetId) -> Option<TimeStampedPrice> {
             match provider_id {
                 DataProviderId::Aggregated => Prices::get_no_op(&key)
             }
         }
 
-        fn get_all_values(provider_id: DataProviderId) -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
+        fn get_all_values(provider_id: DataProviderId) -> Vec<(AssetId, Option<TimeStampedPrice>)> {
             match provider_id {
                 DataProviderId::Aggregated => Prices::get_all_values()
             }
@@ -1431,7 +1444,7 @@ impl_runtime_apis! {
             // Trying to add benchmarks directly to the Session Pallet caused cyclic dependency
             // issues. To get around that, we separated the Session benchmarks into its own crate,
             // which is why we need these two lines below.
-            use pallet_loans_benchmarking::Pallet as LoansBench;
+            // use pallet_loans_benchmarking::Pallet as LoansBench;
             use frame_system_benchmarking::Pallet as SystemBench;
 
             let mut list = Vec::<BenchmarkList>::new();
@@ -1439,7 +1452,7 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_balances, Balances);
             list_benchmark!(list, extra, pallet_membership, TechnicalCommitteeMembership);
             list_benchmark!(list, extra, pallet_multisig, Multisig);
-            list_benchmark!(list, extra, pallet_loans, LoansBench::<Runtime>);
+            list_benchmark!(list, extra, pallet_loans, Loans);
             list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
             list_benchmark!(list, extra, pallet_timestamp, Timestamp);
 
@@ -1453,10 +1466,10 @@ impl_runtime_apis! {
         ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
             use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark, TrackedStorageKey};
 
-            use pallet_loans_benchmarking::Pallet as LoansBench;
+            // use pallet_loans_benchmarking::Pallet as LoansBench;
             use frame_system_benchmarking::Pallet as SystemBench;
 
-            impl pallet_loans_benchmarking::Config for Runtime {}
+            // impl pallet_loans_benchmarking::Config for Runtime {}
             impl frame_system_benchmarking::Config for Runtime {}
 
             let whitelist: Vec<TrackedStorageKey> = vec![
@@ -1478,7 +1491,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, frame_system, SystemBench::<Runtime>);
             add_benchmark!(params, batches, pallet_balances, Balances);
             add_benchmark!(params, batches, pallet_timestamp, Timestamp);
-            add_benchmark!(params, batches, pallet_loans, LoansBench::<Runtime>);
+            add_benchmark!(params, batches, pallet_loans, Loans);
             add_benchmark!(params, batches, pallet_multisig, Multisig);
             add_benchmark!(params, batches, pallet_membership, TechnicalCommitteeMembership);
 

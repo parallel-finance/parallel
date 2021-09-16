@@ -48,9 +48,9 @@ use sp_runtime::traits::IntegerSquareRoot;
 use sp_runtime::traits::StaticLookup;
 use sp_runtime::ArithmeticError;
 pub use sp_runtime::Perbill;
-pub use weights::WeightInfo;
 use sp_runtime::SaturatedConversion;
-use sp_runtime::traits::Saturating;
+use sp_std::convert::TryFrom;
+pub use weights::WeightInfo;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -163,7 +163,10 @@ pub mod pallet {
     >;
 
     #[pallet::call]
-    impl<T: Config<I>, I: 'static> Pallet<T, I> {
+    impl<T: Config<I>, I: 'static> Pallet<T, I>
+    where
+        u32: From<<T as pallet_assets::Config>::AssetId>,
+    {
         /// Allow users to add liquidity to a given pool
         ///
         /// - `pool`: Currency pool, in which liquidity will be added
@@ -184,9 +187,10 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             let (is_inverted, base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
 
-            let (base_amount, quote_amount) = match is_inverted {
-                true => (liquidity_amounts.1, liquidity_amounts.0),
-                false => (liquidity_amounts.0, liquidity_amounts.1),
+            let (base_amount, quote_amount) = if is_inverted {
+                (liquidity_amounts.1, liquidity_amounts.0)
+            } else {
+                (liquidity_amounts.0, liquidity_amounts.1)
             };
             let currency_asset = CurrencyOrAsset::Asset(asset_id.saturated_into::<u32>());
 
@@ -306,10 +310,10 @@ pub mod pallet {
 
                         pallet_assets::Pallet::<T>::force_create(
                             RawOrigin::Root.into(),
-                            asset_id.into(),
+                            asset_id,
                             T::Lookup::unlookup(Self::account_id()),
                             false,
-                            1.into(),
+                            1u128,
                         );
 
                         T::AMMCurrency::mint_into(currency_asset, &who, ownership)?;
@@ -450,16 +454,18 @@ pub mod pallet {
             ensure_root(origin)?;
 
             let (is_inverted, base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
-            let currency_asset = CurrencyOrAsset::Asset(asset_id);
+            let currency_asset = CurrencyOrAsset::Asset(asset_id.saturated_into::<u32>());
             ensure!(
                 !Pools::<T, I>::contains_key(&base_asset, &quote_asset),
                 Error::<T, I>::PoolAlreadyExists
             );
 
-            let (base_amount, quote_amount) = match is_inverted {
-                true => (liquidity_amounts.1, liquidity_amounts.0),
-                false => (liquidity_amounts.0, liquidity_amounts.1),
+            let (base_amount, quote_amount) = if is_inverted {
+                (liquidity_amounts.1, liquidity_amounts.0)
+            } else {
+                (liquidity_amounts.0, liquidity_amounts.1)
             };
+
             let ownership = base_amount.saturating_mul(quote_amount).integer_sqrt();
             let amm_pool = PoolLiquidityAmount {
                 base_amount,
@@ -474,7 +480,7 @@ pub mod pallet {
 
             pallet_assets::Pallet::<T>::force_create(
                 RawOrigin::Root.into(),
-                asset_id.into(),
+                asset_id,
                 T::Lookup::unlookup(Self::account_id()),
                 false,
                 1.into(),
