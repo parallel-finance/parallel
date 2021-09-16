@@ -20,11 +20,11 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-// #[cfg(test)]
-// mod mock;
+#[cfg(test)]
+mod mock;
 pub mod relaychain;
-// #[cfg(test)]
-// mod tests;
+#[cfg(test)]
+mod tests;
 pub mod types;
 pub mod weights;
 
@@ -275,7 +275,7 @@ mod pallet {
             // on_idle shouldn't run out of all remaining_weight normally
             let base_weight = T::WeightInfo::pop_queue();
             if Self::staking_currency().is_none() {
-                return 0;
+                return remaining_weight;
             }
             loop {
                 // Check weight is enough

@@ -3,10 +3,17 @@ use crate::{
     types::{MatchingLedger, RewardDestination, StakingSettlementKind},
     *,
 };
-use frame_support::{assert_err, assert_ok, traits::Hooks};
-use orml_traits::MultiCurrency;
+use frame_support::{
+    assert_err, assert_ok,
+    traits::{
+        Hooks,
+    },
+};
 use pallet_staking::{Exposure, IndividualExposure};
-use primitives::{Balance, CurrencyId, Rate, TokenSymbol};
+use primitives::{
+    tokens::{DOT, XDOT},
+    Balance, Rate,
+};
 use sp_runtime::traits::One;
 use xcm_simulator::TestExt;
 
@@ -26,19 +33,10 @@ fn stake_should_work() {
         );
 
         // Check balance is correct
+        assert_eq!(<Test as Config>::Assets::balance(DOT, &ALICE), 90);
+        assert_eq!(<Test as Config>::Assets::balance(XDOT, &ALICE), 110);
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::Token(TokenSymbol::DOT), &ALICE),
-            90
-        );
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::Token(TokenSymbol::xDOT), &ALICE),
-            110
-        );
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(
-                CurrencyId::Token(TokenSymbol::DOT),
-                &LiquidStaking::account_id()
-            ),
+            <Test as Config>::Assets::balance(DOT, &LiquidStaking::account_id()),
             10
         );
     })
@@ -62,19 +60,10 @@ fn unstake_should_work() {
         );
 
         // Check balance is correct
+        assert_eq!(<Test as Config>::Assets::balance(DOT, &ALICE), 96);
+        assert_eq!(<Test as Config>::Assets::balance(XDOT, &ALICE), 104);
         assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::Token(TokenSymbol::DOT), &ALICE),
-            96
-        );
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(CurrencyId::Token(TokenSymbol::xDOT), &ALICE),
-            104
-        );
-        assert_eq!(
-            <Test as Config>::Currency::free_balance(
-                CurrencyId::Token(TokenSymbol::DOT),
-                &LiquidStaking::account_id()
-            ),
+            <Test as Config>::Assets::balance(DOT, &LiquidStaking::account_id()),
             4
         );
     })

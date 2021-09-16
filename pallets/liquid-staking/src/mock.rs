@@ -2,13 +2,13 @@ use frame_support::{
     construct_runtime,
     dispatch::Weight,
     parameter_types, sp_io,
-    traits::{Contains, Everything, GenesisBuild, SortedMembers},
+    traits::{Everything, GenesisBuild, SortedMembers},
     weights::constants::WEIGHT_PER_SECOND,
     PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::parameter_type_with_key;
-use primitives::{DerivativeProvider, TokenSymbol};
+use primitives::{currency::MultiCurrencyAdapter, DerivativeProvider};
 
 use sp_core::H256;
 use sp_runtime::{
@@ -17,10 +17,10 @@ use sp_runtime::{
     AccountId32,
 };
 
-use primitives::{Amount, Balance, CurrencyId, Rate, Ratio};
+use primitives::{tokens::*, Balance, CurrencyId, Rate, Ratio};
 
 use cumulus_primitives_core::ParaId;
-use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter};
+use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 pub use xcm::v0::{
@@ -41,6 +41,7 @@ pub use xcm_builder::{
 use xcm_executor::{Config, XcmExecutor};
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
 pub type AccountId = AccountId32;
+pub type AssetId = u32;
 pub use westend_runtime;
 
 parameter_types! {
@@ -88,12 +89,10 @@ parameter_types! {
 }
 
 pub type LocalAssetTransactor = MultiCurrencyAdapter<
-    Tokens,
-    (),
-    IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
+    Assets,
+    IsNativeConcrete<AssetId, CurrencyIdConvert>,
     AccountId,
     LocationToAccountId,
-    CurrencyId,
     CurrencyIdConvert,
 >;
 
@@ -148,11 +147,11 @@ impl pallet_xcm::Config for Test {
 }
 
 pub struct CurrencyIdConvert;
-impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
-    fn convert(id: CurrencyId) -> Option<MultiLocation> {
+impl Convert<AssetId, Option<MultiLocation>> for CurrencyIdConvert {
+    fn convert(id: AssetId) -> Option<MultiLocation> {
         match id {
-            CurrencyId::Token(TokenSymbol::DOT) => Some(X1(Parent)),
-            CurrencyId::Token(TokenSymbol::xDOT) => Some(X3(
+            DOT => Some(X1(Parent)),
+            XDOT => Some(X3(
                 Parent,
                 Parachain(ParachainInfo::parachain_id().into()),
                 GeneralKey(b"xDOT".to_vec()),
@@ -162,22 +161,22 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     }
 }
 
-impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
-    fn convert(location: MultiLocation) -> Option<CurrencyId> {
+impl Convert<MultiLocation, Option<AssetId>> for CurrencyIdConvert {
+    fn convert(location: MultiLocation) -> Option<AssetId> {
         match location {
-            X1(Parent) => Some(CurrencyId::Token(TokenSymbol::DOT)),
+            X1(Parent) => Some(DOT),
             X3(Parent, Parachain(id), GeneralKey(key))
                 if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xDOT".to_vec() =>
             {
-                Some(CurrencyId::Token(TokenSymbol::xDOT))
+                Some(XDOT)
             }
             _ => None,
         }
     }
 }
 
-impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
-    fn convert(a: MultiAsset) -> Option<CurrencyId> {
+impl Convert<MultiAsset, Option<AssetId>> for CurrencyIdConvert {
+    fn convert(a: MultiAsset) -> Option<AssetId> {
         if let MultiAsset::ConcreteFungible { id, amount: _ } = a {
             Self::convert(id)
         } else {
@@ -204,7 +203,7 @@ parameter_types! {
 impl orml_xtokens::Config for Test {
     type Event = Event;
     type Balance = Balance;
-    type CurrencyId = CurrencyId;
+    type CurrencyId = AssetId;
     type CurrencyIdConvert = CurrencyIdConvert;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type SelfLocation = SelfLocation;
@@ -272,38 +271,6 @@ parameter_type_with_key! {
     };
 }
 
-pub struct DustRemovalWhitelist;
-impl Contains<AccountId> for DustRemovalWhitelist {
-    fn contains(a: &AccountId) -> bool {
-        vec![StakingPalletId::get().into_account()].contains(a)
-    }
-}
-
-impl orml_tokens::Config for Test {
-    type Event = Event;
-    type Balance = Balance;
-    type Amount = Amount;
-    type CurrencyId = CurrencyId;
-    type OnDust = ();
-    type ExistentialDeposits = ExistentialDeposits;
-    type WeightInfo = ();
-    type MaxLocks = MaxLocks;
-    type DustRemovalWhitelist = DustRemovalWhitelist;
-}
-
-parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::HKO);
-}
-
-impl orml_currencies::Config for Test {
-    type Event = Event;
-    type MultiCurrency = Tokens;
-    type NativeCurrency =
-        orml_currencies::BasicCurrencyAdapter<Test, Balances, Amount, BlockNumber>;
-    type GetNativeCurrencyId = GetNativeCurrencyId;
-    type WeightInfo = ();
-}
-
 pub struct AliceOrigin;
 impl SortedMembers<AccountId> for AliceOrigin {
     fn sorted_members() -> Vec<AccountId> {
@@ -311,12 +278,18 @@ impl SortedMembers<AccountId> for AliceOrigin {
     }
 }
 
+pub struct BobOrigin;
+impl SortedMembers<AccountId> for BobOrigin {
+    fn sorted_members() -> Vec<AccountId> {
+        vec![BOB]
+    }
+}
+
 pub type BridgeOrigin = EnsureSignedBy<AliceOrigin, AccountId>;
+pub type UpdateOrigin = EnsureSignedBy<BobOrigin, AccountId>;
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const StakingCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
-    pub const LiquidCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::xDOT);
     pub RelayAgent: AccountId = para_a_account();
     pub const DerivativeIndex: u16 = 0;
     pub const PeriodBasis: BlockNumber = 5u64;
@@ -338,9 +311,6 @@ impl DerivativeProvider<AccountId> for DerivativeProviderT {
 
 impl crate::Config for Test {
     type Event = Event;
-    type Currency = Currencies;
-    type StakingCurrency = StakingCurrency;
-    type LiquidCurrency = LiquidCurrency;
     type PalletId = StakingPalletId;
     type BridgeOrigin = BridgeOrigin;
     type BaseXcmWeight = BaseXcmWeight;
@@ -351,6 +321,34 @@ impl crate::Config for Test {
     type XcmSender = XcmRouter;
     type DerivativeIndex = DerivativeIndex;
     type DerivativeProvider = DerivativeProviderT;
+    type Assets = Assets;
+    type UpdateOrigin = UpdateOrigin;
+}
+
+parameter_types! {
+    pub const AssetDeposit: Balance = DOT_DECIMAL;
+    pub const ApprovalDeposit: Balance = 0;
+    pub const AssetsStringLimit: u32 = 50;
+    /// Key = 32 bytes, Value = 36 bytes (32+1+1+1+1)
+    // https://github.com/paritytech/substrate/blob/069917b/frame/assets/src/lib.rs#L257L271
+    pub const MetadataDepositBase: Balance = 0;
+    pub const MetadataDepositPerByte: Balance = 0;
+}
+
+impl pallet_assets::Config for Test {
+    type Event = Event;
+    type Balance = Balance;
+    type AssetId = AssetId;
+    type Currency = Balances;
+    type ForceOrigin = UpdateOrigin;
+    type AssetDeposit = AssetDeposit;
+    type MetadataDepositBase = MetadataDepositBase;
+    type MetadataDepositPerByte = MetadataDepositPerByte;
+    type ApprovalDeposit = ApprovalDeposit;
+    type StringLimit = AssetsStringLimit;
+    type Freezer = ();
+    type WeightInfo = ();
+    type Extra = ();
 }
 
 construct_runtime!(
@@ -362,8 +360,7 @@ construct_runtime!(
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
         Utility: pallet_utility::{Pallet, Call, Event},
-        Tokens: orml_tokens::{Pallet, Storage, Config<T>, Event<T>},
-        Currencies: orml_currencies::{Pallet, Call, Event<T>},
+        Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
         LiquidStaking: crate::{Pallet, Storage, Call, Event<T>},
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>},
         ParachainInfo: parachain_info::{Pallet, Storage, Config},
@@ -385,15 +382,15 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         .build_storage::<Test>()
         .unwrap();
 
-    orml_tokens::GenesisConfig::<Test> {
-        balances: vec![
-            (ALICE, CurrencyId::Token(TokenSymbol::DOT), 100),
-            (ALICE, CurrencyId::Token(TokenSymbol::xDOT), 100),
-        ],
-    }
-    .assimilate_storage(&mut storage)
-    .unwrap();
-
+    // orml_tokens::GenesisConfig::<Test> {
+    //     balances: vec![
+    //         (ALICE, CurrencyId::Token(TokenSymbol::DOT), 100),
+    //         (ALICE, CurrencyId::Token(TokenSymbol::xDOT), 100),
+    //     ],
+    // }
+    // .assimilate_storage(&mut storage)
+    // .unwrap();
+    //
     GenesisBuild::<Test>::assimilate_storage(
         &crate::GenesisConfig {
             exchange_rate: Rate::one(),
@@ -459,15 +456,15 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
     )
     .unwrap();
 
-    orml_tokens::GenesisConfig::<Test> {
-        balances: vec![(
-            ALICE,
-            CurrencyId::Token(TokenSymbol::DOT),
-            1_000 * DOT_DECIMAL,
-        )],
-    }
-    .assimilate_storage(&mut t)
-    .unwrap();
+    // orml_tokens::GenesisConfig::<Test> {
+    //     balances: vec![(
+    //         ALICE,
+    //         CurrencyId::Token(TokenSymbol::DOT),
+    //         1_000 * DOT_DECIMAL,
+    //     )],
+    // }
+    // .assimilate_storage(&mut t)
+    // .unwrap();
 
     GenesisBuild::<Test>::assimilate_storage(
         &crate::GenesisConfig {
