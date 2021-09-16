@@ -179,7 +179,9 @@ mod pallet {
         NominateCallFailed,
         /// Failed to send staking.payout_stakers call
         PayoutStakersCallFailed,
+        /// Liquid currency hasn't been set
         LiquidCurrencyNotSet,
+        /// Staking currency hasn't been set
         StakingCurrencyNotSet,
     }
 

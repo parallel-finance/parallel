@@ -15,6 +15,7 @@ use sp_runtime::{
     testing::Header,
     traits::{AccountIdConversion, AccountIdLookup, BlakeTwo256, Convert, One},
     AccountId32,
+    MultiAddress::Id,
 };
 
 use primitives::{tokens::*, Balance, CurrencyId, Rate, Ratio};
@@ -329,8 +330,6 @@ parameter_types! {
     pub const AssetDeposit: Balance = DOT_DECIMAL;
     pub const ApprovalDeposit: Balance = 0;
     pub const AssetsStringLimit: u32 = 50;
-    /// Key = 32 bytes, Value = 36 bytes (32+1+1+1+1)
-    // https://github.com/paritytech/substrate/blob/069917b/frame/assets/src/lib.rs#L257L271
     pub const MetadataDepositBase: Balance = 0;
     pub const MetadataDepositPerByte: Balance = 0;
 }
@@ -340,7 +339,7 @@ impl pallet_assets::Config for Test {
     type Balance = Balance;
     type AssetId = AssetId;
     type Currency = Balances;
-    type ForceOrigin = UpdateOrigin;
+    type ForceOrigin = EnsureRoot<AccountId>;
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
     type MetadataDepositPerByte = MetadataDepositPerByte;
@@ -378,29 +377,31 @@ pub const BOB: AccountId32 = AccountId32::new([2u8; 32]);
 pub const CHARILE: AccountId32 = AccountId32::new([3u8; 32]);
 
 pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
-    let mut storage = frame_system::GenesisConfig::default()
+    let mut t = frame_system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap();
 
-    // orml_tokens::GenesisConfig::<Test> {
-    //     balances: vec![
-    //         (ALICE, CurrencyId::Token(TokenSymbol::DOT), 100),
-    //         (ALICE, CurrencyId::Token(TokenSymbol::xDOT), 100),
-    //     ],
-    // }
-    // .assimilate_storage(&mut storage)
-    // .unwrap();
-    //
     GenesisBuild::<Test>::assimilate_storage(
         &crate::GenesisConfig {
             exchange_rate: Rate::one(),
             reserve_factor: Ratio::from_perthousand(5),
         },
-        &mut storage,
+        &mut t,
     )
     .unwrap();
 
-    storage.into()
+    let mut ext = sp_io::TestExternalities::new(t);
+    ext.execute_with(|| {
+        Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100).unwrap();
+        Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), 100).unwrap();
+
+        LiquidStaking::set_liquid_currency(Origin::signed(BOB), XDOT).unwrap();
+        LiquidStaking::set_staking_currency(Origin::signed(BOB), DOT).unwrap();
+    });
+
+    ext
 }
 
 //initial parchain and relaychain for testing
@@ -456,16 +457,6 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
     )
     .unwrap();
 
-    // orml_tokens::GenesisConfig::<Test> {
-    //     balances: vec![(
-    //         ALICE,
-    //         CurrencyId::Token(TokenSymbol::DOT),
-    //         1_000 * DOT_DECIMAL,
-    //     )],
-    // }
-    // .assimilate_storage(&mut t)
-    // .unwrap();
-
     GenesisBuild::<Test>::assimilate_storage(
         &crate::GenesisConfig {
             exchange_rate: Rate::one(),
@@ -476,7 +467,16 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
     .unwrap();
 
     let mut ext = sp_io::TestExternalities::new(t);
-    ext.execute_with(|| System::set_block_number(1));
+    ext.execute_with(|| {
+        System::set_block_number(1);
+        Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 1000 * DOT_DECIMAL).unwrap();
+
+        LiquidStaking::set_liquid_currency(Origin::signed(BOB), XDOT).unwrap();
+        LiquidStaking::set_staking_currency(Origin::signed(BOB), DOT).unwrap();
+    });
+
     ext
 }
 
