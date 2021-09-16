@@ -5602,8 +5602,6 @@ version = "3.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
- "orml-currencies",
- "orml-tokens",
  "orml-traits",
  "pallet-assets",
  "pallet-balances",

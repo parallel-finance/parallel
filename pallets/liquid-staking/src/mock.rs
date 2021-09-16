@@ -7,7 +7,7 @@ use frame_support::{
     PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
-use orml_traits::parameter_type_with_key;
+
 use primitives::{currency::MultiCurrencyAdapter, DerivativeProvider};
 
 use sp_core::H256;
@@ -18,7 +18,7 @@ use sp_runtime::{
     MultiAddress::Id,
 };
 
-use primitives::{tokens::*, Balance, CurrencyId, Rate, Ratio};
+use primitives::{tokens::*, Balance, Rate, Ratio};
 
 use cumulus_primitives_core::ParaId;
 use orml_xcm_support::IsNativeConcrete;
@@ -264,12 +264,6 @@ impl pallet_balances::Config for Test {
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = ();
-}
-
-parameter_type_with_key! {
-    pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
-        Default::default()
-    };
 }
 
 pub struct AliceOrigin;

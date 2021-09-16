@@ -3,26 +3,27 @@ use frame_support::{
     dispatch::DispatchResult,
     dispatch::Weight,
     parameter_types, sp_io,
-    traits::{Contains, GenesisBuild, SortedMembers},
+    traits::{GenesisBuild, SortedMembers},
     PalletId,
 };
-use frame_system::EnsureSignedBy;
-use orml_traits::{parameter_type_with_key, XcmTransfer};
+use frame_system::{EnsureRoot, EnsureSignedBy};
+use orml_traits::XcmTransfer;
 
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
-    traits::{AccountIdConversion, BlakeTwo256, IdentityLookup, One},
+    traits::{BlakeTwo256, IdentityLookup, One},
 };
 
 use xcm::v0::{Junction, MultiAsset, MultiLocation};
 
-use primitives::{Amount, Balance, CurrencyId, Rate, Ratio, TokenSymbol};
+use primitives::{tokens::*, Balance, Rate, Ratio};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
 type AccountId = u64;
+type AssetId = u32;
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
@@ -72,57 +73,49 @@ impl pallet_balances::Config for Test {
     type WeightInfo = ();
 }
 
-parameter_type_with_key! {
-    pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
-        Default::default()
-    };
+parameter_types! {
+    pub const AssetDeposit: Balance = 0;
+    pub const ApprovalDeposit: Balance = 0;
+    pub const AssetsStringLimit: u32 = 50;
+    pub const MetadataDepositBase: Balance = 0;
+    pub const MetadataDepositPerByte: Balance = 0;
 }
 
-pub struct DustRemovalWhitelist;
-impl Contains<AccountId> for DustRemovalWhitelist {
-    fn contains(a: &AccountId) -> bool {
-        vec![StakingPalletId::get().into_account()].contains(a)
-    }
-}
-
-impl orml_tokens::Config for Test {
+impl pallet_assets::Config for Test {
     type Event = Event;
     type Balance = Balance;
-    type Amount = Amount;
-    type CurrencyId = CurrencyId;
-    type OnDust = ();
-    type ExistentialDeposits = ExistentialDeposits;
+    type AssetId = AssetId;
+    type Currency = Balances;
+    type ForceOrigin = EnsureRoot<AccountId>;
+    type AssetDeposit = AssetDeposit;
+    type MetadataDepositBase = MetadataDepositBase;
+    type MetadataDepositPerByte = MetadataDepositPerByte;
+    type ApprovalDeposit = ApprovalDeposit;
+    type StringLimit = AssetsStringLimit;
+    type Freezer = ();
     type WeightInfo = ();
-    type MaxLocks = MaxLocks;
-    type DustRemovalWhitelist = DustRemovalWhitelist;
-}
-
-parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::HKO);
-}
-
-impl orml_currencies::Config for Test {
-    type Event = Event;
-    type MultiCurrency = Tokens;
-    type NativeCurrency =
-        orml_currencies::BasicCurrencyAdapter<Test, Balances, Amount, BlockNumber>;
-    type GetNativeCurrencyId = GetNativeCurrencyId;
-    type WeightInfo = ();
+    type Extra = ();
 }
 
 pub struct AliceOrigin;
 impl SortedMembers<AccountId> for AliceOrigin {
     fn sorted_members() -> Vec<AccountId> {
-        vec![1u64.into()]
+        vec![ALICE.into()]
+    }
+}
+
+pub struct BobOrigin;
+impl SortedMembers<AccountId> for BobOrigin {
+    fn sorted_members() -> Vec<AccountId> {
+        vec![BOB.into()]
     }
 }
 
 pub type BridgeOrigin = EnsureSignedBy<AliceOrigin, AccountId>;
+pub type UpdateOrigin = EnsureSignedBy<BobOrigin, AccountId>;
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const StakingCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
-    pub const LiquidCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::xDOT);
     pub const BaseXcmWeight: Weight = 0;
     pub const Agent: MultiLocation = MultiLocation::X2(
         Junction::Parent,
@@ -135,7 +128,6 @@ parameter_types! {
 
 impl crate::Config for Test {
     type Event = Event;
-    type Currency = Currencies;
     type PalletId = StakingPalletId;
     type BridgeOrigin = BridgeOrigin;
     type BaseXcmWeight = BaseXcmWeight;
@@ -144,7 +136,7 @@ impl crate::Config for Test {
     type PeriodBasis = PeriodBasis;
     type WeightInfo = ();
     type Assets = Assets;
-    type UpdateOrigin = BridgeOrigin;
+    type UpdateOrigin = UpdateOrigin;
 }
 
 construct_runtime!(
@@ -154,20 +146,20 @@ construct_runtime!(
         UncheckedExtrinsic = UncheckedExtrinsic,
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+        Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
-        Tokens: orml_tokens::{Pallet, Storage, Config<T>, Event<T>},
-        Currencies: orml_currencies::{Pallet, Call, Event<T>},
         LiquidStaking: crate::{Pallet, Storage, Call, Event<T>},
     }
 );
 
 pub const ALICE: AccountId = 1u64;
+pub const BOB: AccountId = 2u64;
 
 pub struct MockXcmTransfer;
-impl XcmTransfer<AccountId, Balance, CurrencyId> for MockXcmTransfer {
+impl XcmTransfer<AccountId, Balance, AssetId> for MockXcmTransfer {
     fn transfer(
         _who: AccountId,
-        _currency_id: CurrencyId,
+        _currency_id: AssetId,
         _amount: Balance,
         _to: MultiLocation,
         _dest_weight: Weight,
@@ -186,27 +178,29 @@ impl XcmTransfer<AccountId, Balance, CurrencyId> for MockXcmTransfer {
 }
 
 pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
-    let mut storage = frame_system::GenesisConfig::default()
+    let mut t = frame_system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap();
-
-    orml_tokens::GenesisConfig::<Test> {
-        balances: vec![
-            (ALICE, CurrencyId::Token(TokenSymbol::DOT), 100),
-            (ALICE, CurrencyId::Token(TokenSymbol::xDOT), 100),
-        ],
-    }
-    .assimilate_storage(&mut storage)
-    .unwrap();
 
     GenesisBuild::<Test>::assimilate_storage(
         &crate::GenesisConfig {
             exchange_rate: Rate::one(),
             reserve_factor: Ratio::from_perthousand(5),
         },
-        &mut storage,
+        &mut t,
     )
     .unwrap();
 
-    storage.into()
+    let mut ext = sp_io::TestExternalities::new(t);
+    ext.execute_with(|| {
+        Assets::force_create(Origin::root(), DOT, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), XDOT, ALICE, true, 1).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, ALICE, 100).unwrap();
+        Assets::mint(Origin::signed(ALICE), XDOT, ALICE, 100).unwrap();
+
+        LiquidStaking::set_liquid_currency(Origin::signed(BOB), XDOT).unwrap();
+        LiquidStaking::set_staking_currency(Origin::signed(BOB), DOT).unwrap();
+    });
+
+    ext
 }
