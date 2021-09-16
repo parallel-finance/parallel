@@ -21,7 +21,6 @@
 //! by Oracle Collective.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![allow(clippy::unused_unit)]
 
 use frame_support::{pallet_prelude::*, transactional};
 use frame_system::pallet_prelude::*;
@@ -201,7 +200,6 @@ impl<T: Config> DataProviderExtended<AssetId, TimeStampedPrice> for Pallet<T> {
         }
     }
 
-    #[allow(clippy::complexity)]
     fn get_all_values() -> Vec<(AssetId, Option<TimeStampedPrice>)> {
         T::Source::get_all_values()
     }

@@ -35,7 +35,6 @@
 //! Score: R * (CRF * (1 - CR) + NF * (1 / N) + EPF * (EEP / EEPA)) * SR
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![allow(clippy::unused_unit)]
 
 use frame_support::{pallet_prelude::*, traits::SortedMembers, transactional};
 use frame_system::pallet_prelude::*;
