@@ -508,7 +508,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
 impl<T: Config<I>, I: 'static> primitives::AMM<T> for Pallet<T, I> {
     fn trade(
-        &self,
         who: &T::AccountId,
         pair: (CurrencyId, CurrencyId),
         amount_in: Balance,

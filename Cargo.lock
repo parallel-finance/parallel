@@ -5908,6 +5908,7 @@ dependencies = [
  "orml-currencies",
  "orml-tokens",
  "orml-traits",
+ "pallet-amm",
  "pallet-balances",
  "parallel-primitives",
  "parity-scale-codec",

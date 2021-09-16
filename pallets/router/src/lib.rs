@@ -38,7 +38,7 @@ pub mod pallet {
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
     use orml_traits::{MultiCurrency, MultiCurrencyExtended};
-    use primitives::{AMMAdaptor, Amount, Balance, CurrencyId};
+    use primitives::{Amount, Balance, CurrencyId, AMM};
     use sp_runtime::traits::Zero;
 
     pub type Route = Vec<(
@@ -60,7 +60,7 @@ pub mod pallet {
         type RoutePalletId: Get<PalletId>;
 
         /// Specify all the AMMs we are routing between
-        type AMMAdaptor: AMMAdaptor<Self>;
+        type AMMAdaptor: AMM<Self>;
 
         /// Specify all the AMMs we are routing between
         type Routes: Get<Route>;
@@ -139,9 +139,14 @@ pub mod pallet {
                 Error::<T>::ExceedMaxLengthRoute
             );
 
+            // Ensure user doesn't input duplicated routes
+            let mut _routes = route.clone();
+            _routes.dedup();
+            ensure!(_routes == route, Error::<T>::DuplicatedRoute);
+
             // Ensure balances user input is bigger than zero.
             ensure!(
-                amount_in >= Zero::zero() && min_amount_out >= Zero::zero(),
+                amount_in > Zero::zero() && min_amount_out >= Zero::zero(),
                 Error::<T>::ZeroBalance
             );
 
@@ -167,11 +172,10 @@ pub mod pallet {
 
             let mut amount_out: Balance = Zero::zero();
             for sub_route in route.iter() {
-                let (id, from_currency_id, to_currency_id) = sub_route;
-                let amm_instance = T::AMMAdaptor::get_amm_instance(*id);
+                let (_id, from_currency_id, to_currency_id) = sub_route;
 
                 amount_out = amount_in;
-                amount_out = amm_instance.trade(
+                amount_out = T::AMMAdaptor::trade(
                     &trader,
                     (*from_currency_id, *to_currency_id),
                     amount_out,

@@ -13,6 +13,7 @@ primitives         = { package = 'parallel-primitives', path = '../../primitives
 sp-runtime         = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
 
 [dev-dependencies]
+pallet-amm      = { path = "../amm", default-features = false }
 pallet-balances = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
 orml-currencies = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-tokens     = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
@@ -24,6 +25,7 @@ default = ['std']
 std = [
     'frame-support/std',
     'frame-system/std',
+    'orml-tokens/std',
     'orml-traits/std',
     'parity-scale-codec/std',
     'primitives/std',

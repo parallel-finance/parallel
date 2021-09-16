@@ -141,18 +141,12 @@ pub trait ExchangeRateProvider {
     fn get_exchange_rate() -> Rate;
 }
 
-/// Get amm instance by id
-pub trait AMMAdaptor<T: frame_system::Config> {
-    fn get_amm_instance(id: u8) -> Box<dyn AMM<T>>;
-}
-
 pub trait AMM<T: frame_system::Config> {
     /// Handles a "trade" on the AMM side for "who".
     /// This will move the `amount_in` funds to the AMM PalletId,
     /// trade `pair.0` to `pair.1` and return a result with the amount
     /// of currency that was sent back to the user.
     fn trade(
-        &self,
         who: &T::AccountId,
         pair: (CurrencyId, CurrencyId),
         amount_in: Balance,
