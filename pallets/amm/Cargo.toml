@@ -16,6 +16,7 @@ orml-currencies         = { git = 'https://github.com/open-web3-stack/open-runti
 orml-tokens             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-traits             = { default-features = false, git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
 primitives              = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
+pallet-assets           = { branch = 'polkadot-v0.9.9', git = 'https://github.com/paritytech/substrate' }
 sp-arithmetic           = { branch = 'polkadot-v0.9.9', default-features = false, git = 'https://github.com/paritytech/substrate' }
 sp-std                  = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
 sp-runtime              = { branch = 'polkadot-v0.9.9', default-features = false, git = 'https://github.com/paritytech/substrate' }
@@ -43,5 +44,6 @@ std = [
     'orml-currencies/std',
     'orml-tokens/std',
     'sp-std/std',
+    'pallet-assets/std',
 ]
 try-runtime = ['frame-support/try-runtime']

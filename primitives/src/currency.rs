@@ -75,28 +75,7 @@ impl TryFrom<CurrencyId> for TokenSymbol {
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
-pub enum PoolAsset {
-    Asset(u32),
-}
-
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
 pub enum CurrencyOrAsset {
     NativeCurrency,
     Asset(u32),
-    PoolAsset(PoolAsset, PoolAsset),
-}
-
-impl CurrencyOrAsset {
-    pub fn common_asset_id(asset_id_0: Self, asset_id_1: Self) -> Option<Self> {
-        let asset_0 = match asset_id_0 {
-            CurrencyOrAsset::Asset(symbol) => PoolAsset::Asset(symbol),
-            _ => return None,
-        };
-        let asset_1 = match asset_id_1 {
-            CurrencyOrAsset::Asset(symbol) => PoolAsset::Asset(symbol),
-            _ => return None,
-        };
-        Some(CurrencyOrAsset::PoolAsset(asset_0, asset_1))
-    }
 }

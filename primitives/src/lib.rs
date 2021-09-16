@@ -154,13 +154,3 @@ pub trait AMM<T: frame_system::Config> {
         minimum_amount_out: Balance,
     ) -> Result<Balance, frame_support::pallet_prelude::DispatchError>;
 }
-
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct PoolAssets(pub CurrencyOrAsset, pub CurrencyOrAsset);
-
-impl PoolAssets {
-    pub fn common_asset_id(&self) -> CurrencyOrAsset {
-        CurrencyOrAsset::common_asset_id(self.0, self.1).expect("Not valid asset id")
-    }
-}
