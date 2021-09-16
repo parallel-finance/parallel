@@ -55,13 +55,14 @@ pub mod pallet {
         /// The origin which may set prices feed to system.
         type FeederOrigin: EnsureOrigin<Self::Origin>;
 
+        /// Liquid currency & staking currency provider
         type LiquidStakingCurrenciesProvider: LiquidStakingCurrenciesProvider<AssetId>;
 
         /// The provider of the exchange rate between liquid currency and
         /// staking currency.
         type LiquidStakingExchangeRateProvider: ExchangeRateProvider;
 
-        /// Get decimal
+        /// Decimal provider.
         type Decimal: DecimalProvider;
     }
 
