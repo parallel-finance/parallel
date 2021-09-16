@@ -94,6 +94,31 @@ pub struct MultiCurrencyAdapter<
     )>,
 );
 
+enum Error {
+    /// Failed to match fungible.
+    FailedToMatchFungible,
+    /// `MultiLocation` to `AccountId` Conversion failed.
+    AccountIdConversionFailed,
+    /// `CurrencyId` conversion failed.
+    CurrencyIdConversionFailed,
+}
+
+impl From<Error> for XcmError {
+    fn from(e: Error) -> Self {
+        match e {
+            Error::FailedToMatchFungible => {
+                XcmError::FailedToTransactAsset("FailedToMatchFungible")
+            }
+            Error::AccountIdConversionFailed => {
+                XcmError::FailedToTransactAsset("AccountIdConversionFailed")
+            }
+            Error::CurrencyIdConversionFailed => {
+                XcmError::FailedToTransactAsset("CurrencyIdConversionFailed")
+            }
+        }
+    }
+}
+
 impl<
         MultiCurrency: Inspect<AccountId> + Mutate<AccountId>,
         Match: MatchesFungible<MultiCurrency::Balance>,
@@ -111,8 +136,8 @@ impl<
         ) {
             // known asset
             (Ok(who), Some(currency_id), Some(amount)) => {
-                MultiCurrency::mint_into(currency_id, &who, amount).unwrap();
-                Ok(())
+                MultiCurrency::mint_into(currency_id, &who, amount)
+                    .map_err(|e| XcmError::FailedToTransactAsset(e.into()))
             }
             // ignore unknown asset
             _ => Ok(()),
@@ -123,10 +148,12 @@ impl<
         asset: &MultiAsset,
         location: &MultiLocation,
     ) -> result::Result<xcm_executor::Assets, XcmError> {
-        let who = AccountIdConvert::convert_ref(location).map_err(|_| XcmError::Undefined)?;
-        let currency_id = CurrencyIdConvert::convert(asset.clone()).ok_or(XcmError::Undefined)?;
+        let who = AccountIdConvert::convert_ref(location)
+            .map_err(|_| XcmError::from(Error::AccountIdConversionFailed))?;
+        let currency_id = CurrencyIdConvert::convert(asset.clone())
+            .ok_or_else(|| XcmError::from(Error::CurrencyIdConversionFailed))?;
         let amount: MultiCurrency::Balance = Match::matches_fungible(asset)
-            .ok_or(XcmError::Undefined)?
+            .ok_or_else(|| XcmError::from(Error::FailedToMatchFungible))?
             .saturated_into();
         MultiCurrency::burn_from(currency_id, &who, amount)
             .map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
