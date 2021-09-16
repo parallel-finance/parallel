@@ -18,8 +18,9 @@ pub mod currency;
 pub mod network;
 pub mod tokens;
 
-use codec::{Decode, Encode};
 pub use currency::{CurrencyId, TokenSymbol};
+
+use codec::{Decode, Encode};
 use sp_runtime::{
     traits::{IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
