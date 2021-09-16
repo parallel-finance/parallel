@@ -1,3 +1,4 @@
+use cumulus_primitives_core::ParaId;
 use frame_support::{
     construct_runtime,
     dispatch::Weight,
@@ -7,9 +8,12 @@ use frame_support::{
     PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
-
-use primitives::{currency::MultiCurrencyAdapter, DerivativeProvider};
-
+use orml_xcm_support::IsNativeConcrete;
+use pallet_xcm::XcmPassthrough;
+use polkadot_parachain::primitives::Sibling;
+use primitives::{
+    currency::MultiCurrencyAdapter, tokens::*, Balance, DerivativeProvider, Rate, Ratio,
+};
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
@@ -17,13 +21,6 @@ use sp_runtime::{
     AccountId32,
     MultiAddress::Id,
 };
-
-use primitives::{tokens::*, Balance, Rate, Ratio};
-
-use cumulus_primitives_core::ParaId;
-use orml_xcm_support::IsNativeConcrete;
-use pallet_xcm::XcmPassthrough;
-use polkadot_parachain::primitives::Sibling;
 pub use xcm::v0::{
     Error as XcmError,
     Junction::{self, GeneralKey, Parachain, Parent},
@@ -41,6 +38,7 @@ pub use xcm_builder::{
 };
 use xcm_executor::{Config, XcmExecutor};
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
+
 pub type AccountId = AccountId32;
 pub type AssetId = u32;
 pub use westend_runtime;

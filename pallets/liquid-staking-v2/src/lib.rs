@@ -24,6 +24,7 @@
 mod mock;
 #[cfg(test)]
 mod tests;
+
 pub mod types;
 pub mod weights;
 

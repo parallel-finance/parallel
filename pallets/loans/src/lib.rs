@@ -47,8 +47,7 @@ use sp_runtime::{
     },
     ArithmeticError, FixedPointNumber, FixedPointOperand, FixedU128, SaturatedConversion,
 };
-use sp_std::convert::TryInto;
-use sp_std::result::Result;
+use sp_std::{convert::TryInto, result::Result};
 pub use types::{BorrowSnapshot, Deposits, EarnedSnapshot, Market, MarketState};
 pub use weights::WeightInfo;
 
