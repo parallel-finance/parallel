@@ -26,6 +26,7 @@ use xcm_executor::traits::{Convert as MoreConvert, MatchesFungible, TransactAsse
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
+use crate::AssetId;
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
@@ -166,5 +167,5 @@ impl<
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
 pub enum CurrencyOrAsset {
     NativeCurrency(TokenSymbol),
-    Asset(u32),
+    Asset(AssetId),
 }
