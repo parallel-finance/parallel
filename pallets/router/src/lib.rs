@@ -157,7 +157,6 @@ pub mod pallet {
             for sub_route in route.iter() {
                 let (from_currency_id, to_currency_id) = sub_route;
 
-                // amount_out = amount_in;
                 amount_out = T::AMM::trade(
                     &trader,
                     (*from_currency_id, *to_currency_id),

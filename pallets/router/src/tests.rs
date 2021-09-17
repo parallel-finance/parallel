@@ -211,12 +211,12 @@ fn trade_should_work_more_than_one_route() {
         assert_eq!(
             DefaultAMM::pools(XDOT, KSM).unwrap().quote_amount,
             99_999_010
-        );       
+        );
 
         // pool should have less USDT by 986
         assert_eq!(
             DefaultAMM::pools(USDT, KSM).unwrap().base_amount,
             99_999_014
-        );        
+        );
     })
 }
