@@ -14,7 +14,7 @@ use frame_support::{
 };
 use frame_system as system;
 use frame_system::EnsureRoot;
-use primitives::{currency::CurrencyOrAsset, Balance};
+use primitives::{currency::CurrencyOrAsset, tokens, Balance};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
@@ -26,8 +26,8 @@ use sp_runtime::{
 };
 use sp_runtime::{DispatchError, DispatchResult};
 use std::marker::PhantomData;
-pub const DOT: CurrencyOrAsset = CurrencyOrAsset::Asset(DOT);
-pub const XDOT: CurrencyOrAsset = CurrencyOrAsset::Asset(XDOT);
+pub const DOT: CurrencyOrAsset = CurrencyOrAsset::Asset(tokens::DOT);
+pub const XDOT: CurrencyOrAsset = CurrencyOrAsset::Asset(tokens::XDOT);
 pub const HKO: CurrencyOrAsset = CurrencyOrAsset::NativeCurrency;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
