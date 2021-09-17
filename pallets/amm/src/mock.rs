@@ -18,17 +18,17 @@ use primitives::{currency::CurrencyOrAsset, tokens, Balance};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
-pub use sp_runtime::Perbill;
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
-    RuntimeDebug,
+    DispatchError, DispatchResult, Perbill, RuntimeDebug,
 };
-use sp_runtime::{DispatchError, DispatchResult};
 use std::marker::PhantomData;
+
 pub const DOT: CurrencyOrAsset = CurrencyOrAsset::Asset(tokens::DOT);
 pub const XDOT: CurrencyOrAsset = CurrencyOrAsset::Asset(tokens::XDOT);
 pub const HKO: CurrencyOrAsset = CurrencyOrAsset::NativeCurrency;
+
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
@@ -313,5 +313,12 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     }
     .assimilate_storage(&mut t)
     .unwrap();
-    t.into()
+
+    let mut ext = sp_io::TestExternalities::new(t);
+    ext.execute_with(|| {
+        Assets::force_create(Origin::root(), tokens::DOT, 1.into(), true, 1).unwrap();
+        Assets::force_create(Origin::root(), tokens::XDOT, 1.into(), true, 1).unwrap();
+    });
+
+    ext
 }
