@@ -18,8 +18,8 @@ use heiko_runtime::{
     GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
     LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig,
     ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeMembershipConfig, TokensConfig, ValidatorFeedersMembershipConfig,
-    VestingConfig, WASM_BINARY,
+    TechnicalCommitteeMembershipConfig, ValidatorFeedersMembershipConfig, VestingConfig,
+    WASM_BINARY,
 };
 
 // use hex_literal::hex;
@@ -242,7 +242,6 @@ fn heiko_genesis(
         parachain_system: Default::default(),
         sudo: SudoConfig { key: root_key },
         parachain_info: ParachainInfoConfig { parachain_id: id },
-        tokens: TokensConfig { balances: vec![] },
         loans: LoansConfig {
             borrow_index: Rate::one(),                             // 1
             exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02

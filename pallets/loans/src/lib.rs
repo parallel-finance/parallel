@@ -35,9 +35,7 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 pub use pallet::*;
-use primitives::{
-    AssetId, CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall, Timestamp,
-};
+use primitives::{AssetId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall, Timestamp};
 use sp_runtime::{
     traits::{
         AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub,
@@ -293,7 +291,7 @@ pub mod pallet {
         pub borrow_index: Rate,
         pub exchange_rate: Rate,
         pub last_block_timestamp: Timestamp,
-        pub markets: Vec<(CurrencyId, Market)>,
+        pub markets: Vec<(AssetId, Market)>,
     }
 
     #[cfg(feature = "std")]

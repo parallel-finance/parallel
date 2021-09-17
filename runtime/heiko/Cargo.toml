@@ -76,10 +76,8 @@ pallet-collator-selection       = { git = 'https://github.com/paritytech/cumulus
 parachain-info                  = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.9', default-features = false }
 
 # ORML dependencies
-orml-currencies             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-oracle                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-oracle-rpc-runtime-api = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-tokens                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-traits                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-unknown-tokens         = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-utilities              = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
@@ -170,8 +168,6 @@ std                = [
   'pallet-aura/std',
   'orml-oracle/std',
   'orml-oracle-rpc-runtime-api/std',
-  'orml-currencies/std',
-  'orml-tokens/std',
   'orml-traits/std',
   'orml-utilities/std',
   'pallet-treasury/std',
@@ -203,8 +199,6 @@ try-runtime        = [
   'pallet-utility/try-runtime',
   'pallet-aura/try-runtime',
   'orml-oracle/try-runtime',
-  'orml-currencies/try-runtime',
-  'orml-tokens/try-runtime',
   'pallet-treasury/try-runtime',
   'pallet-collective/try-runtime',
   'pallet-membership/try-runtime',

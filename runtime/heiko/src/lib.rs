@@ -28,7 +28,6 @@ use frame_support::{
     traits::{fungibles::Mutate, Contains, Everything},
     PalletId,
 };
-use orml_currencies::BasicCurrencyAdapter;
 use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended};
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use sp_api::impl_runtime_apis;
@@ -233,7 +232,6 @@ impl Contains<Call> for BaseCallFilter {
 
         // // 3rd Party
         // Call::Vesting(_) |
-        // Call::Currencies(_) |
         // Call::Oracle(_) |
         // Call::XTokens(_) |
         // Call::OrmlXcm(_) |
@@ -318,48 +316,13 @@ parameter_types! {
    pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
 }
 
-pub struct DustRemovalWhitelist;
-impl Contains<AccountId> for DustRemovalWhitelist {
-    fn contains(a: &AccountId) -> bool {
-        vec![
-            LoansPalletId::get().into_account(),
-            TreasuryPalletId::get().into_account(),
-            StakingPalletId::get().into_account(),
-            PotId::get().into_account(),
-        ]
-        .contains(a)
-    }
-}
-
-impl orml_tokens::Config for Runtime {
-    type Event = Event;
-    type Balance = Balance;
-    type Amount = Amount;
-    type CurrencyId = CurrencyId;
-    type OnDust = orml_tokens::TransferDust<Runtime, TreasuryAccount>;
-    type WeightInfo = ();
-    type ExistentialDeposits = ExistentialDeposits;
-    type MaxLocks = MaxLocks;
-    type DustRemovalWhitelist = DustRemovalWhitelist;
-}
-
 impl orml_xcm::Config for Runtime {
     type Event = Event;
     type SovereignOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::HKO);
-
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
-}
-
-impl orml_currencies::Config for Runtime {
-    type Event = Event;
-    type MultiCurrency = Tokens;
-    type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
-    type GetNativeCurrencyId = GetNativeCurrencyId;
-    type WeightInfo = ();
 }
 
 pub struct CurrencyIdConvert;
@@ -1237,8 +1200,6 @@ construct_runtime!(
         AuraExt: cumulus_pallet_aura_ext::{Pallet, Config, Storage} = 34,
 
         // 3rd Party
-        Currencies: orml_currencies::{Pallet, Call, Event<T>} = 40,
-        Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>} = 41,
         Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>} = 42,
         XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>} = 43,
         UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event} = 44,
