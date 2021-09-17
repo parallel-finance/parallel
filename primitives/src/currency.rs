@@ -24,9 +24,9 @@ use sp_std::{
 use xcm::v0::{Error as XcmError, MultiAsset, MultiLocation, Result as XcmResult};
 use xcm_executor::traits::{Convert as MoreConvert, MatchesFungible, TransactAsset};
 
+use crate::AssetId;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-use crate::AssetId;
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
