@@ -16,7 +16,7 @@
 
 use super::*;
 use crate as pallet_route;
-use frame_support::traits::{Contains, GenesisBuild, Hooks};
+use frame_support::traits::{Contains, GenesisBuild};
 use frame_support::{construct_runtime, parameter_types, PalletId};
 pub use primitives::{Amount, Balance, CurrencyId, TokenSymbol, AMM};
 use sp_core::H256;
@@ -36,6 +36,8 @@ pub const DAVE: AccountId = 4;
 
 pub const DOT: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
 pub const XDOT: CurrencyId = CurrencyId::Token(TokenSymbol::xDOT);
+pub const USDT: CurrencyId = CurrencyId::Token(TokenSymbol::USDT);
+pub const KSM: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
@@ -69,7 +71,7 @@ impl frame_system::Config for Runtime {
 
 // orml-tokens configuration
 parameter_types! {
-    pub const RoutePalletId: PalletId = PalletId(*b"ammroute");
+    pub const RouterPalletId: PalletId = PalletId(*b"ammroute");
 }
 
 orml_traits::parameter_type_with_key! {
@@ -81,7 +83,7 @@ orml_traits::parameter_type_with_key! {
 pub struct DustRemovalWhitelist;
 impl Contains<AccountId> for DustRemovalWhitelist {
     fn contains(a: &AccountId) -> bool {
-        vec![RoutePalletId::get().into_account()].contains(a)
+        vec![RouterPalletId::get().into_account()].contains(a)
     }
 }
 
@@ -151,21 +153,12 @@ impl pallet_amm::Config for Runtime {
 
 parameter_types! {
     pub const MaxLengthRoute: u8 = 10;
-    pub Routes: Route = vec![
-        (0, DOT, XDOT),
-        (1, XDOT, DOT),
-        (2, XDOT, CurrencyId::Token(TokenSymbol::KSM)),
-        (3, CurrencyId::Token(TokenSymbol::KSM), XDOT),
-        (4, CurrencyId::Token(TokenSymbol::xDOT), XDOT),
-        (5, XDOT, CurrencyId::Token(TokenSymbol::xDOT)),
-    ];
 }
 
 impl Config for Runtime {
     type Event = Event;
-    type RoutePalletId = RoutePalletId;
-    type AMMAdaptor = DOT2XDOT;
-    type Routes = Routes;
+    type RouterPalletId = RouterPalletId;
+    type AMM = DefaultAMM;
     type MaxLengthRoute = MaxLengthRoute;
     type Currency = Currencies;
 }
@@ -184,7 +177,7 @@ construct_runtime!(
         Tokens: orml_tokens::{Pallet, Storage, Config<T>, Event<T>},
         Currencies: orml_currencies::{Pallet, Call, Event<T>},
         // AMM instances
-        DOT2XDOT: pallet_amm::{Pallet, Call, Storage, Event<T>},
+        DefaultAMM: pallet_amm::{Pallet, Call, Storage, Event<T>},
         // AMM Route
         AMMRoute: pallet_route::{Pallet, Call, Event<T>},
     }
@@ -200,9 +193,12 @@ impl Default for ExtBuilder {
             balances: vec![
                 (ALICE.into(), DOT, 10_000),
                 (BOB.into(), DOT, 10_000),
+                (BOB.into(), XDOT, 5_000),
+                // dave will fund AMM for examples
                 (DAVE.into(), DOT, 1_000_000_000),
                 (DAVE.into(), XDOT, 1_000_000_000),
-                (BOB.into(), XDOT, 5_000),
+                (DAVE.into(), KSM, 1_000_000_000),
+                (DAVE.into(), USDT, 1_000_000_000),
             ],
         }
     }
@@ -224,11 +220,5 @@ impl ExtBuilder {
 }
 
 pub(crate) fn run_to_block(n: u64) {
-    while System::block_number() < n {
-        AMMRoute::on_finalize(System::block_number());
-        System::on_finalize(System::block_number());
-        System::set_block_number(System::block_number() + 1);
-        System::on_initialize(System::block_number());
-        AMMRoute::on_initialize(System::block_number());
-    }
+    System::set_block_number(n);
 }

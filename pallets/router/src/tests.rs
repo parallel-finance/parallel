@@ -22,7 +22,7 @@ use orml_traits::MultiCurrency;
 #[test]
 fn too_many_or_too_less_routes_should_not_work() {
     ExtBuilder::default().build().execute_with(|| {
-        let routes_11 = core::iter::repeat((0, DOT, XDOT)).take(11).collect();
+        let routes_11 = core::iter::repeat((DOT, XDOT)).take(11).collect();
         assert_noop!(
             AMMRoute::trade(Origin::signed(ALICE), routes_11, 1, 2, 3),
             Error::<Runtime>::ExceedMaxLengthRoute
@@ -38,7 +38,7 @@ fn too_many_or_too_less_routes_should_not_work() {
 #[test]
 fn duplicated_routes_should_not_work() {
     ExtBuilder::default().build().execute_with(|| {
-        let dup_routes = vec![(0, DOT, XDOT), (0, DOT, XDOT)];
+        let dup_routes = vec![(DOT, XDOT), (DOT, XDOT)];
         assert_noop!(
             AMMRoute::trade(Origin::signed(ALICE), dup_routes, 1, 2, 3),
             Error::<Runtime>::DuplicatedRoute
@@ -49,7 +49,7 @@ fn duplicated_routes_should_not_work() {
 #[test]
 fn too_low_balance_should_not_work() {
     ExtBuilder::default().build().execute_with(|| {
-        let dup_routes = vec![(0, DOT, XDOT)];
+        let dup_routes = vec![(DOT, XDOT)];
         assert_noop!(
             AMMRoute::trade(Origin::signed(ALICE), dup_routes, 0, 0, 3),
             Error::<Runtime>::ZeroBalance
@@ -60,18 +60,12 @@ fn too_low_balance_should_not_work() {
 #[test]
 fn too_small_expiry_should_not_work() {
     ExtBuilder::default().build().execute_with(|| {
-        let dup_routes = vec![(0, DOT, XDOT), (1, DOT, XDOT)];
+        let routes = vec![(DOT, XDOT)];
         let current_block_num = 4;
         run_to_block(current_block_num);
 
         assert_noop!(
-            AMMRoute::trade(
-                Origin::signed(ALICE),
-                dup_routes,
-                1,
-                2,
-                current_block_num - 1
-            ),
+            AMMRoute::trade(Origin::signed(ALICE), routes, 1, 2, current_block_num - 1),
             Error::<Runtime>::TooSmallExpiry
         );
     });
@@ -81,7 +75,7 @@ fn too_small_expiry_should_not_work() {
 fn trade_should_work() {
     ExtBuilder::default().build().execute_with(|| {
         // create pool and add liquidity
-        assert_ok!(DOT2XDOT::add_liquidity(
+        assert_ok!(DefaultAMM::add_liquidity(
             Origin::signed(DAVE),
             (DOT, XDOT),
             (100_000_000, 100_000_000),
@@ -89,16 +83,19 @@ fn trade_should_work() {
         ));
 
         // check that pool was funded correctly
-        assert_eq!(DOT2XDOT::pools(XDOT, DOT).unwrap().base_amount, 100_000_000); // XDOT
         assert_eq!(
-            DOT2XDOT::pools(XDOT, DOT).unwrap().quote_amount,
+            DefaultAMM::pools(XDOT, DOT).unwrap().base_amount,
+            100_000_000
+        ); // XDOT
+        assert_eq!(
+            DefaultAMM::pools(XDOT, DOT).unwrap().quote_amount,
             100_000_000
         ); // DOT
 
         // calculate amount out
         assert_ok!(AMMRoute::trade(
             Origin::signed(ALICE),
-            vec![(0, DOT, XDOT)],
+            vec![(DOT, XDOT)],
             1_000,
             980,
             1
@@ -108,12 +105,118 @@ fn trade_should_work() {
         assert_eq!(Currencies::free_balance(XDOT, &ALICE), 994);
 
         // pools values should be updated - we should have less XDOT
-        assert_eq!(DOT2XDOT::pools(XDOT, DOT).unwrap().base_amount, 99_999_006);
+        assert_eq!(
+            DefaultAMM::pools(XDOT, DOT).unwrap().base_amount,
+            99_999_006
+        );
 
         // pools values should be updated - we should have more DOT in the pool
         assert_eq!(
-            DOT2XDOT::pools(XDOT, DOT).unwrap().quote_amount,
+            DefaultAMM::pools(XDOT, DOT).unwrap().quote_amount,
             100_000_998
         );
+    })
+}
+
+#[test]
+fn trade_should_work_more_than_one_route() {
+    ExtBuilder::default().build().execute_with(|| {
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::add_liquidity(
+            Origin::signed(DAVE),
+            (DOT, XDOT),
+            (100_000_000, 100_000_000),
+            (99_999, 99_999),
+        ));
+
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::add_liquidity(
+            Origin::signed(DAVE),
+            (XDOT, KSM),
+            (100_000_000, 100_000_000),
+            (99_999, 99_999),
+        ));
+
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::add_liquidity(
+            Origin::signed(DAVE),
+            (USDT, KSM),
+            (100_000_000, 100_000_000),
+            (99_999, 99_999),
+        ));
+
+        // CHECK POOLS
+        // check that pool was funded correctly
+        assert_eq!(
+            DefaultAMM::pools(XDOT, DOT).unwrap().base_amount,
+            100_000_000
+        ); // XDOT
+        assert_eq!(
+            DefaultAMM::pools(XDOT, DOT).unwrap().quote_amount,
+            100_000_000
+        ); // DOT
+
+        // check that pool was funded correctly
+        assert_eq!(
+            DefaultAMM::pools(XDOT, KSM).unwrap().base_amount,
+            100_000_000
+        ); // KSM
+        assert_eq!(
+            DefaultAMM::pools(XDOT, KSM).unwrap().quote_amount,
+            100_000_000
+        ); // XDOT
+
+        // check that pool was funded correctly
+        assert_eq!(
+            DefaultAMM::pools(USDT, KSM).unwrap().base_amount,
+            100_000_000
+        ); // KSM
+
+        assert_eq!(
+            DefaultAMM::pools(USDT, KSM).unwrap().quote_amount,
+            100_000_000
+        ); // USDT
+
+        // DO TRADE
+        // calculate amount out
+        assert_ok!(AMMRoute::trade(
+            Origin::signed(ALICE),
+            vec![(DOT, XDOT), (XDOT, KSM), (KSM, USDT)],
+            1_000,
+            980,
+            1
+        ));
+
+        // CHECK TRADER
+        // Alice should have no XDOT (it was only a temp transfer)
+        assert_eq!(Currencies::free_balance(XDOT, &ALICE), 0);
+
+        // Alice should have no KSM (it was only a temp transfer)
+        assert_eq!(Currencies::free_balance(KSM, &ALICE), 0);
+
+        // Alice should now have some USDT!
+        assert_eq!(Currencies::free_balance(USDT, &ALICE), 986);
+
+        // Alice should now have less DOT
+        assert_eq!(Currencies::free_balance(DOT, &ALICE), 9000);
+
+        // CHECK POOLS
+        // pools should have less XDOT by 994
+        assert_eq!(
+            DefaultAMM::pools(XDOT, DOT).unwrap().base_amount,
+            99_999_006
+        );
+
+        // pool should have less KSM by 990
+        assert_eq!(
+            DefaultAMM::pools(XDOT, KSM).unwrap().quote_amount,
+            99_999_010
+        );       
+
+        // pool should have less USDT by 986
+        assert_eq!(
+            DefaultAMM::pools(USDT, KSM).unwrap().base_amount,
+            99_999_014
+        );        
     })
 }
