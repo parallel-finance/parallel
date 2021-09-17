@@ -10,7 +10,7 @@ use frame_benchmarking::{
 };
 use frame_support::assert_ok;
 use frame_system::{self, RawOrigin as SystemOrigin};
-use primitives::{tokens::*, TokenSymbol};
+use primitives::tokens::*;
 use sp_std::prelude::*;
 
 const BASE_ASSET: CurrencyOrAsset = CurrencyOrAsset::Asset(XDOT);

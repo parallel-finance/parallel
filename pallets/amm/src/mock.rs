@@ -14,7 +14,7 @@ use frame_support::{
 };
 use frame_system as system;
 use frame_system::EnsureRoot;
-use primitives::{currency::CurrencyOrAsset, tokens::*, Balance, TokenSymbol};
+use primitives::{currency::CurrencyOrAsset, Balance};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
