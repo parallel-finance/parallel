@@ -10,7 +10,6 @@ use frame_benchmarking::{
 };
 use frame_support::assert_ok;
 use frame_system::{self, RawOrigin as SystemOrigin};
-use orml_traits::MultiCurrency;
 use primitives::TokenSymbol;
 use sp_std::prelude::*;
 
@@ -23,8 +22,8 @@ fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::
 }
 
 fn initial_set_up<T: Config<I>, I: 'static>(caller: T::AccountId) {
-    // T::Currency::deposit(BASE_ASSET, &caller, INITIAL_AMOUNT).unwrap();
-    // T::Currency::deposit(QUOTE_ASSET, &caller, INITIAL_AMOUNT).unwrap();
+    T::AMMCurrency::mint_into(BASE_ASSET, &caller, INITIAL_AMOUNT.into()).unwrap();
+    T::AMMCurrency::mint_into(QUOTE_ASSET, &caller, INITIAL_AMOUNT.into()).unwrap();
 }
 
 benchmarks_instance_pallet! {

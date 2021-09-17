@@ -1,7 +1,6 @@
 use super::*;
 use crate::mock::*;
 use frame_support::{assert_noop, assert_ok};
-use primitives::TokenSymbol;
 
 #[test]
 fn add_liquidity_should_work() {
@@ -113,17 +112,16 @@ fn add_more_liquidity_with_low_balance_should_not_work() {
             10
         ));
 
-        assert_ok!(AMM::add_liquidity(
-            Origin::signed(1.into()),
-            (DOT, XDOT),
-            (50, 60),
-            (5, 5),
-            10
-        ));
-        // assert_noop!(
-        //     AMM::add_liquidity(Origin::signed(1.into()), (DOT, XDOT), (50, 60), (5, 5)), 10,
-        //     orml_tokens::Error::<Test>::BalanceTooLow,
-        // );
+        assert_noop!(
+            AMM::add_liquidity(
+                Origin::signed(1.into()),
+                (DOT, XDOT),
+                (5000_000_000, 6000_000_000),
+                (5, 5),
+                10
+            ),
+            pallet_balances::Error::<Test>::InsufficientBalance
+        );
     })
 }
 

@@ -6,17 +6,14 @@ use frame_support::traits::fungible::{
     Inspect as FungibleInspect, Mutate as FungibleMutate, Transfer as FungibleTransfer,
 };
 use frame_support::traits::fungibles::{Inspect, Mutate, Transfer};
-use frame_support::traits::Contains;
-use frame_support::{parameter_types, traits::GenesisBuild, PalletId};
+use frame_support::{parameter_types, PalletId};
 use frame_system as system;
 use frame_system::EnsureRoot;
-use orml_traits::parameter_type_with_key;
 use primitives::currency::CurrencyOrAsset;
-use primitives::{Amount, Balance, CurrencyId, TokenSymbol};
+use primitives::{Balance, TokenSymbol};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
-use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::DispatchError;
 use sp_runtime::DispatchResult;
 pub use sp_runtime::Perbill;
@@ -28,7 +25,6 @@ use sp_runtime::{
 use std::marker::PhantomData;
 pub const DOT: CurrencyOrAsset = CurrencyOrAsset::NativeCurrency(TokenSymbol::DOT);
 pub const XDOT: CurrencyOrAsset = CurrencyOrAsset::NativeCurrency(TokenSymbol::xDOT);
-pub const NATIVE: CurrencyOrAsset = CurrencyOrAsset::NativeCurrency(TokenSymbol::HKO);
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
