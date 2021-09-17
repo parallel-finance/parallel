@@ -9,6 +9,8 @@ DOCKER_TAG       := latest
 
 .PHONY: init
 init: submodules
+	git config advice.ignoredHook false
+	git config core.hooksPath .githooks
 	rustup target add wasm32-unknown-unknown
 
 .PHONY: submodules
@@ -17,7 +19,7 @@ submodules:
 
 .PHONY: build
 build:
-	cargo build --bin parallel --locked
+	cargo build --bin parallel
 
 .PHONY: check
 check:

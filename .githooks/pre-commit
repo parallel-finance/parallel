@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+# Forked from: https://github.com/AcalaNetwork/Acala/blob/master/githooks/pre-commit
+
+set -e
+
+make fmt
+
+files=$((git diff --name-only | grep -Ei "\.rs$") || true)
+
+if [ ! -z "${files}" ]; then
+  git add $(echo "$files" | paste -s -d " " -)
+fi
