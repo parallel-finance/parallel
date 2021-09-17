@@ -14,10 +14,10 @@
 
 use super::*;
 
-use frame_support::{construct_runtime, parameter_types, traits::Contains, PalletId};
+use frame_support::{construct_runtime, parameter_types, PalletId};
 use frame_system::EnsureRoot;
-use orml_traits::parameter_type_with_key;
-use primitives::{AssetId, Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate};
+
+use primitives::{AssetId, Balance, Price, PriceDetail, PriceFeeder, Rate};
 use sp_core::H256;
 
 use sp_runtime::{testing::Header, traits::IdentityLookup};
@@ -93,20 +93,6 @@ impl pallet_timestamp::Config for Test {
     type OnTimestampSet = ();
     type MinimumPeriod = MinimumPeriod;
     type WeightInfo = ();
-}
-
-parameter_type_with_key! {
-    pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
-        Default::default()
-    };
-}
-
-pub struct DustRemovalWhitelist;
-
-impl Contains<AccountId> for DustRemovalWhitelist {
-    fn contains(a: &AccountId) -> bool {
-        vec![LoansPalletId::get().into_account()].contains(a)
-    }
 }
 
 parameter_types! {

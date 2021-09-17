@@ -306,12 +306,6 @@ impl frame_system::Config for Runtime {
     type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
 }
 
-parameter_type_with_key! {
-    pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
-        Zero::zero()
-    };
-}
-
 parameter_types! {
    pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
 }
@@ -452,8 +446,6 @@ impl pallet_membership::Config<LiquidStakingAgentMembershipInstance> for Runtime
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const StakingCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
-    pub const LiquidCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::xKSM);
     pub RelayAgent: MultiLocation = MultiLocation::X2(
         Junction::Parent,
         Junction::AccountId32{

@@ -2,30 +2,33 @@ use crate as pallet_amm;
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_benchmarking::frame_support::traits::tokens::{DepositConsequence, WithdrawConsequence};
-use frame_support::traits::fungible::{
-    Inspect as FungibleInspect, Mutate as FungibleMutate, Transfer as FungibleTransfer,
+use frame_support::{
+    parameter_types,
+    traits::{
+        fungible::{
+            Inspect as FungibleInspect, Mutate as FungibleMutate, Transfer as FungibleTransfer,
+        },
+        fungibles::{Inspect, Mutate, Transfer},
+    },
+    PalletId,
 };
-use frame_support::traits::fungibles::{Inspect, Mutate, Transfer};
-use frame_support::{parameter_types, PalletId};
 use frame_system as system;
 use frame_system::EnsureRoot;
-use primitives::currency::CurrencyOrAsset;
-use primitives::{Balance, TokenSymbol};
+use primitives::{currency::CurrencyOrAsset, tokens::*, Balance, TokenSymbol};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
-use sp_runtime::DispatchError;
-use sp_runtime::DispatchResult;
 pub use sp_runtime::Perbill;
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
     RuntimeDebug,
 };
+use sp_runtime::{DispatchError, DispatchResult};
 use std::marker::PhantomData;
-pub const DOT: CurrencyOrAsset = CurrencyOrAsset::NativeCurrency(TokenSymbol::DOT);
-pub const XDOT: CurrencyOrAsset = CurrencyOrAsset::NativeCurrency(TokenSymbol::xDOT);
-pub const HKO: CurrencyOrAsset = CurrencyOrAsset::NativeCurrency(TokenSymbol::HKO);
+pub const DOT: CurrencyOrAsset = CurrencyOrAsset::Asset(DOT);
+pub const XDOT: CurrencyOrAsset = CurrencyOrAsset::Asset(XDOT);
+pub const HKO: CurrencyOrAsset = CurrencyOrAsset::NativeCurrency;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
@@ -164,28 +167,28 @@ impl Inspect<AccountId> for Adapter<AccountId> {
 
     fn total_issuance(asset: Self::AssetId) -> Self::Balance {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::total_issuance(),
+            CurrencyOrAsset::NativeCurrency => Balances::total_issuance(),
             CurrencyOrAsset::Asset(asset_id) => Assets::total_issuance(asset_id),
         }
     }
 
     fn balance(asset: Self::AssetId, who: &AccountId) -> Self::Balance {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::balance(who),
+            CurrencyOrAsset::NativeCurrency => Balances::balance(who),
             CurrencyOrAsset::Asset(asset_id) => Assets::balance(asset_id, who),
         }
     }
 
     fn minimum_balance(asset: Self::AssetId) -> Self::Balance {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::minimum_balance(),
+            CurrencyOrAsset::NativeCurrency => Balances::minimum_balance(),
             CurrencyOrAsset::Asset(asset_id) => Assets::minimum_balance(asset_id),
         }
     }
 
     fn reducible_balance(asset: Self::AssetId, who: &AccountId, keep_alive: bool) -> Self::Balance {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::reducible_balance(who, keep_alive),
+            CurrencyOrAsset::NativeCurrency => Balances::reducible_balance(who, keep_alive),
             CurrencyOrAsset::Asset(asset_id) => {
                 Assets::reducible_balance(asset_id, who, keep_alive)
             }
@@ -198,7 +201,7 @@ impl Inspect<AccountId> for Adapter<AccountId> {
         amount: Self::Balance,
     ) -> DepositConsequence {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::can_deposit(who, amount),
+            CurrencyOrAsset::NativeCurrency => Balances::can_deposit(who, amount),
             CurrencyOrAsset::Asset(asset_id) => Assets::can_deposit(asset_id, who, amount),
         }
     }
@@ -209,7 +212,7 @@ impl Inspect<AccountId> for Adapter<AccountId> {
         amount: Self::Balance,
     ) -> WithdrawConsequence<Self::Balance> {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::can_withdraw(who, amount),
+            CurrencyOrAsset::NativeCurrency => Balances::can_withdraw(who, amount),
             CurrencyOrAsset::Asset(asset_id) => Assets::can_withdraw(asset_id, who, amount),
         }
     }
@@ -218,7 +221,7 @@ impl Inspect<AccountId> for Adapter<AccountId> {
 impl Mutate<AccountId> for Adapter<AccountId> {
     fn mint_into(asset: Self::AssetId, who: &AccountId, amount: Self::Balance) -> DispatchResult {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::mint_into(who, amount),
+            CurrencyOrAsset::NativeCurrency => Balances::mint_into(who, amount),
             CurrencyOrAsset::Asset(asset_id) => Assets::mint_into(asset_id, who, amount),
         }
     }
@@ -229,7 +232,7 @@ impl Mutate<AccountId> for Adapter<AccountId> {
         amount: Balance,
     ) -> Result<Balance, DispatchError> {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::burn_from(who, amount),
+            CurrencyOrAsset::NativeCurrency => Balances::burn_from(who, amount),
             CurrencyOrAsset::Asset(asset_id) => Assets::burn_from(asset_id, who, amount),
         }
     }
@@ -247,11 +250,9 @@ where
         keep_alive: bool,
     ) -> Result<Balance, DispatchError> {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => {
-                <Balances as FungibleTransfer<AccountId>>::transfer(
-                    source, dest, amount, keep_alive,
-                )
-            }
+            CurrencyOrAsset::NativeCurrency => <Balances as FungibleTransfer<AccountId>>::transfer(
+                source, dest, amount, keep_alive,
+            ),
             CurrencyOrAsset::Asset(asset_id) => <Assets as Transfer<AccountId>>::transfer(
                 asset_id, source, dest, amount, keep_alive,
             ),

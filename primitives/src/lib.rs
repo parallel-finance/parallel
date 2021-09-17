@@ -18,7 +18,7 @@ pub mod currency;
 pub mod network;
 pub mod tokens;
 
-pub use currency::{CurrencyId, TokenSymbol};
+pub use currency::TokenSymbol;
 
 use codec::{Decode, Encode};
 use sp_runtime::{
