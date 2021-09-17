@@ -1,4 +1,4 @@
-FROM paritytech/ci-linux:production as builder
+FROM docker.io/paritytech/ci-linux:production as builder
 LABEL description="This is the build stage for Parallel. Here we create the binary."
 
 ARG PROFILE=release
@@ -12,7 +12,7 @@ RUN cargo build --$PROFILE --bin $BIN
 
 # ===== SECOND STAGE ======
 
-FROM debian:buster-slim
+FROM docker.io/library/ubuntu:20.04
 LABEL description="This is the 2nd stage: a very small image where we copy the Parallel binary."
 
 ARG PROFILE=release
@@ -23,19 +23,19 @@ ENV BIN_PATH=/usr/local/bin/$BIN
 COPY --from=builder /parallel/target/$PROFILE/$BIN /usr/local/bin
 
 RUN useradd -m -u 1000 -U -s /bin/sh -d /parallel parallel && \
-	mkdir -p /parallel/.local && \
-	mkdir /data && \
-	chown -R parallel:parallel /data && \
-	ln -s /data /parallel/.local/share && \
-	chown -R parallel:parallel /parallel/.local/share && \
-	rm -rf /usr/bin /usr/sbin
+    mkdir -p /parallel/.local && \
+    mkdir /data && \
+    chown -R parallel:parallel /data && \
+    ln -s /data /parallel/.local/share && \
+    chown -R parallel:parallel /parallel/.local/share \
+    rm -rf /usr/bin /usr/sbin
 
 USER parallel
 WORKDIR /parallel
 EXPOSE 30333 9933 9944
 VOLUME ["/data"]
 
-RUN echo '#!/bin/bash\n$BIN_PATH $@' > ./entrypoint.sh
-RUN chmod u+x ./entrypoint.sh
+RUN echo '#!/bin/bash\n$BIN_PATH $@' > .entrypoint.sh
+RUN chmod u+x .entrypoint.sh
 
-ENTRYPOINT ["/parallel/entrypoint.sh"]
+ENTRYPOINT ["/parallel/.entrypoint.sh"]

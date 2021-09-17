@@ -1,14 +1,16 @@
-PARA_ID  			   := 2085
-CHAIN    			   := vanilla-dev
-BLOCK_AT         := 0x0000000000000000000000000000000000000000000000000000000000000000
-URL              := ws://localhost:9947
-KEYSTORE_PATH    := keystore
-SURI             := //Alice
-LAUNCH_CONFIG    := config.yml
-DOCKER_TAG       := latest
+PARA_ID        := 2085
+CHAIN          := vanilla-dev
+BLOCK_AT       := 0x0000000000000000000000000000000000000000000000000000000000000000
+URL            := ws://localhost:9947
+KEYSTORE_PATH  := keystore
+SURI           := //Alice
+LAUNCH_CONFIG  := config.yml
+DOCKER_TAG     := latest
 
 .PHONY: init
 init: submodules
+	git config advice.ignoredHook false
+	git config core.hooksPath .githooks
 	rustup target add wasm32-unknown-unknown
 
 .PHONY: submodules
@@ -17,7 +19,7 @@ submodules:
 
 .PHONY: build
 build:
-	cargo build --bin parallel --locked
+	cargo build --bin parallel
 
 .PHONY: check
 check:
