@@ -250,7 +250,7 @@ pub mod pallet {
                             .checked_add(quote_amount)
                             .ok_or(ArithmeticError::Overflow)?;
 
-                        *pool_liquidity_amount = Some(liquidity_amount.clone());
+                        *pool_liquidity_amount = Some(*liquidity_amount);
 
                         LiquidityProviders::<T, I>::try_mutate(
                             (&who, &base_asset, &quote_asset),
@@ -302,7 +302,7 @@ pub mod pallet {
                             pool_assets: currency_asset,
                         };
 
-                        *pool_liquidity_amount = Some(amm_pool.clone());
+                        *pool_liquidity_amount = Some(amm_pool);
                         LiquidityProviders::<T, I>::insert(
                             (&who, &base_asset, &quote_asset),
                             amm_pool,
@@ -472,7 +472,7 @@ pub mod pallet {
                 quote_amount,
                 pool_assets: currency_asset,
             };
-            Pools::<T, I>::insert(&base_asset, &quote_asset, amm_pool.clone());
+            Pools::<T, I>::insert(&base_asset, &quote_asset, amm_pool);
             LiquidityProviders::<T, I>::insert(
                 (&lptoken_receiver, &base_asset, &quote_asset),
                 amm_pool,
