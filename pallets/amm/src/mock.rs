@@ -25,6 +25,7 @@ use sp_runtime::{
 use std::marker::PhantomData;
 pub const DOT: CurrencyOrAsset = CurrencyOrAsset::NativeCurrency(TokenSymbol::DOT);
 pub const XDOT: CurrencyOrAsset = CurrencyOrAsset::NativeCurrency(TokenSymbol::xDOT);
+pub const HKO: CurrencyOrAsset = CurrencyOrAsset::NativeCurrency(TokenSymbol::HKO);
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;

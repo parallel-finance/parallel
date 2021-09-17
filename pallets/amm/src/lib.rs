@@ -106,10 +106,6 @@ pub mod pallet {
         InsufficientAmountOut,
         /// Amount in is too small
         InsufficientAmountIn,
-        /// Invalid Currency Id
-        InvalidCurrencyId,
-        /// Invalid LP Token
-        InvalidLPToken,
     }
 
     #[pallet::event]

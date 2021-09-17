@@ -78,6 +78,24 @@ fn add_more_liquidity_should_not_work_if_minimum_base_amount_is_higher() {
 }
 
 #[test]
+fn add_more_liquidity_should_not_work_for_same_assetid() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::add_liquidity(
+            Origin::signed(1.into()),
+            (DOT, XDOT),
+            (10, 20),
+            (5, 5),
+            10
+        ));
+
+        assert_noop!(
+            AMM::add_liquidity(Origin::signed(1.into()), (DOT, HKO), (30, 40), (55, 5), 10),
+            pallet_assets::Error::<Test>::InUse
+        );
+    })
+}
+
+#[test]
 fn add_liquidity_should_not_work_if_not_allowed_for_normal_user() {
     new_test_ext().execute_with(|| {
         assert_noop!(
