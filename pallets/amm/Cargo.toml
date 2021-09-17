@@ -12,10 +12,8 @@ codec                   = { package = 'parity-scale-codec', version = '2.0.0', f
 frame-benchmarking      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false, optional = true }
 frame-support           = { branch = 'polkadot-v0.9.9', default-features = false, git = 'https://github.com/paritytech/substrate' }
 frame-system            = { branch = 'polkadot-v0.9.9', default-features = false, git = 'https://github.com/paritytech/substrate' }
-orml-currencies         = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-tokens             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-traits             = { default-features = false, git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
 primitives              = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
+pallet-assets           = { branch = 'polkadot-v0.9.9', git = 'https://github.com/paritytech/substrate' }
 sp-arithmetic           = { branch = 'polkadot-v0.9.9', default-features = false, git = 'https://github.com/paritytech/substrate' }
 sp-std                  = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
 sp-runtime              = { branch = 'polkadot-v0.9.9', default-features = false, git = 'https://github.com/paritytech/substrate' }
@@ -36,12 +34,10 @@ std = [
     'frame-benchmarking/std',
     'frame-support/std',
     'frame-system/std',
-    'orml-traits/std',
     'primitives/std',
     'sp-arithmetic/std',
     'sp-runtime/std',
-    'orml-currencies/std',
-    'orml-tokens/std',
     'sp-std/std',
+    'pallet-assets/std',
 ]
 try-runtime = ['frame-support/try-runtime']
