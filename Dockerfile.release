@@ -23,11 +23,12 @@ ENV BIN_PATH=/usr/local/bin/$BIN
 COPY --from=builder /parallel/target/$PROFILE/$BIN /usr/local/bin
 
 RUN useradd -m -u 1000 -U -s /bin/sh -d /parallel parallel && \
-	mkdir -p /parallel/.local && \
-	mkdir /data && \
-	chown -R parallel:parallel /data && \
-	ln -s /data /parallel/.local/share && \
-	chown -R parallel:parallel /parallel/.local/share
+    mkdir -p /parallel/.local && \
+    mkdir /data && \
+    chown -R parallel:parallel /data && \
+    ln -s /data /parallel/.local/share && \
+    chown -R parallel:parallel /parallel/.local/share \
+    rm -rf /usr/bin /usr/sbin
 
 USER parallel
 WORKDIR /parallel

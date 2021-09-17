@@ -1,11 +1,11 @@
-PARA_ID  			   := 2085
-CHAIN    			   := vanilla-dev
-BLOCK_AT         := 0x0000000000000000000000000000000000000000000000000000000000000000
-URL              := ws://localhost:9947
-KEYSTORE_PATH    := keystore
-SURI             := //Alice
-LAUNCH_CONFIG    := config.yml
-DOCKER_TAG       := latest
+PARA_ID        := 2085
+CHAIN          := vanilla-dev
+BLOCK_AT       := 0x0000000000000000000000000000000000000000000000000000000000000000
+URL            := ws://localhost:9947
+KEYSTORE_PATH  := keystore
+SURI           := //Alice
+LAUNCH_CONFIG  := config.yml
+DOCKER_TAG     := latest
 
 .PHONY: init
 init: submodules
