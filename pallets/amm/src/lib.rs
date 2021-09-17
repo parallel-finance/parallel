@@ -53,6 +53,7 @@ pub use weights::WeightInfo;
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
+    use frame_support::traits::tokens::fungibles;
     use frame_system::{ensure_root, RawOrigin};
     use primitives::AssetId;
 
@@ -64,9 +65,9 @@ pub mod pallet {
 
         /// Currency type for deposit/withdraw assets to/from amm
         /// module
-        type AMMCurrency: Inspect<Self::AccountId, AssetId = CurrencyOrAsset, Balance = Balance>
-            + Mutate<Self::AccountId, AssetId = CurrencyOrAsset, Balance = Balance>
-            + Transfer<Self::AccountId, AssetId = CurrencyOrAsset, Balance = Balance>;
+        type AMMCurrency: fungibles::Inspect<Self::AccountId, AssetId = CurrencyOrAsset, Balance = Balance>
+            + fungibles::Mutate<Self::AccountId, AssetId = CurrencyOrAsset, Balance = Balance>
+            + fungibles::Transfer<Self::AccountId, AssetId = CurrencyOrAsset, Balance = Balance>;
 
         #[pallet::constant]
         type PalletId: Get<PalletId>;
@@ -300,6 +301,7 @@ pub mod pallet {
                             quote_amount,
                             pool_assets: currency_asset,
                         };
+
                         *pool_liquidity_amount = Some(amm_pool.clone());
                         LiquidityProviders::<T, I>::insert(
                             (&who, &base_asset, &quote_asset),
@@ -310,24 +312,23 @@ pub mod pallet {
                             RawOrigin::Root.into(),
                             asset_id,
                             T::Lookup::unlookup(Self::account_id()),
-                            false,
+                            true,
                             1,
                         )?;
-
                         T::AMMCurrency::mint_into(currency_asset, &who, ownership)?;
                         T::AMMCurrency::transfer(
                             base_asset,
                             &who,
                             &Self::account_id(),
                             base_amount,
-                            true,
+                            false,
                         )?;
                         T::AMMCurrency::transfer(
                             quote_asset,
                             &who,
                             &Self::account_id(),
                             quote_amount,
-                            true,
+                            false,
                         )?;
 
                         Self::deposit_event(Event::<T, I>::LiquidityAdded(
@@ -335,6 +336,7 @@ pub mod pallet {
                             base_asset,
                             quote_asset,
                         ));
+
                         Ok(Some(T::AMMWeightInfo::add_liquidity_existing_pool()).into())
                     }
                 },
@@ -414,14 +416,14 @@ pub mod pallet {
                         &Self::account_id(),
                         &who,
                         base_amount,
-                        true,
+                        false,
                     )?;
                     T::AMMCurrency::transfer(
                         quote_asset,
                         &Self::account_id(),
                         &who,
                         quote_amount,
-                        true,
+                        false,
                     )?;
 
                     Self::deposit_event(Event::<T, I>::LiquidityRemoved(
@@ -480,7 +482,7 @@ pub mod pallet {
                 RawOrigin::Root.into(),
                 asset_id,
                 T::Lookup::unlookup(Self::account_id()),
-                false,
+                true,
                 1,
             )?;
             T::AMMCurrency::mint_into(currency_asset, &lptoken_receiver, ownership)?;
@@ -489,14 +491,14 @@ pub mod pallet {
                 &lptoken_receiver,
                 &Self::account_id(),
                 base_amount,
-                true,
+                false,
             )?;
             T::AMMCurrency::transfer(
                 quote_asset,
                 &lptoken_receiver,
                 &Self::account_id(),
                 quote_amount,
-                true,
+                false,
             )?;
 
             Self::deposit_event(Event::<T, I>::LiquidityAdded(

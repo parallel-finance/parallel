@@ -23,24 +23,21 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 mod weights;
 
 use codec::Encode;
-use cumulus_primitives_core::ParaId;
-use frame_support::log;
+use frame_support::traits::fungible::{
+    Inspect as FungibleInspect, Mutate as FungibleMutate, Transfer as FungibleTransfer,
+};
 use frame_support::traits::fungibles::{Inspect, Mutate, Transfer};
+
 use frame_support::{
     dispatch::Weight,
-    traits::{fungibles::Mutate, Contains, Everything, IsInVec},
+    traits::{Contains, Everything, IsInVec},
     PalletId,
 };
-use frame_system::{
-    limits::{BlockLength, BlockWeights},
-    EnsureOneOf, EnsureRoot, EnsureSigned,
-};
+
 use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended, MultiCurrency};
-use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
-use polkadot_parachain::primitives::Sibling;
+use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended};
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
-use primitives::{network::PARALLEL_PREFIX, *};
+use primitives::*;
 use sp_api::impl_runtime_apis;
 use sp_core::{
     u32_trait::{_1, _2, _3, _4, _5},
@@ -72,9 +69,9 @@ use primitives::{
     currency::MultiCurrencyAdapter,
     network::PARALLEL_PREFIX,
     tokens::{DOT, XDOT},
-    *,
 };
 
+use frame_support::traits::tokens::{DepositConsequence, WithdrawConsequence};
 use hex_literal::hex;
 use xcm::v0::{Junction, Junction::*, MultiAsset, MultiLocation, MultiLocation::*, NetworkId};
 use xcm_builder::{
@@ -85,7 +82,6 @@ use xcm_builder::{
     TakeWeightCredit,
 };
 use xcm_executor::{Config, XcmExecutor};
-
 pub mod constants;
 pub mod impls;
 // A few exports that help ease life for downstream crates.
@@ -95,14 +91,14 @@ pub use impls::DealWithFees;
 
 pub use pallet_liquid_staking;
 // pub use pallet_liquidation;
+use currency::*;
+use fee::*;
 pub use pallet_amm;
 pub use pallet_loans;
 pub use pallet_multisig;
 pub use pallet_nominee_election;
 pub use pallet_prices;
-
-use currency::*;
-use fee::*;
+use sp_runtime::DispatchResult;
 use time::*;
 
 pub use frame_support::{
@@ -514,6 +510,8 @@ impl pallet_liquid_staking::Config for Runtime {
     type RelayAgent = RelayAgent;
     type PeriodBasis = PeriodBasis;
     type BaseXcmWeight = BaseXcmWeight;
+    type Assets = Assets;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
 }
 
 parameter_types! {
@@ -1215,28 +1213,28 @@ impl Inspect<AccountId> for Adapter<AccountId> {
 
     fn total_issuance(asset: Self::AssetId) -> Self::Balance {
         match asset {
-            CurrencyOrAsset::NativeCurrency => Balances::total_issuance(),
+            CurrencyOrAsset::NativeCurrency(_token) => Balances::total_issuance(),
             CurrencyOrAsset::Asset(asset_id) => Assets::total_issuance(asset_id),
         }
     }
 
     fn balance(asset: Self::AssetId, who: &AccountId) -> Self::Balance {
         match asset {
-            CurrencyOrAsset::NativeCurrency => Balances::balance(who),
+            CurrencyOrAsset::NativeCurrency(_token) => Balances::balance(who),
             CurrencyOrAsset::Asset(asset_id) => Assets::balance(asset_id, who),
         }
     }
 
     fn minimum_balance(asset: Self::AssetId) -> Self::Balance {
         match asset {
-            CurrencyOrAsset::NativeCurrency => Balances::minimum_balance(),
+            CurrencyOrAsset::NativeCurrency(_token) => Balances::minimum_balance(),
             CurrencyOrAsset::Asset(asset_id) => Assets::minimum_balance(asset_id),
         }
     }
 
     fn reducible_balance(asset: Self::AssetId, who: &AccountId, keep_alive: bool) -> Self::Balance {
         match asset {
-            CurrencyOrAsset::NativeCurrency => Balances::reducible_balance(who, keep_alive),
+            CurrencyOrAsset::NativeCurrency(_token) => Balances::reducible_balance(who, keep_alive),
             CurrencyOrAsset::Asset(asset_id) => {
                 Assets::reducible_balance(asset_id, who, keep_alive)
             }
@@ -1249,7 +1247,7 @@ impl Inspect<AccountId> for Adapter<AccountId> {
         amount: Self::Balance,
     ) -> DepositConsequence {
         match asset {
-            CurrencyOrAsset::NativeCurrency => Balances::can_deposit(who, amount),
+            CurrencyOrAsset::NativeCurrency(_token) => Balances::can_deposit(who, amount),
             CurrencyOrAsset::Asset(asset_id) => Assets::can_deposit(asset_id, who, amount),
         }
     }
@@ -1260,7 +1258,7 @@ impl Inspect<AccountId> for Adapter<AccountId> {
         amount: Self::Balance,
     ) -> WithdrawConsequence<Self::Balance> {
         match asset {
-            CurrencyOrAsset::NativeCurrency => Balances::can_withdraw(who, amount),
+            CurrencyOrAsset::NativeCurrency(_token) => Balances::can_withdraw(who, amount),
             CurrencyOrAsset::Asset(asset_id) => Assets::can_withdraw(asset_id, who, amount),
         }
     }
@@ -1269,7 +1267,7 @@ impl Inspect<AccountId> for Adapter<AccountId> {
 impl Mutate<AccountId> for Adapter<AccountId> {
     fn mint_into(asset: Self::AssetId, who: &AccountId, amount: Self::Balance) -> DispatchResult {
         match asset {
-            CurrencyOrAsset::NativeCurrency => Balances::mint_into(who, amount),
+            CurrencyOrAsset::NativeCurrency(_token) => Balances::mint_into(who, amount),
             CurrencyOrAsset::Asset(asset_id) => Assets::mint_into(asset_id, who, amount),
         }
     }
@@ -1280,33 +1278,40 @@ impl Mutate<AccountId> for Adapter<AccountId> {
         amount: Balance,
     ) -> Result<Balance, DispatchError> {
         match asset {
-            CurrencyOrAsset::NativeCurrency => Balances::burn_from(who, amount),
+            CurrencyOrAsset::NativeCurrency(_token) => Balances::burn_from(who, amount),
             CurrencyOrAsset::Asset(asset_id) => Assets::burn_from(asset_id, who, amount),
         }
     }
 }
 
-impl Transfer<AccountId> for Adapter<AccountId> {
+impl Transfer<AccountId> for Adapter<AccountId>
+where
+    Assets: Transfer<AccountId>,
+{
     fn transfer(
         asset: Self::AssetId,
         source: &AccountId,
         dest: &AccountId,
         amount: Self::Balance,
-        _keep_alive: bool,
+        keep_alive: bool,
     ) -> Result<Balance, DispatchError> {
         match asset {
-            CurrencyOrAsset::NativeCurrency => Balances::transfer(source, dest, amount, true),
-            CurrencyOrAsset::Asset(asset_id) => {
-                Assets::transfer(asset_id, source, dest, amount, true)
+            CurrencyOrAsset::NativeCurrency(_token) => {
+                <Balances as FungibleTransfer<AccountId>>::transfer(
+                    source, dest, amount, keep_alive,
+                )
             }
+            CurrencyOrAsset::Asset(asset_id) => <Assets as Transfer<AccountId>>::transfer(
+                asset_id, source, dest, amount, keep_alive,
+            ),
         }
     }
 }
 impl pallet_amm::Config for Runtime {
     type Event = Event;
-    type Currency = Adapter<AccountId>;
+    type AMMCurrency = Adapter<AccountId>;
     type PalletId = AMMPalletId;
-    type WeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
+    type AMMWeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
     type LpFee = DefaultLpFee;
     type ProtocolFee = DefaultProtocolFee;
