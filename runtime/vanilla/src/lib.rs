@@ -40,8 +40,7 @@ use frame_system::{
     EnsureOneOf, EnsureRoot, EnsureSignedBy,
 };
 use hex_literal::hex;
-use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended};
+use orml_traits::{DataProvider, DataProviderExtended};
 use orml_xcm_support::{IsNativeConcrete, MultiNativeAsset};
 use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
@@ -59,7 +58,7 @@ use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{
         self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT,
-        BlockNumberProvider, Convert, Zero,
+        BlockNumberProvider, Convert,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Permill, SaturatedConversion,
@@ -105,7 +104,7 @@ pub use frame_support::{
     StorageValue,
 };
 use pallet_xcm::XcmPassthrough;
-use primitives::currency::CurrencyOrAsset;
+use primitives::currency::CurrencyId;
 use primitives::currency::MultiCurrencyAdapter;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -227,7 +226,6 @@ impl Contains<Call> for BaseCallFilter {
             Call::CollatorSelection(_) |
             Call::Session(_) |
             // 3rd Party
-            Call::Currencies(_) |
             Call::Oracle(_) |
             Call::XTokens(_) |
             Call::OrmlXcm(_) |
@@ -301,40 +299,8 @@ impl frame_system::Config for Runtime {
     type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
 }
 
-parameter_type_with_key! {
-    pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
-        Zero::zero()
-    };
-}
-
 parameter_types! {
    pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
-}
-
-pub struct DustRemovalWhitelist;
-impl Contains<AccountId> for DustRemovalWhitelist {
-    fn contains(a: &AccountId) -> bool {
-        vec![
-            LoansPalletId::get().into_account(),
-            TreasuryPalletId::get().into_account(),
-            StakingPalletId::get().into_account(),
-            PotId::get().into_account(),
-            AMMPalletId::get().into_account(),
-        ]
-        .contains(a)
-    }
-}
-
-impl orml_tokens::Config for Runtime {
-    type Event = Event;
-    type Balance = Balance;
-    type Amount = Amount;
-    type CurrencyId = CurrencyId;
-    type OnDust = orml_tokens::TransferDust<Runtime, TreasuryAccount>;
-    type WeightInfo = ();
-    type ExistentialDeposits = ExistentialDeposits;
-    type MaxLocks = MaxLocks;
-    type DustRemovalWhitelist = DustRemovalWhitelist;
 }
 
 impl orml_xcm::Config for Runtime {
@@ -343,17 +309,7 @@ impl orml_xcm::Config for Runtime {
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::HKO);
-
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
-}
-
-impl orml_currencies::Config for Runtime {
-    type Event = Event;
-    type MultiCurrency = Tokens;
-    type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
-    type GetNativeCurrencyId = GetNativeCurrencyId;
-    type WeightInfo = ();
 }
 
 pub struct CurrencyIdConvert;
@@ -1184,36 +1140,34 @@ pub struct Adapter<AccountId> {
 }
 
 impl Inspect<AccountId> for Adapter<AccountId> {
-    type AssetId = CurrencyOrAsset;
+    type AssetId = CurrencyId;
     type Balance = Balance;
 
     fn total_issuance(asset: Self::AssetId) -> Self::Balance {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::total_issuance(),
-            CurrencyOrAsset::Asset(asset_id) => Assets::total_issuance(asset_id),
+            CurrencyId::Native => Balances::total_issuance(),
+            CurrencyId::Asset(asset_id) => Assets::total_issuance(asset_id),
         }
     }
 
     fn balance(asset: Self::AssetId, who: &AccountId) -> Self::Balance {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::balance(who),
-            CurrencyOrAsset::Asset(asset_id) => Assets::balance(asset_id, who),
+            CurrencyId::Native => Balances::balance(who),
+            CurrencyId::Asset(asset_id) => Assets::balance(asset_id, who),
         }
     }
 
     fn minimum_balance(asset: Self::AssetId) -> Self::Balance {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::minimum_balance(),
-            CurrencyOrAsset::Asset(asset_id) => Assets::minimum_balance(asset_id),
+            CurrencyId::Native => Balances::minimum_balance(),
+            CurrencyId::Asset(asset_id) => Assets::minimum_balance(asset_id),
         }
     }
 
     fn reducible_balance(asset: Self::AssetId, who: &AccountId, keep_alive: bool) -> Self::Balance {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::reducible_balance(who, keep_alive),
-            CurrencyOrAsset::Asset(asset_id) => {
-                Assets::reducible_balance(asset_id, who, keep_alive)
-            }
+            CurrencyId::Native => Balances::reducible_balance(who, keep_alive),
+            CurrencyId::Asset(asset_id) => Assets::reducible_balance(asset_id, who, keep_alive),
         }
     }
 
@@ -1223,8 +1177,8 @@ impl Inspect<AccountId> for Adapter<AccountId> {
         amount: Self::Balance,
     ) -> DepositConsequence {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::can_deposit(who, amount),
-            CurrencyOrAsset::Asset(asset_id) => Assets::can_deposit(asset_id, who, amount),
+            CurrencyId::Native => Balances::can_deposit(who, amount),
+            CurrencyId::Asset(asset_id) => Assets::can_deposit(asset_id, who, amount),
         }
     }
 
@@ -1234,8 +1188,8 @@ impl Inspect<AccountId> for Adapter<AccountId> {
         amount: Self::Balance,
     ) -> WithdrawConsequence<Self::Balance> {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::can_withdraw(who, amount),
-            CurrencyOrAsset::Asset(asset_id) => Assets::can_withdraw(asset_id, who, amount),
+            CurrencyId::Native => Balances::can_withdraw(who, amount),
+            CurrencyId::Asset(asset_id) => Assets::can_withdraw(asset_id, who, amount),
         }
     }
 }
@@ -1243,8 +1197,8 @@ impl Inspect<AccountId> for Adapter<AccountId> {
 impl Mutate<AccountId> for Adapter<AccountId> {
     fn mint_into(asset: Self::AssetId, who: &AccountId, amount: Self::Balance) -> DispatchResult {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::mint_into(who, amount),
-            CurrencyOrAsset::Asset(asset_id) => Assets::mint_into(asset_id, who, amount),
+            CurrencyId::Native => Balances::mint_into(who, amount),
+            CurrencyId::Asset(asset_id) => Assets::mint_into(asset_id, who, amount),
         }
     }
 
@@ -1254,8 +1208,8 @@ impl Mutate<AccountId> for Adapter<AccountId> {
         amount: Balance,
     ) -> Result<Balance, DispatchError> {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::burn_from(who, amount),
-            CurrencyOrAsset::Asset(asset_id) => Assets::burn_from(asset_id, who, amount),
+            CurrencyId::Native => Balances::burn_from(who, amount),
+            CurrencyId::Asset(asset_id) => Assets::burn_from(asset_id, who, amount),
         }
     }
 }
@@ -1272,12 +1226,10 @@ where
         keep_alive: bool,
     ) -> Result<Balance, DispatchError> {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => {
-                <Balances as FungibleTransfer<AccountId>>::transfer(
-                    source, dest, amount, keep_alive,
-                )
-            }
-            CurrencyOrAsset::Asset(asset_id) => <Assets as Transfer<AccountId>>::transfer(
+            CurrencyId::Native => <Balances as FungibleTransfer<AccountId>>::transfer(
+                source, dest, amount, keep_alive,
+            ),
+            CurrencyId::Asset(asset_id) => <Assets as Transfer<AccountId>>::transfer(
                 asset_id, source, dest, amount, keep_alive,
             ),
         }
@@ -1335,8 +1287,6 @@ construct_runtime!(
         AuraExt: cumulus_pallet_aura_ext::{Pallet, Config, Storage} = 34,
 
         // 3rd Party
-        Currencies: orml_currencies::{Pallet, Call, Event<T>} = 40,
-        Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>} = 41,
         Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>} = 42,
         XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>} = 43,
         UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event} = 44,

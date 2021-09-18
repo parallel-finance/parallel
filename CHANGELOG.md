@@ -1,8 +1,19 @@
 # CHANGE LOG
 
+## 2021.09.18
+
+- Use ubuntu20.04 as base docker image (#605)
+- Remove totally orml-currencies, orml-tokens (#607)
+
+## 2021.09.15
+
+- Use pallet-assets in liquid-staking pallet (#589)
+- Add MultiCurrencyAdapter for pallet-assets (#589)
+- Fix unit tests of liquid-staking (#595)
+
 ## 2021.09.14
 
-- Use pallet-assets in loans pallet (#577) 
+- Use pallet-assets in loans pallet (#577)
 - Remove pallet-loans-benchmarking (#577)
 
 ## 2021.09.07

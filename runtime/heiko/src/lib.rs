@@ -28,8 +28,7 @@ use frame_support::{
     traits::{fungibles::Mutate, Contains, Everything},
     PalletId,
 };
-use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended};
+use orml_traits::{DataProvider, DataProviderExtended};
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use sp_api::impl_runtime_apis;
 use sp_core::{
@@ -40,7 +39,7 @@ use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{
         self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT,
-        BlockNumberProvider, Convert, Zero,
+        BlockNumberProvider, Convert,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Permill, SaturatedConversion,
@@ -233,7 +232,6 @@ impl Contains<Call> for BaseCallFilter {
 
         // // 3rd Party
         // Call::Vesting(_) |
-        // Call::Currencies(_) |
         // Call::Oracle(_) |
         // Call::XTokens(_) |
         // Call::OrmlXcm(_) |
@@ -308,39 +306,8 @@ impl frame_system::Config for Runtime {
     type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
 }
 
-parameter_type_with_key! {
-    pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
-        Zero::zero()
-    };
-}
-
 parameter_types! {
    pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
-}
-
-pub struct DustRemovalWhitelist;
-impl Contains<AccountId> for DustRemovalWhitelist {
-    fn contains(a: &AccountId) -> bool {
-        vec![
-            LoansPalletId::get().into_account(),
-            TreasuryPalletId::get().into_account(),
-            StakingPalletId::get().into_account(),
-            PotId::get().into_account(),
-        ]
-        .contains(a)
-    }
-}
-
-impl orml_tokens::Config for Runtime {
-    type Event = Event;
-    type Balance = Balance;
-    type Amount = Amount;
-    type CurrencyId = CurrencyId;
-    type OnDust = orml_tokens::TransferDust<Runtime, TreasuryAccount>;
-    type WeightInfo = ();
-    type ExistentialDeposits = ExistentialDeposits;
-    type MaxLocks = MaxLocks;
-    type DustRemovalWhitelist = DustRemovalWhitelist;
 }
 
 impl orml_xcm::Config for Runtime {
@@ -349,17 +316,7 @@ impl orml_xcm::Config for Runtime {
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::HKO);
-
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
-}
-
-impl orml_currencies::Config for Runtime {
-    type Event = Event;
-    type MultiCurrency = Tokens;
-    type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
-    type GetNativeCurrencyId = GetNativeCurrencyId;
-    type WeightInfo = ();
 }
 
 pub struct CurrencyIdConvert;
@@ -489,8 +446,6 @@ impl pallet_membership::Config<LiquidStakingAgentMembershipInstance> for Runtime
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const StakingCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
-    pub const LiquidCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::xKSM);
     pub RelayAgent: MultiLocation = MultiLocation::X2(
         Junction::Parent,
         Junction::AccountId32{
@@ -1237,8 +1192,6 @@ construct_runtime!(
         AuraExt: cumulus_pallet_aura_ext::{Pallet, Config, Storage} = 34,
 
         // 3rd Party
-        Currencies: orml_currencies::{Pallet, Call, Event<T>} = 40,
-        Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>} = 41,
         Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>} = 42,
         XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>} = 43,
         UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event} = 44,

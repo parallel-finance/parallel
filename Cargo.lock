@@ -2950,10 +2950,8 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
  "hex-literal",
- "orml-currencies",
  "orml-oracle",
  "orml-oracle-rpc-runtime-api",
- "orml-tokens",
  "orml-traits",
  "orml-unknown-tokens",
  "orml-utilities",
@@ -4970,22 +4968,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "orml-currencies"
-version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#59df1dfc1a04d781906ee4442bbd410c9ca3ce68"
-dependencies = [
- "frame-support",
- "frame-system",
- "orml-traits",
- "orml-utilities",
- "parity-scale-codec",
- "serde",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
 name = "orml-oracle"
 version = "0.4.1-dev"
 source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#59df1dfc1a04d781906ee4442bbd410c9ca3ce68"
@@ -5024,20 +5006,6 @@ source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git
 dependencies = [
  "parity-scale-codec",
  "sp-api",
- "sp-std",
-]
-
-[[package]]
-name = "orml-tokens"
-version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#59df1dfc1a04d781906ee4442bbd410c9ca3ce68"
-dependencies = [
- "frame-support",
- "frame-system",
- "orml-traits",
- "parity-scale-codec",
- "serde",
- "sp-runtime",
  "sp-std",
 ]
 
@@ -5161,7 +5129,6 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "orml-tokens",
  "pallet-assets",
  "pallet-balances",
  "parallel-primitives",
@@ -5638,8 +5605,6 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "orml-currencies",
- "orml-tokens",
  "orml-traits",
  "orml-utilities",
  "pallet-assets",
@@ -6251,10 +6216,8 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
  "hex-literal",
- "orml-currencies",
  "orml-oracle",
  "orml-oracle-rpc-runtime-api",
- "orml-tokens",
  "orml-traits",
  "orml-unknown-tokens",
  "orml-utilities",
@@ -11854,10 +11817,8 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
  "hex-literal",
- "orml-currencies",
  "orml-oracle",
  "orml-oracle-rpc-runtime-api",
- "orml-tokens",
  "orml-traits",
  "orml-unknown-tokens",
  "orml-utilities",

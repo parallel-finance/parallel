@@ -15,69 +15,13 @@
 use codec::{Decode, Encode};
 use frame_support::traits::fungibles::{Inspect, Mutate};
 use sp_runtime::{traits::Convert, RuntimeDebug, SaturatedConversion};
-use sp_std::{
-    convert::{Into, TryFrom},
-    marker::PhantomData,
-    prelude::*,
-    result,
-};
+use sp_std::{convert::Into, marker::PhantomData, prelude::*, result};
 use xcm::v0::{Error as XcmError, MultiAsset, MultiLocation, Result as XcmResult};
 use xcm_executor::traits::{Convert as MoreConvert, MatchesFungible, TransactAsset};
 
 use crate::AssetId;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
-pub enum TokenSymbol {
-    DOT = 0,
-    KSM = 1,
-    USDT = 2,
-    #[allow(non_camel_case_types)]
-    xDOT = 3,
-    #[allow(non_camel_case_types)]
-    xKSM = 4,
-    HKO = 5,
-    PARA = 6,
-}
-
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
-pub enum CurrencyId {
-    Token(TokenSymbol),
-    LPToken(
-        [u8; 32],
-        TokenSymbol, // Base asset
-        TokenSymbol, // Quote asset
-    ),
-}
-
-impl CurrencyId {
-    pub fn is_token_currency_id(&self) -> bool {
-        matches!(self, CurrencyId::Token(_))
-    }
-
-    pub fn is_lp_token(&self) -> bool {
-        matches!(self, CurrencyId::LPToken(..))
-    }
-}
-
-impl From<TokenSymbol> for CurrencyId {
-    fn from(token_symbol: TokenSymbol) -> CurrencyId {
-        CurrencyId::Token(token_symbol)
-    }
-}
-
-impl TryFrom<CurrencyId> for TokenSymbol {
-    type Error = ();
-    fn try_from(val: CurrencyId) -> Result<Self, Self::Error> {
-        match val {
-            CurrencyId::Token(token_symbol) => Ok(token_symbol),
-            _ => Err(()),
-        }
-    }
-}
 
 pub struct MultiCurrencyAdapter<
     MultiCurrency,
@@ -165,7 +109,7 @@ impl<
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
-pub enum CurrencyOrAsset {
-    NativeCurrency(TokenSymbol),
+pub enum CurrencyId {
+    Native,
     Asset(AssetId),
 }

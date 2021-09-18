@@ -10,11 +10,11 @@ use frame_benchmarking::{
 };
 use frame_support::assert_ok;
 use frame_system::{self, RawOrigin as SystemOrigin};
-use primitives::TokenSymbol;
+use primitives::tokens::*;
 use sp_std::prelude::*;
 
-const BASE_ASSET: CurrencyOrAsset = CurrencyOrAsset::NativeCurrency(TokenSymbol::xDOT);
-const QUOTE_ASSET: CurrencyOrAsset = CurrencyOrAsset::NativeCurrency(TokenSymbol::DOT);
+const BASE_ASSET: CurrencyId = CurrencyId::Asset(XDOT);
+const QUOTE_ASSET: CurrencyId = CurrencyId::Asset(DOT);
 const INITIAL_AMOUNT: u128 = 1000_000_000_000_000;
 
 fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::Event) {

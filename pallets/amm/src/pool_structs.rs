@@ -15,8 +15,7 @@
 // Groups common pool related structures
 
 use codec::{Decode, Encode};
-use primitives::currency::CurrencyOrAsset;
-use primitives::{Balance, Rate};
+use primitives::{currency::CurrencyId, Balance, Rate};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{
@@ -46,7 +45,7 @@ pub struct AmountEvaluation {
 pub struct PoolLiquidityAmount {
     pub base_amount: Balance,
     pub quote_amount: Balance,
-    pub pool_assets: CurrencyOrAsset,
+    pub pool_assets: CurrencyId,
 }
 
 impl Default for PoolLiquidityAmount {
@@ -54,7 +53,7 @@ impl Default for PoolLiquidityAmount {
         Self {
             base_amount: Balance::default(),
             quote_amount: Balance::default(),
-            pool_assets: CurrencyOrAsset::Asset(u32::default()),
+            pool_assets: CurrencyId::Asset(u32::default()),
         }
     }
 }
@@ -147,17 +146,17 @@ fn amplification_coeficient_mul(exchange_rate: Rate, n: u128) -> Option<u128> {
 #[cfg(test)]
 mod tests {
     use super::{AMMCurve, PoolLiquidityAmount, StableSwap, StandardSwap};
-    use primitives::currency::CurrencyOrAsset;
+    use primitives::currency::CurrencyId;
 
     const DEFAULT_DYNAMIC_POOL: PoolLiquidityAmount = PoolLiquidityAmount {
         base_amount: 40,
         quote_amount: 60,
-        pool_assets: CurrencyOrAsset::Asset(1),
+        pool_assets: CurrencyId::Asset(1),
     };
     const DEFAULT_STABLE_POOL: PoolLiquidityAmount = PoolLiquidityAmount {
         base_amount: 40,
         quote_amount: 60,
-        pool_assets: CurrencyOrAsset::Asset(1),
+        pool_assets: CurrencyId::Asset(1),
     };
 
     #[test]

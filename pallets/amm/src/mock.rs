@@ -2,30 +2,37 @@ use crate as pallet_amm;
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_benchmarking::frame_support::traits::tokens::{DepositConsequence, WithdrawConsequence};
-use frame_support::traits::fungible::{
-    Inspect as FungibleInspect, Mutate as FungibleMutate, Transfer as FungibleTransfer,
+use frame_support::{
+    parameter_types,
+    traits::{
+        fungible::{
+            Inspect as FungibleInspect, Mutate as FungibleMutate, Transfer as FungibleTransfer,
+        },
+        fungibles::{Inspect, Mutate, Transfer},
+    },
+    PalletId,
 };
-use frame_support::traits::fungibles::{Inspect, Mutate, Transfer};
-use frame_support::{parameter_types, PalletId};
-use frame_system as system;
-use frame_system::EnsureRoot;
-use primitives::currency::CurrencyOrAsset;
-use primitives::{Balance, TokenSymbol};
+use frame_system::{self as system, EnsureRoot};
+use primitives::{currency::CurrencyId, tokens, Balance};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
-use sp_runtime::DispatchError;
-use sp_runtime::DispatchResult;
-pub use sp_runtime::Perbill;
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
-    RuntimeDebug,
+    DispatchError, DispatchResult, Perbill, RuntimeDebug,
 };
 use std::marker::PhantomData;
-pub const DOT: CurrencyOrAsset = CurrencyOrAsset::NativeCurrency(TokenSymbol::DOT);
-pub const XDOT: CurrencyOrAsset = CurrencyOrAsset::NativeCurrency(TokenSymbol::xDOT);
-pub const HKO: CurrencyOrAsset = CurrencyOrAsset::NativeCurrency(TokenSymbol::HKO);
+
+pub const DOT: CurrencyId = CurrencyId::Asset(tokens::DOT);
+pub const XDOT: CurrencyId = CurrencyId::Asset(tokens::XDOT);
+pub const HKO: CurrencyId = CurrencyId::Native;
+
+pub const ALICE: AccountId = AccountId(1);
+pub const BOB: AccountId = AccountId(2);
+pub const CHARLIE: AccountId = AccountId(3);
+pub const EVE: AccountId = AccountId(4);
+
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
@@ -159,36 +166,34 @@ pub struct Adapter<AccountId> {
 }
 
 impl Inspect<AccountId> for Adapter<AccountId> {
-    type AssetId = CurrencyOrAsset;
+    type AssetId = CurrencyId;
     type Balance = Balance;
 
     fn total_issuance(asset: Self::AssetId) -> Self::Balance {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::total_issuance(),
-            CurrencyOrAsset::Asset(asset_id) => Assets::total_issuance(asset_id),
+            CurrencyId::Native => Balances::total_issuance(),
+            CurrencyId::Asset(asset_id) => Assets::total_issuance(asset_id),
         }
     }
 
     fn balance(asset: Self::AssetId, who: &AccountId) -> Self::Balance {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::balance(who),
-            CurrencyOrAsset::Asset(asset_id) => Assets::balance(asset_id, who),
+            CurrencyId::Native => Balances::balance(who),
+            CurrencyId::Asset(asset_id) => Assets::balance(asset_id, who),
         }
     }
 
     fn minimum_balance(asset: Self::AssetId) -> Self::Balance {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::minimum_balance(),
-            CurrencyOrAsset::Asset(asset_id) => Assets::minimum_balance(asset_id),
+            CurrencyId::Native => Balances::minimum_balance(),
+            CurrencyId::Asset(asset_id) => Assets::minimum_balance(asset_id),
         }
     }
 
     fn reducible_balance(asset: Self::AssetId, who: &AccountId, keep_alive: bool) -> Self::Balance {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::reducible_balance(who, keep_alive),
-            CurrencyOrAsset::Asset(asset_id) => {
-                Assets::reducible_balance(asset_id, who, keep_alive)
-            }
+            CurrencyId::Native => Balances::reducible_balance(who, keep_alive),
+            CurrencyId::Asset(asset_id) => Assets::reducible_balance(asset_id, who, keep_alive),
         }
     }
 
@@ -198,8 +203,8 @@ impl Inspect<AccountId> for Adapter<AccountId> {
         amount: Self::Balance,
     ) -> DepositConsequence {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::can_deposit(who, amount),
-            CurrencyOrAsset::Asset(asset_id) => Assets::can_deposit(asset_id, who, amount),
+            CurrencyId::Native => Balances::can_deposit(who, amount),
+            CurrencyId::Asset(asset_id) => Assets::can_deposit(asset_id, who, amount),
         }
     }
 
@@ -209,8 +214,8 @@ impl Inspect<AccountId> for Adapter<AccountId> {
         amount: Self::Balance,
     ) -> WithdrawConsequence<Self::Balance> {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::can_withdraw(who, amount),
-            CurrencyOrAsset::Asset(asset_id) => Assets::can_withdraw(asset_id, who, amount),
+            CurrencyId::Native => Balances::can_withdraw(who, amount),
+            CurrencyId::Asset(asset_id) => Assets::can_withdraw(asset_id, who, amount),
         }
     }
 }
@@ -218,8 +223,8 @@ impl Inspect<AccountId> for Adapter<AccountId> {
 impl Mutate<AccountId> for Adapter<AccountId> {
     fn mint_into(asset: Self::AssetId, who: &AccountId, amount: Self::Balance) -> DispatchResult {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::mint_into(who, amount),
-            CurrencyOrAsset::Asset(asset_id) => Assets::mint_into(asset_id, who, amount),
+            CurrencyId::Native => Balances::mint_into(who, amount),
+            CurrencyId::Asset(asset_id) => Assets::mint_into(asset_id, who, amount),
         }
     }
 
@@ -229,8 +234,8 @@ impl Mutate<AccountId> for Adapter<AccountId> {
         amount: Balance,
     ) -> Result<Balance, DispatchError> {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => Balances::burn_from(who, amount),
-            CurrencyOrAsset::Asset(asset_id) => Assets::burn_from(asset_id, who, amount),
+            CurrencyId::Native => Balances::burn_from(who, amount),
+            CurrencyId::Asset(asset_id) => Assets::burn_from(asset_id, who, amount),
         }
     }
 }
@@ -247,12 +252,10 @@ where
         keep_alive: bool,
     ) -> Result<Balance, DispatchError> {
         match asset {
-            CurrencyOrAsset::NativeCurrency(_token) => {
-                <Balances as FungibleTransfer<AccountId>>::transfer(
-                    source, dest, amount, keep_alive,
-                )
-            }
-            CurrencyOrAsset::Asset(asset_id) => <Assets as Transfer<AccountId>>::transfer(
+            CurrencyId::Native => <Balances as FungibleTransfer<AccountId>>::transfer(
+                source, dest, amount, keep_alive,
+            ),
+            CurrencyId::Asset(asset_id) => <Assets as Transfer<AccountId>>::transfer(
                 asset_id, source, dest, amount, keep_alive,
             ),
         }
@@ -304,13 +307,30 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .unwrap();
     pallet_balances::GenesisConfig::<Test> {
         balances: vec![
-            (1.into(), 100_000_000),
-            (2.into(), 100_000_000),
-            (3.into(), 100_000_000_0),
-            (4.into(), 100_000_000_0),
+            (ALICE, 100_000_000),
+            (BOB, 100_000_000),
+            (CHARLIE, 1000_000_000),
+            (EVE, 1000_000_000),
         ],
     }
     .assimilate_storage(&mut t)
     .unwrap();
-    t.into()
+
+    let mut ext = sp_io::TestExternalities::new(t);
+    ext.execute_with(|| {
+        Assets::force_create(Origin::root(), tokens::DOT, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), tokens::XDOT, ALICE, true, 1).unwrap();
+
+        Assets::mint(Origin::signed(ALICE), tokens::DOT, ALICE, 100_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::DOT, BOB, 100_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::DOT, CHARLIE, 1000_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::DOT, EVE, 1000_000_000).unwrap();
+
+        Assets::mint(Origin::signed(ALICE), tokens::XDOT, ALICE, 100_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::XDOT, BOB, 100_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::XDOT, CHARLIE, 1000_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::XDOT, EVE, 1000_000_000).unwrap();
+    });
+
+    ext
 }

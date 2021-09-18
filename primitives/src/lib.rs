@@ -18,8 +18,6 @@ pub mod currency;
 pub mod network;
 pub mod tokens;
 
-pub use currency::{CurrencyId, TokenSymbol};
-
 use codec::{Decode, Encode};
 use sp_runtime::{
     traits::{IdentifyAccount, Verify},
@@ -90,7 +88,7 @@ pub type PriceDetail = (Price, Timestamp);
 
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 
-use crate::currency::CurrencyOrAsset;
+use crate::currency::CurrencyId;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
@@ -129,7 +127,7 @@ pub trait AMM<T: frame_system::Config> {
     /// of currency that was sent back to the user.
     fn trade(
         who: &T::AccountId,
-        pair: (CurrencyOrAsset, CurrencyOrAsset),
+        pair: (CurrencyId, CurrencyId),
         amount_in: Balance,
         minimum_amount_out: Balance,
     ) -> Result<Balance, frame_support::pallet_prelude::DispatchError>;
