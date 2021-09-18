@@ -3,7 +3,7 @@
 ## 2021.09.18
 
 - Use ubuntu20.04 as base docker image (#605)
-- Remove totally orml-currencies, orml-tokens and CurrencyId (#607)
+- Remove totally orml-currencies, orml-tokens (#607)
 
 ## 2021.09.15
 
