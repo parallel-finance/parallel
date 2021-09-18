@@ -14,7 +14,7 @@
 
 use cumulus_primitives_core::ParaId;
 use hex_literal::hex;
-use primitives::{network::NetworkType, *};
+use primitives::{network::NetworkType, tokens::*, *};
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -29,8 +29,8 @@ use vanilla_runtime::{
     BalancesConfig, CollatorSelectionConfig, DemocracyConfig, GeneralCouncilConfig,
     GeneralCouncilMembershipConfig, GenesisConfig, LiquidStakingConfig, LoansConfig,
     OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeMembershipConfig, TokensConfig, ValidatorFeedersMembershipConfig,
-    VestingConfig, WASM_BINARY,
+    TechnicalCommitteeMembershipConfig, ValidatorFeedersMembershipConfig, VestingConfig,
+    WASM_BINARY,
 };
 
 use crate::chain_spec::{
@@ -274,36 +274,13 @@ fn vanilla_genesis(
         parachain_system: Default::default(),
         sudo: SudoConfig { key: root_key },
         parachain_info: ParachainInfoConfig { parachain_id: id },
-        tokens: TokensConfig {
-            balances: initial_allocation
-                .iter()
-                .flat_map(|(x, _)| {
-                    if x == &"5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                        .parse()
-                        .unwrap()
-                    {
-                        vec![(
-                            x.clone(),
-                            CurrencyId::Token(TokenSymbol::USDT),
-                            10_u128.pow(20),
-                        )]
-                    } else {
-                        vec![(
-                            x.clone(),
-                            CurrencyId::Token(TokenSymbol::USDT),
-                            10_u128.pow(9),
-                        )]
-                    }
-                })
-                .collect(),
-        },
         loans: LoansConfig {
             borrow_index: Rate::one(),                             // 1
             exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
             last_block_timestamp: 0,
             markets: vec![
                 (
-                    CurrencyId::Token(TokenSymbol::KSM),
+                    KSM,
                     Market {
                         close_factor: Ratio::from_percent(50),
                         collateral_factor: Ratio::from_percent(50),
@@ -319,7 +296,7 @@ fn vanilla_genesis(
                     },
                 ),
                 (
-                    CurrencyId::Token(TokenSymbol::USDT),
+                    USDT,
                     Market {
                         close_factor: Ratio::from_percent(50),
                         collateral_factor: Ratio::from_percent(50),
@@ -335,7 +312,7 @@ fn vanilla_genesis(
                     },
                 ),
                 (
-                    CurrencyId::Token(TokenSymbol::xKSM),
+                    XKSM,
                     Market {
                         close_factor: Ratio::from_percent(50),
                         collateral_factor: Ratio::from_percent(50),

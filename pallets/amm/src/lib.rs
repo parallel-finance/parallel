@@ -22,58 +22,58 @@ extern crate alloc;
 
 #[cfg(test)]
 mod mock;
-mod pool_structs;
-
-mod benchmarking;
 #[cfg(test)]
 mod tests;
+
+mod benchmarking;
+mod pool_structs;
+
 pub mod weights;
 
-use frame_support::pallet_prelude::*;
+pub use pallet::*;
+
 use frame_support::{
     dispatch::DispatchResult,
-    pallet_prelude::{StorageDoubleMap, StorageValue, ValueQuery},
-    traits::{Get, Hooks, IsType},
+    pallet_prelude::*,
+    traits::{
+        fungibles::{Inspect, Mutate, Transfer},
+        Get, Hooks, IsType,
+    },
     transactional, Blake2_128Concat, PalletId, Twox64Concat,
 };
-use frame_system::ensure_signed;
-use frame_system::pallet_prelude::OriginFor;
-use orml_traits::{MultiCurrency, MultiCurrencyExtended};
-pub use pallet::*;
+use frame_system::{ensure_signed, pallet_prelude::OriginFor};
 use pool_structs::PoolLiquidityAmount;
-use primitives::{Amount, Balance, CurrencyId, Rate};
-use sp_runtime::traits::AccountIdConversion;
-use sp_runtime::traits::IntegerSquareRoot;
-use sp_runtime::ArithmeticError;
-pub use sp_runtime::Perbill;
-use core::convert::TryFrom;
+use primitives::{currency::CurrencyId, Balance, Rate};
+use sp_runtime::{
+    traits::{AccountIdConversion, IntegerSquareRoot, StaticLookup},
+    ArithmeticError, DispatchError, Perbill,
+};
 pub use weights::WeightInfo;
 
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use frame_support::StorageHasher;
-    use frame_system::ensure_root;
-    use primitives::TokenSymbol;
+    use frame_support::traits::tokens::fungibles;
+    use frame_system::{ensure_root, RawOrigin};
+    use primitives::AssetId;
 
     #[pallet::config]
-    pub trait Config<I: 'static = ()>: frame_system::Config {
+    pub trait Config<I: 'static = ()>:
+        frame_system::Config + pallet_assets::Config<AssetId = AssetId, Balance = Balance>
+    {
         type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Currency type for deposit/withdraw assets to/from amm
         /// module
-        type Currency: MultiCurrencyExtended<
-            Self::AccountId,
-            CurrencyId = CurrencyId,
-            Balance = Balance,
-            Amount = Amount,
-        >;
+        type AMMCurrency: fungibles::Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + fungibles::Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + fungibles::Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
 
         #[pallet::constant]
         type PalletId: Get<PalletId>;
 
         /// Weight information for extrinsics in this pallet.
-        type WeightInfo: WeightInfo;
+        type AMMWeightInfo: WeightInfo;
 
         /// A configuration flag to enable or disable the creation of new pools by "normal" users.
         #[pallet::constant]
@@ -106,10 +106,6 @@ pub mod pallet {
         InsufficientAmountOut,
         /// Amount in is too small
         InsufficientAmountIn,
-        /// Invalid Currency Id
-        InvalidCurrencyId,
-        /// Invalid LP Token
-        InvalidLPToken,
     }
 
     #[pallet::event]
@@ -172,8 +168,8 @@ pub mod pallet {
         /// - `liquidity_amounts`: Liquidity amounts to be added in pool
         /// - `minimum_amounts`: specifying its "worst case" ratio when pool already exists
         #[pallet::weight(
-		T::WeightInfo::add_liquidity_non_existing_pool() // Adds liquidity in already existing account.
-		.max(T::WeightInfo::add_liquidity_existing_pool()) // Adds liquidity in new account
+		T::AMMWeightInfo::add_liquidity_non_existing_pool() // Adds liquidity in already existing account.
+		.max(T::AMMWeightInfo::add_liquidity_existing_pool()) // Adds liquidity in new account
 		)]
         #[transactional]
         pub fn add_liquidity(
@@ -181,24 +177,18 @@ pub mod pallet {
             pool: (CurrencyId, CurrencyId),
             liquidity_amounts: (Balance, Balance),
             minimum_amounts: (Balance, Balance),
+            asset_id: T::AssetId,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            let (is_inverted, base_asset, quote_asset) =
-                Self::get_upper_currency(pool.0, pool.1).ok_or(Error::<T, I>::InvalidCurrencyId)?;
+            let (is_inverted, base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
 
-            let (base_amount, quote_amount) = match is_inverted {
-                true => (liquidity_amounts.1, liquidity_amounts.0),
-                false => (liquidity_amounts.0, liquidity_amounts.1),
+            let (base_amount, quote_amount) = if is_inverted {
+                (liquidity_amounts.1, liquidity_amounts.0)
+            } else {
+                (liquidity_amounts.0, liquidity_amounts.1)
             };
-            let lp_token = CurrencyId::LPToken(
-                Blake2_256::hash(&Self::account_id().encode()),
-                TokenSymbol::try_from(base_asset)
-                    .ok()
-                    .ok_or(Error::<T, I>::InvalidCurrencyId)?,
-                TokenSymbol::try_from(quote_asset)
-                    .ok()
-                    .ok_or(Error::<T, I>::InvalidCurrencyId)?,
-            );
+            let currency_asset = CurrencyId::Asset(asset_id);
+
             Pools::<T, I>::try_mutate(
                 base_asset,
                 quote_asset,
@@ -237,7 +227,7 @@ pub mod pallet {
                         );
 
                         let (base_amount, quote_amount) = (ideal_base_amount, ideal_quote_amount);
-                        let total_ownership = T::Currency::total_issuance(lp_token);
+                        let total_ownership = T::AMMCurrency::total_issuance(currency_asset);
                         let ownership = sp_std::cmp::min(
                             (base_amount.saturating_mul(total_ownership))
                                 .checked_div(liquidity_amount.base_amount)
@@ -256,9 +246,7 @@ pub mod pallet {
                             .checked_add(quote_amount)
                             .ok_or(ArithmeticError::Overflow)?;
 
-                        liquidity_amount.lp_token = lp_token;
-
-                        *pool_liquidity_amount = Some(liquidity_amount.clone());
+                        *pool_liquidity_amount = Some(*liquidity_amount);
 
                         LiquidityProviders::<T, I>::try_mutate(
                             (&who, &base_asset, &quote_asset),
@@ -271,18 +259,24 @@ pub mod pallet {
                                     .quote_amount
                                     .checked_add(quote_amount)
                                     .ok_or(ArithmeticError::Overflow)?;
-                                pool_liquidity_amount.lp_token = lp_token;
                                 Ok(())
                             },
                         )?;
 
-                        T::Currency::deposit(lp_token, &who, ownership)?;
-                        T::Currency::transfer(base_asset, &who, &Self::account_id(), base_amount)?;
-                        T::Currency::transfer(
+                        T::AMMCurrency::mint_into(currency_asset, &who, ownership)?;
+                        T::AMMCurrency::transfer(
+                            base_asset,
+                            &who,
+                            &Self::account_id(),
+                            base_amount,
+                            true,
+                        )?;
+                        T::AMMCurrency::transfer(
                             quote_asset,
                             &who,
                             &Self::account_id(),
                             quote_amount,
+                            true,
                         )?;
 
                         Self::deposit_event(Event::<T, I>::LiquidityAdded(
@@ -290,7 +284,7 @@ pub mod pallet {
                             base_asset,
                             quote_asset,
                         ));
-                        Ok(Some(T::WeightInfo::add_liquidity_non_existing_pool()).into())
+                        Ok(Some(T::AMMWeightInfo::add_liquidity_non_existing_pool()).into())
                     } else {
                         ensure!(
                             T::AllowPermissionlessPoolCreation::get(),
@@ -301,20 +295,36 @@ pub mod pallet {
                         let amm_pool = PoolLiquidityAmount {
                             base_amount,
                             quote_amount,
-                            lp_token,
+                            pool_assets: currency_asset,
                         };
-                        *pool_liquidity_amount = Some(amm_pool.clone());
+
+                        *pool_liquidity_amount = Some(amm_pool);
                         LiquidityProviders::<T, I>::insert(
                             (&who, &base_asset, &quote_asset),
                             amm_pool,
                         );
-                        T::Currency::deposit(lp_token, &who, ownership)?;
-                        T::Currency::transfer(base_asset, &who, &Self::account_id(), base_amount)?;
-                        T::Currency::transfer(
+
+                        pallet_assets::Pallet::<T>::force_create(
+                            RawOrigin::Root.into(),
+                            asset_id,
+                            T::Lookup::unlookup(Self::account_id()),
+                            true,
+                            1,
+                        )?;
+                        T::AMMCurrency::mint_into(currency_asset, &who, ownership)?;
+                        T::AMMCurrency::transfer(
+                            base_asset,
+                            &who,
+                            &Self::account_id(),
+                            base_amount,
+                            false,
+                        )?;
+                        T::AMMCurrency::transfer(
                             quote_asset,
                             &who,
                             &Self::account_id(),
                             quote_amount,
+                            false,
                         )?;
 
                         Self::deposit_event(Event::<T, I>::LiquidityAdded(
@@ -322,7 +332,8 @@ pub mod pallet {
                             base_asset,
                             quote_asset,
                         ));
-                        Ok(Some(T::WeightInfo::add_liquidity_existing_pool()).into())
+
+                        Ok(Some(T::AMMWeightInfo::add_liquidity_existing_pool()).into())
                     }
                 },
             )
@@ -332,7 +343,7 @@ pub mod pallet {
         ///
         /// - `pool`: Currency pool, in which liquidity will be removed
         /// - `ownership_to_remove`: Ownership to be removed from user's ownership
-        #[pallet::weight(T::WeightInfo::remove_liquidity())]
+        #[pallet::weight(T::AMMWeightInfo::remove_liquidity())]
         #[transactional]
         pub fn remove_liquidity(
             origin: OriginFor<T>,
@@ -341,8 +352,7 @@ pub mod pallet {
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
-            let (_, base_asset, quote_asset) =
-                Self::get_upper_currency(pool.0, pool.1).ok_or(Error::<T, I>::InvalidCurrencyId)?;
+            let (_, base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
 
             Pools::<T, I>::try_mutate(
                 base_asset,
@@ -351,7 +361,8 @@ pub mod pallet {
                     let mut liquidity_amount = pool_liquidity_amount
                         .take()
                         .ok_or(Error::<T, I>::PoolDoesNotExist)?;
-                    let total_ownership = T::Currency::total_issuance(liquidity_amount.lp_token);
+                    let total_ownership =
+                        T::AMMCurrency::total_issuance(liquidity_amount.pool_assets);
                     ensure!(
                         total_ownership >= ownership_to_remove,
                         Error::<T, I>::MoreLiquidity
@@ -391,9 +402,25 @@ pub mod pallet {
                             Ok(())
                         },
                     )?;
-                    T::Currency::withdraw(liquidity_amount.lp_token, &who, ownership_to_remove)?;
-                    T::Currency::transfer(base_asset, &Self::account_id(), &who, base_amount)?;
-                    T::Currency::transfer(quote_asset, &Self::account_id(), &who, quote_amount)?;
+                    T::AMMCurrency::burn_from(
+                        liquidity_amount.pool_assets,
+                        &who,
+                        ownership_to_remove,
+                    )?;
+                    T::AMMCurrency::transfer(
+                        base_asset,
+                        &Self::account_id(),
+                        &who,
+                        base_amount,
+                        false,
+                    )?;
+                    T::AMMCurrency::transfer(
+                        quote_asset,
+                        &Self::account_id(),
+                        &who,
+                        quote_amount,
+                        false,
+                    )?;
 
                     Self::deposit_event(Event::<T, I>::LiquidityRemoved(
                         who,
@@ -411,62 +438,63 @@ pub mod pallet {
         /// - `pool`: Currency pool, in which liquidity will be added
         /// - `liquidity_amounts`: Liquidity amounts to be added in pool
         /// - `lptoken_receiver`: Allocate any liquidity tokens to lptoken_receiver
-        #[pallet::weight(T::WeightInfo::force_create_pool())]
+        #[pallet::weight(T::AMMWeightInfo::force_create_pool())]
         #[transactional]
         pub fn force_create_pool(
             origin: OriginFor<T>,
             pool: (CurrencyId, CurrencyId),
             liquidity_amounts: (Balance, Balance),
             lptoken_receiver: T::AccountId,
+            asset_id: T::AssetId,
         ) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
 
-            let (is_inverted, base_asset, quote_asset) =
-                Self::get_upper_currency(pool.0, pool.1).ok_or(Error::<T, I>::InvalidCurrencyId)?;
-
+            let (is_inverted, base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
+            let currency_asset = CurrencyId::Asset(asset_id);
             ensure!(
                 !Pools::<T, I>::contains_key(&base_asset, &quote_asset),
                 Error::<T, I>::PoolAlreadyExists
             );
 
-            let (base_amount, quote_amount) = match is_inverted {
-                true => (liquidity_amounts.1, liquidity_amounts.0),
-                false => (liquidity_amounts.0, liquidity_amounts.1),
+            let (base_amount, quote_amount) = if is_inverted {
+                (liquidity_amounts.1, liquidity_amounts.0)
+            } else {
+                (liquidity_amounts.0, liquidity_amounts.1)
             };
-
-            let lp_token = CurrencyId::LPToken(
-                Blake2_256::hash(&Self::account_id().encode()),
-                TokenSymbol::try_from(base_asset)
-                    .ok()
-                    .ok_or(Error::<T, I>::InvalidCurrencyId)?,
-                TokenSymbol::try_from(quote_asset)
-                    .ok()
-                    .ok_or(Error::<T, I>::InvalidCurrencyId)?,
-            );
 
             let ownership = base_amount.saturating_mul(quote_amount).integer_sqrt();
             let amm_pool = PoolLiquidityAmount {
                 base_amount,
                 quote_amount,
-                lp_token,
+                pool_assets: currency_asset,
             };
-            Pools::<T, I>::insert(&base_asset, &quote_asset, amm_pool.clone());
+            Pools::<T, I>::insert(&base_asset, &quote_asset, amm_pool);
             LiquidityProviders::<T, I>::insert(
                 (&lptoken_receiver, &base_asset, &quote_asset),
                 amm_pool,
             );
-            T::Currency::deposit(lp_token, &lptoken_receiver, ownership)?;
-            T::Currency::transfer(
+
+            pallet_assets::Pallet::<T>::force_create(
+                RawOrigin::Root.into(),
+                asset_id,
+                T::Lookup::unlookup(Self::account_id()),
+                true,
+                1,
+            )?;
+            T::AMMCurrency::mint_into(currency_asset, &lptoken_receiver, ownership)?;
+            T::AMMCurrency::transfer(
                 base_asset,
                 &lptoken_receiver,
                 &Self::account_id(),
                 base_amount,
+                false,
             )?;
-            T::Currency::transfer(
+            T::AMMCurrency::transfer(
                 quote_asset,
                 &lptoken_receiver,
                 &Self::account_id(),
                 quote_amount,
+                false,
             )?;
 
             Self::deposit_event(Event::<T, I>::LiquidityAdded(
@@ -487,15 +515,11 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     pub fn get_upper_currency(
         curr_a: CurrencyId,
         curr_b: CurrencyId,
-    ) -> Option<(bool, CurrencyId, CurrencyId)> {
-        if curr_a.is_token_currency_id() && curr_b.is_token_currency_id() {
-            if curr_a > curr_b {
-                Some((false, curr_a, curr_b))
-            } else {
-                Some((true, curr_b, curr_a))
-            }
+    ) -> (bool, CurrencyId, CurrencyId) {
+        if curr_a > curr_b {
+            (false, curr_a, curr_b)
         } else {
-            None
+            (true, curr_b, curr_a)
         }
     }
 
@@ -518,8 +542,7 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T> for Pallet<T, I> {
 
         // Sort pair to interact with the correct pool.
         let (is_inverted, base_asset, quote_asset) =
-            Self::get_upper_currency(input_token, output_token)
-                .ok_or(Error::<T, I>::InvalidCurrencyId)?;
+            Self::get_upper_currency(input_token, output_token);
 
         // If the pool exists, update pool base_amount and quote_amount by trade amounts
         Pools::<T, I>::try_mutate(
@@ -604,22 +627,24 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T> for Pallet<T, I> {
                 *pool_liquidity_amount = Some(liquidity_amount);
 
                 // 6. Wire amount_in of the input token (identified by pair.0) from who to PalletId
-                T::Currency::transfer(
+                T::AMMCurrency::transfer(
                     input_token,
                     who,
                     &Self::account_id(),
                     amount_without_protocol_fees,
+                    true,
                 )?;
 
                 // 7. Wire amount_out of the output token (identified by pair.1) to who from PalletId
-                T::Currency::transfer(output_token, &Self::account_id(), who, amount_out)?;
+                T::AMMCurrency::transfer(output_token, &Self::account_id(), who, amount_out, true)?;
 
                 // 8. Wire protocol fees as needed (input token)
-                T::Currency::transfer(
+                T::AMMCurrency::transfer(
                     input_token,
                     who,
                     &T::ProtocolFeeReceiver::get(),
                     protocol_fees,
+                    true,
                 )?;
 
                 // Emit event of trade with rate calculated

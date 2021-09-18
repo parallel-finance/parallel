@@ -46,12 +46,13 @@ jobs:
       - uses: marceloprado/has-changed-path@v1
         id: has_changed_path
         with:
-          paths: node/ runtime/ pallets/ resources/ primitives/
+          paths: node/ runtime/ pallets/ resources/ primitives/ Dockerfile.release .github/
       - name: Build and push
         if: steps.has_changed_path.outputs.changed == 'true'
         id: docker_build
         uses: docker/build-push-action@v2
         with:
+          context: .
           file: Dockerfile.release
           push: true
           build-args: |

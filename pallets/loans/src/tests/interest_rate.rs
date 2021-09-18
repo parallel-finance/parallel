@@ -1,6 +1,6 @@
 use crate::{
-    mock::{Loans, Origin, Test, ALICE, DOT},
-    tests::{million_dollar, process_block, run_to_block, ExtBuilder},
+    mock::{new_test_ext, process_block, Loans, Origin, Test, ALICE, DOT},
+    tests::{dollar, million_dollar, run_to_block, Assets},
     InterestRateModel, Markets,
 };
 use frame_support::assert_ok;
@@ -12,9 +12,39 @@ use sp_runtime::{
 };
 
 #[test]
+fn utilization_rate_works() {
+    // 50% borrow
+    assert_eq!(
+        Loans::calc_utilization_ratio(1, 1, 0).unwrap(),
+        Ratio::from_percent(50)
+    );
+    assert_eq!(
+        Loans::calc_utilization_ratio(100, 100, 0).unwrap(),
+        Ratio::from_percent(50)
+    );
+    // no borrow
+    assert_eq!(
+        Loans::calc_utilization_ratio(1, 0, 0).unwrap(),
+        Ratio::zero()
+    );
+    // full borrow
+    assert_eq!(
+        Loans::calc_utilization_ratio(0, 1, 0).unwrap(),
+        Ratio::from_percent(100)
+    );
+}
+
+#[test]
 fn interest_rate_model_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         let rate_decimal: u128 = 1_000_000_000_000_000_000;
+        Assets::mint(
+            Origin::signed(ALICE),
+            DOT,
+            ALICE,
+            million_dollar(1000) - dollar(1000),
+        )
+        .unwrap();
         // Deposit 200 DOT and borrow 100 DOT
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, million_dollar(200)));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
@@ -105,7 +135,14 @@ fn interest_rate_model_works() {
 
 #[test]
 fn with_transaction_commit_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
+        Assets::mint(
+            Origin::signed(ALICE),
+            DOT,
+            ALICE,
+            million_dollar(1000) - dollar(1000),
+        )
+        .unwrap();
         // Deposit 200 DOT and borrow 100 DOT
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, million_dollar(200)));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
@@ -115,7 +152,7 @@ fn with_transaction_commit_works() {
             million_dollar(100)
         ));
 
-        // let total_cash = dollar(200) - dollar(100);
+        // let total_cash = million_dollar(200) - million_dollar(100);
         let total_supply =
             Loans::calc_collateral_amount(million_dollar(200), Loans::exchange_rate(DOT)).unwrap();
         assert_eq!(Loans::total_supply(DOT), total_supply);
@@ -147,7 +184,14 @@ fn with_transaction_commit_works() {
 
 #[test]
 fn with_transaction_rollback_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
+        Assets::mint(
+            Origin::signed(ALICE),
+            DOT,
+            ALICE,
+            million_dollar(1000) - dollar(1000),
+        )
+        .unwrap();
         // Deposit 200 DOT and borrow 100 DOT
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, million_dollar(200)));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
@@ -157,7 +201,7 @@ fn with_transaction_rollback_works() {
             million_dollar(100)
         ));
 
-        // let total_cash = dollar(200) - dollar(100);
+        // let total_cash = million_dollar(200) - million_dollar(100);
         let total_supply =
             Loans::calc_collateral_amount(million_dollar(200), Loans::exchange_rate(DOT)).unwrap();
         assert_eq!(Loans::total_supply(DOT), total_supply);
@@ -181,7 +225,7 @@ fn with_transaction_rollback_works() {
             Ratio::from_percent(0),
         );
 
-        Loans::mutate_market(&DOT, |market| {
+        Loans::mutate_market(DOT, |market| {
             market.rate_model = error_model;
         })
         .unwrap();

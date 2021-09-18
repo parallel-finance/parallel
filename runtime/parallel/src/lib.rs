@@ -23,14 +23,20 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 mod weights;
 
 use codec::Encode;
+use frame_support::traits::fungible::{
+    Inspect as FungibleInspect, Mutate as FungibleMutate, Transfer as FungibleTransfer,
+};
+use frame_support::traits::fungibles::{Inspect, Mutate, Transfer};
+
 use frame_support::{
     dispatch::Weight,
-    traits::{Contains, Everything},
+    traits::{Contains, Everything, IsInVec},
     PalletId,
 };
-use orml_currencies::BasicCurrencyAdapter;
-use orml_traits::{parameter_type_with_key, DataProvider, DataProviderExtended, MultiCurrency};
+
+use orml_traits::{DataProvider, DataProviderExtended};
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
+use primitives::*;
 use sp_api::impl_runtime_apis;
 use sp_core::{
     u32_trait::{_1, _2, _3, _4, _5},
@@ -40,7 +46,7 @@ use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{
         self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT,
-        BlockNumberProvider, Convert, Zero,
+        BlockNumberProvider, Convert,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Permill, SaturatedConversion,
@@ -54,12 +60,17 @@ use cumulus_primitives_core::ParaId;
 use frame_support::log;
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureOneOf, EnsureRoot, EnsureSigned,
+    EnsureOneOf, EnsureRoot, EnsureSigned, EnsureSignedBy,
 };
-use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
+use orml_xcm_support::{IsNativeConcrete, MultiNativeAsset};
 use polkadot_parachain::primitives::Sibling;
-use primitives::{network::PARALLEL_PREFIX, *};
+use primitives::{
+    currency::MultiCurrencyAdapter,
+    network::PARALLEL_PREFIX,
+    tokens::{DOT, XDOT},
+};
 
+use frame_support::traits::tokens::{DepositConsequence, WithdrawConsequence};
 use hex_literal::hex;
 use xcm::v0::{Junction, Junction::*, MultiAsset, MultiLocation, MultiLocation::*, NetworkId};
 use xcm_builder::{
@@ -70,7 +81,6 @@ use xcm_builder::{
     TakeWeightCredit,
 };
 use xcm_executor::{Config, XcmExecutor};
-
 pub mod constants;
 pub mod impls;
 // A few exports that help ease life for downstream crates.
@@ -80,14 +90,14 @@ pub use impls::DealWithFees;
 
 pub use pallet_liquid_staking;
 // pub use pallet_liquidation;
+use currency::*;
+use fee::*;
 pub use pallet_amm;
 pub use pallet_loans;
 pub use pallet_multisig;
 pub use pallet_nominee_election;
 pub use pallet_prices;
-
-use currency::*;
-use fee::*;
+use sp_runtime::DispatchResult;
 use time::*;
 
 pub use frame_support::{
@@ -100,8 +110,10 @@ pub use frame_support::{
     StorageValue,
 };
 use pallet_xcm::XcmPassthrough;
+use primitives::currency::CurrencyId;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
+use sp_std::marker::PhantomData;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -217,7 +229,6 @@ impl Contains<Call> for BaseCallFilter {
             Call::CollatorSelection(_) |
             Call::Session(_) |
             // 3rd Party
-            Call::Currencies(_) |
             Call::Oracle(_) |
             Call::XTokens(_) |
             Call::OrmlXcm(_) |
@@ -292,40 +303,8 @@ impl frame_system::Config for Runtime {
     type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
 }
 
-parameter_type_with_key! {
-    pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
-        Zero::zero()
-    };
-}
-
 parameter_types! {
    pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
-}
-
-pub struct DustRemovalWhitelist;
-impl Contains<AccountId> for DustRemovalWhitelist {
-    fn contains(a: &AccountId) -> bool {
-        vec![
-            LoansPalletId::get().into_account(),
-            TreasuryPalletId::get().into_account(),
-            StakingPalletId::get().into_account(),
-            PotId::get().into_account(),
-            AMMPalletId::get().into_account(),
-        ]
-        .contains(a)
-    }
-}
-
-impl orml_tokens::Config for Runtime {
-    type Event = Event;
-    type Balance = Balance;
-    type Amount = Amount;
-    type CurrencyId = CurrencyId;
-    type OnDust = orml_tokens::TransferDust<Runtime, TreasuryAccount>;
-    type WeightInfo = ();
-    type ExistentialDeposits = ExistentialDeposits;
-    type MaxLocks = MaxLocks;
-    type DustRemovalWhitelist = DustRemovalWhitelist;
 }
 
 impl orml_xcm::Config for Runtime {
@@ -334,25 +313,15 @@ impl orml_xcm::Config for Runtime {
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::PARA);
-
     pub const LoansPalletId: PalletId = PalletId(*b"par/loan");
 }
 
-impl orml_currencies::Config for Runtime {
-    type Event = Event;
-    type MultiCurrency = Tokens;
-    type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
-    type GetNativeCurrencyId = GetNativeCurrencyId;
-    type WeightInfo = ();
-}
-
 pub struct CurrencyIdConvert;
-impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
-    fn convert(id: CurrencyId) -> Option<MultiLocation> {
+impl Convert<AssetId, Option<MultiLocation>> for CurrencyIdConvert {
+    fn convert(id: AssetId) -> Option<MultiLocation> {
         match id {
-            CurrencyId::Token(TokenSymbol::DOT) => Some(X1(Parent)),
-            CurrencyId::Token(TokenSymbol::xDOT) => Some(X3(
+            DOT => Some(X1(Parent)),
+            XDOT => Some(X3(
                 Parent,
                 Parachain(ParachainInfo::parachain_id().into()),
                 GeneralKey(b"xDOT".to_vec()),
@@ -362,22 +331,22 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     }
 }
 
-impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
-    fn convert(location: MultiLocation) -> Option<CurrencyId> {
+impl Convert<MultiLocation, Option<AssetId>> for CurrencyIdConvert {
+    fn convert(location: MultiLocation) -> Option<AssetId> {
         match location {
-            X1(Parent) => Some(CurrencyId::Token(TokenSymbol::DOT)),
+            X1(Parent) => Some(DOT),
             X3(Parent, Parachain(id), GeneralKey(key))
                 if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xDOT".to_vec() =>
             {
-                Some(CurrencyId::Token(TokenSymbol::xDOT))
+                Some(XDOT)
             }
             _ => None,
         }
     }
 }
 
-impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
-    fn convert(a: MultiAsset) -> Option<CurrencyId> {
+impl Convert<MultiAsset, Option<AssetId>> for CurrencyIdConvert {
+    fn convert(a: MultiAsset) -> Option<AssetId> {
         if let MultiAsset::ConcreteFungible { id, amount: _ } = a {
             Self::convert(id)
         } else {
@@ -404,7 +373,7 @@ parameter_types! {
 impl orml_xtokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
-    type CurrencyId = CurrencyId;
+    type CurrencyId = AssetId;
     type CurrencyIdConvert = CurrencyIdConvert;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type SelfLocation = SelfLocation;
@@ -430,9 +399,9 @@ parameter_types! {
 impl pallet_assets::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
-    type AssetId = u32;
+    type AssetId = AssetId;
     type Currency = Balances;
-    type ForceOrigin = EnsureRoot<AccountId>;
+    type ForceOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
     type MetadataDepositPerByte = MetadataDepositPerByte;
@@ -445,7 +414,6 @@ impl pallet_assets::Config for Runtime {
 
 impl pallet_loans::Config for Runtime {
     type Event = Event;
-    type Currency = Currencies;
     type PalletId = LoansPalletId;
     type PriceFeeder = Prices;
     type ReserveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
@@ -475,8 +443,6 @@ impl pallet_membership::Config<LiquidStakingAgentMembershipInstance> for Runtime
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const StakingCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
-    pub const LiquidCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::xKSM);
     pub RelayAgent: MultiLocation = MultiLocation::X2(
         Junction::Parent,
         Junction::AccountId32{
@@ -486,20 +452,20 @@ parameter_types! {
         }
     );
     pub const PeriodBasis: BlockNumber = 1000u32;
+    pub BridgeOrigin: Vec<AccountId> = vec![hex!["306721211d5404bd9da88e0204360a1a9ab8b87c66c1bc2fcdd37f3c2222cc20"].into()];
 }
 
 impl pallet_liquid_staking::Config for Runtime {
     type Event = Event;
-    type Currency = Currencies;
     type PalletId = StakingPalletId;
-    type StakingCurrency = StakingCurrency;
-    type LiquidCurrency = LiquidCurrency;
-    type BridgeOrigin = EnsureSigned<AccountId>;
+    type BridgeOrigin = EnsureSignedBy<IsInVec<BridgeOrigin>, AccountId>;
     type WeightInfo = ();
     type XcmTransfer = XTokens;
     type RelayAgent = RelayAgent;
     type PeriodBasis = PeriodBasis;
     type BaseXcmWeight = BaseXcmWeight;
+    type Assets = Assets;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
 }
 
 parameter_types! {
@@ -796,15 +762,13 @@ pub type LocationToAccountId = (
 /// Means for transacting assets on this chain.
 pub type LocalAssetTransactor = MultiCurrencyAdapter<
     // Use this currency:
-    Currencies,
-    UnknownTokens,
+    Assets,
     // Use this currency when it is a fungible asset matching the given location or name:
-    IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
+    IsNativeConcrete<AssetId, CurrencyIdConvert>,
     // Our chain's account ID type (we can't get away without mentioning it explicitly):
     AccountId,
     // Do a simple punn to convert an AccountId32 MultiLocation into a native chain account ID:
     LocationToAccountId,
-    CurrencyId,
     CurrencyIdConvert,
 >;
 
@@ -851,7 +815,7 @@ impl TakeRevenue for ToTreasury {
     fn take_revenue(revenue: MultiAsset) {
         if let MultiAsset::ConcreteFungible { id, amount } = revenue {
             if let Some(currency_id) = CurrencyIdConvert::convert(id) {
-                let _ = Currencies::deposit(currency_id, &TreasuryAccount::get(), amount);
+                let _ = Assets::mint_into(currency_id, &TreasuryAccount::get(), amount);
             }
         }
     }
@@ -888,29 +852,40 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
     type CombineData =
         orml_oracle::DefaultCombineData<Runtime, MinimumCount, ExpiresIn, ParallelDataProvider>;
     type Time = Timestamp;
-    type OracleKey = CurrencyId;
-    type OracleValue = PriceWithDecimal;
+    type OracleKey = AssetId;
+    type OracleValue = Price;
     type RootOperatorAccountId = ZeroAccountId;
     type MaxHasDispatchedSize = MaxHasDispatchedSize;
     type WeightInfo = ();
     type Members = OracleMembership;
 }
 
-pub type TimeStampedPrice = orml_oracle::TimestampedValue<PriceWithDecimal, Moment>;
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 pub struct AggregatedDataProvider;
-impl DataProvider<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
-    fn get(key: &CurrencyId) -> Option<TimeStampedPrice> {
+impl DataProvider<AssetId, TimeStampedPrice> for AggregatedDataProvider {
+    fn get(key: &AssetId) -> Option<TimeStampedPrice> {
         Oracle::get(key)
     }
 }
 
-impl DataProviderExtended<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
-    fn get_no_op(key: &CurrencyId) -> Option<TimeStampedPrice> {
+impl DataProviderExtended<AssetId, TimeStampedPrice> for AggregatedDataProvider {
+    fn get_no_op(key: &AssetId) -> Option<TimeStampedPrice> {
         Oracle::get_no_op(key)
     }
-    #[allow(clippy::complexity)]
-    fn get_all_values() -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
+
+    fn get_all_values() -> Vec<(AssetId, Option<TimeStampedPrice>)> {
         Oracle::get_all_values()
+    }
+}
+
+pub struct Decimal;
+impl DecimalProvider for Decimal {
+    fn get_decimal(asset_id: &AssetId) -> u8 {
+        // pallet_assets::Metadata::<Runtime>::get(asset_id).decimals
+        match *asset_id {
+            DOT | XDOT => 10,
+            _ => 0,
+        }
     }
 }
 
@@ -918,9 +893,9 @@ impl pallet_prices::Config for Runtime {
     type Event = Event;
     type Source = AggregatedDataProvider;
     type FeederOrigin = EnsureRoot<AccountId>;
-    type StakingCurrency = StakingCurrency;
-    type LiquidCurrency = LiquidCurrency;
     type LiquidStakingExchangeRateProvider = LiquidStaking;
+    type LiquidStakingCurrenciesProvider = LiquidStaking;
+    type Decimal = Decimal;
 }
 
 parameter_types! {
@@ -1182,11 +1157,111 @@ parameter_types! {
     pub DefaultProtocolFeeReceiver: AccountId = TreasuryPalletId::get().into_account();
 }
 
+pub struct Adapter<AccountId> {
+    phantom: PhantomData<AccountId>,
+}
+
+impl Inspect<AccountId> for Adapter<AccountId> {
+    type AssetId = CurrencyId;
+    type Balance = Balance;
+
+    fn total_issuance(asset: Self::AssetId) -> Self::Balance {
+        match asset {
+            CurrencyId::Native => Balances::total_issuance(),
+            CurrencyId::Asset(asset_id) => Assets::total_issuance(asset_id),
+        }
+    }
+
+    fn balance(asset: Self::AssetId, who: &AccountId) -> Self::Balance {
+        match asset {
+            CurrencyId::Native => Balances::balance(who),
+            CurrencyId::Asset(asset_id) => Assets::balance(asset_id, who),
+        }
+    }
+
+    fn minimum_balance(asset: Self::AssetId) -> Self::Balance {
+        match asset {
+            CurrencyId::Native => Balances::minimum_balance(),
+            CurrencyId::Asset(asset_id) => Assets::minimum_balance(asset_id),
+        }
+    }
+
+    fn reducible_balance(asset: Self::AssetId, who: &AccountId, keep_alive: bool) -> Self::Balance {
+        match asset {
+            CurrencyId::Native => Balances::reducible_balance(who, keep_alive),
+            CurrencyId::Asset(asset_id) => Assets::reducible_balance(asset_id, who, keep_alive),
+        }
+    }
+
+    fn can_deposit(
+        asset: Self::AssetId,
+        who: &AccountId,
+        amount: Self::Balance,
+    ) -> DepositConsequence {
+        match asset {
+            CurrencyId::Native => Balances::can_deposit(who, amount),
+            CurrencyId::Asset(asset_id) => Assets::can_deposit(asset_id, who, amount),
+        }
+    }
+
+    fn can_withdraw(
+        asset: Self::AssetId,
+        who: &AccountId,
+        amount: Self::Balance,
+    ) -> WithdrawConsequence<Self::Balance> {
+        match asset {
+            CurrencyId::Native => Balances::can_withdraw(who, amount),
+            CurrencyId::Asset(asset_id) => Assets::can_withdraw(asset_id, who, amount),
+        }
+    }
+}
+
+impl Mutate<AccountId> for Adapter<AccountId> {
+    fn mint_into(asset: Self::AssetId, who: &AccountId, amount: Self::Balance) -> DispatchResult {
+        match asset {
+            CurrencyId::Native => Balances::mint_into(who, amount),
+            CurrencyId::Asset(asset_id) => Assets::mint_into(asset_id, who, amount),
+        }
+    }
+
+    fn burn_from(
+        asset: Self::AssetId,
+        who: &AccountId,
+        amount: Balance,
+    ) -> Result<Balance, DispatchError> {
+        match asset {
+            CurrencyId::Native => Balances::burn_from(who, amount),
+            CurrencyId::Asset(asset_id) => Assets::burn_from(asset_id, who, amount),
+        }
+    }
+}
+
+impl Transfer<AccountId> for Adapter<AccountId>
+where
+    Assets: Transfer<AccountId>,
+{
+    fn transfer(
+        asset: Self::AssetId,
+        source: &AccountId,
+        dest: &AccountId,
+        amount: Self::Balance,
+        keep_alive: bool,
+    ) -> Result<Balance, DispatchError> {
+        match asset {
+            CurrencyId::Native => <Balances as FungibleTransfer<AccountId>>::transfer(
+                source, dest, amount, keep_alive,
+            ),
+            CurrencyId::Asset(asset_id) => <Assets as Transfer<AccountId>>::transfer(
+                asset_id, source, dest, amount, keep_alive,
+            ),
+        }
+    }
+}
 impl pallet_amm::Config for Runtime {
     type Event = Event;
-    type Currency = Currencies;
+    type AMMCurrency = Adapter<AccountId>;
     type PalletId = AMMPalletId;
-    type WeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
+    type AMMWeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
     type LpFee = DefaultLpFee;
     type ProtocolFee = DefaultProtocolFee;
@@ -1233,8 +1308,6 @@ construct_runtime!(
         AuraExt: cumulus_pallet_aura_ext::{Pallet, Config, Storage} = 34,
 
         // 3rd Party
-        Currencies: orml_currencies::{Pallet, Call, Event<T>} = 40,
-        Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>} = 41,
         Oracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>} = 42,
         XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>} = 43,
         UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event} = 44,
@@ -1402,16 +1475,16 @@ impl_runtime_apis! {
     impl orml_oracle_rpc_runtime_api::OracleApi<
         Block,
         DataProviderId,
-        CurrencyId,
+        AssetId,
         TimeStampedPrice,
     > for Runtime {
-        fn get_value(provider_id: DataProviderId, key: CurrencyId) -> Option<TimeStampedPrice> {
+        fn get_value(provider_id: DataProviderId, key: AssetId) -> Option<TimeStampedPrice> {
             match provider_id {
                 DataProviderId::Aggregated => Prices::get_no_op(&key)
             }
         }
 
-        fn get_all_values(provider_id: DataProviderId) -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
+        fn get_all_values(provider_id: DataProviderId) -> Vec<(AssetId, Option<TimeStampedPrice>)> {
             match provider_id {
                 DataProviderId::Aggregated => Prices::get_all_values()
             }
@@ -1442,7 +1515,7 @@ impl_runtime_apis! {
             // Trying to add benchmarks directly to the Session Pallet caused cyclic dependency
             // issues. To get around that, we separated the Session benchmarks into its own crate,
             // which is why we need these two lines below.
-            use pallet_loans_benchmarking::Pallet as LoansBench;
+            // use pallet_loans_benchmarking::Pallet as LoansBench;
             use frame_system_benchmarking::Pallet as SystemBench;
 
             let mut list = Vec::<BenchmarkList>::new();
@@ -1450,7 +1523,7 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_balances, Balances);
             list_benchmark!(list, extra, pallet_membership, TechnicalCommitteeMembership);
             list_benchmark!(list, extra, pallet_multisig, Multisig);
-            list_benchmark!(list, extra, pallet_loans, LoansBench::<Runtime>);
+            list_benchmark!(list, extra, pallet_loans, Loans);
             list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
             list_benchmark!(list, extra, pallet_timestamp, Timestamp);
             list_benchmark!(list, extra, pallet_amm, AMM);
@@ -1465,10 +1538,10 @@ impl_runtime_apis! {
         ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
             use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark, TrackedStorageKey};
 
-            use pallet_loans_benchmarking::Pallet as LoansBench;
+            // use pallet_loans_benchmarking::Pallet as LoansBench;
             use frame_system_benchmarking::Pallet as SystemBench;
 
-            impl pallet_loans_benchmarking::Config for Runtime {}
+            // impl pallet_loans_benchmarking::Config for Runtime {}
             impl frame_system_benchmarking::Config for Runtime {}
 
             let whitelist: Vec<TrackedStorageKey> = vec![
@@ -1490,7 +1563,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, frame_system, SystemBench::<Runtime>);
             add_benchmark!(params, batches, pallet_balances, Balances);
             add_benchmark!(params, batches, pallet_timestamp, Timestamp);
-            add_benchmark!(params, batches, pallet_loans, LoansBench::<Runtime>);
+            add_benchmark!(params, batches, pallet_loans, Loans);
             add_benchmark!(params, batches, pallet_multisig, Multisig);
             add_benchmark!(params, batches, pallet_membership, TechnicalCommitteeMembership);
             add_benchmark!(params, batches, pallet_amm, AMM);

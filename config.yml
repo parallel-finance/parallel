@@ -8,8 +8,6 @@ relaychain:
         validation_upgrade_delay: 1
   flags:
     - --rpc-methods=unsafe
-    - --wasm-execution=compiled
-    - --execution=wasm
     - --no-beefy
   nodes:
     - name: alice
@@ -30,11 +28,7 @@ parachains:
     flags:
       - --rpc-methods=unsafe
       - --force-authoring
-      - --wasm-execution=compiled
-      - --execution=wasm
     relaychainFlags:
-      - --wasm-execution=compiled
-      - --execution=wasm
       - --no-beefy
     nodes:
       - flags:

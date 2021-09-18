@@ -1,14 +1,16 @@
-PARA_ID  			   := 2085
-CHAIN    			   := vanilla-dev
-BLOCK_AT         := 0x0000000000000000000000000000000000000000000000000000000000000000
-URL              := ws://localhost:9947
-KEYSTORE_PATH    := keystore
-SURI             := //Alice
-LAUNCH_CONFIG    := config.yml
-DOCKER_TAG       := latest
+PARA_ID        := 2085
+CHAIN          := vanilla-dev
+BLOCK_AT       := 0x0000000000000000000000000000000000000000000000000000000000000000
+URL            := ws://localhost:9947
+KEYSTORE_PATH  := keystore
+SURI           := //Alice
+LAUNCH_CONFIG  := config.yml
+DOCKER_TAG     := latest
 
 .PHONY: init
 init: submodules
+	git config advice.ignoredHook false
+	git config core.hooksPath .githooks
 	rustup target add wasm32-unknown-unknown
 
 .PHONY: submodules
@@ -17,22 +19,22 @@ submodules:
 
 .PHONY: build
 build:
-	cargo build --bin parallel --locked
+	cargo build --bin parallel
 
 .PHONY: check
 check:
-	SKIP_WASM_BUILD= cargo check --all-targets --all-features
+	SKIP_WASM_BUILD= cargo check --all-targets --features runtime-benchmarks --features try-runtime
 
 .PHONY: test
 test:
-	SKIP_WASM_BUILD= cargo test --workspace --exclude parallel --exclude parallel-runtime --exclude vanilla-runtime --exclude heiko-runtime --exclude pallet-loans-benchmarking -- --nocapture
+	SKIP_WASM_BUILD= cargo test --workspace --exclude parallel --exclude parallel-runtime --exclude vanilla-runtime --exclude heiko-runtime -- --nocapture
 
 .PHONY: bench
 bench: bench-loans bench-liquid-staking
 
 .PHONY: bench-loans
 bench-loans:
-	cargo run --release --features runtime-benchmarks -- benchmark --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-loans --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/loans/src/weights.rs
+	cargo run --features runtime-benchmarks -- benchmark --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-loans --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/loans/src/weights.rs
 
 .PHONY: bench-liquid-staking
 bench-liquid-staking:
@@ -41,7 +43,11 @@ bench-liquid-staking:
 .PHONY: lint
 lint:
 	SKIP_WASM_BUILD= cargo fmt --all -- --check
-	SKIP_WASM_BUILD= cargo clippy --workspace --exclude parallel --exclude pallet-loans-benchmarking -- -A clippy::type_complexity -A clippy::identity_op -D warnings
+	SKIP_WASM_BUILD= cargo clippy --workspace --exclude parallel -- -A clippy::unnecessary_cast -A clippy::unnecessary_mut_passed -A clippy::too_many_arguments -A clippy::type_complexity -A clippy::identity_op -D warnings
+
+.PHONY: fix
+fix:
+	SKIP_WASM_BUILD= cargo fix --all-targets --allow-dirty --allow-staged
 
 .PHONY: fmt
 fmt:

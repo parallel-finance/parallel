@@ -18,7 +18,6 @@ sp-std        = { git = 'https://github.com/paritytech/substrate', branch = 'pol
 [dev-dependencies]
 sp-core = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
 sp-io   = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
-
 [features]
 default = ['std']
 std     = [

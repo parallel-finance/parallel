@@ -1,25 +1,38 @@
 use crate as pallet_amm;
 
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::traits::Contains;
-use frame_support::{parameter_types, traits::GenesisBuild, PalletId};
-use frame_system as system;
-use orml_traits::parameter_type_with_key;
-use primitives::{Amount, Balance, CurrencyId, TokenSymbol};
+use frame_benchmarking::frame_support::traits::tokens::{DepositConsequence, WithdrawConsequence};
+use frame_support::{
+    parameter_types,
+    traits::{
+        fungible::{
+            Inspect as FungibleInspect, Mutate as FungibleMutate, Transfer as FungibleTransfer,
+        },
+        fungibles::{Inspect, Mutate, Transfer},
+    },
+    PalletId,
+};
+use frame_system::{self as system, EnsureRoot};
+use primitives::{currency::CurrencyId, tokens, Balance};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
-use sp_runtime::traits::AccountIdConversion;
-pub use sp_runtime::Perbill;
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
-    RuntimeDebug,
+    DispatchError, DispatchResult, Perbill, RuntimeDebug,
 };
+use std::marker::PhantomData;
 
-pub const DOT: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
-pub const XDOT: CurrencyId = CurrencyId::Token(TokenSymbol::xDOT);
-pub const NATIVE: CurrencyId = CurrencyId::Token(TokenSymbol::HKO);
+pub const DOT: CurrencyId = CurrencyId::Asset(tokens::DOT);
+pub const XDOT: CurrencyId = CurrencyId::Asset(tokens::XDOT);
+pub const HKO: CurrencyId = CurrencyId::Native;
+
+pub const ALICE: AccountId = AccountId(1);
+pub const BOB: AccountId = AccountId(2);
+pub const CHARLIE: AccountId = AccountId(3);
+pub const EVE: AccountId = AccountId(4);
+
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
@@ -61,11 +74,10 @@ frame_support::construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
-        Tokens: orml_tokens::{Pallet, Storage, Config<T>, Event<T>},
-        Currencies: orml_currencies::{Pallet, Call, Event<T>},
         AMM: pallet_amm::<Instance1>::{Pallet, Call, Storage, Event<T>},
         PermissionedAMM: pallet_amm::<Instance2>::{Pallet, Call, Storage, Event<T>},
         DefaultAMM: pallet_amm::{Pallet, Call, Storage, Event<T>},
+        Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
     }
 );
 
@@ -117,41 +129,27 @@ impl pallet_balances::Config for Test {
     type WeightInfo = ();
 }
 
-parameter_type_with_key! {
-    pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
-        Default::default()
-    };
-}
-
-pub struct DustRemovalWhitelist;
-impl Contains<AccountId> for DustRemovalWhitelist {
-    fn contains(a: &AccountId) -> bool {
-        vec![AMMPalletId::get().into_account()].contains(a)
-    }
-}
-
-impl orml_tokens::Config for Test {
-    type Event = Event;
-    type Balance = Balance;
-    type Amount = Amount;
-    type CurrencyId = CurrencyId;
-    type OnDust = ();
-    type ExistentialDeposits = ExistentialDeposits;
-    type WeightInfo = ();
-    type MaxLocks = MaxLocks;
-    type DustRemovalWhitelist = DustRemovalWhitelist;
-}
-
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = NATIVE;
+    pub const AssetDeposit: u64 = 1;
+    pub const ApprovalDeposit: u64 = 1;
+    pub const StringLimit: u32 = 50;
+    pub const MetadataDepositBase: u64 = 1;
+    pub const MetadataDepositPerByte: u64 = 1;
 }
 
-impl orml_currencies::Config for Test {
+impl pallet_assets::Config for Test {
     type Event = Event;
-    type MultiCurrency = Tokens;
-    type NativeCurrency =
-        orml_currencies::BasicCurrencyAdapter<Test, Balances, Amount, BlockNumber>;
-    type GetNativeCurrencyId = GetNativeCurrencyId;
+    type Balance = u128;
+    type AssetId = u32;
+    type Currency = Balances;
+    type ForceOrigin = EnsureRoot<AccountId>;
+    type AssetDeposit = AssetDeposit;
+    type MetadataDepositBase = MetadataDepositBase;
+    type MetadataDepositPerByte = MetadataDepositPerByte;
+    type ApprovalDeposit = ApprovalDeposit;
+    type StringLimit = StringLimit;
+    type Freezer = ();
+    type Extra = ();
     type WeightInfo = ();
 }
 
@@ -163,11 +161,112 @@ parameter_types! {
     pub const DefaultProtocolFeeReceiver: AccountId = AccountId(4_u64);
 }
 
+pub struct Adapter<AccountId> {
+    phantom: PhantomData<AccountId>,
+}
+
+impl Inspect<AccountId> for Adapter<AccountId> {
+    type AssetId = CurrencyId;
+    type Balance = Balance;
+
+    fn total_issuance(asset: Self::AssetId) -> Self::Balance {
+        match asset {
+            CurrencyId::Native => Balances::total_issuance(),
+            CurrencyId::Asset(asset_id) => Assets::total_issuance(asset_id),
+        }
+    }
+
+    fn balance(asset: Self::AssetId, who: &AccountId) -> Self::Balance {
+        match asset {
+            CurrencyId::Native => Balances::balance(who),
+            CurrencyId::Asset(asset_id) => Assets::balance(asset_id, who),
+        }
+    }
+
+    fn minimum_balance(asset: Self::AssetId) -> Self::Balance {
+        match asset {
+            CurrencyId::Native => Balances::minimum_balance(),
+            CurrencyId::Asset(asset_id) => Assets::minimum_balance(asset_id),
+        }
+    }
+
+    fn reducible_balance(asset: Self::AssetId, who: &AccountId, keep_alive: bool) -> Self::Balance {
+        match asset {
+            CurrencyId::Native => Balances::reducible_balance(who, keep_alive),
+            CurrencyId::Asset(asset_id) => Assets::reducible_balance(asset_id, who, keep_alive),
+        }
+    }
+
+    fn can_deposit(
+        asset: Self::AssetId,
+        who: &AccountId,
+        amount: Self::Balance,
+    ) -> DepositConsequence {
+        match asset {
+            CurrencyId::Native => Balances::can_deposit(who, amount),
+            CurrencyId::Asset(asset_id) => Assets::can_deposit(asset_id, who, amount),
+        }
+    }
+
+    fn can_withdraw(
+        asset: Self::AssetId,
+        who: &AccountId,
+        amount: Self::Balance,
+    ) -> WithdrawConsequence<Self::Balance> {
+        match asset {
+            CurrencyId::Native => Balances::can_withdraw(who, amount),
+            CurrencyId::Asset(asset_id) => Assets::can_withdraw(asset_id, who, amount),
+        }
+    }
+}
+
+impl Mutate<AccountId> for Adapter<AccountId> {
+    fn mint_into(asset: Self::AssetId, who: &AccountId, amount: Self::Balance) -> DispatchResult {
+        match asset {
+            CurrencyId::Native => Balances::mint_into(who, amount),
+            CurrencyId::Asset(asset_id) => Assets::mint_into(asset_id, who, amount),
+        }
+    }
+
+    fn burn_from(
+        asset: Self::AssetId,
+        who: &AccountId,
+        amount: Balance,
+    ) -> Result<Balance, DispatchError> {
+        match asset {
+            CurrencyId::Native => Balances::burn_from(who, amount),
+            CurrencyId::Asset(asset_id) => Assets::burn_from(asset_id, who, amount),
+        }
+    }
+}
+
+impl Transfer<AccountId> for Adapter<AccountId>
+where
+    Assets: Transfer<AccountId>,
+{
+    fn transfer(
+        asset: Self::AssetId,
+        source: &AccountId,
+        dest: &AccountId,
+        amount: Self::Balance,
+        keep_alive: bool,
+    ) -> Result<Balance, DispatchError> {
+        match asset {
+            CurrencyId::Native => <Balances as FungibleTransfer<AccountId>>::transfer(
+                source, dest, amount, keep_alive,
+            ),
+            CurrencyId::Asset(asset_id) => <Assets as Transfer<AccountId>>::transfer(
+                asset_id, source, dest, amount, keep_alive,
+            ),
+        }
+    }
+}
+
 impl pallet_amm::Config<pallet_amm::Instance1> for Test {
     type Event = Event;
-    type Currency = Currencies;
+    type AMMCurrency = Adapter<AccountId>;
     type PalletId = AMMPalletId;
-    type WeightInfo = ();
+    type AMMWeightInfo = ();
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
     type LpFee = DefaultLpFee;
     type ProtocolFee = DefaultProtocolFee;
@@ -181,9 +280,9 @@ parameter_types! {
 
 impl pallet_amm::Config<pallet_amm::Instance2> for Test {
     type Event = Event;
-    type Currency = Currencies;
+    type AMMCurrency = Adapter<AccountId>;
     type PalletId = PermissionedAMMPalletId;
-    type WeightInfo = ();
+    type AMMWeightInfo = ();
     type AllowPermissionlessPoolCreation = ForbidPermissionlessPoolCreation;
     type LpFee = DefaultLpFee;
     type ProtocolFee = DefaultProtocolFee;
@@ -192,9 +291,9 @@ impl pallet_amm::Config<pallet_amm::Instance2> for Test {
 
 impl pallet_amm::Config for Test {
     type Event = Event;
-    type Currency = Currencies;
+    type AMMCurrency = Adapter<AccountId>;
     type PalletId = AMMPalletId;
-    type WeightInfo = ();
+    type AMMWeightInfo = ();
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
     type LpFee = DefaultLpFee;
     type ProtocolFee = DefaultProtocolFee;
@@ -206,19 +305,32 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap();
-    orml_tokens::GenesisConfig::<Test> {
+    pallet_balances::GenesisConfig::<Test> {
         balances: vec![
-            (1.into(), TokenSymbol::DOT.into(), 100),
-            (1.into(), TokenSymbol::xDOT.into(), 100),
-            (2.into(), TokenSymbol::DOT.into(), 100),
-            (2.into(), TokenSymbol::xDOT.into(), 100),
-            (3.into(), TokenSymbol::DOT.into(), 100_000_000),
-            (3.into(), TokenSymbol::xDOT.into(), 100_000_000),
-            (4.into(), TokenSymbol::DOT.into(), 100_000_000),
-            (4.into(), TokenSymbol::xDOT.into(), 100_000_000),
+            (ALICE, 100_000_000),
+            (BOB, 100_000_000),
+            (CHARLIE, 1000_000_000),
+            (EVE, 1000_000_000),
         ],
     }
     .assimilate_storage(&mut t)
     .unwrap();
-    t.into()
+
+    let mut ext = sp_io::TestExternalities::new(t);
+    ext.execute_with(|| {
+        Assets::force_create(Origin::root(), tokens::DOT, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), tokens::XDOT, ALICE, true, 1).unwrap();
+
+        Assets::mint(Origin::signed(ALICE), tokens::DOT, ALICE, 100_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::DOT, BOB, 100_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::DOT, CHARLIE, 1000_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::DOT, EVE, 1000_000_000).unwrap();
+
+        Assets::mint(Origin::signed(ALICE), tokens::XDOT, ALICE, 100_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::XDOT, BOB, 100_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::XDOT, CHARLIE, 1000_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::XDOT, EVE, 1000_000_000).unwrap();
+    });
+
+    ext
 }

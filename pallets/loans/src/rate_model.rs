@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use primitives::{Rate, Ratio, Timestamp, SECONDS_PER_YEAR};
+use primitives::{Rate, Ratio};
 use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedSub, Saturating};
 
 use crate::*;
@@ -184,20 +184,6 @@ impl CurveModel {
             .saturating_pow(NINE)
             .checked_add(&self.base_rate)
     }
-}
-
-pub fn accrued_interest(borrow_rate: Rate, amount: u128, delta_time: Timestamp) -> Option<u128> {
-    borrow_rate
-        .checked_mul_int(amount)?
-        .checked_mul(delta_time.into())?
-        .checked_div(SECONDS_PER_YEAR.into())
-}
-
-pub fn increment_index(borrow_rate: Rate, index: Rate, delta_time: Timestamp) -> Option<Rate> {
-    borrow_rate
-        .checked_mul(&index)?
-        .checked_mul(&FixedU128::saturating_from_integer(delta_time))?
-        .checked_div(&FixedU128::saturating_from_integer(SECONDS_PER_YEAR))
 }
 
 #[cfg(test)]

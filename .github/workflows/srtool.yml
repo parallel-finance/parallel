@@ -18,10 +18,10 @@ jobs:
       - uses: actions/checkout@v2
       - name: Srtool build
         id: srtool_build
-        uses: chevdor/srtool-actions@v0.2.0
+        uses: chevdor/srtool-actions@v0.3.0
         with:
           chain: ${{ matrix.chain }}
-          tag: 1.53.0-0.9.15
+          tag: 1.53.0-0.9.16
           runtime_dir: runtime/${{ matrix.chain }}
       - name: Summary
         run: |

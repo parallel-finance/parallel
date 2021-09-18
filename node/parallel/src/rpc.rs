@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use crate::client::Block;
-use primitives::{AccountId, Balance, CurrencyId, DataProviderId, Index, TimeStampedPrice};
+use primitives::{AccountId, AssetId, Balance, DataProviderId, Index, TimeStampedPrice};
 pub use sc_rpc_api::DenyUnsafe;
 use sc_transaction_pool_api::TransactionPool;
 use sp_api::ProvideRuntimeApi;
@@ -30,7 +30,7 @@ where
     C: Send + Sync + 'static,
     C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
     C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
-    C::Api: orml_oracle_rpc::OracleRuntimeApi<Block, DataProviderId, CurrencyId, TimeStampedPrice>,
+    C::Api: orml_oracle_rpc::OracleRuntimeApi<Block, DataProviderId, AssetId, TimeStampedPrice>,
     C::Api: pallet_loans_rpc::LoansRuntimeApi<Block, AccountId>,
     C::Api: BlockBuilder<Block>,
     P: TransactionPool + 'static,
