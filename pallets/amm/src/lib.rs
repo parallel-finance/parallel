@@ -22,32 +22,32 @@ extern crate alloc;
 
 #[cfg(test)]
 mod mock;
-mod pool_structs;
-
-mod benchmarking;
 #[cfg(test)]
 mod tests;
+
+mod benchmarking;
+mod pool_structs;
+
 pub mod weights;
 
-use frame_support::pallet_prelude::*;
-use frame_support::traits::fungibles::{Inspect, Mutate, Transfer};
+pub use pallet::*;
+
 use frame_support::{
     dispatch::DispatchResult,
-    pallet_prelude::{StorageDoubleMap, StorageValue, ValueQuery},
-    traits::{Get, Hooks, IsType},
+    pallet_prelude::*,
+    traits::{
+        fungibles::{Inspect, Mutate, Transfer},
+        Get, Hooks, IsType,
+    },
     transactional, Blake2_128Concat, PalletId, Twox64Concat,
 };
-use frame_system::ensure_signed;
-use frame_system::pallet_prelude::OriginFor;
-pub use pallet::*;
+use frame_system::{ensure_signed, pallet_prelude::OriginFor};
 use pool_structs::PoolLiquidityAmount;
-use primitives::currency::CurrencyOrAsset;
-use primitives::{Balance, Rate};
-use sp_runtime::traits::AccountIdConversion;
-use sp_runtime::traits::IntegerSquareRoot;
-use sp_runtime::traits::StaticLookup;
-use sp_runtime::ArithmeticError;
-pub use sp_runtime::Perbill;
+use primitives::{currency::CurrencyOrAsset, Balance, Rate};
+use sp_runtime::{
+    traits::{AccountIdConversion, IntegerSquareRoot, StaticLookup},
+    ArithmeticError, DispatchError, Perbill,
+};
 pub use weights::WeightInfo;
 
 #[frame_support::pallet]
