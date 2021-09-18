@@ -4,10 +4,9 @@
 
 set -e
 
-make fmt
-
-files=$((git diff --name-only | grep -Ei "\.rs$") || true)
+files=$((git diff --cached --name-only | grep -Ei "\.rs$") || true)
 
 if [ ! -z "${files}" ]; then
+  make fmt
   git add $(echo "$files" | paste -s -d " " -)
 fi
