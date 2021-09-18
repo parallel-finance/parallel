@@ -1,6 +1,6 @@
 import {options} from '@parallel-finance/api'
 import {ApiPromise, Keyring, WsProvider} from '@polkadot/api'
-import {assets} from './assets.json'
+import {assets, liquidAsset, stakingAsset} from './assets.json'
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -23,10 +23,9 @@ async function main() {
     return height.toNumber()
   }
 
-  do {
-    await sleep(1000)
-    console.log("Wait for block producing")
-  } while (!(await chainHeight()))
+  console.log("Wait for block producing")
+  do await sleep(1000)
+  while (!(await chainHeight()))
 
   const keyring = new Keyring({type: 'sr25519', ss58Format: 110})
   const signer = keyring.addFromUri('//Dave')
@@ -50,8 +49,8 @@ async function main() {
   }
 
   call.push(
-    api.tx.sudo.sudo(api.tx.liquidStaking.setLiquidCurrency(101)),
-    api.tx.sudo.sudo(api.tx.liquidStaking.setStakingCurrency(100))
+    api.tx.sudo.sudo(api.tx.liquidStaking.setLiquidCurrency(liquidAsset)),
+    api.tx.sudo.sudo(api.tx.liquidStaking.setStakingCurrency(stakingAsset))
   )
 
   console.log('Submit batches.')

@@ -1,4 +1,6 @@
 {
+	"liquidAsset": 1000,
+	"stakingAsset": 1000,
 	"assets": [
 		{
 			"name": "Kusama",
@@ -23,7 +25,7 @@
 		{
 			"name": "Parallel Kusama",
 			"symbol": "XKSM",
-			"assetId": 100,
+			"assetId": 1000,
 			"decimal": 12,
 			"marketOption": {
 				"closeFactor": 50,
