@@ -132,7 +132,7 @@ fn add_more_liquidity_with_low_balance_should_not_work() {
                 (5, 5),
                 10
             ),
-            pallet_balances::Error::<Test>::InsufficientBalance
+            pallet_assets::Error::<Test>::BalanceLow
         );
     })
 }
