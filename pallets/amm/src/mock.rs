@@ -13,7 +13,7 @@ use frame_support::{
     PalletId,
 };
 use frame_system::{self as system, EnsureRoot};
-use primitives::{currency::CurrencyOrAsset, tokens, Balance};
+use primitives::{currency::CurrencyId, tokens, Balance};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
@@ -24,9 +24,9 @@ use sp_runtime::{
 };
 use std::marker::PhantomData;
 
-pub const DOT: CurrencyOrAsset = CurrencyOrAsset::Asset(tokens::DOT);
-pub const XDOT: CurrencyOrAsset = CurrencyOrAsset::Asset(tokens::XDOT);
-pub const HKO: CurrencyOrAsset = CurrencyOrAsset::NativeCurrency;
+pub const DOT: CurrencyId = CurrencyId::Asset(tokens::DOT);
+pub const XDOT: CurrencyId = CurrencyId::Asset(tokens::XDOT);
+pub const HKO: CurrencyId = CurrencyId::Native;
 
 pub const ALICE: AccountId = AccountId(1);
 pub const BOB: AccountId = AccountId(2);
@@ -166,36 +166,34 @@ pub struct Adapter<AccountId> {
 }
 
 impl Inspect<AccountId> for Adapter<AccountId> {
-    type AssetId = CurrencyOrAsset;
+    type AssetId = CurrencyId;
     type Balance = Balance;
 
     fn total_issuance(asset: Self::AssetId) -> Self::Balance {
         match asset {
-            CurrencyOrAsset::NativeCurrency => Balances::total_issuance(),
-            CurrencyOrAsset::Asset(asset_id) => Assets::total_issuance(asset_id),
+            CurrencyId::Native => Balances::total_issuance(),
+            CurrencyId::Asset(asset_id) => Assets::total_issuance(asset_id),
         }
     }
 
     fn balance(asset: Self::AssetId, who: &AccountId) -> Self::Balance {
         match asset {
-            CurrencyOrAsset::NativeCurrency => Balances::balance(who),
-            CurrencyOrAsset::Asset(asset_id) => Assets::balance(asset_id, who),
+            CurrencyId::Native => Balances::balance(who),
+            CurrencyId::Asset(asset_id) => Assets::balance(asset_id, who),
         }
     }
 
     fn minimum_balance(asset: Self::AssetId) -> Self::Balance {
         match asset {
-            CurrencyOrAsset::NativeCurrency => Balances::minimum_balance(),
-            CurrencyOrAsset::Asset(asset_id) => Assets::minimum_balance(asset_id),
+            CurrencyId::Native => Balances::minimum_balance(),
+            CurrencyId::Asset(asset_id) => Assets::minimum_balance(asset_id),
         }
     }
 
     fn reducible_balance(asset: Self::AssetId, who: &AccountId, keep_alive: bool) -> Self::Balance {
         match asset {
-            CurrencyOrAsset::NativeCurrency => Balances::reducible_balance(who, keep_alive),
-            CurrencyOrAsset::Asset(asset_id) => {
-                Assets::reducible_balance(asset_id, who, keep_alive)
-            }
+            CurrencyId::Native => Balances::reducible_balance(who, keep_alive),
+            CurrencyId::Asset(asset_id) => Assets::reducible_balance(asset_id, who, keep_alive),
         }
     }
 
@@ -205,8 +203,8 @@ impl Inspect<AccountId> for Adapter<AccountId> {
         amount: Self::Balance,
     ) -> DepositConsequence {
         match asset {
-            CurrencyOrAsset::NativeCurrency => Balances::can_deposit(who, amount),
-            CurrencyOrAsset::Asset(asset_id) => Assets::can_deposit(asset_id, who, amount),
+            CurrencyId::Native => Balances::can_deposit(who, amount),
+            CurrencyId::Asset(asset_id) => Assets::can_deposit(asset_id, who, amount),
         }
     }
 
@@ -216,8 +214,8 @@ impl Inspect<AccountId> for Adapter<AccountId> {
         amount: Self::Balance,
     ) -> WithdrawConsequence<Self::Balance> {
         match asset {
-            CurrencyOrAsset::NativeCurrency => Balances::can_withdraw(who, amount),
-            CurrencyOrAsset::Asset(asset_id) => Assets::can_withdraw(asset_id, who, amount),
+            CurrencyId::Native => Balances::can_withdraw(who, amount),
+            CurrencyId::Asset(asset_id) => Assets::can_withdraw(asset_id, who, amount),
         }
     }
 }
@@ -225,8 +223,8 @@ impl Inspect<AccountId> for Adapter<AccountId> {
 impl Mutate<AccountId> for Adapter<AccountId> {
     fn mint_into(asset: Self::AssetId, who: &AccountId, amount: Self::Balance) -> DispatchResult {
         match asset {
-            CurrencyOrAsset::NativeCurrency => Balances::mint_into(who, amount),
-            CurrencyOrAsset::Asset(asset_id) => Assets::mint_into(asset_id, who, amount),
+            CurrencyId::Native => Balances::mint_into(who, amount),
+            CurrencyId::Asset(asset_id) => Assets::mint_into(asset_id, who, amount),
         }
     }
 
@@ -236,8 +234,8 @@ impl Mutate<AccountId> for Adapter<AccountId> {
         amount: Balance,
     ) -> Result<Balance, DispatchError> {
         match asset {
-            CurrencyOrAsset::NativeCurrency => Balances::burn_from(who, amount),
-            CurrencyOrAsset::Asset(asset_id) => Assets::burn_from(asset_id, who, amount),
+            CurrencyId::Native => Balances::burn_from(who, amount),
+            CurrencyId::Asset(asset_id) => Assets::burn_from(asset_id, who, amount),
         }
     }
 }
@@ -254,10 +252,10 @@ where
         keep_alive: bool,
     ) -> Result<Balance, DispatchError> {
         match asset {
-            CurrencyOrAsset::NativeCurrency => <Balances as FungibleTransfer<AccountId>>::transfer(
+            CurrencyId::Native => <Balances as FungibleTransfer<AccountId>>::transfer(
                 source, dest, amount, keep_alive,
             ),
-            CurrencyOrAsset::Asset(asset_id) => <Assets as Transfer<AccountId>>::transfer(
+            CurrencyId::Asset(asset_id) => <Assets as Transfer<AccountId>>::transfer(
                 asset_id, source, dest, amount, keep_alive,
             ),
         }

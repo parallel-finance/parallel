@@ -116,7 +116,7 @@ impl<
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
-pub enum CurrencyOrAsset {
-    NativeCurrency,
+pub enum CurrencyId {
+    Native,
     Asset(AssetId),
 }

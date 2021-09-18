@@ -14,7 +14,7 @@ frame-support      = { branch = 'polkadot-v0.9.9', default-features = false, git
 frame-system       = { branch = 'polkadot-v0.9.9', default-features = false, git = 'https://github.com/paritytech/substrate' }
 pallet-assets      = { branch = 'polkadot-v0.9.9', git = 'https://github.com/paritytech/substrate' }
 primitives         = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
-serde              = { version = '1', features = ['derive'] }
+serde              = { version = '1', features = ['derive'], optional = true }
 sp-arithmetic      = { branch = 'polkadot-v0.9.9', default-features = false, git = 'https://github.com/paritytech/substrate' }
 sp-runtime         = { branch = 'polkadot-v0.9.9', default-features = false, git = 'https://github.com/paritytech/substrate' }
 sp-std             = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
@@ -29,6 +29,7 @@ sp-io           = { branch = 'polkadot-v0.9.9', git = 'https://github.com/parity
 default            = ['std']
 runtime-benchmarks = ['frame-benchmarking']
 std                = [
+  'serde',
   'codec/std',
   'frame-benchmarking/std',
   'frame-support/std',
