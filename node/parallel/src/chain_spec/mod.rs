@@ -32,6 +32,10 @@ use crate::service::IdentifyVariant;
 
 pub const TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
 
+// TODO: May be need to setup our own domain. e.g. `telemetry.parallel.fi`, which runs a substrate-telemetry service
+#[allow(unused)]
+const PARALLEL_TELEMETRY_URL: &str = "wss://telemetry.parallel.fi/submit/";
+
 /// Token symbol of heiko network.
 pub const HEIKO_TOKEN: &str = "HKO";
 /// Token symbol of parallel network.

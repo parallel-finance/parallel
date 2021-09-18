@@ -37,7 +37,7 @@ use sp_runtime::{
 
 use crate::chain_spec::{
     accumulate, as_properties, get_account_id_from_seed, get_authority_keys_from_seed, Extensions,
-    TELEMETRY_URL,
+    PARALLEL_TELEMETRY_URL, TELEMETRY_URL,
 };
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
@@ -115,7 +115,11 @@ pub fn heiko_dev_config(id: ParaId) -> ChainSpec {
             )
         },
         vec![],
-        TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
+        TelemetryEndpoints::new(vec![
+            (TELEMETRY_URL.to_string(), 0),
+            (PARALLEL_TELEMETRY_URL.to_string(), 0),
+        ])
+        .ok(),
         Some("heiko-dev"),
         Some(as_properties(network::NetworkType::Heiko)),
         Extensions {
