@@ -31,7 +31,7 @@ pub mod pallet {
         ensure,
         pallet_prelude::DispatchResultWithPostInfo,
         traits::{Get, Hooks, IsType},
-        transactional, PalletId,
+        transactional, BoundedVec, PalletId,
     };
     use frame_system::{
         ensure_signed,
@@ -41,12 +41,15 @@ pub mod pallet {
     use primitives::{Amount, Balance, CurrencyId, AMM};
     use sp_runtime::traits::Zero;
 
-    pub type Route = Vec<(
-        // Base asset
-        CurrencyId,
-        // Quote asset
-        CurrencyId,
-    )>;
+    pub type Route<T> = BoundedVec<
+        (
+            // Base asset
+            CurrencyId,
+            // Quote asset
+            CurrencyId,
+        ),
+        <T as Config>::MaxLengthRoute,
+    >;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -61,7 +64,7 @@ pub mod pallet {
 
         /// How many routes we support at most
         #[pallet::constant]
-        type MaxLengthRoute: Get<u8>;
+        type MaxLengthRoute: Get<u32>;
 
         type Currency: MultiCurrencyExtended<
             Self::AccountId,
@@ -97,7 +100,7 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// Event emitted when swap is successful
         /// [sender, amount_in, route, amount_out]
-        TradedSuccessfully(T::AccountId, Balance, Route, Balance),
+        TradedSuccessfully(T::AccountId, Balance, Route<T>, Balance),
     }
 
     #[pallet::hooks]
@@ -116,7 +119,7 @@ pub mod pallet {
         #[transactional]
         pub fn trade(
             origin: OriginFor<T>,
-            route: Route,
+            route: Route<T>,
             #[pallet::compact] mut amount_in: Balance,
             #[pallet::compact] min_amount_out: Balance,
             #[pallet::compact] expiry: BlockNumberFor<T>,
@@ -132,9 +135,9 @@ pub mod pallet {
             );
 
             // Ensure user doesn't input duplicated routes
-            let mut _routes = route.clone();
+            let mut _routes = route.clone().into_inner();
             _routes.dedup();
-            ensure!(_routes == route, Error::<T>::DuplicatedRoute);
+            ensure!(_routes.eq(&*route), Error::<T>::DuplicatedRoute);
 
             // Ensure balances user input is bigger than zero.
             ensure!(
