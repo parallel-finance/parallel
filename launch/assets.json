@@ -8,16 +8,16 @@
 			"assetId": 100,
 			"decimal": 12,
 			"marketOption": {
-				"closeFactor": 500000,
-				"collateralFactor": 500000,
-				"reserveFactor": 150000,
-				"liquidateIncentive": 1100000000000000000,
+				"closeFactor": 50e4,
+				"collateralFactor": 50e4,
+				"reserveFactor": 15e4,
+				"liquidateIncentive": 110e16,
 				"rateModel": {
 					"jumpModel": {
-						"baseRate": 20000,
-						"jumpRate": 100000,
-						"fullRate": 320000,
-						"jumpUtilization": 800000
+						"baseRate": 2e16,
+						"jumpRate": 10e16,
+						"fullRate": 32e16,
+						"jumpUtilization": 80e16
 					}
 				}
 			}
@@ -28,16 +28,16 @@
 			"assetId": 1000,
 			"decimal": 12,
 			"marketOption": {
-				"closeFactor": 500000,
-				"collateralFactor": 500000,
-				"reserveFactor": 150000,
-				"liquidateIncentive": 1100000000000000000,
+				"closeFactor": 50e4,
+				"collateralFactor": 50e4,
+				"reserveFactor": 15e4,
+				"liquidateIncentive": 110e16,
 				"rateModel": {
 					"jumpModel": {
-						"baseRate": 20000,
-						"jumpRate": 100000,
-						"fullRate": 320000,
-						"jumpUtilization": 800000
+						"baseRate": 2e16,
+						"jumpRate": 10e16,
+						"fullRate": 32e16,
+						"jumpUtilization": 80e16
 					}
 				}
 			}
@@ -48,16 +48,16 @@
 			"assetId": 102,
 			"decimal": 12,
 			"marketOption": {
-				"closeFactor": 500000,
-				"collateralFactor": 500000,
-				"reserveFactor": 150000,
-				"liquidateIncentive": 1100000000000000000,
+				"closeFactor": 50e4,
+				"collateralFactor": 50e4,
+				"reserveFactor": 15e4,
+				"liquidateIncentive": 110e16,
 				"rateModel": {
 					"jumpModel": {
-						"baseRate": 20000,
-						"jumpRate": 100000,
-						"fullRate": 320000,
-						"jumpUtilization": 800000
+						"baseRate": 2e16,
+						"jumpRate": 10e16,
+						"fullRate": 32e16,
+						"jumpUtilization": 80e16
 					}
 				}
 			}
