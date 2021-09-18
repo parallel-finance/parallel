@@ -23,7 +23,7 @@ async function main() {
   }
 
   do await sleep(1000)
-  while ((await chainHeight()) === 0)
+  while (!(await chainHeight()))
 
   const keyring = new Keyring({ type: 'sr25519', ss58Format: 110 })
   const signer = keyring.addFromUri('//Dave')
