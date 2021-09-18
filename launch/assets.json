@@ -1,6 +1,6 @@
 {
 	"liquidAsset": 1000,
-	"stakingAsset": 1000,
+	"stakingAsset": 100,
 	"assets": [
 		{
 			"name": "Kusama",
@@ -8,16 +8,16 @@
 			"assetId": 100,
 			"decimal": 12,
 			"marketOption": {
-				"closeFactor": 50,
-				"collateralFactor": 50,
-				"reserveFactor": 15,
-				"liquidateIncentive": 110,
+				"closeFactor": 500000,
+				"collateralFactor": 500000,
+				"reserveFactor": 150000,
+				"liquidateIncentive": 1100000000000000000,
 				"rateModel": {
 					"jumpModel": {
-						"baseRate": 2,
-						"jumpRate": 10,
-						"fullRate": 32,
-						"jumpUtilization": 80
+						"baseRate": 20000,
+						"jumpRate": 100000,
+						"fullRate": 320000,
+						"jumpUtilization": 800000
 					}
 				}
 			}
@@ -28,16 +28,16 @@
 			"assetId": 1000,
 			"decimal": 12,
 			"marketOption": {
-				"closeFactor": 50,
-				"collateralFactor": 50,
-				"reserveFactor": 15,
-				"liquidateIncentive": 110,
+				"closeFactor": 500000,
+				"collateralFactor": 500000,
+				"reserveFactor": 150000,
+				"liquidateIncentive": 1100000000000000000,
 				"rateModel": {
 					"jumpModel": {
-						"baseRate": 2,
-						"jumpRate": 10,
-						"fullRate": 32,
-						"jumpUtilization": 80
+						"baseRate": 20000,
+						"jumpRate": 100000,
+						"fullRate": 320000,
+						"jumpUtilization": 800000
 					}
 				}
 			}
@@ -48,16 +48,16 @@
 			"assetId": 102,
 			"decimal": 12,
 			"marketOption": {
-				"closeFactor": 50,
-				"collateralFactor": 50,
-				"liquidateIncentive": 110,
-				"reserveFactor": 15,
+				"closeFactor": 500000,
+				"collateralFactor": 500000,
+				"reserveFactor": 150000,
+				"liquidateIncentive": 1100000000000000000,
 				"rateModel": {
 					"jumpModel": {
-						"baseRate": 2,
-						"jumpRate": 10,
-						"fullRate": 32,
-						"jumpUtilization": 80
+						"baseRate": 20000,
+						"jumpRate": 100000,
+						"fullRate": 320000,
+						"jumpUtilization": 800000
 					}
 				}
 			}
