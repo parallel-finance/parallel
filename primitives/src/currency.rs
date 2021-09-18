@@ -23,13 +23,6 @@ use crate::AssetId;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
-pub enum TokenSymbol {
-    HKO = 5,
-    PARA = 6,
-}
-
 pub struct MultiCurrencyAdapter<
     MultiCurrency,
     Match,
