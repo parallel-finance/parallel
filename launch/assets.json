@@ -1,0 +1,64 @@
+{
+	"assets": [
+		{
+			"name": "Kusama",
+			"symbol": "KSM",
+			"assetId": 100,
+			"decimal": 12,
+			"marketOption": {
+				"closeFactor": 50,
+				"collateralFactor": 50,
+				"reserveFactor": 15,
+				"liquidateIncentive": 110,
+				"rateModel": {
+					"jumpModel": {
+						"baseRate": 2,
+						"jumpRate": 10,
+						"fullRate": 32,
+						"jumpUtilization": 80
+					}
+				}
+			}
+		},
+		{
+			"name": "Parallel Kusama",
+			"symbol": "XKSM",
+			"assetId": 100,
+			"decimal": 12,
+			"marketOption": {
+				"closeFactor": 50,
+				"collateralFactor": 50,
+				"reserveFactor": 15,
+				"liquidateIncentive": 110,
+				"rateModel": {
+					"jumpModel": {
+						"baseRate": 2,
+						"jumpRate": 10,
+						"fullRate": 32,
+						"jumpUtilization": 80
+					}
+				}
+			}
+		},
+		{
+			"name": "Tether Dollar",
+			"symbol": "USDT",
+			"assetId": 102,
+			"decimal": 12,
+			"marketOption": {
+				"closeFactor": 50,
+				"collateralFactor": 50,
+				"liquidateIncentive": 110,
+				"reserveFactor": 15,
+				"rateModel": {
+					"jumpModel": {
+						"baseRate": 2,
+						"jumpRate": 10,
+						"fullRate": 32,
+						"jumpUtilization": 80
+					}
+				}
+			}
+		}
+	]
+}
