@@ -109,7 +109,7 @@ use primitives::currency::MultiCurrencyAdapter;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 use sp_runtime::DispatchResult;
-use std::marker::PhantomData;
+use sp_std::marker::PhantomData;
 use time::*;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know

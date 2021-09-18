@@ -113,7 +113,7 @@ use pallet_xcm::XcmPassthrough;
 use primitives::currency::CurrencyId;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
-use std::marker::PhantomData;
+use sp_std::marker::PhantomData;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats

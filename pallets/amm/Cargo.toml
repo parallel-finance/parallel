@@ -10,18 +10,17 @@ targets = ['x86_64-unknown-linux-gnu']
 [dependencies]
 codec              = { package = 'parity-scale-codec', version = '2.0.0', features = ['max-encoded-len'], default-features = false }
 frame-benchmarking = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false, optional = true }
-frame-support      = { branch = 'polkadot-v0.9.9', default-features = false, git = 'https://github.com/paritytech/substrate' }
-frame-system       = { branch = 'polkadot-v0.9.9', default-features = false, git = 'https://github.com/paritytech/substrate' }
-pallet-assets      = { branch = 'polkadot-v0.9.9', git = 'https://github.com/paritytech/substrate' }
+frame-support      = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
+frame-system       = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
+pallet-assets      = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
 primitives         = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 serde              = { version = '1', features = ['derive'], optional = true }
-sp-arithmetic      = { branch = 'polkadot-v0.9.9', default-features = false, git = 'https://github.com/paritytech/substrate' }
-sp-runtime         = { branch = 'polkadot-v0.9.9', default-features = false, git = 'https://github.com/paritytech/substrate' }
+sp-arithmetic      = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
+sp-runtime         = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
 sp-std             = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
 
 [dev-dependencies]
 pallet-balances = { branch = 'polkadot-v0.9.9', git = 'https://github.com/paritytech/substrate' }
-serde           = { version = '1' }
 sp-core         = { branch = 'polkadot-v0.9.9', git = 'https://github.com/paritytech/substrate' }
 sp-io           = { branch = 'polkadot-v0.9.9', git = 'https://github.com/paritytech/substrate' }
 

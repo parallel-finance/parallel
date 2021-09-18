@@ -23,7 +23,7 @@ build:
 
 .PHONY: check
 check:
-	SKIP_WASM_BUILD= cargo check --all-targets --features runtime-benchmarks
+	SKIP_WASM_BUILD= cargo check --all-targets --features runtime-benchmarks --features try-runtime
 
 .PHONY: test
 test:
