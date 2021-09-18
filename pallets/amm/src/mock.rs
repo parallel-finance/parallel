@@ -12,8 +12,7 @@ use frame_support::{
     },
     PalletId,
 };
-use frame_system as system;
-use frame_system::EnsureRoot;
+use frame_system::{self as system, EnsureRoot};
 use primitives::{currency::CurrencyOrAsset, tokens, Balance};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -28,6 +27,11 @@ use std::marker::PhantomData;
 pub const DOT: CurrencyOrAsset = CurrencyOrAsset::Asset(tokens::DOT);
 pub const XDOT: CurrencyOrAsset = CurrencyOrAsset::Asset(tokens::XDOT);
 pub const HKO: CurrencyOrAsset = CurrencyOrAsset::NativeCurrency;
+
+pub const ALICE: AccountId = AccountId(1);
+pub const BOB: AccountId = AccountId(2);
+pub const CHARLIE: AccountId = AccountId(3);
+pub const EVE: AccountId = AccountId(4);
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -305,10 +309,10 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .unwrap();
     pallet_balances::GenesisConfig::<Test> {
         balances: vec![
-            (1.into(), 100_000_000),
-            (2.into(), 100_000_000),
-            (3.into(), 100_000_000_0),
-            (4.into(), 100_000_000_0),
+            (ALICE, 100_000_000),
+            (BOB, 100_000_000),
+            (CHARLIE, 1000_000_000),
+            (EVE, 1000_000_000),
         ],
     }
     .assimilate_storage(&mut t)
@@ -316,8 +320,18 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        Assets::force_create(Origin::root(), tokens::DOT, 1.into(), true, 1).unwrap();
-        Assets::force_create(Origin::root(), tokens::XDOT, 1.into(), true, 1).unwrap();
+        Assets::force_create(Origin::root(), tokens::DOT, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), tokens::XDOT, ALICE, true, 1).unwrap();
+
+        Assets::mint(Origin::signed(ALICE), tokens::DOT, ALICE, 100_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::DOT, BOB, 100_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::DOT, CHARLIE, 1000_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::DOT, EVE, 1000_000_000).unwrap();
+
+        Assets::mint(Origin::signed(ALICE), tokens::XDOT, ALICE, 100_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::XDOT, BOB, 100_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::XDOT, CHARLIE, 1000_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::XDOT, EVE, 1000_000_000).unwrap();
     });
 
     ext

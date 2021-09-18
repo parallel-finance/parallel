@@ -15,8 +15,7 @@
 // Groups common pool related structures
 
 use codec::{Decode, Encode};
-use primitives::currency::CurrencyOrAsset;
-use primitives::{Balance, Rate};
+use primitives::{currency::CurrencyOrAsset, Balance, Rate};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{
