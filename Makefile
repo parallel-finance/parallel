@@ -26,6 +26,10 @@ build:
 check:
 	SKIP_WASM_BUILD= cargo check --all-targets --features runtime-benchmarks --features try-runtime
 
+.PHONY: check-wasm
+check-wasm:
+	cargo check -p vanilla-runtime -p parallel-runtime -p heiko-runtime
+
 .PHONY: test
 test:
 	SKIP_WASM_BUILD= cargo test --workspace --features runtime-benchmarks --exclude parallel --exclude parallel-runtime --exclude vanilla-runtime --exclude heiko-runtime -- --nocapture
