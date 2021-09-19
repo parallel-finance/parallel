@@ -17,7 +17,7 @@
 						"baseRate": 2e16,
 						"jumpRate": 10e16,
 						"fullRate": 32e16,
-						"jumpUtilization": 80e16
+						"jumpUtilization": 8e5
 					}
 				}
 			}
@@ -37,7 +37,7 @@
 						"baseRate": 2e16,
 						"jumpRate": 10e16,
 						"fullRate": 32e16,
-						"jumpUtilization": 80e16
+						"jumpUtilization": 8e5
 					}
 				}
 			}
@@ -46,7 +46,7 @@
 			"name": "Tether Dollar",
 			"symbol": "USDT",
 			"assetId": 102,
-			"decimal": 12,
+			"decimal": 6,
 			"marketOption": {
 				"closeFactor": 50e4,
 				"collateralFactor": 50e4,
@@ -57,7 +57,7 @@
 						"baseRate": 2e16,
 						"jumpRate": 10e16,
 						"fullRate": 32e16,
-						"jumpUtilization": 80e16
+						"jumpUtilization": 8e5
 					}
 				}
 			}
