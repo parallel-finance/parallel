@@ -206,6 +206,7 @@ try-runtime        = [
   'pallet-scheduler/try-runtime',
   'polkadot-runtime-common/try-runtime',
   'pallet-session/try-runtime',
+  'pallet-assets/try-runtime',
   'pallet-authorship/try-runtime',
   'orml-unknown-tokens/try-runtime',
   'orml-xtokens/try-runtime',
