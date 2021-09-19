@@ -11,8 +11,8 @@ DOCKER_TAG     := latest
 init: submodules
 	git config advice.ignoredHook false
 	git config core.hooksPath .githooks
-	cd launch && yarn
 	rustup target add wasm32-unknown-unknown
+	cd launch && yarn
 
 .PHONY: submodules
 submodules:
