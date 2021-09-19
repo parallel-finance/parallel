@@ -12,6 +12,7 @@ init: submodules
 	git config advice.ignoredHook false
 	git config core.hooksPath .githooks
 	rustup target add wasm32-unknown-unknown
+	cd launch && yarn
 
 .PHONY: submodules
 submodules:
@@ -25,16 +26,24 @@ build:
 check:
 	SKIP_WASM_BUILD= cargo check --all-targets --features runtime-benchmarks --features try-runtime
 
+.PHONY: check-wasm
+check-wasm:
+	cargo check -p vanilla-runtime -p parallel-runtime -p heiko-runtime
+
 .PHONY: test
 test:
-	SKIP_WASM_BUILD= cargo test --workspace --exclude parallel --exclude parallel-runtime --exclude vanilla-runtime --exclude heiko-runtime -- --nocapture
+	SKIP_WASM_BUILD= cargo test --workspace --features runtime-benchmarks --exclude parallel --exclude parallel-runtime --exclude vanilla-runtime --exclude heiko-runtime -- --nocapture
 
 .PHONY: bench
-bench: bench-loans bench-liquid-staking
+bench: bench-loans bench-liquid-staking bench-amm
 
 .PHONY: bench-loans
 bench-loans:
-	cargo run --features runtime-benchmarks -- benchmark --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-loans --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/loans/src/weights.rs
+	cargo run --release --features runtime-benchmarks -- benchmark --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-loans --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/loans/src/weights.rs
+
+.PHONY: bench-amm
+bench-amm:
+	cargo run --release --features runtime-benchmarks -- benchmark --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-amm --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/amm/src/weights.rs
 
 .PHONY: bench-liquid-staking
 bench-liquid-staking:
@@ -70,6 +79,7 @@ launch: shutdown
 	docker image pull parallelfinance/parallel-dapp:latest
 	docker image pull parallelfinance/stake-client:latest
 	parachain-launch generate $(LAUNCH_CONFIG) && (cp -r keystore* output || true) && cp docker-compose.override.yml output && docker-compose -f output/docker-compose.yml -f output/docker-compose.override.yml up -d --build
+	cd launch && yarn start
 
 .PHONY: logs
 logs:

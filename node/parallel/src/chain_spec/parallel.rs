@@ -15,15 +15,14 @@
 use cumulus_primitives_core::ParaId;
 use hex_literal::hex;
 use parallel_runtime::{
-    opaque::SessionKeys,
-    pallet_loans::{InterestRateModel, JumpModel, Market, MarketState},
-    BalancesConfig, CollatorSelectionConfig, DemocracyConfig, GeneralCouncilConfig,
-    GeneralCouncilMembershipConfig, GenesisConfig, LiquidStakingAgentMembershipConfig,
-    LiquidStakingConfig, LoansConfig, OracleMembershipConfig, ParachainInfoConfig, SessionConfig,
-    SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig, ValidatorFeedersMembershipConfig,
-    VestingConfig, WASM_BINARY,
+    opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, DemocracyConfig,
+    GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
+    LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig,
+    ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
+    TechnicalCommitteeMembershipConfig, ValidatorFeedersMembershipConfig, VestingConfig,
+    WASM_BINARY,
 };
-use primitives::{network::NetworkType, tokens::*, *};
+use primitives::{network::NetworkType, *};
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -286,56 +285,7 @@ fn parallel_genesis(
             borrow_index: Rate::one(),                             // 1
             exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
             last_block_timestamp: 0,
-            markets: vec![
-                (
-                    DOT,
-                    Market {
-                        close_factor: Ratio::from_percent(50),
-                        collateral_factor: Ratio::from_percent(50),
-                        liquidate_incentive: Rate::saturating_from_rational(110, 100),
-                        state: MarketState::Active,
-                        rate_model: InterestRateModel::Jump(JumpModel::new_model(
-                            Rate::saturating_from_rational(2, 100),
-                            Rate::saturating_from_rational(10, 100),
-                            Rate::saturating_from_rational(32, 100),
-                            Ratio::from_percent(80),
-                        )),
-                        reserve_factor: Ratio::from_percent(15),
-                    },
-                ),
-                (
-                    USDT,
-                    Market {
-                        close_factor: Ratio::from_percent(50),
-                        collateral_factor: Ratio::from_percent(50),
-                        liquidate_incentive: Rate::saturating_from_rational(110, 100),
-                        state: MarketState::Active,
-                        rate_model: InterestRateModel::Jump(JumpModel::new_model(
-                            Rate::saturating_from_rational(2, 100),
-                            Rate::saturating_from_rational(10, 100),
-                            Rate::saturating_from_rational(32, 100),
-                            Ratio::from_percent(80),
-                        )),
-                        reserve_factor: Ratio::from_percent(15),
-                    },
-                ),
-                (
-                    XDOT,
-                    Market {
-                        close_factor: Ratio::from_percent(50),
-                        collateral_factor: Ratio::from_percent(50),
-                        liquidate_incentive: Rate::saturating_from_rational(110, 100),
-                        state: MarketState::Active,
-                        rate_model: InterestRateModel::Jump(JumpModel::new_model(
-                            Rate::saturating_from_rational(2, 100),
-                            Rate::saturating_from_rational(10, 100),
-                            Rate::saturating_from_rational(32, 100),
-                            Ratio::from_percent(80),
-                        )),
-                        reserve_factor: Ratio::from_percent(15),
-                    },
-                ),
-            ],
+            markets: vec![],
         },
         liquid_staking: LiquidStakingConfig {
             exchange_rate: Rate::saturating_from_rational(100, 100), // 1
