@@ -30,15 +30,17 @@ pub mod pallet {
     use frame_support::{
         ensure,
         pallet_prelude::DispatchResultWithPostInfo,
-        traits::{Get, Hooks, IsType},
+        traits::{
+            tokens::fungibles::{self, Inspect},
+            Get, Hooks, IsType,
+        },
         transactional, BoundedVec, PalletId,
     };
     use frame_system::{
         ensure_signed,
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
-    use orml_traits::{MultiCurrency, MultiCurrencyExtended};
-    use primitives::{Amount, Balance, CurrencyId, AMM};
+    use primitives::{currency::CurrencyId, Balance, AMM};
     use sp_runtime::traits::Zero;
 
     pub type Route<T> = BoundedVec<
@@ -66,12 +68,11 @@ pub mod pallet {
         #[pallet::constant]
         type MaxLengthRoute: Get<u32>;
 
-        type Currency: MultiCurrencyExtended<
-            Self::AccountId,
-            CurrencyId = CurrencyId,
-            Balance = Balance,
-            Amount = Amount,
-        >;
+        /// Currency type for deposit/withdraw assets to/from amm route
+        /// module
+        type AMMCurrency: fungibles::Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + fungibles::Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + fungibles::Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
     }
 
     #[pallet::pallet]
@@ -152,7 +153,7 @@ pub mod pallet {
             // Ensure the trader has enough tokens for transaction.
             let (from_currency_id, _) = route[0];
             ensure!(
-                T::Currency::free_balance(from_currency_id, &trader) > amount_in,
+                T::AMMCurrency::balance(from_currency_id, &trader) > amount_in,
                 Error::<T>::InsufficientBalance
             );
 

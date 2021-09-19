@@ -16,28 +16,33 @@
 
 use super::*;
 use crate as pallet_route;
-use frame_support::traits::{Contains, GenesisBuild};
-use frame_support::{construct_runtime, parameter_types, PalletId};
-pub use primitives::{Amount, Balance, CurrencyId, TokenSymbol, AMM};
-use sp_core::H256;
-use sp_runtime::{
-    testing::Header,
-    traits::{AccountIdConversion, IdentityLookup},
-    Perbill,
+use frame_support::{
+    construct_runtime, parameter_types,
+    traits::{
+        fungible::{
+            Inspect as FungibleInspect, Mutate as FungibleMutate, Transfer as FungibleTransfer,
+        },
+        fungibles::{Inspect, Mutate, Transfer},
+    },
+    PalletId,
 };
+use frame_system::EnsureRoot;
+pub use primitives::{currency::CurrencyId, tokens, Amount, Balance, AMM};
+use sp_core::H256;
+use sp_runtime::{testing::Header, traits::IdentityLookup, DispatchError, DispatchResult, Perbill};
 
 pub type AccountId = u128;
 pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
-pub const CHARILE: AccountId = 3;
+pub const CHARLIE: AccountId = 3;
 pub const DAVE: AccountId = 4;
 
-pub const DOT: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
-pub const XDOT: CurrencyId = CurrencyId::Token(TokenSymbol::xDOT);
-pub const USDT: CurrencyId = CurrencyId::Token(TokenSymbol::USDT);
-pub const KSM: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
+pub const DOT: CurrencyId = CurrencyId::Asset(tokens::DOT);
+pub const XDOT: CurrencyId = CurrencyId::Asset(tokens::XDOT);
+pub const USDT: CurrencyId = CurrencyId::Asset(tokens::USDT);
+pub const KSM: CurrencyId = CurrencyId::Asset(tokens::KSM);
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
@@ -69,50 +74,6 @@ impl frame_system::Config for Runtime {
     type OnSetCode = ();
 }
 
-// orml-tokens configuration
-parameter_types! {
-    pub const RouterPalletId: PalletId = PalletId(*b"ammroute");
-}
-
-orml_traits::parameter_type_with_key! {
-    pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
-        Default::default()
-    };
-}
-
-pub struct DustRemovalWhitelist;
-impl Contains<AccountId> for DustRemovalWhitelist {
-    fn contains(a: &AccountId) -> bool {
-        vec![RouterPalletId::get().into_account()].contains(a)
-    }
-}
-
-impl orml_tokens::Config for Runtime {
-    type Event = Event;
-    type Balance = Balance;
-    type Amount = Amount;
-    type CurrencyId = CurrencyId;
-    type OnDust = ();
-    type ExistentialDeposits = ExistentialDeposits;
-    type WeightInfo = ();
-    type MaxLocks = MaxLocks;
-    type DustRemovalWhitelist = DustRemovalWhitelist;
-}
-
-// orml-currencies configuration
-parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::HKO);
-}
-
-impl orml_currencies::Config for Runtime {
-    type Event = Event;
-    type MultiCurrency = Tokens;
-    type NativeCurrency =
-        orml_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
-    type GetNativeCurrencyId = GetNativeCurrencyId;
-    type WeightInfo = ();
-}
-
 // pallet-balances configuration
 parameter_types! {
     pub const ExistentialDeposit: Balance = 1;
@@ -131,20 +92,45 @@ impl pallet_balances::Config for Runtime {
     type WeightInfo = ();
 }
 
+// pallet-assets configuration
+parameter_types! {
+    pub const AssetDeposit: u64 = 1;
+    pub const ApprovalDeposit: u64 = 1;
+    pub const StringLimit: u32 = 50;
+    pub const MetadataDepositBase: u64 = 1;
+    pub const MetadataDepositPerByte: u64 = 1;
+}
+
+impl pallet_assets::Config for Runtime {
+    type Event = Event;
+    type Balance = u128;
+    type AssetId = u32;
+    type Currency = Balances;
+    type ForceOrigin = EnsureRoot<AccountId>;
+    type AssetDeposit = AssetDeposit;
+    type MetadataDepositBase = MetadataDepositBase;
+    type MetadataDepositPerByte = MetadataDepositPerByte;
+    type ApprovalDeposit = ApprovalDeposit;
+    type StringLimit = StringLimit;
+    type Freezer = ();
+    type Extra = ();
+    type WeightInfo = ();
+}
+
 // AMM instance initialization
 parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
     pub const AllowPermissionlessPoolCreation: bool = true;
     pub const DefaultLpFee: Perbill = Perbill::from_perthousand(3);         // 0.3%
     pub const DefaultProtocolFee: Perbill = Perbill::from_perthousand(2);   // 0.2%
-    pub const DefaultProtocolFeeReceiver: AccountId = CHARILE;
+    pub const DefaultProtocolFeeReceiver: AccountId = CHARLIE;
 }
 
 impl pallet_amm::Config for Runtime {
     type Event = Event;
-    type Currency = Currencies;
+    type AMMCurrency = assets_adapter::Adapter<AccountId>;
     type PalletId = AMMPalletId;
-    type WeightInfo = ();
+    type AMMWeightInfo = ();
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
     type LpFee = DefaultLpFee;
     type ProtocolFee = DefaultProtocolFee;
@@ -153,6 +139,7 @@ impl pallet_amm::Config for Runtime {
 
 parameter_types! {
     pub const MaxLengthRoute: u8 = 10;
+    pub const RouterPalletId: PalletId = PalletId(*b"ammroute");
 }
 
 impl Config for Runtime {
@@ -160,7 +147,7 @@ impl Config for Runtime {
     type RouterPalletId = RouterPalletId;
     type AMM = DefaultAMM;
     type MaxLengthRoute = MaxLengthRoute;
-    type Currency = Currencies;
+    type AMMCurrency = assets_adapter::Adapter<AccountId>;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
@@ -173,9 +160,8 @@ construct_runtime!(
         UncheckedExtrinsic = UncheckedExtrinsic
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+        Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
-        Tokens: orml_tokens::{Pallet, Storage, Config<T>, Event<T>},
-        Currencies: orml_currencies::{Pallet, Call, Event<T>},
         // AMM instances
         DefaultAMM: pallet_amm::{Pallet, Call, Storage, Event<T>},
         // AMM Route
@@ -183,42 +169,153 @@ construct_runtime!(
     }
 );
 
-pub struct ExtBuilder {
-    pub balances: Vec<(AccountId, CurrencyId, Balance)>,
-}
-
-impl Default for ExtBuilder {
-    fn default() -> Self {
-        Self {
-            balances: vec![
-                (ALICE.into(), DOT, 10_000),
-                (BOB.into(), DOT, 10_000),
-                (BOB.into(), XDOT, 5_000),
-                // dave will fund AMM for examples
-                (DAVE.into(), DOT, 1_000_000_000),
-                (DAVE.into(), XDOT, 1_000_000_000),
-                (DAVE.into(), KSM, 1_000_000_000),
-                (DAVE.into(), USDT, 1_000_000_000),
-            ],
-        }
-    }
-}
-
-impl ExtBuilder {
-    pub fn build(self) -> sp_io::TestExternalities {
-        let mut t = frame_system::GenesisConfig::default()
-            .build_storage::<Runtime>()
-            .unwrap();
-
-        orml_tokens::GenesisConfig::<Runtime> {
-            balances: self.balances.clone(),
-        }
-        .assimilate_storage(&mut t)
+// Build genesis storage according to the mock runtime.
+pub fn new_test_ext() -> sp_io::TestExternalities {
+    let mut t = frame_system::GenesisConfig::default()
+        .build_storage::<Runtime>()
         .unwrap();
-        t.into()
+    pallet_balances::GenesisConfig::<Runtime> {
+        balances: vec![(ALICE, 100_000_000), (BOB, 100_000_000)],
     }
+    .assimilate_storage(&mut t)
+    .unwrap();
+
+    let mut ext = sp_io::TestExternalities::new(t);
+    ext.execute_with(|| {
+        Assets::force_create(Origin::root(), tokens::DOT, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), tokens::XDOT, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), tokens::KSM, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), tokens::USDT, ALICE, true, 1).unwrap();
+
+        Assets::mint(Origin::signed(ALICE), tokens::DOT, ALICE, 10_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::XDOT, ALICE, 10_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::KSM, ALICE, 10_000).unwrap();
+
+        Assets::mint(Origin::signed(ALICE), tokens::DOT, DAVE, 1000_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::KSM, DAVE, 1000_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::XDOT, DAVE, 1000_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::USDT, DAVE, 1000_000_000).unwrap();
+    });
+
+    ext
 }
 
 pub(crate) fn run_to_block(n: u64) {
     System::set_block_number(n);
+}
+
+// Assets adapter helper
+pub mod assets_adapter {
+    use super::*;
+    use core::marker::PhantomData;
+    use frame_support::traits::tokens::{DepositConsequence, WithdrawConsequence};
+
+    pub struct Adapter<AccountId> {
+        phantom: PhantomData<AccountId>,
+    }
+
+    impl Inspect<AccountId> for Adapter<AccountId> {
+        type AssetId = CurrencyId;
+        type Balance = Balance;
+
+        fn total_issuance(asset: Self::AssetId) -> Self::Balance {
+            match asset {
+                CurrencyId::Native => Balances::total_issuance(),
+                CurrencyId::Asset(asset_id) => Assets::total_issuance(asset_id),
+            }
+        }
+
+        fn balance(asset: Self::AssetId, who: &AccountId) -> Self::Balance {
+            match asset {
+                CurrencyId::Native => Balances::balance(who),
+                CurrencyId::Asset(asset_id) => Assets::balance(asset_id, who),
+            }
+        }
+
+        fn minimum_balance(asset: Self::AssetId) -> Self::Balance {
+            match asset {
+                CurrencyId::Native => Balances::minimum_balance(),
+                CurrencyId::Asset(asset_id) => Assets::minimum_balance(asset_id),
+            }
+        }
+
+        fn reducible_balance(
+            asset: Self::AssetId,
+            who: &AccountId,
+            keep_alive: bool,
+        ) -> Self::Balance {
+            match asset {
+                CurrencyId::Native => Balances::reducible_balance(who, keep_alive),
+                CurrencyId::Asset(asset_id) => Assets::reducible_balance(asset_id, who, keep_alive),
+            }
+        }
+
+        fn can_deposit(
+            asset: Self::AssetId,
+            who: &AccountId,
+            amount: Self::Balance,
+        ) -> DepositConsequence {
+            match asset {
+                CurrencyId::Native => Balances::can_deposit(who, amount),
+                CurrencyId::Asset(asset_id) => Assets::can_deposit(asset_id, who, amount),
+            }
+        }
+
+        fn can_withdraw(
+            asset: Self::AssetId,
+            who: &AccountId,
+            amount: Self::Balance,
+        ) -> WithdrawConsequence<Self::Balance> {
+            match asset {
+                CurrencyId::Native => Balances::can_withdraw(who, amount),
+                CurrencyId::Asset(asset_id) => Assets::can_withdraw(asset_id, who, amount),
+            }
+        }
+    }
+
+    impl Mutate<AccountId> for Adapter<AccountId> {
+        fn mint_into(
+            asset: Self::AssetId,
+            who: &AccountId,
+            amount: Self::Balance,
+        ) -> DispatchResult {
+            match asset {
+                CurrencyId::Native => Balances::mint_into(who, amount),
+                CurrencyId::Asset(asset_id) => Assets::mint_into(asset_id, who, amount),
+            }
+        }
+
+        fn burn_from(
+            asset: Self::AssetId,
+            who: &AccountId,
+            amount: Balance,
+        ) -> Result<Balance, DispatchError> {
+            match asset {
+                CurrencyId::Native => Balances::burn_from(who, amount),
+                CurrencyId::Asset(asset_id) => Assets::burn_from(asset_id, who, amount),
+            }
+        }
+    }
+
+    impl Transfer<AccountId> for Adapter<AccountId>
+    where
+        Assets: Transfer<AccountId>,
+    {
+        fn transfer(
+            asset: Self::AssetId,
+            source: &AccountId,
+            dest: &AccountId,
+            amount: Self::Balance,
+            keep_alive: bool,
+        ) -> Result<Balance, DispatchError> {
+            match asset {
+                CurrencyId::Native => <Balances as FungibleTransfer<AccountId>>::transfer(
+                    source, dest, amount, keep_alive,
+                ),
+                CurrencyId::Asset(asset_id) => <Assets as Transfer<AccountId>>::transfer(
+                    asset_id, source, dest, amount, keep_alive,
+                ),
+            }
+        }
+    }
 }

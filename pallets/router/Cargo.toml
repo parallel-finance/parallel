@@ -5,29 +5,28 @@ name    = 'pallet-router'
 version = '3.0.0'
 
 [dependencies]
+frame-benchmarking = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false, optional = true }
 frame-support      = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
 frame-system       = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
-orml-traits        = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 parity-scale-codec = { version = '2.0', default-features = false, features = ['derive'] }
 primitives         = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 sp-runtime         = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
 
 [dev-dependencies]
+pallet-assets   = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
 pallet-amm      = { path = "../amm", default-features = false }
 pallet-balances = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
-orml-currencies = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-tokens     = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 sp-core         = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
 sp-io           = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
 
 [features]
 default = ['std']
+runtime-benchmarks = ['frame-benchmarking']
 std = [
     'frame-support/std',
     'frame-system/std',
-    'orml-tokens/std',
-    'orml-traits/std',
     'parity-scale-codec/std',
+    'pallet-balances/std',
     'primitives/std',
     'sp-runtime/std',
 ]

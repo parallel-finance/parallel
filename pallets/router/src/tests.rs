@@ -18,11 +18,10 @@ use super::*;
 use core::convert::TryFrom;
 use frame_support::{assert_noop, assert_ok};
 use mock::*;
-use orml_traits::MultiCurrency;
 
 #[test]
 fn too_many_or_too_less_routes_should_not_work() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         let routes_11 = Route::<Runtime>::try_from(
             core::iter::repeat((DOT, XDOT))
                 .take(MaxLengthRoute::get() as usize + 1)
@@ -40,7 +39,7 @@ fn too_many_or_too_less_routes_should_not_work() {
 
 #[test]
 fn duplicated_routes_should_not_work() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         let dup_routes = Route::<Runtime>::try_from(vec![(DOT, XDOT), (DOT, XDOT)])
             .expect("Failed to create route list.");
         assert_noop!(
@@ -52,7 +51,7 @@ fn duplicated_routes_should_not_work() {
 
 #[test]
 fn too_low_balance_should_not_work() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         let dup_routes =
             Route::<Runtime>::try_from(vec![(DOT, XDOT)]).expect("Failed to create route list.");
         assert_noop!(
@@ -64,7 +63,7 @@ fn too_low_balance_should_not_work() {
 
 #[test]
 fn too_small_expiry_should_not_work() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         let routes =
             Route::<Runtime>::try_from(vec![(DOT, XDOT)]).expect("Failed to create route list.");
         let current_block_num = 4;
@@ -79,13 +78,14 @@ fn too_small_expiry_should_not_work() {
 
 #[test]
 fn trade_should_work() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // create pool and add liquidity
         assert_ok!(DefaultAMM::add_liquidity(
             Origin::signed(DAVE),
             (DOT, XDOT),
             (100_000_000, 100_000_000),
             (99_999, 99_999),
+            10
         ));
 
         // check that pool was funded correctly
@@ -110,7 +110,7 @@ fn trade_should_work() {
         ));
 
         // Check Alice should get 994
-        assert_eq!(Currencies::free_balance(XDOT, &ALICE), 994);
+        assert_eq!(Assets::balance(tokens::XDOT, &ALICE), 10_000 + 994);
 
         // pools values should be updated - we should have less XDOT
         assert_eq!(
@@ -128,13 +128,14 @@ fn trade_should_work() {
 
 #[test]
 fn trade_should_work_more_than_one_route() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // create pool and add liquidity
         assert_ok!(DefaultAMM::add_liquidity(
             Origin::signed(DAVE),
             (DOT, XDOT),
             (100_000_000, 100_000_000),
             (99_999, 99_999),
+            10
         ));
 
         // create pool and add liquidity
@@ -143,6 +144,7 @@ fn trade_should_work_more_than_one_route() {
             (XDOT, KSM),
             (100_000_000, 100_000_000),
             (99_999, 99_999),
+            11
         ));
 
         // create pool and add liquidity
@@ -151,6 +153,7 @@ fn trade_should_work_more_than_one_route() {
             (USDT, KSM),
             (100_000_000, 100_000_000),
             (99_999, 99_999),
+            12
         ));
 
         // CHECK POOLS
@@ -199,16 +202,16 @@ fn trade_should_work_more_than_one_route() {
 
         // CHECK TRADER
         // Alice should have no XDOT (it was only a temp transfer)
-        assert_eq!(Currencies::free_balance(XDOT, &ALICE), 0);
+        assert_eq!(Assets::balance(tokens::XDOT, &ALICE), 10_000);
 
         // Alice should have no KSM (it was only a temp transfer)
-        assert_eq!(Currencies::free_balance(KSM, &ALICE), 0);
+        assert_eq!(Assets::balance(tokens::KSM, &ALICE), 10_000);
 
         // Alice should now have some USDT!
-        assert_eq!(Currencies::free_balance(USDT, &ALICE), 986);
+        assert_eq!(Assets::balance(tokens::USDT, &ALICE), 986);
 
         // Alice should now have less DOT
-        assert_eq!(Currencies::free_balance(DOT, &ALICE), 9000);
+        assert_eq!(Assets::balance(tokens::DOT, &ALICE), 9000);
 
         // CHECK POOLS
         // pools should have less XDOT by 994
