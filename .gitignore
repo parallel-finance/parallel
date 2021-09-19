@@ -52,6 +52,7 @@ snapshot.bin
 **/.yarn/*
 **/.pnp.*
 **/node_modules/
+**/yarn-error.log
 !**/.yarn/releases
 !**/.yarn/plugins
 !**/.yarn/sdks
