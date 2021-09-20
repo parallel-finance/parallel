@@ -18,8 +18,9 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-pub use crate::pallet::*;
+pub use pallet::*;
 
+mod benchmarking;
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
@@ -76,7 +77,6 @@ pub mod pallet {
     }
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(_);
 
     #[pallet::error]
@@ -93,6 +93,8 @@ pub mod pallet {
         ExceedMaxLengthRoute,
         /// Input duplicated route
         DuplicatedRoute,
+        /// We received less coins than the minimum amount specified
+        UnexpectedSlippage,
     }
 
     #[pallet::event]
@@ -157,22 +159,22 @@ pub mod pallet {
                 Error::<T>::InsufficientBalance
             );
 
+            let original_amount_in = amount_in;
             let mut amount_out: Balance = Zero::zero();
             for sub_route in route.iter() {
                 let (from_currency_id, to_currency_id) = sub_route;
-
-                amount_out = T::AMM::trade(
-                    &trader,
-                    (*from_currency_id, *to_currency_id),
-                    amount_in,
-                    min_amount_out,
-                )?;
-
+                amount_out =
+                    T::AMM::trade(&trader, (*from_currency_id, *to_currency_id), amount_in, 1)?;
                 amount_in = amount_out;
             }
 
+            ensure!(amount_out >= min_amount_out, Error::<T>::UnexpectedSlippage);
+
             Self::deposit_event(Event::TradedSuccessfully(
-                trader, amount_in, route, amount_out,
+                trader,
+                original_amount_in,
+                route,
+                amount_out,
             ));
 
             Ok(().into())

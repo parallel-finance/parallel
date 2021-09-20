@@ -127,6 +127,39 @@ fn trade_should_work() {
 }
 
 #[test]
+fn trade_should_not_work_if_amount_less_than_min_amount_out() {
+    new_test_ext().execute_with(|| {
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::add_liquidity(
+            Origin::signed(DAVE),
+            (DOT, XDOT),
+            (100_000_000, 100_000_000),
+            (99_999, 99_999),
+            10
+        ));
+
+        // check that pool was funded correctly
+        assert_eq!(
+            DefaultAMM::pools(XDOT, DOT).unwrap().base_amount,
+            100_000_000
+        ); // XDOT
+        assert_eq!(
+            DefaultAMM::pools(XDOT, DOT).unwrap().quote_amount,
+            100_000_000
+        ); // DOT
+
+        // calculate amount out
+        let min_amount_out = 995;
+        let routes =
+            Route::<Runtime>::try_from(vec![(DOT, XDOT)]).expect("Failed to create route list.");
+        assert_noop!(
+            AMMRoute::trade(Origin::signed(ALICE), routes, 1_000, min_amount_out, 1),
+            Error::<Runtime>::UnexpectedSlippage
+        );
+    })
+}
+
+#[test]
 fn trade_should_work_more_than_one_route() {
     new_test_ext().execute_with(|| {
         // create pool and add liquidity

@@ -94,6 +94,7 @@ pallet-loans                 = { path = '../../pallets/loans', default-features 
 pallet-loans-rpc-runtime-api = { path = '../../pallets/loans/rpc/runtime-api', default-features = false }
 pallet-nominee-election      = { path = '../../pallets/nominee-election', default-features = false }
 pallet-prices                = { path = '../../pallets/prices', default-features = false }
+pallet-router                = { path = '../../pallets/router', default-features = false }
 primitives                   = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 
 [build-dependencies.substrate-wasm-builder]
@@ -120,6 +121,7 @@ runtime-benchmarks = [
   'xcm-builder/runtime-benchmarks',
   'pallet-multisig/runtime-benchmarks',
   'pallet-membership/runtime-benchmarks',
+  'pallet-router/runtime-benchmarks',
 ]
 std                = [
   'codec/std',
@@ -188,6 +190,7 @@ std                = [
   'orml-xcm/std',
   'orml-vesting/std',
   'pallet-amm/std',
+  'pallet-router/std',
   'frame-try-runtime/std',
 ]
 try-runtime        = [
