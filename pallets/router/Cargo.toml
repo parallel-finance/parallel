@@ -16,20 +16,19 @@ primitives         = { package = 'parallel-primitives', path = '../../primitives
 sp-runtime         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
 
 [dev-dependencies]
-pallet-assets   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
-pallet-amm      = { path = "../amm", default-features = false }
-pallet-balances = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
-sp-core         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
-sp-io           = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
+pallet-amm      = { path = "../amm" }
+pallet-assets   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
+pallet-balances = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
+sp-core         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
+sp-io           = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
 
 [features]
-default = ['std']
+default            = ['std']
 runtime-benchmarks = ['frame-benchmarking']
 std = [
     'frame-support/std',
     'frame-system/std',
     'parity-scale-codec/std',
-    'pallet-balances/std',
     'primitives/std',
     'sp-runtime/std',
 ]
