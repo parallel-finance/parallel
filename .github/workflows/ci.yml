@@ -74,6 +74,7 @@ jobs:
       - name: Check Build
         run: |
           make check
+          make check-wasm
 
       - name: Check Clippy Warnings
         run: |

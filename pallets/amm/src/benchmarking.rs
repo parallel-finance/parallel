@@ -10,6 +10,7 @@ use frame_benchmarking::{
 };
 use frame_support::assert_ok;
 use frame_system::{self, RawOrigin as SystemOrigin};
+use primitives::tokens;
 use primitives::tokens::*;
 use sp_std::prelude::*;
 
@@ -22,8 +23,28 @@ fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::
 }
 
 fn initial_set_up<T: Config<I>, I: 'static>(caller: T::AccountId) {
-    T::AMMCurrency::mint_into(BASE_ASSET, &caller, INITIAL_AMOUNT.into()).unwrap();
-    T::AMMCurrency::mint_into(QUOTE_ASSET, &caller, INITIAL_AMOUNT.into()).unwrap();
+    let account_id = T::Lookup::unlookup(caller.clone());
+
+    pallet_assets::Pallet::<T>::force_create(
+        SystemOrigin::Root.into(),
+        tokens::XDOT,
+        account_id.clone(),
+        true,
+        1,
+    )
+    .ok();
+
+    pallet_assets::Pallet::<T>::force_create(
+        SystemOrigin::Root.into(),
+        tokens::DOT,
+        account_id.clone(),
+        true,
+        1,
+    )
+    .ok();
+
+    T::AMMCurrency::mint_into(BASE_ASSET, &caller, INITIAL_AMOUNT.into()).ok();
+    T::AMMCurrency::mint_into(QUOTE_ASSET, &caller, INITIAL_AMOUNT.into()).ok();
 }
 
 benchmarks_instance_pallet! {
