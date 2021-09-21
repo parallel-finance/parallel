@@ -1,6 +1,5 @@
 import { options } from '@parallel-finance/api';
 import { ApiPromise, Keyring, WsProvider } from '@polkadot/api';
-import { BN } from 'bn.js';
 import config from './config';
 
 function sleep(ms: number) {

@@ -1,5 +1,3 @@
-import BN from 'bn.js';
-
 const config = {
   liquidAsset: 1000,
   stakingAsset: 100,
@@ -13,12 +11,12 @@ const config = {
         closeFactor: 50e4,
         collateralFactor: 50e4,
         reserveFactor: 15e4,
-        liquidateIncentive: new BN('1100000000000000000'),
+        liquidateIncentive: '1100000000000000000',
         rateModel: {
           jumpModel: {
-            baseRate: new BN('20000000000000000'),
-            jumpRate: new BN('100000000000000000'),
-            fullRate: new BN('320000000000000000'),
+            baseRate: '20000000000000000',
+            jumpRate: '100000000000000000',
+            fullRate: '320000000000000000',
             jumpUtilization: 8e5
           }
         },
@@ -34,12 +32,12 @@ const config = {
         closeFactor: 50e4,
         collateralFactor: 50e4,
         reserveFactor: 15e4,
-        liquidateIncentive: new BN('1100000000000000000'),
+        liquidateIncentive: '1100000000000000000',
         rateModel: {
           jumpModel: {
-            baseRate: new BN('20000000000000000'),
-            jumpRate: new BN('100000000000000000'),
-            fullRate: new BN('320000000000000000'),
+            baseRate: '20000000000000000',
+            jumpRate: '100000000000000000',
+            fullRate: '320000000000000000',
             jumpUtilization: 8e5
           }
         },
@@ -55,12 +53,12 @@ const config = {
         closeFactor: 50e4,
         collateralFactor: 50e4,
         reserveFactor: 15e4,
-        liquidateIncentive: new BN('1100000000000000000'),
+        liquidateIncentive: '1100000000000000000',
         rateModel: {
           jumpModel: {
-            baseRate: new BN('20000000000000000'),
-            jumpRate: new BN('100000000000000000'),
-            fullRate: new BN('320000000000000000'),
+            baseRate: '20000000000000000',
+            jumpRate: '100000000000000000',
+            fullRate: '320000000000000000',
             jumpUtilization: 8e5
           }
         },
