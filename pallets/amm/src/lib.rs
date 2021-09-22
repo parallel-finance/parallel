@@ -41,7 +41,7 @@ use frame_support::{
     },
     transactional, Blake2_128Concat, PalletId, Twox64Concat,
 };
-use frame_system::{ensure_signed, pallet_prelude::OriginFor};
+use frame_system::{ensure_signed, pallet_prelude::OriginFor, RawOrigin};
 use pool_structs::PoolLiquidityAmount;
 use primitives::{currency::CurrencyId, Balance, Rate};
 use sp_runtime::{
@@ -54,7 +54,7 @@ pub use weights::WeightInfo;
 pub mod pallet {
     use super::*;
     use frame_support::traits::tokens::fungibles;
-    use frame_system::{ensure_root, RawOrigin};
+    use frame_system::ensure_root;
     use primitives::AssetId;
 
     #[pallet::config]
@@ -263,75 +263,27 @@ pub mod pallet {
                             },
                         )?;
 
-                        T::AMMCurrency::mint_into(currency_asset, &who, ownership)?;
-                        T::AMMCurrency::transfer(
-                            base_asset,
-                            &who,
-                            &Self::account_id(),
-                            base_amount,
-                            true,
-                        )?;
-                        T::AMMCurrency::transfer(
-                            quote_asset,
-                            &who,
-                            &Self::account_id(),
-                            quote_amount,
-                            true,
-                        )?;
-
-                        Self::deposit_event(Event::<T, I>::LiquidityAdded(
+                        Self::mint_transfer_liquidity(
                             who,
+                            ownership,
+                            currency_asset,
                             base_asset,
                             quote_asset,
-                        ));
+                            base_amount,
+                            quote_amount,
+                        )?;
                         Ok(Some(T::AMMWeightInfo::add_liquidity_non_existing_pool()).into())
                     } else {
-                        ensure!(
-                            T::AllowPermissionlessPoolCreation::get(),
-                            Error::<T, I>::PoolCreationDisabled
-                        );
-
-                        let ownership = base_amount.saturating_mul(quote_amount).integer_sqrt();
-                        let amm_pool = PoolLiquidityAmount {
-                            base_amount,
-                            quote_amount,
-                            pool_assets: currency_asset,
-                        };
-
-                        *pool_liquidity_amount = Some(amm_pool);
-                        LiquidityProviders::<T, I>::insert(
-                            (&who, &base_asset, &quote_asset),
-                            amm_pool,
-                        );
-
-                        pallet_assets::Pallet::<T>::force_create(
-                            RawOrigin::Root.into(),
+                        Self::add_new_liquidity(
                             asset_id,
-                            T::Lookup::unlookup(Self::account_id()),
-                            true,
-                            1,
-                        )?;
-                        T::AMMCurrency::mint_into(currency_asset, &who, ownership)?;
-                        T::AMMCurrency::transfer(
-                            base_asset,
-                            &who,
-                            &Self::account_id(),
-                            base_amount,
-                            false,
-                        )?;
-                        T::AMMCurrency::transfer(
-                            quote_asset,
-                            &who,
-                            &Self::account_id(),
-                            quote_amount,
-                            false,
-                        )?;
-
-                        Self::deposit_event(Event::<T, I>::LiquidityAdded(
                             who,
                             base_asset,
                             quote_asset,
-                        ));
+                            base_amount,
+                            quote_amount,
+                            currency_asset,
+                            pool_liquidity_amount,
+                        )?;
 
                         Ok(Some(T::AMMWeightInfo::add_liquidity_existing_pool()).into())
                     }
@@ -469,39 +421,23 @@ pub mod pallet {
                 pool_assets: currency_asset,
             };
             Pools::<T, I>::insert(&base_asset, &quote_asset, amm_pool);
-            LiquidityProviders::<T, I>::insert(
-                (&lptoken_receiver, &base_asset, &quote_asset),
-                amm_pool,
-            );
-
-            pallet_assets::Pallet::<T>::force_create(
-                RawOrigin::Root.into(),
+            Self::insert_into_liquidity_providers(
+                &lptoken_receiver,
                 asset_id,
-                T::Lookup::unlookup(Self::account_id()),
-                true,
-                1,
-            )?;
-            T::AMMCurrency::mint_into(currency_asset, &lptoken_receiver, ownership)?;
-            T::AMMCurrency::transfer(
-                base_asset,
-                &lptoken_receiver,
-                &Self::account_id(),
-                base_amount,
-                false,
-            )?;
-            T::AMMCurrency::transfer(
-                quote_asset,
-                &lptoken_receiver,
-                &Self::account_id(),
-                quote_amount,
-                false,
+                &base_asset,
+                &quote_asset,
+                amm_pool,
             )?;
 
-            Self::deposit_event(Event::<T, I>::LiquidityAdded(
-                lptoken_receiver,
+            Self::mint_transfer_liquidity(
+                lptoken_receiver.clone(),
+                ownership,
+                currency_asset,
                 base_asset,
                 quote_asset,
-            ));
+                base_amount,
+                quote_amount,
+            )?;
             Ok(().into())
         }
     }
@@ -527,6 +463,84 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         (amount.saturating_mul(quote_pool))
             .checked_div(base_pool)
             .expect("cannot overflow with positive divisor; qed")
+    }
+
+    fn mint_transfer_liquidity(
+        who: T::AccountId,
+        ownership: u128,
+        currency_asset: CurrencyId,
+        base_asset: CurrencyId,
+        quote_asset: CurrencyId,
+        base_amount: Balance,
+        quote_amount: Balance,
+    ) -> DispatchResult {
+        T::AMMCurrency::mint_into(currency_asset, &who, ownership)?;
+        T::AMMCurrency::transfer(base_asset, &who, &Self::account_id(), base_amount, true)?;
+        T::AMMCurrency::transfer(quote_asset, &who, &Self::account_id(), quote_amount, true)?;
+
+        Self::deposit_event(Event::<T, I>::LiquidityAdded(who, base_asset, quote_asset));
+
+        Ok(())
+    }
+
+    fn insert_into_liquidity_providers(
+        lptoken_receiver: &T::AccountId,
+        asset_id: T::AssetId,
+        base_asset: &CurrencyId,
+        quote_asset: &CurrencyId,
+        amm_pool: PoolLiquidityAmount,
+    ) -> DispatchResult {
+        LiquidityProviders::<T, I>::insert(
+            (&lptoken_receiver, &base_asset, &quote_asset),
+            amm_pool,
+        );
+
+        pallet_assets::Pallet::<T>::force_create(
+            RawOrigin::Root.into(),
+            asset_id,
+            T::Lookup::unlookup(Self::account_id()),
+            true,
+            1,
+        )?;
+
+        Ok(())
+    }
+
+    fn add_new_liquidity(
+        asset_id: T::AssetId,
+        who: T::AccountId,
+        base_asset: CurrencyId,
+        quote_asset: CurrencyId,
+        base_amount: u128,
+        quote_amount: u128,
+        currency_asset: CurrencyId,
+        pool_liquidity_amount: &mut Option<PoolLiquidityAmount>,
+    ) -> DispatchResult {
+        ensure!(
+            T::AllowPermissionlessPoolCreation::get(),
+            Error::<T, I>::PoolCreationDisabled
+        );
+
+        let ownership = base_amount.saturating_mul(quote_amount).integer_sqrt();
+        let amm_pool = PoolLiquidityAmount {
+            base_amount,
+            quote_amount,
+            pool_assets: currency_asset,
+        };
+
+        *pool_liquidity_amount = Some(amm_pool);
+        Self::insert_into_liquidity_providers(&who, asset_id, &base_asset, &quote_asset, amm_pool)?;
+        Self::mint_transfer_liquidity(
+            who,
+            ownership,
+            currency_asset,
+            base_asset,
+            quote_asset,
+            base_amount,
+            quote_amount,
+        )?;
+
+        Ok(())
     }
 }
 
