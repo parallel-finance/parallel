@@ -1250,6 +1250,19 @@ impl pallet_amm::Config for Runtime {
     type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
 }
 
+parameter_types! {
+    pub const MaxLengthRoute: u8 = 10;
+    pub const RouterPalletId: PalletId = PalletId(*b"ammroute");
+}
+
+impl pallet_router::Config for Runtime {
+    type Event = Event;
+    type RouterPalletId = RouterPalletId;
+    type AMM = AMM;
+    type MaxLengthRoute = MaxLengthRoute;
+    type AMMCurrency = Adapter<AccountId>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -1313,6 +1326,7 @@ construct_runtime!(
 
         // AMM
         AMM: pallet_amm::{Pallet, Call, Storage, Event<T>} = 80,
+        AMMRoute: pallet_router::{Pallet, Call, Event<T>} = 81,
     }
 );
 
@@ -1509,6 +1523,7 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
             list_benchmark!(list, extra, pallet_timestamp, Timestamp);
             list_benchmark!(list, extra, pallet_amm, AMM);
+            list_benchmark!(list, extra, pallet_router, AMMRoute);
 
             let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1550,6 +1565,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_multisig, Multisig);
             add_benchmark!(params, batches, pallet_membership, TechnicalCommitteeMembership);
             add_benchmark!(params, batches, pallet_amm, AMM);
+            add_benchmark!(params, batches, pallet_router, AMMRoute);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)
