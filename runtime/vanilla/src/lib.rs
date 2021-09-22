@@ -27,12 +27,14 @@ use cumulus_primitives_core::ParaId;
 use frame_support::traits::fungible::{
     Inspect as FungibleInspect, Mutate as FungibleMutate, Transfer as FungibleTransfer,
 };
-use frame_support::traits::fungibles::{Inspect, Mutate, Transfer};
-use frame_support::traits::tokens::{DepositConsequence, WithdrawConsequence};
 use frame_support::{
     dispatch::Weight,
     log,
-    traits::{Contains, Everything, IsInVec},
+    traits::{
+        fungibles::{Inspect, Mutate, Transfer},
+        tokens::{DepositConsequence, WithdrawConsequence},
+        Contains, Everything, IsInVec,
+    },
     PalletId,
 };
 use frame_system::{
@@ -208,6 +210,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::Multisig(_)  |
             Call::Utility(_) |
             Call::Balances(_) |
+            Call::Assets(pallet_assets::Call::mint { .. }) |
             // Governance
             Call::Sudo(_) |
             Call::Democracy(_) |

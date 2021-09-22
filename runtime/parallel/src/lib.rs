@@ -23,14 +23,16 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 mod weights;
 
 use codec::Encode;
-use frame_support::traits::fungible::{
-    Inspect as FungibleInspect, Mutate as FungibleMutate, Transfer as FungibleTransfer,
-};
-use frame_support::traits::fungibles::{Inspect, Mutate, Transfer};
-
 use frame_support::{
     dispatch::Weight,
-    traits::{Contains, Everything, IsInVec},
+    traits::{
+        fungible::{
+            Inspect as FungibleInspect, Mutate as FungibleMutate, Transfer as FungibleTransfer,
+        },
+        fungibles::{Inspect, Mutate, Transfer},
+        tokens::{DepositConsequence, WithdrawConsequence},
+        Contains, Everything, IsInVec,
+    },
     PalletId,
 };
 
@@ -70,7 +72,6 @@ use primitives::{
     tokens::{DOT, XDOT},
 };
 
-use frame_support::traits::tokens::{DepositConsequence, WithdrawConsequence};
 use hex_literal::hex;
 use xcm::v0::{Junction, Junction::*, MultiAsset, MultiLocation, MultiLocation::*, NetworkId};
 use xcm_builder::{
@@ -211,6 +212,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::Multisig(_)  |
             Call::Utility(_) |
             Call::Balances(_) |
+            Call::Assets(pallet_assets::Call::mint { .. }) |
             // Governance
             Call::Sudo(_) |
             Call::Democracy(_) |
