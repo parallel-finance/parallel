@@ -21,7 +21,8 @@ const config = {
           }
         },
         state: 'Pending'
-      }
+      },
+      balances: []
     },
     {
       name: 'Parallel Kusama',
@@ -42,7 +43,8 @@ const config = {
           }
         },
         state: 'Pending'
-      }
+      },
+      balances: []
     },
     {
       name: 'Tether Dollar',
@@ -63,9 +65,10 @@ const config = {
           }
         },
         state: 'Pending'
-      }
+      },
+      balances: [['5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf', '100000000000000000000']]
     }
   ]
-};
+}
 
-export default config;
+export default config
