@@ -212,6 +212,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::Multisig(_)  |
             Call::Utility(_) |
             Call::Balances(_) |
+            Call::Assets(pallet_assets::Call::mint { .. }) |
             // Governance
             Call::Sudo(_) |
             Call::Democracy(_) |
