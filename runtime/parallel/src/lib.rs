@@ -1279,6 +1279,7 @@ impl pallet_router::Config for Runtime {
     type Event = Event;
     type RouterPalletId = RouterPalletId;
     type AMM = AMM;
+    type AMMRouterWeightInfo = pallet_router::weights::SubstrateWeight<Runtime>;
     type MaxLengthRoute = MaxLengthRoute;
     type AMMCurrency = Adapter<AccountId>;
 }

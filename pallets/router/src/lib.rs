@@ -26,8 +26,11 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+pub mod weights;
+
 #[frame_support::pallet]
 pub mod pallet {
+    use crate::weights::WeightInfo;
     use frame_support::{
         ensure,
         pallet_prelude::DispatchResultWithPostInfo,
@@ -56,7 +59,9 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config<I: 'static = ()>:
-        frame_system::Config + pallet_assets::Config<AssetId = AssetId, Balance = Balance>
+        frame_system::Config
+        + pallet_assets::Config<AssetId = AssetId, Balance = Balance>
+        + pallet_amm::Config
     {
         type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
 
@@ -66,6 +71,9 @@ pub mod pallet {
 
         /// Specify all the AMMs we are routing between
         type AMM: AMM<Self>;
+
+        /// Weight information for extrinsics in this pallet.
+        type AMMRouterWeightInfo: WeightInfo;
 
         /// How many routes we support at most
         #[pallet::constant]
@@ -120,7 +128,7 @@ pub mod pallet {
         /// - `amount_in`: the amount of trading assets
         /// - `min_amount_out`:
         /// - `expiry`:
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::AMMRouterWeightInfo::trade())]
         #[transactional]
         pub fn trade(
             origin: OriginFor<T>,
@@ -157,7 +165,7 @@ pub mod pallet {
             // Ensure the trader has enough tokens for transaction.
             let (from_currency_id, _) = route[0];
             ensure!(
-                T::AMMCurrency::balance(from_currency_id, &trader) > amount_in,
+                <T as Config<I>>::AMMCurrency::balance(from_currency_id, &trader) > amount_in,
                 Error::<T, I>::InsufficientBalance
             );
 

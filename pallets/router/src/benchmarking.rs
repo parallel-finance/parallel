@@ -5,12 +5,14 @@
 extern crate alloc;
 
 use super::*;
+#[allow(unused_imports)]
 use crate::Pallet as AMMRoute;
 use core::convert::TryFrom;
 use frame_benchmarking::{
-    benchmarks_instance_pallet, impl_benchmark_test_suite, whitelisted_caller,
+    account, benchmarks_instance_pallet, impl_benchmark_test_suite, whitelisted_caller,
 };
 use frame_support::{
+    assert_ok,
     traits::tokens::fungibles::{Inspect, Mutate},
     BoundedVec,
 };
@@ -47,20 +49,24 @@ fn initial_set_up<T: Config<I>, I: 'static>(caller: T::AccountId) {
     )
     .ok();
 
-    // frame_support::assert_ok!(pallet_amm::Pallet::<T>::add_liquidity(
-    //     SystemOrigin::Signed(caller.clone()),
-    //     (DOT, XDOT),
-    //     (100_000_000, 100_000_000),
-    //     (99_999, 99_999),
-    //     10
-    // ));
+    <T as crate::Config<I>>::AMMCurrency::mint_into(DOT, &caller, INITIAL_AMOUNT.into()).ok();
 
-    T::AMMCurrency::mint_into(DOT, &caller, INITIAL_AMOUNT.into()).ok();
-    T::AMMCurrency::mint_into(XDOT, &caller, INITIAL_AMOUNT.into()).ok();
+    let pool_creator = account("pool_creator", 1, 0);
+    <T as crate::Config<I>>::AMMCurrency::mint_into(DOT, &pool_creator, INITIAL_AMOUNT.into()).ok();
+    <T as crate::Config<I>>::AMMCurrency::mint_into(XDOT, &pool_creator, INITIAL_AMOUNT.into())
+        .ok();
+
+    assert_ok!(pallet_amm::Pallet::<T>::add_liquidity(
+        SystemOrigin::Signed(pool_creator).into(),
+        (DOT, XDOT),
+        (100_000_000, 100_000_000),
+        (99_999, 99_999),
+        10
+    ));
 }
 
 benchmarks_instance_pallet! {
-    trade_normal {
+    trade {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T, I>(caller.clone());
         let amount_in = 1_000;
@@ -71,15 +77,11 @@ benchmarks_instance_pallet! {
     }: trade(SystemOrigin::Signed(caller.clone()), routes.clone(), amount_in, min_amount_out, expiry.into())
 
     verify {
-        let amount_out = T::AMMCurrency::balance(XDOT, &caller) - INITIAL_AMOUNT;
+        let amount_out = <T as crate::Config<I>>::AMMCurrency::balance(XDOT, &caller);
 
         assert_eq!(amount_out, 994);
         assert_last_event::<T, I>(Event::TradedSuccessfully(caller, original_amount_in, routes, amount_out).into());
     }
 }
 
-impl_benchmark_test_suite!(
-    AMMRoute,
-    crate::mock::benchmark_test_ext(),
-    crate::mock::Runtime,
-);
+impl_benchmark_test_suite!(AMMRoute, crate::mock::new_test_ext(), crate::mock::Runtime,);
