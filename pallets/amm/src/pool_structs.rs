@@ -15,7 +15,7 @@
 // Groups common pool related structures
 
 use codec::{Decode, Encode};
-use primitives::{currency::CurrencyId, Balance, Rate};
+use primitives::{AssetId, Balance, Rate};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{
@@ -45,7 +45,7 @@ pub struct AmountEvaluation {
 pub struct PoolLiquidityAmount {
     pub base_amount: Balance,
     pub quote_amount: Balance,
-    pub pool_assets: CurrencyId,
+    pub pool_assets: AssetId,
 }
 
 impl Default for PoolLiquidityAmount {
@@ -53,7 +53,7 @@ impl Default for PoolLiquidityAmount {
         Self {
             base_amount: Balance::default(),
             quote_amount: Balance::default(),
-            pool_assets: CurrencyId::Asset(u32::default()),
+            pool_assets: u32::default(),
         }
     }
 }

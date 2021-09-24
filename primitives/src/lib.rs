@@ -127,7 +127,7 @@ pub trait AMM<T: frame_system::Config> {
     /// of currency that was sent back to the user.
     fn trade(
         who: &T::AccountId,
-        pair: (CurrencyId, CurrencyId),
+        pair: (AssetId, AssetId),
         amount_in: Balance,
         minimum_amount_out: Balance,
     ) -> Result<Balance, frame_support::pallet_prelude::DispatchError>;

@@ -41,15 +41,15 @@ pub mod pallet {
         ensure_signed,
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
-    use primitives::{currency::CurrencyId, Balance, AMM};
+    use primitives::{currency::CurrencyId, AssetId, Balance, AMM};
     use sp_runtime::traits::Zero;
 
     pub type Route<T> = BoundedVec<
         (
             // Base asset
-            CurrencyId,
+            AssetId,
             // Quote asset
-            CurrencyId,
+            AssetId,
         ),
         <T as Config>::MaxLengthRoute,
     >;
@@ -71,9 +71,9 @@ pub mod pallet {
 
         /// Currency type for deposit/withdraw assets to/from amm route
         /// module
-        type AMMCurrency: fungibles::Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
-            + fungibles::Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
-            + fungibles::Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
+        type AMMCurrency: fungibles::Inspect<Self::AccountId, AssetId = AssetId, Balance = Balance>
+            + fungibles::Mutate<Self::AccountId, AssetId = AssetId, Balance = Balance>
+            + fungibles::Transfer<Self::AccountId, AssetId = AssetId, Balance = Balance>;
     }
 
     #[pallet::pallet]
