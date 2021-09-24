@@ -101,6 +101,7 @@ pub use pallet_prices;
 use sp_runtime::DispatchResult;
 use time::*;
 
+use frame_support::pallet_prelude::Get;
 pub use frame_support::{
     construct_runtime, parameter_types,
     traits::{KeyOwnerProofSystem, Randomness},
@@ -1159,39 +1160,43 @@ parameter_types! {
     pub DefaultProtocolFeeReceiver: AccountId = TreasuryPalletId::get().into_account();
 }
 
-pub struct Adapter<AccountId> {
-    phantom: PhantomData<AccountId>,
-}
+pub struct Adapter<AccountId, GetNativeCurrency>(
+    PhantomData<AccountId>,
+    PhantomData<GetNativeCurrency>,
+);
 
-impl Inspect<AccountId> for Adapter<AccountId> {
-    type AssetId = CurrencyId;
+impl<AccountId, GetNativeCurrency> Inspect<AccountId> for Adapter<AccountId, GetNativeCurrency>
+where
+    GetNativeCurrency: Get<AssetId>,
+{
+    type AssetId = AssetId;
     type Balance = Balance;
 
     fn total_issuance(asset: Self::AssetId) -> Self::Balance {
         match asset {
-            CurrencyId::Native => Balances::total_issuance(),
-            CurrencyId::Asset(asset_id) => Assets::total_issuance(asset_id),
+            GetNativeCurrency::get() => Balances::total_issuance(),
+            asset_id => Assets::total_issuance(asset_id),
         }
     }
 
     fn balance(asset: Self::AssetId, who: &AccountId) -> Self::Balance {
         match asset {
-            CurrencyId::Native => Balances::balance(who),
-            CurrencyId::Asset(asset_id) => Assets::balance(asset_id, who),
+            GetNativeCurrency::get() => Balances::balance(who),
+            asset_id => Assets::balance(asset_id, who),
         }
     }
 
     fn minimum_balance(asset: Self::AssetId) -> Self::Balance {
         match asset {
-            CurrencyId::Native => Balances::minimum_balance(),
-            CurrencyId::Asset(asset_id) => Assets::minimum_balance(asset_id),
+            GetNativeCurrency::get() => Balances::minimum_balance(),
+            asset_id => Assets::minimum_balance(asset_id),
         }
     }
 
     fn reducible_balance(asset: Self::AssetId, who: &AccountId, keep_alive: bool) -> Self::Balance {
         match asset {
-            CurrencyId::Native => Balances::reducible_balance(who, keep_alive),
-            CurrencyId::Asset(asset_id) => Assets::reducible_balance(asset_id, who, keep_alive),
+            GetNativeCurrency::get() => Balances::reducible_balance(who, keep_alive),
+            asset_id => Assets::reducible_balance(asset_id, who, keep_alive),
         }
     }
 
@@ -1201,8 +1206,8 @@ impl Inspect<AccountId> for Adapter<AccountId> {
         amount: Self::Balance,
     ) -> DepositConsequence {
         match asset {
-            CurrencyId::Native => Balances::can_deposit(who, amount),
-            CurrencyId::Asset(asset_id) => Assets::can_deposit(asset_id, who, amount),
+            GetNativeCurrency::get() => Balances::can_deposit(who, amount),
+            asset_id => Assets::can_deposit(asset_id, who, amount),
         }
     }
 
@@ -1212,17 +1217,20 @@ impl Inspect<AccountId> for Adapter<AccountId> {
         amount: Self::Balance,
     ) -> WithdrawConsequence<Self::Balance> {
         match asset {
-            CurrencyId::Native => Balances::can_withdraw(who, amount),
-            CurrencyId::Asset(asset_id) => Assets::can_withdraw(asset_id, who, amount),
+            GetNativeCurrency::get() => Balances::can_withdraw(who, amount),
+            asset_id => Assets::can_withdraw(asset_id, who, amount),
         }
     }
 }
 
-impl Mutate<AccountId> for Adapter<AccountId> {
+impl<AccountId, GetNativeCurrency> Mutate<AccountId> for Adapter<AccountId, GetNativeCurrency>
+where
+    GetNativeCurrency: Get<AssetId>,
+{
     fn mint_into(asset: Self::AssetId, who: &AccountId, amount: Self::Balance) -> DispatchResult {
         match asset {
-            CurrencyId::Native => Balances::mint_into(who, amount),
-            CurrencyId::Asset(asset_id) => Assets::mint_into(asset_id, who, amount),
+            GetNativeCurrency::get() => Balances::mint_into(who, amount),
+            asset_id => Assets::mint_into(asset_id, who, amount),
         }
     }
 
@@ -1232,15 +1240,16 @@ impl Mutate<AccountId> for Adapter<AccountId> {
         amount: Balance,
     ) -> Result<Balance, DispatchError> {
         match asset {
-            CurrencyId::Native => Balances::burn_from(who, amount),
-            CurrencyId::Asset(asset_id) => Assets::burn_from(asset_id, who, amount),
+            GetNativeCurrency::get() => Balances::burn_from(who, amount),
+            asset_id => Assets::burn_from(asset_id, who, amount),
         }
     }
 }
 
-impl Transfer<AccountId> for Adapter<AccountId>
+impl<AccountId, GetNativeCurrency> Transfer<AccountId> for Adapter<AccountId, GetNativeCurrency>
 where
     Assets: Transfer<AccountId>,
+    GetNativeCurrency: Get<AssetId>,
 {
     fn transfer(
         asset: Self::AssetId,
@@ -1250,10 +1259,10 @@ where
         keep_alive: bool,
     ) -> Result<Balance, DispatchError> {
         match asset {
-            CurrencyId::Native => <Balances as FungibleTransfer<AccountId>>::transfer(
+            GetNativeCurrency::get() => <Balances as FungibleTransfer<AccountId>>::transfer(
                 source, dest, amount, keep_alive,
             ),
-            CurrencyId::Asset(asset_id) => <Assets as Transfer<AccountId>>::transfer(
+            asset_id => <Assets as Transfer<AccountId>>::transfer(
                 asset_id, source, dest, amount, keep_alive,
             ),
         }
@@ -1261,7 +1270,7 @@ where
 }
 impl pallet_amm::Config for Runtime {
     type Event = Event;
-    type AMMCurrency = Adapter<AccountId>;
+    type AMMCurrency = Adapter<AccountId, AssetId>;
     type PalletId = AMMPalletId;
     type AMMWeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
@@ -1280,7 +1289,7 @@ impl pallet_router::Config for Runtime {
     type RouterPalletId = RouterPalletId;
     type AMM = AMM;
     type MaxLengthRoute = MaxLengthRoute;
-    type AMMCurrency = Adapter<AccountId>;
+    type AMMCurrency = Adapter<AccountId, AssetId>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
