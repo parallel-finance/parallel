@@ -56,7 +56,7 @@ fn transfer_initial_balance<
         true,
         1,
     )
-    .unwrap();
+    .ok();
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
@@ -65,7 +65,7 @@ fn transfer_initial_balance<
         true,
         1,
     )
-    .unwrap();
+    .ok();
 
     T::Assets::mint_into(DOT.into(), &caller, INITIAL_AMOUNT.into()).unwrap();
     T::Assets::mint_into(KSM.into(), &caller, INITIAL_AMOUNT.into()).unwrap();
