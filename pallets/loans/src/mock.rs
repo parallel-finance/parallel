@@ -229,7 +229,7 @@ type AssetsInstance = pallet_assets::Instance1;
 impl pallet_assets::Config<AssetsInstance> for Test {
     type Event = Event;
     type Balance = Balance;
-    type AssetId = AssetId;
+    type AssetId = AssetIdentifier;
     type Currency = Balances;
     type ForceOrigin = EnsureRoot<AccountId>;
     type AssetDeposit = AssetDeposit;
