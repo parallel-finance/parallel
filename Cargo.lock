@@ -5123,6 +5123,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-adapter"
+version = "3.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "serde",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-amm"
 version = "3.0.0"
 dependencies = [

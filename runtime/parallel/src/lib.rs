@@ -1165,7 +1165,7 @@ pub struct Adapter<AccountId, GetNativeCurrency>(
     PhantomData<GetNativeCurrency>,
 );
 
-impl<AccountId, GetNativeCurrency> Inspect<AccountId> for Adapter<AccountId, GetNativeCurrency>
+impl<AccountId, GetNativeCurrency> Inpect<AccountId> for Adapter<AccountId, GetNativeCurrency>
 where
     GetNativeCurrency: Get<AssetId>,
 {
