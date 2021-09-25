@@ -87,7 +87,7 @@ subcommands:
 
 ### Docker
 
-Run Heiko Dev Network (via parachain-launch 1.0.3)
+Run Heiko Dev Network (via parachain-launch 1.0.4)
 
 ```
 make launch
