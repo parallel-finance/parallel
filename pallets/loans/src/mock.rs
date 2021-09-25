@@ -225,7 +225,8 @@ parameter_types! {
     pub const MetadataDepositPerByte: u64 = 1;
 }
 
-impl pallet_assets::Config for Test {
+type AssetsInstance = pallet_assets::Instance1;
+impl pallet_assets::Config<AssetsInstance> for Test {
     type Event = Event;
     type Balance = Balance;
     type AssetId = AssetId;
