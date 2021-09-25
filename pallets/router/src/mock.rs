@@ -146,6 +146,7 @@ impl Config for Runtime {
     type Event = Event;
     type RouterPalletId = RouterPalletId;
     type AMM = DefaultAMM;
+    type AMMRouterWeightInfo = ();
     type MaxLengthRoute = MaxLengthRoute;
     type AMMCurrency = assets_adapter::Adapter<AccountId>;
 }
@@ -195,46 +196,6 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         Assets::mint(Origin::signed(ALICE), tokens::KSM, DAVE, 1000_000_000).unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::XDOT, DAVE, 1000_000_000).unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::USDT, DAVE, 1000_000_000).unwrap();
-    });
-
-    ext
-}
-
-// Build genesis storage for benchmark.
-#[cfg(feature = "runtime-benchmarks")]
-pub fn benchmark_test_ext() -> sp_io::TestExternalities {
-    let mut t = frame_system::GenesisConfig::default()
-        .build_storage::<Runtime>()
-        .unwrap();
-    pallet_balances::GenesisConfig::<Runtime> {
-        balances: vec![(ALICE, 100_000_000), (BOB, 100_000_000)],
-    }
-    .assimilate_storage(&mut t)
-    .unwrap();
-
-    let mut ext = sp_io::TestExternalities::new(t);
-    ext.execute_with(|| {
-        Assets::force_create(Origin::root(), tokens::DOT, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), tokens::XDOT, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), tokens::KSM, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), tokens::USDT, ALICE, true, 1).unwrap();
-
-        Assets::mint(Origin::signed(ALICE), tokens::DOT, ALICE, 10_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::XDOT, ALICE, 10_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::KSM, ALICE, 10_000).unwrap();
-
-        Assets::mint(Origin::signed(ALICE), tokens::DOT, DAVE, 1000_000_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::KSM, DAVE, 1000_000_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::XDOT, DAVE, 1000_000_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::USDT, DAVE, 1000_000_000).unwrap();
-
-        frame_support::assert_ok!(DefaultAMM::add_liquidity(
-            Origin::signed(DAVE),
-            (DOT, XDOT),
-            (100_000_000, 100_000_000),
-            (99_999, 99_999),
-            10
-        ));
     });
 
     ext
