@@ -45,7 +45,6 @@ construct_runtime!(
         Loans: crate::{Pallet, Storage, Call, Config, Event<T>},
         TimestampPallet: pallet_timestamp::{Pallet, Call, Storage, Inherent},
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
-        Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
     }
 );
 
@@ -225,8 +224,7 @@ parameter_types! {
     pub const MetadataDepositPerByte: u64 = 1;
 }
 
-type AssetsInstance = pallet_assets::Instance1;
-impl pallet_assets::Config<AssetsInstance> for Test {
+impl pallet_assets::Config for Test {
     type Event = Event;
     type Balance = Balance;
     type AssetId = AssetIdentifier;

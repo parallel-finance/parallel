@@ -8,7 +8,7 @@ use crate::Pallet as Loans;
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::assert_ok;
 use frame_system::{self, RawOrigin as SystemOrigin};
-use primitives::tokens;
+use primitives::{tokens, AssetIdentifier, Balance};
 use sp_std::prelude::*;
 
 use primitives::{AssetId, Balance};
@@ -39,7 +39,9 @@ const PENDING_MARKET_MOCK: Market = {
 
 const INITIAL_AMOUNT: u32 = 500_000_000;
 
-fn transfer_initial_balance<T: Config + pallet_assets::Config<pallet_assets::Instance1>>(
+fn transfer_initial_balance<
+    T: Config + pallet_assets::Config<AssetId = AssetIdentifier, Balance = Balance>,
+>(
     caller: T::AccountId,
 ) where
     BalanceOf<T>: FixedPointOperand,
@@ -47,7 +49,7 @@ fn transfer_initial_balance<T: Config + pallet_assets::Config<pallet_assets::Ins
 {
     let account_id = T::Lookup::unlookup(caller.clone());
 
-    pallet_assets::Pallet::<T, pallet_assets::Instance1>::force_create(
+    pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
         tokens::XDOT,
         account_id.clone(),
@@ -56,7 +58,7 @@ fn transfer_initial_balance<T: Config + pallet_assets::Config<pallet_assets::Ins
     )
     .unwrap();
 
-    pallet_assets::Pallet::<T, pallet_assets::Instance1>::force_create(
+    pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
         tokens::DOT,
         account_id.clone(),
@@ -97,7 +99,7 @@ benchmarks! {
         where
             BalanceOf<T>: FixedPointOperand,
             AssetIdOf<T>: AtLeast32BitUnsigned,
-            T: pallet_assets::Config<pallet_assets::Instance1>
+            T: pallet_assets::Config<AssetId = AssetIdentifier, Balance = Balance>
     }
 
     add_market {
