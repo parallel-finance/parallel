@@ -24,8 +24,8 @@ primitives   = { package = 'parallel-primitives', path = '../../primitives', def
 
 
 [features]
-default = ['std']
-std     = [
+default     = ['std']
+std         = [
   'codec/std',
   'frame-support/std',
   'frame-system/std',

@@ -14,10 +14,11 @@
 
 use std::sync::Arc;
 
+pub use pallet_loans_rpc_runtime_api::LoansApi as LoansRuntimeApi;
+
 use codec::Codec;
 use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
 use jsonrpc_derive::rpc;
-pub use pallet_loans_rpc_runtime_api::LoansApi as LoansRuntimeApi;
 use primitives::{Liquidity, Shortfall};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
