@@ -8,7 +8,7 @@ use crate::Pallet as Loans;
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::assert_ok;
 use frame_system::{self, RawOrigin as SystemOrigin};
-use primitives::{tokens, AssetIdentifier, Balance};
+use primitives::{AssetIdentifier, Balance};
 use sp_std::prelude::*;
 
 use primitives::{AssetId, Balance};
@@ -51,7 +51,7 @@ fn transfer_initial_balance<
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        tokens::XDOT,
+        KSM,
         account_id.clone(),
         true,
         1,
@@ -60,7 +60,7 @@ fn transfer_initial_balance<
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        tokens::DOT,
+        DOT,
         account_id.clone(),
         true,
         1,
