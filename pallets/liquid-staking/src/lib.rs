@@ -38,13 +38,14 @@ mod pallet {
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         ensure,
         pallet_prelude::*,
+        parameter_types,
         traits::{
             fungibles::{Inspect, Mutate, Transfer},
             Get, IsType,
         },
         transactional,
         weights::Weight,
-        PalletId, Twox64Concat,
+        BoundedVec, PalletId, Twox64Concat,
     };
     use frame_system::{
         ensure_signed,
@@ -183,6 +184,8 @@ mod pallet {
         LiquidCurrencyNotSet,
         /// Staking currency hasn't been set
         StakingCurrencyNotSet,
+        /// UnstakeQueue is full
+        UnstakeQueueFull,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -218,13 +221,17 @@ mod pallet {
     #[pallet::getter(fn matching_pool)]
     pub type MatchingPool<T: Config> = StorageValue<_, MatchingLedger<BalanceOf<T>>, ValueQuery>;
 
+    parameter_types! {
+        pub const QueueCapacity: u16 = 1000;
+    }
+
     /// Manage which we should pay off to.
     ///
     /// Insert a new record while user can't be paid instantly in unstaking operation.
     #[pallet::storage]
     #[pallet::getter(fn unstake_queue)]
     pub type UnstakeQueue<T: Config> =
-        StorageValue<_, Vec<(T::AccountId, BalanceOf<T>)>, ValueQuery>;
+        StorageValue<_, BoundedVec<(T::AccountId, BalanceOf<T>), QueueCapacity>, ValueQuery>;
 
     /// Liquid currency asset id
     #[pallet::storage]
@@ -414,7 +421,7 @@ mod pallet {
             )
             .is_err()
             {
-                Self::push_unstake_task(&who, asset_amount);
+                Self::push_unstake_task(&who, asset_amount)?;
             }
 
             T::Assets::burn_from(
@@ -570,8 +577,13 @@ mod pallet {
 
         /// Push an unstake task into queue.
         #[inline]
-        fn push_unstake_task(who: &T::AccountId, amount: BalanceOf<T>) {
-            UnstakeQueue::<T>::mutate(|q| q.push((who.clone(), amount)))
+        fn push_unstake_task(who: &T::AccountId, amount: BalanceOf<T>) -> DispatchResult {
+            // UnstakeQueue::<T>::mutate(|q| q.push((who.clone(), amount)))
+            UnstakeQueue::<T>::try_mutate(|q| -> DispatchResult {
+                q.try_push((who.clone(), amount))
+                    .map_err(|_| Error::<T>::UnstakeQueueFull)?;
+                Ok(())
+            })
         }
 
         /// Pop an unstake task from queue.
