@@ -1150,7 +1150,7 @@ parameter_types! {
 
 impl pallet_amm::Config for Runtime {
     type Event = Event;
-    type AMMCurrency = Adapter;
+    type AMMCurrency = CurrencyAdapter;
     type PalletId = AMMPalletId;
     type AMMWeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
@@ -1170,14 +1170,14 @@ impl pallet_router::Config for Runtime {
     type AMM = AMM;
     type AMMRouterWeightInfo = pallet_router::weights::SubstrateWeight<Runtime>;
     type MaxLengthRoute = MaxLengthRoute;
-    type AMMCurrency = Adapter;
+    type AMMCurrency = CurrencyAdapter;
 }
 
 parameter_types! {
     pub const NativeCurrency: AssetId = tokens::HKO;
 }
 
-impl pallet_adapter::Config for Runtime {
+impl pallet_currency_adapter::Config for Runtime {
     type Assets = Assets;
     type Balances = Balances;
     type GetNativeCurrencyId = NativeCurrency;
@@ -1248,7 +1248,7 @@ construct_runtime!(
         // AMM
         AMM: pallet_amm::{Pallet, Call, Storage, Event<T>} = 80,
         AMMRoute: pallet_router::{Pallet, Call, Event<T>} = 81,
-        Adapter: pallet_adapter::{Pallet, Call} = 82,
+        CurrencyAdapter: pallet_currency_adapter::{Pallet, Call} = 82,
     }
 );
 

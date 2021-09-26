@@ -120,7 +120,7 @@ parameter_types! {
 
 impl pallet_amm::Config for Runtime {
     type Event = Event;
-    type AMMCurrency = Adapter;
+    type AMMCurrency = CurrencyAdapter;
     type PalletId = AMMPalletId;
     type AMMWeightInfo = ();
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
@@ -133,7 +133,7 @@ parameter_types! {
     pub const NativeCurrency: AssetId = 0;
 }
 
-impl pallet_adapter::Config for Runtime {
+impl pallet_currency_adapter::Config for Runtime {
     type Assets = Assets;
     type Balances = Balances;
     type GetNativeCurrencyId = NativeCurrency;
@@ -150,7 +150,7 @@ impl Config for Runtime {
     type AMM = DefaultAMM;
     type AMMRouterWeightInfo = ();
     type MaxLengthRoute = MaxLengthRoute;
-    type AMMCurrency = Adapter;
+    type AMMCurrency = CurrencyAdapter;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
@@ -169,7 +169,7 @@ construct_runtime!(
         DefaultAMM: pallet_amm::{Pallet, Call, Storage, Event<T>},
         // AMM Route
         AMMRoute: pallet_route::{Pallet, Call, Event<T>},
-        Adapter: pallet_adapter::{Pallet, Call},
+        CurrencyAdapter: pallet_currency_adapter::{Pallet, Call},
     }
 );
 

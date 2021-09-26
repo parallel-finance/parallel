@@ -67,7 +67,7 @@ frame_support::construct_runtime!(
         PermissionedAMM: pallet_amm::<Instance2>::{Pallet, Call, Storage, Event<T>},
         DefaultAMM: pallet_amm::{Pallet, Call, Storage, Event<T>},
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
-        Adapter: pallet_adapter::{Pallet, Call},
+        CurrencyAdapter: pallet_currency_adapter::{Pallet, Call},
     }
 );
 
@@ -153,7 +153,7 @@ parameter_types! {
 
 impl pallet_amm::Config<pallet_amm::Instance1> for Test {
     type Event = Event;
-    type AMMCurrency = Adapter;
+    type AMMCurrency = CurrencyAdapter;
     type PalletId = AMMPalletId;
     type AMMWeightInfo = ();
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
@@ -169,7 +169,7 @@ parameter_types! {
 
 impl pallet_amm::Config<pallet_amm::Instance2> for Test {
     type Event = Event;
-    type AMMCurrency = Adapter;
+    type AMMCurrency = CurrencyAdapter;
     type PalletId = PermissionedAMMPalletId;
     type AMMWeightInfo = ();
     type AllowPermissionlessPoolCreation = ForbidPermissionlessPoolCreation;
@@ -180,7 +180,7 @@ impl pallet_amm::Config<pallet_amm::Instance2> for Test {
 
 impl pallet_amm::Config for Test {
     type Event = Event;
-    type AMMCurrency = Adapter;
+    type AMMCurrency = CurrencyAdapter;
     type PalletId = AMMPalletId;
     type AMMWeightInfo = ();
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
@@ -193,7 +193,7 @@ parameter_types! {
     pub const NativeCurrency: AssetId = 0;
 }
 
-impl pallet_adapter::Config for Test {
+impl pallet_currency_adapter::Config for Test {
     type Assets = Assets;
     type Balances = Balances;
     type GetNativeCurrencyId = NativeCurrency;

@@ -5123,26 +5123,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-adapter"
-version = "3.0.0"
-dependencies = [
- "frame-support",
- "frame-system",
- "parallel-primitives",
- "parity-scale-codec",
- "sp-runtime",
-]
-
-[[package]]
 name = "pallet-amm"
 version = "3.0.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "pallet-adapter",
  "pallet-assets",
  "pallet-balances",
+ "pallet-currency-adapter",
  "parallel-primitives",
  "parity-scale-codec",
  "serde",
@@ -5393,6 +5382,17 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-currency-adapter"
+version = "3.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -5857,10 +5857,10 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "pallet-adapter",
  "pallet-amm",
  "pallet-assets",
  "pallet-balances",
+ "pallet-currency-adapter",
  "parallel-primitives",
  "parity-scale-codec",
  "sp-core",
@@ -6256,7 +6256,6 @@ dependencies = [
  "orml-xcm",
  "orml-xcm-support",
  "orml-xtokens",
- "pallet-adapter",
  "pallet-amm",
  "pallet-assets",
  "pallet-aura",
@@ -6264,6 +6263,7 @@ dependencies = [
  "pallet-balances",
  "pallet-collator-selection",
  "pallet-collective",
+ "pallet-currency-adapter",
  "pallet-democracy",
  "pallet-liquid-staking-v2",
  "pallet-liquidation",
@@ -11859,7 +11859,6 @@ dependencies = [
  "orml-xcm",
  "orml-xcm-support",
  "orml-xtokens",
- "pallet-adapter",
  "pallet-amm",
  "pallet-assets",
  "pallet-aura",
@@ -11867,6 +11866,7 @@ dependencies = [
  "pallet-balances",
  "pallet-collator-selection",
  "pallet-collective",
+ "pallet-currency-adapter",
  "pallet-democracy",
  "pallet-liquid-staking-v2",
  "pallet-liquidation",
