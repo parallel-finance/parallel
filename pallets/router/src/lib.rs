@@ -81,7 +81,7 @@ pub mod pallet {
 
         /// Currency type for deposit/withdraw assets to/from amm route
         /// module
-        type AMMCurrency: fungibles::Inspect<Self::AccountId, AssetId = AssetId, Balance = Balance>
+        type Assets: fungibles::Inspect<Self::AccountId, AssetId = AssetId, Balance = Balance>
             + fungibles::Mutate<Self::AccountId, AssetId = AssetId, Balance = Balance>
             + fungibles::Transfer<Self::AccountId, AssetId = AssetId, Balance = Balance>;
     }
@@ -165,7 +165,7 @@ pub mod pallet {
             // Ensure the trader has enough tokens for transaction.
             let (from_currency_id, _) = route[0];
             ensure!(
-                <T as Config<I>>::AMMCurrency::balance(from_currency_id, &trader) > amount_in,
+                <T as Config<I>>::Assets::balance(from_currency_id, &trader) > amount_in,
                 Error::<T, I>::InsufficientBalance
             );
 

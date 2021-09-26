@@ -153,7 +153,7 @@ parameter_types! {
 
 impl pallet_amm::Config<pallet_amm::Instance1> for Test {
     type Event = Event;
-    type AMMCurrency = CurrencyAdapter;
+    type Assets = CurrencyAdapter;
     type PalletId = AMMPalletId;
     type AMMWeightInfo = ();
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
@@ -169,7 +169,7 @@ parameter_types! {
 
 impl pallet_amm::Config<pallet_amm::Instance2> for Test {
     type Event = Event;
-    type AMMCurrency = CurrencyAdapter;
+    type Assets = CurrencyAdapter;
     type PalletId = PermissionedAMMPalletId;
     type AMMWeightInfo = ();
     type AllowPermissionlessPoolCreation = ForbidPermissionlessPoolCreation;
@@ -180,7 +180,7 @@ impl pallet_amm::Config<pallet_amm::Instance2> for Test {
 
 impl pallet_amm::Config for Test {
     type Event = Event;
-    type AMMCurrency = CurrencyAdapter;
+    type Assets = CurrencyAdapter;
     type PalletId = AMMPalletId;
     type AMMWeightInfo = ();
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;

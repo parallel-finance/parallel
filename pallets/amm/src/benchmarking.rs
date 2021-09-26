@@ -43,8 +43,8 @@ fn initial_set_up<T: Config<I>, I: 'static>(caller: T::AccountId) {
     )
     .ok();
 
-    T::AMMCurrency::mint_into(BASE_ASSET, &caller, INITIAL_AMOUNT.into()).ok();
-    T::AMMCurrency::mint_into(QUOTE_ASSET, &caller, INITIAL_AMOUNT.into()).ok();
+    T::Assets::mint_into(BASE_ASSET, &caller, INITIAL_AMOUNT.into()).ok();
+    T::Assets::mint_into(QUOTE_ASSET, &caller, INITIAL_AMOUNT.into()).ok();
 }
 
 benchmarks_instance_pallet! {

@@ -65,7 +65,7 @@ pub mod pallet {
 
         /// Currency type for deposit/withdraw assets to/from amm
         /// module
-        type AMMCurrency: fungibles::Inspect<Self::AccountId, AssetId = AssetId, Balance = Balance>
+        type Assets: fungibles::Inspect<Self::AccountId, AssetId = AssetId, Balance = Balance>
             + fungibles::Mutate<Self::AccountId, AssetId = AssetId, Balance = Balance>
             + fungibles::Transfer<Self::AccountId, AssetId = AssetId, Balance = Balance>;
 
@@ -81,12 +81,15 @@ pub mod pallet {
 
         /// Defines the fees taken out of each trade and sent back to the AMM pool,
         /// typically 0.3%.
+        #[pallet::constant]
         type LpFee: Get<Perbill>;
 
         /// How much the protocol is taking out of each trade.
+        #[pallet::constant]
         type ProtocolFee: Get<Perbill>;
 
         /// Who/where to send the protocol fees
+        #[pallet::constant]
         type ProtocolFeeReceiver: Get<Self::AccountId>;
     }
 
@@ -226,7 +229,7 @@ pub mod pallet {
                         );
 
                         let (base_amount, quote_amount) = (ideal_base_amount, ideal_quote_amount);
-                        let total_ownership = T::AMMCurrency::total_issuance(asset_id);
+                        let total_ownership = T::Assets::total_issuance(asset_id);
                         let ownership = sp_std::cmp::min(
                             (base_amount.saturating_mul(total_ownership))
                                 .checked_div(liquidity_amount.base_amount)
@@ -312,8 +315,7 @@ pub mod pallet {
                     let mut liquidity_amount = pool_liquidity_amount
                         .take()
                         .ok_or(Error::<T, I>::PoolDoesNotExist)?;
-                    let total_ownership =
-                        T::AMMCurrency::total_issuance(liquidity_amount.pool_assets);
+                    let total_ownership = T::Assets::total_issuance(liquidity_amount.pool_assets);
                     ensure!(
                         total_ownership >= ownership_to_remove,
                         Error::<T, I>::MoreLiquidity
@@ -353,19 +355,9 @@ pub mod pallet {
                             Ok(())
                         },
                     )?;
-                    T::AMMCurrency::burn_from(
-                        liquidity_amount.pool_assets,
-                        &who,
-                        ownership_to_remove,
-                    )?;
-                    T::AMMCurrency::transfer(
-                        base_asset,
-                        &Self::account_id(),
-                        &who,
-                        base_amount,
-                        false,
-                    )?;
-                    T::AMMCurrency::transfer(
+                    T::Assets::burn_from(liquidity_amount.pool_assets, &who, ownership_to_remove)?;
+                    T::Assets::transfer(base_asset, &Self::account_id(), &who, base_amount, false)?;
+                    T::Assets::transfer(
                         quote_asset,
                         &Self::account_id(),
                         &who,
@@ -469,9 +461,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         base_amount: Balance,
         quote_amount: Balance,
     ) -> DispatchResult {
-        T::AMMCurrency::mint_into(currency_asset, &who, ownership)?;
-        T::AMMCurrency::transfer(base_asset, &who, &Self::account_id(), base_amount, true)?;
-        T::AMMCurrency::transfer(quote_asset, &who, &Self::account_id(), quote_amount, true)?;
+        T::Assets::mint_into(currency_asset, &who, ownership)?;
+        T::Assets::transfer(base_asset, &who, &Self::account_id(), base_amount, true)?;
+        T::Assets::transfer(quote_asset, &who, &Self::account_id(), quote_amount, true)?;
 
         Self::deposit_event(Event::<T, I>::LiquidityAdded(who, base_asset, quote_asset));
 
@@ -636,7 +628,7 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T> for Pallet<T, I> {
                 *pool_liquidity_amount = Some(liquidity_amount);
 
                 // 6. Wire amount_in of the input token (identified by pair.0) from who to PalletId
-                T::AMMCurrency::transfer(
+                T::Assets::transfer(
                     input_token,
                     who,
                     &Self::account_id(),
@@ -645,10 +637,10 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T> for Pallet<T, I> {
                 )?;
 
                 // 7. Wire amount_out of the output token (identified by pair.1) to who from PalletId
-                T::AMMCurrency::transfer(output_token, &Self::account_id(), who, amount_out, true)?;
+                T::Assets::transfer(output_token, &Self::account_id(), who, amount_out, true)?;
 
                 // 8. Wire protocol fees as needed (input token)
-                T::AMMCurrency::transfer(
+                T::Assets::transfer(
                     input_token,
                     who,
                     &T::ProtocolFeeReceiver::get(),

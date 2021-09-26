@@ -1150,7 +1150,7 @@ parameter_types! {
 
 impl pallet_amm::Config for Runtime {
     type Event = Event;
-    type AMMCurrency = CurrencyAdapter;
+    type Assets = CurrencyAdapter;
     type PalletId = AMMPalletId;
     type AMMWeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
@@ -1170,17 +1170,17 @@ impl pallet_router::Config for Runtime {
     type AMM = AMM;
     type AMMRouterWeightInfo = pallet_router::weights::SubstrateWeight<Runtime>;
     type MaxLengthRoute = MaxLengthRoute;
-    type AMMCurrency = CurrencyAdapter;
+    type Assets = CurrencyAdapter;
 }
 
 parameter_types! {
-    pub const NativeCurrency: AssetId = tokens::HKO;
+    pub const NativeCurrencyId: AssetId = tokens::PARA;
 }
 
 impl pallet_currency_adapter::Config for Runtime {
     type Assets = Assets;
     type Balances = Balances;
-    type GetNativeCurrencyId = NativeCurrency;
+    type GetNativeCurrencyId = NativeCurrencyId;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

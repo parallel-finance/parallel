@@ -12,18 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! #  (Adapter)
+//! # Currency adapter pallet
+//!
+//! ## Overview
+//!
+//! This pallet works like a bridge between pallet-balances & pallet-assets
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use pallet::*;
 
-use frame_support::traits::fungible::{Inspect, Mutate, Transfer};
-use frame_support::traits::tokens::{DepositConsequence, WithdrawConsequence};
 use frame_support::{
     dispatch::DispatchResult,
     traits::{
-        tokens::fungibles::{Inspect as Inspects, Mutate as Mutates, Transfer as Transfers},
+        fungible::{Inspect, Mutate, Transfer},
+        tokens::{
+            fungibles::{Inspect as Inspects, Mutate as Mutates, Transfer as Transfers},
+            DepositConsequence, WithdrawConsequence,
+        },
         Get,
     },
 };

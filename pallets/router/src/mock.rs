@@ -120,7 +120,7 @@ parameter_types! {
 
 impl pallet_amm::Config for Runtime {
     type Event = Event;
-    type AMMCurrency = CurrencyAdapter;
+    type Assets = CurrencyAdapter;
     type PalletId = AMMPalletId;
     type AMMWeightInfo = ();
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
@@ -150,7 +150,7 @@ impl Config for Runtime {
     type AMM = DefaultAMM;
     type AMMRouterWeightInfo = ();
     type MaxLengthRoute = MaxLengthRoute;
-    type AMMCurrency = CurrencyAdapter;
+    type Assets = CurrencyAdapter;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
