@@ -88,7 +88,6 @@ pub type PriceDetail = (Price, Timestamp);
 
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 
-use crate::currency::CurrencyId;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]

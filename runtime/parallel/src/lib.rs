@@ -25,14 +25,7 @@ mod weights;
 use codec::Encode;
 use frame_support::{
     dispatch::Weight,
-    traits::{
-        fungible::{
-            Inspect as FungibleInspect, Mutate as FungibleMutate, Transfer as FungibleTransfer,
-        },
-        fungibles::{Inspect, Mutate, Transfer},
-        tokens::{DepositConsequence, WithdrawConsequence},
-        Contains, Everything, IsInVec,
-    },
+    traits::{fungibles::Mutate, Contains, Everything, IsInVec},
     PalletId,
 };
 
@@ -98,10 +91,8 @@ pub use pallet_loans;
 pub use pallet_multisig;
 pub use pallet_nominee_election;
 pub use pallet_prices;
-use sp_runtime::DispatchResult;
 use time::*;
 
-use frame_support::pallet_prelude::Get;
 pub use frame_support::{
     construct_runtime, parameter_types,
     traits::{KeyOwnerProofSystem, Randomness},
@@ -112,11 +103,8 @@ pub use frame_support::{
     StorageValue,
 };
 use pallet_xcm::XcmPassthrough;
-use primitives::currency::CurrencyId;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
-use sp_std::marker::PhantomData;
-
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
 /// of data like extrinsics, allowing for them to continue syncing the network through upgrades
@@ -1160,117 +1148,9 @@ parameter_types! {
     pub DefaultProtocolFeeReceiver: AccountId = TreasuryPalletId::get().into_account();
 }
 
-pub struct Adapter<AccountId, GetNativeCurrency>(
-    PhantomData<AccountId>,
-    PhantomData<GetNativeCurrency>,
-);
-
-impl<AccountId, GetNativeCurrency> Inpect<AccountId> for Adapter<AccountId, GetNativeCurrency>
-where
-    GetNativeCurrency: Get<AssetId>,
-{
-    type AssetId = AssetId;
-    type Balance = Balance;
-
-    fn total_issuance(asset: Self::AssetId) -> Self::Balance {
-        match asset {
-            GetNativeCurrency::get() => Balances::total_issuance(),
-            asset_id => Assets::total_issuance(asset_id),
-        }
-    }
-
-    fn balance(asset: Self::AssetId, who: &AccountId) -> Self::Balance {
-        match asset {
-            GetNativeCurrency::get() => Balances::balance(who),
-            asset_id => Assets::balance(asset_id, who),
-        }
-    }
-
-    fn minimum_balance(asset: Self::AssetId) -> Self::Balance {
-        match asset {
-            GetNativeCurrency::get() => Balances::minimum_balance(),
-            asset_id => Assets::minimum_balance(asset_id),
-        }
-    }
-
-    fn reducible_balance(asset: Self::AssetId, who: &AccountId, keep_alive: bool) -> Self::Balance {
-        match asset {
-            GetNativeCurrency::get() => Balances::reducible_balance(who, keep_alive),
-            asset_id => Assets::reducible_balance(asset_id, who, keep_alive),
-        }
-    }
-
-    fn can_deposit(
-        asset: Self::AssetId,
-        who: &AccountId,
-        amount: Self::Balance,
-    ) -> DepositConsequence {
-        match asset {
-            GetNativeCurrency::get() => Balances::can_deposit(who, amount),
-            asset_id => Assets::can_deposit(asset_id, who, amount),
-        }
-    }
-
-    fn can_withdraw(
-        asset: Self::AssetId,
-        who: &AccountId,
-        amount: Self::Balance,
-    ) -> WithdrawConsequence<Self::Balance> {
-        match asset {
-            GetNativeCurrency::get() => Balances::can_withdraw(who, amount),
-            asset_id => Assets::can_withdraw(asset_id, who, amount),
-        }
-    }
-}
-
-impl<AccountId, GetNativeCurrency> Mutate<AccountId> for Adapter<AccountId, GetNativeCurrency>
-where
-    GetNativeCurrency: Get<AssetId>,
-{
-    fn mint_into(asset: Self::AssetId, who: &AccountId, amount: Self::Balance) -> DispatchResult {
-        match asset {
-            GetNativeCurrency::get() => Balances::mint_into(who, amount),
-            asset_id => Assets::mint_into(asset_id, who, amount),
-        }
-    }
-
-    fn burn_from(
-        asset: Self::AssetId,
-        who: &AccountId,
-        amount: Balance,
-    ) -> Result<Balance, DispatchError> {
-        match asset {
-            GetNativeCurrency::get() => Balances::burn_from(who, amount),
-            asset_id => Assets::burn_from(asset_id, who, amount),
-        }
-    }
-}
-
-impl<AccountId, GetNativeCurrency> Transfer<AccountId> for Adapter<AccountId, GetNativeCurrency>
-where
-    Assets: Transfer<AccountId>,
-    GetNativeCurrency: Get<AssetId>,
-{
-    fn transfer(
-        asset: Self::AssetId,
-        source: &AccountId,
-        dest: &AccountId,
-        amount: Self::Balance,
-        keep_alive: bool,
-    ) -> Result<Balance, DispatchError> {
-        match asset {
-            GetNativeCurrency::get() => <Balances as FungibleTransfer<AccountId>>::transfer(
-                source, dest, amount, keep_alive,
-            ),
-            asset_id => <Assets as Transfer<AccountId>>::transfer(
-                asset_id, source, dest, amount, keep_alive,
-            ),
-        }
-    }
-}
 impl pallet_amm::Config for Runtime {
     type Event = Event;
-    type AMMCurrency = Adapter<AccountId, AssetId>;
+    type AMMCurrency = Adapter;
     type PalletId = AMMPalletId;
     type AMMWeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
@@ -1289,7 +1169,17 @@ impl pallet_router::Config for Runtime {
     type RouterPalletId = RouterPalletId;
     type AMM = AMM;
     type MaxLengthRoute = MaxLengthRoute;
-    type AMMCurrency = Adapter<AccountId, AssetId>;
+    type AMMCurrency = Adapter;
+}
+
+parameter_types! {
+    pub const NativeCurrency: AssetId = tokens::HKO;
+}
+
+impl pallet_adapter::Config for Runtime {
+    type Assets = Assets;
+    type Balances = Balances;
+    type GetNativeCurrencyId = NativeCurrency;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -1357,6 +1247,7 @@ construct_runtime!(
         // AMM
         AMM: pallet_amm::{Pallet, Call, Storage, Event<T>} = 80,
         AMMRoute: pallet_router::{Pallet, Call, Event<T>} = 81,
+        Adapter: pallet_adapter::{Pallet, Call} = 82,
     }
 );
 

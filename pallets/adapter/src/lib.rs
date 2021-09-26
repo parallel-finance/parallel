@@ -18,46 +18,36 @@
 
 pub use pallet::*;
 
-use frame_support::traits::fungible::Inspect;
+use frame_support::traits::fungible::{Inspect, Mutate, Transfer};
 use frame_support::traits::tokens::{DepositConsequence, WithdrawConsequence};
 use frame_support::{
     dispatch::DispatchResult,
-    pallet_prelude::*,
     traits::{
-        tokens::fungibles::{Inspect as Inspects, Mutate, Transfer},
-        Get, UnixTime,
+        tokens::fungibles::{Inspect as Inspects, Mutate as Mutates, Transfer as Transfers},
+        Get,
     },
-    transactional, Blake2_128Concat, PalletId, Twox64Concat,
 };
-use frame_system::{ensure_signed, pallet_prelude::OriginFor, RawOrigin};
-use primitives::{AssetId, Balance, Rate};
-use sp_runtime::{
-    traits::{AccountIdConversion, IntegerSquareRoot, StaticLookup},
-    ArithmeticError, DispatchError, Perbill,
-};
-
-type AssetIdOf<T> =
-    <<T as Config>::Assets as Inspects<<T as frame_system::Config>::AccountId>>::AssetId;
-type BalanceOf<T> =
-    <<T as Config>::Assets as Inspects<<T as frame_system::Config>::AccountId>>::Balance;
+use primitives::{AssetId, Balance};
+use sp_runtime::DispatchError;
 
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
     use frame_support::traits::tokens::fungible;
-    use frame_system::ensure_root;
     use primitives::AssetId;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        type Assets: Transfer<Self::AccountId> + Inspects<Self::AccountId> + Mutate<Self::AccountId>;
+        type Assets: Transfers<Self::AccountId, AssetId = AssetId, Balance = Balance>
+            + Inspects<Self::AccountId, AssetId = AssetId, Balance = Balance>
+            + Mutates<Self::AccountId, AssetId = AssetId, Balance = Balance>;
 
-        type Balances: fungible::Inspect<Self::AccountId>
-            + fungible::Mutate<Self::AccountId>
-            + fungible::Transfer<Self::AccountId>;
+        type Balances: fungible::Inspect<Self::AccountId, Balance = Balance>
+            + fungible::Mutate<Self::AccountId, Balance = Balance>
+            + fungible::Transfer<Self::AccountId, Balance = Balance>;
 
         #[pallet::constant]
-        type GetNativeCurrencyId: Get<AssetIdOf<Self>>;
+        type GetNativeCurrencyId: Get<AssetId>;
     }
 
     #[pallet::pallet]
@@ -68,8 +58,8 @@ pub mod pallet {
 }
 
 impl<T: Config> Inspects<T::AccountId> for Pallet<T> {
-    type AssetId = AssetIdOf<T>;
-    type Balance = BalanceOf<T>;
+    type AssetId = AssetId;
+    type Balance = Balance;
 
     fn total_issuance(asset: Self::AssetId) -> Self::Balance {
         if asset == T::GetNativeCurrencyId::get() {
@@ -80,11 +70,19 @@ impl<T: Config> Inspects<T::AccountId> for Pallet<T> {
     }
 
     fn minimum_balance(asset: Self::AssetId) -> Self::Balance {
-        todo!()
+        if asset == T::GetNativeCurrencyId::get() {
+            T::Balances::minimum_balance()
+        } else {
+            T::Assets::minimum_balance(asset)
+        }
     }
 
     fn balance(asset: Self::AssetId, who: &T::AccountId) -> Self::Balance {
-        todo!()
+        if asset == T::GetNativeCurrencyId::get() {
+            T::Balances::balance(who)
+        } else {
+            T::Assets::balance(asset, who)
+        }
     }
 
     fn reducible_balance(
@@ -92,7 +90,11 @@ impl<T: Config> Inspects<T::AccountId> for Pallet<T> {
         who: &T::AccountId,
         keep_alive: bool,
     ) -> Self::Balance {
-        todo!()
+        if asset == T::GetNativeCurrencyId::get() {
+            T::Balances::reducible_balance(who, keep_alive)
+        } else {
+            T::Assets::reducible_balance(asset, who, keep_alive)
+        }
     }
 
     fn can_deposit(
@@ -100,7 +102,11 @@ impl<T: Config> Inspects<T::AccountId> for Pallet<T> {
         who: &T::AccountId,
         amount: Self::Balance,
     ) -> DepositConsequence {
-        todo!()
+        if asset == T::GetNativeCurrencyId::get() {
+            T::Balances::can_deposit(who, amount)
+        } else {
+            T::Assets::can_deposit(asset, who, amount)
+        }
     }
 
     fn can_withdraw(
@@ -108,6 +114,52 @@ impl<T: Config> Inspects<T::AccountId> for Pallet<T> {
         who: &T::AccountId,
         amount: Self::Balance,
     ) -> WithdrawConsequence<Self::Balance> {
-        todo!()
+        if asset == T::GetNativeCurrencyId::get() {
+            T::Balances::can_withdraw(who, amount)
+        } else {
+            T::Assets::can_withdraw(asset, who, amount)
+        }
+    }
+}
+
+impl<T: Config> Mutates<T::AccountId> for Pallet<T> {
+    fn mint_into(
+        asset: Self::AssetId,
+        who: &T::AccountId,
+        amount: Self::Balance,
+    ) -> DispatchResult {
+        if asset == T::GetNativeCurrencyId::get() {
+            T::Balances::mint_into(who, amount)
+        } else {
+            T::Assets::mint_into(asset, who, amount)
+        }
+    }
+
+    fn burn_from(
+        asset: Self::AssetId,
+        who: &T::AccountId,
+        amount: Self::Balance,
+    ) -> Result<Self::Balance, DispatchError> {
+        if asset == T::GetNativeCurrencyId::get() {
+            T::Balances::burn_from(who, amount)
+        } else {
+            T::Assets::burn_from(asset, who, amount)
+        }
+    }
+}
+
+impl<T: Config> Transfers<T::AccountId> for Pallet<T> {
+    fn transfer(
+        asset: Self::AssetId,
+        source: &T::AccountId,
+        dest: &T::AccountId,
+        amount: Self::Balance,
+        keep_alive: bool,
+    ) -> Result<Balance, DispatchError> {
+        if asset == T::GetNativeCurrencyId::get() {
+            T::Balances::transfer(source, dest, amount, keep_alive)
+        } else {
+            T::Assets::transfer(asset, source, dest, amount, keep_alive)
+        }
     }
 }

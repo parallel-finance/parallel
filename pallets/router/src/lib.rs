@@ -41,7 +41,7 @@ pub mod pallet {
         ensure_signed,
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
-    use primitives::{currency::CurrencyId, AssetId, Balance, AMM};
+    use primitives::{AssetId, Balance, AMM};
     use sp_runtime::traits::Zero;
 
     pub type Route<T> = BoundedVec<

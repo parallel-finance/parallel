@@ -146,17 +146,16 @@ fn amplification_coeficient_mul(exchange_rate: Rate, n: u128) -> Option<u128> {
 #[cfg(test)]
 mod tests {
     use super::{AMMCurve, PoolLiquidityAmount, StableSwap, StandardSwap};
-    use primitives::currency::CurrencyId;
 
     const DEFAULT_DYNAMIC_POOL: PoolLiquidityAmount = PoolLiquidityAmount {
         base_amount: 40,
         quote_amount: 60,
-        pool_assets: CurrencyId::Asset(1),
+        pool_assets: 1,
     };
     const DEFAULT_STABLE_POOL: PoolLiquidityAmount = PoolLiquidityAmount {
         base_amount: 40,
         quote_amount: 60,
-        pool_assets: CurrencyId::Asset(1),
+        pool_assets: 1,
     };
 
     #[test]

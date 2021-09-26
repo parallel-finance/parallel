@@ -5130,9 +5130,7 @@ dependencies = [
  "frame-system",
  "parallel-primitives",
  "parity-scale-codec",
- "serde",
  "sp-runtime",
- "sp-std",
 ]
 
 [[package]]
@@ -5142,6 +5140,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "pallet-adapter",
  "pallet-assets",
  "pallet-balances",
  "parallel-primitives",
@@ -6255,6 +6254,7 @@ dependencies = [
  "orml-xcm",
  "orml-xcm-support",
  "orml-xtokens",
+ "pallet-adapter",
  "pallet-amm",
  "pallet-assets",
  "pallet-aura",
@@ -11857,6 +11857,7 @@ dependencies = [
  "orml-xcm",
  "orml-xcm-support",
  "orml-xtokens",
+ "pallet-adapter",
  "pallet-amm",
  "pallet-assets",
  "pallet-aura",
