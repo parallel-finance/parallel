@@ -3,7 +3,7 @@ use crate as pallet_amm;
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{parameter_types, PalletId};
 use frame_system::{self as system, EnsureRoot};
-use primitives::{tokens, AssetId, Balance};
+use primitives::{tokens, Balance, CurrencyId};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
@@ -13,9 +13,9 @@ use sp_runtime::{
     Perbill, RuntimeDebug,
 };
 
-pub const DOT: AssetId = tokens::DOT;
-pub const XDOT: AssetId = tokens::XDOT;
-pub const HKO: AssetId = tokens::HKO;
+pub const DOT: CurrencyId = tokens::DOT;
+pub const XDOT: CurrencyId = tokens::XDOT;
+pub const HKO: CurrencyId = tokens::HKO;
 
 pub const ALICE: AccountId = AccountId(1);
 pub const BOB: AccountId = AccountId(2);
@@ -190,13 +190,13 @@ impl pallet_amm::Config for Test {
 }
 
 parameter_types! {
-    pub const NativeCurrency: AssetId = 0;
+    pub const NativeCurrencyId: CurrencyId = 0;
 }
 
 impl pallet_currency_adapter::Config for Test {
     type Assets = Assets;
     type Balances = Balances;
-    type GetNativeCurrencyId = NativeCurrency;
+    type GetNativeCurrencyId = NativeCurrencyId;
 }
 
 // Build genesis storage according to the mock runtime.

@@ -15,7 +15,7 @@ use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup, One},
 };
 
-use xcm::v0::{Junction, MultiAsset, MultiLocation};
+use xcm::latest::prelude::*;
 
 use primitives::{tokens::*, Balance, Rate, Ratio};
 
@@ -23,7 +23,7 @@ type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
 type AccountId = u64;
-type AssetId = u32;
+type CurrencyId = u32;
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
@@ -84,7 +84,7 @@ parameter_types! {
 impl pallet_assets::Config for Test {
     type Event = Event;
     type Balance = Balance;
-    type AssetId = AssetId;
+    type AssetId = CurrencyId;
     type Currency = Balances;
     type ForceOrigin = EnsureRoot<AccountId>;
     type AssetDeposit = AssetDeposit;
@@ -117,12 +117,10 @@ pub type UpdateOrigin = EnsureSignedBy<BobOrigin, AccountId>;
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const BaseXcmWeight: Weight = 0;
-    pub const Agent: MultiLocation = MultiLocation::X2(
-        Junction::Parent,
-        Junction::AccountId32 {
-           network: xcm::v0::NetworkId::Any,
-           id: [0; 32]
-    });
+    pub Agent: MultiLocation = MultiLocation::new(1, Junctions::X1(Junction::AccountId32 {
+        network: xcm::v0::NetworkId::Any,
+        id: [0; 32]
+    }));
     pub const PeriodBasis: BlockNumber = 5u64;
 }
 
@@ -156,10 +154,10 @@ pub const ALICE: AccountId = 1u64;
 pub const BOB: AccountId = 2u64;
 
 pub struct MockXcmTransfer;
-impl XcmTransfer<AccountId, Balance, AssetId> for MockXcmTransfer {
+impl XcmTransfer<AccountId, Balance, CurrencyId> for MockXcmTransfer {
     fn transfer(
         _who: AccountId,
-        _currency_id: AssetId,
+        _currency_id: CurrencyId,
         _amount: Balance,
         _to: MultiLocation,
         _dest_weight: Weight,

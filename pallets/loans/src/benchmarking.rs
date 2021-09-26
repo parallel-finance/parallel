@@ -8,15 +8,15 @@ use crate::Pallet as Loans;
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::assert_ok;
 use frame_system::{self, RawOrigin as SystemOrigin};
-use primitives::{AssetIdentifier, Balance};
+use primitives::{Balance, CurrencyId};
 use sp_std::prelude::*;
 
 use primitives::{AssetId, Balance};
 
 const SEED: u32 = 0;
-const DOT: AssetId = 0;
-const KSM: AssetId = 1;
-const UNKNOWN: AssetId = 5;
+const DOT: CurrencyId = 0;
+const KSM: CurrencyId = 1;
+const UNKNOWN: CurrencyId = 5;
 
 const MARKET_MOCK: Market = Market {
     close_factor: Ratio::from_percent(50),
@@ -40,7 +40,7 @@ const PENDING_MARKET_MOCK: Market = {
 const INITIAL_AMOUNT: u32 = 500_000_000;
 
 fn transfer_initial_balance<
-    T: Config + pallet_assets::Config<AssetId = AssetIdentifier, Balance = Balance>,
+    T: Config + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>,
 >(
     caller: T::AccountId,
 ) where
@@ -100,7 +100,7 @@ benchmarks! {
         where
             BalanceOf<T>: FixedPointOperand,
             AssetIdOf<T>: AtLeast32BitUnsigned,
-            T: pallet_assets::Config<AssetId = AssetIdentifier, Balance = Balance>
+            T: pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>
     }
 
     add_market {

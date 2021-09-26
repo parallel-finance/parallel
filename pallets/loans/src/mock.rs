@@ -20,11 +20,8 @@ use frame_support::{
     PalletId,
 };
 use frame_system::EnsureRoot;
-use orml_traits::{DataProvider, DataProviderExtended};
-use primitives::{
-    AssetId, Balance, DecimalProvider, ExchangeRateProvider, LiquidStakingCurrenciesProvider,
-    Moment, Price, PriceDetail, PriceFeeder, Rate,
-};
+
+use primitives::{Balance, CurrencyId, Price, PriceDetail, PriceFeeder, Rate};
 use sp_core::H256;
 
 use sp_runtime::{testing::Header, traits::IdentityLookup};
@@ -86,11 +83,10 @@ pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CHARLIE: AccountId = 3;
 
-pub const DOT: AssetId = 0;
-pub const KSM: AssetId = 1;
-pub const USDT: AssetId = 2;
-pub const XDOT: AssetId = 3;
-pub const XKSM: AssetId = 4;
+pub const DOT: CurrencyId = 0;
+pub const KSM: CurrencyId = 1;
+pub const USDT: CurrencyId = 3;
+pub const XDOT: CurrencyId = 4;
 
 parameter_types! {
     pub const MinimumPeriod: u64 = 5;
@@ -185,7 +181,7 @@ pub struct MockPriceFeeder;
 
 impl MockPriceFeeder {
     thread_local! {
-        pub static PRICES: RefCell<HashMap<AssetId, Option<PriceDetail>>> = {
+        pub static PRICES: RefCell<HashMap<CurrencyId, Option<PriceDetail>>> = {
             RefCell::new(
                 vec![DOT, KSM, USDT, XDOT]
                     .iter()
@@ -195,7 +191,7 @@ impl MockPriceFeeder {
         };
     }
 
-    pub fn set_price(asset_id: AssetId, price: Price) {
+    pub fn set_price(asset_id: CurrencyId, price: Price) {
         Self::PRICES.with(|prices| {
             prices.borrow_mut().insert(asset_id, Some((price, 1u64)));
         });
@@ -211,7 +207,7 @@ impl MockPriceFeeder {
 }
 
 impl PriceFeeder for MockPriceFeeder {
-    fn get_price(asset_id: &AssetId) -> Option<PriceDetail> {
+    fn get_price(asset_id: &CurrencyId) -> Option<PriceDetail> {
         Self::PRICES.with(|prices| *prices.borrow().get(asset_id).unwrap())
     }
 }
@@ -227,7 +223,7 @@ parameter_types! {
 impl pallet_assets::Config for Test {
     type Event = Event;
     type Balance = Balance;
-    type AssetId = AssetIdentifier;
+    type AssetId = CurrencyId;
     type Currency = Balances;
     type ForceOrigin = EnsureRoot<AccountId>;
     type AssetDeposit = AssetDeposit;
