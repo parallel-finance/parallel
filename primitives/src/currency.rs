@@ -18,8 +18,6 @@ use sp_std::{convert::Into, marker::PhantomData, prelude::*, result};
 use xcm::latest::prelude::*;
 use xcm_executor::traits::{Convert as MoreConvert, MatchesFungible, TransactAsset};
 
-#[cfg(feature = "std")]
-
 pub struct MultiCurrencyAdapter<
     MultiCurrency,
     Match,
