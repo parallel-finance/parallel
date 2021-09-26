@@ -37,7 +37,7 @@ construct_runtime!(
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
         Loans: crate::{Pallet, Storage, Call, Config, Event<T>},
         TimestampPallet: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-        Assets: pallet_assets::<Instance1>::{Pallet, Call, Storage, Event<T>},
+        Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
     }
 );
 
@@ -155,12 +155,10 @@ parameter_types! {
     pub const MetadataDepositPerByte: u64 = 1;
 }
 
-type AssetsInstance = pallet_assets::Instance1;
-
-impl pallet_assets::Config<AssetsInstance> for Test {
+impl pallet_assets::Config for Test {
     type Event = Event;
-    type Balance = u128;
-    type AssetId = u32;
+    type Balance = Balance;
+    type AssetId = AssetId;
     type Currency = Balances;
     type ForceOrigin = EnsureRoot<AccountId>;
     type AssetDeposit = AssetDeposit;
