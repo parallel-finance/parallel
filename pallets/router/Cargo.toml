@@ -11,13 +11,14 @@ targets = ['x86_64-unknown-linux-gnu']
 frame-benchmarking = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false, optional = true }
 frame-support      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
 frame-system       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
+pallet-amm         = { path = '../amm', default-features = false }
+pallet-assets      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
 parity-scale-codec = { version = '2.0', default-features = false, features = ['derive'] }
 primitives         = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 sp-runtime         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9', default-features = false }
+sp-std             = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
 
 [dev-dependencies]
-pallet-amm      = { path = "../amm" }
-pallet-assets   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
 pallet-balances = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
 sp-core         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
 sp-io           = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
@@ -28,7 +29,10 @@ runtime-benchmarks = ['frame-benchmarking']
 std = [
     'frame-support/std',
     'frame-system/std',
+    'pallet-amm/std',
+    'pallet-assets/std',
     'parity-scale-codec/std',
     'primitives/std',
+    'sp-std/std',
     'sp-runtime/std',
 ]
