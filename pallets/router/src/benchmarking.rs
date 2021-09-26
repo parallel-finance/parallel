@@ -17,7 +17,7 @@ use frame_support::{
     BoundedVec,
 };
 use frame_system::{self, RawOrigin as SystemOrigin};
-use primitives::{AssetId, tokens};
+use primitives::{tokens, AssetId};
 use sp_runtime::traits::StaticLookup;
 
 const DOT: AssetId = tokens::DOT;
