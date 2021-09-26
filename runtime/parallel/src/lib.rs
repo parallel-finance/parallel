@@ -25,14 +25,7 @@ mod weights;
 use codec::Encode;
 use frame_support::{
     dispatch::Weight,
-    traits::{
-        fungible::{
-            Inspect as FungibleInspect, Mutate as FungibleMutate, Transfer as FungibleTransfer,
-        },
-        fungibles::{Inspect, Mutate, Transfer},
-        tokens::{DepositConsequence, WithdrawConsequence},
-        Contains, Everything, IsInVec,
-    },
+    traits::{fungibles::Mutate, Contains, Everything, IsInVec},
     PalletId,
 };
 
@@ -98,7 +91,6 @@ pub use pallet_loans;
 pub use pallet_multisig;
 pub use pallet_nominee_election;
 pub use pallet_prices;
-use sp_runtime::DispatchResult;
 use time::*;
 
 pub use frame_support::{
@@ -111,11 +103,8 @@ pub use frame_support::{
     StorageValue,
 };
 use pallet_xcm::XcmPassthrough;
-use primitives::currency::CurrencyId;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
-use sp_std::marker::PhantomData;
-
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
 /// of data like extrinsics, allowing for them to continue syncing the network through upgrades
@@ -1159,109 +1148,9 @@ parameter_types! {
     pub DefaultProtocolFeeReceiver: AccountId = TreasuryPalletId::get().into_account();
 }
 
-pub struct Adapter<AccountId> {
-    phantom: PhantomData<AccountId>,
-}
-
-impl Inspect<AccountId> for Adapter<AccountId> {
-    type AssetId = CurrencyId;
-    type Balance = Balance;
-
-    fn total_issuance(asset: Self::AssetId) -> Self::Balance {
-        match asset {
-            CurrencyId::Native => Balances::total_issuance(),
-            CurrencyId::Asset(asset_id) => Assets::total_issuance(asset_id),
-        }
-    }
-
-    fn balance(asset: Self::AssetId, who: &AccountId) -> Self::Balance {
-        match asset {
-            CurrencyId::Native => Balances::balance(who),
-            CurrencyId::Asset(asset_id) => Assets::balance(asset_id, who),
-        }
-    }
-
-    fn minimum_balance(asset: Self::AssetId) -> Self::Balance {
-        match asset {
-            CurrencyId::Native => Balances::minimum_balance(),
-            CurrencyId::Asset(asset_id) => Assets::minimum_balance(asset_id),
-        }
-    }
-
-    fn reducible_balance(asset: Self::AssetId, who: &AccountId, keep_alive: bool) -> Self::Balance {
-        match asset {
-            CurrencyId::Native => Balances::reducible_balance(who, keep_alive),
-            CurrencyId::Asset(asset_id) => Assets::reducible_balance(asset_id, who, keep_alive),
-        }
-    }
-
-    fn can_deposit(
-        asset: Self::AssetId,
-        who: &AccountId,
-        amount: Self::Balance,
-    ) -> DepositConsequence {
-        match asset {
-            CurrencyId::Native => Balances::can_deposit(who, amount),
-            CurrencyId::Asset(asset_id) => Assets::can_deposit(asset_id, who, amount),
-        }
-    }
-
-    fn can_withdraw(
-        asset: Self::AssetId,
-        who: &AccountId,
-        amount: Self::Balance,
-    ) -> WithdrawConsequence<Self::Balance> {
-        match asset {
-            CurrencyId::Native => Balances::can_withdraw(who, amount),
-            CurrencyId::Asset(asset_id) => Assets::can_withdraw(asset_id, who, amount),
-        }
-    }
-}
-
-impl Mutate<AccountId> for Adapter<AccountId> {
-    fn mint_into(asset: Self::AssetId, who: &AccountId, amount: Self::Balance) -> DispatchResult {
-        match asset {
-            CurrencyId::Native => Balances::mint_into(who, amount),
-            CurrencyId::Asset(asset_id) => Assets::mint_into(asset_id, who, amount),
-        }
-    }
-
-    fn burn_from(
-        asset: Self::AssetId,
-        who: &AccountId,
-        amount: Balance,
-    ) -> Result<Balance, DispatchError> {
-        match asset {
-            CurrencyId::Native => Balances::burn_from(who, amount),
-            CurrencyId::Asset(asset_id) => Assets::burn_from(asset_id, who, amount),
-        }
-    }
-}
-
-impl Transfer<AccountId> for Adapter<AccountId>
-where
-    Assets: Transfer<AccountId>,
-{
-    fn transfer(
-        asset: Self::AssetId,
-        source: &AccountId,
-        dest: &AccountId,
-        amount: Self::Balance,
-        keep_alive: bool,
-    ) -> Result<Balance, DispatchError> {
-        match asset {
-            CurrencyId::Native => <Balances as FungibleTransfer<AccountId>>::transfer(
-                source, dest, amount, keep_alive,
-            ),
-            CurrencyId::Asset(asset_id) => <Assets as Transfer<AccountId>>::transfer(
-                asset_id, source, dest, amount, keep_alive,
-            ),
-        }
-    }
-}
 impl pallet_amm::Config for Runtime {
     type Event = Event;
-    type AMMCurrency = Adapter<AccountId>;
+    type Assets = CurrencyAdapter;
     type PalletId = AMMPalletId;
     type AMMWeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
     type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
@@ -1281,7 +1170,17 @@ impl pallet_router::Config for Runtime {
     type AMM = AMM;
     type AMMRouterWeightInfo = pallet_router::weights::SubstrateWeight<Runtime>;
     type MaxLengthRoute = MaxLengthRoute;
-    type AMMCurrency = Adapter<AccountId>;
+    type Assets = CurrencyAdapter;
+}
+
+parameter_types! {
+    pub const NativeCurrencyId: AssetId = tokens::PARA;
+}
+
+impl pallet_currency_adapter::Config for Runtime {
+    type Assets = Assets;
+    type Balances = Balances;
+    type GetNativeCurrencyId = NativeCurrencyId;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -1349,6 +1248,7 @@ construct_runtime!(
         // AMM
         AMM: pallet_amm::{Pallet, Call, Storage, Event<T>} = 80,
         AMMRoute: pallet_router::{Pallet, Call, Event<T>} = 81,
+        CurrencyAdapter: pallet_currency_adapter::{Pallet, Call} = 82,
     }
 );
 

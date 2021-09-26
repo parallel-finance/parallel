@@ -5131,6 +5131,7 @@ dependencies = [
  "frame-system",
  "pallet-assets",
  "pallet-balances",
+ "pallet-currency-adapter",
  "parallel-primitives",
  "parity-scale-codec",
  "serde",
@@ -5381,6 +5382,17 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-currency-adapter"
+version = "3.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -5848,6 +5860,7 @@ dependencies = [
  "pallet-amm",
  "pallet-assets",
  "pallet-balances",
+ "pallet-currency-adapter",
  "parallel-primitives",
  "parity-scale-codec",
  "sp-core",
@@ -6250,6 +6263,7 @@ dependencies = [
  "pallet-balances",
  "pallet-collator-selection",
  "pallet-collective",
+ "pallet-currency-adapter",
  "pallet-democracy",
  "pallet-liquid-staking-v2",
  "pallet-liquidation",
@@ -11852,6 +11866,7 @@ dependencies = [
  "pallet-balances",
  "pallet-collator-selection",
  "pallet-collective",
+ "pallet-currency-adapter",
  "pallet-democracy",
  "pallet-liquid-staking-v2",
  "pallet-liquidation",

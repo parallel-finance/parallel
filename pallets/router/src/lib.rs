@@ -44,15 +44,15 @@ pub mod pallet {
         ensure_signed,
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
-    use primitives::{currency::CurrencyId, AssetId, Balance, AMM};
+    use primitives::{AssetId, Balance, AMM};
     use sp_runtime::traits::Zero;
 
     pub type Route<T, I> = BoundedVec<
         (
             // Base asset
-            CurrencyId,
+            AssetId,
             // Quote asset
-            CurrencyId,
+            AssetId,
         ),
         <T as Config<I>>::MaxLengthRoute,
     >;
@@ -81,9 +81,9 @@ pub mod pallet {
 
         /// Currency type for deposit/withdraw assets to/from amm route
         /// module
-        type AMMCurrency: fungibles::Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
-            + fungibles::Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
-            + fungibles::Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
+        type Assets: fungibles::Inspect<Self::AccountId, AssetId = AssetId, Balance = Balance>
+            + fungibles::Mutate<Self::AccountId, AssetId = AssetId, Balance = Balance>
+            + fungibles::Transfer<Self::AccountId, AssetId = AssetId, Balance = Balance>;
     }
 
     #[pallet::pallet]
@@ -165,7 +165,7 @@ pub mod pallet {
             // Ensure the trader has enough tokens for transaction.
             let (from_currency_id, _) = route[0];
             ensure!(
-                <T as Config<I>>::AMMCurrency::balance(from_currency_id, &trader) > amount_in,
+                <T as Config<I>>::Assets::balance(from_currency_id, &trader) > amount_in,
                 Error::<T, I>::InsufficientBalance
             );
 

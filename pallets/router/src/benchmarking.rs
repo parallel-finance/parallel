@@ -17,11 +17,11 @@ use frame_support::{
     BoundedVec,
 };
 use frame_system::{self, RawOrigin as SystemOrigin};
-use primitives::{currency::CurrencyId, tokens};
+use primitives::{tokens, AssetId};
 use sp_runtime::traits::StaticLookup;
 
-const DOT: CurrencyId = CurrencyId::Asset(tokens::DOT);
-const XDOT: CurrencyId = CurrencyId::Asset(tokens::XDOT);
+const DOT: AssetId = tokens::DOT;
+const XDOT: AssetId = tokens::XDOT;
 const INITIAL_AMOUNT: u128 = 1000_000_000_000_000;
 
 fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::Event) {
@@ -49,12 +49,11 @@ fn initial_set_up<T: Config<I>, I: 'static>(caller: T::AccountId) {
     )
     .ok();
 
-    <T as crate::Config<I>>::AMMCurrency::mint_into(DOT, &caller, INITIAL_AMOUNT.into()).ok();
+    <T as crate::Config<I>>::Assets::mint_into(DOT, &caller, INITIAL_AMOUNT.into()).ok();
 
     let pool_creator = account("pool_creator", 1, 0);
-    <T as crate::Config<I>>::AMMCurrency::mint_into(DOT, &pool_creator, INITIAL_AMOUNT.into()).ok();
-    <T as crate::Config<I>>::AMMCurrency::mint_into(XDOT, &pool_creator, INITIAL_AMOUNT.into())
-        .ok();
+    <T as crate::Config<I>>::Assets::mint_into(DOT, &pool_creator, INITIAL_AMOUNT.into()).ok();
+    <T as crate::Config<I>>::Assets::mint_into(XDOT, &pool_creator, INITIAL_AMOUNT.into()).ok();
 
     assert_ok!(pallet_amm::Pallet::<T>::add_liquidity(
         SystemOrigin::Signed(pool_creator).into(),
@@ -77,7 +76,7 @@ benchmarks_instance_pallet! {
     }: trade(SystemOrigin::Signed(caller.clone()), routes.clone(), amount_in, min_amount_out, expiry.into())
 
     verify {
-        let amount_out = <T as crate::Config<I>>::AMMCurrency::balance(XDOT, &caller);
+        let amount_out = <T as crate::Config<I>>::Assets::balance(XDOT, &caller);
 
         assert_eq!(amount_out, 994);
         assert_last_event::<T, I>(Event::TradedSuccessfully(caller, original_amount_in, routes, amount_out).into());

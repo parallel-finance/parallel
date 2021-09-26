@@ -22,6 +22,7 @@ sp-std             = { git = 'https://github.com/paritytech/substrate', branch =
 pallet-balances = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
 sp-core         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
 sp-io           = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.9' }
+pallet-currency-adapter  = { path = '../currency-adapter' }
 
 [features]
 default            = ['std']

@@ -1,0 +1,25 @@
+[package]
+authors = ['Parallel Team']
+edition = '2018'
+name    = 'pallet-currency-adapter'
+version = '3.0.0'
+
+[package.metadata.docs.rs]
+targets = ['x86_64-unknown-linux-gnu']
+
+[dependencies]
+codec         = { package = 'parity-scale-codec', version = '2.2.0', features = ['max-encoded-len'], default-features = false }
+frame-support = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
+frame-system  = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
+primitives    = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
+sp-runtime    = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
+
+[features]
+default = ['std']
+std     = [
+  'codec/std',
+  'frame-support/std',
+  'frame-system/std',
+  'primitives/std',
+  'sp-runtime/std',
+]
