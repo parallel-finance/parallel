@@ -18,6 +18,7 @@ use super::*;
 use core::convert::TryFrom;
 use frame_support::{assert_noop, assert_ok};
 use mock::*;
+use primitives::AssetId;
 
 #[test]
 fn too_many_or_too_less_routes_should_not_work() {
@@ -25,7 +26,7 @@ fn too_many_or_too_less_routes_should_not_work() {
         let routes_11 = Route::<Runtime, ()>::try_from(
             core::iter::repeat((DOT, XDOT))
                 .take(MaxLengthRoute::get() as usize + 1)
-                .collect::<Vec<(CurrencyId, CurrencyId)>>(),
+                .collect::<Vec<(AssetId, AssetId)>>(),
         );
         assert!(routes_11.is_err());
 
