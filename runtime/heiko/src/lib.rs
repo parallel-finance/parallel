@@ -1152,7 +1152,6 @@ impl orml_vesting::Config for Runtime {
     type BlockNumberProvider = RelaychainBlockNumberProvider<Runtime>;
 }
 
-
 parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
     pub const AllowPermissionlessPoolCreation: bool = true;
