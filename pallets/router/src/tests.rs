@@ -18,20 +18,27 @@ use super::*;
 use core::convert::TryFrom;
 use frame_support::{assert_noop, assert_ok};
 use mock::*;
+use primitives::AssetId;
 
 #[test]
 fn too_many_or_too_less_routes_should_not_work() {
     new_test_ext().execute_with(|| {
-        let routes_11 = Route::<Runtime>::try_from(
+        let routes_11 = Route::<Runtime, ()>::try_from(
             core::iter::repeat((DOT, XDOT))
                 .take(MaxLengthRoute::get() as usize + 1)
-                .collect::<Vec<(CurrencyId, CurrencyId)>>(),
+                .collect::<Vec<(AssetId, AssetId)>>(),
         );
         assert!(routes_11.is_err());
 
         // User cannot input empty route.
         assert_noop!(
-            AMMRoute::trade(Origin::signed(ALICE), Route::<Runtime>::default(), 1, 2, 3),
+            AMMRoute::trade(
+                Origin::signed(ALICE),
+                Route::<Runtime, ()>::default(),
+                1,
+                2,
+                3
+            ),
             Error::<Runtime>::EmptyRoute
         );
     });
@@ -40,7 +47,7 @@ fn too_many_or_too_less_routes_should_not_work() {
 #[test]
 fn duplicated_routes_should_not_work() {
     new_test_ext().execute_with(|| {
-        let dup_routes = Route::<Runtime>::try_from(vec![(DOT, XDOT), (DOT, XDOT)])
+        let dup_routes = Route::<Runtime, ()>::try_from(vec![(DOT, XDOT), (DOT, XDOT)])
             .expect("Failed to create route list.");
         assert_noop!(
             AMMRoute::trade(Origin::signed(ALICE), dup_routes, 1, 2, 3),
@@ -52,8 +59,8 @@ fn duplicated_routes_should_not_work() {
 #[test]
 fn too_low_balance_should_not_work() {
     new_test_ext().execute_with(|| {
-        let dup_routes =
-            Route::<Runtime>::try_from(vec![(DOT, XDOT)]).expect("Failed to create route list.");
+        let dup_routes = Route::<Runtime, ()>::try_from(vec![(DOT, XDOT)])
+            .expect("Failed to create route list.");
         assert_noop!(
             AMMRoute::trade(Origin::signed(ALICE), dup_routes, 0, 0, 3),
             Error::<Runtime>::ZeroBalance
@@ -64,8 +71,8 @@ fn too_low_balance_should_not_work() {
 #[test]
 fn too_small_expiry_should_not_work() {
     new_test_ext().execute_with(|| {
-        let routes =
-            Route::<Runtime>::try_from(vec![(DOT, XDOT)]).expect("Failed to create route list.");
+        let routes = Route::<Runtime, ()>::try_from(vec![(DOT, XDOT)])
+            .expect("Failed to create route list.");
         let current_block_num = 4;
         run_to_block(current_block_num);
 
@@ -99,8 +106,8 @@ fn trade_should_work() {
         ); // DOT
 
         // calculate amount out
-        let routes =
-            Route::<Runtime>::try_from(vec![(DOT, XDOT)]).expect("Failed to create route list.");
+        let routes = Route::<Runtime, ()>::try_from(vec![(DOT, XDOT)])
+            .expect("Failed to create route list.");
         assert_ok!(AMMRoute::trade(
             Origin::signed(ALICE),
             routes,
@@ -150,8 +157,8 @@ fn trade_should_not_work_if_amount_less_than_min_amount_out() {
 
         // calculate amount out
         let min_amount_out = 995;
-        let routes =
-            Route::<Runtime>::try_from(vec![(DOT, XDOT)]).expect("Failed to create route list.");
+        let routes = Route::<Runtime, ()>::try_from(vec![(DOT, XDOT)])
+            .expect("Failed to create route list.");
         assert_noop!(
             AMMRoute::trade(Origin::signed(ALICE), routes, 1_000, min_amount_out, 1),
             Error::<Runtime>::UnexpectedSlippage
@@ -223,7 +230,7 @@ fn trade_should_work_more_than_one_route() {
 
         // DO TRADE
         // calculate amount out
-        let routes = Route::<Runtime>::try_from(vec![(DOT, XDOT), (XDOT, KSM), (KSM, USDT)])
+        let routes = Route::<Runtime, ()>::try_from(vec![(DOT, XDOT), (XDOT, KSM), (KSM, USDT)])
             .expect("Failed to create route list.");
         assert_ok!(AMMRoute::trade(
             Origin::signed(ALICE),

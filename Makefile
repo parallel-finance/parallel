@@ -35,7 +35,7 @@ test:
 	SKIP_WASM_BUILD= cargo test --workspace --features runtime-benchmarks --exclude parallel --exclude parallel-runtime --exclude vanilla-runtime --exclude heiko-runtime -- --nocapture
 
 .PHONY: bench
-bench: bench-loans bench-liquid-staking bench-amm
+bench: bench-loans bench-liquid-staking bench-amm bench-amm-router
 
 .PHONY: bench-loans
 bench-loans:
@@ -48,6 +48,10 @@ bench-amm:
 .PHONY: bench-liquid-staking
 bench-liquid-staking:
 	cargo run --release --features runtime-benchmarks -- benchmark --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-liquid-staking --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/liquid-staking/src/weights.rs
+
+.PHONY: bench-amm-router
+bench-amm-router:
+	cargo run --release --features runtime-benchmarks -- benchmark --chain=$(CHAIN) --execution=wasm --wasm-execution=compiled --pallet=pallet-router --extrinsic='*' --steps=50 --repeat=20 --heap-pages=4096 --template=./.maintain/frame-weight-template.hbs --output=./pallets/router/src/weights.rs
 
 .PHONY: lint
 lint:

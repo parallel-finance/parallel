@@ -14,8 +14,8 @@ use primitives::tokens;
 use primitives::tokens::*;
 use sp_std::prelude::*;
 
-const BASE_ASSET: CurrencyId = CurrencyId::Asset(XDOT);
-const QUOTE_ASSET: CurrencyId = CurrencyId::Asset(DOT);
+const BASE_ASSET: AssetId = XDOT;
+const QUOTE_ASSET: AssetId = DOT;
 const INITIAL_AMOUNT: u128 = 1000_000_000_000_000;
 
 fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::Event) {
@@ -43,8 +43,8 @@ fn initial_set_up<T: Config<I>, I: 'static>(caller: T::AccountId) {
     )
     .ok();
 
-    T::AMMCurrency::mint_into(BASE_ASSET, &caller, INITIAL_AMOUNT.into()).ok();
-    T::AMMCurrency::mint_into(QUOTE_ASSET, &caller, INITIAL_AMOUNT.into()).ok();
+    T::Assets::mint_into(BASE_ASSET, &caller, INITIAL_AMOUNT.into()).ok();
+    T::Assets::mint_into(QUOTE_ASSET, &caller, INITIAL_AMOUNT.into()).ok();
 }
 
 benchmarks_instance_pallet! {
