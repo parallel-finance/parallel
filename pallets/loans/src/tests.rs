@@ -19,7 +19,6 @@ mod market;
 
 use super::*;
 use frame_support::{assert_noop, assert_ok};
-use pallet_assets::Instance1;
 use sp_runtime::{
     traits::{CheckedDiv, One, Saturating},
     FixedU128, Permill,
@@ -92,7 +91,7 @@ fn mint_must_return_err_when_overflows_occur() {
         // Verify token balance first
         assert_noop!(
             Loans::mint(Origin::signed(CHARLIE), DOT, OVERFLOW_DEPOSIT),
-            pallet_assets::Error::<Test, Instance1>::BalanceLow
+            pallet_assets::Error::<Test>::BalanceLow
         );
 
         // Deposit OVERFLOW_DEPOSIT DOT for CHARLIE

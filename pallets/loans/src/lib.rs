@@ -23,6 +23,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use crate::rate_model::*;
+pub use pallet::*;
+
 use frame_support::{
     log,
     pallet_prelude::*,
@@ -34,7 +36,6 @@ use frame_support::{
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
-pub use pallet::*;
 use primitives::{AssetId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall, Timestamp};
 use sp_runtime::{
     traits::{
@@ -44,6 +45,7 @@ use sp_runtime::{
     ArithmeticError, FixedPointNumber, FixedPointOperand, FixedU128, SaturatedConversion,
 };
 use sp_std::{convert::TryInto, result::Result};
+
 pub use types::{BorrowSnapshot, Deposits, EarnedSnapshot, Market, MarketState};
 pub use weights::WeightInfo;
 
@@ -754,7 +756,7 @@ pub mod pallet {
             TotalReserves::<T>::insert(asset_id, total_reserves_new);
 
             Self::deposit_event(Event::<T>::ReservesAdded(
-                Self::account_id(),
+                payer,
                 asset_id,
                 add_amount,
                 total_reserves_new,
