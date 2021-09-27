@@ -14,6 +14,23 @@ relaychain:
     - name: bob
     - name: charlie
 
+statemine:
+  image: parallelfinance/polkadot:v0.9.9-1
+  chain: statemine-local
+  runtimeGenesisConfig:
+    configuration:
+      config:
+        validation_upgrade_frequency: 1
+        validation_upgrade_delay: 1
+  flags:
+    - --rpc-methods=unsafe
+    - --no-beefy
+  nodes:
+    - name: alice
+    - name: bob
+    - name: charlie
+
+
 parachains:
   - image: parallelfinance/parallel:latest
     chain:
