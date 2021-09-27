@@ -39,7 +39,7 @@ const PENDING_MARKET_MOCK: Market = {
 const INITIAL_AMOUNT: u32 = 500_000_000;
 
 fn transfer_initial_balance<
-    T: Config + pallet_assets::Config<AssetId = AssetId, Balance = Balance>,
+    T: Config + pallet_assets::Config<AssetId = AssetId, Balance = Balance> + pallet_prices::Config,
 >(
     caller: T::AccountId,
 ) where
@@ -66,8 +66,11 @@ fn transfer_initial_balance<
     )
     .ok();
 
-    T::Assets::mint_into(DOT.into(), &caller, INITIAL_AMOUNT.into()).unwrap();
-    T::Assets::mint_into(KSM.into(), &caller, INITIAL_AMOUNT.into()).unwrap();
+    T::Assets::mint_into(DOT.into(), &caller, INITIAL_AMOUNT.into()).ok();
+    T::Assets::mint_into(KSM.into(), &caller, INITIAL_AMOUNT.into()).ok();
+
+    pallet_prices::Pallet::<T>::set_price(SystemOrigin::Root.into(), DOT, 1.into()).ok();
+    pallet_prices::Pallet::<T>::set_price(SystemOrigin::Root.into(), KSM, 1.into()).ok();
 }
 
 fn set_account_borrows<T: Config>(
@@ -98,7 +101,7 @@ benchmarks! {
         where
             BalanceOf<T>: FixedPointOperand,
             AssetIdOf<T>: AtLeast32BitUnsigned,
-            T: pallet_assets::Config<AssetId = AssetId, Balance = Balance>
+            T: pallet_assets::Config<AssetId = AssetId, Balance = Balance> + pallet_prices::Config
     }
 
     add_market {
