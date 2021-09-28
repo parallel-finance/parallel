@@ -58,11 +58,7 @@ pub mod pallet {
     >;
 
     #[pallet::config]
-    pub trait Config<I: 'static = ()>:
-        frame_system::Config
-        + pallet_assets::Config<AssetId = AssetId, Balance = Balance>
-        + pallet_amm::Config
-    {
+    pub trait Config<I: 'static = ()>: frame_system::Config + pallet_amm::Config {
         type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Router pallet id
