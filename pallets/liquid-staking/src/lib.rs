@@ -38,7 +38,6 @@ mod pallet {
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         ensure,
         pallet_prelude::*,
-        parameter_types,
         traits::{
             fungibles::{Inspect, Mutate, Transfer},
             Get, IsType,
@@ -113,6 +112,10 @@ mod pallet {
         /// Account derivative functionality provider
         type DerivativeProvider: DerivativeProvider<Self::AccountId>;
 
+        /// Unstake queue capacity
+        #[pallet::constant]
+        type UnstakeQueueCapacity: Get<u32>;
+
         /// Basis of period.
         #[pallet::constant]
         type PeriodBasis: Get<BlockNumberFor<Self>>;
@@ -184,8 +187,8 @@ mod pallet {
         LiquidCurrencyNotSet,
         /// Staking currency hasn't been set
         StakingCurrencyNotSet,
-        /// UnstakeQueue is full
-        UnstakeQueueFull,
+        /// UnstakeQueue is already full
+        ExceededUnstakeQueueCapacity,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -221,17 +224,16 @@ mod pallet {
     #[pallet::getter(fn matching_pool)]
     pub type MatchingPool<T: Config> = StorageValue<_, MatchingLedger<BalanceOf<T>>, ValueQuery>;
 
-    parameter_types! {
-        pub const QueueCapacity: u16 = 1000;
-    }
-
     /// Manage which we should pay off to.
     ///
     /// Insert a new record while user can't be paid instantly in unstaking operation.
     #[pallet::storage]
     #[pallet::getter(fn unstake_queue)]
-    pub type UnstakeQueue<T: Config> =
-        StorageValue<_, BoundedVec<(T::AccountId, BalanceOf<T>), QueueCapacity>, ValueQuery>;
+    pub type UnstakeQueue<T: Config> = StorageValue<
+        _,
+        BoundedVec<(T::AccountId, BalanceOf<T>), T::UnstakeQueueCapacity>,
+        ValueQuery,
+    >;
 
     /// Liquid currency asset id
     #[pallet::storage]
@@ -581,7 +583,7 @@ mod pallet {
             // UnstakeQueue::<T>::mutate(|q| q.push((who.clone(), amount)))
             UnstakeQueue::<T>::try_mutate(|q| -> DispatchResult {
                 q.try_push((who.clone(), amount))
-                    .map_err(|_| Error::<T>::UnstakeQueueFull)?;
+                    .map_err(|_| Error::<T>::ExceededUnstakeQueueCapacity)?;
                 Ok(())
             })
         }
