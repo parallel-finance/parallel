@@ -35,34 +35,36 @@
 // --template=./.maintain/frame-weight-template.hbs
 // --output=./pallets/router/src/weights.rs
 
-
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 #![allow(clippy::all)]
 
-use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
+use frame_support::{
+    traits::Get,
+    weights::{constants::RocksDbWeight, Weight},
+};
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_router.
 pub trait WeightInfo {
-	fn trade() -> Weight;
+    fn trade() -> Weight;
 }
 
 /// Weights for pallet_router using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
-	fn trade() -> Weight {
-		(145_875_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(9 as Weight))
-			.saturating_add(T::DbWeight::get().writes(9 as Weight))
-	}
+    fn trade() -> Weight {
+        (145_875_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(9 as Weight))
+            .saturating_add(T::DbWeight::get().writes(9 as Weight))
+    }
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
-	fn trade() -> Weight {
-		(145_875_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(9 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(9 as Weight))
-	}
+    fn trade() -> Weight {
+        (145_875_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(9 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(9 as Weight))
+    }
 }
