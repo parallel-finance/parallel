@@ -44,7 +44,7 @@ mod pallet {
         },
         transactional,
         weights::Weight,
-        PalletId, Twox64Concat,
+        BoundedVec, PalletId, Twox64Concat,
     };
     use frame_system::{
         ensure_signed,
@@ -111,6 +111,10 @@ mod pallet {
 
         /// Account derivative functionality provider
         type DerivativeProvider: DerivativeProvider<Self::AccountId>;
+
+        /// Unstake queue capacity
+        #[pallet::constant]
+        type UnstakeQueueCapacity: Get<u32>;
 
         /// Basis of period.
         #[pallet::constant]
@@ -183,6 +187,8 @@ mod pallet {
         LiquidCurrencyNotSet,
         /// Staking currency hasn't been set
         StakingCurrencyNotSet,
+        /// UnstakeQueue is already full
+        ExceededUnstakeQueueCapacity,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -223,8 +229,11 @@ mod pallet {
     /// Insert a new record while user can't be paid instantly in unstaking operation.
     #[pallet::storage]
     #[pallet::getter(fn unstake_queue)]
-    pub type UnstakeQueue<T: Config> =
-        StorageValue<_, Vec<(T::AccountId, BalanceOf<T>)>, ValueQuery>;
+    pub type UnstakeQueue<T: Config> = StorageValue<
+        _,
+        BoundedVec<(T::AccountId, BalanceOf<T>), T::UnstakeQueueCapacity>,
+        ValueQuery,
+    >;
 
     /// Liquid currency asset id
     #[pallet::storage]
@@ -414,7 +423,7 @@ mod pallet {
             )
             .is_err()
             {
-                Self::push_unstake_task(&who, asset_amount);
+                Self::push_unstake_task(&who, asset_amount)?;
             }
 
             T::Assets::burn_from(
@@ -570,8 +579,13 @@ mod pallet {
 
         /// Push an unstake task into queue.
         #[inline]
-        fn push_unstake_task(who: &T::AccountId, amount: BalanceOf<T>) {
-            UnstakeQueue::<T>::mutate(|q| q.push((who.clone(), amount)))
+        fn push_unstake_task(who: &T::AccountId, amount: BalanceOf<T>) -> DispatchResult {
+            // UnstakeQueue::<T>::mutate(|q| q.push((who.clone(), amount)))
+            UnstakeQueue::<T>::try_mutate(|q| -> DispatchResult {
+                q.try_push((who.clone(), amount))
+                    .map_err(|_| Error::<T>::ExceededUnstakeQueueCapacity)?;
+                Ok(())
+            })
         }
 
         /// Pop an unstake task from queue.

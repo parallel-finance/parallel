@@ -286,6 +286,7 @@ parameter_types! {
     pub RelayAgent: AccountId = para_a_account();
     pub const DerivativeIndex: u16 = 0;
     pub const PeriodBasis: BlockNumber = 5u64;
+    pub const UnstakeQueueCapacity: u32 = 1000;
 }
 
 impl pallet_utility::Config for Test {
@@ -316,6 +317,7 @@ impl crate::Config for Test {
     type DerivativeProvider = DerivativeProviderT;
     type Assets = Assets;
     type UpdateOrigin = UpdateOrigin;
+    type UnstakeQueueCapacity = UnstakeQueueCapacity;
 }
 
 parameter_types! {
