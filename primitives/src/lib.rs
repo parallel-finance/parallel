@@ -119,7 +119,7 @@ pub trait LiquidStakingCurrenciesProvider<AssetId> {
     fn get_liquid_currency() -> Option<AssetId>;
 }
 
-pub trait AMM<T: frame_system::Config> {
+pub trait AMM<T: frame_system::Config, AssetId, Balance> {
     /// Handles a "trade" on the AMM side for "who".
     /// This will move the `amount_in` funds to the AMM PalletId,
     /// trade `pair.0` to `pair.1` and return a result with the amount
