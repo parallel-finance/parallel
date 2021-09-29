@@ -35,7 +35,7 @@ pub mod pallet {
         ensure,
         pallet_prelude::DispatchResultWithPostInfo,
         traits::{
-            tokens::fungibles::{self, Inspect},
+            fungibles::{Inspect, Mutate, Transfer},
             Get, Hooks, IsType,
         },
         transactional, BoundedVec, PalletId,
@@ -45,32 +45,39 @@ pub mod pallet {
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
     use primitives::{AssetId, Balance, AMM};
-    use sp_runtime::traits::Zero;
+    use sp_runtime::traits::One;
+    use sp_runtime::traits::{AtLeast32BitUnsigned, Zero};
+    use sp_runtime::FixedPointOperand;
 
-    pub type Route<T, I> = BoundedVec<
+    pub type Route<T> = BoundedVec<
         (
             // Base asset
-            AssetId,
+            AssetIdOf<T>,
             // Quote asset
-            AssetId,
+            AssetIdOf<T>,
         ),
-        <T as Config<I>>::MaxLengthRoute,
+        <T as Config>::MaxLengthRoute,
     >;
 
+    type AssetIdOf<T> =
+        <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
+    type BalanceOf<T> =
+        <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
+
     #[pallet::config]
-    pub trait Config<I: 'static = ()>:
+    pub trait Config:
         frame_system::Config
         + pallet_assets::Config<AssetId = AssetId, Balance = Balance>
         + pallet_amm::Config
     {
-        type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
+        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Router pallet id
         #[pallet::constant]
         type RouterPalletId: Get<PalletId>;
 
         /// Specify all the AMMs we are routing between
-        type AMM: AMM<Self, AssetId, Balance>;
+        type AMM: AMM<Self, AssetIdOf<Self>, BalanceOf<Self>>;
 
         /// Weight information for extrinsics in this pallet.
         type AMMRouterWeightInfo: WeightInfo;
@@ -81,16 +88,14 @@ pub mod pallet {
 
         /// Currency type for deposit/withdraw assets to/from amm route
         /// module
-        type Assets: fungibles::Inspect<Self::AccountId, AssetId = AssetId, Balance = Balance>
-            + fungibles::Mutate<Self::AccountId, AssetId = AssetId, Balance = Balance>
-            + fungibles::Transfer<Self::AccountId, AssetId = AssetId, Balance = Balance>;
+        type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
     }
 
     #[pallet::pallet]
-    pub struct Pallet<T, I = ()>(_);
+    pub struct Pallet<T>(_);
 
     #[pallet::error]
-    pub enum Error<T, I = ()> {
+    pub enum Error<T> {
         /// Input balance must not be zero
         ZeroBalance,
         /// Must input one route at least
@@ -110,17 +115,21 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::metadata(T::AccountId = "AccountId", BalanceOf<T> = "Balance")]
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
-    pub enum Event<T: Config<I>, I: 'static = ()> {
+    pub enum Event<T: Config> {
         /// Event emitted when swap is successful
         /// [sender, amount_in, route, amount_out]
-        TradedSuccessfully(T::AccountId, Balance, Route<T, I>, Balance),
+        TradedSuccessfully(T::AccountId, BalanceOf<T>, Route<T>, BalanceOf<T>),
     }
 
     #[pallet::hooks]
-    impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {}
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
     #[pallet::call]
-    impl<T: Config<I>, I: 'static> Pallet<T, I> {
+    impl<T: Config> Pallet<T>
+    where
+        BalanceOf<T>: FixedPointOperand,
+        AssetIdOf<T>: AtLeast32BitUnsigned,
+    {
         /// According specified route order to execute which pool or AMM instance.
         ///
         /// - `origin`: the trader.
@@ -132,56 +141,57 @@ pub mod pallet {
         #[transactional]
         pub fn trade(
             origin: OriginFor<T>,
-            route: Route<T, I>,
-            #[pallet::compact] mut amount_in: Balance,
-            #[pallet::compact] min_amount_out: Balance,
+            route: Route<T>,
+            #[pallet::compact] mut amount_in: BalanceOf<T>,
+            #[pallet::compact] min_amount_out: BalanceOf<T>,
             #[pallet::compact] expiry: BlockNumberFor<T>,
         ) -> DispatchResultWithPostInfo {
             let trader = ensure_signed(origin)?;
 
             // Ensure the length of routes should be >= 1 at least.
-            ensure!(!route.is_empty(), Error::<T, I>::EmptyRoute);
+            ensure!(!route.is_empty(), Error::<T>::EmptyRoute);
             // Ensure user do not input too many routes.
             ensure!(
                 route.len() <= T::MaxLengthRoute::get() as usize,
-                Error::<T, I>::ExceedMaxLengthRoute
+                Error::<T>::ExceedMaxLengthRoute
             );
 
             // Ensure user doesn't input duplicated routes
             let mut _routes = route.clone().into_inner();
             _routes.dedup();
-            ensure!(_routes.eq(&*route), Error::<T, I>::DuplicatedRoute);
+            ensure!(_routes.eq(&*route), Error::<T>::DuplicatedRoute);
 
             // Ensure balances user input is bigger than zero.
             ensure!(
                 amount_in > Zero::zero() && min_amount_out >= Zero::zero(),
-                Error::<T, I>::ZeroBalance
+                Error::<T>::ZeroBalance
             );
 
             // Ensure user iput a valid block number.
             let current_block_num = <frame_system::Pallet<T>>::block_number();
-            ensure!(expiry > current_block_num, Error::<T, I>::TooSmallExpiry);
+            ensure!(expiry > current_block_num, Error::<T>::TooSmallExpiry);
 
             // Ensure the trader has enough tokens for transaction.
             let (from_currency_id, _) = route[0];
             ensure!(
-                <T as Config<I>>::Assets::balance(from_currency_id, &trader) > amount_in,
-                Error::<T, I>::InsufficientBalance
+                <T as Config>::Assets::balance(from_currency_id, &trader) > amount_in,
+                Error::<T>::InsufficientBalance
             );
 
             let original_amount_in = amount_in;
-            let mut amount_out: Balance = Zero::zero();
+            let mut amount_out: BalanceOf<T> = Zero::zero();
             for sub_route in route.iter() {
                 let (from_currency_id, to_currency_id) = sub_route;
-                amount_out =
-                    T::AMM::trade(&trader, (*from_currency_id, *to_currency_id), amount_in, 1)?;
+                amount_out = T::AMM::trade(
+                    &trader,
+                    (*from_currency_id, *to_currency_id),
+                    amount_in,
+                    One::one(),
+                )?;
                 amount_in = amount_out;
             }
 
-            ensure!(
-                amount_out >= min_amount_out,
-                Error::<T, I>::UnexpectedSlippage
-            );
+            ensure!(amount_out >= min_amount_out, Error::<T>::UnexpectedSlippage);
 
             Self::deposit_event(Event::TradedSuccessfully(
                 trader,
