@@ -21,6 +21,7 @@
 pub use pallet::*;
 
 mod benchmarking;
+
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
@@ -44,21 +45,25 @@ pub mod pallet {
         ensure_signed,
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
-    use primitives::{AssetId, Balance, AMM};
+    use primitives::{Balance, CurrencyId, AMM};
     use sp_runtime::traits::Zero;
 
     pub type Route<T, I> = BoundedVec<
         (
             // Base asset
-            AssetId,
+            CurrencyId,
             // Quote asset
-            AssetId,
+            CurrencyId,
         ),
         <T as Config<I>>::MaxLengthRoute,
     >;
 
     #[pallet::config]
-    pub trait Config<I: 'static = ()>: frame_system::Config + pallet_amm::Config {
+    pub trait Config<I: 'static = ()>:
+        frame_system::Config
+        + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>
+        + pallet_amm::Config
+    {
         type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Router pallet id
@@ -77,9 +82,9 @@ pub mod pallet {
 
         /// Currency type for deposit/withdraw assets to/from amm route
         /// module
-        type Assets: fungibles::Inspect<Self::AccountId, AssetId = AssetId, Balance = Balance>
-            + fungibles::Mutate<Self::AccountId, AssetId = AssetId, Balance = Balance>
-            + fungibles::Transfer<Self::AccountId, AssetId = AssetId, Balance = Balance>;
+        type Assets: fungibles::Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + fungibles::Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + fungibles::Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
     }
 
     #[pallet::pallet]

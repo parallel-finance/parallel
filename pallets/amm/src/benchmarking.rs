@@ -14,8 +14,8 @@ use primitives::tokens;
 use primitives::tokens::*;
 use sp_std::prelude::*;
 
-const BASE_ASSET: AssetId = XDOT;
-const QUOTE_ASSET: AssetId = DOT;
+const BASE_ASSET: CurrencyId = XDOT;
+const QUOTE_ASSET: CurrencyId = DOT;
 const INITIAL_AMOUNT: u128 = 1000_000_000_000_000;
 
 fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::Event) {

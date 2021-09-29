@@ -31,7 +31,7 @@ make help
 
 ### Local Testnet
 
-Polkadot (v0.9.9-1 branch)
+Polkadot (v0.9.10 branch)
 
 ```
 cargo build --release
@@ -87,7 +87,7 @@ subcommands:
 
 ### Docker
 
-Run Heiko Dev Network (via parachain-launch 1.0.3)
+Run Heiko Dev Network (via parachain-launch 1.0.4)
 
 ```
 make launch

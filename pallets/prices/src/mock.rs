@@ -27,12 +27,12 @@ mod prices {
     pub use super::super::*;
 }
 
-pub const DOT: AssetId = 10;
+pub const DOT: CurrencyId = 10;
 #[allow(non_upper_case_globals)]
-pub const xDOT: AssetId = 11;
-pub const KSM: AssetId = 20;
+pub const xDOT: CurrencyId = 11;
+pub const KSM: CurrencyId = 20;
 #[allow(non_upper_case_globals)]
-pub const xKSM: AssetId = 21;
+pub const xKSM: CurrencyId = 21;
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
@@ -66,8 +66,8 @@ impl frame_system::Config for Runtime {
 
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 pub struct MockDataProvider;
-impl DataProvider<AssetId, TimeStampedPrice> for MockDataProvider {
-    fn get(asset_id: &AssetId) -> Option<TimeStampedPrice> {
+impl DataProvider<CurrencyId, TimeStampedPrice> for MockDataProvider {
+    fn get(asset_id: &CurrencyId) -> Option<TimeStampedPrice> {
         match *asset_id {
             DOT => Some(TimeStampedPrice {
                 value: Price::saturating_from_integer(100),
@@ -82,12 +82,12 @@ impl DataProvider<AssetId, TimeStampedPrice> for MockDataProvider {
     }
 }
 
-impl DataProviderExtended<AssetId, TimeStampedPrice> for MockDataProvider {
-    fn get_no_op(_key: &AssetId) -> Option<TimeStampedPrice> {
+impl DataProviderExtended<CurrencyId, TimeStampedPrice> for MockDataProvider {
+    fn get_no_op(_key: &CurrencyId) -> Option<TimeStampedPrice> {
         None
     }
 
-    fn get_all_values() -> Vec<(AssetId, Option<TimeStampedPrice>)> {
+    fn get_all_values() -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
         vec![]
     }
 }
@@ -101,13 +101,13 @@ impl ExchangeRateProvider for LiquidStakingExchangeRateProvider {
 
 ord_parameter_types! {
     pub const One: AccountId = 1;
-    pub const StakingCurrency: AssetId = KSM;
-    pub const LiquidCurrency: AssetId = xKSM;
+    pub const StakingCurrency: CurrencyId = KSM;
+    pub const LiquidCurrency: CurrencyId = xKSM;
 }
 pub struct Decimal;
 #[allow(non_upper_case_globals)]
 impl DecimalProvider for Decimal {
-    fn get_decimal(asset_id: &AssetId) -> u8 {
+    fn get_decimal(asset_id: &CurrencyId) -> u8 {
         match *asset_id {
             DOT | xDOT => 10,
             KSM | xKSM => 12,
@@ -117,11 +117,11 @@ impl DecimalProvider for Decimal {
 }
 
 pub struct LiquidStaking;
-impl LiquidStakingCurrenciesProvider<AssetId> for LiquidStaking {
-    fn get_staking_currency() -> Option<AssetId> {
+impl LiquidStakingCurrenciesProvider<CurrencyId> for LiquidStaking {
+    fn get_staking_currency() -> Option<CurrencyId> {
         Some(KSM)
     }
-    fn get_liquid_currency() -> Option<AssetId> {
+    fn get_liquid_currency() -> Option<CurrencyId> {
         Some(xKSM)
     }
 }

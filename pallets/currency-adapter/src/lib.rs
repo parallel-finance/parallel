@@ -33,27 +33,27 @@ use frame_support::{
         Get,
     },
 };
-use primitives::{AssetId, Balance};
+use primitives::{Balance, CurrencyId};
 use sp_runtime::DispatchError;
 
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
     use frame_support::traits::tokens::fungible;
-    use primitives::AssetId;
+    use primitives::CurrencyId;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        type Assets: Transfers<Self::AccountId, AssetId = AssetId, Balance = Balance>
-            + Inspects<Self::AccountId, AssetId = AssetId, Balance = Balance>
-            + Mutates<Self::AccountId, AssetId = AssetId, Balance = Balance>;
+        type Assets: Transfers<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + Inspects<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + Mutates<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
 
         type Balances: fungible::Inspect<Self::AccountId, Balance = Balance>
             + fungible::Mutate<Self::AccountId, Balance = Balance>
             + fungible::Transfer<Self::AccountId, Balance = Balance>;
 
         #[pallet::constant]
-        type GetNativeCurrencyId: Get<AssetId>;
+        type GetNativeCurrencyId: Get<CurrencyId>;
     }
 
     #[pallet::pallet]
@@ -64,7 +64,7 @@ pub mod pallet {
 }
 
 impl<T: Config> Inspects<T::AccountId> for Pallet<T> {
-    type AssetId = AssetId;
+    type AssetId = CurrencyId;
     type Balance = Balance;
 
     fn total_issuance(asset: Self::AssetId) -> Self::Balance {

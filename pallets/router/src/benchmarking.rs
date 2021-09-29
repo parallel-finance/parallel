@@ -17,11 +17,11 @@ use frame_support::{
     BoundedVec,
 };
 use frame_system::{self, RawOrigin as SystemOrigin};
-use primitives::{tokens, AssetId};
+use primitives::{tokens, CurrencyId};
 use sp_runtime::traits::StaticLookup;
 
-const DOT: AssetId = tokens::DOT;
-const XDOT: AssetId = tokens::XDOT;
+const DOT: CurrencyId = tokens::DOT;
+const XDOT: CurrencyId = tokens::XDOT;
 const INITIAL_AMOUNT: u128 = 1000_000_000_000_000;
 
 fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::Event) {

@@ -56,7 +56,7 @@ mod pallet {
         ArithmeticError, FixedPointNumber, FixedPointOperand,
     };
     use sp_std::vec::Vec;
-    use xcm::v0::{Junction, MultiLocation, NetworkId, SendXcm};
+    use xcm::latest::prelude::*;
 
     use primitives::{DerivativeProvider, EraIndex, Rate, Ratio};
 
@@ -489,12 +489,12 @@ mod pallet {
                     Self::account_id(),
                     Self::staking_currency().ok_or(Error::<T>::StakingCurrencyNotSet)?,
                     bond_amount,
-                    MultiLocation::X2(
-                        Junction::Parent,
-                        Junction::AccountId32 {
+                    MultiLocation::new(
+                        1,
+                        Junctions::X1(Junction::AccountId32 {
                             network: NetworkId::Any,
                             id: T::RelayAgent::get().into(),
-                        },
+                        }),
                     ),
                     T::BaseXcmWeight::get(),
                 )?;

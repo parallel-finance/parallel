@@ -4,15 +4,7 @@ use super::{pallet::*, types::*, BalanceOf, Config, Pallet};
 use frame_support::pallet_prelude::*;
 use sp_runtime::{traits::StaticLookup, DispatchResult};
 use sp_std::prelude::*;
-use xcm::{
-    v0::{
-        Junction, MultiAsset, MultiLocation, NetworkId,
-        Order::{BuyExecution, DepositAsset},
-        OriginKind, SendXcm,
-        Xcm::{self, Transact, WithdrawAsset},
-    },
-    DoubleEncoded,
-};
+use xcm::{latest::prelude::*, DoubleEncoded};
 
 impl<T: Config> Pallet<T>
 where
@@ -48,7 +40,7 @@ where
 
         let msg = Self::xcm_message(call.encode().into());
 
-        match T::XcmSender::send_xcm(MultiLocation::X1(Junction::Parent), msg) {
+        match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
             Ok(()) => {
                 Self::deposit_event(Event::<T>::BondCallSent(controller, value, payee));
             }
@@ -80,7 +72,7 @@ where
 
         let msg = Self::xcm_message(call.encode().into());
 
-        match T::XcmSender::send_xcm(MultiLocation::X1(Junction::Parent), msg) {
+        match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
             Ok(()) => {
                 Self::deposit_event(Event::<T>::BondExtraCallSent(value));
             }
@@ -104,7 +96,7 @@ where
 
         let msg = Self::xcm_message(call.encode().into());
 
-        match T::XcmSender::send_xcm(MultiLocation::X1(Junction::Parent), msg) {
+        match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
             Ok(()) => {
                 Self::deposit_event(Event::<T>::UnbondCallSent(value));
             }
@@ -128,7 +120,7 @@ where
 
         let msg = Self::xcm_message(call.encode().into());
 
-        match T::XcmSender::send_xcm(MultiLocation::X1(Junction::Parent), msg) {
+        match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
             Ok(()) => {
                 Self::deposit_event(Event::<T>::RebondCallSent(value));
             }
@@ -167,7 +159,7 @@ where
 
         let msg = Self::xcm_message(call.encode().into());
 
-        match T::XcmSender::send_xcm(MultiLocation::X1(Junction::Parent), msg) {
+        match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
             Ok(()) => {
                 Self::deposit_event(Event::<T>::WithdrawUnbondedCallSent(num_slashing_spans));
             }
@@ -196,7 +188,7 @@ where
         )));
         let msg = Self::xcm_message(call.encode().into());
 
-        match T::XcmSender::send_xcm(MultiLocation::X1(Junction::Parent), msg) {
+        match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
             Ok(()) => {
                 Self::deposit_event(Event::<T>::NominateCallSent(targets));
             }
@@ -217,7 +209,7 @@ where
 
         let msg = Self::xcm_message(call.encode().into());
 
-        match T::XcmSender::send_xcm(MultiLocation::X1(Junction::Parent), msg) {
+        match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
             Ok(()) => {
                 Self::deposit_event(Event::<T>::PayoutStakersCallSent(validator_stash, era));
             }
@@ -229,29 +221,30 @@ where
     }
 
     fn xcm_message(call: DoubleEncoded<()>) -> Xcm<()> {
+        let asset: MultiAsset = (MultiLocation::here(), 1_000_000_000_000).into();
+
         WithdrawAsset {
-            assets: vec![MultiAsset::ConcreteFungible {
-                id: MultiLocation::Null,
-                amount: 1_000_000_000_000,
-            }],
+            assets: MultiAssets::from(asset.clone()),
             effects: vec![
                 BuyExecution {
-                    fees: MultiAsset::All,
+                    fees: asset,
                     weight: 800_000_000,
                     debt: 600_000_000,
                     halt_on_error: false,
-                    xcm: vec![Transact {
+                    instructions: vec![Transact {
                         origin_type: OriginKind::SovereignAccount,
                         require_weight_at_most: 100_000_000_000,
                         call,
                     }],
                 },
                 DepositAsset {
-                    assets: vec![MultiAsset::All],
-                    dest: MultiLocation::X1(Junction::AccountId32 {
+                    assets: All.into(),
+                    max_assets: u32::max_value(),
+                    beneficiary: X1(Junction::AccountId32 {
                         network: NetworkId::Any,
                         id: T::RelayAgent::get().into(),
-                    }),
+                    })
+                    .into(),
                 },
             ],
         }
