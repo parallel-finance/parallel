@@ -1198,7 +1198,7 @@ impl pallet_router::Config for Runtime {
 }
 
 parameter_types! {
-    pub const NativeCurrencyId: AssetId = tokens::PARA;
+    pub const NativeCurrencyId: CurrencyId = tokens::PARA;
 }
 
 impl pallet_currency_adapter::Config for Runtime {

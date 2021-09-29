@@ -11,8 +11,6 @@ use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{Balance, CurrencyId};
 use sp_std::prelude::*;
 
-use primitives::{AssetId, Balance};
-
 const SEED: u32 = 0;
 const DOT: CurrencyId = 0;
 const KSM: CurrencyId = 1;
