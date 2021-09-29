@@ -44,7 +44,10 @@ pub use pallet::*;
 use primitives::{Balance, Rate};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
+use sp_runtime::traits::UniqueSaturatedInto;
 use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedSub, Saturating};
+use sp_runtime::FixedU128;
+use sp_runtime::SaturatedConversion;
 use sp_runtime::{
     traits::{
         AccountIdConversion, AtLeast32BitUnsigned, IntegerSquareRoot, One, StaticLookup, Zero,
@@ -510,7 +513,7 @@ where
 
         pallet_assets::Pallet::<T>::force_create(
             RawOrigin::Root.into(),
-            asset_id,
+            asset_id.unique_saturated_into(),
             T::Lookup::unlookup(Self::account_id()),
             true,
             1,
@@ -683,10 +686,9 @@ where
                     who.clone(),
                     base_asset,
                     quote_asset,
-                    amount_out
-                        .checked_div(&amount_in)
-                        .ok_or(ArithmeticError::Underflow)?
-                        .into(),
+                    FixedU128::from_inner(amount_out.saturated_into())
+                        .checked_div(&FixedU128::from_inner(amount_in.saturated_into()))
+                        .ok_or(ArithmeticError::Underflow)?,
                 ));
 
                 // Return amount out for router pallet

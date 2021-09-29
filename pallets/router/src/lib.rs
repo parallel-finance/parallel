@@ -70,7 +70,7 @@ pub mod pallet {
         type RouterPalletId: Get<PalletId>;
 
         /// Specify all the AMMs we are routing between
-        type AMM: AMM<Self>;
+        type AMM: AMM<Self, AssetId, Balance>;
 
         /// Weight information for extrinsics in this pallet.
         type AMMRouterWeightInfo: WeightInfo;
