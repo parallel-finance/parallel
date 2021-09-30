@@ -56,9 +56,9 @@ use sp_runtime::{
 };
 pub use weights::WeightInfo;
 
-type AssetIdOf<T, I = ()> =
+pub type AssetIdOf<T, I = ()> =
     <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
-type BalanceOf<T, I = ()> =
+pub type BalanceOf<T, I = ()> =
     <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 
 #[frame_support::pallet]
