@@ -289,7 +289,7 @@ pub type UpdateOrigin = EnsureSignedBy<BobOrigin, AccountId>;
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub RelayAgent: AccountId = para_a_account();
+    pub ParachainAccount: AccountId = para_a_account();
     pub const DerivativeIndex: u16 = 0;
     pub const PeriodBasis: BlockNumber = 5u64;
     pub const UnstakeQueueCapacity: u32 = 1000;
@@ -314,7 +314,7 @@ impl crate::Config for Test {
     type PalletId = StakingPalletId;
     type BaseXcmWeight = BaseXcmWeight;
     type XcmTransfer = XTokens;
-    type RelayAgent = RelayAgent;
+    type ParachainAccount = ParachainAccount;
     type PeriodBasis = PeriodBasis;
     type WeightInfo = ();
     type XcmSender = XcmRouter;

@@ -148,7 +148,7 @@ where
                         index: T::DerivativeIndex::get(),
                         call: RelaychainCall::Balances::<T>(BalancesCall::TransferAll(
                             BalancesTransferAllCall {
-                                dest: T::Lookup::unlookup(T::RelayAgent::get()),
+                                dest: T::Lookup::unlookup(T::ParachainAccount::get()),
                                 keep_alive: true,
                             },
                         )),
@@ -242,7 +242,7 @@ where
                     max_assets: u32::max_value(),
                     beneficiary: X1(Junction::AccountId32 {
                         network: NetworkId::Any,
-                        id: T::RelayAgent::get().into(),
+                        id: T::ParachainAccount::get().into(),
                     })
                     .into(),
                 },

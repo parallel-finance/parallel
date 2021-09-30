@@ -148,7 +148,7 @@ fn test_settlement_should_work() {
     });
     Relay::execute_with(|| {
         assert_eq!(
-            RelayBalances::free_balance(&RelayAgent::get()),
+            RelayBalances::free_balance(&ParachainAccount::get()),
             // FIXME: weight should be take into account
             9999999200000000
         );

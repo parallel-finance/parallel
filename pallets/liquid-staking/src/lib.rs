@@ -101,7 +101,7 @@ mod pallet {
 
         /// Parachain account on relaychain
         #[pallet::constant]
-        type RelayAgent: Get<Self::AccountId>;
+        type ParachainAccount: Get<Self::AccountId>;
 
         /// Account derivative index
         #[pallet::constant]
@@ -490,7 +490,7 @@ mod pallet {
                         1,
                         Junctions::X1(Junction::AccountId32 {
                             network: NetworkId::Any,
-                            id: T::RelayAgent::get().into(),
+                            id: T::ParachainAccount::get().into(),
                         }),
                     ),
                     T::BaseXcmWeight::get(),
@@ -586,7 +586,7 @@ mod pallet {
         /// account derived from parachain account
         pub fn derivative_account_id() -> T::AccountId {
             T::DerivativeProvider::derivative_account_id(
-                T::RelayAgent::get(),
+                T::ParachainAccount::get(),
                 T::DerivativeIndex::get(),
             )
         }
