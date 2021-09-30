@@ -172,18 +172,21 @@ pub mod pallet {
             BalanceOf<T>,
             BalanceOf<T>,
         ),
-        /// New interest rate model is set
-        /// [new_interest_rate_model]
-        NewMarket(Market),
         /// Event emitted when the reserves are reduced
         /// [admin, asset_id, reduced_amount, total_reserves]
         ReservesReduced(T::AccountId, AssetIdOf<T>, BalanceOf<T>, BalanceOf<T>),
         /// Event emitted when the reserves are added
         /// [admin, asset_id, added_amount, total_reserves]
         ReservesAdded(T::AccountId, AssetIdOf<T>, BalanceOf<T>, BalanceOf<T>),
+        /// New interest rate model is set
+        /// [new_interest_rate_model]
+        NewMarket(Market),
         /// Event emitted when a market is activated
         /// [admin, asset_id]
         ActivatedMarket(AssetIdOf<T>),
+        /// Event emitted when a market is activated
+        /// [admin, asset_id]
+        UpdatedMarket(Market),
     }
 
     /// The timestamp of the previous block or defaults to timestamp at genesis.
@@ -487,6 +490,8 @@ pub mod pallet {
                 *liquidate_incentive = market.liquidate_incentive;
                 *rate_model = market.rate_model;
             })?;
+
+            Self::deposit_event(Event::<T>::UpdatedMarket(market));
             Ok(().into())
         }
 
