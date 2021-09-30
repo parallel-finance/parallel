@@ -44,7 +44,7 @@ mod pallet {
         },
         transactional,
         weights::Weight,
-        PalletId, Twox64Concat,
+        BoundedVec, PalletId, Twox64Concat,
     };
     use frame_system::{
         ensure_signed,
@@ -56,7 +56,7 @@ mod pallet {
         ArithmeticError, FixedPointNumber, FixedPointOperand,
     };
     use sp_std::vec::Vec;
-    use xcm::v0::{Junction, MultiLocation, NetworkId, SendXcm};
+    use xcm::latest::prelude::*;
 
     use primitives::{DerivativeProvider, EraIndex, Rate, Ratio};
 
@@ -111,6 +111,10 @@ mod pallet {
 
         /// Account derivative functionality provider
         type DerivativeProvider: DerivativeProvider<Self::AccountId>;
+
+        /// Unstake queue capacity
+        #[pallet::constant]
+        type UnstakeQueueCapacity: Get<u32>;
 
         /// Basis of period.
         #[pallet::constant]
@@ -183,6 +187,8 @@ mod pallet {
         LiquidCurrencyNotSet,
         /// Staking currency hasn't been set
         StakingCurrencyNotSet,
+        /// UnstakeQueue is already full
+        ExceededUnstakeQueueCapacity,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -223,8 +229,11 @@ mod pallet {
     /// Insert a new record while user can't be paid instantly in unstaking operation.
     #[pallet::storage]
     #[pallet::getter(fn unstake_queue)]
-    pub type UnstakeQueue<T: Config> =
-        StorageValue<_, Vec<(T::AccountId, BalanceOf<T>)>, ValueQuery>;
+    pub type UnstakeQueue<T: Config> = StorageValue<
+        _,
+        BoundedVec<(T::AccountId, BalanceOf<T>), T::UnstakeQueueCapacity>,
+        ValueQuery,
+    >;
 
     /// Liquid currency asset id
     #[pallet::storage]
@@ -414,7 +423,7 @@ mod pallet {
             )
             .is_err()
             {
-                Self::push_unstake_task(&who, asset_amount);
+                Self::push_unstake_task(&who, asset_amount)?;
             }
 
             T::Assets::burn_from(
@@ -480,12 +489,12 @@ mod pallet {
                     Self::account_id(),
                     Self::staking_currency().ok_or(Error::<T>::StakingCurrencyNotSet)?,
                     bond_amount,
-                    MultiLocation::X2(
-                        Junction::Parent,
-                        Junction::AccountId32 {
+                    MultiLocation::new(
+                        1,
+                        Junctions::X1(Junction::AccountId32 {
                             network: NetworkId::Any,
                             id: T::RelayAgent::get().into(),
-                        },
+                        }),
                     ),
                     T::BaseXcmWeight::get(),
                 )?;
@@ -570,8 +579,13 @@ mod pallet {
 
         /// Push an unstake task into queue.
         #[inline]
-        fn push_unstake_task(who: &T::AccountId, amount: BalanceOf<T>) {
-            UnstakeQueue::<T>::mutate(|q| q.push((who.clone(), amount)))
+        fn push_unstake_task(who: &T::AccountId, amount: BalanceOf<T>) -> DispatchResult {
+            // UnstakeQueue::<T>::mutate(|q| q.push((who.clone(), amount)))
+            UnstakeQueue::<T>::try_mutate(|q| -> DispatchResult {
+                q.try_push((who.clone(), amount))
+                    .map_err(|_| Error::<T>::ExceededUnstakeQueueCapacity)?;
+                Ok(())
+            })
         }
 
         /// Pop an unstake task from queue.

@@ -48,14 +48,14 @@ pub mod pallet {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// The data source, such as Oracle.
-        type Source: DataProvider<AssetId, TimeStampedPrice>
-            + DataProviderExtended<AssetId, TimeStampedPrice>;
+        type Source: DataProvider<CurrencyId, TimeStampedPrice>
+            + DataProviderExtended<CurrencyId, TimeStampedPrice>;
 
         /// The origin which may set prices feed to system.
         type FeederOrigin: EnsureOrigin<Self::Origin>;
 
         /// Liquid currency & staking currency provider
-        type LiquidStakingCurrenciesProvider: LiquidStakingCurrenciesProvider<AssetId>;
+        type LiquidStakingCurrenciesProvider: LiquidStakingCurrenciesProvider<CurrencyId>;
 
         /// The provider of the exchange rate between liquid currency and
         /// staking currency.
@@ -69,15 +69,16 @@ pub mod pallet {
     #[pallet::generate_deposit(pub(crate) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Set emergency price. \[asset_id, price_detail\]
-        SetPrice(AssetId, Price),
+        SetPrice(CurrencyId, Price),
         /// Reset emergency price. \[asset_id\]
-        ResetPrice(AssetId),
+        ResetPrice(CurrencyId),
     }
 
     /// Mapping from currency id to it's emergency price
     #[pallet::storage]
     #[pallet::getter(fn emergency_price)]
-    pub type EmergencyPrice<T: Config> = StorageMap<_, Twox64Concat, AssetId, Price, OptionQuery>;
+    pub type EmergencyPrice<T: Config> =
+        StorageMap<_, Twox64Concat, CurrencyId, Price, OptionQuery>;
 
     #[pallet::pallet]
     pub struct Pallet<T>(PhantomData<T>);
@@ -92,11 +93,11 @@ pub mod pallet {
         #[transactional]
         pub fn set_price(
             origin: OriginFor<T>,
-            asset_id: AssetId,
+            asset_id: CurrencyId,
             price: Price,
         ) -> DispatchResultWithPostInfo {
             T::FeederOrigin::ensure_origin(origin)?;
-            <Pallet<T> as EmergencyPriceFeeder<AssetId, Price>>::set_emergency_price(
+            <Pallet<T> as EmergencyPriceFeeder<CurrencyId, Price>>::set_emergency_price(
                 asset_id, price,
             );
             Ok(().into())
@@ -105,9 +106,12 @@ pub mod pallet {
         /// Reset emergency price
         #[pallet::weight(100)]
         #[transactional]
-        pub fn reset_price(origin: OriginFor<T>, asset_id: AssetId) -> DispatchResultWithPostInfo {
+        pub fn reset_price(
+            origin: OriginFor<T>,
+            asset_id: CurrencyId,
+        ) -> DispatchResultWithPostInfo {
             T::FeederOrigin::ensure_origin(origin)?;
-            <Pallet<T> as EmergencyPriceFeeder<AssetId, Price>>::reset_emergency_price(asset_id);
+            <Pallet<T> as EmergencyPriceFeeder<CurrencyId, Price>>::reset_emergency_price(asset_id);
             Ok(().into())
         }
     }
@@ -115,7 +119,7 @@ pub mod pallet {
 
 impl<T: Config> Pallet<T> {
     // get emergency price, the timestamp is zero
-    fn get_emergency_price(asset_id: &AssetId) -> Option<PriceDetail> {
+    fn get_emergency_price(asset_id: &CurrencyId) -> Option<PriceDetail> {
         Self::emergency_price(asset_id).and_then(|p| {
             10u128
                 .checked_pow(T::Decimal::get_decimal(asset_id).into())
@@ -130,7 +134,7 @@ impl<T: Config> Pallet<T> {
 impl<T: Config> PriceFeeder for Pallet<T> {
     /// Get price and timestamp by currency id
     /// Timestamp is zero means the price is emergency price
-    fn get_price(asset_id: &AssetId) -> Option<PriceDetail> {
+    fn get_price(asset_id: &CurrencyId) -> Option<PriceDetail> {
         // if emergency price exists, return it, otherwise return latest price from oracle.
         Self::get_emergency_price(asset_id).or_else(|| {
             match T::LiquidStakingCurrenciesProvider::get_staking_currency()
@@ -166,23 +170,23 @@ impl<T: Config> PriceFeeder for Pallet<T> {
     }
 }
 
-impl<T: Config> EmergencyPriceFeeder<AssetId, Price> for Pallet<T> {
+impl<T: Config> EmergencyPriceFeeder<CurrencyId, Price> for Pallet<T> {
     /// Set emergency price
-    fn set_emergency_price(asset_id: AssetId, price: Price) {
+    fn set_emergency_price(asset_id: CurrencyId, price: Price) {
         // set price direct
         EmergencyPrice::<T>::insert(asset_id, price);
         <Pallet<T>>::deposit_event(Event::SetPrice(asset_id, price));
     }
 
     /// Reset emergency price
-    fn reset_emergency_price(asset_id: AssetId) {
+    fn reset_emergency_price(asset_id: CurrencyId) {
         EmergencyPrice::<T>::remove(asset_id);
         <Pallet<T>>::deposit_event(Event::ResetPrice(asset_id));
     }
 }
 
-impl<T: Config> DataProviderExtended<AssetId, TimeStampedPrice> for Pallet<T> {
-    fn get_no_op(asset_id: &AssetId) -> Option<TimeStampedPrice> {
+impl<T: Config> DataProviderExtended<CurrencyId, TimeStampedPrice> for Pallet<T> {
+    fn get_no_op(asset_id: &CurrencyId) -> Option<TimeStampedPrice> {
         match T::LiquidStakingCurrenciesProvider::get_staking_currency()
             .zip(T::LiquidStakingCurrenciesProvider::get_liquid_currency())
         {
@@ -200,7 +204,7 @@ impl<T: Config> DataProviderExtended<AssetId, TimeStampedPrice> for Pallet<T> {
         }
     }
 
-    fn get_all_values() -> Vec<(AssetId, Option<TimeStampedPrice>)> {
+    fn get_all_values() -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
         T::Source::get_all_values()
     }
 }

@@ -1,4 +1,4 @@
-//! AMM route pallet benchmarking.
+//! Router pallet benchmarking.
 
 #![cfg(feature = "runtime-benchmarks")]
 

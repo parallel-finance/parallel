@@ -12,16 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use codec::{Decode, Encode};
 use frame_support::traits::fungibles::{Inspect, Mutate};
-use sp_runtime::{traits::Convert, RuntimeDebug, SaturatedConversion};
+use sp_runtime::{traits::Convert, SaturatedConversion};
 use sp_std::{convert::Into, marker::PhantomData, prelude::*, result};
-use xcm::v0::{Error as XcmError, MultiAsset, MultiLocation, Result as XcmResult};
+use xcm::latest::prelude::*;
 use xcm_executor::traits::{Convert as MoreConvert, MatchesFungible, TransactAsset};
-
-use crate::AssetId;
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
 
 pub struct MultiCurrencyAdapter<
     MultiCurrency,
@@ -105,11 +100,4 @@ impl<
 
         Ok(asset.clone().into())
     }
-}
-
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
-pub enum CurrencyId {
-    Native,
-    Asset(AssetId),
 }

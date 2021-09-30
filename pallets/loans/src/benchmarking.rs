@@ -8,14 +8,13 @@ use crate::Pallet as Loans;
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::assert_ok;
 use frame_system::{self, RawOrigin as SystemOrigin};
+use primitives::{Balance, CurrencyId};
 use sp_std::prelude::*;
 
-use primitives::{AssetId, Balance};
-
 const SEED: u32 = 0;
-const DOT: AssetId = 0;
-const KSM: AssetId = 1;
-const UNKNOWN: AssetId = 5;
+const DOT: CurrencyId = 0;
+const KSM: CurrencyId = 1;
+const UNKNOWN: CurrencyId = 5;
 
 const MARKET_MOCK: Market = Market {
     close_factor: Ratio::from_percent(50),
@@ -39,7 +38,7 @@ const PENDING_MARKET_MOCK: Market = {
 const INITIAL_AMOUNT: u32 = 500_000_000;
 
 fn transfer_initial_balance<
-    T: Config + pallet_assets::Config<AssetId = AssetId, Balance = Balance> + pallet_prices::Config,
+    T: Config + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>,
 >(
     caller: T::AccountId,
 ) where
@@ -66,11 +65,8 @@ fn transfer_initial_balance<
     )
     .ok();
 
-    T::Assets::mint_into(DOT.into(), &caller, INITIAL_AMOUNT.into()).ok();
-    T::Assets::mint_into(KSM.into(), &caller, INITIAL_AMOUNT.into()).ok();
-
-    pallet_prices::Pallet::<T>::set_price(SystemOrigin::Root.into(), DOT, 1.into()).ok();
-    pallet_prices::Pallet::<T>::set_price(SystemOrigin::Root.into(), KSM, 1.into()).ok();
+    T::Assets::mint_into(DOT.into(), &caller, INITIAL_AMOUNT.into()).unwrap();
+    T::Assets::mint_into(KSM.into(), &caller, INITIAL_AMOUNT.into()).unwrap();
 }
 
 fn set_account_borrows<T: Config>(
@@ -90,6 +86,7 @@ fn set_account_borrows<T: Config>(
         },
     );
     TotalBorrows::<T>::insert(asset_id, borrow_balance);
+    T::Assets::burn_from(asset_id, &who, borrow_balance).unwrap();
 }
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
@@ -101,7 +98,7 @@ benchmarks! {
         where
             BalanceOf<T>: FixedPointOperand,
             AssetIdOf<T>: AtLeast32BitUnsigned,
-            T: pallet_assets::Config<AssetId = AssetId, Balance = Balance> + pallet_prices::Config
+            T: pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>
     }
 
     add_market {
@@ -124,7 +121,7 @@ benchmarks! {
 
     }
 
-     mint {
+    mint {
         let caller: T::AccountId = whitelisted_caller();
         transfer_initial_balance::<T>(caller.clone());
         assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), PENDING_MARKET_MOCK));

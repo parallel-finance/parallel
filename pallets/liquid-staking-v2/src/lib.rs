@@ -56,7 +56,7 @@ mod pallet {
         ArithmeticError, FixedPointNumber, FixedPointOperand,
     };
     use sp_std::vec::Vec;
-    use xcm::v0::MultiLocation;
+    use xcm::latest::prelude::*;
 
     use primitives::{EraIndex, Rate, Ratio};
 

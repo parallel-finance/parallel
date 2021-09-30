@@ -75,8 +75,7 @@ pub mod pallet {
 
         /// Currency type for deposit/withdraw assets to/from amm
         /// module
-        type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
-
+		type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
         #[pallet::constant]
         type PalletId: Get<PalletId>;
 

@@ -1,5 +1,10 @@
 # CHANGE LOG
 
+## 2021.09.26
+
+- Bump to polkadot-v0.9.10 (#637)
+- Migrate to xcm v1 (#637)
+
 ## 2021.09.18
 
 - Use ubuntu20.04 as base docker image (#605)

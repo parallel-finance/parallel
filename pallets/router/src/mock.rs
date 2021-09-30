@@ -16,12 +16,13 @@
 
 use super::*;
 use crate as pallet_route;
+
 use frame_support::{construct_runtime, parameter_types, PalletId};
 use frame_system::EnsureRoot;
-use primitives::AssetId;
-pub use primitives::{tokens, Amount, Balance, AMM};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
+
+pub use primitives::{tokens, Amount, Balance, CurrencyId, AMM};
 
 pub type AccountId = u128;
 pub type BlockNumber = u64;
@@ -31,10 +32,10 @@ pub const BOB: AccountId = 2;
 pub const CHARLIE: AccountId = 3;
 pub const DAVE: AccountId = 4;
 
-pub const DOT: AssetId = tokens::DOT;
-pub const XDOT: AssetId = tokens::XDOT;
-pub const USDT: AssetId = tokens::USDT;
-pub const KSM: AssetId = tokens::KSM;
+pub const DOT: CurrencyId = tokens::DOT;
+pub const XDOT: CurrencyId = tokens::XDOT;
+pub const USDT: CurrencyId = tokens::USDT;
+pub const KSM: CurrencyId = tokens::KSM;
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
@@ -130,13 +131,13 @@ impl pallet_amm::Config for Runtime {
 }
 
 parameter_types! {
-    pub const NativeCurrency: AssetId = 0;
+    pub const NativeCurrencyId: CurrencyId = 0;
 }
 
 impl pallet_currency_adapter::Config for Runtime {
     type Assets = Assets;
     type Balances = Balances;
-    type GetNativeCurrencyId = NativeCurrency;
+    type GetNativeCurrencyId = NativeCurrencyId;
 }
 
 parameter_types! {
