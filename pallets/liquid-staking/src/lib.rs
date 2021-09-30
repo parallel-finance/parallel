@@ -304,7 +304,7 @@ mod pallet {
                     &Self::account_id(),
                     who,
                     *amount,
-                    true,
+                    false,
                 )
                 .is_err()
                 {
@@ -369,7 +369,7 @@ mod pallet {
                 &who,
                 &Self::account_id(),
                 amount,
-                true,
+                false,
             )?;
             T::Assets::mint_into(
                 Self::liquid_currency().ok_or(Error::<T>::LiquidCurrencyNotSet)?,
@@ -417,7 +417,7 @@ mod pallet {
                 &Self::account_id(),
                 &who,
                 asset_amount,
-                true,
+                false,
             )
             .is_err()
             {
@@ -457,7 +457,10 @@ mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
             kind: StakingSettlementKind,
         ) -> DispatchResultWithPostInfo {
-            Self::ensure_settlement_not_recorded(era_index, kind)?;
+            ensure!(
+                !StakingSettlementRecords::<T>::contains_key(era_index, kind),
+                Error::<T>::StakingSettlementAlreadyRecorded
+            );
             Self::update_staking_pool(kind, amount)?;
 
             StakingSettlementRecords::<T>::insert(era_index, kind, amount);
@@ -529,19 +532,6 @@ mod pallet {
         BalanceOf<T>: FixedPointOperand,
         AssetIdOf<T>: AtLeast32BitUnsigned,
     {
-        /// Ensure settlement not recorded for this `era_index`.
-        #[inline]
-        fn ensure_settlement_not_recorded(
-            era_index: EraIndex,
-            kind: StakingSettlementKind,
-        ) -> DispatchResult {
-            ensure!(
-                !StakingSettlementRecords::<T>::contains_key(era_index, kind),
-                Error::<T>::StakingSettlementAlreadyRecorded
-            );
-            Ok(())
-        }
-
         /// Increase/Decrease staked asset in staking pool, and synchronized the exchange rate.
         fn update_staking_pool(
             kind: StakingSettlementKind,
