@@ -65,17 +65,17 @@ pub type BalanceOf<T, I = ()> =
 pub mod pallet {
     use super::*;
     use frame_system::ensure_root;
-    use primitives::AssetId;
+    use primitives::CurrencyId;
 
     #[pallet::config]
     pub trait Config<I: 'static = ()>:
-        frame_system::Config + pallet_assets::Config<AssetId = AssetId, Balance = Balance>
+        frame_system::Config + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>
     {
         type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Currency type for deposit/withdraw assets to/from amm
         /// module
-		type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
+        type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
         #[pallet::constant]
         type PalletId: Get<PalletId>;
 
@@ -120,7 +120,7 @@ pub mod pallet {
 
     #[pallet::event]
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
-    #[pallet::metadata(T::AccountId = "AccountId", AssetIdOf<T, I> = "AssetId")]
+    #[pallet::metadata(T::AccountId = "AccountId", AssetIdOf<T, I> = "CurrencyId")]
     pub enum Event<T: Config<I>, I: 'static = ()> {
         /// Add liquidity into pool
         /// [sender, currency_id, currency_id]
@@ -141,10 +141,10 @@ pub mod pallet {
 
     #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
     #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-    pub struct PoolLiquidityAmount<AssetId, Balance> {
+    pub struct PoolLiquidityAmount<CurrencyId, Balance> {
         pub base_amount: Balance,
         pub quote_amount: Balance,
-        pub pool_assets: AssetId,
+        pub pool_assets: CurrencyId,
     }
 
     /// The exchange rate from the underlying to the internal collateral

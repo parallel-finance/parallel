@@ -45,7 +45,7 @@ pub mod pallet {
         ensure_signed,
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
-    use primitives::{AssetId, Balance, AMM};
+    use primitives::{Balance, CurrencyId, AMM};
     use sp_runtime::traits::One;
     use sp_runtime::traits::{AtLeast32BitUnsigned, Zero};
     use sp_runtime::FixedPointOperand;
@@ -68,7 +68,7 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config<I: 'static = ()>:
         frame_system::Config
-        + pallet_assets::Config<AssetId = AssetId, Balance = Balance>
+        + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>
         + pallet_amm::Config
     {
         type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;

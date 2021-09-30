@@ -130,7 +130,7 @@ parameter_types! {
 impl pallet_assets::Config for Test {
     type Event = Event;
     type Balance = Balance;
-    type AssetId = AssetId;
+    type AssetId = CurrencyId;
     type Currency = Balances;
     type ForceOrigin = EnsureRoot<AccountId>;
     type AssetDeposit = AssetDeposit;

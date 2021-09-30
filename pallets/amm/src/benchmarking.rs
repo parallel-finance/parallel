@@ -11,7 +11,7 @@ use frame_benchmarking::{
 use frame_support::assert_ok;
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::tokens::*;
-use primitives::{tokens, AssetId};
+use primitives::{tokens, CurrencyId};
 use sp_std::prelude::*;
 
 const BASE_ASSET: CurrencyId = XDOT;

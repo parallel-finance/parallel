@@ -19,13 +19,13 @@ use frame_support::{
     BoundedVec,
 };
 use frame_system::{self, RawOrigin as SystemOrigin};
-use primitives::{tokens, AssetId};
+use primitives::{tokens, CurrencyId};
 use sp_runtime::traits::AtLeast32BitUnsigned;
 use sp_runtime::traits::StaticLookup;
 use sp_runtime::FixedPointOperand;
 
-const DOT: AssetId = tokens::DOT;
-const XDOT: AssetId = tokens::XDOT;
+const DOT: CurrencyId = tokens::DOT;
+const XDOT: CurrencyId = tokens::XDOT;
 const INITIAL_AMOUNT: u128 = 1000_000_000_000_000;
 const ASSET_ID: u32 = 10;
 
