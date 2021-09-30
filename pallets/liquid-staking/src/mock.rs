@@ -285,7 +285,6 @@ impl SortedMembers<AccountId> for BobOrigin {
     }
 }
 
-pub type BridgeOrigin = EnsureSignedBy<AliceOrigin, AccountId>;
 pub type UpdateOrigin = EnsureSignedBy<BobOrigin, AccountId>;
 
 parameter_types! {
@@ -313,7 +312,6 @@ impl DerivativeProvider<AccountId> for DerivativeProviderT {
 impl crate::Config for Test {
     type Event = Event;
     type PalletId = StakingPalletId;
-    type BridgeOrigin = BridgeOrigin;
     type BaseXcmWeight = BaseXcmWeight;
     type XcmTransfer = XTokens;
     type RelayAgent = RelayAgent;

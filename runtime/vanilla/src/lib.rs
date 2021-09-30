@@ -28,14 +28,14 @@ use cumulus_primitives_core::ParaId;
 use frame_support::{
     dispatch::Weight,
     log,
-    traits::{fungibles::Mutate, Contains, Everything, IsInVec},
+    traits::{fungibles::Mutate, Contains, Everything},
     PalletId,
 };
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureOneOf, EnsureRoot, EnsureSignedBy,
+    EnsureOneOf, EnsureRoot,
 };
-use hex_literal::hex;
+
 use orml_traits::{DataProvider, DataProviderExtended};
 use orml_xcm_support::{IsNativeConcrete, MultiNativeAsset};
 use polkadot_parachain::primitives::Sibling;
@@ -419,22 +419,23 @@ impl pallet_loans::Config for Runtime {
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub RelayAgent: MultiLocation = MultiLocation::new(
-        1,
-        X1(AccountId32{
-            network: NetworkId::Any,
-            // Dave
-            id: hex!["306721211d5404bd9da88e0204360a1a9ab8b87c66c1bc2fcdd37f3c2222cc20"]
-        })
-    );
     pub const PeriodBasis: BlockNumber = 1000u32;
-    pub BridgeAccount: Vec<AccountId> = vec![hex!["306721211d5404bd9da88e0204360a1a9ab8b87c66c1bc2fcdd37f3c2222cc20"].into()];
+    pub const DerivativeIndex: u16 = 0;
+    pub const UnstakeQueueCapacity: u32 = 1000;
+    pub RelayAgent: AccountId = ParachainInfo::parachain_id().into_account();
+}
+
+pub struct DerivativeProviderT;
+
+impl DerivativeProvider<AccountId> for DerivativeProviderT {
+    fn derivative_account_id(who: AccountId, index: u16) -> AccountId {
+        Utility::derivative_account_id(who, index)
+    }
 }
 
 impl pallet_liquid_staking::Config for Runtime {
     type Event = Event;
     type PalletId = StakingPalletId;
-    type BridgeOrigin = EnsureSignedBy<IsInVec<BridgeAccount>, AccountId>;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = ();
     type XcmTransfer = XTokens;
@@ -442,6 +443,10 @@ impl pallet_liquid_staking::Config for Runtime {
     type PeriodBasis = PeriodBasis;
     type BaseXcmWeight = BaseXcmWeight;
     type Assets = Assets;
+    type XcmSender = XcmRouter;
+    type DerivativeIndex = DerivativeIndex;
+    type DerivativeProvider = DerivativeProviderT;
+    type UnstakeQueueCapacity = UnstakeQueueCapacity;
 }
 
 parameter_types! {

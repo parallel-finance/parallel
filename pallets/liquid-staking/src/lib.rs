@@ -81,9 +81,6 @@ mod pallet {
         /// Assets for deposit/withdraw assets to/from pallet account
         type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
 
-        /// Offchain bridge accout who manages staking currency in relaychain.
-        type BridgeOrigin: EnsureOrigin<Self::Origin>;
-
         /// The origin which can update liquid currency, staking currency
         type UpdateOrigin: EnsureOrigin<Self::Origin>;
 
@@ -454,12 +451,11 @@ mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::record_staking_settlement())]
         #[transactional]
         pub fn record_staking_settlement(
-            origin: OriginFor<T>,
+            _origin: OriginFor<T>,
             era_index: EraIndex,
             #[pallet::compact] amount: BalanceOf<T>,
             kind: StakingSettlementKind,
         ) -> DispatchResultWithPostInfo {
-            T::BridgeOrigin::ensure_origin(origin)?;
             Self::ensure_settlement_not_recorded(era_index, kind)?;
             Self::update_staking_pool(kind, amount)?;
 
@@ -477,10 +473,9 @@ mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::settlement())]
         #[transactional]
         pub fn settlement(
-            origin: OriginFor<T>,
+            _origin: OriginFor<T>,
             #[pallet::compact] unbonding_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
-            T::BridgeOrigin::ensure_origin(origin)?;
             let (bond_amount, rebond_amount, unbond_amount) =
                 MatchingPool::<T>::take().matching(unbonding_amount);
 
