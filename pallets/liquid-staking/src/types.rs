@@ -25,41 +25,6 @@ pub struct MatchingLedger<Balance> {
     pub total_unstake_amount: Balance,
 }
 
-impl<Balance> MatchingLedger<Balance>
-where
-    Balance: AtLeast32BitUnsigned + Copy + Clone,
-{
-    /// Matching requests in current period.
-    ///
-    /// `unbonding_amount` is the total amount of the unbonding asset in relaychain.
-    ///
-    /// the returned tri-tuple is formed as `(bond_amount, rebond_amount, unbond_amount)`.
-    pub fn matching(&self, unbonding_amount: Balance) -> (Balance, Balance, Balance) {
-        use Ordering::*;
-
-        match self.total_stake_amount.cmp(&self.total_unstake_amount) {
-            Greater => {
-                let amount = self.total_stake_amount - self.total_unstake_amount;
-                if amount < unbonding_amount {
-                    (Zero::zero(), amount, Zero::zero())
-                } else {
-                    (amount - unbonding_amount, unbonding_amount, Zero::zero())
-                }
-            }
-            Less | Equal => (
-                Zero::zero(),
-                Zero::zero(),
-                self.total_unstake_amount - self.total_stake_amount,
-            ),
-        }
-    }
-
-    #[inline]
-    pub fn is_empty(&self) -> bool {
-        self.total_stake_amount.is_zero() && self.total_unstake_amount.is_zero()
-    }
-}
-
 /// A destination account for payment.
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug)]
 pub enum RewardDestination<AccountId> {
@@ -253,4 +218,38 @@ pub enum RelaychainCall<T: Config> {
     Staking(StakingCall<T>),
     #[codec(index = 26)]
     Utility(Box<UtilityCall<Self>>),
+}
+
+impl<Balance: AtLeast32BitUnsigned + Copy + Clone> MatchingLedger<Balance> {
+    /// Matching requests in current period.
+    ///
+    /// `unbonding_amount` is the total amount of the unbonding asset in relaychain.
+    ///
+    /// the returned tri-tuple is formed as `(bond_amount, rebond_amount, unbond_amount)`.
+    pub fn matching(&self, unbonding_amount: Balance) -> (Balance, Balance, Balance) {
+        use Ordering::*;
+
+        if matches!(
+            self.total_stake_amount.cmp(&self.total_unstake_amount),
+            Less | Equal
+        ) {
+            return (
+                Zero::zero(),
+                Zero::zero(),
+                self.total_unstake_amount - self.total_stake_amount,
+            );
+        }
+
+        let amount = self.total_stake_amount - self.total_unstake_amount;
+        if amount < unbonding_amount {
+            (Zero::zero(), amount, Zero::zero())
+        } else {
+            (amount - unbonding_amount, unbonding_amount, Zero::zero())
+        }
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.total_stake_amount.is_zero() && self.total_unstake_amount.is_zero()
+    }
 }
