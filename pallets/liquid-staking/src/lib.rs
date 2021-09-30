@@ -469,8 +469,6 @@ mod pallet {
         ///
         /// Calculate the imbalance of current state and send corresponding operations to
         /// relay-chain.
-        ///
-        /// NOTE: currently it finished by stake-client.
         #[pallet::weight(<T as Config>::WeightInfo::settlement())]
         #[transactional]
         pub fn settlement(
