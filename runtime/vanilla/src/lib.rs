@@ -436,6 +436,7 @@ impl DerivativeProvider<AccountId> for DerivativeProviderT {
 impl pallet_liquid_staking::Config for Runtime {
     type Event = Event;
     type PalletId = StakingPalletId;
+    type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = ();
     type XcmTransfer = XTokens;

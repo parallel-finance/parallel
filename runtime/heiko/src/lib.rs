@@ -475,6 +475,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type PeriodBasis = PeriodBasis;
     type BaseXcmWeight = BaseXcmWeight;
     type Assets = Assets;
+    type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type XcmSender = XcmRouter;
     type DerivativeIndex = DerivativeIndex;

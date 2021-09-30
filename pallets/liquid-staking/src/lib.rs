@@ -82,6 +82,9 @@ mod pallet {
         /// Assets for deposit/withdraw assets to/from pallet account
         type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
 
+        /// The origin which can do operation on relaychain using sovereign account
+        type RelayOrigin: EnsureOrigin<Self::Origin>;
+
         /// The origin which can update liquid currency, staking currency
         type UpdateOrigin: EnsureOrigin<Self::Origin>;
 

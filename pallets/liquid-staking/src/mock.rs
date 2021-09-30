@@ -285,6 +285,7 @@ impl SortedMembers<AccountId> for BobOrigin {
     }
 }
 
+pub type RelayOrigin = EnsureSignedBy<AliceOrigin, AccountId>;
 pub type UpdateOrigin = EnsureSignedBy<BobOrigin, AccountId>;
 
 parameter_types! {
@@ -321,6 +322,7 @@ impl crate::Config for Test {
     type DerivativeIndex = DerivativeIndex;
     type DerivativeProvider = DerivativeProviderT;
     type Assets = Assets;
+    type RelayOrigin = RelayOrigin;
     type UpdateOrigin = UpdateOrigin;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;
 }
