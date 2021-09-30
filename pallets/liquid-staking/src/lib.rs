@@ -22,9 +22,10 @@
 
 #[cfg(test)]
 mod mock;
-pub mod relaychain;
 #[cfg(test)]
 mod tests;
+
+pub mod relaychain;
 pub mod types;
 pub mod weights;
 
@@ -575,7 +576,6 @@ mod pallet {
         /// Push an unstake task into queue.
         #[inline]
         fn push_unstake_task(who: &T::AccountId, amount: BalanceOf<T>) -> DispatchResult {
-            // UnstakeQueue::<T>::mutate(|q| q.push((who.clone(), amount)))
             UnstakeQueue::<T>::try_mutate(|q| -> DispatchResult {
                 q.try_push((who.clone(), amount))
                     .map_err(|_| Error::<T>::ExceededUnstakeQueueCapacity)?;

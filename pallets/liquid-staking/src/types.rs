@@ -4,7 +4,7 @@ use sp_runtime::{
     traits::{AtLeast32BitUnsigned, StaticLookup, Zero},
     RuntimeDebug,
 };
-use sp_std::{cmp::Ordering, vec::Vec};
+use sp_std::{boxed::Box, cmp::Ordering, vec::Vec};
 
 /// Category of staking settlement at the end of era.
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug)]
@@ -200,53 +200,35 @@ pub enum UtilityCall<RelaychainCall> {
     BatchAll(UtilityBatchAllCall<RelaychainCall>),
 }
 
-pub mod westend {
-    use super::*;
-
-    #[derive(Encode, Decode, RuntimeDebug)]
-    pub enum RelaychainCall<T: Config> {
-        #[codec(index = 4)]
-        Balances(BalancesCall<T>),
-        #[codec(index = 6)]
-        Staking(StakingCall<T>),
-        #[codec(index = 16)]
-        Utility(Box<UtilityCall<Self>>),
-    }
-}
-
-pub mod kusama {
-    use super::*;
-
-    #[derive(Encode, Decode, RuntimeDebug)]
-    pub enum RelaychainCall<T: Config> {
-        #[codec(index = 4)]
-        Balances(BalancesCall<T>),
-        #[codec(index = 6)]
-        Staking(StakingCall<T>),
-        #[codec(index = 24)]
-        Utility(Box<UtilityCall<Self>>),
-    }
-}
-
-pub mod polkadot {
-    use super::*;
-
-    #[derive(Encode, Decode, RuntimeDebug)]
-    pub enum RelaychainCall<T: Config> {
-        #[codec(index = 5)]
-        Balances(BalancesCall<T>),
-        #[codec(index = 7)]
-        Staking(StakingCall<T>),
-        #[codec(index = 26)]
-        Utility(Box<UtilityCall<Self>>),
-    }
-}
-
 #[cfg(feature = "westend")]
-pub use westend::RelaychainCall;
+#[derive(Encode, Decode, RuntimeDebug)]
+pub enum RelaychainCall<T: Config> {
+    #[codec(index = 4)]
+    Balances(BalancesCall<T>),
+    #[codec(index = 6)]
+    Staking(StakingCall<T>),
+    #[codec(index = 16)]
+    Utility(Box<UtilityCall<Self>>),
+}
 
 #[cfg(feature = "kusama")]
-pub use kusama::RelaychainCall;
+#[derive(Encode, Decode, RuntimeDebug)]
+pub enum RelaychainCall<T: Config> {
+    #[codec(index = 4)]
+    Balances(BalancesCall<T>),
+    #[codec(index = 6)]
+    Staking(StakingCall<T>),
+    #[codec(index = 24)]
+    Utility(Box<UtilityCall<Self>>),
+}
 
 #[cfg(feature = "polkadot")]
-pub use polkadot::RelaychainCall;
+#[derive(Encode, Decode, RuntimeDebug)]
+pub enum RelaychainCall<T: Config> {
+    #[codec(index = 5)]
+    Balances(BalancesCall<T>),
+    #[codec(index = 7)]
+    Staking(StakingCall<T>),
+    #[codec(index = 26)]
+    Utility(Box<UtilityCall<Self>>),
+}
