@@ -21,6 +21,7 @@ use frame_support::{
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{tokens, CurrencyId};
 use sp_runtime::traits::AtLeast32BitUnsigned;
+use sp_runtime::traits::One;
 use sp_runtime::traits::StaticLookup;
 use sp_runtime::FixedPointOperand;
 
@@ -35,8 +36,6 @@ fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::
 
 fn initial_set_up<T: Config<I>, I: 'static>(caller: T::AccountId)
 where
-    BalanceOf<T, I>: FixedPointOperand,
-    AssetIdOf<T, I>: AtLeast32BitUnsigned,
     <<T as crate::Config<I>>::Assets as Inspect<T::AccountId>>::Balance: From<u128>,
     <<T as crate::Config<I>>::Assets as Inspect<T::AccountId>>::AssetId: From<u32>,
     <<T as pallet_amm::Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance:
@@ -52,19 +51,19 @@ where
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        tokens::XDOT,
+        tokens::XDOT.into(),
         account_id.clone(),
         true,
-        1,
+        One::one(),
     )
     .ok();
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        tokens::DOT,
+        tokens::DOT.into(),
         account_id.clone(),
         true,
-        1,
+        One::one(),
     )
     .ok();
 

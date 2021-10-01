@@ -33,19 +33,19 @@ where
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        tokens::XDOT,
+        tokens::XDOT.into(),
         account_id.clone(),
         true,
-        1,
+        One::one(),
     )
     .ok();
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        tokens::DOT,
+        tokens::DOT.into(),
         account_id.clone(),
         true,
-        1,
+        One::one(),
     )
     .ok();
 

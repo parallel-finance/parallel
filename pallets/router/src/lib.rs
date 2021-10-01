@@ -45,7 +45,7 @@ pub mod pallet {
         ensure_signed,
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
-    use primitives::{Balance, CurrencyId, AMM};
+    use primitives::AMM;
     use sp_runtime::traits::One;
     use sp_runtime::traits::{AtLeast32BitUnsigned, Zero};
     use sp_runtime::FixedPointOperand;
@@ -66,11 +66,7 @@ pub mod pallet {
         <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 
     #[pallet::config]
-    pub trait Config<I: 'static = ()>:
-        frame_system::Config
-        + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>
-        + pallet_amm::Config
-    {
+    pub trait Config<I: 'static = ()>: frame_system::Config + pallet_amm::Config {
         type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Router pallet id

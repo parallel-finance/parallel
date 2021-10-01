@@ -41,7 +41,7 @@ use frame_support::{
 };
 use frame_system::{ensure_signed, pallet_prelude::OriginFor, RawOrigin};
 pub use pallet::*;
-use primitives::{Balance, Rate};
+use primitives::Rate;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::traits::UniqueSaturatedInto;
@@ -65,11 +65,11 @@ pub type BalanceOf<T, I = ()> =
 pub mod pallet {
     use super::*;
     use frame_system::ensure_root;
-    use primitives::CurrencyId;
 
     #[pallet::config]
     pub trait Config<I: 'static = ()>:
-        frame_system::Config + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>
+        frame_system::Config
+        + pallet_assets::Config<AssetId = AssetIdOf<Self, I>, Balance = BalanceOf<Self, I>>
     {
         type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
 
@@ -524,7 +524,7 @@ where
             asset_id.unique_saturated_into(),
             T::Lookup::unlookup(Self::account_id()),
             true,
-            1,
+            One::one(),
         )?;
 
         Ok(())
