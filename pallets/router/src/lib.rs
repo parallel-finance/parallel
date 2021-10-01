@@ -36,7 +36,7 @@ pub mod pallet {
         ensure,
         pallet_prelude::DispatchResultWithPostInfo,
         traits::{
-            tokens::fungibles::{self, Inspect},
+            fungibles::{Inspect, Mutate, Transfer},
             Get, Hooks, IsType,
         },
         transactional, BoundedVec, PalletId,
@@ -45,25 +45,28 @@ pub mod pallet {
         ensure_signed,
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
-    use primitives::{Balance, CurrencyId, AMM};
-    use sp_runtime::traits::Zero;
+    use primitives::AMM;
+    use sp_runtime::traits::One;
+    use sp_runtime::traits::{AtLeast32BitUnsigned, Zero};
+    use sp_runtime::FixedPointOperand;
 
     pub type Route<T, I> = BoundedVec<
         (
             // Base asset
-            CurrencyId,
+            AssetIdOf<T, I>,
             // Quote asset
-            CurrencyId,
+            AssetIdOf<T, I>,
         ),
         <T as Config<I>>::MaxLengthRoute,
     >;
 
+    pub(crate) type AssetIdOf<T, I = ()> =
+        <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
+    pub(crate) type BalanceOf<T, I = ()> =
+        <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
+
     #[pallet::config]
-    pub trait Config<I: 'static = ()>:
-        frame_system::Config
-        + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>
-        + pallet_amm::Config
-    {
+    pub trait Config<I: 'static = ()>: frame_system::Config + pallet_amm::Config {
         type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Router pallet id
@@ -71,7 +74,7 @@ pub mod pallet {
         type RouterPalletId: Get<PalletId>;
 
         /// Specify all the AMMs we are routing between
-        type AMM: AMM<Self>;
+        type AMM: AMM<Self, AssetIdOf<Self, I>, BalanceOf<Self, I>>;
 
         /// Weight information for extrinsics in this pallet.
         type AMMRouterWeightInfo: WeightInfo;
@@ -82,9 +85,7 @@ pub mod pallet {
 
         /// Currency type for deposit/withdraw assets to/from amm route
         /// module
-        type Assets: fungibles::Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
-            + fungibles::Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
-            + fungibles::Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
+        type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
     }
 
     #[pallet::pallet]
@@ -109,19 +110,23 @@ pub mod pallet {
     }
 
     #[pallet::event]
-    #[pallet::metadata(T::AccountId = "AccountId", BalanceOf<T> = "Balance")]
+    #[pallet::metadata(T::AccountId = "AccountId", BalanceOf<T, I> = "Balance")]
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config<I>, I: 'static = ()> {
         /// Event emitted when swap is successful
         /// [sender, amount_in, route, amount_out]
-        TradedSuccessfully(T::AccountId, Balance, Route<T, I>, Balance),
+        TradedSuccessfully(T::AccountId, BalanceOf<T, I>, Route<T, I>, BalanceOf<T, I>),
     }
 
     #[pallet::hooks]
     impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {}
 
     #[pallet::call]
-    impl<T: Config<I>, I: 'static> Pallet<T, I> {
+    impl<T: Config<I>, I: 'static> Pallet<T, I>
+    where
+        BalanceOf<T, I>: FixedPointOperand,
+        AssetIdOf<T, I>: AtLeast32BitUnsigned,
+    {
         /// According specified route order to execute which pool or AMM instance.
         ///
         /// - `origin`: the trader.
@@ -134,8 +139,8 @@ pub mod pallet {
         pub fn trade(
             origin: OriginFor<T>,
             route: Route<T, I>,
-            #[pallet::compact] mut amount_in: Balance,
-            #[pallet::compact] min_amount_out: Balance,
+            #[pallet::compact] mut amount_in: BalanceOf<T, I>,
+            #[pallet::compact] min_amount_out: BalanceOf<T, I>,
             #[pallet::compact] expiry: BlockNumberFor<T>,
         ) -> DispatchResultWithPostInfo {
             let trader = ensure_signed(origin)?;
@@ -171,11 +176,15 @@ pub mod pallet {
             );
 
             let original_amount_in = amount_in;
-            let mut amount_out: Balance = Zero::zero();
+            let mut amount_out: BalanceOf<T, I> = Zero::zero();
             for sub_route in route.iter() {
                 let (from_currency_id, to_currency_id) = sub_route;
-                amount_out =
-                    T::AMM::trade(&trader, (*from_currency_id, *to_currency_id), amount_in, 1)?;
+                amount_out = T::AMM::trade(
+                    &trader,
+                    (*from_currency_id, *to_currency_id),
+                    amount_in,
+                    One::one(),
+                )?;
                 amount_in = amount_out;
             }
 

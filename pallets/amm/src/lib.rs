@@ -26,12 +26,10 @@ mod mock;
 mod tests;
 
 mod benchmarking;
-mod pool_structs;
 
 pub mod weights;
 
-pub use pallet::*;
-
+use codec::{Decode, Encode};
 use frame_support::{
     dispatch::DispatchResult,
     pallet_prelude::*,
@@ -42,33 +40,42 @@ use frame_support::{
     transactional, Blake2_128Concat, PalletId, Twox64Concat,
 };
 use frame_system::{ensure_signed, pallet_prelude::OriginFor, RawOrigin};
-use pool_structs::PoolLiquidityAmount;
-use primitives::{Balance, CurrencyId, Rate};
+pub use pallet::*;
+use primitives::Rate;
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
+use sp_runtime::traits::UniqueSaturatedInto;
+use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedSub, Saturating};
+use sp_runtime::FixedU128;
+use sp_runtime::SaturatedConversion;
 use sp_runtime::{
-    traits::{AccountIdConversion, IntegerSquareRoot, StaticLookup},
-    ArithmeticError, DispatchError, Perbill,
+    traits::{
+        AccountIdConversion, AtLeast32BitUnsigned, IntegerSquareRoot, One, StaticLookup, Zero,
+    },
+    ArithmeticError, DispatchError, FixedPointOperand, Perbill,
 };
 pub use weights::WeightInfo;
+
+pub type AssetIdOf<T, I = ()> =
+    <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
+pub type BalanceOf<T, I = ()> =
+    <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use frame_support::traits::tokens::fungibles;
     use frame_system::ensure_root;
-    use primitives::CurrencyId;
 
     #[pallet::config]
     pub trait Config<I: 'static = ()>:
-        frame_system::Config + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>
+        frame_system::Config
+        + pallet_assets::Config<AssetId = AssetIdOf<Self, I>, Balance = BalanceOf<Self, I>>
     {
         type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Currency type for deposit/withdraw assets to/from amm
         /// module
-        type Assets: fungibles::Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
-            + fungibles::Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
-            + fungibles::Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
-
+        type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
         #[pallet::constant]
         type PalletId: Get<PalletId>;
 
@@ -113,16 +120,17 @@ pub mod pallet {
 
     #[pallet::event]
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
+    #[pallet::metadata(T::AccountId = "AccountId", AssetIdOf<T, I> = "CurrencyId")]
     pub enum Event<T: Config<I>, I: 'static = ()> {
         /// Add liquidity into pool
         /// [sender, currency_id, currency_id]
-        LiquidityAdded(T::AccountId, CurrencyId, CurrencyId),
+        LiquidityAdded(T::AccountId, AssetIdOf<T, I>, AssetIdOf<T, I>),
         /// Remove liquidity from pool
         /// [sender, currency_id, currency_id]
-        LiquidityRemoved(T::AccountId, CurrencyId, CurrencyId),
+        LiquidityRemoved(T::AccountId, AssetIdOf<T, I>, AssetIdOf<T, I>),
         /// Trade using liquidity
         /// [trader, currency_id_in, currency_id_out, rate_out_for_in]
-        Trade(T::AccountId, CurrencyId, CurrencyId, Rate),
+        Trade(T::AccountId, AssetIdOf<T, I>, AssetIdOf<T, I>, Rate),
     }
 
     #[pallet::hooks]
@@ -130,6 +138,14 @@ pub mod pallet {
 
     #[pallet::pallet]
     pub struct Pallet<T, I = ()>(_);
+
+    #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
+    #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+    pub struct PoolLiquidityAmount<CurrencyId, Balance> {
+        pub base_amount: Balance,
+        pub quote_amount: Balance,
+        pub pool_assets: CurrencyId,
+    }
 
     /// The exchange rate from the underlying to the internal collateral
     #[pallet::storage]
@@ -142,11 +158,11 @@ pub mod pallet {
         _,
         (
             NMapKey<Blake2_128Concat, T::AccountId>,
-            NMapKey<Blake2_128Concat, CurrencyId>,
-            NMapKey<Blake2_128Concat, CurrencyId>,
+            NMapKey<Blake2_128Concat, AssetIdOf<T, I>>,
+            NMapKey<Blake2_128Concat, AssetIdOf<T, I>>,
         ),
-        PoolLiquidityAmount,
-        ValueQuery,
+        PoolLiquidityAmount<AssetIdOf<T, I>, BalanceOf<T, I>>,
+        OptionQuery,
         GetDefault,
     >;
 
@@ -156,15 +172,19 @@ pub mod pallet {
     pub type Pools<T: Config<I>, I: 'static = ()> = StorageDoubleMap<
         _,
         Twox64Concat,
-        CurrencyId,
+        AssetIdOf<T, I>,
         Twox64Concat,
-        CurrencyId,
-        PoolLiquidityAmount,
+        AssetIdOf<T, I>,
+        PoolLiquidityAmount<AssetIdOf<T, I>, BalanceOf<T, I>>,
         OptionQuery,
     >;
 
     #[pallet::call]
-    impl<T: Config<I>, I: 'static> Pallet<T, I> {
+    impl<T: Config<I>, I: 'static> Pallet<T, I>
+    where
+        BalanceOf<T, I>: FixedPointOperand,
+        AssetIdOf<T, I>: AtLeast32BitUnsigned,
+    {
         /// Allow users to add liquidity to a given pool
         ///
         /// - `pool`: Currency pool, in which liquidity will be added
@@ -177,10 +197,10 @@ pub mod pallet {
         #[transactional]
         pub fn add_liquidity(
             origin: OriginFor<T>,
-            pool: (CurrencyId, CurrencyId),
-            liquidity_amounts: (Balance, Balance),
-            minimum_amounts: (Balance, Balance),
-            asset_id: CurrencyId,
+            pool: (AssetIdOf<T, I>, AssetIdOf<T, I>),
+            liquidity_amounts: (BalanceOf<T, I>, BalanceOf<T, I>),
+            minimum_amounts: (BalanceOf<T, I>, BalanceOf<T, I>),
+            asset_id: AssetIdOf<T, I>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             let (is_inverted, base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
@@ -202,17 +222,19 @@ pub mod pallet {
                             liquidity_amount.quote_amount,
                         );
 
-                        let (ideal_base_amount, ideal_quote_amount): (Balance, Balance) =
-                            if optimal_quote_amount <= quote_amount {
-                                (base_amount, optimal_quote_amount)
-                            } else {
-                                let optimal_base_amount = Self::quote(
-                                    quote_amount,
-                                    liquidity_amount.quote_amount,
-                                    liquidity_amount.base_amount,
-                                );
-                                (optimal_base_amount, quote_amount)
-                            };
+                        let (ideal_base_amount, ideal_quote_amount): (
+                            BalanceOf<T, I>,
+                            BalanceOf<T, I>,
+                        ) = if optimal_quote_amount <= quote_amount {
+                            (base_amount, optimal_quote_amount)
+                        } else {
+                            let optimal_base_amount = Self::quote(
+                                quote_amount,
+                                liquidity_amount.quote_amount,
+                                liquidity_amount.base_amount,
+                            );
+                            (optimal_base_amount, quote_amount)
+                        };
 
                         let (minimum_base_amount, minimum_quote_amount) = if is_inverted {
                             (minimum_amounts.1, minimum_amounts.0)
@@ -232,20 +254,20 @@ pub mod pallet {
                         let total_ownership = T::Assets::total_issuance(asset_id);
                         let ownership = sp_std::cmp::min(
                             (base_amount.saturating_mul(total_ownership))
-                                .checked_div(liquidity_amount.base_amount)
+                                .checked_div(&liquidity_amount.base_amount)
                                 .ok_or(ArithmeticError::Overflow)?,
                             (quote_amount.saturating_mul(total_ownership))
-                                .checked_div(liquidity_amount.quote_amount)
+                                .checked_div(&liquidity_amount.quote_amount)
                                 .ok_or(ArithmeticError::Overflow)?,
                         );
 
                         liquidity_amount.base_amount = liquidity_amount
                             .base_amount
-                            .checked_add(base_amount)
+                            .checked_add(&base_amount)
                             .ok_or(ArithmeticError::Overflow)?;
                         liquidity_amount.quote_amount = liquidity_amount
                             .quote_amount
-                            .checked_add(quote_amount)
+                            .checked_add(&quote_amount)
                             .ok_or(ArithmeticError::Overflow)?;
 
                         *pool_liquidity_amount = Some(*liquidity_amount);
@@ -253,14 +275,17 @@ pub mod pallet {
                         LiquidityProviders::<T, I>::try_mutate(
                             (&who, &base_asset, &quote_asset),
                             |pool_liquidity_amount| -> DispatchResult {
-                                pool_liquidity_amount.base_amount = pool_liquidity_amount
-                                    .base_amount
-                                    .checked_add(base_amount)
-                                    .ok_or(ArithmeticError::Overflow)?;
-                                pool_liquidity_amount.quote_amount = pool_liquidity_amount
-                                    .quote_amount
-                                    .checked_add(quote_amount)
-                                    .ok_or(ArithmeticError::Overflow)?;
+                                if let Some(liquidity_amount) = pool_liquidity_amount {
+                                    liquidity_amount.base_amount = liquidity_amount
+                                        .base_amount
+                                        .checked_add(&base_amount)
+                                        .ok_or(ArithmeticError::Overflow)?;
+                                    liquidity_amount.quote_amount = liquidity_amount
+                                        .quote_amount
+                                        .checked_add(&quote_amount)
+                                        .ok_or(ArithmeticError::Overflow)?;
+                                    *pool_liquidity_amount = Some(*liquidity_amount);
+                                }
                                 Ok(())
                             },
                         )?;
@@ -301,8 +326,8 @@ pub mod pallet {
         #[transactional]
         pub fn remove_liquidity(
             origin: OriginFor<T>,
-            pool: (CurrencyId, CurrencyId),
-            ownership_to_remove: Balance,
+            pool: (AssetIdOf<T, I>, AssetIdOf<T, I>),
+            ownership_to_remove: BalanceOf<T, I>,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
@@ -323,35 +348,36 @@ pub mod pallet {
 
                     let base_amount = (ownership_to_remove
                         .saturating_mul(liquidity_amount.base_amount))
-                    .checked_div(total_ownership)
+                    .checked_div(&total_ownership)
                     .ok_or(ArithmeticError::Underflow)?;
 
                     let quote_amount = (ownership_to_remove
                         .saturating_mul(liquidity_amount.quote_amount))
-                    .checked_div(total_ownership)
+                    .checked_div(&total_ownership)
                     .ok_or(ArithmeticError::Underflow)?;
 
                     liquidity_amount.base_amount = liquidity_amount
                         .base_amount
-                        .checked_sub(base_amount)
+                        .checked_sub(&base_amount)
                         .ok_or(ArithmeticError::Underflow)?;
                     liquidity_amount.quote_amount = liquidity_amount
                         .quote_amount
-                        .checked_sub(quote_amount)
+                        .checked_sub(&quote_amount)
                         .ok_or(ArithmeticError::Underflow)?;
 
                     LiquidityProviders::<T, I>::try_mutate(
                         (&who, &base_asset, &quote_asset),
                         |pool_liquidity_amount| -> DispatchResult {
-                            pool_liquidity_amount.base_amount = pool_liquidity_amount
-                                .base_amount
-                                .checked_sub(base_amount)
-                                .ok_or(ArithmeticError::Underflow)?;
-                            pool_liquidity_amount.quote_amount = pool_liquidity_amount
-                                .quote_amount
-                                .checked_sub(quote_amount)
-                                .ok_or(ArithmeticError::Underflow)?;
-
+                            if let Some(liquidity_amount) = pool_liquidity_amount {
+                                liquidity_amount.base_amount = liquidity_amount
+                                    .base_amount
+                                    .checked_sub(&base_amount)
+                                    .ok_or(ArithmeticError::Underflow)?;
+                                liquidity_amount.quote_amount = liquidity_amount
+                                    .quote_amount
+                                    .checked_sub(&quote_amount)
+                                    .ok_or(ArithmeticError::Underflow)?;
+                            }
                             Ok(())
                         },
                     )?;
@@ -385,10 +411,10 @@ pub mod pallet {
         #[transactional]
         pub fn force_create_pool(
             origin: OriginFor<T>,
-            pool: (CurrencyId, CurrencyId),
-            liquidity_amounts: (Balance, Balance),
+            pool: (AssetIdOf<T, I>, AssetIdOf<T, I>),
+            liquidity_amounts: (BalanceOf<T, I>, BalanceOf<T, I>),
             lptoken_receiver: T::AccountId,
-            asset_id: T::AssetId,
+            asset_id: AssetIdOf<T, I>,
         ) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
 
@@ -433,15 +459,19 @@ pub mod pallet {
     }
 }
 
-impl<T: Config<I>, I: 'static> Pallet<T, I> {
+impl<T: Config<I>, I: 'static> Pallet<T, I>
+where
+    BalanceOf<T, I>: FixedPointOperand,
+    AssetIdOf<T, I>: AtLeast32BitUnsigned,
+{
     pub fn account_id() -> T::AccountId {
         T::PalletId::get().into_account()
     }
 
     pub fn get_upper_currency(
-        curr_a: CurrencyId,
-        curr_b: CurrencyId,
-    ) -> (bool, CurrencyId, CurrencyId) {
+        curr_a: AssetIdOf<T, I>,
+        curr_b: AssetIdOf<T, I>,
+    ) -> (bool, AssetIdOf<T, I>, AssetIdOf<T, I>) {
         if curr_a > curr_b {
             (false, curr_a, curr_b)
         } else {
@@ -449,20 +479,24 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         }
     }
 
-    pub fn quote(amount: Balance, base_pool: Balance, quote_pool: Balance) -> Balance {
+    pub fn quote(
+        amount: BalanceOf<T, I>,
+        base_pool: BalanceOf<T, I>,
+        quote_pool: BalanceOf<T, I>,
+    ) -> BalanceOf<T, I> {
         (amount.saturating_mul(quote_pool))
-            .checked_div(base_pool)
+            .checked_div(&base_pool)
             .expect("cannot overflow with positive divisor; qed")
     }
 
     fn mint_transfer_liquidity(
         who: T::AccountId,
-        ownership: u128,
-        currency_asset: CurrencyId,
-        base_asset: CurrencyId,
-        quote_asset: CurrencyId,
-        base_amount: Balance,
-        quote_amount: Balance,
+        ownership: BalanceOf<T, I>,
+        currency_asset: AssetIdOf<T, I>,
+        base_asset: AssetIdOf<T, I>,
+        quote_asset: AssetIdOf<T, I>,
+        base_amount: BalanceOf<T, I>,
+        quote_amount: BalanceOf<T, I>,
     ) -> DispatchResult {
         T::Assets::mint_into(currency_asset, &who, ownership)?;
         T::Assets::transfer(base_asset, &who, &Self::account_id(), base_amount, true)?;
@@ -475,10 +509,10 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
     fn insert_into_liquidity_providers(
         lptoken_receiver: &T::AccountId,
-        asset_id: T::AssetId,
-        base_asset: &CurrencyId,
-        quote_asset: &CurrencyId,
-        amm_pool: PoolLiquidityAmount,
+        asset_id: AssetIdOf<T, I>,
+        base_asset: &AssetIdOf<T, I>,
+        quote_asset: &AssetIdOf<T, I>,
+        amm_pool: PoolLiquidityAmount<AssetIdOf<T, I>, BalanceOf<T, I>>,
     ) -> DispatchResult {
         LiquidityProviders::<T, I>::insert(
             (&lptoken_receiver, &base_asset, &quote_asset),
@@ -487,24 +521,24 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
         pallet_assets::Pallet::<T>::force_create(
             RawOrigin::Root.into(),
-            asset_id,
+            asset_id.unique_saturated_into(),
             T::Lookup::unlookup(Self::account_id()),
             true,
-            1,
+            One::one(),
         )?;
 
         Ok(())
     }
 
     fn add_new_liquidity(
-        asset_id: T::AssetId,
+        asset_id: AssetIdOf<T, I>,
         who: T::AccountId,
-        base_asset: CurrencyId,
-        quote_asset: CurrencyId,
-        base_amount: u128,
-        quote_amount: u128,
-        currency_asset: CurrencyId,
-        pool_liquidity_amount: &mut Option<PoolLiquidityAmount>,
+        base_asset: AssetIdOf<T, I>,
+        quote_asset: AssetIdOf<T, I>,
+        base_amount: BalanceOf<T, I>,
+        quote_amount: BalanceOf<T, I>,
+        currency_asset: AssetIdOf<T, I>,
+        pool_liquidity_amount: &mut Option<PoolLiquidityAmount<AssetIdOf<T, I>, BalanceOf<T, I>>>,
     ) -> DispatchResult {
         ensure!(
             T::AllowPermissionlessPoolCreation::get(),
@@ -534,13 +568,17 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     }
 }
 
-impl<T: Config<I>, I: 'static> primitives::AMM<T> for Pallet<T, I> {
+impl<T: Config<I>, I: 'static> primitives::AMM<T, AssetIdOf<T, I>, BalanceOf<T, I>> for Pallet<T, I>
+where
+    BalanceOf<T, I>: FixedPointOperand,
+    AssetIdOf<T, I>: AtLeast32BitUnsigned,
+{
     fn trade(
         who: &T::AccountId,
-        pair: (CurrencyId, CurrencyId),
-        amount_in: Balance,
-        minimum_amount_out: Balance,
-    ) -> Result<Balance, sp_runtime::DispatchError> {
+        pair: (AssetIdOf<T, I>, AssetIdOf<T, I>),
+        amount_in: BalanceOf<T, I>,
+        minimum_amount_out: BalanceOf<T, I>,
+    ) -> Result<BalanceOf<T, I>, sp_runtime::DispatchError> {
         // expand variables
         let (input_token, output_token) = pair;
 
@@ -552,7 +590,7 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T> for Pallet<T, I> {
         Pools::<T, I>::try_mutate(
             &base_asset,
             &quote_asset,
-            |pool_liquidity_amount| -> Result<Balance, DispatchError> {
+            |pool_liquidity_amount| -> Result<BalanceOf<T, I>, DispatchError> {
                 // 1. If the pool we want to trade does not exist in the current instance, error
                 let mut liquidity_amount = pool_liquidity_amount
                     .take()
@@ -567,8 +605,8 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T> for Pallet<T, I> {
 
                 // amount must incur at least 1 in lp fees
                 ensure!(
-                    amount_in >= T::LpFee::get().saturating_reciprocal_mul(1)
-                        && amount_in >= T::ProtocolFee::get().saturating_reciprocal_mul(1),
+                    amount_in >= T::LpFee::get().saturating_reciprocal_mul(One::one())
+                        && amount_in >= T::ProtocolFee::get().saturating_reciprocal_mul(One::one()),
                     Error::<T, I>::InsufficientAmountIn
                 );
 
@@ -579,12 +617,12 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T> for Pallet<T, I> {
 
                 // subtract protocol fees from amount_in
                 let amount_without_protocol_fees = amount_in
-                    .checked_sub(protocol_fees)
+                    .checked_sub(&protocol_fees)
                     .ok_or(ArithmeticError::Underflow)?;
 
                 // subtract lp fees from amount_in minus protocol fees
                 let amount_in_after_all_fees = amount_without_protocol_fees
-                    .checked_sub(lp_fees)
+                    .checked_sub(&lp_fees)
                     .ok_or(ArithmeticError::Underflow)?;
 
                 // 3. Given the input amount amount_in left after fees, compute amount_out
@@ -592,15 +630,15 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T> for Pallet<T, I> {
                 let amount_out = amount_in_after_all_fees
                     .saturating_mul(supply_out)
                     .checked_div(
-                        supply_in
-                            .checked_add(amount_in_after_all_fees)
+                        &supply_in
+                            .checked_add(&amount_in_after_all_fees)
                             .ok_or(ArithmeticError::Overflow)?,
                     )
                     .ok_or(ArithmeticError::Underflow)?;
 
                 // 4. If `amount_out` is lower than `min_amount_out`, error
                 ensure!(
-                    amount_out >= minimum_amount_out && amount_in > 0,
+                    amount_out >= minimum_amount_out && amount_in > Zero::zero(),
                     Error::<T, I>::InsufficientAmountOut
                 );
 
@@ -610,22 +648,22 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T> for Pallet<T, I> {
                 if is_inverted {
                     liquidity_amount.quote_amount = liquidity_amount
                         .quote_amount
-                        .checked_add(amount_without_protocol_fees)
+                        .checked_add(&amount_without_protocol_fees)
                         .ok_or(ArithmeticError::Overflow)?;
 
                     liquidity_amount.base_amount = liquidity_amount
                         .base_amount
-                        .checked_sub(amount_out)
+                        .checked_sub(&amount_out)
                         .ok_or(ArithmeticError::Underflow)?;
                 } else {
                     liquidity_amount.base_amount = liquidity_amount
                         .base_amount
-                        .checked_add(amount_without_protocol_fees)
+                        .checked_add(&amount_without_protocol_fees)
                         .ok_or(ArithmeticError::Overflow)?;
 
                     liquidity_amount.quote_amount = liquidity_amount
                         .quote_amount
-                        .checked_sub(amount_out)
+                        .checked_sub(&amount_out)
                         .ok_or(ArithmeticError::Underflow)?;
                 }
                 *pool_liquidity_amount = Some(liquidity_amount);
@@ -656,10 +694,9 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T> for Pallet<T, I> {
                     who.clone(),
                     base_asset,
                     quote_asset,
-                    amount_out
-                        .checked_div(amount_in)
-                        .ok_or(ArithmeticError::Underflow)?
-                        .into(),
+                    FixedU128::from_inner(amount_out.saturated_into())
+                        .checked_div(&FixedU128::from_inner(amount_in.saturated_into()))
+                        .ok_or(ArithmeticError::Underflow)?,
                 ));
 
                 // Return amount out for router pallet

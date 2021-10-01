@@ -5367,7 +5367,6 @@ version = "3.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
- "parallel-primitives",
  "parity-scale-codec",
  "sp-runtime",
 ]
