@@ -31,7 +31,7 @@ make help
 
 ### Local Testnet
 
-Polkadot (v0.9.9-1 branch)
+Polkadot (v0.9.10 branch)
 
 ```
 cargo build --release
@@ -139,7 +139,7 @@ docker run --restart=always --name parallel -d -p 9944:9944 \
     -d /data --chain /usr/local/bin/live.json --rpc-cors all --unsafe-ws-external
 ```
 
-Run Heiko Dev Network (via parachain-launch 1.0.3)
+Run Heiko Dev Network (via parachain-launch 1.0.4)
 
 ```
 make launch

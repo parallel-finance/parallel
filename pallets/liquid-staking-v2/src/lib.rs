@@ -46,7 +46,7 @@ mod pallet {
     };
     use orml_traits::{MultiCurrency, MultiCurrencyExtended, XcmTransfer};
     use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber};
-    use xcm::v0::MultiLocation;
+    use xcm::latest::prelude::*;
 
     use primitives::{Amount, Balance, CurrencyId, EraIndex, Rate};
 

@@ -21,6 +21,7 @@ jobs:
         with:
           lfs: true
           submodules: true
+          fetch-depth: 2
       - name: Checkout LFS objects
         run: git lfs checkout
       - name: Set up QEMU

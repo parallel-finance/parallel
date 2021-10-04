@@ -49,7 +49,7 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
-use xcm::v0::{Junction, MultiAsset, MultiLocation};
+use xcm::latest::prelude::*;
 
 // Import ORML dependcies
 use orml_currencies::BasicCurrencyAdapter;
@@ -71,7 +71,7 @@ pub use pallet_nominee_election;
 
 use currency::*;
 use fee::*;
-use primitives::*;
+use primitives::{Index, *};
 use time::*;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know

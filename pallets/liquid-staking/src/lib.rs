@@ -26,9 +26,8 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use orml_traits::XcmTransfer;
 use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber, RuntimeDebug};
-use sp_std::convert::TryInto;
-use sp_std::prelude::*;
-use xcm::v0::{Junction, MultiLocation, NetworkId};
+use sp_std::{convert::TryInto, prelude::*};
+use xcm::v1::prelude::*;
 
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 
@@ -317,12 +316,12 @@ pub mod pallet {
                 Self::account_id(),
                 T::StakingCurrency::get(),
                 amount,
-                MultiLocation::X2(
-                    Junction::Parent,
-                    Junction::AccountId32 {
+                MultiLocation::new(
+                    1,
+                    Junctions::X1(Junction::AccountId32 {
                         network: NetworkId::Any,
                         id: agent.clone().into(),
-                    },
+                    }),
                 ),
                 T::BaseXcmWeight::get(),
             )?;

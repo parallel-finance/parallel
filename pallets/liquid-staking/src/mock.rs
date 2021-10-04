@@ -19,7 +19,7 @@ use sp_runtime::{
     DispatchResult, FixedPointNumber, RuntimeDebug,
 };
 use sp_std::convert::TryInto;
-use xcm::v0::{Junction, MultiAsset, MultiLocation};
+use xcm::latest::prelude::*;
 
 pub const DOT: CurrencyId = CurrencyId::DOT;
 pub const XDOT: CurrencyId = CurrencyId::xDOT;

@@ -16,7 +16,7 @@ use sp_runtime::{
     traits::{AccountIdConversion, BlakeTwo256, IdentityLookup, One},
 };
 use sp_std::convert::TryInto;
-use xcm::v0::{Junction, MultiAsset, MultiLocation};
+use xcm::latest::prelude::*;
 
 use primitives::{Amount, Balance, CurrencyId, Rate};
 
@@ -158,12 +158,12 @@ parameter_types! {
     pub const StakingCurrency: CurrencyId = CurrencyId::DOT;
     pub const LiquidCurrency: CurrencyId = CurrencyId::xDOT;
     pub const BaseXcmWeight: Weight = 0;
-    pub const Agent: MultiLocation = MultiLocation::X2(
-        Junction::Parent,
-        Junction::AccountId32 {
+    pub Agent: MultiLocation = MultiLocation::new(
+        1,
+        Junctions::X1(Junction::AccountId32 {
            network: xcm::v0::NetworkId::Any,
            id: [0; 32]
-    }
+        })
     );
 }
 
