@@ -3,10 +3,10 @@ use crate::{
     Error, InterestRateModel, Market, MarketState,
 };
 use frame_support::{assert_noop, assert_ok, error::BadOrigin};
-use primitives::{Rate, Ratio};
+use primitives::{Balance, Rate, Ratio};
 use sp_runtime::FixedPointNumber;
 
-const ACTIVE_MARKET_MOCK: Market = {
+const ACTIVE_MARKET_MOCK: Market<Balance> = {
     let mut market = MARKET_MOCK;
     market.state = MarketState::Active;
     market

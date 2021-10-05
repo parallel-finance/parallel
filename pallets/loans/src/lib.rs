@@ -36,7 +36,9 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 pub use pallet::*;
-use primitives::{CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall, Timestamp};
+use primitives::{
+    Balance, CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall, Timestamp,
+};
 use sp_runtime::{
     traits::{
         AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub,
@@ -174,7 +176,7 @@ pub mod pallet {
         ),
         /// New interest rate model is set
         /// [new_interest_rate_model]
-        NewMarket(Market),
+        NewMarket(Market<BalanceOf<T>>),
         /// Event emitted when the reserves are reduced
         /// [admin, asset_id, reduced_amount, total_reserves]
         ReservesReduced(T::AccountId, AssetIdOf<T>, BalanceOf<T>, BalanceOf<T>),
@@ -287,14 +289,16 @@ pub mod pallet {
 
     /// Mapping of asset id to its market
     #[pallet::storage]
-    pub type Markets<T: Config> = StorageMap<_, Blake2_128Concat, AssetIdOf<T>, Market>;
+    pub type Markets<T: Config> =
+        StorageMap<_, Blake2_128Concat, AssetIdOf<T>, Market<BalanceOf<T>>>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig {
         pub borrow_index: Rate,
         pub exchange_rate: Rate,
         pub last_block_timestamp: Timestamp,
-        pub markets: Vec<(CurrencyId, Market)>,
+        // FIXME(Alan WANG): Use `BalanceOf`
+        pub markets: Vec<(CurrencyId, Market<Balance>)>,
     }
 
     #[cfg(feature = "std")]
@@ -429,7 +433,7 @@ pub mod pallet {
         pub fn add_market(
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
-            market: Market,
+            market: Market<BalanceOf<T>>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
             ensure!(
@@ -465,7 +469,7 @@ pub mod pallet {
         pub fn update_market(
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
-            market: Market,
+            market: Market<BalanceOf<T>>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
             ensure!(
@@ -480,6 +484,7 @@ pub mod pallet {
                     liquidate_incentive,
                     rate_model,
                     state: _,
+                    cap: _,
                 } = stored_market;
                 *collateral_factor = market.collateral_factor;
                 *reserve_factor = market.reserve_factor;
@@ -863,7 +868,7 @@ where
     fn collateral_asset_value(
         borrower: &T::AccountId,
         asset_id: AssetIdOf<T>,
-        market: &Market,
+        market: &Market<BalanceOf<T>>,
     ) -> Result<FixedU128, DispatchError> {
         if !AccountDeposits::<T>::contains_key(asset_id, borrower) {
             return Ok(FixedU128::zero());
@@ -902,7 +907,7 @@ where
         asset_id: AssetIdOf<T>,
         redeemer: &T::AccountId,
         voucher_amount: BalanceOf<T>,
-        market: &Market,
+        market: &Market<BalanceOf<T>>,
     ) -> DispatchResult {
         let deposit = Self::account_deposits(asset_id, redeemer);
         if deposit.voucher_balance < voucher_amount {
@@ -1077,7 +1082,7 @@ where
         borrower: &T::AccountId,
         liquidate_asset_id: AssetIdOf<T>,
         repay_amount: BalanceOf<T>,
-        market: &Market,
+        market: &Market<BalanceOf<T>>,
     ) -> DispatchResult {
         let (_, shortfall) = Self::get_account_liquidity(borrower)?;
         if shortfall.is_zero() {
@@ -1294,7 +1299,7 @@ where
     // Returns a stored Market.
     //
     // Returns `Err` if market does not exist.
-    pub fn market(asset_id: AssetIdOf<T>) -> Result<Market, DispatchError> {
+    pub fn market(asset_id: AssetIdOf<T>) -> Result<Market<BalanceOf<T>>, DispatchError> {
         Markets::<T>::try_get(asset_id).map_err(|_err| Error::<T>::MarketDoesNotExist.into())
     }
 
@@ -1303,7 +1308,7 @@ where
     // Returns `Err` if market does not exist.
     pub(crate) fn mutate_market<F>(asset_id: AssetIdOf<T>, cb: F) -> Result<(), DispatchError>
     where
-        F: FnOnce(&mut Market),
+        F: FnOnce(&mut Market<BalanceOf<T>>),
     {
         Markets::<T>::try_mutate(asset_id, |opt| {
             if let Some(market) = opt {
@@ -1315,7 +1320,7 @@ where
     }
 
     // All markets that are `MarketStatus::Active`.
-    fn active_markets() -> impl Iterator<Item = (AssetIdOf<T>, Market)> {
+    fn active_markets() -> impl Iterator<Item = (AssetIdOf<T>, Market<BalanceOf<T>>)> {
         Markets::<T>::iter().filter(|(_, market)| market.state == MarketState::Active)
     }
 }

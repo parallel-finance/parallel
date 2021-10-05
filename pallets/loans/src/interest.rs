@@ -105,7 +105,7 @@ where
     pub(crate) fn update_borrow_index(
         borrow_rate: Rate,
         asset_id: AssetIdOf<T>,
-        market: &Market,
+        market: &Market<BalanceOf<T>>,
     ) -> DispatchResult {
         let borrows_prior = Self::total_borrows(asset_id);
         let reserve_prior = Self::total_reserves(asset_id);

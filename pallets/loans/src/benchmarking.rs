@@ -16,7 +16,7 @@ const DOT: CurrencyId = 0;
 const KSM: CurrencyId = 1;
 const UNKNOWN: CurrencyId = 5;
 
-const MARKET_MOCK: Market = Market {
+const MARKET_MOCK: Market<Balance> = Market {
     close_factor: Ratio::from_percent(50),
     collateral_factor: Ratio::from_percent(50),
     liquidate_incentive: Rate::from_inner(Rate::DIV / 100 * 110),
@@ -29,7 +29,7 @@ const MARKET_MOCK: Market = Market {
     }),
     reserve_factor: Ratio::from_percent(15),
 };
-const PENDING_MARKET_MOCK: Market = {
+const PENDING_MARKET_MOCK: Market<Balance> = {
     let mut market = MARKET_MOCK;
     market.state = MarketState::Pending;
     market
