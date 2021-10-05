@@ -1241,7 +1241,7 @@ construct_runtime!(
         Vesting: orml_vesting::{Pallet, Storage, Call, Event<T>, Config<T>} = 46,
 
         // Loans
-        Loans: pallet_loans::{Pallet, Call, Storage, Event<T>, Config} = 50,
+        Loans: pallet_loans::{Pallet, Call, Storage, Event<T>} = 50,
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>} = 51,
         // Liquidation: pallet_liquidation::{Pallet, Call} = 52,
 
