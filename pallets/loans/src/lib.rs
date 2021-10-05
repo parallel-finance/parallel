@@ -292,64 +292,6 @@ pub mod pallet {
     #[pallet::storage]
     pub type Markets<T: Config> = StorageMap<_, Blake2_128Concat, AssetIdOf<T>, Market>;
 
-    #[pallet::genesis_config]
-    pub struct GenesisConfig {
-        pub borrow_index: Rate,
-        pub exchange_rate: Rate,
-        pub last_block_timestamp: Timestamp,
-        pub markets: Vec<(CurrencyId, Market)>,
-    }
-
-    #[cfg(feature = "std")]
-    impl Default for GenesisConfig {
-        fn default() -> Self {
-            GenesisConfig {
-                borrow_index: Rate::zero(),
-                exchange_rate: Rate::zero(),
-                markets: vec![],
-                last_block_timestamp: 0,
-            }
-        }
-    }
-
-    #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig {
-        fn build(&self) {
-            // self.markets.iter().for_each(|(currency_id, market)| {
-            // if !market.rate_model.check_model() {
-            //   panic!(
-            // 	"Could not initialize the interest rate model!!! {:#?}",
-            // 	currency_id
-            //   );
-            // }
-            // BorrowIndex::<T>::insert(currency_id, self.borrow_index);
-            // ExchangeRate::<T>::insert(currency_id, self.exchange_rate);
-            // Markets::<T>::insert(currency_id, market)
-            // });
-            // LastBlockTimestamp::<T>::put(self.last_block_timestamp);
-        }
-    }
-
-    #[cfg(feature = "std")]
-    impl GenesisConfig {
-        /// Direct implementation of `GenesisBuild::build_storage`.
-        ///
-        /// Kept in order not to break dependency.
-        pub fn build_storage<T: Config>(&self) -> Result<sp_runtime::Storage, String> {
-            <Self as frame_support::traits::GenesisBuild<T>>::build_storage(self)
-        }
-
-        /// Direct implementation of `GenesisBuild::assimilate_storage`.
-        ///
-        /// Kept in order not to break dependency.
-        pub fn assimilate_storage<T: Config>(
-            &self,
-            storage: &mut sp_runtime::Storage,
-        ) -> Result<(), String> {
-            <Self as frame_support::traits::GenesisBuild<T>>::assimilate_storage(self, storage)
-        }
-    }
-
     #[pallet::pallet]
     pub struct Pallet<T>(PhantomData<T>);
 
