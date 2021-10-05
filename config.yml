@@ -15,8 +15,8 @@ relaychain:
     - name: charlie
 
 statemine:
-  image: parallelfinance/polkadot:v0.9.9-1
-  chain: statemine-local
+  image: eteissonniere/statemine:polkadot-v0.9.9
+  chain: rococo-local
   runtimeGenesisConfig:
     configuration:
       config:
