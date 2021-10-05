@@ -15,7 +15,12 @@ fn add_liquidity_should_work() {
 
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 20);
 
-        assert_eq!(AMM::liquidity_providers((ALICE, XDOT, DOT)).base_amount, 20);
+        assert_eq!(
+            AMM::liquidity_providers((ALICE, XDOT, DOT))
+                .unwrap()
+                .base_amount,
+            20
+        );
     })
 }
 
@@ -40,10 +45,17 @@ fn add_more_liquidity_should_work() {
 
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 60);
 
-        assert_eq!(AMM::liquidity_providers((ALICE, XDOT, DOT)).base_amount, 60);
+        assert_eq!(
+            AMM::liquidity_providers((ALICE, XDOT, DOT))
+                .unwrap()
+                .base_amount,
+            60
+        );
 
         assert_eq!(
-            AMM::liquidity_providers((ALICE, XDOT, DOT)).quote_amount,
+            AMM::liquidity_providers((ALICE, XDOT, DOT))
+                .unwrap()
+                .quote_amount,
             30
         );
 
@@ -181,7 +193,12 @@ fn add_liquidity_should_work_if_created_by_root() {
 
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 20);
 
-        assert_eq!(AMM::liquidity_providers((ALICE, XDOT, DOT)).base_amount, 20);
+        assert_eq!(
+            AMM::liquidity_providers((ALICE, XDOT, DOT))
+                .unwrap()
+                .base_amount,
+            20
+        );
     })
 }
 
@@ -219,8 +236,10 @@ fn remove_liquidity_whole_share_should_work() {
         let _ = AMM::add_liquidity(Origin::signed(ALICE), (DOT, XDOT), (10, 90), (5, 5), 10);
 
         assert_eq!(
-            <Test as Config<pallet_balances::Instance1>>::AMMCurrency::total_issuance(
-                AMM::liquidity_providers((ALICE, XDOT, DOT)).pool_assets
+            <Test as Config<pallet_balances::Instance1>>::Assets::total_issuance(
+                AMM::liquidity_providers((ALICE, XDOT, DOT))
+                    .unwrap()
+                    .pool_assets
             ),
             30
         );
@@ -232,8 +251,10 @@ fn remove_liquidity_whole_share_should_work() {
         ));
 
         assert_eq!(
-            <Test as Config<pallet_balances::Instance1>>::AMMCurrency::total_issuance(
-                AMM::liquidity_providers((ALICE, XDOT, DOT)).pool_assets
+            <Test as Config<pallet_balances::Instance1>>::Assets::total_issuance(
+                AMM::liquidity_providers((ALICE, XDOT, DOT))
+                    .unwrap()
+                    .pool_assets
             ),
             0
         );
@@ -256,8 +277,10 @@ fn remove_liquidity_only_portion_should_work() {
         ));
 
         assert_eq!(
-            <Test as Config<pallet_balances::Instance1>>::AMMCurrency::total_issuance(
-                AMM::liquidity_providers((ALICE, XDOT, DOT)).pool_assets
+            <Test as Config<pallet_balances::Instance1>>::Assets::total_issuance(
+                AMM::liquidity_providers((ALICE, XDOT, DOT))
+                    .unwrap()
+                    .pool_assets
             ),
             15
         );
@@ -289,8 +312,10 @@ fn remove_liquidity_user_more_liquidity_should_work() {
         ));
 
         assert_eq!(
-            <Test as Config<pallet_balances::Instance1>>::AMMCurrency::total_issuance(
-                AMM::liquidity_providers((ALICE, XDOT, DOT)).pool_assets
+            <Test as Config<pallet_balances::Instance1>>::Assets::total_issuance(
+                AMM::liquidity_providers((ALICE, XDOT, DOT))
+                    .unwrap()
+                    .pool_assets
             ),
             18
         );

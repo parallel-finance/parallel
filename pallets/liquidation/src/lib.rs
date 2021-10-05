@@ -72,8 +72,8 @@ struct BorrowMisc<AssetId, Balance> {
 
 /// The miscellaneous information when transforming collateral records.
 #[derive(Clone, Debug)]
-struct CollateralMisc<AssetId, Balance> {
-    currency: AssetId,
+struct CollateralMisc<CurrencyId, Balance> {
+    currency: CurrencyId,
     amount: Balance,
     value: FixedU128,
 }

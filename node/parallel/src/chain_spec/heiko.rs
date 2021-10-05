@@ -16,7 +16,7 @@ use cumulus_primitives_core::ParaId;
 use heiko_runtime::{
     opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, DemocracyConfig,
     GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
-    LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig,
+    LiquidStakingAgentMembershipConfig, LiquidStakingConfig, OracleMembershipConfig,
     ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
     TechnicalCommitteeMembershipConfig, ValidatorFeedersMembershipConfig, VestingConfig,
     WASM_BINARY,
@@ -29,16 +29,12 @@ use sc_telemetry::TelemetryEndpoints;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 // use sp_core::crypto::UncheckedInto;
 
-use sp_core::sr25519;
-use sp_runtime::{
-    traits::{One, Zero},
-    FixedPointNumber,
-};
-
 use crate::chain_spec::{
     accumulate, as_properties, get_account_id_from_seed, get_authority_keys_from_seed, Extensions,
     TELEMETRY_URL,
 };
+use sp_core::sr25519;
+use sp_runtime::{traits::Zero, FixedPointNumber};
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
@@ -242,12 +238,6 @@ fn heiko_genesis(
         parachain_system: Default::default(),
         sudo: SudoConfig { key: root_key },
         parachain_info: ParachainInfoConfig { parachain_id: id },
-        loans: LoansConfig {
-            borrow_index: Rate::one(),                             // 1
-            exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
-            last_block_timestamp: 0,
-            markets: vec![],
-        },
         liquid_staking: LiquidStakingConfig {
             exchange_rate: Rate::saturating_from_rational(100, 100), // 1
             reserve_factor: Ratio::from_perthousand(5),

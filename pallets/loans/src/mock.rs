@@ -17,7 +17,8 @@ use super::*;
 use frame_support::{construct_runtime, parameter_types, PalletId};
 use frame_system::EnsureRoot;
 
-use primitives::{AssetId, Balance, Price, PriceDetail, PriceFeeder, Rate};
+use orml_traits::{DataProvider, DataProviderExtended};
+use primitives::*;
 use sp_core::H256;
 
 use sp_runtime::{testing::Header, traits::IdentityLookup};
@@ -35,9 +36,10 @@ construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
-        Loans: crate::{Pallet, Storage, Call, Config, Event<T>},
+        Loans: crate::{Pallet, Storage, Call, Event<T>},
+        Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
         TimestampPallet: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-        Assets: pallet_assets::<Instance1>::{Pallet, Call, Storage, Event<T>},
+        Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
     }
 );
 
@@ -79,10 +81,11 @@ pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CHARLIE: AccountId = 3;
 
-pub const DOT: AssetId = 0;
-pub const KSM: AssetId = 1;
-pub const USDT: AssetId = 3;
-pub const XDOT: AssetId = 4;
+pub const DOT: CurrencyId = 0;
+pub const KSM: CurrencyId = 1;
+pub const USDT: CurrencyId = 3;
+pub const XDOT: CurrencyId = 4;
+pub const XKSM: CurrencyId = 5;
 
 parameter_types! {
     pub const MinimumPeriod: u64 = 5;
@@ -112,11 +115,72 @@ impl pallet_balances::Config for Test {
     type ReserveIdentifier = [u8; 8];
 }
 
+// pallet-price is using for benchmark compilation
+pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
+pub struct MockDataProvider;
+impl DataProvider<CurrencyId, TimeStampedPrice> for MockDataProvider {
+    fn get(_asset_id: &CurrencyId) -> Option<TimeStampedPrice> {
+        Some(TimeStampedPrice {
+            value: Price::saturating_from_integer(100),
+            timestamp: 0,
+        })
+    }
+}
+
+impl DataProviderExtended<CurrencyId, TimeStampedPrice> for MockDataProvider {
+    fn get_no_op(_key: &CurrencyId) -> Option<TimeStampedPrice> {
+        None
+    }
+
+    fn get_all_values() -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
+        vec![]
+    }
+}
+
+pub struct LiquidStakingExchangeRateProvider;
+impl ExchangeRateProvider for LiquidStakingExchangeRateProvider {
+    fn get_exchange_rate() -> Rate {
+        Rate::saturating_from_rational(150, 100)
+    }
+}
+
+pub struct Decimal;
+impl DecimalProvider for Decimal {
+    fn get_decimal(_asset_id: &CurrencyId) -> u8 {
+        12
+    }
+}
+
+pub struct LiquidStaking;
+impl LiquidStakingCurrenciesProvider<CurrencyId> for LiquidStaking {
+    fn get_staking_currency() -> Option<CurrencyId> {
+        Some(KSM)
+    }
+    fn get_liquid_currency() -> Option<CurrencyId> {
+        Some(XKSM)
+    }
+}
+
+impl ExchangeRateProvider for LiquidStaking {
+    fn get_exchange_rate() -> Rate {
+        Rate::saturating_from_rational(150, 100)
+    }
+}
+
+impl pallet_prices::Config for Test {
+    type Event = Event;
+    type Source = MockDataProvider;
+    type FeederOrigin = EnsureRoot<AccountId>;
+    type LiquidStakingExchangeRateProvider = LiquidStaking;
+    type LiquidStakingCurrenciesProvider = LiquidStaking;
+    type Decimal = Decimal;
+}
+
 pub struct MockPriceFeeder;
 
 impl MockPriceFeeder {
     thread_local! {
-        pub static PRICES: RefCell<HashMap<AssetId, Option<PriceDetail>>> = {
+        pub static PRICES: RefCell<HashMap<CurrencyId, Option<PriceDetail>>> = {
             RefCell::new(
                 vec![DOT, KSM, USDT, XDOT]
                     .iter()
@@ -126,7 +190,7 @@ impl MockPriceFeeder {
         };
     }
 
-    pub fn set_price(asset_id: AssetId, price: Price) {
+    pub fn set_price(asset_id: CurrencyId, price: Price) {
         Self::PRICES.with(|prices| {
             prices.borrow_mut().insert(asset_id, Some((price, 1u64)));
         });
@@ -142,7 +206,7 @@ impl MockPriceFeeder {
 }
 
 impl PriceFeeder for MockPriceFeeder {
-    fn get_price(asset_id: &AssetId) -> Option<PriceDetail> {
+    fn get_price(asset_id: &CurrencyId) -> Option<PriceDetail> {
         Self::PRICES.with(|prices| *prices.borrow().get(asset_id).unwrap())
     }
 }
@@ -155,12 +219,10 @@ parameter_types! {
     pub const MetadataDepositPerByte: u64 = 1;
 }
 
-type AssetsInstance = pallet_assets::Instance1;
-
-impl pallet_assets::Config<AssetsInstance> for Test {
+impl pallet_assets::Config for Test {
     type Event = Event;
-    type Balance = u128;
-    type AssetId = u32;
+    type Balance = Balance;
+    type AssetId = CurrencyId;
     type Currency = Balances;
     type ForceOrigin = EnsureRoot<AccountId>;
     type AssetDeposit = AssetDeposit;
