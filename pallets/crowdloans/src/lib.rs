@@ -20,39 +20,49 @@
 extern crate alloc;
 
 mod crowdloan_structs;
-use crowdloan_structs::Vault;
-use crowdloan_structs::VaultPhase;
+use crowdloan_structs::{ClaimStrategy, ContributionStrategy, ParaId, Vault, VaultPhase};
 
+use frame_support::traits::tokens::fungibles;
 use frame_support::{
+    dispatch::DispatchResult,
     pallet_prelude::*,
-    traits::{fungibles::Inspect, Get, IsType},
+    traits::{tokens::fungibles::Inspect, Get, IsType},
     Blake2_128Concat, PalletId,
 };
-use frame_system::pallet_prelude::OriginFor;
+use primitives::{currency::CurrencyId::Asset, AssetId, Balance};
+
+use frame_system::pallet_prelude::*;
+
+use frame_system::ensure_root;
+use primitives::currency::CurrencyId;
+use sp_arithmetic::traits::Zero;
+
+use sp_runtime::{traits::StaticLookup, DispatchError};
+
 pub use pallet::*;
-use primitives::{currency::CurrencyId, Balance};
 
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
 mod tests;
 
-pub type ParaId = u32;
+pub type ParaIdOf = ParaId;
+
+pub type AssetIdOf<T> = <<T as Config>::CrowdloanCurrency as fungibles::Inspect<
+    <T as frame_system::Config>::AccountId,
+>>::AssetId;
+
+pub type BalanceOf<T> = <<T as Config>::CrowdloanCurrency as fungibles::Inspect<
+    <T as frame_system::Config>::AccountId,
+>>::Balance;
 
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use frame_support::traits::tokens::fungibles;
-    use frame_system::ensure_root;
-    use primitives::AssetId;
-
-    use sp_arithmetic::traits::Zero;
 
     #[pallet::config]
-    pub trait Config<I: 'static = ()>:
-        frame_system::Config + pallet_assets::Config<AssetId = AssetId, Balance = Balance>
-    {
-        type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
+    pub trait Config: frame_system::Config {
+        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Currency type for deposit/withdraw assets to/from crowdloan
         /// module
@@ -62,10 +72,12 @@ pub mod pallet {
 
         #[pallet::constant]
         type PalletId: Get<PalletId>;
+
+        // type ParaId: Get<ParaId>;
     }
 
     #[pallet::error]
-    pub enum Error<T, I = ()> {
+    pub enum Error<T> {
         /// Vault is not in correct phase
         IncorrectVaultPhase,
         /// Vault shares are not new
@@ -75,21 +87,27 @@ pub mod pallet {
     }
 
     #[pallet::event]
-    pub enum Event<T: Config<I>, I: 'static = ()> {
+    pub enum Event<T: Config> {
         /// Create new vault
         /// [token, crowdloan, project_shares, currency_shares]
         VaultCreated(CurrencyId, ParaId, AssetId, AssetId),
     }
 
     #[pallet::pallet]
-    pub struct Pallet<T, I = ()>(_);
+    pub struct Pallet<T>(_);
 
     #[pallet::storage]
     #[pallet::getter(fn vaults)]
-    pub type Vaults<T, I = ()> = StorageMap<_, Blake2_128Concat, ParaId, Vault, OptionQuery>;
+    pub type Vaults<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        ParaIdOf,
+        Vault<ParaId, AssetIdOf<T>, BalanceOf<T>>,
+        OptionQuery,
+    >;
 
     #[pallet::call]
-    impl<T: Config<I>, I: 'static> Pallet<T, I> {
+    impl<T: Config> Pallet<T> {
         ////
         //// 1. Vaults Management
 
@@ -104,41 +122,46 @@ pub mod pallet {
         #[allow(unused)]
         pub fn create_vault(
             origin: OriginFor<T>,
-            token: CurrencyId,
+            token: AssetIdOf<T>,
             crowdloan: ParaId,
-            project_shares: AssetId,
-            currency_shares: AssetId,
-            until: primitives::BlockNumber,
+            project_shares: AssetIdOf<T>,
+            currency_shares: AssetIdOf<T>,
+            contribution_strategy: ContributionStrategy<ParaId, AssetIdOf<T>, BalanceOf<T>>,
+            claim_strategy: ClaimStrategy<ParaId>,
         ) -> DispatchResult {
             ensure_root(origin)?;
 
             // get
-            let project_shares_issuance =
-                T::CrowdloanCurrency::total_issuance(CurrencyId::Asset(project_shares));
-            let currency_shares_issuance =
-                T::CrowdloanCurrency::total_issuance(CurrencyId::Asset(currency_shares));
+            let project_shares_issuance = T::CrowdloanCurrency::total_issuance(project_shares);
+            let currency_shares_issuance = T::CrowdloanCurrency::total_issuance(currency_shares);
 
             // make sure both project_shares and currency_shares are new assets
             ensure!(
                 project_shares_issuance == Zero::zero() && currency_shares_issuance == Zero::zero(),
-                Error::<T, I>::SharesNotNew
+                Error::<T>::SharesNotNew
             );
 
             // make sure no similar vault already exists as identified by crowdloan
             ensure!(
-                !Vaults::<T, I>::contains_key(&crowdloan),
-                Error::<T, I>::CrowdloanAlreadyExists
+                !Vaults::<T>::contains_key(&crowdloan),
+                Error::<T>::CrowdloanAlreadyExists
             );
 
             // add new vault to vaults storage
-            Vaults::<T, I>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
+            Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // inialize new vault
                 Ok(*vault = Some(crowdloan_structs::Vault {
                     project_shares: project_shares,
                     currency_shares: currency_shares,
-                    currency: CurrencyId::Asset(currency_shares),
-                    phase: VaultPhase::CollectingContributionsUntil(until),
-                    claimed: 0,
+                    currency: currency_shares,
+                    phase: VaultPhase::CollectingContributions,
+                    contribution_strategy: ContributionStrategy::Placeholder(
+                        crowdloan,
+                        currency_shares,
+                        0,
+                    ),
+                    claim_strategy: ClaimStrategy::Placeholder(crowdloan),
+                    contributed: 0,
                 }))
             })
         }
@@ -155,6 +178,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             crowdloan: ParaId,
             amount: Balance,
+            ptokens_receiver: <T::Lookup as StaticLookup>::Source,
         ) -> DispatchResult {
             unimplemented!();
         }
@@ -166,27 +190,31 @@ pub mod pallet {
         /// and participate in a relay chain crowdloan by using the call `call`.
         #[pallet::weight(10_000)]
         #[allow(unused)]
-        pub fn participate_with_call(
-            origin: OriginFor<T>,
-            crowdloan: ParaId,
-            call: Box<u8>, // should be Box<Call> for use with sudo
-        ) -> DispatchResult {
+        pub fn participate(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             ensure_root(origin)?;
             unimplemented!();
         }
 
         ////
-        //// 4. Handling Failed Auctions
+        //// 4. Handling Auction Closure
 
-        /// If a `crowdloan` failed, use `call` to get the coins back and mark the
-        /// vault as ready for distribution
+        /// Mark the associated vault as closed and stop accepting contributions for it
         #[pallet::weight(10_000)]
         #[allow(unused)]
-        pub fn auction_failed(
-            origin: OriginFor<T>,
-            crowdloan: ParaId,
-            call: Box<u8>, // should be Box<Call> for use with sudo
-        ) -> DispatchResult {
+
+        pub fn close(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
+            ensure_root(origin)?;
+            unimplemented!();
+        }
+
+        ////
+        //// 5. Handling Failed Auctions
+
+        /// If a `crowdloan` failed, get the coins back and mark the vault as ready
+        /// for distribution
+        #[pallet::weight(10_000)]
+        #[allow(unused)]
+        pub fn auction_failed(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             ensure_root(origin)?;
             unimplemented!();
         }
@@ -204,7 +232,7 @@ pub mod pallet {
         }
 
         ////
-        //// 5. Distributing Project Tokens
+        //// 6. Distributing Project Tokens
 
         /// If a `crowdloan` succeeded, use `call` to receive or claim the
         /// project tokens, can be called many times
@@ -213,26 +241,42 @@ pub mod pallet {
         pub fn auction_completed(
             origin: OriginFor<T>,
             crowdloan: ParaId,
-            project_token: AssetId,
-            call: Box<u8>, // should be Box<Call> for use with sudo
+            project_token: AssetIdOf<T>,
+            total_to_distribute: BalanceOf<T>,
         ) -> DispatchResult {
             ensure_root(origin)?;
+            unimplemented!();
+        }
+
+        /// If a `crowdloan` succeeded, claim your derivative project tokens that can
+        /// later be exchanged to the actual project token
+        #[pallet::weight(10_000)]
+        #[allow(unused)]
+        pub fn claim_derivative(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             unimplemented!();
         }
 
         /// If a `crowdloan` succeeded, claim your share of the project tokens
         #[pallet::weight(10_000)]
         #[allow(unused)]
+        pub fn claim(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
+            unimplemented!();
+        }
+
+        /// Exchange your derivative pTokens for the actual project tokens
+        /// if there are some in the pool
+        #[pallet::weight(10_000)]
+        #[allow(unused)]
         pub fn claim_project_tokens(
             origin: OriginFor<T>,
             crowdloan: ParaId,
-            amount: Balance,
+            amount: BalanceOf<T>,
         ) -> DispatchResult {
             unimplemented!();
         }
 
         ////
-        //// 6. Refunding the contributed assets after auction success
+        //// 7. Refunding the contributed assets after auction success
 
         /// If a `crowdloan` succeeded and its slot expired, use `call` to
         /// claim back the funds lent to the parachain
@@ -241,7 +285,6 @@ pub mod pallet {
         pub fn slot_expired(
             origin: OriginFor<T>,
             crowdloan: ParaId,
-            call: Box<u8>, // should be Box<Call> for use with sudo
         ) -> DispatchResult {
             ensure_root(origin)?;
             unimplemented!();
