@@ -16,7 +16,7 @@ relaychain:
 
 statemine:
   image: parallelfinance/statemine:v0.9.10
-  chain: rococo-local
+  chain: statemine-local
   runtimeGenesisConfig:
     configuration:
       config:
