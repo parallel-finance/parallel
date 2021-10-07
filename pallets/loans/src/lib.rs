@@ -1268,11 +1268,15 @@ where
     }
 
     /// Ensure market is enough to supply `amount` asset.
+    /// FIXME(Alan WANG): we do redundant calculation.
     fn ensure_capacity(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
         let market = Self::ensure_currency(asset_id)?;
         let current_supply = Self::total_supply(asset_id);
+
+        let exchange_rate = Self::exchange_rate(asset_id);
+        let voucher_amount = Self::calc_collateral_amount(amount, exchange_rate)?;
         let total_supply = current_supply
-            .checked_add(&amount)
+            .checked_add(&voucher_amount)
             .ok_or(ArithmeticError::Overflow)?;
         ensure!(
             total_supply <= market.cap,

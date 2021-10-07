@@ -1,15 +1,28 @@
 use crate::{
-    mock::{new_test_ext, Loans, Origin, Test, ALICE, DOT, KSM},
+    mock::{million_dollar, new_test_ext, Assets, Loans, Origin, Test, ALICE, DOT, KSM},
     tests::{dollar, run_to_block},
-    Config,
+    Config, Error,
 };
-use frame_support::assert_ok;
+use frame_support::{assert_err, assert_ok};
 use sp_runtime::FixedPointNumber;
 
 #[test]
 fn exceeded_market_capacity() {
     new_test_ext().execute_with(|| {
-        //TODO(Alan WANG): add test case
+        Assets::mint(Origin::signed(ALICE), DOT, ALICE, million_dollar(1001)).unwrap();
+        let exchange_rate = Loans::exchange_rate(DOT);
+        // Capcity is $1B. Mint $0.501B should be ok.
+        let amount = Loans::calc_underlying_amount(million_dollar(501), exchange_rate).unwrap();
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, amount));
+        // Exceed upper bound.
+        assert_err!(
+            Loans::mint(Origin::signed(ALICE), DOT, amount),
+            Error::<Test>::ExceededMarketCapacity
+        );
+
+        Loans::redeem(Origin::signed(ALICE), DOT, amount).unwrap();
+        // Here should work, cause we redeemed already.
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, amount));
     })
 }
 
