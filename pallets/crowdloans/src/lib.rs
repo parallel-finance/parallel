@@ -145,8 +145,8 @@ pub mod pallet {
 
                 // inialize new vault
                 Ok(*vault = Some(crowdloan_structs::Vault {
-                    project_shares: project_shares,
-                    currency_shares: currency_shares,
+                    project_shares,
+                    currency_shares,
                     currency: currency_shares,
                     phase: VaultPhase::CollectingContributions,
                     contribution_strategy: ContributionStrategy::Placeholder(
