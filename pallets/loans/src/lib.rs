@@ -191,8 +191,8 @@ pub mod pallet {
 
     /// The timestamp of the last calculation of accrued interest
     #[pallet::storage]
-    #[pallet::getter(fn last_accrued_timestamp)]
-    pub type LastAccruedTimestamp<T: Config> = StorageValue<_, Timestamp, ValueQuery>;
+    #[pallet::getter(fn last_block_timestamp)]
+    pub type LastBlockTimestamp<T: Config> = StorageValue<_, Timestamp, ValueQuery>;
 
     /// Total number of collateral tokens in circulation
     /// CollateralType -> Balance
@@ -306,19 +306,19 @@ pub mod pallet {
         /// the interest will be restored, because we use delta time to calculate the
         /// interest.
         fn on_initialize(block_number: T::BlockNumber) -> frame_support::weights::Weight {
-            let last_accrued_timestamp = Self::last_accrued_timestamp();
+            let last_block_timestamp = Self::last_block_timestamp();
             let now = T::UnixTime::now().as_secs();
             // For the initialization
-            if last_accrued_timestamp == 0 {
-                LastAccruedTimestamp::<T>::put(now);
+            if last_block_timestamp == 0 {
+                LastBlockTimestamp::<T>::put(now);
             }
-            if now < last_accrued_timestamp {
+            if now <= last_block_timestamp {
                 return 0;
             }
             with_transaction(|| {
-                match <Pallet<T>>::accrue_interest(now - last_accrued_timestamp) {
+                match <Pallet<T>>::accrue_interest(now - last_block_timestamp) {
                     Ok(()) => {
-                        LastAccruedTimestamp::<T>::put(now);
+                        LastBlockTimestamp::<T>::put(now);
                         TransactionOutcome::Commit(1000)
                     }
                     Err(err) => {
