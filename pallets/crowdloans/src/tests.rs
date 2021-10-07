@@ -13,8 +13,6 @@ fn create_new_vault_should_work() {
         let contribution_strategy =
             ContributionStrategy::Placeholder(crowdloan, currency_shares, crowdloan as u128);
 
-        let claim_strategy = ClaimStrategy::Placeholder(crowdloan);
-
         assert_ok!(Crowdloan::create_vault(
             frame_system::RawOrigin::Root.into(), // origin
             token,                                // token
@@ -22,7 +20,6 @@ fn create_new_vault_should_work() {
             project_shares,                       // project_shares
             currency_shares,                      // currency_shares
             contribution_strategy,                // contribution_strategy
-            claim_strategy,                       // claim_strategy
         ));
 
         if let Some(just_created_vault) = Crowdloan::vaults(crowdloan) {
@@ -38,7 +35,6 @@ fn create_new_vault_should_work() {
                         currency_shares,
                         0,
                     ),
-                    claim_strategy: ClaimStrategy::Placeholder(crowdloan),
                     contributed: 0,
                 }
             );

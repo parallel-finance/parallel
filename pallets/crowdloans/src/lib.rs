@@ -35,7 +35,7 @@ use frame_support::{
 };
 
 mod crowdloan_structs;
-use crowdloan_structs::{ClaimStrategy, ContributionStrategy, ParaId, Vault, VaultPhase};
+use crowdloan_structs::{ContributionStrategy, ParaId, Vault, VaultPhase};
 
 use frame_system::pallet_prelude::OriginFor;
 pub use pallet::*;
@@ -124,7 +124,6 @@ pub mod pallet {
             project_shares: AssetIdOf<T, I>,
             currency_shares: AssetIdOf<T, I>,
             contribution_strategy: ContributionStrategy<ParaId, AssetIdOf<T, I>, BalanceOf<T, I>>,
-            claim_strategy: ClaimStrategy<ParaId>,
         ) -> DispatchResult {
             ensure_root(origin)?;
 
@@ -144,7 +143,7 @@ pub mod pallet {
                 ensure!(vault.is_none(), Error::<T, I>::CrowdloanAlreadyExists);
 
                 // inialize new vault
-                Ok(*vault = Some(crowdloan_structs::Vault {
+                *vault = Some(crowdloan_structs::Vault {
                     project_shares,
                     currency_shares,
                     currency: currency_shares,
@@ -154,9 +153,10 @@ pub mod pallet {
                         currency_shares,
                         0,
                     ),
-                    claim_strategy: ClaimStrategy::Placeholder(crowdloan),
                     contributed: 0,
-                }))
+                });
+
+                Ok(())
             })
         }
 

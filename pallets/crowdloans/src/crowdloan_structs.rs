@@ -21,24 +21,6 @@ pub type ParaId = u32;
 
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
-pub enum ContributionStrategy<ParaId, CurrencyId, Balance> {
-    Placeholder(ParaId, CurrencyId, Balance),
-    // --- Examples
-    XCM,
-    XCMWithProxy,
-}
-
-#[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
-#[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
-pub enum ClaimStrategy<ParaId> {
-    Placeholder(ParaId),
-    // --- Examples
-    Teleport(ParaId),
-    ReserveOnStatemine(ParaId),
-}
-
-#[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
-#[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
 pub enum VaultPhase<CurrencyId, Balance> {
     /// Vault is open for contributions
     CollectingContributions,
@@ -54,6 +36,37 @@ pub enum VaultPhase<CurrencyId, Balance> {
     SucceededAndRefunded(CurrencyId, Balance),
 }
 
+#[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
+#[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
+pub struct Vault<ParaId, CurrencyId, Balance> {
+    /// Asset used to represent the shares of project tokens for the contributors
+    /// to this vault
+    pub project_shares: CurrencyId,
+    /// Asset used to represent the shares of currency (typically DOT or KSM)
+    /// to be claimed back later on
+    pub currency_shares: CurrencyId,
+    /// Indicates in which currency contributions are received, in most
+    /// cases this will be the asset representing the relay chain's native
+    /// token
+    pub currency: CurrencyId,
+    /// Which phase the vault is at
+    pub phase: VaultPhase<CurrencyId, Balance>,
+    /// How we contribute coins to the crowdloan
+    pub contribution_strategy: ContributionStrategy<ParaId, CurrencyId, Balance>,
+    /// Tracks how many coins were contributed on the relay chain
+    pub contributed: Balance,
+}
+
+#[allow(clippy::upper_case_acronyms)] // for XCM 
+#[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
+#[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
+pub enum ContributionStrategy<ParaId, CurrencyId, Balance> {
+    Placeholder(ParaId, CurrencyId, Balance),
+    // --- Examples
+    XCM,
+    XCMWithProxy,
+}
+
 pub trait ContributionStrategyExecutor<ParaId, CurrencyId, Balance> {
     /// Execute the strategy to contribute `amount` of coins to the crowdloan
     /// of the given parachain id
@@ -65,12 +78,6 @@ pub trait ContributionStrategyExecutor<ParaId, CurrencyId, Balance> {
 
     /// Ask for a refund of the coins on the relay chain
     fn refund(self, para_id: ParaId, currency: CurrencyId) -> DispatchResult;
-}
-
-pub trait ClaimStrategyExecutor<ParaId> {
-    /// Execute the strategy to claim some project tokens on the parachain
-    /// with id `para_id`
-    fn execute(self, para_id: ParaId) -> DispatchResult;
 }
 
 impl ContributionStrategyExecutor<ParaId, CurrencyId, Balance>
@@ -93,32 +100,3 @@ impl ContributionStrategyExecutor<ParaId, CurrencyId, Balance>
     }
 }
 
-impl ClaimStrategyExecutor<ParaId> for ClaimStrategy<ParaId> {
-    // add code here
-    fn execute(self, _: ParaId) -> Result<(), sp_runtime::DispatchError> {
-        todo!()
-    }
-}
-
-#[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
-#[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
-pub struct Vault<ParaId, CurrencyId, Balance> {
-    /// Asset used to represent the shares of project tokens for the contributors
-    /// to this vault
-    pub project_shares: CurrencyId,
-    /// Asset used to represent the shares of currency (typically DOT or KSM)
-    /// to be claimed back later on
-    pub currency_shares: CurrencyId,
-    /// Indicates in which currency contributions are received, in most
-    /// cases this will be the asset representing the relay chain's native
-    /// token
-    pub currency: CurrencyId,
-    /// Which phase the vault is at
-    pub phase: VaultPhase<CurrencyId, Balance>,
-    /// How we contribute coins to the crowdloan
-    pub contribution_strategy: ContributionStrategy<ParaId, CurrencyId, Balance>,
-    /// How we claim project tokens
-    pub claim_strategy: ClaimStrategy<ParaId>,
-    /// Tracks how many coins were contributed on the relay chain
-    pub contributed: Balance,
-}
