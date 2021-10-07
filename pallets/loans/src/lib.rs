@@ -309,7 +309,7 @@ pub mod pallet {
             let last_block_timestamp = Self::last_block_timestamp();
             let now = T::UnixTime::now().as_secs();
             // For the initialization
-            if last_block_timestamp == 0 {
+            if last_block_timestamp.is_zero() {
                 LastBlockTimestamp::<T>::put(now);
             }
             if now <= last_block_timestamp {
