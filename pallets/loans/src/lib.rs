@@ -323,7 +323,7 @@ pub mod pallet {
                     }
                     Err(err) => {
                         // This should never happen...
-                        log::info!(
+                        log::error!(
                             "Could not initialize block!!! {:#?} {:#?}",
                             block_number,
                             err
