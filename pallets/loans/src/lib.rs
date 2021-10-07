@@ -189,10 +189,10 @@ pub mod pallet {
         UpdatedMarket(Market),
     }
 
-    /// The timestamp of the previous block or defaults to timestamp at genesis.
+    /// The timestamp of the last calculation of accrued interest
     #[pallet::storage]
-    #[pallet::getter(fn last_block_timestamp)]
-    pub type LastBlockTimestamp<T: Config> = StorageValue<_, Timestamp, ValueQuery>;
+    #[pallet::getter(fn last_accrued_timestamp)]
+    pub type LastAccruedTimestamp<T: Config> = StorageValue<_, Timestamp, ValueQuery>;
 
     /// Total number of collateral tokens in circulation
     /// CollateralType -> Balance
@@ -301,20 +301,29 @@ pub mod pallet {
         BalanceOf<T>: FixedPointOperand,
         AssetIdOf<T>: AtLeast32BitUnsigned,
     {
-        fn on_finalize(block_number: T::BlockNumber) {
+        /// Called by substrate on block initialization which is fallible.
+        /// When an error occurs, stop counting interest. When the error is resolved,
+        /// the interest will be restored, because we use delta time to calculate the
+        /// interest.
+        fn on_initialize(block_number: T::BlockNumber) -> frame_support::weights::Weight {
+            let last_accrued_timestamp = Self::last_accrued_timestamp();
             let now = T::UnixTime::now().as_secs();
-            if LastBlockTimestamp::<T>::get().is_zero() {
-                LastBlockTimestamp::<T>::put(now);
+            // For the initialization
+            if last_accrued_timestamp == 0 {
+                LastAccruedTimestamp::<T>::put(now);
+            }
+            if now < last_accrued_timestamp {
+                return 0;
             }
             with_transaction(|| {
-                match <Pallet<T>>::accrue_interest() {
+                match <Pallet<T>>::accrue_interest(now - last_accrued_timestamp) {
                     Ok(()) => {
-                        LastBlockTimestamp::<T>::put(now);
+                        LastAccruedTimestamp::<T>::put(now);
                         TransactionOutcome::Commit(1000)
                     }
                     Err(err) => {
                         // This should never happen...
-                        log::error!(
+                        log::info!(
                             "Could not initialize block!!! {:#?} {:#?}",
                             block_number,
                             err
@@ -322,12 +331,7 @@ pub mod pallet {
                         TransactionOutcome::Rollback(0)
                     }
                 }
-            });
-
-            // This is used to trigger the price aggregation to update the results to the ORML Oracle Pallet.
-            for (asset_id, _) in Self::active_markets() {
-                let _ = Self::get_price(asset_id);
-            }
+            })
         }
     }
 
