@@ -118,7 +118,7 @@ benchmarks! {
         assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), PENDING_MARKET_MOCK));
     }: _(SystemOrigin::Root,DOT.into(), PENDING_MARKET_MOCK)
     verify {
-
+        assert_last_event::<T>(Event::<T>::UpdatedMarket(PENDING_MARKET_MOCK).into());
     }
 
     mint {

@@ -33,27 +33,30 @@ use frame_support::{
         Get,
     },
 };
-use primitives::{Balance, CurrencyId};
 use sp_runtime::DispatchError;
+
+type AssetIdOf<T> =
+    <<T as Config>::Assets as Inspects<<T as frame_system::Config>::AccountId>>::AssetId;
+type BalanceOf<T> =
+    <<T as Config>::Assets as Inspects<<T as frame_system::Config>::AccountId>>::Balance;
 
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
     use frame_support::traits::tokens::fungible;
-    use primitives::CurrencyId;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        type Assets: Transfers<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
-            + Inspects<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
-            + Mutates<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
+        type Assets: Transfers<Self::AccountId>
+            + Inspects<Self::AccountId>
+            + Mutates<Self::AccountId>;
 
-        type Balances: fungible::Inspect<Self::AccountId, Balance = Balance>
-            + fungible::Mutate<Self::AccountId, Balance = Balance>
-            + fungible::Transfer<Self::AccountId, Balance = Balance>;
+        type Balances: fungible::Inspect<Self::AccountId, Balance = BalanceOf<Self>>
+            + fungible::Mutate<Self::AccountId, Balance = BalanceOf<Self>>
+            + fungible::Transfer<Self::AccountId, Balance = BalanceOf<Self>>;
 
         #[pallet::constant]
-        type GetNativeCurrencyId: Get<CurrencyId>;
+        type GetNativeCurrencyId: Get<AssetIdOf<Self>>;
     }
 
     #[pallet::pallet]
@@ -64,8 +67,8 @@ pub mod pallet {
 }
 
 impl<T: Config> Inspects<T::AccountId> for Pallet<T> {
-    type AssetId = CurrencyId;
-    type Balance = Balance;
+    type AssetId = AssetIdOf<T>;
+    type Balance = BalanceOf<T>;
 
     fn total_issuance(asset: Self::AssetId) -> Self::Balance {
         if asset == T::GetNativeCurrencyId::get() {
@@ -161,7 +164,7 @@ impl<T: Config> Transfers<T::AccountId> for Pallet<T> {
         dest: &T::AccountId,
         amount: Self::Balance,
         keep_alive: bool,
-    ) -> Result<Balance, DispatchError> {
+    ) -> Result<BalanceOf<T>, DispatchError> {
         if asset == T::GetNativeCurrencyId::get() {
             T::Balances::transfer(source, dest, amount, keep_alive)
         } else {
