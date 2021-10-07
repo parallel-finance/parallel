@@ -7,6 +7,13 @@ use frame_support::assert_ok;
 use sp_runtime::FixedPointNumber;
 
 #[test]
+fn exceeded_market_capacity() {
+    new_test_ext().execute_with(|| {
+        //TODO(Alan WANG): add test case
+    })
+}
+
+#[test]
 fn repay_borrow_all_no_underflow() {
     new_test_ext().execute_with(|| {
         // Alice deposits 200 KSM as collateral

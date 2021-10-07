@@ -325,5 +325,5 @@ pub const MARKET_MOCK: Market<Balance> = Market {
         jump_utilization: Ratio::from_percent(80),
     }),
     reserve_factor: Ratio::from_percent(15),
-    cap: 1000u128.into(),
+    cap: 1_000_000_000_000_000_000_000u128,
 };
