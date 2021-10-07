@@ -297,7 +297,7 @@ pub(crate) fn run_to_block(n: BlockNumber) {
     }
 }
 
-pub(crate) fn process_block(n: BlockNumber) -> u64 {
+pub(crate) fn _process_block(n: BlockNumber) -> u64 {
     System::set_block_number(n);
     let res = Loans::on_initialize(n);
     TimestampPallet::set_timestamp(6000 * n);
