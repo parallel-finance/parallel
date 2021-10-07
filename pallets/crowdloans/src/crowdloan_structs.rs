@@ -15,14 +15,14 @@
 // Groups common pool related structures
 
 use frame_support::pallet_prelude::DispatchResult;
-use primitives::{AssetId, Balance};
+use primitives::{Balance, CurrencyId};
 
 pub type ParaId = u32;
 
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
-pub enum ContributionStrategy<ParaId, AssetId, Balance> {
-    Placeholder(ParaId, AssetId, Balance),
+pub enum ContributionStrategy<ParaId, CurrencyId, Balance> {
+    Placeholder(ParaId, CurrencyId, Balance),
     // --- Examples
     XCM,
     XCMWithProxy,
@@ -39,7 +39,7 @@ pub enum ClaimStrategy<ParaId> {
 
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
-pub enum VaultPhase<AssetId, Balance> {
+pub enum VaultPhase<CurrencyId, Balance> {
     /// Vault is open for contributions
     CollectingContributions,
     /// The vault is closed
@@ -49,22 +49,22 @@ pub enum VaultPhase<AssetId, Balance> {
     Failed,
     /// The vault's crowdloan succeeded, project tokens will be identified
     /// by the provided asset id
-    Succeeded(AssetId, Balance),
+    Succeeded(CurrencyId, Balance),
     /// The vault's crowdloan succeeded and returned the vault's assets
-    SucceededAndRefunded(AssetId, Balance),
+    SucceededAndRefunded(CurrencyId, Balance),
 }
 
-pub trait ContributionStrategyExecutor<ParaId, AssetId, Balance> {
+pub trait ContributionStrategyExecutor<ParaId, CurrencyId, Balance> {
     /// Execute the strategy to contribute `amount` of coins to the crowdloan
     /// of the given parachain id
-    fn execute(self, para_id: ParaId, currency: AssetId, amount: Balance) -> DispatchResult;
+    fn execute(self, para_id: ParaId, currency: CurrencyId, amount: Balance) -> DispatchResult;
 
     /// Withdraw coins from the relay chain's crowdloans and send it back
     /// to our parachain
-    fn withdraw(self, para_id: ParaId, currency: AssetId) -> DispatchResult;
+    fn withdraw(self, para_id: ParaId, currency: CurrencyId) -> DispatchResult;
 
     /// Ask for a refund of the coins on the relay chain
-    fn refund(self, para_id: ParaId, currency: AssetId) -> DispatchResult;
+    fn refund(self, para_id: ParaId, currency: CurrencyId) -> DispatchResult;
 }
 
 pub trait ClaimStrategyExecutor<ParaId> {
@@ -73,17 +73,22 @@ pub trait ClaimStrategyExecutor<ParaId> {
     fn execute(self, para_id: ParaId) -> DispatchResult;
 }
 
-impl ContributionStrategyExecutor<ParaId, AssetId, Balance>
-    for ContributionStrategy<ParaId, AssetId, Balance>
+impl ContributionStrategyExecutor<ParaId, CurrencyId, Balance>
+    for ContributionStrategy<ParaId, CurrencyId, Balance>
 {
     // add code here
-    fn execute(self, _: ParaId, _: AssetId, _: Balance) -> Result<(), sp_runtime::DispatchError> {
+    fn execute(
+        self,
+        _: ParaId,
+        _: CurrencyId,
+        _: Balance,
+    ) -> Result<(), sp_runtime::DispatchError> {
         todo!()
     }
-    fn withdraw(self, _: ParaId, _: AssetId) -> Result<(), sp_runtime::DispatchError> {
+    fn withdraw(self, _: ParaId, _: CurrencyId) -> Result<(), sp_runtime::DispatchError> {
         todo!()
     }
-    fn refund(self, _: ParaId, _: AssetId) -> Result<(), sp_runtime::DispatchError> {
+    fn refund(self, _: ParaId, _: CurrencyId) -> Result<(), sp_runtime::DispatchError> {
         todo!()
     }
 }
@@ -97,21 +102,21 @@ impl ClaimStrategyExecutor<ParaId> for ClaimStrategy<ParaId> {
 
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
-pub struct Vault<ParaId, AssetId, Balance> {
+pub struct Vault<ParaId, CurrencyId, Balance> {
     /// Asset used to represent the shares of project tokens for the contributors
     /// to this vault
-    pub project_shares: AssetId,
+    pub project_shares: CurrencyId,
     /// Asset used to represent the shares of currency (typically DOT or KSM)
     /// to be claimed back later on
-    pub currency_shares: AssetId,
+    pub currency_shares: CurrencyId,
     /// Indicates in which currency contributions are received, in most
     /// cases this will be the asset representing the relay chain's native
     /// token
-    pub currency: AssetId,
+    pub currency: CurrencyId,
     /// Which phase the vault is at
-    pub phase: VaultPhase<AssetId, Balance>,
+    pub phase: VaultPhase<CurrencyId, Balance>,
     /// How we contribute coins to the crowdloan
-    pub contribution_strategy: ContributionStrategy<ParaId, AssetId, Balance>,
+    pub contribution_strategy: ContributionStrategy<ParaId, CurrencyId, Balance>,
     /// How we claim project tokens
     pub claim_strategy: ClaimStrategy<ParaId>,
     /// Tracks how many coins were contributed on the relay chain

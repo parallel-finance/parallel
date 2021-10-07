@@ -19,65 +19,59 @@
 
 extern crate alloc;
 
-mod crowdloan_structs;
-use crowdloan_structs::{ClaimStrategy, ContributionStrategy, ParaId, Vault, VaultPhase};
-
-use frame_support::traits::tokens::fungibles;
-use frame_support::{
-    dispatch::DispatchResult,
-    pallet_prelude::*,
-    traits::{tokens::fungibles::Inspect, Get, IsType},
-    Blake2_128Concat, PalletId,
-};
-use primitives::{currency::CurrencyId::Asset, AssetId, Balance};
-
-use frame_system::pallet_prelude::*;
-
-use frame_system::ensure_root;
-use primitives::currency::CurrencyId;
-use sp_arithmetic::traits::Zero;
-
-use sp_runtime::{traits::StaticLookup, DispatchError};
-
-pub use pallet::*;
-
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
 mod tests;
 
-pub type ParaIdOf = ParaId;
+use frame_support::{
+    dispatch::DispatchResult,
+    pallet_prelude::*,
+    traits::{
+        fungibles::{Inspect, Mutate, Transfer},
+        Get, Hooks, IsType,
+    },
+    Blake2_128Concat, PalletId,
+};
 
-pub type AssetIdOf<T> = <<T as Config>::CrowdloanCurrency as fungibles::Inspect<
-    <T as frame_system::Config>::AccountId,
->>::AssetId;
+mod crowdloan_structs;
+use crowdloan_structs::{ClaimStrategy, ContributionStrategy, ParaId, Vault, VaultPhase};
 
-pub type BalanceOf<T> = <<T as Config>::CrowdloanCurrency as fungibles::Inspect<
-    <T as frame_system::Config>::AccountId,
->>::Balance;
+use frame_system::pallet_prelude::OriginFor;
+pub use pallet::*;
+
+use sp_runtime::{
+    traits::{AtLeast32BitUnsigned, StaticLookup, Zero},
+    DispatchError, FixedPointOperand,
+};
+
+pub type AssetIdOf<T, I = ()> =
+    <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
+pub type BalanceOf<T, I = ()> =
+    <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
+    use frame_system::ensure_root;
 
     #[pallet::config]
-    pub trait Config: frame_system::Config {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+    pub trait Config<I: 'static = ()>:
+        frame_system::Config
+        + pallet_assets::Config<AssetId = AssetIdOf<Self, I>, Balance = BalanceOf<Self, I>>
+    {
+        type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Currency type for deposit/withdraw assets to/from crowdloan
         /// module
-        type CrowdloanCurrency: fungibles::Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
-            + fungibles::Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
-            + fungibles::Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
+        type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
 
         #[pallet::constant]
         type PalletId: Get<PalletId>;
-
-        // type ParaId: Get<ParaId>;
     }
 
     #[pallet::error]
-    pub enum Error<T> {
+    pub enum Error<T, I = ()> {
         /// Vault is not in correct phase
         IncorrectVaultPhase,
         /// Vault shares are not new
@@ -87,27 +81,30 @@ pub mod pallet {
     }
 
     #[pallet::event]
-    pub enum Event<T: Config> {
+    #[pallet::metadata(T::AccountId = "AccountId", AssetIdOf<T, I> = "CurrencyId")]
+    pub enum Event<T: Config<I>, I: 'static = ()> {
         /// Create new vault
         /// [token, crowdloan, project_shares, currency_shares]
-        VaultCreated(CurrencyId, ParaId, AssetId, AssetId),
+        VaultCreated(AssetIdOf<T, I>, ParaId, AssetIdOf<T, I>, AssetIdOf<T, I>),
     }
 
+    #[pallet::hooks]
+    impl<T: Config<I>, I: 'static> Hooks<T::BlockNumber> for Pallet<T, I> {}
+
     #[pallet::pallet]
-    pub struct Pallet<T>(_);
+    pub struct Pallet<T, I = ()>(_);
 
     #[pallet::storage]
     #[pallet::getter(fn vaults)]
-    pub type Vaults<T: Config> = StorageMap<
-        _,
-        Blake2_128Concat,
-        ParaIdOf,
-        Vault<ParaId, AssetIdOf<T>, BalanceOf<T>>,
-        OptionQuery,
-    >;
+    pub type Vaults<T: Config<I>, I: 'static = ()> =
+        StorageMap<_, Blake2_128Concat, ParaId, Vault<ParaId, AssetIdOf<T, I>, u32>, OptionQuery>;
 
     #[pallet::call]
-    impl<T: Config> Pallet<T> {
+    impl<T: Config<I>, I: 'static> Pallet<T, I>
+    where
+        BalanceOf<T, I>: FixedPointOperand,
+        AssetIdOf<T, I>: AtLeast32BitUnsigned,
+    {
         ////
         //// 1. Vaults Management
 
@@ -122,33 +119,30 @@ pub mod pallet {
         #[allow(unused)]
         pub fn create_vault(
             origin: OriginFor<T>,
-            token: AssetIdOf<T>,
+            token: AssetIdOf<T, I>,
             crowdloan: ParaId,
-            project_shares: AssetIdOf<T>,
-            currency_shares: AssetIdOf<T>,
-            contribution_strategy: ContributionStrategy<ParaId, AssetIdOf<T>, BalanceOf<T>>,
+            project_shares: AssetIdOf<T, I>,
+            currency_shares: AssetIdOf<T, I>,
+            contribution_strategy: ContributionStrategy<ParaId, AssetIdOf<T, I>, BalanceOf<T, I>>,
             claim_strategy: ClaimStrategy<ParaId>,
         ) -> DispatchResult {
             ensure_root(origin)?;
 
             // get
-            let project_shares_issuance = T::CrowdloanCurrency::total_issuance(project_shares);
-            let currency_shares_issuance = T::CrowdloanCurrency::total_issuance(currency_shares);
+            let project_shares_issuance = T::Assets::total_issuance(project_shares);
+            let currency_shares_issuance = T::Assets::total_issuance(currency_shares);
 
             // make sure both project_shares and currency_shares are new assets
             ensure!(
                 project_shares_issuance == Zero::zero() && currency_shares_issuance == Zero::zero(),
-                Error::<T>::SharesNotNew
-            );
-
-            // make sure no similar vault already exists as identified by crowdloan
-            ensure!(
-                !Vaults::<T>::contains_key(&crowdloan),
-                Error::<T>::CrowdloanAlreadyExists
+                Error::<T, I>::SharesNotNew
             );
 
             // add new vault to vaults storage
-            Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
+            Vaults::<T, I>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
+                // make sure no similar vault already exists as identified by crowdloan
+                ensure!(vault.is_none(), Error::<T, I>::CrowdloanAlreadyExists);
+
                 // inialize new vault
                 Ok(*vault = Some(crowdloan_structs::Vault {
                     project_shares: project_shares,
@@ -171,13 +165,12 @@ pub mod pallet {
 
         /// Contribute `amount` to the vault of `crowdloan` and receive some
         /// shares from it
-
         #[pallet::weight(10_000)]
         #[allow(unused)]
         pub fn contribute(
             origin: OriginFor<T>,
             crowdloan: ParaId,
-            amount: Balance,
+            amount: BalanceOf<T, I>,
             ptokens_receiver: <T::Lookup as StaticLookup>::Source,
         ) -> DispatchResult {
             unimplemented!();
@@ -226,7 +219,7 @@ pub mod pallet {
         pub fn claim_refund(
             origin: OriginFor<T>,
             crowdloan: ParaId,
-            amount: Balance,
+            amount: BalanceOf<T, I>,
         ) -> DispatchResult {
             unimplemented!();
         }
@@ -241,8 +234,8 @@ pub mod pallet {
         pub fn auction_completed(
             origin: OriginFor<T>,
             crowdloan: ParaId,
-            project_token: AssetIdOf<T>,
-            total_to_distribute: BalanceOf<T>,
+            project_token: AssetIdOf<T, I>,
+            total_to_distribute: BalanceOf<T, I>,
         ) -> DispatchResult {
             ensure_root(origin)?;
             unimplemented!();
@@ -270,7 +263,7 @@ pub mod pallet {
         pub fn claim_project_tokens(
             origin: OriginFor<T>,
             crowdloan: ParaId,
-            amount: BalanceOf<T>,
+            amount: BalanceOf<T, I>,
         ) -> DispatchResult {
             unimplemented!();
         }
@@ -282,10 +275,7 @@ pub mod pallet {
         /// claim back the funds lent to the parachain
         #[pallet::weight(10_000)]
         #[allow(unused)]
-        pub fn slot_expired(
-            origin: OriginFor<T>,
-            crowdloan: ParaId,
-        ) -> DispatchResult {
+        pub fn slot_expired(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             ensure_root(origin)?;
             unimplemented!();
         }

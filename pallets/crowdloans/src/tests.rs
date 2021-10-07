@@ -8,10 +8,10 @@ fn create_new_vault_should_work() {
         let crowdloan = 1337;
         let project_shares = 420;
         let currency_shares = 113;
-        let token = CurrencyId::Asset(1);
+        let token = 1;
 
         let contribution_strategy =
-            ContributionStrategy::Placeholder(crowdloan, Asset(currency_shares), crowdloan as u128);
+            ContributionStrategy::Placeholder(crowdloan, currency_shares, crowdloan as u128);
 
         let claim_strategy = ClaimStrategy::Placeholder(crowdloan);
 
@@ -19,8 +19,8 @@ fn create_new_vault_should_work() {
             frame_system::RawOrigin::Root.into(), // origin
             token,                                // token
             crowdloan,                            // crowdloan
-            Asset(project_shares),                // project_shares
-            Asset(currency_shares),               // currency_shares
+            project_shares,                       // project_shares
+            currency_shares,                      // currency_shares
             contribution_strategy,                // contribution_strategy
             claim_strategy,                       // claim_strategy
         ));
@@ -29,13 +29,13 @@ fn create_new_vault_should_work() {
             assert_eq!(
                 just_created_vault,
                 Vault {
-                    project_shares: CurrencyId::Asset(project_shares),
-                    currency_shares: CurrencyId::Asset(currency_shares),
-                    currency: CurrencyId::Asset(currency_shares),
+                    project_shares: project_shares,
+                    currency_shares: currency_shares,
+                    currency: currency_shares,
                     phase: VaultPhase::CollectingContributions,
                     contribution_strategy: ContributionStrategy::Placeholder(
                         crowdloan,
-                        CurrencyId::Asset(currency_shares),
+                        currency_shares,
                         0,
                     ),
                     claim_strategy: ClaimStrategy::Placeholder(crowdloan),
