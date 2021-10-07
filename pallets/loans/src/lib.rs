@@ -140,6 +140,8 @@ pub mod pallet {
         MarketAlredyExists,
         /// New markets must have a pending state
         NewMarketMustHavePendingState,
+        /// Market reach its upper limitation
+        ExceededMarketCapacity,
     }
 
     #[pallet::event]
@@ -507,7 +509,7 @@ pub mod pallet {
             mint_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_capacity(asset_id, mint_amount)?;
 
             T::Assets::transfer(asset_id, &who, &Self::account_id(), mint_amount, false)?;
             Self::update_earned_stored(&who, asset_id)?;
@@ -1256,12 +1258,27 @@ where
     }
 
     // Ensures a given `asset_id` exists on the `Currencies` storage.
-    fn ensure_currency(asset_id: AssetIdOf<T>) -> DispatchResult {
-        if Self::active_markets().any(|(id, _)| id == asset_id) {
-            Ok(())
+    fn ensure_currency(asset_id: AssetIdOf<T>) -> Result<Market<BalanceOf<T>>, DispatchError> {
+        let market = Self::active_markets().find(|(id, _)| id == &asset_id);
+        if let Some((_, market)) = market {
+            Ok(market)
         } else {
             Err(<Error<T>>::MarketNotActivated.into())
         }
+    }
+
+    /// Ensure market is enough to supply `amount` asset.
+    fn ensure_capacity(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
+        let market = Self::ensure_currency(asset_id)?;
+        let current_supply = Self::total_supply(asset_id);
+        let total_supply = current_supply
+            .checked_add(&amount)
+            .ok_or(ArithmeticError::Overflow)?;
+        ensure!(
+            total_supply <= market.cap,
+            Error::<T>::ExceededMarketCapacity
+        );
+        Ok(())
     }
 
     pub fn calc_underlying_amount(
