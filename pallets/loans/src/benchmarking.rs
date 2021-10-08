@@ -273,6 +273,23 @@ benchmarks! {
     verify {
         assert_eq!(Loans::<T>::borrow_index(AssetIdOf::<T>::from(DOT)), Rate::from_inner(1000000013318112633));
     }
+
+    accrue_interest {
+        let alice: T::AccountId = account("Sample", 100, SEED);
+        transfer_initial_balance::<T>(alice.clone());
+        let deposit_amount: u32 = 200_000_000;
+        let borrow_amount: u32 = 100_000_000;
+        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), PENDING_MARKET_MOCK));
+        assert_ok!(Loans::<T>::active_market(SystemOrigin::Root.into(), DOT.into()));
+        assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(alice.clone()).into(), DOT.into(), deposit_amount.into()));
+        assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(alice.clone()).into(), DOT.into(), true));
+        assert_ok!(Loans::<T>::borrow(SystemOrigin::Signed(alice).into(), DOT.into(), borrow_amount.into()));
+    }: {
+        Loans::<T>::accrue_interest(6)?;
+    }
+    verify {
+        assert_eq!(Loans::<T>::borrow_index(AssetIdOf::<T>::from(DOT)), Rate::from_inner(1000000013318112633));
+    }
 }
 
 impl_benchmark_test_suite!(Loans, crate::mock::new_test_ext(), crate::mock::Test);
