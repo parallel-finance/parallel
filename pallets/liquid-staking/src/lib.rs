@@ -547,7 +547,7 @@ pub mod pallet {
                     ],
                 })));
 
-            let msg = Self::xcm_message(call.encode().into());
+            let msg = Self::ump_transact(call.encode().into());
 
             match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 Ok(()) => {
@@ -585,7 +585,7 @@ pub mod pallet {
                     ],
                 })));
 
-            let msg = Self::xcm_message(call.encode().into());
+            let msg = Self::ump_transact(call.encode().into());
 
             match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 Ok(()) => {
@@ -614,7 +614,7 @@ pub mod pallet {
                 },
             )));
 
-            let msg = Self::xcm_message(call.encode().into());
+            let msg = Self::ump_transact(call.encode().into());
 
             match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 Ok(()) => {
@@ -643,7 +643,7 @@ pub mod pallet {
                 },
             )));
 
-            let msg = Self::xcm_message(call.encode().into());
+            let msg = Self::ump_transact(call.encode().into());
 
             match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 Ok(()) => {
@@ -688,7 +688,7 @@ pub mod pallet {
                     ],
                 })));
 
-            let msg = Self::xcm_message(call.encode().into());
+            let msg = Self::ump_transact(call.encode().into());
 
             match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 Ok(()) => {
@@ -725,7 +725,7 @@ pub mod pallet {
                 },
             )));
 
-            let msg = Self::xcm_message(call.encode().into());
+            let msg = Self::ump_transact(call.encode().into());
 
             match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 Ok(()) => {
@@ -755,7 +755,7 @@ pub mod pallet {
                 },
             ));
 
-            let msg = Self::xcm_message(call.encode().into());
+            let msg = Self::ump_transact(call.encode().into());
 
             match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 Ok(()) => {
@@ -857,7 +857,7 @@ pub mod pallet {
             UnstakeQueue::<T>::mutate(|v| v.remove(0));
         }
 
-        fn xcm_message(call: DoubleEncoded<()>) -> Xcm<()> {
+        fn ump_transact(call: DoubleEncoded<()>) -> Xcm<()> {
             let asset: MultiAsset = (MultiLocation::here(), 1_000_000_000_000).into();
 
             WithdrawAsset {
@@ -877,13 +877,43 @@ pub mod pallet {
                     DepositAsset {
                         assets: All.into(),
                         max_assets: u32::max_value(),
-                        beneficiary: X1(Junction::AccountId32 {
+                        beneficiary: X1(AccountId32 {
                             network: NetworkId::Any,
                             id: T::ParachainAccount::get().into(),
                         })
                         .into(),
                     },
                 ],
+            }
+        }
+
+        fn ump_transfer(amount: u128) -> Xcm<()> {
+            let asset: MultiAsset = (MultiLocation::here(), amount).into();
+
+            WithdrawAsset {
+                assets: MultiAssets::from(asset.clone()),
+                effects: vec![InitiateReserveWithdraw {
+                    assets: All.into(),
+                    reserve: MultiLocation::parent(),
+                    effects: vec![
+                        BuyExecution {
+                            fees: asset,
+                            weight: 0,
+                            debt: T::BaseXcmWeight::get(),
+                            halt_on_error: false,
+                            instructions: vec![],
+                        },
+                        DepositAsset {
+                            assets: All.into(),
+                            max_assets: u32::max_value(),
+                            beneficiary: X1(AccountId32 {
+                                network: NetworkId::Any,
+                                id: T::ParachainAccount::get().into(),
+                            })
+                            .into(),
+                        },
+                    ],
+                }],
             }
         }
     }
