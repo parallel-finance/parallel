@@ -57,7 +57,8 @@ pub mod pallet {
         },
         ArithmeticError, FixedPointNumber, FixedPointOperand,
     };
-    use sp_std::vec::Vec;
+    use sp_std::vec;
+    use sp_std::{boxed::Box, vec::Vec};
     use xcm::{latest::prelude::*, DoubleEncoded};
 
     use primitives::{DerivativeProvider, EraIndex, Rate, Ratio};
