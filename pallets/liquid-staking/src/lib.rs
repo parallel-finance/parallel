@@ -53,7 +53,8 @@ pub mod pallet {
     use orml_traits::XcmTransfer;
     use sp_runtime::{
         traits::{
-            AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedSub, StaticLookup, Zero,
+            AccountIdConversion, AtLeast32BitUnsigned, BlockNumberProvider, CheckedAdd, CheckedSub,
+            StaticLookup, Zero,
         },
         ArithmeticError, FixedPointNumber, FixedPointOperand,
     };
@@ -100,6 +101,9 @@ pub mod pallet {
         /// Basic xcm transaction weight per message
         #[pallet::constant]
         type BaseXcmWeight: Get<Weight>;
+
+        /// Relaychain block number provider
+        type RelaychainBlockNumberProvider: BlockNumberProvider;
 
         /// Parachain account on relaychain
         #[pallet::constant]
