@@ -83,7 +83,7 @@ launch: shutdown
 	docker image pull parallelfinance/parallel-dapp:latest
 	docker image pull parallelfinance/stake-client:latest
 	parachain-launch generate $(LAUNCH_CONFIG) && (cp -r keystore* output || true) && cp docker-compose.override.yml output && docker-compose -f output/docker-compose.yml -f output/docker-compose.override.yml up -d --build
-	cd launch && yarn && yarn start
+	cd launch && yarn start
 
 .PHONY: logs
 logs:
