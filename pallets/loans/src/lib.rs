@@ -36,9 +36,7 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 pub use pallet::*;
-use primitives::{
-    Balance, CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall, Timestamp,
-};
+use primitives::{CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall, Timestamp};
 use sp_runtime::{
     traits::{
         AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub,
@@ -422,6 +420,14 @@ pub mod pallet {
                 market.rate_model.check_model(),
                 Error::<T>::InvalidRateModelParam
             );
+            // FIXME(Alan WANG): To mutate the whole struct might be better.
+            // Seem like
+            // ```
+            // *stored_market = Market {
+            //  state: stored_market.state,
+            //  ...market
+            // }
+            // ```
             Self::mutate_market(asset_id, |stored_market| {
                 let Market {
                     collateral_factor,
@@ -430,13 +436,14 @@ pub mod pallet {
                     liquidate_incentive,
                     rate_model,
                     state: _,
-                    cap: _,
+                    cap,
                 } = stored_market;
                 *collateral_factor = market.collateral_factor;
                 *reserve_factor = market.reserve_factor;
                 *close_factor = market.close_factor;
                 *liquidate_incentive = market.liquidate_incentive;
                 *rate_model = market.rate_model;
+                *cap = market.cap;
             })?;
 
             Self::deposit_event(Event::<T>::UpdatedMarket(market));
@@ -455,6 +462,7 @@ pub mod pallet {
             mint_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+            Self::ensure_currency(asset_id)?;
             Self::ensure_capacity(asset_id, mint_amount)?;
 
             T::Assets::transfer(asset_id, &who, &Self::account_id(), mint_amount, false)?;
@@ -1204,10 +1212,9 @@ where
     }
 
     // Ensures a given `asset_id` exists on the `Currencies` storage.
-    fn ensure_currency(asset_id: AssetIdOf<T>) -> Result<Market<BalanceOf<T>>, DispatchError> {
-        let market = Self::active_markets().find(|(id, _)| id == &asset_id);
-        if let Some((_, market)) = market {
-            Ok(market)
+    fn ensure_currency(asset_id: AssetIdOf<T>) -> DispatchResult {
+        if Self::active_markets().any(|(id, _)| id == asset_id) {
+            Ok(())
         } else {
             Err(<Error<T>>::MarketNotActivated.into())
         }
@@ -1216,13 +1223,15 @@ where
     /// Ensure market is enough to supply `amount` asset.
     /// FIXME(Alan WANG): we do redundant calculation.
     fn ensure_capacity(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
-        let market = Self::ensure_currency(asset_id)?;
-        let current_supply = Self::total_supply(asset_id);
+        let (_, market) = Markets::<T>::iter()
+            .find(|(id, _)| id == &asset_id)
+            .ok_or(Error::<T>::MarketDoesNotExist)?;
 
-        let exchange_rate = Self::exchange_rate(asset_id);
-        let voucher_amount = Self::calc_collateral_amount(amount, exchange_rate)?;
+        // Assets holded by market currently.
+        let current_supply = T::Assets::balance(asset_id, &Self::account_id());
+
         let total_supply = current_supply
-            .checked_add(&voucher_amount)
+            .checked_add(&amount)
             .ok_or(ArithmeticError::Overflow)?;
         ensure!(
             total_supply <= market.cap,

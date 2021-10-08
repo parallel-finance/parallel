@@ -10,9 +10,7 @@ use sp_runtime::FixedPointNumber;
 fn exceeded_market_capacity() {
     new_test_ext().execute_with(|| {
         Assets::mint(Origin::signed(ALICE), DOT, ALICE, million_dollar(1001)).unwrap();
-        let exchange_rate = Loans::exchange_rate(DOT);
-        // Capcity is $1B. Mint $0.501B should be ok.
-        let amount = Loans::calc_underlying_amount(million_dollar(501), exchange_rate).unwrap();
+        let amount = million_dollar(501);
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, amount));
         // Exceed upper bound.
         assert_err!(
