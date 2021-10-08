@@ -25,7 +25,7 @@ where
     AssetIdOf<T>: AtLeast32BitUnsigned,
 {
     /// Accrue interest per block and update corresponding storage
-    pub(crate) fn accrue_interest() -> DispatchResult {
+    pub(crate) fn accrue_interest(delta_time: u64) -> DispatchResult {
         for (asset_id, market) in Self::active_markets() {
             let total_cash = Self::get_total_cash(asset_id);
             let total_borrows = Self::total_borrows(asset_id);
@@ -43,7 +43,7 @@ where
             BorrowRate::<T>::insert(asset_id, &borrow_rate);
             SupplyRate::<T>::insert(asset_id, supply_rate);
 
-            Self::update_borrow_index(borrow_rate, asset_id, &market)?;
+            Self::update_borrow_index(borrow_rate, asset_id, &market, delta_time)?;
             Self::update_exchange_rate(asset_id)?;
         }
 
@@ -106,13 +106,10 @@ where
         borrow_rate: Rate,
         asset_id: AssetIdOf<T>,
         market: &Market,
+        delta_time: u64,
     ) -> DispatchResult {
         let borrows_prior = Self::total_borrows(asset_id);
         let reserve_prior = Self::total_reserves(asset_id);
-        let delta_time = T::UnixTime::now()
-            .as_secs()
-            .checked_sub(Self::last_block_timestamp())
-            .ok_or(ArithmeticError::Underflow)?;
         let interest_accumulated = Self::accrued_interest(borrow_rate, borrows_prior, delta_time)
             .ok_or(ArithmeticError::Overflow)?;
         let total_borrows_new = interest_accumulated

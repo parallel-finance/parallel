@@ -17,6 +17,7 @@ orml-utilities     = { git = 'https://github.com/open-web3-stack/open-runtime-mo
 pallet-assets      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.10', default-features = false }
 pallet-balances    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.10', default-features = false }
 pallet-timestamp   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.10', default-features = false }
+pallet-prices      = { path = '../prices', default-features = false}
 
 primitives = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 serde      = { version = '1', features = ['derive'], optional = true }
@@ -25,7 +26,6 @@ sp-std     = { git = 'https://github.com/paritytech/substrate.git', branch = 'po
 
 [dev-dependencies]
 orml-oracle   = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
-pallet-prices = { path = '../prices' }
 sp-core       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.10', default-features = false }
 sp-io         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.10', default-features = false }
 

@@ -1,5 +1,5 @@
 use crate::{
-    mock::{new_test_ext, process_block, Loans, Origin, Test, ALICE, DOT},
+    mock::{new_test_ext, Loans, Origin, Test, ALICE, DOT},
     tests::{dollar, million_dollar, run_to_block, Assets},
     InterestRateModel, Markets,
 };
@@ -73,9 +73,9 @@ fn interest_rate_model_works() {
         let mut total_reserves: u128 = 0;
 
         // Finalized block from 1 to 50
-        process_block(1);
+        run_to_block(1);
         for i in 2..50 {
-            process_block(i);
+            run_to_block(i);
             // utilizationRatio = totalBorrows / (totalCash + totalBorrows)
             let util_ratio = Ratio::from_rational(total_borrows, total_cash + total_borrows);
             assert_eq!(Loans::utilization_ratio(DOT), util_ratio);
@@ -168,9 +168,9 @@ fn with_transaction_commit_works() {
         assert_eq!(Loans::exchange_rate(DOT).into_inner(), 20000000000000000);
         assert_eq!(Loans::borrow_index(DOT), Rate::one());
 
-        run_to_block(3);
+        run_to_block(2);
 
-        // block 3
+        // block 2
         assert_eq!(Loans::utilization_ratio(DOT), Ratio::from_percent(50));
         assert_eq!(Loans::total_borrows(DOT), 100000001331811263318);
         assert_eq!(Loans::total_reserves(DOT), 199771689497);
