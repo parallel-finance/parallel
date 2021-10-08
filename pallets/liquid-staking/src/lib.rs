@@ -511,9 +511,9 @@ pub mod pallet {
             Ok(().into())
         }
 
+        /// Bond on relaychain via xcm.transact
         #[pallet::weight(<T as Config>::WeightInfo::bond())]
         #[transactional]
-        /// Bond on relaychain via xcm.transact
         pub fn bond(
             origin: OriginFor<T>,
             value: BalanceOf<T>,
@@ -561,9 +561,9 @@ pub mod pallet {
             Ok(())
         }
 
+        /// Bond_extra on relaychain via xcm.transact
         #[pallet::weight(<T as Config>::WeightInfo::bond_extra())]
         #[transactional]
-        /// Bond_extra on relaychain via xcm.transact
         pub fn bond_extra(origin: OriginFor<T>, value: BalanceOf<T>) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
 
@@ -599,9 +599,9 @@ pub mod pallet {
             Ok(())
         }
 
+        /// unbond on relaychain via xcm.transact
         #[pallet::weight(<T as Config>::WeightInfo::unbond())]
         #[transactional]
-        /// unbond on relaychain via xcm.transact
         pub fn unbond(origin: OriginFor<T>, value: BalanceOf<T>) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
 
@@ -628,9 +628,9 @@ pub mod pallet {
             Ok(())
         }
 
+        /// rebond on relaychain via xcm.transact
         #[pallet::weight(<T as Config>::WeightInfo::rebond())]
         #[transactional]
-        /// rebond on relaychain via xcm.transact
         pub fn rebond(origin: OriginFor<T>, value: BalanceOf<T>) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
 
@@ -657,9 +657,9 @@ pub mod pallet {
             Ok(())
         }
 
+        /// withdraw unbonded on relaychain via xcm.transact
         #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded())]
         #[transactional]
-        /// withdraw unbonded on relaychain via xcm.transact
         pub fn withdraw_unbonded(origin: OriginFor<T>, num_slashing_spans: u32) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
 
@@ -702,9 +702,9 @@ pub mod pallet {
             Ok(())
         }
 
+        /// Nominate on relaychain via xcm.transact
         #[pallet::weight(<T as Config>::WeightInfo::nominate())]
         #[transactional]
-        /// Nominate on relaychain via xcm.transact
         pub fn nominate(origin: OriginFor<T>, targets: Vec<T::AccountId>) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
 
@@ -738,9 +738,10 @@ pub mod pallet {
 
             Ok(())
         }
+
+        /// Payout_stakers on relaychain via xcm.transact
         #[pallet::weight(<T as Config>::WeightInfo::payout_stakers())]
         #[transactional]
-        /// Payout_stakers on relaychain via xcm.transact
         pub fn payout_stakers(
             origin: OriginFor<T>,
             validator_stash: T::AccountId,
