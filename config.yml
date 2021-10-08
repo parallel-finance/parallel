@@ -14,23 +14,6 @@ relaychain:
     - name: bob
     - name: charlie
 
-statemine:
-  image: parallelfinance/statemine:v0.9.10
-  chain: rococo-local
-  runtimeGenesisConfig:
-    configuration:
-      config:
-        validation_upgrade_frequency: 1
-        validation_upgrade_delay: 1
-  flags:
-    - --rpc-methods=unsafe
-    - --no-beefy
-  nodes:
-    - name: alice
-    - name: bob
-    - name: charlie
-
-
 parachains:
   - image: parallelfinance/parallel:latest
     chain:
@@ -54,3 +37,26 @@ parachains:
           - --bob
       - flags:
           - --charlie
+
+  - image: parallelfinance/statemine:v0.9.10
+    chain:
+      base: statemint-dev
+      collators:
+        - alice
+        - bob
+        - charlie
+      sudo: dave
+      id: 2086
+      parachain: true
+      flags:
+        - --rpc-methods=unsafe
+        - --force-authoring
+      relaychainFlags:
+        - --no-beefy
+      nodes:
+        - flags:
+            - --alice
+        - flags:
+            - --bob
+        - flags:
+            - --charlie
