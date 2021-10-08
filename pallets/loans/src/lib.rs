@@ -766,7 +766,6 @@ pub mod pallet {
         }
 
         /// Only used to calculate the weight of accrue_interest
-        #[cfg(feature = "runtime-benchmarks")]
         #[pallet::weight(0)]
         #[transactional]
         pub fn accrue_interest_weight(origin: OriginFor<T>, delta_time: u64) -> DispatchResult {
