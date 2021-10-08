@@ -199,6 +199,26 @@ fn update_market_successfully_modifies_a_stored_market() {
 }
 
 #[test]
+fn update_market_capacity_successfully() {
+    new_test_ext().execute_with(|| {
+        let dot_market = || Markets::<Test>::get(DOT).unwrap();
+        assert_eq!(dot_market().cap, MARKET_MOCK.cap);
+
+        const NEW_MARKET_CAP: u128 = 1000000000u128;
+
+        assert_ok!(Loans::update_market(
+            Origin::root(),
+            DOT,
+            Market::<_> {
+                cap: NEW_MARKET_CAP,
+                ..MARKET_MOCK
+            }
+        ));
+        assert_eq!(dot_market().cap, NEW_MARKET_CAP);
+    })
+}
+
+#[test]
 fn update_market_has_sanity_checks_for_rate_models() {
     rate_model_sanity_check!(update_market);
 }
