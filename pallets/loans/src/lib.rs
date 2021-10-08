@@ -319,7 +319,10 @@ pub mod pallet {
                 match <Pallet<T>>::accrue_interest(now - last_block_timestamp) {
                     Ok(()) => {
                         LastBlockTimestamp::<T>::put(now);
-                        TransactionOutcome::Commit(1000)
+                        TransactionOutcome::Commit(
+                            T::WeightInfo::accrue_interest_weight()
+                                * Self::active_markets().count() as u64,
+                        )
                     }
                     Err(err) => {
                         // This should never happen...
@@ -760,6 +763,15 @@ pub mod pallet {
             ));
 
             Ok(().into())
+        }
+
+        /// Only used to calculate the weight of accrue_interest
+        #[cfg(feature = "runtime-benchmarks")]
+        #[pallet::weight(0)]
+        #[transactional]
+        pub fn accrue_interest_weight(origin: OriginFor<T>, delta_time: u64) -> DispatchResult {
+            ensure_root(origin)?;
+            Self::accrue_interest(delta_time)
         }
     }
 }
