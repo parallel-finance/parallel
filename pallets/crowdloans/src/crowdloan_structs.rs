@@ -57,7 +57,7 @@ pub struct Vault<ParaId, CurrencyId, Balance> {
     pub contributed: Balance,
 }
 
-#[allow(clippy::upper_case_acronyms)] // for XCM 
+#[allow(clippy::upper_case_acronyms)] // for XCM
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
 pub enum ContributionStrategy<ParaId, CurrencyId, Balance> {
@@ -99,4 +99,3 @@ impl ContributionStrategyExecutor<ParaId, CurrencyId, Balance>
         todo!()
     }
 }
-
