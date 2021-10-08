@@ -1,7 +1,9 @@
 use crate::{
-    mock::{million_dollar, new_test_ext, Assets, Loans, Origin, Test, ALICE, DOT, KSM},
+    mock::{
+        million_dollar, new_test_ext, Assets, Loans, Origin, Test, ALICE, DOT, KSM, MARKET_MOCK,
+    },
     tests::{dollar, run_to_block},
-    Config, Error,
+    Config, Error, Market, Markets,
 };
 use frame_support::{assert_err, assert_ok};
 use sp_runtime::FixedPointNumber;
@@ -21,6 +23,26 @@ fn exceeded_market_capacity() {
         Loans::redeem(Origin::signed(ALICE), DOT, amount).unwrap();
         // Here should work, cause we redeemed already.
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, amount));
+    })
+}
+
+#[test]
+fn update_market_capacity_successfully() {
+    new_test_ext().execute_with(|| {
+        let dot_market = || Markets::<Test>::get(DOT).unwrap();
+        assert_eq!(dot_market().cap, MARKET_MOCK.cap);
+
+        const NEW_MARKET_CAP: u128 = 1000000000u128;
+
+        assert_ok!(Loans::update_market(
+            Origin::root(),
+            DOT,
+            Market::<_> {
+                cap: NEW_MARKET_CAP,
+                ..MARKET_MOCK
+            }
+        ));
+        assert_eq!(dot_market().cap, NEW_MARKET_CAP);
     })
 }
 
