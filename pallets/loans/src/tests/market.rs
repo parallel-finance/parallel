@@ -1,6 +1,6 @@
 use crate::{
     mock::{new_test_ext, Loans, Origin, Test, ALICE, DOT, MARKET_MOCK, XDOT},
-    Error, InterestRateModel, Market, MarketState,
+    Error, InterestRateModel, Market, MarketState, Markets,
 };
 use frame_support::{assert_noop, assert_ok, error::BadOrigin};
 use primitives::{Balance, Rate, Ratio};
