@@ -320,7 +320,7 @@ pub mod pallet {
                     Ok(()) => {
                         LastBlockTimestamp::<T>::put(now);
                         TransactionOutcome::Commit(
-                            T::WeightInfo::accrue_interest_weight()
+                            T::WeightInfo::accrue_interest()
                                 * Self::active_markets().count() as u64,
                         )
                     }
@@ -763,14 +763,6 @@ pub mod pallet {
             ));
 
             Ok(().into())
-        }
-
-        /// Only used to calculate the weight of accrue_interest
-        #[pallet::weight(0)]
-        #[transactional]
-        pub fn accrue_interest_weight(origin: OriginFor<T>, delta_time: u64) -> DispatchResult {
-            ensure_root(origin)?;
-            Self::accrue_interest(delta_time)
         }
     }
 }
