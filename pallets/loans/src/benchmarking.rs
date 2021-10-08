@@ -57,14 +57,8 @@ fn transfer_initial_balance<
     )
     .ok();
 
-    pallet_assets::Pallet::<T>::force_create(
-        SystemOrigin::Root.into(),
-        DOT,
-        account_id.clone(),
-        true,
-        1,
-    )
-    .ok();
+    pallet_assets::Pallet::<T>::force_create(SystemOrigin::Root.into(), DOT, account_id, true, 1)
+        .ok();
 
     T::Assets::mint_into(DOT.into(), &caller, INITIAL_AMOUNT.into()).unwrap();
     T::Assets::mint_into(KSM.into(), &caller, INITIAL_AMOUNT.into()).unwrap();
@@ -274,7 +268,7 @@ benchmarks! {
         assert_ok!(Loans::<T>::active_market(SystemOrigin::Root.into(), DOT.into()));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(alice.clone()).into(), DOT.into(), deposit_amount.into()));
         assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(alice.clone()).into(), DOT.into(), true));
-        assert_ok!(Loans::<T>::borrow(SystemOrigin::Signed(alice.clone()).into(), DOT.into(), borrow_amount.into()));
+        assert_ok!(Loans::<T>::borrow(SystemOrigin::Signed(alice).into(), DOT.into(), borrow_amount.into()));
     }: _(SystemOrigin::Root, 6)
     verify {
         assert_eq!(Loans::<T>::borrow_index(AssetIdOf::<T>::from(DOT)), Rate::from_inner(1000000013318112633));
