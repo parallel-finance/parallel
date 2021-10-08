@@ -1,6 +1,7 @@
 use crate::{
     mock::{
         million_dollar, new_test_ext, Assets, Loans, Origin, Test, ALICE, DOT, KSM, MARKET_MOCK,
+        XDOT,
     },
     tests::{dollar, run_to_block},
     Config, Error, Market, Markets,
@@ -62,4 +63,13 @@ fn repay_borrow_all_no_underflow() {
         assert_eq!(borrow_snapshot.principal, 0);
         assert_eq!(borrow_snapshot.borrow_index, Loans::borrow_index(KSM));
     })
+}
+
+#[test]
+#[ignore]
+fn ensure_capacity_fails_when_market_not_existed() {
+    assert_err!(
+        Loans::ensure_capacity(XDOT, dollar(100)),
+        Error::<Test>::MarketDoesNotExist
+    );
 }

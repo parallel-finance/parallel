@@ -1222,7 +1222,7 @@ where
 
     /// Ensure market is enough to supply `amount` asset.
     /// FIXME(Alan WANG): we do redundant calculation.
-    fn ensure_capacity(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
+    pub fn ensure_capacity(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
         let (_, market) = Markets::<T>::iter()
             .find(|(id, _)| id == &asset_id)
             .ok_or(Error::<T>::MarketDoesNotExist)?;
