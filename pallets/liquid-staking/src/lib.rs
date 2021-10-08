@@ -451,7 +451,8 @@ mod pallet {
             Ok(().into())
         }
 
-        /// Handle staking settlement at the end of an era, such as getting reward or been slashed in relaychain.
+        /// Handle staking settlement at the end of an era
+        /// such as getting reward or been slashed in relaychain.
         #[pallet::weight(<T as Config>::WeightInfo::record_staking_settlement())]
         #[transactional]
         pub fn record_staking_settlement(
