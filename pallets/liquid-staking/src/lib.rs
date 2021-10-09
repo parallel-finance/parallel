@@ -539,19 +539,19 @@ pub mod pallet {
                 )?;
 
                 if !bonding_amount.is_zero() {
-                    // bond extra
+                    Self::bond_internal(bond_amount, RewardDestination::Staked)?;
                 } else {
-                    // bond
+                    Self::bond_extra_internal(bond_amount)?;
                 }
             }
 
             if !unbond_amount.is_zero() {
-                // unbond
+                Self::unbond_internal(unbond_amount)?;
                 // update unbonding storage
             }
 
             if !rebond_amount.is_zero() {
-                // rebond
+                Self::rebond_internal(rebond_amount)?;
                 // update unbonding storage
             }
 
@@ -573,44 +573,7 @@ pub mod pallet {
             payee: RewardDestination<T::AccountId>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-
-            let stash = Self::derivative_para_account_id();
-            let controller = stash.clone();
-            let call =
-                RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
-                    calls: vec![
-                        RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
-                            BalancesTransferKeepAliveCall {
-                                dest: T::Lookup::unlookup(stash),
-                                value,
-                            },
-                        )),
-                        RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
-                            UtilityAsDerivativeCall {
-                                index: T::DerivativeIndex::get(),
-                                call: RelaychainCall::Staking::<T>(StakingCall::Bond(
-                                    StakingBondCall {
-                                        controller: T::Lookup::unlookup(controller.clone()),
-                                        value,
-                                        payee: payee.clone(),
-                                    },
-                                )),
-                            },
-                        ))),
-                    ],
-                })));
-
-            let msg = Self::ump_transact(call.encode().into());
-
-            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                Ok(()) => {
-                    Self::deposit_event(Event::<T>::BondCallSent(controller, value, payee));
-                }
-                Err(_e) => {
-                    return Err(Error::<T>::BondCallFailed.into());
-                }
-            }
-
+            Self::bond_internal(value, payee)?;
             Ok(())
         }
 
@@ -619,36 +582,7 @@ pub mod pallet {
         #[transactional]
         pub fn bond_extra(origin: OriginFor<T>, value: BalanceOf<T>) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-
-            let stash = T::Lookup::unlookup(Self::derivative_para_account_id());
-            let call =
-                RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
-                    calls: vec![
-                        RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
-                            BalancesTransferKeepAliveCall { dest: stash, value },
-                        )),
-                        RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
-                            UtilityAsDerivativeCall {
-                                index: T::DerivativeIndex::get(),
-                                call: RelaychainCall::Staking::<T>(StakingCall::BondExtra(
-                                    StakingBondExtraCall { value },
-                                )),
-                            },
-                        ))),
-                    ],
-                })));
-
-            let msg = Self::ump_transact(call.encode().into());
-
-            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                Ok(()) => {
-                    Self::deposit_event(Event::<T>::BondExtraCallSent(value));
-                }
-                Err(_e) => {
-                    return Err(Error::<T>::BondExtraCallFailed.into());
-                }
-            }
-
+            Self::bond_extra_internal(value)?;
             Ok(())
         }
 
@@ -657,27 +591,7 @@ pub mod pallet {
         #[transactional]
         pub fn unbond(origin: OriginFor<T>, value: BalanceOf<T>) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-
-            let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
-                UtilityAsDerivativeCall {
-                    index: T::DerivativeIndex::get(),
-                    call: RelaychainCall::Staking::<T>(StakingCall::Unbond(StakingUnbondCall {
-                        value,
-                    })),
-                },
-            )));
-
-            let msg = Self::ump_transact(call.encode().into());
-
-            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                Ok(()) => {
-                    Self::deposit_event(Event::<T>::UnbondCallSent(value));
-                }
-                Err(_e) => {
-                    return Err(Error::<T>::UnbondCallFailed.into());
-                }
-            }
-
+            Self::unbond_internal(value)?;
             Ok(())
         }
 
@@ -686,27 +600,7 @@ pub mod pallet {
         #[transactional]
         pub fn rebond(origin: OriginFor<T>, value: BalanceOf<T>) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-
-            let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
-                UtilityAsDerivativeCall {
-                    index: T::DerivativeIndex::get(),
-                    call: RelaychainCall::Staking::<T>(StakingCall::Rebond(StakingRebondCall {
-                        value,
-                    })),
-                },
-            )));
-
-            let msg = Self::ump_transact(call.encode().into());
-
-            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                Ok(()) => {
-                    Self::deposit_event(Event::<T>::RebondCallSent(value));
-                }
-                Err(_e) => {
-                    return Err(Error::<T>::RebondCallFailed.into());
-                }
-            }
-
+            Self::rebond_internal(value)?;
             Ok(())
         }
 
@@ -943,6 +837,133 @@ pub mod pallet {
             )
             .ok_or(Error::<T>::InvalidExchangeRate)?;
             ExchangeRate::<T>::put(exchange_rate);
+
+            Ok(())
+        }
+
+        fn bond_internal(
+            value: BalanceOf<T>,
+            payee: RewardDestination<T::AccountId>,
+        ) -> DispatchResult {
+            let stash = Self::derivative_para_account_id();
+            let controller = stash.clone();
+
+            let call =
+                RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
+                    calls: vec![
+                        RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
+                            BalancesTransferKeepAliveCall {
+                                dest: T::Lookup::unlookup(stash),
+                                value,
+                            },
+                        )),
+                        RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                            UtilityAsDerivativeCall {
+                                index: T::DerivativeIndex::get(),
+                                call: RelaychainCall::Staking::<T>(StakingCall::Bond(
+                                    StakingBondCall {
+                                        controller: T::Lookup::unlookup(controller.clone()),
+                                        value,
+                                        payee: payee.clone(),
+                                    },
+                                )),
+                            },
+                        ))),
+                    ],
+                })));
+
+            let msg = Self::ump_transact(call.encode().into());
+
+            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                Ok(()) => {
+                    Self::deposit_event(Event::<T>::BondCallSent(controller, value, payee));
+                }
+                Err(_e) => {
+                    return Err(Error::<T>::BondCallFailed.into());
+                }
+            }
+
+            Ok(())
+        }
+
+        fn bond_extra_internal(value: BalanceOf<T>) -> DispatchResult {
+            let stash = T::Lookup::unlookup(Self::derivative_para_account_id());
+
+            let call =
+                RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
+                    calls: vec![
+                        RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
+                            BalancesTransferKeepAliveCall { dest: stash, value },
+                        )),
+                        RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                            UtilityAsDerivativeCall {
+                                index: T::DerivativeIndex::get(),
+                                call: RelaychainCall::Staking::<T>(StakingCall::BondExtra(
+                                    StakingBondExtraCall { value },
+                                )),
+                            },
+                        ))),
+                    ],
+                })));
+
+            let msg = Self::ump_transact(call.encode().into());
+
+            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                Ok(()) => {
+                    Self::deposit_event(Event::<T>::BondExtraCallSent(value));
+                }
+                Err(_e) => {
+                    return Err(Error::<T>::BondExtraCallFailed.into());
+                }
+            }
+
+            Ok(())
+        }
+
+        fn unbond_internal(value: BalanceOf<T>) -> DispatchResult {
+            let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                UtilityAsDerivativeCall {
+                    index: T::DerivativeIndex::get(),
+                    call: RelaychainCall::Staking::<T>(StakingCall::Unbond(StakingUnbondCall {
+                        value,
+                    })),
+                },
+            )));
+
+            let msg = Self::ump_transact(call.encode().into());
+
+            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                Ok(()) => {
+                    Self::deposit_event(Event::<T>::UnbondCallSent(value));
+                }
+                Err(_e) => {
+                    return Err(Error::<T>::UnbondCallFailed.into());
+                }
+            }
+
+            Ok(())
+        }
+
+        fn rebond_internal(value: BalanceOf<T>) -> DispatchResult {
+            let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                UtilityAsDerivativeCall {
+                    index: T::DerivativeIndex::get(),
+                    call: RelaychainCall::Staking::<T>(StakingCall::Rebond(StakingRebondCall {
+                        value,
+                    })),
+                },
+            )));
+
+            let msg = Self::ump_transact(call.encode().into());
+
+            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                Ok(()) => {
+                    Self::deposit_event(Event::<T>::RebondCallSent(value));
+                }
+                Err(_e) => {
+                    return Err(Error::<T>::RebondCallFailed.into());
+                }
+            }
 
             Ok(())
         }
