@@ -34,6 +34,7 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
+    use cumulus_primitives_core::ParaId;
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         ensure,
@@ -105,9 +106,9 @@ pub mod pallet {
         /// Relaychain block number provider
         type RelaychainBlockNumberProvider: BlockNumberProvider;
 
-        /// Parachain account on relaychain
+        /// Returns the parachain ID we are running with.
         #[pallet::constant]
-        type ParachainAccount: Get<Self::AccountId>;
+        type SelfParaId: Get<ParaId>;
 
         /// Account derivative index
         #[pallet::constant]
@@ -491,7 +492,7 @@ pub mod pallet {
                     1,
                     X1(AccountId32 {
                         network: NetworkId::Any,
-                        id: T::ParachainAccount::get().into(),
+                        id: Self::para_account_id().into(),
                     }),
                 );
                 let staking_currency =
@@ -684,12 +685,21 @@ pub mod pallet {
                                 index: T::DerivativeIndex::get(),
                                 call: RelaychainCall::Balances::<T>(BalancesCall::TransferAll(
                                     BalancesTransferAllCall {
-                                        dest: T::Lookup::unlookup(T::ParachainAccount::get()),
+                                        dest: T::Lookup::unlookup(Self::para_account_id()),
                                         keep_alive: true,
                                     },
                                 )),
                             },
                         ))),
+                        // RelaychainCall::XcmPallet(XcmPalletCall::XcmPalletReserveTransferAssetsCall(
+                        //     XcmPalletReserveTransferAssetsCall {
+                        //         dest: Box::new(MultiLocation::new(0, X1(Junction::Parachain(T::Par)))),
+                        //         beneficiary: Box<VersionedMultiLocation>,
+                        //         assets: Box::new(MultiAssets),
+                        //         fee_asset_item: 0,
+                        //         dest_weight: 100_1000_000,
+                        //     }
+                        // ))
                     ],
                 })));
 
@@ -808,10 +818,15 @@ pub mod pallet {
             T::PalletId::get().into_account()
         }
 
+        /// Parachain sovereign account
+        pub fn para_account_id() -> T::AccountId {
+            T::SelfParaId::get().into_account()
+        }
+
         /// account derived from parachain account
         pub fn derivative_account_id() -> T::AccountId {
             T::DerivativeProvider::derivative_account_id(
-                T::ParachainAccount::get(),
+                Self::para_account_id(),
                 T::DerivativeIndex::get(),
             )
         }
@@ -885,7 +900,7 @@ pub mod pallet {
                         max_assets: u32::max_value(),
                         beneficiary: X1(AccountId32 {
                             network: NetworkId::Any,
-                            id: T::ParachainAccount::get().into(),
+                            id: Self::para_account_id().into(),
                         })
                         .into(),
                     },
@@ -893,35 +908,35 @@ pub mod pallet {
             }
         }
 
-        fn ump_transfer(amount: u128) -> Xcm<()> {
-            let asset: MultiAsset = (MultiLocation::here(), amount).into();
-
-            WithdrawAsset {
-                assets: MultiAssets::from(asset.clone()),
-                effects: vec![InitiateReserveWithdraw {
-                    assets: All.into(),
-                    reserve: MultiLocation::parent(),
-                    effects: vec![
-                        BuyExecution {
-                            fees: asset,
-                            weight: 0,
-                            debt: T::BaseXcmWeight::get(),
-                            halt_on_error: false,
-                            instructions: vec![],
-                        },
-                        DepositAsset {
-                            assets: All.into(),
-                            max_assets: u32::max_value(),
-                            beneficiary: X1(AccountId32 {
-                                network: NetworkId::Any,
-                                id: T::ParachainAccount::get().into(),
-                            })
-                            .into(),
-                        },
-                    ],
-                }],
-            }
-        }
+        // fn ump_transfer(amount: u128) -> Xcm<()> {
+        //     let asset: MultiAsset = (MultiLocation::here(), amount).into();
+        //
+        //     WithdrawAsset {
+        //         assets: MultiAssets::from(asset.clone()),
+        //         effects: vec![InitiateReserveWithdraw {
+        //             assets: All.into(),
+        //             reserve: MultiLocation::parent(),
+        //             effects: vec![
+        //                 BuyExecution {
+        //                     fees: asset,
+        //                     weight: 0,
+        //                     debt: T::BaseXcmWeight::get(),
+        //                     halt_on_error: false,
+        //                     instructions: vec![],
+        //                 },
+        //                 DepositAsset {
+        //                     assets: All.into(),
+        //                     max_assets: u32::max_value(),
+        //                     beneficiary: X1(AccountId32 {
+        //                         network: NetworkId::Any,
+        //                         id: Self::para_account_id().into(),
+        //                     })
+        //                     .into(),
+        //                 },
+        //             ],
+        //         }],
+        //     }
+        // }
     }
 }
 

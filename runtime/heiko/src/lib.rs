@@ -458,7 +458,6 @@ parameter_types! {
     pub const PeriodBasis: BlockNumber = 1000u32;
     pub const DerivativeIndex: u16 = 0;
     pub const UnstakeQueueCapacity: u32 = 1000;
-    pub ParachainAccount: AccountId = ParachainInfo::parachain_id().into_account();
 }
 
 pub struct DerivativeProviderT;
@@ -474,7 +473,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type PalletId = StakingPalletId;
     type WeightInfo = ();
     type XcmTransfer = XTokens;
-    type ParachainAccount = ParachainAccount;
+    type SelfParaId = ParachainInfo;
     type PeriodBasis = PeriodBasis;
     type BaseXcmWeight = BaseXcmWeight;
     type Assets = Assets;

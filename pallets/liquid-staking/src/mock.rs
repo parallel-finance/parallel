@@ -292,10 +292,10 @@ pub type UpdateOrigin = EnsureSignedBy<BobOrigin, AccountId>;
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub ParachainAccount: AccountId = para_a_account();
     pub const DerivativeIndex: u16 = 0;
     pub const PeriodBasis: BlockNumber = 5u64;
     pub const UnstakeQueueCapacity: u32 = 1000;
+    pub SelfParaId: ParaId = para_a_id();
 }
 
 impl pallet_utility::Config for Test {
@@ -332,7 +332,7 @@ impl crate::Config for Test {
     type PalletId = StakingPalletId;
     type BaseXcmWeight = BaseXcmWeight;
     type XcmTransfer = XTokens;
-    type ParachainAccount = ParachainAccount;
+    type SelfParaId = SelfParaId;
     type PeriodBasis = PeriodBasis;
     type WeightInfo = ();
     type XcmSender = XcmRouter;
@@ -458,8 +458,8 @@ pub type RelaySystem = frame_system::Pallet<WestendRuntime>;
 pub type RelayEvent = westend_runtime::Event;
 pub type ParaSystem = frame_system::Pallet<Test>;
 
-pub fn para_a_account() -> AccountId {
-    ParaId::from(1).into_account()
+pub fn para_a_id() -> ParaId {
+    ParaId::from(1)
 }
 
 pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
@@ -508,7 +508,7 @@ pub fn relay_ext() -> sp_io::TestExternalities {
     pallet_balances::GenesisConfig::<Runtime> {
         balances: vec![
             (ALICE, 100 * DOT_DECIMAL),
-            (para_a_account(), 1_000_000 * DOT_DECIMAL),
+            (para_a_id().into_account(), 1_000_000 * DOT_DECIMAL),
         ],
     }
     .assimilate_storage(&mut t)
