@@ -545,14 +545,21 @@ pub mod pallet {
                 }
             }
 
+            let (unbonding_amount, _) = Self::unbonding();
             if !unbond_amount.is_zero() {
+                let new_unbonding_amount: BalanceOf<T> = unbonding_amount
+                    .checked_add(&unbond_amount)
+                    .ok_or(ArithmeticError::Overflow)?;
                 Self::unbond_internal(unbond_amount)?;
-                // update unbonding storage
+                // Unbonding::<T>::put(new_unbonding_amount);
             }
 
             if !rebond_amount.is_zero() {
+                let new_unbonding_amount: BalanceOf<T> = unbonding_amount
+                    .checked_sub(&rebond_amount)
+                    .ok_or(ArithmeticError::Underflow)?;
                 Self::rebond_internal(rebond_amount)?;
-                // update unbonding storage
+                // Unbonding::<T>::put(new_unbonding_amount);
             }
 
             Self::deposit_event(Event::<T>::StakingOpRequest(
@@ -609,75 +616,7 @@ pub mod pallet {
         #[transactional]
         pub fn withdraw_unbonded(origin: OriginFor<T>, num_slashing_spans: u32) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-
-            let call =
-                RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
-                    calls: vec![
-                        RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
-                            UtilityAsDerivativeCall {
-                                index: T::DerivativeIndex::get(),
-                                call: RelaychainCall::Staking::<T>(StakingCall::WithdrawUnbonded(
-                                    StakingWithdrawUnbondedCall { num_slashing_spans },
-                                )),
-                            },
-                        ))),
-                        RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
-                            UtilityAsDerivativeCall {
-                                index: T::DerivativeIndex::get(),
-                                call: RelaychainCall::Balances::<T>(BalancesCall::TransferAll(
-                                    BalancesTransferAllCall {
-                                        dest: T::Lookup::unlookup(Self::para_account_id()),
-                                        keep_alive: true,
-                                    },
-                                )),
-                            },
-                        ))),
-                        RelaychainCall::XcmPallet(
-                            XcmPalletCall::XcmPalletReserveTransferAssetsCall(
-                                XcmPalletReserveTransferAssetsCall {
-                                    dest: Box::new(
-                                        MultiLocation::new(
-                                            0,
-                                            X1(Parachain(T::SelfParaId::get().into())),
-                                        )
-                                        .into(),
-                                    ),
-                                    beneficiary: Box::new(
-                                        MultiLocation::new(
-                                            0,
-                                            X1(AccountId32 {
-                                                network: NetworkId::Any,
-                                                id: Self::account_id().into(),
-                                            }),
-                                        )
-                                        .into(),
-                                    ),
-                                    assets: Box::new(
-                                        MultiAssets::from(vec![MultiAsset {
-                                            id: AssetId::Concrete(MultiLocation::new(0, Here)),
-                                            fun: Fungibility::Fungible(1_000_000_000),
-                                        }])
-                                        .into(),
-                                    ),
-                                    fee_asset_item: 0,
-                                    dest_weight: 1_000_000_000,
-                                },
-                            ),
-                        ),
-                    ],
-                })));
-
-            let msg = Self::ump_transact(call.encode().into());
-
-            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                Ok(()) => {
-                    Self::deposit_event(Event::<T>::WithdrawUnbondedCallSent(num_slashing_spans));
-                }
-                Err(_e) => {
-                    return Err(Error::<T>::WithdrawUnbondedCallFailed.into());
-                }
-            }
-
+            Self::withdraw_unbonded_internal(num_slashing_spans)?;
             Ok(())
         }
 
@@ -968,7 +907,79 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Push an unstake task into queue.
+        fn withdraw_unbonded_internal(num_slashing_spans: u32) -> DispatchResult {
+            let call =
+                RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
+                    calls: vec![
+                        RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                            UtilityAsDerivativeCall {
+                                index: T::DerivativeIndex::get(),
+                                call: RelaychainCall::Staking::<T>(StakingCall::WithdrawUnbonded(
+                                    StakingWithdrawUnbondedCall { num_slashing_spans },
+                                )),
+                            },
+                        ))),
+                        RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                            UtilityAsDerivativeCall {
+                                index: T::DerivativeIndex::get(),
+                                call: RelaychainCall::Balances::<T>(BalancesCall::TransferAll(
+                                    BalancesTransferAllCall {
+                                        dest: T::Lookup::unlookup(Self::para_account_id()),
+                                        keep_alive: true,
+                                    },
+                                )),
+                            },
+                        ))),
+                        RelaychainCall::XcmPallet(
+                            XcmPalletCall::XcmPalletReserveTransferAssetsCall(
+                                XcmPalletReserveTransferAssetsCall {
+                                    dest: Box::new(
+                                        MultiLocation::new(
+                                            0,
+                                            X1(Parachain(T::SelfParaId::get().into())),
+                                        )
+                                        .into(),
+                                    ),
+                                    beneficiary: Box::new(
+                                        MultiLocation::new(
+                                            0,
+                                            X1(AccountId32 {
+                                                network: NetworkId::Any,
+                                                id: Self::account_id().into(),
+                                            }),
+                                        )
+                                        .into(),
+                                    ),
+                                    assets: Box::new(
+                                        MultiAssets::from(vec![MultiAsset {
+                                            id: AssetId::Concrete(MultiLocation::new(0, Here)),
+                                            fun: Fungibility::Fungible(1_000_000_000),
+                                        }])
+                                        .into(),
+                                    ),
+                                    fee_asset_item: 0,
+                                    dest_weight: 1_000_000_000,
+                                },
+                            ),
+                        ),
+                    ],
+                })));
+
+            let msg = Self::ump_transact(call.encode().into());
+
+            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                Ok(()) => {
+                    Self::deposit_event(Event::<T>::WithdrawUnbondedCallSent(num_slashing_spans));
+                }
+                Err(_e) => {
+                    return Err(Error::<T>::WithdrawUnbondedCallFailed.into());
+                }
+            }
+
+            Ok(())
+        }
+
+        /// push an unstake task into queue.
         #[inline]
         fn push_unstake_task(who: &T::AccountId, amount: BalanceOf<T>) -> DispatchResult {
             UnstakeQueue::<T>::try_mutate(|q| -> DispatchResult {
