@@ -71,6 +71,8 @@ pub mod pallet {
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
     pub type BalanceOf<T> =
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
+    pub type RelaychainBlockNumberOf<T> =
+        <<T as Config>::RelaychainBlockNumberProvider as BlockNumberProvider>::BlockNumber;
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
@@ -286,6 +288,9 @@ pub mod pallet {
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T>
     where
         [u8; 32]: From<<T as frame_system::Config>::AccountId>,
+        u128: From<
+            <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance,
+        >,
         BalanceOf<T>: FixedPointOperand,
         AssetIdOf<T>: AtLeast32BitUnsigned,
     {
@@ -357,6 +362,9 @@ pub mod pallet {
     impl<T: Config> Pallet<T>
     where
         [u8; 32]: From<<T as frame_system::Config>::AccountId>,
+        u128: From<
+            <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance,
+        >,
         BalanceOf<T>: FixedPointOperand,
         AssetIdOf<T>: AtLeast32BitUnsigned,
     {
@@ -553,7 +561,7 @@ pub mod pallet {
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
 
-            let stash = Self::derivative_account_id();
+            let stash = Self::derivative_para_account_id();
             let controller = stash.clone();
             let call =
                 RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
@@ -599,7 +607,7 @@ pub mod pallet {
         pub fn bond_extra(origin: OriginFor<T>, value: BalanceOf<T>) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
 
-            let stash = T::Lookup::unlookup(Self::derivative_account_id());
+            let stash = T::Lookup::unlookup(Self::derivative_para_account_id());
             let call =
                 RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
                     calls: vec![
@@ -859,6 +867,9 @@ pub mod pallet {
     impl<T: Config> Pallet<T>
     where
         [u8; 32]: From<<T as frame_system::Config>::AccountId>,
+        u128: From<
+            <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance,
+        >,
         BalanceOf<T>: FixedPointOperand,
         AssetIdOf<T>: AtLeast32BitUnsigned,
     {
@@ -872,8 +883,8 @@ pub mod pallet {
             T::SelfParaId::get().into_account()
         }
 
-        /// account derived from parachain account
-        pub fn derivative_account_id() -> T::AccountId {
+        /// Derivative parachain account
+        pub fn derivative_para_account_id() -> T::AccountId {
             T::DerivativeProvider::derivative_account_id(
                 Self::para_account_id(),
                 T::DerivativeIndex::get(),
@@ -957,35 +968,35 @@ pub mod pallet {
             }
         }
 
-        // fn ump_transfer(amount: u128) -> Xcm<()> {
-        //     let asset: MultiAsset = (MultiLocation::here(), amount).into();
-        //
-        //     WithdrawAsset {
-        //         assets: MultiAssets::from(asset.clone()),
-        //         effects: vec![InitiateReserveWithdraw {
-        //             assets: All.into(),
-        //             reserve: MultiLocation::parent(),
-        //             effects: vec![
-        //                 BuyExecution {
-        //                     fees: asset,
-        //                     weight: 0,
-        //                     debt: T::BaseXcmWeight::get(),
-        //                     halt_on_error: false,
-        //                     instructions: vec![],
-        //                 },
-        //                 DepositAsset {
-        //                     assets: All.into(),
-        //                     max_assets: u32::max_value(),
-        //                     beneficiary: X1(AccountId32 {
-        //                         network: NetworkId::Any,
-        //                         id: Self::para_account_id().into(),
-        //                     })
-        //                     .into(),
-        //                 },
-        //             ],
-        //         }],
-        //     }
-        // }
+        fn ump_transfer(amount: BalanceOf<T>) -> Xcm<()> {
+            let asset: MultiAsset = (MultiLocation::here(), u128::from(amount)).into();
+
+            WithdrawAsset {
+                assets: MultiAssets::from(asset.clone()),
+                effects: vec![InitiateReserveWithdraw {
+                    assets: All.into(),
+                    reserve: MultiLocation::parent(),
+                    effects: vec![
+                        BuyExecution {
+                            fees: asset,
+                            weight: 0,
+                            debt: T::BaseXcmWeight::get(),
+                            halt_on_error: false,
+                            instructions: vec![],
+                        },
+                        DepositAsset {
+                            assets: All.into(),
+                            max_assets: u32::max_value(),
+                            beneficiary: X1(AccountId32 {
+                                network: NetworkId::Any,
+                                id: Self::para_account_id().into(),
+                            })
+                            .into(),
+                        },
+                    ],
+                }],
+            }
+        }
     }
 }
 
