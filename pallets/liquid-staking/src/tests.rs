@@ -275,7 +275,11 @@ fn test_transact_withdraw_unbonded_work() {
     });
 
     ParaA::execute_with(|| {
-        assert_ok!(LiquidStaking::withdraw_unbonded(Origin::signed(ALICE), 0));
+        assert_ok!(LiquidStaking::withdraw_unbonded(
+            Origin::signed(ALICE),
+            0,
+            0
+        ));
     });
 
     Relay::execute_with(|| {

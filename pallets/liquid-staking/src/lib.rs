@@ -357,6 +357,15 @@ pub mod pallet {
         fn on_finalize(n: BlockNumberFor<T>) {
             let basis = T::PeriodBasis::get();
 
+            let (unbonding_amount, withdrawable_block_number) = Self::unbonding();
+            let current_block_number = T::RelaychainBlockNumberProvider::current_block_number();
+
+            if !unbonding_amount.is_zero() && current_block_number >= withdrawable_block_number {
+                if let Ok(_) = Self::withdraw_unbonded_internal(0, unbonding_amount.into()) {
+                    Unbonding::<T>::kill();
+                }
+            }
+
             // check if current period end.
             if !(n % basis).is_zero() {
                 return;
@@ -547,7 +556,7 @@ pub mod pallet {
 
             let (unbonding_amount, _) = Self::unbonding();
             if !unbond_amount.is_zero() {
-                let new_unbonding_amount: BalanceOf<T> = unbonding_amount
+                let _new_unbonding_amount: BalanceOf<T> = unbonding_amount
                     .checked_add(&unbond_amount)
                     .ok_or(ArithmeticError::Overflow)?;
                 Self::unbond_internal(unbond_amount)?;
@@ -555,7 +564,7 @@ pub mod pallet {
             }
 
             if !rebond_amount.is_zero() {
-                let new_unbonding_amount: BalanceOf<T> = unbonding_amount
+                let _new_unbonding_amount: BalanceOf<T> = unbonding_amount
                     .checked_sub(&rebond_amount)
                     .ok_or(ArithmeticError::Underflow)?;
                 Self::rebond_internal(rebond_amount)?;
@@ -614,9 +623,13 @@ pub mod pallet {
         /// withdraw unbonded on relaychain via xcm.transact
         #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded())]
         #[transactional]
-        pub fn withdraw_unbonded(origin: OriginFor<T>, num_slashing_spans: u32) -> DispatchResult {
+        pub fn withdraw_unbonded(
+            origin: OriginFor<T>,
+            num_slashing_spans: u32,
+            amount: BalanceOf<T>,
+        ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-            Self::withdraw_unbonded_internal(num_slashing_spans)?;
+            Self::withdraw_unbonded_internal(num_slashing_spans, amount.into())?;
             Ok(())
         }
 
@@ -907,7 +920,7 @@ pub mod pallet {
             Ok(())
         }
 
-        fn withdraw_unbonded_internal(num_slashing_spans: u32) -> DispatchResult {
+        fn withdraw_unbonded_internal(num_slashing_spans: u32, amount: u128) -> DispatchResult {
             let call =
                 RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
                     calls: vec![
@@ -953,7 +966,7 @@ pub mod pallet {
                                     assets: Box::new(
                                         MultiAssets::from(vec![MultiAsset {
                                             id: AssetId::Concrete(MultiLocation::new(0, Here)),
-                                            fun: Fungibility::Fungible(1_000_000_000),
+                                            fun: Fungibility::Fungible(amount),
                                         }])
                                         .into(),
                                     ),
