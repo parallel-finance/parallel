@@ -106,7 +106,7 @@ pub mod pallet {
         type BaseXcmWeight: Get<Weight>;
 
         /// Relaychain block number provider
-        type RelaychainBlockNumberProvider: BlockNumberProvider;
+        type RelaychainBlockNumberProvider: BlockNumberProvider<BlockNumber = Self::BlockNumber>;
 
         /// Returns the parachain ID we are running with.
         #[pallet::constant]
@@ -214,7 +214,8 @@ pub mod pallet {
     /// [amount, withdrawable_block_number]
     #[pallet::storage]
     #[pallet::getter(fn unbonding)]
-    pub type Unbonding<T: Config> = StorageValue<_, (BalanceOf<T>, BlockNumberFor<T>), ValueQuery>;
+    pub type Unbonding<T: Config> =
+        StorageValue<_, (BalanceOf<T>, RelaychainBlockNumberOf<T>), ValueQuery>;
 
     /// Fraction of reward currently set aside for reserves.
     #[pallet::storage]
