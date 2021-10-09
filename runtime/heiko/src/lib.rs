@@ -491,6 +491,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type RelaychainBlockNumberProvider = RelaychainBlockNumberProvider<Runtime>;
     type MaxRewardsPerEra = MaxRewardsPerEra;
     type MaxSlashesPerEra = MaxSlashesPerEra;
+    type RelayNetwork = RelayNetwork;
 }
 
 parameter_types! {

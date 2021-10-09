@@ -59,7 +59,7 @@ impl parachain_info::Config for Test {}
 
 parameter_types! {
     pub DotLocation: MultiLocation = MultiLocation::parent();
-    pub const RelayNetwork: NetworkId = NetworkId::Kusama;
+    pub RelayNetwork: NetworkId = NetworkId::Named("westend".into());
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 }
@@ -350,6 +350,7 @@ impl crate::Config for Test {
     type RelaychainBlockNumberProvider = RelaychainBlockNumberProvider<Test>;
     type MaxRewardsPerEra = MaxRewardsPerEra;
     type MaxSlashesPerEra = MaxSlashesPerEra;
+    type RelayNetwork = RelayNetwork;
 }
 
 parameter_types! {

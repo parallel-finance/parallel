@@ -53,9 +53,7 @@ orml-xcm-support = { git = 'https://github.com/open-web3-stack/open-runtime-modu
 orml-xtokens     = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
 
 [features]
-default     = ['std', 'westend']
-kusama      = []
-polkadot    = []
+default     = ['std']
 std         = [
   'codec/std',
   'frame-support/std',
@@ -69,4 +67,3 @@ std         = [
   'cumulus-primitives-core/std',
 ]
 try-runtime = ['frame-support/try-runtime']
-westend     = []

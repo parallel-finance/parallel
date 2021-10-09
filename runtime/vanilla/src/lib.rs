@@ -455,6 +455,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type RelaychainBlockNumberProvider = RelaychainBlockNumberProvider<Runtime>;
     type MaxRewardsPerEra = MaxRewardsPerEra;
     type MaxSlashesPerEra = MaxSlashesPerEra;
+    type RelayNetwork = RelayNetwork;
 }
 
 parameter_types! {
@@ -731,7 +732,7 @@ impl parachain_info::Config for Runtime {}
 
 parameter_types! {
     pub const RelayLocation: MultiLocation = MultiLocation::parent();
-    pub const RelayNetwork: NetworkId = NetworkId::Kusama;
+    pub RelayNetwork: NetworkId = NetworkId::Named("westend".into());
     pub VanillaNetwork: NetworkId = NetworkId::Named("vanilla".into());
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation =  MultiLocation::new(0, X1(Parachain(ParachainInfo::parachain_id().into())));

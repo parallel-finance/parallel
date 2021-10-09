@@ -183,9 +183,8 @@ pub enum XcmPalletCall {
     XcmPalletReserveTransferAssetsCall(XcmPalletReserveTransferAssetsCall),
 }
 
-#[cfg(feature = "westend")]
 #[derive(Encode, Decode, RuntimeDebug)]
-pub enum RelaychainCall<T: Config> {
+pub enum WestendCall<T: Config> {
     #[codec(index = 4)]
     Balances(BalancesCall<T>),
     #[codec(index = 6)]
@@ -196,9 +195,8 @@ pub enum RelaychainCall<T: Config> {
     XcmPallet(XcmPalletCall),
 }
 
-#[cfg(feature = "kusama")]
 #[derive(Encode, Decode, RuntimeDebug)]
-pub enum RelaychainCall<T: Config> {
+pub enum KusamaCall<T: Config> {
     #[codec(index = 4)]
     Balances(BalancesCall<T>),
     #[codec(index = 6)]
@@ -206,18 +204,20 @@ pub enum RelaychainCall<T: Config> {
     #[codec(index = 24)]
     Utility(Box<UtilityCall<Self>>),
     #[codec(index = 99)]
-    XcmPallet(XcmPalletCall<T>),
+    XcmPallet(XcmPalletCall),
 }
 
-#[cfg(feature = "polkadot")]
 #[derive(Encode, Decode, RuntimeDebug)]
-pub enum RelaychainCall<T: Config> {
+pub enum PolkadotCall<T: Config> {
     #[codec(index = 5)]
     Balances(BalancesCall<T>),
     #[codec(index = 7)]
     Staking(StakingCall<T>),
     #[codec(index = 26)]
     Utility(Box<UtilityCall<Self>>),
+    // FIXME: polkadot runtime doesn't have xcm pallet yet
+    #[codec(index = 99)]
+    XcmPallet(XcmPalletCall),
 }
 
 impl<Balance: AtLeast32BitUnsigned + Copy + Clone> MatchingLedger<Balance> {
