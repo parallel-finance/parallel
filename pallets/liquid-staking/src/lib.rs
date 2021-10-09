@@ -202,12 +202,19 @@ pub mod pallet {
     #[pallet::getter(fn exchange_rate)]
     pub type ExchangeRate<T: Config> = StorageValue<_, Rate, ValueQuery>;
 
-    /// Total amount of staked assets in relaycahin.
+    /// Total amount of staked assets on relaycahin.
     #[pallet::storage]
     #[pallet::getter(fn staking_pool)]
     pub type StakingPool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
-    /// Fraction of reward currently set aside for reserves
+    /// Unbonding amount and withdrawable block number on relaychain
+    ///
+    /// [amount, withdrawable_block_number]
+    #[pallet::storage]
+    #[pallet::getter(fn unbonding)]
+    pub type Unbonding<T: Config> = StorageValue<_, (BalanceOf<T>, BlockNumberFor<T>), ValueQuery>;
+
+    /// Fraction of reward currently set aside for reserves.
     #[pallet::storage]
     #[pallet::getter(fn reserve_factor)]
     pub type ReserveFactor<T: Config> = StorageValue<_, Ratio, ValueQuery>;
@@ -456,15 +463,17 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::record_staking_settlement())]
         #[transactional]
         pub fn record_staking_settlement(
-            _origin: OriginFor<T>,
+            origin: OriginFor<T>,
             era_index: EraIndex,
             #[pallet::compact] amount: BalanceOf<T>,
             kind: StakingSettlementKind,
         ) -> DispatchResultWithPostInfo {
+            T::RelayOrigin::ensure_origin(origin)?;
             ensure!(
                 !StakingSettlementRecords::<T>::contains_key(era_index, kind),
                 Error::<T>::StakingSettlementAlreadyRecorded
             );
+
             Self::update_staking_pool(kind, amount)?;
 
             StakingSettlementRecords::<T>::insert(era_index, kind, amount);
@@ -480,6 +489,7 @@ pub mod pallet {
         #[transactional]
         pub fn settlement(
             origin: OriginFor<T>,
+            #[pallet::compact] bonding_amount: BalanceOf<T>,
             #[pallet::compact] unbonding_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
@@ -506,6 +516,22 @@ pub mod pallet {
                     beneficiary,
                     base_weight,
                 )?;
+
+                if !bonding_amount.is_zero() {
+                    // bond extra
+                } else {
+                    // bond
+                }
+            }
+
+            if !unbond_amount.is_zero() {
+                // unbond
+                // update unbonding storage
+            }
+
+            if !rebond_amount.is_zero() {
+                // rebond
+                // update unbonding storage
             }
 
             Self::deposit_event(Event::<T>::StakingOpRequest(
@@ -691,15 +717,38 @@ pub mod pallet {
                                 )),
                             },
                         ))),
-                        // RelaychainCall::XcmPallet(XcmPalletCall::XcmPalletReserveTransferAssetsCall(
-                        //     XcmPalletReserveTransferAssetsCall {
-                        //         dest: Box::new(MultiLocation::new(0, X1(Junction::Parachain(T::Par)))),
-                        //         beneficiary: Box<VersionedMultiLocation>,
-                        //         assets: Box::new(MultiAssets),
-                        //         fee_asset_item: 0,
-                        //         dest_weight: 100_1000_000,
-                        //     }
-                        // ))
+                        RelaychainCall::XcmPallet(
+                            XcmPalletCall::XcmPalletReserveTransferAssetsCall(
+                                XcmPalletReserveTransferAssetsCall {
+                                    dest: Box::new(
+                                        MultiLocation::new(
+                                            0,
+                                            X1(Parachain(T::SelfParaId::get().into())),
+                                        )
+                                        .into(),
+                                    ),
+                                    beneficiary: Box::new(
+                                        MultiLocation::new(
+                                            0,
+                                            X1(AccountId32 {
+                                                network: NetworkId::Any,
+                                                id: Self::account_id().into(),
+                                            }),
+                                        )
+                                        .into(),
+                                    ),
+                                    assets: Box::new(
+                                        MultiAssets::from(vec![MultiAsset {
+                                            id: AssetId::Concrete(MultiLocation::new(0, Here)),
+                                            fun: Fungibility::Fungible(1_000_000_000),
+                                        }])
+                                        .into(),
+                                    ),
+                                    fee_asset_item: 0,
+                                    dest_weight: 1_000_000_000,
+                                },
+                            ),
+                        ),
                     ],
                 })));
 
