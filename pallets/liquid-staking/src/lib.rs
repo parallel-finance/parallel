@@ -521,6 +521,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             #[pallet::compact] bonding_amount: BalanceOf<T>,
             #[pallet::compact] unbonding_amount: BalanceOf<T>,
+            withdrawable_block_number: RelaychainBlockNumberOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
 
@@ -554,21 +555,24 @@ pub mod pallet {
                 }
             }
 
-            let (unbonding_amount, _) = Self::unbonding();
+            let (unbonding_amount, old_withdrawable_block_number) = Self::unbonding();
             if !unbond_amount.is_zero() {
-                let _new_unbonding_amount: BalanceOf<T> = unbonding_amount
+                let new_unbonding_amount: BalanceOf<T> = unbonding_amount
                     .checked_add(&unbond_amount)
                     .ok_or(ArithmeticError::Overflow)?;
                 Self::unbond_internal(unbond_amount)?;
-                // Unbonding::<T>::put(new_unbonding_amount);
+                Unbonding::<T>::put((
+                    new_unbonding_amount,
+                    withdrawable_block_number.max(old_withdrawable_block_number),
+                ));
             }
 
             if !rebond_amount.is_zero() {
-                let _new_unbonding_amount: BalanceOf<T> = unbonding_amount
+                let new_unbonding_amount: BalanceOf<T> = unbonding_amount
                     .checked_sub(&rebond_amount)
                     .ok_or(ArithmeticError::Underflow)?;
                 Self::rebond_internal(rebond_amount)?;
-                // Unbonding::<T>::put(new_unbonding_amount);
+                Unbonding::<T>::put((new_unbonding_amount, old_withdrawable_block_number));
             }
 
             Self::deposit_event(Event::<T>::StakingOpRequest(

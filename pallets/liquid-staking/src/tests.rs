@@ -142,7 +142,8 @@ fn test_settlement_should_work() {
             assert_ok!(LiquidStaking::settlement(
                 Origin::signed(ALICE),
                 0,
-                unbonding_amount
+                unbonding_amount,
+                0
             ));
             Pallet::<Test>::on_idle(0, 10000);
         }
