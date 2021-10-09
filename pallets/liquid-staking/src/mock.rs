@@ -327,6 +327,11 @@ impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
     }
 }
 
+parameter_types! {
+    pub const MaxRewardsPerEra: Balance = 100;
+    pub const MaxSlashesPerEra: Balance = 1;
+}
+
 impl crate::Config for Test {
     type Event = Event;
     type PalletId = StakingPalletId;
@@ -343,6 +348,8 @@ impl crate::Config for Test {
     type UpdateOrigin = UpdateOrigin;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;
     type RelaychainBlockNumberProvider = RelaychainBlockNumberProvider<Test>;
+    type MaxRewardsPerEra = MaxRewardsPerEra;
+    type MaxSlashesPerEra = MaxSlashesPerEra;
 }
 
 parameter_types! {

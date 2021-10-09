@@ -127,6 +127,14 @@ pub mod pallet {
         #[pallet::constant]
         type PeriodBasis: Get<BlockNumberFor<Self>>;
 
+        /// Max rewards per era
+        #[pallet::constant]
+        type MaxRewardsPerEra: Get<BalanceOf<Self>>;
+
+        /// Max slashes per era
+        #[pallet::constant]
+        type MaxSlashesPerEra: Get<BalanceOf<Self>>;
+
         /// Weight information
         type WeightInfo: WeightInfo;
     }
@@ -197,6 +205,10 @@ pub mod pallet {
         StakingCurrencyNotSet,
         /// Exceeded unstake queue's capacity
         ExceededUnstakeQueueCapacity,
+        /// Exceeded max rewards per era
+        ExceededMaxRewardsPerEra,
+        /// Exceeded max slashes per era
+        ExceededMaxSlashesPerEra,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -899,14 +911,26 @@ pub mod pallet {
         ) -> DispatchResult {
             use StakingSettlementKind::*;
             match kind {
-                Reward => StakingPool::<T>::try_mutate(|p| -> DispatchResult {
-                    *p = p.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
-                    Ok(())
-                }),
-                Slash => StakingPool::<T>::try_mutate(|p| -> DispatchResult {
-                    *p = p.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
-                    Ok(())
-                }),
+                Reward => {
+                    ensure!(
+                        amount <= T::MaxRewardsPerEra::get(),
+                        Error::<T>::ExceededMaxRewardsPerEra
+                    );
+                    StakingPool::<T>::try_mutate(|p| -> DispatchResult {
+                        *p = p.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
+                        Ok(())
+                    })
+                }
+                Slash => {
+                    ensure!(
+                        amount <= T::MaxSlashesPerEra::get(),
+                        Error::<T>::ExceededMaxSlashesPerEra
+                    );
+                    StakingPool::<T>::try_mutate(|p| -> DispatchResult {
+                        *p = p.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
+                        Ok(())
+                    })
+                }
             }?;
 
             let liquid_currency =

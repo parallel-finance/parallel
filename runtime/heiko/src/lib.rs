@@ -468,6 +468,11 @@ impl DerivativeProvider<AccountId> for DerivativeProviderT {
     }
 }
 
+parameter_types! {
+    pub const MaxRewardsPerEra: Balance = 100;
+    pub const MaxSlashesPerEra: Balance = 1;
+}
+
 impl pallet_liquid_staking::Config for Runtime {
     type Event = Event;
     type PalletId = StakingPalletId;
@@ -484,6 +489,8 @@ impl pallet_liquid_staking::Config for Runtime {
     type DerivativeProvider = DerivativeProviderT;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;
     type RelaychainBlockNumberProvider = RelaychainBlockNumberProvider<Runtime>;
+    type MaxRewardsPerEra = MaxRewardsPerEra;
+    type MaxSlashesPerEra = MaxSlashesPerEra;
 }
 
 parameter_types! {
