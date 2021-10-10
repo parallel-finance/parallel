@@ -152,7 +152,7 @@ fn test_settlement_should_work() {
         assert_eq!(
             RelayBalances::free_balance(&LiquidStaking::para_account_id()),
             // FIXME: weight should be take into account
-            9999999200000000
+            9999978717112000
         );
     });
 }

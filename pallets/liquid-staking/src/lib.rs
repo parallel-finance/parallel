@@ -384,10 +384,11 @@ pub mod pallet {
             let (unbonding_amount, withdrawable_block_number) = Self::unbonding();
             let current_block_number = T::RelaychainBlockNumberProvider::current_block_number();
 
-            if !unbonding_amount.is_zero() && current_block_number >= withdrawable_block_number {
-                if let Ok(_) = Self::withdraw_unbonded_internal(0, unbonding_amount.into()) {
-                    Unbonding::<T>::kill();
-                }
+            if !unbonding_amount.is_zero()
+                && current_block_number >= withdrawable_block_number
+                && Self::withdraw_unbonded_internal(0, unbonding_amount.into()).is_ok()
+            {
+                Unbonding::<T>::kill();
             }
 
             // check if current period end.
