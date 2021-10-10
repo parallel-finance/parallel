@@ -382,10 +382,10 @@ pub mod pallet {
             let basis = T::PeriodBasis::get();
 
             let (unbonding_amount, withdrawable_block_number) = Self::unbonding();
-            let current_block_number = T::RelaychainBlockNumberProvider::current_block_number();
+            let relaychain_block_number = T::RelaychainBlockNumberProvider::current_block_number();
 
             if !unbonding_amount.is_zero()
-                && current_block_number >= withdrawable_block_number
+                && relaychain_block_number >= withdrawable_block_number
                 && Self::withdraw_unbonded_internal(0, unbonding_amount.into()).is_ok()
             {
                 Unbonding::<T>::kill();
