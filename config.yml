@@ -46,7 +46,7 @@ parachains:
         - bob
         - charlie
       sudo: dave
-      id: 2086
+      id: 1000
       parachain: true
       flags:
         - --rpc-methods=unsafe
