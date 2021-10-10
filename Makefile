@@ -70,8 +70,6 @@ fmt:
 resources:
 	docker run --rm parallelfinance/parallel:$(DOCKER_TAG) export-genesis-state --chain $(CHAIN) --parachain-id $(PARA_ID) > ./resources/para-$(PARA_ID)-genesis
 	docker run --rm parallelfinance/parallel:$(DOCKER_TAG) export-genesis-wasm --chain $(CHAIN) > ./resources/para-$(PARA_ID).wasm
-	docker run --rm parallelfinance/parallel:$(DOCKER_TAG) export-genesis-state --chain statemint-dev --parachain-id 1000 > ./resources/para-1000-genesis
-	docker run --rm parallelfinance/parallel:$(DOCKER_TAG) export-genesis-wasm --chain statemint-dev > ./resources/para-1000.wasm
 
 .PHONY: shutdown
 shutdown:
@@ -98,7 +96,6 @@ wasm:
 .PHONY: spec
 spec:
 	docker run --rm parallelfinance/parallel:$(DOCKER_TAG) build-spec --chain $(CHAIN) --disable-default-bootnode --raw > ./resources/$(CHAIN)-raw.json
-	docker run --rm parallelfinance/parallel:$(DOCKER_TAG) build-spec --chain statemint-dev --disable-default-bootnode --raw > ./resources/statemint-dev-raw.json
 
 .PHONY: image
 image:
