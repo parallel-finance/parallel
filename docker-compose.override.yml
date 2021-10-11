@@ -8,12 +8,12 @@ services:
 
   oracle:
     image: parallelfinance/oracle-client:latest
-    command: start -m 12000 -w ws://parachain-2085-0:9944 -w ws://parachain-1000-0:9944
+    command: start -m 12000 -w ws://parachain-2085-0:9944
     restart: always
 
   nominate-client:
     image: parallelfinance/nominate-client:latest
-    command: --relay-ws ws://relaychain-alice:9944 --para-ws ws://parachain-2085-0:9944 --para-ws ws://parachain-1000-0:9944 --tick 120000
+    command: --relay-ws ws://relaychain-alice:9944 --para-ws ws://parachain-2085-0:9944 --tick 120000
     restart: always
 
   redis:
@@ -24,7 +24,7 @@ services:
 
   stake-client:
     image: parallelfinance/stake-client:latest
-    command: --relay-ws=ws://relaychain-alice:9944 --para-ws=ws://parachain-2085-0:9944 --para-ws=ws://parachain-1000-0:9944 --redis-host redis --redis-port 6379
+    command: --relay-ws=ws://relaychain-alice:9944 --para-ws=ws://parachain-2085-0:9944 --redis-host redis --redis-port 6379
     depends_on:
       - "redis"
     restart: always
