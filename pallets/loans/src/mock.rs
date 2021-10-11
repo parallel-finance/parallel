@@ -276,7 +276,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         Assets::force_create(Origin::root(), KSM, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), USDT, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), XDOT, ALICE, true, 1).unwrap();
-        
+
         Assets::mint(Origin::signed(ALICE), KSM, ALICE, dollar(1000)).unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, ALICE, dollar(1000)).unwrap();
         Assets::mint(Origin::signed(ALICE), USDT, ALICE, dollar(1000)).unwrap();

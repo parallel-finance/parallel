@@ -1,7 +1,9 @@
 use crate::{
-    mock::{new_test_ext, Loans, MockPriceFeeder, Origin, Test, Assets, ALICE, BOB, DOT, KSM, USDT},
+    mock::{
+        new_test_ext, Assets, Loans, MockPriceFeeder, Origin, Test, ALICE, BOB, DOT, KSM, USDT,
+    },
     tests::dollar,
-    Config, Error, MarketState,
+    Error, MarketState,
 };
 use frame_support::{assert_noop, assert_ok};
 use primitives::Rate;
