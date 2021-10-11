@@ -289,19 +289,20 @@ pub(crate) fn run_to_block(n: BlockNumber) {
     Loans::on_finalize(System::block_number());
     for b in (System::block_number() + 1)..=n {
         System::set_block_number(b);
-        Loans::on_initialize(System::block_number());
+        Loans::on_initialize(b);
         TimestampPallet::set_timestamp(6000 * b);
         if b != n {
-            Loans::on_finalize(System::block_number());
+            Loans::on_finalize(b);
         }
     }
 }
 
-pub(crate) fn process_block(n: BlockNumber) {
+pub(crate) fn _process_block(n: BlockNumber) -> u64 {
     System::set_block_number(n);
-    Loans::on_initialize(n);
+    let res = Loans::on_initialize(n);
     TimestampPallet::set_timestamp(6000 * n);
     Loans::on_finalize(n);
+    res
 }
 
 // TODO make decimals more explicit

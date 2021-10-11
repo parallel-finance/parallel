@@ -16,7 +16,7 @@ use sp_std::prelude::*;
 
 const BASE_ASSET: CurrencyId = XDOT;
 const QUOTE_ASSET: CurrencyId = DOT;
-const INITIAL_AMOUNT: u128 = 1000_000_000_000_000;
+const INITIAL_AMOUNT: u128 = 1_000_000_000_000_000;
 const ASSET_ID: u32 = 10;
 
 fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::Event) {
@@ -43,7 +43,7 @@ where
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
         tokens::DOT.into(),
-        account_id.clone(),
+        account_id,
         true,
         One::one(),
     )

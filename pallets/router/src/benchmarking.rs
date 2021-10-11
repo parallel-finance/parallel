@@ -27,7 +27,7 @@ use sp_runtime::FixedPointOperand;
 
 const DOT: CurrencyId = tokens::DOT;
 const XDOT: CurrencyId = tokens::XDOT;
-const INITIAL_AMOUNT: u128 = 1000_000_000_000_000;
+const INITIAL_AMOUNT: u128 = 1_000_000_000_000_000;
 const ASSET_ID: u32 = 10;
 
 fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::Event) {
@@ -61,7 +61,7 @@ where
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
         tokens::DOT.into(),
-        account_id.clone(),
+        account_id,
         true,
         One::one(),
     )
@@ -114,7 +114,7 @@ benchmarks_instance_pallet! {
         let amount_out: BalanceOf<T, I> = <T as crate::Config<I>>::Assets::balance(XDOT.into(), &caller);
 
         assert_eq!(amount_out, 994.into());
-        assert_last_event::<T, I>(Event::TradedSuccessfully(caller, original_amount_in.into(), routes, amount_out.into()).into());
+        assert_last_event::<T, I>(Event::TradedSuccessfully(caller, original_amount_in.into(), routes, amount_out).into());
     }
 }
 
