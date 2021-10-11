@@ -1202,22 +1202,16 @@ where
     }
 
     /// Ensure market is enough to supply `amount` asset.
-    /// FIXME(Alan WANG): we do redundant calculation.
     fn ensure_capacity(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
-        let (_, market) = Markets::<T>::iter()
-            .find(|(id, _)| id == &asset_id)
-            .ok_or(Error::<T>::MarketDoesNotExist)?;
+        let market = Self::market(asset_id)?;
 
         // Assets holded by market currently.
-        let current_supply = T::Assets::balance(asset_id, &Self::account_id());
+        let current_cash = T::Assets::balance(asset_id, &Self::account_id());
 
-        let total_supply = current_supply
+        let total_cash = current_cash
             .checked_add(&amount)
             .ok_or(ArithmeticError::Overflow)?;
-        ensure!(
-            total_supply <= market.cap,
-            Error::<T>::ExceededMarketCapacity
-        );
+        ensure!(total_cash <= market.cap, Error::<T>::ExceededMarketCapacity);
         Ok(())
     }
 
