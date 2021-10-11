@@ -185,7 +185,7 @@ impl MockPriceFeeder {
     thread_local! {
         pub static PRICES: RefCell<HashMap<CurrencyId, Option<PriceDetail>>> = {
             RefCell::new(
-                vec![DOT, KSM, USDT, XDOT]
+                vec![HKO, DOT, KSM, USDT, XDOT]
                     .iter()
                     .map(|&x| (x, Some((Price::saturating_from_integer(1), 1))))
                     .collect()
@@ -254,7 +254,7 @@ impl Config for Test {
 }
 
 parameter_types! {
-    pub const NativeCurrencyId: CurrencyId = 0;
+    pub const NativeCurrencyId: CurrencyId = HKO;
 }
 
 impl pallet_currency_adapter::Config for Test {
@@ -321,7 +321,7 @@ pub(crate) fn _process_block(n: BlockNumber) -> u64 {
 }
 
 pub fn native_token(d: u128) -> u128 {
-    d.saturating_mul(10_u128.pow(18))
+    d.saturating_mul(10_u128.pow(12))
 }
 
 // TODO make decimals more explicit
