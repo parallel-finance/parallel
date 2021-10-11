@@ -7,6 +7,7 @@ use crate::{
     Config, Error, Market, Markets,
 };
 use frame_support::{assert_err, assert_ok};
+use sp_io;
 use sp_runtime::FixedPointNumber;
 
 #[test]
@@ -66,10 +67,11 @@ fn repay_borrow_all_no_underflow() {
 }
 
 #[test]
-#[ignore]
 fn ensure_capacity_fails_when_market_not_existed() {
-    assert_err!(
-        Loans::ensure_capacity(XDOT, dollar(100)),
-        Error::<Test>::MarketDoesNotExist
-    );
+    new_test_ext().execute_with(|| {
+        assert_err!(
+            Loans::ensure_capacity(XDOT, dollar(100)),
+            Error::<Test>::MarketDoesNotExist
+        );
+    });
 }
