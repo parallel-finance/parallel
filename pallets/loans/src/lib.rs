@@ -138,7 +138,7 @@ pub mod pallet {
         MarketAlredyExists,
         /// New markets must have a pending state
         NewMarketMustHavePendingState,
-        /// Market reach its upper limitation
+        /// Market reached its upper limitation
         ExceededMarketCapacity,
     }
 
@@ -420,30 +420,11 @@ pub mod pallet {
                 market.rate_model.check_model(),
                 Error::<T>::InvalidRateModelParam
             );
-            // FIXME(Alan WANG): To mutate the whole struct might be better.
-            // Seem like
-            // ```
-            // *stored_market = Market {
-            //  state: stored_market.state,
-            //  ...market
-            // }
-            // ```
             Self::mutate_market(asset_id, |stored_market| {
-                let Market {
-                    collateral_factor,
-                    reserve_factor,
-                    close_factor,
-                    liquidate_incentive,
-                    rate_model,
-                    state: _,
-                    cap,
-                } = stored_market;
-                *collateral_factor = market.collateral_factor;
-                *reserve_factor = market.reserve_factor;
-                *close_factor = market.close_factor;
-                *liquidate_incentive = market.liquidate_incentive;
-                *rate_model = market.rate_model;
-                *cap = market.cap;
+                *stored_market = Market {
+                    state: stored_market.state,
+                    ..market
+                };
             })?;
 
             Self::deposit_event(Event::<T>::UpdatedMarket(market));
@@ -1222,7 +1203,7 @@ where
 
     /// Ensure market is enough to supply `amount` asset.
     /// FIXME(Alan WANG): we do redundant calculation.
-    pub fn ensure_capacity(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
+    fn ensure_capacity(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
         let (_, market) = Markets::<T>::iter()
             .find(|(id, _)| id == &asset_id)
             .ok_or(Error::<T>::MarketDoesNotExist)?;
