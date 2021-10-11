@@ -50,7 +50,7 @@ fn repay_borrow_all_no_underflow() {
         assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), KSM));
 
         assert_eq!(
-            <Test as Config>::Assets::balance(KSM, &ALICE),
+            Assets::balance(KSM, &ALICE),
             dollar(800) - 56,
         );
 
