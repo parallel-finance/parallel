@@ -31,7 +31,7 @@ pub struct Deposits<Balance> {
 
 /// The current state of a market. For more information, see [Market].
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
-#[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
+#[derive(Clone, Copy, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
 pub enum MarketState {
     Active,
     Pending,
@@ -43,7 +43,7 @@ pub enum MarketState {
 /// A large pool of liquidity where accounts can lend and borrow.
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
-pub struct Market {
+pub struct Market<Balance> {
     /// The collateral utilization ratio
     pub collateral_factor: Ratio,
     /// Fraction of interest currently set aside for reserves
@@ -57,4 +57,7 @@ pub struct Market {
     pub rate_model: InterestRateModel,
     /// Current market state
     pub state: MarketState,
+
+    /// Upper bound of market capacity
+    pub cap: Balance,
 }

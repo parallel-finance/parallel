@@ -314,7 +314,7 @@ pub fn million_dollar(d: u128) -> u128 {
     dollar(d) * 10_u128.pow(6)
 }
 
-pub const MARKET_MOCK: Market = Market {
+pub const MARKET_MOCK: Market<Balance> = Market {
     close_factor: Ratio::from_percent(50),
     collateral_factor: Ratio::from_percent(50),
     liquidate_incentive: Rate::from_inner(Rate::DIV / 100 * 110),
@@ -326,4 +326,5 @@ pub const MARKET_MOCK: Market = Market {
         jump_utilization: Ratio::from_percent(80),
     }),
     reserve_factor: Ratio::from_percent(15),
+    cap: 1_000_000_000_000_000_000_000u128, // set to $1B
 };

@@ -138,6 +138,8 @@ pub mod pallet {
         MarketAlredyExists,
         /// New markets must have a pending state
         NewMarketMustHavePendingState,
+        /// Market reached its upper limitation
+        ExceededMarketCapacity,
     }
 
     #[pallet::event]
@@ -180,13 +182,13 @@ pub mod pallet {
         ReservesAdded(T::AccountId, AssetIdOf<T>, BalanceOf<T>, BalanceOf<T>),
         /// New interest rate model is set
         /// [new_interest_rate_model]
-        NewMarket(Market),
+        NewMarket(Market<BalanceOf<T>>),
         /// Event emitted when a market is activated
         /// [admin, asset_id]
         ActivatedMarket(AssetIdOf<T>),
         /// Event emitted when a market is activated
         /// [admin, asset_id]
-        UpdatedMarket(Market),
+        UpdatedMarket(Market<BalanceOf<T>>),
     }
 
     /// The timestamp of the last calculation of accrued interest
@@ -290,7 +292,8 @@ pub mod pallet {
 
     /// Mapping of asset id to its market
     #[pallet::storage]
-    pub type Markets<T: Config> = StorageMap<_, Blake2_128Concat, AssetIdOf<T>, Market>;
+    pub type Markets<T: Config> =
+        StorageMap<_, Blake2_128Concat, AssetIdOf<T>, Market<BalanceOf<T>>>;
 
     #[pallet::pallet]
     pub struct Pallet<T>(PhantomData<T>);
@@ -381,7 +384,7 @@ pub mod pallet {
         pub fn add_market(
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
-            market: Market,
+            market: Market<BalanceOf<T>>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
             ensure!(
@@ -417,7 +420,7 @@ pub mod pallet {
         pub fn update_market(
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
-            market: Market,
+            market: Market<BalanceOf<T>>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
             ensure!(
@@ -425,19 +428,10 @@ pub mod pallet {
                 Error::<T>::InvalidRateModelParam
             );
             Self::mutate_market(asset_id, |stored_market| {
-                let Market {
-                    collateral_factor,
-                    reserve_factor,
-                    close_factor,
-                    liquidate_incentive,
-                    rate_model,
-                    state: _,
-                } = stored_market;
-                *collateral_factor = market.collateral_factor;
-                *reserve_factor = market.reserve_factor;
-                *close_factor = market.close_factor;
-                *liquidate_incentive = market.liquidate_incentive;
-                *rate_model = market.rate_model;
+                *stored_market = Market {
+                    state: stored_market.state,
+                    ..market
+                };
             })?;
 
             Self::deposit_event(Event::<T>::UpdatedMarket(market));
@@ -457,6 +451,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::ensure_currency(asset_id)?;
+            Self::ensure_capacity(asset_id, mint_amount)?;
 
             T::Assets::transfer(asset_id, &who, &Self::account_id(), mint_amount, false)?;
             Self::update_earned_stored(&who, asset_id)?;
@@ -817,7 +812,7 @@ where
     fn collateral_asset_value(
         borrower: &T::AccountId,
         asset_id: AssetIdOf<T>,
-        market: &Market,
+        market: &Market<BalanceOf<T>>,
     ) -> Result<FixedU128, DispatchError> {
         if !AccountDeposits::<T>::contains_key(asset_id, borrower) {
             return Ok(FixedU128::zero());
@@ -856,7 +851,7 @@ where
         asset_id: AssetIdOf<T>,
         redeemer: &T::AccountId,
         voucher_amount: BalanceOf<T>,
-        market: &Market,
+        market: &Market<BalanceOf<T>>,
     ) -> DispatchResult {
         let deposit = Self::account_deposits(asset_id, redeemer);
         if deposit.voucher_balance < voucher_amount {
@@ -1031,7 +1026,7 @@ where
         borrower: &T::AccountId,
         liquidate_asset_id: AssetIdOf<T>,
         repay_amount: BalanceOf<T>,
-        market: &Market,
+        market: &Market<BalanceOf<T>>,
     ) -> DispatchResult {
         let (_, shortfall) = Self::get_account_liquidity(borrower)?;
         if shortfall.is_zero() {
@@ -1213,6 +1208,20 @@ where
         }
     }
 
+    /// Ensure market is enough to supply `amount` asset.
+    fn ensure_capacity(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
+        let market = Self::market(asset_id)?;
+
+        // Assets holded by market currently.
+        let current_cash = T::Assets::balance(asset_id, &Self::account_id());
+
+        let total_cash = current_cash
+            .checked_add(&amount)
+            .ok_or(ArithmeticError::Overflow)?;
+        ensure!(total_cash <= market.cap, Error::<T>::ExceededMarketCapacity);
+        Ok(())
+    }
+
     pub fn calc_underlying_amount(
         voucher_amount: BalanceOf<T>,
         exchange_rate: Rate,
@@ -1248,7 +1257,7 @@ where
     // Returns a stored Market.
     //
     // Returns `Err` if market does not exist.
-    pub fn market(asset_id: AssetIdOf<T>) -> Result<Market, DispatchError> {
+    pub fn market(asset_id: AssetIdOf<T>) -> Result<Market<BalanceOf<T>>, DispatchError> {
         Markets::<T>::try_get(asset_id).map_err(|_err| Error::<T>::MarketDoesNotExist.into())
     }
 
@@ -1257,7 +1266,7 @@ where
     // Returns `Err` if market does not exist.
     pub(crate) fn mutate_market<F>(asset_id: AssetIdOf<T>, cb: F) -> Result<(), DispatchError>
     where
-        F: FnOnce(&mut Market),
+        F: FnOnce(&mut Market<BalanceOf<T>>),
     {
         Markets::<T>::try_mutate(asset_id, |opt| {
             if let Some(market) = opt {
@@ -1269,7 +1278,7 @@ where
     }
 
     // All markets that are `MarketStatus::Active`.
-    fn active_markets() -> impl Iterator<Item = (AssetIdOf<T>, Market)> {
+    fn active_markets() -> impl Iterator<Item = (AssetIdOf<T>, Market<BalanceOf<T>>)> {
         Markets::<T>::iter().filter(|(_, market)| market.state == MarketState::Active)
     }
 }

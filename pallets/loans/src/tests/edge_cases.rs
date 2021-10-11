@@ -1,10 +1,32 @@
 use crate::{
-    mock::{new_test_ext, Loans, Origin, Test, ALICE, DOT, KSM},
+    mock::{
+        million_dollar, new_test_ext, Assets, Loans, Origin, Test, ALICE, DOT, KSM, MARKET_MOCK,
+        XDOT,
+    },
     tests::{dollar, run_to_block},
-    Config,
+    Config, Error, Market, Markets,
 };
-use frame_support::assert_ok;
+use frame_support::{assert_err, assert_ok};
+use sp_io;
 use sp_runtime::FixedPointNumber;
+
+#[test]
+fn exceeded_market_capacity() {
+    new_test_ext().execute_with(|| {
+        Assets::mint(Origin::signed(ALICE), DOT, ALICE, million_dollar(1001)).unwrap();
+        let amount = million_dollar(501);
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, amount));
+        // Exceed upper bound.
+        assert_err!(
+            Loans::mint(Origin::signed(ALICE), DOT, amount),
+            Error::<Test>::ExceededMarketCapacity
+        );
+
+        Loans::redeem(Origin::signed(ALICE), DOT, amount).unwrap();
+        // Here should work, cause we redeemed already.
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, amount));
+    })
+}
 
 #[test]
 fn repay_borrow_all_no_underflow() {
@@ -42,4 +64,14 @@ fn repay_borrow_all_no_underflow() {
         assert_eq!(borrow_snapshot.principal, 0);
         assert_eq!(borrow_snapshot.borrow_index, Loans::borrow_index(KSM));
     })
+}
+
+#[test]
+fn ensure_capacity_fails_when_market_not_existed() {
+    new_test_ext().execute_with(|| {
+        assert_err!(
+            Loans::ensure_capacity(XDOT, dollar(100)),
+            Error::<Test>::MarketDoesNotExist
+        );
+    });
 }
