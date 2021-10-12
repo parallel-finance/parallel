@@ -68,7 +68,7 @@ fn loans_native_token_works() {
     new_test_ext().execute_with(|| {
         assert_eq!(
             <Test as Config>::Assets::balance(HKO, &DAVE),
-            native_token(1000)
+            dollar(1000)
         );
         assert_eq!(Loans::market(HKO).unwrap().state, MarketState::Active);
         assert_eq!(BorrowIndex::<Test>::get(HKO), Rate::one());
@@ -76,30 +76,30 @@ fn loans_native_token_works() {
             ExchangeRate::<Test>::get(HKO),
             Rate::saturating_from_rational(2, 100)
         );
-        assert_ok!(Loans::mint(Origin::signed(DAVE), HKO, native_token(1000)));
+        assert_ok!(Loans::mint(Origin::signed(DAVE), HKO, dollar(1000)));
 
         // Redeem 1001 HKO should cause InsufficientDeposit
         assert_noop!(
-            Loans::redeem_allowed(HKO, &DAVE, native_token(50050), &MARKET_MOCK),
+            Loans::redeem_allowed(HKO, &DAVE, dollar(50050), &MARKET_MOCK),
             Error::<Test>::InsufficientDeposit
         );
         // Redeem 1000 HKO is ok
         assert_ok!(Loans::redeem_allowed(
             HKO,
             &DAVE,
-            native_token(50000),
+            dollar(50000),
             &MARKET_MOCK
         ));
 
         assert_ok!(Loans::collateral_asset(Origin::signed(DAVE), HKO, true));
 
         // Borrow 500 HKO will reduce 500 HKO liquidity for collateral_factor is 50%
-        assert_ok!(Loans::borrow(Origin::signed(DAVE), HKO, native_token(500)));
+        assert_ok!(Loans::borrow(Origin::signed(DAVE), HKO, dollar(500)));
         // Repay 400 HKO
         assert_ok!(Loans::repay_borrow(
             Origin::signed(DAVE),
             HKO,
-            native_token(400)
+            dollar(400)
         ));
 
         // HKO collateral: deposit = 1000
@@ -108,14 +108,14 @@ fn loans_native_token_works() {
         assert_eq!(
             Loans::exchange_rate(HKO)
                 .saturating_mul_int(Loans::account_deposits(HKO, DAVE).voucher_balance),
-            native_token(1000)
+            dollar(1000)
         );
         let borrow_snapshot = Loans::account_borrows(HKO, DAVE);
-        assert_eq!(borrow_snapshot.principal, native_token(100));
+        assert_eq!(borrow_snapshot.principal, dollar(100));
         assert_eq!(borrow_snapshot.borrow_index, Loans::borrow_index(HKO));
         assert_eq!(
             <Test as Config>::Assets::balance(HKO, &DAVE),
-            native_token(100),
+            dollar(100),
         );
     })
 }

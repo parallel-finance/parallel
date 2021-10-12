@@ -271,7 +271,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
         // Init assets
-        Balances::set_balance(Origin::root(), DAVE, native_token(1000), native_token(0)).unwrap();
+        Balances::set_balance(Origin::root(), DAVE, dollar(1000), dollar(0)).unwrap();
         Assets::force_create(Origin::root(), DOT, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), KSM, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), USDT, ALICE, true, 1).unwrap();
@@ -318,10 +318,6 @@ pub(crate) fn _process_block(n: BlockNumber) -> u64 {
     TimestampPallet::set_timestamp(6000 * n);
     Loans::on_finalize(n);
     res
-}
-
-pub fn native_token(d: u128) -> u128 {
-    d.saturating_mul(10_u128.pow(12))
 }
 
 // TODO make decimals more explicit
