@@ -197,6 +197,8 @@ pub mod pallet {
         NominateCallSent(Vec<T::AccountId>),
         /// Send staking.payout_stakers call to relaychain
         PayoutStakersCallSent(T::AccountId, u32),
+        /// Teleport fee was set to new value
+        TeleportFeeUpdated(BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -536,6 +538,18 @@ pub mod pallet {
             Ok(().into())
         }
 
+        #[pallet::weight(<T as Config>::WeightInfo::force_update_teleport_fee())]
+        #[transactional]
+        pub fn force_update_teleport_fee(
+            origin: OriginFor<T>,
+            fee: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            T::RelayOrigin::ensure_origin(origin)?;
+            TeleportFee::<T>::mutate(|v| *v = fee);
+            Self::deposit_event(Event::<T>::TeleportFeeUpdated(fee));
+            Ok(().into())
+        }
+
         /// Do settlement for matching pool.
         ///
         /// Calculate the imbalance of current state and send corresponding operations to
@@ -568,7 +582,7 @@ pub mod pallet {
                 T::XcmTransfer::transfer(
                     Self::account_id(),
                     staking_currency,
-                    bond_amount,
+                    TeleportFee::<T>::get(),
                     beneficiary,
                     base_weight,
                 )?;
