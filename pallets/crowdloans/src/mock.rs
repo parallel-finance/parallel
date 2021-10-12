@@ -1,3 +1,5 @@
+use crate::ParaId;
+use crate::ContributionStrategy;
 use crate as pallet_crowdloan;
 
 use codec::{Decode, Encode, MaxEncodedLen};

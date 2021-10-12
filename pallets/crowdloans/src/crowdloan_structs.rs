@@ -20,8 +20,8 @@ use primitives::{Balance, CurrencyId};
 pub type ParaId = u32;
 
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
-#[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
-pub enum VaultPhase<CurrencyId, Balance> {
+#[derive(Clone, Copy, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
+pub enum VaultPhase {
     /// Vault is open for contributions
     CollectingContributions,
     /// The vault is closed
@@ -29,73 +29,80 @@ pub enum VaultPhase<CurrencyId, Balance> {
     /// The vault's crowdloan failed, we have to distribute its assets back
     /// to the contributors
     Failed,
-    /// The vault's crowdloan succeeded, project tokens will be identified
-    /// by the provided asset id
-    Succeeded(CurrencyId, Balance),
-    /// The vault's crowdloan succeeded and returned the vault's assets
-    SucceededAndRefunded(CurrencyId, Balance),
+    /// The vault's crowdloan and its associated parachain slot expired, it is
+    /// now possible to get back the money we put in
+    Expired,
 }
 
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
-#[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
+#[derive(Clone, Copy, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
+// pub struct Vault<ParaId, CurrencyId, Balance> {
 pub struct Vault<ParaId, CurrencyId, Balance> {
-    /// Asset used to represent the shares of project tokens for the contributors
-    /// to this vault
-    pub project_shares: CurrencyId,
-    /// Asset used to represent the shares of currency (typically DOT or KSM)
+    /// Asset used to represent the shares of currency
     /// to be claimed back later on
-    pub currency_shares: CurrencyId,
+    pub ctoken: CurrencyId,
     /// Indicates in which currency contributions are received, in most
     /// cases this will be the asset representing the relay chain's native
     /// token
     pub currency: CurrencyId,
     /// Which phase the vault is at
-    pub phase: VaultPhase<CurrencyId, Balance>,
+    pub phase: VaultPhase,
     /// How we contribute coins to the crowdloan
-    pub contribution_strategy: ContributionStrategy<ParaId, CurrencyId, Balance>,
+    pub contribution_strategy: ContributionStrategy<ParaId, CurrencyId>,
+    // pub contribution_strategy: ContributionStrategy<ParaId, CurrencyId, Balance>,
     /// Tracks how many coins were contributed on the relay chain
     pub contributed: Balance,
 }
 
+// #[allow(clippy::upper_case_acronyms)] // for XCM
+// #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
+// #[derive(Clone, Copy, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
+// pub enum ContributionStrategy<ParaId, CurrencyId, Balance> {
+//     Placeholder(ParaId, CurrencyId, Balance),
+//     // --- Examples
+//     XCM,
+//     XCMWithProxy,
+// }
+
 #[allow(clippy::upper_case_acronyms)] // for XCM
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
-#[derive(Clone, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
-pub enum ContributionStrategy<ParaId, CurrencyId, Balance> {
-    Placeholder(ParaId, CurrencyId, Balance),
+#[derive(Clone, Copy, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
+pub enum ContributionStrategy<ParaId, CurrencyId> {
+    Placeholder(ParaId, CurrencyId),
     // --- Examples
     XCM,
     XCMWithProxy,
 }
 
-pub trait ContributionStrategyExecutor<ParaId, CurrencyId, Balance> {
-    /// Execute the strategy to contribute `amount` of coins to the crowdloan
-    /// of the given parachain id
-    fn execute(self, para_id: ParaId, currency: CurrencyId, amount: Balance) -> DispatchResult;
+// pub trait ContributionStrategyExecutor<ParaId, CurrencyId, Balance> {
+//     /// Execute the strategy to contribute `amount` of coins to the crowdloan
+//     /// of the given parachain id
+//     fn execute(self, para_id: ParaId, currency: CurrencyId, amount: Balance) -> DispatchResult;
 
-    /// Withdraw coins from the relay chain's crowdloans and send it back
-    /// to our parachain
-    fn withdraw(self, para_id: ParaId, currency: CurrencyId) -> DispatchResult;
+//     /// Withdraw coins from the relay chain's crowdloans and send it back
+//     /// to our parachain
+//     fn withdraw(self, para_id: ParaId, currency: CurrencyId) -> DispatchResult;
 
-    /// Ask for a refund of the coins on the relay chain
-    fn refund(self, para_id: ParaId, currency: CurrencyId) -> DispatchResult;
-}
+//     /// Ask for a refund of the coins on the relay chain
+//     fn refund(self, para_id: ParaId, currency: CurrencyId) -> DispatchResult;
+// }
 
-impl ContributionStrategyExecutor<ParaId, CurrencyId, Balance>
-    for ContributionStrategy<ParaId, CurrencyId, Balance>
-{
-    // add code here
-    fn execute(
-        self,
-        _: ParaId,
-        _: CurrencyId,
-        _: Balance,
-    ) -> Result<(), sp_runtime::DispatchError> {
-        todo!()
-    }
-    fn withdraw(self, _: ParaId, _: CurrencyId) -> Result<(), sp_runtime::DispatchError> {
-        todo!()
-    }
-    fn refund(self, _: ParaId, _: CurrencyId) -> Result<(), sp_runtime::DispatchError> {
-        todo!()
-    }
-}
+// impl ContributionStrategyExecutor<ParaId, CurrencyId, Balance>
+//     for ContributionStrategy<ParaId, CurrencyId, Balance>
+// {
+//     // add code here
+//     fn execute(
+//         self,
+//         _: ParaId,
+//         _: CurrencyId,
+//         _: Balance,
+//     ) -> Result<(), sp_runtime::DispatchError> {
+//         todo!()
+//     }
+//     fn withdraw(self, _: ParaId, _: CurrencyId) -> Result<(), sp_runtime::DispatchError> {
+//         todo!()
+//     }
+//     fn refund(self, _: ParaId, _: CurrencyId) -> Result<(), sp_runtime::DispatchError> {
+//         todo!()
+//     }
+// }
