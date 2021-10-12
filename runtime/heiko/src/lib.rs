@@ -471,6 +471,7 @@ impl DerivativeProvider<AccountId> for DerivativeProviderT {
 parameter_types! {
     pub const MaxRewardsPerEra: Balance = 100;
     pub const MaxSlashesPerEra: Balance = 1;
+    pub const MinStakeAmount: Balance = 1_000_000_000_000;
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -492,6 +493,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type MaxRewardsPerEra = MaxRewardsPerEra;
     type MaxSlashesPerEra = MaxSlashesPerEra;
     type RelayNetwork = RelayNetwork;
+    type MinStakeAmount = MinStakeAmount;
 }
 
 parameter_types! {

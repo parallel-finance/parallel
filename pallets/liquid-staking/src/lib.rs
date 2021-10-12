@@ -155,6 +155,10 @@ pub mod pallet {
         #[pallet::constant]
         type MaxSlashesPerEra: Get<BalanceOf<Self>>;
 
+        /// Minimum stake amount
+        #[pallet::constant]
+        type MinStakeAmount: Get<BalanceOf<Self>>;
+
         /// Relay network
         #[pallet::constant]
         type RelayNetwork: Get<NetworkId>;
@@ -209,6 +213,8 @@ pub mod pallet {
         InvalidExchangeRate,
         /// Era has been pushed before.
         EraAlreadyPushed,
+        /// Stake amount is too small
+        StakeAmountTooSmall,
         /// Operation wasn't submitted to relaychain or has been processed.
         OperationNotReady,
         /// Failed to send staking.bond call
@@ -434,6 +440,11 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+
+            ensure!(
+                amount > T::MinStakeAmount::get(),
+                Error::<T>::StakeAmountTooSmall
+            );
 
             let exchange_rate = ExchangeRate::<T>::get();
             let liquid_amount = exchange_rate
