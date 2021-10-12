@@ -1,13 +1,9 @@
 use crate::{
-    mock::{
-        million_dollar, new_test_ext, Assets, Loans, Origin, Test, ALICE, DOT, KSM, MARKET_MOCK,
-        XDOT,
-    },
+    mock::{million_dollar, new_test_ext, Assets, Loans, Origin, Test, ALICE, DOT, KSM, XDOT},
     tests::{dollar, run_to_block},
-    Config, Error, Market, Markets,
+    Error,
 };
 use frame_support::{assert_err, assert_ok};
-use sp_io;
 use sp_runtime::FixedPointNumber;
 
 #[test]
@@ -49,10 +45,7 @@ fn repay_borrow_all_no_underflow() {
         // Alice repay all borrow balance
         assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), KSM));
 
-        assert_eq!(
-            <Test as Config>::Assets::balance(KSM, &ALICE),
-            dollar(800) - 56,
-        );
+        assert_eq!(Assets::balance(KSM, &ALICE), dollar(800) - 56,);
 
         assert_eq!(
             Loans::exchange_rate(DOT)

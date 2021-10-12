@@ -2,7 +2,6 @@
 
 #![cfg(feature = "runtime-benchmarks")]
 use super::*;
-
 use crate::Pallet as Loans;
 
 use crate::AccountBorrows;
@@ -13,8 +12,8 @@ use primitives::{Balance, CurrencyId};
 use sp_std::prelude::*;
 
 const SEED: u32 = 0;
-const DOT: CurrencyId = 0;
-const KSM: CurrencyId = 1;
+const DOT: CurrencyId = 101;
+const KSM: CurrencyId = 100;
 const UNKNOWN: CurrencyId = 5;
 
 fn market_mock<T: Config>() -> Market<BalanceOf<T>>

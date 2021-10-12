@@ -1,7 +1,9 @@
 use crate::{
-    mock::{new_test_ext, Loans, MockPriceFeeder, Origin, Test, ALICE, BOB, DOT, KSM, USDT},
+    mock::{
+        new_test_ext, Assets, Loans, MockPriceFeeder, Origin, Test, ALICE, BOB, DOT, KSM, USDT,
+    },
     tests::dollar,
-    Config, Error, MarketState,
+    Error, MarketState,
 };
 use frame_support::{assert_noop, assert_ok};
 use primitives::Rate;
@@ -94,15 +96,15 @@ fn full_workflow_works_as_expected() {
         // Alice KSM borrow balance: origin borrow balance - liquidate amount = 100 - 50 = 50
         // Bob KSM: cash - deposit - repay = 1000 - 200 - 50 = 750
         // Bob DOT collateral: incentive = 110
-        assert_eq!(<Test as Config>::Assets::balance(DOT, &ALICE), dollar(800),);
+        assert_eq!(Assets::balance(DOT, &ALICE), dollar(800),);
         assert_eq!(
             Loans::exchange_rate(DOT)
                 .saturating_mul_int(Loans::account_deposits(DOT, ALICE).voucher_balance),
             dollar(90),
         );
-        assert_eq!(<Test as Config>::Assets::balance(KSM, &ALICE), dollar(1100),);
+        assert_eq!(Assets::balance(KSM, &ALICE), dollar(1100),);
         assert_eq!(Loans::account_borrows(KSM, ALICE).principal, dollar(50));
-        assert_eq!(<Test as Config>::Assets::balance(KSM, &BOB), dollar(750));
+        assert_eq!(Assets::balance(KSM, &BOB), dollar(750));
         assert_eq!(
             Loans::exchange_rate(DOT)
                 .saturating_mul_int(Loans::account_deposits(DOT, BOB).voucher_balance),

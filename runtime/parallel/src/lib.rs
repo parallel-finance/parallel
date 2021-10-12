@@ -416,7 +416,7 @@ impl pallet_loans::Config for Runtime {
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_loans::weights::SubstrateWeight<Runtime>;
     type UnixTime = Timestamp;
-    type Assets = Assets;
+    type Assets = CurrencyAdapter;
 }
 
 parameter_types! {

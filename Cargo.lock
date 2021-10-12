@@ -5580,6 +5580,7 @@ dependencies = [
  "orml-utilities",
  "pallet-assets",
  "pallet-balances",
+ "pallet-currency-adapter",
  "pallet-prices",
  "pallet-timestamp",
  "parallel-primitives",
