@@ -332,6 +332,7 @@ parameter_types! {
     pub const MaxSlashesPerEra: Balance = 1;
     pub const MinStakeAmount: Balance = 0;
     pub const MinUnstakeAmount: Balance = 0;
+    pub const XcmFees: Balance = 0;
 }
 
 impl crate::Config for Test {
@@ -355,6 +356,7 @@ impl crate::Config for Test {
     type RelayNetwork = RelayNetwork;
     type MinStakeAmount = MinStakeAmount;
     type MinUnstakeAmount = MinUnstakeAmount;
+    type XcmFees = XcmFees;
 }
 
 parameter_types! {

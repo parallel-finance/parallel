@@ -163,6 +163,10 @@ pub mod pallet {
         #[pallet::constant]
         type MinUnstakeAmount: Get<BalanceOf<Self>>;
 
+        /// Xcm fees to be charged
+        #[pallet::constant]
+        type XcmFees: Get<BalanceOf<Self>>;
+
         /// Relay network
         #[pallet::constant]
         type RelayNetwork: Get<NetworkId>;
@@ -259,6 +263,11 @@ pub mod pallet {
     #[pallet::getter(fn staking_pool)]
     pub type StakingPool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
+    /// Total amount of charged assets to be used as xcm fees.
+    #[pallet::storage]
+    #[pallet::getter(fn charged_xcm_fees)]
+    pub type ChargedXcmFees<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
     /// Unbonding amount and withdrawable block number on relaychain
     ///
     /// [amount, withdrawable_block_number]
@@ -311,11 +320,6 @@ pub mod pallet {
     #[pallet::getter(fn staking_currency)]
     pub type StakingCurrency<T: Config> = StorageValue<_, AssetIdOf<T>, OptionQuery>;
 
-    /// Transaction compensation
-    #[pallet::storage]
-    #[pallet::getter(fn transaction_compensation)]
-    pub type TransactionCompensation<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
-
     #[pallet::genesis_config]
     pub struct GenesisConfig {
         pub exchange_rate: Rate,
@@ -360,9 +364,13 @@ pub mod pallet {
             // TODO should use T::WeightInfo::on_idle instead
             // on_idle shouldn't run out of all remaining_weight normally
             let base_weight = T::WeightInfo::pop_queue();
-            if Self::staking_currency().is_none() {
+            let staking_currency = Self::staking_currency();
+            if staking_currency.is_none() {
                 return remaining_weight;
             }
+
+            let staking_currency = staking_currency.unwrap();
+
             loop {
                 // Check weight is enough
                 if remaining_weight < base_weight {
@@ -375,15 +383,18 @@ pub mod pallet {
 
                 // Get the front of the queue.
                 let (who, amount) = &Self::unstake_queue()[0];
+                let left_staking =
+                    T::Assets::reducible_balance(staking_currency, &Self::account_id(), false)
+                        .checked_sub(&Self::charged_xcm_fees())
+                        .unwrap_or(Zero::zero());
 
-                let res = T::Assets::transfer(
-                    Self::staking_currency().unwrap(),
-                    &Self::account_id(),
-                    who,
-                    *amount,
-                    false,
-                );
-                if res.is_err() {
+                if left_staking < *amount {
+                    break;
+                }
+
+                if T::Assets::transfer(staking_currency, &Self::account_id(), who, *amount, false)
+                    .is_err()
+                {
                     // break if we cannot afford this
                     break;
                 }
@@ -394,6 +405,7 @@ pub mod pallet {
                 // remove unstake request from queue
                 Self::pop_unstake_task()
             }
+
             remaining_weight
         }
 
@@ -448,14 +460,19 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
 
             ensure!(
-                amount > T::MinStakeAmount::get(),
+                amount > T::MinStakeAmount::get().max(T::XcmFees::get()),
                 Error::<T>::StakeAmountTooSmall
             );
+
+            let fees = T::XcmFees::get();
+            let new_amount = amount
+                .checked_sub(&fees)
+                .ok_or(ArithmeticError::Underflow)?;
 
             let exchange_rate = ExchangeRate::<T>::get();
             let liquid_amount = exchange_rate
                 .reciprocal()
-                .and_then(|r| r.checked_mul_int(amount))
+                .and_then(|r| r.checked_mul_int(new_amount))
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
 
             let staking_currency =
@@ -467,19 +484,26 @@ pub mod pallet {
             T::Assets::mint_into(liquid_currency, &who, liquid_amount)?;
 
             StakingPool::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
+                *b = b
+                    .checked_add(&new_amount)
+                    .ok_or(ArithmeticError::Overflow)?;
+                Ok(())
+            })?;
+
+            ChargedXcmFees::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_add(&fees).ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
 
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
                 p.total_stake_amount = p
                     .total_stake_amount
-                    .checked_add(&amount)
+                    .checked_add(&new_amount)
                     .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
 
-            Self::deposit_event(Event::<T>::Staked(who, amount));
+            Self::deposit_event(Event::<T>::Staked(who, new_amount));
             Ok(().into())
         }
 
@@ -565,18 +589,6 @@ pub mod pallet {
             Ok(().into())
         }
 
-        #[pallet::weight(<T as Config>::WeightInfo::force_update_transaction_compensation())]
-        #[transactional]
-        pub fn force_update_transaction_compensation(
-            origin: OriginFor<T>,
-            fee: BalanceOf<T>,
-        ) -> DispatchResultWithPostInfo {
-            T::RelayOrigin::ensure_origin(origin)?;
-            TransactionCompensation::<T>::mutate(|v| *v = fee);
-            Self::deposit_event(Event::<T>::TeleportFeeUpdated(fee));
-            Ok(().into())
-        }
-
         /// Do settlement for matching pool.
         ///
         /// Calculate the imbalance of current state and send corresponding operations to
@@ -604,16 +616,6 @@ pub mod pallet {
             let staking_currency =
                 Self::staking_currency().ok_or(Error::<T>::StakingCurrencyNotSet)?;
             let base_weight = T::BaseXcmWeight::get();
-
-            if !Self::transaction_compensation().is_zero() {
-                T::XcmTransfer::transfer(
-                    Self::account_id(),
-                    staking_currency,
-                    Self::transaction_compensation(),
-                    beneficiary.clone(),
-                    base_weight,
-                )?;
-            }
 
             if !bond_amount.is_zero() {
                 T::XcmTransfer::transfer(
