@@ -567,6 +567,14 @@ pub mod pallet {
             let (bond_amount, rebond_amount, unbond_amount) =
                 MatchingPool::<T>::take().matching(unbonding_amount);
 
+            T::XcmTransfer::transfer(
+                Self::account_id(),
+                staking_currency,
+                TeleportFee::<T>::get(),
+                beneficiary,
+                base_weight,
+            )?;
+
             if !bond_amount.is_zero() {
                 let beneficiary = MultiLocation::new(
                     1,
@@ -582,7 +590,7 @@ pub mod pallet {
                 T::XcmTransfer::transfer(
                     Self::account_id(),
                     staking_currency,
-                    TeleportFee::<T>::get(),
+                    bond_amount,
                     beneficiary,
                     base_weight,
                 )?;
