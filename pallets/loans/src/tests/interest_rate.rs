@@ -1,10 +1,10 @@
+use crate::tests::TimestampPallet;
 use crate::{
     mock::{new_test_ext, Loans, Origin, Test, ALICE, DOT},
     tests::{dollar, million_dollar, run_to_block, Assets},
     InterestRateModel, Markets,
 };
 use frame_support::assert_ok;
-
 use primitives::{Rate, Ratio, SECONDS_PER_YEAR};
 use sp_runtime::{
     traits::{CheckedDiv, One, Saturating, Zero},
@@ -72,20 +72,19 @@ fn interest_rate_model_works() {
         let mut total_borrows = borrow_snapshot.principal;
         let mut total_reserves: u128 = 0;
 
-        // Finalized block from 1 to 50
-        run_to_block(1);
-        for i in 2..50 {
-            run_to_block(i);
+        // Finalized block from 1 to 49
+        for _i in 1..49 {
+            let delta_time = 6;
+            Loans::accrue_interest(delta_time);
             // utilizationRatio = totalBorrows / (totalCash + totalBorrows)
             let util_ratio = Ratio::from_rational(total_borrows, total_cash + total_borrows);
             assert_eq!(Loans::utilization_ratio(DOT), util_ratio);
 
-            let delta_time = 6;
             let borrow_rate =
                 (jump_rate - base_rate) * util_ratio.into() / jump_utilization.into() + base_rate;
             let interest_accumulated: u128 = borrow_rate
                 .saturating_mul_int(total_borrows)
-                .saturating_mul(delta_time)
+                .saturating_mul(delta_time.into())
                 .checked_div(SECONDS_PER_YEAR.into())
                 .unwrap();
             total_borrows = interest_accumulated + total_borrows;
@@ -104,7 +103,7 @@ fn interest_rate_model_works() {
             );
             let numerator = borrow_index
                 .saturating_mul(borrow_rate)
-                .saturating_mul(delta_time.into())
+                .saturating_mul(Rate::saturating_from_integer(delta_time))
                 .checked_div(&Rate::saturating_from_integer(SECONDS_PER_YEAR))
                 .unwrap();
             borrow_index = numerator + borrow_index;
@@ -168,16 +167,16 @@ fn with_transaction_commit_works() {
         assert_eq!(Loans::exchange_rate(DOT).into_inner(), 20000000000000000);
         assert_eq!(Loans::borrow_index(DOT), Rate::one());
 
-        run_to_block(2);
+        run_to_block(20);
 
-        // block 2
+        // block 20
         assert_eq!(Loans::utilization_ratio(DOT), Ratio::from_percent(50));
-        assert_eq!(Loans::total_borrows(DOT), 100000001331811263318);
-        assert_eq!(Loans::total_reserves(DOT), 199771689497);
-        assert_eq!(Loans::exchange_rate(DOT).into_inner(), 20000000113203957);
+        assert_eq!(Loans::total_borrows(DOT), 100000022640791476407);
+        assert_eq!(Loans::total_reserves(DOT), 3396118721461);
+        assert_eq!(Loans::exchange_rate(DOT).into_inner(), 20000001924467275);
         assert_eq!(
             Loans::borrow_index(DOT),
-            Rate::from_inner(1000000013318112633)
+            Rate::from_inner(1000000226407914764)
         );
     })
 }
@@ -229,9 +228,9 @@ fn with_transaction_rollback_works() {
             market.rate_model = error_model;
         })
         .unwrap();
-        run_to_block(3);
+        run_to_block(20);
 
-        // block 3
+        // block 20
         // No storage has been changed
         assert_eq!(Loans::utilization_ratio(DOT), Ratio::from_percent(0));
         assert_eq!(Loans::total_borrows(DOT), million_dollar(100));

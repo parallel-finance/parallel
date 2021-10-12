@@ -62,6 +62,9 @@ mod types;
 
 pub mod weights;
 
+pub const MAX_INTEREST_CALCULATING_INTERVAL: u64 = 5 * 24 * 3600; // 5 days
+pub const MIN_INTEREST_CALCULATING_INTERVAL: u64 = 100; // 100 seconds
+
 type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
 type BalanceOf<T> =
@@ -318,8 +321,20 @@ pub mod pallet {
             if now <= last_block_timestamp {
                 return 0;
             }
+            let delta_time = now - last_block_timestamp;
+            if delta_time > MAX_INTEREST_CALCULATING_INTERVAL {
+                // This should never happen...
+                log::error!(
+                    "Could not initialize block! Exceed max interval {:#?}",
+                    block_number,
+                );
+                return 0;
+            }
+            if delta_time < MIN_INTEREST_CALCULATING_INTERVAL {
+                return 0;
+            }
             with_transaction(|| {
-                match <Pallet<T>>::accrue_interest(now - last_block_timestamp) {
+                match <Pallet<T>>::accrue_interest(delta_time) {
                     Ok(()) => {
                         LastBlockTimestamp::<T>::put(now);
                         TransactionOutcome::Commit(
@@ -330,7 +345,7 @@ pub mod pallet {
                     Err(err) => {
                         // This should never happen...
                         log::error!(
-                            "Could not initialize block!!! {:#?} {:#?}",
+                            "Could not initialize block! Calculate interest failed! {:#?} {:#?}",
                             block_number,
                             err
                         );
