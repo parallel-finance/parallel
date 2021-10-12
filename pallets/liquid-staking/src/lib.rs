@@ -583,13 +583,15 @@ pub mod pallet {
                 Self::staking_currency().ok_or(Error::<T>::StakingCurrencyNotSet)?;
             let base_weight = T::BaseXcmWeight::get();
 
-            T::XcmTransfer::transfer(
-                Self::account_id(),
-                staking_currency,
-                TransactionCompensation::<T>::get(),
-                beneficiary.clone(),
-                base_weight,
-            )?;
+            if !Self::transaction_compensation().is_zero() {
+                T::XcmTransfer::transfer(
+                    Self::account_id(),
+                    staking_currency,
+                    Self::transaction_compensation(),
+                    beneficiary.clone(),
+                    base_weight,
+                )?;
+            }
 
             if !bond_amount.is_zero() {
                 T::XcmTransfer::transfer(
