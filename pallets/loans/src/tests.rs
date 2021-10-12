@@ -66,10 +66,7 @@ fn init_markets_ok() {
 #[test]
 fn loans_native_token_works() {
     new_test_ext().execute_with(|| {
-        assert_eq!(
-            <Test as Config>::Assets::balance(HKO, &DAVE),
-            dollar(1000)
-        );
+        assert_eq!(<Test as Config>::Assets::balance(HKO, &DAVE), dollar(1000));
         assert_eq!(Loans::market(HKO).unwrap().state, MarketState::Active);
         assert_eq!(BorrowIndex::<Test>::get(HKO), Rate::one());
         assert_eq!(
@@ -96,11 +93,7 @@ fn loans_native_token_works() {
         // Borrow 500 HKO will reduce 500 HKO liquidity for collateral_factor is 50%
         assert_ok!(Loans::borrow(Origin::signed(DAVE), HKO, dollar(500)));
         // Repay 400 HKO
-        assert_ok!(Loans::repay_borrow(
-            Origin::signed(DAVE),
-            HKO,
-            dollar(400)
-        ));
+        assert_ok!(Loans::repay_borrow(Origin::signed(DAVE), HKO, dollar(400)));
 
         // HKO collateral: deposit = 1000
         // HKO borrow balance: borrow - repay = 500 - 400 = 100
@@ -113,10 +106,7 @@ fn loans_native_token_works() {
         let borrow_snapshot = Loans::account_borrows(HKO, DAVE);
         assert_eq!(borrow_snapshot.principal, dollar(100));
         assert_eq!(borrow_snapshot.borrow_index, Loans::borrow_index(HKO));
-        assert_eq!(
-            <Test as Config>::Assets::balance(HKO, &DAVE),
-            dollar(100),
-        );
+        assert_eq!(<Test as Config>::Assets::balance(HKO, &DAVE), dollar(100),);
     })
 }
 
