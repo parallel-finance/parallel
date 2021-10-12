@@ -159,6 +159,10 @@ pub mod pallet {
         #[pallet::constant]
         type MinStakeAmount: Get<BalanceOf<Self>>;
 
+        /// Minimum unstake amount
+        #[pallet::constant]
+        type MinUnstakeAmount: Get<BalanceOf<Self>>;
+
         /// Relay network
         #[pallet::constant]
         type RelayNetwork: Get<NetworkId>;
@@ -215,6 +219,8 @@ pub mod pallet {
         EraAlreadyPushed,
         /// Stake amount is too small
         StakeAmountTooSmall,
+        /// Unstake amount is too small
+        UnstakeAmountTooSmall,
         /// Operation wasn't submitted to relaychain or has been processed.
         OperationNotReady,
         /// Failed to send staking.bond call
@@ -489,6 +495,11 @@ pub mod pallet {
             #[pallet::compact] liquid_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+
+            ensure!(
+                liquid_amount > T::MinUnstakeAmount::get(),
+                Error::<T>::UnstakeAmountTooSmall
+            );
 
             let exchange_rate = ExchangeRate::<T>::get();
             let asset_amount = exchange_rate
