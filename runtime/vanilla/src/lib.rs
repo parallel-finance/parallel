@@ -28,14 +28,14 @@ use cumulus_primitives_core::ParaId;
 use frame_support::{
     dispatch::Weight,
     log,
-    traits::{fungibles::Mutate, Contains, Everything, IsInVec},
+    traits::{fungibles::Mutate, Contains, Everything},
     PalletId,
 };
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureOneOf, EnsureRoot, EnsureSignedBy,
+    EnsureOneOf, EnsureRoot,
 };
-use hex_literal::hex;
+
 use orml_traits::{DataProvider, DataProviderExtended};
 use orml_xcm_support::{IsNativeConcrete, MultiNativeAsset};
 use polkadot_parachain::primitives::Sibling;
@@ -364,7 +364,7 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 
 parameter_types! {
     pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
-    pub const BaseXcmWeight: Weight = 100_000_000;
+    pub const BaseXcmWeight: Weight = 150_000_000;
 }
 
 impl orml_xtokens::Config for Runtime {
@@ -375,7 +375,7 @@ impl orml_xtokens::Config for Runtime {
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type SelfLocation = SelfLocation;
     type XcmExecutor = XcmExecutor<XcmConfig>;
-    type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+    type Weigher = FixedWeightBounds<BaseXcmWeight, Call>;
     type BaseXcmWeight = BaseXcmWeight;
     type LocationInverter = LocationInverter<Ancestry>;
 }
@@ -419,29 +419,43 @@ impl pallet_loans::Config for Runtime {
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub RelayAgent: MultiLocation = MultiLocation::new(
-        1,
-        X1(AccountId32{
-            network: NetworkId::Any,
-            // Dave
-            id: hex!["306721211d5404bd9da88e0204360a1a9ab8b87c66c1bc2fcdd37f3c2222cc20"]
-        })
-    );
     pub const PeriodBasis: BlockNumber = 1000u32;
-    pub BridgeAccount: Vec<AccountId> = vec![hex!["306721211d5404bd9da88e0204360a1a9ab8b87c66c1bc2fcdd37f3c2222cc20"].into()];
+    pub const DerivativeIndex: u16 = 0;
+    pub const UnstakeQueueCapacity: u32 = 1000;
+}
+
+pub struct DerivativeProviderT;
+
+impl DerivativeProvider<AccountId> for DerivativeProviderT {
+    fn derivative_account_id(who: AccountId, index: u16) -> AccountId {
+        Utility::derivative_account_id(who, index)
+    }
+}
+
+parameter_types! {
+    pub const MaxRewardsPerEra: Balance = 100;
+    pub const MaxSlashesPerEra: Balance = 1;
 }
 
 impl pallet_liquid_staking::Config for Runtime {
     type Event = Event;
     type PalletId = StakingPalletId;
-    type BridgeOrigin = EnsureSignedBy<IsInVec<BridgeAccount>, AccountId>;
+    type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = ();
     type XcmTransfer = XTokens;
-    type RelayAgent = RelayAgent;
+    type SelfParaId = ParachainInfo;
     type PeriodBasis = PeriodBasis;
     type BaseXcmWeight = BaseXcmWeight;
     type Assets = Assets;
+    type XcmSender = XcmRouter;
+    type DerivativeIndex = DerivativeIndex;
+    type DerivativeProvider = DerivativeProviderT;
+    type UnstakeQueueCapacity = UnstakeQueueCapacity;
+    type RelaychainBlockNumberProvider = RelaychainBlockNumberProvider<Runtime>;
+    type MaxRewardsPerEra = MaxRewardsPerEra;
+    type MaxSlashesPerEra = MaxSlashesPerEra;
+    type RelayNetwork = RelayNetwork;
 }
 
 parameter_types! {
@@ -676,7 +690,7 @@ impl pallet_xcm::Config for Runtime {
     type XcmExecutor = XcmExecutor<XcmConfig>;
     // Teleporting is disabled.
     type XcmTeleportFilter = ();
-    type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+    type Weigher = FixedWeightBounds<BaseXcmWeight, Call>;
     type LocationInverter = LocationInverter<Ancestry>;
 }
 
@@ -718,7 +732,7 @@ impl parachain_info::Config for Runtime {}
 
 parameter_types! {
     pub const RelayLocation: MultiLocation = MultiLocation::parent();
-    pub const RelayNetwork: NetworkId = NetworkId::Kusama;
+    pub RelayNetwork: NetworkId = NetworkId::Named("westend".into());
     pub VanillaNetwork: NetworkId = NetworkId::Named("vanilla".into());
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation =  MultiLocation::new(0, X1(Parachain(ParachainInfo::parachain_id().into())));
@@ -774,15 +788,7 @@ pub type XcmOriginToTransactDispatchOrigin = (
 );
 
 parameter_types! {
-    pub UnitWeightCost: Weight = 20_000_000;
     pub KsmPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), ksm_per_second());
-}
-
-parameter_types! {
-    // 1_000_000_000_000 => 1 unit of asset for 1 unit of Weight.
-    // TODO Should take the actual weight price. This is just 1_000 KSM per second of weight.
-    pub const WeightPrice: (MultiLocation, u128) = (MultiLocation::parent(), 1_000);
-    // pub AllowUnpaidFrom: Vec<MultiLocation> = vec![ MultiLocation::parent() ];
 }
 
 pub type Barrier = (TakeWeightCredit, AllowTopLevelPaidExecutionFrom<Everything>);
@@ -814,7 +820,7 @@ impl Config for XcmConfig {
     type IsTeleporter = ();
     type LocationInverter = LocationInverter<Ancestry>;
     type Barrier = Barrier;
-    type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+    type Weigher = FixedWeightBounds<BaseXcmWeight, Call>;
     type Trader = FixedRateOfFungible<KsmPerSecond, ToTreasury>;
     type ResponseHandler = (); // Don't handle responses for now.
     type SubscriptionService = PolkadotXcm;

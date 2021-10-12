@@ -56,7 +56,7 @@ bench-amm-router:
 .PHONY: lint
 lint:
 	SKIP_WASM_BUILD= cargo fmt --all -- --check
-	SKIP_WASM_BUILD= cargo clippy --workspace --features runtime-benchmarks --exclude parallel -- -A clippy::unnecessary_cast -A clippy::unnecessary_mut_passed -A clippy::too_many_arguments -A clippy::type_complexity -A clippy::identity_op -D warnings
+	SKIP_WASM_BUILD= cargo clippy --workspace --features runtime-benchmarks --exclude parallel -- -A dead_code -A clippy::derivable_impls -A clippy::unnecessary_cast -A clippy::unnecessary_mut_passed -A clippy::too_many_arguments -A clippy::type_complexity -A clippy::identity_op -D warnings
 
 .PHONY: fix
 fix:
@@ -81,7 +81,6 @@ shutdown:
 launch: shutdown
 	docker image pull parallelfinance/polkadot:v0.9.10
 	docker image pull parallelfinance/parallel-dapp:latest
-	docker image pull parallelfinance/stake-client:latest
 	parachain-launch generate $(LAUNCH_CONFIG) && (cp -r keystore* output || true) && cp docker-compose.override.yml output && docker-compose -f output/docker-compose.yml -f output/docker-compose.override.yml up -d --build
 	cd launch && yarn start
 

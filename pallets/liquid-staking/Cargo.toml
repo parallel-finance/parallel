@@ -17,6 +17,8 @@ sp-runtime    = { git = 'https://github.com/paritytech/substrate.git', branch = 
 sp-std        = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.10', default-features = false }
 xcm           = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.10', default-features = false }
 
+cumulus-primitives-core = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.10', default-features = false }
+
 # parallel pallets
 primitives = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 
@@ -51,9 +53,7 @@ orml-xcm-support = { git = 'https://github.com/open-web3-stack/open-runtime-modu
 orml-xtokens     = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
 
 [features]
-default     = ['std', 'westend']
-kusama      = []
-polkadot    = []
+default     = ['std']
 std         = [
   'codec/std',
   'frame-support/std',
@@ -64,6 +64,6 @@ std         = [
   'primitives/std',
   'xcm/std',
   'pallet-assets/std',
+  'cumulus-primitives-core/std',
 ]
 try-runtime = ['frame-support/try-runtime']
-westend     = []

@@ -17,7 +17,9 @@ use primitives::{
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
-    traits::{AccountIdConversion, AccountIdLookup, BlakeTwo256, Convert, One},
+    traits::{
+        AccountIdConversion, AccountIdLookup, BlakeTwo256, BlockNumberProvider, Convert, One,
+    },
     AccountId32,
     MultiAddress::Id,
 };
@@ -57,7 +59,7 @@ impl parachain_info::Config for Test {}
 
 parameter_types! {
     pub DotLocation: MultiLocation = MultiLocation::parent();
-    pub const RelayNetwork: NetworkId = NetworkId::Kusama;
+    pub RelayNetwork: NetworkId = NetworkId::Named("westend".into());
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 }
@@ -285,15 +287,15 @@ impl SortedMembers<AccountId> for BobOrigin {
     }
 }
 
-pub type BridgeOrigin = EnsureSignedBy<AliceOrigin, AccountId>;
+pub type RelayOrigin = EnsureSignedBy<AliceOrigin, AccountId>;
 pub type UpdateOrigin = EnsureSignedBy<BobOrigin, AccountId>;
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub RelayAgent: AccountId = para_a_account();
     pub const DerivativeIndex: u16 = 0;
     pub const PeriodBasis: BlockNumber = 5u64;
     pub const UnstakeQueueCapacity: u32 = 1000;
+    pub SelfParaId: ParaId = para_a_id();
 }
 
 impl pallet_utility::Config for Test {
@@ -310,21 +312,45 @@ impl DerivativeProvider<AccountId> for DerivativeProviderT {
     }
 }
 
+pub struct RelaychainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
+
+impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
+    for RelaychainBlockNumberProvider<T>
+{
+    type BlockNumber = BlockNumber;
+
+    fn current_block_number() -> Self::BlockNumber {
+        cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
+            .map(|d| d.relay_parent_number)
+            .unwrap_or_default()
+            .into()
+    }
+}
+
+parameter_types! {
+    pub const MaxRewardsPerEra: Balance = 100;
+    pub const MaxSlashesPerEra: Balance = 1;
+}
+
 impl crate::Config for Test {
     type Event = Event;
     type PalletId = StakingPalletId;
-    type BridgeOrigin = BridgeOrigin;
     type BaseXcmWeight = BaseXcmWeight;
     type XcmTransfer = XTokens;
-    type RelayAgent = RelayAgent;
+    type SelfParaId = SelfParaId;
     type PeriodBasis = PeriodBasis;
     type WeightInfo = ();
     type XcmSender = XcmRouter;
     type DerivativeIndex = DerivativeIndex;
     type DerivativeProvider = DerivativeProviderT;
     type Assets = Assets;
+    type RelayOrigin = RelayOrigin;
     type UpdateOrigin = UpdateOrigin;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;
+    type RelaychainBlockNumberProvider = RelaychainBlockNumberProvider<Test>;
+    type MaxRewardsPerEra = MaxRewardsPerEra;
+    type MaxSlashesPerEra = MaxSlashesPerEra;
+    type RelayNetwork = RelayNetwork;
 }
 
 parameter_types! {
@@ -440,8 +466,8 @@ pub type RelaySystem = frame_system::Pallet<WestendRuntime>;
 pub type RelayEvent = westend_runtime::Event;
 pub type ParaSystem = frame_system::Pallet<Test>;
 
-pub fn para_a_account() -> AccountId {
-    ParaId::from(1).into_account()
+pub fn para_a_id() -> ParaId {
+    ParaId::from(1)
 }
 
 pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
@@ -490,7 +516,7 @@ pub fn relay_ext() -> sp_io::TestExternalities {
     pallet_balances::GenesisConfig::<Runtime> {
         balances: vec![
             (ALICE, 100 * DOT_DECIMAL),
-            (para_a_account(), 1_000_000 * DOT_DECIMAL),
+            (para_a_id().into_account(), 1_000_000 * DOT_DECIMAL),
         ],
     }
     .assimilate_storage(&mut t)

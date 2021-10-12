@@ -16,18 +16,5 @@ services:
     command: --relay-ws ws://relaychain-alice:9944 --para-ws ws://parachain-2085-0:9944 --tick 120000
     restart: always
 
-  redis:
-    image: redis
-    volumes:
-      - redis:/data
-    restart: always
-
-  stake-client:
-    image: parallelfinance/stake-client:latest
-    command: --relay-ws=ws://relaychain-alice:9944 --para-ws=ws://parachain-2085-0:9944 --redis-host redis --redis-port 6379
-    depends_on:
-      - "redis"
-    restart: always
-
 volumes:
   redis:
