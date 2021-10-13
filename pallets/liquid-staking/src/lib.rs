@@ -291,12 +291,10 @@ pub mod pallet {
 
     /// Liquid currency asset id
     #[pallet::storage]
-    #[pallet::getter(fn liquid_currency)]
     pub type LiquidCurrency<T: Config> = StorageValue<_, AssetIdOf<T>, OptionQuery>;
 
     /// Staking currency asset id
     #[pallet::storage]
-    #[pallet::getter(fn staking_currency)]
     pub type StakingCurrency<T: Config> = StorageValue<_, AssetIdOf<T>, OptionQuery>;
 
     /// Transaction compensation
@@ -348,7 +346,7 @@ pub mod pallet {
             // TODO should use T::WeightInfo::on_idle instead
             // on_idle shouldn't run out of all remaining_weight normally
             let base_weight = T::WeightInfo::pop_queue();
-            if Self::staking_currency().is_none() {
+            if Self::staking_currency().is_err() {
                 return remaining_weight;
             }
             loop {
@@ -441,13 +439,14 @@ pub mod pallet {
                 .and_then(|r| r.checked_mul_int(amount))
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
 
-            let staking_currency =
-                Self::staking_currency().ok_or(Error::<T>::StakingCurrencyNotSet)?;
-            let liquid_currency =
-                Self::liquid_currency().ok_or(Error::<T>::LiquidCurrencyNotSet)?;
-
-            T::Assets::transfer(staking_currency, &who, &Self::account_id(), amount, false)?;
-            T::Assets::mint_into(liquid_currency, &who, liquid_amount)?;
+            T::Assets::transfer(
+                Self::staking_currency()?,
+                &who,
+                &Self::account_id(),
+                amount,
+                false,
+            )?;
+            T::Assets::mint_into(Self::liquid_currency()?, &who, liquid_amount)?;
 
             StakingPool::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
@@ -484,13 +483,8 @@ pub mod pallet {
                 .checked_mul_int(liquid_amount)
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
 
-            let staking_currency =
-                Self::staking_currency().ok_or(Error::<T>::StakingCurrencyNotSet)?;
-            let liquid_currency =
-                Self::liquid_currency().ok_or(Error::<T>::LiquidCurrencyNotSet)?;
-
             let res = T::Assets::transfer(
-                staking_currency,
+                Self::staking_currency()?,
                 &Self::account_id(),
                 &who,
                 asset_amount,
@@ -500,7 +494,7 @@ pub mod pallet {
                 Self::push_unstake_task(&who, asset_amount)?;
             }
 
-            T::Assets::burn_from(liquid_currency, &who, liquid_amount)?;
+            T::Assets::burn_from(Self::liquid_currency()?, &who, liquid_amount)?;
             StakingPool::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b
                     .checked_sub(&asset_amount)
@@ -579,14 +573,12 @@ pub mod pallet {
                     id: Self::para_account_id().into(),
                 }),
             );
-            let staking_currency =
-                Self::staking_currency().ok_or(Error::<T>::StakingCurrencyNotSet)?;
             let base_weight = T::BaseXcmWeight::get();
 
             if !Self::transaction_compensation().is_zero() {
                 T::XcmTransfer::transfer(
                     Self::account_id(),
-                    staking_currency,
+                    Self::staking_currency()?,
                     Self::transaction_compensation(),
                     beneficiary.clone(),
                     base_weight,
@@ -596,7 +588,7 @@ pub mod pallet {
             if !bond_amount.is_zero() {
                 T::XcmTransfer::transfer(
                     Self::account_id(),
-                    staking_currency,
+                    Self::staking_currency()?,
                     bond_amount,
                     beneficiary,
                     base_weight,
@@ -807,6 +799,14 @@ pub mod pallet {
             T::SelfParaId::get().into_account()
         }
 
+        pub fn staking_currency() -> Result<AssetIdOf<T>, DispatchError> {
+            StakingCurrency::<T>::get().ok_or(Error::<T>::StakingCurrencyNotSet.into())
+        }
+
+        pub fn liquid_currency() -> Result<AssetIdOf<T>, DispatchError> {
+            LiquidCurrency::<T>::get().ok_or(Error::<T>::LiquidCurrencyNotSet.into())
+        }
+
         /// Derivative parachain account
         pub fn derivative_para_account_id() -> T::AccountId {
             T::DerivativeProvider::derivative_account_id(
@@ -844,13 +844,10 @@ pub mod pallet {
                 }
             }?;
 
-            let liquid_currency =
-                Self::liquid_currency().ok_or(Error::<T>::LiquidCurrencyNotSet)?;
-
             // Update exchange rate.
             let exchange_rate = Rate::checked_from_rational(
                 StakingPool::<T>::get(),
-                T::Assets::total_issuance(liquid_currency),
+                T::Assets::total_issuance(Self::liquid_currency()?),
             )
             .ok_or(Error::<T>::InvalidExchangeRate)?;
             ExchangeRate::<T>::put(exchange_rate);
@@ -1157,10 +1154,10 @@ impl<T: Config> ExchangeRateProvider for Pallet<T> {
 
 impl<T: Config> LiquidStakingCurrenciesProvider<AssetIdOf<T>> for Pallet<T> {
     fn get_staking_currency() -> Option<AssetIdOf<T>> {
-        Self::staking_currency()
+        StakingCurrency::<T>::get()
     }
 
     fn get_liquid_currency() -> Option<AssetIdOf<T>> {
-        Self::liquid_currency()
+        LiquidCurrency::<T>::get()
     }
 }
