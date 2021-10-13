@@ -54,7 +54,6 @@ pub struct Vault<ParaId, CurrencyId, Balance> {
     pub contributed: Balance,
 }
 
-
 #[allow(clippy::upper_case_acronyms)] // for XCM
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Clone, Copy, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
@@ -65,7 +64,6 @@ pub enum ContributionStrategy<ParaId, CurrencyId, Balance> {
 }
 
 pub trait ContributionStrategyExecutor<ParaId, CurrencyId, Balance> {
-
     /// A test function
     fn hello_world(self);
 
@@ -84,7 +82,6 @@ pub trait ContributionStrategyExecutor<ParaId, CurrencyId, Balance> {
 impl ContributionStrategyExecutor<ParaId, CurrencyId, Balance>
     for ContributionStrategy<ParaId, CurrencyId, Balance>
 {
-
     fn hello_world(self) {
         println!("Hello World!");
     }
