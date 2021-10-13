@@ -197,6 +197,8 @@ pub mod pallet {
         NominateCallSent(Vec<T::AccountId>),
         /// Send staking.payout_stakers call to relaychain
         PayoutStakersCallSent(T::AccountId, u32),
+        /// Teleport fee was set to new value
+        TransactionCompensationUpdated(BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -296,6 +298,11 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn staking_currency)]
     pub type StakingCurrency<T: Config> = StorageValue<_, AssetIdOf<T>, OptionQuery>;
+
+    /// Transaction compensation
+    #[pallet::storage]
+    #[pallet::getter(fn transaction_compensation)]
+    pub type TransactionCompensation<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig {
@@ -536,6 +543,18 @@ pub mod pallet {
             Ok(().into())
         }
 
+        #[pallet::weight(<T as Config>::WeightInfo::force_update_transaction_compensation())]
+        #[transactional]
+        pub fn force_update_transaction_compensation(
+            origin: OriginFor<T>,
+            fee: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            T::RelayOrigin::ensure_origin(origin)?;
+            TransactionCompensation::<T>::mutate(|v| *v = fee);
+            Self::deposit_event(Event::<T>::TransactionCompensationUpdated(fee));
+            Ok(().into())
+        }
+
         /// Do settlement for matching pool.
         ///
         /// Calculate the imbalance of current state and send corresponding operations to
@@ -553,18 +572,28 @@ pub mod pallet {
             let (bond_amount, rebond_amount, unbond_amount) =
                 MatchingPool::<T>::take().matching(unbonding_amount);
 
-            if !bond_amount.is_zero() {
-                let beneficiary = MultiLocation::new(
-                    1,
-                    X1(AccountId32 {
-                        network: NetworkId::Any,
-                        id: Self::para_account_id().into(),
-                    }),
-                );
-                let staking_currency =
-                    Self::staking_currency().ok_or(Error::<T>::StakingCurrencyNotSet)?;
-                let base_weight = T::BaseXcmWeight::get();
+            let beneficiary = MultiLocation::new(
+                1,
+                X1(AccountId32 {
+                    network: NetworkId::Any,
+                    id: Self::para_account_id().into(),
+                }),
+            );
+            let staking_currency =
+                Self::staking_currency().ok_or(Error::<T>::StakingCurrencyNotSet)?;
+            let base_weight = T::BaseXcmWeight::get();
 
+            if !Self::transaction_compensation().is_zero() {
+                T::XcmTransfer::transfer(
+                    Self::account_id(),
+                    staking_currency,
+                    Self::transaction_compensation(),
+                    beneficiary.clone(),
+                    base_weight,
+                )?;
+            }
+
+            if !bond_amount.is_zero() {
                 T::XcmTransfer::transfer(
                     Self::account_id(),
                     staking_currency,
