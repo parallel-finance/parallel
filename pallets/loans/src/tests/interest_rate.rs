@@ -1,10 +1,10 @@
+use crate::tests::TimestampPallet;
 use crate::{
     mock::{new_test_ext, Loans, Origin, Test, ALICE, DOT},
     tests::{dollar, million_dollar, run_to_block, Assets},
     InterestRateModel, Markets,
 };
-use frame_support::assert_ok;
-
+use frame_support::{assert_ok, traits::Hooks};
 use primitives::{Rate, Ratio, SECONDS_PER_YEAR};
 use sp_runtime::{
     traits::{CheckedDiv, One, Saturating, Zero},
@@ -72,20 +72,19 @@ fn interest_rate_model_works() {
         let mut total_borrows = borrow_snapshot.principal;
         let mut total_reserves: u128 = 0;
 
-        // Finalized block from 1 to 50
-        run_to_block(1);
-        for i in 2..50 {
-            run_to_block(i);
+        // Interest accrued from blocks 1 to 49
+        for _i in 1..49 {
+            let delta_time = 6;
+            assert_ok!(Loans::accrue_interest(delta_time));
             // utilizationRatio = totalBorrows / (totalCash + totalBorrows)
             let util_ratio = Ratio::from_rational(total_borrows, total_cash + total_borrows);
             assert_eq!(Loans::utilization_ratio(DOT), util_ratio);
 
-            let delta_time = 6;
             let borrow_rate =
                 (jump_rate - base_rate) * util_ratio.into() / jump_utilization.into() + base_rate;
             let interest_accumulated: u128 = borrow_rate
                 .saturating_mul_int(total_borrows)
-                .saturating_mul(delta_time)
+                .saturating_mul(delta_time.into())
                 .checked_div(SECONDS_PER_YEAR.into())
                 .unwrap();
             total_borrows = interest_accumulated + total_borrows;
@@ -104,7 +103,7 @@ fn interest_rate_model_works() {
             );
             let numerator = borrow_index
                 .saturating_mul(borrow_rate)
-                .saturating_mul(delta_time.into())
+                .saturating_mul(Rate::saturating_from_integer(delta_time))
                 .checked_div(&Rate::saturating_from_integer(SECONDS_PER_YEAR))
                 .unwrap();
             borrow_index = numerator + borrow_index;
@@ -134,15 +133,63 @@ fn interest_rate_model_works() {
 }
 
 #[test]
-fn with_transaction_commit_works() {
+fn on_initialize_works() {
     new_test_ext().execute_with(|| {
-        Assets::mint(
+        Assets::mint(Origin::signed(ALICE), DOT, ALICE, million_dollar(1000)).unwrap();
+        // Deposit 200 DOT and borrow 100 DOT
+        assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, million_dollar(200)));
+        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
+        assert_ok!(Loans::borrow(
             Origin::signed(ALICE),
             DOT,
-            ALICE,
-            million_dollar(1000) - dollar(1000),
-        )
-        .unwrap();
+            million_dollar(100)
+        ));
+
+        // let total_cash = million_dollar(200) - million_dollar(100);
+        let total_supply =
+            Loans::calc_collateral_amount(million_dollar(200), Loans::exchange_rate(DOT)).unwrap();
+        assert_eq!(Loans::total_supply(DOT), total_supply);
+
+        let borrow_snapshot = Loans::account_borrows(DOT, ALICE);
+        assert_eq!(borrow_snapshot.principal, million_dollar(100));
+        assert_eq!(borrow_snapshot.borrow_index, Rate::one());
+
+        // block 1, check the initialize value
+        assert_eq!(Loans::utilization_ratio(DOT), Ratio::from_percent(0));
+        assert_eq!(Loans::total_borrows(DOT), million_dollar(100));
+        assert_eq!(Loans::total_reserves(DOT), 0);
+        assert_eq!(Loans::exchange_rate(DOT).into_inner(), 20000000000000000);
+        assert_eq!(Loans::borrow_index(DOT), Rate::one());
+
+        // block 10, 60s < MIN_INTEREST_CALCULATING_INTERVAL, won't accrue interest
+        run_to_block(10);
+        assert_eq!(Loans::utilization_ratio(DOT), Ratio::from_percent(0));
+        assert_eq!(Loans::total_borrows(DOT), million_dollar(100));
+        assert_eq!(Loans::total_reserves(DOT), 0);
+        assert_eq!(Loans::exchange_rate(DOT).into_inner(), 20000000000000000);
+        assert_eq!(Loans::borrow_index(DOT), Rate::one());
+
+        // block 20, 120s > MIN_INTEREST_CALCULATING_INTERVAL, should accrue interest
+        run_to_block(20);
+        assert_eq!(Loans::utilization_ratio(DOT), Ratio::from_percent(50));
+        assert_eq!(Loans::total_borrows(DOT), 100000022640791476407);
+        assert_eq!(Loans::total_reserves(DOT), 3396118721461);
+        assert_eq!(Loans::exchange_rate(DOT).into_inner(), 20000001924467275);
+        assert_eq!(
+            Loans::borrow_index(DOT),
+            Rate::from_inner(1000000226407914764)
+        );
+
+        // block 21, 432000 + 6 * 2 > MAX_INTEREST_CALCULATING_INTERVAL, won't accrue interest
+        TimestampPallet::set_timestamp((432000 + 6 * 21) * 1000);
+        assert_eq!(Loans::on_initialize(21), 0);
+    })
+}
+
+#[test]
+fn with_transaction_commit_works() {
+    new_test_ext().execute_with(|| {
+        Assets::mint(Origin::signed(ALICE), DOT, ALICE, million_dollar(1000)).unwrap();
         // Deposit 200 DOT and borrow 100 DOT
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, million_dollar(200)));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
@@ -168,16 +215,16 @@ fn with_transaction_commit_works() {
         assert_eq!(Loans::exchange_rate(DOT).into_inner(), 20000000000000000);
         assert_eq!(Loans::borrow_index(DOT), Rate::one());
 
-        run_to_block(2);
+        run_to_block(20);
 
-        // block 2
+        // block 20
         assert_eq!(Loans::utilization_ratio(DOT), Ratio::from_percent(50));
-        assert_eq!(Loans::total_borrows(DOT), 100000001331811263318);
-        assert_eq!(Loans::total_reserves(DOT), 199771689497);
-        assert_eq!(Loans::exchange_rate(DOT).into_inner(), 20000000113203957);
+        assert_eq!(Loans::total_borrows(DOT), 100000022640791476407);
+        assert_eq!(Loans::total_reserves(DOT), 3396118721461);
+        assert_eq!(Loans::exchange_rate(DOT).into_inner(), 20000001924467275);
         assert_eq!(
             Loans::borrow_index(DOT),
-            Rate::from_inner(1000000013318112633)
+            Rate::from_inner(1000000226407914764)
         );
     })
 }
@@ -185,13 +232,7 @@ fn with_transaction_commit_works() {
 #[test]
 fn with_transaction_rollback_works() {
     new_test_ext().execute_with(|| {
-        Assets::mint(
-            Origin::signed(ALICE),
-            DOT,
-            ALICE,
-            million_dollar(1000) - dollar(1000),
-        )
-        .unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, ALICE, million_dollar(1000)).unwrap();
         // Deposit 200 DOT and borrow 100 DOT
         assert_ok!(Loans::mint(Origin::signed(ALICE), DOT, million_dollar(200)));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), DOT, true));
@@ -229,9 +270,9 @@ fn with_transaction_rollback_works() {
             market.rate_model = error_model;
         })
         .unwrap();
-        run_to_block(3);
+        run_to_block(20);
 
-        // block 3
+        // block 20
         // No storage has been changed
         assert_eq!(Loans::utilization_ratio(DOT), Ratio::from_percent(0));
         assert_eq!(Loans::total_borrows(DOT), million_dollar(100));
