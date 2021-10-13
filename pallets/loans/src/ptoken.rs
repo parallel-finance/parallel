@@ -122,8 +122,7 @@ where
             return Ok(());
         }
 
-        // Intput: ptokens = price * amount * exchange_rate
-        // Formula: effects_value = ptokens * collateral_factor / exchange_rate
+        // Formula: effect_value = ptokens_amount * exchange rate * price
         let effects_value = Self::get_price(asset)?
             .checked_mul(&FixedU128::from_inner(
                 Self::market(asset)?.collateral_factor.mul_ceil(
