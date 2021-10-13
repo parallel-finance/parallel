@@ -198,7 +198,7 @@ pub mod pallet {
         /// Send staking.payout_stakers call to relaychain
         PayoutStakersCallSent(T::AccountId, u32),
         /// Teleport fee was set to new value
-        TeleportFeeUpdated(BalanceOf<T>),
+        TransactionCompensationUpdated(BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -551,7 +551,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
             TransactionCompensation::<T>::mutate(|v| *v = fee);
-            Self::deposit_event(Event::<T>::TeleportFeeUpdated(fee));
+            Self::deposit_event(Event::<T>::TransactionCompensationUpdated(fee));
             Ok(().into())
         }
 
