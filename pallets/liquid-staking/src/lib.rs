@@ -77,7 +77,7 @@ pub mod pallet {
             AccountIdConversion, AtLeast32BitUnsigned, BlockNumberProvider, CheckedAdd, CheckedSub,
             StaticLookup, Zero,
         },
-        ArithmeticError, FixedPointNumber, FixedPointOperand,
+        ArithmeticError, FixedPointNumber, FixedPointOperand, PerThing,
     };
     use sp_std::vec;
     use sp_std::{boxed::Box, vec::Vec};
@@ -371,7 +371,7 @@ pub mod pallet {
                 return remaining_weight;
             }
 
-            let staking_currency = staking_currency.unwrap();
+            let staking_currency = Self::staking_currency().unwrap();
 
             loop {
                 // Check weight is enough
@@ -457,11 +457,6 @@ pub mod pallet {
                 amount > T::MinStakeAmount::get(),
                 Error::<T>::StakeAmountTooSmall
             );
-            let exchange_rate = ExchangeRate::<T>::get();
-            let liquid_amount = exchange_rate
-                .reciprocal()
-                .and_then(|r| r.checked_mul_int(new_amount))
-                .ok_or(Error::<T>::InvalidExchangeRate)?;
 
             T::Assets::transfer(
                 Self::staking_currency()?,
@@ -470,29 +465,37 @@ pub mod pallet {
                 amount,
                 false,
             )?;
-            T::Assets::mint_into(Self::liquid_currency()?, &who, liquid_amount)?;
 
-            StakingPool::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b
-                    .checked_add(&new_amount)
-                    .ok_or(ArithmeticError::Overflow)?;
-                Ok(())
-            })?;
-
+            // Calculate staking fee
+            let fee = T::StakingFee::get().mul_floor(amount);
+            // TODO(Alan WANG): Enable it later
             // InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
             //     *b = b.checked_add(&fees).ok_or(ArithmeticError::Overflow)?;
             //     Ok(())
             // })?;
 
+            // Amount that we should mint to user
+            let amount = amount.checked_sub(&fee).ok_or(ArithmeticError::Underflow)?;
+            let liquid_amount = Self::exchange_rate()
+                .reciprocal()
+                .and_then(|r| r.checked_mul_int(amount))
+                .ok_or(Error::<T>::InvalidExchangeRate)?;
+            T::Assets::mint_into(Self::liquid_currency()?, &who, liquid_amount)?;
+
+            StakingPool::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
+                Ok(())
+            })?;
+
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
                 p.total_stake_amount = p
                     .total_stake_amount
-                    .checked_add(&new_amount)
+                    .checked_add(&amount)
                     .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
 
-            Self::deposit_event(Event::<T>::Staked(who, new_amount));
+            Self::deposit_event(Event::<T>::Staked(who, amount));
             Ok(().into())
         }
 
