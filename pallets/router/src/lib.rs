@@ -46,9 +46,11 @@ pub mod pallet {
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
     use primitives::AMM;
-    use sp_runtime::traits::One;
-    use sp_runtime::traits::{AtLeast32BitUnsigned, Zero};
-    use sp_runtime::FixedPointOperand;
+    use scale_info::TypeInfo;
+    use sp_runtime::{
+        traits::{AtLeast32BitUnsigned, One, Zero},
+        FixedPointOperand,
+    };
 
     pub type Route<T, I> = BoundedVec<
         (

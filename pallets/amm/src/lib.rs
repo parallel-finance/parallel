@@ -42,17 +42,15 @@ use frame_support::{
 use frame_system::{ensure_signed, pallet_prelude::OriginFor, RawOrigin};
 pub use pallet::*;
 use primitives::Rate;
+use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-use sp_runtime::traits::UniqueSaturatedInto;
-use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedSub, Saturating};
-use sp_runtime::FixedU128;
-use sp_runtime::SaturatedConversion;
 use sp_runtime::{
     traits::{
-        AccountIdConversion, AtLeast32BitUnsigned, IntegerSquareRoot, One, StaticLookup, Zero,
+        AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedDiv, CheckedSub,
+        IntegerSquareRoot, One, Saturating, StaticLookup, UniqueSaturatedInto, Zero,
     },
-    ArithmeticError, DispatchError, FixedPointOperand, Perbill,
+    ArithmeticError, DispatchError, FixedPointOperand, FixedU128, Perbill, SaturatedConversion,
 };
 pub use weights::WeightInfo;
 
@@ -139,7 +137,9 @@ pub mod pallet {
     #[pallet::pallet]
     pub struct Pallet<T, I = ()>(_);
 
-    #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
+    #[derive(
+        Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, TypeInfo,
+    )]
     #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
     pub struct PoolLiquidityAmount<CurrencyId, Balance> {
         pub base_amount: Balance,

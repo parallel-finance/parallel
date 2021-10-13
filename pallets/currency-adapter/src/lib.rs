@@ -25,14 +25,15 @@ pub use pallet::*;
 use frame_support::{
     dispatch::DispatchResult,
     traits::{
-        fungible::{Inspect, Mutate, Transfer},
         tokens::{
+            fungible::{Inspect, Mutate, Transfer},
             fungibles::{Inspect as Inspects, Mutate as Mutates, Transfer as Transfers},
             DepositConsequence, WithdrawConsequence,
         },
         Get,
     },
 };
+use scale_info::TypeInfo;
 use sp_runtime::DispatchError;
 
 type AssetIdOf<T> =
@@ -43,7 +44,6 @@ type BalanceOf<T> =
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use frame_support::traits::tokens::fungible;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -51,9 +51,9 @@ pub mod pallet {
             + Inspects<Self::AccountId>
             + Mutates<Self::AccountId>;
 
-        type Balances: fungible::Inspect<Self::AccountId, Balance = BalanceOf<Self>>
-            + fungible::Mutate<Self::AccountId, Balance = BalanceOf<Self>>
-            + fungible::Transfer<Self::AccountId, Balance = BalanceOf<Self>>;
+        type Balances: Inspect<Self::AccountId, Balance = BalanceOf<Self>>
+            + Mutate<Self::AccountId, Balance = BalanceOf<Self>>
+            + Transfer<Self::AccountId, Balance = BalanceOf<Self>>;
 
         #[pallet::constant]
         type GetNativeCurrencyId: Get<AssetIdOf<Self>>;

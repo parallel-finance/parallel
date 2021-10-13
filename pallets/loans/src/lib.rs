@@ -37,6 +37,7 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use primitives::{CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall, Timestamp};
+use scale_info::TypeInfo;
 use sp_runtime::{
     traits::{
         AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub,
@@ -147,7 +148,6 @@ pub mod pallet {
 
     #[pallet::event]
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
-    #[pallet::metadata(T::AccountId = "AccountId", AssetIdOf<T> = "CurrencyId", BalanceOf<T> = "Balance")]
     pub enum Event<T: Config> {
         /// Enable collateral for certain asset
         /// [sender, asset_id]
@@ -360,7 +360,7 @@ pub mod pallet {
     impl<T: Config> Pallet<T>
     where
         BalanceOf<T>: FixedPointOperand,
-        AssetIdOf<T>: AtLeast32BitUnsigned,
+        AssetIdOf<T>: AtLeast32BitUnsigned + TypeInfo,
     {
         /// Activates a market. Returns `Err` if the market currency does not exist.
         ///
@@ -780,7 +780,7 @@ pub mod pallet {
 impl<T: Config> Pallet<T>
 where
     BalanceOf<T>: FixedPointOperand,
-    AssetIdOf<T>: AtLeast32BitUnsigned,
+    AssetIdOf<T>: AtLeast32BitUnsigned + TypeInfo,
 {
     pub fn account_id() -> T::AccountId {
         T::PalletId::get().into_account()

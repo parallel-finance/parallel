@@ -26,13 +26,14 @@ use frame_support::{pallet_prelude::*, transactional};
 use frame_system::pallet_prelude::*;
 use orml_oracle::DataProviderExtended;
 use orml_traits::DataProvider;
-pub use pallet::*;
 use primitives::*;
 use sp_runtime::{
     traits::{CheckedDiv, CheckedMul},
     FixedU128,
 };
 use sp_std::vec::Vec;
+
+pub use pallet::*;
 
 #[cfg(test)]
 mod mock;

@@ -79,7 +79,7 @@ shutdown:
 
 .PHONY: launch
 launch: shutdown
-	docker image pull parallelfinance/polkadot:v0.9.10-1
+	docker image pull parallelfinance/polkadot:v0.9.11
 	docker image pull parallelfinance/parallel:latest
 	docker image pull parallelfinance/parallel-dapp:latest
 	parachain-launch generate $(LAUNCH_CONFIG) && (cp -r keystore* output || true) && cp docker-compose.override.yml output && cd output && docker-compose up -d --build
