@@ -163,9 +163,9 @@ pub mod pallet {
         #[pallet::constant]
         type MinUnstakeAmount: Get<BalanceOf<Self>>;
 
-        /// Xcm fees to be charged
+        /// Charged fee ratio while user staking.
         #[pallet::constant]
-        type XcmFees: Get<BalanceOf<Self>>;
+        type StakingFee: Get<Ratio>;
 
         /// Relay network
         #[pallet::constant]
@@ -388,14 +388,6 @@ pub mod pallet {
 
                 // Get the front of the queue.
                 let (who, amount) = &Self::unstake_queue()[0];
-                // let left_staking =
-                //     T::Assets::reducible_balance(staking_currency, &Self::account_id(), false)
-                //         .checked_sub(&Self::charged_xcm_fees())
-                //         .unwrap_or(Zero::zero());
-                //
-                // if left_staking < *amount {
-                //     break;
-                // }
 
                 if T::Assets::transfer(staking_currency, &Self::account_id(), who, *amount, false)
                     .is_err()
@@ -465,15 +457,9 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
 
             ensure!(
-                amount > T::MinStakeAmount::get().max(T::XcmFees::get()),
+                amount > T::MinStakeAmount::get(),
                 Error::<T>::StakeAmountTooSmall
             );
-
-            let fees = T::XcmFees::get();
-            let new_amount = amount
-                .checked_sub(&fees)
-                .ok_or(ArithmeticError::Underflow)?;
-
             let exchange_rate = ExchangeRate::<T>::get();
             let liquid_amount = exchange_rate
                 .reciprocal()
