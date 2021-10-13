@@ -81,17 +81,12 @@ fn transfer_ptokens_under_collateral_works() {
                 .saturating_mul_int(Loans::account_deposits(HKO, DAVE).voucher_balance),
             dollar(80)
         );
-        assert_ok!(Loans::redeem_allowed(
-            HKO,
-            &DAVE,
-            dollar(60) * 50,
-            &MARKET_MOCK
-        ));
         // DAVE Borrow 31 HKO should cause InsufficientLiquidity
         assert_noop!(
             Loans::borrow(Origin::signed(DAVE), HKO, dollar(31)),
             Error::<Test>::InsufficientLiquidity
         );
+        assert_ok!(Loans::borrow(Origin::signed(DAVE), HKO, dollar(30)));
 
         // ALICE Deposit HKO 20
         assert_eq!(

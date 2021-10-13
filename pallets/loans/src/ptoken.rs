@@ -14,19 +14,11 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use crate::*;
-
+use crate::{AssetIdOf, BalanceOf, *};
 use frame_support::traits::tokens::{
     fungibles::{Inspect as Inspects, Transfer as Transfers},
     DepositConsequence, WithdrawConsequence,
 };
-
-type AssetIdOf<T> =
-    <<T as Config>::Assets as Inspects<<T as frame_system::Config>::AccountId>>::AssetId;
-type BalanceOf<T> =
-    <<T as Config>::Assets as Inspects<<T as frame_system::Config>::AccountId>>::Balance;
-
-// use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedSub, Saturating};
 
 impl<T: Config> Inspects<T::AccountId> for Pallet<T> {
     type AssetId = AssetIdOf<T>;
@@ -130,15 +122,19 @@ where
             return Ok(());
         }
 
-        let (liquidity, _) = Self::get_account_liquidity(&source)?;
-        let effect_value = FixedU128::from_inner(
-            Self::exchange_rate(asset)
-                .checked_div_int(amount)
-                .ok_or(ArithmeticError::Underflow)?
-                .saturated_into(),
-        );
+        // Intput: ptokens = price * amount * exchange_rate
+        // Formula: effects_value = ptokens * collateral_factor / exchange_rate
+        let effects_value = Self::get_price(asset)?
+            .checked_mul(&FixedU128::from_inner(
+                Self::market(asset)?.collateral_factor.mul_ceil(
+                    Self::calc_underlying_amount(amount, Self::exchange_rate(asset))?
+                        .saturated_into(),
+                ),
+            ))
+            .ok_or(ArithmeticError::Overflow)?;
 
-        if effect_value > liquidity {
+        let (liquidity, _) = Self::get_account_liquidity(&source)?;
+        if effects_value > liquidity {
             return Err(Error::<T>::InsufficientLiquidity.into());
         }
 
