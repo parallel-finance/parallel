@@ -800,11 +800,11 @@ pub mod pallet {
         }
 
         pub fn staking_currency() -> Result<AssetIdOf<T>, DispatchError> {
-            StakingCurrency::<T>::get().ok_or(Error::<T>::StakingCurrencyNotSet.into())
+            StakingCurrency::<T>::get().ok_or_else(|| Error::<T>::StakingCurrencyNotSet.into())
         }
 
         pub fn liquid_currency() -> Result<AssetIdOf<T>, DispatchError> {
-            LiquidCurrency::<T>::get().ok_or(Error::<T>::LiquidCurrencyNotSet.into())
+            LiquidCurrency::<T>::get().ok_or_else(|| Error::<T>::LiquidCurrencyNotSet.into())
         }
 
         /// Derivative parachain account
