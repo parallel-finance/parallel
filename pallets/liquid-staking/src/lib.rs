@@ -155,6 +155,18 @@ pub mod pallet {
         #[pallet::constant]
         type MaxSlashesPerEra: Get<BalanceOf<Self>>;
 
+        /// Minimum stake amount
+        #[pallet::constant]
+        type MinStakeAmount: Get<BalanceOf<Self>>;
+
+        /// Minimum unstake amount
+        #[pallet::constant]
+        type MinUnstakeAmount: Get<BalanceOf<Self>>;
+
+        /// Xcm fees to be charged
+        #[pallet::constant]
+        type XcmFees: Get<BalanceOf<Self>>;
+
         /// Relay network
         #[pallet::constant]
         type RelayNetwork: Get<NetworkId>;
@@ -197,8 +209,8 @@ pub mod pallet {
         NominateCallSent(Vec<T::AccountId>),
         /// Send staking.payout_stakers call to relaychain
         PayoutStakersCallSent(T::AccountId, u32),
-        /// Teleport fee was set to new value
-        TeleportFeeUpdated(BalanceOf<T>),
+        /// Compensation for extrinsics in relaychain was set to new value
+        TransactionCompensationUpdated(BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -209,6 +221,10 @@ pub mod pallet {
         InvalidExchangeRate,
         /// Era has been pushed before.
         EraAlreadyPushed,
+        /// Stake amount is too small
+        StakeAmountTooSmall,
+        /// Unstake amount is too small
+        UnstakeAmountTooSmall,
         /// Operation wasn't submitted to relaychain or has been processed.
         OperationNotReady,
         /// Failed to send staking.bond call
@@ -246,6 +262,11 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn staking_pool)]
     pub type StakingPool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+    /// Total amount of charged assets to be used as xcm fees.
+    #[pallet::storage]
+    #[pallet::getter(fn charged_xcm_fees)]
+    pub type InsurancePool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     /// Unbonding amount and withdrawable block number on relaychain
     ///
@@ -348,9 +369,13 @@ pub mod pallet {
             // TODO should use T::WeightInfo::on_idle instead
             // on_idle shouldn't run out of all remaining_weight normally
             let base_weight = T::WeightInfo::pop_queue();
-            if Self::staking_currency().is_none() {
+            let staking_currency = Self::staking_currency();
+            if staking_currency.is_none() {
                 return remaining_weight;
             }
+
+            let staking_currency = staking_currency.unwrap();
+
             loop {
                 // Check weight is enough
                 if remaining_weight < base_weight {
@@ -363,15 +388,18 @@ pub mod pallet {
 
                 // Get the front of the queue.
                 let (who, amount) = &Self::unstake_queue()[0];
+                // let left_staking =
+                //     T::Assets::reducible_balance(staking_currency, &Self::account_id(), false)
+                //         .checked_sub(&Self::charged_xcm_fees())
+                //         .unwrap_or(Zero::zero());
+                //
+                // if left_staking < *amount {
+                //     break;
+                // }
 
-                let res = T::Assets::transfer(
-                    Self::staking_currency().unwrap(),
-                    &Self::account_id(),
-                    who,
-                    *amount,
-                    false,
-                );
-                if res.is_err() {
+                if T::Assets::transfer(staking_currency, &Self::account_id(), who, *amount, false)
+                    .is_err()
+                {
                     // break if we cannot afford this
                     break;
                 }
@@ -382,6 +410,7 @@ pub mod pallet {
                 // remove unstake request from queue
                 Self::pop_unstake_task()
             }
+
             remaining_weight
         }
 
@@ -435,10 +464,20 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
+            ensure!(
+                amount > T::MinStakeAmount::get().max(T::XcmFees::get()),
+                Error::<T>::StakeAmountTooSmall
+            );
+
+            let fees = T::XcmFees::get();
+            let new_amount = amount
+                .checked_sub(&fees)
+                .ok_or(ArithmeticError::Underflow)?;
+
             let exchange_rate = ExchangeRate::<T>::get();
             let liquid_amount = exchange_rate
                 .reciprocal()
-                .and_then(|r| r.checked_mul_int(amount))
+                .and_then(|r| r.checked_mul_int(new_amount))
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
 
             let staking_currency =
@@ -450,19 +489,26 @@ pub mod pallet {
             T::Assets::mint_into(liquid_currency, &who, liquid_amount)?;
 
             StakingPool::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
-                Ok(())
-            })?;
-
-            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                p.total_stake_amount = p
-                    .total_stake_amount
-                    .checked_add(&amount)
+                *b = b
+                    .checked_add(&new_amount)
                     .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
 
-            Self::deposit_event(Event::<T>::Staked(who, amount));
+            // InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
+            //     *b = b.checked_add(&fees).ok_or(ArithmeticError::Overflow)?;
+            //     Ok(())
+            // })?;
+
+            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                p.total_stake_amount = p
+                    .total_stake_amount
+                    .checked_add(&new_amount)
+                    .ok_or(ArithmeticError::Overflow)?;
+                Ok(())
+            })?;
+
+            Self::deposit_event(Event::<T>::Staked(who, new_amount));
             Ok(().into())
         }
 
@@ -478,6 +524,11 @@ pub mod pallet {
             #[pallet::compact] liquid_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+
+            ensure!(
+                liquid_amount > T::MinUnstakeAmount::get(),
+                Error::<T>::UnstakeAmountTooSmall
+            );
 
             let exchange_rate = ExchangeRate::<T>::get();
             let asset_amount = exchange_rate
@@ -551,7 +602,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
             TransactionCompensation::<T>::mutate(|v| *v = fee);
-            Self::deposit_event(Event::<T>::TeleportFeeUpdated(fee));
+            Self::deposit_event(Event::<T>::TransactionCompensationUpdated(fee));
             Ok(().into())
         }
 

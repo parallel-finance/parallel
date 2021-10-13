@@ -330,6 +330,9 @@ impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
 parameter_types! {
     pub const MaxRewardsPerEra: Balance = 100;
     pub const MaxSlashesPerEra: Balance = 1;
+    pub const MinStakeAmount: Balance = 0;
+    pub const MinUnstakeAmount: Balance = 0;
+    pub const XcmFees: Balance = 0;
 }
 
 impl crate::Config for Test {
@@ -351,6 +354,9 @@ impl crate::Config for Test {
     type MaxRewardsPerEra = MaxRewardsPerEra;
     type MaxSlashesPerEra = MaxSlashesPerEra;
     type RelayNetwork = RelayNetwork;
+    type MinStakeAmount = MinStakeAmount;
+    type MinUnstakeAmount = MinUnstakeAmount;
+    type XcmFees = XcmFees;
 }
 
 parameter_types! {
