@@ -768,8 +768,8 @@ pub mod pallet {
         /// Transfer ptokens to receiver.
         ///
         /// - `receiver`: the receiver account.
-        /// - `asset_id`: the assets to be transfered.
-        /// - `amount`: the amount to be transfered.
+        /// - `asset_id`: the assets to be transferred.
+        /// - `amount`: the amount to be transferred.
         #[pallet::weight(T::WeightInfo::transfer_ptoken())]
         #[transactional]
         pub fn transfer_ptokens(

@@ -131,7 +131,14 @@ where
         }
 
         let (liquidity, _) = Self::get_account_liquidity(&source)?;
-        if FixedU128::from_inner(amount.saturated_into()) > liquidity {
+        let effect_value = FixedU128::from_inner(
+            Self::exchange_rate(asset)
+                .checked_div_int(amount)
+                .ok_or(ArithmeticError::Underflow)?
+                .saturated_into(),
+        );
+
+        if effect_value > liquidity {
             return Err(Error::<T>::InsufficientLiquidity.into());
         }
 
