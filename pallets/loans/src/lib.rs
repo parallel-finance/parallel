@@ -196,8 +196,8 @@ pub mod pallet {
 
     /// The timestamp of the last calculation of accrued interest
     #[pallet::storage]
-    #[pallet::getter(fn last_block_timestamp)]
-    pub type LastBlockTimestamp<T: Config> = StorageValue<_, Timestamp, ValueQuery>;
+    #[pallet::getter(fn last_accrued_timestamp)]
+    pub type LastAccruedTimestamp<T: Config> = StorageValue<_, Timestamp, ValueQuery>;
 
     /// Total number of collateral tokens in circulation
     /// CollateralType -> Balance
@@ -312,20 +312,20 @@ pub mod pallet {
         /// the interest will be restored, because we use delta time to calculate the
         /// interest.
         fn on_initialize(block_number: T::BlockNumber) -> frame_support::weights::Weight {
-            let last_block_timestamp = Self::last_block_timestamp();
+            let last_accrued_timestamp = Self::last_accrued_timestamp();
             let now = T::UnixTime::now().as_secs();
             // For the initialization
-            if last_block_timestamp.is_zero() {
-                LastBlockTimestamp::<T>::put(now);
+            if last_accrued_timestamp.is_zero() {
+                LastAccruedTimestamp::<T>::put(now);
             }
-            if now <= last_block_timestamp {
+            if now <= last_accrued_timestamp {
                 return 0;
             }
-            let delta_time = now - last_block_timestamp;
+            let delta_time = now - last_accrued_timestamp;
             if delta_time > MAX_INTEREST_CALCULATING_INTERVAL {
                 // This should never happen...
                 log::error!(
-                    "Could not initialize block! Exceed max interval {:#?}",
+                    "Could not initialize block! Exceeded max interval {:#?}",
                     block_number,
                 );
                 return 0;
@@ -336,7 +336,7 @@ pub mod pallet {
             with_transaction(|| {
                 match <Pallet<T>>::accrue_interest(delta_time) {
                     Ok(()) => {
-                        LastBlockTimestamp::<T>::put(now);
+                        LastAccruedTimestamp::<T>::put(now);
                         TransactionOutcome::Commit(
                             T::WeightInfo::accrue_interest()
                                 * Self::active_markets().count() as u64,
