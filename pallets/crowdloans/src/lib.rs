@@ -38,14 +38,14 @@ use sp_runtime::traits::AccountIdConversion;
 mod crowdloan_structs;
 use crowdloan_structs::{ContributionStrategy, ParaId, Vault, VaultPhase};
 
-use frame_system::{ensure_signed, RawOrigin};
 use frame_system::pallet_prelude::OriginFor;
+use frame_system::{ensure_signed, RawOrigin};
 
 pub use pallet::*;
 
 use sp_runtime::{
-    traits::{AtLeast32BitUnsigned, Zero, One, StaticLookup, UniqueSaturatedInto},
-    DispatchError, FixedPointOperand
+    traits::{AtLeast32BitUnsigned, One, StaticLookup, UniqueSaturatedInto, Zero},
+    DispatchError, FixedPointOperand,
 };
 
 pub type AssetIdOf<T, I = ()> =
@@ -53,19 +53,10 @@ pub type AssetIdOf<T, I = ()> =
 pub type BalanceOf<T, I = ()> =
     <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 
-
-// TODO: test a simple trait
-pub trait MyTrait {
-    fn hello(self, crowdloan: ParaId) -> ();
-}
-
-
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
     use frame_system::ensure_root;
-
-    
 
     #[pallet::config]
     pub trait Config<I: 'static = ()>:
@@ -77,11 +68,6 @@ pub mod pallet {
         /// Currency type for deposit/withdraw assets to/from crowdloan
         /// module
         type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
-
-
-        /// Specify all the AMMs we are routing between
-        // type ContributionStrategyExecutor: ContributionStrategyExecutor<ParaId, AssetIdOf<Self, I>, BalanceOf<Self, I>>;
-
 
         #[pallet::constant]
         type PalletId: Get<PalletId>;
@@ -155,9 +141,11 @@ pub mod pallet {
             currency: AssetIdOf<T, I>,
             crowdloan: ParaId,
             ctoken: AssetIdOf<T, I>,
-            // TODO
-            // contribution_strategy: ContributionStrategy<ParaId, AssetIdOf<T, I>, BalanceOf<T, I>>,
-            contribution_strategy: ContributionStrategy<ParaId, primitives::CurrencyId>,
+            contribution_strategy: ContributionStrategy<
+                ParaId,
+                primitives::CurrencyId,
+                primitives::Balance,
+            >,
         ) -> DispatchResult {
             // 1. EnsureOrigin
             ensure_root(origin)?;
@@ -177,7 +165,6 @@ pub mod pallet {
                 One::one(),
             )?;
 
-
             // 3. make sure no similar vault already exists as identified by crowdloan
             // add new vault to vaults storage
             Vaults::<T, I>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
@@ -187,14 +174,9 @@ pub mod pallet {
                 // 4. mutate our storage to register a new vault
                 // inialize new vault
                 *vault = Some(crowdloan_structs::Vault {
-                    ctoken: ctoken,
-                    currency: currency,
+                    ctoken,
+                    currency,
                     phase: VaultPhase::CollectingContributions,
-                    // contribution_strategy: ContributionStrategy::Placeholder(
-                    //     crowdloan,
-                    //     currency,
-                    //     Zero::zero(),
-                    // ),                    
                     contribution_strategy: ContributionStrategy::XCM,
                     contributed: Zero::zero(),
                 });
@@ -271,11 +253,9 @@ pub mod pallet {
                     // 3. Execute vault.contribution_strategy with parameters crowdloan,
                     // vault.currency and total_issuance(vault.ctoken) - vault.contributed
 
-                    todo!();
-                    // TODO: implement Executor trait correctly
-                    // 
-                    // vault_contents.contribution_strategy.hello(crowdloan);
-                    // .execute(crowdloan, Zero::zero(), Zero::zero());
+                    // TODO: trait is not implemented for enum
+                    // uncomment line below and run `cargo test -p pallet-crowdloans` for error
+                    // vault_contents.contribution_strategy.hello_world();
 
                     // 4. Set vault.contributed to total_issuance(vault.currency_shares)
                     vault_contents.contributed = vault_currency_issuance;
@@ -452,8 +432,6 @@ where
     pub fn vault(
         crowdloan: ParaId,
     ) -> Result<Vault<ParaId, AssetIdOf<T, I>, BalanceOf<T, I>>, DispatchError> {
-        // TODO
-    // ) -> Result<Vault<ParaId, AssetIdOf<T, I>, BalanceOf<T, I>>, DispatchError> {
         Vaults::<T, I>::try_get(crowdloan).map_err(|_err| Error::<T, I>::VaultDoesNotExist.into())
     }
 }

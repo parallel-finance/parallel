@@ -16,6 +16,7 @@
 
 use frame_support::pallet_prelude::DispatchResult;
 use primitives::{Balance, CurrencyId};
+use sp_std::marker::PhantomData;
 
 pub type ParaId = u32;
 
@@ -48,61 +49,59 @@ pub struct Vault<ParaId, CurrencyId, Balance> {
     /// Which phase the vault is at
     pub phase: VaultPhase,
     /// How we contribute coins to the crowdloan
-    pub contribution_strategy: ContributionStrategy<ParaId, CurrencyId>,
-    // pub contribution_strategy: ContributionStrategy<ParaId, CurrencyId, Balance>,
+    pub contribution_strategy: ContributionStrategy<ParaId, CurrencyId, Balance>,
     /// Tracks how many coins were contributed on the relay chain
     pub contributed: Balance,
 }
 
-// #[allow(clippy::upper_case_acronyms)] // for XCM
-// #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
-// #[derive(Clone, Copy, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
-// pub enum ContributionStrategy<ParaId, CurrencyId, Balance> {
-//     Placeholder(ParaId, CurrencyId, Balance),
-//     // --- Examples
-//     XCM,
-//     XCMWithProxy,
-// }
 
 #[allow(clippy::upper_case_acronyms)] // for XCM
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
 #[derive(Clone, Copy, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
-pub enum ContributionStrategy<ParaId, CurrencyId> {
-    Placeholder(ParaId, CurrencyId),
-    // --- Examples
+pub enum ContributionStrategy<ParaId, CurrencyId, Balance> {
     XCM,
     XCMWithProxy,
+    _Phantom(PhantomData<(ParaId, CurrencyId, Balance)>),
 }
 
-// pub trait ContributionStrategyExecutor<ParaId, CurrencyId, Balance> {
-//     /// Execute the strategy to contribute `amount` of coins to the crowdloan
-//     /// of the given parachain id
-//     fn execute(self, para_id: ParaId, currency: CurrencyId, amount: Balance) -> DispatchResult;
+pub trait ContributionStrategyExecutor<ParaId, CurrencyId, Balance> {
 
-//     /// Withdraw coins from the relay chain's crowdloans and send it back
-//     /// to our parachain
-//     fn withdraw(self, para_id: ParaId, currency: CurrencyId) -> DispatchResult;
+    /// A test function
+    fn hello_world(self);
 
-//     /// Ask for a refund of the coins on the relay chain
-//     fn refund(self, para_id: ParaId, currency: CurrencyId) -> DispatchResult;
-// }
+    /// Execute the strategy to contribute `amount` of coins to the crowdloan
+    /// of the given parachain id
+    fn execute(self, para_id: ParaId, currency: CurrencyId, amount: Balance) -> DispatchResult;
 
-// impl ContributionStrategyExecutor<ParaId, CurrencyId, Balance>
-//     for ContributionStrategy<ParaId, CurrencyId, Balance>
-// {
-//     // add code here
-//     fn execute(
-//         self,
-//         _: ParaId,
-//         _: CurrencyId,
-//         _: Balance,
-//     ) -> Result<(), sp_runtime::DispatchError> {
-//         todo!()
-//     }
-//     fn withdraw(self, _: ParaId, _: CurrencyId) -> Result<(), sp_runtime::DispatchError> {
-//         todo!()
-//     }
-//     fn refund(self, _: ParaId, _: CurrencyId) -> Result<(), sp_runtime::DispatchError> {
-//         todo!()
-//     }
-// }
+    /// Withdraw coins from the relay chain's crowdloans and send it back
+    /// to our parachain
+    fn withdraw(self, para_id: ParaId, currency: CurrencyId) -> DispatchResult;
+
+    /// Ask for a refund of the coins on the relay chain
+    fn refund(self, para_id: ParaId, currency: CurrencyId) -> DispatchResult;
+}
+
+impl ContributionStrategyExecutor<ParaId, CurrencyId, Balance>
+    for ContributionStrategy<ParaId, CurrencyId, Balance>
+{
+
+    fn hello_world(self) {
+        println!("Hello World!");
+    }
+
+    // add code here
+    fn execute(
+        self,
+        _: ParaId,
+        _: CurrencyId,
+        _: Balance,
+    ) -> Result<(), sp_runtime::DispatchError> {
+        todo!()
+    }
+    fn withdraw(self, _: ParaId, _: CurrencyId) -> Result<(), sp_runtime::DispatchError> {
+        todo!()
+    }
+    fn refund(self, _: ParaId, _: CurrencyId) -> Result<(), sp_runtime::DispatchError> {
+        todo!()
+    }
+}

@@ -10,8 +10,7 @@ fn create_new_vault_should_work() {
         let currency = tokens::DOT;
         let ctoken = 10;
 
-        let contribution_strategy =
-            ContributionStrategy::XCM;
+        let contribution_strategy = ContributionStrategy::XCM;
 
         assert_ok!(Crowdloan::create_vault(
             frame_system::RawOrigin::Root.into(), // origin
@@ -44,8 +43,7 @@ fn contribute_should_work() {
         let ctoken = 10;
         let amount = 1_000;
 
-        let contribution_strategy =
-            ContributionStrategy::XCM;
+        let contribution_strategy = ContributionStrategy::XCM;
 
         // create a vault to contribute to
         assert_ok!(Crowdloan::create_vault(
@@ -77,10 +75,7 @@ fn contribute_should_work() {
 
             // check pallet balance
             assert_eq!(pallet_balance, amount);
-
         }
-
-
     });
 }
 
@@ -91,8 +86,7 @@ fn participate_should_work() {
         let currency = tokens::DOT;
         let ctoken = 10;
 
-        let contribution_strategy =
-            ContributionStrategy::XCM;//XCM;
+        let contribution_strategy = ContributionStrategy::XCM; //XCM;
 
         // create a vault to contribute to
         assert_ok!(Crowdloan::create_vault(
@@ -109,15 +103,11 @@ fn participate_should_work() {
             crowdloan,                            // crowdloan
         ));
 
-
         // vault.contributed should equal total_issuance(vault.currency)
         if let Some(vault) = Crowdloan::vaults(crowdloan) {
             let currency_issuance = Assets::total_issuance(vault.currency);
             assert_eq!(vault.contributed, currency_issuance);
         }
-
-
-        assert_eq!(1+1,3);
     });
 }
 
@@ -128,8 +118,7 @@ fn close_should_work() {
         let currency = tokens::DOT;
         let ctoken = 10;
 
-        let contribution_strategy =
-            ContributionStrategy::XCM;
+        let contribution_strategy = ContributionStrategy::XCM;
 
         // create a vault to contribute to
         assert_ok!(Crowdloan::create_vault(
@@ -160,8 +149,7 @@ fn auction_failed_should_work() {
         let currency = tokens::DOT;
         let ctoken = 10;
 
-        let contribution_strategy =
-            ContributionStrategy::XCM;
+        let contribution_strategy = ContributionStrategy::XCM;
 
         // create a vault to contribute to
         assert_ok!(Crowdloan::create_vault(
@@ -199,8 +187,7 @@ fn claim_refund_should_work() {
         let ctoken = 10;
         let amount = 1_000;
 
-        let contribution_strategy =
-            ContributionStrategy::XCM;
+        let contribution_strategy = ContributionStrategy::XCM;
 
         // create a vault to contribute to
         assert_ok!(Crowdloan::create_vault(
@@ -251,8 +238,7 @@ fn slot_expired_should_work() {
         let currency = tokens::DOT;
         let ctoken = 10;
 
-        let contribution_strategy =
-            ContributionStrategy::XCM;
+        let contribution_strategy = ContributionStrategy::XCM;
 
         // create a vault to contribute to
         assert_ok!(Crowdloan::create_vault(
