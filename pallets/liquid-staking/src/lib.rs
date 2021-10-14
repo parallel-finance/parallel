@@ -165,7 +165,7 @@ pub mod pallet {
 
         /// Charged fee ratio while user staking.
         #[pallet::constant]
-        type StakingFee: Get<Ratio>;
+        type StakingFeeFactor: Get<Ratio>;
 
         /// Relay network
         #[pallet::constant]
@@ -470,7 +470,7 @@ pub mod pallet {
             )?;
 
             // Calculate staking fee
-            let fee = T::StakingFee::get().mul_floor(amount);
+            let fee = T::StakingFeeFactor::get().mul_floor(amount);
             // TODO(Alan WANG): Enable it later
             // InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
             //     *b = b.checked_add(&fees).ok_or(ArithmeticError::Overflow)?;
@@ -1061,6 +1061,38 @@ pub mod pallet {
                                     )),
                                 },
                             ))),
+                            RelaychainCall::XcmPallet(
+                                XcmPalletCall::XcmPalletReserveTransferAssetsCall(
+                                    XcmPalletReserveTransferAssetsCall {
+                                        dest: Box::new(
+                                            MultiLocation::new(
+                                                0,
+                                                X1(Parachain(T::SelfParaId::get().into())),
+                                            )
+                                            .into(),
+                                        ),
+                                        beneficiary: Box::new(
+                                            MultiLocation::new(
+                                                0,
+                                                X1(AccountId32 {
+                                                    network: NetworkId::Any,
+                                                    id: Self::account_id().into(),
+                                                }),
+                                            )
+                                            .into(),
+                                        ),
+                                        assets: Box::new(
+                                            MultiAssets::from(vec![MultiAsset {
+                                                id: AssetId::Concrete(MultiLocation::new(0, Here)),
+                                                fun: Fungibility::Fungible(amount),
+                                            }])
+                                            .into(),
+                                        ),
+                                        fee_asset_item: 0,
+                                        dest_weight: 1_000_000_000,
+                                    },
+                                ),
+                            ),
                         ],
                     })));
 
