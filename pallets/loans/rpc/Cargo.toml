@@ -5,10 +5,10 @@ name    = 'pallet-loans-rpc'
 version = '3.0.0'
 
 [dependencies]
-codec               = { package = 'parity-scale-codec', version = '2.2.0' }
-jsonrpc-core        = '15.0.0'
-jsonrpc-core-client = '15.0.0'
-jsonrpc-derive      = '15.0.0'
+codec               = { package = 'parity-scale-codec', version = '2.3.1' }
+jsonrpc-core        = '18.0.0'
+jsonrpc-core-client = '18.0.0'
+jsonrpc-derive      = '18.0.0'
 primitives          = { package = 'parallel-primitives', path = '../../../primitives', default-features = false }
 serde               = { version = '1.0.124', features = ['derive'] }
 sp-api              = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.11' }
