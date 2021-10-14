@@ -17,8 +17,8 @@
 use super::*;
 use crate as pallet_route;
 
-use frame_support::{construct_runtime, parameter_types, PalletId};
-use frame_system::EnsureRoot;
+use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
+use frame_system::{EnsureRoot, EnsureSignedBy};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
@@ -113,10 +113,13 @@ impl pallet_assets::Config for Runtime {
 // AMM instance initialization
 parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
-    pub const AllowPermissionlessPoolCreation: bool = true;
     pub const DefaultLpFee: Perbill = Perbill::from_perthousand(3);         // 0.3%
     pub const DefaultProtocolFee: Perbill = Perbill::from_perthousand(2);   // 0.2%
     pub const DefaultProtocolFeeReceiver: AccountId = CHARLIE;
+}
+
+ord_parameter_types! {
+    pub const AliceCreatePoolOrigin: AccountId = ALICE;
 }
 
 impl pallet_amm::Config for Runtime {
@@ -124,7 +127,7 @@ impl pallet_amm::Config for Runtime {
     type Assets = CurrencyAdapter;
     type PalletId = AMMPalletId;
     type AMMWeightInfo = ();
-    type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
+    type CreatePoolOrigin = EnsureSignedBy<AliceCreatePoolOrigin, AccountId>;
     type LpFee = DefaultLpFee;
     type ProtocolFee = DefaultProtocolFee;
     type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
@@ -191,6 +194,11 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         Assets::force_create(Origin::root(), tokens::XDOT, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), tokens::KSM, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), tokens::USDT, ALICE, true, 1).unwrap();
+
+        // lp tokens
+        Assets::force_create(Origin::root(), 10, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), 11, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), 12, ALICE, true, 1).unwrap();
 
         Assets::mint(Origin::signed(ALICE), tokens::DOT, ALICE, 10_000).unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::XDOT, ALICE, 10_000).unwrap();

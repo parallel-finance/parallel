@@ -87,11 +87,11 @@ fn too_small_expiry_should_not_work() {
 fn trade_should_work() {
     new_test_ext().execute_with(|| {
         // create pool and add liquidity
-        assert_ok!(DefaultAMM::add_liquidity(
-            Origin::signed(DAVE),
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
             (DOT, XDOT),
             (100_000_000, 100_000_000),
-            (99_999, 99_999),
+            DAVE,
             10
         ));
 
@@ -137,11 +137,11 @@ fn trade_should_work() {
 fn trade_should_not_work_if_amount_less_than_min_amount_out() {
     new_test_ext().execute_with(|| {
         // create pool and add liquidity
-        assert_ok!(DefaultAMM::add_liquidity(
-            Origin::signed(DAVE),
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
             (DOT, XDOT),
             (100_000_000, 100_000_000),
-            (99_999, 99_999),
+            DAVE,
             10
         ));
 
@@ -170,29 +170,29 @@ fn trade_should_not_work_if_amount_less_than_min_amount_out() {
 fn trade_should_work_more_than_one_route() {
     new_test_ext().execute_with(|| {
         // create pool and add liquidity
-        assert_ok!(DefaultAMM::add_liquidity(
-            Origin::signed(DAVE),
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
             (DOT, XDOT),
             (100_000_000, 100_000_000),
-            (99_999, 99_999),
+            DAVE,
             10
         ));
 
         // create pool and add liquidity
-        assert_ok!(DefaultAMM::add_liquidity(
-            Origin::signed(DAVE),
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
             (XDOT, KSM),
             (100_000_000, 100_000_000),
-            (99_999, 99_999),
+            DAVE,
             11
         ));
 
         // create pool and add liquidity
-        assert_ok!(DefaultAMM::add_liquidity(
-            Origin::signed(DAVE),
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
             (USDT, KSM),
             (100_000_000, 100_000_000),
-            (99_999, 99_999),
+            DAVE,
             12
         ));
 
