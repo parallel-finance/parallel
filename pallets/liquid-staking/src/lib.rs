@@ -77,7 +77,7 @@ pub mod pallet {
             AccountIdConversion, AtLeast32BitUnsigned, BlockNumberProvider, CheckedAdd, CheckedSub,
             StaticLookup, Zero,
         },
-        ArithmeticError, FixedPointNumber, FixedPointOperand, PerThing,
+        ArithmeticError, FixedPointNumber, FixedPointOperand,
     };
     use sp_std::vec;
     use sp_std::{boxed::Box, vec::Vec};
@@ -1061,38 +1061,6 @@ pub mod pallet {
                                     )),
                                 },
                             ))),
-                            RelaychainCall::XcmPallet(
-                                XcmPalletCall::XcmPalletReserveTransferAssetsCall(
-                                    XcmPalletReserveTransferAssetsCall {
-                                        dest: Box::new(
-                                            MultiLocation::new(
-                                                0,
-                                                X1(Parachain(T::SelfParaId::get().into())),
-                                            )
-                                            .into(),
-                                        ),
-                                        beneficiary: Box::new(
-                                            MultiLocation::new(
-                                                0,
-                                                X1(AccountId32 {
-                                                    network: NetworkId::Any,
-                                                    id: Self::account_id().into(),
-                                                }),
-                                            )
-                                            .into(),
-                                        ),
-                                        assets: Box::new(
-                                            MultiAssets::from(vec![MultiAsset {
-                                                id: AssetId::Concrete(MultiLocation::new(0, Here)),
-                                                fun: Fungibility::Fungible(amount),
-                                            }])
-                                            .into(),
-                                        ),
-                                        fee_asset_item: 0,
-                                        dest_weight: 1_000_000_000,
-                                    },
-                                ),
-                            ),
                         ],
                     })));
 
