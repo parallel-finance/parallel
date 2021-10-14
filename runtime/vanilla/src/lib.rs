@@ -437,7 +437,7 @@ parameter_types! {
     pub const MaxSlashesPerEra: Balance = 1;
     pub const MinStakeAmount: Balance = 1_000_000_000_000;
     pub const MinUnstakeAmount: Balance = 500_000_000_000;
-    pub const XcmFees: Ratio = Ratio::from_perthousand(5);
+    pub const StakingFee: Ratio = Ratio::from_perthousand(5);
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -461,7 +461,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type RelayNetwork = RelayNetwork;
     type MinStakeAmount = MinStakeAmount;
     type MinUnstakeAmount = MinUnstakeAmount;
-    type StakingFee = XcmFees;
+    type StakingFee = StakingFee;
 }
 
 parameter_types! {
