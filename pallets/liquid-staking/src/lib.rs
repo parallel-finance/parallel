@@ -1176,7 +1176,7 @@ pub mod pallet {
                             max_assets: u32::max_value(),
                             beneficiary: X1(AccountId32 {
                                 network: NetworkId::Any,
-                                id: Self::derivative_para_account_id().into(),
+                                id: Self::para_account_id().into(),
                             })
                             .into(),
                         },
