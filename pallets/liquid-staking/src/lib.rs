@@ -265,7 +265,7 @@ pub mod pallet {
 
     /// Total amount of charged assets to be used as xcm fees.
     #[pallet::storage]
-    #[pallet::getter(fn charged_xcm_fees)]
+    #[pallet::getter(fn insurance_pool)]
     pub type InsurancePool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     /// Unbonding amount and withdrawable block number on relaychain
