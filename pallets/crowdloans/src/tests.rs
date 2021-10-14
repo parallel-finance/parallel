@@ -2,6 +2,10 @@ use super::*;
 use crate::mock::*;
 use frame_support::assert_ok;
 use primitives::tokens;
+use sp_runtime::{
+    traits::{One, UniqueSaturatedInto}
+};
+use frame_system::{RawOrigin};
 
 #[test]
 fn create_new_vault_should_work() {
@@ -11,6 +15,15 @@ fn create_new_vault_should_work() {
         let ctoken = 10;
 
         let contribution_strategy = ContributionStrategy::XCM;
+
+        // create the ctoken asset
+        assert_ok!(Assets::force_create(
+            RawOrigin::Root.into(),
+            ctoken.unique_saturated_into(),
+            Crowdloan::account_id(),
+            true,
+            One::one(),
+        ));
 
         assert_ok!(Crowdloan::create_vault(
             frame_system::RawOrigin::Root.into(), // origin
@@ -44,6 +57,15 @@ fn contribute_should_work() {
         let amount = 1_000;
 
         let contribution_strategy = ContributionStrategy::XCM;
+
+        // create the ctoken asset
+        assert_ok!(Assets::force_create(
+            RawOrigin::Root.into(),
+            ctoken.unique_saturated_into(),
+            Crowdloan::account_id(),
+            true,
+            One::one(),
+        ));
 
         // create a vault to contribute to
         assert_ok!(Crowdloan::create_vault(
@@ -188,6 +210,15 @@ fn claim_refund_should_work() {
         let amount = 1_000;
 
         let contribution_strategy = ContributionStrategy::XCM;
+
+        // create the ctoken asset
+        assert_ok!(Assets::force_create(
+            RawOrigin::Root.into(),
+            ctoken.unique_saturated_into(),
+            Crowdloan::account_id(),
+            true,
+            One::one(),
+        ));
 
         // create a vault to contribute to
         assert_ok!(Crowdloan::create_vault(

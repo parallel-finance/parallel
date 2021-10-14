@@ -39,12 +39,12 @@ mod crowdloan_structs;
 use crowdloan_structs::{ContributionStrategy, ParaId, Vault, VaultPhase};
 
 use frame_system::pallet_prelude::OriginFor;
-use frame_system::{ensure_signed, RawOrigin};
+use frame_system::{ensure_signed};
 
 pub use pallet::*;
 
 use sp_runtime::{
-    traits::{AtLeast32BitUnsigned, One, StaticLookup, UniqueSaturatedInto, Zero},
+    traits::{AtLeast32BitUnsigned, Zero},
     DispatchError, FixedPointOperand,
 };
 
@@ -155,15 +155,6 @@ pub mod pallet {
 
             // make sure both project_shares and currency_shares are new assets
             ensure!(ctoken_issuance == Zero::zero(), Error::<T, I>::SharesNotNew);
-
-            // create the ctoken asset
-            pallet_assets::Pallet::<T>::force_create(
-                RawOrigin::Root.into(),
-                ctoken.unique_saturated_into(),
-                T::Lookup::unlookup(Self::account_id()),
-                true,
-                One::one(),
-            )?;
 
             // 3. make sure no similar vault already exists as identified by crowdloan
             // add new vault to vaults storage
