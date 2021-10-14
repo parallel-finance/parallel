@@ -884,24 +884,20 @@ pub mod pallet {
 
                 let msg = WithdrawAsset {
                     assets: fees.clone().into(),
-                    effects: vec![InitiateReserveWithdraw {
-                        assets: All.into(),
-                        reserve: MultiLocation::parent(),
-                        effects: vec![
-                            BuyExecution {
-                                fees,
-                                weight: 0,
-                                debt: T::BaseXcmWeight::get(),
-                                halt_on_error: false,
-                                instructions: vec![bond_transact_xcm],
-                            },
-                            DepositAsset {
-                                assets: All.into(),
-                                max_assets: u32::max_value(),
-                                beneficiary: recipient,
-                            },
-                        ],
-                    }],
+                    effects: vec![
+                        BuyExecution {
+                            fees,
+                            weight: 0,
+                            debt: T::BaseXcmWeight::get(),
+                            halt_on_error: false,
+                            instructions: vec![bond_transact_xcm],
+                        },
+                        DepositAsset {
+                            assets: All.into(),
+                            max_assets: u32::max_value(),
+                            beneficiary: recipient,
+                        },
+                    ],
                 };
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
