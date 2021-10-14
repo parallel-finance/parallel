@@ -504,20 +504,20 @@ fn test_transfer_and_then_bond() {
 }
 
 #[test]
-fn test2() {
+fn test_transfer_bond() {
     TestNet::reset();
     let xcm_transfer_amount = 4 * DOT_DECIMAL;
     ParaA::execute_with(|| {
-        LiquidStaking::test1(xcm_transfer_amount, RewardDestination::Staked);
+        assert_ok!(LiquidStaking::transfer_bond(Origin::signed(ALICE),xcm_transfer_amount, RewardDestination::Staked));
         print_events::<Test>("ParaA");
     });
 
     Relay::execute_with(|| {
-        assert_eq!(
-            RelayBalances::free_balance(LiquidStaking::para_account_id()),
-            1_000_000 * DOT_DECIMAL - (xcm_transfer_amount + 3 * DOT_DECIMAL)
-        );
         print_events::<westend_runtime::Runtime>("Relay");
+        assert_eq!(
+            RelayBalances::free_balance(LiquidStaking::derivative_para_account_id()),
+            xcm_transfer_amount
+        );
     });
 }
 

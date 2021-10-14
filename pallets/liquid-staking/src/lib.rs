@@ -193,6 +193,7 @@ pub mod pallet {
         PeriodTerminated,
         /// Sent staking.bond call to relaychain
         BondCallSent(T::AccountId, BalanceOf<T>, RewardDestination<T::AccountId>),
+        TransferBondCallSent(T::AccountId, BalanceOf<T>, RewardDestination<T::AccountId>),
         /// Sent staking.bond_extra call to relaychain
         BondExtraCallSent(BalanceOf<T>),
         /// Sent staking.unbond call to relaychain
@@ -669,30 +670,13 @@ pub mod pallet {
 
         #[pallet::weight(<T as Config>::WeightInfo::settlement())]
         #[transactional]
-        pub fn test_transfer_and_then_bond(
+        pub fn transfer_bond(
             origin: OriginFor<T>,
             value: BalanceOf<T>,
-        ) -> DispatchResultWithPostInfo {
-            // Self::test1(value);
-            let beneficiary = MultiLocation::new(
-                1,
-                X1(AccountId32 {
-                    network: NetworkId::Any,
-                    id: Self::para_account_id().into(),
-                }),
-            );
-            let staking_currency =
-                Self::staking_currency().ok_or(Error::<T>::StakingCurrencyNotSet)?;
-            let base_weight = T::BaseXcmWeight::get();
-
-            T::XcmTransfer::transfer(
-                Self::para_account_id(),
-                staking_currency,
-                value,
-                beneficiary,
-                base_weight,
-            )?;
-            // Self::test_transfer(value);
+            payee: RewardDestination<T::AccountId>,
+        ) -> DispatchResult {
+            T::RelayOrigin::ensure_origin(origin)?;
+            Self::transfer_bond_internal(value,payee)?;
             Ok(().into())
         }
 
@@ -855,10 +839,8 @@ pub mod pallet {
         BalanceOf<T>: FixedPointOperand,
         AssetIdOf<T>: AtLeast32BitUnsigned,
     {
-        pub fn test1(value: BalanceOf<T>, payee: RewardDestination<T::AccountId>) {
+        pub fn transfer_bond_internal(value: BalanceOf<T>, payee: RewardDestination<T::AccountId>) -> DispatchResult {
             switch_relay!({
-                //todo xcm ump transfer
-                ////////////////////////////////////////
                 let stash = Self::derivative_para_account_id();
                 let controller = stash.clone();
 
@@ -885,70 +867,46 @@ pub mod pallet {
                             ))),
                         ],
                     })));
+                let bond_transact_xcm = Transact {
+                    origin_type: OriginKind::SovereignAccount,
+                    require_weight_at_most: u64::MAX,
+                    call: bond_call.encode().into(),
+                };
+                let asset: MultiAsset = (MultiLocation::parent(), 1_000_000_000_000).into();
+                let fees: MultiAsset = (MultiLocation::here(), 1_000_000_000_000).into();
+                let recipient = MultiLocation::new(
+                    0,
+                    X1(Junction::AccountId32 {
+                        network: NetworkId::Any,
+                        id: Self::derivative_para_account_id().into(),
+                    }),
+                );
 
-                let asset: MultiAsset = (MultiLocation::here(), 1_000_000_000_000).into();
-
-                // let xcm = WithdrawAsset {
-                //     assets: MultiAssets::from(asset.clone()),
-                //     effects: vec![
-                //         BuyExecution {
-                //             fees: asset,
-                //             weight: 800_000_000,
-                //             debt: 600_000_000,
-                //             halt_on_error: false,
-                //             instructions: vec![
-                //                 Transact {
-                //                     origin_type: OriginKind::SovereignAccount,
-                //                     require_weight_at_most: u64::MAX,
-                //                     call: bond_call,
-                //                 },
-                //             ],
-                //         },
-                //         DepositAsset {
-                //             assets: All.into(),
-                //             max_assets: u32::max_value(),
-                //             beneficiary: X1(AccountId32 {
-                //                 network: NetworkId::Any,
-                //                 id: Self::para_account_id().into(),
-                //             })
-                //             .into(),
-                //         },
-                //     ],
-                // };
-
-                let test_xcm_msg = WithdrawAsset {
-                    assets: MultiAssets::from(asset.clone()),
+                let msg = WithdrawAsset {
+                    assets: fees.clone().into(),
                     effects: vec![InitiateReserveWithdraw {
                         assets: All.into(),
-                        reserve: MultiLocation::here(),
+                        reserve: MultiLocation::parent(),
                         effects: vec![
                             BuyExecution {
-                                fees: asset,
+                                fees,
                                 weight: 0,
                                 debt: T::BaseXcmWeight::get(),
                                 halt_on_error: false,
-                                instructions: vec![Transact {
-                                    origin_type: OriginKind::SovereignAccount,
-                                    require_weight_at_most: u64::MAX,
-                                    call: bond_call.encode().into(),
-                                }],
+                                instructions: vec![bond_transact_xcm],
                             },
                             DepositAsset {
                                 assets: All.into(),
                                 max_assets: u32::max_value(),
-                                beneficiary: X1(AccountId32 {
-                                    network: NetworkId::Any,
-                                    id: Self::para_account_id().into(),
-                                })
-                                .into(),
+                                beneficiary: recipient,
                             },
                         ],
                     }],
                 };
 
-                match T::XcmSender::send_xcm(MultiLocation::parent(), test_xcm_msg) {
+                match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
-                        Self::deposit_event(Event::<T>::BondCallSent(controller, value, payee));
+                        Self::deposit_event(Event::<T>::TransferBondCallSent(controller, value, payee));
                     }
                     Err(_e) => {
                         // Err(Error::<T>::BondCallFailed.into());
@@ -956,6 +914,7 @@ pub mod pallet {
                     }
                 }
             });
+            Ok(())
         }
 
         /// Staking pool account
