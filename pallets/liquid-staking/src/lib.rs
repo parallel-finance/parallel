@@ -37,15 +37,15 @@ macro_rules! switch_relay {
         if T::RelayNetwork::get() == NetworkId::Polkadot {
             use crate::types::PolkadotCall as RelaychainCall;
 
-			$( $code )*
+            $( $code )*
         } else if T::RelayNetwork::get() == NetworkId::Kusama {
             use crate::types::KusamaCall as RelaychainCall;
 
-			$( $code )*
+            $( $code )*
         } else if T::RelayNetwork::get() == NetworkId::Named("westend".into()) {
             use crate::types::WestendCall as RelaychainCall;
 
-			$( $code )*
+            $( $code )*
         } else {
             unreachable!()
         }
@@ -103,7 +103,7 @@ pub mod pallet {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Assets for deposit/withdraw assets to/from pallet account
-        type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
+        type Assets: Transfer<Self::AccountId> + Mutate<Self::AccountId>;
 
         /// The origin which can do operation on relaychain using parachain's sovereign account
         type RelayOrigin: EnsureOrigin<Self::Origin>;
@@ -155,6 +155,18 @@ pub mod pallet {
         #[pallet::constant]
         type MaxSlashesPerEra: Get<BalanceOf<Self>>;
 
+        /// Minimum stake amount
+        #[pallet::constant]
+        type MinStakeAmount: Get<BalanceOf<Self>>;
+
+        /// Minimum unstake amount
+        #[pallet::constant]
+        type MinUnstakeAmount: Get<BalanceOf<Self>>;
+
+        /// Charged fee ratio while user staking.
+        #[pallet::constant]
+        type StakingFeeFactor: Get<Ratio>;
+
         /// Relay network
         #[pallet::constant]
         type RelayNetwork: Get<NetworkId>;
@@ -197,7 +209,7 @@ pub mod pallet {
         NominateCallSent(Vec<T::AccountId>),
         /// Send staking.payout_stakers call to relaychain
         PayoutStakersCallSent(T::AccountId, u32),
-        /// Teleport fee was set to new value
+        /// Compensation for extrinsics in relaychain was set to new value
         TransactionCompensationUpdated(BalanceOf<T>),
     }
 
@@ -209,6 +221,10 @@ pub mod pallet {
         InvalidExchangeRate,
         /// Era has been pushed before.
         EraAlreadyPushed,
+        /// Stake amount is too small
+        StakeAmountTooSmall,
+        /// Unstake amount is too small
+        UnstakeAmountTooSmall,
         /// Operation wasn't submitted to relaychain or has been processed.
         OperationNotReady,
         /// Failed to send staking.bond call
@@ -246,6 +262,11 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn staking_pool)]
     pub type StakingPool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+    /// Total amount of charged assets to be used as xcm fees.
+    #[pallet::storage]
+    #[pallet::getter(fn insurance_pool)]
+    pub type InsurancePool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     /// Unbonding amount and withdrawable block number on relaychain
     ///
@@ -346,9 +367,15 @@ pub mod pallet {
             // TODO should use T::WeightInfo::on_idle instead
             // on_idle shouldn't run out of all remaining_weight normally
             let base_weight = T::WeightInfo::pop_queue();
-            if Self::staking_currency().is_err() {
+            let staking_currency = Self::staking_currency();
+
+            // Return if staking_currency haven't been set.
+            if staking_currency.is_err() {
                 return remaining_weight;
             }
+
+            let staking_currency = staking_currency.expect("It must be ok; qed");
+
             loop {
                 // Check weight is enough
                 if remaining_weight < base_weight {
@@ -362,14 +389,9 @@ pub mod pallet {
                 // Get the front of the queue.
                 let (who, amount) = &Self::unstake_queue()[0];
 
-                let res = T::Assets::transfer(
-                    Self::staking_currency().unwrap(),
-                    &Self::account_id(),
-                    who,
-                    *amount,
-                    false,
-                );
-                if res.is_err() {
+                if T::Assets::transfer(staking_currency, &Self::account_id(), who, *amount, false)
+                    .is_err()
+                {
                     // break if we cannot afford this
                     break;
                 }
@@ -380,6 +402,7 @@ pub mod pallet {
                 // remove unstake request from queue
                 Self::pop_unstake_task()
             }
+
             remaining_weight
         }
 
@@ -433,11 +456,10 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
-            let exchange_rate = ExchangeRate::<T>::get();
-            let liquid_amount = exchange_rate
-                .reciprocal()
-                .and_then(|r| r.checked_mul_int(amount))
-                .ok_or(Error::<T>::InvalidExchangeRate)?;
+            ensure!(
+                amount > T::MinStakeAmount::get(),
+                Error::<T>::StakeAmountTooSmall
+            );
 
             T::Assets::transfer(
                 Self::staking_currency()?,
@@ -446,6 +468,21 @@ pub mod pallet {
                 amount,
                 false,
             )?;
+
+            // Calculate staking fee
+            let fee = T::StakingFeeFactor::get().mul_floor(amount);
+            // TODO(Alan WANG): Enable it later
+            // InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
+            //     *b = b.checked_add(&fees).ok_or(ArithmeticError::Overflow)?;
+            //     Ok(())
+            // })?;
+
+            // Amount that we should mint to user
+            let amount = amount.checked_sub(&fee).ok_or(ArithmeticError::Underflow)?;
+            let liquid_amount = Self::exchange_rate()
+                .reciprocal()
+                .and_then(|r| r.checked_mul_int(amount))
+                .ok_or(Error::<T>::InvalidExchangeRate)?;
             T::Assets::mint_into(Self::liquid_currency()?, &who, liquid_amount)?;
 
             StakingPool::<T>::try_mutate(|b| -> DispatchResult {
@@ -478,19 +515,25 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
+            ensure!(
+                liquid_amount > T::MinUnstakeAmount::get(),
+                Error::<T>::UnstakeAmountTooSmall
+            );
+
             let exchange_rate = ExchangeRate::<T>::get();
             let asset_amount = exchange_rate
                 .checked_mul_int(liquid_amount)
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
 
-            let res = T::Assets::transfer(
+            if T::Assets::transfer(
                 Self::staking_currency()?,
                 &Self::account_id(),
                 &who,
                 asset_amount,
                 false,
-            );
-            if res.is_err() {
+            )
+            .is_err()
+            {
                 Self::push_unstake_task(&who, asset_amount)?;
             }
 
@@ -576,12 +619,10 @@ pub mod pallet {
             let base_weight = T::BaseXcmWeight::get();
 
             if !Self::transaction_compensation().is_zero() {
-                T::XcmTransfer::transfer(
-                    Self::account_id(),
+                T::Assets::burn_from(
                     Self::staking_currency()?,
+                    &Self::account_id(),
                     Self::transaction_compensation(),
-                    beneficiary.clone(),
-                    base_weight,
                 )?;
             }
 
@@ -800,11 +841,15 @@ pub mod pallet {
         }
 
         pub fn staking_currency() -> Result<AssetIdOf<T>, DispatchError> {
-            StakingCurrency::<T>::get().ok_or_else(|| Error::<T>::StakingCurrencyNotSet.into())
+            StakingCurrency::<T>::get()
+                .ok_or(Error::<T>::StakingCurrencyNotSet)
+                .map_err(Into::into)
         }
 
         pub fn liquid_currency() -> Result<AssetIdOf<T>, DispatchError> {
-            LiquidCurrency::<T>::get().ok_or_else(|| Error::<T>::LiquidCurrencyNotSet.into())
+            LiquidCurrency::<T>::get()
+                .ok_or(Error::<T>::LiquidCurrencyNotSet)
+                .map_err(Into::into)
         }
 
         /// Derivative parachain account

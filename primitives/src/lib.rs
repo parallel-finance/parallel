@@ -93,7 +93,7 @@ pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum DataProviderId {
-    Aggregated = 0,
+    Aggregated = 0isize,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
