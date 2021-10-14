@@ -13,8 +13,9 @@ use sp_runtime::{traits::{AccountIdLookup, One, StaticLookup}, FixedPointNumber}
 use xcm::latest::prelude::ExecuteXcm;
 use xcm_simulator::TestExt;
 
+use crate::types::WestendCall as RelaychainCall;
 use codec::Encode;
-use xcm::{latest::prelude::*, DoubleEncoded};
+use types::*;
 #[test]
 fn stake_should_work() {
     new_test_ext().execute_with(|| {
@@ -401,34 +402,20 @@ fn test_transact_payout_stakers_work() {
     });
 }
 
-use crate::types::WestendCall as RelaychainCall;
-use primitives::DerivativeProvider;
-use types::*;
-
 #[test]
 fn test_transfer_and_then_bond() {
     TestNet::reset();
     let xcm_transfer_amount = 30 * DOT_DECIMAL;
     let relay_transfer_amount = 12 * DOT_DECIMAL;
     ParaA::execute_with(|| {
-        let beneficiary = MultiLocation::new(
-            1,
-            X1(Junction::AccountId32 {
-                network: NetworkId::Any,
-                id: LiquidStaking::derivative_para_account_id().into(),
-            }),
-        );
-        let staking_currency = LiquidStaking::staking_currency().unwrap();
         let stash = LiquidStaking::derivative_para_account_id();
         let controller = stash.clone();
-        // let dest = AccountIdLookup::<AccountId, ()>::unlookup(stash);
         let payee = RewardDestination::<AccountId>::Staked;
         let bond_call =
             RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
                 calls: vec![
                     RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
                         BalancesTransferKeepAliveCall {
-                            // dest: T::Lookup::unlookup(stash),
                             dest: AccountIdLookup::<AccountId, ()>::unlookup(stash.clone()),
                             value: relay_transfer_amount,
                         },
@@ -438,7 +425,6 @@ fn test_transfer_and_then_bond() {
                             index: 0,
                             call: RelaychainCall::Staking::<Test>(StakingCall::Bond(
                                 StakingBondCall {
-                                    // controller: T::Lookup::unlookup(controller.clone()),
                                     controller: AccountIdLookup::<AccountId, ()>::unlookup(
                                         controller.clone(),
                                     ),
@@ -450,19 +436,9 @@ fn test_transfer_and_then_bond() {
                     ))),
                 ],
             })));
-
-        let sim_transfer_call_success = RelaychainCall::<Test>::Balances(
-            BalancesCall::TransferKeepAlive(BalancesTransferKeepAliveCall {
-                // dest: T::Lookup::unlookup(stash),
-                dest: AccountIdLookup::<AccountId, ()>::unlookup(stash.clone()),
-                value: relay_transfer_amount,
-            }),
-        );
-
         let bond_transact_xcm = Transact {
             origin_type: OriginKind::SovereignAccount,
             require_weight_at_most: u64::MAX,
-            // call: bond_call.encode().into(),
             call: bond_call.encode().into(),
         };
 
@@ -505,7 +481,7 @@ fn test_transfer_and_then_bond() {
             }),
         );
         let weight = 2;
-        let r = xcm_executor::XcmExecutor::<XcmConfig>::execute_xcm_in_credit(
+        let _ = xcm_executor::XcmExecutor::<XcmConfig>::execute_xcm_in_credit(
             origin_location,
             msg,
             weight,
