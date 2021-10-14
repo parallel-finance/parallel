@@ -9,7 +9,7 @@ use primitives::{
     tokens::{DOT, XDOT},
     Balance, Rate,
 };
-use sp_runtime::traits::One;
+use sp_runtime::{traits::One, FixedPointNumber};
 use xcm_simulator::TestExt;
 
 #[test]
@@ -121,12 +121,7 @@ fn test_settlement_should_work() {
     TestNet::reset();
     ParaA::execute_with(|| {
         let test_case: Vec<(Vec<StakeOp>, Balance, (Balance, Balance, Balance), Balance)> = vec![
-            (
-                vec![Stake(30 * DOT_DECIMAL), Unstake(5 * DOT_DECIMAL)],
-                0,
-                (25 * DOT_DECIMAL, 0, 0),
-                0,
-            ),
+            (vec![Stake(3000), Unstake(500)], 0, (2485, 0, 0), 0),
             // Calculate right here.
             (vec![Unstake(10), Unstake(5), Stake(10)], 0, (0, 0, 5), 10),
             (vec![], 0, (0, 0, 0), 0),
@@ -152,7 +147,7 @@ fn test_settlement_should_work() {
         assert_eq!(
             RelayBalances::free_balance(&LiquidStaking::para_account_id()),
             // FIXME: weight should be take into account
-            9999978717112000
+            9999983330789515
         );
     });
 }

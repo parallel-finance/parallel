@@ -332,7 +332,7 @@ parameter_types! {
     pub const MaxSlashesPerEra: Balance = 1;
     pub const MinStakeAmount: Balance = 0;
     pub const MinUnstakeAmount: Balance = 0;
-    pub const StakingFeeFactor: Ratio = Ratio::from_perthousand(0);
+    pub const StakingFeeFactor: Ratio = Ratio::from_perthousand(5);
 }
 
 impl crate::Config for Test {
