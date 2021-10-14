@@ -508,7 +508,7 @@ fn test_transfer_bond() {
     TestNet::reset();
     let xcm_transfer_amount = 10 * DOT_DECIMAL;
     ParaA::execute_with(|| {
-        assert_ok!(LiquidStaking::transfer_bond(
+        assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             xcm_transfer_amount,
             RewardDestination::Staked

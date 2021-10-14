@@ -193,8 +193,6 @@ pub mod pallet {
         PeriodTerminated,
         /// Sent staking.bond call to relaychain
         BondCallSent(T::AccountId, BalanceOf<T>, RewardDestination<T::AccountId>),
-        /// Sent balance.trnsfer and staking.bond call to relaychain
-        TransferBondCallSent(T::AccountId, BalanceOf<T>, RewardDestination<T::AccountId>),
         /// Sent staking.bond_extra call to relaychain
         BondExtraCallSent(BalanceOf<T>),
         /// Sent staking.unbond call to relaychain
@@ -249,8 +247,6 @@ pub mod pallet {
         ExceededMaxRewardsPerEra,
         /// Exceeded max slashes per era
         ExceededMaxSlashesPerEra,
-        /// Failed to send transfer and bond call
-        TransferBondCallFailed,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -671,18 +667,6 @@ pub mod pallet {
             Ok(().into())
         }
 
-        #[pallet::weight(<T as Config>::WeightInfo::settlement())]
-        #[transactional]
-        pub fn transfer_bond(
-            origin: OriginFor<T>,
-            value: BalanceOf<T>,
-            payee: RewardDestination<T::AccountId>,
-        ) -> DispatchResult {
-            T::RelayOrigin::ensure_origin(origin)?;
-            Self::transfer_bond_internal(value, payee)?;
-            Ok(().into())
-        }
-
         /// Bond on relaychain via xcm.transact
         #[pallet::weight(<T as Config>::WeightInfo::bond())]
         #[transactional]
@@ -842,82 +826,6 @@ pub mod pallet {
         BalanceOf<T>: FixedPointOperand,
         AssetIdOf<T>: AtLeast32BitUnsigned,
     {
-        pub fn transfer_bond_internal(
-            value: BalanceOf<T>,
-            payee: RewardDestination<T::AccountId>,
-        ) -> DispatchResult {
-            switch_relay!({
-                let stash = Self::derivative_para_account_id();
-                let controller = stash.clone();
-
-                let transfer_bond_call =
-                    RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
-                        calls: vec![
-                            RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
-                                BalancesTransferKeepAliveCall {
-                                    dest: T::Lookup::unlookup(stash),
-                                    value,
-                                },
-                            )),
-                            RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
-                                UtilityAsDerivativeCall {
-                                    index: T::DerivativeIndex::get(),
-                                    call: RelaychainCall::Staking::<T>(StakingCall::Bond(
-                                        StakingBondCall {
-                                            controller: T::Lookup::unlookup(controller.clone()),
-                                            value,
-                                            payee: payee.clone(),
-                                        },
-                                    )),
-                                },
-                            ))),
-                        ],
-                    })));
-                let bond_transact_xcm = Transact {
-                    origin_type: OriginKind::SovereignAccount,
-                    require_weight_at_most: u64::MAX,
-                    call: transfer_bond_call.encode().into(),
-                };
-                let fees: MultiAsset = (MultiLocation::here(), 1_000_000_000_000).into();
-                let recipient = MultiLocation::new(
-                    0,
-                    X1(Junction::AccountId32 {
-                        network: NetworkId::Any,
-                        id: Self::para_account_id().into(),
-                    }),
-                );
-                let msg = WithdrawAsset {
-                    assets: fees.clone().into(),
-                    effects: vec![
-                        BuyExecution {
-                            fees,
-                            weight: 0,
-                            debt: T::BaseXcmWeight::get(),
-                            halt_on_error: false,
-                            instructions: vec![bond_transact_xcm],
-                        },
-                        DepositAsset {
-                            assets: All.into(),
-                            max_assets: u32::max_value(),
-                            beneficiary: recipient,
-                        },
-                    ],
-                };
-
-                match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                    Ok(()) => {
-                        Self::deposit_event(Event::<T>::TransferBondCallSent(
-                            controller, value, payee,
-                        ));
-                    }
-                    Err(_e) => {
-                        return Err(Error::<T>::TransferBondCallFailed.into());
-                    }
-                }
-            });
-            Ok(())
-        }
-
         /// Staking pool account
         pub fn account_id() -> T::AccountId {
             T::PalletId::get().into_account()
