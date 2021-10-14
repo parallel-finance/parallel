@@ -9,7 +9,7 @@ use primitives::{
     tokens::{DOT, XDOT},
     Balance, Rate,
 };
-use sp_runtime::{traits::{AccountIdLookup, One, StaticLookup}, FixedPointNumber};
+use sp_runtime::traits::{AccountIdLookup, One, StaticLookup};
 use xcm::latest::prelude::ExecuteXcm;
 use xcm_simulator::TestExt;
 
