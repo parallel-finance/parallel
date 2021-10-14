@@ -409,144 +409,6 @@ use types::*;
 fn test_transfer_and_then_bond() {
     TestNet::reset();
     let xcm_transfer_amount = 30 * DOT_DECIMAL;
-    let relay_transfer_amount = 10 * DOT_DECIMAL;
-    ParaA::execute_with(|| {
-        let beneficiary = MultiLocation::new(
-            1,
-            X1(Junction::AccountId32 {
-                network: NetworkId::Any,
-                id: BOB.into(),
-            }),
-        );
-        let staking_currency = LiquidStaking::staking_currency().unwrap();
-        ///////////////////////////
-        // assert_ok!(XTokens::transfer(
-        //     Some(ALICE).into(),
-        //     staking_currency,
-        //     3 * DOT_DECIMAL,
-        //     Box::new(beneficiary),
-        //     30,
-        // ));
-        /////-------------------------
-
-        let stash = DerivativeProviderT::derivative_account_id(BOB, 1);
-        let controller = stash.clone();
-        // let dest = AccountIdLookup::<AccountId, ()>::unlookup(stash);
-        let payee = RewardDestination::<AccountId>::Staked;
-        let bond_call =
-            RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
-                calls: vec![
-                    RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
-                        BalancesTransferKeepAliveCall {
-                            // dest: T::Lookup::unlookup(stash),
-                            dest: AccountIdLookup::<AccountId, ()>::unlookup(stash.clone()),
-                            value: relay_transfer_amount,
-                        },
-                    )),
-                    RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
-                        UtilityAsDerivativeCall {
-                            index: 0,
-                            call: RelaychainCall::Staking::<Test>(StakingCall::Bond(
-                                StakingBondCall {
-                                    // controller: T::Lookup::unlookup(controller.clone()),
-                                    controller: AccountIdLookup::<AccountId, ()>::unlookup(
-                                        controller.clone(),
-                                    ),
-                                    value: relay_transfer_amount,
-                                    payee: payee.clone(),
-                                },
-                            )),
-                        },
-                    ))),
-                ],
-            })));
-
-        let sim_transfer_call_success = RelaychainCall::<Test>::Balances(
-            BalancesCall::TransferKeepAlive(BalancesTransferKeepAliveCall {
-                // dest: T::Lookup::unlookup(stash),
-                dest: AccountIdLookup::<AccountId, ()>::unlookup(stash.clone()),
-                value: relay_transfer_amount,
-            }),
-        );
-
-        let bond_transact_xcm = Transact {
-            origin_type: OriginKind::SovereignAccount,
-            require_weight_at_most: u64::MAX,
-            // call: bond_call.encode().into(),
-            call: sim_transfer_call_success.encode().into(),
-        };
-
-        let asset: MultiAsset = (MultiLocation::parent(), xcm_transfer_amount).into();
-        let reserve = MultiLocation::parent();
-        let recipient = MultiLocation::new(
-            0,
-            X1(Junction::AccountId32 {
-                network: NetworkId::Any,
-                id: BOB.into(),
-            }),
-        );
-        let fees: MultiAsset = (MultiLocation::here(), xcm_transfer_amount).into();
-        let msg = WithdrawAsset {
-            assets: asset.clone().into(),
-            effects: vec![InitiateReserveWithdraw {
-                assets: All.into(),
-                reserve: reserve.clone(),
-                effects: vec![
-                    BuyExecution {
-                        fees,
-                        weight: 0,
-                        debt: 30,
-                        halt_on_error: false,
-                        instructions: vec![bond_transact_xcm],
-                    },
-                    DepositAsset {
-                        assets: All.into(),
-                        max_assets: u32::max_value(),
-                        beneficiary: recipient,
-                    },
-                ],
-            }],
-        };
-        let origin_location = MultiLocation::new(
-            0,
-            X1(Junction::AccountId32 {
-                network: NetworkId::Any,
-                id: ALICE.into(),
-            }),
-        );
-        let weight = 2;
-        let r = xcm_executor::XcmExecutor::<XcmConfig>::execute_xcm_in_credit(
-            origin_location,
-            msg,
-            weight,
-            weight,
-        )
-        .ensure_complete();
-        print_events::<Test>("ParaA");
-    });
-
-    Relay::execute_with(|| {
-        print_events::<westend_runtime::Runtime>("Relay");
-        assert_eq!(RelayBalances::free_balance(&BOB), xcm_transfer_amount - 240);
-        assert_eq!(
-            RelayBalances::free_balance(&DerivativeProviderT::derivative_account_id(BOB, 1)),
-            relay_transfer_amount
-        );
-        // assert_eq!(
-        //     RelayBalances::free_balance(LiquidStaking::para_account_id()),
-        //     1_000_000 * DOT_DECIMAL - xcm_transfer_amount
-        // );
-        // assert_eq!(
-        //     RelayBalances::free_balance(LiquidStaking::derivative_para_account_id()),
-        //     1_000_000 * DOT_DECIMAL - (xcm_transfer_amount + 3 * DOT_DECIMAL)
-        // );
-    });
-}
-
-#[test]
-fn test3() {
-    TestNet::reset();
-    let xcm_transfer_amount = 30 * DOT_DECIMAL;
     let relay_transfer_amount = 12 * DOT_DECIMAL;
     ParaA::execute_with(|| {
         let beneficiary = MultiLocation::new(
@@ -679,9 +541,6 @@ fn test2() {
             RelayBalances::free_balance(LiquidStaking::para_account_id()),
             1_000_000 * DOT_DECIMAL - (xcm_transfer_amount + 3 * DOT_DECIMAL)
         );
-        // assert_eq!(RelayBalances::free_balance(LiquidStaking::derivative_para_account_id()), 3 * DOT_DECIMAL);
-        // let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
-        // assert_eq!(ledger.total, 10 * DOT_DECIMAL);
         print_events::<westend_runtime::Runtime>("Relay");
     });
 }
@@ -690,35 +549,5 @@ fn print_events<T: frame_system::Config>(context: &str) {
     println!("------ {:?} events ------", context);
     frame_system::Pallet::<T>::events().iter().for_each(|r| {
         println!("{:?}", r.event);
-    });
-}
-
-#[test]
-fn send_relay_chain_asset_to_relay_chain() {
-    TestNet::reset();
-
-    ParaA::execute_with(|| {
-        assert_ok!(XTokens::transfer(
-            Some(ALICE).into(),
-            DOT,
-            5_000_000_000_000,
-            Box::new(MultiLocation::new(
-                1,
-                X1(Junction::AccountId32 {
-                    network: NetworkId::Any,
-                    id: BOB.into(),
-                })
-            )),
-            30,
-        ));
-    });
-
-    Relay::execute_with(|| {
-        assert_eq!(
-            RelayBalances::free_balance(&LiquidStaking::para_account_id()),
-            9995_000_000_000_000
-        );
-        assert_eq!(RelayBalances::free_balance(&BOB), 4_999_999_999_760);
-        print_events::<WestendRuntime>("Relay");
     });
 }

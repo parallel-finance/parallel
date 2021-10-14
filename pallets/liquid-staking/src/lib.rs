@@ -958,18 +958,6 @@ pub mod pallet {
             });
         }
 
-        pub fn test_transfer(value: BalanceOf<T>, id: [u8; 32]) {
-            let msg = Self::ump_transfer(value);
-            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                Ok(()) => {
-                    ();
-                }
-                Err(_e) => {
-                    ();
-                }
-            }
-        }
-
         /// Staking pool account
         pub fn account_id() -> T::AccountId {
             T::PalletId::get().into_account()
