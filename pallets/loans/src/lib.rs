@@ -23,6 +23,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use crate::rate_model::*;
+
 pub use pallet::*;
 
 use frame_support::{
@@ -305,7 +306,7 @@ pub mod pallet {
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T>
     where
         BalanceOf<T>: FixedPointOperand,
-        AssetIdOf<T>: AtLeast32BitUnsigned,
+        AssetIdOf<T>: AtLeast32BitUnsigned + TypeInfo,
     {
         /// Called by substrate on block initialization which is fallible.
         /// When an error occurs, stop counting interest. When the error is resolved,

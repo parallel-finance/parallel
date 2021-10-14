@@ -25,10 +25,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::{log, pallet_prelude::*, traits::tokens::fungibles::Inspect, transactional};
-use frame_system::offchain::{
-    AppCrypto, CreateSignedTransaction, ForAny, SendSignedTransaction, Signer,
+use frame_system::{
+    offchain::{AppCrypto, CreateSignedTransaction, ForAny, SendSignedTransaction, Signer},
+    pallet_prelude::*,
 };
-use frame_system::pallet_prelude::*;
 use sp_core::crypto::KeyTypeId;
 use sp_runtime::{
     offchain::{
@@ -41,6 +41,7 @@ use sp_runtime::{
 use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
 pub use pallet::*;
+
 use pallet_loans::WeightInfo;
 use primitives::Rate;
 
@@ -95,7 +96,7 @@ pub mod pallet {
         CreateSignedTransaction<Call<Self>> + frame_system::Config + pallet_loans::Config
     where
         BalanceOf<Self>: FixedPointOperand,
-        AssetIdOf<Self>: AtLeast32BitUnsigned,
+        AssetIdOf<Self>: AtLeast32BitUnsigned + scale_info::TypeInfo,
     {
         /// The account type to perform liquidation
         type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
