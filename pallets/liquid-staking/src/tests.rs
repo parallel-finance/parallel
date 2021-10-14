@@ -514,6 +514,8 @@ fn test_transfer_bond() {
 
     Relay::execute_with(|| {
         print_events::<westend_runtime::Runtime>("Relay");
+        let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
+        assert_eq!(ledger.total, xcm_transfer_amount);
         assert_eq!(
             RelayBalances::free_balance(LiquidStaking::derivative_para_account_id()),
             xcm_transfer_amount
