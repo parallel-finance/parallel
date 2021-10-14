@@ -1072,31 +1072,28 @@ pub mod pallet {
                 Ok(())
             })?;
 
-            Ok(WithdrawAsset {
-                assets: MultiAssets::from(asset.clone()),
-                effects: vec![
-                    BuyExecution {
-                        fees: asset,
-                        weight,
-                        debt: 600_000_000,
-                        halt_on_error: false,
-                        instructions: vec![Transact {
-                            origin_type: OriginKind::SovereignAccount,
-                            require_weight_at_most: u64::MAX,
-                            call,
-                        }],
-                    },
-                    DepositAsset {
-                        assets: All.into(),
-                        max_assets: u32::max_value(),
-                        beneficiary: X1(AccountId32 {
-                            network: NetworkId::Any,
-                            id: Self::para_account_id().into(),
-                        })
-                        .into(),
-                    },
-                ],
-            })
+            Xcm(vec![
+                WithdrawAsset(MultiAssets::from(asset.clone())),
+                BuyExecution {
+                    fees: asset,
+                    weight_limit: WeightLimit::Limited(weight),
+                },
+                Transact {
+                    origin_type: OriginKind::SovereignAccount,
+                    require_weight_at_most: u64::MAX,
+                    call,
+                },
+                ClearError,
+                DepositAsset {
+                    assets: All.into(),
+                    max_assets: u32::max_value(),
+                    beneficiary: X1(AccountId32 {
+                        network: NetworkId::Any,
+                        id: Self::para_account_id().into(),
+                    })
+                    .into(),
+                },
+            ])
         }
     }
 }
