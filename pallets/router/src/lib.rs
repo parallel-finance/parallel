@@ -112,7 +112,6 @@ pub mod pallet {
     }
 
     #[pallet::event]
-    #[pallet::metadata(T::AccountId = "AccountId", BalanceOf<T, I> = "Balance")]
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config<I>, I: 'static = ()> {
         /// Event emitted when swap is successful
