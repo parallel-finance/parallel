@@ -16,7 +16,7 @@ use cumulus_primitives_core::ParaId;
 use heiko_runtime::{
     opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, DemocracyConfig,
     GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
-    LiquidStakingAgentMembershipConfig, LiquidStakingConfig, LoansConfig, OracleMembershipConfig,
+    LiquidStakingAgentMembershipConfig, LiquidStakingConfig, OracleMembershipConfig,
     ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
     TechnicalCommitteeMembershipConfig, ValidatorFeedersMembershipConfig, VestingConfig,
     WASM_BINARY,
@@ -29,16 +29,12 @@ use sc_telemetry::TelemetryEndpoints;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 // use sp_core::crypto::UncheckedInto;
 
-use sp_core::sr25519;
-use sp_runtime::{
-    traits::{One, Zero},
-    FixedPointNumber,
-};
-
 use crate::chain_spec::{
     accumulate, as_properties, get_account_id_from_seed, get_authority_keys_from_seed, Extensions,
     TELEMETRY_URL,
 };
+use sp_core::sr25519;
+use sp_runtime::{traits::Zero, FixedPointNumber};
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
@@ -140,18 +136,21 @@ pub fn heiko_config(_id: ParaId) -> Result<ChainSpec, String> {
     //         let invulnerables: Vec<(AccountId, AuraId)> = vec![
     //             (
     //                 // 5DfKxDtYyHkWnXkoc8Ek9KaPZE3FBD5kDByDziiRtHsd8D1x
+    //                 // hJGnmqMhfJ5fGh2wXQur7KhxFGjgiURsvmyKDNNCSBm8wavLW
     //                 hex!["46a4161c87a0c6d58dec1e01b8c360123e1373ffafcf100efd1a9999fbacf161"].into(),
     //                 hex!["46a4161c87a0c6d58dec1e01b8c360123e1373ffafcf100efd1a9999fbacf161"]
     //                     .unchecked_into(),
     //             ),
     //             (
     //                 // 5EUmwapW8qScFGh4KGug1xb5Dnm4FYQtzrjTcvjynyRAMRR3
+    //                 // hJHcDpidcTdMN9msn84X3CLxvwJQXYmD5Ze5SzaDz6SgUozT3
     //                 hex!["6ad41b69e5ff9ec7fa541b9e61f56bc9dd5761e8ab69cf82a3c0722ba227dc5e"].into(),
     //                 hex!["6ad41b69e5ff9ec7fa541b9e61f56bc9dd5761e8ab69cf82a3c0722ba227dc5e"]
     //                     .unchecked_into(),
     //             ),
     //             (
     //                 // 5DJd3duMMEeEo9Gi5az1esvuNRB31V8Fds91VkBMrZUCFyUn
+    //                 // hJGS4vmiTg2YzheTRtNbNqGJm5vpWJhvSCeUzsPfNA2jWiUQM
     //                 hex!["36d97965e462e9ca63079c1102db04f4293e59bca83713703a9a772d0017894d"].into(),
     //                 hex!["36d97965e462e9ca63079c1102db04f4293e59bca83713703a9a772d0017894d"]
     //                     .unchecked_into(),
@@ -242,12 +241,6 @@ fn heiko_genesis(
         parachain_system: Default::default(),
         sudo: SudoConfig { key: root_key },
         parachain_info: ParachainInfoConfig { parachain_id: id },
-        loans: LoansConfig {
-            borrow_index: Rate::one(),                             // 1
-            exchange_rate: Rate::saturating_from_rational(2, 100), // 0.02
-            last_block_timestamp: 0,
-            markets: vec![],
-        },
         liquid_staking: LiquidStakingConfig {
             exchange_rate: Rate::saturating_from_rational(100, 100), // 1
             reserve_factor: Ratio::from_perthousand(5),

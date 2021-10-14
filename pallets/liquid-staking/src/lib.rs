@@ -22,18 +22,39 @@
 
 #[cfg(test)]
 mod mock;
-pub mod relaychain;
 #[cfg(test)]
 mod tests;
+
 pub mod types;
 pub mod weights;
 
-use primitives::{ExchangeRateProvider, LiquidStakingCurrenciesProvider};
+use primitives::{ExchangeRateProvider, LiquidStakingCurrenciesProvider, Rate};
 
-pub use self::pallet::*;
+pub use pallet::*;
+
+macro_rules! switch_relay {
+    ({ $( $code:tt )* }) => {
+        if T::RelayNetwork::get() == NetworkId::Polkadot {
+            use crate::types::PolkadotCall as RelaychainCall;
+
+            $( $code )*
+        } else if T::RelayNetwork::get() == NetworkId::Kusama {
+            use crate::types::KusamaCall as RelaychainCall;
+
+            $( $code )*
+        } else if T::RelayNetwork::get() == NetworkId::Named("westend".into()) {
+            use crate::types::WestendCall as RelaychainCall;
+
+            $( $code )*
+        } else {
+            unreachable!()
+        }
+    }
+}
 
 #[frame_support::pallet]
-mod pallet {
+pub mod pallet {
+    use cumulus_primitives_core::ParaId;
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         ensure,
@@ -44,7 +65,7 @@ mod pallet {
         },
         transactional,
         weights::Weight,
-        PalletId, Twox64Concat,
+        BoundedVec, PalletId, Twox64Concat,
     };
     use frame_system::{
         ensure_signed,
@@ -52,23 +73,26 @@ mod pallet {
     };
     use orml_traits::XcmTransfer;
     use sp_runtime::{
-        traits::{AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedSub, Zero},
+        traits::{
+            AccountIdConversion, AtLeast32BitUnsigned, BlockNumberProvider, CheckedAdd, CheckedSub,
+            StaticLookup, Zero,
+        },
         ArithmeticError, FixedPointNumber, FixedPointOperand,
     };
-    use sp_std::vec::Vec;
-    use xcm::v0::{Junction, MultiLocation, NetworkId, SendXcm};
+    use sp_std::vec;
+    use sp_std::{boxed::Box, vec::Vec};
+    use xcm::{latest::prelude::*, DoubleEncoded};
 
     use primitives::{DerivativeProvider, EraIndex, Rate, Ratio};
 
-    use crate::{
-        types::{MatchingLedger, RewardDestination, StakingSettlementKind},
-        weights::WeightInfo,
-    };
+    use crate::{types::*, weights::WeightInfo};
 
     pub type AssetIdOf<T> =
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
     pub type BalanceOf<T> =
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
+    pub type RelaychainBlockNumberOf<T> =
+        <<T as Config>::RelaychainBlockNumberProvider as BlockNumberProvider>::BlockNumber;
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
@@ -79,31 +103,34 @@ mod pallet {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Assets for deposit/withdraw assets to/from pallet account
-        type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
+        type Assets: Transfer<Self::AccountId> + Mutate<Self::AccountId>;
 
-        /// Offchain bridge accout who manages staking currency in relaychain.
-        type BridgeOrigin: EnsureOrigin<Self::Origin>;
+        /// The origin which can do operation on relaychain using parachain's sovereign account
+        type RelayOrigin: EnsureOrigin<Self::Origin>;
 
         /// The origin which can update liquid currency, staking currency
         type UpdateOrigin: EnsureOrigin<Self::Origin>;
 
-        /// The pallet id of liquid staking, keeps all the staking assets.
+        /// The pallet id of liquid staking, keeps all the staking assets
         #[pallet::constant]
         type PalletId: Get<PalletId>;
 
         /// XCM transfer
         type XcmTransfer: XcmTransfer<Self::AccountId, BalanceOf<Self>, AssetIdOf<Self>>;
 
-        /// XCM transact
+        /// XCM message sender
         type XcmSender: SendXcm;
 
-        /// Base xcm transaction weight
+        /// Basic xcm transaction weight per message
         #[pallet::constant]
         type BaseXcmWeight: Get<Weight>;
 
-        /// Parachain account on relaychain
+        /// Relaychain block number provider
+        type RelaychainBlockNumberProvider: BlockNumberProvider<BlockNumber = Self::BlockNumber>;
+
+        /// Returns the parachain ID we are running with.
         #[pallet::constant]
-        type RelayAgent: Get<Self::AccountId>;
+        type SelfParaId: Get<ParaId>;
 
         /// Account derivative index
         #[pallet::constant]
@@ -112,10 +139,39 @@ mod pallet {
         /// Account derivative functionality provider
         type DerivativeProvider: DerivativeProvider<Self::AccountId>;
 
-        /// Basis of period.
+        /// Unstake queue capacity
+        #[pallet::constant]
+        type UnstakeQueueCapacity: Get<u32>;
+
+        /// Basis of period
         #[pallet::constant]
         type PeriodBasis: Get<BlockNumberFor<Self>>;
 
+        /// Max rewards per era
+        #[pallet::constant]
+        type MaxRewardsPerEra: Get<BalanceOf<Self>>;
+
+        /// Max slashes per era
+        #[pallet::constant]
+        type MaxSlashesPerEra: Get<BalanceOf<Self>>;
+
+        /// Minimum stake amount
+        #[pallet::constant]
+        type MinStakeAmount: Get<BalanceOf<Self>>;
+
+        /// Minimum unstake amount
+        #[pallet::constant]
+        type MinUnstakeAmount: Get<BalanceOf<Self>>;
+
+        /// Charged fee ratio while user staking.
+        #[pallet::constant]
+        type StakingFeeFactor: Get<Ratio>;
+
+        /// Relay network
+        #[pallet::constant]
+        type RelayNetwork: Get<NetworkId>;
+
+        /// Weight information
         type WeightInfo: WeightInfo;
     }
 
@@ -153,6 +209,8 @@ mod pallet {
         NominateCallSent(Vec<T::AccountId>),
         /// Send staking.payout_stakers call to relaychain
         PayoutStakersCallSent(T::AccountId, u32),
+        /// Compensation for extrinsics in relaychain was set to new value
+        TransactionCompensationUpdated(BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -163,6 +221,10 @@ mod pallet {
         InvalidExchangeRate,
         /// Era has been pushed before.
         EraAlreadyPushed,
+        /// Stake amount is too small
+        StakeAmountTooSmall,
+        /// Unstake amount is too small
+        UnstakeAmountTooSmall,
         /// Operation wasn't submitted to relaychain or has been processed.
         OperationNotReady,
         /// Failed to send staking.bond call
@@ -183,6 +245,12 @@ mod pallet {
         LiquidCurrencyNotSet,
         /// Staking currency hasn't been set
         StakingCurrencyNotSet,
+        /// Exceeded unstake queue's capacity
+        ExceededUnstakeQueueCapacity,
+        /// Exceeded max rewards per era
+        ExceededMaxRewardsPerEra,
+        /// Exceeded max slashes per era
+        ExceededMaxSlashesPerEra,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -190,12 +258,25 @@ mod pallet {
     #[pallet::getter(fn exchange_rate)]
     pub type ExchangeRate<T: Config> = StorageValue<_, Rate, ValueQuery>;
 
-    /// Total amount of staked assets in relaycahin.
+    /// Total amount of staked assets on relaycahin.
     #[pallet::storage]
     #[pallet::getter(fn staking_pool)]
     pub type StakingPool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
-    /// Fraction of reward currently set aside for reserves
+    /// Total amount of charged assets to be used as xcm fees.
+    #[pallet::storage]
+    #[pallet::getter(fn insurance_pool)]
+    pub type InsurancePool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+    /// Unbonding amount and withdrawable block number on relaychain
+    ///
+    /// [amount, withdrawable_block_number]
+    #[pallet::storage]
+    #[pallet::getter(fn unbonding)]
+    pub type Unbonding<T: Config> =
+        StorageValue<_, (BalanceOf<T>, RelaychainBlockNumberOf<T>), ValueQuery>;
+
+    /// Fraction of reward currently set aside for reserves.
     #[pallet::storage]
     #[pallet::getter(fn reserve_factor)]
     pub type ReserveFactor<T: Config> = StorageValue<_, Ratio, ValueQuery>;
@@ -223,18 +304,24 @@ mod pallet {
     /// Insert a new record while user can't be paid instantly in unstaking operation.
     #[pallet::storage]
     #[pallet::getter(fn unstake_queue)]
-    pub type UnstakeQueue<T: Config> =
-        StorageValue<_, Vec<(T::AccountId, BalanceOf<T>)>, ValueQuery>;
+    pub type UnstakeQueue<T: Config> = StorageValue<
+        _,
+        BoundedVec<(T::AccountId, BalanceOf<T>), T::UnstakeQueueCapacity>,
+        ValueQuery,
+    >;
 
     /// Liquid currency asset id
     #[pallet::storage]
-    #[pallet::getter(fn liquid_currency)]
     pub type LiquidCurrency<T: Config> = StorageValue<_, AssetIdOf<T>, OptionQuery>;
 
     /// Staking currency asset id
     #[pallet::storage]
-    #[pallet::getter(fn staking_currency)]
     pub type StakingCurrency<T: Config> = StorageValue<_, AssetIdOf<T>, OptionQuery>;
+
+    /// Transaction compensation
+    #[pallet::storage]
+    #[pallet::getter(fn transaction_compensation)]
+    pub type TransactionCompensation<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig {
@@ -263,6 +350,10 @@ mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T>
     where
+        [u8; 32]: From<<T as frame_system::Config>::AccountId>,
+        u128: From<
+            <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance,
+        >,
         BalanceOf<T>: FixedPointOperand,
         AssetIdOf<T>: AtLeast32BitUnsigned,
     {
@@ -276,9 +367,15 @@ mod pallet {
             // TODO should use T::WeightInfo::on_idle instead
             // on_idle shouldn't run out of all remaining_weight normally
             let base_weight = T::WeightInfo::pop_queue();
-            if Self::staking_currency().is_none() {
+            let staking_currency = Self::staking_currency();
+
+            // Return if staking_currency haven't been set.
+            if staking_currency.is_err() {
                 return remaining_weight;
             }
+
+            let staking_currency = staking_currency.expect("It must be ok; qed");
+
             loop {
                 // Check weight is enough
                 if remaining_weight < base_weight {
@@ -292,14 +389,8 @@ mod pallet {
                 // Get the front of the queue.
                 let (who, amount) = &Self::unstake_queue()[0];
 
-                if T::Assets::transfer(
-                    Self::staking_currency().unwrap(),
-                    &Self::account_id(),
-                    who,
-                    *amount,
-                    true,
-                )
-                .is_err()
+                if T::Assets::transfer(staking_currency, &Self::account_id(), who, *amount, false)
+                    .is_err()
                 {
                     // break if we cannot afford this
                     break;
@@ -311,18 +402,29 @@ mod pallet {
                 // remove unstake request from queue
                 Self::pop_unstake_task()
             }
+
             remaining_weight
         }
 
         fn on_finalize(n: BlockNumberFor<T>) {
             let basis = T::PeriodBasis::get();
 
-            // Check if current period end.
+            let (unbonding_amount, withdrawable_block_number) = Self::unbonding();
+            let relaychain_block_number = T::RelaychainBlockNumberProvider::current_block_number();
+
+            if !unbonding_amount.is_zero()
+                && relaychain_block_number >= withdrawable_block_number
+                && Self::withdraw_unbonded_internal(0, unbonding_amount.into()).is_ok()
+            {
+                Unbonding::<T>::kill();
+            }
+
+            // check if current period end.
             if !(n % basis).is_zero() {
                 return;
             }
 
-            // Check if there are staking to be settled.
+            // check if there are staking to be settled.
             if Self::matching_pool().is_empty() {
                 return;
             }
@@ -335,6 +437,9 @@ mod pallet {
     impl<T: Config> Pallet<T>
     where
         [u8; 32]: From<<T as frame_system::Config>::AccountId>,
+        u128: From<
+            <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance,
+        >,
         BalanceOf<T>: FixedPointOperand,
         AssetIdOf<T>: AtLeast32BitUnsigned,
     {
@@ -343,7 +448,7 @@ mod pallet {
         /// further used as collateral for lending.
         ///
         /// - `amount`: the amount of staking assets
-        #[pallet::weight(T::WeightInfo::stake())]
+        #[pallet::weight(<T as Config>::WeightInfo::stake())]
         #[transactional]
         pub fn stake(
             origin: OriginFor<T>,
@@ -351,24 +456,34 @@ mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
-            let exchange_rate = ExchangeRate::<T>::get();
-            let liquid_amount = exchange_rate
-                .reciprocal()
-                .and_then(|r| r.checked_mul_int(amount))
-                .ok_or(Error::<T>::InvalidExchangeRate)?;
+            ensure!(
+                amount > T::MinStakeAmount::get(),
+                Error::<T>::StakeAmountTooSmall
+            );
 
             T::Assets::transfer(
-                Self::staking_currency().ok_or(Error::<T>::StakingCurrencyNotSet)?,
+                Self::staking_currency()?,
                 &who,
                 &Self::account_id(),
                 amount,
-                true,
+                false,
             )?;
-            T::Assets::mint_into(
-                Self::liquid_currency().ok_or(Error::<T>::LiquidCurrencyNotSet)?,
-                &who,
-                liquid_amount,
-            )?;
+
+            // Calculate staking fee
+            let fee = T::StakingFeeFactor::get().mul_floor(amount);
+            // TODO(Alan WANG): Enable it later
+            // InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
+            //     *b = b.checked_add(&fees).ok_or(ArithmeticError::Overflow)?;
+            //     Ok(())
+            // })?;
+
+            // Amount that we should mint to user
+            let amount = amount.checked_sub(&fee).ok_or(ArithmeticError::Underflow)?;
+            let liquid_amount = Self::exchange_rate()
+                .reciprocal()
+                .and_then(|r| r.checked_mul_int(amount))
+                .ok_or(Error::<T>::InvalidExchangeRate)?;
+            T::Assets::mint_into(Self::liquid_currency()?, &who, liquid_amount)?;
 
             StakingPool::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
@@ -392,7 +507,7 @@ mod pallet {
         /// chain to do the `unbond` operation.
         ///
         /// - `amount`: the amount of derivative
-        #[pallet::weight(T::WeightInfo::unstake())]
+        #[pallet::weight(<T as Config>::WeightInfo::unstake())]
         #[transactional]
         pub fn unstake(
             origin: OriginFor<T>,
@@ -400,28 +515,29 @@ mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
+            ensure!(
+                liquid_amount > T::MinUnstakeAmount::get(),
+                Error::<T>::UnstakeAmountTooSmall
+            );
+
             let exchange_rate = ExchangeRate::<T>::get();
             let asset_amount = exchange_rate
                 .checked_mul_int(liquid_amount)
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
 
             if T::Assets::transfer(
-                Self::staking_currency().unwrap(),
+                Self::staking_currency()?,
                 &Self::account_id(),
                 &who,
                 asset_amount,
-                true,
+                false,
             )
             .is_err()
             {
-                Self::push_unstake_task(&who, asset_amount);
+                Self::push_unstake_task(&who, asset_amount)?;
             }
 
-            T::Assets::burn_from(
-                Self::liquid_currency().ok_or(Error::<T>::LiquidCurrencyNotSet)?,
-                &who,
-                liquid_amount,
-            )?;
+            T::Assets::burn_from(Self::liquid_currency()?, &who, liquid_amount)?;
             StakingPool::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b
                     .checked_sub(&asset_amount)
@@ -441,7 +557,8 @@ mod pallet {
             Ok(().into())
         }
 
-        /// Handle staking settlement at the end of an era, such as getting reward or been slashed in relaychain.
+        /// Handle staking settlement at the end of an era
+        /// such as getting reward or been slashed in relaychain.
         #[pallet::weight(<T as Config>::WeightInfo::record_staking_settlement())]
         #[transactional]
         pub fn record_staking_settlement(
@@ -450,8 +567,12 @@ mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
             kind: StakingSettlementKind,
         ) -> DispatchResultWithPostInfo {
-            T::BridgeOrigin::ensure_origin(origin)?;
-            Self::ensure_settlement_not_recorded(era_index, kind)?;
+            T::RelayOrigin::ensure_origin(origin)?;
+            ensure!(
+                !StakingSettlementRecords::<T>::contains_key(era_index, kind),
+                Error::<T>::StakingSettlementAlreadyRecorded
+            );
+
             Self::update_staking_pool(kind, amount)?;
 
             StakingSettlementRecords::<T>::insert(era_index, kind, amount);
@@ -459,36 +580,86 @@ mod pallet {
             Ok(().into())
         }
 
+        #[pallet::weight(<T as Config>::WeightInfo::force_update_transaction_compensation())]
+        #[transactional]
+        pub fn force_update_transaction_compensation(
+            origin: OriginFor<T>,
+            fee: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            T::RelayOrigin::ensure_origin(origin)?;
+            TransactionCompensation::<T>::mutate(|v| *v = fee);
+            Self::deposit_event(Event::<T>::TransactionCompensationUpdated(fee));
+            Ok(().into())
+        }
+
         /// Do settlement for matching pool.
         ///
         /// Calculate the imbalance of current state and send corresponding operations to
         /// relay-chain.
-        ///
-        /// NOTE: currently it finished by stake-client.
         #[pallet::weight(<T as Config>::WeightInfo::settlement())]
         #[transactional]
         pub fn settlement(
             origin: OriginFor<T>,
+            #[pallet::compact] bonding_amount: BalanceOf<T>,
             #[pallet::compact] unbonding_amount: BalanceOf<T>,
+            withdrawable_block_number: RelaychainBlockNumberOf<T>,
         ) -> DispatchResultWithPostInfo {
-            T::BridgeOrigin::ensure_origin(origin)?;
+            T::RelayOrigin::ensure_origin(origin)?;
+
             let (bond_amount, rebond_amount, unbond_amount) =
                 MatchingPool::<T>::take().matching(unbonding_amount);
+
+            let beneficiary = MultiLocation::new(
+                1,
+                X1(AccountId32 {
+                    network: NetworkId::Any,
+                    id: Self::para_account_id().into(),
+                }),
+            );
+            let base_weight = T::BaseXcmWeight::get();
+
+            if !Self::transaction_compensation().is_zero() {
+                T::Assets::burn_from(
+                    Self::staking_currency()?,
+                    &Self::account_id(),
+                    Self::transaction_compensation(),
+                )?;
+            }
 
             if !bond_amount.is_zero() {
                 T::XcmTransfer::transfer(
                     Self::account_id(),
-                    Self::staking_currency().ok_or(Error::<T>::StakingCurrencyNotSet)?,
+                    Self::staking_currency()?,
                     bond_amount,
-                    MultiLocation::X2(
-                        Junction::Parent,
-                        Junction::AccountId32 {
-                            network: NetworkId::Any,
-                            id: T::RelayAgent::get().into(),
-                        },
-                    ),
-                    T::BaseXcmWeight::get(),
+                    beneficiary,
+                    base_weight,
                 )?;
+
+                if !bonding_amount.is_zero() {
+                    Self::bond_internal(bond_amount, RewardDestination::Staked)?;
+                } else {
+                    Self::bond_extra_internal(bond_amount)?;
+                }
+            }
+
+            let (unbonding_amount, old_withdrawable_block_number) = Self::unbonding();
+            if !unbond_amount.is_zero() {
+                let new_unbonding_amount: BalanceOf<T> = unbonding_amount
+                    .checked_add(&unbond_amount)
+                    .ok_or(ArithmeticError::Overflow)?;
+                Self::unbond_internal(unbond_amount)?;
+                Unbonding::<T>::put((
+                    new_unbonding_amount,
+                    withdrawable_block_number.max(old_withdrawable_block_number),
+                ));
+            }
+
+            if !rebond_amount.is_zero() {
+                let new_unbonding_amount: BalanceOf<T> = unbonding_amount
+                    .checked_sub(&rebond_amount)
+                    .ok_or(ArithmeticError::Underflow)?;
+                Self::rebond_internal(rebond_amount)?;
+                Unbonding::<T>::put((new_unbonding_amount, old_withdrawable_block_number));
             }
 
             Self::deposit_event(Event::<T>::StakingOpRequest(
@@ -496,7 +667,136 @@ mod pallet {
                 rebond_amount,
                 unbond_amount,
             ));
+
             Ok(().into())
+        }
+
+        /// Bond on relaychain via xcm.transact
+        #[pallet::weight(<T as Config>::WeightInfo::bond())]
+        #[transactional]
+        pub fn bond(
+            origin: OriginFor<T>,
+            value: BalanceOf<T>,
+            payee: RewardDestination<T::AccountId>,
+        ) -> DispatchResult {
+            T::RelayOrigin::ensure_origin(origin)?;
+            Self::bond_internal(value, payee)?;
+            Ok(())
+        }
+
+        /// Bond_extra on relaychain via xcm.transact
+        #[pallet::weight(<T as Config>::WeightInfo::bond_extra())]
+        #[transactional]
+        pub fn bond_extra(origin: OriginFor<T>, value: BalanceOf<T>) -> DispatchResult {
+            T::RelayOrigin::ensure_origin(origin)?;
+            Self::bond_extra_internal(value)?;
+            Ok(())
+        }
+
+        /// unbond on relaychain via xcm.transact
+        #[pallet::weight(<T as Config>::WeightInfo::unbond())]
+        #[transactional]
+        pub fn unbond(origin: OriginFor<T>, value: BalanceOf<T>) -> DispatchResult {
+            T::RelayOrigin::ensure_origin(origin)?;
+            Self::unbond_internal(value)?;
+            Ok(())
+        }
+
+        /// rebond on relaychain via xcm.transact
+        #[pallet::weight(<T as Config>::WeightInfo::rebond())]
+        #[transactional]
+        pub fn rebond(origin: OriginFor<T>, value: BalanceOf<T>) -> DispatchResult {
+            T::RelayOrigin::ensure_origin(origin)?;
+            Self::rebond_internal(value)?;
+            Ok(())
+        }
+
+        /// withdraw unbonded on relaychain via xcm.transact
+        #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded())]
+        #[transactional]
+        pub fn withdraw_unbonded(
+            origin: OriginFor<T>,
+            num_slashing_spans: u32,
+            amount: BalanceOf<T>,
+        ) -> DispatchResult {
+            T::RelayOrigin::ensure_origin(origin)?;
+            Self::withdraw_unbonded_internal(num_slashing_spans, amount.into())?;
+            Ok(())
+        }
+
+        /// Nominate on relaychain via xcm.transact
+        #[pallet::weight(<T as Config>::WeightInfo::nominate())]
+        #[transactional]
+        pub fn nominate(origin: OriginFor<T>, targets: Vec<T::AccountId>) -> DispatchResult {
+            T::RelayOrigin::ensure_origin(origin)?;
+
+            let targets_source = targets
+                .clone()
+                .into_iter()
+                .map(T::Lookup::unlookup)
+                .collect();
+
+            switch_relay!({
+                let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                    UtilityAsDerivativeCall {
+                        index: T::DerivativeIndex::get(),
+                        call: RelaychainCall::Staking::<T>(StakingCall::Nominate(
+                            StakingNominateCall {
+                                targets: targets_source,
+                            },
+                        )),
+                    },
+                )));
+
+                let msg = Self::ump_transact(call.encode().into());
+
+                match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                    Ok(()) => {
+                        Self::deposit_event(Event::<T>::NominateCallSent(targets));
+                    }
+                    Err(_e) => {
+                        return Err(Error::<T>::NominateCallFailed.into());
+                    }
+                }
+            });
+
+            Ok(())
+        }
+
+        /// Payout_stakers on relaychain via xcm.transact
+        #[pallet::weight(<T as Config>::WeightInfo::payout_stakers())]
+        #[transactional]
+        pub fn payout_stakers(
+            origin: OriginFor<T>,
+            validator_stash: T::AccountId,
+            era: u32,
+        ) -> DispatchResult {
+            T::RelayOrigin::ensure_origin(origin)?;
+
+            switch_relay!({
+                let call = RelaychainCall::Staking::<T>(StakingCall::PayoutStakers(
+                    StakingPayoutStakersCall {
+                        validator_stash: validator_stash.clone(),
+                        era,
+                    },
+                ));
+
+                let msg = Self::ump_transact(call.encode().into());
+
+                match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                    Ok(()) => {
+                        Self::deposit_event(Event::<T>::PayoutStakersCallSent(
+                            validator_stash,
+                            era,
+                        ));
+                    }
+                    Err(_e) => {
+                        return Err(Error::<T>::PayoutStakersCallFailed.into());
+                    }
+                }
+            });
+
+            Ok(())
         }
 
         /// set liquid currency via governance
@@ -523,55 +823,304 @@ mod pallet {
 
     impl<T: Config> Pallet<T>
     where
+        [u8; 32]: From<<T as frame_system::Config>::AccountId>,
+        u128: From<
+            <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance,
+        >,
         BalanceOf<T>: FixedPointOperand,
         AssetIdOf<T>: AtLeast32BitUnsigned,
     {
-        /// Ensure settlement not recorded for this `era_index`.
-        #[inline]
-        fn ensure_settlement_not_recorded(
-            era_index: EraIndex,
-            kind: StakingSettlementKind,
-        ) -> DispatchResult {
-            ensure!(
-                !StakingSettlementRecords::<T>::contains_key(era_index, kind),
-                Error::<T>::StakingSettlementAlreadyRecorded
-            );
-            Ok(())
+        /// Staking pool account
+        pub fn account_id() -> T::AccountId {
+            T::PalletId::get().into_account()
         }
 
-        /// Increase/Decrease staked asset in staking pool, and synchronized the exchange rate.
+        /// Parachain sovereign account
+        pub fn para_account_id() -> T::AccountId {
+            T::SelfParaId::get().into_account()
+        }
+
+        pub fn staking_currency() -> Result<AssetIdOf<T>, DispatchError> {
+            StakingCurrency::<T>::get()
+                .ok_or(Error::<T>::StakingCurrencyNotSet)
+                .map_err(Into::into)
+        }
+
+        pub fn liquid_currency() -> Result<AssetIdOf<T>, DispatchError> {
+            LiquidCurrency::<T>::get()
+                .ok_or(Error::<T>::LiquidCurrencyNotSet)
+                .map_err(Into::into)
+        }
+
+        /// Derivative parachain account
+        pub fn derivative_para_account_id() -> T::AccountId {
+            T::DerivativeProvider::derivative_account_id(
+                Self::para_account_id(),
+                T::DerivativeIndex::get(),
+            )
+        }
+
+        /// Increase / decrease staked asset in staking pool, and synchronized the exchange rate.
         fn update_staking_pool(
             kind: StakingSettlementKind,
             amount: BalanceOf<T>,
         ) -> DispatchResult {
             use StakingSettlementKind::*;
             match kind {
-                Reward => StakingPool::<T>::try_mutate(|p| -> DispatchResult {
-                    *p = p.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
-                    Ok(())
-                }),
-                Slash => StakingPool::<T>::try_mutate(|p| -> DispatchResult {
-                    *p = p.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
-                    Ok(())
-                }),
+                Reward => {
+                    ensure!(
+                        amount <= T::MaxRewardsPerEra::get(),
+                        Error::<T>::ExceededMaxRewardsPerEra
+                    );
+                    StakingPool::<T>::try_mutate(|p| -> DispatchResult {
+                        *p = p.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
+                        Ok(())
+                    })
+                }
+                Slash => {
+                    ensure!(
+                        amount <= T::MaxSlashesPerEra::get(),
+                        Error::<T>::ExceededMaxSlashesPerEra
+                    );
+                    StakingPool::<T>::try_mutate(|p| -> DispatchResult {
+                        *p = p.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
+                        Ok(())
+                    })
+                }
             }?;
 
             // Update exchange rate.
             let exchange_rate = Rate::checked_from_rational(
                 StakingPool::<T>::get(),
-                T::Assets::total_issuance(
-                    Self::liquid_currency().ok_or(Error::<T>::LiquidCurrencyNotSet)?,
-                ),
+                T::Assets::total_issuance(Self::liquid_currency()?),
             )
             .ok_or(Error::<T>::InvalidExchangeRate)?;
             ExchangeRate::<T>::put(exchange_rate);
+
             Ok(())
         }
 
-        /// Push an unstake task into queue.
+        fn bond_internal(
+            value: BalanceOf<T>,
+            payee: RewardDestination<T::AccountId>,
+        ) -> DispatchResult {
+            let stash = Self::derivative_para_account_id();
+            let controller = stash.clone();
+
+            switch_relay!({
+                let call =
+                    RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
+                        calls: vec![
+                            RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
+                                BalancesTransferKeepAliveCall {
+                                    dest: T::Lookup::unlookup(stash),
+                                    value,
+                                },
+                            )),
+                            RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                                UtilityAsDerivativeCall {
+                                    index: T::DerivativeIndex::get(),
+                                    call: RelaychainCall::Staking::<T>(StakingCall::Bond(
+                                        StakingBondCall {
+                                            controller: T::Lookup::unlookup(controller.clone()),
+                                            value,
+                                            payee: payee.clone(),
+                                        },
+                                    )),
+                                },
+                            ))),
+                        ],
+                    })));
+
+                let msg = Self::ump_transact(call.encode().into());
+
+                match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                    Ok(()) => {
+                        Self::deposit_event(Event::<T>::BondCallSent(controller, value, payee));
+                    }
+                    Err(_e) => {
+                        return Err(Error::<T>::BondCallFailed.into());
+                    }
+                }
+            });
+
+            Ok(())
+        }
+
+        fn bond_extra_internal(value: BalanceOf<T>) -> DispatchResult {
+            let stash = T::Lookup::unlookup(Self::derivative_para_account_id());
+
+            switch_relay!({
+                let call =
+                    RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
+                        calls: vec![
+                            RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
+                                BalancesTransferKeepAliveCall { dest: stash, value },
+                            )),
+                            RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                                UtilityAsDerivativeCall {
+                                    index: T::DerivativeIndex::get(),
+                                    call: RelaychainCall::Staking::<T>(StakingCall::BondExtra(
+                                        StakingBondExtraCall { value },
+                                    )),
+                                },
+                            ))),
+                        ],
+                    })));
+
+                let msg = Self::ump_transact(call.encode().into());
+
+                match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                    Ok(()) => {
+                        Self::deposit_event(Event::<T>::BondExtraCallSent(value));
+                    }
+                    Err(_e) => {
+                        return Err(Error::<T>::BondExtraCallFailed.into());
+                    }
+                }
+            });
+
+            Ok(())
+        }
+
+        fn unbond_internal(value: BalanceOf<T>) -> DispatchResult {
+            switch_relay!({
+                let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                    UtilityAsDerivativeCall {
+                        index: T::DerivativeIndex::get(),
+                        call: RelaychainCall::Staking::<T>(StakingCall::Unbond(
+                            StakingUnbondCall { value },
+                        )),
+                    },
+                )));
+
+                let msg = Self::ump_transact(call.encode().into());
+
+                match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                    Ok(()) => {
+                        Self::deposit_event(Event::<T>::UnbondCallSent(value));
+                    }
+                    Err(_e) => {
+                        return Err(Error::<T>::UnbondCallFailed.into());
+                    }
+                }
+            });
+
+            Ok(())
+        }
+
+        fn rebond_internal(value: BalanceOf<T>) -> DispatchResult {
+            switch_relay!({
+                let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                    UtilityAsDerivativeCall {
+                        index: T::DerivativeIndex::get(),
+                        call: RelaychainCall::Staking::<T>(StakingCall::Rebond(
+                            StakingRebondCall { value },
+                        )),
+                    },
+                )));
+
+                let msg = Self::ump_transact(call.encode().into());
+
+                match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                    Ok(()) => {
+                        Self::deposit_event(Event::<T>::RebondCallSent(value));
+                    }
+                    Err(_e) => {
+                        return Err(Error::<T>::RebondCallFailed.into());
+                    }
+                }
+            });
+
+            Ok(())
+        }
+
+        fn withdraw_unbonded_internal(num_slashing_spans: u32, amount: u128) -> DispatchResult {
+            switch_relay!({
+                let call =
+                    RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
+                        calls: vec![
+                            RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                                UtilityAsDerivativeCall {
+                                    index: T::DerivativeIndex::get(),
+                                    call: RelaychainCall::Staking::<T>(
+                                        StakingCall::WithdrawUnbonded(
+                                            StakingWithdrawUnbondedCall { num_slashing_spans },
+                                        ),
+                                    ),
+                                },
+                            ))),
+                            RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                                UtilityAsDerivativeCall {
+                                    index: T::DerivativeIndex::get(),
+                                    call: RelaychainCall::Balances::<T>(BalancesCall::TransferAll(
+                                        BalancesTransferAllCall {
+                                            dest: T::Lookup::unlookup(Self::para_account_id()),
+                                            keep_alive: true,
+                                        },
+                                    )),
+                                },
+                            ))),
+                            RelaychainCall::XcmPallet(
+                                XcmPalletCall::XcmPalletReserveTransferAssetsCall(
+                                    XcmPalletReserveTransferAssetsCall {
+                                        dest: Box::new(
+                                            MultiLocation::new(
+                                                0,
+                                                X1(Parachain(T::SelfParaId::get().into())),
+                                            )
+                                            .into(),
+                                        ),
+                                        beneficiary: Box::new(
+                                            MultiLocation::new(
+                                                0,
+                                                X1(AccountId32 {
+                                                    network: NetworkId::Any,
+                                                    id: Self::account_id().into(),
+                                                }),
+                                            )
+                                            .into(),
+                                        ),
+                                        assets: Box::new(
+                                            MultiAssets::from(vec![MultiAsset {
+                                                id: AssetId::Concrete(MultiLocation::new(0, Here)),
+                                                fun: Fungibility::Fungible(amount),
+                                            }])
+                                            .into(),
+                                        ),
+                                        fee_asset_item: 0,
+                                        dest_weight: 1_000_000_000,
+                                    },
+                                ),
+                            ),
+                        ],
+                    })));
+
+                let msg = Self::ump_transact(call.encode().into());
+
+                match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                    Ok(()) => {
+                        Self::deposit_event(Event::<T>::WithdrawUnbondedCallSent(
+                            num_slashing_spans,
+                        ));
+                    }
+                    Err(_e) => {
+                        return Err(Error::<T>::WithdrawUnbondedCallFailed.into());
+                    }
+                }
+            });
+
+            Ok(())
+        }
+
+        /// push an unstake task into queue.
         #[inline]
-        fn push_unstake_task(who: &T::AccountId, amount: BalanceOf<T>) {
-            UnstakeQueue::<T>::mutate(|q| q.push((who.clone(), amount)))
+        fn push_unstake_task(who: &T::AccountId, amount: BalanceOf<T>) -> DispatchResult {
+            UnstakeQueue::<T>::try_mutate(|q| -> DispatchResult {
+                q.try_push((who.clone(), amount))
+                    .map_err(|_| Error::<T>::ExceededUnstakeQueueCapacity)?;
+                Ok(())
+            })
         }
 
         /// Pop an unstake task from queue.
@@ -579,35 +1128,81 @@ mod pallet {
         fn pop_unstake_task() {
             UnstakeQueue::<T>::mutate(|v| v.remove(0));
         }
-    }
 
-    impl<T: Config> Pallet<T> {
-        pub fn account_id() -> T::AccountId {
-            T::PalletId::get().into_account()
+        fn ump_transact(call: DoubleEncoded<()>) -> Xcm<()> {
+            let asset: MultiAsset = (MultiLocation::here(), 1_000_000_000_000).into();
+
+            WithdrawAsset {
+                assets: MultiAssets::from(asset.clone()),
+                effects: vec![
+                    BuyExecution {
+                        fees: asset,
+                        weight: 800_000_000,
+                        debt: 600_000_000,
+                        halt_on_error: false,
+                        instructions: vec![Transact {
+                            origin_type: OriginKind::SovereignAccount,
+                            require_weight_at_most: u64::MAX,
+                            call,
+                        }],
+                    },
+                    DepositAsset {
+                        assets: All.into(),
+                        max_assets: u32::max_value(),
+                        beneficiary: X1(AccountId32 {
+                            network: NetworkId::Any,
+                            id: Self::para_account_id().into(),
+                        })
+                        .into(),
+                    },
+                ],
+            }
         }
 
-        /// account derived from parachain account
-        pub fn derivative_account_id() -> T::AccountId {
-            T::DerivativeProvider::derivative_account_id(
-                T::RelayAgent::get(),
-                T::DerivativeIndex::get(),
-            )
+        fn ump_transfer(amount: BalanceOf<T>) -> Xcm<()> {
+            let asset: MultiAsset = (MultiLocation::here(), u128::from(amount)).into();
+
+            WithdrawAsset {
+                assets: MultiAssets::from(asset.clone()),
+                effects: vec![InitiateReserveWithdraw {
+                    assets: All.into(),
+                    reserve: MultiLocation::parent(),
+                    effects: vec![
+                        BuyExecution {
+                            fees: asset,
+                            weight: 0,
+                            debt: T::BaseXcmWeight::get(),
+                            halt_on_error: false,
+                            instructions: vec![],
+                        },
+                        DepositAsset {
+                            assets: All.into(),
+                            max_assets: u32::max_value(),
+                            beneficiary: X1(AccountId32 {
+                                network: NetworkId::Any,
+                                id: Self::para_account_id().into(),
+                            })
+                            .into(),
+                        },
+                    ],
+                }],
+            }
         }
     }
 }
 
 impl<T: Config> ExchangeRateProvider for Pallet<T> {
-    fn get_exchange_rate() -> primitives::Rate {
+    fn get_exchange_rate() -> Rate {
         ExchangeRate::<T>::get()
     }
 }
 
 impl<T: Config> LiquidStakingCurrenciesProvider<AssetIdOf<T>> for Pallet<T> {
     fn get_staking_currency() -> Option<AssetIdOf<T>> {
-        Self::staking_currency()
+        StakingCurrency::<T>::get()
     }
 
     fn get_liquid_currency() -> Option<AssetIdOf<T>> {
-        Self::liquid_currency()
+        LiquidCurrency::<T>::get()
     }
 }

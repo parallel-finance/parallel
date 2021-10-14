@@ -141,16 +141,18 @@ fn test_settlement_should_work() {
             );
             assert_ok!(LiquidStaking::settlement(
                 Origin::signed(ALICE),
-                unbonding_amount
+                0,
+                unbonding_amount,
+                0
             ));
             Pallet::<Test>::on_idle(0, 10000);
         }
     });
     Relay::execute_with(|| {
         assert_eq!(
-            RelayBalances::free_balance(&RelayAgent::get()),
+            RelayBalances::free_balance(&LiquidStaking::para_account_id()),
             // FIXME: weight should be take into account
-            9999999200000000
+            9999978717112000
         );
     });
 }
@@ -161,12 +163,13 @@ fn test_transact_bond_work() {
 
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
+            Origin::signed(ALICE),
             3 * DOT_DECIMAL,
             RewardDestination::Staked
         ));
 
         ParaSystem::assert_has_event(mock::Event::LiquidStaking(crate::Event::BondCallSent(
-            LiquidStaking::derivative_account_id(),
+            LiquidStaking::derivative_para_account_id(),
             3 * DOT_DECIMAL,
             RewardDestination::Staked,
         )));
@@ -174,10 +177,10 @@ fn test_transact_bond_work() {
 
     Relay::execute_with(|| {
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
-            LiquidStaking::derivative_account_id(),
+            LiquidStaking::derivative_para_account_id(),
             3 * DOT_DECIMAL,
         )));
-        let ledger = RelayStaking::ledger(LiquidStaking::derivative_account_id()).unwrap();
+        let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
         assert_eq!(ledger.total, 3 * DOT_DECIMAL);
     });
 }
@@ -188,15 +191,19 @@ fn test_transact_bond_extra_work() {
 
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
+            Origin::signed(ALICE),
             2 * DOT_DECIMAL,
             RewardDestination::Staked
         ));
 
-        assert_ok!(LiquidStaking::bond_extra(3 * DOT_DECIMAL));
+        assert_ok!(LiquidStaking::bond_extra(
+            Origin::signed(ALICE),
+            3 * DOT_DECIMAL
+        ));
     });
 
     Relay::execute_with(|| {
-        let ledger = RelayStaking::ledger(LiquidStaking::derivative_account_id()).unwrap();
+        let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
         assert_eq!(ledger.total, 5 * DOT_DECIMAL);
     });
 }
@@ -207,22 +214,26 @@ fn test_transact_unbond_work() {
 
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
+            Origin::signed(ALICE),
             5 * DOT_DECIMAL,
             RewardDestination::Staked
         ));
-        assert_ok!(LiquidStaking::unbond(2 * DOT_DECIMAL));
+        assert_ok!(LiquidStaking::unbond(
+            Origin::signed(ALICE),
+            2 * DOT_DECIMAL
+        ));
     });
 
     Relay::execute_with(|| {
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
-            LiquidStaking::derivative_account_id(),
+            LiquidStaking::derivative_para_account_id(),
             5 * DOT_DECIMAL,
         )));
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded(
-            LiquidStaking::derivative_account_id(),
+            LiquidStaking::derivative_para_account_id(),
             2 * DOT_DECIMAL,
         )));
-        let ledger = RelayStaking::ledger(LiquidStaking::derivative_account_id()).unwrap();
+        let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
         assert_eq!(ledger.total, 5 * DOT_DECIMAL);
         assert_eq!(ledger.active, 3 * DOT_DECIMAL);
     });
@@ -234,24 +245,28 @@ fn test_transact_withdraw_unbonded_work() {
 
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
+            Origin::signed(ALICE),
             5 * DOT_DECIMAL,
             RewardDestination::Staked
         ));
-        assert_ok!(LiquidStaking::unbond(2 * DOT_DECIMAL));
+        assert_ok!(LiquidStaking::unbond(
+            Origin::signed(ALICE),
+            2 * DOT_DECIMAL
+        ));
     });
 
     Relay::execute_with(|| {
-        let ledger = RelayStaking::ledger(LiquidStaking::derivative_account_id()).unwrap();
+        let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
         assert_eq!(ledger.total, 5 * DOT_DECIMAL);
         assert_eq!(ledger.active, 3 * DOT_DECIMAL);
         assert_eq!(ledger.unlocking.len(), 1);
 
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
-            LiquidStaking::derivative_account_id(),
+            LiquidStaking::derivative_para_account_id(),
             5 * DOT_DECIMAL,
         )));
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded(
-            LiquidStaking::derivative_account_id(),
+            LiquidStaking::derivative_para_account_id(),
             2 * DOT_DECIMAL,
         )));
 
@@ -261,11 +276,15 @@ fn test_transact_withdraw_unbonded_work() {
     });
 
     ParaA::execute_with(|| {
-        assert_ok!(LiquidStaking::withdraw_unbonded(0));
+        assert_ok!(LiquidStaking::withdraw_unbonded(
+            Origin::signed(ALICE),
+            0,
+            0
+        ));
     });
 
     Relay::execute_with(|| {
-        let ledger = RelayStaking::ledger(LiquidStaking::derivative_account_id()).unwrap();
+        let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
         assert_eq!(ledger.total, 3 * DOT_DECIMAL);
         assert_eq!(ledger.active, 3 * DOT_DECIMAL);
         assert_eq!(ledger.unlocking.len(), 0);
@@ -278,27 +297,34 @@ fn test_transact_rebond_work() {
 
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
+            Origin::signed(ALICE),
             10 * DOT_DECIMAL,
             RewardDestination::Staked
         ));
-        assert_ok!(LiquidStaking::unbond(5 * DOT_DECIMAL));
-        assert_ok!(LiquidStaking::rebond(3 * DOT_DECIMAL));
+        assert_ok!(LiquidStaking::unbond(
+            Origin::signed(ALICE),
+            5 * DOT_DECIMAL
+        ));
+        assert_ok!(LiquidStaking::rebond(
+            Origin::signed(ALICE),
+            3 * DOT_DECIMAL
+        ));
     });
 
     Relay::execute_with(|| {
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
-            LiquidStaking::derivative_account_id(),
+            LiquidStaking::derivative_para_account_id(),
             10 * DOT_DECIMAL,
         )));
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded(
-            LiquidStaking::derivative_account_id(),
+            LiquidStaking::derivative_para_account_id(),
             5 * DOT_DECIMAL,
         )));
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
-            LiquidStaking::derivative_account_id(),
+            LiquidStaking::derivative_para_account_id(),
             3 * DOT_DECIMAL,
         )));
-        let ledger = RelayStaking::ledger(LiquidStaking::derivative_account_id()).unwrap();
+        let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
         assert_eq!(ledger.total, 10 * DOT_DECIMAL);
         assert_eq!(ledger.active, 8 * DOT_DECIMAL);
     });
@@ -310,17 +336,22 @@ fn test_transact_nominate_work() {
 
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
+            Origin::signed(ALICE),
             10 * DOT_DECIMAL,
             RewardDestination::Staked
         ));
 
-        assert_ok!(LiquidStaking::nominate(vec![ALICE, BOB],));
+        assert_ok!(LiquidStaking::nominate(
+            Origin::signed(ALICE),
+            vec![ALICE, BOB],
+        ));
     });
 
     Relay::execute_with(|| {
-        let ledger = RelayStaking::ledger(LiquidStaking::derivative_account_id()).unwrap();
+        let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
         assert_eq!(ledger.total, 10 * DOT_DECIMAL);
-        let nominators = RelayStaking::nominators(LiquidStaking::derivative_account_id()).unwrap();
+        let nominators =
+            RelayStaking::nominators(LiquidStaking::derivative_para_account_id()).unwrap();
         assert_eq!(nominators.targets, vec![ALICE, BOB]);
     });
 }
@@ -345,21 +376,23 @@ fn test_transact_payout_stakers_work() {
         pallet_staking::ErasValidatorReward::<WestendRuntime>::insert(0, 500 * DOT_DECIMAL);
         pallet_staking::ErasStakersClipped::<WestendRuntime>::insert(
             0,
-            LiquidStaking::derivative_account_id(),
+            LiquidStaking::derivative_para_account_id(),
             exposure,
         );
-        RelayStaking::reward_by_ids(vec![(LiquidStaking::derivative_account_id(), 100)]);
+        RelayStaking::reward_by_ids(vec![(LiquidStaking::derivative_para_account_id(), 100)]);
     });
 
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::bond(
+            Origin::signed(ALICE),
             1 * DOT_DECIMAL,
             RewardDestination::Account(BOB),
         ));
 
         // weight is 31701208000
         assert_ok!(LiquidStaking::payout_stakers(
-            LiquidStaking::derivative_account_id(),
+            Origin::signed(ALICE),
+            LiquidStaking::derivative_para_account_id(),
             0
         ));
     });

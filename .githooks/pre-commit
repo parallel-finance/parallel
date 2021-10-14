@@ -4,7 +4,7 @@
 
 set -e
 
-files=$((git diff --cached --name-only | grep -Ei "\.rs$") || true)
+files=$((git diff --cached --name-only --diff-filter=ACMR | grep -Ei "\.rs$") || true)
 
 if [ ! -z "${files}" ]; then
   make fmt

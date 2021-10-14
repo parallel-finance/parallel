@@ -23,7 +23,7 @@ use sp_runtime::{
     traits::{IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
 };
-use sp_std::{convert::Into, prelude::*};
+use sp_std::prelude::*;
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -80,7 +80,7 @@ pub type Price = FixedU128;
 
 pub type Timestamp = u64;
 
-pub type AssetId = u32;
+pub type CurrencyId = u32;
 
 pub const SECONDS_PER_YEAR: Timestamp = 365 * 24 * 60 * 60;
 
@@ -93,40 +93,40 @@ pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum DataProviderId {
-    Aggregated = 0,
+    Aggregated = 0isize,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 pub trait PriceFeeder {
-    fn get_price(asset_id: &AssetId) -> Option<PriceDetail>;
+    fn get_price(asset_id: &CurrencyId) -> Option<PriceDetail>;
 }
 
 pub trait DecimalProvider {
-    fn get_decimal(asset_id: &AssetId) -> u8;
+    fn get_decimal(asset_id: &CurrencyId) -> u8;
 }
 
-pub trait EmergencyPriceFeeder<AssetId, Price> {
-    fn set_emergency_price(asset_id: AssetId, price: Price);
-    fn reset_emergency_price(asset_id: AssetId);
+pub trait EmergencyPriceFeeder<CurrencyId, Price> {
+    fn set_emergency_price(asset_id: CurrencyId, price: Price);
+    fn reset_emergency_price(asset_id: CurrencyId);
 }
 
 pub trait ExchangeRateProvider {
     fn get_exchange_rate() -> Rate;
 }
 
-pub trait LiquidStakingCurrenciesProvider<AssetId> {
-    fn get_staking_currency() -> Option<AssetId>;
-    fn get_liquid_currency() -> Option<AssetId>;
+pub trait LiquidStakingCurrenciesProvider<CurrencyId> {
+    fn get_staking_currency() -> Option<CurrencyId>;
+    fn get_liquid_currency() -> Option<CurrencyId>;
 }
 
-pub trait AMM<T: frame_system::Config> {
+pub trait AMM<T: frame_system::Config, CurrencyId, Balance> {
     /// Handles a "trade" on the AMM side for "who".
     /// This will move the `amount_in` funds to the AMM PalletId,
     /// trade `pair.0` to `pair.1` and return a result with the amount
     /// of currency that was sent back to the user.
     fn trade(
         who: &T::AccountId,
-        pair: (AssetId, AssetId),
+        pair: (CurrencyId, CurrencyId),
         amount_in: Balance,
         minimum_amount_out: Balance,
     ) -> Result<Balance, frame_support::pallet_prelude::DispatchError>;

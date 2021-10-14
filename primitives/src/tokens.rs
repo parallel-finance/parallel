@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::AssetId;
+use crate::CurrencyId;
 
-pub const HKO: AssetId = 0;
-pub const PARA: AssetId = 1;
+pub const HKO: CurrencyId = 0;
+pub const PARA: CurrencyId = 1;
 
-pub const KSM: AssetId = 100;
-pub const DOT: AssetId = 101;
-pub const USDT: AssetId = 102;
+pub const KSM: CurrencyId = 100;
+pub const DOT: CurrencyId = 101;
+pub const USDT: CurrencyId = 102;
 
-pub const XKSM: AssetId = 1000;
-pub const XDOT: AssetId = 1001;
+pub const XKSM: CurrencyId = 1000;
+pub const XDOT: CurrencyId = 1001;
 
 // Token Registration Information
 // +──────────+────────+────────────────────+
