@@ -193,6 +193,7 @@ pub mod pallet {
         PeriodTerminated,
         /// Sent staking.bond call to relaychain
         BondCallSent(T::AccountId, BalanceOf<T>, RewardDestination<T::AccountId>),
+        /// Sent balance.trnsfer and staking.bond call to relaychain
         TransferBondCallSent(T::AccountId, BalanceOf<T>, RewardDestination<T::AccountId>),
         /// Sent staking.bond_extra call to relaychain
         BondExtraCallSent(BalanceOf<T>),
@@ -248,6 +249,8 @@ pub mod pallet {
         ExceededMaxRewardsPerEra,
         /// Exceeded max slashes per era
         ExceededMaxSlashesPerEra,
+        /// Failed to send transfer and bond call
+        TransferBondCallFailed,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -847,7 +850,7 @@ pub mod pallet {
                 let stash = Self::derivative_para_account_id();
                 let controller = stash.clone();
 
-                let bond_call =
+                let transfer_bond_call =
                     RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
                         calls: vec![
                             RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
@@ -873,7 +876,7 @@ pub mod pallet {
                 let bond_transact_xcm = Transact {
                     origin_type: OriginKind::SovereignAccount,
                     require_weight_at_most: u64::MAX,
-                    call: bond_call.encode().into(),
+                    call: transfer_bond_call.encode().into(),
                 };
                 let fees: MultiAsset = (MultiLocation::here(), 1_000_000_000_000).into();
                 let recipient = MultiLocation::new(
@@ -908,8 +911,7 @@ pub mod pallet {
                         ));
                     }
                     Err(_e) => {
-                        // Err(Error::<T>::BondCallFailed.into());
-                        ();
+                        return Err(Error::<T>::TransferBondCallFailed.into());
                     }
                 }
             });
