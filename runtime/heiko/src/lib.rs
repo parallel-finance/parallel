@@ -1176,7 +1176,6 @@ impl orml_vesting::Config for Runtime {
 
 parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
-    pub const AllowPermissionlessPoolCreation: bool = true;
     pub const DefaultLpFee: Perbill = Perbill::from_perthousand(3);         // 0.3%
     pub const DefaultProtocolFee: Perbill = Perbill::from_perthousand(2);   // 0.2%
     pub DefaultProtocolFeeReceiver: AccountId = TreasuryPalletId::get().into_account();
@@ -1186,8 +1185,8 @@ impl pallet_amm::Config for Runtime {
     type Event = Event;
     type Assets = CurrencyAdapter;
     type PalletId = AMMPalletId;
+    type CreatePoolOrigin = EnsureRoot<AccountId>;
     type AMMWeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
-    type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
     type LpFee = DefaultLpFee;
     type ProtocolFee = DefaultProtocolFee;
     type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
