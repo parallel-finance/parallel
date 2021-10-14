@@ -132,7 +132,7 @@ where
             ))
             .ok_or(ArithmeticError::Overflow)?;
 
-        let (liquidity, _) = Self::get_account_liquidity(&source)?;
+        let (liquidity, _) = Self::get_account_liquidity(source)?;
         if effects_value > liquidity {
             return Err(Error::<T>::InsufficientLiquidity.into());
         }
