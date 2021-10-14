@@ -163,10 +163,6 @@ pub mod pallet {
         #[pallet::constant]
         type MinUnstakeAmount: Get<BalanceOf<Self>>;
 
-        /// Charged fee ratio while user staking.
-        #[pallet::constant]
-        type StakingFeeFactor: Get<Ratio>;
-
         /// Relay network
         #[pallet::constant]
         type RelayNetwork: Get<NetworkId>;
@@ -470,7 +466,7 @@ pub mod pallet {
             )?;
 
             // Calculate staking fee
-            let fee = T::StakingFeeFactor::get().mul_floor(amount);
+            let fee = Self::reserve_factor().mul_floor(amount);
             // TODO(Alan WANG): Enable it later
             // InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
             //     *b = b.checked_add(&fees).ok_or(ArithmeticError::Overflow)?;
