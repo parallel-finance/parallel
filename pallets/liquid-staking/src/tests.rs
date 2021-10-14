@@ -507,18 +507,34 @@ fn test_transfer_and_then_bond() {
 fn test_transfer_bond() {
     TestNet::reset();
     let xcm_transfer_amount = 4 * DOT_DECIMAL;
+    let existential_deposit = 10_000_000_000;
+    // let deposit_fee = 800_000_000;
+    Relay::execute_with(|| {
+        assert_ok!(RelayBalances::transfer(
+            westend_runtime::Origin::signed(ALICE),
+            LiquidStaking::derivative_para_account_id().into(),
+            existential_deposit
+        ));
+        assert_eq!(
+            RelayBalances::free_balance(LiquidStaking::derivative_para_account_id()),
+            existential_deposit
+        );
+    });
     ParaA::execute_with(|| {
-        assert_ok!(LiquidStaking::transfer_bond(Origin::signed(ALICE),xcm_transfer_amount, RewardDestination::Staked));
+        assert_ok!(LiquidStaking::transfer_bond(
+            Origin::signed(ALICE),
+            xcm_transfer_amount,
+            RewardDestination::Staked
+        ));
         print_events::<Test>("ParaA");
     });
-
     Relay::execute_with(|| {
         print_events::<westend_runtime::Runtime>("Relay");
         let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
         assert_eq!(ledger.total, xcm_transfer_amount);
         assert_eq!(
             RelayBalances::free_balance(LiquidStaking::derivative_para_account_id()),
-            xcm_transfer_amount
+            xcm_transfer_amount + existential_deposit
         );
     });
 }

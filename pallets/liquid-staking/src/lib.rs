@@ -676,7 +676,7 @@ pub mod pallet {
             payee: RewardDestination<T::AccountId>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-            Self::transfer_bond_internal(value,payee)?;
+            Self::transfer_bond_internal(value, payee)?;
             Ok(().into())
         }
 
@@ -839,7 +839,10 @@ pub mod pallet {
         BalanceOf<T>: FixedPointOperand,
         AssetIdOf<T>: AtLeast32BitUnsigned,
     {
-        pub fn transfer_bond_internal(value: BalanceOf<T>, payee: RewardDestination<T::AccountId>) -> DispatchResult {
+        pub fn transfer_bond_internal(
+            value: BalanceOf<T>,
+            payee: RewardDestination<T::AccountId>,
+        ) -> DispatchResult {
             switch_relay!({
                 let stash = Self::derivative_para_account_id();
                 let controller = stash.clone();
@@ -872,16 +875,14 @@ pub mod pallet {
                     require_weight_at_most: u64::MAX,
                     call: bond_call.encode().into(),
                 };
-                let asset: MultiAsset = (MultiLocation::parent(), 1_000_000_000_000).into();
                 let fees: MultiAsset = (MultiLocation::here(), 1_000_000_000_000).into();
                 let recipient = MultiLocation::new(
                     0,
                     X1(Junction::AccountId32 {
                         network: NetworkId::Any,
-                        id: Self::derivative_para_account_id().into(),
+                        id: Self::para_account_id().into(),
                     }),
                 );
-
                 let msg = WithdrawAsset {
                     assets: fees.clone().into(),
                     effects: vec![
@@ -902,7 +903,9 @@ pub mod pallet {
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
-                        Self::deposit_event(Event::<T>::TransferBondCallSent(controller, value, payee));
+                        Self::deposit_event(Event::<T>::TransferBondCallSent(
+                            controller, value, payee,
+                        ));
                     }
                     Err(_e) => {
                         // Err(Error::<T>::BondCallFailed.into());
