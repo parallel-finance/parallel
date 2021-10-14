@@ -37,15 +37,15 @@ macro_rules! switch_relay {
         if T::RelayNetwork::get() == NetworkId::Polkadot {
             use crate::types::PolkadotCall as RelaychainCall;
 
-			$( $code )*
+            $( $code )*
         } else if T::RelayNetwork::get() == NetworkId::Kusama {
             use crate::types::KusamaCall as RelaychainCall;
 
-			$( $code )*
+            $( $code )*
         } else if T::RelayNetwork::get() == NetworkId::Named("westend".into()) {
             use crate::types::WestendCall as RelaychainCall;
 
-			$( $code )*
+            $( $code )*
         } else {
             unreachable!()
         }
@@ -103,7 +103,7 @@ pub mod pallet {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Assets for deposit/withdraw assets to/from pallet account
-        type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
+        type Assets: Transfer<Self::AccountId> + Mutate<Self::AccountId>;
 
         /// The origin which can do operation on relaychain using parachain's sovereign account
         type RelayOrigin: EnsureOrigin<Self::Origin>;
@@ -367,11 +367,14 @@ pub mod pallet {
             // TODO should use T::WeightInfo::on_idle instead
             // on_idle shouldn't run out of all remaining_weight normally
             let base_weight = T::WeightInfo::pop_queue();
-            if Self::staking_currency().is_err() {
+            let staking_currency = Self::staking_currency();
+
+            // Return if staking_currency haven't been set.
+            if staking_currency.is_err() {
                 return remaining_weight;
             }
 
-            let staking_currency = Self::staking_currency().unwrap();
+            let staking_currency = staking_currency.expect("It must be ok; qed");
 
             loop {
                 // Check weight is enough
@@ -522,14 +525,15 @@ pub mod pallet {
                 .checked_mul_int(liquid_amount)
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
 
-            let res = T::Assets::transfer(
+            if T::Assets::transfer(
                 Self::staking_currency()?,
                 &Self::account_id(),
                 &who,
                 asset_amount,
                 false,
-            );
-            if res.is_err() {
+            )
+            .is_err()
+            {
                 Self::push_unstake_task(&who, asset_amount)?;
             }
 
@@ -615,12 +619,10 @@ pub mod pallet {
             let base_weight = T::BaseXcmWeight::get();
 
             if !Self::transaction_compensation().is_zero() {
-                T::XcmTransfer::transfer(
-                    Self::account_id(),
+                T::Assets::burn_from(
                     Self::staking_currency()?,
+                    &Self::account_id(),
                     Self::transaction_compensation(),
-                    beneficiary.clone(),
-                    base_weight,
                 )?;
             }
 
@@ -839,11 +841,15 @@ pub mod pallet {
         }
 
         pub fn staking_currency() -> Result<AssetIdOf<T>, DispatchError> {
-            StakingCurrency::<T>::get().ok_or(Error::<T>::StakingCurrencyNotSet.into())
+            StakingCurrency::<T>::get()
+                .ok_or(Error::<T>::StakingCurrencyNotSet)
+                .map_err(Into::into)
         }
 
         pub fn liquid_currency() -> Result<AssetIdOf<T>, DispatchError> {
-            LiquidCurrency::<T>::get().ok_or(Error::<T>::LiquidCurrencyNotSet.into())
+            LiquidCurrency::<T>::get()
+                .ok_or(Error::<T>::LiquidCurrencyNotSet)
+                .map_err(Into::into)
         }
 
         /// Derivative parachain account
