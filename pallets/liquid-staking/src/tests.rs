@@ -79,7 +79,6 @@ fn test_record_staking_settlement_ok() {
     new_test_ext().execute_with(|| {
         assert_ok!(LiquidStaking::record_staking_settlement(
             Origin::signed(ALICE),
-            1,
             dot(100f64),
             StakingSettlementKind::Reward
         ));
@@ -93,7 +92,6 @@ fn test_duplicated_record_staking_settlement() {
     new_test_ext().execute_with(|| {
         LiquidStaking::record_staking_settlement(
             Origin::signed(ALICE),
-            1,
             100,
             StakingSettlementKind::Reward,
         )
