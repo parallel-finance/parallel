@@ -504,6 +504,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type RelayNetwork = RelayNetwork;
     type MinStakeAmount = MinStakeAmount;
     type MinUnstakeAmount = MinUnstakeAmount;
+    type WeightToFee = WeightToFee;
 }
 
 parameter_types! {

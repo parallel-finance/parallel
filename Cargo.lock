@@ -5538,6 +5538,7 @@ dependencies = [
  "polkadot-parachain",
  "polkadot-runtime-parachains",
  "serde",
+ "smallvec 1.7.0",
  "sp-core",
  "sp-io",
  "sp-runtime",

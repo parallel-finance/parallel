@@ -4,7 +4,10 @@ use frame_support::{
     dispatch::Weight,
     parameter_types, sp_io,
     traits::{Everything, GenesisBuild, SortedMembers},
-    weights::constants::WEIGHT_PER_SECOND,
+    weights::{
+        constants::WEIGHT_PER_SECOND, WeightToFeeCoefficient, WeightToFeeCoefficients,
+        WeightToFeePolynomial,
+    },
     PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
@@ -14,12 +17,14 @@ use polkadot_parachain::primitives::Sibling;
 use primitives::{
     currency::MultiCurrencyAdapter, tokens::*, Balance, DerivativeProvider, Rate, Ratio,
 };
+use smallvec::smallvec;
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
     traits::{AccountIdConversion, AccountIdLookup, BlakeTwo256, Convert, One},
     AccountId32,
     MultiAddress::Id,
+    Perbill,
 };
 pub use xcm::latest::prelude::*;
 pub use xcm_builder::{
@@ -314,6 +319,19 @@ impl DerivativeProvider<AccountId> for DerivativeProviderT {
     }
 }
 
+pub struct WeightToFee;
+impl WeightToFeePolynomial for WeightToFee {
+    type Balance = Balance;
+    fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
+        smallvec![WeightToFeeCoefficient {
+            degree: 1,
+            negative: false,
+            coeff_frac: Perbill::from_rational(1u32, 1u32),
+            coeff_integer: 1,
+        }]
+    }
+}
+
 impl crate::Config for Test {
     type Event = Event;
     type PalletId = StakingPalletId;
@@ -333,6 +351,7 @@ impl crate::Config for Test {
     type RelayNetwork = RelayNetwork;
     type MinStakeAmount = MinStakeAmount;
     type MinUnstakeAmount = MinUnstakeAmount;
+    type WeightToFee = WeightToFee;
 }
 
 parameter_types! {

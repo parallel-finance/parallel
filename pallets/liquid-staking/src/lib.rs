@@ -64,7 +64,7 @@ pub mod pallet {
             Get, IsType,
         },
         transactional,
-        weights::Weight,
+        weights::{Weight, WeightToFeePolynomial},
         BoundedVec, PalletId,
     };
     use frame_system::{
@@ -157,6 +157,9 @@ pub mod pallet {
         /// Relay network
         #[pallet::constant]
         type RelayNetwork: Get<NetworkId>;
+
+        /// Relaychain weight to fee converter
+        type WeightToFee: WeightToFeePolynomial<Balance = BalanceOf<Self>>;
 
         /// Weight information
         type WeightInfo: WeightInfo;
@@ -342,7 +345,7 @@ pub mod pallet {
             let staking_currency = staking_currency.expect("It must be ok; qed");
 
             loop {
-                // Check weight is enough
+                // check weight is enough
                 if remaining_weight < base_weight {
                     break;
                 }
@@ -351,7 +354,7 @@ pub mod pallet {
                     break;
                 }
 
-                // Get the front of the queue.
+                // get the front of the queue.
                 let (who, amount) = &Self::unstake_queue()[0];
                 let account_id = Self::account_id();
 
@@ -432,14 +435,14 @@ pub mod pallet {
                 false,
             )?;
 
-            // Calculate staking fee and add it to insurance pool
+            // calculate staking fee and add it to insurance pool
             let fees = Self::reserve_factor().mul_floor(amount);
             InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b.checked_add(&fees).ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
 
-            // Amount that we should mint to user
+            // amount that we should mint to user
             let amount = amount
                 .checked_sub(&fees)
                 .ok_or(ArithmeticError::Underflow)?;
@@ -565,6 +568,7 @@ pub mod pallet {
 
             let (bond_amount, rebond_amount, unbond_amount) =
                 MatchingPool::<T>::take().matching(unbonding_amount);
+
             let staking_currency = Self::staking_currency()?;
             let account_id = Self::account_id();
             let xcm_fees_compensation = Self::xcm_fees_compensation();
@@ -684,7 +688,7 @@ pub mod pallet {
                     },
                 )));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg = Self::ump_transact(call.encode().into(), 800_000_000);
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -717,7 +721,7 @@ pub mod pallet {
                     },
                 ));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg = Self::ump_transact(call.encode().into(), 800_000_000);
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -825,7 +829,7 @@ pub mod pallet {
                 }
             }?;
 
-            // Update exchange rate.
+            // update exchange rate.
             let exchange_rate = Rate::checked_from_rational(
                 StakingPool::<T>::get(),
                 T::Assets::total_issuance(Self::liquid_currency()?),
@@ -868,7 +872,7 @@ pub mod pallet {
                         ],
                     })));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg = Self::ump_transact(call.encode().into(), 800_000_000);
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -904,7 +908,7 @@ pub mod pallet {
                         ],
                     })));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg = Self::ump_transact(call.encode().into(), 800_000_000);
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -930,7 +934,7 @@ pub mod pallet {
                     },
                 )));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg = Self::ump_transact(call.encode().into(), 800_000_000);
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -956,7 +960,7 @@ pub mod pallet {
                     },
                 )));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg = Self::ump_transact(call.encode().into(), 800_000_000);
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -1003,7 +1007,7 @@ pub mod pallet {
                         ],
                     })));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg = Self::ump_transact(call.encode().into(), 800_000_000);
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -1038,16 +1042,18 @@ pub mod pallet {
             UnstakeQueue::<T>::mutate(|v| v.remove(0));
         }
 
-        fn ump_transact(call: DoubleEncoded<()>) -> Xcm<()> {
-            let asset: MultiAsset = (MultiLocation::here(), 1_000_000_000_000).into();
+        fn ump_transact(call: DoubleEncoded<()>, weight: Weight) -> Xcm<()> {
+            let weight = weight + 4 * T::BaseXcmWeight::get();
+            let fees: u128 = T::WeightToFee::calc(&weight).into();
+            let asset: MultiAsset = (MultiLocation::here(), fees).into();
 
             WithdrawAsset {
                 assets: MultiAssets::from(asset.clone()),
                 effects: vec![
                     BuyExecution {
                         fees: asset,
-                        weight: 800_000_000,
-                        debt: 600_000_000,
+                        weight: weight + 1 * T::BaseXcmWeight::get(),
+                        debt: 3 * T::BaseXcmWeight::get(),
                         halt_on_error: false,
                         instructions: vec![Transact {
                             origin_type: OriginKind::SovereignAccount,
