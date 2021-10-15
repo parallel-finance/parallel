@@ -619,6 +619,12 @@ pub mod pallet {
                     &Self::account_id(),
                     Self::transaction_compensation(),
                 )?;
+                InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
+                    *b = b
+                        .checked_sub(&Self::transaction_compensation())
+                        .ok_or(ArithmeticError::Underflow)?;
+                    Ok(())
+                })?;
             }
 
             if !bond_amount.is_zero() {
