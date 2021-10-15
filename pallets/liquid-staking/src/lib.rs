@@ -465,13 +465,12 @@ pub mod pallet {
                 false,
             )?;
 
-            // Calculate staking fee
+            // Calculate staking fee and add it to insurance pool
             let fee = Self::reserve_factor().mul_floor(amount);
-            // TODO(Alan WANG): Enable it later
-            // InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
-            //     *b = b.checked_add(&fees).ok_or(ArithmeticError::Overflow)?;
-            //     Ok(())
-            // })?;
+            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_add(&fee).ok_or(ArithmeticError::Overflow)?;
+                Ok(())
+            })?;
 
             // Amount that we should mint to user
             let amount = amount.checked_sub(&fee).ok_or(ArithmeticError::Underflow)?;

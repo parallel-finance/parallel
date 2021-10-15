@@ -15,24 +15,27 @@ use xcm_simulator::TestExt;
 #[test]
 fn stake_should_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), 10));
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), dot(10f64)));
         // Check storage is correct
         assert_eq!(ExchangeRate::<Test>::get(), Rate::one());
-        assert_eq!(StakingPool::<Test>::get(), 10);
+        assert_eq!(StakingPool::<Test>::get(), dot(9.95f64));
         assert_eq!(
             MatchingPool::<Test>::get(),
             MatchingLedger {
-                total_stake_amount: 10,
+                total_stake_amount: dot(9.95f64),
                 total_unstake_amount: 0,
             }
         );
 
         // Check balance is correct
-        assert_eq!(<Test as Config>::Assets::balance(DOT, &ALICE), 90);
-        assert_eq!(<Test as Config>::Assets::balance(XDOT, &ALICE), 110);
+        assert_eq!(<Test as Config>::Assets::balance(DOT, &ALICE), dot(90f64));
+        assert_eq!(
+            <Test as Config>::Assets::balance(XDOT, &ALICE),
+            dot(109.95f64)
+        );
         assert_eq!(
             <Test as Config>::Assets::balance(DOT, &LiquidStaking::account_id()),
-            10
+            dot(10f64)
         );
     })
 }
@@ -40,26 +43,29 @@ fn stake_should_work() {
 #[test]
 fn unstake_should_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), 10));
-        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), 6));
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), dot(10f64)));
+        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), dot(6f64)));
 
         // Check storage is correct
         assert_eq!(ExchangeRate::<Test>::get(), Rate::one());
-        assert_eq!(StakingPool::<Test>::get(), 4);
+        assert_eq!(StakingPool::<Test>::get(), dot(3.95f64));
         assert_eq!(
             MatchingPool::<Test>::get(),
             MatchingLedger {
-                total_stake_amount: 10,
-                total_unstake_amount: 6,
+                total_stake_amount: dot(9.95f64),
+                total_unstake_amount: dot(6f64),
             }
         );
 
         // Check balance is correct
-        assert_eq!(<Test as Config>::Assets::balance(DOT, &ALICE), 96);
-        assert_eq!(<Test as Config>::Assets::balance(XDOT, &ALICE), 104);
+        assert_eq!(<Test as Config>::Assets::balance(DOT, &ALICE), dot(96f64));
+        assert_eq!(
+            <Test as Config>::Assets::balance(XDOT, &ALICE),
+            dot(103.95f64)
+        );
         assert_eq!(
             <Test as Config>::Assets::balance(DOT, &LiquidStaking::account_id()),
-            4
+            dot(4f64)
         );
     })
 }
@@ -70,7 +76,7 @@ fn test_record_staking_settlement_ok() {
         assert_ok!(LiquidStaking::record_staking_settlement(
             Origin::signed(ALICE),
             1,
-            100,
+            dot(100f64),
             StakingSettlementKind::Reward
         ));
 
@@ -397,3 +403,17 @@ fn test_transact_payout_stakers_work() {
         assert_eq!(RelayBalances::free_balance(BOB), 165 * DOT_DECIMAL);
     });
 }
+
+#[test]
+fn on_idle_should_not_pay_with_insurance_pool() {}
+
+#[test]
+fn stake_should_correctly_add_insurance_pool() {
+    new_test_ext().execute_with(|| {
+        LiquidStaking::stake(Origin::signed(ALICE), 1000).unwrap();
+        assert_eq!(InsurancePool::<Test>::get(), 5);
+    })
+}
+
+#[test]
+fn settlement_should_correctly_sub_insurance_pool() {}
