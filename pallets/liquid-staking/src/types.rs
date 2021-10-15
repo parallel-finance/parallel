@@ -1,12 +1,11 @@
 use super::{BalanceOf, Config};
 use codec::{Decode, Encode};
-use frame_support::weights::Weight;
+
 use sp_runtime::{
     traits::{AtLeast32BitUnsigned, StaticLookup, Zero},
     RuntimeDebug,
 };
 use sp_std::{boxed::Box, cmp::Ordering, vec::Vec};
-use xcm::{VersionedMultiAssets, VersionedMultiLocation};
 
 /// Category of staking settlement at the end of era.
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug)]
@@ -167,22 +166,6 @@ pub enum UtilityCall<RelaychainCall> {
     BatchAll(UtilityBatchAllCall<RelaychainCall>),
 }
 
-/// Relaychain xcmPallet.reserve_transfer_assets call arguments
-#[derive(Encode, Decode, RuntimeDebug)]
-pub struct XcmPalletReserveTransferAssetsCall {
-    pub dest: Box<VersionedMultiLocation>,
-    pub beneficiary: Box<VersionedMultiLocation>,
-    pub assets: Box<VersionedMultiAssets>,
-    pub fee_asset_item: u32,
-    pub dest_weight: Weight,
-}
-
-#[derive(Encode, Decode, RuntimeDebug)]
-pub enum XcmPalletCall {
-    #[codec(index = 2)]
-    XcmPalletReserveTransferAssetsCall(XcmPalletReserveTransferAssetsCall),
-}
-
 #[derive(Encode, Decode, RuntimeDebug)]
 pub enum WestendCall<T: Config> {
     #[codec(index = 4)]
@@ -191,8 +174,6 @@ pub enum WestendCall<T: Config> {
     Staking(StakingCall<T>),
     #[codec(index = 16)]
     Utility(Box<UtilityCall<Self>>),
-    #[codec(index = 99)]
-    XcmPallet(XcmPalletCall),
 }
 
 #[derive(Encode, Decode, RuntimeDebug)]
@@ -203,8 +184,6 @@ pub enum KusamaCall<T: Config> {
     Staking(StakingCall<T>),
     #[codec(index = 24)]
     Utility(Box<UtilityCall<Self>>),
-    #[codec(index = 99)]
-    XcmPallet(XcmPalletCall),
 }
 
 #[derive(Encode, Decode, RuntimeDebug)]
@@ -215,9 +194,6 @@ pub enum PolkadotCall<T: Config> {
     Staking(StakingCall<T>),
     #[codec(index = 26)]
     Utility(Box<UtilityCall<Self>>),
-    // FIXME: polkadot runtime doesn't have xcm pallet yet
-    #[codec(index = 99)]
-    XcmPallet(XcmPalletCall),
 }
 
 impl<Balance: AtLeast32BitUnsigned + Copy + Clone> MatchingLedger<Balance> {

@@ -64,6 +64,9 @@ mod types;
 
 pub mod weights;
 
+pub const MAX_INTEREST_CALCULATING_INTERVAL: u64 = 5 * 24 * 3600; // 5 days
+pub const MIN_INTEREST_CALCULATING_INTERVAL: u64 = 100; // 100 seconds
+
 type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
 type BalanceOf<T> =
@@ -195,8 +198,8 @@ pub mod pallet {
 
     /// The timestamp of the last calculation of accrued interest
     #[pallet::storage]
-    #[pallet::getter(fn last_block_timestamp)]
-    pub type LastBlockTimestamp<T: Config> = StorageValue<_, Timestamp, ValueQuery>;
+    #[pallet::getter(fn last_accrued_timestamp)]
+    pub type LastAccruedTimestamp<T: Config> = StorageValue<_, Timestamp, ValueQuery>;
 
     /// Total number of collateral tokens in circulation
     /// CollateralType -> Balance
@@ -311,19 +314,31 @@ pub mod pallet {
         /// the interest will be restored, because we use delta time to calculate the
         /// interest.
         fn on_initialize(block_number: T::BlockNumber) -> frame_support::weights::Weight {
-            let last_block_timestamp = Self::last_block_timestamp();
+            let last_accrued_timestamp = Self::last_accrued_timestamp();
             let now = T::UnixTime::now().as_secs();
             // For the initialization
-            if last_block_timestamp.is_zero() {
-                LastBlockTimestamp::<T>::put(now);
+            if last_accrued_timestamp.is_zero() {
+                LastAccruedTimestamp::<T>::put(now);
             }
-            if now <= last_block_timestamp {
+            if now <= last_accrued_timestamp {
+                return 0;
+            }
+            let delta_time = now - last_accrued_timestamp;
+            if delta_time > MAX_INTEREST_CALCULATING_INTERVAL {
+                // This should never happen...
+                log::error!(
+                    "Could not initialize block! Exceeded max interval {:#?}",
+                    block_number,
+                );
+                return 0;
+            }
+            if delta_time < MIN_INTEREST_CALCULATING_INTERVAL {
                 return 0;
             }
             with_transaction(|| {
-                match <Pallet<T>>::accrue_interest(now - last_block_timestamp) {
+                match <Pallet<T>>::accrue_interest(delta_time) {
                     Ok(()) => {
-                        LastBlockTimestamp::<T>::put(now);
+                        LastAccruedTimestamp::<T>::put(now);
                         TransactionOutcome::Commit(
                             T::WeightInfo::accrue_interest()
                                 * Self::active_markets().count() as u64,
@@ -332,7 +347,7 @@ pub mod pallet {
                     Err(err) => {
                         // This should never happen...
                         log::error!(
-                            "Could not initialize block!!! {:#?} {:#?}",
+                            "Could not initialize block! Calculate interest failed! {:#?} {:#?}",
                             block_number,
                             err
                         );
@@ -452,7 +467,7 @@ pub mod pallet {
             mint_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
             Self::ensure_capacity(asset_id, mint_amount)?;
 
             T::Assets::transfer(asset_id, &who, &Self::account_id(), mint_amount, false)?;
@@ -491,7 +506,7 @@ pub mod pallet {
             redeem_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
 
             let exchange_rate = Self::exchange_rate(asset_id);
             let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
@@ -513,7 +528,7 @@ pub mod pallet {
             asset_id: AssetIdOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
 
             Self::update_earned_stored(&who, asset_id)?;
             let deposits = AccountDeposits::<T>::get(asset_id, &who);
@@ -536,7 +551,7 @@ pub mod pallet {
             borrow_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
 
             Self::borrow_allowed(asset_id, &who, borrow_amount)?;
             let account_borrows = Self::current_borrow_balance(&who, asset_id)?;
@@ -575,7 +590,7 @@ pub mod pallet {
             repay_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
 
             let account_borrows = Self::current_borrow_balance(&who, asset_id)?;
             Self::repay_borrow_internal(&who, asset_id, account_borrows, repay_amount)?;
@@ -595,7 +610,7 @@ pub mod pallet {
             asset_id: AssetIdOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
 
             let account_borrows = Self::current_borrow_balance(&who, asset_id)?;
             Self::repay_borrow_internal(&who, asset_id, account_borrows, account_borrows)?;
@@ -617,7 +632,7 @@ pub mod pallet {
             enable: bool,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
             ensure!(
                 AccountDeposits::<T>::contains_key(asset_id, &who),
                 Error::<T>::NoDeposit
@@ -698,7 +713,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::ReserveOrigin::ensure_origin(origin)?;
             let payer = T::Lookup::lookup(payer)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
 
             T::Assets::transfer(asset_id, &payer, &Self::account_id(), add_amount, false)?;
             let total_reserves = Self::total_reserves(asset_id);
@@ -734,7 +749,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::ReserveOrigin::ensure_origin(origin)?;
             let receiver = T::Lookup::lookup(receiver)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
 
             let total_reserves = Self::total_reserves(asset_id);
             if reduce_amount > total_reserves {
@@ -1060,8 +1075,8 @@ where
         repay_amount: BalanceOf<T>,
         collateral_asset_id: AssetIdOf<T>,
     ) -> DispatchResult {
-        Self::ensure_currency(liquidate_asset_id)?;
-        Self::ensure_currency(collateral_asset_id)?;
+        Self::ensure_market(liquidate_asset_id)?;
+        Self::ensure_market(collateral_asset_id)?;
 
         let market = Self::market(liquidate_asset_id)?;
 
@@ -1202,7 +1217,7 @@ where
     }
 
     // Ensures a given `asset_id` exists on the `Currencies` storage.
-    fn ensure_currency(asset_id: AssetIdOf<T>) -> DispatchResult {
+    fn ensure_market(asset_id: AssetIdOf<T>) -> DispatchResult {
         if Self::active_markets().any(|(id, _)| id == asset_id) {
             Ok(())
         } else {
