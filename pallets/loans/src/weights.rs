@@ -61,7 +61,6 @@ pub trait WeightInfo {
     fn add_reserves() -> Weight;
     fn reduce_reserves() -> Weight;
     fn accrue_interest() -> Weight;
-    fn transfer_ptoken() -> Weight;
 }
 
 /// Weights for pallet_loans using the Substrate node and recommended hardware.
@@ -137,12 +136,6 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().reads(7 as Weight))
             .saturating_add(T::DbWeight::get().writes(7 as Weight))
     }
-    // TODO: Fix weight
-    fn transfer_ptoken() -> Weight {
-        (202_000_000 as Weight)
-            .saturating_add(T::DbWeight::get().reads(11 as Weight))
-            .saturating_add(T::DbWeight::get().writes(5 as Weight))
-    }
 }
 
 // For backwards compatibility and tests
@@ -216,10 +209,5 @@ impl WeightInfo for () {
         (98_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(7 as Weight))
             .saturating_add(RocksDbWeight::get().writes(7 as Weight))
-    }
-    fn transfer_ptoken() -> Weight {
-        (202_000_000 as Weight)
-            .saturating_add(RocksDbWeight::get().reads(11 as Weight))
-            .saturating_add(RocksDbWeight::get().writes(5 as Weight))
     }
 }
