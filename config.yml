@@ -37,3 +37,26 @@ parachains:
           - --bob
       - flags:
           - --charlie
+
+  - image: parallelfinance/statemine:v0.9.10
+    chain:
+      base: statemint-dev
+      collators:
+        - alice
+        - bob
+        - charlie
+      sudo: dave
+    id: 1000
+    parachain: true
+    flags:
+      - --rpc-methods=unsafe
+      - --force-authoring
+    relaychainFlags:
+      - --no-beefy
+    nodes:
+      - flags:
+          - --alice
+      - flags:
+          - --bob
+      - flags:
+          - --charlie
