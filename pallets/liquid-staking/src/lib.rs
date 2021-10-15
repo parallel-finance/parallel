@@ -385,6 +385,16 @@ pub mod pallet {
                 // Get the front of the queue.
                 let (who, amount) = &Self::unstake_queue()[0];
 
+                // InsurancePool should not be embazzled.
+                let total_amount_in_pallet = Self::balance().expect("It fails only due to vacant staking crruency; StakingCurrency has been checked in former; It must be ok; qed");
+
+                let free_balance = total_amount_in_pallet
+                    .checked_sub(&Self::insurance_pool())
+                    .expect("InsurancePool is less than pallet account balance; qed");
+                if free_balance < *amount {
+                    return remaining_weight;
+                }
+
                 if T::Assets::transfer(staking_currency, &Self::account_id(), who, *amount, false)
                     .is_err()
                 {
@@ -1128,6 +1138,15 @@ pub mod pallet {
         #[inline]
         fn pop_unstake_task() {
             UnstakeQueue::<T>::mutate(|v| v.remove(0));
+        }
+
+        /// Get balance of pallet account
+        #[inline]
+        fn balance() -> Result<BalanceOf<T>, DispatchError> {
+            Ok(T::Assets::balance(
+                Self::staking_currency()?,
+                &Self::account_id(),
+            ))
         }
 
         fn ump_transact(call: DoubleEncoded<()>) -> Xcm<()> {
