@@ -61,7 +61,7 @@ use polkadot_parachain::primitives::Sibling;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::PARALLEL_PREFIX,
-    tokens::{DOT, PARA, XDOT},
+    tokens::{DOT, PARA, USDT, XDOT},
     Index, *,
 };
 
@@ -905,7 +905,7 @@ impl DecimalProvider for Decimal {
         match *asset_id {
             DOT | XDOT => Some(10),
             PARA => Some(12),
-            _USDT => Some(6),
+            USDT => Some(6),
             _ => None,
         }
     }

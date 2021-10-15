@@ -42,7 +42,7 @@ use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::HEIKO_PREFIX,
-    tokens::{HKO, KSM, XKSM},
+    tokens::{HKO, KSM, USDT, XKSM},
     Index, *,
 };
 use sp_api::impl_runtime_apis;
@@ -884,7 +884,7 @@ impl DecimalProvider for Decimal {
         match *asset_id {
             KSM | XKSM => Some(12),
             HKO => Some(12),
-            _USDT => Some(6),
+            USDT => Some(6),
             _ => None,
         }
     }
