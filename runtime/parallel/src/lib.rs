@@ -129,10 +129,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("parallel"),
     impl_name: create_runtime_str!("parallel"),
     authoring_version: 1,
-    spec_version: 160,
-    impl_version: 10,
+    spec_version: 170,
+    impl_version: 20,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 1,
+    transaction_version: 2,
 };
 
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
