@@ -35,7 +35,7 @@ where
 
     /// The minimum balance any single account may have.
     fn minimum_balance(_asset: Self::AssetId) -> Self::Balance {
-        0u64.saturated_into()
+        Zero::zero()
     }
 
     /// Get the balance of `who`.
@@ -185,7 +185,7 @@ where
         who: &T::AccountId,
         amount: BalanceOf<T>,
     ) -> DepositConsequence {
-        match Self::ensure_currency(asset) {
+        match Self::ensure_market(asset) {
             Ok(_) => (),
             Err(_) => return DepositConsequence::UnknownAsset,
         }
@@ -210,7 +210,7 @@ where
         amount: BalanceOf<T>,
         keep_alive: bool,
     ) -> WithdrawConsequence<BalanceOf<T>> {
-        match Self::ensure_currency(asset) {
+        match Self::ensure_market(asset) {
             Ok(_) => (),
             Err(_) => return WithdrawConsequence::UnknownAsset,
         }
