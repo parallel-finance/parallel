@@ -5521,7 +5521,6 @@ dependencies = [
  "cumulus-primitives-core",
  "frame-support",
  "frame-system",
- "orml-traits",
  "orml-xcm-support",
  "orml-xtokens",
  "pallet-assets",

@@ -445,7 +445,6 @@ impl pallet_liquid_staking::Config for Runtime {
     type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = ();
-    type XcmTransfer = XTokens;
     type SelfParaId = ParachainInfo;
     type PeriodBasis = PeriodBasis;
     type BaseXcmWeight = BaseXcmWeight;

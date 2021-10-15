@@ -338,7 +338,6 @@ impl crate::Config for Test {
     type Event = Event;
     type PalletId = StakingPalletId;
     type BaseXcmWeight = BaseXcmWeight;
-    type XcmTransfer = XTokens;
     type SelfParaId = SelfParaId;
     type PeriodBasis = PeriodBasis;
     type WeightInfo = ();
