@@ -294,6 +294,10 @@ parameter_types! {
     pub const PeriodBasis: BlockNumber = 5u64;
     pub const UnstakeQueueCapacity: u32 = 1000;
     pub SelfParaId: ParaId = para_a_id();
+    pub MaxRewardsPerEra: Balance = dot(1000f64);
+    pub MaxSlashesPerEra: Balance = dot(1f64);
+    pub const MinStakeAmount: Balance = 0;
+    pub const MinUnstakeAmount: Balance = 0;
 }
 
 impl pallet_utility::Config for Test {
@@ -308,13 +312,6 @@ impl DerivativeProvider<AccountId> for DerivativeProviderT {
     fn derivative_account_id(who: AccountId, index: u16) -> AccountId {
         Utility::derivative_account_id(who, index)
     }
-}
-
-parameter_types! {
-    pub MaxRewardsPerEra: Balance = dot(1000f64);
-    pub MaxSlashesPerEra: Balance = dot(1f64);
-    pub const MinStakeAmount: Balance = 0;
-    pub const MinUnstakeAmount: Balance = 0;
 }
 
 impl crate::Config for Test {

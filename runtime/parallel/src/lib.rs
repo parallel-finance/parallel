@@ -61,7 +61,7 @@ use polkadot_parachain::primitives::Sibling;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::PARALLEL_PREFIX,
-    tokens::{DOT, PARA, XDOT},
+    tokens::{DOT, PARA, USDT, XDOT},
     Index, *,
 };
 
@@ -455,6 +455,10 @@ parameter_types! {
     pub const PeriodBasis: BlockNumber = 1000u32;
     pub const DerivativeIndex: u16 = 0;
     pub const UnstakeQueueCapacity: u32 = 1000;
+    pub const MaxRewardsPerEra: Balance = 100;
+    pub const MaxSlashesPerEra: Balance = 1;
+    pub const MinStakeAmount: Balance = 10_000_000_000;
+    pub const MinUnstakeAmount: Balance = 5_000_000_000;
 }
 
 pub struct DerivativeProviderT;
@@ -463,13 +467,6 @@ impl DerivativeProvider<AccountId> for DerivativeProviderT {
     fn derivative_account_id(who: AccountId, index: u16) -> AccountId {
         Utility::derivative_account_id(who, index)
     }
-}
-
-parameter_types! {
-    pub const MaxRewardsPerEra: Balance = 100;
-    pub const MaxSlashesPerEra: Balance = 1;
-    pub const MinStakeAmount: Balance = 10_000_000_000;
-    pub const MinUnstakeAmount: Balance = 5_000_000_000;
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -903,12 +900,13 @@ impl DataProviderExtended<CurrencyId, TimeStampedPrice> for AggregatedDataProvid
 
 pub struct Decimal;
 impl DecimalProvider for Decimal {
-    fn get_decimal(asset_id: &CurrencyId) -> u8 {
+    fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
         // pallet_assets::Metadata::<Runtime>::get(asset_id).decimals
         match *asset_id {
-            DOT | XDOT => 10,
-            PARA => 12,
-            _ => 0,
+            DOT | XDOT => Some(10),
+            PARA => Some(12),
+            USDT => Some(6),
+            _ => None,
         }
     }
 }

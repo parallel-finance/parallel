@@ -43,7 +43,7 @@ use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::HEIKO_PREFIX,
-    tokens::{HKO, KSM, XKSM},
+    tokens::{HKO, KSM, USDT, XKSM},
     Index, *,
 };
 use sp_api::impl_runtime_apis;
@@ -435,6 +435,10 @@ parameter_types! {
     pub const PeriodBasis: BlockNumber = 1000u32;
     pub const DerivativeIndex: u16 = 0;
     pub const UnstakeQueueCapacity: u32 = 1000;
+    pub const MaxRewardsPerEra: Balance = 100;
+    pub const MaxSlashesPerEra: Balance = 1;
+    pub const MinStakeAmount: Balance = 1_000_000_000_000;
+    pub const MinUnstakeAmount: Balance = 500_000_000_000;
 }
 
 pub struct DerivativeProviderT;
@@ -443,13 +447,6 @@ impl DerivativeProvider<AccountId> for DerivativeProviderT {
     fn derivative_account_id(who: AccountId, index: u16) -> AccountId {
         Utility::derivative_account_id(who, index)
     }
-}
-
-parameter_types! {
-    pub const MaxRewardsPerEra: Balance = 100;
-    pub const MaxSlashesPerEra: Balance = 1;
-    pub const MinStakeAmount: Balance = 1_000_000_000_000;
-    pub const MinUnstakeAmount: Balance = 500_000_000_000;
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -883,12 +880,13 @@ impl DataProviderExtended<CurrencyId, TimeStampedPrice> for AggregatedDataProvid
 
 pub struct Decimal;
 impl DecimalProvider for Decimal {
-    fn get_decimal(asset_id: &CurrencyId) -> u8 {
+    fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
         // pallet_assets::Metadata::<Runtime>::get(asset_id).decimals
         match *asset_id {
-            KSM | XKSM => 12,
-            HKO => 12,
-            _ => 0,
+            KSM | XKSM => Some(12),
+            HKO => Some(12),
+            USDT => Some(6),
+            _ => None,
         }
     }
 }

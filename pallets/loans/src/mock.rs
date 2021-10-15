@@ -149,8 +149,8 @@ impl ExchangeRateProvider for LiquidStakingExchangeRateProvider {
 
 pub struct Decimal;
 impl DecimalProvider for Decimal {
-    fn get_decimal(_asset_id: &CurrencyId) -> u8 {
-        12
+    fn get_decimal(_asset_id: &CurrencyId) -> Option<u8> {
+        Some(12)
     }
 }
 
