@@ -3,10 +3,7 @@ use crate::{
     tests::dollar,
     Error,
 };
-use frame_support::{
-    traits::tokens::fungibles::Transfer,
-    assert_noop, assert_ok
-};
+use frame_support::{assert_noop, assert_ok, traits::tokens::fungibles::Transfer};
 use sp_runtime::FixedPointNumber;
 
 #[test]

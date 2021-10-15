@@ -15,11 +15,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use crate::{AssetIdOf, BalanceOf, *};
-use frame_support::{
-    traits::tokens::{
-        fungibles::{Inspect, Transfer},
-        DepositConsequence, WithdrawConsequence,
-    },
+use frame_support::traits::tokens::{
+    fungibles::{Inspect, Transfer},
+    DepositConsequence, WithdrawConsequence,
 };
 
 impl<T: Config> Inspect<T::AccountId> for Pallet<T>
@@ -57,14 +55,14 @@ where
             return deposit.voucher_balance;
         }
 
-        let liquidity = match Self::get_account_liquidity(&who) {
+        let liquidity = match Self::get_account_liquidity(who) {
             Ok((liquidity, _)) => liquidity,
             Err(e) => {
                 log::error!("Inspect account liquidity meet error: {:?}", e);
                 FixedU128::from_inner(0)
             }
         };
-        
+
         if liquidity.into_inner() > deposit.voucher_balance.saturated_into() {
             deposit.voucher_balance
         } else {
@@ -82,7 +80,7 @@ where
     }
 
     /// Returns `Failed` if the balance of `who` may not be decreased by `amount`, otherwise
-	/// the consequence.
+    /// the consequence.
     fn can_withdraw(
         asset: Self::AssetId,
         who: &T::AccountId,
@@ -181,63 +179,61 @@ where
 
         Ok(())
     }
-    
+
     pub(super) fn can_increase(
-		asset: AssetIdOf<T>,
-		who: &T::AccountId,
-		amount: BalanceOf<T>,
-	) -> DepositConsequence {
+        asset: AssetIdOf<T>,
+        who: &T::AccountId,
+        amount: BalanceOf<T>,
+    ) -> DepositConsequence {
         match Self::ensure_currency(asset) {
             Ok(_) => (),
             Err(_) => return DepositConsequence::UnknownAsset,
         }
-		
-		if Self::total_supply(asset).checked_add(&amount).is_none() {
-			return DepositConsequence::Overflow
-		}
-		
-		if Self::balance(asset, who).checked_add(&amount).is_none() {
-			return DepositConsequence::Overflow
-		}
-		if Self::balance(asset, who).is_zero() {
-			if amount < Self::minimum_balance(asset) {
-				return DepositConsequence::BelowMinimum
-			}
-		}
+
+        if Self::total_supply(asset).checked_add(&amount).is_none() {
+            return DepositConsequence::Overflow;
+        }
+
+        if Self::balance(asset, who).checked_add(&amount).is_none() {
+            return DepositConsequence::Overflow;
+        }
+        if Self::balance(asset, who).is_zero() && amount < Self::minimum_balance(asset) {
+            return DepositConsequence::BelowMinimum;
+        }
         T::Assets::can_deposit(asset, who, amount)
-	}
-	
-	/// Return the consequence of a withdraw.
-	pub(super) fn can_decrease(
-		asset: AssetIdOf<T>,
-		who: &T::AccountId,
-		amount: BalanceOf<T>,
-		keep_alive: bool,
-	) -> WithdrawConsequence<BalanceOf<T>> {
+    }
+
+    /// Return the consequence of a withdraw.
+    pub(super) fn can_decrease(
+        asset: AssetIdOf<T>,
+        who: &T::AccountId,
+        amount: BalanceOf<T>,
+        keep_alive: bool,
+    ) -> WithdrawConsequence<BalanceOf<T>> {
         match Self::ensure_currency(asset) {
             Ok(_) => (),
             Err(_) => return WithdrawConsequence::UnknownAsset,
         }
-		
-		if Self::total_supply(asset).checked_sub(&amount).is_none() {
-			return WithdrawConsequence::Underflow
-		}
-		if let Some(rest) = Self::balance(asset, who).checked_sub(&amount) {
-			let is_provider = false;
-			let is_required = is_provider && !frame_system::Pallet::<T>::can_dec_provider(who);
-			let must_keep_alive = keep_alive || is_required;
 
-			if rest < Self::minimum_balance(asset) {
-				if must_keep_alive {
-					WithdrawConsequence::WouldDie
-				} else {
-					WithdrawConsequence::ReducedToZero(rest)
-				}
-			} else {
-				T::Assets::can_withdraw(asset, who, amount)
-			}
-		} else {
-			WithdrawConsequence::NoFunds
-		}
-	}
+        if Self::total_supply(asset).checked_sub(&amount).is_none() {
+            return WithdrawConsequence::Underflow;
+        }
+        if let Some(rest) = Self::balance(asset, who).checked_sub(&amount) {
+            let is_provider = false;
+            let is_required = is_provider && !frame_system::Pallet::<T>::can_dec_provider(who);
+            let must_keep_alive = keep_alive || is_required;
+
+            if rest < Self::minimum_balance(asset) {
+                if must_keep_alive {
+                    WithdrawConsequence::WouldDie
+                } else {
+                    WithdrawConsequence::ReducedToZero(rest)
+                }
+            } else {
+                T::Assets::can_withdraw(asset, who, amount)
+            }
+        } else {
+            WithdrawConsequence::NoFunds
+        }
+    }
 }
