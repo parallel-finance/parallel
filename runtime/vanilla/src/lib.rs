@@ -453,7 +453,6 @@ impl pallet_liquid_staking::Config for Runtime {
     type DerivativeIndex = DerivativeIndex;
     type DerivativeProvider = DerivativeProviderT;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;
-    type RelaychainBlockNumberProvider = RelaychainBlockNumberProvider<Runtime>;
     type MaxRewardsPerEra = MaxRewardsPerEra;
     type MaxSlashesPerEra = MaxSlashesPerEra;
     type RelayNetwork = RelayNetwork;

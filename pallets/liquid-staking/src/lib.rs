@@ -73,8 +73,7 @@ pub mod pallet {
     };
     use sp_runtime::{
         traits::{
-            AccountIdConversion, AtLeast32BitUnsigned, BlockNumberProvider, CheckedAdd, CheckedSub,
-            StaticLookup, Zero,
+            AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedSub, StaticLookup, Zero,
         },
         ArithmeticError, FixedPointNumber, FixedPointOperand,
     };
@@ -90,8 +89,6 @@ pub mod pallet {
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
     pub type BalanceOf<T> =
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
-    pub type RelaychainBlockNumberOf<T> =
-        <<T as Config>::RelaychainBlockNumberProvider as BlockNumberProvider>::BlockNumber;
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
@@ -120,9 +117,6 @@ pub mod pallet {
         /// Basic xcm transaction weight per message
         #[pallet::constant]
         type BaseXcmWeight: Get<Weight>;
-
-        /// Relaychain block number provider
-        type RelaychainBlockNumberProvider: BlockNumberProvider<BlockNumber = Self::BlockNumber>;
 
         /// Returns the parachain ID we are running with.
         #[pallet::constant]
@@ -260,14 +254,6 @@ pub mod pallet {
     #[pallet::getter(fn insurance_pool)]
     pub type InsurancePool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
-    /// Unbonding amount and withdrawable block number on relaychain
-    ///
-    /// [amount, withdrawable_block_number]
-    #[pallet::storage]
-    #[pallet::getter(fn unbonding)]
-    pub type Unbonding<T: Config> =
-        StorageValue<_, (BalanceOf<T>, RelaychainBlockNumberOf<T>), ValueQuery>;
-
     /// Fraction of reward currently set aside for reserves.
     #[pallet::storage]
     #[pallet::getter(fn reserve_factor)]
@@ -400,16 +386,6 @@ pub mod pallet {
 
         fn on_finalize(n: BlockNumberFor<T>) {
             let basis = T::PeriodBasis::get();
-
-            let (unbonding_amount, withdrawable_block_number) = Self::unbonding();
-            let relaychain_block_number = T::RelaychainBlockNumberProvider::current_block_number();
-
-            if !unbonding_amount.is_zero()
-                && relaychain_block_number >= withdrawable_block_number
-                && Self::withdraw_unbonded_internal(0, unbonding_amount.into()).is_ok()
-            {
-                Unbonding::<T>::kill();
-            }
 
             // check if current period end.
             if !(n % basis).is_zero() {
@@ -594,7 +570,6 @@ pub mod pallet {
             origin: OriginFor<T>,
             #[pallet::compact] bonding_amount: BalanceOf<T>,
             #[pallet::compact] unbonding_amount: BalanceOf<T>,
-            withdrawable_block_number: RelaychainBlockNumberOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
 
@@ -619,24 +594,12 @@ pub mod pallet {
                 }
             }
 
-            let (unbonding_amount, old_withdrawable_block_number) = Self::unbonding();
             if !unbond_amount.is_zero() {
-                let new_unbonding_amount: BalanceOf<T> = unbonding_amount
-                    .checked_add(&unbond_amount)
-                    .ok_or(ArithmeticError::Overflow)?;
                 Self::unbond_internal(unbond_amount)?;
-                Unbonding::<T>::put((
-                    new_unbonding_amount,
-                    withdrawable_block_number.max(old_withdrawable_block_number),
-                ));
             }
 
             if !rebond_amount.is_zero() {
-                let new_unbonding_amount: BalanceOf<T> = unbonding_amount
-                    .checked_sub(&rebond_amount)
-                    .ok_or(ArithmeticError::Underflow)?;
                 Self::rebond_internal(rebond_amount)?;
-                Unbonding::<T>::put((new_unbonding_amount, old_withdrawable_block_number));
             }
 
             Self::deposit_event(Event::<T>::StakingOpRequest(
@@ -697,7 +660,7 @@ pub mod pallet {
             amount: BalanceOf<T>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-            Self::withdraw_unbonded_internal(num_slashing_spans, amount.into())?;
+            Self::withdraw_unbonded_internal(num_slashing_spans, amount)?;
             Ok(())
         }
 
@@ -1012,7 +975,10 @@ pub mod pallet {
             Ok(())
         }
 
-        fn withdraw_unbonded_internal(num_slashing_spans: u32, amount: u128) -> DispatchResult {
+        fn withdraw_unbonded_internal(
+            num_slashing_spans: u32,
+            amount: BalanceOf<T>,
+        ) -> DispatchResult {
             switch_relay!({
                 let call =
                     RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
@@ -1038,38 +1004,6 @@ pub mod pallet {
                                     )),
                                 },
                             ))),
-                            RelaychainCall::XcmPallet(
-                                XcmPalletCall::XcmPalletReserveTransferAssetsCall(
-                                    XcmPalletReserveTransferAssetsCall {
-                                        dest: Box::new(
-                                            MultiLocation::new(
-                                                0,
-                                                X1(Parachain(T::SelfParaId::get().into())),
-                                            )
-                                            .into(),
-                                        ),
-                                        beneficiary: Box::new(
-                                            MultiLocation::new(
-                                                0,
-                                                X1(AccountId32 {
-                                                    network: NetworkId::Any,
-                                                    id: Self::account_id().into(),
-                                                }),
-                                            )
-                                            .into(),
-                                        ),
-                                        assets: Box::new(
-                                            MultiAssets::from(vec![MultiAsset {
-                                                id: AssetId::Concrete(MultiLocation::new(0, Here)),
-                                                fun: Fungibility::Fungible(amount),
-                                            }])
-                                            .into(),
-                                        ),
-                                        fee_asset_item: 0,
-                                        dest_weight: 1_000_000_000,
-                                    },
-                                ),
-                            ),
                         ],
                     })));
 
@@ -1086,6 +1020,8 @@ pub mod pallet {
                     }
                 }
             });
+
+            T::Assets::mint_into(Self::staking_currency()?, &Self::account_id(), amount)?;
 
             Ok(())
         }
@@ -1133,36 +1069,6 @@ pub mod pallet {
                         .into(),
                     },
                 ],
-            }
-        }
-
-        fn ump_transfer(amount: BalanceOf<T>) -> Xcm<()> {
-            let asset: MultiAsset = (MultiLocation::here(), u128::from(amount)).into();
-
-            WithdrawAsset {
-                assets: MultiAssets::from(asset.clone()),
-                effects: vec![InitiateReserveWithdraw {
-                    assets: All.into(),
-                    reserve: MultiLocation::parent(),
-                    effects: vec![
-                        BuyExecution {
-                            fees: asset,
-                            weight: 0,
-                            debt: T::BaseXcmWeight::get(),
-                            halt_on_error: false,
-                            instructions: vec![],
-                        },
-                        DepositAsset {
-                            assets: All.into(),
-                            max_assets: u32::max_value(),
-                            beneficiary: X1(AccountId32 {
-                                network: NetworkId::Any,
-                                id: Self::para_account_id().into(),
-                            })
-                            .into(),
-                        },
-                    ],
-                }],
             }
         }
     }
