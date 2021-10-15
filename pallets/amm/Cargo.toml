@@ -21,10 +21,10 @@ sp-runtime         = { git = 'https://github.com/paritytech/substrate.git', bran
 sp-std             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
 
 [dev-dependencies]
-pallet-balances         = { branch = 'polkadot-v0.9.11', git = 'https://github.com/paritytech/substrate' }
+pallet-balances         = { branch = 'polkadot-v0.9.11', git = 'https://github.com/paritytech/substrate.git' }
 pallet-currency-adapter = { path = '../currency-adapter' }
-sp-core                 = { branch = 'polkadot-v0.9.11', git = 'https://github.com/paritytech/substrate' }
-sp-io                   = { branch = 'polkadot-v0.9.11', git = 'https://github.com/paritytech/substrate' }
+sp-core                 = { branch = 'polkadot-v0.9.11', git = 'https://github.com/paritytech/substrate.git' }
+sp-io                   = { branch = 'polkadot-v0.9.11', git = 'https://github.com/paritytech/substrate.git' }
 
 [features]
 default            = ['std']
