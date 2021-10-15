@@ -17,8 +17,8 @@ sp-core = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-
 sp-io   = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.10', default-features = false }
 
 [features]
-default = ['std']
-std     = [
+default     = ['std']
+std         = [
   'serde',
   'codec/std',
   'frame-support/std',
