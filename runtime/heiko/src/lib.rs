@@ -479,7 +479,6 @@ impl pallet_liquid_staking::Config for Runtime {
     type Event = Event;
     type PalletId = StakingPalletId;
     type WeightInfo = ();
-    type XcmTransfer = XTokens;
     type SelfParaId = ParachainInfo;
     type PeriodBasis = PeriodBasis;
     type BaseXcmWeight = BaseXcmWeight;

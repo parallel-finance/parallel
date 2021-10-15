@@ -71,7 +71,6 @@ pub mod pallet {
         ensure_signed,
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
-    use orml_traits::XcmTransfer;
     use sp_runtime::{
         traits::{
             AccountIdConversion, AtLeast32BitUnsigned, BlockNumberProvider, CheckedAdd, CheckedSub,
@@ -114,9 +113,6 @@ pub mod pallet {
         /// The pallet id of liquid staking, keeps all the staking assets
         #[pallet::constant]
         type PalletId: Get<PalletId>;
-
-        /// XCM transfer
-        type XcmTransfer: XcmTransfer<Self::AccountId, BalanceOf<Self>, AssetIdOf<Self>>;
 
         /// XCM message sender
         type XcmSender: SendXcm;
@@ -605,15 +601,6 @@ pub mod pallet {
             let (bond_amount, rebond_amount, unbond_amount) =
                 MatchingPool::<T>::take().matching(unbonding_amount);
 
-            let beneficiary = MultiLocation::new(
-                1,
-                X1(AccountId32 {
-                    network: NetworkId::Any,
-                    id: Self::para_account_id().into(),
-                }),
-            );
-            let base_weight = T::BaseXcmWeight::get();
-
             if !Self::transaction_compensation().is_zero() {
                 T::Assets::burn_from(
                     Self::staking_currency()?,
@@ -623,13 +610,7 @@ pub mod pallet {
             }
 
             if !bond_amount.is_zero() {
-                T::XcmTransfer::transfer(
-                    Self::account_id(),
-                    Self::staking_currency()?,
-                    bond_amount,
-                    beneficiary,
-                    base_weight,
-                )?;
+                T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), bond_amount)?;
 
                 if !bonding_amount.is_zero() {
                     Self::bond_internal(bond_amount, RewardDestination::Staked)?;
