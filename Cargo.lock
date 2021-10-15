@@ -5576,7 +5576,6 @@ dependencies = [
  "frame-system",
  "orml-oracle",
  "orml-traits",
- "orml-utilities",
  "pallet-assets",
  "pallet-balances",
  "pallet-currency-adapter",
