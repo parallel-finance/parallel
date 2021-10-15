@@ -73,7 +73,8 @@ pub mod pallet {
     };
     use sp_runtime::{
         traits::{
-            AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedSub, StaticLookup, Zero,
+            AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedSub, Saturating,
+            StaticLookup, Zero,
         },
         ArithmeticError, FixedPointNumber, FixedPointOperand,
     };
@@ -81,7 +82,7 @@ pub mod pallet {
     use sp_std::{boxed::Box, vec::Vec};
     use xcm::{latest::prelude::*, DoubleEncoded};
 
-    use primitives::{DerivativeProvider, EraIndex, Rate, Ratio};
+    use primitives::{DerivativeProvider, Rate, Ratio};
 
     use crate::{types::*, weights::WeightInfo};
 
@@ -169,7 +170,7 @@ pub mod pallet {
         Staked(T::AccountId, BalanceOf<T>),
         /// The derivative get unstaked successfully
         Unstaked(T::AccountId, BalanceOf<T>, BalanceOf<T>),
-        /// Reward/Slash has been recorded.
+        /// Rewards/Slashes has been recorded.
         StakingSettlementRecorded(StakingSettlementKind, BalanceOf<T>),
         /// Request to perform bond/rebond/unbond in relay chain
         ///
@@ -355,12 +356,9 @@ pub mod pallet {
                 let account_id = Self::account_id();
 
                 // InsurancePool should not be embazzled.
-                let total_balance =
-                    T::Assets::reducible_balance(staking_currency, &account_id, false);
-
-                let free_balance = total_balance
-                    .checked_sub(&Self::insurance_pool())
-                    .unwrap_or(Zero::zero());
+                let free_balance =
+                    T::Assets::reducible_balance(staking_currency, &account_id, false)
+                        .saturating_sub(Self::insurance_pool());
                 if free_balance < *amount {
                     return remaining_weight;
                 }
@@ -529,7 +527,6 @@ pub mod pallet {
         #[transactional]
         pub fn record_staking_settlement(
             origin: OriginFor<T>,
-            _era_index: EraIndex,
             #[pallet::compact] amount: BalanceOf<T>,
             kind: StakingSettlementKind,
         ) -> DispatchResultWithPostInfo {
