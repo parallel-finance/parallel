@@ -99,7 +99,7 @@ pub trait PriceFeeder {
 }
 
 pub trait DecimalProvider {
-    fn get_decimal(asset_id: &CurrencyId) -> u8;
+    fn get_decimal(asset_id: &CurrencyId) -> Option<u8>;
 }
 
 pub trait EmergencyPriceFeeder<CurrencyId, Price> {
