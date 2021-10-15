@@ -30,18 +30,22 @@ where
     type AssetId = AssetIdOf<T>;
     type Balance = BalanceOf<T>;
 
+    /// The total amount of issuance in the system.
     fn total_issuance(asset: Self::AssetId) -> Self::Balance {
         Self::total_supply(asset)
     }
 
+    /// The minimum balance any single account may have.
     fn minimum_balance(_asset: Self::AssetId) -> Self::Balance {
         0u64.saturated_into()
     }
 
+    /// Get the balance of `who`.
     fn balance(asset: Self::AssetId, who: &T::AccountId) -> Self::Balance {
         Self::account_deposits(asset, who).voucher_balance
     }
 
+    /// Get the maximum amount that `who` can withdraw/transfer successfully.
     fn reducible_balance(
         asset: Self::AssetId,
         who: &T::AccountId,
@@ -68,6 +72,7 @@ where
         }
     }
 
+    /// Returns `true` if the balance of `who` may be increased by `amount`.
     fn can_deposit(
         asset: Self::AssetId,
         who: &T::AccountId,
@@ -76,6 +81,8 @@ where
         Self::can_increase(asset, who, amount)
     }
 
+    /// Returns `Failed` if the balance of `who` may not be decreased by `amount`, otherwise
+	/// the consequence.
     fn can_withdraw(
         asset: Self::AssetId,
         who: &T::AccountId,
@@ -142,6 +149,7 @@ where
 
         Ok(())
     }
+
     pub(crate) fn transfer_ptokens_internal(
         asset: AssetIdOf<T>,
         source: &T::AccountId,
