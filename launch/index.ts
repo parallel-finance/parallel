@@ -10,8 +10,7 @@ async function main() {
   const api = await ApiPromise.create(
     options({
       types: {
-        'Compact<TAssetBalance>': 'Compact<Balance>',
-        RelaychainBlockNumberOf: 'u32'
+        'Compact<TAssetBalance>': 'Compact<Balance>'
       },
       provider: new WsProvider('ws://localhost:9947')
     })

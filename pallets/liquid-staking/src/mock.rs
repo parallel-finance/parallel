@@ -17,9 +17,7 @@ use primitives::{
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
-    traits::{
-        AccountIdConversion, AccountIdLookup, BlakeTwo256, BlockNumberProvider, Convert, One,
-    },
+    traits::{AccountIdConversion, AccountIdLookup, BlakeTwo256, Convert, One},
     AccountId32,
     MultiAddress::Id,
 };
@@ -312,21 +310,6 @@ impl DerivativeProvider<AccountId> for DerivativeProviderT {
     }
 }
 
-pub struct RelaychainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
-
-impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
-    for RelaychainBlockNumberProvider<T>
-{
-    type BlockNumber = BlockNumber;
-
-    fn current_block_number() -> Self::BlockNumber {
-        cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
-            .map(|d| d.relay_parent_number)
-            .unwrap_or_default()
-            .into()
-    }
-}
-
 parameter_types! {
     pub MaxRewardsPerEra: Balance = dot(1000f64);
     pub MaxSlashesPerEra: Balance = dot(1f64);
@@ -338,7 +321,6 @@ impl crate::Config for Test {
     type Event = Event;
     type PalletId = StakingPalletId;
     type BaseXcmWeight = BaseXcmWeight;
-    type XcmTransfer = XTokens;
     type SelfParaId = SelfParaId;
     type PeriodBasis = PeriodBasis;
     type WeightInfo = ();
@@ -349,7 +331,6 @@ impl crate::Config for Test {
     type RelayOrigin = RelayOrigin;
     type UpdateOrigin = UpdateOrigin;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;
-    type RelaychainBlockNumberProvider = RelaychainBlockNumberProvider<Test>;
     type MaxRewardsPerEra = MaxRewardsPerEra;
     type MaxSlashesPerEra = MaxSlashesPerEra;
     type RelayNetwork = RelayNetwork;
