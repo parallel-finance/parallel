@@ -9,10 +9,6 @@ function sleep(ms: number) {
 async function main() {
   const api = await ApiPromise.create(
     options({
-      types: {
-        'Compact<TAssetBalance>': 'Compact<Balance>',
-        RelaychainBlockNumberOf: 'u32'
-      },
       provider: new WsProvider('ws://localhost:9947')
     })
   )

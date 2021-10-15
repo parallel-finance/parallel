@@ -465,7 +465,7 @@ pub mod pallet {
             mint_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
             Self::ensure_capacity(asset_id, mint_amount)?;
 
             T::Assets::transfer(asset_id, &who, &Self::account_id(), mint_amount, false)?;
@@ -504,7 +504,7 @@ pub mod pallet {
             redeem_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
 
             let exchange_rate = Self::exchange_rate(asset_id);
             let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
@@ -526,7 +526,7 @@ pub mod pallet {
             asset_id: AssetIdOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
 
             Self::update_earned_stored(&who, asset_id)?;
             let deposits = AccountDeposits::<T>::get(asset_id, &who);
@@ -549,7 +549,7 @@ pub mod pallet {
             borrow_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
 
             Self::borrow_allowed(asset_id, &who, borrow_amount)?;
             let account_borrows = Self::current_borrow_balance(&who, asset_id)?;
@@ -588,7 +588,7 @@ pub mod pallet {
             repay_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
 
             let account_borrows = Self::current_borrow_balance(&who, asset_id)?;
             Self::repay_borrow_internal(&who, asset_id, account_borrows, repay_amount)?;
@@ -608,7 +608,7 @@ pub mod pallet {
             asset_id: AssetIdOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
 
             let account_borrows = Self::current_borrow_balance(&who, asset_id)?;
             Self::repay_borrow_internal(&who, asset_id, account_borrows, account_borrows)?;
@@ -630,7 +630,7 @@ pub mod pallet {
             enable: bool,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
             ensure!(
                 AccountDeposits::<T>::contains_key(asset_id, &who),
                 Error::<T>::NoDeposit
@@ -711,7 +711,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::ReserveOrigin::ensure_origin(origin)?;
             let payer = T::Lookup::lookup(payer)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
 
             T::Assets::transfer(asset_id, &payer, &Self::account_id(), add_amount, false)?;
             let total_reserves = Self::total_reserves(asset_id);
@@ -747,7 +747,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::ReserveOrigin::ensure_origin(origin)?;
             let receiver = T::Lookup::lookup(receiver)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
 
             let total_reserves = Self::total_reserves(asset_id);
             if reduce_amount > total_reserves {
@@ -1073,8 +1073,8 @@ where
         repay_amount: BalanceOf<T>,
         collateral_asset_id: AssetIdOf<T>,
     ) -> DispatchResult {
-        Self::ensure_currency(liquidate_asset_id)?;
-        Self::ensure_currency(collateral_asset_id)?;
+        Self::ensure_market(liquidate_asset_id)?;
+        Self::ensure_market(collateral_asset_id)?;
 
         let market = Self::market(liquidate_asset_id)?;
 
@@ -1215,7 +1215,7 @@ where
     }
 
     // Ensures a given `asset_id` exists on the `Currencies` storage.
-    fn ensure_currency(asset_id: AssetIdOf<T>) -> DispatchResult {
+    fn ensure_market(asset_id: AssetIdOf<T>) -> DispatchResult {
         if Self::active_markets().any(|(id, _)| id == asset_id) {
             Ok(())
         } else {
