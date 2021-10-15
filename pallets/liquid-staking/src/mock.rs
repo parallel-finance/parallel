@@ -311,8 +311,8 @@ impl DerivativeProvider<AccountId> for DerivativeProviderT {
 }
 
 parameter_types! {
-    pub const MaxRewardsPerEra: Balance = 100;
-    pub const MaxSlashesPerEra: Balance = 1;
+    pub MaxRewardsPerEra: Balance = dot(1000f64);
+    pub MaxSlashesPerEra: Balance = dot(1f64);
     pub const MinStakeAmount: Balance = 0;
     pub const MinUnstakeAmount: Balance = 0;
 }
@@ -406,8 +406,8 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     ext.execute_with(|| {
         Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
         Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100).unwrap();
-        Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), 100).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
 
         LiquidStaking::set_liquid_currency(Origin::signed(BOB), XDOT).unwrap();
         LiquidStaking::set_staking_currency(Origin::signed(BOB), DOT).unwrap();
@@ -510,4 +510,8 @@ pub fn relay_ext() -> sp_io::TestExternalities {
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| System::set_block_number(1));
     ext
+}
+
+pub fn dot(n: f64) -> Balance {
+    ((n * 1000000f64) as u128) * DOT_DECIMAL / 1000000u128
 }

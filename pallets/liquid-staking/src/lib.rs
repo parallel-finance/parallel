@@ -65,7 +65,7 @@ pub mod pallet {
         },
         transactional,
         weights::Weight,
-        BoundedVec, PalletId, Twox64Concat,
+        BoundedVec, PalletId,
     };
     use frame_system::{
         ensure_signed,
@@ -201,8 +201,6 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
-        /// Reward/Slash has been recorded.
-        StakingSettlementAlreadyRecorded,
         /// Exchange rate is invalid.
         InvalidExchangeRate,
         /// Era has been pushed before.
@@ -259,18 +257,6 @@ pub mod pallet {
     #[pallet::getter(fn reserve_factor)]
     pub type ReserveFactor<T: Config> = StorageValue<_, Ratio, ValueQuery>;
 
-    /// Records reward or slash of era.
-    #[pallet::storage]
-    #[pallet::getter(fn staking_settlement_records)]
-    pub type StakingSettlementRecords<T: Config> = StorageDoubleMap<
-        _,
-        Blake2_128Concat,
-        EraIndex,
-        Twox64Concat,
-        StakingSettlementKind,
-        BalanceOf<T>,
-    >;
-
     /// Store total stake amount and unstake amount in each era,
     /// And will update when stake/unstake occurred.
     #[pallet::storage]
@@ -296,10 +282,10 @@ pub mod pallet {
     #[pallet::storage]
     pub type StakingCurrency<T: Config> = StorageValue<_, AssetIdOf<T>, OptionQuery>;
 
-    /// Transaction compensation
+    /// Relaychain xcm fees compensation
     #[pallet::storage]
-    #[pallet::getter(fn transaction_compensation)]
-    pub type TransactionCompensation<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+    #[pallet::getter(fn xcm_fees_compensation)]
+    pub type XcmFeesCompensation<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig {
@@ -366,9 +352,20 @@ pub mod pallet {
 
                 // Get the front of the queue.
                 let (who, amount) = &Self::unstake_queue()[0];
+                let account_id = Self::account_id();
 
-                if T::Assets::transfer(staking_currency, &Self::account_id(), who, *amount, false)
-                    .is_err()
+                // InsurancePool should not be embazzled.
+                let total_balance =
+                    T::Assets::reducible_balance(staking_currency, &account_id, false);
+
+                let free_balance = total_balance
+                    .checked_sub(&Self::insurance_pool())
+                    .unwrap_or(Zero::zero());
+                if free_balance < *amount {
+                    return remaining_weight;
+                }
+
+                if T::Assets::transfer(staking_currency, &account_id, who, *amount, false).is_err()
                 {
                     // break if we cannot afford this
                     break;
@@ -437,16 +434,17 @@ pub mod pallet {
                 false,
             )?;
 
-            // Calculate staking fee
-            let fee = Self::reserve_factor().mul_floor(amount);
-            // TODO(Alan WANG): Enable it later
-            // InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
-            //     *b = b.checked_add(&fees).ok_or(ArithmeticError::Overflow)?;
-            //     Ok(())
-            // })?;
+            // Calculate staking fee and add it to insurance pool
+            let fees = Self::reserve_factor().mul_floor(amount);
+            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_add(&fees).ok_or(ArithmeticError::Overflow)?;
+                Ok(())
+            })?;
 
             // Amount that we should mint to user
-            let amount = amount.checked_sub(&fee).ok_or(ArithmeticError::Underflow)?;
+            let amount = amount
+                .checked_sub(&fees)
+                .ok_or(ArithmeticError::Underflow)?;
             let liquid_amount = Self::exchange_rate()
                 .reciprocal()
                 .and_then(|r| r.checked_mul_int(amount))
@@ -531,31 +529,26 @@ pub mod pallet {
         #[transactional]
         pub fn record_staking_settlement(
             origin: OriginFor<T>,
-            era_index: EraIndex,
+            _era_index: EraIndex,
             #[pallet::compact] amount: BalanceOf<T>,
             kind: StakingSettlementKind,
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
-            ensure!(
-                !StakingSettlementRecords::<T>::contains_key(era_index, kind),
-                Error::<T>::StakingSettlementAlreadyRecorded
-            );
 
             Self::update_staking_pool(kind, amount)?;
 
-            StakingSettlementRecords::<T>::insert(era_index, kind, amount);
             Self::deposit_event(Event::<T>::StakingSettlementRecorded(kind, amount));
             Ok(().into())
         }
 
-        #[pallet::weight(<T as Config>::WeightInfo::force_update_transaction_compensation())]
+        #[pallet::weight(<T as Config>::WeightInfo::force_update_xcm_fees_compensation())]
         #[transactional]
-        pub fn force_update_transaction_compensation(
+        pub fn force_update_xcm_fees_compensation(
             origin: OriginFor<T>,
             fee: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
-            TransactionCompensation::<T>::mutate(|v| *v = fee);
+            XcmFeesCompensation::<T>::mutate(|v| *v = fee);
             Self::deposit_event(Event::<T>::TransactionCompensationUpdated(fee));
             Ok(().into())
         }
@@ -575,17 +568,23 @@ pub mod pallet {
 
             let (bond_amount, rebond_amount, unbond_amount) =
                 MatchingPool::<T>::take().matching(unbonding_amount);
+            let staking_currency = Self::staking_currency()?;
+            let account_id = Self::account_id();
+            let xcm_fees_compensation = Self::xcm_fees_compensation();
 
-            if !Self::transaction_compensation().is_zero() {
-                T::Assets::burn_from(
-                    Self::staking_currency()?,
-                    &Self::account_id(),
-                    Self::transaction_compensation(),
-                )?;
+            if !Self::xcm_fees_compensation().is_zero() {
+                T::Assets::burn_from(staking_currency, &account_id, xcm_fees_compensation)?;
+
+                InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
+                    *b = b
+                        .checked_sub(&Self::xcm_fees_compensation())
+                        .ok_or(ArithmeticError::Underflow)?;
+                    Ok(())
+                })?;
             }
 
             if !bond_amount.is_zero() {
-                T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), bond_amount)?;
+                T::Assets::burn_from(staking_currency, &account_id, bond_amount)?;
 
                 if !bonding_amount.is_zero() {
                     Self::bond_internal(bond_amount, RewardDestination::Staked)?;
