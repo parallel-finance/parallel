@@ -2770,7 +2770,7 @@ dependencies = [
 
 [[package]]
 name = "heiko-runtime"
-version = "1.0.0"
+version = "1.7.0"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -2791,7 +2791,6 @@ dependencies = [
  "orml-oracle",
  "orml-oracle-rpc-runtime-api",
  "orml-traits",
- "orml-utilities",
  "orml-vesting",
  "orml-xcm",
  "orml-xcm-support",
@@ -2828,6 +2827,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-parachain",
  "polkadot-runtime-common",
+ "scale-info",
  "serde",
  "smallvec",
  "sp-api",
@@ -4786,7 +4786,7 @@ dependencies = [
 [[package]]
 name = "orml-oracle"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe#b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#dc96605342de9971c27699561723a6de6e2614c2"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -4804,7 +4804,7 @@ dependencies = [
 [[package]]
 name = "orml-oracle-rpc"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe#b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#dc96605342de9971c27699561723a6de6e2614c2"
 dependencies = [
  "jsonrpc-core",
  "jsonrpc-core-client",
@@ -4819,7 +4819,7 @@ dependencies = [
 [[package]]
 name = "orml-oracle-rpc-runtime-api"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe#b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#dc96605342de9971c27699561723a6de6e2614c2"
 dependencies = [
  "parity-scale-codec",
  "sp-api",
@@ -4829,7 +4829,7 @@ dependencies = [
 [[package]]
 name = "orml-traits"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe#b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#dc96605342de9971c27699561723a6de6e2614c2"
 dependencies = [
  "frame-support",
  "impl-trait-for-tuples",
@@ -4847,7 +4847,7 @@ dependencies = [
 [[package]]
 name = "orml-utilities"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe#b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#dc96605342de9971c27699561723a6de6e2614c2"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -4861,7 +4861,7 @@ dependencies = [
 [[package]]
 name = "orml-vesting"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe#b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#dc96605342de9971c27699561723a6de6e2614c2"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -4876,7 +4876,7 @@ dependencies = [
 [[package]]
 name = "orml-xcm"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe#b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#dc96605342de9971c27699561723a6de6e2614c2"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -4890,7 +4890,7 @@ dependencies = [
 [[package]]
 name = "orml-xcm-support"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe#b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#dc96605342de9971c27699561723a6de6e2614c2"
 dependencies = [
  "frame-support",
  "orml-traits",
@@ -4904,7 +4904,7 @@ dependencies = [
 [[package]]
 name = "orml-xtokens"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe#b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#dc96605342de9971c27699561723a6de6e2614c2"
 dependencies = [
  "cumulus-primitives-core",
  "frame-support",
@@ -4932,7 +4932,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-amm"
-version = "3.0.0"
+version = "1.7.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5229,10 +5229,11 @@ dependencies = [
 
 [[package]]
 name = "pallet-currency-adapter"
-version = "3.0.0"
+version = "1.7.0"
 dependencies = [
  "frame-support",
  "frame-system",
+ "parallel-primitives",
  "parity-scale-codec",
  "scale-info",
  "sp-runtime",
@@ -5389,14 +5390,13 @@ dependencies = [
 
 [[package]]
 name = "pallet-liquid-staking"
-version = "3.0.0"
+version = "1.7.0"
 dependencies = [
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcm",
  "cumulus-pallet-xcmp-queue",
  "cumulus-primitives-core",
- "frame-benchmarking",
  "frame-support",
  "frame-system",
  "orml-xcm-support",
@@ -5430,7 +5430,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-liquidation"
-version = "3.0.0"
+version = "1.7.0"
 dependencies = [
  "alt_serde",
  "alt_serde_json",
@@ -5449,14 +5449,13 @@ dependencies = [
 
 [[package]]
 name = "pallet-loans"
-version = "3.0.0"
+version = "1.7.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
  "orml-oracle",
  "orml-traits",
- "orml-utilities",
  "pallet-assets",
  "pallet-balances",
  "pallet-currency-adapter",
@@ -5474,7 +5473,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-loans-rpc"
-version = "3.0.0"
+version = "1.7.0"
 dependencies = [
  "jsonrpc-core",
  "jsonrpc-core-client",
@@ -5491,7 +5490,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-loans-rpc-runtime-api"
-version = "3.0.0"
+version = "1.7.0"
 dependencies = [
  "parallel-primitives",
  "parity-scale-codec",
@@ -5598,7 +5597,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-nominee-election"
-version = "3.0.0"
+version = "1.7.0"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5653,7 +5652,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-prices"
-version = "3.0.0"
+version = "1.7.0"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5700,7 +5699,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-router"
-version = "3.0.0"
+version = "1.7.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6022,7 +6021,7 @@ dependencies = [
 
 [[package]]
 name = "parallel"
-version = "1.0.0"
+version = "1.7.0"
 dependencies = [
  "cumulus-client-cli",
  "cumulus-client-collator",
@@ -6109,7 +6108,7 @@ dependencies = [
 
 [[package]]
 name = "parallel-runtime"
-version = "1.0.0"
+version = "1.7.0"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -6130,7 +6129,6 @@ dependencies = [
  "orml-oracle",
  "orml-oracle-rpc-runtime-api",
  "orml-traits",
- "orml-utilities",
  "orml-vesting",
  "orml-xcm",
  "orml-xcm-support",
@@ -6167,6 +6165,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-parachain",
  "polkadot-runtime-common",
+ "scale-info",
  "serde",
  "smallvec",
  "sp-api",
@@ -11241,7 +11240,7 @@ dependencies = [
 
 [[package]]
 name = "vanilla-runtime"
-version = "1.0.0"
+version = "1.7.0"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -11262,7 +11261,6 @@ dependencies = [
  "orml-oracle",
  "orml-oracle-rpc-runtime-api",
  "orml-traits",
- "orml-utilities",
  "orml-vesting",
  "orml-xcm",
  "orml-xcm-support",
@@ -11299,6 +11297,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-parachain",
  "polkadot-runtime-common",
+ "scale-info",
  "serde",
  "smallvec",
  "sp-api",

@@ -8,7 +8,7 @@ version = '1.0.0'
 codec             = { package = 'parity-scale-codec', version = '2.3.1', default-features = false }
 frame-support     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
 frame-system      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
-orml-oracle       = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', rev = 'b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe', default-features = false }
+orml-oracle       = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 serde             = { version = '1', optional = true }
 sp-consensus-aura = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
 sp-core           = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
