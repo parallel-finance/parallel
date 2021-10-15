@@ -61,7 +61,7 @@ use polkadot_parachain::primitives::Sibling;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::HEIKO_PREFIX,
-    tokens::{KSM, XKSM},
+    tokens::{HKO, KSM, XKSM},
     Index, *,
 };
 use xcm::latest::prelude::*;
@@ -330,6 +330,13 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                     GeneralKey(b"xKSM".to_vec()),
                 ),
             )),
+            HKO => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(ParachainInfo::parachain_id().into()),
+                    GeneralKey(b"HKO".to_vec()),
+                ),
+            )),
             _ => None,
         }
     }
@@ -347,6 +354,12 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 interior: X2(Parachain(id), GeneralKey(key)),
             } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xKSM".to_vec() => {
                 Some(XKSM)
+            }
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), GeneralKey(key)),
+            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"HKO".to_vec() => {
+                Some(HKO)
             }
             _ => None,
         }
@@ -791,7 +804,7 @@ pub type LocationToAccountId = (
 /// Means for transacting assets on this chain.
 pub type LocalAssetTransactor = MultiCurrencyAdapter<
     // Use this currency:
-    Assets,
+    CurrencyAdapter,
     // Use this currency when it is a fungible asset matching the given location or name:
     IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
     // Our chain's account ID type (we can't get away without mentioning it explicitly):
@@ -907,6 +920,7 @@ impl DecimalProvider for Decimal {
         // pallet_assets::Metadata::<Runtime>::get(asset_id).decimals
         match *asset_id {
             KSM | XKSM => 12,
+            HKO => 12,
             _ => 0,
         }
     }
