@@ -197,7 +197,7 @@ pub mod pallet {
         /// Send staking.payout_stakers call to relaychain
         PayoutStakersCallSent(T::AccountId, u32),
         /// Compensation for extrinsics in relaychain was set to new value
-        TransactionCompensationUpdated(BalanceOf<T>),
+        XcmFeesCompensationUpdated(BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -546,7 +546,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
             XcmFeesCompensation::<T>::mutate(|v| *v = fee);
-            Self::deposit_event(Event::<T>::TransactionCompensationUpdated(fee));
+            Self::deposit_event(Event::<T>::XcmFeesCompensationUpdated(fee));
             Ok(().into())
         }
 
