@@ -191,9 +191,6 @@ pub mod pallet {
         /// Event emitted when a market is activated
         /// [admin, asset_id]
         UpdatedMarket(Market<BalanceOf<T>>),
-        /// Event emitted when ptokens are transferred
-        /// [sender, receiver, asset_id, send_amount]
-        PtokensTransferred(T::AccountId, T::AccountId, AssetIdOf<T>, BalanceOf<T>),
     }
 
     /// The timestamp of the last calculation of accrued interest
@@ -760,32 +757,6 @@ pub mod pallet {
                 asset_id,
                 reduce_amount,
                 total_reserves_new,
-            ));
-
-            Ok(().into())
-        }
-
-        /// Transfer ptokens to receiver.
-        ///
-        /// - `receiver`: the receiver account.
-        /// - `asset_id`: the assets to be transferred.
-        /// - `amount`: the amount to be transferred.
-        #[pallet::weight(T::WeightInfo::transfer_ptoken())]
-        #[transactional]
-        pub fn transfer_ptokens(
-            origin: OriginFor<T>,
-            receiver: <T::Lookup as StaticLookup>::Source,
-            asset_id: AssetIdOf<T>,
-            amount: BalanceOf<T>,
-        ) -> DispatchResultWithPostInfo {
-            let sender = ensure_signed(origin)?;
-            let receiver = T::Lookup::lookup(receiver)?;
-            Self::ensure_currency(asset_id)?;
-
-            Self::transfer_ptokens_internal(&sender, &receiver, asset_id, amount)?;
-
-            Self::deposit_event(Event::<T>::PtokensTransferred(
-                sender, receiver, asset_id, amount,
             ));
 
             Ok(().into())

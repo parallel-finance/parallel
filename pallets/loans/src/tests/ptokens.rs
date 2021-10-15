@@ -3,7 +3,10 @@ use crate::{
     tests::dollar,
     Error,
 };
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{
+    traits::tokens::fungibles::Transfer,
+    assert_noop, assert_ok
+};
 use sp_runtime::FixedPointNumber;
 
 #[test]
@@ -28,7 +31,8 @@ fn transfer_ptoken_works() {
         );
 
         // Transfer ptokens from DAVE to ALICE
-        Loans::transfer_ptokens(Origin::signed(DAVE), ALICE, HKO, dollar(50) * 50).unwrap();
+        Loans::transfer(HKO, &DAVE, &ALICE, dollar(50) * 50, true).unwrap();
+        // Loans::transfer_ptokens(Origin::signed(DAVE), ALICE, HKO, dollar(50) * 50).unwrap();
 
         // DAVE HKO collateral: deposit = 50
         assert_eq!(
@@ -71,7 +75,7 @@ fn transfer_ptokens_under_collateral_works() {
         assert_ok!(Loans::repay_borrow(Origin::signed(DAVE), HKO, dollar(40)));
 
         // Transfer 20 ptokens from DAVE to ALICE
-        Loans::transfer_ptokens(Origin::signed(DAVE), ALICE, HKO, dollar(20) * 50).unwrap();
+        Loans::transfer(HKO, &DAVE, &ALICE, dollar(20) * 50, true).unwrap();
 
         // DAVE Deposit HKO = 100 - 20 = 80
         // DAVE Borrow HKO = 0 + 50 - 40 = 10
