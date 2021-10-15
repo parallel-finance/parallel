@@ -4786,7 +4786,7 @@ dependencies = [
 [[package]]
 name = "orml-oracle"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=v0.9.11#d847dbc8dbeca6b0d6fdc76d911833ae11b904e0"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe#b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -4804,7 +4804,7 @@ dependencies = [
 [[package]]
 name = "orml-oracle-rpc"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=v0.9.11#d847dbc8dbeca6b0d6fdc76d911833ae11b904e0"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe#b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe"
 dependencies = [
  "jsonrpc-core",
  "jsonrpc-core-client",
@@ -4819,7 +4819,7 @@ dependencies = [
 [[package]]
 name = "orml-oracle-rpc-runtime-api"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=v0.9.11#d847dbc8dbeca6b0d6fdc76d911833ae11b904e0"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe#b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe"
 dependencies = [
  "parity-scale-codec",
  "sp-api",
@@ -4829,7 +4829,7 @@ dependencies = [
 [[package]]
 name = "orml-traits"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=v0.9.11#d847dbc8dbeca6b0d6fdc76d911833ae11b904e0"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe#b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe"
 dependencies = [
  "frame-support",
  "impl-trait-for-tuples",
@@ -4847,7 +4847,7 @@ dependencies = [
 [[package]]
 name = "orml-utilities"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=v0.9.11#d847dbc8dbeca6b0d6fdc76d911833ae11b904e0"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe#b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -4861,7 +4861,7 @@ dependencies = [
 [[package]]
 name = "orml-vesting"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=v0.9.11#d847dbc8dbeca6b0d6fdc76d911833ae11b904e0"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe#b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -4876,7 +4876,7 @@ dependencies = [
 [[package]]
 name = "orml-xcm"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=v0.9.11#d847dbc8dbeca6b0d6fdc76d911833ae11b904e0"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe#b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -4890,7 +4890,7 @@ dependencies = [
 [[package]]
 name = "orml-xcm-support"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=v0.9.11#d847dbc8dbeca6b0d6fdc76d911833ae11b904e0"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe#b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe"
 dependencies = [
  "frame-support",
  "orml-traits",
@@ -4904,7 +4904,7 @@ dependencies = [
 [[package]]
 name = "orml-xtokens"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=v0.9.11#d847dbc8dbeca6b0d6fdc76d911833ae11b904e0"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?rev=b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe#b89b1f98fcf0f5c341fbef1d12bfd869a2f2a9fe"
 dependencies = [
  "cumulus-primitives-core",
  "frame-support",
