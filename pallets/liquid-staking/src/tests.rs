@@ -3,7 +3,7 @@ use crate::{
     types::{MatchingLedger, RewardDestination, StakingSettlementKind},
     *,
 };
-use frame_support::{assert_err, assert_ok, traits::Hooks};
+use frame_support::{assert_ok, traits::Hooks};
 use pallet_staking::{Exposure, IndividualExposure};
 use primitives::{
     tokens::{DOT, XDOT},
@@ -98,16 +98,6 @@ fn test_duplicated_record_staking_settlement() {
             StakingSettlementKind::Reward,
         )
         .unwrap();
-
-        assert_err!(
-            LiquidStaking::record_staking_settlement(
-                Origin::signed(ALICE),
-                1,
-                100,
-                StakingSettlementKind::Reward
-            ),
-            Error::<Test>::StakingSettlementAlreadyRecorded
-        )
     })
 }
 
