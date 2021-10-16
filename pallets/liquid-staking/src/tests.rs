@@ -360,53 +360,6 @@ fn test_transact_nominate_work() {
 }
 
 #[test]
-fn test_transact_payout_stakers_work() {
-    TestNet::reset();
-
-    Relay::execute_with(|| {
-        let exposure = Exposure {
-            total: 100 * DOT_DECIMAL,
-            own: 33 * DOT_DECIMAL,
-            others: vec![IndividualExposure {
-                who: CHARILE,
-                value: 67 * DOT_DECIMAL,
-            }],
-        };
-        pallet_babe::Pallet::<WestendRuntime>::on_initialize(1);
-        pallet_staking::ErasStartSessionIndex::<WestendRuntime>::insert(0, 1);
-        pallet_session::Pallet::<WestendRuntime>::rotate_session();
-        pallet_staking::CurrentEra::<WestendRuntime>::put(0);
-        pallet_staking::ErasValidatorReward::<WestendRuntime>::insert(0, 500 * DOT_DECIMAL);
-        pallet_staking::ErasStakersClipped::<WestendRuntime>::insert(
-            0,
-            LiquidStaking::derivative_para_account_id(),
-            exposure,
-        );
-        RelayStaking::reward_by_ids(vec![(LiquidStaking::derivative_para_account_id(), 100)]);
-    });
-
-    ParaA::execute_with(|| {
-        assert_ok!(LiquidStaking::bond(
-            Origin::signed(ALICE),
-            1 * DOT_DECIMAL,
-            RewardDestination::Account(BOB),
-        ));
-
-        // weight is 31701208000
-        assert_ok!(LiquidStaking::payout_stakers(
-            Origin::signed(ALICE),
-            LiquidStaking::derivative_para_account_id(),
-            0
-        ));
-    });
-
-    // (33/100) * 500
-    Relay::execute_with(|| {
-        assert_eq!(RelayBalances::free_balance(BOB), 165 * DOT_DECIMAL);
-    });
-}
-
-#[test]
 fn stake_should_correctly_add_insurance_pool() {
     new_test_ext().execute_with(|| {
         LiquidStaking::stake(Origin::signed(ALICE), 1000).unwrap();
