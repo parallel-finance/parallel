@@ -37,12 +37,13 @@ where
     }
 }
 
-fn pending_market_mock<T: Config>() -> Market<BalanceOf<T>>
+fn pending_market_mock<T: Config>(asset_id: CurrencyId) -> Market<BalanceOf<T>>
 where
     BalanceOf<T>: From<u128>,
 {
     let mut market = market_mock::<T>();
     market.state = MarketState::Pending;
+    market.ptoken_id = 900 + asset_id;
     market
 }
 
@@ -109,29 +110,29 @@ benchmarks! {
     }
 
     add_market {
-    }: _(SystemOrigin::Root, UNKNOWN.into(),pending_market_mock::<T>())
+    }: _(SystemOrigin::Root, UNKNOWN.into(),pending_market_mock::<T>(UNKNOWN))
     verify {
-        assert_last_event::<T>(Event::<T>::NewMarket(pending_market_mock::<T>()).into());
+        assert_last_event::<T>(Event::<T>::NewMarket(pending_market_mock::<T>(UNKNOWN)).into());
     }
 
     active_market {
-        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), UNKNOWN.into(), pending_market_mock::<T>()));
+        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), UNKNOWN.into(), pending_market_mock::<T>(UNKNOWN)));
     }: _(SystemOrigin::Root,UNKNOWN.into())
     verify {
         assert_last_event::<T>(Event::<T>::ActivatedMarket(UNKNOWN.into()).into());
     }
 
     update_market {
-        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>()));
-    }: _(SystemOrigin::Root,DOT.into(), pending_market_mock::<T>())
+        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>(DOT)));
+    }: _(SystemOrigin::Root,DOT.into(), pending_market_mock::<T>(DOT))
     verify {
-        assert_last_event::<T>(Event::<T>::UpdatedMarket(pending_market_mock::<T>()).into());
+        assert_last_event::<T>(Event::<T>::UpdatedMarket(pending_market_mock::<T>(DOT)).into());
     }
 
     mint {
         let caller: T::AccountId = whitelisted_caller();
         transfer_initial_balance::<T>(caller.clone());
-        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>()));
+        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>(DOT)));
         assert_ok!(Loans::<T>::active_market(SystemOrigin::Root.into(), DOT.into()));
         let amount: u32 = 100_000;
     }: _(SystemOrigin::Signed(caller.clone()), DOT.into(), amount.into())
@@ -144,7 +145,7 @@ benchmarks! {
         transfer_initial_balance::<T>(caller.clone());
         let deposit_amount: u32 = 200_000_000;
         let borrowed_amount: u32 = 100_000_000;
-        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>()));
+        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>(DOT)));
         assert_ok!(Loans::<T>::active_market(SystemOrigin::Root.into(), DOT.into()));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT.into(), deposit_amount.into()));
         assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(caller.clone()).into(), DOT.into(), true));
@@ -158,7 +159,7 @@ benchmarks! {
         transfer_initial_balance::<T>(caller.clone());
         let deposit_amount: u32 = 100_000_000;
         let redeem_amount: u32 = 100_000;
-        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>()));
+        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>(DOT)));
         assert_ok!(Loans::<T>::active_market(SystemOrigin::Root.into(), DOT.into()));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT.into(), deposit_amount.into()));
     }: _(SystemOrigin::Signed(caller.clone()), DOT.into(), redeem_amount.into())
@@ -170,7 +171,7 @@ benchmarks! {
         let caller: T::AccountId = whitelisted_caller();
         transfer_initial_balance::<T>(caller.clone());
         let deposit_amount: u32 = 100_000_000;
-        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>()));
+        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>(DOT)));
         assert_ok!(Loans::<T>::active_market(SystemOrigin::Root.into(), DOT.into()));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT.into(), deposit_amount.into()));
     }: _(SystemOrigin::Signed(caller.clone()), DOT.into())
@@ -184,7 +185,7 @@ benchmarks! {
         let deposit_amount: u32 = 200_000_000;
         let borrowed_amount: u32 = 100_000_000;
         let repay_amount: u32 = 100;
-        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>()));
+        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>(DOT)));
         assert_ok!(Loans::<T>::active_market(SystemOrigin::Root.into(), DOT.into()));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT.into(), deposit_amount.into()));
         assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(caller.clone()).into(), DOT.into(), true));
@@ -199,7 +200,7 @@ benchmarks! {
         transfer_initial_balance::<T>(caller.clone());
         let deposit_amount: u32 = 200_000_000;
         let borrowed_amount: u32 = 100_000_000;
-        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>()));
+        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>(DOT)));
         assert_ok!(Loans::<T>::active_market(SystemOrigin::Root.into(), DOT.into()));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT.into(), deposit_amount.into()));
         assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(caller.clone()).into(), DOT.into(), true));
@@ -213,7 +214,7 @@ benchmarks! {
         let caller: T::AccountId = whitelisted_caller();
         transfer_initial_balance::<T>(caller.clone());
         let deposit_amount: u32 = 200_000_000;
-        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>()));
+        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>(DOT)));
         assert_ok!(Loans::<T>::active_market(SystemOrigin::Root.into(), DOT.into()));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(caller.clone()).into(), DOT.into(), deposit_amount.into()));
     }: _(SystemOrigin::Signed(caller.clone()), DOT.into(), true)
@@ -230,9 +231,9 @@ benchmarks! {
         let borrowed_amount: u32 = 200_000_000;
         let liquidate_amount: u32 = 100_000_000;
         let incentive_amount: u32 = 110_000_000;
-        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>()));
+        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>(DOT)));
         assert_ok!(Loans::<T>::active_market(SystemOrigin::Root.into(), DOT.into()));
-        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), KSM.into(), pending_market_mock::<T>()));
+        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), KSM.into(), pending_market_mock::<T>(KSM)));
         assert_ok!(Loans::<T>::active_market(SystemOrigin::Root.into(), KSM.into()));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(bob.clone()).into(), KSM.into(), deposit_amount.into()));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(alice.clone()).into(), DOT.into(), deposit_amount.into()));
@@ -248,7 +249,7 @@ benchmarks! {
         let payer = T::Lookup::unlookup(caller.clone());
         transfer_initial_balance::<T>(caller.clone());
         let amount: u32 = 2000;
-        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>()));
+        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>(DOT)));
         assert_ok!(Loans::<T>::active_market(SystemOrigin::Root.into(), DOT.into()));
     }: _(SystemOrigin::Root, payer, DOT.into(), amount.into())
     verify {
@@ -261,7 +262,7 @@ benchmarks! {
         transfer_initial_balance::<T>(caller.clone());
         let add_amount: u32 = 2000;
         let reduce_amount: u32 = 1000;
-        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>()));
+        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>(DOT)));
         assert_ok!(Loans::<T>::active_market(SystemOrigin::Root.into(), DOT.into()));
         assert_ok!(Loans::<T>::add_reserves(SystemOrigin::Root.into(), payer.clone(), DOT.into(), add_amount.into()));
     }: _(SystemOrigin::Root, payer, DOT.into(), reduce_amount.into())
@@ -274,7 +275,7 @@ benchmarks! {
         transfer_initial_balance::<T>(alice.clone());
         let deposit_amount: u32 = 200_000_000;
         let borrow_amount: u32 = 100_000_000;
-        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>()));
+        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT.into(), pending_market_mock::<T>(DOT)));
         assert_ok!(Loans::<T>::active_market(SystemOrigin::Root.into(), DOT.into()));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(alice.clone()).into(), DOT.into(), deposit_amount.into()));
         assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(alice.clone()).into(), DOT.into(), true));
