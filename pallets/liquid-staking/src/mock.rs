@@ -404,9 +404,11 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
         Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, Id(BOB), dot(20000f64)).unwrap();
 
         LiquidStaking::set_liquid_currency(Origin::signed(BOB), XDOT).unwrap();
         LiquidStaking::set_staking_currency(Origin::signed(BOB), DOT).unwrap();
+        LiquidStaking::update_staking_pool_capacity(Origin::signed(ALICE), dot(10000f64)).unwrap();
     });
 
     ext
@@ -483,6 +485,7 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
 
         LiquidStaking::set_liquid_currency(Origin::signed(BOB), XDOT).unwrap();
         LiquidStaking::set_staking_currency(Origin::signed(BOB), DOT).unwrap();
+        LiquidStaking::update_staking_pool_capacity(Origin::signed(ALICE), dot(10000f64)).unwrap();
     });
 
     ext

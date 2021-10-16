@@ -196,6 +196,8 @@ pub mod pallet {
         NominateCallSent(Vec<T::AccountId>),
         /// Compensation for extrinsics in relaychain was set to new value
         XcmFeesCompensationUpdated(BalanceOf<T>),
+        /// Capacity of staking pool was set to new value
+        StakingPoolCapacityUpdated(BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -232,6 +234,8 @@ pub mod pallet {
         ExceededMaxRewardsPerEra,
         /// Exceeded max slashes per era
         ExceededMaxSlashesPerEra,
+        /// Exceeded staking pool's capacity
+        ExceededStakingPoolCapacity,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -283,6 +287,11 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn xcm_fees_compensation)]
     pub type XcmFeesCompensation<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+    /// Staking pool capacity
+    #[pallet::storage]
+    #[pallet::getter(fn staking_pool_capacity)]
+    pub type StakingPoolCapacity<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig {
@@ -446,7 +455,12 @@ pub mod pallet {
             T::Assets::mint_into(Self::liquid_currency()?, &who, liquid_amount)?;
 
             StakingPool::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
+                let new_amount = b.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
+                ensure!(
+                    new_amount < StakingPoolCapacity::<T>::get(),
+                    Error::<T>::ExceededStakingPoolCapacity
+                );
+                *b = new_amount;
                 Ok(())
             })?;
 
@@ -534,15 +548,27 @@ pub mod pallet {
             Ok(().into())
         }
 
-        #[pallet::weight(<T as Config>::WeightInfo::force_update_xcm_fees_compensation())]
+        #[pallet::weight(<T as Config>::WeightInfo::update_xcm_fees_compensation())]
         #[transactional]
-        pub fn force_update_xcm_fees_compensation(
+        pub fn update_xcm_fees_compensation(
             origin: OriginFor<T>,
             fee: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
             XcmFeesCompensation::<T>::mutate(|v| *v = fee);
             Self::deposit_event(Event::<T>::XcmFeesCompensationUpdated(fee));
+            Ok(().into())
+        }
+
+        #[pallet::weight(<T as Config>::WeightInfo::update_staking_pool_capacity())]
+        #[transactional]
+        pub fn update_staking_pool_capacity(
+            origin: OriginFor<T>,
+            capacity: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            T::RelayOrigin::ensure_origin(origin)?;
+            StakingPoolCapacity::<T>::mutate(|v| *v = capacity);
+            Self::deposit_event(Event::<T>::StakingPoolCapacityUpdated(capacity));
             Ok(().into())
         }
 

@@ -1,6 +1,7 @@
 import { options } from '@parallel-finance/api'
 import { ApiPromise, Keyring, WsProvider } from '@polkadot/api'
 import config from './config'
+import '@parallel-finance/types'
 
 function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -47,7 +48,9 @@ async function main() {
 
   call.push(
     api.tx.sudo.sudo(api.tx.liquidStaking.setLiquidCurrency(config.liquidAsset)),
-    api.tx.sudo.sudo(api.tx.liquidStaking.setStakingCurrency(config.stakingAsset))
+    api.tx.sudo.sudo(api.tx.liquidStaking.setStakingCurrency(config.stakingAsset)),
+    api.tx.sudo.sudo(api.tx.liquidStaking.updateStakingPoolCapacity('10000000000000000')),
+    api.tx.sudo.sudo(api.tx.liquidStaking.updateXcmFeesCompensation('500000000000'))
   )
 
   console.log('Submit batches.')

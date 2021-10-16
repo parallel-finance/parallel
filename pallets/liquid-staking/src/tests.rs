@@ -3,7 +3,9 @@ use crate::{
     types::{MatchingLedger, RewardDestination, StakingSettlementKind},
     *,
 };
-use frame_support::{assert_ok, traits::Hooks};
+
+use frame_support::{assert_err, assert_ok, traits::Hooks};
+use pallet_staking::{Exposure, IndividualExposure};
 use primitives::{
     tokens::{DOT, XDOT},
     Balance, Rate,
@@ -15,6 +17,17 @@ use xcm_simulator::TestExt;
 use crate::types::WestendCall as RelaychainCall;
 use codec::Encode;
 use types::*;
+
+#[test]
+fn stake_fails_due_to_exceed_capacity() {
+    new_test_ext().execute_with(|| {
+        assert_err!(
+            LiquidStaking::stake(Origin::signed(BOB), dot(10053f64)),
+            Error::<Test>::ExceededStakingPoolCapacity
+        );
+    })
+}
+
 #[test]
 fn stake_should_work() {
     new_test_ext().execute_with(|| {
