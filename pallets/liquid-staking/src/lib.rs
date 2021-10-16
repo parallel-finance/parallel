@@ -552,7 +552,7 @@ pub mod pallet {
             Ok(().into())
         }
 
-        #[pallet::weight(<T as Config>::WeightInfo::force_update_xcm_fees_compensation())]
+        #[pallet::weight(<T as Config>::WeightInfo::update_xcm_fees_compensation())]
         #[transactional]
         pub fn update_xcm_fees_compensation(
             origin: OriginFor<T>,
@@ -564,7 +564,7 @@ pub mod pallet {
             Ok(().into())
         }
 
-        #[pallet::weight(<T as Config>::WeightInfo::force_update_staking_pool_capacity())]
+        #[pallet::weight(<T as Config>::WeightInfo::update_staking_pool_capacity())]
         #[transactional]
         pub fn update_staking_pool_capacity(
             origin: OriginFor<T>,
