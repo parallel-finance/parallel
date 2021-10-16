@@ -1,6 +1,6 @@
 use crate::InterestRateModel;
 use frame_support::pallet_prelude::*;
-use primitives::{Rate, Ratio};
+use primitives::{CurrencyId, Rate, Ratio};
 
 /// Container for borrow balance information
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default)]
@@ -60,4 +60,7 @@ pub struct Market<Balance> {
 
     /// Upper bound of market capacity
     pub cap: Balance,
+
+    /// Ptoken asset id
+    pub ptoken_id: CurrencyId,
 }

@@ -300,6 +300,11 @@ pub mod pallet {
     pub type Markets<T: Config> =
         StorageMap<_, Blake2_128Concat, AssetIdOf<T>, Market<BalanceOf<T>>>;
 
+    /// Mapping of ptoken id to its assets
+    #[pallet::storage]
+    pub type PtokenAssetId<T: Config> =
+        StorageMap<_, Blake2_128Concat, AssetIdOf<T>, AssetIdOf<T>>;
+
     #[pallet::pallet]
     pub struct Pallet<T>(PhantomData<T>);
 
@@ -416,7 +421,11 @@ pub mod pallet {
                 market.rate_model.check_model(),
                 Error::<T>::InvalidRateModelParam
             );
+
+            // Update storage of `Market` and `PtokendAssetId`
             Markets::<T>::insert(asset_id, market.clone());
+            let ptoken_id: AssetIdOf<T> = market.clone().ptoken_id.into();
+            PtokenAssetId::<T>::insert(ptoken_id, asset_id);
 
             // Init the ExchangeRate and BorrowIndex for asset
             ExchangeRate::<T>::insert(asset_id, Rate::saturating_from_rational(2, 100));
@@ -445,11 +454,18 @@ pub mod pallet {
                 Error::<T>::InvalidRateModelParam
             );
             Self::mutate_market(asset_id, |stored_market| {
+                let pre_ptoken: AssetIdOf<T> = stored_market.ptoken_id.into();
+                PtokenAssetId::<T>::remove(pre_ptoken);
+                
                 *stored_market = Market {
                     state: stored_market.state,
                     ..market
                 };
+
+                let cur_ptoken: AssetIdOf<T> = market.ptoken_id.into();
+                PtokenAssetId::<T>::insert(cur_ptoken, asset_id);
             })?;
+
 
             Self::deposit_event(Event::<T>::UpdatedMarket(market));
             Ok(().into())
@@ -1297,5 +1313,30 @@ where
     // All markets that are `MarketStatus::Active`.
     fn active_markets() -> impl Iterator<Item = (AssetIdOf<T>, Market<BalanceOf<T>>)> {
         Markets::<T>::iter().filter(|(_, market)| market.state == MarketState::Active)
+    }
+
+    // Returns a stored ptoken_asset map.
+    //
+    // Returns `Err` if map does not exist.
+    pub fn ptoken_asset_id(ptoken_id: AssetIdOf<T>) -> Result<AssetIdOf<T>, DispatchError> {
+        PtokenAssetId::<T>::try_get(ptoken_id).map_err(|_err| Error::<T>::MarketDoesNotExist.into())
+    }
+    
+    // Returns the ptoken_id of the related asset
+    //
+    // Returns `Err` if market does not exist.
+    pub fn get_asset_ptoken_id(asset_id: AssetIdOf<T>) -> Result<AssetIdOf<T>, DispatchError> {
+        if let Ok(market) = Self::market(asset_id) {
+            return Ok(market.ptoken_id.into())
+        } else {
+            return Err(Error::<T>::MarketDoesNotExist.into());
+        }
+    }
+    
+    // Returns the asset_id of the related ptoken
+    //
+    // Returns `Err` if ptoken does not exist.
+    pub fn get_ptoken_asset_id(ptoken_id: AssetIdOf<T>) -> Result<AssetIdOf<T>, DispatchError> {
+        Self::ptoken_asset_id(ptoken_id)
     }
 }

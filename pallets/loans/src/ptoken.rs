@@ -102,9 +102,11 @@ where
         amount: Self::Balance,
         _keep_alive: bool,
     ) -> Result<BalanceOf<T>, DispatchError> {
-        Self::transfer_ptokens_allowed(asset, source, amount)?;
+        let ptoken_id = Self::get_asset_ptoken_id(asset)?;
 
-        Self::transfer_ptokens_internal(asset, source, dest, amount)?;
+        Self::transfer_ptokens_allowed(ptoken_id, source, amount)?;
+
+        Self::transfer_ptokens_internal(ptoken_id, source, dest, amount)?;
 
         Ok(amount)
     }
@@ -117,11 +119,13 @@ where
 {
     /// Checks if the source should be allowed to transfer ptokens in given conditions
     pub(crate) fn transfer_ptokens_allowed(
-        asset: AssetIdOf<T>,
+        ptoken_id: AssetIdOf<T>,
         source: &T::AccountId,
         amount: BalanceOf<T>,
     ) -> DispatchResult {
-        let deposit = Self::account_deposits(asset, &source);
+        let asset_id = Self::ptoken_asset_id(ptoken_id)?;
+    
+        let deposit = Self::account_deposits(asset_id, &source);
         if amount > deposit.voucher_balance {
             return Err(Error::<T>::InsufficientCollateral.into());
         }
@@ -131,10 +135,10 @@ where
         }
 
         // Formula: effect_value = ptokens_amount * exchange rate * price
-        let effects_value = Self::get_price(asset)?
+        let effects_value = Self::get_price(asset_id)?
             .checked_mul(&FixedU128::from_inner(
-                Self::market(asset)?.collateral_factor.mul_ceil(
-                    Self::calc_underlying_amount(amount, Self::exchange_rate(asset))?
+                Self::market(asset_id)?.collateral_factor.mul_ceil(
+                    Self::calc_underlying_amount(amount, Self::exchange_rate(asset_id))?
                         .saturated_into(),
                 ),
             ))
@@ -149,12 +153,13 @@ where
     }
 
     pub(crate) fn transfer_ptokens_internal(
-        asset: AssetIdOf<T>,
+        ptoken_id: AssetIdOf<T>,
         source: &T::AccountId,
         dest: &T::AccountId,
         amount: BalanceOf<T>,
     ) -> Result<(), DispatchError> {
-        AccountDeposits::<T>::try_mutate_exists(asset, source, |deposits| -> DispatchResult {
+        let asset_id = Self::get_ptoken_asset_id(ptoken_id)?;
+        AccountDeposits::<T>::try_mutate_exists(asset_id, source, |deposits| -> DispatchResult {
             let mut d = deposits.unwrap_or_default();
             d.voucher_balance = d
                 .voucher_balance
@@ -169,7 +174,7 @@ where
             Ok(())
         })?;
 
-        AccountDeposits::<T>::try_mutate(asset, &dest, |deposits| -> DispatchResult {
+        AccountDeposits::<T>::try_mutate(asset_id, &dest, |deposits| -> DispatchResult {
             deposits.voucher_balance = deposits
                 .voucher_balance
                 .checked_add(&amount)

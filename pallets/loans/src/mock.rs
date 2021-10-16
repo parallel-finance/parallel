@@ -286,12 +286,16 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 
         // Init Markets
         Loans::add_market(Origin::root(), HKO, MARKET_MOCK).unwrap();
+        Loans::update_market(Origin::root(), HKO, HKO_MARKET_MOCK).unwrap();
         Loans::active_market(Origin::root(), HKO).unwrap();
         Loans::add_market(Origin::root(), KSM, MARKET_MOCK).unwrap();
+        Loans::update_market(Origin::root(), KSM, KSM_MARKET_MOCK).unwrap();
         Loans::active_market(Origin::root(), KSM).unwrap();
         Loans::add_market(Origin::root(), DOT, MARKET_MOCK).unwrap();
+        Loans::update_market(Origin::root(), DOT, DOT_MARKET_MOCK).unwrap();
         Loans::active_market(Origin::root(), DOT).unwrap();
         Loans::add_market(Origin::root(), USDT, MARKET_MOCK).unwrap();
+        Loans::update_market(Origin::root(), USDT, USDT_MARKET_MOCK).unwrap();
         Loans::active_market(Origin::root(), USDT).unwrap();
 
         System::set_block_number(0);
@@ -343,4 +347,10 @@ pub const MARKET_MOCK: Market<Balance> = Market {
     }),
     reserve_factor: Ratio::from_percent(15),
     cap: 1_000_000_000_000_000_000_000u128, // set to $1B
+    ptoken_id: 1200, 
 };
+
+pub const HKO_MARKET_MOCK:  Market<Balance> = Market { ptoken_id: 999, ..MARKET_MOCK };
+pub const KSM_MARKET_MOCK:  Market<Balance> = Market { ptoken_id: 1000, ..MARKET_MOCK };
+pub const DOT_MARKET_MOCK:  Market<Balance> = Market { ptoken_id: 1001, ..MARKET_MOCK };
+pub const USDT_MARKET_MOCK:  Market<Balance> = Market { ptoken_id: 1002, ..MARKET_MOCK };
