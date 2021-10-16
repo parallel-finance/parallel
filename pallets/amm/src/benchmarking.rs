@@ -9,9 +9,12 @@ use frame_benchmarking::{
     benchmarks_instance_pallet, impl_benchmark_test_suite, whitelisted_caller,
 };
 use frame_support::assert_ok;
+use frame_support::dispatch::UnfilteredDispatchable;
+use frame_support::traits::EnsureOrigin;
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::tokens::*;
 use primitives::{tokens, CurrencyId};
+use sp_runtime::traits::StaticLookup;
 use sp_std::prelude::*;
 
 const BASE_ASSET: CurrencyId = XDOT;
@@ -43,6 +46,15 @@ where
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
         tokens::DOT.into(),
+        account_id.clone(),
+        true,
+        One::one(),
+    )
+    .ok();
+
+    pallet_assets::Pallet::<T>::force_create(
+        SystemOrigin::Root.into(),
+        ASSET_ID.into(),
         account_id,
         true,
         One::one(),
@@ -62,27 +74,17 @@ benchmarks_instance_pallet! {
             <T::Assets as Inspect<T::AccountId>>::AssetId: From<u32>,
 
     }
-    add_liquidity_non_existing_pool {
-        let caller: T::AccountId = whitelisted_caller();
-        initial_set_up::<T, I>(caller.clone());
-        let base_amount = 100_000;
-        let quote_amount = 200_000;
-    }: add_liquidity(SystemOrigin::Signed(caller.clone()), (BASE_ASSET.into(), QUOTE_ASSET.into()), (base_amount.into(), quote_amount.into()),
-            (5.into(), 5.into()), ASSET_ID.into())
-    verify {
-        assert_last_event::<T, I>(Event::LiquidityAdded(caller, BASE_ASSET.into(), QUOTE_ASSET.into()).into());
-    }
 
-    add_liquidity_existing_pool {
+    add_liquidity {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T, I>(caller.clone());
         let base_amount = 100_000;
         let quote_amount = 200_000;
-        assert_ok!(AMM::<T, I>::add_liquidity(SystemOrigin::Signed(caller.clone()).into(),
+        assert_ok!(AMM::<T, I>::create_pool(T::CreatePoolOrigin::successful_origin(),
             (BASE_ASSET.into(), QUOTE_ASSET.into()), (base_amount.into(), quote_amount.into()),
-            (5.into(), 5.into()), ASSET_ID.into()));
-    }: add_liquidity(SystemOrigin::Signed(caller.clone()), (BASE_ASSET.into(), QUOTE_ASSET.into()),
-        (base_amount.into(), quote_amount.into()), (5.into(), 5.into()), ASSET_ID.into())
+            caller.clone(), ASSET_ID.into()));
+    }: _(SystemOrigin::Signed(caller.clone()), (BASE_ASSET.into(), QUOTE_ASSET.into()),
+        (base_amount.into(), quote_amount.into()), (5.into(), 5.into()))
     verify {
         assert_last_event::<T, I>(Event::LiquidityAdded(caller, BASE_ASSET.into(), QUOTE_ASSET.into()).into());
     }
@@ -92,21 +94,27 @@ benchmarks_instance_pallet! {
         initial_set_up::<T, I>(caller.clone());
         let base_amount = 100_000;
         let quote_amount = 900_000;
-        assert_ok!(AMM::<T, I>::add_liquidity(SystemOrigin::Signed(caller.clone()).into(),
+        assert_ok!(AMM::<T, I>::create_pool(T::CreatePoolOrigin::successful_origin(),
             (BASE_ASSET.into(), QUOTE_ASSET.into()), (base_amount.into(), quote_amount.into()),
-            (5.into(), 5.into()), ASSET_ID.into()));
+            caller.clone(), ASSET_ID.into()));
     }: _(SystemOrigin::Signed(caller.clone()), (BASE_ASSET.into(), QUOTE_ASSET.into()), 300_000.into())
     verify {
         assert_last_event::<T, I>(Event::LiquidityRemoved(caller, BASE_ASSET.into(), QUOTE_ASSET.into()).into());
     }
 
-  force_create_pool {
+  create_pool {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T, I>(caller.clone());
         let base_amount = 100_000;
         let quote_amount = 200_000;
-    }: _(SystemOrigin::Root, (BASE_ASSET.into(), QUOTE_ASSET.into()), (base_amount.into(), quote_amount.into()),
-            caller.clone(), ASSET_ID.into())
+        let origin = T::CreatePoolOrigin::successful_origin();
+        let call = Call::<T, I>::create_pool(
+            (BASE_ASSET.into(), QUOTE_ASSET.into()),
+            (base_amount.into(), quote_amount.into()),
+            caller.clone(),
+            ASSET_ID.into()
+        );
+    }: { call.dispatch_bypass_filter(origin)? }
     verify {
         assert_last_event::<T, I>(Event::LiquidityAdded(caller, BASE_ASSET.into(), QUOTE_ASSET.into()).into());
     }

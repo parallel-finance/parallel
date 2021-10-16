@@ -1,7 +1,7 @@
 use crate as pallet_amm;
 
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::{ord_parameter_types, parameter_types, PalletId};
+use frame_support::{parameter_types, traits::SortedMembers, PalletId};
 use frame_system::{self as system, EnsureRoot};
 use primitives::{tokens, Balance, CurrencyId};
 #[cfg(feature = "std")]
@@ -148,8 +148,12 @@ parameter_types! {
     pub const DefaultProtocolFee: Perbill = Perbill::from_perthousand(2);   // 0.2%
     pub const DefaultProtocolFeeReceiver: AccountId = AccountId(4_u64);
 }
-ord_parameter_types! {
-    pub const AliceCreatePoolOrigin: AccountId = ALICE;
+
+pub struct AliceCreatePoolOrigin;
+impl SortedMembers<AccountId> for AliceCreatePoolOrigin {
+    fn sorted_members() -> Vec<AccountId> {
+        vec![ALICE]
+    }
 }
 
 impl pallet_amm::Config for Test {

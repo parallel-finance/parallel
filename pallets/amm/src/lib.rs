@@ -186,10 +186,7 @@ pub mod pallet {
         /// - `pool`: Currency pool, in which liquidity will be added
         /// - `liquidity_amounts`: Liquidity amounts to be added in pool
         /// - `minimum_amounts`: specifying its "worst case" ratio when pool already exists
-        #[pallet::weight(
-		T::AMMWeightInfo::add_liquidity_non_existing_pool() // Adds liquidity in already existing account.
-		.max(T::AMMWeightInfo::add_liquidity_existing_pool()) // Adds liquidity in new account
-		)]
+        #[pallet::weight(10_000)]
         #[transactional]
         pub fn add_liquidity(
             origin: OriginFor<T>,
