@@ -194,8 +194,6 @@ pub mod pallet {
         WithdrawUnbondedCallSent(u32),
         /// Send staking.nominate call to relaychain
         NominateCallSent(Vec<T::AccountId>),
-        /// Send staking.payout_stakers call to relaychain
-        PayoutStakersCallSent(T::AccountId, u32),
         /// Compensation for extrinsics in relaychain was set to new value
         XcmFeesCompensationUpdated(BalanceOf<T>),
     }
@@ -224,8 +222,6 @@ pub mod pallet {
         WithdrawUnbondedCallFailed,
         /// Failed to send staking.nominate call
         NominateCallFailed,
-        /// Failed to send staking.payout_stakers call
-        PayoutStakersCallFailed,
         /// Liquid currency hasn't been set
         LiquidCurrencyNotSet,
         /// Staking currency hasn't been set
@@ -558,7 +554,7 @@ pub mod pallet {
         #[transactional]
         pub fn settlement(
             origin: OriginFor<T>,
-            #[pallet::compact] bonding_amount: BalanceOf<T>,
+            bond_extra: bool,
             #[pallet::compact] unbonding_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
@@ -583,7 +579,7 @@ pub mod pallet {
             if !bond_amount.is_zero() {
                 T::Assets::burn_from(staking_currency, &account_id, bond_amount)?;
 
-                if !bonding_amount.is_zero() {
+                if !bond_extra {
                     Self::bond_internal(bond_amount, RewardDestination::Staked)?;
                 } else {
                     Self::bond_extra_internal(bond_amount)?;
@@ -692,42 +688,6 @@ pub mod pallet {
                     }
                     Err(_e) => {
                         return Err(Error::<T>::NominateCallFailed.into());
-                    }
-                }
-            });
-
-            Ok(())
-        }
-
-        /// Payout_stakers on relaychain via xcm.transact
-        #[pallet::weight(<T as Config>::WeightInfo::payout_stakers())]
-        #[transactional]
-        pub fn payout_stakers(
-            origin: OriginFor<T>,
-            validator_stash: T::AccountId,
-            era: u32,
-        ) -> DispatchResult {
-            T::RelayOrigin::ensure_origin(origin)?;
-
-            switch_relay!({
-                let call = RelaychainCall::Staking::<T>(StakingCall::PayoutStakers(
-                    StakingPayoutStakersCall {
-                        validator_stash: validator_stash.clone(),
-                        era,
-                    },
-                ));
-
-                let msg = Self::ump_transact(call.encode().into());
-
-                match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                    Ok(()) => {
-                        Self::deposit_event(Event::<T>::PayoutStakersCallSent(
-                            validator_stash,
-                            era,
-                        ));
-                    }
-                    Err(_e) => {
-                        return Err(Error::<T>::PayoutStakersCallFailed.into());
                     }
                 }
             });

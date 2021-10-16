@@ -471,8 +471,8 @@ parameter_types! {
     pub const PeriodBasis: BlockNumber = 1000u32;
     pub const DerivativeIndex: u16 = 0;
     pub const UnstakeQueueCapacity: u32 = 1000;
-    pub const MaxRewardsPerEra: Balance = 100;
-    pub const MaxSlashesPerEra: Balance = 1;
+    pub const MaxRewardsPerEra: Balance = 10_000_000_000_000_000;
+    pub const MaxSlashesPerEra: Balance = 1_000_000_000_000_000;
     pub const MinStakeAmount: Balance = 1_000_000_000_000;
     pub const MinUnstakeAmount: Balance = 500_000_000_000;
 }
