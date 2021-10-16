@@ -175,13 +175,7 @@ pub mod pallet {
         /// Request to perform bond/rebond/unbond in relay chain
         ///
         /// Send `(bond_amount, rebond_amount, unbond_amount)` as args.
-        StakingOpRequest(BalanceOf<T>, BalanceOf<T>, BalanceOf<T>),
-        /// Period terminated.
-        ///
-        /// Emit when a period is finished which is defined by `PeriodBasis`. While current block
-        /// height is accurately multiple of the basis, the event would be deposited during finalization of
-        /// the block.
-        PeriodTerminated,
+        Settlement(BalanceOf<T>, BalanceOf<T>, BalanceOf<T>),
         /// Sent staking.bond call to relaychain
         BondCallSent(T::AccountId, BalanceOf<T>, RewardDestination<T::AccountId>),
         /// Sent staking.bond_extra call to relaychain
@@ -382,22 +376,6 @@ pub mod pallet {
             }
 
             remaining_weight
-        }
-
-        fn on_finalize(n: BlockNumberFor<T>) {
-            let basis = T::PeriodBasis::get();
-
-            // check if current period end.
-            if !(n % basis).is_zero() {
-                return;
-            }
-
-            // check if there are staking to be settled.
-            if Self::matching_pool().is_empty() {
-                return;
-            }
-
-            Self::deposit_event(Event::<T>::PeriodTerminated);
         }
     }
 
@@ -620,7 +598,7 @@ pub mod pallet {
                 Self::rebond_internal(rebond_amount)?;
             }
 
-            Self::deposit_event(Event::<T>::StakingOpRequest(
+            Self::deposit_event(Event::<T>::Settlement(
                 bond_amount,
                 rebond_amount,
                 unbond_amount,
