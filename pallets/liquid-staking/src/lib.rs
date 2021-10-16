@@ -554,7 +554,7 @@ pub mod pallet {
 
         #[pallet::weight(<T as Config>::WeightInfo::force_update_xcm_fees_compensation())]
         #[transactional]
-        pub fn force_update_xcm_fees_compensation(
+        pub fn update_xcm_fees_compensation(
             origin: OriginFor<T>,
             fee: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
@@ -566,7 +566,7 @@ pub mod pallet {
 
         #[pallet::weight(<T as Config>::WeightInfo::force_update_staking_pool_capacity())]
         #[transactional]
-        pub fn force_update_staking_pool_capacity(
+        pub fn update_staking_pool_capacity(
             origin: OriginFor<T>,
             capacity: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
