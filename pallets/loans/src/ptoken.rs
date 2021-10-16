@@ -197,10 +197,12 @@ where
         if Self::balance(asset, who).checked_add(&amount).is_none() {
             return DepositConsequence::Overflow;
         }
+
         if Self::balance(asset, who).is_zero() && amount < Self::minimum_balance(asset) {
             return DepositConsequence::BelowMinimum;
         }
-        T::Assets::can_deposit(asset, who, amount)
+
+        DepositConsequence::Success
     }
 
     /// Return the consequence of a withdraw.
@@ -208,7 +210,7 @@ where
         asset: AssetIdOf<T>,
         who: &T::AccountId,
         amount: BalanceOf<T>,
-        keep_alive: bool,
+        _keep_alive: bool,
     ) -> WithdrawConsequence<BalanceOf<T>> {
         match Self::ensure_market(asset) {
             Ok(_) => (),
@@ -219,18 +221,10 @@ where
             return WithdrawConsequence::Underflow;
         }
         if let Some(rest) = Self::balance(asset, who).checked_sub(&amount) {
-            let is_provider = false;
-            let is_required = is_provider && !frame_system::Pallet::<T>::can_dec_provider(who);
-            let must_keep_alive = keep_alive || is_required;
-
             if rest < Self::minimum_balance(asset) {
-                if must_keep_alive {
-                    WithdrawConsequence::WouldDie
-                } else {
-                    WithdrawConsequence::ReducedToZero(rest)
-                }
+                WithdrawConsequence::ReducedToZero(rest)
             } else {
-                T::Assets::can_withdraw(asset, who, amount)
+                WithdrawConsequence::Success
             }
         } else {
             WithdrawConsequence::NoFunds
