@@ -347,10 +347,22 @@ pub const MARKET_MOCK: Market<Balance> = Market {
     }),
     reserve_factor: Ratio::from_percent(15),
     cap: 1_000_000_000_000_000_000_000u128, // set to $1B
-    ptoken_id: 1200, 
+    ptoken_id: 1200,
 };
 
-pub const HKO_MARKET_MOCK:  Market<Balance> = Market { ptoken_id: 999, ..MARKET_MOCK };
-pub const KSM_MARKET_MOCK:  Market<Balance> = Market { ptoken_id: 1000, ..MARKET_MOCK };
-pub const DOT_MARKET_MOCK:  Market<Balance> = Market { ptoken_id: 1001, ..MARKET_MOCK };
-pub const USDT_MARKET_MOCK:  Market<Balance> = Market { ptoken_id: 1002, ..MARKET_MOCK };
+pub const HKO_MARKET_MOCK: Market<Balance> = Market {
+    ptoken_id: 999,
+    ..MARKET_MOCK
+};
+pub const KSM_MARKET_MOCK: Market<Balance> = Market {
+    ptoken_id: 1000,
+    ..MARKET_MOCK
+};
+pub const DOT_MARKET_MOCK: Market<Balance> = Market {
+    ptoken_id: 1001,
+    ..MARKET_MOCK
+};
+pub const USDT_MARKET_MOCK: Market<Balance> = Market {
+    ptoken_id: 1002,
+    ..MARKET_MOCK
+};

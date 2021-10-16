@@ -33,6 +33,7 @@ where
         }),
         reserve_factor: Ratio::from_percent(15),
         cap: 1_000_000_000_000_000_000_000u128.into(), // set to $1B
+        ptoken_id: 1200,
     }
 }
 

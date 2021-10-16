@@ -124,7 +124,7 @@ where
         amount: BalanceOf<T>,
     ) -> DispatchResult {
         let asset_id = Self::ptoken_asset_id(ptoken_id)?;
-    
+
         let deposit = Self::account_deposits(asset_id, &source);
         if amount > deposit.voucher_balance {
             return Err(Error::<T>::InsufficientCollateral.into());
