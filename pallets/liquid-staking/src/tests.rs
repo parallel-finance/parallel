@@ -21,7 +21,7 @@ use types::*;
 fn stake_fails_due_to_exceed_capacity() {
     new_test_ext().execute_with(|| {
         assert_err!(
-            LiquidStaking::stake(Origin::signed(BOB), dot(10001f64)),
+            LiquidStaking::stake(Origin::signed(BOB), dot(10053f64)),
             Error::<Test>::ExceededStakingPoolCapacity
         );
     })

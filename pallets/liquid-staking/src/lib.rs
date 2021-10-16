@@ -158,9 +158,6 @@ pub mod pallet {
         #[pallet::constant]
         type RelayNetwork: Get<NetworkId>;
 
-        #[pallet::constant]
-        type StakingPoolCapacity: Get<BalanceOf<Self>>;
-
         /// Weight information
         type WeightInfo: WeightInfo;
     }
@@ -201,6 +198,8 @@ pub mod pallet {
         PayoutStakersCallSent(T::AccountId, u32),
         /// Compensation for extrinsics in relaychain was set to new value
         XcmFeesCompensationUpdated(BalanceOf<T>),
+        /// Capacity of staking pool was set to new value
+        StakingPoolCapacityUpdated(BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -292,6 +291,11 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn xcm_fees_compensation)]
     pub type XcmFeesCompensation<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+    /// Staking pool capacity
+    #[pallet::storage]
+    #[pallet::getter(fn staking_pool_capacity)]
+    pub type StakingPoolCapacity<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig {
@@ -429,16 +433,6 @@ pub mod pallet {
                 Error::<T>::StakeAmountTooSmall
             );
 
-            StakingPool::<T>::try_mutate(|b| -> DispatchResult {
-                let new_amount = b.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
-                ensure!(
-                    new_amount < T::StakingPoolCapacity::get(),
-                    Error::<T>::ExceededStakingPoolCapacity
-                );
-                *b = new_amount;
-                Ok(())
-            })?;
-
             T::Assets::transfer(
                 Self::staking_currency()?,
                 &who,
@@ -463,6 +457,16 @@ pub mod pallet {
                 .and_then(|r| r.checked_mul_int(amount))
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
             T::Assets::mint_into(Self::liquid_currency()?, &who, liquid_amount)?;
+
+            StakingPool::<T>::try_mutate(|b| -> DispatchResult {
+                let new_amount = b.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
+                ensure!(
+                    new_amount < StakingPoolCapacity::<T>::get(),
+                    Error::<T>::ExceededStakingPoolCapacity
+                );
+                *b = new_amount;
+                Ok(())
+            })?;
 
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
                 p.total_stake_amount = p
@@ -557,6 +561,18 @@ pub mod pallet {
             T::RelayOrigin::ensure_origin(origin)?;
             XcmFeesCompensation::<T>::mutate(|v| *v = fee);
             Self::deposit_event(Event::<T>::XcmFeesCompensationUpdated(fee));
+            Ok(().into())
+        }
+
+        #[pallet::weight(<T as Config>::WeightInfo::force_update_staking_pool_capacity())]
+        #[transactional]
+        pub fn force_update_staking_pool_capacity(
+            origin: OriginFor<T>,
+            capacity: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            T::RelayOrigin::ensure_origin(origin)?;
+            StakingPoolCapacity::<T>::mutate(|v| *v = capacity);
+            Self::deposit_event(Event::<T>::StakingPoolCapacityUpdated(capacity));
             Ok(().into())
         }
 
