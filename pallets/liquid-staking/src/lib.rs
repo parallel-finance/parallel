@@ -558,7 +558,7 @@ pub mod pallet {
         #[transactional]
         pub fn settlement(
             origin: OriginFor<T>,
-            #[pallet::compact] bonding_amount: BalanceOf<T>,
+            bond_extra: bool,
             #[pallet::compact] unbonding_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
@@ -583,7 +583,7 @@ pub mod pallet {
             if !bond_amount.is_zero() {
                 T::Assets::burn_from(staking_currency, &account_id, bond_amount)?;
 
-                if !bonding_amount.is_zero() {
+                if !bond_extra {
                     Self::bond_internal(bond_amount, RewardDestination::Staked)?;
                 } else {
                     Self::bond_extra_internal(bond_amount)?;
