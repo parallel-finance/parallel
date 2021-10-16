@@ -1046,7 +1046,7 @@ pub mod pallet {
                 effects: vec![
                     BuyExecution {
                         fees: asset,
-                        weight: 800_000_000,
+                        weight: 2_000_000_000,
                         debt: 600_000_000,
                         halt_on_error: false,
                         instructions: vec![Transact {
