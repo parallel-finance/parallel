@@ -79,8 +79,7 @@ where
         SystemOrigin::Signed(pool_creator).into(),
         (DOT.into(), XDOT.into()),
         (100_000_000u128.into(), 100_000_000u128.into()),
-        (99_999.into(), 99_999.into()),
-        ASSET_ID.into()
+        (99_999.into(), 99_999.into())
     ));
 }
 
