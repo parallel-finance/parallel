@@ -35,56 +35,58 @@
 // --template=./.maintain/frame-weight-template.hbs
 // --output=./pallets/amm/src/weights.rs
 
-
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 #![allow(clippy::all)]
 
-use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
+use frame_support::{
+    traits::Get,
+    weights::{constants::RocksDbWeight, Weight},
+};
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_amm.
 pub trait WeightInfo {
-	fn add_liquidity() -> Weight;
-	fn remove_liquidity() -> Weight;
-	fn create_pool() -> Weight;
+    fn add_liquidity() -> Weight;
+    fn remove_liquidity() -> Weight;
+    fn create_pool() -> Weight;
 }
 
 /// Weights for pallet_amm using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
-	fn add_liquidity() -> Weight {
-		(257_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(10 as Weight))
-			.saturating_add(T::DbWeight::get().writes(10 as Weight))
-	}
-	fn remove_liquidity() -> Weight {
-		(311_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(11 as Weight))
-			.saturating_add(T::DbWeight::get().writes(11 as Weight))
-	}
-	fn create_pool() -> Weight {
-		(287_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(10 as Weight))
-			.saturating_add(T::DbWeight::get().writes(11 as Weight))
-	}
+    fn add_liquidity() -> Weight {
+        (257_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(10 as Weight))
+            .saturating_add(T::DbWeight::get().writes(10 as Weight))
+    }
+    fn remove_liquidity() -> Weight {
+        (311_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(11 as Weight))
+            .saturating_add(T::DbWeight::get().writes(11 as Weight))
+    }
+    fn create_pool() -> Weight {
+        (287_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(10 as Weight))
+            .saturating_add(T::DbWeight::get().writes(11 as Weight))
+    }
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
-	fn add_liquidity() -> Weight {
-		(257_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(10 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(10 as Weight))
-	}
-	fn remove_liquidity() -> Weight {
-		(311_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(11 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(11 as Weight))
-	}
-	fn create_pool() -> Weight {
-		(287_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(10 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(11 as Weight))
-	}
+    fn add_liquidity() -> Weight {
+        (257_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(10 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(10 as Weight))
+    }
+    fn remove_liquidity() -> Weight {
+        (311_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(11 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(11 as Weight))
+    }
+    fn create_pool() -> Weight {
+        (287_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(10 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(11 as Weight))
+    }
 }

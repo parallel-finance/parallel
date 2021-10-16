@@ -17,7 +17,7 @@
 use super::*;
 use crate as pallet_route;
 
-use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
+use frame_support::{construct_runtime, parameter_types, traits::SortedMembers, PalletId};
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
@@ -118,8 +118,11 @@ parameter_types! {
     pub const DefaultProtocolFeeReceiver: AccountId = CHARLIE;
 }
 
-ord_parameter_types! {
-    pub const AliceCreatePoolOrigin: AccountId = ALICE;
+pub struct AliceCreatePoolOrigin;
+impl SortedMembers<AccountId> for AliceCreatePoolOrigin {
+    fn sorted_members() -> Vec<AccountId> {
+        vec![ALICE]
+    }
 }
 
 impl pallet_amm::Config for Runtime {
