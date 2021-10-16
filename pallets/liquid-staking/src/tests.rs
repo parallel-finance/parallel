@@ -4,7 +4,6 @@ use crate::{
     *,
 };
 use frame_support::{assert_ok, traits::Hooks};
-use pallet_staking::{Exposure, IndividualExposure};
 use primitives::{
     tokens::{DOT, XDOT},
     Balance, Rate,
