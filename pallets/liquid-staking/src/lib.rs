@@ -158,6 +158,9 @@ pub mod pallet {
         #[pallet::constant]
         type RelayNetwork: Get<NetworkId>;
 
+        #[pallet::constant]
+        type StakingPoolCapacity: Get<BalanceOf<Self>>;
+
         /// Weight information
         type WeightInfo: WeightInfo;
     }
@@ -236,6 +239,8 @@ pub mod pallet {
         ExceededMaxRewardsPerEra,
         /// Exceeded max slashes per era
         ExceededMaxSlashesPerEra,
+        /// Exceeded staking pool's capacity
+        ExceededStakingPoolCapacity,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -424,6 +429,16 @@ pub mod pallet {
                 Error::<T>::StakeAmountTooSmall
             );
 
+            StakingPool::<T>::try_mutate(|b| -> DispatchResult {
+                let new_amount = b.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
+                ensure!(
+                    new_amount < T::StakingPoolCapacity::get(),
+                    Error::<T>::ExceededStakingPoolCapacity
+                );
+                *b = new_amount;
+                Ok(())
+            })?;
+
             T::Assets::transfer(
                 Self::staking_currency()?,
                 &who,
@@ -448,11 +463,6 @@ pub mod pallet {
                 .and_then(|r| r.checked_mul_int(amount))
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
             T::Assets::mint_into(Self::liquid_currency()?, &who, liquid_amount)?;
-
-            StakingPool::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
-                Ok(())
-            })?;
 
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
                 p.total_stake_amount = p
