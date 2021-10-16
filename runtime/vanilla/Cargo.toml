@@ -79,7 +79,6 @@ parachain-info                  = { git = 'https://github.com/paritytech/cumulus
 orml-oracle                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-oracle-rpc-runtime-api = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-traits                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-utilities              = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-vesting                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-xcm                    = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 orml-xcm-support            = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
@@ -174,7 +173,6 @@ std                = [
   'orml-oracle/std',
   'orml-oracle-rpc-runtime-api/std',
   'orml-traits/std',
-  'orml-utilities/std',
   'pallet-treasury/std',
   'pallet-collective/std',
   'pallet-membership/std',

@@ -13,7 +13,6 @@ frame-benchmarking = { git = 'https://github.com/paritytech/substrate.git', bran
 frame-support      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
 frame-system       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
 orml-traits        = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
-orml-utilities     = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 pallet-assets      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
 pallet-balances    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
 pallet-prices      = { path = '../prices', default-features = false }
