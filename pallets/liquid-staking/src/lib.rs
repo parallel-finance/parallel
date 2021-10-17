@@ -341,7 +341,7 @@ pub mod pallet {
             let staking_currency = staking_currency.expect("It must be ok; qed");
 
             loop {
-                // Check weight is enough
+                // check weight is enough
                 if remaining_weight < base_weight {
                     break;
                 }
@@ -350,7 +350,7 @@ pub mod pallet {
                     break;
                 }
 
-                // Get the front of the queue.
+                // get the front of the queue.
                 let (who, amount) = &Self::unstake_queue()[0];
                 let account_id = Self::account_id();
 
@@ -415,14 +415,14 @@ pub mod pallet {
                 false,
             )?;
 
-            // Calculate staking fee and add it to insurance pool
+            // calculate staking fee and add it to insurance pool
             let fees = Self::reserve_factor().mul_floor(amount);
             InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b.checked_add(&fees).ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
 
-            // Amount that we should mint to user
+            // amount that we should mint to user
             let amount = amount
                 .checked_sub(&fees)
                 .ok_or(ArithmeticError::Underflow)?;
@@ -530,11 +530,11 @@ pub mod pallet {
         #[transactional]
         pub fn update_xcm_fees_compensation(
             origin: OriginFor<T>,
-            fee: BalanceOf<T>,
+            #[pallet::compact] fees: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
-            XcmFeesCompensation::<T>::mutate(|v| *v = fee);
-            Self::deposit_event(Event::<T>::XcmFeesCompensationUpdated(fee));
+            XcmFeesCompensation::<T>::mutate(|v| *v = fees);
+            Self::deposit_event(Event::<T>::XcmFeesCompensationUpdated(fees));
             Ok(().into())
         }
 
@@ -542,11 +542,11 @@ pub mod pallet {
         #[transactional]
         pub fn update_staking_pool_capacity(
             origin: OriginFor<T>,
-            capacity: BalanceOf<T>,
+            #[pallet::compact] cap: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
-            StakingPoolCapacity::<T>::mutate(|v| *v = capacity);
-            Self::deposit_event(Event::<T>::StakingPoolCapacityUpdated(capacity));
+            StakingPoolCapacity::<T>::mutate(|v| *v = cap);
+            Self::deposit_event(Event::<T>::StakingPoolCapacityUpdated(cap));
             Ok(().into())
         }
 
@@ -612,7 +612,7 @@ pub mod pallet {
         #[transactional]
         pub fn bond(
             origin: OriginFor<T>,
-            value: BalanceOf<T>,
+            #[pallet::compact] value: BalanceOf<T>,
             payee: RewardDestination<T::AccountId>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
@@ -623,7 +623,10 @@ pub mod pallet {
         /// Bond_extra on relaychain via xcm.transact
         #[pallet::weight(<T as Config>::WeightInfo::bond_extra())]
         #[transactional]
-        pub fn bond_extra(origin: OriginFor<T>, value: BalanceOf<T>) -> DispatchResult {
+        pub fn bond_extra(
+            origin: OriginFor<T>,
+            #[pallet::compact] value: BalanceOf<T>,
+        ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
             Self::bond_extra_internal(value)?;
             Ok(())
@@ -632,7 +635,10 @@ pub mod pallet {
         /// unbond on relaychain via xcm.transact
         #[pallet::weight(<T as Config>::WeightInfo::unbond())]
         #[transactional]
-        pub fn unbond(origin: OriginFor<T>, value: BalanceOf<T>) -> DispatchResult {
+        pub fn unbond(
+            origin: OriginFor<T>,
+            #[pallet::compact] value: BalanceOf<T>,
+        ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
             Self::unbond_internal(value)?;
             Ok(())
@@ -641,7 +647,10 @@ pub mod pallet {
         /// rebond on relaychain via xcm.transact
         #[pallet::weight(<T as Config>::WeightInfo::rebond())]
         #[transactional]
-        pub fn rebond(origin: OriginFor<T>, value: BalanceOf<T>) -> DispatchResult {
+        pub fn rebond(
+            origin: OriginFor<T>,
+            #[pallet::compact] value: BalanceOf<T>,
+        ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
             Self::rebond_internal(value)?;
             Ok(())
@@ -653,7 +662,7 @@ pub mod pallet {
         pub fn withdraw_unbonded(
             origin: OriginFor<T>,
             num_slashing_spans: u32,
-            amount: BalanceOf<T>,
+            #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
             Self::withdraw_unbonded_internal(num_slashing_spans, amount)?;
@@ -740,12 +749,14 @@ pub mod pallet {
             T::SelfParaId::get().into_account()
         }
 
+        /// Get staking currency or return back an error
         pub fn staking_currency() -> Result<AssetIdOf<T>, DispatchError> {
             StakingCurrency::<T>::get()
                 .ok_or(Error::<T>::StakingCurrencyNotSet)
                 .map_err(Into::into)
         }
 
+        /// Get liquid currency or return back an error
         pub fn liquid_currency() -> Result<AssetIdOf<T>, DispatchError> {
             LiquidCurrency::<T>::get()
                 .ok_or(Error::<T>::LiquidCurrencyNotSet)
@@ -754,10 +765,9 @@ pub mod pallet {
 
         /// Derivative parachain account
         pub fn derivative_para_account_id() -> T::AccountId {
-            T::DerivativeProvider::derivative_account_id(
-                Self::para_account_id(),
-                T::DerivativeIndex::get(),
-            )
+            let para_account = Self::para_account_id();
+            let derivative_index = T::DerivativeIndex::get();
+            T::DerivativeProvider::derivative_account_id(para_account, derivative_index)
         }
 
         /// Increase / decrease staked asset in staking pool, and synchronized the exchange rate.
@@ -789,7 +799,7 @@ pub mod pallet {
                 }
             }?;
 
-            // Update exchange rate.
+            // update exchange rate.
             let exchange_rate = Rate::checked_from_rational(
                 StakingPool::<T>::get(),
                 T::Assets::total_issuance(Self::liquid_currency()?),
@@ -986,7 +996,6 @@ pub mod pallet {
             Ok(())
         }
 
-        /// push an unstake task into queue.
         #[inline]
         fn push_unstake_task(who: &T::AccountId, amount: BalanceOf<T>) -> DispatchResult {
             UnstakeQueue::<T>::try_mutate(|q| -> DispatchResult {
@@ -996,7 +1005,6 @@ pub mod pallet {
             })
         }
 
-        /// Pop an unstake task from queue.
         #[inline]
         fn pop_unstake_task() {
             UnstakeQueue::<T>::mutate(|v| v.remove(0));
