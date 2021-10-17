@@ -2939,7 +2939,7 @@ dependencies = [
  "pallet-collective",
  "pallet-currency-adapter",
  "pallet-democracy",
- "pallet-liquid-staking-v2",
+ "pallet-liquid-staking",
  "pallet-liquidation",
  "pallet-loans",
  "pallet-loans-rpc-runtime-api",
@@ -5521,7 +5521,6 @@ dependencies = [
  "cumulus-primitives-core",
  "frame-support",
  "frame-system",
- "orml-traits",
  "orml-xcm-support",
  "orml-xtokens",
  "pallet-assets",
@@ -5551,24 +5550,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-liquid-staking-v2"
-version = "3.0.0"
-dependencies = [
- "frame-support",
- "frame-system",
- "orml-traits",
- "pallet-assets",
- "pallet-balances",
- "parallel-primitives",
- "parity-scale-codec",
- "serde",
- "sp-core",
- "sp-runtime",
- "sp-std",
- "xcm",
-]
-
-[[package]]
 name = "pallet-liquidation"
 version = "3.0.0"
 dependencies = [
@@ -5595,9 +5576,9 @@ dependencies = [
  "frame-system",
  "orml-oracle",
  "orml-traits",
- "orml-utilities",
  "pallet-assets",
  "pallet-balances",
+ "pallet-currency-adapter",
  "pallet-prices",
  "pallet-timestamp",
  "parallel-primitives",
@@ -6242,7 +6223,7 @@ dependencies = [
  "pallet-collective",
  "pallet-currency-adapter",
  "pallet-democracy",
- "pallet-liquid-staking-v2",
+ "pallet-liquid-staking",
  "pallet-liquidation",
  "pallet-loans",
  "pallet-loans-rpc-runtime-api",
@@ -11839,7 +11820,7 @@ dependencies = [
  "pallet-collective",
  "pallet-currency-adapter",
  "pallet-democracy",
- "pallet-liquid-staking-v2",
+ "pallet-liquid-staking",
  "pallet-liquidation",
  "pallet-loans",
  "pallet-loans-rpc-runtime-api",

@@ -57,7 +57,7 @@ impl parachain_info::Config for Test {}
 
 parameter_types! {
     pub DotLocation: MultiLocation = MultiLocation::parent();
-    pub const RelayNetwork: NetworkId = NetworkId::Kusama;
+    pub RelayNetwork: NetworkId = NetworkId::Named("westend".into());
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 }
@@ -285,15 +285,19 @@ impl SortedMembers<AccountId> for BobOrigin {
     }
 }
 
-pub type BridgeOrigin = EnsureSignedBy<AliceOrigin, AccountId>;
+pub type RelayOrigin = EnsureSignedBy<AliceOrigin, AccountId>;
 pub type UpdateOrigin = EnsureSignedBy<BobOrigin, AccountId>;
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub RelayAgent: AccountId = para_a_account();
     pub const DerivativeIndex: u16 = 0;
     pub const PeriodBasis: BlockNumber = 5u64;
     pub const UnstakeQueueCapacity: u32 = 1000;
+    pub SelfParaId: ParaId = para_a_id();
+    pub MaxRewardsPerEra: Balance = dot(1000f64);
+    pub MaxSlashesPerEra: Balance = dot(1f64);
+    pub const MinStakeAmount: Balance = 0;
+    pub const MinUnstakeAmount: Balance = 0;
 }
 
 impl pallet_utility::Config for Test {
@@ -313,18 +317,22 @@ impl DerivativeProvider<AccountId> for DerivativeProviderT {
 impl crate::Config for Test {
     type Event = Event;
     type PalletId = StakingPalletId;
-    type BridgeOrigin = BridgeOrigin;
     type BaseXcmWeight = BaseXcmWeight;
-    type XcmTransfer = XTokens;
-    type RelayAgent = RelayAgent;
+    type SelfParaId = SelfParaId;
     type PeriodBasis = PeriodBasis;
     type WeightInfo = ();
     type XcmSender = XcmRouter;
     type DerivativeIndex = DerivativeIndex;
     type DerivativeProvider = DerivativeProviderT;
     type Assets = Assets;
+    type RelayOrigin = RelayOrigin;
     type UpdateOrigin = UpdateOrigin;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;
+    type MaxRewardsPerEra = MaxRewardsPerEra;
+    type MaxSlashesPerEra = MaxSlashesPerEra;
+    type RelayNetwork = RelayNetwork;
+    type MinStakeAmount = MinStakeAmount;
+    type MinUnstakeAmount = MinUnstakeAmount;
 }
 
 parameter_types! {
@@ -375,7 +383,6 @@ construct_runtime!(
 
 pub const ALICE: AccountId32 = AccountId32::new([1u8; 32]);
 pub const BOB: AccountId32 = AccountId32::new([2u8; 32]);
-pub const CHARILE: AccountId32 = AccountId32::new([3u8; 32]);
 
 pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = frame_system::GenesisConfig::default()
@@ -395,11 +402,13 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     ext.execute_with(|| {
         Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
         Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100).unwrap();
-        Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), 100).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, Id(BOB), dot(20000f64)).unwrap();
 
         LiquidStaking::set_liquid_currency(Origin::signed(BOB), XDOT).unwrap();
         LiquidStaking::set_staking_currency(Origin::signed(BOB), DOT).unwrap();
+        LiquidStaking::update_staking_pool_capacity(Origin::signed(ALICE), dot(10000f64)).unwrap();
     });
 
     ext
@@ -440,8 +449,8 @@ pub type RelaySystem = frame_system::Pallet<WestendRuntime>;
 pub type RelayEvent = westend_runtime::Event;
 pub type ParaSystem = frame_system::Pallet<Test>;
 
-pub fn para_a_account() -> AccountId {
-    ParaId::from(1).into_account()
+pub fn para_a_id() -> ParaId {
+    ParaId::from(1)
 }
 
 pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
@@ -476,6 +485,7 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
 
         LiquidStaking::set_liquid_currency(Origin::signed(BOB), XDOT).unwrap();
         LiquidStaking::set_staking_currency(Origin::signed(BOB), DOT).unwrap();
+        LiquidStaking::update_staking_pool_capacity(Origin::signed(ALICE), dot(10000f64)).unwrap();
     });
 
     ext
@@ -490,7 +500,7 @@ pub fn relay_ext() -> sp_io::TestExternalities {
     pallet_balances::GenesisConfig::<Runtime> {
         balances: vec![
             (ALICE, 100 * DOT_DECIMAL),
-            (para_a_account(), 1_000_000 * DOT_DECIMAL),
+            (para_a_id().into_account(), 1_000_000 * DOT_DECIMAL),
         ],
     }
     .assimilate_storage(&mut t)
@@ -499,4 +509,8 @@ pub fn relay_ext() -> sp_io::TestExternalities {
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| System::set_block_number(1));
     ext
+}
+
+pub fn dot(n: f64) -> Balance {
+    ((n * 1000000f64) as u128) * DOT_DECIMAL / 1000000u128
 }

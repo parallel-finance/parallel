@@ -1,10 +1,11 @@
 use super::{BalanceOf, Config};
 use codec::{Decode, Encode};
+
 use sp_runtime::{
     traits::{AtLeast32BitUnsigned, StaticLookup, Zero},
     RuntimeDebug,
 };
-use sp_std::{cmp::Ordering, vec::Vec};
+use sp_std::{boxed::Box, cmp::Ordering, vec::Vec};
 
 /// Category of staking settlement at the end of era.
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug)]
@@ -21,41 +22,6 @@ pub struct MatchingLedger<Balance> {
     /// The total unstake amount in one era
     /// **NOTE** will be calculated by: exchangeRate * xToken amount
     pub total_unstake_amount: Balance,
-}
-
-impl<Balance> MatchingLedger<Balance>
-where
-    Balance: AtLeast32BitUnsigned + Copy + Clone,
-{
-    /// Matching requests in current period.
-    ///
-    /// `unbonding_amount` is the total amount of the unbonding asset in relaychain.
-    ///
-    /// the returned tri-tuple is formed as `(bond_amount, rebond_amount, unbond_amount)`.
-    pub fn matching(&self, unbonding_amount: Balance) -> (Balance, Balance, Balance) {
-        use Ordering::*;
-
-        match self.total_stake_amount.cmp(&self.total_unstake_amount) {
-            Greater => {
-                let amount = self.total_stake_amount - self.total_unstake_amount;
-                if amount < unbonding_amount {
-                    (Zero::zero(), amount, Zero::zero())
-                } else {
-                    (amount - unbonding_amount, unbonding_amount, Zero::zero())
-                }
-            }
-            Less | Equal => (
-                Zero::zero(),
-                Zero::zero(),
-                self.total_unstake_amount - self.total_stake_amount,
-            ),
-        }
-    }
-
-    #[inline]
-    pub fn is_empty(&self) -> bool {
-        self.total_stake_amount.is_zero() && self.total_unstake_amount.is_zero()
-    }
 }
 
 /// A destination account for payment.
@@ -200,53 +166,66 @@ pub enum UtilityCall<RelaychainCall> {
     BatchAll(UtilityBatchAllCall<RelaychainCall>),
 }
 
-pub mod westend {
-    use super::*;
-
-    #[derive(Encode, Decode, RuntimeDebug)]
-    pub enum RelaychainCall<T: Config> {
-        #[codec(index = 4)]
-        Balances(BalancesCall<T>),
-        #[codec(index = 6)]
-        Staking(StakingCall<T>),
-        #[codec(index = 16)]
-        Utility(Box<UtilityCall<Self>>),
-    }
+#[derive(Encode, Decode, RuntimeDebug)]
+pub enum WestendCall<T: Config> {
+    #[codec(index = 4)]
+    Balances(BalancesCall<T>),
+    #[codec(index = 6)]
+    Staking(StakingCall<T>),
+    #[codec(index = 16)]
+    Utility(Box<UtilityCall<Self>>),
 }
 
-pub mod kusama {
-    use super::*;
-
-    #[derive(Encode, Decode, RuntimeDebug)]
-    pub enum RelaychainCall<T: Config> {
-        #[codec(index = 4)]
-        Balances(BalancesCall<T>),
-        #[codec(index = 6)]
-        Staking(StakingCall<T>),
-        #[codec(index = 24)]
-        Utility(Box<UtilityCall<Self>>),
-    }
+#[derive(Encode, Decode, RuntimeDebug)]
+pub enum KusamaCall<T: Config> {
+    #[codec(index = 4)]
+    Balances(BalancesCall<T>),
+    #[codec(index = 6)]
+    Staking(StakingCall<T>),
+    #[codec(index = 24)]
+    Utility(Box<UtilityCall<Self>>),
 }
 
-pub mod polkadot {
-    use super::*;
-
-    #[derive(Encode, Decode, RuntimeDebug)]
-    pub enum RelaychainCall<T: Config> {
-        #[codec(index = 5)]
-        Balances(BalancesCall<T>),
-        #[codec(index = 7)]
-        Staking(StakingCall<T>),
-        #[codec(index = 26)]
-        Utility(Box<UtilityCall<Self>>),
-    }
+#[derive(Encode, Decode, RuntimeDebug)]
+pub enum PolkadotCall<T: Config> {
+    #[codec(index = 5)]
+    Balances(BalancesCall<T>),
+    #[codec(index = 7)]
+    Staking(StakingCall<T>),
+    #[codec(index = 26)]
+    Utility(Box<UtilityCall<Self>>),
 }
 
-#[cfg(feature = "westend")]
-pub use westend::RelaychainCall;
+impl<Balance: AtLeast32BitUnsigned + Copy + Clone> MatchingLedger<Balance> {
+    /// Matching requests in current period.
+    ///
+    /// `unbonding_amount` is the total amount of the unbonding asset in relaychain.
+    ///
+    /// the returned tri-tuple is formed as `(bond_amount, rebond_amount, unbond_amount)`.
+    pub fn matching(&self, unbonding_amount: Balance) -> (Balance, Balance, Balance) {
+        use Ordering::*;
 
-#[cfg(feature = "kusama")]
-pub use kusama::RelaychainCall;
+        if matches!(
+            self.total_stake_amount.cmp(&self.total_unstake_amount),
+            Less | Equal
+        ) {
+            return (
+                Zero::zero(),
+                Zero::zero(),
+                self.total_unstake_amount - self.total_stake_amount,
+            );
+        }
 
-#[cfg(feature = "polkadot")]
-pub use polkadot::RelaychainCall;
+        let amount = self.total_stake_amount - self.total_unstake_amount;
+        if amount < unbonding_amount {
+            (Zero::zero(), amount, Zero::zero())
+        } else {
+            (amount - unbonding_amount, unbonding_amount, Zero::zero())
+        }
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.total_stake_amount.is_zero() && self.total_unstake_amount.is_zero()
+    }
+}

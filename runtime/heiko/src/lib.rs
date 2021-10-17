@@ -53,15 +53,15 @@ use cumulus_primitives_core::ParaId;
 use frame_support::log;
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureOneOf, EnsureRoot, EnsureSigned,
+    EnsureOneOf, EnsureRoot,
 };
-use hex_literal::hex;
+
 use orml_xcm_support::{IsNativeConcrete, MultiNativeAsset};
 use polkadot_parachain::primitives::Sibling;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::HEIKO_PREFIX,
-    tokens::{KSM, XKSM},
+    tokens::{HKO, KSM, USDT, XKSM},
     Index, *,
 };
 use xcm::latest::prelude::*;
@@ -330,6 +330,13 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                     GeneralKey(b"xKSM".to_vec()),
                 ),
             )),
+            HKO => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(ParachainInfo::parachain_id().into()),
+                    GeneralKey(b"HKO".to_vec()),
+                ),
+            )),
             _ => None,
         }
     }
@@ -347,6 +354,12 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 interior: X2(Parachain(id), GeneralKey(key)),
             } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xKSM".to_vec() => {
                 Some(XKSM)
+            }
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), GeneralKey(key)),
+            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"HKO".to_vec() => {
+                Some(HKO)
             }
             _ => None,
         }
@@ -379,7 +392,10 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 
 parameter_types! {
     pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
-    pub const BaseXcmWeight: Weight = 100_000_000;
+    pub BaseXcmWeight: Weight = 150_000_000;
+}
+parameter_types! {
+    pub KsmPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), ksm_per_second());
 }
 
 impl orml_xtokens::Config for Runtime {
@@ -390,7 +406,7 @@ impl orml_xtokens::Config for Runtime {
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type SelfLocation = SelfLocation;
     type XcmExecutor = XcmExecutor<XcmConfig>;
-    type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+    type Weigher = FixedWeightBounds<BaseXcmWeight, Call>;
     type BaseXcmWeight = BaseXcmWeight;
     type LocationInverter = LocationInverter<Ancestry>;
 }
@@ -429,7 +445,7 @@ impl pallet_loans::Config for Runtime {
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_loans::weights::SubstrateWeight<Runtime>;
     type UnixTime = Timestamp;
-    type Assets = Assets;
+    type Assets = CurrencyAdapter;
 }
 
 parameter_types! {
@@ -452,28 +468,42 @@ impl pallet_membership::Config<LiquidStakingAgentMembershipInstance> for Runtime
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub RelayAgent: MultiLocation = MultiLocation::new(
-        1,
-        X1(AccountId32{
-            network: NetworkId::Any,
-            // Dave
-            id: hex!["306721211d5404bd9da88e0204360a1a9ab8b87c66c1bc2fcdd37f3c2222cc20"]
-        })
-    );
     pub const PeriodBasis: BlockNumber = 1000u32;
+    pub const DerivativeIndex: u16 = 0;
+    pub const UnstakeQueueCapacity: u32 = 1000;
+    pub const MaxRewardsPerEra: Balance = 10_000_000_000_000_000;
+    pub const MaxSlashesPerEra: Balance = 1_000_000_000_000_000;
+    pub const MinStakeAmount: Balance = 1_000_000_000_000;
+    pub const MinUnstakeAmount: Balance = 500_000_000_000;
+}
+
+pub struct DerivativeProviderT;
+
+impl DerivativeProvider<AccountId> for DerivativeProviderT {
+    fn derivative_account_id(who: AccountId, index: u16) -> AccountId {
+        Utility::derivative_account_id(who, index)
+    }
 }
 
 impl pallet_liquid_staking::Config for Runtime {
     type Event = Event;
     type PalletId = StakingPalletId;
-    type BridgeOrigin = EnsureSigned<AccountId>;
     type WeightInfo = ();
-    type XcmTransfer = XTokens;
-    type RelayAgent = RelayAgent;
+    type SelfParaId = ParachainInfo;
     type PeriodBasis = PeriodBasis;
     type BaseXcmWeight = BaseXcmWeight;
     type Assets = Assets;
+    type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type XcmSender = XcmRouter;
+    type DerivativeIndex = DerivativeIndex;
+    type DerivativeProvider = DerivativeProviderT;
+    type UnstakeQueueCapacity = UnstakeQueueCapacity;
+    type MaxRewardsPerEra = MaxRewardsPerEra;
+    type MaxSlashesPerEra = MaxSlashesPerEra;
+    type RelayNetwork = RelayNetwork;
+    type MinStakeAmount = MinStakeAmount;
+    type MinUnstakeAmount = MinUnstakeAmount;
 }
 
 parameter_types! {
@@ -708,7 +738,7 @@ impl pallet_xcm::Config for Runtime {
     type XcmExecutor = XcmExecutor<XcmConfig>;
     // Teleporting is disabled.
     type XcmTeleportFilter = ();
-    type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+    type Weigher = FixedWeightBounds<BaseXcmWeight, Call>;
     type LocationInverter = LocationInverter<Ancestry>;
 }
 
@@ -771,7 +801,7 @@ pub type LocationToAccountId = (
 /// Means for transacting assets on this chain.
 pub type LocalAssetTransactor = MultiCurrencyAdapter<
     // Use this currency:
-    Assets,
+    CurrencyAdapter,
     // Use this currency when it is a fungible asset matching the given location or name:
     IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
     // Our chain's account ID type (we can't get away without mentioning it explicitly):
@@ -805,18 +835,6 @@ pub type XcmOriginToTransactDispatchOrigin = (
     XcmPassthrough<Origin>,
 );
 
-parameter_types! {
-    pub UnitWeightCost: Weight = 20_000_000;
-    pub KsmPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), ksm_per_second());
-}
-
-parameter_types! {
-    // 1_000_000_000_000 => 1 unit of asset for 1 unit of Weight.
-    // TODO Should take the actual weight price. This is just 1_000 KSM per second of weight.
-    pub WeightPrice: (MultiLocation, u128) = (MultiLocation::parent(), 1_000);
-    // pub AllowUnpaidFrom: Vec<MultiLocation> = vec![ Junction::Parent) ];
-}
-
 pub type Barrier = (TakeWeightCredit, AllowTopLevelPaidExecutionFrom<Everything>);
 
 pub struct ToTreasury;
@@ -846,7 +864,7 @@ impl Config for XcmConfig {
     type IsTeleporter = ();
     type LocationInverter = LocationInverter<Ancestry>;
     type Barrier = Barrier;
-    type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+    type Weigher = FixedWeightBounds<BaseXcmWeight, Call>;
     type Trader = FixedRateOfFungible<KsmPerSecond, ToTreasury>;
     type ResponseHandler = ();
     type SubscriptionService = PolkadotXcm;
@@ -894,12 +912,14 @@ impl DataProviderExtended<CurrencyId, TimeStampedPrice> for AggregatedDataProvid
 
 pub struct Decimal;
 impl DecimalProvider for Decimal {
-    fn get_decimal(asset_id: &CurrencyId) -> u8 {
+    fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
         // TODO should find a way, get decimal from pallet_assets
         // pallet_assets::Metadata::<Runtime>::get(asset_id).decimals
         match *asset_id {
-            KSM | XKSM => 12,
-            _ => 0,
+            KSM | XKSM => Some(12),
+            HKO => Some(12),
+            USDT => Some(6),
+            _ => None,
         }
     }
 }
@@ -1471,7 +1491,7 @@ impl_runtime_apis! {
 
             let storage_info = AllPalletsWithSystem::storage_info();
 
-            return (list, storage_info)
+            (list, storage_info)
         }
 
         fn dispatch_benchmark(

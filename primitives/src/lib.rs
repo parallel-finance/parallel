@@ -51,9 +51,6 @@ pub type AccountIndex = u32;
 /// Index of a transaction in the chain. 32-bit should be plenty.
 pub type Index = u32;
 
-/// Index of era in relaychain.
-pub type EraIndex = u32;
-
 /// A hash of some data used by the chain.
 pub type Hash = sp_core::H256;
 
@@ -93,7 +90,7 @@ pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum DataProviderId {
-    Aggregated = 0,
+    Aggregated = 0isize,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -102,7 +99,7 @@ pub trait PriceFeeder {
 }
 
 pub trait DecimalProvider {
-    fn get_decimal(asset_id: &CurrencyId) -> u8;
+    fn get_decimal(asset_id: &CurrencyId) -> Option<u8>;
 }
 
 pub trait EmergencyPriceFeeder<CurrencyId, Price> {

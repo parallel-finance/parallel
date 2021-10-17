@@ -11,6 +11,7 @@ const config = {
         closeFactor: 50e4,
         collateralFactor: 50e4,
         reserveFactor: 15e4,
+        cap: '100000000000000000',
         liquidateIncentive: '1100000000000000000',
         rateModel: {
           jumpModel: {
@@ -33,6 +34,7 @@ const config = {
         closeFactor: 50e4,
         collateralFactor: 50e4,
         reserveFactor: 15e4,
+        cap: '100000000000000000',
         liquidateIncentive: '1100000000000000000',
         rateModel: {
           jumpModel: {
@@ -55,6 +57,7 @@ const config = {
         closeFactor: 50e4,
         collateralFactor: 50e4,
         reserveFactor: 15e4,
+        cap: '100000000000000000',
         liquidateIncentive: '1100000000000000000',
         rateModel: {
           jumpModel: {

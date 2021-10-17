@@ -40,6 +40,7 @@ construct_runtime!(
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>},
         TimestampPallet: pallet_timestamp::{Pallet, Call, Storage, Inherent},
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
+        CurrencyAdapter: pallet_currency_adapter::{Pallet, Call},
     }
 );
 
@@ -80,12 +81,14 @@ pub type BlockNumber = u64;
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CHARLIE: AccountId = 3;
+pub const DAVE: AccountId = 4;
 
-pub const DOT: CurrencyId = 0;
-pub const KSM: CurrencyId = 1;
-pub const USDT: CurrencyId = 3;
-pub const XDOT: CurrencyId = 4;
-pub const XKSM: CurrencyId = 5;
+pub const HKO: CurrencyId = 0;
+pub const KSM: CurrencyId = 100;
+pub const DOT: CurrencyId = 101;
+pub const USDT: CurrencyId = 102;
+pub const XDOT: CurrencyId = 1001;
+pub const XKSM: CurrencyId = 1000;
 
 parameter_types! {
     pub const MinimumPeriod: u64 = 5;
@@ -146,8 +149,8 @@ impl ExchangeRateProvider for LiquidStakingExchangeRateProvider {
 
 pub struct Decimal;
 impl DecimalProvider for Decimal {
-    fn get_decimal(_asset_id: &CurrencyId) -> u8 {
-        12
+    fn get_decimal(_asset_id: &CurrencyId) -> Option<u8> {
+        Some(12)
     }
 }
 
@@ -182,7 +185,7 @@ impl MockPriceFeeder {
     thread_local! {
         pub static PRICES: RefCell<HashMap<CurrencyId, Option<PriceDetail>>> = {
             RefCell::new(
-                vec![DOT, KSM, USDT, XDOT]
+                vec![HKO, DOT, KSM, USDT, XDOT]
                     .iter()
                     .map(|&x| (x, Some((Price::saturating_from_integer(1), 1))))
                     .collect()
@@ -247,7 +250,17 @@ impl Config for Test {
     type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
     type UnixTime = TimestampPallet;
+    type Assets = CurrencyAdapter;
+}
+
+parameter_types! {
+    pub const NativeCurrencyId: CurrencyId = HKO;
+}
+
+impl pallet_currency_adapter::Config for Test {
     type Assets = Assets;
+    type Balances = Balances;
+    type GetNativeCurrencyId = NativeCurrencyId;
 }
 
 pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
@@ -258,12 +271,12 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
         // Init assets
-        // Balances::make_free_balance_be(&ALICE, 10);
-        // Balances::make_free_balance_be(&BOB, 10);
+        Balances::set_balance(Origin::root(), DAVE, dollar(1000), dollar(0)).unwrap();
         Assets::force_create(Origin::root(), DOT, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), KSM, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), USDT, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), XDOT, ALICE, true, 1).unwrap();
+
         Assets::mint(Origin::signed(ALICE), KSM, ALICE, dollar(1000)).unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, ALICE, dollar(1000)).unwrap();
         Assets::mint(Origin::signed(ALICE), USDT, ALICE, dollar(1000)).unwrap();
@@ -271,6 +284,8 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         Assets::mint(Origin::signed(ALICE), DOT, BOB, dollar(1000)).unwrap();
 
         // Init Markets
+        Loans::add_market(Origin::root(), HKO, MARKET_MOCK).unwrap();
+        Loans::active_market(Origin::root(), HKO).unwrap();
         Loans::add_market(Origin::root(), KSM, MARKET_MOCK).unwrap();
         Loans::active_market(Origin::root(), KSM).unwrap();
         Loans::add_market(Origin::root(), DOT, MARKET_MOCK).unwrap();
@@ -289,19 +304,20 @@ pub(crate) fn run_to_block(n: BlockNumber) {
     Loans::on_finalize(System::block_number());
     for b in (System::block_number() + 1)..=n {
         System::set_block_number(b);
-        Loans::on_initialize(System::block_number());
+        Loans::on_initialize(b);
         TimestampPallet::set_timestamp(6000 * b);
         if b != n {
-            Loans::on_finalize(System::block_number());
+            Loans::on_finalize(b);
         }
     }
 }
 
-pub(crate) fn process_block(n: BlockNumber) {
+pub(crate) fn _process_block(n: BlockNumber) -> u64 {
     System::set_block_number(n);
-    Loans::on_initialize(n);
+    let res = Loans::on_initialize(n);
     TimestampPallet::set_timestamp(6000 * n);
     Loans::on_finalize(n);
+    res
 }
 
 // TODO make decimals more explicit
@@ -313,7 +329,7 @@ pub fn million_dollar(d: u128) -> u128 {
     dollar(d) * 10_u128.pow(6)
 }
 
-pub const MARKET_MOCK: Market = Market {
+pub const MARKET_MOCK: Market<Balance> = Market {
     close_factor: Ratio::from_percent(50),
     collateral_factor: Ratio::from_percent(50),
     liquidate_incentive: Rate::from_inner(Rate::DIV / 100 * 110),
@@ -325,4 +341,5 @@ pub const MARKET_MOCK: Market = Market {
         jump_utilization: Ratio::from_percent(80),
     }),
     reserve_factor: Ratio::from_percent(15),
+    cap: 1_000_000_000_000_000_000_000u128, // set to $1B
 };

@@ -23,6 +23,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use crate::rate_model::*;
+pub use pallet::*;
 
 use frame_support::{
     log,
@@ -35,7 +36,6 @@ use frame_support::{
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
-pub use pallet::*;
 use primitives::{CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall, Timestamp};
 use sp_runtime::{
     traits::{
@@ -61,6 +61,9 @@ mod rate_model;
 mod types;
 
 pub mod weights;
+
+pub const MAX_INTEREST_CALCULATING_INTERVAL: u64 = 5 * 24 * 3600; // 5 days
+pub const MIN_INTEREST_CALCULATING_INTERVAL: u64 = 100; // 100 seconds
 
 type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
@@ -138,6 +141,8 @@ pub mod pallet {
         MarketAlredyExists,
         /// New markets must have a pending state
         NewMarketMustHavePendingState,
+        /// Market reached its upper limitation
+        ExceededMarketCapacity,
     }
 
     #[pallet::event]
@@ -180,19 +185,19 @@ pub mod pallet {
         ReservesAdded(T::AccountId, AssetIdOf<T>, BalanceOf<T>, BalanceOf<T>),
         /// New interest rate model is set
         /// [new_interest_rate_model]
-        NewMarket(Market),
+        NewMarket(Market<BalanceOf<T>>),
         /// Event emitted when a market is activated
         /// [admin, asset_id]
         ActivatedMarket(AssetIdOf<T>),
         /// Event emitted when a market is activated
         /// [admin, asset_id]
-        UpdatedMarket(Market),
+        UpdatedMarket(Market<BalanceOf<T>>),
     }
 
-    /// The timestamp of the previous block or defaults to timestamp at genesis.
+    /// The timestamp of the last calculation of accrued interest
     #[pallet::storage]
-    #[pallet::getter(fn last_block_timestamp)]
-    pub type LastBlockTimestamp<T: Config> = StorageValue<_, Timestamp, ValueQuery>;
+    #[pallet::getter(fn last_accrued_timestamp)]
+    pub type LastAccruedTimestamp<T: Config> = StorageValue<_, Timestamp, ValueQuery>;
 
     /// Total number of collateral tokens in circulation
     /// CollateralType -> Balance
@@ -290,7 +295,8 @@ pub mod pallet {
 
     /// Mapping of asset id to its market
     #[pallet::storage]
-    pub type Markets<T: Config> = StorageMap<_, Blake2_128Concat, AssetIdOf<T>, Market>;
+    pub type Markets<T: Config> =
+        StorageMap<_, Blake2_128Concat, AssetIdOf<T>, Market<BalanceOf<T>>>;
 
     #[pallet::pallet]
     pub struct Pallet<T>(PhantomData<T>);
@@ -301,33 +307,52 @@ pub mod pallet {
         BalanceOf<T>: FixedPointOperand,
         AssetIdOf<T>: AtLeast32BitUnsigned,
     {
-        fn on_finalize(block_number: T::BlockNumber) {
+        /// Called by substrate on block initialization which is fallible.
+        /// When an error occurs, stop counting interest. When the error is resolved,
+        /// the interest will be restored, because we use delta time to calculate the
+        /// interest.
+        fn on_initialize(block_number: T::BlockNumber) -> frame_support::weights::Weight {
+            let last_accrued_timestamp = Self::last_accrued_timestamp();
             let now = T::UnixTime::now().as_secs();
-            if LastBlockTimestamp::<T>::get().is_zero() {
-                LastBlockTimestamp::<T>::put(now);
+            // For the initialization
+            if last_accrued_timestamp.is_zero() {
+                LastAccruedTimestamp::<T>::put(now);
+            }
+            if now <= last_accrued_timestamp {
+                return 0;
+            }
+            let delta_time = now - last_accrued_timestamp;
+            if delta_time > MAX_INTEREST_CALCULATING_INTERVAL {
+                // This should never happen...
+                log::error!(
+                    "Could not initialize block! Exceeded max interval {:#?}",
+                    block_number,
+                );
+                return 0;
+            }
+            if delta_time < MIN_INTEREST_CALCULATING_INTERVAL {
+                return 0;
             }
             with_transaction(|| {
-                match <Pallet<T>>::accrue_interest() {
+                match <Pallet<T>>::accrue_interest(delta_time) {
                     Ok(()) => {
-                        LastBlockTimestamp::<T>::put(now);
-                        TransactionOutcome::Commit(1000)
+                        LastAccruedTimestamp::<T>::put(now);
+                        TransactionOutcome::Commit(
+                            T::WeightInfo::accrue_interest()
+                                * Self::active_markets().count() as u64,
+                        )
                     }
                     Err(err) => {
                         // This should never happen...
                         log::error!(
-                            "Could not initialize block!!! {:#?} {:#?}",
+                            "Could not initialize block! Calculate interest failed! {:#?} {:#?}",
                             block_number,
                             err
                         );
                         TransactionOutcome::Rollback(0)
                     }
                 }
-            });
-
-            // This is used to trigger the price aggregation to update the results to the ORML Oracle Pallet.
-            for (asset_id, _) in Self::active_markets() {
-                let _ = Self::get_price(asset_id);
-            }
+            })
         }
     }
 
@@ -374,7 +399,7 @@ pub mod pallet {
         pub fn add_market(
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
-            market: Market,
+            market: Market<BalanceOf<T>>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
             ensure!(
@@ -410,7 +435,7 @@ pub mod pallet {
         pub fn update_market(
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
-            market: Market,
+            market: Market<BalanceOf<T>>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
             ensure!(
@@ -418,19 +443,10 @@ pub mod pallet {
                 Error::<T>::InvalidRateModelParam
             );
             Self::mutate_market(asset_id, |stored_market| {
-                let Market {
-                    collateral_factor,
-                    reserve_factor,
-                    close_factor,
-                    liquidate_incentive,
-                    rate_model,
-                    state: _,
-                } = stored_market;
-                *collateral_factor = market.collateral_factor;
-                *reserve_factor = market.reserve_factor;
-                *close_factor = market.close_factor;
-                *liquidate_incentive = market.liquidate_incentive;
-                *rate_model = market.rate_model;
+                *stored_market = Market {
+                    state: stored_market.state,
+                    ..market
+                };
             })?;
 
             Self::deposit_event(Event::<T>::UpdatedMarket(market));
@@ -449,7 +465,8 @@ pub mod pallet {
             mint_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
+            Self::ensure_capacity(asset_id, mint_amount)?;
 
             T::Assets::transfer(asset_id, &who, &Self::account_id(), mint_amount, false)?;
             Self::update_earned_stored(&who, asset_id)?;
@@ -487,7 +504,7 @@ pub mod pallet {
             redeem_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
 
             let exchange_rate = Self::exchange_rate(asset_id);
             let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
@@ -509,7 +526,7 @@ pub mod pallet {
             asset_id: AssetIdOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
 
             Self::update_earned_stored(&who, asset_id)?;
             let deposits = AccountDeposits::<T>::get(asset_id, &who);
@@ -532,7 +549,7 @@ pub mod pallet {
             borrow_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
 
             Self::borrow_allowed(asset_id, &who, borrow_amount)?;
             let account_borrows = Self::current_borrow_balance(&who, asset_id)?;
@@ -571,7 +588,7 @@ pub mod pallet {
             repay_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
 
             let account_borrows = Self::current_borrow_balance(&who, asset_id)?;
             Self::repay_borrow_internal(&who, asset_id, account_borrows, repay_amount)?;
@@ -591,7 +608,7 @@ pub mod pallet {
             asset_id: AssetIdOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
 
             let account_borrows = Self::current_borrow_balance(&who, asset_id)?;
             Self::repay_borrow_internal(&who, asset_id, account_borrows, account_borrows)?;
@@ -613,7 +630,7 @@ pub mod pallet {
             enable: bool,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
             ensure!(
                 AccountDeposits::<T>::contains_key(asset_id, &who),
                 Error::<T>::NoDeposit
@@ -694,7 +711,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::ReserveOrigin::ensure_origin(origin)?;
             let payer = T::Lookup::lookup(payer)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
 
             T::Assets::transfer(asset_id, &payer, &Self::account_id(), add_amount, false)?;
             let total_reserves = Self::total_reserves(asset_id);
@@ -730,7 +747,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::ReserveOrigin::ensure_origin(origin)?;
             let receiver = T::Lookup::lookup(receiver)?;
-            Self::ensure_currency(asset_id)?;
+            Self::ensure_market(asset_id)?;
 
             let total_reserves = Self::total_reserves(asset_id);
             if reduce_amount > total_reserves {
@@ -810,7 +827,7 @@ where
     fn collateral_asset_value(
         borrower: &T::AccountId,
         asset_id: AssetIdOf<T>,
-        market: &Market,
+        market: &Market<BalanceOf<T>>,
     ) -> Result<FixedU128, DispatchError> {
         if !AccountDeposits::<T>::contains_key(asset_id, borrower) {
             return Ok(FixedU128::zero());
@@ -849,7 +866,7 @@ where
         asset_id: AssetIdOf<T>,
         redeemer: &T::AccountId,
         voucher_amount: BalanceOf<T>,
-        market: &Market,
+        market: &Market<BalanceOf<T>>,
     ) -> DispatchResult {
         let deposit = Self::account_deposits(asset_id, redeemer);
         if deposit.voucher_balance < voucher_amount {
@@ -1024,7 +1041,7 @@ where
         borrower: &T::AccountId,
         liquidate_asset_id: AssetIdOf<T>,
         repay_amount: BalanceOf<T>,
-        market: &Market,
+        market: &Market<BalanceOf<T>>,
     ) -> DispatchResult {
         let (_, shortfall) = Self::get_account_liquidity(borrower)?;
         if shortfall.is_zero() {
@@ -1056,8 +1073,8 @@ where
         repay_amount: BalanceOf<T>,
         collateral_asset_id: AssetIdOf<T>,
     ) -> DispatchResult {
-        Self::ensure_currency(liquidate_asset_id)?;
-        Self::ensure_currency(collateral_asset_id)?;
+        Self::ensure_market(liquidate_asset_id)?;
+        Self::ensure_market(collateral_asset_id)?;
 
         let market = Self::market(liquidate_asset_id)?;
 
@@ -1198,12 +1215,26 @@ where
     }
 
     // Ensures a given `asset_id` exists on the `Currencies` storage.
-    fn ensure_currency(asset_id: AssetIdOf<T>) -> DispatchResult {
+    fn ensure_market(asset_id: AssetIdOf<T>) -> DispatchResult {
         if Self::active_markets().any(|(id, _)| id == asset_id) {
             Ok(())
         } else {
             Err(<Error<T>>::MarketNotActivated.into())
         }
+    }
+
+    /// Ensure market is enough to supply `amount` asset.
+    fn ensure_capacity(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
+        let market = Self::market(asset_id)?;
+
+        // Assets holded by market currently.
+        let current_cash = T::Assets::balance(asset_id, &Self::account_id());
+
+        let total_cash = current_cash
+            .checked_add(&amount)
+            .ok_or(ArithmeticError::Overflow)?;
+        ensure!(total_cash <= market.cap, Error::<T>::ExceededMarketCapacity);
+        Ok(())
     }
 
     pub fn calc_underlying_amount(
@@ -1241,7 +1272,7 @@ where
     // Returns a stored Market.
     //
     // Returns `Err` if market does not exist.
-    pub fn market(asset_id: AssetIdOf<T>) -> Result<Market, DispatchError> {
+    pub fn market(asset_id: AssetIdOf<T>) -> Result<Market<BalanceOf<T>>, DispatchError> {
         Markets::<T>::try_get(asset_id).map_err(|_err| Error::<T>::MarketDoesNotExist.into())
     }
 
@@ -1250,7 +1281,7 @@ where
     // Returns `Err` if market does not exist.
     pub(crate) fn mutate_market<F>(asset_id: AssetIdOf<T>, cb: F) -> Result<(), DispatchError>
     where
-        F: FnOnce(&mut Market),
+        F: FnOnce(&mut Market<BalanceOf<T>>),
     {
         Markets::<T>::try_mutate(asset_id, |opt| {
             if let Some(market) = opt {
@@ -1262,7 +1293,7 @@ where
     }
 
     // All markets that are `MarketStatus::Active`.
-    fn active_markets() -> impl Iterator<Item = (AssetIdOf<T>, Market)> {
+    fn active_markets() -> impl Iterator<Item = (AssetIdOf<T>, Market<BalanceOf<T>>)> {
         Markets::<T>::iter().filter(|(_, market)| market.state == MarketState::Active)
     }
 }
