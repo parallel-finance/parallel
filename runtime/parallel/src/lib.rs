@@ -61,7 +61,7 @@ use polkadot_parachain::primitives::Sibling;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::PARALLEL_PREFIX,
-    tokens::{DOT, XDOT},
+    tokens::{DOT, PARA, USDT, XDOT},
     Index, *,
 };
 
@@ -317,6 +317,13 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                     GeneralKey(b"xDOT".to_vec()),
                 ),
             )),
+            PARA => Some(MultiLocation::new(
+                1,
+                Junctions::X2(
+                    Parachain(ParachainInfo::parachain_id().into()),
+                    GeneralKey(b"PARA".to_vec()),
+                ),
+            )),
             _ => None,
         }
     }
@@ -334,6 +341,12 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 interior: X2(Parachain(id), GeneralKey(key)),
             } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xDOT".to_vec() => {
                 Some(XDOT)
+            }
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), GeneralKey(key)),
+            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"PARA".to_vec() => {
+                Some(PARA)
             }
             _ => None,
         }
@@ -442,6 +455,10 @@ parameter_types! {
     pub const PeriodBasis: BlockNumber = 1000u32;
     pub const DerivativeIndex: u16 = 0;
     pub const UnstakeQueueCapacity: u32 = 1000;
+    pub const MaxRewardsPerEra: Balance = 100_000_000_000_000;
+    pub const MaxSlashesPerEra: Balance = 10_000_000_000_000;
+    pub const MinStakeAmount: Balance = 10_000_000_000;
+    pub const MinUnstakeAmount: Balance = 5_000_000_000;
 }
 
 pub struct DerivativeProviderT;
@@ -452,18 +469,10 @@ impl DerivativeProvider<AccountId> for DerivativeProviderT {
     }
 }
 
-parameter_types! {
-    pub const MaxRewardsPerEra: Balance = 100;
-    pub const MaxSlashesPerEra: Balance = 1;
-    pub const MinStakeAmount: Balance = 10_000_000_000;
-    pub const MinUnstakeAmount: Balance = 5_000_000_000;
-}
-
 impl pallet_liquid_staking::Config for Runtime {
     type Event = Event;
     type PalletId = StakingPalletId;
     type WeightInfo = ();
-    type XcmTransfer = XTokens;
     type SelfParaId = ParachainInfo;
     type PeriodBasis = PeriodBasis;
     type BaseXcmWeight = BaseXcmWeight;
@@ -474,7 +483,6 @@ impl pallet_liquid_staking::Config for Runtime {
     type DerivativeIndex = DerivativeIndex;
     type DerivativeProvider = DerivativeProviderT;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;
-    type RelaychainBlockNumberProvider = RelaychainBlockNumberProvider<Runtime>;
     type MaxRewardsPerEra = MaxRewardsPerEra;
     type MaxSlashesPerEra = MaxSlashesPerEra;
     type RelayNetwork = RelayNetwork;
@@ -777,7 +785,7 @@ pub type LocationToAccountId = (
 /// Means for transacting assets on this chain.
 pub type LocalAssetTransactor = MultiCurrencyAdapter<
     // Use this currency:
-    Assets,
+    CurrencyAdapter,
     // Use this currency when it is a fungible asset matching the given location or name:
     IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
     // Our chain's account ID type (we can't get away without mentioning it explicitly):
@@ -892,11 +900,13 @@ impl DataProviderExtended<CurrencyId, TimeStampedPrice> for AggregatedDataProvid
 
 pub struct Decimal;
 impl DecimalProvider for Decimal {
-    fn get_decimal(asset_id: &CurrencyId) -> u8 {
+    fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
         // pallet_assets::Metadata::<Runtime>::get(asset_id).decimals
         match *asset_id {
-            DOT | XDOT => 10,
-            _ => 0,
+            DOT | XDOT => Some(10),
+            PARA => Some(12),
+            USDT => Some(6),
+            _ => None,
         }
     }
 }

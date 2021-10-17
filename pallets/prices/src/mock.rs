@@ -107,11 +107,11 @@ ord_parameter_types! {
 pub struct Decimal;
 #[allow(non_upper_case_globals)]
 impl DecimalProvider for Decimal {
-    fn get_decimal(asset_id: &CurrencyId) -> u8 {
+    fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
         match *asset_id {
-            DOT | xDOT => 10,
-            KSM | xKSM => 12,
-            _ => 0,
+            DOT | xDOT => Some(10),
+            KSM | xKSM => Some(12),
+            _ => None,
         }
     }
 }

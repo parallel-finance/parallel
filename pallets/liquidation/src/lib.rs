@@ -74,6 +74,7 @@ struct BorrowMisc<AssetId, Balance> {
 #[derive(Clone, Debug)]
 struct CollateralMisc<CurrencyId, Balance> {
     currency: CurrencyId,
+    #[allow(dead_code)]
     amount: Balance,
     value: FixedU128,
 }

@@ -17,9 +17,7 @@ use primitives::{
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
-    traits::{
-        AccountIdConversion, AccountIdLookup, BlakeTwo256, BlockNumberProvider, Convert, One,
-    },
+    traits::{AccountIdConversion, AccountIdLookup, BlakeTwo256, Convert, One},
     AccountId32,
     MultiAddress::Id,
 };
@@ -296,6 +294,10 @@ parameter_types! {
     pub const PeriodBasis: BlockNumber = 5u64;
     pub const UnstakeQueueCapacity: u32 = 1000;
     pub SelfParaId: ParaId = para_a_id();
+    pub MaxRewardsPerEra: Balance = dot(1000f64);
+    pub MaxSlashesPerEra: Balance = dot(1f64);
+    pub const MinStakeAmount: Balance = 0;
+    pub const MinUnstakeAmount: Balance = 0;
 }
 
 impl pallet_utility::Config for Test {
@@ -312,33 +314,10 @@ impl DerivativeProvider<AccountId> for DerivativeProviderT {
     }
 }
 
-pub struct RelaychainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
-
-impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
-    for RelaychainBlockNumberProvider<T>
-{
-    type BlockNumber = BlockNumber;
-
-    fn current_block_number() -> Self::BlockNumber {
-        cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
-            .map(|d| d.relay_parent_number)
-            .unwrap_or_default()
-            .into()
-    }
-}
-
-parameter_types! {
-    pub const MaxRewardsPerEra: Balance = 100;
-    pub const MaxSlashesPerEra: Balance = 1;
-    pub const MinStakeAmount: Balance = 0;
-    pub const MinUnstakeAmount: Balance = 0;
-}
-
 impl crate::Config for Test {
     type Event = Event;
     type PalletId = StakingPalletId;
     type BaseXcmWeight = BaseXcmWeight;
-    type XcmTransfer = XTokens;
     type SelfParaId = SelfParaId;
     type PeriodBasis = PeriodBasis;
     type WeightInfo = ();
@@ -349,7 +328,6 @@ impl crate::Config for Test {
     type RelayOrigin = RelayOrigin;
     type UpdateOrigin = UpdateOrigin;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;
-    type RelaychainBlockNumberProvider = RelaychainBlockNumberProvider<Test>;
     type MaxRewardsPerEra = MaxRewardsPerEra;
     type MaxSlashesPerEra = MaxSlashesPerEra;
     type RelayNetwork = RelayNetwork;
@@ -405,7 +383,6 @@ construct_runtime!(
 
 pub const ALICE: AccountId32 = AccountId32::new([1u8; 32]);
 pub const BOB: AccountId32 = AccountId32::new([2u8; 32]);
-pub const CHARILE: AccountId32 = AccountId32::new([3u8; 32]);
 
 pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = frame_system::GenesisConfig::default()
@@ -425,11 +402,13 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     ext.execute_with(|| {
         Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
         Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100).unwrap();
-        Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), 100).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, Id(BOB), dot(20000f64)).unwrap();
 
         LiquidStaking::set_liquid_currency(Origin::signed(BOB), XDOT).unwrap();
         LiquidStaking::set_staking_currency(Origin::signed(BOB), DOT).unwrap();
+        LiquidStaking::update_staking_pool_capacity(Origin::signed(ALICE), dot(10000f64)).unwrap();
     });
 
     ext
@@ -506,6 +485,7 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
 
         LiquidStaking::set_liquid_currency(Origin::signed(BOB), XDOT).unwrap();
         LiquidStaking::set_staking_currency(Origin::signed(BOB), DOT).unwrap();
+        LiquidStaking::update_staking_pool_capacity(Origin::signed(ALICE), dot(10000f64)).unwrap();
     });
 
     ext
@@ -529,4 +509,8 @@ pub fn relay_ext() -> sp_io::TestExternalities {
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| System::set_block_number(1));
     ext
+}
+
+pub fn dot(n: f64) -> Balance {
+    ((n * 1000000f64) as u128) * DOT_DECIMAL / 1000000u128
 }
