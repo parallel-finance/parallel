@@ -163,7 +163,7 @@ pub mod pallet {
         Unstaked(T::AccountId, BalanceOf<T>, BalanceOf<T>),
         /// Rewards/Slashes has been recorded.
         StakingSettlementRecorded(StakingSettlementKind, BalanceOf<T>),
-        /// Request to perform bond/rebond/unbond in relay chain
+        /// Request to perform bond/rebond/unbond on relay chain
         ///
         /// Send `(bond_amount, rebond_amount, unbond_amount)` as args.
         Settlement(BalanceOf<T>, BalanceOf<T>, BalanceOf<T>),
@@ -179,7 +179,7 @@ pub mod pallet {
         WithdrawUnbondedCallSent(u32),
         /// Send staking.nominate call to relaychain
         NominateCallSent(Vec<T::AccountId>),
-        /// Compensation for extrinsics in relaychain was set to new value
+        /// Compensation for extrinsics on relaychain was set to new value
         XcmFeesCompensationUpdated(BalanceOf<T>),
         /// Capacity of staking pool was set to new value
         StakingPoolCapacityUpdated(BalanceOf<T>),
@@ -456,7 +456,7 @@ pub mod pallet {
         }
 
         /// Unstake by exchange derivative for assets, the assets will not be avaliable immediately.
-        /// Instead, the request is recorded and pending for the nomination accounts in relay
+        /// Instead, the request is recorded and pending for the nomination accounts on relaychain
         /// chain to do the `unbond` operation.
         ///
         /// - `amount`: the amount of derivative
@@ -511,7 +511,7 @@ pub mod pallet {
         }
 
         /// Handle staking settlement at the end of an era
-        /// such as getting reward or been slashed in relaychain.
+        /// such as getting reward or been slashed on relaychain.
         #[pallet::weight(<T as Config>::WeightInfo::record_staking_settlement())]
         #[transactional]
         pub fn record_staking_settlement(
@@ -525,6 +525,8 @@ pub mod pallet {
             Ok(().into())
         }
 
+        /// Update default xcm fees
+        /// it reflects xcm fees consumed on relaychain
         #[pallet::weight(<T as Config>::WeightInfo::update_xcm_fees_compensation())]
         #[transactional]
         pub fn update_xcm_fees_compensation(
@@ -561,6 +563,8 @@ pub mod pallet {
             Ok(().into())
         }
 
+        /// Update staking's market cap
+        /// stake will be blocked if passed the cap
         #[pallet::weight(<T as Config>::WeightInfo::update_staking_pool_capacity())]
         #[transactional]
         pub fn update_staking_pool_capacity(
