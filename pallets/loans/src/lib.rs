@@ -48,7 +48,7 @@ use sp_runtime::{
     },
     ArithmeticError, FixedPointNumber, FixedPointOperand, FixedU128, SaturatedConversion,
 };
-use sp_std::{convert::TryInto, result::Result};
+use sp_std::result::Result;
 
 pub use types::{BorrowSnapshot, Deposits, EarnedSnapshot, Market, MarketState};
 pub use weights::WeightInfo;
@@ -1263,10 +1263,8 @@ where
     }
 
     pub fn get_price(asset_id: AssetIdOf<T>) -> Result<Price, DispatchError> {
-        let id: CurrencyId = asset_id
-            .try_into()
-            .map_err(|_| Error::<T>::InvalidCurrencyId)?;
-        let (price, _) = T::PriceFeeder::get_price(&id).ok_or(Error::<T>::PriceOracleNotReady)?;
+        let (price, _) =
+            T::PriceFeeder::get_price(&asset_id).ok_or(Error::<T>::PriceOracleNotReady)?;
         if price.is_zero() {
             return Err(Error::<T>::PriceOracleNotReady.into());
         }
