@@ -74,17 +74,14 @@ pub mod pallet {
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
     use sp_runtime::{
-        traits::{
-            AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedSub, Saturating,
-            StaticLookup, Zero,
-        },
+        traits::{AccountIdConversion, AtLeast32BitUnsigned, StaticLookup, Zero},
         ArithmeticError, FixedPointNumber, FixedPointOperand,
     };
     use sp_std::vec;
     use sp_std::{boxed::Box, vec::Vec};
     use xcm::{latest::prelude::*, DoubleEncoded};
 
-    use primitives::{DerivativeProvider, Rate, Ratio};
+    use primitives::{Balance, CurrencyId, DerivativeProvider, Rate, Ratio};
 
     use crate::{types::*, weights::WeightInfo};
 
@@ -102,7 +99,8 @@ pub mod pallet {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Assets for deposit/withdraw assets to/from pallet account
-        type Assets: Transfer<Self::AccountId> + Mutate<Self::AccountId>;
+        type Assets: Transfer<Self::AccountId, AssetId = CurrencyId>
+            + Mutate<Self::AccountId, Balance = Balance>;
 
         /// The origin which can do operation on relaychain using parachain's sovereign account
         type RelayOrigin: EnsureOrigin<Self::Origin>;
@@ -423,14 +421,12 @@ pub mod pallet {
             // calculate staking fee and add it to insurance pool
             let fees = Self::reserve_factor().mul_floor(amount);
             InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_add(&fees).ok_or(ArithmeticError::Overflow)?;
+                *b = b.checked_add(fees).ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
 
             // amount that we should mint to user
-            let amount = amount
-                .checked_sub(&fees)
-                .ok_or(ArithmeticError::Underflow)?;
+            let amount = amount.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
             let liquid_amount = Self::exchange_rate()
                 .reciprocal()
                 .and_then(|r| r.checked_mul_int(amount))
@@ -438,7 +434,7 @@ pub mod pallet {
             T::Assets::mint_into(Self::liquid_currency()?, &who, liquid_amount)?;
 
             StakingPool::<T>::try_mutate(|b| -> DispatchResult {
-                let new_amount = b.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
+                let new_amount = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
                 ensure!(
                     new_amount < StakingPoolCapacity::<T>::get(),
                     Error::<T>::ExceededStakingPoolCapacity
@@ -450,7 +446,7 @@ pub mod pallet {
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
                 p.total_stake_amount = p
                     .total_stake_amount
-                    .checked_add(&amount)
+                    .checked_add(amount)
                     .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
@@ -497,7 +493,7 @@ pub mod pallet {
             T::Assets::burn_from(Self::liquid_currency()?, &who, liquid_amount)?;
             StakingPool::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b
-                    .checked_sub(&asset_amount)
+                    .checked_sub(asset_amount)
                     .ok_or(ArithmeticError::Underflow)?;
                 Ok(())
             })?;
@@ -505,7 +501,7 @@ pub mod pallet {
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
                 p.total_unstake_amount = p
                     .total_unstake_amount
-                    .checked_add(&asset_amount)
+                    .checked_add(asset_amount)
                     .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
@@ -824,7 +820,7 @@ pub mod pallet {
                         Error::<T>::ExceededMaxRewardsPerEra
                     );
                     StakingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        *p = p.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
+                        *p = p.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
                         Ok(())
                     })
                 }
@@ -834,7 +830,7 @@ pub mod pallet {
                         Error::<T>::ExceededMaxSlashesPerEra
                     );
                     StakingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        *p = p.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
+                        *p = p.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
                         Ok(())
                     })
                 }

@@ -37,12 +37,14 @@ use frame_support::{
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
-use primitives::{CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall, Timestamp};
+use primitives::{
+    Balance, CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall, Timestamp,
+};
 use scale_info::TypeInfo;
 use sp_runtime::{
     traits::{
         AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub,
-        One, Saturating, StaticLookup, Zero,
+        One, StaticLookup, Zero,
     },
     ArithmeticError, FixedPointNumber, FixedPointOperand, FixedU128, SaturatedConversion,
 };
@@ -102,7 +104,9 @@ pub mod pallet {
         type UnixTime: UnixTime;
 
         /// Assets for deposit/withdraw collateral assets to/from loans module
-        type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
+        type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
     }
 
     #[pallet::error]
@@ -476,13 +480,13 @@ pub mod pallet {
             AccountDeposits::<T>::try_mutate(asset_id, &who, |deposits| -> DispatchResult {
                 deposits.voucher_balance = deposits
                     .voucher_balance
-                    .checked_add(&voucher_amount)
+                    .checked_add(voucher_amount)
                     .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
             TotalSupply::<T>::try_mutate(asset_id, |total_balance| -> DispatchResult {
                 let new_balance = total_balance
-                    .checked_add(&voucher_amount)
+                    .checked_add(voucher_amount)
                     .ok_or(ArithmeticError::Overflow)?;
                 *total_balance = new_balance;
                 Ok(())
@@ -555,11 +559,11 @@ pub mod pallet {
             Self::borrow_allowed(asset_id, &who, borrow_amount)?;
             let account_borrows = Self::current_borrow_balance(&who, asset_id)?;
             let account_borrows_new = account_borrows
-                .checked_add(&borrow_amount)
+                .checked_add(borrow_amount)
                 .ok_or(ArithmeticError::Overflow)?;
             let total_borrows = Self::total_borrows(asset_id);
             let total_borrows_new = total_borrows
-                .checked_add(&borrow_amount)
+                .checked_add(borrow_amount)
                 .ok_or(ArithmeticError::Overflow)?;
             AccountBorrows::<T>::insert(
                 asset_id,
@@ -717,7 +721,7 @@ pub mod pallet {
             T::Assets::transfer(asset_id, &payer, &Self::account_id(), add_amount, false)?;
             let total_reserves = Self::total_reserves(asset_id);
             let total_reserves_new = total_reserves
-                .checked_add(&add_amount)
+                .checked_add(add_amount)
                 .ok_or(ArithmeticError::Overflow)?;
             TotalReserves::<T>::insert(asset_id, total_reserves_new);
 
@@ -755,7 +759,7 @@ pub mod pallet {
                 return Err(Error::<T>::InsufficientReserves.into());
             }
             let total_reserves_new = total_reserves
-                .checked_sub(&reduce_amount)
+                .checked_sub(reduce_amount)
                 .ok_or(ArithmeticError::Underflow)?;
             TotalReserves::<T>::insert(asset_id, total_reserves_new);
             T::Assets::transfer(
@@ -908,7 +912,7 @@ where
             let mut d = deposits.unwrap_or_default();
             d.voucher_balance = d
                 .voucher_balance
-                .checked_sub(&voucher_amount)
+                .checked_sub(voucher_amount)
                 .ok_or(ArithmeticError::Underflow)?;
             if d.voucher_balance.is_zero() {
                 // remove deposits storage if zero balance
@@ -920,7 +924,7 @@ where
         })?;
         TotalSupply::<T>::try_mutate(asset_id, |total_balance| -> DispatchResult {
             let new_balance = total_balance
-                .checked_sub(&voucher_amount)
+                .checked_sub(voucher_amount)
                 .ok_or(ArithmeticError::Underflow)?;
             *total_balance = new_balance;
             Ok(())
@@ -962,7 +966,7 @@ where
         T::Assets::transfer(asset_id, borrower, &Self::account_id(), repay_amount, false)?;
 
         let account_borrows_new = account_borrows
-            .checked_sub(&repay_amount)
+            .checked_sub(repay_amount)
             .ok_or(ArithmeticError::Underflow)?;
         let total_borrows = Self::total_borrows(asset_id);
         // NOTE : total_borrows use a different way to calculate interest
@@ -1022,7 +1026,7 @@ where
         let total_earned_prior_new = exchange_rate
             .checked_sub(&account_earned.exchange_rate_prior)
             .and_then(|r| r.checked_mul_int(deposits.voucher_balance))
-            .and_then(|r| r.checked_add(&account_earned.total_earned_prior))
+            .and_then(|r| r.checked_add(account_earned.total_earned_prior))
             .ok_or(ArithmeticError::Overflow)?;
 
         AccountEarned::<T>::insert(
@@ -1159,11 +1163,11 @@ where
         // 2.the system reduce borrower's debt
         let account_borrows = Self::current_borrow_balance(borrower, liquidate_asset_id)?;
         let account_borrows_new = account_borrows
-            .checked_sub(&repay_amount)
+            .checked_sub(repay_amount)
             .ok_or(ArithmeticError::Underflow)?;
         let total_borrows = Self::total_borrows(liquidate_asset_id);
         let total_borrows_new = total_borrows
-            .checked_sub(&repay_amount)
+            .checked_sub(repay_amount)
             .ok_or(ArithmeticError::Underflow)?;
         AccountBorrows::<T>::insert(
             liquidate_asset_id,
@@ -1185,7 +1189,7 @@ where
             |deposits| -> DispatchResult {
                 deposits.voucher_balance = deposits
                     .voucher_balance
-                    .checked_sub(&collateral_amount)
+                    .checked_sub(collateral_amount)
                     .ok_or(ArithmeticError::Underflow)?;
                 Ok(())
             },
@@ -1197,7 +1201,7 @@ where
             |deposits| -> DispatchResult {
                 deposits.voucher_balance = deposits
                     .voucher_balance
-                    .checked_add(&collateral_amount)
+                    .checked_add(collateral_amount)
                     .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             },
@@ -1232,7 +1236,7 @@ where
         let current_cash = T::Assets::balance(asset_id, &Self::account_id());
 
         let total_cash = current_cash
-            .checked_add(&amount)
+            .checked_add(amount)
             .ok_or(ArithmeticError::Overflow)?;
         ensure!(total_cash <= market.cap, Error::<T>::ExceededMarketCapacity);
         Ok(())

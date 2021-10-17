@@ -45,8 +45,7 @@ pub mod pallet {
         ensure_signed,
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
-    use primitives::AMM;
-    use scale_info::TypeInfo;
+    use primitives::{Balance, CurrencyId, AMM};
     use sp_runtime::{
         traits::{AtLeast32BitUnsigned, One, Zero},
         FixedPointOperand,
@@ -87,7 +86,9 @@ pub mod pallet {
 
         /// Currency type for deposit/withdraw assets to/from amm route
         /// module
-        type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
+        type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
     }
 
     #[pallet::pallet]

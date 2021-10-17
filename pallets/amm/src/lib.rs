@@ -41,14 +41,14 @@ use frame_support::{
 };
 use frame_system::{ensure_signed, pallet_prelude::OriginFor, RawOrigin};
 pub use pallet::*;
-use primitives::Rate;
+use primitives::{Balance, CurrencyId, Rate};
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{
     traits::{
-        AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedDiv, CheckedSub,
-        IntegerSquareRoot, One, Saturating, StaticLookup, UniqueSaturatedInto, Zero,
+        AccountIdConversion, AtLeast32BitUnsigned, CheckedDiv, IntegerSquareRoot, One,
+        StaticLookup, UniqueSaturatedInto, Zero,
     },
     ArithmeticError, DispatchError, FixedPointOperand, FixedU128, Perbill, SaturatedConversion,
 };
@@ -73,7 +73,10 @@ pub mod pallet {
 
         /// Currency type for deposit/withdraw assets to/from amm
         /// module
-        type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
+        type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
+
         #[pallet::constant]
         type PalletId: Get<PalletId>;
 
@@ -253,20 +256,20 @@ pub mod pallet {
                         let total_ownership = T::Assets::total_issuance(asset_id);
                         let ownership = sp_std::cmp::min(
                             (base_amount.saturating_mul(total_ownership))
-                                .checked_div(&liquidity_amount.base_amount)
+                                .checked_div(liquidity_amount.base_amount)
                                 .ok_or(ArithmeticError::Overflow)?,
                             (quote_amount.saturating_mul(total_ownership))
-                                .checked_div(&liquidity_amount.quote_amount)
+                                .checked_div(liquidity_amount.quote_amount)
                                 .ok_or(ArithmeticError::Overflow)?,
                         );
 
                         liquidity_amount.base_amount = liquidity_amount
                             .base_amount
-                            .checked_add(&base_amount)
+                            .checked_add(base_amount)
                             .ok_or(ArithmeticError::Overflow)?;
                         liquidity_amount.quote_amount = liquidity_amount
                             .quote_amount
-                            .checked_add(&quote_amount)
+                            .checked_add(quote_amount)
                             .ok_or(ArithmeticError::Overflow)?;
 
                         *pool_liquidity_amount = Some(*liquidity_amount);
@@ -277,11 +280,11 @@ pub mod pallet {
                                 if let Some(liquidity_amount) = pool_liquidity_amount {
                                     liquidity_amount.base_amount = liquidity_amount
                                         .base_amount
-                                        .checked_add(&base_amount)
+                                        .checked_add(base_amount)
                                         .ok_or(ArithmeticError::Overflow)?;
                                     liquidity_amount.quote_amount = liquidity_amount
                                         .quote_amount
-                                        .checked_add(&quote_amount)
+                                        .checked_add(quote_amount)
                                         .ok_or(ArithmeticError::Overflow)?;
                                     *pool_liquidity_amount = Some(*liquidity_amount);
                                 }
@@ -347,21 +350,21 @@ pub mod pallet {
 
                     let base_amount = (ownership_to_remove
                         .saturating_mul(liquidity_amount.base_amount))
-                    .checked_div(&total_ownership)
+                    .checked_div(total_ownership)
                     .ok_or(ArithmeticError::Underflow)?;
 
                     let quote_amount = (ownership_to_remove
                         .saturating_mul(liquidity_amount.quote_amount))
-                    .checked_div(&total_ownership)
+                    .checked_div(total_ownership)
                     .ok_or(ArithmeticError::Underflow)?;
 
                     liquidity_amount.base_amount = liquidity_amount
                         .base_amount
-                        .checked_sub(&base_amount)
+                        .checked_sub(base_amount)
                         .ok_or(ArithmeticError::Underflow)?;
                     liquidity_amount.quote_amount = liquidity_amount
                         .quote_amount
-                        .checked_sub(&quote_amount)
+                        .checked_sub(quote_amount)
                         .ok_or(ArithmeticError::Underflow)?;
 
                     LiquidityProviders::<T, I>::try_mutate(
@@ -370,11 +373,11 @@ pub mod pallet {
                             if let Some(liquidity_amount) = pool_liquidity_amount {
                                 liquidity_amount.base_amount = liquidity_amount
                                     .base_amount
-                                    .checked_sub(&base_amount)
+                                    .checked_sub(base_amount)
                                     .ok_or(ArithmeticError::Underflow)?;
                                 liquidity_amount.quote_amount = liquidity_amount
                                     .quote_amount
-                                    .checked_sub(&quote_amount)
+                                    .checked_sub(quote_amount)
                                     .ok_or(ArithmeticError::Underflow)?;
                             }
                             Ok(())
@@ -484,7 +487,7 @@ where
         quote_pool: BalanceOf<T, I>,
     ) -> BalanceOf<T, I> {
         (amount.saturating_mul(quote_pool))
-            .checked_div(&base_pool)
+            .checked_div(base_pool)
             .expect("cannot overflow with positive divisor; qed")
     }
 
@@ -616,12 +619,12 @@ where
 
                 // subtract protocol fees from amount_in
                 let amount_without_protocol_fees = amount_in
-                    .checked_sub(&protocol_fees)
+                    .checked_sub(protocol_fees)
                     .ok_or(ArithmeticError::Underflow)?;
 
                 // subtract lp fees from amount_in minus protocol fees
                 let amount_in_after_all_fees = amount_without_protocol_fees
-                    .checked_sub(&lp_fees)
+                    .checked_sub(lp_fees)
                     .ok_or(ArithmeticError::Underflow)?;
 
                 // 3. Given the input amount amount_in left after fees, compute amount_out
@@ -629,8 +632,8 @@ where
                 let amount_out = amount_in_after_all_fees
                     .saturating_mul(supply_out)
                     .checked_div(
-                        &supply_in
-                            .checked_add(&amount_in_after_all_fees)
+                        supply_in
+                            .checked_add(amount_in_after_all_fees)
                             .ok_or(ArithmeticError::Overflow)?,
                     )
                     .ok_or(ArithmeticError::Underflow)?;
@@ -647,22 +650,22 @@ where
                 if is_inverted {
                     liquidity_amount.quote_amount = liquidity_amount
                         .quote_amount
-                        .checked_add(&amount_without_protocol_fees)
+                        .checked_add(amount_without_protocol_fees)
                         .ok_or(ArithmeticError::Overflow)?;
 
                     liquidity_amount.base_amount = liquidity_amount
                         .base_amount
-                        .checked_sub(&amount_out)
+                        .checked_sub(amount_out)
                         .ok_or(ArithmeticError::Underflow)?;
                 } else {
                     liquidity_amount.base_amount = liquidity_amount
                         .base_amount
-                        .checked_add(&amount_without_protocol_fees)
+                        .checked_add(amount_without_protocol_fees)
                         .ok_or(ArithmeticError::Overflow)?;
 
                     liquidity_amount.quote_amount = liquidity_amount
                         .quote_amount
-                        .checked_sub(&amount_out)
+                        .checked_sub(amount_out)
                         .ok_or(ArithmeticError::Underflow)?;
                 }
                 *pool_liquidity_amount = Some(liquidity_amount);

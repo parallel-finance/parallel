@@ -459,27 +459,26 @@ fn test_transfer_and_then_bond() {
             }),
         );
         let fees: MultiAsset = (MultiLocation::here(), xcm_transfer_amount).into();
-        let msg = WithdrawAsset {
-            assets: asset.clone().into(),
-            effects: vec![InitiateReserveWithdraw {
+        let msg = Xcm(vec![
+            WithdrawAsset(MultiAssets::from(asset.clone())),
+            InitiateReserveWithdraw {
                 assets: All.into(),
                 reserve: reserve.clone(),
-                effects: vec![
+                xcm: Xcm(vec![
                     BuyExecution {
                         fees,
-                        weight: 0,
-                        debt: 30,
-                        halt_on_error: false,
-                        instructions: vec![bond_transact_xcm],
+                        weight_limit: WeightLimit::Limited(0),
                     },
-                    DepositAsset {
-                        assets: All.into(),
-                        max_assets: u32::max_value(),
-                        beneficiary: recipient,
-                    },
-                ],
-            }],
-        };
+                    bond_transact_xcm,
+                ]),
+            },
+            ClearError,
+            DepositAsset {
+                assets: All.into(),
+                max_assets: u32::max_value(),
+                beneficiary: recipient,
+            },
+        ]);
         let origin_location = MultiLocation::new(
             0,
             X1(Junction::AccountId32 {

@@ -33,7 +33,7 @@ use frame_support::{
         Get,
     },
 };
-use scale_info::TypeInfo;
+use primitives::{Balance, CurrencyId};
 use sp_runtime::DispatchError;
 
 type AssetIdOf<T> =
@@ -47,13 +47,13 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        type Assets: Transfers<Self::AccountId>
-            + Inspects<Self::AccountId>
-            + Mutates<Self::AccountId>;
+        type Assets: Transfers<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + Inspects<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + Mutates<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
 
-        type Balances: Inspect<Self::AccountId, Balance = BalanceOf<Self>>
-            + Mutate<Self::AccountId, Balance = BalanceOf<Self>>
-            + Transfer<Self::AccountId, Balance = BalanceOf<Self>>;
+        type Balances: Inspect<Self::AccountId, Balance = Balance>
+            + Mutate<Self::AccountId, Balance = Balance>
+            + Transfer<Self::AccountId, Balance = Balance>;
 
         #[pallet::constant]
         type GetNativeCurrencyId: Get<AssetIdOf<Self>>;
@@ -164,7 +164,7 @@ impl<T: Config> Transfers<T::AccountId> for Pallet<T> {
         dest: &T::AccountId,
         amount: Self::Balance,
         keep_alive: bool,
-    ) -> Result<BalanceOf<T>, DispatchError> {
+    ) -> Result<Self::Balance, DispatchError> {
         if asset == T::GetNativeCurrencyId::get() {
             T::Balances::transfer(source, dest, amount, keep_alive)
         } else {

@@ -63,8 +63,8 @@ where
         let total_reserves = Self::total_reserves(asset_id);
 
         let cash_plus_borrows_minus_reserves = total_cash
-            .checked_add(&total_borrows)
-            .and_then(|r| r.checked_sub(&total_reserves))
+            .checked_add(total_borrows)
+            .and_then(|r| r.checked_sub(total_reserves))
             .ok_or(ArithmeticError::Overflow)?;
         let exchange_rate =
             Rate::checked_from_rational(cash_plus_borrows_minus_reserves, total_supply)
@@ -88,8 +88,8 @@ where
             return Ok(Ratio::zero());
         }
         let total = cash
-            .checked_add(&borrows)
-            .and_then(|r| r.checked_sub(&reserves))
+            .checked_add(borrows)
+            .and_then(|r| r.checked_sub(reserves))
             .ok_or(ArithmeticError::Overflow)?;
 
         Ok(Ratio::from_rational(borrows, total))
@@ -113,12 +113,12 @@ where
         let interest_accumulated = Self::accrued_interest(borrow_rate, borrows_prior, delta_time)
             .ok_or(ArithmeticError::Overflow)?;
         let total_borrows_new = interest_accumulated
-            .checked_add(&borrows_prior)
+            .checked_add(borrows_prior)
             .ok_or(ArithmeticError::Overflow)?;
         let total_reserves_new = market
             .reserve_factor
             .mul_floor(interest_accumulated)
-            .checked_add(&reserve_prior)
+            .checked_add(reserve_prior)
             .ok_or(ArithmeticError::Overflow)?;
         let borrow_index = Self::borrow_index(asset_id);
         let borrow_index_new = Self::increment_index(borrow_rate, borrow_index, delta_time)
@@ -143,8 +143,8 @@ where
     ) -> Option<BalanceOf<T>> {
         borrow_rate
             .checked_mul_int(amount)?
-            .checked_mul(&delta_time.saturated_into())?
-            .checked_div(&SECONDS_PER_YEAR.saturated_into())
+            .checked_mul(delta_time.saturated_into())?
+            .checked_div(SECONDS_PER_YEAR.saturated_into())
     }
 
     fn increment_index(borrow_rate: Rate, index: Rate, delta_time: Timestamp) -> Option<Rate> {

@@ -1,9 +1,10 @@
 use crate as pallet_amm;
 
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::{parameter_types, PalletId};
+use frame_support::{parameter_types, traits::Everything, PalletId};
 use frame_system::{self as system, EnsureRoot};
 use primitives::{tokens, Balance, CurrencyId};
+use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
@@ -38,6 +39,7 @@ type BlockNumber = u64;
     PartialOrd,
     Ord,
     MaxEncodedLen,
+    TypeInfo,
 )]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
 pub struct AccountId(pub u64);
@@ -77,7 +79,7 @@ parameter_types! {
 }
 
 impl system::Config for Test {
-    type BaseCallFilter = ();
+    type BaseCallFilter = Everything;
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();

@@ -14,7 +14,7 @@
 
 use super::*;
 
-use frame_support::{construct_runtime, parameter_types, PalletId};
+use frame_support::{construct_runtime, parameter_types, traits::Everything, PalletId};
 use frame_system::EnsureRoot;
 
 use orml_traits::{DataProvider, DataProviderExtended};
@@ -50,7 +50,7 @@ parameter_types! {
 }
 
 impl frame_system::Config for Test {
-    type BaseCallFilter = ();
+    type BaseCallFilter = Everything;
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();

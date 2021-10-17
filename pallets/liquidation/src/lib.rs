@@ -365,13 +365,11 @@ where
         liquidation_value: BalanceOf<T>,
         collateral_currency: AssetIdOf<T>,
     ) {
-        match signer.send_signed_transaction(|_account| {
-            Call::liquidate_borrow(
-                borrower.clone(),
-                loan_currency,
-                liquidation_value,
-                collateral_currency,
-            )
+        match signer.send_signed_transaction(|_account| Call::liquidate_borrow {
+            borrower: borrower.clone(),
+            liquidate_currency: loan_currency,
+            repay_amount: liquidation_value,
+            collateral_currency,
         }) {
             None => log::info!("No available accounts for liquidation"),
             Some((acc, Ok(()))) => log::info!(

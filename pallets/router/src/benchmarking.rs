@@ -78,7 +78,7 @@ where
         SystemOrigin::Signed(pool_creator).into(),
         (DOT.into(), XDOT.into()),
         (100_000_000u128.into(), 100_000_000u128.into()),
-        (99_999.into(), 99_999.into()),
+        (99_999u128.into(), 99_999u128.into()),
         ASSET_ID.into()
     ));
 }
@@ -102,9 +102,9 @@ benchmarks_instance_pallet! {
     trade {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T, I>(caller.clone());
-        let amount_in = 1_000;
+        let amount_in = 1_000u128;
         let original_amount_in = amount_in;
-        let min_amount_out = 980;
+        let min_amount_out = 980u128;
         let expiry = u32::MAX;
         let routes: BoundedVec<_, <T as Config<I>>::MaxLengthRoute> = Route::<T, I>::try_from(alloc::vec![(DOT.into(), XDOT.into())]).unwrap();
     }: trade(SystemOrigin::Signed(caller.clone()), routes.clone(), amount_in.into(), min_amount_out.into(), expiry.into())
@@ -112,7 +112,7 @@ benchmarks_instance_pallet! {
     verify {
         let amount_out: BalanceOf<T, I> = <T as crate::Config<I>>::Assets::balance(XDOT.into(), &caller);
 
-        assert_eq!(amount_out, 994.into());
+        assert_eq!(amount_out, 994u128.into());
         assert_last_event::<T, I>(Event::TradedSuccessfully(caller, original_amount_in.into(), routes, amount_out).into());
     }
 }
