@@ -76,6 +76,15 @@ where
     <T as crate::Config<I>>::Assets::mint_into(XDOT.into(), &pool_creator, INITIAL_AMOUNT.into())
         .ok();
 
+    pallet_assets::Pallet::<T>::force_create(
+        SystemOrigin::Root.into(),
+        ASSET_ID.into(),
+        T::Lookup::unlookup(pool_creator.clone()),
+        true,
+        One::one(),
+    )
+    .ok();
+
     assert_ok!(pallet_amm::Pallet::<T>::create_pool(
         T::CreatePoolOrigin::successful_origin(),
         (DOT.into(), XDOT.into()),
