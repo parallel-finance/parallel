@@ -158,7 +158,7 @@ where
         dest: &T::AccountId,
         amount: BalanceOf<T>,
     ) -> Result<(), DispatchError> {
-        let asset_id = Self::get_ptoken_asset_id(ptoken_id)?;
+        let asset_id = Self::ptoken_asset_id(ptoken_id)?;
         AccountDeposits::<T>::try_mutate_exists(asset_id, source, |deposits| -> DispatchResult {
             let mut d = deposits.unwrap_or_default();
             d.voucher_balance = d
