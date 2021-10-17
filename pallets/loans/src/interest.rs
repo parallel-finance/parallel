@@ -139,8 +139,8 @@ impl<T: Config> Pallet<T> {
     ) -> Option<BalanceOf<T>> {
         borrow_rate
             .checked_mul_int(amount)?
-            .checked_mul(delta_time.saturated_into())?
-            .checked_div(SECONDS_PER_YEAR.saturated_into())
+            .checked_mul(delta_time.into())?
+            .checked_div(SECONDS_PER_YEAR.into())
     }
 
     fn increment_index(borrow_rate: Rate, index: Rate, delta_time: Timestamp) -> Option<Rate> {
