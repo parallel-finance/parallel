@@ -40,13 +40,12 @@ use frame_system::pallet_prelude::*;
 use primitives::{
     Balance, CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall, Timestamp,
 };
-use scale_info::TypeInfo;
 use sp_runtime::{
     traits::{
-        AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub,
-        One, StaticLookup, Zero,
+        AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One, StaticLookup,
+        Zero,
     },
-    ArithmeticError, FixedPointNumber, FixedPointOperand, FixedU128, SaturatedConversion,
+    ArithmeticError, FixedPointNumber, FixedU128, SaturatedConversion,
 };
 use sp_std::result::Result;
 
@@ -307,11 +306,7 @@ pub mod pallet {
     pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T>
-    where
-        BalanceOf<T>: FixedPointOperand,
-        AssetIdOf<T>: AtLeast32BitUnsigned + TypeInfo,
-    {
+    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
         /// Called by substrate on block initialization which is fallible.
         /// When an error occurs, stop counting interest. When the error is resolved,
         /// the interest will be restored, because we use delta time to calculate the
@@ -362,11 +357,7 @@ pub mod pallet {
     }
 
     #[pallet::call]
-    impl<T: Config> Pallet<T>
-    where
-        BalanceOf<T>: FixedPointOperand,
-        AssetIdOf<T>: AtLeast32BitUnsigned + TypeInfo,
-    {
+    impl<T: Config> Pallet<T> {
         /// Activates a market. Returns `Err` if the market currency does not exist.
         ///
         /// If the market is already activated, does nothing.
@@ -782,11 +773,7 @@ pub mod pallet {
     }
 }
 
-impl<T: Config> Pallet<T>
-where
-    BalanceOf<T>: FixedPointOperand,
-    AssetIdOf<T>: AtLeast32BitUnsigned + TypeInfo,
-{
+impl<T: Config> Pallet<T> {
     pub fn account_id() -> T::AccountId {
         T::PalletId::get().into_account()
     }

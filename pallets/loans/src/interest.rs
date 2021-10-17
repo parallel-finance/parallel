@@ -19,11 +19,7 @@ use sp_runtime::{traits::Zero, DispatchResult};
 
 use crate::*;
 
-impl<T: Config> Pallet<T>
-where
-    BalanceOf<T>: FixedPointOperand,
-    AssetIdOf<T>: AtLeast32BitUnsigned,
-{
+impl<T: Config> Pallet<T> {
     /// Accrue interest per block and update corresponding storage
     pub(crate) fn accrue_interest(delta_time: u64) -> DispatchResult {
         for (asset_id, market) in Self::active_markets() {

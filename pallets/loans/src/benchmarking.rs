@@ -51,10 +51,7 @@ fn transfer_initial_balance<
     T: Config + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance> + pallet_prices::Config,
 >(
     caller: T::AccountId,
-) where
-    BalanceOf<T>: FixedPointOperand,
-    AssetIdOf<T>: AtLeast32BitUnsigned,
-{
+) {
     let account_id = T::Lookup::unlookup(caller.clone());
 
     pallet_assets::Pallet::<T>::force_create(
@@ -79,10 +76,7 @@ fn set_account_borrows<T: Config>(
     who: T::AccountId,
     asset_id: AssetIdOf<T>,
     borrow_balance: BalanceOf<T>,
-) where
-    BalanceOf<T>: FixedPointOperand,
-    AssetIdOf<T>: AtLeast32BitUnsigned,
-{
+) {
     AccountBorrows::<T>::insert(
         asset_id,
         &who,
@@ -102,8 +96,7 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
 benchmarks! {
     where_clause {
         where
-            BalanceOf<T>: FixedPointOperand + From<u128>,
-            AssetIdOf<T>: AtLeast32BitUnsigned,
+            BalanceOf<T>:  From<u128>,
             T: pallet_assets::Config<AssetId = CurrencyId, Balance = Balance> + pallet_prices::Config
     }
 

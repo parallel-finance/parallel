@@ -47,10 +47,10 @@ use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_runtime::{
     traits::{
-        AccountIdConversion, AtLeast32BitUnsigned, CheckedDiv, IntegerSquareRoot, One,
-        StaticLookup, UniqueSaturatedInto, Zero,
+        AccountIdConversion, CheckedDiv, IntegerSquareRoot, One, StaticLookup, UniqueSaturatedInto,
+        Zero,
     },
-    ArithmeticError, DispatchError, FixedPointOperand, FixedU128, Perbill, SaturatedConversion,
+    ArithmeticError, DispatchError, FixedU128, Perbill, SaturatedConversion,
 };
 pub use weights::WeightInfo;
 
@@ -182,11 +182,7 @@ pub mod pallet {
     >;
 
     #[pallet::call]
-    impl<T: Config<I>, I: 'static> Pallet<T, I>
-    where
-        BalanceOf<T, I>: FixedPointOperand,
-        AssetIdOf<T, I>: AtLeast32BitUnsigned,
-    {
+    impl<T: Config<I>, I: 'static> Pallet<T, I> {
         /// Allow users to add liquidity to a given pool
         ///
         /// - `pool`: Currency pool, in which liquidity will be added
@@ -461,11 +457,7 @@ pub mod pallet {
     }
 }
 
-impl<T: Config<I>, I: 'static> Pallet<T, I>
-where
-    BalanceOf<T, I>: FixedPointOperand,
-    AssetIdOf<T, I>: AtLeast32BitUnsigned,
-{
+impl<T: Config<I>, I: 'static> Pallet<T, I> {
     pub fn account_id() -> T::AccountId {
         T::PalletId::get().into_account()
     }
@@ -570,10 +562,8 @@ where
     }
 }
 
-impl<T: Config<I>, I: 'static> primitives::AMM<T, AssetIdOf<T, I>, BalanceOf<T, I>> for Pallet<T, I>
-where
-    BalanceOf<T, I>: FixedPointOperand,
-    AssetIdOf<T, I>: AtLeast32BitUnsigned,
+impl<T: Config<I>, I: 'static> primitives::AMM<T, AssetIdOf<T, I>, BalanceOf<T, I>>
+    for Pallet<T, I>
 {
     fn trade(
         who: &T::AccountId,

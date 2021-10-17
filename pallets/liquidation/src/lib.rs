@@ -35,8 +35,8 @@ use sp_runtime::{
         storage_lock::{StorageLock, Time},
         Duration,
     },
-    traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedMul, Zero},
-    ArithmeticError, FixedPointNumber, FixedPointOperand, FixedU128, Percent, SaturatedConversion,
+    traits::{CheckedAdd, CheckedMul, Zero},
+    ArithmeticError, FixedPointNumber, FixedU128, Percent, SaturatedConversion,
 };
 use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
@@ -94,9 +94,6 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config:
         CreateSignedTransaction<Call<Self>> + frame_system::Config + pallet_loans::Config
-    where
-        BalanceOf<Self>: FixedPointOperand,
-        AssetIdOf<Self>: AtLeast32BitUnsigned + scale_info::TypeInfo,
     {
         /// The account type to perform liquidation
         type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
@@ -125,11 +122,7 @@ pub mod pallet {
     }
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T>
-    where
-        BalanceOf<T>: FixedPointOperand,
-        AssetIdOf<T>: AtLeast32BitUnsigned,
-    {
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn offchain_worker(block_number: T::BlockNumber) {
             if let Err(e) = Self::liquidate(block_number) {
                 log::error!("Failed to run offchain liquidation: {:?}", e);
@@ -138,11 +131,7 @@ pub mod pallet {
     }
 
     #[pallet::call]
-    impl<T: Config> Pallet<T>
-    where
-        BalanceOf<T>: FixedPointOperand,
-        AssetIdOf<T>: AtLeast32BitUnsigned,
-    {
+    impl<T: Config> Pallet<T> {
         /// The same liquidate_borrow call in loans pallet.
         ///
         /// - `borrower`: the owner of a loan
@@ -173,11 +162,7 @@ pub mod pallet {
     }
 }
 
-impl<T: Config> Pallet<T>
-where
-    BalanceOf<T>: FixedPointOperand,
-    AssetIdOf<T>: AtLeast32BitUnsigned,
-{
+impl<T: Config> Pallet<T> {
     fn liquidate(_block_number: T::BlockNumber) -> Result<(), Error<T>> {
         let mut lock = StorageLock::<Time>::with_deadline(
             b"liquidate::lock",

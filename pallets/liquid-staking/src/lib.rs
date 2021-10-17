@@ -74,8 +74,8 @@ pub mod pallet {
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
     use sp_runtime::{
-        traits::{AccountIdConversion, AtLeast32BitUnsigned, StaticLookup, Zero},
-        ArithmeticError, FixedPointNumber, FixedPointOperand,
+        traits::{AccountIdConversion, StaticLookup, Zero},
+        ArithmeticError, FixedPointNumber,
     };
     use sp_std::vec;
     use sp_std::{boxed::Box, vec::Vec};
@@ -322,8 +322,6 @@ pub mod pallet {
         u128: From<
             <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance,
         >,
-        BalanceOf<T>: FixedPointOperand,
-        AssetIdOf<T>: AtLeast32BitUnsigned,
     {
         /// Try to pay off over the `UnstakeQueue` while blockchain is on idle.
         ///
@@ -389,8 +387,6 @@ pub mod pallet {
         u128: From<
             <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance,
         >,
-        BalanceOf<T>: FixedPointOperand,
-        AssetIdOf<T>: AtLeast32BitUnsigned,
     {
         /// Put assets under staking, the native assets will be transferred to the account
         /// owned by the pallet, user receive derivative in return, such derivative can be
@@ -777,8 +773,6 @@ pub mod pallet {
         u128: From<
             <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance,
         >,
-        BalanceOf<T>: FixedPointOperand,
-        AssetIdOf<T>: AtLeast32BitUnsigned,
     {
         /// Staking pool account
         pub fn account_id() -> T::AccountId {

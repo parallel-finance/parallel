@@ -38,10 +38,6 @@ where
     <<T as crate::Config<I>>::Assets as Inspect<T::AccountId>>::Balance: From<u128>,
     <<T as crate::Config<I>>::Assets as Inspect<T::AccountId>>::AssetId: From<u32>,
     <<T as pallet_amm::Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance:
-        FixedPointOperand,
-    <<T as pallet_amm::Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId:
-        AtLeast32BitUnsigned,
-    <<T as pallet_amm::Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance:
         From<u128>,
     <<T as pallet_amm::Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId:
         From<u32>,
@@ -88,10 +84,6 @@ benchmarks_instance_pallet! {
             AssetIdOf<T, I>: AtLeast32BitUnsigned,
             <<T as crate::Config<I>>::Assets as Inspect<T::AccountId>>::Balance: From<u128>,
             <<T as crate::Config<I>>::Assets as Inspect<T::AccountId>>::AssetId: From<u32>,
-            <<T as pallet_amm::Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance:
-                FixedPointOperand,
-            <<T as pallet_amm::Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId:
-                AtLeast32BitUnsigned,
             <<T as pallet_amm::Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance:
                 From<u128>,
             <<T as pallet_amm::Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId:

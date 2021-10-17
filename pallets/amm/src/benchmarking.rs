@@ -25,8 +25,6 @@ fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::
 
 fn initial_set_up<T: Config<I>, I: 'static>(caller: T::AccountId)
 where
-    BalanceOf<T, I>: FixedPointOperand,
-    AssetIdOf<T, I>: AtLeast32BitUnsigned,
     <T::Assets as Inspect<T::AccountId>>::Balance: From<u128>,
 {
     let account_id = T::Lookup::unlookup(caller.clone());
@@ -56,8 +54,6 @@ where
 benchmarks_instance_pallet! {
     where_clause {
         where
-            BalanceOf<T, I>: FixedPointOperand,
-            AssetIdOf<T, I>: AtLeast32BitUnsigned,
             <T::Assets as Inspect<T::AccountId>>::Balance: From<u128>,
             <T::Assets as Inspect<T::AccountId>>::AssetId: From<u32>,
 
