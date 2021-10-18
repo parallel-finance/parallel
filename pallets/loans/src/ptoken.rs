@@ -198,7 +198,7 @@ where
 
         let (liquidity, _) = Self::get_account_liquidity(who)?;
         // log::debug!("liquidity: {:?}, effects_value: {:?}", liquidity, effects_value);
-        let ptokens = if liquidity < effects_value {
+        if liquidity < effects_value {
             // Formula
             // ptokens_amount = liquidity / collateral_factor / exchange_rate / price
             // Balance        = Balance   / Permill           / Rate(FixedU128) / FixedU128
@@ -217,9 +217,7 @@ where
         } else {
             // There is enough liquidity to transfer the entire ptoken amount of deposit
             Ok(deposit.voucher_balance)
-        };
-
-        ptokens
+        }
     }
 
     pub(super) fn can_increase(
