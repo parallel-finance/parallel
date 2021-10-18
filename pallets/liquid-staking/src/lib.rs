@@ -523,7 +523,7 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
             kind: StakingSettlementKind,
         ) -> DispatchResultWithPostInfo {
-            T::RelayOrigin::ensure_origin(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
             Self::update_staking_pool(kind, amount)?;
             Self::deposit_event(Event::<T>::StakingSettlementRecorded(kind, amount));
             Ok(().into())
@@ -535,7 +535,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             #[pallet::compact] fees: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
-            T::RelayOrigin::ensure_origin(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
             XcmFeesCompensation::<T>::mutate(|v| *v = fees);
             Self::deposit_event(Event::<T>::XcmFeesCompensationUpdated(fees));
             Ok(().into())
@@ -547,7 +547,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             reserve_factor: Ratio,
         ) -> DispatchResultWithPostInfo {
-            T::RelayOrigin::ensure_origin(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
             ReserveFactor::<T>::mutate(|v| *v = reserve_factor);
             Self::deposit_event(Event::<T>::ReserveFactorUpdated(reserve_factor));
             Ok(().into())
@@ -559,7 +559,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             xcm_weight_misc: XcmWeightMisc<Weight>,
         ) -> DispatchResultWithPostInfo {
-            T::RelayOrigin::ensure_origin(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
             XcmWeight::<T>::mutate(|v| *v = xcm_weight_misc);
             Self::deposit_event(Event::<T>::XcmWeightUpdated(xcm_weight_misc));
             Ok(().into())
@@ -571,7 +571,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             #[pallet::compact] cap: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
-            T::RelayOrigin::ensure_origin(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
             StakingPoolCapacity::<T>::mutate(|v| *v = cap);
             Self::deposit_event(Event::<T>::StakingPoolCapacityUpdated(cap));
             Ok(().into())

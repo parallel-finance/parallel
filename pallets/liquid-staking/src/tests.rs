@@ -90,7 +90,7 @@ fn unstake_should_work() {
 fn test_record_staking_settlement_ok() {
     new_test_ext().execute_with(|| {
         assert_ok!(LiquidStaking::record_staking_settlement(
-            Origin::signed(ALICE),
+            Origin::signed(BOB),
             dot(100f64),
             StakingSettlementKind::Reward
         ));
@@ -103,7 +103,7 @@ fn test_record_staking_settlement_ok() {
 fn test_duplicated_record_staking_settlement() {
     new_test_ext().execute_with(|| {
         LiquidStaking::record_staking_settlement(
-            Origin::signed(ALICE),
+            Origin::signed(BOB),
             100,
             StakingSettlementKind::Reward,
         )
@@ -560,10 +560,7 @@ fn test_update_xcm_weight_work() {
             withdraw_unbonded_weight: 5,
             nominate_weight: 6,
         };
-        assert_ok!(LiquidStaking::update_xcm_weight(
-            Origin::signed(ALICE),
-            misc
-        ));
+        assert_ok!(LiquidStaking::update_xcm_weight(Origin::signed(BOB), misc));
         assert_eq!(XcmWeight::<Test>::get(), misc);
     })
 }

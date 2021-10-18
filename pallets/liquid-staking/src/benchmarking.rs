@@ -65,14 +65,8 @@ fn initial_set_up<T: Config + pallet_assets::Config<AssetId = CurrencyId, Balanc
     )
     .ok();
 
-    pallet_assets::Pallet::<T>::force_create(
-        SystemOrigin::Root.into(),
-        XDOT,
-        account_id.clone(),
-        true,
-        1,
-    )
-    .ok();
+    pallet_assets::Pallet::<T>::force_create(SystemOrigin::Root.into(), XDOT, account_id, true, 1)
+        .ok();
 
     T::Assets::mint_into(DOT.into(), &caller, INITIAL_AMOUNT.into()).unwrap();
 
@@ -121,7 +115,7 @@ benchmarks! {
     bond {
         let alice: T::AccountId = account("Sample", 100, SEED);
         initial_set_up::<T>(alice.clone());
-        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT.into()).unwrap();
+        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT.into()).unwrap();
     }: _(SystemOrigin::Root, BOND_AMOUNT.into(),  RewardDestination::Staked)
     verify {
     }
@@ -131,7 +125,7 @@ benchmarks! {
         let val1: T::AccountId = account("Sample", 101, SEED);
         let val2: T::AccountId = account("Sample", 102, SEED);
         initial_set_up::<T>(alice.clone());
-        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT.into()).unwrap();
+        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT.into()).unwrap();
     }: _(SystemOrigin::Root, vec![val1, val2])
     verify {
     }
@@ -140,7 +134,7 @@ benchmarks! {
         let alice: T::AccountId = account("Sample", 100, SEED);
         initial_set_up::<T>(alice.clone());
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT.into()).unwrap();
-        LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice.clone()).into(), UNSTAKE_AMOUNT.into()).unwrap();
+        LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice).into(), UNSTAKE_AMOUNT.into()).unwrap();
     }: _(SystemOrigin::Root, false,  0u128.into())
     verify {
     }
@@ -148,7 +142,7 @@ benchmarks! {
     bond_extra {
         let alice: T::AccountId = account("Sample", 100, SEED);
         initial_set_up::<T>(alice.clone());
-        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT.into()).unwrap();
+        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT.into()).unwrap();
         LiquidStaking::<T>::bond(SystemOrigin::Root.into(), BOND_AMOUNT.into(), RewardDestination::Staked).unwrap();
     }: _(SystemOrigin::Root, BOND_AMOUNT.into())
     verify {
@@ -157,7 +151,7 @@ benchmarks! {
     unbond {
         let alice: T::AccountId = account("Sample", 100, SEED);
         initial_set_up::<T>(alice.clone());
-        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT.into()).unwrap();
+        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT.into()).unwrap();
         LiquidStaking::<T>::bond(SystemOrigin::Root.into(), BOND_AMOUNT.into(), RewardDestination::Staked).unwrap();
     }: _(SystemOrigin::Root, UNBOND_AMOUNT.into())
     verify {
@@ -166,7 +160,7 @@ benchmarks! {
     withdraw_unbonded {
         let alice: T::AccountId = account("Sample", 100, SEED);
         initial_set_up::<T>(alice.clone());
-        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT.into()).unwrap();
+        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT.into()).unwrap();
         LiquidStaking::<T>::bond(SystemOrigin::Root.into(), BOND_AMOUNT.into(), RewardDestination::Staked).unwrap();
         LiquidStaking::<T>::unbond(SystemOrigin::Root.into(), UNBOND_AMOUNT.into()).unwrap();
     }: _(SystemOrigin::Root, 0, WITHDRAW_AMOUNT.into())
@@ -176,7 +170,7 @@ benchmarks! {
     rebond {
         let alice: T::AccountId = account("Sample", 100, SEED);
         initial_set_up::<T>(alice.clone());
-        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT.into()).unwrap();
+        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT.into()).unwrap();
         LiquidStaking::<T>::bond(SystemOrigin::Root.into(), BOND_AMOUNT.into(), RewardDestination::Staked).unwrap();
         LiquidStaking::<T>::unbond(SystemOrigin::Root.into(), UNBOND_AMOUNT.into()).unwrap();
     }: _(SystemOrigin::Root, REBOND_AMOUNT.into())
@@ -186,7 +180,7 @@ benchmarks! {
     record_staking_settlement {
         let alice: T::AccountId = account("Sample", 100, SEED);
         initial_set_up::<T>(alice.clone());
-        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT.into()).unwrap();
+        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT.into()).unwrap();
     }: _(SystemOrigin::Root, REWARDS.into(), StakingSettlementKind::Reward)
     verify {
     }
