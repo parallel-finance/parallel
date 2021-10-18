@@ -16,5 +16,13 @@ services:
     command: --relay-ws ws://relaychain-alice:9944 --para-ws ws://parachain-2085-0:9944 --tick 120000
     restart: always
 
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis:/data
+    restart: always
+
 volumes:
   redis:
