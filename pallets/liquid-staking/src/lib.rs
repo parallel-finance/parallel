@@ -432,7 +432,7 @@ pub mod pallet {
             StakingPool::<T>::try_mutate(|b| -> DispatchResult {
                 let new_amount = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
                 ensure!(
-                    new_amount < StakingPoolCapacity::<T>::get(),
+                    new_amount <= StakingPoolCapacity::<T>::get(),
                     Error::<T>::ExceededStakingPoolCapacity
                 );
                 *b = new_amount;
