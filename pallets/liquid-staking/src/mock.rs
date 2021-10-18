@@ -7,7 +7,7 @@ use frame_support::{
     weights::constants::WEIGHT_PER_SECOND,
     PalletId,
 };
-use frame_system::{EnsureRoot, EnsureSignedBy};
+use frame_system::{EnsureOneOf, EnsureRoot, EnsureSignedBy};
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
@@ -285,8 +285,10 @@ impl SortedMembers<AccountId> for BobOrigin {
     }
 }
 
-pub type RelayOrigin = EnsureSignedBy<AliceOrigin, AccountId>;
-pub type UpdateOrigin = EnsureSignedBy<BobOrigin, AccountId>;
+pub type RelayOrigin =
+    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+pub type UpdateOrigin =
+    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");

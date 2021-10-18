@@ -15,10 +15,10 @@ use frame_support::{
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{
     tokens::{DOT, XDOT},
-    Balance, CurrencyId, Ratio,
+    Balance, CurrencyId, Rate, Ratio,
 };
 use sp_runtime::{
-    traits::{AtLeast32BitUnsigned, StaticLookup},
+    traits::{AtLeast32BitUnsigned, One, StaticLookup},
     FixedPointOperand,
 };
 use sp_std::{prelude::*, vec};
@@ -87,6 +87,7 @@ fn initial_set_up<T: Config + pallet_assets::Config<AssetId = CurrencyId, Balanc
     .unwrap();
 
     T::Assets::mint_into(DOT.into(), &staking_pool_account, INITIAL_INSURANCE.into()).unwrap();
+    ExchangeRate::<T>::mutate(|b| *b = Rate::one());
     InsurancePool::<T>::mutate(|b| *b = INITIAL_INSURANCE.into());
 }
 
@@ -112,6 +113,7 @@ benchmarks! {
     unstake {
         let alice: T::AccountId = account("Sample", 100, SEED);
         initial_set_up::<T>(alice.clone());
+        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT.into()).unwrap();
     }: _(SystemOrigin::Signed(alice.clone()), UNSTAKE_AMOUNT.into())
     verify {
     }
@@ -148,7 +150,7 @@ benchmarks! {
         initial_set_up::<T>(alice.clone());
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT.into()).unwrap();
         LiquidStaking::<T>::bond(SystemOrigin::Root.into(), BOND_AMOUNT.into(), RewardDestination::Staked).unwrap();
-    }: _(SystemOrigin::Signed(alice.clone()), BOND_AMOUNT.into())
+    }: _(SystemOrigin::Root, BOND_AMOUNT.into())
     verify {
     }
 
@@ -184,6 +186,7 @@ benchmarks! {
     record_staking_settlement {
         let alice: T::AccountId = account("Sample", 100, SEED);
         initial_set_up::<T>(alice.clone());
+        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT.into()).unwrap();
     }: _(SystemOrigin::Root, REWARDS.into(), StakingSettlementKind::Reward)
     verify {
     }
