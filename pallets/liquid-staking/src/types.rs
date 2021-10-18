@@ -1,12 +1,12 @@
 use super::{BalanceOf, Config};
 use codec::{Decode, Encode};
 
+use frame_support::weights::Weight;
 use sp_runtime::{
     traits::{AtLeast32BitUnsigned, StaticLookup, Zero},
     RuntimeDebug,
 };
 use sp_std::{boxed::Box, cmp::Ordering, vec::Vec};
-
 /// Category of staking settlement at the end of era.
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug)]
 pub enum StakingSettlementKind {
@@ -227,5 +227,36 @@ impl<Balance: AtLeast32BitUnsigned + Copy + Clone> MatchingLedger<Balance> {
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.total_stake_amount.is_zero() && self.total_unstake_amount.is_zero()
+    }
+}
+
+/// The xcm weight when execute staking call wrapped in xcm message
+#[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
+pub struct XcmWeightMisc<Weight> {
+    /// The weight when execute bond xcm message
+    pub bond_weight: Weight,
+    /// The weight when execute bond_extra xcm message
+    pub bond_extra_weight: Weight,
+    /// The weight when execute unbond xcm message
+    pub unbond_weight: Weight,
+    /// The weight when execute rebond xcm message
+    pub rebond_weight: Weight,
+    /// The weight when execute withdraw_unbonded xcm message
+    pub withdraw_unbonded_weight: Weight,
+    /// The weight when execute nominate xcm message
+    pub nominate_weight: Weight,
+}
+
+impl Default for XcmWeightMisc<Weight> {
+    fn default() -> Self {
+        let default_weight = 2_000_000_000;
+        XcmWeightMisc {
+            bond_weight: default_weight,
+            bond_extra_weight: default_weight,
+            unbond_weight: default_weight,
+            rebond_weight: default_weight,
+            withdraw_unbonded_weight: default_weight,
+            nominate_weight: default_weight,
+        }
     }
 }

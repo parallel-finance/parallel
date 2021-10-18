@@ -185,7 +185,7 @@ pub mod pallet {
         /// Capacity of staking pool was set to new value
         StakingPoolCapacityUpdated(BalanceOf<T>),
         /// Xcm weight in BuyExecution message
-        XcmWeightUpdated(u64),
+        XcmWeightUpdated(XcmWeightMisc<Weight>),
     }
 
     #[pallet::error]
@@ -279,7 +279,7 @@ pub mod pallet {
     /// Xcm weight in BuyExecution
     #[pallet::storage]
     #[pallet::getter(fn xcm_weight)]
-    pub type XcmWeight<T: Config> = StorageValue<_, Weight, OptionQuery>;
+    pub type XcmWeight<T: Config> = StorageValue<_, XcmWeightMisc<Weight>, ValueQuery>;
 
     /// Staking pool capacity
     #[pallet::storage]
@@ -541,11 +541,11 @@ pub mod pallet {
         #[transactional]
         pub fn update_xcm_weight(
             origin: OriginFor<T>,
-            #[pallet::compact] weight: Weight,
+            xcm_weight_misc: XcmWeightMisc<Weight>,
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
-            XcmWeight::<T>::mutate(|v| *v = Some(weight));
-            Self::deposit_event(Event::<T>::XcmWeightUpdated(weight));
+            XcmWeight::<T>::mutate(|v| *v = xcm_weight_misc);
+            Self::deposit_event(Event::<T>::XcmWeightUpdated(xcm_weight_misc));
             Ok(().into())
         }
 
@@ -704,7 +704,8 @@ pub mod pallet {
                     },
                 )));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg =
+                    Self::ump_transact(call.encode().into(), Self::xcm_weight().nominate_weight);
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -853,7 +854,7 @@ pub mod pallet {
                         ],
                     })));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg = Self::ump_transact(call.encode().into(), Self::xcm_weight().bond_weight);
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -889,7 +890,8 @@ pub mod pallet {
                         ],
                     })));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg =
+                    Self::ump_transact(call.encode().into(), Self::xcm_weight().bond_extra_weight);
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -915,7 +917,8 @@ pub mod pallet {
                     },
                 )));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg =
+                    Self::ump_transact(call.encode().into(), Self::xcm_weight().unbond_weight);
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -941,7 +944,8 @@ pub mod pallet {
                     },
                 )));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg =
+                    Self::ump_transact(call.encode().into(), Self::xcm_weight().rebond_weight);
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -988,7 +992,10 @@ pub mod pallet {
                         ],
                     })));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg = Self::ump_transact(
+                    call.encode().into(),
+                    Self::xcm_weight().withdraw_unbonded_weight,
+                );
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -1021,9 +1028,8 @@ pub mod pallet {
             UnstakeQueue::<T>::mutate(|v| v.remove(0));
         }
 
-        fn ump_transact(call: DoubleEncoded<()>) -> Xcm<()> {
+        fn ump_transact(call: DoubleEncoded<()>, weight: Weight) -> Xcm<()> {
             let asset: MultiAsset = (MultiLocation::here(), 1_000_000_000_000).into();
-            let weight = Self::xcm_weight().unwrap_or(2_000_000_000);
             WithdrawAsset {
                 assets: MultiAssets::from(asset.clone()),
                 effects: vec![

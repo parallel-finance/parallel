@@ -517,11 +517,19 @@ fn print_events<T: frame_system::Config>(context: &str) {
 #[test]
 fn test_update_xcm_weight_work() {
     new_test_ext().execute_with(|| {
-        assert_eq!(XcmWeight::<Test>::get(), None);
+        assert_eq!(XcmWeight::<Test>::get(), XcmWeightMisc::default());
+        let misc = XcmWeightMisc::<u64> {
+            bond_weight: 1,
+            bond_extra_weight: 2,
+            unbond_weight: 3,
+            rebond_weight: 4,
+            withdraw_unbonded_weight: 5,
+            nominate_weight: 6,
+        };
         assert_ok!(LiquidStaking::update_xcm_weight(
             Origin::signed(ALICE),
-            1000
+            misc
         ));
-        assert_eq!(XcmWeight::<Test>::get(), Some(1000));
+        assert_eq!(XcmWeight::<Test>::get(), misc);
     })
 }
