@@ -425,9 +425,11 @@ pub mod pallet {
             // Update storage of `Market` and `UnderlyingAssetId`
             Markets::<T>::insert(asset_id, market.clone());
             let ptoken_id: AssetIdOf<T> = market.ptoken_id.into();
-            if UnderlyingAssetId::<T>::contains_key(ptoken_id) {
-                return Err(Error::<T>::InvalidCurrencyId.into());
-            }
+            Self::ensure_ptoken(ptoken_id)?;
+            // ensure!(
+            //     UnderlyingAssetId::<T>::contains_key(ptoken_id),
+            //     Error::<T>::InvalidCurrencyId
+            // );
             UnderlyingAssetId::<T>::insert(ptoken_id, asset_id);
 
             // Init the ExchangeRate and BorrowIndex for asset
@@ -440,7 +442,7 @@ pub mod pallet {
 
         /// Updates a stored market. Returns `Err` if the market currency does not exist.
         ///
-        /// Market state won't be modified, regardless of the provided value.
+        /// Market state and ptoken_id won't be modified, regardless of the provided value.
         ///
         /// - `asset_id`: Market related currency
         /// - `market`: The new market parameters
@@ -1252,6 +1254,12 @@ where
         Ok(())
     }
 
+    // Ensures a given `ptoken_id` exists on the `UnderlyingAssetId` storage.
+    fn ensure_ptoken(ptoken_id: AssetIdOf<T>) -> DispatchResult {
+        UnderlyingAssetId::<T>::try_get(ptoken_id)
+            .map_err(|_err| Error::<T>::InvalidCurrencyId.into())?
+    }
+
     pub fn calc_underlying_amount(
         voucher_amount: BalanceOf<T>,
         exchange_rate: Rate,
@@ -1315,7 +1323,7 @@ where
     // Returns a stored ptoken_asset map.
     //
     // Returns `Err` if map does not exist.
-    pub fn ptoken_asset_id(ptoken_id: AssetIdOf<T>) -> Result<AssetIdOf<T>, DispatchError> {
+    pub fn underlying_id(ptoken_id: AssetIdOf<T>) -> Result<AssetIdOf<T>, DispatchError> {
         UnderlyingAssetId::<T>::try_get(ptoken_id)
             .map_err(|_err| Error::<T>::MarketDoesNotExist.into())
     }
@@ -1323,7 +1331,7 @@ where
     // Returns the ptoken_id of the related asset
     //
     // Returns `Err` if market does not exist.
-    pub fn get_asset_ptoken_id(asset_id: AssetIdOf<T>) -> Result<AssetIdOf<T>, DispatchError> {
+    pub fn ptoken_id(asset_id: AssetIdOf<T>) -> Result<AssetIdOf<T>, DispatchError> {
         if let Ok(market) = Self::market(asset_id) {
             Ok(market.ptoken_id.into())
         } else {

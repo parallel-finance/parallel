@@ -7,6 +7,26 @@ use frame_support::{assert_noop, assert_ok, traits::tokens::fungibles::Transfer}
 use sp_runtime::FixedPointNumber;
 
 #[test]
+fn trait_inspect_methods_works() {
+    new_test_ext().execute_with(|| {
+        let phko_issuance = Self::total_issuance(HKO);
+        assert_eq!(phko_issuance, 0);
+
+        let minimum_balance = Self::minimum_balance(HKO);
+        assert_eq!(minimum_balance, Zero::zero());
+
+        let balance = Self::balance(HKO, DAVE);
+        assert_eq!(balance, 1000);
+        
+        let reducible_balance = Self::reducible_balance(HKO, DAVE, true);
+        assert_eq(reduccible_balance, 0);
+        
+        assert_ok!(Self::can_deposit(HKO, DAVE, 100));
+        assert_ok!(Self::can_withdraw(HKO, DAVE, 100));
+    })
+}
+
+#[test]
 fn transfer_ptoken_works() {
     new_test_ext().execute_with(|| {
         // DAVE Deposit 100 HKO
