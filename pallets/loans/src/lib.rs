@@ -424,12 +424,13 @@ pub mod pallet {
 
             // Update storage of `Market` and `UnderlyingAssetId`
             Markets::<T>::insert(asset_id, market.clone());
+
+            // Ensures a given `ptoken_id` not exists on the `UnderlyingAssetId` storage.
             let ptoken_id: AssetIdOf<T> = market.ptoken_id.into();
-            Self::ensure_ptoken(ptoken_id)?;
-            // ensure!(
-            //     UnderlyingAssetId::<T>::contains_key(ptoken_id),
-            //     Error::<T>::InvalidCurrencyId
-            // );
+            ensure!(
+                !UnderlyingAssetId::<T>::contains_key(ptoken_id),
+                Error::<T>::InvalidCurrencyId
+            );
             UnderlyingAssetId::<T>::insert(ptoken_id, asset_id);
 
             // Init the ExchangeRate and BorrowIndex for asset
@@ -1252,12 +1253,6 @@ where
             .ok_or(ArithmeticError::Overflow)?;
         ensure!(total_cash <= market.cap, Error::<T>::ExceededMarketCapacity);
         Ok(())
-    }
-
-    // Ensures a given `ptoken_id` exists on the `UnderlyingAssetId` storage.
-    fn ensure_ptoken(ptoken_id: AssetIdOf<T>) -> DispatchResult {
-        UnderlyingAssetId::<T>::try_get(ptoken_id)
-            .map_err(|_err| Error::<T>::InvalidCurrencyId.into())?
     }
 
     pub fn calc_underlying_amount(

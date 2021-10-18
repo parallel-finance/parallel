@@ -45,44 +45,14 @@ where
 
     /// Get the maximum amount that `who` can withdraw/transfer successfully.
     fn reducible_balance(
-        asset: Self::AssetId,
+        asset_id: Self::AssetId,
         who: &T::AccountId,
         _keep_alive: bool,
     ) -> Self::Balance {
-        let deposit = Self::account_deposits(asset, &who);
-
-        if !deposit.is_collateral {
-            return deposit.voucher_balance;
-        }
-
-        let collateral_factor = Self::market(asset_id)?.collateral_factor;
-        let price = Self::get_price(asset_id)?;
-        let exchange_rate = Self::exchange_rate(asset_id);
-        // Formula
-        // effect_value = ptokens_amount * collateral_factor * exchange rate * price
-        let effects_value = price
-            .checked_mul(&FixedU128::from_inner(
-                collateral_factor.mul_ceil(
-                    Self::calc_underlying_amount(deposit.voucher_balance, exchange_rate)?
-                        .saturated_into(),
-                ),
-            ))
-            .ok_or(ArithmeticError::Overflow)?;
-
-        let (liquidity, _) = Self::get_account_liquidity(source)?;
-        if liquidity < effects_value {
-            // Formula
-            // ptokens_amount = liquidity / collateral_factor / exchange_rate / price
-            Self::calc_collateral_amount(liquidity, Self::exchange_rate(asset_id))?
-                .checked_div(&FixedU128::from_inner(
-                    Self::market(asset_id)?.collateral_factor,
-                ))
-                .ok_or(ArithmeticError::Overflow)?
-                .checked_div(price)
-                .ok_or(ArithmeticError::Underflow)?;
+        if let Ok(balance) = Self::can_move(asset_id, who) {
+            balance
         } else {
-            // There is enough liquidity to transfer the entire amount of deposit
-            deposit.voucher_balance
+            Zero::zero()
         }
     }
 
@@ -199,6 +169,57 @@ where
         })?;
 
         Ok(())
+    }
+
+    pub(super) fn can_move(
+        asset_id: AssetIdOf<T>,
+        who: &T::AccountId,
+    ) -> Result<BalanceOf<T>, DispatchError> {
+        let deposit = Self::account_deposits(asset_id, &who);
+
+        if !deposit.is_collateral {
+            return Ok(deposit.voucher_balance);
+        }
+
+        let exchange_rate = Self::exchange_rate(asset_id);
+        let collateral_factor = Self::market(asset_id)?.collateral_factor;
+        let price = Self::get_price(asset_id)?;
+
+        // Formula
+        // effect_value = ptokens_amount * collateral_factor * exchange rate * price
+        let effects_value = price
+            .checked_mul(&FixedU128::from_inner(
+                collateral_factor.mul_ceil(
+                    Self::calc_underlying_amount(deposit.voucher_balance, exchange_rate)?
+                        .saturated_into(),
+                ),
+            ))
+            .ok_or(ArithmeticError::Overflow)?;
+
+        let (liquidity, _) = Self::get_account_liquidity(who)?;
+        // log::debug!("liquidity: {:?}, effects_value: {:?}", liquidity, effects_value);
+        let ptokens = if liquidity < effects_value {
+            // Formula
+            // ptokens_amount = liquidity / collateral_factor / exchange_rate / price
+            // Balance        = Balance   / Permill           / Rate(FixedU128) / FixedU128
+
+            // TODO: Complete the above formula calculation
+            let ptokens_amount = Self::calc_collateral_amount(
+                liquidity.into_inner().saturated_into(),
+                exchange_rate,
+            )?;
+            // .checked_div(collateral_factor)
+            // .ok_or(ArithmeticError::Overflow)?
+            // .checked_div(Self::get_price(asset_id))
+            // .ok_or(ArithmeticError::Underflow)?;
+
+            Ok(ptokens_amount)
+        } else {
+            // There is enough liquidity to transfer the entire ptoken amount of deposit
+            Ok(deposit.voucher_balance)
+        };
+
+        ptokens
     }
 
     pub(super) fn can_increase(

@@ -346,30 +346,20 @@ pub const MARKET_MOCK: Market<Balance> = Market {
     ptoken_id: 1200,
 };
 
-pub fn gen_mock_ptoken_market(base_market: Market<Balance>, ptoken_id: CurrencyId) -> Market {
-    Market {
-        ptoken_id,
-        ..base_market
-    }
-}
-pub const HKO_MARKET_MOCK: Market<Balance> = gen_mock_ptoken_market(MARKET_MOCK, 999);
-pub const KSM_MARKET_MOCK: Market<Balance> = gen_mock_ptoken_market(MARKET_MOCK, 1000);
-pub const DOT_MARKET_MOCK: Market<Balance> = gen_mock_ptoken_market(MARKET_MOCK, 1001);
-pub const USDT_MARKET_MOCK: Market<Balance> = gen_mock_ptoken_market(MARKET_MOCK, 1002);
-
-// pub const HKO_MARKET_MOCK: Market<Balance> = Market {
-//     ptoken_id: 999,
-//     ..MARKET_MOCK
-// };
-// pub const KSM_MARKET_MOCK: Market<Balance> = Market {
-//     ptoken_id: 1000,
-//     ..MARKET_MOCK
-// };
-// pub const DOT_MARKET_MOCK: Market<Balance> = Market {
-//     ptoken_id: 1001,
-//     ..MARKET_MOCK
-// };
-// pub const USDT_MARKET_MOCK: Market<Balance> = Market {
-//     ptoken_id: 1002,
-//     ..MARKET_MOCK
-// };
+// TODO: macro rule
+pub const HKO_MARKET_MOCK: Market<Balance> = Market {
+    ptoken_id: 999,
+    ..MARKET_MOCK
+};
+pub const KSM_MARKET_MOCK: Market<Balance> = Market {
+    ptoken_id: 1000,
+    ..MARKET_MOCK
+};
+pub const DOT_MARKET_MOCK: Market<Balance> = Market {
+    ptoken_id: 1001,
+    ..MARKET_MOCK
+};
+pub const USDT_MARKET_MOCK: Market<Balance> = Market {
+    ptoken_id: 1002,
+    ..MARKET_MOCK
+};
