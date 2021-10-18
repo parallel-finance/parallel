@@ -1,5 +1,14 @@
 # CHANGE LOG
 
+## 2021.10.17
+
+- Support building staging, QA docker (#732)
+
+## 2021.10.16
+
+- Add staking market cap (#720)
+- Enrich decimal provider by adding USDT (#718)
+
 ## 2021.10.15
 
 - Bump to polkadot-v0.9.11 (#693)
