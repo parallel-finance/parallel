@@ -20,6 +20,8 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+mod benchmarking;
+
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
@@ -333,7 +335,7 @@ pub mod pallet {
         fn on_idle(_n: BlockNumberFor<T>, mut remaining_weight: Weight) -> Weight {
             // TODO should use T::WeightInfo::on_idle instead
             // on_idle shouldn't run out of all remaining_weight normally
-            let base_weight = T::WeightInfo::pop_queue();
+            let base_weight = 10_000;
             let staking_currency = Self::staking_currency();
 
             // Return if staking_currency haven't been set.

@@ -5,8 +5,7 @@
 extern crate alloc;
 
 use super::*;
-use crate::pallet::AssetIdOf;
-use crate::pallet::BalanceOf;
+use crate::pallet::{AssetIdOf, BalanceOf};
 #[allow(unused_imports)]
 use crate::Pallet as AMMRoute;
 use core::convert::TryFrom;
@@ -20,10 +19,10 @@ use frame_support::{
 };
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{tokens, CurrencyId};
-use sp_runtime::traits::AtLeast32BitUnsigned;
-use sp_runtime::traits::One;
-use sp_runtime::traits::StaticLookup;
-use sp_runtime::FixedPointOperand;
+use sp_runtime::{
+    traits::{AtLeast32BitUnsigned, One, StaticLookup},
+    FixedPointOperand,
+};
 
 const DOT: CurrencyId = tokens::DOT;
 const XDOT: CurrencyId = tokens::XDOT;
