@@ -1077,16 +1077,6 @@ pub mod pallet {
                     require_weight_at_most: u64::MAX,
                     call,
                 },
-                ClearError,
-                DepositAsset {
-                    assets: All.into(),
-                    max_assets: u32::max_value(),
-                    beneficiary: X1(AccountId32 {
-                        network: NetworkId::Any,
-                        id: Self::para_account_id().into(),
-                    })
-                    .into(),
-                },
             ])
         }
     }

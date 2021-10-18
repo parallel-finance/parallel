@@ -451,13 +451,6 @@ fn test_transfer_and_then_bond() {
 
         let asset: MultiAsset = (MultiLocation::parent(), xcm_transfer_amount).into();
         let reserve = MultiLocation::parent();
-        let recipient = MultiLocation::new(
-            0,
-            X1(Junction::AccountId32 {
-                network: NetworkId::Any,
-                id: LiquidStaking::derivative_para_account_id().into(),
-            }),
-        );
         let fees: MultiAsset = (MultiLocation::here(), xcm_transfer_amount).into();
         let msg = Xcm(vec![
             WithdrawAsset(MultiAssets::from(asset.clone())),
@@ -467,16 +460,10 @@ fn test_transfer_and_then_bond() {
                 xcm: Xcm(vec![
                     BuyExecution {
                         fees,
-                        weight_limit: WeightLimit::Limited(0),
+                        weight_limit: Limited(0),
                     },
                     bond_transact_xcm,
                 ]),
-            },
-            ClearError,
-            DepositAsset {
-                assets: All.into(),
-                max_assets: u32::max_value(),
-                beneficiary: recipient,
             },
         ]);
         let origin_location = MultiLocation::new(
