@@ -422,15 +422,11 @@ pub mod pallet {
                 Error::<T>::InvalidRateModelParam
             );
 
+            // Ensures a given `ptoken_id` not exists on the `Market` and `UnderlyingAssetId`.
+            let ptoken_id: AssetIdOf<T> = market.ptoken_id.into();
+            Self::ensure_ptoken_unique(market.ptoken_id)?;
             // Update storage of `Market` and `UnderlyingAssetId`
             Markets::<T>::insert(asset_id, market.clone());
-
-            // Ensures a given `ptoken_id` not exists on the `UnderlyingAssetId` storage.
-            let ptoken_id: AssetIdOf<T> = market.ptoken_id.into();
-            ensure!(
-                !UnderlyingAssetId::<T>::contains_key(ptoken_id),
-                Error::<T>::InvalidCurrencyId
-            );
             UnderlyingAssetId::<T>::insert(ptoken_id, asset_id);
 
             // Init the ExchangeRate and BorrowIndex for asset
@@ -1253,6 +1249,21 @@ where
             .ok_or(ArithmeticError::Overflow)?;
         ensure!(total_cash <= market.cap, Error::<T>::ExceededMarketCapacity);
         Ok(())
+    }
+
+    // Ensures a given `ptoken_id` is unique in `Markets` and `UnderlyingAssetId`.
+    fn ensure_ptoken_unique(ptoken_id: CurrencyId) -> DispatchResult {
+        let asset_id: AssetIdOf<T> = ptoken_id.into();
+        ensure!(
+            !UnderlyingAssetId::<T>::contains_key(asset_id),
+            Error::<T>::InvalidCurrencyId
+        );
+
+        if Self::active_markets().any(|(_, market)| market.ptoken_id == ptoken_id) {
+            Err(<Error<T>>::InvalidCurrencyId.into())
+        } else {
+            Ok(())
+        }
     }
 
     pub fn calc_underlying_amount(
