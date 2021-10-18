@@ -9,6 +9,7 @@ relaychain:
   flags:
     - --rpc-methods=unsafe
     - --no-beefy
+    - -lxcm=trace
   nodes:
     - name: alice
     - name: bob
