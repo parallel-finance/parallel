@@ -87,8 +87,12 @@ pub const HKO: CurrencyId = 0;
 pub const KSM: CurrencyId = 100;
 pub const DOT: CurrencyId = 101;
 pub const USDT: CurrencyId = 102;
-pub const XDOT: CurrencyId = 1001;
-pub const XKSM: CurrencyId = 1000;
+pub const PHKO: CurrencyId = 999;
+pub const PKSM: CurrencyId = 1000;
+pub const PDOT: CurrencyId = 1001;
+pub const PUSDT: CurrencyId = 1002;
+pub const XKSM: CurrencyId = 5000;
+pub const XDOT: CurrencyId = 5001;
 
 parameter_types! {
     pub const MinimumPeriod: u64 = 5;
@@ -348,18 +352,22 @@ pub const MARKET_MOCK: Market<Balance> = Market {
 
 // TODO: macro rule
 pub const HKO_MARKET_MOCK: Market<Balance> = Market {
-    ptoken_id: 999,
+    ptoken_id: PHKO,
     ..MARKET_MOCK
 };
 pub const KSM_MARKET_MOCK: Market<Balance> = Market {
-    ptoken_id: 1000,
+    ptoken_id: PKSM,
     ..MARKET_MOCK
 };
 pub const DOT_MARKET_MOCK: Market<Balance> = Market {
-    ptoken_id: 1001,
+    ptoken_id: PDOT,
     ..MARKET_MOCK
 };
 pub const USDT_MARKET_MOCK: Market<Balance> = Market {
-    ptoken_id: 1002,
+    ptoken_id: PUSDT,
+    ..MARKET_MOCK
+};
+pub const INVALID_PTOKEN_ID_MARKET_MOCK: Market<Balance> = Market {
+    ptoken_id: KSM,
     ..MARKET_MOCK
 };

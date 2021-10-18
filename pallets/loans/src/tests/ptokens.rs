@@ -1,5 +1,8 @@
 use crate::{
-    mock::{new_test_ext, Loans, Origin, Test, ALICE, DAVE, HKO, KSM, MARKET_MOCK},
+    mock::{
+        new_test_ext, Loans, Origin, Test, ALICE, DAVE, HKO, HKO_MARKET_MOCK,
+        INVALID_PTOKEN_ID_MARKET_MOCK, KSM, MARKET_MOCK, XDOT,
+    },
     tests::dollar,
     Error,
 };
@@ -39,6 +42,23 @@ fn trait_inspect_methods_works() {
 
         // assert_eq!(Loans::can_deposit(HKO, &DAVE, 100));
         // assert_eq!(Loans::can_withdraw(HKO, &DAVE, 100));
+    })
+}
+
+#[test]
+fn ptoken_unique_works() {
+    new_test_ext().execute_with(|| {
+        // ptoken_id already exists in `UnderlyingAssetId`
+        assert_noop!(
+            Loans::add_market(Origin::root(), XDOT, HKO_MARKET_MOCK),
+            Error::<Test>::InvalidCurrencyId
+        );
+
+        // ptoken_id token id cannot as the same as the asset id in `Markets`
+        assert_noop!(
+            Loans::add_market(Origin::root(), XDOT, INVALID_PTOKEN_ID_MARKET_MOCK),
+            Error::<Test>::InvalidCurrencyId
+        );
     })
 }
 

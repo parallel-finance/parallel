@@ -1259,11 +1259,12 @@ where
             Error::<T>::InvalidCurrencyId
         );
 
-        if Self::active_markets().any(|(_, market)| market.ptoken_id == ptoken_id) {
-            Err(<Error<T>>::InvalidCurrencyId.into())
-        } else {
-            Ok(())
-        }
+        ensure!(
+            !Markets::<T>::contains_key(asset_id),
+            Error::<T>::InvalidCurrencyId
+        );
+
+        Ok(())
     }
 
     pub fn calc_underlying_amount(
