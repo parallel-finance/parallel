@@ -186,6 +186,8 @@ pub mod pallet {
         StakingPoolCapacityUpdated(BalanceOf<T>),
         /// Xcm weight in BuyExecution message
         XcmWeightUpdated(XcmWeightMisc<Weight>),
+        /// InsurancePool's reserve_factor updated
+        ReserveFactorUpdated(Ratio),
     }
 
     #[pallet::error]
@@ -520,9 +522,7 @@ pub mod pallet {
             kind: StakingSettlementKind,
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
-
             Self::update_staking_pool(kind, amount)?;
-
             Self::deposit_event(Event::<T>::StakingSettlementRecorded(kind, amount));
             Ok(().into())
         }
@@ -536,6 +536,18 @@ pub mod pallet {
             T::RelayOrigin::ensure_origin(origin)?;
             XcmFeesCompensation::<T>::mutate(|v| *v = fees);
             Self::deposit_event(Event::<T>::XcmFeesCompensationUpdated(fees));
+            Ok(().into())
+        }
+
+        #[pallet::weight(<T as Config>::WeightInfo::update_reserve_factor())]
+        #[transactional]
+        pub fn update_reserve_factor(
+            origin: OriginFor<T>,
+            reserve_factor: Ratio,
+        ) -> DispatchResultWithPostInfo {
+            T::RelayOrigin::ensure_origin(origin)?;
+            ReserveFactor::<T>::mutate(|v| *v = reserve_factor);
+            Self::deposit_event(Event::<T>::ReserveFactorUpdated(reserve_factor));
             Ok(().into())
         }
 
