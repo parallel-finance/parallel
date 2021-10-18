@@ -132,19 +132,19 @@ fn test_settlement_should_work() {
     ParaA::execute_with(|| {
         let test_case: Vec<(Vec<StakeOp>, Balance, (Balance, Balance, Balance), Balance)> = vec![
             (
-                vec![Stake(dot(500f64)), Unstake(dot(100f64))],
+                vec![Stake(dot(5000f64)), Unstake(dot(1000f64))],
                 0,
-                (dot(397.5f64), 0, 0),
-                dot(2.5f64),
+                (dot(3975f64), 0, 0),
+                dot(25f64),
             ),
             // Calculate right here.
             (
                 vec![Unstake(dot(10f64)), Unstake(dot(5f64)), Stake(dot(10f64))],
                 0,
                 (0, 0, dot(5.05f64)),
-                dot(2.55f64),
+                dot(15.05f64),
             ),
-            (vec![], 0, (0, 0, 0), dot(2.55f64)),
+            (vec![], 0, (0, 0, 0), dot(5.05f64)),
         ];
 
         for (stake_ops, unbonding_amount, matching_result, insurance_pool) in test_case.into_iter()
@@ -167,7 +167,7 @@ fn test_settlement_should_work() {
         assert_eq!(
             RelayBalances::free_balance(&LiquidStaking::para_account_id()),
             // FIXME: weight should be take into account
-            9999979517112000
+            9999989117112000
         );
     });
 }
@@ -177,6 +177,11 @@ fn test_transact_bond_work() {
     TestNet::reset();
 
     ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::stake(
+            Origin::signed(ALICE),
+            2000 * DOT_DECIMAL,
+        ));
+
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             3 * DOT_DECIMAL,
@@ -205,6 +210,11 @@ fn test_transact_bond_extra_work() {
     TestNet::reset();
 
     ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::stake(
+            Origin::signed(ALICE),
+            4000 * DOT_DECIMAL,
+        ));
+
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             2 * DOT_DECIMAL,
@@ -228,6 +238,11 @@ fn test_transact_unbond_work() {
     TestNet::reset();
 
     ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::stake(
+            Origin::signed(ALICE),
+            6000 * DOT_DECIMAL,
+        ));
+
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             5 * DOT_DECIMAL,
@@ -259,6 +274,11 @@ fn test_transact_withdraw_unbonded_work() {
     TestNet::reset();
 
     ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::stake(
+            Origin::signed(ALICE),
+            6000 * DOT_DECIMAL,
+        ));
+
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             5 * DOT_DECIMAL,
@@ -311,6 +331,11 @@ fn test_transact_rebond_work() {
     TestNet::reset();
 
     ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::stake(
+            Origin::signed(ALICE),
+            6000 * DOT_DECIMAL,
+        ));
+
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             10 * DOT_DECIMAL,
@@ -350,6 +375,11 @@ fn test_transact_nominate_work() {
     TestNet::reset();
 
     ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::stake(
+            Origin::signed(ALICE),
+            4000 * DOT_DECIMAL,
+        ));
+
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             10 * DOT_DECIMAL,
@@ -485,6 +515,10 @@ fn test_transfer_bond() {
     TestNet::reset();
     let xcm_transfer_amount = 10 * DOT_DECIMAL;
     ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::stake(
+            Origin::signed(ALICE),
+            2000 * DOT_DECIMAL,
+        ));
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             xcm_transfer_amount,
