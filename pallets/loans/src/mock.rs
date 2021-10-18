@@ -364,25 +364,3 @@ pub const KSM_MARKET_MOCK: Market<Balance> = gen_mock_market!(MARKET_MOCK, PKSM)
 pub const DOT_MARKET_MOCK: Market<Balance> = gen_mock_market!(MARKET_MOCK, PDOT);
 pub const USDT_MARKET_MOCK: Market<Balance> = gen_mock_market!(MARKET_MOCK, PUSDT);
 pub const INVALID_PTOKEN_ID_MARKET_MOCK: Market<Balance> = gen_mock_market!(MARKET_MOCK, KSM);
-
-// TODO: macro rule
-// pub const HKO_MARKET_MOCK: Market<Balance> = Market {
-//     ptoken_id: PHKO,
-//     ..MARKET_MOCK
-// };
-// pub const KSM_MARKET_MOCK: Market<Balance> = Market {
-//     ptoken_id: PKSM,
-//     ..MARKET_MOCK
-// };
-// pub const DOT_MARKET_MOCK: Market<Balance> = Market {
-//     ptoken_id: PDOT,
-//     ..MARKET_MOCK
-// };
-// pub const USDT_MARKET_MOCK: Market<Balance> = Market {
-//     ptoken_id: PUSDT,
-//     ..MARKET_MOCK
-// };
-// pub const INVALID_PTOKEN_ID_MARKET_MOCK: Market<Balance> = Market {
-//     ptoken_id: KSM,
-//     ..MARKET_MOCK
-// };
