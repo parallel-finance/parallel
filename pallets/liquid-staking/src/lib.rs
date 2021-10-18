@@ -643,7 +643,7 @@ pub mod pallet {
             Ok(())
         }
 
-        /// unbond on relaychain via xcm.transact
+        /// Unbond on relaychain via xcm.transact
         #[pallet::weight(<T as Config>::WeightInfo::unbond())]
         #[transactional]
         pub fn unbond(
@@ -655,7 +655,7 @@ pub mod pallet {
             Ok(())
         }
 
-        /// rebond on relaychain via xcm.transact
+        /// Rebond on relaychain via xcm.transact
         #[pallet::weight(<T as Config>::WeightInfo::rebond())]
         #[transactional]
         pub fn rebond(
@@ -720,7 +720,7 @@ pub mod pallet {
             Ok(())
         }
 
-        /// set liquid currency via governance
+        /// Set liquid currency via governance
         #[pallet::weight(<T as Config>::WeightInfo::set_liquid_currency())]
         #[transactional]
         pub fn set_liquid_currency(origin: OriginFor<T>, asset_id: AssetIdOf<T>) -> DispatchResult {
@@ -729,7 +729,7 @@ pub mod pallet {
             Ok(())
         }
 
-        /// set staking currency via governance
+        /// Set staking currency via governance
         #[pallet::weight(<T as Config>::WeightInfo::set_staking_currency())]
         #[transactional]
         pub fn set_staking_currency(
