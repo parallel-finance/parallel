@@ -224,6 +224,8 @@ pub mod pallet {
         ExceededMaxSlashesPerEra,
         /// Exceeded staking pool's capacity
         ExceededStakingPoolCapacity,
+        /// Xcm fees given are too low to execute on relaychain
+        XcmFeesCompensationTooLow,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -578,18 +580,6 @@ pub mod pallet {
                 MatchingPool::<T>::take().matching(unbonding_amount);
             let staking_currency = Self::staking_currency()?;
             let account_id = Self::account_id();
-            let xcm_fees_compensation = Self::xcm_fees_compensation();
-
-            if !Self::xcm_fees_compensation().is_zero() {
-                T::Assets::burn_from(staking_currency, &account_id, xcm_fees_compensation)?;
-
-                InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
-                    *b = b
-                        .checked_sub(&Self::xcm_fees_compensation())
-                        .ok_or(ArithmeticError::Underflow)?;
-                    Ok(())
-                })?;
-            }
 
             if !bond_amount.is_zero() {
                 T::Assets::burn_from(staking_currency, &account_id, bond_amount)?;
@@ -705,7 +695,7 @@ pub mod pallet {
                 )));
 
                 let msg =
-                    Self::ump_transact(call.encode().into(), Self::xcm_weight().nominate_weight);
+                    Self::ump_transact(call.encode().into(), Self::xcm_weight().nominate_weight)?;
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -854,7 +844,7 @@ pub mod pallet {
                         ],
                     })));
 
-                let msg = Self::ump_transact(call.encode().into(), Self::xcm_weight().bond_weight);
+                let msg = Self::ump_transact(call.encode().into(), Self::xcm_weight().bond_weight)?;
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -891,7 +881,7 @@ pub mod pallet {
                     })));
 
                 let msg =
-                    Self::ump_transact(call.encode().into(), Self::xcm_weight().bond_extra_weight);
+                    Self::ump_transact(call.encode().into(), Self::xcm_weight().bond_extra_weight)?;
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -918,7 +908,7 @@ pub mod pallet {
                 )));
 
                 let msg =
-                    Self::ump_transact(call.encode().into(), Self::xcm_weight().unbond_weight);
+                    Self::ump_transact(call.encode().into(), Self::xcm_weight().unbond_weight)?;
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -945,7 +935,7 @@ pub mod pallet {
                 )));
 
                 let msg =
-                    Self::ump_transact(call.encode().into(), Self::xcm_weight().rebond_weight);
+                    Self::ump_transact(call.encode().into(), Self::xcm_weight().rebond_weight)?;
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -995,7 +985,7 @@ pub mod pallet {
                 let msg = Self::ump_transact(
                     call.encode().into(),
                     Self::xcm_weight().withdraw_unbonded_weight,
-                );
+                )?;
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -1028,9 +1018,22 @@ pub mod pallet {
             UnstakeQueue::<T>::mutate(|v| v.remove(0));
         }
 
-        fn ump_transact(call: DoubleEncoded<()>, weight: Weight) -> Xcm<()> {
-            let asset: MultiAsset = (MultiLocation::here(), 1_000_000_000_000).into();
-            WithdrawAsset {
+        fn ump_transact(call: DoubleEncoded<()>, weight: Weight) -> Result<Xcm<()>, DispatchError> {
+            let fees = Self::xcm_fees_compensation();
+            ensure!(!fees.is_zero(), Error::<T>::XcmFeesCompensationTooLow);
+
+            let staking_currency = Self::staking_currency()?;
+            let account_id = Self::account_id();
+            let asset: MultiAsset = (MultiLocation::here(), u128::from(fees)).into();
+
+            T::Assets::burn_from(staking_currency, &account_id, fees)?;
+
+            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_sub(&fees).ok_or(ArithmeticError::Underflow)?;
+                Ok(())
+            })?;
+
+            Ok(WithdrawAsset {
                 assets: MultiAssets::from(asset.clone()),
                 effects: vec![
                     BuyExecution {
@@ -1054,7 +1057,7 @@ pub mod pallet {
                         .into(),
                     },
                 ],
-            }
+            })
         }
     }
 }
