@@ -319,9 +319,6 @@ pub mod pallet {
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T>
     where
         [u8; 32]: From<<T as frame_system::Config>::AccountId>,
-        u128: From<
-            <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance,
-        >,
     {
         /// Try to pay off over the `UnstakeQueue` while blockchain is on idle.
         ///
@@ -384,9 +381,6 @@ pub mod pallet {
     impl<T: Config> Pallet<T>
     where
         [u8; 32]: From<<T as frame_system::Config>::AccountId>,
-        u128: From<
-            <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance,
-        >,
     {
         /// Put assets under staking, the native assets will be transferred to the account
         /// owned by the pallet, user receive derivative in return, such derivative can be
@@ -535,6 +529,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        /// Update insurance pool's reserve_factor
         #[pallet::weight(<T as Config>::WeightInfo::update_reserve_factor())]
         #[transactional]
         pub fn update_reserve_factor(
@@ -547,6 +542,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        /// Update xcm transact's weight configuration
         #[pallet::weight(<T as Config>::WeightInfo::update_xcm_weight())]
         #[transactional]
         pub fn update_xcm_weight(
@@ -667,7 +663,7 @@ pub mod pallet {
             Ok(())
         }
 
-        /// withdraw unbonded on relaychain via xcm.transact
+        /// Withdraw unbonded on relaychain via xcm.transact
         #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded())]
         #[transactional]
         pub fn withdraw_unbonded(
@@ -759,7 +755,7 @@ pub mod pallet {
             )?;
 
             InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
+                *b = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
             Self::deposit_event(Event::<T>::InsurancesAdded(who, amount));
@@ -1057,16 +1053,16 @@ pub mod pallet {
 
             let staking_currency = Self::staking_currency()?;
             let account_id = Self::account_id();
-            let asset: MultiAsset = (MultiLocation::here(), u128::from(fees)).into();
+            let asset: MultiAsset = (MultiLocation::here(), fees).into();
 
             T::Assets::burn_from(staking_currency, &account_id, fees)?;
 
             InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_sub(&fees).ok_or(ArithmeticError::Underflow)?;
+                *b = b.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
                 Ok(())
             })?;
 
-            Xcm(vec![
+            Ok(Xcm(vec![
                 WithdrawAsset(MultiAssets::from(asset.clone())),
                 BuyExecution {
                     fees: asset,
@@ -1077,7 +1073,7 @@ pub mod pallet {
                     require_weight_at_most: u64::MAX,
                     call,
                 },
-            ])
+            ]))
         }
     }
 }

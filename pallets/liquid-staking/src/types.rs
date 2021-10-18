@@ -232,7 +232,7 @@ impl<Balance: AtLeast32BitUnsigned + Copy + Clone> MatchingLedger<Balance> {
 }
 
 /// The xcm weight when execute staking call wrapped in xcm message
-#[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
+#[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct XcmWeightMisc<Weight> {
     /// The weight when execute bond xcm message
     pub bond_weight: Weight,

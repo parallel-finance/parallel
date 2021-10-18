@@ -22,6 +22,9 @@ submodules:
 build:
 	cargo build --bin parallel
 
+.PHONY: ci
+ci: check lint check-wasm test
+
 .PHONY: check
 check:
 	SKIP_WASM_BUILD= cargo check --all-targets --features runtime-benchmarks --features try-runtime
