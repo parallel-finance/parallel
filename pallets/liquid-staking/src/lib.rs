@@ -115,10 +115,6 @@ pub mod pallet {
         /// XCM message sender
         type XcmSender: SendXcm;
 
-        /// Basic xcm transaction weight per message
-        #[pallet::constant]
-        type BaseXcmWeight: Get<Weight>;
-
         /// Returns the parachain ID we are running with.
         #[pallet::constant]
         type SelfParaId: Get<ParaId>;
@@ -133,10 +129,6 @@ pub mod pallet {
         /// Unstake queue capacity
         #[pallet::constant]
         type UnstakeQueueCapacity: Get<u32>;
-
-        /// Basis of period
-        #[pallet::constant]
-        type PeriodBasis: Get<BlockNumberFor<Self>>;
 
         /// Max rewards per era
         #[pallet::constant]
@@ -192,6 +184,8 @@ pub mod pallet {
         XcmFeesCompensationUpdated(BalanceOf<T>),
         /// Capacity of staking pool was set to new value
         StakingPoolCapacityUpdated(BalanceOf<T>),
+        /// Xcm weight in BuyExecution message
+        XcmWeightUpdated(XcmWeightMisc<Weight>),
     }
 
     #[pallet::error]
@@ -281,6 +275,11 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn xcm_fees_compensation)]
     pub type XcmFeesCompensation<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+    /// Xcm weight in BuyExecution
+    #[pallet::storage]
+    #[pallet::getter(fn xcm_weight)]
+    pub type XcmWeight<T: Config> = StorageValue<_, XcmWeightMisc<Weight>, ValueQuery>;
 
     /// Staking pool capacity
     #[pallet::storage]
@@ -538,6 +537,18 @@ pub mod pallet {
             Ok(().into())
         }
 
+        #[pallet::weight(<T as Config>::WeightInfo::update_xcm_weight())]
+        #[transactional]
+        pub fn update_xcm_weight(
+            origin: OriginFor<T>,
+            xcm_weight_misc: XcmWeightMisc<Weight>,
+        ) -> DispatchResultWithPostInfo {
+            T::RelayOrigin::ensure_origin(origin)?;
+            XcmWeight::<T>::mutate(|v| *v = xcm_weight_misc);
+            Self::deposit_event(Event::<T>::XcmWeightUpdated(xcm_weight_misc));
+            Ok(().into())
+        }
+
         #[pallet::weight(<T as Config>::WeightInfo::update_staking_pool_capacity())]
         #[transactional]
         pub fn update_staking_pool_capacity(
@@ -693,7 +704,8 @@ pub mod pallet {
                     },
                 )));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg =
+                    Self::ump_transact(call.encode().into(), Self::xcm_weight().nominate_weight);
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -842,7 +854,7 @@ pub mod pallet {
                         ],
                     })));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg = Self::ump_transact(call.encode().into(), Self::xcm_weight().bond_weight);
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -878,7 +890,8 @@ pub mod pallet {
                         ],
                     })));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg =
+                    Self::ump_transact(call.encode().into(), Self::xcm_weight().bond_extra_weight);
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -904,7 +917,8 @@ pub mod pallet {
                     },
                 )));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg =
+                    Self::ump_transact(call.encode().into(), Self::xcm_weight().unbond_weight);
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -930,7 +944,8 @@ pub mod pallet {
                     },
                 )));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg =
+                    Self::ump_transact(call.encode().into(), Self::xcm_weight().rebond_weight);
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -977,7 +992,10 @@ pub mod pallet {
                         ],
                     })));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg = Self::ump_transact(
+                    call.encode().into(),
+                    Self::xcm_weight().withdraw_unbonded_weight,
+                );
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -1010,15 +1028,14 @@ pub mod pallet {
             UnstakeQueue::<T>::mutate(|v| v.remove(0));
         }
 
-        fn ump_transact(call: DoubleEncoded<()>) -> Xcm<()> {
+        fn ump_transact(call: DoubleEncoded<()>, weight: Weight) -> Xcm<()> {
             let asset: MultiAsset = (MultiLocation::here(), 1_000_000_000_000).into();
-
             WithdrawAsset {
                 assets: MultiAssets::from(asset.clone()),
                 effects: vec![
                     BuyExecution {
                         fees: asset,
-                        weight: 2_000_000_000,
+                        weight,
                         debt: 600_000_000,
                         halt_on_error: false,
                         instructions: vec![Transact {

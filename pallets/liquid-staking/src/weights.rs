@@ -21,6 +21,7 @@ pub trait WeightInfo {
     fn pop_queue() -> Weight;
     fn update_xcm_fees_compensation() -> Weight;
     fn update_staking_pool_capacity() -> Weight;
+    fn update_xcm_weight() -> Weight;
 }
 
 impl WeightInfo for () {
@@ -70,6 +71,9 @@ impl WeightInfo for () {
         10000u64.into()
     }
     fn update_staking_pool_capacity() -> Weight {
+        10000u64.into()
+    }
+    fn update_xcm_weight() -> Weight {
         10000u64.into()
     }
 }
