@@ -476,8 +476,6 @@ impl pallet_liquid_staking::Config for Runtime {
     type PalletId = StakingPalletId;
     type WeightInfo = ();
     type SelfParaId = ParachainInfo;
-    type PeriodBasis = PeriodBasis;
-    type BaseXcmWeight = BaseXcmWeight;
     type Assets = Assets;
     type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;

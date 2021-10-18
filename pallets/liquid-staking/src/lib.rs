@@ -115,10 +115,6 @@ pub mod pallet {
         /// XCM message sender
         type XcmSender: SendXcm;
 
-        /// Basic xcm transaction weight per message
-        #[pallet::constant]
-        type BaseXcmWeight: Get<Weight>;
-
         /// Returns the parachain ID we are running with.
         #[pallet::constant]
         type SelfParaId: Get<ParaId>;
@@ -133,10 +129,6 @@ pub mod pallet {
         /// Unstake queue capacity
         #[pallet::constant]
         type UnstakeQueueCapacity: Get<u32>;
-
-        /// Basis of period
-        #[pallet::constant]
-        type PeriodBasis: Get<BlockNumberFor<Self>>;
 
         /// Max rewards per era
         #[pallet::constant]
@@ -192,6 +184,8 @@ pub mod pallet {
         XcmFeesCompensationUpdated(BalanceOf<T>),
         /// Capacity of staking pool was set to new value
         StakingPoolCapacityUpdated(BalanceOf<T>),
+        /// Xcm weight in BuyExecution message
+        XcmWeightUpdated(BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -281,6 +275,11 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn xcm_fees_compensation)]
     pub type XcmFeesCompensation<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+    /// Xcm weight in BuyExecution
+    #[pallet::storage]
+    #[pallet::getter(fn xcm_weight)]
+    pub type XcmWeight<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     /// Staking pool capacity
     #[pallet::storage]
@@ -535,6 +534,18 @@ pub mod pallet {
             T::RelayOrigin::ensure_origin(origin)?;
             XcmFeesCompensation::<T>::mutate(|v| *v = fees);
             Self::deposit_event(Event::<T>::XcmFeesCompensationUpdated(fees));
+            Ok(().into())
+        }
+
+        #[pallet::weight(<T as Config>::WeightInfo::update_xcm_weight())]
+        #[transactional]
+        pub fn update_xcm_weight(
+            origin: OriginFor<T>,
+            #[pallet::compact] weight: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            T::RelayOrigin::ensure_origin(origin)?;
+            XcmWeight::<T>::mutate(|v| *v = weight);
+            Self::deposit_event(Event::<T>::XcmWeightUpdated(weight));
             Ok(().into())
         }
 

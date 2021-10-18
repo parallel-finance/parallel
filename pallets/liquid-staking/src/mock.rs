@@ -317,9 +317,7 @@ impl DerivativeProvider<AccountId> for DerivativeProviderT {
 impl crate::Config for Test {
     type Event = Event;
     type PalletId = StakingPalletId;
-    type BaseXcmWeight = BaseXcmWeight;
     type SelfParaId = SelfParaId;
-    type PeriodBasis = PeriodBasis;
     type WeightInfo = ();
     type XcmSender = XcmRouter;
     type DerivativeIndex = DerivativeIndex;
