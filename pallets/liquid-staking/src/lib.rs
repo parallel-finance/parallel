@@ -1073,6 +1073,18 @@ pub mod pallet {
                     require_weight_at_most: 20_000_000_000,
                     call,
                 },
+                RefundSurplus,
+                DepositAsset {
+                    assets: All.into(),
+                    max_assets: u32::max_value(),
+                    beneficiary: MultiLocation {
+                        parents: 1,
+                        interior: X1(AccountId32 {
+                            network: NetworkId::Any,
+                            id: Self::para_account_id().into(),
+                        }),
+                    },
+                },
             ]))
         }
     }

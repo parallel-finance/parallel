@@ -16,10 +16,7 @@ const DOT: CurrencyId = 101;
 const KSM: CurrencyId = 100;
 const UNKNOWN: CurrencyId = 5;
 
-fn market_mock<T: Config>() -> Market<BalanceOf<T>>
-where
-    BalanceOf<T>: From<u128>,
-{
+fn market_mock<T: Config>() -> Market<BalanceOf<T>> {
     Market {
         close_factor: Ratio::from_percent(50),
         collateral_factor: Ratio::from_percent(50),
@@ -36,10 +33,7 @@ where
     }
 }
 
-fn pending_market_mock<T: Config>() -> Market<BalanceOf<T>>
-where
-    BalanceOf<T>: From<u128>,
-{
+fn pending_market_mock<T: Config>() -> Market<BalanceOf<T>> {
     let mut market = market_mock::<T>();
     market.state = MarketState::Pending;
     market
@@ -96,7 +90,6 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
 benchmarks! {
     where_clause {
         where
-            BalanceOf<T>:  From<u128>,
             T: pallet_assets::Config<AssetId = CurrencyId, Balance = Balance> + pallet_prices::Config
     }
 

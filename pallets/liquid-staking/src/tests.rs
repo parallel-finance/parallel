@@ -11,7 +11,7 @@ use primitives::{
     Balance, Rate,
 };
 use sp_runtime::traits::{AccountIdLookup, One, StaticLookup};
-use xcm::latest::prelude::ExecuteXcm;
+use xcm::latest::prelude::*;
 use xcm_simulator::TestExt;
 
 use crate::types::WestendCall as RelaychainCall;
@@ -464,6 +464,18 @@ fn test_transfer_and_then_bond() {
                     },
                     bond_transact_xcm,
                 ]),
+            },
+            RefundSurplus,
+            DepositAsset {
+                assets: All.into(),
+                max_assets: u32::max_value(),
+                beneficiary: MultiLocation {
+                    parents: 1,
+                    interior: X1(AccountId32 {
+                        network: NetworkId::Any,
+                        id: LiquidStaking::para_account_id().into(),
+                    }),
+                },
             },
         ]);
         let origin_location = MultiLocation::new(
