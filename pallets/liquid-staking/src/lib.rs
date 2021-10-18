@@ -279,7 +279,7 @@ pub mod pallet {
     /// Xcm weight in BuyExecution
     #[pallet::storage]
     #[pallet::getter(fn xcm_weight)]
-    pub type XcmWeight<T: Config> = StorageValue<_, u64, OptionQuery>;
+    pub type XcmWeight<T: Config> = StorageValue<_, Weight, OptionQuery>;
 
     /// Staking pool capacity
     #[pallet::storage]
@@ -541,7 +541,7 @@ pub mod pallet {
         #[transactional]
         pub fn update_xcm_weight(
             origin: OriginFor<T>,
-            #[pallet::compact] weight: u64,
+            #[pallet::compact] weight: Weight,
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
             XcmWeight::<T>::mutate(|v| *v = Some(weight));
