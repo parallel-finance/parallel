@@ -36,7 +36,9 @@ use frame_support::{
 
 use sp_runtime::traits::AccountIdConversion;
 mod crowdloan_structs;
-use crowdloan_structs::{ContributionStrategy, ParaId, Vault, VaultPhase};
+use crowdloan_structs::{
+    ContributionStrategy, ContributionStrategyExecutor, ParaId, Vault, VaultPhase,
+};
 
 use frame_system::ensure_signed;
 use frame_system::pallet_prelude::OriginFor;

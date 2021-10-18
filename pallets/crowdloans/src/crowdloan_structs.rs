@@ -14,7 +14,7 @@
 
 // Groups common pool related structures
 
-use primitives::{Balance, CurrencyId};
+use sp_runtime::{DispatchError, DispatchResult};
 use sp_std::marker::PhantomData;
 
 pub type ParaId = u32;
@@ -67,38 +67,34 @@ pub trait ContributionStrategyExecutor<ParaId, CurrencyId, Balance> {
     // fn hello_world(self);
     fn hello_world(self, para_id: ParaId);
 
-    // /// Execute the strategy to contribute `amount` of coins to the crowdloan
-    // /// of the given parachain id
-    // fn execute(self, para_id: ParaId, currency: CurrencyId, amount: Balance) -> DispatchResult;
+    /// Execute the strategy to contribute `amount` of coins to the crowdloan
+    /// of the given parachain id
+    fn execute(self, para_id: ParaId, currency: CurrencyId, amount: Balance) -> DispatchResult;
 
-    // /// Withdraw coins from the relay chain's crowdloans and send it back
-    // /// to our parachain
-    // fn withdraw(self, para_id: ParaId, currency: CurrencyId) -> DispatchResult;
+    /// Withdraw coins from the relay chain's crowdloans and send it back
+    /// to our parachain
+    fn withdraw(self, para_id: ParaId, currency: CurrencyId) -> DispatchResult;
 
-    // /// Ask for a refund of the coins on the relay chain
-    // fn refund(self, para_id: ParaId, currency: CurrencyId) -> DispatchResult;
+    /// Ask for a refund of the coins on the relay chain
+    fn refund(self, para_id: ParaId, currency: CurrencyId) -> DispatchResult;
 }
 
-impl ContributionStrategyExecutor<ParaId, CurrencyId, Balance>
+impl<ParaId: std::fmt::Display, CurrencyId, Balance>
+    ContributionStrategyExecutor<ParaId, CurrencyId, Balance>
     for ContributionStrategy<ParaId, CurrencyId, Balance>
 {
     fn hello_world(self, para_id: ParaId) {
         println!("Hello World! Your ParaId = {}", para_id);
     }
 
-    // // add code here
-    // fn execute(
-    //     self,
-    //     _: ParaId,
-    //     _: CurrencyId,
-    //     _: Balance,
-    // ) -> Result<(), sp_runtime::DispatchError> {
-    //     todo!()
-    // }
-    // fn withdraw(self, _: ParaId, _: CurrencyId) -> Result<(), sp_runtime::DispatchError> {
-    //     todo!()
-    // }
-    // fn refund(self, _: ParaId, _: CurrencyId) -> Result<(), sp_runtime::DispatchError> {
-    //     todo!()
-    // }
+    // add code here
+    fn execute(self, _: ParaId, _: CurrencyId, _: Balance) -> Result<(), DispatchError> {
+        todo!()
+    }
+    fn withdraw(self, _: ParaId, _: CurrencyId) -> Result<(), DispatchError> {
+        todo!()
+    }
+    fn refund(self, _: ParaId, _: CurrencyId) -> Result<(), DispatchError> {
+        todo!()
+    }
 }
