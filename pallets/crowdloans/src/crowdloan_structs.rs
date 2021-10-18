@@ -14,7 +14,6 @@
 
 // Groups common pool related structures
 
-
 use primitives::{Balance, CurrencyId};
 use sp_std::marker::PhantomData;
 
@@ -65,7 +64,8 @@ pub enum ContributionStrategy<ParaId, CurrencyId, Balance> {
 
 pub trait ContributionStrategyExecutor<ParaId, CurrencyId, Balance> {
     /// A test function
-    fn hello_world(self);
+    // fn hello_world(self);
+    fn hello_world(self, para_id: ParaId);
 
     // /// Execute the strategy to contribute `amount` of coins to the crowdloan
     // /// of the given parachain id
@@ -82,8 +82,8 @@ pub trait ContributionStrategyExecutor<ParaId, CurrencyId, Balance> {
 impl ContributionStrategyExecutor<ParaId, CurrencyId, Balance>
     for ContributionStrategy<ParaId, CurrencyId, Balance>
 {
-    fn hello_world(self) {
-        println!("Hello World!");
+    fn hello_world(self, para_id: ParaId) {
+        println!("Hello World! Your ParaId = {}", para_id);
     }
 
     // // add code here

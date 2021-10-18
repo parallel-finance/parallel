@@ -1,11 +1,9 @@
 use super::*;
 use crate::mock::*;
 use frame_support::assert_ok;
+use frame_system::RawOrigin;
 use primitives::tokens;
-use sp_runtime::{
-    traits::{One, UniqueSaturatedInto}
-};
-use frame_system::{RawOrigin};
+use sp_runtime::traits::{One, UniqueSaturatedInto};
 
 #[test]
 fn create_new_vault_should_work() {

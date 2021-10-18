@@ -29,7 +29,7 @@ use frame_support::{
     pallet_prelude::*,
     traits::{
         fungibles::{Inspect, Mutate, Transfer},
-        Get, Hooks, IsType,
+        Get,
     },
     Blake2_128Concat, PalletId,
 };
@@ -38,8 +38,8 @@ use sp_runtime::traits::AccountIdConversion;
 mod crowdloan_structs;
 use crowdloan_structs::{ContributionStrategy, ParaId, Vault, VaultPhase};
 
+use frame_system::ensure_signed;
 use frame_system::pallet_prelude::OriginFor;
-use frame_system::{ensure_signed};
 
 pub use pallet::*;
 
@@ -48,22 +48,24 @@ use sp_runtime::{
     DispatchError, FixedPointOperand,
 };
 
-pub type AssetIdOf<T, I = ()> =
-    <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
-pub type BalanceOf<T, I = ()> =
-    <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
-
 #[frame_support::pallet]
 pub mod pallet {
+
     use super::*;
     use frame_system::ensure_root;
 
+    pub type AssetIdOf<T> =
+        <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
+    pub type BalanceOf<T> =
+        <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
+
+    #[pallet::pallet]
+    #[pallet::generate_store(pub(super) trait Store)]
+    pub struct Pallet<T>(_);
+
     #[pallet::config]
-    pub trait Config<I: 'static = ()>:
-        frame_system::Config
-        + pallet_assets::Config<AssetId = AssetIdOf<Self, I>, Balance = BalanceOf<Self, I>>
-    {
-        type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
+    pub trait Config: frame_system::Config {
+        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Currency type for deposit/withdraw assets to/from crowdloan
         /// module
@@ -73,8 +75,18 @@ pub mod pallet {
         type PalletId: Get<PalletId>;
     }
 
+    #[pallet::event]
+    #[pallet::metadata(T::AccountId = "AccountId", BalanceOf<T> = "Balance")]
+    // pub enum Event<T: Config: 'static = ()> {
+    pub enum Event<T: Config> {
+        /// Create new vault
+        /// [token, crowdloan, project_shares, currency_shares]
+        VaultCreated(AssetIdOf<T>, ParaId, AssetIdOf<T>, AssetIdOf<T>),
+    }
+
     #[pallet::error]
-    pub enum Error<T, I = ()> {
+    pub enum Error<T> {
+        // pub enum Error<T = ()> {
         /// Vault is not in correct phase
         IncorrectVaultPhase,
         /// Vault shares are not new
@@ -91,37 +103,47 @@ pub mod pallet {
         ContributedGreaterThanIssuance,
     }
 
-    #[pallet::event]
-    #[pallet::metadata(T::AccountId = "AccountId", AssetIdOf<T, I> = "CurrencyId")]
-    pub enum Event<T: Config<I>, I: 'static = ()> {
-        /// Create new vault
-        /// [token, crowdloan, project_shares, currency_shares]
-        VaultCreated(AssetIdOf<T, I>, ParaId, AssetIdOf<T, I>, AssetIdOf<T, I>),
-    }
-
-    #[pallet::hooks]
-    impl<T: Config<I>, I: 'static> Hooks<T::BlockNumber> for Pallet<T, I> {}
-
-    #[pallet::pallet]
-    pub struct Pallet<T, I = ()>(_);
-
     #[pallet::storage]
     #[pallet::getter(fn vaults)]
-    pub type Vaults<T: Config<I>, I: 'static = ()> = StorageMap<
+    pub type Vaults<T: Config> = StorageMap<
         _,
         Blake2_128Concat,
         ParaId,
-        Vault<ParaId, AssetIdOf<T, I>, BalanceOf<T, I>>,
+        Vault<ParaId, AssetIdOf<T>, BalanceOf<T>>,
         OptionQuery,
     >;
 
+    #[pallet::genesis_config]
+    pub struct GenesisConfig {
+        pub exchange_rate: usize,
+        pub reserve_factor: usize,
+    }
+
+    #[cfg(feature = "std")]
+    impl Default for GenesisConfig {
+        fn default() -> Self {
+            Self {
+                exchange_rate: 1,
+                reserve_factor: 1,
+            }
+        }
+    }
+
+    #[pallet::genesis_build]
+    impl<T: Config> GenesisBuild<T> for GenesisConfig {
+        fn build(&self) {}
+    }
+
     #[pallet::call]
-    impl<T: Config<I>, I: 'static> Pallet<T, I>
+    impl<T: Config> Pallet<T>
     where
-        BalanceOf<T, I>: FixedPointOperand,
-        AssetIdOf<T, I>: AtLeast32BitUnsigned,
+        [u8; 32]: From<<T as frame_system::Config>::AccountId>,
+        u128: From<
+            <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance,
+        >,
+        BalanceOf<T>: FixedPointOperand,
+        AssetIdOf<T>: AtLeast32BitUnsigned,
     {
-        ////
         //// 1. Vaults Management
 
         /// Create a new vault via a governance decision
@@ -138,9 +160,9 @@ pub mod pallet {
         #[allow(unused)]
         pub fn create_vault(
             origin: OriginFor<T>,
-            currency: AssetIdOf<T, I>,
+            currency: AssetIdOf<T>,
             crowdloan: ParaId,
-            ctoken: AssetIdOf<T, I>,
+            ctoken: AssetIdOf<T>,
             contribution_strategy: ContributionStrategy<
                 ParaId,
                 primitives::CurrencyId,
@@ -154,13 +176,13 @@ pub mod pallet {
             let ctoken_issuance = T::Assets::total_issuance(ctoken);
 
             // make sure both project_shares and currency_shares are new assets
-            ensure!(ctoken_issuance == Zero::zero(), Error::<T, I>::SharesNotNew);
+            ensure!(ctoken_issuance == Zero::zero(), Error::<T>::SharesNotNew);
 
             // 3. make sure no similar vault already exists as identified by crowdloan
             // add new vault to vaults storage
-            Vaults::<T, I>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
+            Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure no similar vault already exists as identified by crowdloan
-                ensure!(vault.is_none(), Error::<T, I>::CrowdloanAlreadyExists);
+                ensure!(vault.is_none(), Error::<T>::CrowdloanAlreadyExists);
 
                 // 4. mutate our storage to register a new vault
                 // inialize new vault
@@ -186,7 +208,7 @@ pub mod pallet {
         pub fn contribute(
             origin: OriginFor<T>,
             crowdloan: ParaId,
-            amount: BalanceOf<T, I>,
+            amount: BalanceOf<T>,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
@@ -196,7 +218,7 @@ pub mod pallet {
             // 2. Make sure the vault.phase == CollectingContributions
             ensure!(
                 vault.phase == VaultPhase::CollectingContributions,
-                Error::<T, I>::IncorrectVaultPhase
+                Error::<T>::IncorrectVaultPhase
             );
 
             // 3. Make sure origin has at least amount of vault.currency
@@ -205,7 +227,7 @@ pub mod pallet {
 
             ensure!(
                 origin_currency_amount >= amount,
-                Error::<T, I>::InsufficientAmount
+                Error::<T>::InsufficientAmount
             );
 
             // 4. Wire amount of vault.currency to the pallet's account id
@@ -228,9 +250,9 @@ pub mod pallet {
             // 1. EnsureOrigin
             ensure_root(origin)?;
 
-            Vaults::<T, I>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
+            Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
-                ensure!(vault.is_some(), Error::<T, I>::CrowdloanDoesNotExists);
+                ensure!(vault.is_some(), Error::<T>::CrowdloanDoesNotExists);
 
                 if let Some(vault_contents) = vault {
                     // 2. Make sure vault.contributed is less than total_issuance(vault.currency_shares)
@@ -238,7 +260,7 @@ pub mod pallet {
                         T::Assets::total_issuance(vault_contents.currency);
                     ensure!(
                         vault_contents.contributed < vault_currency_issuance,
-                        Error::<T, I>::ContributedGreaterThanIssuance
+                        Error::<T>::ContributedGreaterThanIssuance
                     );
 
                     // 3. Execute vault.contribution_strategy with parameters crowdloan,
@@ -246,7 +268,7 @@ pub mod pallet {
 
                     // TODO: trait is not implemented for enum
                     // uncomment line below and run `cargo test -p pallet-crowdloans` for error
-                    // vault_contents.contribution_strategy.hello_world();
+                    vault_contents.contribution_strategy.hello_world(crowdloan);
 
                     // 4. Set vault.contributed to total_issuance(vault.currency_shares)
                     vault_contents.contributed = vault_currency_issuance;
@@ -270,15 +292,15 @@ pub mod pallet {
             // 1. EnsureOrigin
             ensure_root(origin)?;
 
-            Vaults::<T, I>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
+            Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
-                ensure!(vault.is_some(), Error::<T, I>::CrowdloanDoesNotExists);
+                ensure!(vault.is_some(), Error::<T>::CrowdloanDoesNotExists);
 
                 if let Some(vault_contents) = vault {
                     // 2. Make sure vault.phase == VaultPhase::CollectingContributions
                     ensure!(
                         vault_contents.phase == VaultPhase::CollectingContributions,
-                        Error::<T, I>::IncorrectVaultPhase
+                        Error::<T>::IncorrectVaultPhase
                     );
 
                     // 3. Change vault.phase to Closed
@@ -302,15 +324,15 @@ pub mod pallet {
             // 1. `EnsureOrigin`
             ensure_root(origin)?;
 
-            Vaults::<T, I>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
+            Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
-                ensure!(vault.is_some(), Error::<T, I>::CrowdloanDoesNotExists);
+                ensure!(vault.is_some(), Error::<T>::CrowdloanDoesNotExists);
 
                 if let Some(vault_contents) = vault {
                     // 2. Make sure `vault.phase == Closed`
                     ensure!(
                         vault_contents.phase == VaultPhase::Closed,
-                        Error::<T, I>::IncorrectVaultPhase
+                        Error::<T>::IncorrectVaultPhase
                     );
 
                     // 3. Execute the `refund` function of the `contribution_strategy`
@@ -333,30 +355,30 @@ pub mod pallet {
         pub fn claim_refund(
             origin: OriginFor<T>,
             crowdloan: ParaId,
-            amount: BalanceOf<T, I>,
+            amount: BalanceOf<T>,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
-            Vaults::<T, I>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
+            Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
-                ensure!(vault.is_some(), Error::<T, I>::CrowdloanDoesNotExists);
+                ensure!(vault.is_some(), Error::<T>::CrowdloanDoesNotExists);
 
                 if let Some(vault_contents) = vault {
                     // 1. Make sure `vault.phase == Failed` **or `Expired`** (more on that later)
                     ensure!(
                         vault_contents.phase == VaultPhase::Failed
                             || vault_contents.phase == VaultPhase::Expired,
-                        Error::<T, I>::IncorrectVaultPhase
+                        Error::<T>::IncorrectVaultPhase
                     );
 
                     // 2. Make sure `origin` has at least `amount` of `vault.ctoken`
                     // get amount origin has
                     let origin_ctoken_amount =
-                        <T as Config<I>>::Assets::balance(vault_contents.ctoken, &who);
+                        <T as Config>::Assets::balance(vault_contents.ctoken, &who);
 
                     ensure!(
                         origin_ctoken_amount >= amount,
-                        Error::<T, I>::InsufficientAmount
+                        Error::<T>::InsufficientAmount
                     );
 
                     // 3. Burns `amount` from `vault.ctoken`
@@ -389,9 +411,9 @@ pub mod pallet {
             // 2. Execute the `withdraw` function of our `contribution_strategy`
             todo!();
 
-            Vaults::<T, I>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
+            Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
-                ensure!(vault.is_some(), Error::<T, I>::CrowdloanDoesNotExists);
+                ensure!(vault.is_some(), Error::<T>::CrowdloanDoesNotExists);
 
                 if let Some(vault_contents) = vault {
                     // 3. Modify `vault.phase` to `Expired
@@ -406,23 +428,22 @@ pub mod pallet {
             })
         }
     }
-}
 
-impl<T: Config<I>, I: 'static> Pallet<T, I>
-where
-    BalanceOf<T, I>: FixedPointOperand,
-    AssetIdOf<T, I>: AtLeast32BitUnsigned,
-{
-    pub fn account_id() -> T::AccountId {
-        T::PalletId::get().into_account()
-    }
+    impl<T: Config> Pallet<T>
+    where
+        [u8; 32]: From<<T as frame_system::Config>::AccountId>,
+    {
+        pub fn account_id() -> T::AccountId {
+            T::PalletId::get().into_account()
+        }
 
-    // Returns a stored Vault.
-    //
-    // Returns `Err` if market does not exist.
-    pub fn vault(
-        crowdloan: ParaId,
-    ) -> Result<Vault<ParaId, AssetIdOf<T, I>, BalanceOf<T, I>>, DispatchError> {
-        Vaults::<T, I>::try_get(crowdloan).map_err(|_err| Error::<T, I>::VaultDoesNotExist.into())
+        // Returns a stored Vault.
+        //
+        // Returns `Err` if market does not exist.
+        pub fn vault(
+            crowdloan: ParaId,
+        ) -> Result<Vault<ParaId, AssetIdOf<T>, BalanceOf<T>>, DispatchError> {
+            Vaults::<T>::try_get(crowdloan).map_err(|_err| Error::<T>::VaultDoesNotExist.into())
+        }
     }
 }

@@ -1,76 +1,46 @@
-use crate as pallet_crowdloan;
-
-use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::{parameter_types, PalletId};
-use frame_system::{self as system, EnsureRoot};
-use primitives::{tokens, Balance, CurrencyId};
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
 use sp_core::H256;
-use sp_runtime::{
-    testing::Header,
-    traits::{BlakeTwo256, IdentityLookup},
-    RuntimeDebug,
-};
+use sp_runtime::traits::BlakeTwo256;
+use sp_runtime::traits::IdentityLookup;
 
-pub const ALICE: AccountId = AccountId(1);
-pub const BOB: AccountId = AccountId(2);
-pub const CHARLIE: AccountId = AccountId(3);
-pub const EVE: AccountId = AccountId(4);
+use sp_runtime::{testing::Header, AccountId32};
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
-type Block = frame_system::mocking::MockBlock<Test>;
-type BlockNumber = u64;
+use primitives::tokens::{DOT, XDOT};
+use primitives::Balance;
 
-#[derive(
-    Encode,
-    Decode,
-    Default,
-    Eq,
-    PartialEq,
-    Copy,
-    Clone,
-    RuntimeDebug,
-    PartialOrd,
-    Ord,
-    MaxEncodedLen,
-)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
-pub struct AccountId(pub u64);
+use frame_support::traits::GenesisBuild;
+use frame_support::{construct_runtime, parameter_types, PalletId};
 
-impl sp_std::fmt::Display for AccountId {
-    fn fmt(&self, f: &mut sp_std::fmt::Formatter<'_>) -> sp_std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<u64> for AccountId {
-    fn from(account_id: u64) -> Self {
-        Self(account_id)
-    }
-}
-
-// Configure a mock runtime to test the pallet.
-frame_support::construct_runtime!(
-    pub enum Test where
-        Block = Block,
-        NodeBlock = Block,
-        UncheckedExtrinsic = UncheckedExtrinsic,
-    {
-        System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-        Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
-        Crowdloan: pallet_crowdloan::{Pallet, Call, Storage, Event<T>},
-        Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
-        CurrencyAdapter: pallet_currency_adapter::{Pallet, Call},
-    }
-);
+use frame_system::EnsureRoot;
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
     pub const SS58Prefix: u8 = 42;
 }
 
-impl system::Config for Test {
+pub type AccountId = AccountId32;
+pub type CurrencyId = u32;
+
+type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
+type Block = frame_system::mocking::MockBlock<Test>;
+type BlockNumber = u64;
+pub const DOT_DECIMAL: u128 = 10u128.pow(10);
+
+parameter_types! {
+    pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
+
+    pub const AssetDeposit: u64 = 1;
+    pub const ApprovalDeposit: u64 = 1;
+    pub const StringLimit: u32 = 50;
+    pub const MetadataDepositBase: u64 = 1;
+    pub const MetadataDepositPerByte: u64 = 1;
+
+    pub const ExistentialDeposit: Balance = 1;
+    pub const MaxLocks: u32 = 50;
+
+    pub const AssetsStringLimit: u32 = 50;
+}
+
+impl frame_system::Config for Test {
     type BaseCallFilter = ();
     type BlockWeights = ();
     type BlockLength = ();
@@ -96,11 +66,6 @@ impl system::Config for Test {
     type OnSetCode = ();
 }
 
-parameter_types! {
-    pub const ExistentialDeposit: Balance = 1;
-    pub const MaxLocks: u32 = 50;
-}
-
 impl pallet_balances::Config for Test {
     type MaxLocks = MaxLocks;
     type Balance = Balance;
@@ -113,14 +78,6 @@ impl pallet_balances::Config for Test {
     type WeightInfo = ();
 }
 
-parameter_types! {
-    pub const AssetDeposit: u64 = 1;
-    pub const ApprovalDeposit: u64 = 1;
-    pub const StringLimit: u32 = 50;
-    pub const MetadataDepositBase: u64 = 1;
-    pub const MetadataDepositPerByte: u64 = 1;
-}
-
 impl pallet_assets::Config for Test {
     type Event = Event;
     type Balance = Balance;
@@ -131,62 +88,55 @@ impl pallet_assets::Config for Test {
     type MetadataDepositBase = MetadataDepositBase;
     type MetadataDepositPerByte = MetadataDepositPerByte;
     type ApprovalDeposit = ApprovalDeposit;
-    type StringLimit = StringLimit;
+    type StringLimit = AssetsStringLimit;
     type Freezer = ();
-    type Extra = ();
     type WeightInfo = ();
+    type Extra = ();
 }
 
-parameter_types! {
-    pub const CrowdloanPalletId: PalletId = PalletId(*b"par/cwlp");
-}
-
-impl pallet_crowdloan::Config for Test {
+impl crate::Config for Test {
     type Event = Event;
-    type Assets = CurrencyAdapter;
-    type PalletId = CrowdloanPalletId;
-}
-
-parameter_types! {
-    pub const NativeCurrencyId: CurrencyId = 0;
-}
-
-impl pallet_currency_adapter::Config for Test {
+    type PalletId = StakingPalletId;
     type Assets = Assets;
-    type Balances = Balances;
-    type GetNativeCurrencyId = NativeCurrencyId;
 }
 
-// Build genesis storage according to the mock runtime.
-pub fn new_test_ext() -> sp_io::TestExternalities {
-    let mut t = system::GenesisConfig::default()
+// Configure a mock runtime to test the pallet.
+construct_runtime!(
+    pub enum Test where
+        Block = Block,
+        NodeBlock = Block,
+        UncheckedExtrinsic = UncheckedExtrinsic,
+    {
+        System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+        Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
+        Crowdloan: crate::{Pallet, Call, Storage, Event<T>},
+        Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
+    }
+);
+
+pub const ALICE: AccountId32 = AccountId32::new([1u8; 32]);
+
+pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
+    let mut t = frame_system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap();
-    pallet_balances::GenesisConfig::<Test> {
-        balances: vec![
-            (ALICE, 100_000_000),
-            (BOB, 100_000_000),
-            (CHARLIE, 1000_000_000),
-            (EVE, 1000_000_000),
-        ],
-    }
-    .assimilate_storage(&mut t)
+
+    GenesisBuild::<Test>::assimilate_storage(
+        &crate::GenesisConfig {
+            exchange_rate: 1,
+            reserve_factor: 1,
+        },
+        &mut t,
+    )
     .unwrap();
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        Assets::force_create(Origin::root(), tokens::DOT, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), tokens::XDOT, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), DOT, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), XDOT, ALICE, true, 1).unwrap();
 
-        Assets::mint(Origin::signed(ALICE), tokens::DOT, ALICE, 100_000_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::DOT, BOB, 100_000_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::DOT, CHARLIE, 1000_000_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::DOT, EVE, 1000_000_000).unwrap();
-
-        Assets::mint(Origin::signed(ALICE), tokens::XDOT, ALICE, 100_000_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::XDOT, BOB, 100_000_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::XDOT, CHARLIE, 1000_000_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::XDOT, EVE, 1000_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, ALICE, 100 * DOT_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, ALICE, 100 * DOT_DECIMAL).unwrap();
     });
 
     ext
