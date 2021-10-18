@@ -334,7 +334,7 @@ pub mod pallet {
             let base_weight = T::WeightInfo::on_idle();
             let staking_currency = Self::staking_currency();
 
-            // Return if staking_currency haven't been set.
+            // return if staking_currency haven't been set.
             if staking_currency.is_err() {
                 return remaining_weight;
             }
