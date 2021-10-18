@@ -513,3 +513,15 @@ fn print_events<T: frame_system::Config>(context: &str) {
         println!("{:?}", r.event);
     });
 }
+
+#[test]
+fn test_update_xcm_weight_work() {
+    new_test_ext().execute_with(|| {
+        assert_eq!(XcmWeight::<Test>::get(), None);
+        assert_ok!(LiquidStaking::update_xcm_weight(
+            Origin::signed(ALICE),
+            1000
+        ));
+        assert_eq!(XcmWeight::<Test>::get(), Some(1000));
+    })
+}

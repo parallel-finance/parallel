@@ -185,7 +185,7 @@ pub mod pallet {
         /// Capacity of staking pool was set to new value
         StakingPoolCapacityUpdated(BalanceOf<T>),
         /// Xcm weight in BuyExecution message
-        XcmWeightUpdated(BalanceOf<T>),
+        XcmWeightUpdated(u64),
     }
 
     #[pallet::error]
@@ -279,7 +279,7 @@ pub mod pallet {
     /// Xcm weight in BuyExecution
     #[pallet::storage]
     #[pallet::getter(fn xcm_weight)]
-    pub type XcmWeight<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+    pub type XcmWeight<T: Config> = StorageValue<_, u64, OptionQuery>;
 
     /// Staking pool capacity
     #[pallet::storage]
@@ -541,10 +541,10 @@ pub mod pallet {
         #[transactional]
         pub fn update_xcm_weight(
             origin: OriginFor<T>,
-            #[pallet::compact] weight: BalanceOf<T>,
+            #[pallet::compact] weight: u64,
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
-            XcmWeight::<T>::mutate(|v| *v = weight);
+            XcmWeight::<T>::mutate(|v| *v = Some(weight));
             Self::deposit_event(Event::<T>::XcmWeightUpdated(weight));
             Ok(().into())
         }
@@ -1023,13 +1023,13 @@ pub mod pallet {
 
         fn ump_transact(call: DoubleEncoded<()>) -> Xcm<()> {
             let asset: MultiAsset = (MultiLocation::here(), 1_000_000_000_000).into();
-
+            let weight = Self::xcm_weight().unwrap_or(2_000_000_000);
             WithdrawAsset {
                 assets: MultiAssets::from(asset.clone()),
                 effects: vec![
                     BuyExecution {
                         fees: asset,
-                        weight: 2_000_000_000,
+                        weight,
                         debt: 600_000_000,
                         halt_on_error: false,
                         instructions: vec![Transact {
