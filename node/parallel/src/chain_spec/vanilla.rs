@@ -157,6 +157,9 @@ pub fn vanilla_config(_id: ParaId) -> Result<ChainSpec, String> {
     //                 "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
     //                     .parse()
     //                     .unwrap(),
+    //                 "5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf"
+    //                     .parse()
+    //                     .unwrap(),
     //                 // Team members accounts
     //                 "5DhZeTQqotvntGtrg69T2VK9pzUPXHiVyGUTmp5XFTDTT7ME"
     //                     .parse()
