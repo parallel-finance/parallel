@@ -374,6 +374,7 @@ pub mod pallet {
         /// If the market is already activated, does nothing.
         ///
         /// - `asset_id`: Market related currency
+        /// TODO(alannotnerd): rename to `activate_market`
         #[pallet::weight(T::WeightInfo::active_market())]
         #[transactional]
         pub fn active_market(
@@ -838,6 +839,7 @@ where
         Ok(total_borrow_value)
     }
 
+    //TODO(alannotnerd): remove market
     fn collateral_asset_value(
         borrower: &T::AccountId,
         asset_id: AssetIdOf<T>,
@@ -1229,9 +1231,9 @@ where
     }
 
     // Ensures a given `asset_id` exists on the `Currencies` storage.
-    fn ensure_market(asset_id: AssetIdOf<T>) -> DispatchResult {
-        if Self::active_markets().any(|(id, _)| id == asset_id) {
-            Ok(())
+    fn ensure_market(asset_id: AssetIdOf<T>) -> Result<Market<BalanceOf<T>>, DispatchError> {
+        if let Some((_, market)) = Self::active_markets().find(|(id, _)| id == &asset_id) {
+            Ok(market)
         } else {
             Err(<Error<T>>::MarketNotActivated.into())
         }
