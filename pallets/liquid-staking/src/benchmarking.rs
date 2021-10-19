@@ -9,10 +9,7 @@ use crate::Pallet as LiquidStaking;
 
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite};
 use frame_support::{
-    traits::{
-        fungibles::Mutate,
-        OnIdle,
-    },
+    traits::{fungibles::Mutate, OnIdle},
     weights::Weight,
 };
 use frame_system::{self, RawOrigin as SystemOrigin};

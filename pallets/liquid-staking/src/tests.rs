@@ -10,12 +10,9 @@ use primitives::{
     tokens::{DOT, XDOT},
     Balance, Rate,
 };
-use sp_runtime::traits::{AccountIdLookup, One, StaticLookup};
-use xcm::latest::prelude::*;
+use sp_runtime::traits::One;
 use xcm_simulator::TestExt;
 
-use crate::types::WestendCall as RelaychainCall;
-use codec::Encode;
 use types::*;
 
 #[test]
@@ -407,105 +404,6 @@ fn stake_should_correctly_add_insurance_pool() {
         LiquidStaking::stake(Origin::signed(ALICE), 1000).unwrap();
         assert_eq!(InsurancePool::<Test>::get(), 5);
     })
-}
-
-#[test]
-fn test_transfer_and_then_bond() {
-    TestNet::reset();
-    let xcm_transfer_amount = 30 * DOT_DECIMAL;
-    let relay_transfer_amount = 12 * DOT_DECIMAL;
-    ParaA::execute_with(|| {
-        let stash = LiquidStaking::derivative_para_account_id();
-        let controller = stash.clone();
-        let payee = RewardDestination::<AccountId>::Staked;
-        let bond_call =
-            RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
-                calls: vec![
-                    RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
-                        BalancesTransferKeepAliveCall {
-                            dest: AccountIdLookup::<AccountId, ()>::unlookup(stash.clone()),
-                            value: relay_transfer_amount,
-                        },
-                    )),
-                    RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
-                        UtilityAsDerivativeCall {
-                            index: 0,
-                            call: RelaychainCall::Staking::<Test>(StakingCall::Bond(
-                                StakingBondCall {
-                                    controller: AccountIdLookup::<AccountId, ()>::unlookup(
-                                        controller.clone(),
-                                    ),
-                                    value: relay_transfer_amount,
-                                    payee: payee.clone(),
-                                },
-                            )),
-                        },
-                    ))),
-                ],
-            })));
-        let bond_transact_xcm = Transact {
-            origin_type: OriginKind::SovereignAccount,
-            require_weight_at_most: 20_000_000_000,
-            call: bond_call.encode().into(),
-        };
-
-        let asset: MultiAsset = (MultiLocation::parent(), xcm_transfer_amount).into();
-        let reserve = MultiLocation::parent();
-        let fees: MultiAsset = (MultiLocation::here(), xcm_transfer_amount).into();
-        let msg = Xcm(vec![
-            WithdrawAsset(MultiAssets::from(asset.clone())),
-            InitiateReserveWithdraw {
-                assets: All.into(),
-                reserve: reserve.clone(),
-                xcm: Xcm(vec![
-                    BuyExecution {
-                        fees,
-                        weight_limit: Limited(0),
-                    },
-                    bond_transact_xcm,
-                ]),
-            },
-            RefundSurplus,
-            DepositAsset {
-                assets: All.into(),
-                max_assets: u32::max_value(),
-                beneficiary: MultiLocation {
-                    parents: 1,
-                    interior: X1(AccountId32 {
-                        network: NetworkId::Any,
-                        id: LiquidStaking::para_account_id().into(),
-                    }),
-                },
-            },
-        ]);
-        let origin_location = MultiLocation::new(
-            0,
-            X1(Junction::AccountId32 {
-                network: NetworkId::Any,
-                id: ALICE.into(),
-            }),
-        );
-        let weight = 2;
-        let _ = xcm_executor::XcmExecutor::<XcmConfig>::execute_xcm_in_credit(
-            origin_location,
-            msg,
-            weight,
-            weight,
-        )
-        .ensure_complete();
-        print_events::<Test>("ParaA");
-    });
-
-    Relay::execute_with(|| {
-        print_events::<westend_runtime::Runtime>("Relay");
-        assert_eq!(
-            RelayBalances::free_balance(&LiquidStaking::derivative_para_account_id()),
-            xcm_transfer_amount + relay_transfer_amount - 240
-        );
-
-        let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
-        assert_eq!(ledger.total, relay_transfer_amount);
-    });
 }
 
 #[test]

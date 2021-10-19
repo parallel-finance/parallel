@@ -1065,7 +1065,7 @@ pub mod pallet {
             Ok(Xcm(vec![
                 WithdrawAsset(MultiAssets::from(asset.clone())),
                 BuyExecution {
-                    fees: asset,
+                    fees: asset.clone(),
                     weight_limit: WeightLimit::Limited(weight),
                 },
                 Transact {
@@ -1075,7 +1075,7 @@ pub mod pallet {
                 },
                 RefundSurplus,
                 DepositAsset {
-                    assets: All.into(),
+                    assets: asset.into(),
                     max_assets: u32::max_value(),
                     beneficiary: MultiLocation {
                         parents: 1,
