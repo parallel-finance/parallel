@@ -191,7 +191,7 @@ pub mod pallet {
         /// InsurancePool's reserve_factor updated
         ReserveFactorUpdated(Ratio),
         /// Add asset to insurance pool
-        AddInsurances(T::AccountId, BalanceOf<T>),
+        InsurancesAdded(T::AccountId, BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -768,7 +768,7 @@ pub mod pallet {
                 *b = b.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
-            Self::deposit_event(Event::<T>::AddInsurances(who, amount));
+            Self::deposit_event(Event::<T>::InsurancesAdded(who, amount));
             Ok(())
         }
     }
