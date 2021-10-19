@@ -1,7 +1,7 @@
 use crate::{
     mock::{
-        new_test_ext, Loans, Origin, Test, ALICE, DAVE, HKO, HKO_MARKET_MOCK,
-        INVALID_PTOKEN_ID_MARKET_MOCK, KSM, MARKET_MOCK, XDOT,
+        market_mock, new_test_ext, Loans, Origin, Test, ALICE, DAVE, HKO, KSM, MARKET_MOCK, PHKO,
+        PKSM, XDOT,
     },
     tests::dollar,
     Error,
@@ -50,13 +50,13 @@ fn ptoken_unique_works() {
     new_test_ext().execute_with(|| {
         // ptoken_id already exists in `UnderlyingAssetId`
         assert_noop!(
-            Loans::add_market(Origin::root(), XDOT, HKO_MARKET_MOCK),
+            Loans::add_market(Origin::root(), XDOT, market_mock(PHKO)),
             Error::<Test>::InvalidCurrencyId
         );
 
         // ptoken_id token id cannot as the same as the asset id in `Markets`
         assert_noop!(
-            Loans::add_market(Origin::root(), XDOT, INVALID_PTOKEN_ID_MARKET_MOCK),
+            Loans::add_market(Origin::root(), XDOT, market_mock(PKSM)),
             Error::<Test>::InvalidCurrencyId
         );
     })

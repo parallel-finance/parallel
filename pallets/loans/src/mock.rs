@@ -289,13 +289,13 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         Assets::mint(Origin::signed(ALICE), DOT, DAVE, dollar(1000)).unwrap();
 
         // Init Markets
-        Loans::add_market(Origin::root(), HKO, HKO_MARKET_MOCK).unwrap();
+        Loans::add_market(Origin::root(), HKO, market_mock(PHKO)).unwrap();
         Loans::active_market(Origin::root(), HKO).unwrap();
-        Loans::add_market(Origin::root(), KSM, KSM_MARKET_MOCK).unwrap();
+        Loans::add_market(Origin::root(), KSM, market_mock(PKSM)).unwrap();
         Loans::active_market(Origin::root(), KSM).unwrap();
-        Loans::add_market(Origin::root(), DOT, DOT_MARKET_MOCK).unwrap();
+        Loans::add_market(Origin::root(), DOT, market_mock(PDOT)).unwrap();
         Loans::active_market(Origin::root(), DOT).unwrap();
-        Loans::add_market(Origin::root(), USDT, USDT_MARKET_MOCK).unwrap();
+        Loans::add_market(Origin::root(), USDT, market_mock(PUSDT)).unwrap();
         Loans::active_market(Origin::root(), USDT).unwrap();
 
         System::set_block_number(0);
@@ -317,15 +317,6 @@ pub(crate) fn run_to_block(n: BlockNumber) {
     }
 }
 
-pub(crate) fn _process_block(n: BlockNumber) -> u64 {
-    System::set_block_number(n);
-    let res = Loans::on_initialize(n);
-    TimestampPallet::set_timestamp(6000 * n);
-    Loans::on_finalize(n);
-    res
-}
-
-// TODO make decimals more explicit
 pub fn dollar(d: u128) -> u128 {
     d.saturating_mul(10_u128.pow(12))
 }
@@ -334,33 +325,22 @@ pub fn million_dollar(d: u128) -> u128 {
     dollar(d) * 10_u128.pow(6)
 }
 
-pub const MARKET_MOCK: Market<Balance> = Market {
-    close_factor: Ratio::from_percent(50),
-    collateral_factor: Ratio::from_percent(50),
-    liquidate_incentive: Rate::from_inner(Rate::DIV / 100 * 110),
-    state: MarketState::Pending,
-    rate_model: InterestRateModel::Jump(JumpModel {
-        base_rate: Rate::from_inner(Rate::DIV / 100 * 2),
-        jump_rate: Rate::from_inner(Rate::DIV / 100 * 10),
-        full_rate: Rate::from_inner(Rate::DIV / 100 * 32),
-        jump_utilization: Ratio::from_percent(80),
-    }),
-    reserve_factor: Ratio::from_percent(15),
-    cap: 1_000_000_000_000_000_000_000u128, // set to $1B
-    ptoken_id: 1200,
-};
-
-macro_rules! gen_mock_market {
-    ($base_market: ident, $ptoken_id:expr) => {
-        Market {
-            ptoken_id: $ptoken_id,
-            ..$base_market
-        }
-    };
+pub const fn market_mock(ptoken_id: u32) -> Market<Balance> {
+    Market {
+        close_factor: Ratio::from_percent(50),
+        collateral_factor: Ratio::from_percent(50),
+        liquidate_incentive: Rate::from_inner(Rate::DIV / 100 * 110),
+        state: MarketState::Pending,
+        rate_model: InterestRateModel::Jump(JumpModel {
+            base_rate: Rate::from_inner(Rate::DIV / 100 * 2),
+            jump_rate: Rate::from_inner(Rate::DIV / 100 * 10),
+            full_rate: Rate::from_inner(Rate::DIV / 100 * 32),
+            jump_utilization: Ratio::from_percent(80),
+        }),
+        reserve_factor: Ratio::from_percent(15),
+        cap: 1_000_000_000_000_000_000_000u128, // set to $1B
+        ptoken_id,
+    }
 }
 
-pub const HKO_MARKET_MOCK: Market<Balance> = gen_mock_market!(MARKET_MOCK, PHKO);
-pub const KSM_MARKET_MOCK: Market<Balance> = gen_mock_market!(MARKET_MOCK, PKSM);
-pub const DOT_MARKET_MOCK: Market<Balance> = gen_mock_market!(MARKET_MOCK, PDOT);
-pub const USDT_MARKET_MOCK: Market<Balance> = gen_mock_market!(MARKET_MOCK, PUSDT);
-pub const INVALID_PTOKEN_ID_MARKET_MOCK: Market<Balance> = gen_mock_market!(MARKET_MOCK, KSM);
+pub const MARKET_MOCK: Market<Balance> = market_mock(1200);
