@@ -62,21 +62,18 @@ where
         who: &T::AccountId,
         amount: Self::Balance,
     ) -> DepositConsequence {
-        match (
-            Self::ensure_market(asset),
-            Self::total_supply(asset).checked_add(&amount),
-            // Self::balance(asset, who).is_zero() && amount < Self::minimum_balance(asset),
-        ) {
-            (Err(_), _) => DepositConsequence::UnknownAsset,
-            (_, None) => DepositConsequence::Overflow,
-            _ => {
-                if Self::balance(asset, who) + amount < Self::minimum_balance(asset) {
-                    DepositConsequence::BelowMinimum
-                } else {
-                    DepositConsequence::Success
-                }
-            }
+        if Self::ensure_market(asset).is_err() {
+            return DepositConsequence::UnknownAsset;
         }
+
+        if Self::total_supply(asset).checked_add(&amount).is_none() {
+            return DepositConsequence::Overflow;
+        }
+
+        if Self::balance(asset, who) + amount < Self::minimum_balance(asset) {
+            return DepositConsequence::BelowMinimum;
+        }
+        return DepositConsequence::Success;
     }
 
     /// Returns `Failed` if the balance of `who` may not be decreased by `amount`, otherwise
@@ -86,20 +83,21 @@ where
         who: &T::AccountId,
         amount: Self::Balance,
     ) -> WithdrawConsequence<Self::Balance> {
-        match (
-            Self::ensure_market(asset),
-            Self::balance(asset, who).checked_sub(&amount),
-        ) {
-            (Err(_), _) => WithdrawConsequence::UnknownAsset,
-            (_, None) => WithdrawConsequence::NoFunds,
-            (_, Some(rest)) => {
-                if rest < Self::minimum_balance(asset) {
-                    WithdrawConsequence::ReducedToZero(rest)
-                } else {
-                    WithdrawConsequence::Success
-                }
-            }
+        if Self::ensure_market(asset).is_err() {
+            return WithdrawConsequence::UnknownAsset;
         }
+
+        let sub_result = Self::balance(asset, who).checked_sub(&amount);
+        if sub_result.is_none() {
+            return WithdrawConsequence::NoFunds;
+        }
+
+        let rest = sub_result.expect("Cannot be none; qed");
+        if rest < Self::minimum_balance(asset) {
+            return WithdrawConsequence::ReducedToZero(rest);
+        }
+
+        return WithdrawConsequence::Success;
     }
 }
 
