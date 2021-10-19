@@ -48,7 +48,7 @@ use sp_std::marker::PhantomData;
 /// Weight functions needed for pallet_loans.
 pub trait WeightInfo {
     fn add_market() -> Weight;
-    fn active_market() -> Weight;
+    fn activate_market() -> Weight;
     fn update_market() -> Weight;
     fn mint() -> Weight;
     fn borrow() -> Weight;
@@ -71,7 +71,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().reads(1 as Weight))
             .saturating_add(T::DbWeight::get().writes(3 as Weight))
     }
-    fn active_market() -> Weight {
+    fn activate_market() -> Weight {
         (34_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(1 as Weight))
             .saturating_add(T::DbWeight::get().writes(1 as Weight))
@@ -145,7 +145,7 @@ impl WeightInfo for () {
             .saturating_add(RocksDbWeight::get().reads(1 as Weight))
             .saturating_add(RocksDbWeight::get().writes(3 as Weight))
     }
-    fn active_market() -> Weight {
+    fn activate_market() -> Weight {
         (34_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(1 as Weight))
             .saturating_add(RocksDbWeight::get().writes(1 as Weight))

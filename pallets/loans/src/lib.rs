@@ -370,10 +370,9 @@ pub mod pallet {
         /// If the market is already activated, does nothing.
         ///
         /// - `asset_id`: Market related currency
-        /// TODO(alannotnerd): rename to `activate_market`
-        #[pallet::weight(T::WeightInfo::active_market())]
+        #[pallet::weight(T::WeightInfo::activate_market())]
         #[transactional]
-        pub fn active_market(
+        pub fn activate_market(
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
         ) -> DispatchResultWithPostInfo {
