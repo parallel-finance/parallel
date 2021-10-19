@@ -25,14 +25,15 @@ pub use pallet::*;
 use frame_support::{
     dispatch::DispatchResult,
     traits::{
-        fungible::{Inspect, Mutate, Transfer},
         tokens::{
+            fungible::{Inspect, Mutate, Transfer},
             fungibles::{Inspect as Inspects, Mutate as Mutates, Transfer as Transfers},
             DepositConsequence, WithdrawConsequence,
         },
         Get,
     },
 };
+use primitives::{Balance, CurrencyId};
 use sp_runtime::DispatchError;
 
 type AssetIdOf<T> =
@@ -43,17 +44,16 @@ type BalanceOf<T> =
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use frame_support::traits::tokens::fungible;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        type Assets: Transfers<Self::AccountId>
-            + Inspects<Self::AccountId>
-            + Mutates<Self::AccountId>;
+        type Assets: Transfers<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + Inspects<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + Mutates<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
 
-        type Balances: fungible::Inspect<Self::AccountId, Balance = BalanceOf<Self>>
-            + fungible::Mutate<Self::AccountId, Balance = BalanceOf<Self>>
-            + fungible::Transfer<Self::AccountId, Balance = BalanceOf<Self>>;
+        type Balances: Inspect<Self::AccountId, Balance = Balance>
+            + Mutate<Self::AccountId, Balance = Balance>
+            + Transfer<Self::AccountId, Balance = Balance>;
 
         #[pallet::constant]
         type GetNativeCurrencyId: Get<AssetIdOf<Self>>;
@@ -164,7 +164,7 @@ impl<T: Config> Transfers<T::AccountId> for Pallet<T> {
         dest: &T::AccountId,
         amount: Self::Balance,
         keep_alive: bool,
-    ) -> Result<BalanceOf<T>, DispatchError> {
+    ) -> Result<Self::Balance, DispatchError> {
         if asset == T::GetNativeCurrencyId::get() {
             T::Balances::transfer(source, dest, amount, keep_alive)
         } else {

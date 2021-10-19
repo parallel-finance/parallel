@@ -26,13 +26,14 @@ use frame_support::{pallet_prelude::*, transactional};
 use frame_system::pallet_prelude::*;
 use orml_oracle::DataProviderExtended;
 use orml_traits::DataProvider;
-pub use pallet::*;
 use primitives::*;
 use sp_runtime::{
     traits::{CheckedDiv, CheckedMul},
     FixedU128,
 };
 use sp_std::vec::Vec;
+
+pub use pallet::*;
 
 #[cfg(test)]
 mod mock;
@@ -122,7 +123,7 @@ impl<T: Config> Pallet<T> {
     fn get_emergency_price(asset_id: &CurrencyId) -> Option<PriceDetail> {
         Self::emergency_price(asset_id).and_then(|p| {
             10u128
-                .checked_pow(T::Decimal::get_decimal(asset_id).into())
+                .checked_pow(T::Decimal::get_decimal(asset_id)?.into())
                 .and_then(|d| {
                     p.checked_div(&FixedU128::from_inner(d))
                         .map(|price| (price, 0))
@@ -143,7 +144,7 @@ impl<T: Config> PriceFeeder for Pallet<T> {
                 Some((staking_currency, liquid_currency)) if asset_id == &liquid_currency => {
                     T::Source::get(&staking_currency).and_then(|p| {
                         10u128
-                            .checked_pow(T::Decimal::get_decimal(&staking_currency).into())
+                            .checked_pow(T::Decimal::get_decimal(&staking_currency)?.into())
                             .and_then(|d| {
                                 p.value
                                     .checked_div(&FixedU128::from_inner(d))
@@ -158,7 +159,7 @@ impl<T: Config> PriceFeeder for Pallet<T> {
                 }
                 _ => T::Source::get(asset_id).and_then(|p| {
                     10u128
-                        .checked_pow(T::Decimal::get_decimal(asset_id).into())
+                        .checked_pow(T::Decimal::get_decimal(asset_id)?.into())
                         .and_then(|d| {
                             p.value
                                 .checked_div(&FixedU128::from_inner(d))

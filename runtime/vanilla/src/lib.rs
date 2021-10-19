@@ -28,7 +28,7 @@ use cumulus_primitives_core::ParaId;
 use frame_support::{
     dispatch::Weight,
     log,
-    traits::{fungibles::Mutate, Contains, Everything},
+    traits::{fungibles::Mutate, Contains, Everything, Nothing},
     PalletId,
 };
 use frame_system::{
@@ -43,7 +43,7 @@ use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::HEIKO_PREFIX,
-    tokens::{HKO, KSM, XKSM},
+    tokens::{HKO, KSM, USDT, XKSM},
     Index, *,
 };
 use sp_api::impl_runtime_apis;
@@ -128,10 +128,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("vanilla"),
     impl_name: create_runtime_str!("vanilla"),
     authoring_version: 1,
-    spec_version: 160,
-    impl_version: 10,
+    spec_version: 170,
+    impl_version: 20,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 1,
+    transaction_version: 2,
 };
 
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
@@ -199,6 +199,8 @@ impl Contains<Call> for BaseCallFilter {
             Call::Utility(_) |
             Call::Balances(_) |
             Call::Assets(pallet_assets::Call::mint { .. }) |
+            Call::Assets(pallet_assets::Call::transfer { .. }) |
+            Call::Assets(pallet_assets::Call::burn { .. }) |
             // Governance
             Call::Sudo(_) |
             Call::Democracy(_) |
@@ -378,6 +380,7 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 parameter_types! {
     pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
     pub const BaseXcmWeight: Weight = 150_000_000;
+    pub const MaxInstructions: u32 = 100;
 }
 
 impl orml_xtokens::Config for Runtime {
@@ -388,7 +391,7 @@ impl orml_xtokens::Config for Runtime {
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type SelfLocation = SelfLocation;
     type XcmExecutor = XcmExecutor<XcmConfig>;
-    type Weigher = FixedWeightBounds<BaseXcmWeight, Call>;
+    type Weigher = FixedWeightBounds<BaseXcmWeight, Call, MaxInstructions>;
     type BaseXcmWeight = BaseXcmWeight;
     type LocationInverter = LocationInverter<Ancestry>;
 }
@@ -435,6 +438,10 @@ parameter_types! {
     pub const PeriodBasis: BlockNumber = 1000u32;
     pub const DerivativeIndex: u16 = 0;
     pub const UnstakeQueueCapacity: u32 = 1000;
+    pub const MaxRewardsPerEra: Balance = 10_000_000_000_000_000;
+    pub const MaxSlashesPerEra: Balance = 1_000_000_000_000_000;
+    pub const MinStakeAmount: Balance = 1_000_000_000_000;
+    pub const MinUnstakeAmount: Balance = 500_000_000_000;
 }
 
 pub struct DerivativeProviderT;
@@ -445,13 +452,6 @@ impl DerivativeProvider<AccountId> for DerivativeProviderT {
     }
 }
 
-parameter_types! {
-    pub const MaxRewardsPerEra: Balance = 100;
-    pub const MaxSlashesPerEra: Balance = 1;
-    pub const MinStakeAmount: Balance = 1_000_000_000_000;
-    pub const MinUnstakeAmount: Balance = 500_000_000_000;
-}
-
 impl pallet_liquid_staking::Config for Runtime {
     type Event = Event;
     type PalletId = StakingPalletId;
@@ -459,8 +459,6 @@ impl pallet_liquid_staking::Config for Runtime {
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = ();
     type SelfParaId = ParachainInfo;
-    type PeriodBasis = PeriodBasis;
-    type BaseXcmWeight = BaseXcmWeight;
     type Assets = Assets;
     type XcmSender = XcmRouter;
     type DerivativeIndex = DerivativeIndex;
@@ -633,9 +631,14 @@ impl pallet_collator_selection::Config for Runtime {
     type WeightInfo = ();
 }
 
+parameter_types! {
+    pub const MaxAuthorities: u32 = 100_000;
+}
+
 impl pallet_aura::Config for Runtime {
     type AuthorityId = AuraId;
     type DisabledValidators = ();
+    type MaxAuthorities = MaxAuthorities;
 }
 
 impl cumulus_pallet_aura_ext::Config for Runtime {}
@@ -656,11 +659,12 @@ impl pallet_balances::Config for Runtime {
     type ReserveIdentifier = [u8; 8];
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
-    type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = weights::pallet_balances::WeightInfo<Runtime>;
 }
 
 parameter_types! {
     pub const TransactionByteFee: Balance = 1 * MILLICENTS;
+    pub const OperationalFeeMultiplier: u8 = 5;
 }
 
 impl pallet_transaction_payment::Config for Runtime {
@@ -669,6 +673,7 @@ impl pallet_transaction_payment::Config for Runtime {
     type TransactionByteFee = TransactionByteFee;
     type WeightToFee = WeightToFee;
     type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
+    type OperationalFeeMultiplier = OperationalFeeMultiplier;
 }
 
 impl pallet_sudo::Config for Runtime {
@@ -696,6 +701,10 @@ pub type XcmRouter = (
 );
 
 impl pallet_xcm::Config for Runtime {
+    const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
+
+    type Origin = Origin;
+    type Call = Call;
     type Event = Event;
     type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
     type XcmRouter = XcmRouter;
@@ -704,9 +713,10 @@ impl pallet_xcm::Config for Runtime {
     type XcmReserveTransferFilter = Everything;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     // Teleporting is disabled.
-    type XcmTeleportFilter = ();
-    type Weigher = FixedWeightBounds<BaseXcmWeight, Call>;
+    type XcmTeleportFilter = Nothing;
+    type Weigher = FixedWeightBounds<BaseXcmWeight, Call, MaxInstructions>;
     type LocationInverter = LocationInverter<Ancestry>;
+    type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
 }
 
 impl cumulus_pallet_xcm::Config for Runtime {
@@ -835,10 +845,12 @@ impl Config for XcmConfig {
     type IsTeleporter = ();
     type LocationInverter = LocationInverter<Ancestry>;
     type Barrier = Barrier;
-    type Weigher = FixedWeightBounds<BaseXcmWeight, Call>;
+    type Weigher = FixedWeightBounds<BaseXcmWeight, Call, MaxInstructions>;
     type Trader = FixedRateOfFungible<KsmPerSecond, ToTreasury>;
     type ResponseHandler = (); // Don't handle responses for now.
     type SubscriptionService = PolkadotXcm;
+    type AssetTrap = PolkadotXcm;
+    type AssetClaims = PolkadotXcm;
 }
 
 parameter_types! {
@@ -883,12 +895,13 @@ impl DataProviderExtended<CurrencyId, TimeStampedPrice> for AggregatedDataProvid
 
 pub struct Decimal;
 impl DecimalProvider for Decimal {
-    fn get_decimal(asset_id: &CurrencyId) -> u8 {
+    fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
         // pallet_assets::Metadata::<Runtime>::get(asset_id).decimals
         match *asset_id {
-            KSM | XKSM => 12,
-            HKO => 12,
-            _ => 0,
+            KSM | XKSM => Some(12),
+            HKO => Some(12),
+            USDT => Some(6),
+            _ => None,
         }
     }
 }
@@ -997,6 +1010,7 @@ impl pallet_democracy::Config for Runtime {
     type MaxVotes = MaxVotes;
     type WeightInfo = pallet_democracy::weights::SubstrateWeight<Runtime>;
     type MaxProposals = MaxProposals;
+    type VoteLockingPeriod = EnactmentPeriod;
 }
 
 parameter_types! {
@@ -1305,7 +1319,7 @@ impl_runtime_apis! {
         }
 
         fn authorities() -> Vec<AuraId> {
-            Aura::authorities()
+            Aura::authorities().into_inner()
         }
     }
 
@@ -1337,7 +1351,7 @@ impl_runtime_apis! {
 
     impl sp_api::Metadata<Block> for Runtime {
         fn metadata() -> OpaqueMetadata {
-            Runtime::metadata().into()
+            OpaqueMetadata::new(Runtime::metadata().into())
         }
     }
 
@@ -1455,6 +1469,7 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
             list_benchmark!(list, extra, pallet_timestamp, Timestamp);
             list_benchmark!(list, extra, pallet_amm, AMM);
+            list_benchmark!(list, extra, pallet_liquid_staking, LiquidStaking);
             list_benchmark!(list, extra, pallet_router, AMMRoute);
 
             let storage_info = AllPalletsWithSystem::storage_info();
@@ -1493,10 +1508,10 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_balances, Balances);
             add_benchmark!(params, batches, pallet_timestamp, Timestamp);
             add_benchmark!(params, batches, pallet_loans, Loans);
-            // add_benchmark!(params, batches, pallet_liquid_staking, LiquidStaking);
             add_benchmark!(params, batches, pallet_multisig, Multisig);
             add_benchmark!(params, batches, pallet_membership, TechnicalCommitteeMembership);
             add_benchmark!(params, batches, pallet_amm, AMM);
+            add_benchmark!(params, batches, pallet_liquid_staking, LiquidStaking);
             add_benchmark!(params, batches, pallet_router, AMMRoute);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
@@ -1506,10 +1521,14 @@ impl_runtime_apis! {
 
     #[cfg(feature = "try-runtime")]
     impl frame_try_runtime::TryRuntime<Block> for Runtime {
-        fn on_runtime_upgrade() -> Result<(Weight, Weight), sp_runtime::RuntimeString> {
+        fn on_runtime_upgrade() -> (Weight, Weight) {
             log::info!("try-runtime::on_runtime_upgrade.");
-            let weight = Executive::try_runtime_upgrade()?;
-            Ok((weight, RuntimeBlockWeights::get().max_block))
+            let weight = Executive::try_runtime_upgrade().unwrap();
+            (weight, RuntimeBlockWeights::get().max_block)
+        }
+
+        fn execute_block_no_check(block: Block) -> Weight {
+            Executive::execute_block_no_check(block)
         }
     }
 }
