@@ -49,9 +49,7 @@ fn load_spec(
         "parallel" | "parallel-local" => {
             Box::new(chain_spec::parallel::parallel_local_testnet_config(para_id))
         }
-        "vanilla" | "vanilla-local" => {
-            Box::new(chain_spec::vanilla::vanilla_local_testnet_config(para_id))
-        }
+        "vanilla" => Box::new(chain_spec::vanilla::vanilla_config(para_id)?),
         path => {
             let path = std::path::PathBuf::from(path);
             let starts_with = |prefix: &str| {
