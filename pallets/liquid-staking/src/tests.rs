@@ -167,7 +167,7 @@ fn test_settlement_should_work() {
         assert_eq!(
             RelayBalances::free_balance(&LiquidStaking::para_account_id()),
             // FIXME: weight should be take into account
-            9999979517112000
+            9999800000000000
         );
     });
 }
@@ -445,7 +445,7 @@ fn test_transfer_and_then_bond() {
             })));
         let bond_transact_xcm = Transact {
             origin_type: OriginKind::SovereignAccount,
-            require_weight_at_most: u64::MAX,
+            require_weight_at_most: 20_000_000_000,
             call: bond_call.encode().into(),
         };
 

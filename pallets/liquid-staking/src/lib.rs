@@ -1070,7 +1070,7 @@ pub mod pallet {
                 },
                 Transact {
                     origin_type: OriginKind::SovereignAccount,
-                    require_weight_at_most: u64::MAX,
+                    require_weight_at_most: 20_000_000_000,
                     call,
                 },
             ]))
