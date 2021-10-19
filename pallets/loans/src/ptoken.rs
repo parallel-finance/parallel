@@ -73,7 +73,8 @@ where
         if Self::balance(asset, who) + amount < Self::minimum_balance(asset) {
             return DepositConsequence::BelowMinimum;
         }
-        return DepositConsequence::Success;
+
+        DepositConsequence::Success
     }
 
     /// Returns `Failed` if the balance of `who` may not be decreased by `amount`, otherwise
@@ -97,7 +98,7 @@ where
             return WithdrawConsequence::ReducedToZero(rest);
         }
 
-        return WithdrawConsequence::Success;
+        WithdrawConsequence::Success
     }
 }
 

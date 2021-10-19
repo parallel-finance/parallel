@@ -1,7 +1,7 @@
 use crate::{
     mock::{
         market_mock, new_test_ext, Loans, Origin, Test, ALICE, DAVE, HKO, KSM, MARKET_MOCK, PHKO,
-        PKSM, XDOT,
+        XDOT,
     },
     tests::dollar,
     Error,
@@ -29,7 +29,7 @@ fn trait_inspect_methods_works() {
 
         assert_eq!(Loans::reducible_balance(HKO, &DAVE, true), dollar(100) * 50);
         assert_ok!(Loans::collateral_asset(Origin::signed(DAVE), HKO, true));
-        // Borrow 50 HKO will reduce 50 HKO liquidity for collateral_factor is 50%
+        // Borrow 25 HKO will reduce 25 HKO liquidity for collateral_factor is 50%
         assert_ok!(Loans::borrow(Origin::signed(DAVE), HKO, dollar(25)));
 
         assert_eq!(
@@ -37,11 +37,20 @@ fn trait_inspect_methods_works() {
                 .saturating_mul_int(Loans::account_deposits(HKO, DAVE).voucher_balance),
             dollar(100)
         );
-        // TODO: Fix the tests below
-        // assert_eq!(Loans::reducible_balance(HKO, &DAVE, true), dollar(50) * 50);
 
-        // assert_eq!(Loans::can_deposit(HKO, &DAVE, 100));
-        // assert_eq!(Loans::can_withdraw(HKO, &DAVE, 100));
+        // DAVE Deposit 100 HKO, Borrow 25 HKO
+        // Liquidity HKO 50
+        // Formula: ptokens = liquidity / price(1) / collateral(0.5) / exchange_rate(0.02)
+        assert_eq!(
+            Loans::reducible_balance(HKO, &DAVE, true),
+            dollar(25) * 2 * 50
+        );
+
+        assert_ok!(Loans::borrow(Origin::signed(DAVE), HKO, dollar(25)));
+        assert_eq!(Loans::reducible_balance(HKO, &DAVE, true), 0);
+
+        assert_ok!(Loans::can_deposit(HKO, &DAVE, 100).into_result());
+        assert_ok!(Loans::can_withdraw(HKO, &DAVE, 100).into_result());
     })
 }
 
