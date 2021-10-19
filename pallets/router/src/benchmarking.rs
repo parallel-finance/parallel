@@ -38,10 +38,6 @@ where
     <<T as crate::Config<I>>::Assets as Inspect<T::AccountId>>::Balance: From<u128>,
     <<T as crate::Config<I>>::Assets as Inspect<T::AccountId>>::AssetId: From<u32>,
     <<T as pallet_amm::Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance:
-        FixedPointOperand,
-    <<T as pallet_amm::Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId:
-        AtLeast32BitUnsigned,
-    <<T as pallet_amm::Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance:
         From<u128>,
     <<T as pallet_amm::Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId:
         From<u32>,
@@ -50,7 +46,7 @@ where
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        tokens::XDOT.into(),
+        tokens::XDOT,
         account_id.clone(),
         true,
         One::one(),
@@ -59,27 +55,25 @@ where
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        tokens::DOT.into(),
+        tokens::DOT,
         account_id,
         true,
         One::one(),
     )
     .ok();
 
-    <T as crate::Config<I>>::Assets::mint_into(DOT.into(), &caller, INITIAL_AMOUNT.into()).ok();
+    <T as crate::Config<I>>::Assets::mint_into(DOT, &caller, INITIAL_AMOUNT).ok();
 
     let pool_creator = account("pool_creator", 1, 0);
-    <T as crate::Config<I>>::Assets::mint_into(DOT.into(), &pool_creator, INITIAL_AMOUNT.into())
-        .ok();
-    <T as crate::Config<I>>::Assets::mint_into(XDOT.into(), &pool_creator, INITIAL_AMOUNT.into())
-        .ok();
+    <T as crate::Config<I>>::Assets::mint_into(DOT, &pool_creator, INITIAL_AMOUNT).ok();
+    <T as crate::Config<I>>::Assets::mint_into(XDOT, &pool_creator, INITIAL_AMOUNT).ok();
 
     assert_ok!(pallet_amm::Pallet::<T>::add_liquidity(
         SystemOrigin::Signed(pool_creator).into(),
-        (DOT.into(), XDOT.into()),
-        (100_000_000u128.into(), 100_000_000u128.into()),
-        (99_999.into(), 99_999.into()),
-        ASSET_ID.into()
+        (DOT, XDOT),
+        (100_000_000u128, 100_000_000u128),
+        (99_999u128, 99_999u128),
+        ASSET_ID
     ));
 }
 
@@ -91,10 +85,6 @@ benchmarks_instance_pallet! {
             <<T as crate::Config<I>>::Assets as Inspect<T::AccountId>>::Balance: From<u128>,
             <<T as crate::Config<I>>::Assets as Inspect<T::AccountId>>::AssetId: From<u32>,
             <<T as pallet_amm::Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance:
-                FixedPointOperand,
-            <<T as pallet_amm::Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId:
-                AtLeast32BitUnsigned,
-            <<T as pallet_amm::Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance:
                 From<u128>,
             <<T as pallet_amm::Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId:
             From<u32>,
@@ -102,18 +92,18 @@ benchmarks_instance_pallet! {
     trade {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T, I>(caller.clone());
-        let amount_in = 1_000;
+        let amount_in = 1_000u128;
         let original_amount_in = amount_in;
-        let min_amount_out = 980;
+        let min_amount_out = 980u128;
         let expiry = u32::MAX;
-        let routes: BoundedVec<_, <T as Config<I>>::MaxLengthRoute> = Route::<T, I>::try_from(alloc::vec![(DOT.into(), XDOT.into())]).unwrap();
-    }: trade(SystemOrigin::Signed(caller.clone()), routes.clone(), amount_in.into(), min_amount_out.into(), expiry.into())
+        let routes: BoundedVec<_, <T as Config<I>>::MaxLengthRoute> = Route::<T, I>::try_from(alloc::vec![(DOT, XDOT)]).unwrap();
+    }: trade(SystemOrigin::Signed(caller.clone()), routes.clone(), amount_in, min_amount_out, expiry.into())
 
     verify {
-        let amount_out: BalanceOf<T, I> = <T as crate::Config<I>>::Assets::balance(XDOT.into(), &caller);
+        let amount_out: BalanceOf<T, I> = <T as crate::Config<I>>::Assets::balance(XDOT, &caller);
 
-        assert_eq!(amount_out, 994.into());
-        assert_last_event::<T, I>(Event::TradedSuccessfully(caller, original_amount_in.into(), routes, amount_out).into());
+        assert_eq!(amount_out, 994u128);
+        assert_last_event::<T, I>(Event::TradedSuccessfully(caller, original_amount_in, routes, amount_out).into());
     }
 }
 

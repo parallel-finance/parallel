@@ -3,7 +3,7 @@ use frame_support::{
     construct_runtime,
     dispatch::Weight,
     parameter_types, sp_io,
-    traits::{Everything, GenesisBuild, SortedMembers},
+    traits::{Everything, GenesisBuild, Nothing, SortedMembers},
     weights::constants::WEIGHT_PER_SECOND,
     PalletId,
 };
@@ -102,10 +102,12 @@ impl Config for XcmConfig {
     type IsTeleporter = ();
     type LocationInverter = LocationInverter<Ancestry>;
     type Barrier = Barrier;
-    type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+    type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
     type Trader = FixedRateOfFungible<DotPerSecond, ()>;
     type ResponseHandler = ();
     type SubscriptionService = PolkadotXcm;
+    type AssetTrap = PolkadotXcm;
+    type AssetClaims = PolkadotXcm;
 }
 
 impl cumulus_pallet_xcmp_queue::Config for Test {
@@ -129,16 +131,21 @@ impl cumulus_pallet_xcm::Config for Test {
 pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNetwork>;
 
 impl pallet_xcm::Config for Test {
+    const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
+
+    type Origin = Origin;
+    type Call = Call;
     type Event = Event;
     type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
     type XcmRouter = XcmRouter;
     type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
     type XcmExecuteFilter = Everything;
     type XcmExecutor = XcmExecutor<XcmConfig>;
-    type XcmTeleportFilter = ();
+    type XcmTeleportFilter = Nothing;
     type XcmReserveTransferFilter = Everything;
-    type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+    type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
     type LocationInverter = LocationInverter<Ancestry>;
+    type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
 }
 
 pub struct CurrencyIdConvert;
@@ -203,6 +210,7 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 parameter_types! {
     pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
     pub const BaseXcmWeight: Weight = 100_000_000;
+    pub const MaxInstructions: u32 = 100;
 }
 
 impl orml_xtokens::Config for Test {
@@ -213,7 +221,7 @@ impl orml_xtokens::Config for Test {
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type SelfLocation = SelfLocation;
     type XcmExecutor = XcmExecutor<XcmConfig>;
-    type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
+    type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
     type BaseXcmWeight = BaseXcmWeight;
     type LocationInverter = LocationInverter<Ancestry>;
 }
@@ -229,7 +237,7 @@ parameter_types! {
 }
 
 impl frame_system::Config for Test {
-    type BaseCallFilter = ();
+    type BaseCallFilter = Everything;
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();

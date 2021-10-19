@@ -1,5 +1,5 @@
 relaychain:
-  image: parallelfinance/polkadot:v0.9.10-1
+  image: parallelfinance/polkadot:v0.9.11
   chain: westend-local
   runtimeGenesisConfig:
     configuration:
@@ -39,7 +39,7 @@ parachains:
       - flags:
           - --charlie
 
-  # - image: parallelfinance/statemine:v0.9.10
+  # - image: parallelfinance/statemine:v0.9.11
   #   chain:
   #     base: statemint-dev
   #     collators:

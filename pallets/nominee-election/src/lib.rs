@@ -38,8 +38,10 @@
 
 use frame_support::{pallet_prelude::*, traits::SortedMembers, transactional};
 use frame_system::pallet_prelude::*;
+
 pub use pallet::*;
 
+use scale_info::TypeInfo;
 use sp_std::{convert::TryInto, vec::Vec};
 
 #[cfg(test)]
@@ -48,7 +50,7 @@ mod mock;
 mod tests;
 
 /// Info of the validator to be elected
-#[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, Default)]
+#[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, Default, TypeInfo)]
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
 pub struct ValidatorInfo<AccountId> {
     pub name: Option<Vec<u8>>,

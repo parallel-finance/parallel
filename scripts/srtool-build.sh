@@ -6,7 +6,7 @@ cd $DIR/../
 
 set -xe
 
-RUSTC_VERSION=1.53.0-0.9.16;
+RUSTC_VERSION=1.53.0;
 PACKAGE=${PACKAGE:-heiko-runtime};
 BUILD_OPTS=$BUILD_OPTS;
 

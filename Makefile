@@ -22,6 +22,9 @@ submodules:
 build:
 	cargo build --bin parallel
 
+.PHONY: ci
+ci: check lint check-wasm test
+
 .PHONY: check
 check:
 	SKIP_WASM_BUILD= cargo check --all-targets --features runtime-benchmarks --features try-runtime
@@ -36,6 +39,7 @@ test:
 
 .PHONY: bench
 bench: bench-loans bench-liquid-staking bench-amm bench-amm-router
+	./scripts/benchmark.sh
 
 .PHONY: bench-loans
 bench-loans:
@@ -56,7 +60,7 @@ bench-amm-router:
 .PHONY: lint
 lint:
 	SKIP_WASM_BUILD= cargo fmt --all -- --check
-	SKIP_WASM_BUILD= cargo clippy --workspace --features runtime-benchmarks --exclude parallel -- -A dead_code -A clippy::derivable_impls -A clippy::unnecessary_cast -A clippy::unnecessary_mut_passed -A clippy::too_many_arguments -A clippy::type_complexity -A clippy::identity_op -D warnings
+	SKIP_WASM_BUILD= cargo clippy --workspace --features runtime-benchmarks --exclude parallel -- -D dead_code -A clippy::derivable_impls -A clippy::unnecessary_cast -A clippy::unnecessary_mut_passed -A clippy::too_many_arguments -A clippy::type_complexity -A clippy::identity_op -D warnings
 
 .PHONY: fix
 fix:
@@ -79,7 +83,8 @@ shutdown:
 
 .PHONY: launch
 launch: shutdown
-	docker image pull parallelfinance/polkadot:v0.9.10-1
+	docker image pull parallelfinance/polkadot:v0.9.11
+	docker image pull parallelfinance/stake-client:latest
 	docker image pull parallelfinance/parallel:latest
 	docker image pull parallelfinance/parallel-dapp:latest
 	parachain-launch generate $(LAUNCH_CONFIG) && (cp -r keystore* output || true) && cp docker-compose.override.yml output && cd output && docker-compose up -d --build

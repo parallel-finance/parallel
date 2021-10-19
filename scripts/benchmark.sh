@@ -1,5 +1,11 @@
 #!/bin/bash
 
+DIR=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
+
+cd $DIR/..
+
+set -xe
+
 steps=50
 repeat=20
 parallelOutput=./runtime/parallel/src/weights/
@@ -16,7 +22,7 @@ pallets=(
 
 for p in ${pallets[@]}
 do
-	./target/release/parallel benchmark \
+	cargo run --release --features runtime-benchmarks -- benchmark \
 		--chain=$parallelChain \
 		--execution=wasm \
 		--wasm-execution=compiled \
@@ -27,7 +33,7 @@ do
 		--raw \
 		--output=$parallelOutput/$p.rs
 
-	./target/release/parallel benchmark \
+	cargo run --release --features runtime-benchmarks -- benchmark \
 		--chain=$heikoChain \
 		--execution=wasm \
 		--wasm-execution=compiled \

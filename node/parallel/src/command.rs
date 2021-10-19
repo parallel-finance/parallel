@@ -292,7 +292,7 @@ pub fn run() -> Result<()> {
                 let polkadot_config = SubstrateCli::create_configuration(
                     &polkadot_cli,
                     &polkadot_cli,
-                    config.task_executor.clone(),
+                    config.tokio_handle.clone(),
                 )
                 .map_err(|err| format!("Relay chain argument error: {}", err))?;
 
@@ -393,7 +393,7 @@ pub fn run() -> Result<()> {
                 runner.async_run(|config| {
                     let registry = config.prometheus_config.as_ref().map(|cfg| &cfg.registry);
                     let task_manager =
-                        sc_service::TaskManager::new(config.task_executor.clone(), registry)
+                        sc_service::TaskManager::new(config.tokio_handle.clone(), registry)
                             .map_err(|e| {
                                 sc_cli::Error::Service(sc_service::Error::Prometheus(e))
                             })?;
@@ -440,7 +440,7 @@ pub fn run() -> Result<()> {
                     let polkadot_config = SubstrateCli::create_configuration(
                         &polkadot_cli,
                         &polkadot_cli,
-                        config.task_executor.clone(),
+                        config.tokio_handle.clone(),
                     )
                     .map_err(|err| format!("Relay chain argument error: {}", err))?;
 
@@ -558,16 +558,8 @@ impl CliConfiguration<Self> for RelayChainCli {
         self.base.base.rpc_ws_max_connections()
     }
 
-    fn rpc_http_threads(&self) -> Result<Option<usize>> {
-        self.base.base.rpc_http_threads()
-    }
-
     fn rpc_cors(&self, is_dev: bool) -> Result<Option<Vec<String>>> {
         self.base.base.rpc_cors(is_dev)
-    }
-
-    fn telemetry_external_transport(&self) -> Result<Option<sc_service::config::ExtTransport>> {
-        self.base.base.telemetry_external_transport()
     }
 
     fn default_heap_pages(&self) -> Result<Option<u64>> {
