@@ -63,6 +63,7 @@ pub trait WeightInfo {
     fn update_staking_pool_capacity() -> Weight;
     fn update_xcm_fees_compensation() -> Weight;
     fn update_xcm_weight() -> Weight;
+    fn add_insurances() -> Weight;
 }
 
 /// Weights for pallet_liquid_staking using the Substrate node and recommended hardware.
@@ -144,6 +145,9 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().reads(1 as Weight))
             .saturating_add(T::DbWeight::get().writes(1 as Weight))
     }
+    fn add_insurances() -> Weight {
+        10000u64.into()
+    }
 }
 
 // For backwards compatibility and tests
@@ -223,5 +227,8 @@ impl WeightInfo for () {
         (285_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(1 as Weight))
             .saturating_add(RocksDbWeight::get().writes(1 as Weight))
+    }
+    fn add_insurances() -> Weight {
+        10000u64.into()
     }
 }

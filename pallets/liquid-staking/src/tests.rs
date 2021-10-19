@@ -564,3 +564,12 @@ fn test_update_xcm_weight_work() {
         assert_eq!(XcmWeight::<Test>::get(), misc);
     })
 }
+
+#[test]
+fn test_add_insurances_work() {
+    new_test_ext().execute_with(|| {
+        assert_eq!(LiquidStaking::insurance_pool(), 0);
+        assert_ok!(LiquidStaking::add_insurances(Origin::signed(BOB), 123));
+        assert_eq!(LiquidStaking::insurance_pool(), 123);
+    })
+}

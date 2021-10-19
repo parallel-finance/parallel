@@ -190,6 +190,8 @@ pub mod pallet {
         XcmWeightUpdated(XcmWeightMisc<Weight>),
         /// InsurancePool's reserve_factor updated
         ReserveFactorUpdated(Ratio),
+        /// Add asset to insurance pool
+        InsurancesAdded(T::AccountId, BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -742,6 +744,31 @@ pub mod pallet {
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
             StakingCurrency::<T>::put(asset_id);
+            Ok(())
+        }
+
+        /// Anyone can transfer asset to the insurance pool
+        #[pallet::weight(<T as Config>::WeightInfo::add_insurances())]
+        #[transactional]
+        pub fn add_insurances(
+            origin: OriginFor<T>,
+            #[pallet::compact] amount: BalanceOf<T>,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+
+            T::Assets::transfer(
+                Self::staking_currency()?,
+                &who,
+                &Self::account_id(),
+                amount,
+                false,
+            )?;
+
+            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
+                Ok(())
+            })?;
+            Self::deposit_event(Event::<T>::InsurancesAdded(who, amount));
             Ok(())
         }
     }
