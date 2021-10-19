@@ -56,7 +56,7 @@ fn ptoken_unique_works() {
 
         // ptoken_id token id cannot as the same as the asset id in `Markets`
         assert_noop!(
-            Loans::add_market(Origin::root(), XDOT, market_mock(PKSM)),
+            Loans::add_market(Origin::root(), XDOT, market_mock(KSM)),
             Error::<Test>::InvalidCurrencyId
         );
     })
