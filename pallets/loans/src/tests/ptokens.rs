@@ -7,14 +7,18 @@ use crate::{
     Error,
 };
 use frame_support::{
-    assert_noop, assert_ok,
+    assert_err, assert_noop, assert_ok,
     traits::tokens::fungibles::{Inspect, Transfer},
 };
-use sp_runtime::FixedPointNumber;
+use sp_runtime::{FixedPointNumber, TokenError};
 
 #[test]
 fn trait_inspect_methods_works() {
     new_test_ext().execute_with(|| {
+        assert_err!(
+            Loans::can_withdraw(HKO, &DAVE, 100).into_result(),
+            TokenError::NoFunds
+        );
         assert_eq!(Loans::total_issuance(HKO), 0);
         assert_eq!(Loans::total_issuance(KSM), 0);
 
@@ -49,8 +53,9 @@ fn trait_inspect_methods_works() {
         assert_ok!(Loans::borrow(Origin::signed(DAVE), HKO, dollar(25)));
         assert_eq!(Loans::reducible_balance(HKO, &DAVE, true), 0);
 
+        assert_eq!(Loans::total_issuance(HKO), dollar(100) * 50);
         assert_ok!(Loans::can_deposit(HKO, &DAVE, 100).into_result());
-        assert_ok!(Loans::can_withdraw(HKO, &DAVE, 100).into_result());
+        assert_ok!(Loans::can_withdraw(HKO, &DAVE, 1000).into_result());
     })
 }
 
