@@ -32,7 +32,7 @@ fn market_mock<T: Config>() -> Market<BalanceOf<T>> {
             jump_utilization: Ratio::from_percent(80),
         }),
         reserve_factor: Ratio::from_percent(15),
-        cap: 1_000_000_000_000_000_000_000u128.into(), // set to $1B
+        cap: 1_000_000_000_000_000_000_000u128, // set to $1B
         ptoken_id: 1200,
     }
 }
@@ -102,14 +102,14 @@ benchmarks! {
     }
 
     add_market {
-    }: _(SystemOrigin::Root, UNKNOWN.into(),pending_market_mock::<T>(PUNKNOWN))
+    }: _(SystemOrigin::Root, UNKNOWN, pending_market_mock::<T>(PUNKNOWN))
     verify {
         assert_last_event::<T>(Event::<T>::NewMarket(pending_market_mock::<T>(PUNKNOWN)).into());
     }
 
     active_market {
-        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), UNKNOWN.into(), pending_market_mock::<T>(PUNKNOWN)));
-    }: _(SystemOrigin::Root,UNKNOWN.into())
+        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), UNKNOWN, pending_market_mock::<T>(PUNKNOWN)));
+    }: _(SystemOrigin::Root,UNKNOWN)
     verify {
         assert_last_event::<T>(Event::<T>::ActivatedMarket(UNKNOWN).into());
     }

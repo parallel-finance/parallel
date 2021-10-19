@@ -21,6 +21,7 @@ use frame_support::{
         DepositConsequence, WithdrawConsequence,
     },
 };
+use sp_runtime::{traits::AtLeast32BitUnsigned, FixedPointOperand};
 
 use crate::{AssetIdOf, BalanceOf, *};
 
@@ -66,7 +67,7 @@ where
             return DepositConsequence::UnknownAsset;
         }
 
-        if Self::total_supply(asset).checked_add(&amount).is_none() {
+        if Self::total_supply(asset).checked_add(amount).is_none() {
             return DepositConsequence::Overflow;
         }
 
@@ -88,7 +89,7 @@ where
             return WithdrawConsequence::UnknownAsset;
         }
 
-        let sub_result = Self::balance(asset, who).checked_sub(&amount);
+        let sub_result = Self::balance(asset, who).checked_sub(amount);
         if sub_result.is_none() {
             return WithdrawConsequence::NoFunds;
         }
@@ -141,7 +142,7 @@ where
             let mut d = deposits.unwrap_or_default();
             d.voucher_balance = d
                 .voucher_balance
-                .checked_sub(&amount)
+                .checked_sub(amount)
                 .ok_or(ArithmeticError::Underflow)?;
             if d.voucher_balance.is_zero() {
                 // remove deposits storage if zero balance
@@ -155,7 +156,7 @@ where
         AccountDeposits::<T>::try_mutate(asset_id, &dest, |deposits| -> DispatchResult {
             deposits.voucher_balance = deposits
                 .voucher_balance
-                .checked_add(&amount)
+                .checked_add(amount)
                 .ok_or(ArithmeticError::Overflow)?;
             Ok(())
         })?;
@@ -198,7 +199,7 @@ where
             .into_inner();
 
         let exchange_rate = Self::exchange_rate(asset_id);
-        let amount = Self::calc_collateral_amount(usable_voucher_amount.into(), exchange_rate)?;
+        let amount = Self::calc_collateral_amount(usable_voucher_amount, exchange_rate)?;
         log::trace!(target: "loans::can_move", "{:?}", amount);
         Ok(amount)
     }

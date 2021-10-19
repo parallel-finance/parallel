@@ -38,7 +38,9 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 pub use pallet::*;
-use primitives::{Balance, CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall, Timestamp};
+use primitives::{
+    Balance, CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall, Timestamp,
+};
 use sp_runtime::{
     traits::{
         AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One, StaticLookup,
@@ -418,11 +420,10 @@ pub mod pallet {
             );
 
             // Ensures a given `ptoken_id` not exists on the `Market` and `UnderlyingAssetId`.
-            let ptoken_id: AssetIdOf<T> = market.ptoken_id.into();
             Self::ensure_ptoken_unique(market.ptoken_id)?;
             // Update storage of `Market` and `UnderlyingAssetId`
             Markets::<T>::insert(asset_id, market.clone());
-            UnderlyingAssetId::<T>::insert(ptoken_id, asset_id);
+            UnderlyingAssetId::<T>::insert(market.ptoken_id, asset_id);
 
             // Init the ExchangeRate and BorrowIndex for asset
             ExchangeRate::<T>::insert(asset_id, Rate::saturating_from_rational(2, 100));
@@ -1245,14 +1246,13 @@ impl<T: Config> Pallet<T> {
 
     // Ensures a given `ptoken_id` is unique in `Markets` and `UnderlyingAssetId`.
     fn ensure_ptoken_unique(ptoken_id: CurrencyId) -> DispatchResult {
-        let asset_id: AssetIdOf<T> = ptoken_id.into();
         ensure!(
-            !UnderlyingAssetId::<T>::contains_key(asset_id),
+            !UnderlyingAssetId::<T>::contains_key(ptoken_id),
             Error::<T>::InvalidCurrencyId
         );
 
         ensure!(
-            !Markets::<T>::contains_key(asset_id),
+            !Markets::<T>::contains_key(ptoken_id),
             Error::<T>::InvalidCurrencyId
         );
 
@@ -1330,7 +1330,7 @@ impl<T: Config> Pallet<T> {
     // Returns `Err` if market does not exist.
     pub fn ptoken_id(asset_id: AssetIdOf<T>) -> Result<AssetIdOf<T>, DispatchError> {
         if let Ok(market) = Self::market(asset_id) {
-            Ok(market.ptoken_id.into())
+            Ok(market.ptoken_id)
         } else {
             Err(Error::<T>::MarketDoesNotExist.into())
         }
