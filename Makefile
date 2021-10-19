@@ -39,6 +39,7 @@ test:
 
 .PHONY: bench
 bench: bench-loans bench-liquid-staking bench-amm bench-amm-router
+	./scripts/benchmark.sh
 
 .PHONY: bench-loans
 bench-loans:
