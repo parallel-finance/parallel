@@ -250,7 +250,7 @@ pub struct XcmWeightMisc<Weight> {
 
 impl Default for XcmWeightMisc<Weight> {
     fn default() -> Self {
-        let default_weight = 2_000_000_000;
+        let default_weight = 3_000_000_000;
         XcmWeightMisc {
             bond_weight: default_weight,
             bond_extra_weight: default_weight,

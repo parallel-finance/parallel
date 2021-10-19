@@ -1066,11 +1066,11 @@ pub mod pallet {
                 WithdrawAsset(MultiAssets::from(asset.clone())),
                 BuyExecution {
                     fees: asset.clone(),
-                    weight_limit: WeightLimit::Limited(weight),
+                    weight_limit: Unlimited,
                 },
                 Transact {
                     origin_type: OriginKind::SovereignAccount,
-                    require_weight_at_most: 20_000_000_000,
+                    require_weight_at_most: weight,
                     call,
                 },
                 RefundSurplus,
