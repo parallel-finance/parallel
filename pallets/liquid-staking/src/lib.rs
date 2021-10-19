@@ -20,6 +20,8 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+mod benchmarking;
+
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
@@ -115,10 +117,6 @@ pub mod pallet {
         /// XCM message sender
         type XcmSender: SendXcm;
 
-        /// Basic xcm transaction weight per message
-        #[pallet::constant]
-        type BaseXcmWeight: Get<Weight>;
-
         /// Returns the parachain ID we are running with.
         #[pallet::constant]
         type SelfParaId: Get<ParaId>;
@@ -133,10 +131,6 @@ pub mod pallet {
         /// Unstake queue capacity
         #[pallet::constant]
         type UnstakeQueueCapacity: Get<u32>;
-
-        /// Basis of period
-        #[pallet::constant]
-        type PeriodBasis: Get<BlockNumberFor<Self>>;
 
         /// Max rewards per era
         #[pallet::constant]
@@ -192,6 +186,12 @@ pub mod pallet {
         XcmFeesCompensationUpdated(BalanceOf<T>),
         /// Capacity of staking pool was set to new value
         StakingPoolCapacityUpdated(BalanceOf<T>),
+        /// Xcm weight in BuyExecution message
+        XcmWeightUpdated(XcmWeightMisc<Weight>),
+        /// InsurancePool's reserve_factor updated
+        ReserveFactorUpdated(Ratio),
+        /// Add asset to insurance pool
+        InsurancesAdded(T::AccountId, BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -230,6 +230,8 @@ pub mod pallet {
         ExceededMaxSlashesPerEra,
         /// Exceeded staking pool's capacity
         ExceededStakingPoolCapacity,
+        /// Xcm fees given are too low to execute on relaychain
+        XcmFeesCompensationTooLow,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -282,6 +284,11 @@ pub mod pallet {
     #[pallet::getter(fn xcm_fees_compensation)]
     pub type XcmFeesCompensation<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
+    /// Xcm weight in BuyExecution
+    #[pallet::storage]
+    #[pallet::getter(fn xcm_weight)]
+    pub type XcmWeight<T: Config> = StorageValue<_, XcmWeightMisc<Weight>, ValueQuery>;
+
     /// Staking pool capacity
     #[pallet::storage]
     #[pallet::getter(fn staking_pool_capacity)]
@@ -328,9 +335,8 @@ pub mod pallet {
         ///     - Queue is empty.
         ///     - `remaining_weight` is less than one pop_queue needed.
         fn on_idle(_n: BlockNumberFor<T>, mut remaining_weight: Weight) -> Weight {
-            // TODO should use T::WeightInfo::on_idle instead
             // on_idle shouldn't run out of all remaining_weight normally
-            let base_weight = T::WeightInfo::pop_queue();
+            let base_weight = T::WeightInfo::on_idle();
             let staking_currency = Self::staking_currency();
 
             // Return if staking_currency haven't been set.
@@ -518,10 +524,8 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
             kind: StakingSettlementKind,
         ) -> DispatchResultWithPostInfo {
-            T::RelayOrigin::ensure_origin(origin)?;
-
+            T::UpdateOrigin::ensure_origin(origin)?;
             Self::update_staking_pool(kind, amount)?;
-
             Self::deposit_event(Event::<T>::StakingSettlementRecorded(kind, amount));
             Ok(().into())
         }
@@ -532,9 +536,33 @@ pub mod pallet {
             origin: OriginFor<T>,
             #[pallet::compact] fees: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
-            T::RelayOrigin::ensure_origin(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
             XcmFeesCompensation::<T>::mutate(|v| *v = fees);
             Self::deposit_event(Event::<T>::XcmFeesCompensationUpdated(fees));
+            Ok(().into())
+        }
+
+        #[pallet::weight(<T as Config>::WeightInfo::update_reserve_factor())]
+        #[transactional]
+        pub fn update_reserve_factor(
+            origin: OriginFor<T>,
+            reserve_factor: Ratio,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            ReserveFactor::<T>::mutate(|v| *v = reserve_factor);
+            Self::deposit_event(Event::<T>::ReserveFactorUpdated(reserve_factor));
+            Ok(().into())
+        }
+
+        #[pallet::weight(<T as Config>::WeightInfo::update_xcm_weight())]
+        #[transactional]
+        pub fn update_xcm_weight(
+            origin: OriginFor<T>,
+            xcm_weight_misc: XcmWeightMisc<Weight>,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            XcmWeight::<T>::mutate(|v| *v = xcm_weight_misc);
+            Self::deposit_event(Event::<T>::XcmWeightUpdated(xcm_weight_misc));
             Ok(().into())
         }
 
@@ -544,7 +572,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             #[pallet::compact] cap: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
-            T::RelayOrigin::ensure_origin(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
             StakingPoolCapacity::<T>::mutate(|v| *v = cap);
             Self::deposit_event(Event::<T>::StakingPoolCapacityUpdated(cap));
             Ok(().into())
@@ -567,18 +595,6 @@ pub mod pallet {
                 MatchingPool::<T>::take().matching(unbonding_amount);
             let staking_currency = Self::staking_currency()?;
             let account_id = Self::account_id();
-            let xcm_fees_compensation = Self::xcm_fees_compensation();
-
-            if !Self::xcm_fees_compensation().is_zero() {
-                T::Assets::burn_from(staking_currency, &account_id, xcm_fees_compensation)?;
-
-                InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
-                    *b = b
-                        .checked_sub(&Self::xcm_fees_compensation())
-                        .ok_or(ArithmeticError::Underflow)?;
-                    Ok(())
-                })?;
-            }
 
             if !bond_amount.is_zero() {
                 T::Assets::burn_from(staking_currency, &account_id, bond_amount)?;
@@ -693,7 +709,8 @@ pub mod pallet {
                     },
                 )));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg =
+                    Self::ump_transact(call.encode().into(), Self::xcm_weight().nominate_weight)?;
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -726,6 +743,31 @@ pub mod pallet {
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
             StakingCurrency::<T>::put(asset_id);
+            Ok(())
+        }
+
+        /// Anyone can transfer asset to the insurance pool
+        #[pallet::weight(<T as Config>::WeightInfo::add_insurances())]
+        #[transactional]
+        pub fn add_insurances(
+            origin: OriginFor<T>,
+            #[pallet::compact] amount: BalanceOf<T>,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+
+            T::Assets::transfer(
+                Self::staking_currency()?,
+                &who,
+                &Self::account_id(),
+                amount,
+                false,
+            )?;
+
+            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
+                Ok(())
+            })?;
+            Self::deposit_event(Event::<T>::InsurancesAdded(who, amount));
             Ok(())
         }
     }
@@ -842,7 +884,7 @@ pub mod pallet {
                         ],
                     })));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg = Self::ump_transact(call.encode().into(), Self::xcm_weight().bond_weight)?;
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -878,7 +920,8 @@ pub mod pallet {
                         ],
                     })));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg =
+                    Self::ump_transact(call.encode().into(), Self::xcm_weight().bond_extra_weight)?;
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -904,7 +947,8 @@ pub mod pallet {
                     },
                 )));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg =
+                    Self::ump_transact(call.encode().into(), Self::xcm_weight().unbond_weight)?;
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -930,7 +974,8 @@ pub mod pallet {
                     },
                 )));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg =
+                    Self::ump_transact(call.encode().into(), Self::xcm_weight().rebond_weight)?;
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -949,6 +994,8 @@ pub mod pallet {
             num_slashing_spans: u32,
             amount: BalanceOf<T>,
         ) -> DispatchResult {
+            T::Assets::mint_into(Self::staking_currency()?, &Self::account_id(), amount)?;
+
             switch_relay!({
                 let call =
                     RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
@@ -977,7 +1024,10 @@ pub mod pallet {
                         ],
                     })));
 
-                let msg = Self::ump_transact(call.encode().into());
+                let msg = Self::ump_transact(
+                    call.encode().into(),
+                    Self::xcm_weight().withdraw_unbonded_weight,
+                )?;
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -990,8 +1040,6 @@ pub mod pallet {
                     }
                 }
             });
-
-            T::Assets::mint_into(Self::staking_currency()?, &Self::account_id(), amount)?;
 
             Ok(())
         }
@@ -1010,15 +1058,27 @@ pub mod pallet {
             UnstakeQueue::<T>::mutate(|v| v.remove(0));
         }
 
-        fn ump_transact(call: DoubleEncoded<()>) -> Xcm<()> {
-            let asset: MultiAsset = (MultiLocation::here(), 1_000_000_000_000).into();
+        fn ump_transact(call: DoubleEncoded<()>, weight: Weight) -> Result<Xcm<()>, DispatchError> {
+            let fees = Self::xcm_fees_compensation();
+            ensure!(!fees.is_zero(), Error::<T>::XcmFeesCompensationTooLow);
 
-            WithdrawAsset {
+            let staking_currency = Self::staking_currency()?;
+            let account_id = Self::account_id();
+            let asset: MultiAsset = (MultiLocation::here(), u128::from(fees)).into();
+
+            T::Assets::burn_from(staking_currency, &account_id, fees)?;
+
+            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_sub(&fees).ok_or(ArithmeticError::Underflow)?;
+                Ok(())
+            })?;
+
+            Ok(WithdrawAsset {
                 assets: MultiAssets::from(asset.clone()),
                 effects: vec![
                     BuyExecution {
                         fees: asset,
-                        weight: 2_000_000_000,
+                        weight,
                         debt: 600_000_000,
                         halt_on_error: false,
                         instructions: vec![Transact {
@@ -1037,7 +1097,7 @@ pub mod pallet {
                         .into(),
                     },
                 ],
-            }
+            })
         }
     }
 }

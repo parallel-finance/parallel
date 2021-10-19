@@ -116,6 +116,7 @@ runtime-benchmarks = [
   'pallet-timestamp/runtime-benchmarks',
   'pallet-collective/runtime-benchmarks',
   'pallet-loans/runtime-benchmarks',
+  'pallet-liquid-staking/runtime-benchmarks',
   'pallet-xcm/runtime-benchmarks',
   'xcm-builder/runtime-benchmarks',
   'pallet-multisig/runtime-benchmarks',

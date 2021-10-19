@@ -7,7 +7,7 @@ use frame_support::{
     weights::constants::WEIGHT_PER_SECOND,
     PalletId,
 };
-use frame_system::{EnsureRoot, EnsureSignedBy};
+use frame_system::{EnsureOneOf, EnsureRoot, EnsureSignedBy};
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
@@ -285,8 +285,10 @@ impl SortedMembers<AccountId> for BobOrigin {
     }
 }
 
-pub type RelayOrigin = EnsureSignedBy<AliceOrigin, AccountId>;
-pub type UpdateOrigin = EnsureSignedBy<BobOrigin, AccountId>;
+pub type RelayOrigin =
+    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+pub type UpdateOrigin =
+    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
@@ -317,9 +319,7 @@ impl DerivativeProvider<AccountId> for DerivativeProviderT {
 impl crate::Config for Test {
     type Event = Event;
     type PalletId = StakingPalletId;
-    type BaseXcmWeight = BaseXcmWeight;
     type SelfParaId = SelfParaId;
-    type PeriodBasis = PeriodBasis;
     type WeightInfo = ();
     type XcmSender = XcmRouter;
     type DerivativeIndex = DerivativeIndex;
@@ -408,7 +408,8 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 
         LiquidStaking::set_liquid_currency(Origin::signed(BOB), XDOT).unwrap();
         LiquidStaking::set_staking_currency(Origin::signed(BOB), DOT).unwrap();
-        LiquidStaking::update_staking_pool_capacity(Origin::signed(ALICE), dot(10000f64)).unwrap();
+        LiquidStaking::update_staking_pool_capacity(Origin::signed(BOB), dot(10000f64)).unwrap();
+        LiquidStaking::update_xcm_fees_compensation(Origin::signed(BOB), dot(10f64)).unwrap();
     });
 
     ext
@@ -481,11 +482,12 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         System::set_block_number(1);
         Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
         Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 1000 * DOT_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 10000 * DOT_DECIMAL).unwrap();
 
         LiquidStaking::set_liquid_currency(Origin::signed(BOB), XDOT).unwrap();
         LiquidStaking::set_staking_currency(Origin::signed(BOB), DOT).unwrap();
-        LiquidStaking::update_staking_pool_capacity(Origin::signed(ALICE), dot(10000f64)).unwrap();
+        LiquidStaking::update_staking_pool_capacity(Origin::signed(BOB), dot(10000f64)).unwrap();
+        LiquidStaking::update_xcm_fees_compensation(Origin::signed(BOB), dot(10f64)).unwrap();
     });
 
     ext
