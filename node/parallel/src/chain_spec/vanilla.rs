@@ -13,12 +13,13 @@
 // limitations under the License.
 
 use cumulus_primitives_core::ParaId;
-use hex_literal::hex;
 use primitives::{network::NetworkType, *};
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::{crypto::UncheckedInto, sr25519};
+// use hex_literal::hex;
+// use sp_core::crypto::UncheckedInto;
+use sp_core::sr25519;
 use sp_runtime::{traits::Zero, FixedPointNumber};
 use vanilla_runtime::{
     opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, DemocracyConfig,
@@ -116,108 +117,133 @@ pub fn vanilla_dev_config(id: ParaId) -> ChainSpec {
     )
 }
 
-pub fn vanilla_local_testnet_config(id: ParaId) -> ChainSpec {
-    ChainSpec::from_genesis(
-        // Name
-        "Vanilla Local Testnet",
-        // ID
-        "vanilla-local",
-        ChainType::Local,
-        move || {
-            let root_key = "5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf"
-                .parse()
-                .unwrap();
-            let invulnerables: Vec<(AccountId, AuraId)> = vec![(
-                // 5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf//collator
-                hex!["0af2d7eedd51f8ef80ad82140631d58582034a6108f350d7ab04ded94c9d253f"].into(),
-                hex!["0af2d7eedd51f8ef80ad82140631d58582034a6108f350d7ab04ded94c9d253f"]
-                    .unchecked_into(),
-            )];
-            // 5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf//oracle
-            let oracle_accounts = vec!["5DCp1LrGsmtPj5R1jLnxC5kPvSYJTgY1zxbF3TzrHHMoqsvt"
-                .parse()
-                .unwrap()];
-            // 5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf//validator_feeder
-            let validator_feeders = vec!["5CQ5wx8MYTWGzHY3DUspGBfMnyuMg2L84bWyxJJNq7AugUj6"
-                .parse()
-                .unwrap()];
-            let initial_allocation = accumulate(
-                vec![
-                    // Faucet accounts
-                    "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                        .parse()
-                        .unwrap(),
-                    // Team members accounts
-                    "5G4fc9GN6DeFQm4h2HKq3d9hBTsBJWSLWkyuk35cKHh2sqEz"
-                        .parse()
-                        .unwrap(),
-                    "5DhZeTQqotvntGtrg69T2VK9pzUPXHiVyGUTmp5XFTDTT7ME"
-                        .parse()
-                        .unwrap(),
-                    "5GBykvvrUz3vwTttgHzUEPdm7G1FND1reBfddQLdiaCbhoMd"
-                        .parse()
-                        .unwrap(),
-                    "5G3f6iLDU6mbyEiJH8icoLhFy4RZ6TvWUZSkDwtg1nXTV3QK"
-                        .parse()
-                        .unwrap(),
-                    "5G97JLuuT1opraWvfS6Smt4jaAZuyDquP9GjamKVcPC366qU"
-                        .parse()
-                        .unwrap(),
-                    "5G9eFoXB95fdwFJK9utBf1AgiLvhPUvzArYR2knzXKrKtZPZ"
-                        .parse()
-                        .unwrap(),
-                    "1Gu7GSgLSPrhc1Wci9wAGP6nvzQfaUCYqbfXxjYjMG9bob6"
-                        .parse()
-                        .unwrap(),
-                ]
-                .iter()
-                .flat_map(|x: &AccountId| {
-                    if x == &"5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                        .parse()
-                        .unwrap()
-                    {
-                        vec![(x.clone(), 10_u128.pow(20))]
-                    } else {
-                        vec![(x.clone(), 10_u128.pow(16))]
-                    }
-                }),
-            );
-            let council = vec![
-                "5G3f6iLDU6mbyEiJH8icoLhFy4RZ6TvWUZSkDwtg1nXTV3QK"
-                    .parse()
-                    .unwrap(),
-                "5GBykvvrUz3vwTttgHzUEPdm7G1FND1reBfddQLdiaCbhoMd"
-                    .parse()
-                    .unwrap(),
-                "5DhZeTQqotvntGtrg69T2VK9pzUPXHiVyGUTmp5XFTDTT7ME"
-                    .parse()
-                    .unwrap(),
-                "1Gu7GSgLSPrhc1Wci9wAGP6nvzQfaUCYqbfXxjYjMG9bob6"
-                    .parse()
-                    .unwrap(),
-            ];
-            let technical_committee = vec![];
-
-            vanilla_genesis(
-                root_key,
-                invulnerables,
-                oracle_accounts,
-                initial_allocation,
-                validator_feeders,
-                council,
-                technical_committee,
-                id,
-            )
-        },
-        vec![],
-        TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
-        Some("vanilla-local"),
-        Some(as_properties(NetworkType::Heiko)),
-        Extensions {
-            relay_chain: "westend".into(),
-            para_id: id.into(),
-        },
-    )
+pub fn vanilla_config(_id: ParaId) -> Result<ChainSpec, String> {
+    ChainSpec::from_json_bytes(&include_bytes!("../../../../resources/specs/vanilla.json")[..])
+    // Ok(ChainSpec::from_genesis(
+    //     // Name
+    //     "Vanilla",
+    //     // ID
+    //     "vanilla",
+    //     ChainType::Live,
+    //     move || {
+    //         let root_key = "5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf"
+    //             .parse()
+    //             .unwrap();
+    //         let invulnerables: Vec<(AccountId, AuraId)> = vec![
+    //             (
+    //                 // 5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf//collator1
+    //                 hex!["1a5dd54d1cef45e6140b54f3b83fdbbf41fec82645ad826d4f8cf106c88dd00e"].into(),
+    //                 hex!["1a5dd54d1cef45e6140b54f3b83fdbbf41fec82645ad826d4f8cf106c88dd00e"]
+    //                     .unchecked_into(),
+    //             ),
+    //             (
+    //                 // 5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf//collator2
+    //                 hex!["c6b255117d87f959c4e564888dc4987e0c3c35a60872a7fac4c38d771b39b70c"].into(),
+    //                 hex!["c6b255117d87f959c4e564888dc4987e0c3c35a60872a7fac4c38d771b39b70c"]
+    //                     .unchecked_into(),
+    //             ),
+    //         ];
+    //         // 5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf//oracle1
+    //         let oracle_accounts = vec!["5EUHNqqv9DTieD5582b1MWuVhfztzsCLjcawp6mBDYxL2sb6"
+    //             .parse()
+    //             .unwrap()];
+    //         // 5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf//validator_feeder1
+    //         let validator_feeders = vec!["5CwJrAMQdQsihzGBeSWik8GTZuCcogKo1AkXuaoFBQbmnHjJ"
+    //             .parse()
+    //             .unwrap()];
+    //         let initial_allocation = accumulate(
+    //             vec![
+    //                 // Faucet accounts
+    //                 "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+    //                     .parse()
+    //                     .unwrap(),
+    //                 // Team members accounts
+    //                 "5DhZeTQqotvntGtrg69T2VK9pzUPXHiVyGUTmp5XFTDTT7ME"
+    //                     .parse()
+    //                     .unwrap(),
+    //                 "5GBykvvrUz3vwTttgHzUEPdm7G1FND1reBfddQLdiaCbhoMd"
+    //                     .parse()
+    //                     .unwrap(),
+    //                 "5G9eFoXB95fdwFJK9utBf1AgiLvhPUvzArYR2knzXKrKtZPZ"
+    //                     .parse()
+    //                     .unwrap(),
+    //                 "1Gu7GSgLSPrhc1Wci9wAGP6nvzQfaUCYqbfXxjYjMG9bob6"
+    //                     .parse()
+    //                     .unwrap(),
+    //                 "5G9eFoXB95fdwFJK9utBf1AgiLvhPUvzArYR2knzXKrKtZPZ"
+    //                     .parse()
+    //                     .unwrap(),
+    //                 "5CzR4NFben6n7uk3jZCVCoZbpA9fpdwrJdE1rznQXuFxMkTn"
+    //                     .parse()
+    //                     .unwrap(),
+    //             ]
+    //             .iter()
+    //             .flat_map(|x: &AccountId| {
+    //                 if x == &"5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
+    //                     .parse()
+    //                     .unwrap()
+    //                 {
+    //                     vec![(x.clone(), 10_u128.pow(20))]
+    //                 } else {
+    //                     vec![(x.clone(), 10_u128.pow(16))]
+    //                 }
+    //             }),
+    //         );
+    //         let council = vec![
+    //             "5GBykvvrUz3vwTttgHzUEPdm7G1FND1reBfddQLdiaCbhoMd"
+    //                 .parse()
+    //                 .unwrap(),
+    //             "5DhZeTQqotvntGtrg69T2VK9pzUPXHiVyGUTmp5XFTDTT7ME"
+    //                 .parse()
+    //                 .unwrap(),
+    //             "1Gu7GSgLSPrhc1Wci9wAGP6nvzQfaUCYqbfXxjYjMG9bob6"
+    //                 .parse()
+    //                 .unwrap(),
+    //             "5CzR4NFben6n7uk3jZCVCoZbpA9fpdwrJdE1rznQXuFxMkTn"
+    //                 .parse()
+    //                 .unwrap(),
+    //             "5G9eFoXB95fdwFJK9utBf1AgiLvhPUvzArYR2knzXKrKtZPZ"
+    //                 .parse()
+    //                 .unwrap(),
+    //         ];
+    //         let technical_committee = vec![
+    //             "5GBykvvrUz3vwTttgHzUEPdm7G1FND1reBfddQLdiaCbhoMd"
+    //                 .parse()
+    //                 .unwrap(),
+    //             "5DhZeTQqotvntGtrg69T2VK9pzUPXHiVyGUTmp5XFTDTT7ME"
+    //                 .parse()
+    //                 .unwrap(),
+    //             "5G9eFoXB95fdwFJK9utBf1AgiLvhPUvzArYR2knzXKrKtZPZ"
+    //                 .parse()
+    //                 .unwrap(),
+    //             "5CzR4NFben6n7uk3jZCVCoZbpA9fpdwrJdE1rznQXuFxMkTn"
+    //                 .parse()
+    //                 .unwrap(),
+    //         ];
+    //
+    //         vanilla_genesis(
+    //             root_key,
+    //             invulnerables,
+    //             oracle_accounts,
+    //             initial_allocation,
+    //             validator_feeders,
+    //             council,
+    //             technical_committee,
+    //             id,
+    //         )
+    //     },
+    //     vec![
+    //         "/dns/vanilla-bootnode-0.parallel.fi/tcp/30333/p2p/12D3KooWP3xQ2EzF9stuQTNsHw7DPY4CYjdBuABiN7VShfJ6phia".parse().unwrap(),
+    //         "/dns/vanilla-bootnode-1.parallel.fi/tcp/30333/p2p/12D3KooWK984FD65FoNMDS6EMdgmjKKJPKvzwXroPRNjg7eLFSz7".parse().unwrap(),
+    //     ],
+    //     TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
+    //     Some("vanilla"),
+    //     Some(as_properties(NetworkType::Heiko)),
+    //     Extensions {
+    //         relay_chain: "westend-local".into(),
+    //         para_id: id.into(),
+    //     },
+    // ))
 }
 
 fn vanilla_genesis(
