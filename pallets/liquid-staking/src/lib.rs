@@ -335,9 +335,8 @@ pub mod pallet {
         ///     - Queue is empty.
         ///     - `remaining_weight` is less than one pop_queue needed.
         fn on_idle(_n: BlockNumberFor<T>, mut remaining_weight: Weight) -> Weight {
-            // TODO should use T::WeightInfo::on_idle instead
             // on_idle shouldn't run out of all remaining_weight normally
-            let base_weight = 10_000;
+            let base_weight = T::WeightInfo::on_idle();
             let staking_currency = Self::staking_currency();
 
             // Return if staking_currency haven't been set.
@@ -995,6 +994,8 @@ pub mod pallet {
             num_slashing_spans: u32,
             amount: BalanceOf<T>,
         ) -> DispatchResult {
+            T::Assets::mint_into(Self::staking_currency()?, &Self::account_id(), amount)?;
+
             switch_relay!({
                 let call =
                     RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
@@ -1039,8 +1040,6 @@ pub mod pallet {
                     }
                 }
             });
-
-            T::Assets::mint_into(Self::staking_currency()?, &Self::account_id(), amount)?;
 
             Ok(())
         }
