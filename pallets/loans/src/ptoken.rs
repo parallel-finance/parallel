@@ -14,18 +14,15 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use crate::{types::Deposits, AssetIdOf, BalanceOf, *};
 use frame_support::traits::tokens::{
     fungibles::{Inspect, Transfer},
     DepositConsequence, WithdrawConsequence,
 };
-use sp_runtime::{traits::AtLeast32BitUnsigned, FixedPointOperand};
-
-use crate::{types::Deposits, AssetIdOf, BalanceOf, *};
 
 impl<T: Config> Inspect<T::AccountId> for Pallet<T>
 where
-    BalanceOf<T>: FixedPointOperand + From<u128>,
-    AssetIdOf<T>: AtLeast32BitUnsigned,
+    BalanceOf<T>: From<u128>,
 {
     type AssetId = AssetIdOf<T>;
     type Balance = BalanceOf<T>;
