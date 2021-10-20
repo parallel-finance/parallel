@@ -1,6 +1,6 @@
 relaychain:
   image: parallelfinance/polkadot:v0.9.11
-  chain: westend-local
+  chain: kusama-local
   runtimeGenesisConfig:
     configuration:
       config:
