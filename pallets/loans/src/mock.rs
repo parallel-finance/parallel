@@ -287,6 +287,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         Assets::mint(Origin::signed(ALICE), KSM, BOB, dollar(1000)).unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, BOB, dollar(1000)).unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, DAVE, dollar(1000)).unwrap();
+        Assets::mint(Origin::signed(ALICE), USDT, DAVE, dollar(1000)).unwrap();
 
         // Init Markets
         Loans::add_market(Origin::root(), HKO, market_mock(PHKO)).unwrap();

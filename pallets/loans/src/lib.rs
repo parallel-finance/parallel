@@ -24,8 +24,6 @@
 
 pub use crate::rate_model::*;
 
-pub use pallet::*;
-
 use frame_support::{
     log,
     pallet_prelude::*,
@@ -142,6 +140,8 @@ pub mod pallet {
         PriceOracleNotReady,
         /// Invalid asset id
         InvalidCurrencyId,
+        /// Invalid ptoken id
+        InvalidPtokenId,
         /// Market does not exist
         MarketDoesNotExist,
         /// Market already exists
@@ -304,7 +304,9 @@ pub mod pallet {
     pub type Markets<T: Config> =
         StorageMap<_, Blake2_128Concat, AssetIdOf<T>, Market<BalanceOf<T>>>;
 
-    /// Mapping of ptoken id to its underlying asset id
+    /// Mapping of ptoken id to asset id
+    /// `ptoken id`: voucher token id
+    /// `asset id`: underlying token id
     #[pallet::storage]
     pub type UnderlyingAssetId<T: Config> =
         StorageMap<_, Blake2_128Concat, AssetIdOf<T>, AssetIdOf<T>>;
@@ -420,7 +422,7 @@ pub mod pallet {
             );
 
             // Ensures a given `ptoken_id` not exists on the `Market` and `UnderlyingAssetId`.
-            Self::ensure_ptoken_unique(market.ptoken_id)?;
+            Self::ensure_ptoken(market.ptoken_id)?;
             // Update storage of `Market` and `UnderlyingAssetId`
             Markets::<T>::insert(asset_id, market.clone());
             UnderlyingAssetId::<T>::insert(market.ptoken_id, asset_id);
@@ -1245,15 +1247,17 @@ impl<T: Config> Pallet<T> {
     }
 
     // Ensures a given `ptoken_id` is unique in `Markets` and `UnderlyingAssetId`.
-    fn ensure_ptoken_unique(ptoken_id: CurrencyId) -> DispatchResult {
+    fn ensure_ptoken(ptoken_id: CurrencyId) -> DispatchResult {
+        // The ptoken id is unique, cannot be repeated
         ensure!(
             !UnderlyingAssetId::<T>::contains_key(ptoken_id),
-            Error::<T>::InvalidCurrencyId
+            Error::<T>::InvalidPtokenId
         );
 
+        // The ptoken id should not be the same as the id of any asset in markets
         ensure!(
             !Markets::<T>::contains_key(ptoken_id),
-            Error::<T>::InvalidCurrencyId
+            Error::<T>::InvalidPtokenId
         );
 
         Ok(())
@@ -1317,12 +1321,12 @@ impl<T: Config> Pallet<T> {
         Markets::<T>::iter().filter(|(_, market)| market.state == MarketState::Active)
     }
 
-    // Returns a stored ptoken_asset map.
+    // Returns a stored asset_id
     //
-    // Returns `Err` if map does not exist.
+    // Returns `Err` if asset_id does not exist, it also means that ptoken_id is invalid.
     pub fn underlying_id(ptoken_id: AssetIdOf<T>) -> Result<AssetIdOf<T>, DispatchError> {
         UnderlyingAssetId::<T>::try_get(ptoken_id)
-            .map_err(|_err| Error::<T>::MarketDoesNotExist.into())
+            .map_err(|_err| Error::<T>::InvalidPtokenId.into())
     }
 
     // Returns the ptoken_id of the related asset

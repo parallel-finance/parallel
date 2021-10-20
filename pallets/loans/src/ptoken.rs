@@ -14,16 +14,13 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{
-    log,
-    traits::tokens::{
-        fungibles::{Inspect, Transfer},
-        DepositConsequence, WithdrawConsequence,
-    },
+use frame_support::traits::tokens::{
+    fungibles::{Inspect, Transfer},
+    DepositConsequence, WithdrawConsequence,
 };
 use sp_runtime::{traits::AtLeast32BitUnsigned, FixedPointOperand};
 
-use crate::{AssetIdOf, BalanceOf, *};
+use crate::{types::Deposits, AssetIdOf, BalanceOf, *};
 
 impl<T: Config> Inspect<T::AccountId> for Pallet<T>
 where
@@ -43,18 +40,19 @@ where
         Zero::zero()
     }
 
-    /// Get the balance of `who`.
+    /// Get the ptoken balance of `who`.
     fn balance(asset: Self::AssetId, who: &T::AccountId) -> Self::Balance {
         Self::account_deposits(asset, who).voucher_balance
     }
 
     /// Get the maximum amount that `who` can withdraw/transfer successfully.
+    /// For ptoken, We don't care if keep_alive is enabled
     fn reducible_balance(
         asset_id: Self::AssetId,
         who: &T::AccountId,
         _keep_alive: bool,
     ) -> Self::Balance {
-        Self::can_move(asset_id, who).unwrap_or_default()
+        Self::reducible_ptoken(asset_id, who).unwrap_or_default()
     }
 
     /// Returns `true` if the balance of `who` may be increased by `amount`.
@@ -105,9 +103,11 @@ where
 
 impl<T: Config> Transfer<T::AccountId> for Pallet<T>
 where
-    BalanceOf<T>: FixedPointOperand + From<u128>,
-    AssetIdOf<T>: AtLeast32BitUnsigned,
+    BalanceOf<T>: From<u128>,
 {
+    /// Returns `Err` if the reducible ptoken of `who` is insufficient
+    ///
+    /// For ptoken, We don't care if keep_alive is enabled
     fn transfer(
         asset: Self::AssetId,
         source: &T::AccountId,
@@ -128,10 +128,9 @@ where
 
 impl<T: Config> Pallet<T>
 where
-    BalanceOf<T>: FixedPointOperand + From<u128>,
-    AssetIdOf<T>: AtLeast32BitUnsigned,
+    BalanceOf<T>: From<u128>,
 {
-    pub(crate) fn transfer_ptokens_internal(
+    fn transfer_ptokens_internal(
         ptoken_id: AssetIdOf<T>,
         source: &T::AccountId,
         dest: &T::AccountId,
@@ -164,11 +163,11 @@ where
         Ok(())
     }
 
-    pub(super) fn can_move(
+    fn reducible_ptoken(
         asset_id: AssetIdOf<T>,
         who: &T::AccountId,
     ) -> Result<BalanceOf<T>, DispatchError> {
-        let crate::types::Deposits {
+        let Deposits {
             is_collateral,
             voucher_balance,
         } = Self::account_deposits(asset_id, &who);
@@ -183,24 +182,25 @@ where
         // liquidity of all assets
         let (liquidity, _) = Self::get_account_liquidity(who)?;
 
-        if liquidity > collateral_value {
+        if liquidity >= collateral_value {
             return Ok(voucher_balance);
         }
 
         // Formula
-        // usable_voucher_amount = liquidity / collateral_factor / price
-        // TODO(alannotnerd): Add full test cases.
+        // reducible_underlying_amount = liquidity / collateral_factor / price
         let price = Self::get_price(asset_id)?;
 
-        let usable_voucher_amount = liquidity
+        let reducible_supply_balance = liquidity
             .checked_div(&market.collateral_factor.into())
-            .and_then(|v| v.checked_div(&price))
-            .ok_or(ArithmeticError::Overflow)?
+            .ok_or(ArithmeticError::Overflow)?;
+
+        let reducible_underlying_amount = reducible_supply_balance
+            .checked_div(&price)
+            .ok_or(ArithmeticError::Underflow)?
             .into_inner();
 
         let exchange_rate = Self::exchange_rate(asset_id);
-        let amount = Self::calc_collateral_amount(usable_voucher_amount, exchange_rate)?;
-        log::trace!(target: "loans::can_move", "{:?}", amount);
+        let amount = Self::calc_collateral_amount(reducible_underlying_amount, exchange_rate)?;
         Ok(amount)
     }
 }

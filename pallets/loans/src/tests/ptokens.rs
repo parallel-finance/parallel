@@ -1,7 +1,7 @@
 use crate::{
     mock::{
         market_mock, new_test_ext, Loans, Origin, Test, ALICE, DAVE, HKO, KSM, MARKET_MOCK, PHKO,
-        XDOT,
+        USDT, XDOT,
     },
     tests::dollar,
     Error,
@@ -43,14 +43,31 @@ fn trait_inspect_methods_works() {
         );
 
         // DAVE Deposit 100 HKO, Borrow 25 HKO
-        // Liquidity HKO 50
+        // Liquidity HKO 25
         // Formula: ptokens = liquidity / price(1) / collateral(0.5) / exchange_rate(0.02)
         assert_eq!(
             Loans::reducible_balance(HKO, &DAVE, true),
             dollar(25) * 2 * 50
         );
 
-        assert_ok!(Loans::borrow(Origin::signed(DAVE), HKO, dollar(25)));
+        // Multi-asset case, additional deposit USDT
+        // DAVE Deposit 100 HKO, 50 USDT, Borrow 25 HKO
+        // Liquidity HKO = 25, USDT = 25
+        // ptokens = dollar(25 + 25) / 1 / 0.5 / 0.02 = dollar(50) * 100
+        assert_ok!(Loans::mint(Origin::signed(DAVE), USDT, dollar(50)));
+        assert_eq!(Loans::balance(USDT, &DAVE), dollar(50) * 50);
+        assert_eq!(
+            Loans::reducible_balance(USDT, &DAVE, true),
+            dollar(25) * 2 * 50
+        );
+        // enable USDT collateral
+        assert_ok!(Loans::collateral_asset(Origin::signed(DAVE), USDT, true));
+        assert_eq!(
+            Loans::reducible_balance(HKO, &DAVE, true),
+            dollar(25 + 25) * 2 * 50
+        );
+
+        assert_ok!(Loans::borrow(Origin::signed(DAVE), HKO, dollar(50)));
         assert_eq!(Loans::reducible_balance(HKO, &DAVE, true), 0);
 
         assert_eq!(Loans::total_issuance(HKO), dollar(100) * 50);
@@ -65,13 +82,13 @@ fn ptoken_unique_works() {
         // ptoken_id already exists in `UnderlyingAssetId`
         assert_noop!(
             Loans::add_market(Origin::root(), XDOT, market_mock(PHKO)),
-            Error::<Test>::InvalidCurrencyId
+            Error::<Test>::InvalidPtokenId
         );
 
-        // ptoken_id token id cannot as the same as the asset id in `Markets`
+        // ptoken_id cannot as the same as the asset id in `Markets`
         assert_noop!(
             Loans::add_market(Origin::root(), XDOT, market_mock(KSM)),
-            Error::<Test>::InvalidCurrencyId
+            Error::<Test>::InvalidPtokenId
         );
     })
 }
