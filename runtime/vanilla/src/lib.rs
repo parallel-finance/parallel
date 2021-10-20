@@ -695,7 +695,7 @@ pub type LocalOriginToLocation = (SignedToAccountId32<Origin, AccountId, RelayNe
 /// queues.
 pub type XcmRouter = (
     // Two routers - use UMP to communicate with the relay chain:
-    cumulus_primitives_utility::ParentAsUmp<ParachainSystem, ()>,
+    cumulus_primitives_utility::ParentAsUmp<ParachainSystem, PolkadotXcm>,
     // ..and XCMP to communicate with the sibling chains.
     XcmpQueue,
 );
@@ -816,7 +816,11 @@ parameter_types! {
     pub KsmPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), ksm_per_second());
 }
 
-pub type Barrier = (TakeWeightCredit, AllowTopLevelPaidExecutionFrom<Everything>);
+pub type Barrier = (
+    TakeWeightCredit,
+    AllowSubscriptionsFrom<Everything>,
+    AllowTopLevelPaidExecutionFrom<Everything>,
+);
 
 pub struct ToTreasury;
 impl TakeRevenue for ToTreasury {
