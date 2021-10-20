@@ -67,10 +67,11 @@ use primitives::{
 
 use xcm::latest::prelude::*;
 use xcm_builder::{
-    AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedRateOfFungible,
-    FixedWeightBounds, LocationInverter, ParentAsSuperuser, ParentIsDefault, RelayChainAsNative,
-    SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-    SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit,
+    AccountId32Aliases, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin,
+    FixedRateOfFungible, FixedWeightBounds, LocationInverter, ParentAsSuperuser, ParentIsDefault,
+    RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
+    SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue,
+    TakeWeightCredit,
 };
 use xcm_executor::{Config, XcmExecutor};
 pub mod constants;
