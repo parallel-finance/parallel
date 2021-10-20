@@ -94,7 +94,7 @@ fn active_market_sets_state_to_active() {
     new_test_ext().execute_with(|| {
         Loans::add_market(Origin::root(), XDOT, MARKET_MOCK).unwrap();
         assert_eq!(Loans::market(XDOT).unwrap().state, MarketState::Pending);
-        Loans::activate_market(Origin::root(), XDOT).unwrap();
+        Loans::active_market(Origin::root(), XDOT).unwrap();
         assert_eq!(Loans::market(XDOT).unwrap().state, MarketState::Active);
     })
 }
@@ -103,7 +103,7 @@ fn active_market_sets_state_to_active() {
 fn active_market_does_not_modify_unknown_market_currencies() {
     new_test_ext().execute_with(|| {
         assert_noop!(
-            Loans::activate_market(Origin::root(), XDOT),
+            Loans::active_market(Origin::root(), XDOT),
             Error::<Test>::MarketDoesNotExist
         );
     })
