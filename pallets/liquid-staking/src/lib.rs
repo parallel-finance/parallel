@@ -1076,7 +1076,7 @@ pub mod pallet {
                 RefundSurplus,
                 DepositAsset {
                     assets: asset.into(),
-                    max_assets: u32::max_value(),
+                    max_assets: 1,
                     beneficiary: MultiLocation {
                         parents: 1,
                         interior: X1(AccountId32 {
