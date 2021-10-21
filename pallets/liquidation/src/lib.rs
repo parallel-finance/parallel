@@ -25,22 +25,23 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::{log, pallet_prelude::*, traits::tokens::fungibles::Inspect, transactional};
-use frame_system::offchain::{
-    AppCrypto, CreateSignedTransaction, ForAny, SendSignedTransaction, Signer,
+use frame_system::{
+    offchain::{AppCrypto, CreateSignedTransaction, ForAny, SendSignedTransaction, Signer},
+    pallet_prelude::*,
 };
-use frame_system::pallet_prelude::*;
 use sp_core::crypto::KeyTypeId;
 use sp_runtime::{
     offchain::{
         storage_lock::{StorageLock, Time},
         Duration,
     },
-    traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedMul, Zero},
-    ArithmeticError, FixedPointNumber, FixedPointOperand, FixedU128, Percent, SaturatedConversion,
+    traits::{CheckedAdd, CheckedMul, Zero},
+    ArithmeticError, FixedPointNumber, FixedU128, Percent, SaturatedConversion,
 };
 use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
 pub use pallet::*;
+
 use pallet_loans::WeightInfo;
 use primitives::Rate;
 
@@ -93,9 +94,6 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config:
         CreateSignedTransaction<Call<Self>> + frame_system::Config + pallet_loans::Config
-    where
-        BalanceOf<Self>: FixedPointOperand,
-        AssetIdOf<Self>: AtLeast32BitUnsigned,
     {
         /// The account type to perform liquidation
         type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
@@ -124,11 +122,7 @@ pub mod pallet {
     }
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T>
-    where
-        BalanceOf<T>: FixedPointOperand,
-        AssetIdOf<T>: AtLeast32BitUnsigned,
-    {
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn offchain_worker(block_number: T::BlockNumber) {
             if let Err(e) = Self::liquidate(block_number) {
                 log::error!("Failed to run offchain liquidation: {:?}", e);
@@ -137,11 +131,7 @@ pub mod pallet {
     }
 
     #[pallet::call]
-    impl<T: Config> Pallet<T>
-    where
-        BalanceOf<T>: FixedPointOperand,
-        AssetIdOf<T>: AtLeast32BitUnsigned,
-    {
+    impl<T: Config> Pallet<T> {
         /// The same liquidate_borrow call in loans pallet.
         ///
         /// - `borrower`: the owner of a loan
@@ -172,11 +162,7 @@ pub mod pallet {
     }
 }
 
-impl<T: Config> Pallet<T>
-where
-    BalanceOf<T>: FixedPointOperand,
-    AssetIdOf<T>: AtLeast32BitUnsigned,
-{
+impl<T: Config> Pallet<T> {
     fn liquidate(_block_number: T::BlockNumber) -> Result<(), Error<T>> {
         let mut lock = StorageLock::<Time>::with_deadline(
             b"liquidate::lock",
@@ -364,13 +350,11 @@ where
         liquidation_value: BalanceOf<T>,
         collateral_currency: AssetIdOf<T>,
     ) {
-        match signer.send_signed_transaction(|_account| {
-            Call::liquidate_borrow(
-                borrower.clone(),
-                loan_currency,
-                liquidation_value,
-                collateral_currency,
-            )
+        match signer.send_signed_transaction(|_account| Call::liquidate_borrow {
+            borrower: borrower.clone(),
+            liquidate_currency: loan_currency,
+            repay_amount: liquidation_value,
+            collateral_currency,
         }) {
             None => log::info!("No available accounts for liquidation"),
             Some((acc, Ok(()))) => log::info!(

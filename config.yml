@@ -1,6 +1,6 @@
 relaychain:
-  image: parallelfinance/polkadot:v0.9.10-1
-  chain: westend-local
+  image: parallelfinance/polkadot:v0.9.11
+  chain: kusama-local
   runtimeGenesisConfig:
     configuration:
       config:
@@ -9,6 +9,7 @@ relaychain:
   flags:
     - --rpc-methods=unsafe
     - --no-beefy
+    - -lxcm=trace
   nodes:
     - name: alice
     - name: bob
@@ -38,7 +39,7 @@ parachains:
       - flags:
           - --charlie
 
-  # - image: parallelfinance/statemine:v0.9.10
+  # - image: parallelfinance/statemine:v0.9.11
   #   chain:
   #     base: statemint-dev
   #     collators:

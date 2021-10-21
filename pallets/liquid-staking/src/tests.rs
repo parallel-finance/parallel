@@ -10,12 +10,9 @@ use primitives::{
     tokens::{DOT, XDOT},
     Balance, Rate,
 };
-use sp_runtime::traits::{AccountIdLookup, One, StaticLookup};
-use xcm::latest::prelude::ExecuteXcm;
+use sp_runtime::traits::One;
 use xcm_simulator::TestExt;
 
-use crate::types::WestendCall as RelaychainCall;
-use codec::Encode;
 use types::*;
 
 #[test]
@@ -90,7 +87,7 @@ fn unstake_should_work() {
 fn test_record_staking_settlement_ok() {
     new_test_ext().execute_with(|| {
         assert_ok!(LiquidStaking::record_staking_settlement(
-            Origin::signed(ALICE),
+            Origin::signed(BOB),
             dot(100f64),
             StakingSettlementKind::Reward
         ));
@@ -103,7 +100,7 @@ fn test_record_staking_settlement_ok() {
 fn test_duplicated_record_staking_settlement() {
     new_test_ext().execute_with(|| {
         LiquidStaking::record_staking_settlement(
-            Origin::signed(ALICE),
+            Origin::signed(BOB),
             100,
             StakingSettlementKind::Reward,
         )
@@ -132,19 +129,19 @@ fn test_settlement_should_work() {
     ParaA::execute_with(|| {
         let test_case: Vec<(Vec<StakeOp>, Balance, (Balance, Balance, Balance), Balance)> = vec![
             (
-                vec![Stake(dot(500f64)), Unstake(dot(100f64))],
+                vec![Stake(dot(5000f64)), Unstake(dot(1000f64))],
                 0,
-                (dot(397.5f64), 0, 0),
-                dot(2.5f64),
+                (dot(3975f64), 0, 0),
+                dot(25f64),
             ),
             // Calculate right here.
             (
                 vec![Unstake(dot(10f64)), Unstake(dot(5f64)), Stake(dot(10f64))],
                 0,
                 (0, 0, dot(5.05f64)),
-                dot(2.55f64),
+                dot(15.05f64),
             ),
-            (vec![], 0, (0, 0, 0), dot(2.55f64)),
+            (vec![], 0, (0, 0, 0), dot(5.05f64)),
         ];
 
         for (stake_ops, unbonding_amount, matching_result, insurance_pool) in test_case.into_iter()
@@ -167,7 +164,7 @@ fn test_settlement_should_work() {
         assert_eq!(
             RelayBalances::free_balance(&LiquidStaking::para_account_id()),
             // FIXME: weight should be take into account
-            9999979517112000
+            9999800000000000
         );
     });
 }
@@ -177,6 +174,11 @@ fn test_transact_bond_work() {
     TestNet::reset();
 
     ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::stake(
+            Origin::signed(ALICE),
+            2000 * DOT_DECIMAL,
+        ));
+
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             3 * DOT_DECIMAL,
@@ -205,6 +207,11 @@ fn test_transact_bond_extra_work() {
     TestNet::reset();
 
     ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::stake(
+            Origin::signed(ALICE),
+            4000 * DOT_DECIMAL,
+        ));
+
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             2 * DOT_DECIMAL,
@@ -228,6 +235,11 @@ fn test_transact_unbond_work() {
     TestNet::reset();
 
     ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::stake(
+            Origin::signed(ALICE),
+            6000 * DOT_DECIMAL,
+        ));
+
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             5 * DOT_DECIMAL,
@@ -259,6 +271,11 @@ fn test_transact_withdraw_unbonded_work() {
     TestNet::reset();
 
     ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::stake(
+            Origin::signed(ALICE),
+            6000 * DOT_DECIMAL,
+        ));
+
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             5 * DOT_DECIMAL,
@@ -311,6 +328,11 @@ fn test_transact_rebond_work() {
     TestNet::reset();
 
     ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::stake(
+            Origin::signed(ALICE),
+            6000 * DOT_DECIMAL,
+        ));
+
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             10 * DOT_DECIMAL,
@@ -350,6 +372,11 @@ fn test_transact_nominate_work() {
     TestNet::reset();
 
     ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::stake(
+            Origin::signed(ALICE),
+            4000 * DOT_DECIMAL,
+        ));
+
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             10 * DOT_DECIMAL,
@@ -380,111 +407,14 @@ fn stake_should_correctly_add_insurance_pool() {
 }
 
 #[test]
-fn test_transfer_and_then_bond() {
-    TestNet::reset();
-    let xcm_transfer_amount = 30 * DOT_DECIMAL;
-    let relay_transfer_amount = 12 * DOT_DECIMAL;
-    ParaA::execute_with(|| {
-        let stash = LiquidStaking::derivative_para_account_id();
-        let controller = stash.clone();
-        let payee = RewardDestination::<AccountId>::Staked;
-        let bond_call =
-            RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
-                calls: vec![
-                    RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
-                        BalancesTransferKeepAliveCall {
-                            dest: AccountIdLookup::<AccountId, ()>::unlookup(stash.clone()),
-                            value: relay_transfer_amount,
-                        },
-                    )),
-                    RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
-                        UtilityAsDerivativeCall {
-                            index: 0,
-                            call: RelaychainCall::Staking::<Test>(StakingCall::Bond(
-                                StakingBondCall {
-                                    controller: AccountIdLookup::<AccountId, ()>::unlookup(
-                                        controller.clone(),
-                                    ),
-                                    value: relay_transfer_amount,
-                                    payee: payee.clone(),
-                                },
-                            )),
-                        },
-                    ))),
-                ],
-            })));
-        let bond_transact_xcm = Transact {
-            origin_type: OriginKind::SovereignAccount,
-            require_weight_at_most: u64::MAX,
-            call: bond_call.encode().into(),
-        };
-
-        let asset: MultiAsset = (MultiLocation::parent(), xcm_transfer_amount).into();
-        let reserve = MultiLocation::parent();
-        let recipient = MultiLocation::new(
-            0,
-            X1(Junction::AccountId32 {
-                network: NetworkId::Any,
-                id: LiquidStaking::derivative_para_account_id().into(),
-            }),
-        );
-        let fees: MultiAsset = (MultiLocation::here(), xcm_transfer_amount).into();
-        let msg = WithdrawAsset {
-            assets: asset.clone().into(),
-            effects: vec![InitiateReserveWithdraw {
-                assets: All.into(),
-                reserve: reserve.clone(),
-                effects: vec![
-                    BuyExecution {
-                        fees,
-                        weight: 0,
-                        debt: 30,
-                        halt_on_error: false,
-                        instructions: vec![bond_transact_xcm],
-                    },
-                    DepositAsset {
-                        assets: All.into(),
-                        max_assets: u32::max_value(),
-                        beneficiary: recipient,
-                    },
-                ],
-            }],
-        };
-        let origin_location = MultiLocation::new(
-            0,
-            X1(Junction::AccountId32 {
-                network: NetworkId::Any,
-                id: ALICE.into(),
-            }),
-        );
-        let weight = 2;
-        let _ = xcm_executor::XcmExecutor::<XcmConfig>::execute_xcm_in_credit(
-            origin_location,
-            msg,
-            weight,
-            weight,
-        )
-        .ensure_complete();
-        print_events::<Test>("ParaA");
-    });
-
-    Relay::execute_with(|| {
-        print_events::<westend_runtime::Runtime>("Relay");
-        assert_eq!(
-            RelayBalances::free_balance(&LiquidStaking::derivative_para_account_id()),
-            xcm_transfer_amount + relay_transfer_amount - 240
-        );
-
-        let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
-        assert_eq!(ledger.total, relay_transfer_amount);
-    });
-}
-
-#[test]
 fn test_transfer_bond() {
     TestNet::reset();
     let xcm_transfer_amount = 10 * DOT_DECIMAL;
     ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::stake(
+            Origin::signed(ALICE),
+            2000 * DOT_DECIMAL,
+        ));
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             xcm_transfer_amount,
@@ -512,4 +442,30 @@ fn print_events<T: frame_system::Config>(context: &str) {
     frame_system::Pallet::<T>::events().iter().for_each(|r| {
         println!("{:?}", r.event);
     });
+}
+
+#[test]
+fn test_update_xcm_weight_work() {
+    new_test_ext().execute_with(|| {
+        assert_eq!(XcmWeight::<Test>::get(), XcmWeightMisc::default());
+        let misc = XcmWeightMisc::<u64> {
+            bond_weight: 1,
+            bond_extra_weight: 2,
+            unbond_weight: 3,
+            rebond_weight: 4,
+            withdraw_unbonded_weight: 5,
+            nominate_weight: 6,
+        };
+        assert_ok!(LiquidStaking::update_xcm_weight(Origin::signed(BOB), misc));
+        assert_eq!(XcmWeight::<Test>::get(), misc);
+    })
+}
+
+#[test]
+fn test_add_insurances_work() {
+    new_test_ext().execute_with(|| {
+        assert_eq!(LiquidStaking::insurance_pool(), 0);
+        assert_ok!(LiquidStaking::add_insurances(Origin::signed(BOB), 123));
+        assert_eq!(LiquidStaking::insurance_pool(), 123);
+    })
 }

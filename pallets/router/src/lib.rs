@@ -45,10 +45,8 @@ pub mod pallet {
         ensure_signed,
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
-    use primitives::AMM;
-    use sp_runtime::traits::One;
-    use sp_runtime::traits::{AtLeast32BitUnsigned, Zero};
-    use sp_runtime::FixedPointOperand;
+    use primitives::{Balance, CurrencyId, AMM};
+    use sp_runtime::traits::{One, Zero};
 
     pub type Route<T, I> = BoundedVec<
         (
@@ -85,7 +83,9 @@ pub mod pallet {
 
         /// Currency type for deposit/withdraw assets to/from amm route
         /// module
-        type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
+        type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
     }
 
     #[pallet::pallet]
@@ -110,7 +110,6 @@ pub mod pallet {
     }
 
     #[pallet::event]
-    #[pallet::metadata(T::AccountId = "AccountId", BalanceOf<T, I> = "Balance")]
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config<I>, I: 'static = ()> {
         /// Event emitted when swap is successful
@@ -122,11 +121,7 @@ pub mod pallet {
     impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {}
 
     #[pallet::call]
-    impl<T: Config<I>, I: 'static> Pallet<T, I>
-    where
-        BalanceOf<T, I>: FixedPointOperand,
-        AssetIdOf<T, I>: AtLeast32BitUnsigned,
-    {
+    impl<T: Config<I>, I: 'static> Pallet<T, I> {
         /// According specified route order to execute which pool or AMM instance.
         ///
         /// - `origin`: the trader.

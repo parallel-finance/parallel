@@ -2,22 +2,23 @@
 authors = ['Parallel Team']
 edition = '2018'
 name    = 'pallet-liquidation'
-version = '3.0.0'
+version = '1.7.0'
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
-codec         = { package = 'parity-scale-codec', version = '2.2.0', default-features = false }
-frame-support = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.10', default-features = false }
-frame-system  = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.10', default-features = false }
+codec         = { package = 'parity-scale-codec', version = '2.3.1', default-features = false }
+frame-support = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
+frame-system  = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
+scale-info    = { version = '1.0', default-features = false, features = ['derive'] }
 serde         = { package = 'alt_serde', version = '1', default-features = false, features = ['derive'] }
 serde_json    = { package = 'alt_serde_json', version = '1', default-features = false, features = ['alloc'] }
-sp-core       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.10', default-features = false }
-sp-io         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.10', default-features = false }
-sp-keystore   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.10', optional = true }
-sp-runtime    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.10', default-features = false }
-sp-std        = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.10', default-features = false }
+sp-core       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
+sp-io         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
+sp-keystore   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', optional = true }
+sp-runtime    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
+sp-std        = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
 
 pallet-loans = { path = '../loans', default-features = false }
 primitives   = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
@@ -36,5 +37,6 @@ std         = [
   'sp-std/std',
   'pallet-loans/std',
   'primitives/std',
+  'scale-info/std',
 ]
 try-runtime = ['frame-support/try-runtime']

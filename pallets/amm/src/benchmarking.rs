@@ -25,15 +25,13 @@ fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::
 
 fn initial_set_up<T: Config<I>, I: 'static>(caller: T::AccountId)
 where
-    BalanceOf<T, I>: FixedPointOperand,
-    AssetIdOf<T, I>: AtLeast32BitUnsigned,
     <T::Assets as Inspect<T::AccountId>>::Balance: From<u128>,
 {
     let account_id = T::Lookup::unlookup(caller.clone());
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        tokens::XDOT.into(),
+        tokens::XDOT,
         account_id.clone(),
         true,
         One::one(),
@@ -42,22 +40,20 @@ where
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        tokens::DOT.into(),
+        tokens::DOT,
         account_id,
         true,
         One::one(),
     )
     .ok();
 
-    T::Assets::mint_into(BASE_ASSET.into(), &caller, INITIAL_AMOUNT.into()).ok();
-    T::Assets::mint_into(QUOTE_ASSET.into(), &caller, INITIAL_AMOUNT.into()).ok();
+    T::Assets::mint_into(BASE_ASSET, &caller, INITIAL_AMOUNT).ok();
+    T::Assets::mint_into(QUOTE_ASSET, &caller, INITIAL_AMOUNT).ok();
 }
 
 benchmarks_instance_pallet! {
     where_clause {
         where
-            BalanceOf<T, I>: FixedPointOperand,
-            AssetIdOf<T, I>: AtLeast32BitUnsigned,
             <T::Assets as Inspect<T::AccountId>>::Balance: From<u128>,
             <T::Assets as Inspect<T::AccountId>>::AssetId: From<u32>,
 
@@ -65,50 +61,50 @@ benchmarks_instance_pallet! {
     add_liquidity_non_existing_pool {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T, I>(caller.clone());
-        let base_amount = 100_000;
-        let quote_amount = 200_000;
-    }: add_liquidity(SystemOrigin::Signed(caller.clone()), (BASE_ASSET.into(), QUOTE_ASSET.into()), (base_amount.into(), quote_amount.into()),
-            (5.into(), 5.into()), ASSET_ID.into())
+        let base_amount = 100_000u128;
+        let quote_amount = 200_000u128;
+    }: add_liquidity(SystemOrigin::Signed(caller.clone()), (BASE_ASSET, QUOTE_ASSET), (base_amount, quote_amount),
+            (5u128, 5u128), ASSET_ID)
     verify {
-        assert_last_event::<T, I>(Event::LiquidityAdded(caller, BASE_ASSET.into(), QUOTE_ASSET.into()).into());
+        assert_last_event::<T, I>(Event::LiquidityAdded(caller, BASE_ASSET, QUOTE_ASSET).into());
     }
 
     add_liquidity_existing_pool {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T, I>(caller.clone());
-        let base_amount = 100_000;
-        let quote_amount = 200_000;
+        let base_amount = 100_000u128;
+        let quote_amount = 200_000u128;
         assert_ok!(AMM::<T, I>::add_liquidity(SystemOrigin::Signed(caller.clone()).into(),
-            (BASE_ASSET.into(), QUOTE_ASSET.into()), (base_amount.into(), quote_amount.into()),
-            (5.into(), 5.into()), ASSET_ID.into()));
-    }: add_liquidity(SystemOrigin::Signed(caller.clone()), (BASE_ASSET.into(), QUOTE_ASSET.into()),
-        (base_amount.into(), quote_amount.into()), (5.into(), 5.into()), ASSET_ID.into())
+            (BASE_ASSET, QUOTE_ASSET), (base_amount, quote_amount),
+            (5u128, 5u128), ASSET_ID));
+    }: add_liquidity(SystemOrigin::Signed(caller.clone()), (BASE_ASSET, QUOTE_ASSET),
+        (base_amount, quote_amount), (5u128, 5u128), ASSET_ID)
     verify {
-        assert_last_event::<T, I>(Event::LiquidityAdded(caller, BASE_ASSET.into(), QUOTE_ASSET.into()).into());
+        assert_last_event::<T, I>(Event::LiquidityAdded(caller, BASE_ASSET, QUOTE_ASSET).into());
     }
 
     remove_liquidity {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T, I>(caller.clone());
-        let base_amount = 100_000;
-        let quote_amount = 900_000;
+        let base_amount = 100_000u128;
+        let quote_amount = 900_000u128;
         assert_ok!(AMM::<T, I>::add_liquidity(SystemOrigin::Signed(caller.clone()).into(),
-            (BASE_ASSET.into(), QUOTE_ASSET.into()), (base_amount.into(), quote_amount.into()),
-            (5.into(), 5.into()), ASSET_ID.into()));
-    }: _(SystemOrigin::Signed(caller.clone()), (BASE_ASSET.into(), QUOTE_ASSET.into()), 300_000.into())
+            (BASE_ASSET, QUOTE_ASSET), (base_amount, quote_amount),
+            (5u128, 5u128), ASSET_ID));
+    }: _(SystemOrigin::Signed(caller.clone()), (BASE_ASSET, QUOTE_ASSET), 300_000u128)
     verify {
-        assert_last_event::<T, I>(Event::LiquidityRemoved(caller, BASE_ASSET.into(), QUOTE_ASSET.into()).into());
+        assert_last_event::<T, I>(Event::LiquidityRemoved(caller, BASE_ASSET, QUOTE_ASSET).into());
     }
 
   force_create_pool {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T, I>(caller.clone());
-        let base_amount = 100_000;
-        let quote_amount = 200_000;
-    }: _(SystemOrigin::Root, (BASE_ASSET.into(), QUOTE_ASSET.into()), (base_amount.into(), quote_amount.into()),
-            caller.clone(), ASSET_ID.into())
+        let base_amount = 100_000u128;
+        let quote_amount = 200_000u128;
+    }: _(SystemOrigin::Root, (BASE_ASSET, QUOTE_ASSET), (base_amount, quote_amount),
+            caller.clone(), ASSET_ID)
     verify {
-        assert_last_event::<T, I>(Event::LiquidityAdded(caller, BASE_ASSET.into(), QUOTE_ASSET.into()).into());
+        assert_last_event::<T, I>(Event::LiquidityAdded(caller, BASE_ASSET, QUOTE_ASSET).into());
     }
 }
 
