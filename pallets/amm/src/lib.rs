@@ -252,10 +252,10 @@ pub mod pallet {
                     let total_ownership = T::Assets::total_issuance(liquidity_amount.pool_assets);
                     let ownership = sp_std::cmp::min(
                         (base_amount.saturating_mul(total_ownership))
-                            .checked_div(&liquidity_amount.base_amount)
+                            .checked_div(liquidity_amount.base_amount)
                             .ok_or(ArithmeticError::Overflow)?,
                         (quote_amount.saturating_mul(total_ownership))
-                            .checked_div(&liquidity_amount.quote_amount)
+                            .checked_div(liquidity_amount.quote_amount)
                             .ok_or(ArithmeticError::Overflow)?,
                     );
 

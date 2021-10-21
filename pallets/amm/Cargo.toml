@@ -29,8 +29,8 @@ sp-io                   = { branch = 'polkadot-v0.9.11', git = 'https://github.c
 [features]
 default            = ['std']
 runtime-benchmarks = [
-	"frame-benchmarking",
-	"frame-system/runtime-benchmarks",
+	'frame-benchmarking',
+	'frame-system/runtime-benchmarks',
 ]
 std                = [
   'serde',
