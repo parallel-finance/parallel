@@ -509,7 +509,7 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
             kind: StakingSettlementKind,
         ) -> DispatchResultWithPostInfo {
-            T::UpdateOrigin::ensure_origin(origin)?;
+            T::RelayOrigin::ensure_origin(origin)?;
             Self::update_staking_pool(kind, amount)?;
             Self::deposit_event(Event::<T>::StakingSettlementRecorded(kind, amount));
             Ok(().into())
