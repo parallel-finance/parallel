@@ -217,11 +217,11 @@ where
         // reducible_underlying_amount = liquidity / collateral_factor / price
         let price = Self::get_price(underlying_id)?;
 
-        let reducible_supply_balance = liquidity
+        let reducible_supply_value = liquidity
             .checked_div(&market.collateral_factor.into())
             .ok_or(ArithmeticError::Overflow)?;
 
-        let reducible_underlying_amount = reducible_supply_balance
+        let reducible_underlying_amount = reducible_supply_value
             .checked_div(&price)
             .ok_or(ArithmeticError::Underflow)?
             .into_inner();
