@@ -24,8 +24,6 @@
 
 pub use crate::rate_model::*;
 
-pub use pallet::*;
-
 use frame_support::{
     log,
     pallet_prelude::*,
@@ -37,6 +35,7 @@ use frame_support::{
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
+pub use pallet::*;
 use primitives::{
     Balance, CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall, Timestamp,
 };
@@ -60,6 +59,7 @@ mod mock;
 mod tests;
 
 mod interest;
+mod ptoken;
 mod rate_model;
 mod types;
 
@@ -140,6 +140,8 @@ pub mod pallet {
         PriceOracleNotReady,
         /// Invalid asset id
         InvalidCurrencyId,
+        /// Invalid ptoken id
+        InvalidPtokenId,
         /// Market does not exist
         MarketDoesNotExist,
         /// Market already exists
@@ -302,6 +304,13 @@ pub mod pallet {
     pub type Markets<T: Config> =
         StorageMap<_, Blake2_128Concat, AssetIdOf<T>, Market<BalanceOf<T>>>;
 
+    /// Mapping of ptoken id to asset id
+    /// `ptoken id`: voucher token id
+    /// `asset id`: underlying token id
+    #[pallet::storage]
+    pub type UnderlyingAssetId<T: Config> =
+        StorageMap<_, Blake2_128Concat, AssetIdOf<T>, AssetIdOf<T>>;
+
     #[pallet::pallet]
     pub struct Pallet<T>(PhantomData<T>);
 
@@ -363,6 +372,7 @@ pub mod pallet {
         /// If the market is already activated, does nothing.
         ///
         /// - `asset_id`: Market related currency
+        /// TODO(alannotnerd): rename to `activate_market`
         #[pallet::weight(T::WeightInfo::active_market())]
         #[transactional]
         pub fn active_market(
@@ -410,7 +420,12 @@ pub mod pallet {
                 market.rate_model.check_model(),
                 Error::<T>::InvalidRateModelParam
             );
+
+            // Ensures a given `ptoken_id` not exists on the `Market` and `UnderlyingAssetId`.
+            Self::ensure_ptoken(market.ptoken_id)?;
+            // Update storage of `Market` and `UnderlyingAssetId`
             Markets::<T>::insert(asset_id, market.clone());
+            UnderlyingAssetId::<T>::insert(market.ptoken_id, asset_id);
 
             // Init the ExchangeRate and BorrowIndex for asset
             ExchangeRate::<T>::insert(asset_id, Rate::saturating_from_rational(2, 100));
@@ -422,7 +437,7 @@ pub mod pallet {
 
         /// Updates a stored market. Returns `Err` if the market currency does not exist.
         ///
-        /// Market state won't be modified, regardless of the provided value.
+        /// Market state and ptoken_id won't be modified, regardless of the provided value.
         ///
         /// - `asset_id`: Market related currency
         /// - `market`: The new market parameters
@@ -441,6 +456,7 @@ pub mod pallet {
             Self::mutate_market(asset_id, |stored_market| {
                 *stored_market = Market {
                     state: stored_market.state,
+                    ptoken_id: stored_market.ptoken_id,
                     ..market
                 };
             })?;
@@ -816,6 +832,7 @@ impl<T: Config> Pallet<T> {
         Ok(total_borrow_value)
     }
 
+    //TODO(alannotnerd): remove market
     fn collateral_asset_value(
         borrower: &T::AccountId,
         asset_id: AssetIdOf<T>,
@@ -1207,9 +1224,9 @@ impl<T: Config> Pallet<T> {
     }
 
     // Ensures a given `asset_id` exists on the `Currencies` storage.
-    fn ensure_market(asset_id: AssetIdOf<T>) -> DispatchResult {
-        if Self::active_markets().any(|(id, _)| id == asset_id) {
-            Ok(())
+    fn ensure_market(asset_id: AssetIdOf<T>) -> Result<Market<BalanceOf<T>>, DispatchError> {
+        if let Some((_, market)) = Self::active_markets().find(|(id, _)| id == &asset_id) {
+            Ok(market)
         } else {
             Err(<Error<T>>::MarketNotActivated.into())
         }
@@ -1226,6 +1243,23 @@ impl<T: Config> Pallet<T> {
             .checked_add(amount)
             .ok_or(ArithmeticError::Overflow)?;
         ensure!(total_cash <= market.cap, Error::<T>::ExceededMarketCapacity);
+        Ok(())
+    }
+
+    // Ensures a given `ptoken_id` is unique in `Markets` and `UnderlyingAssetId`.
+    fn ensure_ptoken(ptoken_id: CurrencyId) -> DispatchResult {
+        // The ptoken id is unique, cannot be repeated
+        ensure!(
+            !UnderlyingAssetId::<T>::contains_key(ptoken_id),
+            Error::<T>::InvalidPtokenId
+        );
+
+        // The ptoken id should not be the same as the id of any asset in markets
+        ensure!(
+            !Markets::<T>::contains_key(ptoken_id),
+            Error::<T>::InvalidPtokenId
+        );
+
         Ok(())
     }
 
@@ -1285,5 +1319,24 @@ impl<T: Config> Pallet<T> {
     // All markets that are `MarketStatus::Active`.
     fn active_markets() -> impl Iterator<Item = (AssetIdOf<T>, Market<BalanceOf<T>>)> {
         Markets::<T>::iter().filter(|(_, market)| market.state == MarketState::Active)
+    }
+
+    // Returns a stored asset_id
+    //
+    // Returns `Err` if asset_id does not exist, it also means that ptoken_id is invalid.
+    pub fn underlying_id(ptoken_id: AssetIdOf<T>) -> Result<AssetIdOf<T>, DispatchError> {
+        UnderlyingAssetId::<T>::try_get(ptoken_id)
+            .map_err(|_err| Error::<T>::InvalidPtokenId.into())
+    }
+
+    // Returns the ptoken_id of the related asset
+    //
+    // Returns `Err` if market does not exist.
+    pub fn ptoken_id(asset_id: AssetIdOf<T>) -> Result<AssetIdOf<T>, DispatchError> {
+        if let Ok(market) = Self::market(asset_id) {
+            Ok(market.ptoken_id)
+        } else {
+            Err(Error::<T>::MarketDoesNotExist.into())
+        }
     }
 }

@@ -16,6 +16,7 @@ mod edge_cases;
 mod interest_rate;
 mod liquidate_borrow;
 mod market;
+mod ptokens;
 
 use super::*;
 use frame_support::{assert_noop, assert_ok};
