@@ -11,7 +11,17 @@ async function main() {
   const api = await ApiPromise.create(
     options({
       types: {
-        'Compact<TAssetBalance>': 'Compact<Balance>'
+        'Compact<TAssetBalance>': 'Compact<Balance>',
+	      'Market': {
+          "collateralFactor": "Ratio",
+          "reserveFactor": "Ratio",
+          "closeFactor": "Ratio",
+          "liquidateIncentive": "Rate",
+          "rateModel": "InterestRateModel",
+          "state": "MarketState",
+          "cap": "Balance",
+          "ptokenId": "CurrencyId"
+        }
       },
       provider: new WsProvider('ws://localhost:9947')
     })

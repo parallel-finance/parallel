@@ -1,5 +1,5 @@
 const config = {
-  liquidAsset: 1000,
+  liquidAsset: 5000,
   stakingAsset: 100,
   assets: [
     {
@@ -22,7 +22,7 @@ const config = {
           }
         },
         state: 'Pending',
-        ptoken_id: 1000
+        ptokenId: 1000
       },
       balances: []
     },
@@ -46,7 +46,7 @@ const config = {
           }
         },
         state: 'Pending',
-        ptoken_id: 2000
+        ptokenId: 2000
       },
       balances: []
     },
@@ -70,7 +70,7 @@ const config = {
           }
         },
         state: 'Pending',
-        ptoken_id: 1002
+        ptokenId: 1002
       },
       balances: [['5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf', '100000000000000000000']]
     }
