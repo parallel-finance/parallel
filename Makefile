@@ -1,11 +1,12 @@
-PARA_ID        := 2085
-CHAIN          := vanilla-dev
-BLOCK_AT       := 0x0000000000000000000000000000000000000000000000000000000000000000
-URL            := ws://localhost:9947
-KEYSTORE_PATH  := keystore
-SURI           := //Alice
-LAUNCH_CONFIG  := config.yml
-DOCKER_TAG     := latest
+PARA_ID        							:= 2085
+CHAIN          							:= vanilla-dev
+BLOCK_AT       							:= 0x0000000000000000000000000000000000000000000000000000000000000000
+URL            							:= ws://localhost:9947
+KEYSTORE_PATH  							:= keystore
+SURI           							:= //Alice
+LAUNCH_CONFIG  							:= config.yml
+DOCKER_TAG     							:= latest
+RELAY_DOCKER_TAG						:= v0.9.11
 
 .PHONY: init
 init: submodules
@@ -83,9 +84,11 @@ shutdown:
 
 .PHONY: launch
 launch: shutdown
-	docker image pull parallelfinance/polkadot:v0.9.11
+	docker image pull parallelfinance/polkadot:$(RELAY_DOCKER_TAG)
+	docker image pull parallelfinance/parallel:$(DOCKER_TAG)
 	docker image pull parallelfinance/stake-client:latest
-	docker image pull parallelfinance/parallel:latest
+	docker image pull parallelfinance/nominate-client:latest
+	docker image pull parallelfinance/oracle-client:latest
 	docker image pull parallelfinance/parallel-dapp:latest
 	parachain-launch generate $(LAUNCH_CONFIG) && (cp -r keystore* output || true) && cp docker-compose.override.yml output && cd output && docker-compose up -d --build
 	cd launch && yarn start
