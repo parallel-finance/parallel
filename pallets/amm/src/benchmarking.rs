@@ -104,12 +104,12 @@ benchmarks_instance_pallet! {
         let base_amount = 100_000u128;
         let quote_amount = 200_000u128;
         let origin = T::CreatePoolOrigin::successful_origin();
-        let call = Call::<T, I>::create_pool(
-            (BASE_ASSET, QUOTE_ASSET),
-            (base_amount, quote_amount),
-            caller.clone(),
-            ASSET_ID
-        );
+        let call = Call::<T, I>::create_pool {
+            pool: (BASE_ASSET, QUOTE_ASSET),
+            liquidity_amounts: (base_amount, quote_amount),
+            lptoken_receiver: caller.clone(),
+            asset_id: ASSET_ID
+        };
     }: { call.dispatch_bypass_filter(origin)? }
     verify {
         assert_last_event::<T, I>(Event::LiquidityAdded(caller, BASE_ASSET, QUOTE_ASSET).into());

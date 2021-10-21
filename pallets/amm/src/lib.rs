@@ -47,10 +47,10 @@ use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_runtime::{
     traits::{
-        AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedDiv, CheckedSub, Saturating, IntegerSquareRoot, One,
+        AccountIdConversion, CheckedDiv, IntegerSquareRoot, One,
         Zero,
     },
-    ArithmeticError, DispatchError, FixedPointOperand, FixedU128, Perbill, SaturatedConversion,
+    ArithmeticError, DispatchError, FixedU128, Perbill, SaturatedConversion,
 };
 pub use weights::WeightInfo;
 
