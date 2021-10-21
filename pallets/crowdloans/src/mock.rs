@@ -326,7 +326,7 @@ impl crate::Config for Test {
     type Event = Event;
     type PalletId = CrowdloanPalletId;
     // type BaseXcmWeight = BaseXcmWeight;
-    // type SelfParaId = SelfParaId;
+    type SelfParaId = SelfParaId;
     // type PeriodBasis = PeriodBasis;
     // type WeightInfo = ();
     type XcmSender = XcmRouter;

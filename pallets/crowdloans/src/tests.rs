@@ -9,8 +9,8 @@ use xcm_simulator::TestExt;
 #[test]
 fn create_new_vault_should_work() {
     new_test_ext().execute_with(|| {
-        let crowdloan = 1337;
-        let currency = tokens::DOT;
+        let crowdloan = ParaId::from(1337);
+        let relay_currency = tokens::DOT;
         let ctoken = 10;
 
         let contribution_strategy = ContributionStrategy::XCM;
@@ -26,7 +26,7 @@ fn create_new_vault_should_work() {
 
         assert_ok!(Crowdloan::create_vault(
             frame_system::RawOrigin::Root.into(), // origin
-            currency,                             // token
+            relay_currency,                       // token
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
@@ -37,7 +37,7 @@ fn create_new_vault_should_work() {
                 just_created_vault,
                 Vault {
                     ctoken,
-                    currency,
+                    relay_currency,
                     phase: VaultPhase::CollectingContributions,
                     contribution_strategy: contribution_strategy,
                     contributed: Zero::zero(),
@@ -50,7 +50,7 @@ fn create_new_vault_should_work() {
 #[test]
 fn contribute_should_work() {
     new_test_ext().execute_with(|| {
-        let crowdloan = 1337;
+        let crowdloan = ParaId::from(1337);
         let currency = tokens::DOT;
         let ctoken = 10;
         let amount = 1_000;
@@ -92,7 +92,7 @@ fn contribute_should_work() {
             assert_eq!(ctoken_balance, amount);
 
             // check user balance
-            let pallet_balance = Assets::balance(vault.currency, Crowdloan::account_id());
+            let pallet_balance = Assets::balance(vault.relay_currency, Crowdloan::account_id());
 
             // check pallet balance
             assert_eq!(pallet_balance, amount);
@@ -102,24 +102,11 @@ fn contribute_should_work() {
 
 #[test]
 fn participate_should_work() {
-    Relay::execute_with(|| {
-        print_events::<westend_runtime::Runtime>("Relay");
-
-        assert_eq!(
-            // RelayBalances::free_balance(&Crowdloan::para_account_id()),
-            RelayBalances::free_balance(&ALICE),
-            // FIXME: weight should be take into account
-            1000000000000
-        );
-
-        // assert_eq!(1 + 1, 3);
-    });
-
-    new_test_ext().execute_with(|| {
-        let crowdloan = 1337;
+    ParaA::execute_with(|| {
+        let crowdloan = ParaId::from(1337);
         let currency = tokens::DOT;
         let ctoken = 10;
-        let amount = 1_000;
+        let amount = 1_000_000;
 
         let contribution_strategy = ContributionStrategy::XCM; //XCM;
 
@@ -154,24 +141,9 @@ fn participate_should_work() {
             crowdloan,                            // crowdloan
         ));
 
-        // // do contribute
-        // assert_ok!(Crowdloan::contribute(
-        //     Origin::signed(BOB), // origin
-        //     crowdloan,           // crowdloan
-        //     2_000,               // amount
-        // ));
+        let dot_bal = Assets::balance(tokens::DOT, ALICE);
 
-        // // do participate
-        // assert_ok!(Crowdloan::participate(
-        //     frame_system::RawOrigin::Root.into(), // origin
-        //     crowdloan,                            // crowdloan
-        // ));
-
-        // vault.contributed should equal total_issuance(vault.currency)
-        if let Some(vault) = Crowdloan::vaults(crowdloan) {
-            let currency_issuance = Assets::total_issuance(vault.ctoken);
-            assert_eq!(vault.contributed, currency_issuance);
-        }
+        assert_eq!(9999999000000, dot_bal)
     });
 
     Relay::execute_with(|| {
@@ -179,19 +151,88 @@ fn participate_should_work() {
 
         assert_eq!(
             // RelayBalances::free_balance(&Crowdloan::para_account_id()),
-            RelayBalances::free_balance(&ALICE),
-            // FIXME: weight should be take into account
-            1_000_000_000_001
+            RelayBalances::free_balance(&Crowdloan::account_id()),
+            9999999000000
         );
-
-        // assert_eq!(1 + 1, 3);
     });
+
+    // new_test_ext().execute_with(|| {
+    //     let crowdloan = 1337;
+    //     let currency = tokens::DOT;
+    //     let ctoken = 10;
+    //     let amount = 1_000;
+
+    //     let contribution_strategy = ContributionStrategy::XCM; //XCM;
+
+    //     // create the ctoken asset
+    //     assert_ok!(Assets::force_create(
+    //         RawOrigin::Root.into(),
+    //         ctoken.unique_saturated_into(),
+    //         sp_runtime::MultiAddress::Id(Crowdloan::account_id()),
+    //         true,
+    //         One::one(),
+    //     ));
+
+    //     // create a vault to contribute to
+    //     assert_ok!(Crowdloan::create_vault(
+    //         frame_system::RawOrigin::Root.into(), // origin
+    //         currency,                             // token
+    //         crowdloan,                            // crowdloan
+    //         ctoken,                               // ctoken
+    //         contribution_strategy,                // contribution_strategy
+    //     ));
+
+    //     // do contribute
+    //     assert_ok!(Crowdloan::contribute(
+    //         Origin::signed(ALICE), // origin
+    //         crowdloan,             // crowdloan
+    //         amount,                // amount
+    //     ));
+
+    //     // do participate
+    //     assert_ok!(Crowdloan::participate(
+    //         frame_system::RawOrigin::Root.into(), // origin
+    //         crowdloan,                            // crowdloan
+    //     ));
+
+    //     // // do contribute
+    //     // assert_ok!(Crowdloan::contribute(
+    //     //     Origin::signed(BOB), // origin
+    //     //     crowdloan,           // crowdloan
+    //     //     2_000,               // amount
+    //     // ));
+
+    //     // // do participate
+    //     // assert_ok!(Crowdloan::participate(
+    //     //     frame_system::RawOrigin::Root.into(), // origin
+    //     //     crowdloan,                            // crowdloan
+    //     // ));
+
+    //     // vault.contributed should equal total_issuance(vault.currency)
+    //     if let Some(vault) = Crowdloan::vaults(crowdloan) {
+    //         let currency_issuance = Assets::total_issuance(vault.ctoken);
+    //         assert_eq!(vault.contributed, currency_issuance);
+    //     }
+    // });
+
+    // Relay::execute_with(|| {
+    //     print_events::<westend_runtime::Runtime>("Relay");
+
+    //     assert_eq!(
+    //         // RelayBalances::free_balance(&Crowdloan::para_account_id()),
+    //         RelayBalances::free_balance(&ALICE),
+    //         // FIXME: weight should be take into account
+    //         1_000_000_000_001
+    //     );
+
+    //     // assert_eq!(1 + 1, 3);
+    // });
 }
 
 #[test]
 fn close_should_work() {
     new_test_ext().execute_with(|| {
-        let crowdloan = 1337;
+        let crowdloan = ParaId::from(1337);
         let currency = tokens::DOT;
         let ctoken = 10;
 

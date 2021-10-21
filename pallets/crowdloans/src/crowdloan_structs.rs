@@ -13,20 +13,28 @@
 // limitations under the License.
 
 // Groups common pool related structures
+use crate::ParaId;
 use super::{BalanceOf, Config};
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
-use sp_runtime::{traits::StaticLookup, DispatchError, DispatchResult, RuntimeDebug};
-use sp_std::marker::PhantomData;
-use sp_std::{boxed::Box, vec::Vec};
+use sp_runtime::{
+    traits::{StaticLookup, Zero},
+    DispatchError, DispatchResult, RuntimeDebug,
+};
+use sp_std::{boxed::Box, marker::PhantomData, vec::Vec};
 
-pub type ParaId = u32;
+// pub type ParaId = u32;
+
 
 #[derive(Clone, Copy, PartialEq, Decode, Encode, RuntimeDebug, TypeInfo)]
 pub enum VaultPhase {
     /// Vault is open for contributions
     CollectingContributions,
-    /// The vault is closed
+    /// The vault is closed and we should avoid future contributions. This happens when
+    /// - there are no contribution
+    /// - user cancelled
+    /// - crowdloan reached its cap
+    /// - parachain won the slot
     Closed,
     /// The vault's crowdloan failed, we have to distribute its assets back
     /// to the contributors
@@ -45,7 +53,7 @@ pub struct Vault<ParaId, CurrencyId, Balance> {
     /// Indicates in which currency contributions are received, in most
     /// cases this will be the asset representing the relay chain's native
     /// token
-    pub currency: CurrencyId,
+    pub relay_currency: CurrencyId,
     /// Which phase the vault is at
     pub phase: VaultPhase,
     /// How we contribute coins to the crowdloan
@@ -53,6 +61,40 @@ pub struct Vault<ParaId, CurrencyId, Balance> {
     /// Tracks how many coins were contributed on the relay chain
     pub contributed: Balance,
 }
+
+impl<ParaId, CurrencyId: Zero, Balance: Zero> Default for Vault<ParaId, CurrencyId, Balance> {
+    fn default() -> Self {
+        Vault {
+            ctoken: Zero::zero(),
+            relay_currency: Zero::zero(),
+            phase: VaultPhase::CollectingContributions,
+            contribution_strategy: ContributionStrategy::XCM,
+            contributed: Zero::zero(),
+        }
+    }
+}
+
+impl<ParaId, CurrencyId: Zero, Balance: Zero> From<(CurrencyId, CurrencyId)>
+    for Vault<ParaId, CurrencyId, Balance>
+{
+    fn from(a: (CurrencyId, CurrencyId)) -> Self {
+        Self {
+            ctoken: a.0,
+            relay_currency: a.1,
+            ..Self::default()
+        }
+    }
+}
+
+// impl<ParaId, CurrencyId: Zero, Balance: Zero> NewVault for Vault<ParaId, CurrencyId, Balance>  {
+//     fn new(ctoken: CurrencyId, relay_currency: CurrencyId) -> Self {
+//         Vault {
+//             ctoken,
+//             relay_currency,
+//             ..Default::default()
+//         }
+//     }
+// }
 
 #[allow(clippy::upper_case_acronyms)] // for XCM
 #[derive(Clone, Copy, PartialEq, Decode, Encode, RuntimeDebug, TypeInfo)]
@@ -63,10 +105,6 @@ pub enum ContributionStrategy<ParaId, CurrencyId, Balance> {
 }
 
 pub trait ContributionStrategyExecutor<ParaId, CurrencyId, Balance> {
-    /// A test function
-    // fn hello_world(self);
-    fn hello_world(self, para_id: ParaId);
-
     /// Execute the strategy to contribute `amount` of coins to the crowdloan
     /// of the given parachain id
     fn execute(self, para_id: ParaId, currency: CurrencyId, amount: Balance) -> DispatchResult;
@@ -83,10 +121,6 @@ impl<ParaId: std::fmt::Display, CurrencyId, Balance>
     ContributionStrategyExecutor<ParaId, CurrencyId, Balance>
     for ContributionStrategy<ParaId, CurrencyId, Balance>
 {
-    fn hello_world(self, para_id: ParaId) {
-        println!("Hello World! Your ParaId = {}", para_id);
-    }
-
     // add code here
     fn execute(
         self,
@@ -102,20 +136,6 @@ impl<ParaId: std::fmt::Display, CurrencyId, Balance>
     fn refund(self, _: ParaId, _: CurrencyId) -> Result<(), DispatchError> {
         todo!()
     }
-}
-
-/// Relaychain participate call arguments
-#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct CrowdloanParticipateCall<T: Config> {
-    /// Unbond amount
-    #[codec(compact)]
-    pub value: BalanceOf<T>,
-}
-
-#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub enum CrowdloanCall<T: Config> {
-    #[codec(index = 0)]
-    Participate(CrowdloanParticipateCall<T>),
 }
 
 /// Relaychain balances.transfer_keep_alive call arguments
@@ -146,26 +166,20 @@ pub enum BalancesCall<T: Config> {
 
 /// Relaychain utility.as_derivative call arguments
 #[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct UtilityAsDerivativeCall<RelaychainCall> {
+pub struct CrowdloanContributeCall<T: Config> {
+    /// Controller account
+    pub contributor: <T::Lookup as StaticLookup>::Source,
     /// derivative index
-    pub index: u16,
-    /// call
-    pub call: RelaychainCall,
-}
-
-/// Relaychain utility.batch_all call arguments
-#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct UtilityBatchAllCall<RelaychainCall> {
-    /// calls
-    pub calls: Vec<RelaychainCall>,
+    pub index: ParaId,
+    /// amount to contribute
+    #[codec(compact)]
+    pub amount: BalanceOf<T>,
 }
 
 #[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
-pub enum UtilityCall<RelaychainCall> {
+pub enum CrowdloanCall<T: Config> {
     #[codec(index = 1)]
-    AsDerivative(UtilityAsDerivativeCall<RelaychainCall>),
-    #[codec(index = 2)]
-    BatchAll(UtilityBatchAllCall<RelaychainCall>),
+    Contribute(CrowdloanContributeCall<T>),
 }
 
 #[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
@@ -174,8 +188,6 @@ pub enum WestendCall<T: Config> {
     Balances(BalancesCall<T>),
     #[codec(index = 6)]
     Crowdloan(CrowdloanCall<T>),
-    #[codec(index = 16)]
-    Utility(Box<UtilityCall<Self>>),
 }
 
 #[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
@@ -184,8 +196,6 @@ pub enum KusamaCall<T: Config> {
     Balances(BalancesCall<T>),
     #[codec(index = 6)]
     Crowdloan(CrowdloanCall<T>),
-    #[codec(index = 24)]
-    Utility(Box<UtilityCall<Self>>),
 }
 
 #[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
@@ -194,6 +204,4 @@ pub enum PolkadotCall<T: Config> {
     Balances(BalancesCall<T>),
     #[codec(index = 7)]
     Crowdloan(CrowdloanCall<T>),
-    #[codec(index = 26)]
-    Utility(Box<UtilityCall<Self>>),
 }

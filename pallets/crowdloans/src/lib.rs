@@ -27,6 +27,8 @@ mod tests;
 use frame_support::{
     dispatch::DispatchResult,
     pallet_prelude::*,
+    
+    transactional,
     traits::{
         fungibles::{Inspect, Mutate, Transfer},
         Get,
@@ -34,9 +36,11 @@ use frame_support::{
     Blake2_128Concat, PalletId,
 };
 
+use cumulus_primitives_core::ParaId;
+
 mod crowdloan_structs;
 use crowdloan_structs::{
-    ContributionStrategy, ContributionStrategyExecutor, ParaId, Vault, VaultPhase,
+    ContributionStrategy, ContributionStrategyExecutor, Vault, VaultPhase,
 };
 
 use frame_system::ensure_signed;
@@ -76,6 +80,7 @@ pub mod pallet {
     use super::*;
     use crate::crowdloan_structs::*;
     use frame_system::ensure_root;
+    use sp_runtime::traits::StaticLookup;
     use xcm::latest::prelude::*;
     use xcm::DoubleEncoded;
 
@@ -105,6 +110,10 @@ pub mod pallet {
         /// XCM message sender
         type XcmSender: SendXcm;
 
+        /// Returns the parachain ID we are running with.
+        #[pallet::constant]
+        type SelfParaId: Get<ParaId>;
+
         #[pallet::constant]
         type PalletId: Get<PalletId>;
 
@@ -127,6 +136,9 @@ pub mod pallet {
         VaultCreated(AssetIdOf<T>, ParaId, AssetIdOf<T>, AssetIdOf<T>),
 
         /// Send participate with amount to relaychain
+        Contributed(ParaId, BalanceOf<T>),
+
+        /// Send participate with amount to relaychain
         ParticipteCallSent(BalanceOf<T>),
     }
 
@@ -142,7 +154,7 @@ pub mod pallet {
         // Crowdload ParaId does not exist
         CrowdloanDoesNotExists,
         // Amount is not enough
-        InsufficientAmount,
+        InsufficientBalance,
         // Vault does not exist
         VaultDoesNotExist,
         // Vault contributed greater than issuance
@@ -215,11 +227,7 @@ pub mod pallet {
             currency: AssetIdOf<T>,
             crowdloan: ParaId,
             ctoken: AssetIdOf<T>,
-            contribution_strategy: ContributionStrategy<
-                ParaId,
-                primitives::CurrencyId,
-                primitives::Balance,
-            >,
+            contribution_strategy: ContributionStrategy<ParaId, CurrencyId, Balance>,
         ) -> DispatchResult {
             // 1. EnsureOrigin
             ensure_root(origin)?;
@@ -238,13 +246,10 @@ pub mod pallet {
 
                 // 4. mutate our storage to register a new vault
                 // inialize new vault
-                *vault = Some(crowdloan_structs::Vault {
-                    ctoken,
-                    currency,
-                    phase: VaultPhase::CollectingContributions,
-                    contribution_strategy: ContributionStrategy::XCM,
-                    contributed: Zero::zero(),
-                });
+                let new_vault = crowdloan_structs::Vault::from((ctoken, currency));
+
+                // store update
+                *vault = Some(new_vault);
 
                 Ok(())
             })
@@ -256,12 +261,12 @@ pub mod pallet {
         /// Contribute `amount` to the vault of `crowdloan` and receive some
         /// shares from it
         #[pallet::weight(10_000)]
-        #[allow(unused)]
+        #[transactional]
         pub fn contribute(
             origin: OriginFor<T>,
             crowdloan: ParaId,
-            amount: BalanceOf<T>,
-        ) -> DispatchResult {
+            #[pallet::compact] amount: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
             // 1. Make sure crowdloan has a vault linked to it
@@ -275,20 +280,28 @@ pub mod pallet {
 
             // 3. Make sure origin has at least amount of vault.currency
             // get amount origin has
-            let origin_currency_amount = T::Assets::balance(vault.currency, &who);
+            let origin_currency_amount = T::Assets::balance(vault.relay_currency, &who);
 
             ensure!(
                 origin_currency_amount >= amount,
-                Error::<T>::InsufficientAmount
+                Error::<T>::InsufficientBalance
             );
 
+            Self::deposit_event(Event::<T>::Contributed(crowdloan, amount));
+
             // 4. Wire amount of vault.currency to the pallet's account id
-            T::Assets::transfer(vault.currency, &who, &Self::account_id(), amount, true)?;
+            T::Assets::transfer(
+                vault.relay_currency,
+                &who,
+                &Self::account_id(),
+                amount,
+                true,
+            )?;
 
             // 5. Create amount of vault.ctoken to origin
             T::Assets::mint_into(vault.ctoken, &who, amount)?;
 
-            Ok(())
+            Ok(().into())
         }
 
         ////
@@ -300,7 +313,7 @@ pub mod pallet {
         #[allow(unused)]
         pub fn participate(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             // 1. EnsureOrigin
-            ensure_root(origin)?;
+            ensure_root(origin.clone())?;
 
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
@@ -322,25 +335,18 @@ pub mod pallet {
                     // vault.currency and total_issuance(vault.ctoken) - vault.contributed
                     let amount = vault_ctoken_issuance - vault_contents.contributed;
 
-                    println!("vault_ctoken_issuance:\t{:?}", vault_ctoken_issuance);
-                    println!(
-                        "vault_contents.contributed:\t{:?}",
-                        vault_contents.contributed
-                    );
-                    println!("amount:\t{:?}", amount);
+                    let contributor = Self::para_account_id();
 
-                    // this logic should be movec into the execute function on the executor state
                     switch_relay!({
-                        let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
-                            UtilityAsDerivativeCall {
-                                index: T::DerivativeIndex::get(),
-                                call: RelaychainCall::Crowdloan::<T>(CrowdloanCall::Participate(
-                                    CrowdloanParticipateCall { value: amount },
-                                )),
+                        let call = RelaychainCall::Crowdloan::<T>(CrowdloanCall::Contribute(
+                            CrowdloanContributeCall {
+                                contributor: T::Lookup::unlookup(contributor),
+                                index: crowdloan,
+                                amount,
                             },
-                        )));
+                        ));
 
-                        let msg = Self::ump_transact(call.encode().into(), 1_000_000)?;
+                        let msg = Self::ump_transact(call.encode().into(), 10_000)?;
 
                         match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                             Ok(()) => {
@@ -354,7 +360,7 @@ pub mod pallet {
 
                     vault_contents.contribution_strategy.execute(
                         crowdloan,
-                        vault_contents.currency,
+                        vault_contents.relay_currency,
                         amount,
                     );
 
@@ -426,7 +432,7 @@ pub mod pallet {
                     // 3. Execute the `refund` function of the `contribution_strategy`
                     vault_contents
                         .contribution_strategy
-                        .refund(crowdloan, vault_contents.currency);
+                        .refund(crowdloan, vault_contents.relay_currency);
 
                     // 4. Set `vault.phase` to `Failed`
                     vault_contents.phase = VaultPhase::Failed;
@@ -468,7 +474,7 @@ pub mod pallet {
 
                     ensure!(
                         origin_ctoken_amount >= amount,
-                        Error::<T>::InsufficientAmount
+                        Error::<T>::InsufficientBalance
                     );
 
                     // 3. Burns `amount` from `vault.ctoken`
@@ -476,7 +482,7 @@ pub mod pallet {
 
                     // 4. Wire `amount` of `vault.currency` from our account id to the caller
                     T::Assets::transfer(
-                        vault_contents.currency,
+                        vault_contents.relay_currency,
                         &Self::account_id(),
                         &who,
                         amount,
@@ -506,7 +512,7 @@ pub mod pallet {
                     // 2. Execute the `withdraw` function of our `contribution_strategy`
                     vault_contents
                         .contribution_strategy
-                        .withdraw(crowdloan, vault_contents.currency);
+                        .withdraw(crowdloan, vault_contents.relay_currency);
 
                     // 3. Modify `vault.phase` to `Expired
                     vault_contents.phase = VaultPhase::Expired;
@@ -530,8 +536,7 @@ pub mod pallet {
 
         /// Parachain sovereign account
         pub fn para_account_id() -> T::AccountId {
-            // T::SelfParaId::get().into_account()
-            T::PalletId::get().into_account()
+            T::SelfParaId::get().into_account()
         }
 
         // Returns a stored Vault.
@@ -545,7 +550,7 @@ pub mod pallet {
 
         fn ump_transact(call: DoubleEncoded<()>, weight: Weight) -> Result<Xcm<()>, DispatchError> {
             // let fees = Self::xcm_fees_compensation();
-            let fees = 10;
+            let fees = 1_000_000_000_000;
             ensure!(!fees.is_zero(), Error::<T>::XcmFeesCompensationTooLow);
 
             // let account_id = Self::account_id();
@@ -578,3 +583,9 @@ pub mod pallet {
         }
     }
 }
+
+// impl<T: Config> ExchangeRateProvider for Pallet<T> {
+//     fn get_exchange_rate() -> Rate {
+//         ExchangeRate::<T>::get()
+//     }
+// }
