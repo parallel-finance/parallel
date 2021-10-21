@@ -1,5 +1,5 @@
 const config = {
-  liquidAsset: 1000,
+  liquidAsset: 5000,
   stakingAsset: 100,
   assets: [
     {
