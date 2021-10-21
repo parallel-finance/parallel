@@ -1243,7 +1243,7 @@ construct_runtime!(
         ParachainInfo: parachain_info::{Pallet, Storage, Config} = 21,
         XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>} = 22,
         DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 23,
-        PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin} = 24,
+        PolkadotXcm: pallet_xcm::{Pallet, Call, Storage, Event<T>, Origin, Config} = 24,
         CumulusXcm: cumulus_pallet_xcm::{Pallet, Call, Event<T>, Origin} = 25,
 
         // Consensus

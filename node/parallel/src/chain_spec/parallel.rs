@@ -18,7 +18,7 @@ use parallel_runtime::{
     opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, DemocracyConfig,
     GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
     LiquidStakingAgentMembershipConfig, LiquidStakingConfig, OracleMembershipConfig,
-    ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
+    ParachainInfoConfig, PolkadotXcmConfig, SessionConfig, SudoConfig, SystemConfig,
     TechnicalCommitteeMembershipConfig, ValidatorFeedersMembershipConfig, VestingConfig,
     WASM_BINARY,
 };
@@ -308,6 +308,9 @@ fn parallel_genesis(
         },
         vesting: VestingConfig {
             vesting: vesting_list,
+        },
+        polkadot_xcm: PolkadotXcmConfig {
+            safe_xcm_version: Some(2),
         },
     }
 }
