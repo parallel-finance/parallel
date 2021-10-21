@@ -12,7 +12,7 @@ async function main() {
     options({
       types: {
         'Compact<TAssetBalance>': 'Compact<Balance>',
-	'Market': {
+	      'Market': {
           "collateralFactor": "Ratio",
           "reserveFactor": "Ratio",
           "closeFactor": "Ratio",
