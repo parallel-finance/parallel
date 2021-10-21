@@ -24,7 +24,7 @@ use cumulus_primitives_core::ParaId;
 
 use polkadot_service::ConstructRuntimeApi;
 use sc_client_api::call_executor::ExecutorProvider;
-use sc_executor::native_executor_instance;
+use sc_executor::NativeElseWasmExecutor;
 use sc_service::{Configuration, PartialComponents, Role, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker, TelemetryWorkerHandle};
 
@@ -33,32 +33,51 @@ use sp_consensus::SlotData;
 
 use std::sync::Arc;
 
-pub use sc_executor::{NativeExecutionDispatch, NativeExecutor};
+pub use sc_executor::NativeExecutionDispatch;
 
 // Native executor instance.
-native_executor_instance!(
-    pub ParallelExecutor,
-    parallel_runtime::api::dispatch,
-    parallel_runtime::native_version,
-    frame_benchmarking::benchmarking::HostFunctions,
-);
+pub struct ParallelExecutor;
+impl sc_executor::NativeExecutionDispatch for ParallelExecutor {
+    type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
 
-native_executor_instance!(
-    pub HeikoExecutor,
-    heiko_runtime::api::dispatch,
-    heiko_runtime::native_version,
-    frame_benchmarking::benchmarking::HostFunctions,
-);
+    fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
+        parallel_runtime::api::dispatch(method, data)
+    }
 
-native_executor_instance!(
-    pub VanillaExecutor,
-    vanilla_runtime::api::dispatch,
-    vanilla_runtime::native_version,
-    frame_benchmarking::benchmarking::HostFunctions,
-);
+    fn native_version() -> sc_executor::NativeVersion {
+        parallel_runtime::native_version()
+    }
+}
+
+pub struct HeikoExecutor;
+impl sc_executor::NativeExecutionDispatch for HeikoExecutor {
+    type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
+
+    fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
+        heiko_runtime::api::dispatch(method, data)
+    }
+
+    fn native_version() -> sc_executor::NativeVersion {
+        heiko_runtime::native_version()
+    }
+}
+
+pub struct VanillaExecutor;
+impl sc_executor::NativeExecutionDispatch for VanillaExecutor {
+    type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
+
+    fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
+        vanilla_runtime::api::dispatch(method, data)
+    }
+
+    fn native_version() -> sc_executor::NativeVersion {
+        vanilla_runtime::native_version()
+    }
+}
 
 pub type FullBackend = sc_service::TFullBackend<Block>;
-pub type FullClient<RuntimeApi, Executor> = sc_service::TFullClient<Block, RuntimeApi, Executor>;
+pub type FullClient<RuntimeApi, Executor> =
+    sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>;
 
 pub trait IdentifyVariant {
     fn is_parallel(&self) -> bool;
@@ -118,10 +137,17 @@ where
         })
         .transpose()?;
 
+    let executor = NativeElseWasmExecutor::<Executor>::new(
+        config.wasm_method,
+        config.default_heap_pages,
+        config.max_runtime_instances,
+    );
+
     let (client, backend, keystore_container, task_manager) =
-        sc_service::new_full_parts::<Block, RuntimeApi, Executor>(
+        sc_service::new_full_parts::<Block, RuntimeApi, _>(
             &config,
             telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
+            executor,
         )?;
     let client = Arc::new(client);
 

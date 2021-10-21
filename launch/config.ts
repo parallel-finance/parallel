@@ -21,14 +21,15 @@ const config = {
             jumpUtilization: 8e5
           }
         },
-        state: 'Pending'
+        state: 'Pending',
+        ptoken_id: 1000
       },
       balances: []
     },
     {
       name: 'Parallel Kusama',
       symbol: 'XKSM',
-      assetId: 1000,
+      assetId: 5000,
       decimal: 12,
       marketOption: {
         closeFactor: 50e4,
@@ -44,7 +45,8 @@ const config = {
             jumpUtilization: 8e5
           }
         },
-        state: 'Pending'
+        state: 'Pending',
+        ptoken_id: 2000
       },
       balances: []
     },
@@ -67,7 +69,8 @@ const config = {
             jumpUtilization: 8e5
           }
         },
-        state: 'Pending'
+        state: 'Pending',
+        ptoken_id: 1002
       },
       balances: [['5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf', '100000000000000000000']]
     }

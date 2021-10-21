@@ -1,5 +1,34 @@
 # CHANGE LOG
 
+## 2021.10.17
+
+- Support building staging, QA docker (#732)
+
+## 2021.10.16
+
+- Add staking market cap (#720)
+- Enrich decimal provider by adding USDT (#718)
+
+## 2021.10.15
+
+- Bump to polkadot-v0.9.11 (#693)
+- Rename ensure_currency to ensure_market (#704)
+- Support HKO/PARA's crosschain transfer (#703)
+- Cleanup pallet-liquid-staking's unused code (#702, #701)
+
+## 2021.10.14
+
+- Merge ump transfer & bond (#699)
+
+## 2021.10.13
+
+- Add market cap in launch script (#692)
+- Increase the accure interest interval (#689)
+
+## 2021.10.12
+
+- Integrate pallet-currency-adapter into loans pallet (#685)
+
 ## 2021.09.26
 
 - Bump to polkadot-v0.9.10 (#637)

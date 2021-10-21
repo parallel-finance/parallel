@@ -23,7 +23,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use crate::rate_model::*;
-pub use pallet::*;
 
 use frame_support::{
     log,
@@ -36,15 +35,18 @@ use frame_support::{
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
-use primitives::{CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall, Timestamp};
+pub use pallet::*;
+use primitives::{
+    Balance, CurrencyId, Liquidity, Price, PriceFeeder, Rate, Ratio, Shortfall, Timestamp,
+};
 use sp_runtime::{
     traits::{
-        AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub,
-        One, Saturating, StaticLookup, Zero,
+        AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One, StaticLookup,
+        Zero,
     },
-    ArithmeticError, FixedPointNumber, FixedPointOperand, FixedU128, SaturatedConversion,
+    ArithmeticError, FixedPointNumber, FixedU128, SaturatedConversion,
 };
-use sp_std::{convert::TryInto, result::Result};
+use sp_std::result::Result;
 
 pub use types::{BorrowSnapshot, Deposits, EarnedSnapshot, Market, MarketState};
 pub use weights::WeightInfo;
@@ -57,6 +59,7 @@ mod mock;
 mod tests;
 
 mod interest;
+mod ptoken;
 mod rate_model;
 mod types;
 
@@ -100,7 +103,9 @@ pub mod pallet {
         type UnixTime: UnixTime;
 
         /// Assets for deposit/withdraw collateral assets to/from loans module
-        type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
+        type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
     }
 
     #[pallet::error]
@@ -135,6 +140,8 @@ pub mod pallet {
         PriceOracleNotReady,
         /// Invalid asset id
         InvalidCurrencyId,
+        /// Invalid ptoken id
+        InvalidPtokenId,
         /// Market does not exist
         MarketDoesNotExist,
         /// Market already exists
@@ -147,7 +154,6 @@ pub mod pallet {
 
     #[pallet::event]
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
-    #[pallet::metadata(T::AccountId = "AccountId", AssetIdOf<T> = "CurrencyId", BalanceOf<T> = "Balance")]
     pub enum Event<T: Config> {
         /// Enable collateral for certain asset
         /// [sender, asset_id]
@@ -298,15 +304,18 @@ pub mod pallet {
     pub type Markets<T: Config> =
         StorageMap<_, Blake2_128Concat, AssetIdOf<T>, Market<BalanceOf<T>>>;
 
+    /// Mapping of ptoken id to asset id
+    /// `ptoken id`: voucher token id
+    /// `asset id`: underlying token id
+    #[pallet::storage]
+    pub type UnderlyingAssetId<T: Config> =
+        StorageMap<_, Blake2_128Concat, AssetIdOf<T>, AssetIdOf<T>>;
+
     #[pallet::pallet]
     pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T>
-    where
-        BalanceOf<T>: FixedPointOperand,
-        AssetIdOf<T>: AtLeast32BitUnsigned,
-    {
+    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
         /// Called by substrate on block initialization which is fallible.
         /// When an error occurs, stop counting interest. When the error is resolved,
         /// the interest will be restored, because we use delta time to calculate the
@@ -357,16 +366,13 @@ pub mod pallet {
     }
 
     #[pallet::call]
-    impl<T: Config> Pallet<T>
-    where
-        BalanceOf<T>: FixedPointOperand,
-        AssetIdOf<T>: AtLeast32BitUnsigned,
-    {
+    impl<T: Config> Pallet<T> {
         /// Activates a market. Returns `Err` if the market currency does not exist.
         ///
         /// If the market is already activated, does nothing.
         ///
         /// - `asset_id`: Market related currency
+        /// TODO(alannotnerd): rename to `activate_market`
         #[pallet::weight(T::WeightInfo::active_market())]
         #[transactional]
         pub fn active_market(
@@ -414,7 +420,12 @@ pub mod pallet {
                 market.rate_model.check_model(),
                 Error::<T>::InvalidRateModelParam
             );
+
+            // Ensures a given `ptoken_id` not exists on the `Market` and `UnderlyingAssetId`.
+            Self::ensure_ptoken(market.ptoken_id)?;
+            // Update storage of `Market` and `UnderlyingAssetId`
             Markets::<T>::insert(asset_id, market.clone());
+            UnderlyingAssetId::<T>::insert(market.ptoken_id, asset_id);
 
             // Init the ExchangeRate and BorrowIndex for asset
             ExchangeRate::<T>::insert(asset_id, Rate::saturating_from_rational(2, 100));
@@ -426,7 +437,7 @@ pub mod pallet {
 
         /// Updates a stored market. Returns `Err` if the market currency does not exist.
         ///
-        /// Market state won't be modified, regardless of the provided value.
+        /// Market state and ptoken_id won't be modified, regardless of the provided value.
         ///
         /// - `asset_id`: Market related currency
         /// - `market`: The new market parameters
@@ -445,6 +456,7 @@ pub mod pallet {
             Self::mutate_market(asset_id, |stored_market| {
                 *stored_market = Market {
                     state: stored_market.state,
+                    ptoken_id: stored_market.ptoken_id,
                     ..market
                 };
             })?;
@@ -475,13 +487,13 @@ pub mod pallet {
             AccountDeposits::<T>::try_mutate(asset_id, &who, |deposits| -> DispatchResult {
                 deposits.voucher_balance = deposits
                     .voucher_balance
-                    .checked_add(&voucher_amount)
+                    .checked_add(voucher_amount)
                     .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
             TotalSupply::<T>::try_mutate(asset_id, |total_balance| -> DispatchResult {
                 let new_balance = total_balance
-                    .checked_add(&voucher_amount)
+                    .checked_add(voucher_amount)
                     .ok_or(ArithmeticError::Overflow)?;
                 *total_balance = new_balance;
                 Ok(())
@@ -554,11 +566,11 @@ pub mod pallet {
             Self::borrow_allowed(asset_id, &who, borrow_amount)?;
             let account_borrows = Self::current_borrow_balance(&who, asset_id)?;
             let account_borrows_new = account_borrows
-                .checked_add(&borrow_amount)
+                .checked_add(borrow_amount)
                 .ok_or(ArithmeticError::Overflow)?;
             let total_borrows = Self::total_borrows(asset_id);
             let total_borrows_new = total_borrows
-                .checked_add(&borrow_amount)
+                .checked_add(borrow_amount)
                 .ok_or(ArithmeticError::Overflow)?;
             AccountBorrows::<T>::insert(
                 asset_id,
@@ -716,7 +728,7 @@ pub mod pallet {
             T::Assets::transfer(asset_id, &payer, &Self::account_id(), add_amount, false)?;
             let total_reserves = Self::total_reserves(asset_id);
             let total_reserves_new = total_reserves
-                .checked_add(&add_amount)
+                .checked_add(add_amount)
                 .ok_or(ArithmeticError::Overflow)?;
             TotalReserves::<T>::insert(asset_id, total_reserves_new);
 
@@ -754,7 +766,7 @@ pub mod pallet {
                 return Err(Error::<T>::InsufficientReserves.into());
             }
             let total_reserves_new = total_reserves
-                .checked_sub(&reduce_amount)
+                .checked_sub(reduce_amount)
                 .ok_or(ArithmeticError::Underflow)?;
             TotalReserves::<T>::insert(asset_id, total_reserves_new);
             T::Assets::transfer(
@@ -777,11 +789,7 @@ pub mod pallet {
     }
 }
 
-impl<T: Config> Pallet<T>
-where
-    BalanceOf<T>: FixedPointOperand,
-    AssetIdOf<T>: AtLeast32BitUnsigned,
-{
+impl<T: Config> Pallet<T> {
     pub fn account_id() -> T::AccountId {
         T::PalletId::get().into_account()
     }
@@ -824,6 +832,7 @@ where
         Ok(total_borrow_value)
     }
 
+    //TODO(alannotnerd): remove market
     fn collateral_asset_value(
         borrower: &T::AccountId,
         asset_id: AssetIdOf<T>,
@@ -907,7 +916,7 @@ where
             let mut d = deposits.unwrap_or_default();
             d.voucher_balance = d
                 .voucher_balance
-                .checked_sub(&voucher_amount)
+                .checked_sub(voucher_amount)
                 .ok_or(ArithmeticError::Underflow)?;
             if d.voucher_balance.is_zero() {
                 // remove deposits storage if zero balance
@@ -919,7 +928,7 @@ where
         })?;
         TotalSupply::<T>::try_mutate(asset_id, |total_balance| -> DispatchResult {
             let new_balance = total_balance
-                .checked_sub(&voucher_amount)
+                .checked_sub(voucher_amount)
                 .ok_or(ArithmeticError::Underflow)?;
             *total_balance = new_balance;
             Ok(())
@@ -961,7 +970,7 @@ where
         T::Assets::transfer(asset_id, borrower, &Self::account_id(), repay_amount, false)?;
 
         let account_borrows_new = account_borrows
-            .checked_sub(&repay_amount)
+            .checked_sub(repay_amount)
             .ok_or(ArithmeticError::Underflow)?;
         let total_borrows = Self::total_borrows(asset_id);
         // NOTE : total_borrows use a different way to calculate interest
@@ -1021,7 +1030,7 @@ where
         let total_earned_prior_new = exchange_rate
             .checked_sub(&account_earned.exchange_rate_prior)
             .and_then(|r| r.checked_mul_int(deposits.voucher_balance))
-            .and_then(|r| r.checked_add(&account_earned.total_earned_prior))
+            .and_then(|r| r.checked_add(account_earned.total_earned_prior))
             .ok_or(ArithmeticError::Overflow)?;
 
         AccountEarned::<T>::insert(
@@ -1158,11 +1167,11 @@ where
         // 2.the system reduce borrower's debt
         let account_borrows = Self::current_borrow_balance(borrower, liquidate_asset_id)?;
         let account_borrows_new = account_borrows
-            .checked_sub(&repay_amount)
+            .checked_sub(repay_amount)
             .ok_or(ArithmeticError::Underflow)?;
         let total_borrows = Self::total_borrows(liquidate_asset_id);
         let total_borrows_new = total_borrows
-            .checked_sub(&repay_amount)
+            .checked_sub(repay_amount)
             .ok_or(ArithmeticError::Underflow)?;
         AccountBorrows::<T>::insert(
             liquidate_asset_id,
@@ -1184,7 +1193,7 @@ where
             |deposits| -> DispatchResult {
                 deposits.voucher_balance = deposits
                     .voucher_balance
-                    .checked_sub(&collateral_amount)
+                    .checked_sub(collateral_amount)
                     .ok_or(ArithmeticError::Underflow)?;
                 Ok(())
             },
@@ -1196,7 +1205,7 @@ where
             |deposits| -> DispatchResult {
                 deposits.voucher_balance = deposits
                     .voucher_balance
-                    .checked_add(&collateral_amount)
+                    .checked_add(collateral_amount)
                     .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             },
@@ -1215,9 +1224,9 @@ where
     }
 
     // Ensures a given `asset_id` exists on the `Currencies` storage.
-    fn ensure_market(asset_id: AssetIdOf<T>) -> DispatchResult {
-        if Self::active_markets().any(|(id, _)| id == asset_id) {
-            Ok(())
+    fn ensure_market(asset_id: AssetIdOf<T>) -> Result<Market<BalanceOf<T>>, DispatchError> {
+        if let Some((_, market)) = Self::active_markets().find(|(id, _)| id == &asset_id) {
+            Ok(market)
         } else {
             Err(<Error<T>>::MarketNotActivated.into())
         }
@@ -1231,9 +1240,26 @@ where
         let current_cash = T::Assets::balance(asset_id, &Self::account_id());
 
         let total_cash = current_cash
-            .checked_add(&amount)
+            .checked_add(amount)
             .ok_or(ArithmeticError::Overflow)?;
         ensure!(total_cash <= market.cap, Error::<T>::ExceededMarketCapacity);
+        Ok(())
+    }
+
+    // Ensures a given `ptoken_id` is unique in `Markets` and `UnderlyingAssetId`.
+    fn ensure_ptoken(ptoken_id: CurrencyId) -> DispatchResult {
+        // The ptoken id is unique, cannot be repeated
+        ensure!(
+            !UnderlyingAssetId::<T>::contains_key(ptoken_id),
+            Error::<T>::InvalidPtokenId
+        );
+
+        // The ptoken id should not be the same as the id of any asset in markets
+        ensure!(
+            !Markets::<T>::contains_key(ptoken_id),
+            Error::<T>::InvalidPtokenId
+        );
+
         Ok(())
     }
 
@@ -1258,10 +1284,8 @@ where
     }
 
     pub fn get_price(asset_id: AssetIdOf<T>) -> Result<Price, DispatchError> {
-        let id: CurrencyId = asset_id
-            .try_into()
-            .map_err(|_| Error::<T>::InvalidCurrencyId)?;
-        let (price, _) = T::PriceFeeder::get_price(&id).ok_or(Error::<T>::PriceOracleNotReady)?;
+        let (price, _) =
+            T::PriceFeeder::get_price(&asset_id).ok_or(Error::<T>::PriceOracleNotReady)?;
         if price.is_zero() {
             return Err(Error::<T>::PriceOracleNotReady.into());
         }
@@ -1295,5 +1319,24 @@ where
     // All markets that are `MarketStatus::Active`.
     fn active_markets() -> impl Iterator<Item = (AssetIdOf<T>, Market<BalanceOf<T>>)> {
         Markets::<T>::iter().filter(|(_, market)| market.state == MarketState::Active)
+    }
+
+    // Returns a stored asset_id
+    //
+    // Returns `Err` if asset_id does not exist, it also means that ptoken_id is invalid.
+    pub fn underlying_id(ptoken_id: AssetIdOf<T>) -> Result<AssetIdOf<T>, DispatchError> {
+        UnderlyingAssetId::<T>::try_get(ptoken_id)
+            .map_err(|_err| Error::<T>::InvalidPtokenId.into())
+    }
+
+    // Returns the ptoken_id of the related asset
+    //
+    // Returns `Err` if market does not exist.
+    pub fn ptoken_id(asset_id: AssetIdOf<T>) -> Result<AssetIdOf<T>, DispatchError> {
+        if let Ok(market) = Self::market(asset_id) {
+            Ok(market.ptoken_id)
+        } else {
+            Err(Error::<T>::MarketDoesNotExist.into())
+        }
     }
 }

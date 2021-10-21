@@ -2,20 +2,21 @@ use super::{BalanceOf, Config};
 use codec::{Decode, Encode};
 
 use frame_support::weights::Weight;
+use scale_info::TypeInfo;
 use sp_runtime::{
     traits::{AtLeast32BitUnsigned, StaticLookup, Zero},
     RuntimeDebug,
 };
 use sp_std::{boxed::Box, cmp::Ordering, vec::Vec};
 /// Category of staking settlement at the end of era.
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug)]
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, TypeInfo)]
 pub enum StakingSettlementKind {
     Reward,
     Slash,
 }
 
 /// The matching pool's total stake & unstake amount in one era
-#[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug)]
+#[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct MatchingLedger<Balance> {
     /// The total stake amount in one era
     pub total_stake_amount: Balance,
@@ -25,7 +26,7 @@ pub struct MatchingLedger<Balance> {
 }
 
 /// A destination account for payment.
-#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug)]
+#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum RewardDestination<AccountId> {
     /// Pay into the stash account, increasing the amount at stake accordingly.
     Staked,
@@ -40,7 +41,7 @@ pub enum RewardDestination<AccountId> {
 }
 
 /// Relaychain staking.bond call arguments
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct StakingBondCall<T: Config> {
     /// Controller account
     pub controller: <T::Lookup as StaticLookup>::Source,
@@ -52,7 +53,7 @@ pub struct StakingBondCall<T: Config> {
 }
 
 /// Relaychain staking.bond_extra call arguments
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct StakingBondExtraCall<T: Config> {
     /// Rebond amount
     #[codec(compact)]
@@ -60,7 +61,7 @@ pub struct StakingBondExtraCall<T: Config> {
 }
 
 /// Relaychain staking.unbond call arguments
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct StakingUnbondCall<T: Config> {
     /// Unbond amount
     #[codec(compact)]
@@ -68,7 +69,7 @@ pub struct StakingUnbondCall<T: Config> {
 }
 
 /// Relaychain staking.rebond call arguments
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct StakingRebondCall<T: Config> {
     /// Rebond amount
     #[codec(compact)]
@@ -76,21 +77,21 @@ pub struct StakingRebondCall<T: Config> {
 }
 
 /// Relaychain staking.withdraw_unbonded call arguments
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct StakingWithdrawUnbondedCall {
     /// Withdraw amount
     pub num_slashing_spans: u32,
 }
 
 /// Relaychain staking.nominate call arguments
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct StakingNominateCall<T: Config> {
     /// List of nominate `targets`
     pub targets: Vec<<T::Lookup as StaticLookup>::Source>,
 }
 
 /// Relaychain staking.payout_stakers call arguments
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct StakingPayoutStakersCall<T: Config> {
     /// Stash account of validator
     pub validator_stash: T::AccountId,
@@ -98,7 +99,7 @@ pub struct StakingPayoutStakersCall<T: Config> {
     pub era: u32,
 }
 
-#[derive(Encode, Decode, RuntimeDebug)]
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum StakingCall<T: Config> {
     #[codec(index = 0)]
     Bond(StakingBondCall<T>),
@@ -117,7 +118,7 @@ pub enum StakingCall<T: Config> {
 }
 
 /// Relaychain balances.transfer_keep_alive call arguments
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct BalancesTransferKeepAliveCall<T: Config> {
     /// dest account
     pub dest: <T::Lookup as StaticLookup>::Source,
@@ -127,14 +128,14 @@ pub struct BalancesTransferKeepAliveCall<T: Config> {
 }
 
 /// Relaychain balances.transfer_all call arguments
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct BalancesTransferAllCall<T: Config> {
     /// dest account
     pub dest: <T::Lookup as StaticLookup>::Source,
     pub keep_alive: bool,
 }
 
-#[derive(Encode, Decode, RuntimeDebug)]
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum BalancesCall<T: Config> {
     #[codec(index = 3)]
     TransferKeepAlive(BalancesTransferKeepAliveCall<T>),
@@ -143,7 +144,7 @@ pub enum BalancesCall<T: Config> {
 }
 
 /// Relaychain utility.as_derivative call arguments
-#[derive(Encode, Decode, RuntimeDebug)]
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct UtilityAsDerivativeCall<RelaychainCall> {
     /// derivative index
     pub index: u16,
@@ -152,13 +153,13 @@ pub struct UtilityAsDerivativeCall<RelaychainCall> {
 }
 
 /// Relaychain utility.batch_all call arguments
-#[derive(Encode, Decode, RuntimeDebug)]
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct UtilityBatchAllCall<RelaychainCall> {
     /// calls
     pub calls: Vec<RelaychainCall>,
 }
 
-#[derive(Encode, Decode, RuntimeDebug)]
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum UtilityCall<RelaychainCall> {
     #[codec(index = 1)]
     AsDerivative(UtilityAsDerivativeCall<RelaychainCall>),
@@ -166,7 +167,7 @@ pub enum UtilityCall<RelaychainCall> {
     BatchAll(UtilityBatchAllCall<RelaychainCall>),
 }
 
-#[derive(Encode, Decode, RuntimeDebug)]
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum WestendCall<T: Config> {
     #[codec(index = 4)]
     Balances(BalancesCall<T>),
@@ -176,7 +177,7 @@ pub enum WestendCall<T: Config> {
     Utility(Box<UtilityCall<Self>>),
 }
 
-#[derive(Encode, Decode, RuntimeDebug)]
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum KusamaCall<T: Config> {
     #[codec(index = 4)]
     Balances(BalancesCall<T>),
@@ -186,7 +187,7 @@ pub enum KusamaCall<T: Config> {
     Utility(Box<UtilityCall<Self>>),
 }
 
-#[derive(Encode, Decode, RuntimeDebug)]
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum PolkadotCall<T: Config> {
     #[codec(index = 5)]
     Balances(BalancesCall<T>),
@@ -231,7 +232,7 @@ impl<Balance: AtLeast32BitUnsigned + Copy + Clone> MatchingLedger<Balance> {
 }
 
 /// The xcm weight when execute staking call wrapped in xcm message
-#[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug)]
+#[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct XcmWeightMisc<Weight> {
     /// The weight when execute bond xcm message
     pub bond_weight: Weight,
@@ -249,7 +250,7 @@ pub struct XcmWeightMisc<Weight> {
 
 impl Default for XcmWeightMisc<Weight> {
     fn default() -> Self {
-        let default_weight = 2_000_000_000;
+        let default_weight = 3_000_000_000;
         XcmWeightMisc {
             bond_weight: default_weight,
             bond_extra_weight: default_weight,
