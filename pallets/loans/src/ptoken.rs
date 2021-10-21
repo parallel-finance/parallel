@@ -20,7 +20,7 @@ use frame_support::{
     traits::tokens::{
         fungibles::{Inspect, Transfer},
         DepositConsequence, WithdrawConsequence,
-    }
+    },
 };
 
 impl<T: Config> Inspect<T::AccountId> for Pallet<T>
@@ -35,7 +35,7 @@ where
         if let Ok(underlying_id) = Self::underlying_id(ptoken_id) {
             Self::total_supply(underlying_id)
         } else {
-            return Balance::default();
+            Balance::default()
         }
     }
 
@@ -49,7 +49,7 @@ where
         if let Ok(underlying_id) = Self::underlying_id(ptoken_id) {
             Self::account_deposits(underlying_id, who).voucher_balance
         } else {
-            return Balance::default();
+            Balance::default()
         }
     }
 
