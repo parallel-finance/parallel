@@ -15,9 +15,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use crate::{types::Deposits, AssetIdOf, BalanceOf, *};
-use frame_support::traits::tokens::{
-    fungibles::{Inspect, Transfer},
-    DepositConsequence, WithdrawConsequence,
+use frame_support::{
+    require_transactional,
+    traits::tokens::{
+        fungibles::{Inspect, Transfer},
+        DepositConsequence, WithdrawConsequence,
+    }
 };
 
 impl<T: Config> Inspect<T::AccountId> for Pallet<T>
@@ -126,6 +129,7 @@ where
     /// Returns `Err` if the reducible ptoken of `who` is insufficient
     ///
     /// For ptoken, We don't care if keep_alive is enabled
+    #[transactional]
     fn transfer(
         ptoken_id: Self::AssetId,
         source: &T::AccountId,
@@ -147,6 +151,7 @@ impl<T: Config> Pallet<T>
 where
     BalanceOf<T>: From<u128>,
 {
+    #[require_transactional]
     fn transfer_ptokens_internal(
         ptoken_id: AssetIdOf<T>,
         source: &T::AccountId,
