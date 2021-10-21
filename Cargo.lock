@@ -416,16 +416,16 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 
 [[package]]
 name = "backtrace"
-version = "0.3.61"
+version = "0.3.62"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7a905d892734eea339e896738c14b9afce22b5318f64b951e70bf3844419b01"
+checksum = "091bcdf2da9950f96aa522681ce805e6857f6ca8df73833d35736ab2dc78e152"
 dependencies = [
  "addr2line",
  "cc",
  "cfg-if 1.0.0",
  "libc",
  "miniz_oxide",
- "object",
+ "object 0.27.0",
  "rustc-demangle",
 ]
 
@@ -909,15 +909,15 @@ dependencies = [
 
 [[package]]
 name = "bumpalo"
-version = "3.7.1"
+version = "3.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9df67f7bf9ef8498769f994239c45613ef0c5899415fb58e9add412d2c1a538"
+checksum = "8f1e260c3a9040a7c19a12468758f4c16f31a81a1fe087482be9570ec864bb6c"
 
 [[package]]
 name = "byte-slice-cast"
-version = "1.1.0"
+version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca0796d76a983651b4a0ddda16203032759f2fd9103d9181f7c65c06ee8872e6"
+checksum = "1d30c751592b77c499e7bce34d99d67c2c11bdc0574e9a488ddade14150a4698"
 
 [[package]]
 name = "byte-tools"
@@ -3117,9 +3117,9 @@ dependencies = [
 
 [[package]]
 name = "instant"
-version = "0.1.11"
+version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "716d3d89f35ac6a34fd0eed635395f4c3b76fa889338a4632e5231a8684216bd"
+checksum = "7a5bbe824c507c5da5956355e86a746d82e0e1464f65d862cc5e71da70e94b2c"
 dependencies = [
  "cfg-if 1.0.0",
 ]
@@ -3567,9 +3567,9 @@ checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
 name = "libc"
-version = "0.2.103"
+version = "0.2.104"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd8f7255a17a627354f321ef0055d63b898c6fb27eff628af4d1b66b7331edf6"
+checksum = "7b2f96d100e1cf1929e7719b7edb3b90ab5298072638fccd77be9ce942ecdfce"
 
 [[package]]
 name = "libloading"
@@ -4441,9 +4441,9 @@ dependencies = [
 
 [[package]]
 name = "mio"
-version = "0.7.13"
+version = "0.7.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c2bdb6314ec10835cd3293dd268473a835c02b7b352e788be788b3c6ca6bb16"
+checksum = "8067b404fe97c70829f082dec8bcf4f71225d7eaea1d8645349cb76fa06205cc"
 dependencies = [
  "libc",
  "log",
@@ -4751,6 +4751,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "object"
+version = "0.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c821014c18301591b89b843809ef953af9e3df0496c232d5c0611b0a52aac363"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "once_cell"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4786,7 +4795,7 @@ dependencies = [
 [[package]]
 name = "orml-oracle"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#dc96605342de9971c27699561723a6de6e2614c2"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#7969776ff70f1d361daae72f3e3cecfdc3e9342d"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -4804,7 +4813,7 @@ dependencies = [
 [[package]]
 name = "orml-oracle-rpc"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#dc96605342de9971c27699561723a6de6e2614c2"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#7969776ff70f1d361daae72f3e3cecfdc3e9342d"
 dependencies = [
  "jsonrpc-core",
  "jsonrpc-core-client",
@@ -4819,7 +4828,7 @@ dependencies = [
 [[package]]
 name = "orml-oracle-rpc-runtime-api"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#dc96605342de9971c27699561723a6de6e2614c2"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#7969776ff70f1d361daae72f3e3cecfdc3e9342d"
 dependencies = [
  "parity-scale-codec",
  "sp-api",
@@ -4829,7 +4838,7 @@ dependencies = [
 [[package]]
 name = "orml-traits"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#dc96605342de9971c27699561723a6de6e2614c2"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#7969776ff70f1d361daae72f3e3cecfdc3e9342d"
 dependencies = [
  "frame-support",
  "impl-trait-for-tuples",
@@ -4847,7 +4856,7 @@ dependencies = [
 [[package]]
 name = "orml-utilities"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#dc96605342de9971c27699561723a6de6e2614c2"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#7969776ff70f1d361daae72f3e3cecfdc3e9342d"
 dependencies = [
  "frame-support",
  "parity-scale-codec",
@@ -4861,7 +4870,7 @@ dependencies = [
 [[package]]
 name = "orml-vesting"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#dc96605342de9971c27699561723a6de6e2614c2"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#7969776ff70f1d361daae72f3e3cecfdc3e9342d"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -4876,7 +4885,7 @@ dependencies = [
 [[package]]
 name = "orml-xcm"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#dc96605342de9971c27699561723a6de6e2614c2"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#7969776ff70f1d361daae72f3e3cecfdc3e9342d"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -4890,7 +4899,7 @@ dependencies = [
 [[package]]
 name = "orml-xcm-support"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#dc96605342de9971c27699561723a6de6e2614c2"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#7969776ff70f1d361daae72f3e3cecfdc3e9342d"
 dependencies = [
  "frame-support",
  "orml-traits",
@@ -4904,7 +4913,7 @@ dependencies = [
 [[package]]
 name = "orml-xtokens"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#dc96605342de9971c27699561723a6de6e2614c2"
+source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#7969776ff70f1d361daae72f3e3cecfdc3e9342d"
 dependencies = [
  "cumulus-primitives-core",
  "frame-support",
@@ -9614,9 +9623,9 @@ dependencies = [
 
 [[package]]
 name = "signature"
-version = "1.3.1"
+version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c19772be3c4dd2ceaacf03cb41d5885f2a02c4d8804884918e3a258480803335"
+checksum = "02658e48d89f2bec991f9a78e69cfa4c316f8d6a6c4ec12fae1aeb263d486788"
 
 [[package]]
 name = "simba"
@@ -10479,9 +10488,9 @@ checksum = "8ea5119cdb4c55b55d432abb513a0429384878c15dde60cc77b1c99de1a95a6a"
 
 [[package]]
 name = "structopt"
-version = "0.3.23"
+version = "0.3.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf9d950ef167e25e0bdb073cf1d68e9ad2795ac826f2f3f59647817cf23c0bfa"
+checksum = "40b9788f4202aa75c240ecc9c15c65185e6a39ccdeb0fd5d008b98825464c87c"
 dependencies = [
  "clap",
  "lazy_static",
@@ -10490,9 +10499,9 @@ dependencies = [
 
 [[package]]
 name = "structopt-derive"
-version = "0.4.16"
+version = "0.4.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "134d838a2c9943ac3125cf6df165eda53493451b719f3255b2a26b85f772d0ba"
+checksum = "dcb5ae327f9cc13b68763b5749770cb9e048a99bd9dfdfa58d0cf05d5f64afe0"
 dependencies = [
  "heck",
  "proc-macro-error 1.0.4",
@@ -10825,7 +10834,7 @@ dependencies = [
  "bytes 1.1.0",
  "libc",
  "memchr",
- "mio 0.7.13",
+ "mio 0.7.14",
  "num_cpus",
  "once_cell",
  "pin-project-lite 0.2.7",
@@ -11581,7 +11590,7 @@ dependencies = [
  "anyhow",
  "gimli",
  "more-asserts",
- "object",
+ "object 0.26.2",
  "target-lexicon",
  "thiserror",
  "wasmparser",
@@ -11624,7 +11633,7 @@ dependencies = [
  "gimli",
  "log",
  "more-asserts",
- "object",
+ "object 0.26.2",
  "rayon",
  "region",
  "serde",
@@ -11648,7 +11657,7 @@ checksum = "d231491878e710c68015228c9f9fc5955fe5c96dbf1485c15f7bed55b622c83c"
 dependencies = [
  "anyhow",
  "more-asserts",
- "object",
+ "object 0.26.2",
  "target-lexicon",
  "wasmtime-debug",
  "wasmtime-environ",
@@ -11665,7 +11674,7 @@ dependencies = [
  "gimli",
  "lazy_static",
  "libc",
- "object",
+ "object 0.26.2",
  "scroll",
  "serde",
  "target-lexicon",
