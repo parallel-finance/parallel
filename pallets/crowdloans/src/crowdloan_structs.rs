@@ -13,14 +13,16 @@
 // limitations under the License.
 
 // Groups common pool related structures
-
-use sp_runtime::{DispatchError, DispatchResult};
+use super::{BalanceOf, Config};
+use codec::{Decode, Encode};
+use scale_info::TypeInfo;
+use sp_runtime::{traits::StaticLookup, DispatchError, DispatchResult, RuntimeDebug};
 use sp_std::marker::PhantomData;
+use sp_std::{boxed::Box, vec::Vec};
 
 pub type ParaId = u32;
 
-#[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
-#[derive(Clone, Copy, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
+#[derive(Clone, Copy, PartialEq, Decode, Encode, RuntimeDebug, TypeInfo)]
 pub enum VaultPhase {
     /// Vault is open for contributions
     CollectingContributions,
@@ -34,8 +36,7 @@ pub enum VaultPhase {
     Expired,
 }
 
-#[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
-#[derive(Clone, Copy, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
+#[derive(Clone, Copy, PartialEq, Decode, Encode, RuntimeDebug, TypeInfo)]
 // pub struct Vault<ParaId, CurrencyId, Balance> {
 pub struct Vault<ParaId, CurrencyId, Balance> {
     /// Asset used to represent the shares of currency
@@ -54,8 +55,7 @@ pub struct Vault<ParaId, CurrencyId, Balance> {
 }
 
 #[allow(clippy::upper_case_acronyms)] // for XCM
-#[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
-#[derive(Clone, Copy, PartialEq, codec::Decode, codec::Encode, sp_runtime::RuntimeDebug)]
+#[derive(Clone, Copy, PartialEq, Decode, Encode, RuntimeDebug, TypeInfo)]
 pub enum ContributionStrategy<ParaId, CurrencyId, Balance> {
     XCM,
     XCMWithProxy,
@@ -88,8 +88,13 @@ impl<ParaId: std::fmt::Display, CurrencyId, Balance>
     }
 
     // add code here
-    fn execute(self, _: ParaId, _: CurrencyId, _: Balance) -> Result<(), DispatchError> {
-        todo!()
+    fn execute(
+        self,
+        _para_id: ParaId,
+        _currency_id: CurrencyId,
+        _amount: Balance,
+    ) -> Result<(), DispatchError> {
+        Ok(())
     }
     fn withdraw(self, _: ParaId, _: CurrencyId) -> Result<(), DispatchError> {
         todo!()
@@ -97,4 +102,114 @@ impl<ParaId: std::fmt::Display, CurrencyId, Balance>
     fn refund(self, _: ParaId, _: CurrencyId) -> Result<(), DispatchError> {
         todo!()
     }
+}
+//
+
+/// A destination account for payment.
+#[derive(Clone, PartialEq, Eq, Copy, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum RewardDestination<AccountId> {
+    /// Pay into the stash account, increasing the amount at stake accordingly.
+    Staked,
+    /// Pay into the stash account, not increasing the amount at stake.
+    Stash,
+    /// Pay into the controller account.
+    Controller,
+    /// Pay into a specified account.
+    Account(AccountId),
+    /// Receive no reward.
+    None,
+}
+
+/// Relaychain participate call arguments
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct CrowdloanParticipateCall<T: Config> {
+    /// Unbond amount
+    #[codec(compact)]
+    pub value: BalanceOf<T>,
+}
+
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum CrowdloanCall<T: Config> {
+    #[codec(index = 0)]
+    Participate(CrowdloanParticipateCall<T>),
+}
+
+/// Relaychain balances.transfer_keep_alive call arguments
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct BalancesTransferKeepAliveCall<T: Config> {
+    /// dest account
+    pub dest: <T::Lookup as StaticLookup>::Source,
+    /// transfer amount
+    #[codec(compact)]
+    pub value: BalanceOf<T>,
+}
+
+/// Relaychain balances.transfer_all call arguments
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct BalancesTransferAllCall<T: Config> {
+    /// dest account
+    pub dest: <T::Lookup as StaticLookup>::Source,
+    pub keep_alive: bool,
+}
+
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum BalancesCall<T: Config> {
+    #[codec(index = 3)]
+    TransferKeepAlive(BalancesTransferKeepAliveCall<T>),
+    #[codec(index = 4)]
+    TransferAll(BalancesTransferAllCall<T>),
+}
+
+/// Relaychain utility.as_derivative call arguments
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct UtilityAsDerivativeCall<RelaychainCall> {
+    /// derivative index
+    pub index: u16,
+    /// call
+    pub call: RelaychainCall,
+}
+
+/// Relaychain utility.batch_all call arguments
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct UtilityBatchAllCall<RelaychainCall> {
+    /// calls
+    pub calls: Vec<RelaychainCall>,
+}
+
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum UtilityCall<RelaychainCall> {
+    #[codec(index = 1)]
+    AsDerivative(UtilityAsDerivativeCall<RelaychainCall>),
+    #[codec(index = 2)]
+    BatchAll(UtilityBatchAllCall<RelaychainCall>),
+}
+
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum WestendCall<T: Config> {
+    #[codec(index = 4)]
+    Balances(BalancesCall<T>),
+    #[codec(index = 6)]
+    Crowdloan(CrowdloanCall<T>),
+    #[codec(index = 16)]
+    Utility(Box<UtilityCall<Self>>),
+}
+
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum KusamaCall<T: Config> {
+    #[codec(index = 4)]
+    Balances(BalancesCall<T>),
+    #[codec(index = 6)]
+    Crowdloan(CrowdloanCall<T>),
+    #[codec(index = 24)]
+    Utility(Box<UtilityCall<Self>>),
+}
+
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum PolkadotCall<T: Config> {
+    #[codec(index = 5)]
+    Balances(BalancesCall<T>),
+    #[codec(index = 7)]
+    Crowdloan(CrowdloanCall<T>),
+    #[codec(index = 26)]
+    Utility(Box<UtilityCall<Self>>),
 }

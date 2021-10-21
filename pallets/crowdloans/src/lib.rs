@@ -34,7 +34,6 @@ use frame_support::{
     Blake2_128Concat, PalletId,
 };
 
-use sp_runtime::traits::AccountIdConversion;
 mod crowdloan_structs;
 use crowdloan_structs::{
     ContributionStrategy, ContributionStrategyExecutor, ParaId, Vault, VaultPhase,
@@ -43,18 +42,44 @@ use crowdloan_structs::{
 use frame_system::ensure_signed;
 use frame_system::pallet_prelude::OriginFor;
 
-pub use pallet::*;
+// pub use pallet::*;
 
 use sp_runtime::{
-    traits::{AtLeast32BitUnsigned, Zero},
-    DispatchError, FixedPointOperand,
+    traits::{AccountIdConversion, Zero},
+    DispatchError,
 };
+
+pub use pallet::*;
+
+macro_rules! switch_relay {
+    ({ $( $code:tt )* }) => {
+        if T::RelayNetwork::get() == NetworkId::Polkadot {
+            use crate::crowdloan_structs::PolkadotCall as RelaychainCall;
+
+            $( $code )*
+        } else if T::RelayNetwork::get() == NetworkId::Kusama {
+            use crate::crowdloan_structs::KusamaCall as RelaychainCall;
+
+            $( $code )*
+        } else if T::RelayNetwork::get() == NetworkId::Named("westend".into()) {
+            use crate::crowdloan_structs::WestendCall as RelaychainCall;
+
+            $( $code )*
+        } else {
+            unreachable!()
+        }
+    }
+}
 
 #[frame_support::pallet]
 pub mod pallet {
-
     use super::*;
+    use crate::crowdloan_structs::*;
     use frame_system::ensure_root;
+    use xcm::latest::prelude::*;
+    use xcm::DoubleEncoded;
+
+    use primitives::{Balance, CurrencyId};
 
     pub type AssetIdOf<T> =
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
@@ -69,21 +94,40 @@ pub mod pallet {
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-        /// Currency type for deposit/withdraw assets to/from crowdloan
-        /// module
-        type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
+        // /// Currency type for deposit/withdraw assets to/from crowdloan
+        // /// module
+        // type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
+        /// Assets for deposit/withdraw assets to/from pallet account
+        type Assets: Transfer<Self::AccountId, AssetId = CurrencyId>
+            + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + Mutate<Self::AccountId, Balance = Balance>;
+
+        /// XCM message sender
+        type XcmSender: SendXcm;
 
         #[pallet::constant]
         type PalletId: Get<PalletId>;
+
+        /// Relay network
+        #[pallet::constant]
+        type RelayNetwork: Get<NetworkId>;
+
+        /// Account derivative index
+        #[pallet::constant]
+        type DerivativeIndex: Get<u16>;
     }
 
     #[pallet::event]
-    #[pallet::metadata(T::AccountId = "AccountId", BalanceOf<T> = "Balance")]
+    #[pallet::generate_deposit(pub(super) fn deposit_event)]
+    // #[pallet::metadata(T::AccountId = "AccountId", BalanceOf<T> = "Balance")]
     // pub enum Event<T: Config: 'static = ()> {
     pub enum Event<T: Config> {
         /// Create new vault
         /// [token, crowdloan, project_shares, currency_shares]
         VaultCreated(AssetIdOf<T>, ParaId, AssetIdOf<T>, AssetIdOf<T>),
+
+        /// Send participate with amount to relaychain
+        ParticipteCallSent(BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -103,6 +147,11 @@ pub mod pallet {
         VaultDoesNotExist,
         // Vault contributed greater than issuance
         ContributedGreaterThanIssuance,
+
+        /// Failed to send participate call
+        ParticipateCallFailed,
+        /// Xcm fees given are too low to execute on relaychain
+        XcmFeesCompensationTooLow,
     }
 
     #[pallet::storage]
@@ -140,11 +189,12 @@ pub mod pallet {
     impl<T: Config> Pallet<T>
     where
         [u8; 32]: From<<T as frame_system::Config>::AccountId>,
-        u128: From<
-            <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance,
-        >,
-        BalanceOf<T>: FixedPointOperand,
-        AssetIdOf<T>: AtLeast32BitUnsigned,
+        // [u8; 32]: From<<T as frame_system::Config>::AccountId>,
+        // u128: From<
+        //     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance,
+        // >,
+        // BalanceOf<T>: FixedPointOperand,
+        // AssetIdOf<T>: AtLeast32BitUnsigned,
     {
         //// 1. Vaults Management
 
@@ -258,22 +308,58 @@ pub mod pallet {
 
                 if let Some(vault_contents) = vault {
                     // 2. Make sure vault.contributed is less than total_issuance(vault.currency_shares)
-                    let vault_currency_issuance =
-                        T::Assets::total_issuance(vault_contents.currency);
+                    // let vault_currency_issuance =
+                    //     T::Assets::total_issuance(vault_contents.currency);
+
+                    let vault_ctoken_issuance = T::Assets::total_issuance(vault_contents.ctoken);
+
                     ensure!(
-                        vault_contents.contributed < vault_currency_issuance,
+                        vault_contents.contributed < vault_ctoken_issuance,
                         Error::<T>::ContributedGreaterThanIssuance
                     );
 
                     // 3. Execute vault.contribution_strategy with parameters crowdloan,
                     // vault.currency and total_issuance(vault.ctoken) - vault.contributed
+                    let amount = vault_ctoken_issuance - vault_contents.contributed;
 
-                    // TODO: trait is not implemented for enum
-                    // uncomment line below and run `cargo test -p pallet-crowdloans` for error
-                    vault_contents.contribution_strategy.hello_world(crowdloan);
+                    println!("vault_ctoken_issuance:\t{:?}", vault_ctoken_issuance);
+                    println!(
+                        "vault_contents.contributed:\t{:?}",
+                        vault_contents.contributed
+                    );
+                    println!("amount:\t{:?}", amount);
+
+                    // this logic should be movec into the execute function on the executor state
+                    switch_relay!({
+                        let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                            UtilityAsDerivativeCall {
+                                index: T::DerivativeIndex::get(),
+                                call: RelaychainCall::Crowdloan::<T>(CrowdloanCall::Participate(
+                                    CrowdloanParticipateCall { value: amount },
+                                )),
+                            },
+                        )));
+
+                        let msg = Self::ump_transact(call.encode().into(), 1_000_000)?;
+
+                        match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                            Ok(()) => {
+                                Self::deposit_event(Event::<T>::ParticipteCallSent(amount));
+                            }
+                            Err(_e) => {
+                                return Err(Error::<T>::ParticipateCallFailed.into());
+                            }
+                        }
+                    });
+
+                    vault_contents.contribution_strategy.execute(
+                        crowdloan,
+                        vault_contents.currency,
+                        amount,
+                    );
 
                     // 4. Set vault.contributed to total_issuance(vault.currency_shares)
-                    vault_contents.contributed = vault_currency_issuance;
+                    vault_contents.contributed = vault_ctoken_issuance;
 
                     // update storage
                     *vault = Some(*vault_contents);
@@ -338,7 +424,9 @@ pub mod pallet {
                     );
 
                     // 3. Execute the `refund` function of the `contribution_strategy`
-                    todo!();
+                    vault_contents
+                        .contribution_strategy
+                        .refund(crowdloan, vault_contents.currency);
 
                     // 4. Set `vault.phase` to `Failed`
                     vault_contents.phase = VaultPhase::Failed;
@@ -410,17 +498,17 @@ pub mod pallet {
             // 1. `EnsureOrigin`
             ensure_root(origin)?;
 
-            // 2. Execute the `withdraw` function of our `contribution_strategy`
-            todo!();
-
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
                 ensure!(vault.is_some(), Error::<T>::CrowdloanDoesNotExists);
 
                 if let Some(vault_contents) = vault {
-                    // 3. Modify `vault.phase` to `Expired
+                    // 2. Execute the `withdraw` function of our `contribution_strategy`
+                    vault_contents
+                        .contribution_strategy
+                        .withdraw(crowdloan, vault_contents.currency);
 
-                    // 4. Set `vault.phase` to `Failed`
+                    // 3. Modify `vault.phase` to `Expired
                     vault_contents.phase = VaultPhase::Expired;
 
                     // update storage
@@ -435,7 +523,14 @@ pub mod pallet {
     where
         [u8; 32]: From<<T as frame_system::Config>::AccountId>,
     {
+        /// Crowdloan pool account
         pub fn account_id() -> T::AccountId {
+            T::PalletId::get().into_account()
+        }
+
+        /// Parachain sovereign account
+        pub fn para_account_id() -> T::AccountId {
+            // T::SelfParaId::get().into_account()
             T::PalletId::get().into_account()
         }
 
@@ -446,6 +541,40 @@ pub mod pallet {
             crowdloan: ParaId,
         ) -> Result<Vault<ParaId, AssetIdOf<T>, BalanceOf<T>>, DispatchError> {
             Vaults::<T>::try_get(crowdloan).map_err(|_err| Error::<T>::VaultDoesNotExist.into())
+        }
+
+        fn ump_transact(call: DoubleEncoded<()>, weight: Weight) -> Result<Xcm<()>, DispatchError> {
+            // let fees = Self::xcm_fees_compensation();
+            let fees = 10;
+            ensure!(!fees.is_zero(), Error::<T>::XcmFeesCompensationTooLow);
+
+            // let account_id = Self::account_id();
+            let asset: MultiAsset = (MultiLocation::here(), fees).into();
+
+            Ok(Xcm(vec![
+                WithdrawAsset(MultiAssets::from(asset.clone())),
+                BuyExecution {
+                    fees: asset.clone(),
+                    weight_limit: Unlimited,
+                },
+                Transact {
+                    origin_type: OriginKind::SovereignAccount,
+                    require_weight_at_most: weight,
+                    call,
+                },
+                RefundSurplus,
+                DepositAsset {
+                    assets: asset.into(),
+                    max_assets: 1,
+                    beneficiary: MultiLocation {
+                        parents: 1,
+                        interior: X1(AccountId32 {
+                            network: NetworkId::Any,
+                            id: Self::para_account_id().into(),
+                        }),
+                    },
+                },
+            ]))
         }
     }
 }
