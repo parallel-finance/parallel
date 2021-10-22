@@ -46,10 +46,7 @@ use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{
-    traits::{
-        AccountIdConversion, CheckedDiv, IntegerSquareRoot, One,
-        Zero,
-    },
+    traits::{AccountIdConversion, CheckedDiv, IntegerSquareRoot, One, Zero},
     ArithmeticError, DispatchError, FixedU128, Perbill, SaturatedConversion,
 };
 pub use weights::WeightInfo;
@@ -259,34 +256,34 @@ pub mod pallet {
                             .ok_or(ArithmeticError::Overflow)?,
                     );
 
-                        liquidity_amount.base_amount = liquidity_amount
-                            .base_amount
-                            .checked_add(base_amount)
-                            .ok_or(ArithmeticError::Overflow)?;
-                        liquidity_amount.quote_amount = liquidity_amount
-                            .quote_amount
-                            .checked_add(quote_amount)
-                            .ok_or(ArithmeticError::Overflow)?;
+                    liquidity_amount.base_amount = liquidity_amount
+                        .base_amount
+                        .checked_add(base_amount)
+                        .ok_or(ArithmeticError::Overflow)?;
+                    liquidity_amount.quote_amount = liquidity_amount
+                        .quote_amount
+                        .checked_add(quote_amount)
+                        .ok_or(ArithmeticError::Overflow)?;
 
                     *pool_liquidity_amount = Some(liquidity_amount);
 
-                        LiquidityProviders::<T, I>::try_mutate(
-                            (&who, &base_asset, &quote_asset),
-                            |pool_liquidity_amount| -> DispatchResult {
-                                if let Some(liquidity_amount) = pool_liquidity_amount {
-                                    liquidity_amount.base_amount = liquidity_amount
-                                        .base_amount
-                                        .checked_add(base_amount)
-                                        .ok_or(ArithmeticError::Overflow)?;
-                                    liquidity_amount.quote_amount = liquidity_amount
-                                        .quote_amount
-                                        .checked_add(quote_amount)
-                                        .ok_or(ArithmeticError::Overflow)?;
-                                    *pool_liquidity_amount = Some(*liquidity_amount);
-                                }
-                                Ok(())
-                            },
-                        )?;
+                    LiquidityProviders::<T, I>::try_mutate(
+                        (&who, &base_asset, &quote_asset),
+                        |pool_liquidity_amount| -> DispatchResult {
+                            if let Some(liquidity_amount) = pool_liquidity_amount {
+                                liquidity_amount.base_amount = liquidity_amount
+                                    .base_amount
+                                    .checked_add(base_amount)
+                                    .ok_or(ArithmeticError::Overflow)?;
+                                liquidity_amount.quote_amount = liquidity_amount
+                                    .quote_amount
+                                    .checked_add(quote_amount)
+                                    .ok_or(ArithmeticError::Overflow)?;
+                                *pool_liquidity_amount = Some(*liquidity_amount);
+                            }
+                            Ok(())
+                        },
+                    )?;
 
                     Self::mint_transfer_liquidity(
                         who,

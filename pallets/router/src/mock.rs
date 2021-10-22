@@ -17,7 +17,9 @@
 use super::*;
 use crate as pallet_route;
 
-use frame_support::{construct_runtime, parameter_types, traits::Everything, traits::SortedMembers, PalletId};
+use frame_support::{
+    construct_runtime, parameter_types, traits::Everything, traits::SortedMembers, PalletId,
+};
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
