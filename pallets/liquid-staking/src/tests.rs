@@ -302,8 +302,8 @@ fn test_transact_withdraw_unbonded_work() {
             2 * DOT_DECIMAL,
         )));
 
-        pallet_staking::CurrentEra::<WestendRuntime>::put(
-            <WestendRuntime as pallet_staking::Config>::BondingDuration::get(),
+        pallet_staking::CurrentEra::<KusamaRuntime>::put(
+            <KusamaRuntime as pallet_staking::Config>::BondingDuration::get(),
         );
     });
 
@@ -423,7 +423,7 @@ fn test_transfer_bond() {
         print_events::<Test>("ParaA");
     });
     Relay::execute_with(|| {
-        print_events::<westend_runtime::Runtime>("Relay");
+        print_events::<kusama_runtime::Runtime>("Relay");
         let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
         assert_eq!(ledger.total, xcm_transfer_amount);
         assert_eq!(
