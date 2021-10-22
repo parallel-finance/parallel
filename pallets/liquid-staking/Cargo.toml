@@ -34,11 +34,11 @@ serde            = { version = '1' }
 sp-core          = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11' }
 sp-io            = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11' }
 
+kusama-runtime              = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11' }
 pallet-xcm                  = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11' }
 polkadot-core-primitives    = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11' }
 polkadot-parachain          = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11' }
 polkadot-runtime-parachains = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11' }
-westend-runtime             = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11' }
 xcm-builder                 = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11' }
 xcm-executor                = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11' }
 xcm-simulator               = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11' }

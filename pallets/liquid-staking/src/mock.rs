@@ -7,10 +7,11 @@ use frame_support::{
     weights::constants::WEIGHT_PER_SECOND,
     PalletId,
 };
-use frame_system::{EnsureOneOf, EnsureRoot, EnsureSignedBy};
+use frame_system::{pallet_prelude::BlockNumberFor, EnsureOneOf, EnsureRoot, EnsureSignedBy};
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
+use polkadot_runtime_parachains::configuration::HostConfiguration;
 use primitives::{
     currency::MultiCurrencyAdapter, tokens::*, Balance, DerivativeProvider, Rate, Ratio,
 };
@@ -35,7 +36,7 @@ use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chai
 
 pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
-pub use westend_runtime;
+pub use kusama_runtime;
 
 parameter_types! {
     pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND / 4;
@@ -57,7 +58,7 @@ impl parachain_info::Config for Test {}
 
 parameter_types! {
     pub DotLocation: MultiLocation = MultiLocation::parent();
-    pub RelayNetwork: NetworkId = NetworkId::Named("westend".into());
+    pub RelayNetwork: NetworkId = NetworkId::Kusama;
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 }
@@ -435,8 +436,8 @@ decl_test_parachain! {
 
 decl_test_relay_chain! {
     pub struct Relay {
-        Runtime = westend_runtime::Runtime,
-        XcmConfig = westend_runtime::XcmConfig,
+        Runtime = kusama_runtime::Runtime,
+        XcmConfig = kusama_runtime::XcmConfig,
         new_ext = relay_ext(),
     }
 }
@@ -450,16 +451,61 @@ decl_test_network! {
     }
 }
 
-pub type WestendRuntime = westend_runtime::Runtime;
-pub type RelayBalances = pallet_balances::Pallet<WestendRuntime>;
-pub type RelayStaking = pallet_staking::Pallet<WestendRuntime>;
-pub type RelayStakingEvent = pallet_staking::Event<WestendRuntime>;
-pub type RelaySystem = frame_system::Pallet<WestendRuntime>;
-pub type RelayEvent = westend_runtime::Event;
+pub type KusamaRuntime = kusama_runtime::Runtime;
+pub type RelayBalances = pallet_balances::Pallet<KusamaRuntime>;
+pub type RelayStaking = pallet_staking::Pallet<KusamaRuntime>;
+pub type RelayStakingEvent = pallet_staking::Event<KusamaRuntime>;
+pub type RelaySystem = frame_system::Pallet<KusamaRuntime>;
+pub type RelayEvent = kusama_runtime::Event;
 pub type ParaSystem = frame_system::Pallet<Test>;
 
 pub fn para_a_id() -> ParaId {
     ParaId::from(1)
+}
+
+fn default_parachains_host_configuration() -> HostConfiguration<BlockNumberFor<KusamaRuntime>> {
+    HostConfiguration {
+        max_code_size: 3145728,
+        max_head_data_size: 32768,
+        max_upward_queue_count: 8,
+        max_upward_queue_size: 1048576,
+        max_upward_message_size: 1048576,
+        max_upward_message_num_per_candidate: 5,
+        hrmp_max_message_num_per_candidate: 5,
+        validation_upgrade_frequency: 1,
+        validation_upgrade_delay: 1,
+        max_pov_size: 5242880,
+        max_downward_message_size: 1024,
+        ump_service_total_weight: 100_000_000_000,
+        hrmp_max_parachain_outbound_channels: 4,
+        hrmp_max_parathread_outbound_channels: 4,
+        hrmp_sender_deposit: 0,
+        hrmp_recipient_deposit: 0,
+        hrmp_channel_max_capacity: 8,
+        hrmp_channel_max_total_size: 8192,
+        hrmp_max_parachain_inbound_channels: 4,
+        hrmp_max_parathread_inbound_channels: 4,
+        hrmp_channel_max_message_size: 1048576,
+        code_retention_period: 1200,
+        parathread_cores: 0,
+        parathread_retries: 0,
+        group_rotation_frequency: 20,
+        chain_availability_period: 4,
+        thread_availability_period: 4,
+        scheduling_lookahead: 0,
+        max_validators_per_core: None,
+        max_validators: None,
+        dispute_period: 6,
+        dispute_post_conclusion_acceptance_period: 100,
+        dispute_max_spam_slots: 2,
+        dispute_conclusion_by_time_out_period: 200,
+        no_show_slots: 2,
+        n_delay_tranches: 25,
+        zeroth_delay_tranche_width: 0,
+        needed_approvals: 2,
+        relay_vrf_modulo_samples: 2,
+        ump_max_individual_weight: 20000000000,
+    }
 }
 
 pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
@@ -502,7 +548,7 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
 }
 
 pub fn relay_ext() -> sp_io::TestExternalities {
-    use westend_runtime::{Runtime, System};
+    use kusama_runtime::{Runtime, System};
     let mut t = frame_system::GenesisConfig::default()
         .build_storage::<Runtime>()
         .unwrap();
@@ -512,6 +558,12 @@ pub fn relay_ext() -> sp_io::TestExternalities {
             (ALICE, 100 * DOT_DECIMAL),
             (para_a_id().into_account(), 1_000_000 * DOT_DECIMAL),
         ],
+    }
+    .assimilate_storage(&mut t)
+    .unwrap();
+
+    polkadot_runtime_parachains::configuration::GenesisConfig::<Runtime> {
+        config: default_parachains_host_configuration(),
     }
     .assimilate_storage(&mut t)
     .unwrap();
