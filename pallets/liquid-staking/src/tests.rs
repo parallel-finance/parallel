@@ -88,24 +88,43 @@ fn test_record_staking_settlement_ok() {
     new_test_ext().execute_with(|| {
         assert_ok!(LiquidStaking::record_staking_settlement(
             Origin::signed(ALICE),
-            dot(100f64),
+            dot(200f64),
             StakingSettlementKind::Reward
         ));
 
-        assert_eq!(LiquidStaking::exchange_rate(), Rate::from(1));
+        assert_eq!(LiquidStaking::exchange_rate(), Rate::from(2));
     })
 }
 
 #[test]
-fn test_duplicated_record_staking_settlement() {
+fn test_record_slash_should_not_change_exchange_rate_and_increase_total_slashed() {
     new_test_ext().execute_with(|| {
         LiquidStaking::record_staking_settlement(
             Origin::signed(ALICE),
-            100,
-            StakingSettlementKind::Reward,
+            dot(1f64),
+            StakingSettlementKind::Slash,
         )
         .unwrap();
+
+        assert_eq!(LiquidStaking::exchange_rate(), Rate::from(1));
+        assert_eq!(LiquidStaking::total_slashed(), dot(1f64));
     })
+}
+
+#[test]
+fn test_payout_slashed_should_work() {
+    TestNet::reset();
+
+    ParaA::execute_with(|| {
+        LiquidStaking::stake(Origin::signed(ALICE), dot(10000f64)).unwrap();
+        LiquidStaking::record_staking_settlement(
+            Origin::signed(ALICE),
+            dot(0.1f64),
+            StakingSettlementKind::Slash,
+        )
+        .unwrap();
+        assert_ok!(LiquidStaking::payout_slashed(Origin::signed(ALICE)));
+    });
 }
 
 enum StakeOp {

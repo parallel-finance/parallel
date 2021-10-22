@@ -57,6 +57,7 @@ pub trait WeightInfo {
     fn rebond() -> Weight;
     fn withdraw_unbonded() -> Weight;
     fn record_staking_settlement() -> Weight;
+    fn payout_slashed() -> Weight;
     fn set_liquid_currency() -> Weight;
     fn set_staking_currency() -> Weight;
     fn update_reserve_factor() -> Weight;
@@ -156,6 +157,10 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().reads(9 as Weight))
             .saturating_add(T::DbWeight::get().writes(7 as Weight))
     }
+
+    fn payout_slashed() -> Weight {
+        10000u64.into()
+    }
 }
 
 // For backwards compatibility and tests
@@ -245,5 +250,9 @@ impl WeightInfo for () {
         (287_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(9 as Weight))
             .saturating_add(RocksDbWeight::get().writes(7 as Weight))
+    }
+
+    fn payout_slashed() -> Weight {
+        10000u64.into()
     }
 }

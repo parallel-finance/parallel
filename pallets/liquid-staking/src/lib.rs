@@ -189,6 +189,8 @@ pub mod pallet {
         ReserveFactorUpdated(Ratio),
         /// Add asset to insurance pool
         InsurancesAdded(T::AccountId, BalanceOf<T>),
+        /// Slash was paid by insurance pool
+        SlashPaid(BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -240,6 +242,11 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn staking_pool)]
     pub type StakingPool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+    /// Total amount of slash in relaychain
+    #[pallet::storage]
+    #[pallet::getter(fn total_slashed)]
+    pub type TotalSlashed<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     /// Total amount of charged assets to be used as xcm fees.
     #[pallet::storage]
@@ -510,7 +517,36 @@ pub mod pallet {
             kind: StakingSettlementKind,
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
-            Self::update_staking_pool(kind, amount)?;
+            use StakingSettlementKind::*;
+            match kind {
+                Reward => {
+                    ensure!(
+                        amount <= T::MaxRewardsPerEra::get(),
+                        Error::<T>::ExceededMaxRewardsPerEra
+                    );
+                    StakingPool::<T>::try_mutate(|p| -> DispatchResult {
+                        *p = p.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
+                        Ok(())
+                    })?;
+                    // update exchange rate.
+                    let exchange_rate = Rate::checked_from_rational(
+                        StakingPool::<T>::get(),
+                        T::Assets::total_issuance(Self::liquid_currency()?),
+                    )
+                    .ok_or(Error::<T>::InvalidExchangeRate)?;
+                    ExchangeRate::<T>::put(exchange_rate);
+                }
+                Slash => {
+                    ensure!(
+                        amount <= T::MaxSlashesPerEra::get(),
+                        Error::<T>::ExceededMaxSlashesPerEra
+                    );
+                    TotalSlashed::<T>::try_mutate(|p| -> DispatchResult {
+                        *p = p.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
+                        Ok(())
+                    })?;
+                }
+            };
             Self::deposit_event(Event::<T>::StakingSettlementRecorded(kind, amount));
             Ok(().into())
         }
@@ -566,6 +602,24 @@ pub mod pallet {
             T::UpdateOrigin::ensure_origin(origin)?;
             StakingPoolCapacity::<T>::mutate(|v| *v = cap);
             Self::deposit_event(Event::<T>::StakingPoolCapacityUpdated(cap));
+            Ok(().into())
+        }
+
+        /// Payout slashed amount.
+        ///
+        /// Clear `TotalSlashed`, subtract `InsurancePool`, and bond corresponding amount in relay
+        /// chain.
+        #[pallet::weight(<T as Config>::WeightInfo::payout_slashed())]
+        #[transactional]
+        pub fn payout_slashed(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+            T::RelayOrigin::ensure_origin(origin)?;
+            let amount = TotalSlashed::<T>::take();
+            InsurancePool::<T>::try_mutate(|v| -> DispatchResult {
+                *v = v.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
+                Ok(())
+            })?;
+            Self::bond_extra_internal(amount)?;
+            Self::deposit_event(Event::<T>::SlashPaid(amount));
             Ok(().into())
         }
 
@@ -799,46 +853,6 @@ pub mod pallet {
             let para_account = Self::para_account_id();
             let derivative_index = T::DerivativeIndex::get();
             T::DerivativeProvider::derivative_account_id(para_account, derivative_index)
-        }
-
-        /// Increase / decrease staked asset in staking pool, and synchronized the exchange rate.
-        fn update_staking_pool(
-            kind: StakingSettlementKind,
-            amount: BalanceOf<T>,
-        ) -> DispatchResult {
-            use StakingSettlementKind::*;
-            match kind {
-                Reward => {
-                    ensure!(
-                        amount <= T::MaxRewardsPerEra::get(),
-                        Error::<T>::ExceededMaxRewardsPerEra
-                    );
-                    StakingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        *p = p.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
-                        Ok(())
-                    })
-                }
-                Slash => {
-                    ensure!(
-                        amount <= T::MaxSlashesPerEra::get(),
-                        Error::<T>::ExceededMaxSlashesPerEra
-                    );
-                    StakingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        *p = p.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
-                        Ok(())
-                    })
-                }
-            }?;
-
-            // update exchange rate.
-            let exchange_rate = Rate::checked_from_rational(
-                StakingPool::<T>::get(),
-                T::Assets::total_issuance(Self::liquid_currency()?),
-            )
-            .ok_or(Error::<T>::InvalidExchangeRate)?;
-            ExchangeRate::<T>::put(exchange_rate);
-
-            Ok(())
         }
 
         fn bond_internal(
