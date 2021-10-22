@@ -1069,7 +1069,7 @@ pub mod pallet {
             let account_id = Self::account_id();
             let asset: MultiAsset = (MultiLocation::here(), fees).into();
 
-            (T::Assets::burn_from(staking_currency, &account_id, fees))?;
+            T::Assets::burn_from(staking_currency, &account_id, fees)?;
 
             InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
