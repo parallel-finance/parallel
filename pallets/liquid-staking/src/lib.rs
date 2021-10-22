@@ -61,6 +61,7 @@ pub mod pallet {
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         ensure,
         pallet_prelude::*,
+        require_transactional,
         traits::{
             fungibles::{Inspect, Mutate, Transfer},
             Get, IsType,
@@ -993,6 +994,7 @@ pub mod pallet {
             Ok(())
         }
 
+        #[require_transactional]
         fn withdraw_unbonded_internal(
             num_slashing_spans: u32,
             amount: BalanceOf<T>,
