@@ -292,13 +292,13 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 
         // Init Markets
         Loans::add_market(Origin::root(), HKO, market_mock(PHKO)).unwrap();
-        Loans::active_market(Origin::root(), HKO).unwrap();
+        Loans::activate_market(Origin::root(), HKO).unwrap();
         Loans::add_market(Origin::root(), KSM, market_mock(PKSM)).unwrap();
-        Loans::active_market(Origin::root(), KSM).unwrap();
+        Loans::activate_market(Origin::root(), KSM).unwrap();
         Loans::add_market(Origin::root(), DOT, market_mock(PDOT)).unwrap();
-        Loans::active_market(Origin::root(), DOT).unwrap();
+        Loans::activate_market(Origin::root(), DOT).unwrap();
         Loans::add_market(Origin::root(), USDT, market_mock(PUSDT)).unwrap();
-        Loans::active_market(Origin::root(), USDT).unwrap();
+        Loans::activate_market(Origin::root(), USDT).unwrap();
 
         System::set_block_number(0);
         TimestampPallet::set_timestamp(6000);

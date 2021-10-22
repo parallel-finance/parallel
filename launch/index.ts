@@ -41,7 +41,7 @@ async function main() {
       api.tx.sudo.sudo(api.tx.assets.forceCreate(assetId, signer.address, true, 1)),
       api.tx.sudo.sudo(api.tx.assets.forceSetMetadata(assetId, name, symbol, decimal, false)),
       api.tx.sudo.sudo(api.tx.loans.addMarket(assetId, api.createType('Market', marketOption))),
-      api.tx.sudo.sudo(api.tx.loans.activeMarket(assetId))
+      api.tx.sudo.sudo(api.tx.loans.activateMarket(assetId))
     )
     call.push(...balances.map(([account, amount]) => api.tx.assets.mint(assetId, account, amount)))
   }
