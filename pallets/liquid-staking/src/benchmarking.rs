@@ -25,12 +25,12 @@ const MARKET_CAP: u128 = 10000000000000000u128;
 const XCM_FEES_COMPENSATION: u128 = 50000000000u128;
 const RESERVE_FACTOR: Ratio = Ratio::from_perthousand(5);
 const XCM_WEIGHT: XcmWeightMisc<Weight> = XcmWeightMisc {
-    bond_weight: 2_000_000_000,
-    bond_extra_weight: 2_000_000_000,
-    unbond_weight: 2_000_000_000,
-    rebond_weight: 2_000_000_000,
-    withdraw_unbonded_weight: 2_000_000_000,
-    nominate_weight: 2_000_000_000,
+    bond_weight: 3_000_000_000,
+    bond_extra_weight: 3_000_000_000,
+    unbond_weight: 3_000_000_000,
+    rebond_weight: 3_000_000_000,
+    withdraw_unbonded_weight: 3_000_000_000,
+    nominate_weight: 3_000_000_000,
 };
 const INITIAL_INSURANCE: u128 = 1000000000000u128;
 const INITIAL_AMOUNT: u128 = 1000000000000000u128;
@@ -39,6 +39,7 @@ const STAKE_AMOUNT: u128 = 20000000000000u128;
 const STAKED_AMOUNT: u128 = 19900000000000u128; // 20000000000000 * (1 - 5/1000)
 const UNSTAKE_AMOUNT: u128 = 10000000000000u128;
 const REWARDS: u128 = 10000000000000u128;
+const SLASHES: u128 = 1000000000u128;
 const BOND_AMOUNT: u128 = 10000000000000u128;
 const UNBOND_AMOUNT: u128 = 5000000000000u128;
 const REBOND_AMOUNT: u128 = 5000000000000u128;
@@ -237,6 +238,15 @@ benchmarks! {
     }: _(SystemOrigin::Signed(alice.clone()), INSURANCE_AMOUNT)
     verify {
         assert_eq!(InsurancePool::<T>::get(), INSURANCE_AMOUNT + INITIAL_INSURANCE);
+    }
+
+    payout_slashed {
+        let alice: T::AccountId = account("Sample", 100, SEED);
+        initial_set_up::<T>(alice.clone());
+        LiquidStaking::<T>::record_staking_settlement(SystemOrigin::Root.into(), SLASHES, StakingSettlementKind::Slash).unwrap();
+    }: _(SystemOrigin::Root)
+    verify {
+        assert_eq!(InsurancePool::<T>::get(), INITIAL_INSURANCE - SLASHES - XCM_FEES_COMPENSATION);
     }
 
     on_idle {
