@@ -346,3 +346,9 @@ pub const fn market_mock(ptoken_id: u32) -> Market<Balance> {
 }
 
 pub const MARKET_MOCK: Market<Balance> = market_mock(1200);
+
+pub const ACTIVE_MARKET_MOCK: Market<Balance> = {
+    let mut market = MARKET_MOCK;
+    market.state = MarketState::Active;
+    market
+};

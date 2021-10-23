@@ -135,12 +135,12 @@ fn mint_works() {
 #[test]
 fn mint_must_return_err_when_overflows_occur() {
     new_test_ext().execute_with(|| {
-        Loans::update_market(
+        Loans::force_update_market(
             Origin::root(),
             DOT,
             Market {
                 cap: u128::MAX,
-                ..MARKET_MOCK
+                ..ACTIVE_MARKET_MOCK
             },
         )
         .unwrap();

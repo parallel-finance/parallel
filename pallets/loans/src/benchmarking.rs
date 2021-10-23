@@ -10,6 +10,7 @@ use frame_support::assert_ok;
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{Balance, CurrencyId};
 use sp_std::prelude::*;
+use rate_model::{InterestRateModel, JumpModel};
 
 const SEED: u32 = 0;
 const DOT: CurrencyId = 101;
@@ -18,6 +19,13 @@ const UNKNOWN: CurrencyId = 5;
 const PKSM: CurrencyId = 1000;
 const PDOT: CurrencyId = 1001;
 const PUNKNOWN: CurrencyId = 1005;
+
+const RATE_MODEL_MOCK: InterestRateModel = InterestRateModel::Jump(JumpModel {
+    base_rate: Rate::from_inner(Rate::DIV / 100 * 2),
+    jump_rate: Rate::from_inner(Rate::DIV / 100 * 10),
+    full_rate: Rate::from_inner(Rate::DIV / 100 * 32),
+    jump_utilization: Ratio::from_percent(80),
+});
 
 fn market_mock<T: Config>() -> Market<BalanceOf<T>> {
     Market {
@@ -111,7 +119,34 @@ benchmarks! {
         assert_last_event::<T>(Event::<T>::ActivatedMarket(UNKNOWN).into());
     }
 
-    update_market {
+    // update_rate_model {
+    //     assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT, pending_market_mock::<T>(PDOT)));
+    // }: _(SystemOrigin::Root, DOT, RATE_MODEL_MOCK)
+    // verify {
+    //     let mut market = pending_market_mock::<T>(PDOT);
+    //     market.rate_model = RATE_MODEL_MOCK;
+    //     assert_last_event::<T>(Event::<T>::UpdatedMarket(market).into());
+    // }
+
+    // update_market {
+    //     assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT, pending_market_mock::<T>(PDOT)));
+    // }: _(
+    //         SystemOrigin::Root,
+    //         DOT,
+    //         Ratio::from_percent(50),
+    //         Ratio::from_percent(50),
+    //         Rate::from_inner(Rate::DIV / 100 * 110),
+    //         MarketState::Active,
+    //         RATE_MODEL_MOCK,
+    //         Ratio::from_percent(15),
+    //         1_000_000_000_000_000_000_000u128,
+    //         1200
+    // )
+    // verify {
+    //     assert_last_event::<T>(Event::<T>::UpdatedMarket(pending_market_mock::<T>(PDOT)).into());
+    // }
+
+    force_update_market {
         assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT, pending_market_mock::<T>(PDOT)));
     }: _(SystemOrigin::Root,DOT, pending_market_mock::<T>(PDOT))
     verify {

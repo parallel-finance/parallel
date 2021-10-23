@@ -369,28 +369,6 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Activates a market. Returns `Err` if the market currency does not exist.
-        ///
-        /// If the market is already activated, does nothing.
-        ///
-        /// - `asset_id`: Market related currency
-        #[pallet::weight(T::WeightInfo::activate_market())]
-        #[transactional]
-        pub fn activate_market(
-            origin: OriginFor<T>,
-            asset_id: AssetIdOf<T>,
-        ) -> DispatchResultWithPostInfo {
-            T::UpdateOrigin::ensure_origin(origin)?;
-            Self::mutate_market(asset_id, |stored_market| {
-                if let MarketState::Active = stored_market.state {
-                    return;
-                }
-                stored_market.state = MarketState::Active
-            })?;
-            Self::deposit_event(Event::<T>::ActivatedMarket(asset_id));
-            Ok(().into())
-        }
-
         /// Stores a new market and its related currency. Returns `Err` if a currency
         /// is not attached to an existent market.
         ///
@@ -436,15 +414,97 @@ pub mod pallet {
             Ok(().into())
         }
 
-        /// Updates a stored market. Returns `Err` if the market currency does not exist.
+        /// Activates a market. Returns `Err` if the market currency does not exist.
         ///
-        /// Market state and ptoken_id won't be modified, regardless of the provided value.
+        /// If the market is already activated, does nothing.
+        ///
+        /// - `asset_id`: Market related currency
+        #[pallet::weight(T::WeightInfo::activate_market())]
+        #[transactional]
+        pub fn activate_market(
+            origin: OriginFor<T>,
+            asset_id: AssetIdOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            Self::mutate_market(asset_id, |stored_market| {
+                if let MarketState::Active = stored_market.state {
+                    return stored_market.clone();
+                }
+                stored_market.state = MarketState::Active;
+                stored_market.clone()
+            })?;
+            Self::deposit_event(Event::<T>::ActivatedMarket(asset_id));
+            Ok(().into())
+        }
+
+        /// Updates the rate model of a stored market. Returns `Err` if the market
+        /// currency does not exist or the rate model is invalid.
+        ///
+        /// - `asset_id`: Market related currency
+        /// - `rate_model`: The new rate model to be updated
+        #[pallet::weight(T::WeightInfo::update_market())] // TODO: update_rate_model
+        #[transactional]
+        pub fn update_rate_model(
+            origin: OriginFor<T>,
+            asset_id: AssetIdOf<T>,
+            rate_model: InterestRateModel,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            ensure!(
+                rate_model.check_model(),
+                Error::<T>::InvalidRateModelParam
+            );
+            let market = Self::mutate_market(asset_id, |stored_market| {
+                stored_market.rate_model = rate_model;
+                stored_market.clone()
+            })?;
+            Self::deposit_event(Event::<T>::UpdatedMarket(market));
+
+            Ok(().into())
+        }
+
+        /// Updates a stored market. Returns `Err` if the market currency does not exist.
         ///
         /// - `asset_id`: Market related currency
         /// - `market`: The new market parameters
         #[pallet::weight(T::WeightInfo::update_market())]
         #[transactional]
         pub fn update_market(
+            origin: OriginFor<T>,
+            asset_id: AssetIdOf<T>,
+            collateral_factor: Ratio,
+            reserve_factor: Ratio,
+            close_factor: Ratio,
+            liquidate_incentive: Rate,
+            cap: Balance,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            let market = Self::mutate_market(asset_id, |stored_market| {
+                *stored_market = Market {
+                    state: stored_market.state,
+                    ptoken_id: stored_market.ptoken_id,
+                    rate_model: stored_market.rate_model,
+                    collateral_factor,
+                    reserve_factor,
+                    close_factor,
+                    liquidate_incentive,
+                    cap,
+                };
+                stored_market.clone()
+            })?;
+            Self::deposit_event(Event::<T>::UpdatedMarket(market));
+
+            Ok(().into())
+        }
+
+        /// Force updates a stored market. Returns `Err` if the market currency 
+        /// does not exist.
+        ///
+        /// - `asset_id`: Market related currency
+        /// - `market`: The new market parameters
+        #[pallet::weight(T::WeightInfo::update_market())] // TODO: force_update_market
+        #[transactional]
+        pub fn force_update_market(
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
             market: Market<BalanceOf<T>>,
@@ -454,15 +514,12 @@ pub mod pallet {
                 market.rate_model.check_model(),
                 Error::<T>::InvalidRateModelParam
             );
-            Self::mutate_market(asset_id, |stored_market| {
-                *stored_market = Market {
-                    state: stored_market.state,
-                    ptoken_id: stored_market.ptoken_id,
-                    ..market
-                };
+            let updated_market = Self::mutate_market(asset_id, |stored_market| {
+                *stored_market = market;
+                stored_market.clone()
             })?;
 
-            Self::deposit_event(Event::<T>::UpdatedMarket(market));
+            Self::deposit_event(Event::<T>::UpdatedMarket(updated_market));
             Ok(().into())
         }
 
@@ -478,7 +535,7 @@ pub mod pallet {
             mint_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_market(asset_id)?;
+            Self::ensure_active_market(asset_id)?;
             Self::ensure_capacity(asset_id, mint_amount)?;
 
             T::Assets::transfer(asset_id, &who, &Self::account_id(), mint_amount, false)?;
@@ -517,7 +574,7 @@ pub mod pallet {
             redeem_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_market(asset_id)?;
+            Self::ensure_active_market(asset_id)?;
 
             let exchange_rate = Self::exchange_rate(asset_id);
             let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
@@ -539,7 +596,7 @@ pub mod pallet {
             asset_id: AssetIdOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_market(asset_id)?;
+            Self::ensure_active_market(asset_id)?;
 
             Self::update_earned_stored(&who, asset_id)?;
             let deposits = AccountDeposits::<T>::get(asset_id, &who);
@@ -562,7 +619,7 @@ pub mod pallet {
             borrow_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_market(asset_id)?;
+            Self::ensure_active_market(asset_id)?;
 
             Self::borrow_allowed(asset_id, &who, borrow_amount)?;
             let account_borrows = Self::current_borrow_balance(&who, asset_id)?;
@@ -601,7 +658,7 @@ pub mod pallet {
             repay_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_market(asset_id)?;
+            Self::ensure_active_market(asset_id)?;
 
             let account_borrows = Self::current_borrow_balance(&who, asset_id)?;
             Self::repay_borrow_internal(&who, asset_id, account_borrows, repay_amount)?;
@@ -621,7 +678,7 @@ pub mod pallet {
             asset_id: AssetIdOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_market(asset_id)?;
+            Self::ensure_active_market(asset_id)?;
 
             let account_borrows = Self::current_borrow_balance(&who, asset_id)?;
             Self::repay_borrow_internal(&who, asset_id, account_borrows, account_borrows)?;
@@ -643,7 +700,7 @@ pub mod pallet {
             enable: bool,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::ensure_market(asset_id)?;
+            Self::ensure_active_market(asset_id)?;
             ensure!(
                 AccountDeposits::<T>::contains_key(asset_id, &who),
                 Error::<T>::NoDeposit
@@ -724,7 +781,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::ReserveOrigin::ensure_origin(origin)?;
             let payer = T::Lookup::lookup(payer)?;
-            Self::ensure_market(asset_id)?;
+            Self::ensure_active_market(asset_id)?;
 
             T::Assets::transfer(asset_id, &payer, &Self::account_id(), add_amount, false)?;
             let total_reserves = Self::total_reserves(asset_id);
@@ -760,7 +817,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::ReserveOrigin::ensure_origin(origin)?;
             let receiver = T::Lookup::lookup(receiver)?;
-            Self::ensure_market(asset_id)?;
+            Self::ensure_active_market(asset_id)?;
 
             let total_reserves = Self::total_reserves(asset_id);
             if reduce_amount > total_reserves {
@@ -1083,8 +1140,8 @@ impl<T: Config> Pallet<T> {
         repay_amount: BalanceOf<T>,
         collateral_asset_id: AssetIdOf<T>,
     ) -> DispatchResult {
-        Self::ensure_market(liquidate_asset_id)?;
-        Self::ensure_market(collateral_asset_id)?;
+        Self::ensure_active_market(liquidate_asset_id)?;
+        Self::ensure_active_market(collateral_asset_id)?;
 
         let market = Self::market(liquidate_asset_id)?;
 
@@ -1224,8 +1281,8 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    // Ensures a given `asset_id` exists on the `Currencies` storage.
-    fn ensure_market(asset_id: AssetIdOf<T>) -> Result<Market<BalanceOf<T>>, DispatchError> {
+    // Ensures a given `asset_id` is an active market.
+    fn ensure_active_market(asset_id: AssetIdOf<T>) -> Result<Market<BalanceOf<T>>, DispatchError> {
         if let Some((_, market)) = Self::active_markets().find(|(id, _)| id == &asset_id) {
             Ok(market)
         } else {
@@ -1320,14 +1377,13 @@ impl<T: Config> Pallet<T> {
     // Mutates a stored Market.
     //
     // Returns `Err` if market does not exist.
-    pub(crate) fn mutate_market<F>(asset_id: AssetIdOf<T>, cb: F) -> Result<(), DispatchError>
+    pub(crate) fn mutate_market<F>(asset_id: AssetIdOf<T>, cb: F) -> Result<Market<BalanceOf<T>>, DispatchError>
     where
-        F: FnOnce(&mut Market<BalanceOf<T>>),
+        F: FnOnce(&mut Market<BalanceOf<T>>) -> Market<BalanceOf<T>>,
     {
-        Markets::<T>::try_mutate(asset_id, |opt| {
+        Markets::<T>::try_mutate(asset_id, |opt| -> Result<Market<BalanceOf<T>>, DispatchError> {
             if let Some(market) = opt {
-                cb(market);
-                return Ok(());
+                return Ok(cb(market));
             }
             Err(Error::<T>::MarketDoesNotExist.into())
         })
