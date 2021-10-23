@@ -169,17 +169,17 @@ pub mod pallet {
         /// Send `(bond_amount, rebond_amount, unbond_amount)` as args.
         Settlement(BalanceOf<T>, BalanceOf<T>, BalanceOf<T>),
         /// Sent staking.bond call to relaychain
-        BondCallSent(T::AccountId, BalanceOf<T>, RewardDestination<T::AccountId>),
+        Bonding(T::AccountId, BalanceOf<T>, RewardDestination<T::AccountId>),
         /// Sent staking.bond_extra call to relaychain
-        BondExtraCallSent(BalanceOf<T>),
+        BondingExtra(BalanceOf<T>),
         /// Sent staking.unbond call to relaychain
-        UnbondCallSent(BalanceOf<T>),
+        Unbonding(BalanceOf<T>),
         /// Sent staking.rebond call to relaychain
-        RebondCallSent(BalanceOf<T>),
+        Rebonding(BalanceOf<T>),
         /// Sent staking.withdraw_unbonded call to relaychain
-        WithdrawUnbondedCallSent(u32),
+        WithdrawingUnbonded(u32),
         /// Send staking.nominate call to relaychain
-        NominateCallSent(Vec<T::AccountId>),
+        Nominating(Vec<T::AccountId>),
         /// Compensation for extrinsics on relaychain was set to new value
         XcmFeesCompensationUpdated(BalanceOf<T>),
         /// Capacity of staking pool was set to new value
@@ -202,24 +202,22 @@ pub mod pallet {
         StakeAmountTooSmall,
         /// Unstake amount is too small
         UnstakeAmountTooSmall,
-        /// Operation wasn't submitted to relaychain or has been processed.
-        OperationNotReady,
         /// Failed to send staking.bond call
-        BondCallFailed,
+        BondFailed,
         /// Failed to send staking.bond_extra call
-        BondExtraCallFailed,
+        BondExtraFailed,
         /// Failed to send staking.unbond call
-        UnbondCallFailed,
+        UnbondFailed,
         /// Failed to send staking.rebond call
-        RebondCallFailed,
+        RebondFailed,
         /// Failed to send staking.withdraw_unbonded call
-        WithdrawUnbondedCallFailed,
+        WithdrawUnbondedFailed,
         /// Failed to send staking.nominate call
-        NominateCallFailed,
+        NominateFailed,
         /// Liquid currency hasn't been set
-        LiquidCurrencyNotSet,
+        LiquidCurrencyNotReady,
         /// Staking currency hasn't been set
-        StakingCurrencyNotSet,
+        StakingCurrencyNotReady,
         /// Exceeded unstake queue's capacity
         ExceededUnstakeQueueCapacity,
         /// Exceeded max rewards per era
@@ -762,10 +760,10 @@ pub mod pallet {
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
-                        Self::deposit_event(Event::<T>::NominateCallSent(targets));
+                        Self::deposit_event(Event::<T>::Nominating(targets));
                     }
                     Err(_e) => {
-                        return Err(Error::<T>::NominateCallFailed.into());
+                        return Err(Error::<T>::NominateFailed.into());
                     }
                 }
             });
@@ -840,14 +838,14 @@ pub mod pallet {
         /// Get staking currency or return back an error
         pub fn staking_currency() -> Result<AssetIdOf<T>, DispatchError> {
             StakingCurrency::<T>::get()
-                .ok_or(Error::<T>::StakingCurrencyNotSet)
+                .ok_or(Error::<T>::StakingCurrencyNotReady)
                 .map_err(Into::into)
         }
 
         /// Get liquid currency or return back an error
         pub fn liquid_currency() -> Result<AssetIdOf<T>, DispatchError> {
             LiquidCurrency::<T>::get()
-                .ok_or(Error::<T>::LiquidCurrencyNotSet)
+                .ok_or(Error::<T>::LiquidCurrencyNotReady)
                 .map_err(Into::into)
         }
 
@@ -895,10 +893,10 @@ pub mod pallet {
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
-                        Self::deposit_event(Event::<T>::BondCallSent(controller, value, payee));
+                        Self::deposit_event(Event::<T>::Bonding(controller, value, payee));
                     }
                     Err(_e) => {
-                        return Err(Error::<T>::BondCallFailed.into());
+                        return Err(Error::<T>::BondFailed.into());
                     }
                 }
             });
@@ -933,10 +931,10 @@ pub mod pallet {
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
-                        Self::deposit_event(Event::<T>::BondExtraCallSent(value));
+                        Self::deposit_event(Event::<T>::BondingExtra(value));
                     }
                     Err(_e) => {
-                        return Err(Error::<T>::BondExtraCallFailed.into());
+                        return Err(Error::<T>::BondExtraFailed.into());
                     }
                 }
             });
@@ -961,10 +959,10 @@ pub mod pallet {
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
-                        Self::deposit_event(Event::<T>::UnbondCallSent(value));
+                        Self::deposit_event(Event::<T>::Unbonding(value));
                     }
                     Err(_e) => {
-                        return Err(Error::<T>::UnbondCallFailed.into());
+                        return Err(Error::<T>::UnbondFailed.into());
                     }
                 }
             });
@@ -989,10 +987,10 @@ pub mod pallet {
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
-                        Self::deposit_event(Event::<T>::RebondCallSent(value));
+                        Self::deposit_event(Event::<T>::Rebonding(value));
                     }
                     Err(_e) => {
-                        return Err(Error::<T>::RebondCallFailed.into());
+                        return Err(Error::<T>::RebondFailed.into());
                     }
                 }
             });
@@ -1042,12 +1040,10 @@ pub mod pallet {
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
-                        Self::deposit_event(Event::<T>::WithdrawUnbondedCallSent(
-                            num_slashing_spans,
-                        ));
+                        Self::deposit_event(Event::<T>::WithdrawingUnbonded(num_slashing_spans));
                     }
                     Err(_e) => {
-                        return Err(Error::<T>::WithdrawUnbondedCallFailed.into());
+                        return Err(Error::<T>::WithdrawUnbondedFailed.into());
                     }
                 }
             });

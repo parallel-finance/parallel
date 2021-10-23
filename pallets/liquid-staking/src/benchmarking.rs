@@ -119,7 +119,7 @@ benchmarks! {
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
     }: _(SystemOrigin::Root, BOND_AMOUNT,  RewardDestination::Staked)
     verify {
-        assert_last_event::<T>(Event::<T>::BondCallSent(LiquidStaking::<T>::derivative_para_account_id(), BOND_AMOUNT, RewardDestination::Staked).into());
+        assert_last_event::<T>(Event::<T>::Bonding(LiquidStaking::<T>::derivative_para_account_id(), BOND_AMOUNT, RewardDestination::Staked).into());
     }
 
     nominate {
@@ -130,7 +130,7 @@ benchmarks! {
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
     }: _(SystemOrigin::Root, vec![val1.clone(), val2.clone()])
     verify {
-        assert_last_event::<T>(Event::<T>::NominateCallSent(vec![val1, val2]).into());
+        assert_last_event::<T>(Event::<T>::Nominating(vec![val1, val2]).into());
     }
 
     bond_extra {
@@ -140,7 +140,7 @@ benchmarks! {
         LiquidStaking::<T>::bond(SystemOrigin::Root.into(), BOND_AMOUNT, RewardDestination::Staked).unwrap();
     }: _(SystemOrigin::Root, BOND_AMOUNT)
     verify {
-        assert_last_event::<T>(Event::<T>::BondExtraCallSent(BOND_AMOUNT).into());
+        assert_last_event::<T>(Event::<T>::BondingExtra(BOND_AMOUNT).into());
     }
 
     settlement {
@@ -162,7 +162,7 @@ benchmarks! {
         LiquidStaking::<T>::bond(SystemOrigin::Root.into(), BOND_AMOUNT, RewardDestination::Staked).unwrap();
     }: _(SystemOrigin::Root, UNBOND_AMOUNT)
     verify {
-        assert_last_event::<T>(Event::<T>::UnbondCallSent(UNBOND_AMOUNT).into());
+        assert_last_event::<T>(Event::<T>::Unbonding(UNBOND_AMOUNT).into());
     }
 
     rebond {
@@ -173,7 +173,7 @@ benchmarks! {
         LiquidStaking::<T>::unbond(SystemOrigin::Root.into(), UNBOND_AMOUNT).unwrap();
     }: _(SystemOrigin::Root, REBOND_AMOUNT)
     verify {
-        assert_last_event::<T>(Event::<T>::RebondCallSent(REBOND_AMOUNT).into());
+        assert_last_event::<T>(Event::<T>::Rebonding(REBOND_AMOUNT).into());
     }
 
     withdraw_unbonded {
@@ -184,7 +184,7 @@ benchmarks! {
         LiquidStaking::<T>::unbond(SystemOrigin::Root.into(), UNBOND_AMOUNT).unwrap();
     }: _(SystemOrigin::Root, 0, WITHDRAW_AMOUNT)
     verify {
-        assert_last_event::<T>(Event::<T>::WithdrawUnbondedCallSent(0).into());
+        assert_last_event::<T>(Event::<T>::WithdrawingUnbonded(0).into());
     }
 
     record_staking_settlement {
@@ -242,7 +242,7 @@ benchmarks! {
 
     payout_slashed {
         let alice: T::AccountId = account("Sample", 100, SEED);
-        initial_set_up::<T>(alice.clone());
+        initial_set_up::<T>(alice);
         LiquidStaking::<T>::record_staking_settlement(SystemOrigin::Root.into(), SLASHES, StakingSettlementKind::Slash).unwrap();
     }: _(SystemOrigin::Root)
     verify {
