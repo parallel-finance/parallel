@@ -2,7 +2,7 @@
 authors = ['Parallel Team']
 edition = '2018'
 name    = 'pallet-liquidation'
-version = '1.7.0'
+version = '1.7.1'
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']

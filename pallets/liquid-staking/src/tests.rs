@@ -179,13 +179,6 @@ fn test_settlement_should_work() {
             Pallet::<Test>::on_idle(0, 10000);
         }
     });
-    Relay::execute_with(|| {
-        assert_eq!(
-            RelayBalances::free_balance(&LiquidStaking::para_account_id()),
-            // FIXME: weight should be take into account
-            9999800000000000
-        );
-    });
 }
 
 #[test]

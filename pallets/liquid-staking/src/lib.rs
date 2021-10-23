@@ -1093,13 +1093,11 @@ pub mod pallet {
                 DepositAsset {
                     assets: asset.into(),
                     max_assets: 1,
-                    beneficiary: MultiLocation {
-                        parents: 1,
-                        interior: X1(AccountId32 {
-                            network: NetworkId::Any,
-                            id: Self::para_account_id().into(),
-                        }),
-                    },
+                    beneficiary: X1(AccountId32 {
+                        network: NetworkId::Any,
+                        id: Self::para_account_id().into(),
+                    })
+                    .into(),
                 },
             ]))
         }
