@@ -2,7 +2,7 @@
 authors = ['Parallel Team']
 edition = '2018'
 name    = 'pallet-loans-rpc'
-version = '1.7.0'
+version = '1.7.1'
 
 [dependencies]
 codec               = { package = 'parity-scale-codec', version = '2.3.1' }

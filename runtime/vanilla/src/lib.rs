@@ -436,7 +436,6 @@ impl pallet_loans::Config for Runtime {
 
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const PeriodBasis: BlockNumber = 1000u32;
     pub const DerivativeIndex: u16 = 0;
     pub const UnstakeQueueCapacity: u32 = 1000;
     pub const MaxRewardsPerEra: Balance = 10_000_000_000_000_000;
@@ -758,7 +757,7 @@ impl parachain_info::Config for Runtime {}
 
 parameter_types! {
     pub const RelayLocation: MultiLocation = MultiLocation::parent();
-    pub RelayNetwork: NetworkId = NetworkId::Named("westend".into());
+    pub RelayNetwork: NetworkId = NetworkId::Kusama;
     pub VanillaNetwork: NetworkId = NetworkId::Named("vanilla".into());
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation =  MultiLocation::new(0, X1(Parachain(ParachainInfo::parachain_id().into())));

@@ -25,12 +25,12 @@ const MARKET_CAP: u128 = 10000000000000000u128;
 const XCM_FEES_COMPENSATION: u128 = 50000000000u128;
 const RESERVE_FACTOR: Ratio = Ratio::from_perthousand(5);
 const XCM_WEIGHT: XcmWeightMisc<Weight> = XcmWeightMisc {
-    bond_weight: 2_000_000_000,
-    bond_extra_weight: 2_000_000_000,
-    unbond_weight: 2_000_000_000,
-    rebond_weight: 2_000_000_000,
-    withdraw_unbonded_weight: 2_000_000_000,
-    nominate_weight: 2_000_000_000,
+    bond_weight: 3_000_000_000,
+    bond_extra_weight: 3_000_000_000,
+    unbond_weight: 3_000_000_000,
+    rebond_weight: 3_000_000_000,
+    withdraw_unbonded_weight: 3_000_000_000,
+    nominate_weight: 3_000_000_000,
 };
 const INITIAL_INSURANCE: u128 = 1000000000000u128;
 const INITIAL_AMOUNT: u128 = 1000000000000000u128;
@@ -39,6 +39,7 @@ const STAKE_AMOUNT: u128 = 20000000000000u128;
 const STAKED_AMOUNT: u128 = 19900000000000u128; // 20000000000000 * (1 - 5/1000)
 const UNSTAKE_AMOUNT: u128 = 10000000000000u128;
 const REWARDS: u128 = 10000000000000u128;
+const SLASHES: u128 = 1000000000u128;
 const BOND_AMOUNT: u128 = 10000000000000u128;
 const UNBOND_AMOUNT: u128 = 5000000000000u128;
 const REBOND_AMOUNT: u128 = 5000000000000u128;
@@ -118,7 +119,7 @@ benchmarks! {
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
     }: _(SystemOrigin::Root, BOND_AMOUNT,  RewardDestination::Staked)
     verify {
-        assert_last_event::<T>(Event::<T>::BondCallSent(LiquidStaking::<T>::derivative_para_account_id(), BOND_AMOUNT, RewardDestination::Staked).into());
+        assert_last_event::<T>(Event::<T>::Bonding(LiquidStaking::<T>::derivative_para_account_id(), BOND_AMOUNT, RewardDestination::Staked).into());
     }
 
     nominate {
@@ -129,7 +130,7 @@ benchmarks! {
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
     }: _(SystemOrigin::Root, vec![val1.clone(), val2.clone()])
     verify {
-        assert_last_event::<T>(Event::<T>::NominateCallSent(vec![val1, val2]).into());
+        assert_last_event::<T>(Event::<T>::Nominating(vec![val1, val2]).into());
     }
 
     bond_extra {
@@ -139,7 +140,7 @@ benchmarks! {
         LiquidStaking::<T>::bond(SystemOrigin::Root.into(), BOND_AMOUNT, RewardDestination::Staked).unwrap();
     }: _(SystemOrigin::Root, BOND_AMOUNT)
     verify {
-        assert_last_event::<T>(Event::<T>::BondExtraCallSent(BOND_AMOUNT).into());
+        assert_last_event::<T>(Event::<T>::BondingExtra(BOND_AMOUNT).into());
     }
 
     settlement {
@@ -161,7 +162,7 @@ benchmarks! {
         LiquidStaking::<T>::bond(SystemOrigin::Root.into(), BOND_AMOUNT, RewardDestination::Staked).unwrap();
     }: _(SystemOrigin::Root, UNBOND_AMOUNT)
     verify {
-        assert_last_event::<T>(Event::<T>::UnbondCallSent(UNBOND_AMOUNT).into());
+        assert_last_event::<T>(Event::<T>::Unbonding(UNBOND_AMOUNT).into());
     }
 
     rebond {
@@ -172,7 +173,7 @@ benchmarks! {
         LiquidStaking::<T>::unbond(SystemOrigin::Root.into(), UNBOND_AMOUNT).unwrap();
     }: _(SystemOrigin::Root, REBOND_AMOUNT)
     verify {
-        assert_last_event::<T>(Event::<T>::RebondCallSent(REBOND_AMOUNT).into());
+        assert_last_event::<T>(Event::<T>::Rebonding(REBOND_AMOUNT).into());
     }
 
     withdraw_unbonded {
@@ -183,7 +184,7 @@ benchmarks! {
         LiquidStaking::<T>::unbond(SystemOrigin::Root.into(), UNBOND_AMOUNT).unwrap();
     }: _(SystemOrigin::Root, 0, WITHDRAW_AMOUNT)
     verify {
-        assert_last_event::<T>(Event::<T>::WithdrawUnbondedCallSent(0).into());
+        assert_last_event::<T>(Event::<T>::WithdrawingUnbonded(0).into());
     }
 
     record_staking_settlement {
@@ -237,6 +238,15 @@ benchmarks! {
     }: _(SystemOrigin::Signed(alice.clone()), INSURANCE_AMOUNT)
     verify {
         assert_eq!(InsurancePool::<T>::get(), INSURANCE_AMOUNT + INITIAL_INSURANCE);
+    }
+
+    payout_slashed {
+        let alice: T::AccountId = account("Sample", 100, SEED);
+        initial_set_up::<T>(alice);
+        LiquidStaking::<T>::record_staking_settlement(SystemOrigin::Root.into(), SLASHES, StakingSettlementKind::Slash).unwrap();
+    }: _(SystemOrigin::Root)
+    verify {
+        assert_eq!(InsurancePool::<T>::get(), INITIAL_INSURANCE - SLASHES - XCM_FEES_COMPENSATION);
     }
 
     on_idle {
