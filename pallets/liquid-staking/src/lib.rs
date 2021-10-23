@@ -198,8 +198,6 @@ pub mod pallet {
     pub enum Error<T> {
         /// Exchange rate is invalid.
         InvalidExchangeRate,
-        /// Era has been pushed before.
-        EraAlreadyPushed,
         /// Stake amount is too small
         StakeAmountTooSmall,
         /// Unstake amount is too small
@@ -637,6 +635,10 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
 
+            if Self::matching_pool().is_matched() {
+                return Ok(().into());
+            }
+
             let (bond_amount, rebond_amount, unbond_amount) =
                 MatchingPool::<T>::take().matching(unbonding_amount);
             let staking_currency = Self::staking_currency()?;
@@ -856,6 +858,7 @@ pub mod pallet {
             T::DerivativeProvider::derivative_account_id(para_account, derivative_index)
         }
 
+        #[require_transactional]
         fn bond_internal(
             value: BalanceOf<T>,
             payee: RewardDestination<T::AccountId>,
@@ -903,6 +906,7 @@ pub mod pallet {
             Ok(())
         }
 
+        #[require_transactional]
         fn bond_extra_internal(value: BalanceOf<T>) -> DispatchResult {
             let stash = T::Lookup::unlookup(Self::derivative_para_account_id());
 
@@ -940,6 +944,7 @@ pub mod pallet {
             Ok(())
         }
 
+        #[require_transactional]
         fn unbond_internal(value: BalanceOf<T>) -> DispatchResult {
             switch_relay!({
                 let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
@@ -967,6 +972,7 @@ pub mod pallet {
             Ok(())
         }
 
+        #[require_transactional]
         fn rebond_internal(value: BalanceOf<T>) -> DispatchResult {
             switch_relay!({
                 let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
@@ -1063,6 +1069,7 @@ pub mod pallet {
             UnstakeQueue::<T>::mutate(|v| v.remove(0));
         }
 
+        #[require_transactional]
         fn ump_transact(call: DoubleEncoded<()>, weight: Weight) -> Result<Xcm<()>, DispatchError> {
             let fees = Self::xcm_fees_compensation();
             ensure!(!fees.is_zero(), Error::<T>::XcmFeesCompensationTooLow);

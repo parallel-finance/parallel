@@ -302,7 +302,6 @@ pub type UpdateOrigin =
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const DerivativeIndex: u16 = 0;
-    pub const PeriodBasis: BlockNumber = 5u64;
     pub const UnstakeQueueCapacity: u32 = 1000;
     pub SelfParaId: ParaId = para_a_id();
     pub MaxRewardsPerEra: Balance = dot(1000f64);

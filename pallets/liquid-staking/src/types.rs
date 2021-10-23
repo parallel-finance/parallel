@@ -226,8 +226,8 @@ impl<Balance: AtLeast32BitUnsigned + Copy + Clone> MatchingLedger<Balance> {
     }
 
     #[inline]
-    pub fn is_empty(&self) -> bool {
-        self.total_stake_amount.is_zero() && self.total_unstake_amount.is_zero()
+    pub fn is_matched(&self) -> bool {
+        self.total_stake_amount == self.total_unstake_amount
     }
 }
 
