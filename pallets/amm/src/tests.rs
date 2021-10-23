@@ -1,25 +1,55 @@
 use super::*;
 use crate::mock::*;
 use frame_support::{assert_noop, assert_ok};
+use frame_system::RawOrigin;
+
+#[test]
+fn create_pool_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
+            (DOT, XDOT),
+            (10, 20),
+            BOB,
+            SAMPLE_LP_TOKEN,
+        ));
+
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 20);
+        assert_eq!(
+            AMM::liquidity_providers((BOB, XDOT, DOT))
+                .unwrap()
+                .base_amount,
+            20
+        );
+        assert_eq!(Assets::total_issuance(SAMPLE_LP_TOKEN), 14);
+        assert_eq!(Assets::balance(SAMPLE_LP_TOKEN, BOB), 14);
+    })
+}
 
 #[test]
 fn add_liquidity_should_work() {
     new_test_ext().execute_with(|| {
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
+            (DOT, XDOT),
+            (10, 20),
+            ALICE,
+            SAMPLE_LP_TOKEN,
+        ));
         assert_ok!(AMM::add_liquidity(
-            Origin::signed(ALICE),
+            RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
             (10, 20),
             (5, 5),
-            10
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 20);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 40);
 
         assert_eq!(
             AMM::liquidity_providers((ALICE, XDOT, DOT))
                 .unwrap()
                 .base_amount,
-            20
+            40
         );
     })
 }
@@ -27,20 +57,19 @@ fn add_liquidity_should_work() {
 #[test]
 fn add_more_liquidity_should_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(AMM::add_liquidity(
-            Origin::signed(ALICE),
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
             (10, 20),
-            (5, 5),
-            10
+            ALICE,
+            SAMPLE_LP_TOKEN
         ));
 
         assert_ok!(AMM::add_liquidity(
-            Origin::signed(ALICE),
+            RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
             (30, 40),
             (5, 5),
-            10
         ));
 
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 60);
@@ -68,51 +97,22 @@ fn add_more_liquidity_should_work() {
 #[test]
 fn add_more_liquidity_should_not_work_if_minimum_base_amount_is_higher() {
     new_test_ext().execute_with(|| {
-        assert_ok!(AMM::add_liquidity(
-            Origin::signed(ALICE),
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
             (10, 20),
-            (5, 5),
-            10
+            ALICE,
+            SAMPLE_LP_TOKEN
         ));
 
         assert_noop!(
-            AMM::add_liquidity(Origin::signed(ALICE), (DOT, XDOT), (30, 40), (55, 5), 10),
-            Error::<Test, Instance1>::NotAIdealPriceRatio
-        );
-    })
-}
-
-#[test]
-fn add_more_liquidity_should_not_work_for_same_assetid() {
-    new_test_ext().execute_with(|| {
-        assert_ok!(AMM::add_liquidity(
-            Origin::signed(ALICE),
-            (DOT, XDOT),
-            (10, 20),
-            (5, 5),
-            10
-        ));
-
-        assert_noop!(
-            AMM::add_liquidity(Origin::signed(ALICE), (DOT, HKO), (30, 40), (55, 5), 10),
-            pallet_assets::Error::<Test>::InUse
-        );
-    })
-}
-
-#[test]
-fn add_liquidity_should_not_work_if_not_allowed_for_normal_user() {
-    new_test_ext().execute_with(|| {
-        assert_noop!(
-            PermissionedAMM::add_liquidity(
-                Origin::signed(ALICE),
+            AMM::add_liquidity(
+                RawOrigin::Signed(ALICE).into(),
                 (DOT, XDOT),
                 (30, 40),
-                (55, 5),
-                10
+                (55, 5)
             ),
-            Error::<Test, Instance2>::PoolCreationDisabled
+            Error::<Test>::NotAIdealPriceRatio
         );
     })
 }
@@ -120,29 +120,27 @@ fn add_liquidity_should_not_work_if_not_allowed_for_normal_user() {
 #[test]
 fn add_more_liquidity_with_low_balance_should_not_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(AMM::add_liquidity(
-            Origin::signed(ALICE),
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
             (10, 20),
-            (5, 5),
-            10
+            ALICE,
+            SAMPLE_LP_TOKEN
         ));
 
         assert_ok!(AMM::add_liquidity(
-            Origin::signed(ALICE),
+            RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
             (30, 40),
             (1, 1),
-            10
         ));
 
         assert_noop!(
             AMM::add_liquidity(
-                Origin::signed(ALICE),
+                RawOrigin::Signed(ALICE).into(),
                 (DOT, XDOT),
                 (5000_000_000, 6000_000_000),
                 (5, 5),
-                10
             ),
             pallet_assets::Error::<Test>::BalanceLow
         );
@@ -152,28 +150,26 @@ fn add_more_liquidity_with_low_balance_should_not_work() {
 #[test]
 fn add_liquidity_by_another_user_should_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(AMM::add_liquidity(
-            Origin::signed(ALICE),
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
             (10, 20),
-            (5, 5),
-            10
+            ALICE,
+            SAMPLE_LP_TOKEN
         ));
 
         assert_ok!(AMM::add_liquidity(
-            Origin::signed(ALICE),
+            RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
             (30, 40),
             (5, 5),
-            10
         ));
 
         assert_ok!(AMM::add_liquidity(
-            Origin::signed(BOB),
+            RawOrigin::Signed(BOB).into(),
             (DOT, XDOT),
             (5, 10),
             (5, 5),
-            10
         ));
 
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 70);
@@ -181,47 +177,25 @@ fn add_liquidity_by_another_user_should_work() {
 }
 
 #[test]
-fn add_liquidity_should_work_if_created_by_root() {
+fn cannot_create_pool_twice() {
     new_test_ext().execute_with(|| {
-        assert_ok!(AMM::force_create_pool(
-            frame_system::RawOrigin::Root.into(),
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
             (10, 20),
             ALICE,
-            12
-        ));
-
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 20);
-
-        assert_eq!(
-            AMM::liquidity_providers((ALICE, XDOT, DOT))
-                .unwrap()
-                .base_amount,
-            20
-        );
-    })
-}
-
-#[test]
-fn add_liquidity_by_root_should_not_work_if_pool_already_exists() {
-    new_test_ext().execute_with(|| {
-        assert_ok!(AMM::add_liquidity(
-            Origin::signed(ALICE),
-            (DOT, XDOT),
-            (10, 20),
-            (5, 5),
-            10
+            SAMPLE_LP_TOKEN
         ));
 
         assert_noop!(
-            AMM::force_create_pool(
-                frame_system::RawOrigin::Root.into(),
+            AMM::create_pool(
+                RawOrigin::Signed(ALICE).into(),
                 (DOT, XDOT),
                 (10, 20),
                 ALICE,
-                10
+                SAMPLE_LP_TOKEN
             ),
-            Error::<Test, Instance1>::PoolAlreadyExists,
+            Error::<Test>::PoolAlreadyExists,
         );
     })
 }
@@ -233,10 +207,16 @@ fn remove_liquidity_whole_share_should_work() {
         // who deposit tokens and withdraws their whole share
         // (most simple case)
 
-        let _ = AMM::add_liquidity(Origin::signed(ALICE), (DOT, XDOT), (10, 90), (5, 5), 10);
+        let _ = AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
+            (DOT, XDOT),
+            (10, 90),
+            ALICE,
+            SAMPLE_LP_TOKEN,
+        );
 
         assert_eq!(
-            <Test as Config<pallet_balances::Instance1>>::Assets::total_issuance(
+            <Test as Config>::Assets::total_issuance(
                 AMM::liquidity_providers((ALICE, XDOT, DOT))
                     .unwrap()
                     .pool_assets
@@ -245,13 +225,13 @@ fn remove_liquidity_whole_share_should_work() {
         );
 
         assert_ok!(AMM::remove_liquidity(
-            Origin::signed(ALICE),
+            RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
             30
         ));
 
         assert_eq!(
-            <Test as Config<pallet_balances::Instance1>>::Assets::total_issuance(
+            <Test as Config>::Assets::total_issuance(
                 AMM::liquidity_providers((ALICE, XDOT, DOT))
                     .unwrap()
                     .pool_assets
@@ -268,16 +248,22 @@ fn remove_liquidity_only_portion_should_work() {
         // deposit tokens and withdraws
         // a portion of their total shares (simple case)
 
-        let _ = AMM::add_liquidity(Origin::signed(ALICE), (DOT, XDOT), (10, 90), (5, 5), 10);
+        let _ = AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
+            (DOT, XDOT),
+            (10, 90),
+            ALICE,
+            SAMPLE_LP_TOKEN,
+        );
 
         assert_ok!(AMM::remove_liquidity(
-            Origin::signed(ALICE),
+            RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
             15
         ));
 
         assert_eq!(
-            <Test as Config<pallet_balances::Instance1>>::Assets::total_issuance(
+            <Test as Config>::Assets::total_issuance(
                 AMM::liquidity_providers((ALICE, XDOT, DOT))
                     .unwrap()
                     .pool_assets
@@ -290,29 +276,28 @@ fn remove_liquidity_only_portion_should_work() {
 #[test]
 fn remove_liquidity_user_more_liquidity_should_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(AMM::add_liquidity(
-            Origin::signed(ALICE),
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
             (10, 25),
-            (5, 5),
-            10
+            ALICE,
+            SAMPLE_LP_TOKEN
         ));
         assert_ok!(AMM::add_liquidity(
-            Origin::signed(ALICE),
+            RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
             (15, 30),
             (5, 5),
-            10
         ));
 
         assert_ok!(AMM::remove_liquidity(
-            Origin::signed(ALICE),
+            RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
             15
         ));
 
         assert_eq!(
-            <Test as Config<pallet_balances::Instance1>>::Assets::total_issuance(
+            <Test as Config>::Assets::total_issuance(
                 AMM::liquidity_providers((ALICE, XDOT, DOT))
                     .unwrap()
                     .pool_assets
@@ -326,8 +311,8 @@ fn remove_liquidity_user_more_liquidity_should_work() {
 fn remove_liquidity_when_pool_does_not_exist_should_not_work() {
     new_test_ext().execute_with(|| {
         assert_noop!(
-            AMM::remove_liquidity(Origin::signed(ALICE), (DOT, XDOT), 15),
-            Error::<Test, Instance1>::PoolDoesNotExist
+            AMM::remove_liquidity(RawOrigin::Signed(ALICE).into(), (DOT, XDOT), 15),
+            Error::<Test>::PoolDoesNotExist
         );
     })
 }
@@ -339,11 +324,17 @@ fn remove_liquidity_with_more_liquidity_should_not_work() {
         // who deposit tokens and withdraws their whole share
         // (most simple case)
 
-        let _ = AMM::add_liquidity(Origin::signed(ALICE), (DOT, XDOT), (10, 90), (5, 5), 10);
+        let _ = AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
+            (DOT, XDOT),
+            (10, 90),
+            ALICE,
+            SAMPLE_LP_TOKEN,
+        );
 
         assert_noop!(
-            AMM::remove_liquidity(Origin::signed(ALICE), (DOT, XDOT), 300),
-            Error::<Test, Instance1>::MoreLiquidity
+            AMM::remove_liquidity(RawOrigin::Signed(ALICE).into(), (DOT, XDOT), 300),
+            Error::<Test>::MoreLiquidity
         );
     })
 }
@@ -356,12 +347,12 @@ fn trade_should_work() {
         let trader = EVE;
 
         // create pool and add liquidity
-        assert_ok!(AMM::add_liquidity(
-            Origin::signed(CHARLIE),
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
             (100_000_000, 100_000_000),
-            (99_999, 99_999),
-            10
+            CHARLIE,
+            SAMPLE_LP_TOKEN,
         ));
 
         // check that pool was funded correctly
@@ -389,23 +380,30 @@ fn trade_should_not_work_if_insufficient_amount_in() {
 
         let trader = EVE;
 
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
+            (DOT, XDOT),
+            (100_000, 100_000),
+            CHARLIE,
+            SAMPLE_LP_TOKEN,
+        ));
+
         // create pool and add liquidity
         assert_ok!(AMM::add_liquidity(
-            Origin::signed(CHARLIE),
+            RawOrigin::Signed(CHARLIE).into(),
             (DOT, XDOT),
             (100_000, 100_000),
             (99_999, 99_999),
-            10
         ));
 
         // check that pool was funded correctly
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 100_000); // XDOT
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_000); // DOT
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 200_000); // XDOT
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 200_000); // DOT
 
         // amount out is less than minimum_amount_out
         assert_noop!(
             AMM::trade(&trader, (DOT, XDOT), 332, 300),
-            Error::<Test, Instance1>::InsufficientAmountIn
+            Error::<Test>::InsufficientAmountIn
         );
     })
 }
@@ -418,12 +416,12 @@ fn trade_should_work_flipped_currencies() {
         let trader = EVE;
 
         // create pool and add liquidity
-        assert_ok!(AMM::add_liquidity(
-            Origin::signed(CHARLIE),
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
             (100_000, 50_000),
-            (99_999, 49_999),
-            10
+            CHARLIE,
+            SAMPLE_LP_TOKEN
         ));
 
         // check that pool was funded correctly
@@ -456,12 +454,12 @@ fn trade_should_not_work_if_amount_less_than_miniumum() {
         let trader = EVE;
 
         // create pool and add liquidity
-        assert_ok!(AMM::add_liquidity(
-            Origin::signed(CHARLIE),
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
             (100_000, 100_000),
-            (99_999, 99_999),
-            10
+            CHARLIE,
+            SAMPLE_LP_TOKEN
         ));
         // check that pool was funded correctly
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 100_000);
@@ -470,7 +468,7 @@ fn trade_should_not_work_if_amount_less_than_miniumum() {
         // amount out is less than minimum_amount_out
         assert_noop!(
             AMM::trade(&trader, (DOT, XDOT), 1_000, 1_000),
-            Error::<Test, Instance1>::InsufficientAmountOut
+            Error::<Test>::InsufficientAmountOut
         );
     })
 }
@@ -483,18 +481,18 @@ fn trade_should_not_work_if_amount_in_is_zero() {
         let trader = EVE;
 
         // create pool and add liquidity
-        assert_ok!(AMM::add_liquidity(
-            Origin::signed(ALICE),
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
             (100, 100),
-            (90, 90),
-            10
+            ALICE,
+            SAMPLE_LP_TOKEN
         ));
 
         // fail if amount_in is zero
         assert_noop!(
             AMM::trade(&trader, (DOT, XDOT), 0, 0),
-            Error::<Test, Instance1>::InsufficientAmountIn
+            Error::<Test>::InsufficientAmountIn
         );
     })
 }
@@ -509,7 +507,7 @@ fn trade_should_not_work_if_pool_does_not_exist() {
         // try to trade in pool with no liquidity
         assert_noop!(
             AMM::trade(&trader, (DOT, XDOT), 10, 10),
-            Error::<Test, Instance1>::PoolDoesNotExist
+            Error::<Test>::PoolDoesNotExist
         );
     })
 }

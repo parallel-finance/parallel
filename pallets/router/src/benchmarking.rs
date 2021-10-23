@@ -12,6 +12,7 @@ use core::convert::TryFrom;
 use frame_benchmarking::{
     account, benchmarks_instance_pallet, impl_benchmark_test_suite, whitelisted_caller,
 };
+use frame_support::traits::EnsureOrigin;
 use frame_support::{
     assert_ok,
     traits::fungibles::{Inspect, Mutate},
@@ -68,12 +69,28 @@ where
     <T as crate::Config<I>>::Assets::mint_into(DOT, &pool_creator, INITIAL_AMOUNT).ok();
     <T as crate::Config<I>>::Assets::mint_into(XDOT, &pool_creator, INITIAL_AMOUNT).ok();
 
+    pallet_assets::Pallet::<T>::force_create(
+        SystemOrigin::Root.into(),
+        ASSET_ID,
+        T::Lookup::unlookup(pool_creator.clone()),
+        true,
+        One::one(),
+    )
+    .ok();
+
+    assert_ok!(pallet_amm::Pallet::<T>::create_pool(
+        T::CreatePoolOrigin::successful_origin(),
+        (DOT, XDOT),
+        (100_000_000u128, 100_000_000u128),
+        pool_creator.clone(),
+        ASSET_ID
+    ));
+
     assert_ok!(pallet_amm::Pallet::<T>::add_liquidity(
         SystemOrigin::Signed(pool_creator).into(),
         (DOT, XDOT),
         (100_000_000u128, 100_000_000u128),
-        (99_999u128, 99_999u128),
-        ASSET_ID
+        (99_999u128, 99_999u128)
     ));
 }
 
