@@ -17,7 +17,6 @@ scale-info         = { version = '1.0', default-features = false, features = ['d
 sp-runtime         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
 sp-std             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
 xcm                = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11', default-features = false }
-westend-runtime    = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11', default-features = false }
 
 cumulus-primitives-core = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.11', default-features = false }
 
@@ -39,6 +38,7 @@ pallet-xcm                  = { git = 'https://github.com/paritytech/polkadot.gi
 polkadot-core-primitives    = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11' }
 polkadot-parachain          = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11' }
 polkadot-runtime-parachains = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11' }
+westend-runtime             = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11', features=["runtime-benchmarks"] }
 xcm-builder                 = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11' }
 xcm-executor                = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11' }
 xcm-simulator               = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11' }
@@ -55,10 +55,7 @@ orml-xtokens     = { git = 'https://github.com/open-web3-stack/open-runtime-modu
 
 [features]
 default            = ['std']
-runtime-benchmarks = [
-	'frame-benchmarking',
-	'westend-runtime/runtime-benchmarks',
-]
+runtime-benchmarks = ['frame-benchmarking']
 std                = [
   'codec/std',
   'frame-support/std',
@@ -71,6 +68,5 @@ std                = [
   'xcm/std',
   'cumulus-primitives-core/std',
   'scale-info/std',
-  'westend-runtime/std',
 ]
 try-runtime        = ['frame-support/try-runtime']
