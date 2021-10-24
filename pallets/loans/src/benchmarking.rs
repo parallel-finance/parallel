@@ -8,17 +8,14 @@ use crate::AccountBorrows;
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::assert_ok;
 use frame_system::{self, RawOrigin as SystemOrigin};
-use primitives::{Balance, CurrencyId};
+use primitives::{
+    tokens::{DOT, KSM, PDOT, PKSM, PXKSM, XKSM},
+    Balance, CurrencyId,
+};
 use rate_model::{InterestRateModel, JumpModel};
 use sp_std::prelude::*;
 
 const SEED: u32 = 0;
-const DOT: CurrencyId = 101;
-const KSM: CurrencyId = 100;
-const UNKNOWN: CurrencyId = 5;
-const PKSM: CurrencyId = 1000;
-const PDOT: CurrencyId = 1001;
-const PUNKNOWN: CurrencyId = 1005;
 
 const RATE_MODEL_MOCK: InterestRateModel = InterestRateModel::Jump(JumpModel {
     base_rate: Rate::from_inner(Rate::DIV / 100 * 2),
@@ -60,7 +57,6 @@ fn transfer_initial_balance<
     caller: T::AccountId,
 ) {
     let account_id = T::Lookup::unlookup(caller.clone());
-
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
         KSM,
@@ -68,15 +64,15 @@ fn transfer_initial_balance<
         true,
         1,
     )
-    .ok();
-
+    .unwrap();
     pallet_assets::Pallet::<T>::force_create(SystemOrigin::Root.into(), DOT, account_id, true, 1)
-        .ok();
+        .unwrap();
 
     T::Assets::mint_into(DOT, &caller, INITIAL_AMOUNT.into()).unwrap();
     T::Assets::mint_into(KSM, &caller, INITIAL_AMOUNT.into()).unwrap();
-    pallet_prices::Pallet::<T>::set_price(SystemOrigin::Root.into(), DOT, 1.into()).ok();
-    pallet_prices::Pallet::<T>::set_price(SystemOrigin::Root.into(), KSM, 1.into()).ok();
+    pallet_prices::Pallet::<T>::set_price(SystemOrigin::Root.into(), DOT, 1.into()).unwrap();
+    pallet_prices::Pallet::<T>::set_price(SystemOrigin::Root.into(), KSM, 1.into()).unwrap();
+    pallet_prices::Pallet::<T>::set_price(SystemOrigin::Root.into(), XKSM, 1.into()).unwrap();
 }
 
 fn set_account_borrows<T: Config>(
@@ -107,44 +103,44 @@ benchmarks! {
     }
 
     add_market {
-    }: _(SystemOrigin::Root, UNKNOWN, pending_market_mock::<T>(PUNKNOWN))
+    }: _(SystemOrigin::Root, XKSM, pending_market_mock::<T>(PXKSM))
     verify {
-        assert_last_event::<T>(Event::<T>::NewMarket(pending_market_mock::<T>(PUNKNOWN)).into());
+        assert_last_event::<T>(Event::<T>::NewMarket(pending_market_mock::<T>(PXKSM)).into());
     }
 
     activate_market {
-        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), UNKNOWN, pending_market_mock::<T>(PUNKNOWN)));
-    }: _(SystemOrigin::Root,UNKNOWN)
+        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), XKSM, pending_market_mock::<T>(PXKSM)));
+    }: _(SystemOrigin::Root, XKSM)
     verify {
-        assert_last_event::<T>(Event::<T>::ActivatedMarket(UNKNOWN).into());
+        assert_last_event::<T>(Event::<T>::ActivatedMarket(XKSM).into());
     }
 
-    // update_rate_model {
-    //     assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT, pending_market_mock::<T>(PDOT)));
-    // }: _(SystemOrigin::Root, DOT, RATE_MODEL_MOCK)
-    // verify {
-    //     let mut market = pending_market_mock::<T>(PDOT);
-    //     market.rate_model = RATE_MODEL_MOCK;
-    //     assert_last_event::<T>(Event::<T>::UpdatedMarket(market).into());
-    // }
+    update_rate_model {
+        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT, pending_market_mock::<T>(PDOT)));
+    }: _(SystemOrigin::Root, DOT, RATE_MODEL_MOCK)
+    verify {
+        let mut market = pending_market_mock::<T>(PDOT);
+        market.rate_model = RATE_MODEL_MOCK;
+        assert_last_event::<T>(Event::<T>::UpdatedMarket(market).into());
+    }
 
-    // update_market {
-    //     assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT, pending_market_mock::<T>(PDOT)));
-    // }: _(
-    //         SystemOrigin::Root,
-    //         DOT,
-    //         Ratio::from_percent(50),
-    //         Ratio::from_percent(50),
-    //         Rate::from_inner(Rate::DIV / 100 * 110),
-    //         MarketState::Active,
-    //         RATE_MODEL_MOCK,
-    //         Ratio::from_percent(15),
-    //         1_000_000_000_000_000_000_000u128,
-    //         1200
-    // )
-    // verify {
-    //     assert_last_event::<T>(Event::<T>::UpdatedMarket(pending_market_mock::<T>(PDOT)).into());
-    // }
+    update_market {
+        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), KSM, pending_market_mock::<T>(PKSM)));
+    }: _(
+            SystemOrigin::Root,
+            KSM,
+            Ratio::from_percent(50),
+            Ratio::from_percent(50),
+            Ratio::from_percent(15),
+            Rate::from_inner(Rate::DIV / 100 * 110),
+            1_000_000_000_000_000_000_000u128
+    )
+    verify {
+        let mut market = pending_market_mock::<T>(PKSM);
+        market.reserve_factor = Ratio::from_percent(50);
+        market.close_factor = Ratio::from_percent(15);
+        assert_last_event::<T>(Event::<T>::UpdatedMarket(market).into());
+    }
 
     force_update_market {
         assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), DOT, pending_market_mock::<T>(PDOT)));

@@ -136,8 +136,10 @@ pub mod pallet {
         InvalidRateModelParam,
         /// Market not activated
         MarketNotActivated,
-        /// Currency's oracle price not ready
+        /// Oracle price not ready
         PriceOracleNotReady,
+        /// Oracle price is zero
+        PriceIsZero,
         /// Invalid asset id
         InvalidCurrencyId,
         /// Invalid ptoken id
@@ -1358,7 +1360,7 @@ impl<T: Config> Pallet<T> {
         let (price, _) =
             T::PriceFeeder::get_price(&asset_id).ok_or(Error::<T>::PriceOracleNotReady)?;
         if price.is_zero() {
-            return Err(Error::<T>::PriceOracleNotReady.into());
+            return Err(Error::<T>::PriceIsZero.into());
         }
 
         Ok(price)

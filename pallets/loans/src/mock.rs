@@ -16,11 +16,10 @@ use super::*;
 
 use frame_support::{construct_runtime, parameter_types, traits::Everything, PalletId};
 use frame_system::EnsureRoot;
-
 use orml_traits::{DataProvider, DataProviderExtended};
+pub use primitives::tokens::{DOT, HKO, KSM, PDOT, PHKO, PKSM, PUSDT, USDT, XDOT, XKSM};
 use primitives::*;
 use sp_core::H256;
-
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 use sp_std::vec::Vec;
 use std::{cell::RefCell, collections::HashMap};
@@ -82,17 +81,6 @@ pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CHARLIE: AccountId = 3;
 pub const DAVE: AccountId = 4;
-
-pub const HKO: CurrencyId = 0;
-pub const KSM: CurrencyId = 100;
-pub const DOT: CurrencyId = 101;
-pub const USDT: CurrencyId = 102;
-pub const PHKO: CurrencyId = 999;
-pub const PKSM: CurrencyId = 1000;
-pub const PDOT: CurrencyId = 1001;
-pub const PUSDT: CurrencyId = 1002;
-pub const XKSM: CurrencyId = 5000;
-pub const XDOT: CurrencyId = 5001;
 
 parameter_types! {
     pub const MinimumPeriod: u64 = 5;

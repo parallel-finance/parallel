@@ -1,9 +1,9 @@
 use crate::{
     mock::{new_test_ext, Loans, Origin, Test, ACTIVE_MARKET_MOCK, ALICE, DOT, MARKET_MOCK, XDOT},
-    Error, InterestRateModel, Market, MarketState, Markets,
+    Error, InterestRateModel, MarketState, 
 };
 use frame_support::{assert_noop, assert_ok, error::BadOrigin};
-use primitives::{Balance, Rate, Ratio};
+use primitives::{Rate, Ratio};
 use sp_runtime::FixedPointNumber;
 
 macro_rules! rate_model_sanity_check {

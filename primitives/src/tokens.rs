@@ -21,11 +21,17 @@ pub const KSM: CurrencyId = 100;
 pub const DOT: CurrencyId = 101;
 pub const USDT: CurrencyId = 102;
 
-pub const PKSM: CurrencyId = 1000;
-pub const PDOT: CurrencyId = 1001;
+pub const XKSM: CurrencyId = 1000;
+pub const XDOT: CurrencyId = 1001;
 
-pub const XKSM: CurrencyId = 5000;
-pub const XDOT: CurrencyId = 5001;
+pub const PHKO: CurrencyId = 2000;
+pub const PPARA: CurrencyId = 2001;
+pub const PKSM: CurrencyId = 2100;
+pub const PDOT: CurrencyId = 2101;
+pub const PUSDT: CurrencyId = 2102;
+
+pub const PXKSM: CurrencyId = 3000;
+pub const PXDOT: CurrencyId = 3001;
 
 // Token Registration Information
 // +──────────+────────+────────────────────+
