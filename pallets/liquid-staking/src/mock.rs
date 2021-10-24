@@ -115,7 +115,7 @@ impl cumulus_pallet_xcmp_queue::Config for Test {
     type Event = Event;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type ChannelInfo = ParachainSystem;
-    type VersionWrapper = ();
+    type VersionWrapper = PolkadotXcm;
 }
 
 impl cumulus_pallet_dmp_queue::Config for Test {
@@ -537,6 +537,7 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
         System::set_block_number(1);
+        PolkadotXcm::force_default_xcm_version(Origin::root(), Some(2)).unwrap();
         Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
         Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 10000 * DOT_DECIMAL).unwrap();
@@ -551,7 +552,7 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
 }
 
 pub fn relay_ext() -> sp_io::TestExternalities {
-    use kusama_runtime::{Runtime, System};
+    use kusama_runtime::{Origin, Runtime, System, XcmPallet};
     let mut t = frame_system::GenesisConfig::default()
         .build_storage::<Runtime>()
         .unwrap();
@@ -572,7 +573,10 @@ pub fn relay_ext() -> sp_io::TestExternalities {
     .unwrap();
 
     let mut ext = sp_io::TestExternalities::new(t);
-    ext.execute_with(|| System::set_block_number(1));
+    ext.execute_with(|| {
+        XcmPallet::force_default_xcm_version(Origin::root(), Some(2)).unwrap();
+        System::set_block_number(1)
+    });
     ext
 }
 
