@@ -1,7 +1,7 @@
 use crate as pallet_amm;
 
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::{parameter_types, traits::Everything, PalletId};
+use frame_support::{parameter_types, traits::Everything, traits::SortedMembers, PalletId};
 use frame_system::{self as system, EnsureRoot};
 use primitives::{tokens, Balance, CurrencyId};
 use scale_info::TypeInfo;
@@ -13,10 +13,11 @@ use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup},
     Perbill, RuntimeDebug,
 };
+use system::EnsureSignedBy;
 
 pub const DOT: CurrencyId = tokens::DOT;
 pub const XDOT: CurrencyId = tokens::XDOT;
-pub const HKO: CurrencyId = tokens::HKO;
+pub const SAMPLE_LP_TOKEN: CurrencyId = 42;
 
 pub const ALICE: AccountId = AccountId(1);
 pub const BOB: AccountId = AccountId(2);
@@ -65,9 +66,7 @@ frame_support::construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
-        AMM: pallet_amm::<Instance1>::{Pallet, Call, Storage, Event<T>},
-        PermissionedAMM: pallet_amm::<Instance2>::{Pallet, Call, Storage, Event<T>},
-        DefaultAMM: pallet_amm::{Pallet, Call, Storage, Event<T>},
+        AMM: pallet_amm::{Pallet, Call, Storage, Event<T>},
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
         CurrencyAdapter: pallet_currency_adapter::{Pallet, Call},
     }
@@ -147,37 +146,16 @@ impl pallet_assets::Config for Test {
 
 parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
-    pub const AllowPermissionlessPoolCreation: bool = true;
     pub const DefaultLpFee: Perbill = Perbill::from_perthousand(3);         // 0.3%
     pub const DefaultProtocolFee: Perbill = Perbill::from_perthousand(2);   // 0.2%
     pub const DefaultProtocolFeeReceiver: AccountId = AccountId(4_u64);
 }
 
-impl pallet_amm::Config<pallet_amm::Instance1> for Test {
-    type Event = Event;
-    type Assets = CurrencyAdapter;
-    type PalletId = AMMPalletId;
-    type AMMWeightInfo = ();
-    type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
-    type LpFee = DefaultLpFee;
-    type ProtocolFee = DefaultProtocolFee;
-    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
-}
-
-parameter_types! {
-    pub const PermissionedAMMPalletId: PalletId = PalletId(*b"par/ampe");
-    pub const ForbidPermissionlessPoolCreation: bool = false;
-}
-
-impl pallet_amm::Config<pallet_amm::Instance2> for Test {
-    type Event = Event;
-    type Assets = CurrencyAdapter;
-    type PalletId = PermissionedAMMPalletId;
-    type AMMWeightInfo = ();
-    type AllowPermissionlessPoolCreation = ForbidPermissionlessPoolCreation;
-    type LpFee = DefaultLpFee;
-    type ProtocolFee = DefaultProtocolFee;
-    type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
+pub struct AliceCreatePoolOrigin;
+impl SortedMembers<AccountId> for AliceCreatePoolOrigin {
+    fn sorted_members() -> Vec<AccountId> {
+        vec![ALICE]
+    }
 }
 
 impl pallet_amm::Config for Test {
@@ -185,7 +163,7 @@ impl pallet_amm::Config for Test {
     type Assets = CurrencyAdapter;
     type PalletId = AMMPalletId;
     type AMMWeightInfo = ();
-    type AllowPermissionlessPoolCreation = AllowPermissionlessPoolCreation;
+    type CreatePoolOrigin = EnsureSignedBy<AliceCreatePoolOrigin, AccountId>;
     type LpFee = DefaultLpFee;
     type ProtocolFee = DefaultProtocolFee;
     type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
@@ -221,6 +199,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     ext.execute_with(|| {
         Assets::force_create(Origin::root(), tokens::DOT, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), tokens::XDOT, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), SAMPLE_LP_TOKEN, ALICE, true, 1).unwrap();
 
         Assets::mint(Origin::signed(ALICE), tokens::DOT, ALICE, 100_000_000).unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::DOT, BOB, 100_000_000).unwrap();

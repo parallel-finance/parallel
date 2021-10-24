@@ -24,9 +24,9 @@ use sp_runtime::{traits::Zero, FixedPointNumber};
 use vanilla_runtime::{
     opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, DemocracyConfig,
     GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig, LiquidStakingConfig,
-    OracleMembershipConfig, ParachainInfoConfig, SessionConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeMembershipConfig, ValidatorFeedersMembershipConfig, VestingConfig,
-    WASM_BINARY,
+    OracleMembershipConfig, ParachainInfoConfig, PolkadotXcmConfig, SessionConfig, SudoConfig,
+    SystemConfig, TechnicalCommitteeMembershipConfig, ValidatorFeedersMembershipConfig,
+    VestingConfig, WASM_BINARY,
 };
 
 use crate::chain_spec::{
@@ -324,6 +324,9 @@ fn vanilla_genesis(
         },
         vesting: VestingConfig {
             vesting: vesting_list,
+        },
+        polkadot_xcm: PolkadotXcmConfig {
+            safe_xcm_version: Some(2),
         },
     }
 }

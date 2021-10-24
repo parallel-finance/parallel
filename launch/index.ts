@@ -54,7 +54,8 @@ async function main() {
   )
 
   console.log('Submit batches.')
-  await api.tx.utility.batchAll(call).signAndSend(signer)
+  const nonce = await api.rpc.system.accountNextIndex(signer.address)
+  await api.tx.utility.batchAll(call).signAndSend(signer, { nonce })
   process.exit(0)
 }
 

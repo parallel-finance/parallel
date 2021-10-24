@@ -61,6 +61,7 @@ pub mod pallet {
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         ensure,
         pallet_prelude::*,
+        require_transactional,
         traits::{
             fungibles::{Inspect, Mutate, Transfer},
             Get, IsType,
@@ -168,17 +169,17 @@ pub mod pallet {
         /// Send `(bond_amount, rebond_amount, unbond_amount)` as args.
         Settlement(BalanceOf<T>, BalanceOf<T>, BalanceOf<T>),
         /// Sent staking.bond call to relaychain
-        BondCallSent(T::AccountId, BalanceOf<T>, RewardDestination<T::AccountId>),
+        Bonding(T::AccountId, BalanceOf<T>, RewardDestination<T::AccountId>),
         /// Sent staking.bond_extra call to relaychain
-        BondExtraCallSent(BalanceOf<T>),
+        BondingExtra(BalanceOf<T>),
         /// Sent staking.unbond call to relaychain
-        UnbondCallSent(BalanceOf<T>),
+        Unbonding(BalanceOf<T>),
         /// Sent staking.rebond call to relaychain
-        RebondCallSent(BalanceOf<T>),
+        Rebonding(BalanceOf<T>),
         /// Sent staking.withdraw_unbonded call to relaychain
-        WithdrawUnbondedCallSent(u32),
+        WithdrawingUnbonded(u32),
         /// Send staking.nominate call to relaychain
-        NominateCallSent(Vec<T::AccountId>),
+        Nominating(Vec<T::AccountId>),
         /// Compensation for extrinsics on relaychain was set to new value
         XcmFeesCompensationUpdated(BalanceOf<T>),
         /// Capacity of staking pool was set to new value
@@ -189,36 +190,34 @@ pub mod pallet {
         ReserveFactorUpdated(Ratio),
         /// Add asset to insurance pool
         InsurancesAdded(T::AccountId, BalanceOf<T>),
+        /// Slash was paid by insurance pool
+        SlashPaid(BalanceOf<T>),
     }
 
     #[pallet::error]
     pub enum Error<T> {
         /// Exchange rate is invalid.
         InvalidExchangeRate,
-        /// Era has been pushed before.
-        EraAlreadyPushed,
         /// Stake amount is too small
         StakeAmountTooSmall,
         /// Unstake amount is too small
         UnstakeAmountTooSmall,
-        /// Operation wasn't submitted to relaychain or has been processed.
-        OperationNotReady,
         /// Failed to send staking.bond call
-        BondCallFailed,
+        BondFailed,
         /// Failed to send staking.bond_extra call
-        BondExtraCallFailed,
+        BondExtraFailed,
         /// Failed to send staking.unbond call
-        UnbondCallFailed,
+        UnbondFailed,
         /// Failed to send staking.rebond call
-        RebondCallFailed,
+        RebondFailed,
         /// Failed to send staking.withdraw_unbonded call
-        WithdrawUnbondedCallFailed,
+        WithdrawUnbondedFailed,
         /// Failed to send staking.nominate call
-        NominateCallFailed,
+        NominateFailed,
         /// Liquid currency hasn't been set
-        LiquidCurrencyNotSet,
+        LiquidCurrencyNotReady,
         /// Staking currency hasn't been set
-        StakingCurrencyNotSet,
+        StakingCurrencyNotReady,
         /// Exceeded unstake queue's capacity
         ExceededUnstakeQueueCapacity,
         /// Exceeded max rewards per era
@@ -240,6 +239,11 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn staking_pool)]
     pub type StakingPool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+    /// Total amount of slash in relaychain
+    #[pallet::storage]
+    #[pallet::getter(fn total_slashed)]
+    pub type TotalSlashed<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     /// Total amount of charged assets to be used as xcm fees.
     #[pallet::storage]
@@ -509,8 +513,37 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
             kind: StakingSettlementKind,
         ) -> DispatchResultWithPostInfo {
-            T::UpdateOrigin::ensure_origin(origin)?;
-            Self::update_staking_pool(kind, amount)?;
+            T::RelayOrigin::ensure_origin(origin)?;
+            use StakingSettlementKind::*;
+            match kind {
+                Reward => {
+                    ensure!(
+                        amount <= T::MaxRewardsPerEra::get(),
+                        Error::<T>::ExceededMaxRewardsPerEra
+                    );
+                    StakingPool::<T>::try_mutate(|p| -> DispatchResult {
+                        *p = p.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
+                        Ok(())
+                    })?;
+                    // update exchange rate.
+                    let exchange_rate = Rate::checked_from_rational(
+                        StakingPool::<T>::get(),
+                        T::Assets::total_issuance(Self::liquid_currency()?),
+                    )
+                    .ok_or(Error::<T>::InvalidExchangeRate)?;
+                    ExchangeRate::<T>::put(exchange_rate);
+                }
+                Slash => {
+                    ensure!(
+                        amount <= T::MaxSlashesPerEra::get(),
+                        Error::<T>::ExceededMaxSlashesPerEra
+                    );
+                    TotalSlashed::<T>::try_mutate(|p| -> DispatchResult {
+                        *p = p.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
+                        Ok(())
+                    })?;
+                }
+            };
             Self::deposit_event(Event::<T>::StakingSettlementRecorded(kind, amount));
             Ok(().into())
         }
@@ -569,6 +602,24 @@ pub mod pallet {
             Ok(().into())
         }
 
+        /// Payout slashed amount.
+        ///
+        /// Clear `TotalSlashed`, subtract `InsurancePool`, and bond corresponding amount in relay
+        /// chain.
+        #[pallet::weight(<T as Config>::WeightInfo::payout_slashed())]
+        #[transactional]
+        pub fn payout_slashed(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+            T::RelayOrigin::ensure_origin(origin)?;
+            let amount = TotalSlashed::<T>::take();
+            InsurancePool::<T>::try_mutate(|v| -> DispatchResult {
+                *v = v.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
+                Ok(())
+            })?;
+            Self::bond_extra_internal(amount)?;
+            Self::deposit_event(Event::<T>::SlashPaid(amount));
+            Ok(().into())
+        }
+
         /// Do settlement for matching pool.
         ///
         /// Calculate the imbalance of current state and send corresponding operations to
@@ -581,6 +632,10 @@ pub mod pallet {
             #[pallet::compact] unbonding_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
+
+            if Self::matching_pool().is_matched() {
+                return Ok(().into());
+            }
 
             let (bond_amount, rebond_amount, unbond_amount) =
                 MatchingPool::<T>::take().matching(unbonding_amount);
@@ -705,10 +760,10 @@ pub mod pallet {
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
-                        Self::deposit_event(Event::<T>::NominateCallSent(targets));
+                        Self::deposit_event(Event::<T>::Nominating(targets));
                     }
                     Err(_e) => {
-                        return Err(Error::<T>::NominateCallFailed.into());
+                        return Err(Error::<T>::NominateFailed.into());
                     }
                 }
             });
@@ -783,14 +838,14 @@ pub mod pallet {
         /// Get staking currency or return back an error
         pub fn staking_currency() -> Result<AssetIdOf<T>, DispatchError> {
             StakingCurrency::<T>::get()
-                .ok_or(Error::<T>::StakingCurrencyNotSet)
+                .ok_or(Error::<T>::StakingCurrencyNotReady)
                 .map_err(Into::into)
         }
 
         /// Get liquid currency or return back an error
         pub fn liquid_currency() -> Result<AssetIdOf<T>, DispatchError> {
             LiquidCurrency::<T>::get()
-                .ok_or(Error::<T>::LiquidCurrencyNotSet)
+                .ok_or(Error::<T>::LiquidCurrencyNotReady)
                 .map_err(Into::into)
         }
 
@@ -801,46 +856,7 @@ pub mod pallet {
             T::DerivativeProvider::derivative_account_id(para_account, derivative_index)
         }
 
-        /// Increase / decrease staked asset in staking pool, and synchronized the exchange rate.
-        fn update_staking_pool(
-            kind: StakingSettlementKind,
-            amount: BalanceOf<T>,
-        ) -> DispatchResult {
-            use StakingSettlementKind::*;
-            match kind {
-                Reward => {
-                    ensure!(
-                        amount <= T::MaxRewardsPerEra::get(),
-                        Error::<T>::ExceededMaxRewardsPerEra
-                    );
-                    StakingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        *p = p.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
-                        Ok(())
-                    })
-                }
-                Slash => {
-                    ensure!(
-                        amount <= T::MaxSlashesPerEra::get(),
-                        Error::<T>::ExceededMaxSlashesPerEra
-                    );
-                    StakingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        *p = p.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
-                        Ok(())
-                    })
-                }
-            }?;
-
-            // update exchange rate.
-            let exchange_rate = Rate::checked_from_rational(
-                StakingPool::<T>::get(),
-                T::Assets::total_issuance(Self::liquid_currency()?),
-            )
-            .ok_or(Error::<T>::InvalidExchangeRate)?;
-            ExchangeRate::<T>::put(exchange_rate);
-
-            Ok(())
-        }
-
+        #[require_transactional]
         fn bond_internal(
             value: BalanceOf<T>,
             payee: RewardDestination<T::AccountId>,
@@ -877,10 +893,10 @@ pub mod pallet {
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
-                        Self::deposit_event(Event::<T>::BondCallSent(controller, value, payee));
+                        Self::deposit_event(Event::<T>::Bonding(controller, value, payee));
                     }
                     Err(_e) => {
-                        return Err(Error::<T>::BondCallFailed.into());
+                        return Err(Error::<T>::BondFailed.into());
                     }
                 }
             });
@@ -888,6 +904,7 @@ pub mod pallet {
             Ok(())
         }
 
+        #[require_transactional]
         fn bond_extra_internal(value: BalanceOf<T>) -> DispatchResult {
             let stash = T::Lookup::unlookup(Self::derivative_para_account_id());
 
@@ -914,10 +931,10 @@ pub mod pallet {
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
-                        Self::deposit_event(Event::<T>::BondExtraCallSent(value));
+                        Self::deposit_event(Event::<T>::BondingExtra(value));
                     }
                     Err(_e) => {
-                        return Err(Error::<T>::BondExtraCallFailed.into());
+                        return Err(Error::<T>::BondExtraFailed.into());
                     }
                 }
             });
@@ -925,6 +942,7 @@ pub mod pallet {
             Ok(())
         }
 
+        #[require_transactional]
         fn unbond_internal(value: BalanceOf<T>) -> DispatchResult {
             switch_relay!({
                 let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
@@ -941,10 +959,10 @@ pub mod pallet {
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
-                        Self::deposit_event(Event::<T>::UnbondCallSent(value));
+                        Self::deposit_event(Event::<T>::Unbonding(value));
                     }
                     Err(_e) => {
-                        return Err(Error::<T>::UnbondCallFailed.into());
+                        return Err(Error::<T>::UnbondFailed.into());
                     }
                 }
             });
@@ -952,6 +970,7 @@ pub mod pallet {
             Ok(())
         }
 
+        #[require_transactional]
         fn rebond_internal(value: BalanceOf<T>) -> DispatchResult {
             switch_relay!({
                 let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
@@ -968,10 +987,10 @@ pub mod pallet {
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
-                        Self::deposit_event(Event::<T>::RebondCallSent(value));
+                        Self::deposit_event(Event::<T>::Rebonding(value));
                     }
                     Err(_e) => {
-                        return Err(Error::<T>::RebondCallFailed.into());
+                        return Err(Error::<T>::RebondFailed.into());
                     }
                 }
             });
@@ -979,6 +998,7 @@ pub mod pallet {
             Ok(())
         }
 
+        #[require_transactional]
         fn withdraw_unbonded_internal(
             num_slashing_spans: u32,
             amount: BalanceOf<T>,
@@ -1020,12 +1040,10 @@ pub mod pallet {
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
-                        Self::deposit_event(Event::<T>::WithdrawUnbondedCallSent(
-                            num_slashing_spans,
-                        ));
+                        Self::deposit_event(Event::<T>::WithdrawingUnbonded(num_slashing_spans));
                     }
                     Err(_e) => {
-                        return Err(Error::<T>::WithdrawUnbondedCallFailed.into());
+                        return Err(Error::<T>::WithdrawUnbondedFailed.into());
                     }
                 }
             });
@@ -1047,6 +1065,7 @@ pub mod pallet {
             UnstakeQueue::<T>::mutate(|v| v.remove(0));
         }
 
+        #[require_transactional]
         fn ump_transact(call: DoubleEncoded<()>, weight: Weight) -> Result<Xcm<()>, DispatchError> {
             let fees = Self::xcm_fees_compensation();
             ensure!(!fees.is_zero(), Error::<T>::XcmFeesCompensationTooLow);
@@ -1077,13 +1096,11 @@ pub mod pallet {
                 DepositAsset {
                     assets: asset.into(),
                     max_assets: 1,
-                    beneficiary: MultiLocation {
-                        parents: 1,
-                        interior: X1(AccountId32 {
-                            network: NetworkId::Any,
-                            id: Self::para_account_id().into(),
-                        }),
-                    },
+                    beneficiary: X1(AccountId32 {
+                        network: NetworkId::Any,
+                        id: Self::para_account_id().into(),
+                    })
+                    .into(),
                 },
             ]))
         }

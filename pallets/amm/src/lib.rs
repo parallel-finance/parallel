@@ -39,17 +39,14 @@ use frame_support::{
     },
     transactional, Blake2_128Concat, PalletId, Twox64Concat,
 };
-use frame_system::{ensure_signed, pallet_prelude::OriginFor, RawOrigin};
+use frame_system::{ensure_signed, pallet_prelude::OriginFor};
 pub use pallet::*;
 use primitives::{Balance, CurrencyId, Rate};
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{
-    traits::{
-        AccountIdConversion, CheckedDiv, IntegerSquareRoot, One, StaticLookup, UniqueSaturatedInto,
-        Zero,
-    },
+    traits::{AccountIdConversion, CheckedDiv, IntegerSquareRoot, One, Zero},
     ArithmeticError, DispatchError, FixedU128, Perbill, SaturatedConversion,
 };
 pub use weights::WeightInfo;
@@ -62,7 +59,6 @@ pub type BalanceOf<T, I = ()> =
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use frame_system::ensure_root;
 
     #[pallet::config]
     pub trait Config<I: 'static = ()>:
@@ -83,9 +79,8 @@ pub mod pallet {
         /// Weight information for extrinsics in this pallet.
         type AMMWeightInfo: WeightInfo;
 
-        /// A configuration flag to enable or disable the creation of new pools by "normal" users.
-        #[pallet::constant]
-        type AllowPermissionlessPoolCreation: Get<bool>;
+        /// Specify which origin is allowed to create new pools.
+        type CreatePoolOrigin: EnsureOrigin<Self::Origin>;
 
         /// Defines the fees taken out of each trade and sent back to the AMM pool,
         /// typically 0.3%.
@@ -188,17 +183,13 @@ pub mod pallet {
         /// - `pool`: Currency pool, in which liquidity will be added
         /// - `liquidity_amounts`: Liquidity amounts to be added in pool
         /// - `minimum_amounts`: specifying its "worst case" ratio when pool already exists
-        #[pallet::weight(
-		T::AMMWeightInfo::add_liquidity_non_existing_pool() // Adds liquidity in already existing account.
-		.max(T::AMMWeightInfo::add_liquidity_existing_pool()) // Adds liquidity in new account
-		)]
+        #[pallet::weight(T::AMMWeightInfo::add_liquidity())]
         #[transactional]
         pub fn add_liquidity(
             origin: OriginFor<T>,
             pool: (AssetIdOf<T, I>, AssetIdOf<T, I>),
             liquidity_amounts: (BalanceOf<T, I>, BalanceOf<T, I>),
             minimum_amounts: (BalanceOf<T, I>, BalanceOf<T, I>),
-            asset_id: AssetIdOf<T, I>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             let (is_inverted, base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
@@ -213,105 +204,97 @@ pub mod pallet {
                 base_asset,
                 quote_asset,
                 |pool_liquidity_amount| -> DispatchResultWithPostInfo {
-                    if let Some(liquidity_amount) = pool_liquidity_amount {
-                        let optimal_quote_amount = Self::quote(
-                            base_amount,
-                            liquidity_amount.base_amount,
-                            liquidity_amount.quote_amount,
-                        );
+                    ensure!(
+                        pool_liquidity_amount.is_some(),
+                        Error::<T, I>::PoolDoesNotExist
+                    );
 
-                        let (ideal_base_amount, ideal_quote_amount): (
-                            BalanceOf<T, I>,
-                            BalanceOf<T, I>,
-                        ) = if optimal_quote_amount <= quote_amount {
-                            (base_amount, optimal_quote_amount)
-                        } else {
-                            let optimal_base_amount = Self::quote(
-                                quote_amount,
-                                liquidity_amount.quote_amount,
-                                liquidity_amount.base_amount,
-                            );
-                            (optimal_base_amount, quote_amount)
-                        };
+                    let mut liquidity_amount =
+                        pool_liquidity_amount.expect("we did an is_some check before; qed");
+                    let optimal_quote_amount = Self::quote(
+                        base_amount,
+                        liquidity_amount.base_amount,
+                        liquidity_amount.quote_amount,
+                    );
 
-                        let (minimum_base_amount, minimum_quote_amount) = if is_inverted {
-                            (minimum_amounts.1, minimum_amounts.0)
-                        } else {
-                            (minimum_amounts.0, minimum_amounts.1)
-                        };
-
-                        ensure!(
-                            ideal_base_amount >= minimum_base_amount
-                                && ideal_quote_amount >= minimum_quote_amount
-                                && ideal_base_amount <= base_amount
-                                && ideal_quote_amount <= quote_amount,
-                            Error::<T, I>::NotAIdealPriceRatio
-                        );
-
-                        let (base_amount, quote_amount) = (ideal_base_amount, ideal_quote_amount);
-                        let total_ownership = T::Assets::total_issuance(asset_id);
-                        let ownership = sp_std::cmp::min(
-                            (base_amount.saturating_mul(total_ownership))
-                                .checked_div(liquidity_amount.base_amount)
-                                .ok_or(ArithmeticError::Overflow)?,
-                            (quote_amount.saturating_mul(total_ownership))
-                                .checked_div(liquidity_amount.quote_amount)
-                                .ok_or(ArithmeticError::Overflow)?,
-                        );
-
-                        liquidity_amount.base_amount = liquidity_amount
-                            .base_amount
-                            .checked_add(base_amount)
-                            .ok_or(ArithmeticError::Overflow)?;
-                        liquidity_amount.quote_amount = liquidity_amount
-                            .quote_amount
-                            .checked_add(quote_amount)
-                            .ok_or(ArithmeticError::Overflow)?;
-
-                        *pool_liquidity_amount = Some(*liquidity_amount);
-
-                        LiquidityProviders::<T, I>::try_mutate(
-                            (&who, &base_asset, &quote_asset),
-                            |pool_liquidity_amount| -> DispatchResult {
-                                if let Some(liquidity_amount) = pool_liquidity_amount {
-                                    liquidity_amount.base_amount = liquidity_amount
-                                        .base_amount
-                                        .checked_add(base_amount)
-                                        .ok_or(ArithmeticError::Overflow)?;
-                                    liquidity_amount.quote_amount = liquidity_amount
-                                        .quote_amount
-                                        .checked_add(quote_amount)
-                                        .ok_or(ArithmeticError::Overflow)?;
-                                    *pool_liquidity_amount = Some(*liquidity_amount);
-                                }
-                                Ok(())
-                            },
-                        )?;
-
-                        Self::mint_transfer_liquidity(
-                            who,
-                            ownership,
-                            asset_id,
-                            base_asset,
-                            quote_asset,
-                            base_amount,
-                            quote_amount,
-                        )?;
-                        Ok(Some(T::AMMWeightInfo::add_liquidity_non_existing_pool()).into())
+                    let (ideal_base_amount, ideal_quote_amount): (
+                        BalanceOf<T, I>,
+                        BalanceOf<T, I>,
+                    ) = if optimal_quote_amount <= quote_amount {
+                        (base_amount, optimal_quote_amount)
                     } else {
-                        Self::add_new_liquidity(
-                            asset_id,
-                            who,
-                            base_asset,
-                            quote_asset,
-                            base_amount,
+                        let optimal_base_amount = Self::quote(
                             quote_amount,
-                            asset_id,
-                            pool_liquidity_amount,
-                        )?;
+                            liquidity_amount.quote_amount,
+                            liquidity_amount.base_amount,
+                        );
+                        (optimal_base_amount, quote_amount)
+                    };
 
-                        Ok(Some(T::AMMWeightInfo::add_liquidity_existing_pool()).into())
-                    }
+                    let (minimum_base_amount, minimum_quote_amount) = if is_inverted {
+                        (minimum_amounts.1, minimum_amounts.0)
+                    } else {
+                        (minimum_amounts.0, minimum_amounts.1)
+                    };
+
+                    ensure!(
+                        ideal_base_amount >= minimum_base_amount
+                            && ideal_quote_amount >= minimum_quote_amount
+                            && ideal_base_amount <= base_amount
+                            && ideal_quote_amount <= quote_amount,
+                        Error::<T, I>::NotAIdealPriceRatio
+                    );
+
+                    let (base_amount, quote_amount) = (ideal_base_amount, ideal_quote_amount);
+                    let total_ownership = T::Assets::total_issuance(liquidity_amount.pool_assets);
+                    let ownership = sp_std::cmp::min(
+                        (base_amount.saturating_mul(total_ownership))
+                            .checked_div(liquidity_amount.base_amount)
+                            .ok_or(ArithmeticError::Overflow)?,
+                        (quote_amount.saturating_mul(total_ownership))
+                            .checked_div(liquidity_amount.quote_amount)
+                            .ok_or(ArithmeticError::Overflow)?,
+                    );
+
+                    liquidity_amount.base_amount = liquidity_amount
+                        .base_amount
+                        .checked_add(base_amount)
+                        .ok_or(ArithmeticError::Overflow)?;
+                    liquidity_amount.quote_amount = liquidity_amount
+                        .quote_amount
+                        .checked_add(quote_amount)
+                        .ok_or(ArithmeticError::Overflow)?;
+
+                    *pool_liquidity_amount = Some(liquidity_amount);
+
+                    LiquidityProviders::<T, I>::try_mutate(
+                        (&who, &base_asset, &quote_asset),
+                        |pool_liquidity_amount| -> DispatchResult {
+                            if let Some(liquidity_amount) = pool_liquidity_amount {
+                                liquidity_amount.base_amount = liquidity_amount
+                                    .base_amount
+                                    .checked_add(base_amount)
+                                    .ok_or(ArithmeticError::Overflow)?;
+                                liquidity_amount.quote_amount = liquidity_amount
+                                    .quote_amount
+                                    .checked_add(quote_amount)
+                                    .ok_or(ArithmeticError::Overflow)?;
+                                *pool_liquidity_amount = Some(*liquidity_amount);
+                            }
+                            Ok(())
+                        },
+                    )?;
+
+                    Self::mint_transfer_liquidity(
+                        who,
+                        ownership,
+                        liquidity_amount.pool_assets,
+                        base_asset,
+                        quote_asset,
+                        base_amount,
+                        quote_amount,
+                    )?;
+                    Ok(().into())
                 },
             )
         }
@@ -400,21 +383,21 @@ pub mod pallet {
             )
         }
 
-        /// "force" the creation of a new pool by root
+        /// Create of a new pool, governance only
         ///
         /// - `pool`: Currency pool, in which liquidity will be added
         /// - `liquidity_amounts`: Liquidity amounts to be added in pool
         /// - `lptoken_receiver`: Allocate any liquidity tokens to lptoken_receiver
-        #[pallet::weight(T::AMMWeightInfo::force_create_pool())]
+        #[pallet::weight(T::AMMWeightInfo::create_pool())]
         #[transactional]
-        pub fn force_create_pool(
+        pub fn create_pool(
             origin: OriginFor<T>,
             pool: (AssetIdOf<T, I>, AssetIdOf<T, I>),
             liquidity_amounts: (BalanceOf<T, I>, BalanceOf<T, I>),
             lptoken_receiver: T::AccountId,
             asset_id: AssetIdOf<T, I>,
         ) -> DispatchResultWithPostInfo {
-            ensure_root(origin)?;
+            T::CreatePoolOrigin::ensure_origin(origin)?;
 
             let (is_inverted, base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
             ensure!(
@@ -435,13 +418,10 @@ pub mod pallet {
                 pool_assets: asset_id,
             };
             Pools::<T, I>::insert(&base_asset, &quote_asset, amm_pool);
-            Self::insert_into_liquidity_providers(
-                &lptoken_receiver,
-                asset_id,
-                &base_asset,
-                &quote_asset,
+            LiquidityProviders::<T, I>::insert(
+                (&lptoken_receiver, &base_asset, &quote_asset),
                 amm_pool,
-            )?;
+            );
 
             Self::mint_transfer_liquidity(
                 lptoken_receiver.clone(),
@@ -497,66 +477,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         T::Assets::transfer(quote_asset, &who, &Self::account_id(), quote_amount, true)?;
 
         Self::deposit_event(Event::<T, I>::LiquidityAdded(who, base_asset, quote_asset));
-
-        Ok(())
-    }
-
-    fn insert_into_liquidity_providers(
-        lptoken_receiver: &T::AccountId,
-        asset_id: AssetIdOf<T, I>,
-        base_asset: &AssetIdOf<T, I>,
-        quote_asset: &AssetIdOf<T, I>,
-        amm_pool: PoolLiquidityAmount<AssetIdOf<T, I>, BalanceOf<T, I>>,
-    ) -> DispatchResult {
-        LiquidityProviders::<T, I>::insert(
-            (&lptoken_receiver, &base_asset, &quote_asset),
-            amm_pool,
-        );
-
-        pallet_assets::Pallet::<T>::force_create(
-            RawOrigin::Root.into(),
-            asset_id.unique_saturated_into(),
-            T::Lookup::unlookup(Self::account_id()),
-            true,
-            One::one(),
-        )?;
-
-        Ok(())
-    }
-
-    fn add_new_liquidity(
-        asset_id: AssetIdOf<T, I>,
-        who: T::AccountId,
-        base_asset: AssetIdOf<T, I>,
-        quote_asset: AssetIdOf<T, I>,
-        base_amount: BalanceOf<T, I>,
-        quote_amount: BalanceOf<T, I>,
-        currency_asset: AssetIdOf<T, I>,
-        pool_liquidity_amount: &mut Option<PoolLiquidityAmount<AssetIdOf<T, I>, BalanceOf<T, I>>>,
-    ) -> DispatchResult {
-        ensure!(
-            T::AllowPermissionlessPoolCreation::get(),
-            Error::<T, I>::PoolCreationDisabled
-        );
-
-        let ownership = base_amount.saturating_mul(quote_amount).integer_sqrt();
-        let amm_pool = PoolLiquidityAmount {
-            base_amount,
-            quote_amount,
-            pool_assets: currency_asset,
-        };
-
-        *pool_liquidity_amount = Some(amm_pool);
-        Self::insert_into_liquidity_providers(&who, asset_id, &base_asset, &quote_asset, amm_pool)?;
-        Self::mint_transfer_liquidity(
-            who,
-            ownership,
-            currency_asset,
-            base_asset,
-            quote_asset,
-            base_amount,
-            quote_amount,
-        )?;
 
         Ok(())
     }
