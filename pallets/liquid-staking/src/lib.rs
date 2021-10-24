@@ -970,7 +970,10 @@ pub mod pallet {
                 let notify = Call::<T>::bond_callback { value };
                 pallet_xcm::Pallet::<T>::report_outcome_notify(
                     &mut msg,
-                    Parachain(T::SelfParaId::get().into()).into(),
+                    MultiLocation {
+                        parents: 1,
+                        interior: Here,
+                    },
                     <T as Config>::Call::from(notify),
                     100u32.into(),
                 )
@@ -1016,7 +1019,10 @@ pub mod pallet {
                 let notify = Call::<T>::bond_callback { value };
                 pallet_xcm::Pallet::<T>::report_outcome_notify(
                     &mut msg,
-                    Parachain(T::SelfParaId::get().into()).into(),
+                    MultiLocation {
+                        parents: 1,
+                        interior: Here,
+                    },
                     <T as Config>::Call::from(notify),
                     100u32.into(),
                 )
@@ -1053,7 +1059,10 @@ pub mod pallet {
                 let notify = Call::<T>::unbond_callback { value };
                 pallet_xcm::Pallet::<T>::report_outcome_notify(
                     &mut msg,
-                    Parachain(T::SelfParaId::get().into()).into(),
+                    MultiLocation {
+                        parents: 1,
+                        interior: Here,
+                    },
                     <T as Config>::Call::from(notify),
                     100u32.into(),
                 )
@@ -1089,7 +1098,10 @@ pub mod pallet {
                 let notify = Call::<T>::rebond { value };
                 pallet_xcm::Pallet::<T>::report_outcome_notify(
                     &mut msg,
-                    Parachain(T::SelfParaId::get().into()).into(),
+                    MultiLocation {
+                        parents: 1,
+                        interior: Here,
+                    },
                     <T as Config>::Call::from(notify),
                     100u32.into(),
                 )
@@ -1148,7 +1160,10 @@ pub mod pallet {
                 let notify = Call::<T>::withdraw_unbonded_callback { value };
                 pallet_xcm::Pallet::<T>::report_outcome_notify(
                     &mut msg,
-                    Parachain(T::SelfParaId::get().into()).into(),
+                    MultiLocation {
+                        parents: 1,
+                        interior: Here,
+                    },
                     <T as Config>::Call::from(notify),
                     100u32.into(),
                 )
