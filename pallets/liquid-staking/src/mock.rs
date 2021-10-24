@@ -201,10 +201,11 @@ impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
 pub struct AccountIdToMultiLocation;
 impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
     fn convert(account_id: AccountId) -> MultiLocation {
-        MultiLocation::from(Junction::AccountId32 {
+        X1(Junction::AccountId32 {
             network: NetworkId::Any,
             id: account_id.into(),
         })
+        .into()
     }
 }
 
@@ -326,12 +327,15 @@ impl DerivativeProvider<AccountId> for DerivativeProviderT {
 
 impl crate::Config for Test {
     type Event = Event;
+    type Origin = Origin;
+    type Call = Call;
     type PalletId = StakingPalletId;
     type SelfParaId = SelfParaId;
     type WeightInfo = ();
     type XcmSender = XcmRouter;
     type DerivativeIndex = DerivativeIndex;
     type DerivativeProvider = DerivativeProviderT;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type Assets = Assets;
     type RelayOrigin = RelayOrigin;
     type UpdateOrigin = UpdateOrigin;

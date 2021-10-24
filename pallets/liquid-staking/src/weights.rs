@@ -65,6 +65,10 @@ pub trait WeightInfo {
     fn update_xcm_weight() -> Weight;
     fn add_insurances() -> Weight;
     fn payout_slashed() -> Weight;
+    fn bond_callback() -> Weight;
+    fn withdraw_unbonded_callback() -> Weight;
+    fn unbond_callback() -> Weight;
+    fn rebond_callback() -> Weight;
     fn on_idle() -> Weight;
 }
 
@@ -156,6 +160,18 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
         (177_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(13 as Weight))
             .saturating_add(T::DbWeight::get().writes(6 as Weight))
+    }
+    fn bond_callback() -> Weight {
+        10_000 as Weight
+    }
+    fn withdraw_unbonded_callback() -> Weight {
+        10_000 as Weight
+    }
+    fn unbond_callback() -> Weight {
+        10_000 as Weight
+    }
+    fn rebond_callback() -> Weight {
+        10_000 as Weight
     }
     fn on_idle() -> Weight {
         (263_000_000 as Weight)
@@ -251,6 +267,18 @@ impl WeightInfo for () {
         (177_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(13 as Weight))
             .saturating_add(RocksDbWeight::get().writes(6 as Weight))
+    }
+    fn bond_callback() -> Weight {
+        10_000 as Weight
+    }
+    fn withdraw_unbonded_callback() -> Weight {
+        10_000 as Weight
+    }
+    fn unbond_callback() -> Weight {
+        10_000 as Weight
+    }
+    fn rebond_callback() -> Weight {
+        10_000 as Weight
     }
     fn on_idle() -> Weight {
         (263_000_000 as Weight)

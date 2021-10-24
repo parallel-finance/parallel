@@ -74,8 +74,9 @@ pub mod pallet {
         ensure_signed,
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
+    use pallet_xcm::ensure_response;
     use sp_runtime::{
-        traits::{AccountIdConversion, StaticLookup, Zero},
+        traits::{AccountIdConversion, Convert, StaticLookup, Zero},
         ArithmeticError, FixedPointNumber,
     };
     use sp_std::vec;
@@ -96,18 +97,23 @@ pub mod pallet {
     pub struct Pallet<T>(_);
 
     #[pallet::config]
-    pub trait Config: frame_system::Config {
+    pub trait Config: frame_system::Config + pallet_xcm::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
+        type Origin: IsType<<Self as frame_system::Config>::Origin>
+            + Into<Result<pallet_xcm::Origin, <Self as Config>::Origin>>;
+
+        type Call: IsType<<Self as pallet_xcm::Config>::Call> + From<Call<Self>>;
 
         /// Assets for deposit/withdraw assets to/from pallet account
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId>
             + Mutate<Self::AccountId, Balance = Balance>;
 
         /// The origin which can do operation on relaychain using parachain's sovereign account
-        type RelayOrigin: EnsureOrigin<Self::Origin>;
+        type RelayOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The origin which can update liquid currency, staking currency
-        type UpdateOrigin: EnsureOrigin<Self::Origin>;
+        type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The pallet id of liquid staking, keeps all the staking assets
         #[pallet::constant]
@@ -126,6 +132,9 @@ pub mod pallet {
 
         /// Account derivative functionality provider
         type DerivativeProvider: DerivativeProvider<Self::AccountId>;
+
+        /// Convert `T::AccountId` to `MultiLocation`.
+        type AccountIdToMultiLocation: Convert<Self::AccountId, MultiLocation>;
 
         /// Unstake queue capacity
         #[pallet::constant]
@@ -172,12 +181,20 @@ pub mod pallet {
         Bonding(T::AccountId, BalanceOf<T>, RewardDestination<T::AccountId>),
         /// Sent staking.bond_extra call to relaychain
         BondingExtra(BalanceOf<T>),
+        /// Successfully bonded/bonded_extra on relaychain
+        Bonded,
         /// Sent staking.unbond call to relaychain
         Unbonding(BalanceOf<T>),
+        /// Successfully unbonded on relaychain
+        Unbonded,
         /// Sent staking.rebond call to relaychain
         Rebonding(BalanceOf<T>),
+        /// Successfully rebonded on relaychain
+        Rebonded,
         /// Sent staking.withdraw_unbonded call to relaychain
         WithdrawingUnbonded(u32),
+        /// Successfully withdrawn unbonded on relaychain
+        WithdrawnUnbonded,
         /// Send staking.nominate call to relaychain
         Nominating(Vec<T::AccountId>),
         /// Compensation for extrinsics on relaychain was set to new value
@@ -320,10 +337,7 @@ pub mod pallet {
     }
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T>
-    where
-        [u8; 32]: From<<T as frame_system::Config>::AccountId>,
-    {
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         /// Try to pay off over the `UnstakeQueue` while blockchain is on idle.
         ///
         /// It breaks when:
@@ -382,10 +396,7 @@ pub mod pallet {
     }
 
     #[pallet::call]
-    impl<T: Config> Pallet<T>
-    where
-        [u8; 32]: From<<T as frame_system::Config>::AccountId>,
-    {
+    impl<T: Config> Pallet<T> {
         /// Put assets under staking, the native assets will be transferred to the account
         /// owned by the pallet, user receive derivative in return, such derivative can be
         /// further used as collateral for lending.
@@ -638,13 +649,9 @@ pub mod pallet {
             }
 
             let (bond_amount, rebond_amount, unbond_amount) =
-                MatchingPool::<T>::take().matching(unbonding_amount);
-            let staking_currency = Self::staking_currency()?;
-            let account_id = Self::account_id();
+                MatchingPool::<T>::get().matching(unbonding_amount);
 
             if !bond_amount.is_zero() {
-                T::Assets::burn_from(staking_currency, &account_id, bond_amount)?;
-
                 if !bond_extra {
                     Self::bond_internal(bond_amount, RewardDestination::Staked)?;
                 } else {
@@ -691,6 +698,81 @@ pub mod pallet {
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
             Self::bond_extra_internal(value)?;
+            Ok(())
+        }
+
+        /// Bond/bond_extra callback
+        /// will be executed after having successfully bonded/bonded_extra on relaychain
+        #[pallet::weight(<T as Config>::WeightInfo::bond_callback())]
+        #[transactional]
+        pub fn bond_callback(
+            origin: OriginFor<T>,
+            #[pallet::compact] value: BalanceOf<T>,
+        ) -> DispatchResult {
+            let _responder = ensure_response(<T as Config>::Origin::from(origin))?;
+            T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), value)?;
+            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                p.total_stake_amount = p
+                    .total_stake_amount
+                    .checked_sub(value)
+                    .ok_or(ArithmeticError::Underflow)?;
+                Ok(())
+            })?;
+            Self::deposit_event(Event::<T>::Bonded);
+            Ok(())
+        }
+
+        /// WithdrawUnbonded callback
+        /// will be executed after having successfully withdrawn unbonded on relaychain
+        #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded_callback())]
+        #[transactional]
+        pub fn withdraw_unbonded_callback(
+            origin: OriginFor<T>,
+            #[pallet::compact] value: BalanceOf<T>,
+        ) -> DispatchResult {
+            let _responder = ensure_response(<T as Config>::Origin::from(origin))?;
+            T::Assets::mint_into(Self::staking_currency()?, &Self::account_id(), value)?;
+            Self::deposit_event(Event::<T>::WithdrawnUnbonded);
+            Ok(())
+        }
+
+        /// Unbond callback
+        /// will be executed after having successfully unbonded on relaychain
+        #[pallet::weight(<T as Config>::WeightInfo::unbond_callback())]
+        #[transactional]
+        pub fn unbond_callback(
+            origin: OriginFor<T>,
+            #[pallet::compact] value: BalanceOf<T>,
+        ) -> DispatchResult {
+            let _responder = ensure_response(<T as Config>::Origin::from(origin))?;
+            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                p.total_unstake_amount = p
+                    .total_unstake_amount
+                    .checked_sub(value)
+                    .ok_or(ArithmeticError::Underflow)?;
+                Ok(())
+            })?;
+            Self::deposit_event(Event::<T>::Unbonded);
+            Ok(())
+        }
+
+        /// Rebond callback
+        /// will be executed after having successfully rebonded on relaychain
+        #[pallet::weight(<T as Config>::WeightInfo::rebond_callback())]
+        #[transactional]
+        pub fn rebond_callback(
+            origin: OriginFor<T>,
+            #[pallet::compact] value: BalanceOf<T>,
+        ) -> DispatchResult {
+            let _responder = ensure_response(<T as Config>::Origin::from(origin))?;
+            MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                p.total_stake_amount = p
+                    .total_stake_amount
+                    .checked_sub(value)
+                    .ok_or(ArithmeticError::Underflow)?;
+                Ok(())
+            })?;
+            Self::deposit_event(Event::<T>::Rebonded);
             Ok(())
         }
 
@@ -818,13 +900,7 @@ pub mod pallet {
         }
     }
 
-    impl<T: Config> Pallet<T>
-    where
-        [u8; 32]: From<<T as frame_system::Config>::AccountId>,
-        u128: From<
-            <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance,
-        >,
-    {
+    impl<T: Config> Pallet<T> {
         /// Staking pool account
         pub fn account_id() -> T::AccountId {
             T::PalletId::get().into_account()
@@ -889,7 +965,16 @@ pub mod pallet {
                         ],
                     })));
 
-                let msg = Self::ump_transact(call.encode().into(), Self::xcm_weight().bond_weight)?;
+                let mut msg =
+                    Self::ump_transact(call.encode().into(), Self::xcm_weight().bond_weight)?;
+                let notify = Call::<T>::bond_callback { value };
+                pallet_xcm::Pallet::<T>::report_outcome_notify(
+                    &mut msg,
+                    Parachain(T::SelfParaId::get().into()).into(),
+                    <T as Config>::Call::from(notify),
+                    100u32.into(),
+                )
+                .unwrap();
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -926,8 +1011,16 @@ pub mod pallet {
                         ],
                     })));
 
-                let msg =
+                let mut msg =
                     Self::ump_transact(call.encode().into(), Self::xcm_weight().bond_extra_weight)?;
+                let notify = Call::<T>::bond_callback { value };
+                pallet_xcm::Pallet::<T>::report_outcome_notify(
+                    &mut msg,
+                    Parachain(T::SelfParaId::get().into()).into(),
+                    <T as Config>::Call::from(notify),
+                    100u32.into(),
+                )
+                .unwrap();
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -954,8 +1047,17 @@ pub mod pallet {
                     },
                 )));
 
-                let msg =
+                let mut msg =
                     Self::ump_transact(call.encode().into(), Self::xcm_weight().unbond_weight)?;
+
+                let notify = Call::<T>::unbond_callback { value };
+                pallet_xcm::Pallet::<T>::report_outcome_notify(
+                    &mut msg,
+                    Parachain(T::SelfParaId::get().into()).into(),
+                    <T as Config>::Call::from(notify),
+                    100u32.into(),
+                )
+                .unwrap();
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -982,8 +1084,16 @@ pub mod pallet {
                     },
                 )));
 
-                let msg =
+                let mut msg =
                     Self::ump_transact(call.encode().into(), Self::xcm_weight().rebond_weight)?;
+                let notify = Call::<T>::rebond { value };
+                pallet_xcm::Pallet::<T>::report_outcome_notify(
+                    &mut msg,
+                    Parachain(T::SelfParaId::get().into()).into(),
+                    <T as Config>::Call::from(notify),
+                    100u32.into(),
+                )
+                .unwrap();
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -1001,10 +1111,8 @@ pub mod pallet {
         #[require_transactional]
         fn withdraw_unbonded_internal(
             num_slashing_spans: u32,
-            amount: BalanceOf<T>,
+            value: BalanceOf<T>,
         ) -> DispatchResult {
-            T::Assets::mint_into(Self::staking_currency()?, &Self::account_id(), amount)?;
-
             switch_relay!({
                 let call =
                     RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
@@ -1033,10 +1141,18 @@ pub mod pallet {
                         ],
                     })));
 
-                let msg = Self::ump_transact(
+                let mut msg = Self::ump_transact(
                     call.encode().into(),
                     Self::xcm_weight().withdraw_unbonded_weight,
                 )?;
+                let notify = Call::<T>::withdraw_unbonded_callback { value };
+                pallet_xcm::Pallet::<T>::report_outcome_notify(
+                    &mut msg,
+                    Parachain(T::SelfParaId::get().into()).into(),
+                    <T as Config>::Call::from(notify),
+                    100u32.into(),
+                )
+                .unwrap();
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -1096,11 +1212,7 @@ pub mod pallet {
                 DepositAsset {
                     assets: asset.into(),
                     max_assets: 1,
-                    beneficiary: X1(AccountId32 {
-                        network: NetworkId::Any,
-                        id: Self::para_account_id().into(),
-                    })
-                    .into(),
+                    beneficiary: T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 },
             ]))
         }
