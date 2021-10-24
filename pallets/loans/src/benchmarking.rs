@@ -9,8 +9,8 @@ use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whiteli
 use frame_support::assert_ok;
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{Balance, CurrencyId};
-use sp_std::prelude::*;
 use rate_model::{InterestRateModel, JumpModel};
+use sp_std::prelude::*;
 
 const SEED: u32 = 0;
 const DOT: CurrencyId = 101;

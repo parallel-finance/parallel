@@ -450,10 +450,7 @@ pub mod pallet {
             rate_model: InterestRateModel,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
-            ensure!(
-                rate_model.check_model(),
-                Error::<T>::InvalidRateModelParam
-            );
+            ensure!(rate_model.check_model(), Error::<T>::InvalidRateModelParam);
             let market = Self::mutate_market(asset_id, |stored_market| {
                 stored_market.rate_model = rate_model;
                 stored_market.clone()
@@ -497,7 +494,7 @@ pub mod pallet {
             Ok(().into())
         }
 
-        /// Force updates a stored market. Returns `Err` if the market currency 
+        /// Force updates a stored market. Returns `Err` if the market currency
         /// does not exist.
         ///
         /// - `asset_id`: Market related currency
@@ -1377,16 +1374,22 @@ impl<T: Config> Pallet<T> {
     // Mutates a stored Market.
     //
     // Returns `Err` if market does not exist.
-    pub(crate) fn mutate_market<F>(asset_id: AssetIdOf<T>, cb: F) -> Result<Market<BalanceOf<T>>, DispatchError>
+    pub(crate) fn mutate_market<F>(
+        asset_id: AssetIdOf<T>,
+        cb: F,
+    ) -> Result<Market<BalanceOf<T>>, DispatchError>
     where
         F: FnOnce(&mut Market<BalanceOf<T>>) -> Market<BalanceOf<T>>,
     {
-        Markets::<T>::try_mutate(asset_id, |opt| -> Result<Market<BalanceOf<T>>, DispatchError> {
-            if let Some(market) = opt {
-                return Ok(cb(market));
-            }
-            Err(Error::<T>::MarketDoesNotExist.into())
-        })
+        Markets::<T>::try_mutate(
+            asset_id,
+            |opt| -> Result<Market<BalanceOf<T>>, DispatchError> {
+                if let Some(market) = opt {
+                    return Ok(cb(market));
+                }
+                Err(Error::<T>::MarketDoesNotExist.into())
+            },
+        )
     }
 
     // All markets that are `MarketStatus::Active`.
