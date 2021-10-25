@@ -269,6 +269,7 @@ fn redeem_all_works() {
 fn borrow_allowed_works() {
     new_test_ext().execute_with(|| {
         // Deposit 200 DOT as collateral
+        assert_ok!(Loans::mint(Origin::signed(BOB), DOT, 200));
         assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, 200));
         assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
         // Borrow 101 DOT should cause InsufficientLiquidity
@@ -660,4 +661,23 @@ fn get_price_works() {
         Loans::get_price(DOT).unwrap(),
         Price::saturating_from_integer(2)
     );
+}
+
+#[test]
+fn ensure_enough_cash_works() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(Assets::mint(
+            Origin::signed(ALICE),
+            KSM,
+            Loans::account_id(),
+            dollar(1000)
+        ));
+        assert_ok!(Loans::ensure_enough_cash(KSM, dollar(1000)));
+        TotalReserves::<Test>::insert(KSM, dollar(10));
+        assert_noop!(
+            Loans::ensure_enough_cash(KSM, dollar(1000)),
+            Error::<Test>::InsufficientCash,
+        );
+        assert_ok!(Loans::ensure_enough_cash(KSM, dollar(990)));
+    })
 }

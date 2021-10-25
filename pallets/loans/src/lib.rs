@@ -150,6 +150,8 @@ pub mod pallet {
         NewMarketMustHavePendingState,
         /// Market reached its upper limitation
         ExceededMarketCapacity,
+        /// Insufficient cash in the pool
+        InsufficientCash,
     }
 
     #[pallet::event]
@@ -884,10 +886,11 @@ impl<T: Config> Pallet<T> {
         if !deposit.is_collateral {
             return Ok(());
         }
-        let price = Self::get_price(asset_id)?;
+
         let exchange_rate = Self::exchange_rate(asset_id);
         let redeem_amount = Self::calc_underlying_amount(voucher_amount, exchange_rate)?;
-        let redeem_effects_value = price
+        Self::ensure_enough_cash(asset_id, redeem_amount)?;
+        let redeem_effects_value = Self::get_price(asset_id)?
             .checked_mul(&FixedU128::from_inner(
                 market
                     .collateral_factor
@@ -944,11 +947,10 @@ impl<T: Config> Pallet<T> {
         borrower: &T::AccountId,
         borrow_amount: BalanceOf<T>,
     ) -> DispatchResult {
-        let price = Self::get_price(asset_id)?;
-        let borrow_value = price
+        Self::ensure_enough_cash(asset_id, borrow_amount)?;
+        let borrow_value = Self::get_price(asset_id)?
             .checked_mul(&FixedU128::from_inner(borrow_amount.saturated_into()))
             .ok_or(ArithmeticError::Overflow)?;
-
         let (liquidity, _) = Self::get_account_liquidity(borrower)?;
         if liquidity < borrow_value {
             return Err(Error::<T>::InsufficientLiquidity.into());
@@ -1246,6 +1248,18 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    /// Make sure there is enough cash avaliable in the pool
+    fn ensure_enough_cash(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
+        let reducible_cash = Self::get_total_cash(asset_id)
+            .checked_sub(Self::total_reserves(asset_id))
+            .ok_or(ArithmeticError::Underflow)?;
+        if reducible_cash < amount {
+            return Err(Error::<T>::InsufficientCash.into());
+        }
+
+        Ok(())
+    }
+
     // Ensures a given `ptoken_id` is unique in `Markets` and `UnderlyingAssetId`.
     fn ensure_ptoken(ptoken_id: CurrencyId) -> DispatchResult {
         // The ptoken id is unique, cannot be repeated
@@ -1281,6 +1295,10 @@ impl<T: Config> Pallet<T> {
             .map(|r| r.into_inner())
             .ok_or(ArithmeticError::Underflow)?
             .saturated_into())
+    }
+
+    fn get_total_cash(asset_id: AssetIdOf<T>) -> BalanceOf<T> {
+        T::Assets::reducible_balance(asset_id, &Self::account_id(), false)
     }
 
     pub fn get_price(asset_id: AssetIdOf<T>) -> Result<Price, DispatchError> {
