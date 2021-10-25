@@ -200,6 +200,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::Timestamp(_) |
             Call::Multisig(_)  |
             Call::Utility(_) |
+            Call::Proxy(_) |
             Call::Balances(_) |
             Call::Assets(pallet_assets::Call::mint { .. }) |
             Call::Assets(pallet_assets::Call::transfer { .. }) |
