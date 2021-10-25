@@ -206,7 +206,6 @@ impl Contains<Call> for BaseCallFilter {
             Call::ParachainSystem(_) |
             // Consensus
             Call::Authorship(_) |
-            Call::CollatorSelection(pallet_collator_selection::Call::set_invulnerables{..}) |
             Call::Session(_) |
             // Utility
             Call::Utility(_) |
@@ -229,6 +228,9 @@ impl Contains<Call> for BaseCallFilter {
         // Call::DmpQueue(_) |
         // Call::PolkadotXcm(_) |
         // Call::CumulusXcm(_) |
+
+        // // Consensus
+        // Call::CollatorSelection(_) |
 
         // // Governance
         // Call::Democracy(_) |
