@@ -75,14 +75,14 @@ pub mod pallet {
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
     use sp_runtime::{
-        traits::{AccountIdConversion, StaticLookup, Zero},
+        traits::{AccountIdConversion, Convert, StaticLookup, Zero},
         ArithmeticError, FixedPointNumber,
     };
     use sp_std::vec;
     use sp_std::{boxed::Box, vec::Vec};
     use xcm::{latest::prelude::*, DoubleEncoded};
 
-    use primitives::{Balance, CurrencyId, DerivativeProvider, Rate, Ratio};
+    use primitives::{Balance, CurrencyId, Rate, Ratio};
 
     use crate::{types::*, weights::WeightInfo};
 
@@ -96,7 +96,7 @@ pub mod pallet {
     pub struct Pallet<T>(_);
 
     #[pallet::config]
-    pub trait Config: frame_system::Config {
+    pub trait Config: frame_system::Config + pallet_utility::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Assets for deposit/withdraw assets to/from pallet account
@@ -124,8 +124,8 @@ pub mod pallet {
         #[pallet::constant]
         type DerivativeIndex: Get<u16>;
 
-        /// Account derivative functionality provider
-        type DerivativeProvider: DerivativeProvider<Self::AccountId>;
+        /// Convert `T::AccountId` to `MultiLocation`.
+        type AccountIdToMultiLocation: Convert<Self::AccountId, MultiLocation>;
 
         /// Unstake queue capacity
         #[pallet::constant]
@@ -320,10 +320,7 @@ pub mod pallet {
     }
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T>
-    where
-        [u8; 32]: From<<T as frame_system::Config>::AccountId>,
-    {
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         /// Try to pay off over the `UnstakeQueue` while blockchain is on idle.
         ///
         /// It breaks when:
@@ -332,7 +329,7 @@ pub mod pallet {
         ///     - `remaining_weight` is less than one pop_queue needed.
         fn on_idle(_n: BlockNumberFor<T>, mut remaining_weight: Weight) -> Weight {
             // on_idle shouldn't run out of all remaining_weight normally
-            let base_weight = T::WeightInfo::on_idle();
+            let base_weight = <T as Config>::WeightInfo::on_idle();
             let staking_currency = Self::staking_currency();
 
             // return if staking_currency haven't been set.
@@ -382,10 +379,7 @@ pub mod pallet {
     }
 
     #[pallet::call]
-    impl<T: Config> Pallet<T>
-    where
-        [u8; 32]: From<<T as frame_system::Config>::AccountId>,
-    {
+    impl<T: Config> Pallet<T> {
         /// Put assets under staking, the native assets will be transferred to the account
         /// owned by the pallet, user receive derivative in return, such derivative can be
         /// further used as collateral for lending.
@@ -818,13 +812,7 @@ pub mod pallet {
         }
     }
 
-    impl<T: Config> Pallet<T>
-    where
-        [u8; 32]: From<<T as frame_system::Config>::AccountId>,
-        u128: From<
-            <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance,
-        >,
-    {
+    impl<T: Config> Pallet<T> {
         /// Staking pool account
         pub fn account_id() -> T::AccountId {
             T::PalletId::get().into_account()
@@ -853,7 +841,7 @@ pub mod pallet {
         pub fn derivative_para_account_id() -> T::AccountId {
             let para_account = Self::para_account_id();
             let derivative_index = T::DerivativeIndex::get();
-            T::DerivativeProvider::derivative_account_id(para_account, derivative_index)
+            pallet_utility::Pallet::<T>::derivative_account_id(para_account, derivative_index)
         }
 
         #[require_transactional]
@@ -1096,11 +1084,7 @@ pub mod pallet {
                 DepositAsset {
                     assets: asset.into(),
                     max_assets: 1,
-                    beneficiary: X1(AccountId32 {
-                        network: NetworkId::Any,
-                        id: Self::para_account_id().into(),
-                    })
-                    .into(),
+                    beneficiary: T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 },
             ]))
         }

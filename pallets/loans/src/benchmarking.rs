@@ -37,10 +37,7 @@ fn market_mock<T: Config>() -> Market<BalanceOf<T>> {
     }
 }
 
-fn pending_market_mock<T: Config>(ptoken_id: CurrencyId) -> Market<BalanceOf<T>>
-where
-    BalanceOf<T>: From<u128>,
-{
+fn pending_market_mock<T: Config>(ptoken_id: CurrencyId) -> Market<BalanceOf<T>> {
     let mut market = market_mock::<T>();
     market.state = MarketState::Pending;
     market.ptoken_id = ptoken_id;
