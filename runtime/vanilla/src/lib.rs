@@ -373,10 +373,11 @@ impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
 pub struct AccountIdToMultiLocation;
 impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
     fn convert(account_id: AccountId) -> MultiLocation {
-        MultiLocation::from(Junction::AccountId32 {
+        X1(AccountId32 {
             network: NetworkId::Any,
             id: account_id.into(),
         })
+        .into()
     }
 }
 
@@ -446,14 +447,6 @@ parameter_types! {
     pub const MinUnstakeAmount: Balance = 500_000_000_000;
 }
 
-pub struct DerivativeProviderT;
-
-impl DerivativeProvider<AccountId> for DerivativeProviderT {
-    fn derivative_account_id(who: AccountId, index: u16) -> AccountId {
-        Utility::derivative_account_id(who, index)
-    }
-}
-
 impl pallet_liquid_staking::Config for Runtime {
     type Event = Event;
     type PalletId = StakingPalletId;
@@ -464,7 +457,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type Assets = Assets;
     type XcmSender = XcmRouter;
     type DerivativeIndex = DerivativeIndex;
-    type DerivativeProvider = DerivativeProviderT;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;
     type MaxRewardsPerEra = MaxRewardsPerEra;
     type MaxSlashesPerEra = MaxSlashesPerEra;

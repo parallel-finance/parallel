@@ -12,9 +12,7 @@ use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_parachains::configuration::HostConfiguration;
-use primitives::{
-    currency::MultiCurrencyAdapter, tokens::*, Balance, DerivativeProvider, Rate, Ratio,
-};
+use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, Rate, Ratio};
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
@@ -201,10 +199,11 @@ impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
 pub struct AccountIdToMultiLocation;
 impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
     fn convert(account_id: AccountId) -> MultiLocation {
-        MultiLocation::from(Junction::AccountId32 {
+        X1(Junction::AccountId32 {
             network: NetworkId::Any,
             id: account_id.into(),
         })
+        .into()
     }
 }
 
@@ -316,14 +315,6 @@ impl pallet_utility::Config for Test {
     type WeightInfo = pallet_utility::weights::SubstrateWeight<Test>;
 }
 
-pub struct DerivativeProviderT;
-
-impl DerivativeProvider<AccountId> for DerivativeProviderT {
-    fn derivative_account_id(who: AccountId, index: u16) -> AccountId {
-        Utility::derivative_account_id(who, index)
-    }
-}
-
 impl crate::Config for Test {
     type Event = Event;
     type PalletId = StakingPalletId;
@@ -331,7 +322,7 @@ impl crate::Config for Test {
     type WeightInfo = ();
     type XcmSender = XcmRouter;
     type DerivativeIndex = DerivativeIndex;
-    type DerivativeProvider = DerivativeProviderT;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type Assets = Assets;
     type RelayOrigin = RelayOrigin;
     type UpdateOrigin = UpdateOrigin;
