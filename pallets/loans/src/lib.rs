@@ -941,18 +941,6 @@ impl<T: Config> Pallet<T> {
         Ok(redeem_amount)
     }
 
-    /// Make sure there is enough cash avaliable in the pool
-    fn ensure_enough_cash(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
-        let reducible_cash = T::Assets::reducible_balance(asset_id, &Self::account_id(), false)
-            .checked_sub(Self::total_reserves(asset_id))
-            .ok_or(ArithmeticError::Underflow)?;
-        if reducible_cash < amount {
-            return Err(Error::<T>::InsufficientCash.into());
-        }
-
-        Ok(())
-    }
-
     /// Borrower shouldn't borrow more than his total collateral value
     fn borrow_allowed(
         asset_id: AssetIdOf<T>,
@@ -1260,6 +1248,18 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    /// Make sure there is enough cash avaliable in the pool
+    fn ensure_enough_cash(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
+        let reducible_cash = Self::get_total_cash(asset_id)
+            .checked_sub(Self::total_reserves(asset_id))
+            .ok_or(ArithmeticError::Underflow)?;
+        if reducible_cash < amount {
+            return Err(Error::<T>::InsufficientCash.into());
+        }
+
+        Ok(())
+    }
+
     // Ensures a given `ptoken_id` is unique in `Markets` and `UnderlyingAssetId`.
     fn ensure_ptoken(ptoken_id: CurrencyId) -> DispatchResult {
         // The ptoken id is unique, cannot be repeated
@@ -1295,6 +1295,10 @@ impl<T: Config> Pallet<T> {
             .map(|r| r.into_inner())
             .ok_or(ArithmeticError::Underflow)?
             .saturated_into())
+    }
+
+    fn get_total_cash(asset_id: AssetIdOf<T>) -> BalanceOf<T> {
+        T::Assets::reducible_balance(asset_id, &Self::account_id(), false)
     }
 
     pub fn get_price(asset_id: AssetIdOf<T>) -> Result<Price, DispatchError> {

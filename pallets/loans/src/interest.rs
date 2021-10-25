@@ -128,10 +128,6 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    fn get_total_cash(asset_id: AssetIdOf<T>) -> BalanceOf<T> {
-        T::Assets::balance(asset_id, &Self::account_id())
-    }
-
     fn accrued_interest(
         borrow_rate: Rate,
         amount: BalanceOf<T>,
