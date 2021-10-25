@@ -35,6 +35,7 @@ pallet-collective                          = { git = 'https://github.com/parityt
 pallet-democracy                           = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
 pallet-membership                          = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
 pallet-multisig                            = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
+pallet-proxy                               = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
 pallet-scheduler                           = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
 pallet-session                             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
 pallet-sudo                                = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
@@ -171,6 +172,7 @@ std                = [
   'pallet-prices/std',
   'pallet-multisig/std',
   'pallet-utility/std',
+  'pallet-proxy/std',
   'pallet-aura/std',
   'orml-oracle/std',
   'orml-oracle-rpc-runtime-api/std',
