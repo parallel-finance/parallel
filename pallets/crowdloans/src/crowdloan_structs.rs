@@ -13,18 +13,14 @@
 // limitations under the License.
 
 // Groups common pool related structures
-use crate::ParaId;
-use super::{BalanceOf, Config};
+
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use sp_runtime::{
-    traits::{StaticLookup, Zero},
+    traits::{Zero},
     DispatchError, DispatchResult, RuntimeDebug,
 };
-use sp_std::{boxed::Box, marker::PhantomData, vec::Vec};
-
-// pub type ParaId = u32;
-
+use sp_std::marker::PhantomData;
 
 #[derive(Clone, Copy, PartialEq, Decode, Encode, RuntimeDebug, TypeInfo)]
 pub enum VaultPhase {
@@ -62,6 +58,8 @@ pub struct Vault<ParaId, CurrencyId, Balance> {
     pub contributed: Balance,
 }
 
+
+/// a default initalization for a vault
 impl<ParaId, CurrencyId: Zero, Balance: Zero> Default for Vault<ParaId, CurrencyId, Balance> {
     fn default() -> Self {
         Vault {
@@ -74,27 +72,19 @@ impl<ParaId, CurrencyId: Zero, Balance: Zero> Default for Vault<ParaId, Currency
     }
 }
 
-impl<ParaId, CurrencyId: Zero, Balance: Zero> From<(CurrencyId, CurrencyId)>
+/// init default vault with ctoken and currency override
+impl<ParaId, CurrencyId: Zero, Balance: Zero> From<(CurrencyId, CurrencyId, ContributionStrategy<ParaId, CurrencyId, Balance>)>
     for Vault<ParaId, CurrencyId, Balance>
 {
-    fn from(a: (CurrencyId, CurrencyId)) -> Self {
+    fn from(currency_override: (CurrencyId, CurrencyId, ContributionStrategy<ParaId, CurrencyId, Balance>)) -> Self {
         Self {
-            ctoken: a.0,
-            relay_currency: a.1,
+            ctoken: currency_override.0,
+            relay_currency: currency_override.1,
+            contribution_strategy: currency_override.2,
             ..Self::default()
         }
     }
 }
-
-// impl<ParaId, CurrencyId: Zero, Balance: Zero> NewVault for Vault<ParaId, CurrencyId, Balance>  {
-//     fn new(ctoken: CurrencyId, relay_currency: CurrencyId) -> Self {
-//         Vault {
-//             ctoken,
-//             relay_currency,
-//             ..Default::default()
-//         }
-//     }
-// }
 
 #[allow(clippy::upper_case_acronyms)] // for XCM
 #[derive(Clone, Copy, PartialEq, Decode, Encode, RuntimeDebug, TypeInfo)]
@@ -136,72 +126,4 @@ impl<ParaId: std::fmt::Display, CurrencyId, Balance>
     fn refund(self, _: ParaId, _: CurrencyId) -> Result<(), DispatchError> {
         todo!()
     }
-}
-
-/// Relaychain balances.transfer_keep_alive call arguments
-#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct BalancesTransferKeepAliveCall<T: Config> {
-    /// dest account
-    pub dest: <T::Lookup as StaticLookup>::Source,
-    /// transfer amount
-    #[codec(compact)]
-    pub value: BalanceOf<T>,
-}
-
-/// Relaychain balances.transfer_all call arguments
-#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct BalancesTransferAllCall<T: Config> {
-    /// dest account
-    pub dest: <T::Lookup as StaticLookup>::Source,
-    pub keep_alive: bool,
-}
-
-#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
-pub enum BalancesCall<T: Config> {
-    #[codec(index = 3)]
-    TransferKeepAlive(BalancesTransferKeepAliveCall<T>),
-    #[codec(index = 4)]
-    TransferAll(BalancesTransferAllCall<T>),
-}
-
-/// Relaychain utility.as_derivative call arguments
-#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct CrowdloanContributeCall<T: Config> {
-    /// Controller account
-    pub contributor: <T::Lookup as StaticLookup>::Source,
-    /// derivative index
-    pub index: ParaId,
-    /// amount to contribute
-    #[codec(compact)]
-    pub amount: BalanceOf<T>,
-}
-
-#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
-pub enum CrowdloanCall<T: Config> {
-    #[codec(index = 1)]
-    Contribute(CrowdloanContributeCall<T>),
-}
-
-#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
-pub enum WestendCall<T: Config> {
-    #[codec(index = 4)]
-    Balances(BalancesCall<T>),
-    #[codec(index = 6)]
-    Crowdloan(CrowdloanCall<T>),
-}
-
-#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
-pub enum KusamaCall<T: Config> {
-    #[codec(index = 4)]
-    Balances(BalancesCall<T>),
-    #[codec(index = 6)]
-    Crowdloan(CrowdloanCall<T>),
-}
-
-#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
-pub enum PolkadotCall<T: Config> {
-    #[codec(index = 5)]
-    Balances(BalancesCall<T>),
-    #[codec(index = 7)]
-    Crowdloan(CrowdloanCall<T>),
 }

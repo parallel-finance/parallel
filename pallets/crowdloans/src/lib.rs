@@ -17,74 +17,38 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-extern crate alloc;
-
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
 mod tests;
 
-use frame_support::{
-    dispatch::DispatchResult,
-    pallet_prelude::*,
-    
-    transactional,
-    traits::{
-        fungibles::{Inspect, Mutate, Transfer},
-        Get,
-    },
-    Blake2_128Concat, PalletId,
-};
-
-use cumulus_primitives_core::ParaId;
-
-mod crowdloan_structs;
-use crowdloan_structs::{
-    ContributionStrategy, ContributionStrategyExecutor, Vault, VaultPhase,
-};
-
-use frame_system::ensure_signed;
-use frame_system::pallet_prelude::OriginFor;
-
-// pub use pallet::*;
-
-use sp_runtime::{
-    traits::{AccountIdConversion, Zero},
-    DispatchError,
-};
+pub mod crowdloan_structs;
 
 pub use pallet::*;
-
-macro_rules! switch_relay {
-    ({ $( $code:tt )* }) => {
-        if T::RelayNetwork::get() == NetworkId::Polkadot {
-            use crate::crowdloan_structs::PolkadotCall as RelaychainCall;
-
-            $( $code )*
-        } else if T::RelayNetwork::get() == NetworkId::Kusama {
-            use crate::crowdloan_structs::KusamaCall as RelaychainCall;
-
-            $( $code )*
-        } else if T::RelayNetwork::get() == NetworkId::Named("westend".into()) {
-            use crate::crowdloan_structs::WestendCall as RelaychainCall;
-
-            $( $code )*
-        } else {
-            unreachable!()
-        }
-    }
-}
 
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
     use crate::crowdloan_structs::*;
-    use frame_system::ensure_root;
-    use sp_runtime::traits::StaticLookup;
+    use cumulus_primitives_core::ParaId;
+    use frame_support::{
+        dispatch::DispatchResult,
+        pallet_prelude::*,
+        traits::{
+            fungibles::{Inspect, Mutate, Transfer},
+            Get,
+        },
+        transactional, Blake2_128Concat, PalletId,
+    };
+    use frame_system::ensure_signed;
+    use frame_system::pallet_prelude::OriginFor;
+    use primitives::{Balance, CurrencyId};
+    use sp_runtime::{
+        traits::{AccountIdConversion, Zero},
+        DispatchError,
+    };
     use xcm::latest::prelude::*;
     use xcm::DoubleEncoded;
-
-    use primitives::{Balance, CurrencyId};
 
     pub type AssetIdOf<T> =
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
@@ -99,10 +63,7 @@ pub mod pallet {
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-        // /// Currency type for deposit/withdraw assets to/from crowdloan
-        // /// module
-        // type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
-        /// Assets for deposit/withdraw assets to/from pallet account
+        /// Assets for deposit/withdraw assets to/from crowdloan account
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, Balance = Balance>;
@@ -124,42 +85,54 @@ pub mod pallet {
         /// Account derivative index
         #[pallet::constant]
         type DerivativeIndex: Get<u16>;
+
+        /// The origin which can create vault
+        type CreateVaultOrigin: EnsureOrigin<Self::Origin>;
+
+        /// The origin which can pariticipate
+        type PariticipateOrigin: EnsureOrigin<Self::Origin>;
+
+        /// The origin which can close vault
+        type CloseOrigin: EnsureOrigin<Self::Origin>;
+
+        /// The origin which can call auction failed
+        type AuctionFailedOrigin: EnsureOrigin<Self::Origin>;
+
+        /// The origin which can call auction completed
+        type AuctionCompletedOrigin: EnsureOrigin<Self::Origin>;
+
+        /// The origin which can call slot expired
+        type SlotExpiredOrigin: EnsureOrigin<Self::Origin>;
     }
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
-    // #[pallet::metadata(T::AccountId = "AccountId", BalanceOf<T> = "Balance")]
-    // pub enum Event<T: Config: 'static = ()> {
     pub enum Event<T: Config> {
         /// Create new vault
         /// [token, crowdloan, project_shares, currency_shares]
         VaultCreated(AssetIdOf<T>, ParaId, AssetIdOf<T>, AssetIdOf<T>),
-
         /// Send participate with amount to relaychain
         Contributed(ParaId, BalanceOf<T>),
-
         /// Send participate with amount to relaychain
         ParticipteCallSent(BalanceOf<T>),
     }
 
     #[pallet::error]
     pub enum Error<T> {
-        // pub enum Error<T = ()> {
         /// Vault is not in correct phase
         IncorrectVaultPhase,
         /// Vault shares are not new
         SharesNotNew,
-        // Crowdload ParaId aready exists
+        /// Crowdload ParaId aready exists
         CrowdloanAlreadyExists,
-        // Crowdload ParaId does not exist
+        /// Crowdload ParaId does not exist
         CrowdloanDoesNotExists,
-        // Amount is not enough
+        /// Amount is not enough
         InsufficientBalance,
-        // Vault does not exist
+        /// Vault does not exist
         VaultDoesNotExist,
-        // Vault contributed greater than issuance
+        /// Vault contributed greater than issuance
         ContributedGreaterThanIssuance,
-
         /// Failed to send participate call
         ParticipateCallFailed,
         /// Xcm fees given are too low to execute on relaychain
@@ -201,12 +174,6 @@ pub mod pallet {
     impl<T: Config> Pallet<T>
     where
         [u8; 32]: From<<T as frame_system::Config>::AccountId>,
-        // [u8; 32]: From<<T as frame_system::Config>::AccountId>,
-        // u128: From<
-        //     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance,
-        // >,
-        // BalanceOf<T>: FixedPointOperand,
-        // AssetIdOf<T>: AtLeast32BitUnsigned,
     {
         //// 1. Vaults Management
 
@@ -221,7 +188,6 @@ pub mod pallet {
         /// - `contribution_strategy` represents how we can contribute coins to the
         ///   crowdloan on the relay chain
         #[pallet::weight(10_000)]
-        #[allow(unused)]
         pub fn create_vault(
             origin: OriginFor<T>,
             currency: AssetIdOf<T>,
@@ -230,7 +196,7 @@ pub mod pallet {
             contribution_strategy: ContributionStrategy<ParaId, CurrencyId, Balance>,
         ) -> DispatchResult {
             // 1. EnsureOrigin
-            ensure_root(origin)?;
+            T::CreateVaultOrigin::ensure_origin(origin)?;
 
             // 2. make sure both ctoken is a new asset (total_issuance == Zero::zero())
             let ctoken_issuance = T::Assets::total_issuance(ctoken);
@@ -246,7 +212,7 @@ pub mod pallet {
 
                 // 4. mutate our storage to register a new vault
                 // inialize new vault
-                let new_vault = crowdloan_structs::Vault::from((ctoken, currency));
+                let new_vault = crowdloan_structs::Vault::from((ctoken, currency, contribution_strategy));
 
                 // store update
                 *vault = Some(new_vault);
@@ -310,10 +276,9 @@ pub mod pallet {
         /// Once a auction loan vault is expired, move the coins to the relay chain
         /// and participate in a relay chain crowdloan by using the call `call`.
         #[pallet::weight(10_000)]
-        #[allow(unused)]
         pub fn participate(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             // 1. EnsureOrigin
-            ensure_root(origin.clone())?;
+            T::PariticipateOrigin::ensure_origin(origin)?;
 
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
@@ -321,9 +286,6 @@ pub mod pallet {
 
                 if let Some(vault_contents) = vault {
                     // 2. Make sure vault.contributed is less than total_issuance(vault.currency_shares)
-                    // let vault_currency_issuance =
-                    //     T::Assets::total_issuance(vault_contents.currency);
-
                     let vault_ctoken_issuance = T::Assets::total_issuance(vault_contents.ctoken);
 
                     ensure!(
@@ -335,34 +297,11 @@ pub mod pallet {
                     // vault.currency and total_issuance(vault.ctoken) - vault.contributed
                     let amount = vault_ctoken_issuance - vault_contents.contributed;
 
-                    let contributor = Self::para_account_id();
-
-                    switch_relay!({
-                        let call = RelaychainCall::Crowdloan::<T>(CrowdloanCall::Contribute(
-                            CrowdloanContributeCall {
-                                contributor: T::Lookup::unlookup(contributor),
-                                index: crowdloan,
-                                amount,
-                            },
-                        ));
-
-                        let msg = Self::ump_transact(call.encode().into(), 10_000)?;
-
-                        match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                            Ok(()) => {
-                                Self::deposit_event(Event::<T>::ParticipteCallSent(amount));
-                            }
-                            Err(_e) => {
-                                return Err(Error::<T>::ParticipateCallFailed.into());
-                            }
-                        }
-                    });
-
                     vault_contents.contribution_strategy.execute(
                         crowdloan,
                         vault_contents.relay_currency,
                         amount,
-                    );
+                    )?;
 
                     // 4. Set vault.contributed to total_issuance(vault.currency_shares)
                     vault_contents.contributed = vault_ctoken_issuance;
@@ -380,11 +319,9 @@ pub mod pallet {
 
         /// Mark the associated vault as closed and stop accepting contributions for it
         #[pallet::weight(10_000)]
-        #[allow(unused)]
-
         pub fn close(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             // 1. EnsureOrigin
-            ensure_root(origin)?;
+            T::CloseOrigin::ensure_origin(origin)?;
 
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
@@ -413,10 +350,9 @@ pub mod pallet {
         /// If a `crowdloan` failed, get the coins back and mark the vault as ready
         /// for distribution
         #[pallet::weight(10_000)]
-        #[allow(unused)]
         pub fn auction_failed(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             // 1. `EnsureOrigin`
-            ensure_root(origin)?;
+            T::AuctionFailedOrigin::ensure_origin(origin)?;
 
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
@@ -432,7 +368,7 @@ pub mod pallet {
                     // 3. Execute the `refund` function of the `contribution_strategy`
                     vault_contents
                         .contribution_strategy
-                        .refund(crowdloan, vault_contents.relay_currency);
+                        .refund(crowdloan, vault_contents.relay_currency)?;
 
                     // 4. Set `vault.phase` to `Failed`
                     vault_contents.phase = VaultPhase::Failed;
@@ -447,7 +383,6 @@ pub mod pallet {
         /// If a `crowdloan` failed, claim back your share of the assets you
         /// contributed
         #[pallet::weight(10_000)]
-        #[allow(unused)]
         pub fn claim_refund(
             origin: OriginFor<T>,
             crowdloan: ParaId,
@@ -499,10 +434,9 @@ pub mod pallet {
         /// If a `crowdloan` succeeded and its slot expired, use `call` to
         /// claim back the funds lent to the parachain
         #[pallet::weight(10_000)]
-        #[allow(unused)]
         pub fn slot_expired(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             // 1. `EnsureOrigin`
-            ensure_root(origin)?;
+            T::SlotExpiredOrigin::ensure_origin(origin)?;
 
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
@@ -512,7 +446,7 @@ pub mod pallet {
                     // 2. Execute the `withdraw` function of our `contribution_strategy`
                     vault_contents
                         .contribution_strategy
-                        .withdraw(crowdloan, vault_contents.relay_currency);
+                        .withdraw(crowdloan, vault_contents.relay_currency)?;
 
                     // 3. Modify `vault.phase` to `Expired
                     vault_contents.phase = VaultPhase::Expired;
@@ -548,6 +482,7 @@ pub mod pallet {
             Vaults::<T>::try_get(crowdloan).map_err(|_err| Error::<T>::VaultDoesNotExist.into())
         }
 
+        #[allow(dead_code)]
         fn ump_transact(call: DoubleEncoded<()>, weight: Weight) -> Result<Xcm<()>, DispatchError> {
             // let fees = Self::xcm_fees_compensation();
             let fees = 1_000_000_000_000;

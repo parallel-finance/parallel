@@ -2,13 +2,14 @@ use cumulus_primitives_core::ParaId;
 use frame_support::traits::Nothing;
 use frame_support::{
     construct_runtime,
-    dispatch::Weight,
-    parameter_types, sp_io,
+    dispatch::Weight, parameter_types, sp_io,
     traits::{Everything, GenesisBuild, SortedMembers},
     weights::constants::WEIGHT_PER_SECOND,
     PalletId,
 };
+use frame_system::EnsureOneOf;
 use frame_system::EnsureRoot;
+use frame_system::EnsureSignedBy;
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
@@ -293,9 +294,6 @@ impl SortedMembers<AccountId> for BobOrigin {
     }
 }
 
-// pub type RelayOrigin = EnsureSignedBy<AliceOrigin, AccountId>;
-// pub type UpdateOrigin = EnsureSignedBy<BobOrigin, AccountId>;
-
 parameter_types! {
     pub const CrowdloanPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const DerivativeIndex: u16 = 0;
@@ -322,25 +320,38 @@ impl DerivativeProvider<AccountId> for DerivativeProviderT {
     }
 }
 
+pub type CreateVaultOrigin =
+    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+
+pub type PariticipateOrigin =
+    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
+
+pub type CloseOrigin =
+    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+    
+pub type AuctionFailedOrigin =
+    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
+    
+pub type AuctionCompletedOrigin =
+    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+    
+pub type SlotExpiredOrigin =
+    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
+
 impl crate::Config for Test {
     type Event = Event;
     type PalletId = CrowdloanPalletId;
-    // type BaseXcmWeight = BaseXcmWeight;
     type SelfParaId = SelfParaId;
-    // type PeriodBasis = PeriodBasis;
-    // type WeightInfo = ();
     type XcmSender = XcmRouter;
     type DerivativeIndex = DerivativeIndex;
-    // type DerivativeProvider = DerivativeProviderT;
     type Assets = Assets;
-    // type RelayOrigin = RelayOrigin;
-    // type UpdateOrigin = UpdateOrigin;
-    // type UnstakeQueueCapacity = UnstakeQueueCapacity;
-    // type MaxRewardsPerEra = MaxRewardsPerEra;
-    // type MaxSlashesPerEra = MaxSlashesPerEra;
     type RelayNetwork = RelayNetwork;
-    // type MinStakeAmount = MinStakeAmount;
-    // type MinUnstakeAmount = MinUnstakeAmount;
+    type CreateVaultOrigin = CreateVaultOrigin;
+    type PariticipateOrigin = PariticipateOrigin;
+    type CloseOrigin = CloseOrigin;
+    type AuctionFailedOrigin = AuctionFailedOrigin;
+    type AuctionCompletedOrigin = AuctionCompletedOrigin;
+    type SlotExpiredOrigin = SlotExpiredOrigin;
 }
 
 parameter_types! {
@@ -445,9 +456,8 @@ decl_test_network! {
     }
 }
 
-pub type WestendRuntime = westend_runtime::Runtime;
-pub type RelayBalances = pallet_balances::Pallet<WestendRuntime>;
-
+// pub type WestendRuntime = westend_runtime::Runtime;
+// pub type RelayBalances = pallet_balances::Pallet<WestendRuntime>;
 // pub type RelaySystem = frame_system::Pallet<WestendRuntime>;
 // pub type RelayEvent = westend_runtime::Event;
 // pub type ParaSystem = frame_system::Pallet<Test>;
