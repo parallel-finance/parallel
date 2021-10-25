@@ -202,6 +202,11 @@ impl Contains<Call> for BaseCallFilter {
             Call::Timestamp(_) |
             // Governance
             Call::Sudo(_)  |
+            Call::Democracy(_) |
+            Call::GeneralCouncil(_) |
+            Call::TechnicalCommittee(_) |
+            Call::Treasury(_) |
+            Call::Scheduler(_) |
             // Parachain
             Call::ParachainSystem(_) |
             // Consensus
@@ -231,13 +236,6 @@ impl Contains<Call> for BaseCallFilter {
 
         // // Consensus
         // Call::CollatorSelection(_) |
-
-        // // Governance
-        // Call::Democracy(_) |
-        // Call::GeneralCouncil(_) |
-        // Call::TechnicalCommittee(_) |
-        // Call::Treasury(_) |
-        // Call::Scheduler(_) |
 
         // // Loans
         // Call::Liquidation(_) |
