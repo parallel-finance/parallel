@@ -25,7 +25,7 @@ mod weights;
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
     dispatch::Weight,
-    traits::{fungibles::Mutate, Contains, Everything, InstanceFilter, Nothing},
+    traits::{fungibles::Mutate, Contains, Everything, InstanceFilter, Nothing, OnRuntimeUpgrade},
     PalletId,
 };
 use orml_traits::{DataProvider, DataProviderExtended};
@@ -770,8 +770,7 @@ impl pallet_utility::Config for Runtime {
 }
 
 /// No local origins on this chain are allowed to dispatch XCM sends/executions.
-#[allow(unused_parens)]
-pub type LocalOriginToLocation = (SignedToAccountId32<Origin, AccountId, RelayNetwork>);
+pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNetwork>;
 
 /// The means for routing XCM messages which are not for local execution into the right message
 /// queues.
@@ -1403,8 +1402,16 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPallets,
-    (),
+    SetSafeXcmVersion,
 >;
+
+pub struct SetSafeXcmVersion;
+impl OnRuntimeUpgrade for SetSafeXcmVersion {
+    fn on_runtime_upgrade() -> u64 {
+        let _ = PolkadotXcm::force_default_xcm_version(Origin::root(), Some(2));
+        RocksDbWeight::get().writes(1)
+    }
+}
 
 impl_runtime_apis! {
     impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
