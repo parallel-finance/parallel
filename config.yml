@@ -29,6 +29,7 @@ parachains:
     flags:
       - --rpc-methods=unsafe
       - --force-authoring
+      - -lxcm=trace
     relaychainFlags:
       - --no-beefy
     nodes:
