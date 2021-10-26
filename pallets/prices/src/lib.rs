@@ -22,7 +22,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{log, pallet_prelude::*, transactional};
+use frame_support::{log, pallet_prelude::*, transactional, weights::DispatchClass};
 use frame_system::pallet_prelude::*;
 use orml_oracle::DataProviderExtended;
 use orml_traits::DataProvider;
@@ -97,7 +97,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Set emergency price
-        #[pallet::weight(<T as Config>::WeightInfo::set_price())]
+        #[pallet::weight((<T as Config>::WeightInfo::set_price(), DispatchClass::Operational))]
         #[transactional]
         pub fn set_price(
             origin: OriginFor<T>,
@@ -112,7 +112,7 @@ pub mod pallet {
         }
 
         /// Reset emergency price
-        #[pallet::weight(<T as Config>::WeightInfo::reset_price())]
+        #[pallet::weight((<T as Config>::WeightInfo::reset_price(), DispatchClass::Operational))]
         #[transactional]
         pub fn reset_price(
             origin: OriginFor<T>,
