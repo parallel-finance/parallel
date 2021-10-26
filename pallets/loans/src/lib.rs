@@ -1109,11 +1109,14 @@ impl<T: Config> Pallet<T> {
         repay_amount: BalanceOf<T>,
         market: &Market<BalanceOf<T>>,
     ) -> DispatchResult {
-        let (_, shortfall) = Self::get_account_liquidity(borrower)?;
+        log::info!("1234,{:#?},{:#?}", liquidate_asset_id, repay_amount);
+        let (l, shortfall) = Self::get_account_liquidity(borrower)?;
+        log::info!("5678,{:#?},{:#?}", l, shortfall);
         if shortfall.is_zero() {
             return Err(Error::<T>::InsufficientShortfall.into());
         }
 
+        log::info!("9999,{:#?},{:#?}", l, shortfall);
         // The liquidator may not repay more than 50%(close_factor) of the borrower's borrow balance.
         let account_borrows = Self::current_borrow_balance(borrower, liquidate_asset_id)?;
         if market.close_factor.mul_ceil(account_borrows) < repay_amount {
