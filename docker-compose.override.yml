@@ -6,7 +6,7 @@ services:
     image: parallelfinance/parallel-dapp:latest
     restart: always
 
-  oracle:
+  oracle-client:
     image: parallelfinance/oracle-client:latest
     command: start -m 12000 -w ws://parachain-2085-0:9944
     restart: always
@@ -29,5 +29,9 @@ services:
       - "redis"
     restart: always
 
+  liquidation-client:
+    image: parallelfinance/liquidation-client:latest
+    command: --endpoint ws://parachain-2085-0:9944
+    restart: always
 volumes:
   redis:

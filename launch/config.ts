@@ -1,5 +1,5 @@
 const config = {
-  liquidAsset: 5000,
+  liquidAsset: 1000,
   stakingAsset: 100,
   assets: [
     {
@@ -22,14 +22,14 @@ const config = {
           }
         },
         state: 'Pending',
-        ptokenId: 1000
+        ptokenId: 2100
       },
       balances: []
     },
     {
       name: 'Parallel Kusama',
       symbol: 'XKSM',
-      assetId: 5000,
+      assetId: 1000,
       decimal: 12,
       marketOption: {
         closeFactor: 50e4,
@@ -46,7 +46,7 @@ const config = {
           }
         },
         state: 'Pending',
-        ptokenId: 2000
+        ptokenId: 3000
       },
       balances: []
     },
@@ -70,7 +70,7 @@ const config = {
           }
         },
         state: 'Pending',
-        ptokenId: 1002
+        ptokenId: 2102
       },
       balances: [['5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf', '100000000000000000000']]
     }
