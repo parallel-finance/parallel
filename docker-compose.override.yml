@@ -29,5 +29,9 @@ services:
       - "redis"
     restart: always
 
+  liquidation-client:
+    image: parallelfinance/liquidation-client:latest
+    command: --endpoint ws://parachain-2085-0:9944
+    restart: always
 volumes:
   redis:
