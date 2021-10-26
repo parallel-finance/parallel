@@ -20,7 +20,7 @@ use mock::*;
 
 #[test]
 fn set_validators_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         assert_eq!(NomineeElection::validators(), vec![]);
         assert_noop!(
             NomineeElection::set_validators(Origin::signed(1), vec![]),

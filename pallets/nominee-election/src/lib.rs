@@ -76,9 +76,6 @@ pub mod pallet {
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-        /// The origin which can update staking election coefficients
-        type UpdateOrigin: EnsureOrigin<Self::Origin>;
-
         /// The maximum size of selected validators
         #[pallet::constant]
         type MaxValidators: Get<u32>;
@@ -95,8 +92,8 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(crate) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// Validator set updated (old_validators, new_validators)
-        ValidorsUpdated(ValidatorSet<T>, ValidatorSet<T>),
+        /// Validator set updated
+        ValidatorsUpdated(ValidatorSet<T>),
     }
 
     #[pallet::error]
@@ -133,13 +130,12 @@ pub mod pallet {
             );
             ensure!(!validators.is_empty(), Error::<T>::NoEmptyValidators);
 
-            let old_validators = Self::validators();
             let new_validators: ValidatorSet<T> = validators
                 .try_into()
                 .map_err(|_| Error::<T>::MaxValidatorsExceeded)?;
 
             Validators::<T>::put(new_validators.clone());
-            Self::deposit_event(Event::<T>::ValidorsUpdated(old_validators, new_validators));
+            Self::deposit_event(Event::<T>::ValidatorsUpdated(new_validators));
             Ok(())
         }
     }
