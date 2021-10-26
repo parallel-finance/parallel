@@ -141,8 +141,13 @@ impl ExchangeRateProvider for LiquidStakingExchangeRateProvider {
 
 pub struct Decimal;
 impl DecimalProvider for Decimal {
-    fn get_decimal(_asset_id: &CurrencyId) -> Option<u8> {
-        Some(12)
+    fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
+        match *asset_id {
+            KSM | XKSM => Some(12),
+            HKO => Some(12),
+            USDT => Some(6),
+            _ => None,
+        }
     }
 }
 
@@ -178,7 +183,7 @@ impl MockPriceFeeder {
     thread_local! {
         pub static PRICES: RefCell<HashMap<CurrencyId, Option<PriceDetail>>> = {
             RefCell::new(
-                vec![HKO, DOT, KSM, USDT, XDOT]
+                vec![HKO, DOT, KSM, USDT, XKSM, XDOT]
                     .iter()
                     .map(|&x| (x, Some((Price::saturating_from_integer(1), 1))))
                     .collect()

@@ -17,9 +17,9 @@
 use super::*;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, traits::Everything};
 use frame_system::EnsureSignedBy;
+pub use primitives::tokens::{DOT, KSM, XDOT, XKSM};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, FixedPointNumber};
-pub use primitives::tokens::{DOT, XDOT, KSM, XKSM};
 
 pub type AccountId = u128;
 pub type BlockNumber = u64;

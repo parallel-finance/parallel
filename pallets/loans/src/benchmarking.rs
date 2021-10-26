@@ -9,7 +9,7 @@ use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whiteli
 use frame_support::assert_ok;
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{
-    tokens::{USDT, KSM, PUSDT, PKSM, PXKSM, XKSM},
+    tokens::{KSM, PKSM, PUSDT, PXKSM, USDT, XKSM},
     Balance, CurrencyId,
 };
 use rate_model::{InterestRateModel, JumpModel};
@@ -65,13 +65,22 @@ fn transfer_initial_balance<
         1,
     )
     .ok();
+    pallet_assets::Pallet::<T>::force_create(
+        SystemOrigin::Root.into(),
+        XKSM,
+        account_id.clone(),
+        true,
+        1,
+    )
+    .ok();
     pallet_assets::Pallet::<T>::force_create(SystemOrigin::Root.into(), USDT, account_id, true, 1)
         .ok();
-
     T::Assets::mint_into(USDT, &caller, INITIAL_AMOUNT.into()).unwrap();
     T::Assets::mint_into(KSM, &caller, INITIAL_AMOUNT.into()).unwrap();
+    T::Assets::mint_into(XKSM, &caller, INITIAL_AMOUNT.into()).unwrap();
     pallet_prices::Pallet::<T>::set_price(SystemOrigin::Root.into(), USDT, 1.into()).unwrap();
     pallet_prices::Pallet::<T>::set_price(SystemOrigin::Root.into(), KSM, 1.into()).unwrap();
+    pallet_prices::Pallet::<T>::set_price(SystemOrigin::Root.into(), XKSM, 1.into()).unwrap();
 }
 
 fn set_account_borrows<T: Config>(
@@ -250,17 +259,17 @@ benchmarks! {
         let borrowed_amount: u32 = 200_000_000;
         let liquidate_amount: u32 = 100_000_000;
         let incentive_amount: u32 = 110_000_000;
-        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), USDT, pending_market_mock::<T>(PUSDT)));
-        assert_ok!(Loans::<T>::activate_market(SystemOrigin::Root.into(), USDT));
+        assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), XKSM, pending_market_mock::<T>(PXKSM)));
+        assert_ok!(Loans::<T>::activate_market(SystemOrigin::Root.into(), XKSM));
         assert_ok!(Loans::<T>::add_market(SystemOrigin::Root.into(), KSM, pending_market_mock::<T>(PKSM)));
         assert_ok!(Loans::<T>::activate_market(SystemOrigin::Root.into(), KSM));
         assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(bob.clone()).into(), KSM, deposit_amount.into()));
-        assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(alice.clone()).into(), USDT, deposit_amount.into()));
-        assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(alice.clone()).into(), USDT, true));
+        assert_ok!(Loans::<T>::mint(SystemOrigin::Signed(alice.clone()).into(), XKSM, deposit_amount.into()));
+        assert_ok!(Loans::<T>::collateral_asset(SystemOrigin::Signed(alice.clone()).into(), XKSM, true));
         set_account_borrows::<T>(alice.clone(), KSM, borrowed_amount.into());
-    }: _(SystemOrigin::Signed(bob.clone()), alice.clone(), KSM, liquidate_amount.into(), USDT)
+    }: _(SystemOrigin::Signed(bob.clone()), alice.clone(), KSM, liquidate_amount.into(), XKSM)
     verify {
-        assert_last_event::<T>(Event::<T>::LiquidatedBorrow(bob.clone(), alice.clone(), KSM, USDT, liquidate_amount.into(), incentive_amount.into()).into());
+        assert_last_event::<T>(Event::<T>::LiquidatedBorrow(bob.clone(), alice.clone(), KSM, XKSM, liquidate_amount.into(), incentive_amount.into()).into());
     }
 
     add_reserves {
