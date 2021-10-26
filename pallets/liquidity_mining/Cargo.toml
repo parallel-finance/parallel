@@ -16,16 +16,9 @@ pallet-assets      = { git = 'https://github.com/paritytech/substrate.git', bran
 primitives         = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 scale-info         = { version = '1.0', default-features = false, features = ['derive'] }
 serde              = { version = '1', features = ['derive'], optional = true }
-sp-arithmetic      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
 sp-io              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
 sp-runtime         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
-sp-std             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
 
-[dev-dependencies]
-pallet-balances         = { branch = 'polkadot-v0.9.11', git = 'https://github.com/paritytech/substrate.git' }
-pallet-currency-adapter = { path = '../currency-adapter' }
-sp-core                 = { branch = 'polkadot-v0.9.11', git = 'https://github.com/paritytech/substrate.git' }
-sp-io                   = { branch = 'polkadot-v0.9.11', git = 'https://github.com/paritytech/substrate.git' }
 
 [features]
 default            = ['std']
@@ -37,9 +30,7 @@ std                = [
   'frame-support/std',
   'frame-system/std',
   'primitives/std',
-  'sp-arithmetic/std',
   'sp-runtime/std',
-  'sp-std/std',
   'pallet-assets/std',
   'scale-info/std',
 ]

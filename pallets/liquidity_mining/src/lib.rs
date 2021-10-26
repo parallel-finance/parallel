@@ -22,27 +22,23 @@ extern crate alloc;
 
 use codec::{Decode, Encode};
 use frame_support::{
-    dispatch::DispatchResult,
     pallet_prelude::*,
     traits::{
         fungibles::{Inspect, Mutate, Transfer},
         Get, Hooks, IsType,
     },
-    transactional, Blake2_128Concat, PalletId, Twox64Concat,
+    transactional, Blake2_128Concat, PalletId,
 };
-use frame_system::{ensure_signed, pallet_prelude::OriginFor, RawOrigin};
+use frame_system::pallet_prelude::OriginFor;
 pub use pallet::*;
-use primitives::{Balance, CurrencyId, Rate};
+use primitives::{Balance, CurrencyId};
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_io::hashing::blake2_256;
 use sp_runtime::{
-    traits::{
-        AccountIdConversion, CheckedDiv, IntegerSquareRoot, One, StaticLookup, UniqueSaturatedInto,
-        Zero,
-    },
-    ArithmeticError, DispatchError, FixedU128, Perbill, SaturatedConversion,
+    traits::{AccountIdConversion, Saturating, StaticLookup, Zero},
+    SaturatedConversion,
 };
 
 pub type AssetIdOf<T, I = ()> =
@@ -53,7 +49,6 @@ pub type BalanceOf<T, I = ()> =
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use frame_system::ensure_root;
 
     #[pallet::config]
     pub trait Config<I: 'static = ()>:
@@ -88,16 +83,16 @@ pub mod pallet {
         PoolAlreadyExists,
         /// Not a newly created asset
         NotANewlyCreatedAsset,
-        /// Start block number is less than current block number
-        StartBlockNumberLessThanCurrentBlockNumber,
+        /// Not a valid duration
+        NotAValidDuration,
     }
 
     #[pallet::event]
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config<I>, I: 'static = ()> {
         /// Add new pool
-        /// [sender, asset_id]
-        PoolAdded(T::AccountId, AssetIdOf<T, I>),
+        /// [asset_id]
+        PoolAdded(AssetIdOf<T, I>),
     }
 
     #[pallet::hooks]
@@ -110,14 +105,14 @@ pub mod pallet {
         Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, TypeInfo,
     )]
     #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-    pub struct Pool<BlockNumber, Balance, AssetId, BoundedTokens> {
+    pub struct Pool<BlockNumber, BoundedBalance, AssetId, BoundedTokens> {
         /// When the liquidity program starts
         start: BlockNumber,
         /// When the liquidity program stops
         end: BlockNumber,
         /// How much is vested into the pool every block, will be shared among
         /// all participants
-        per_block: Balance,
+        per_block: BoundedBalance,
         /// Which assets we use to send rewards
         rewards: BoundedTokens,
         /// Which asset we use to represent shares of the pool
@@ -133,7 +128,7 @@ pub mod pallet {
         AssetIdOf<T, I>,
         Pool<
             T::BlockNumber,
-            BalanceOf<T, I>,
+            BoundedVec<BalanceOf<T, I>, T::MaxRewardTokens>,
             AssetIdOf<T, I>,
             BoundedVec<AssetIdOf<T, I>, T::MaxRewardTokens>,
         >,
@@ -169,15 +164,63 @@ pub mod pallet {
             rewards: BoundedVec<AssetIdOf<T, I>, T::MaxRewardTokens>,
             shares: AssetIdOf<T, I>,
         ) -> DispatchResultWithPostInfo {
+            T::CreateOrigin::ensure_origin(origin)?;
+
+            ensure!(
+                per_block.len() == rewards.len(),
+                Error::<T, I>::PerBlockAndRewardsAreNotSameSize
+            );
+
+            ensure!(
+                !Pools::<T, I>::contains_key(&asset),
+                Error::<T, I>::PoolAlreadyExists
+            );
+
+            ensure!(
+                T::Assets::total_issuance(shares) == Zero::zero(),
+                Error::<T, I>::NotANewlyCreatedAsset
+            );
+
+            let current_block_number = <frame_system::Pallet<T>>::block_number();
+            ensure!(
+                start >= current_block_number,
+                Error::<T, I>::NotAValidDuration
+            );
+
+            let stash = T::Lookup::lookup(stash)?;
+
+            let rewards_per_block = per_block.iter().zip(rewards.iter());
+            let asset_pool_account = Self::pool_account_id(asset);
+
+            for (_, (b, r)) in rewards_per_block.enumerate() {
+                let balance =
+                    Self::block_to_balance(end.saturating_sub(start)).saturating_mul(b.clone());
+                T::Assets::transfer(r.clone(), &stash, &asset_pool_account, balance, true)?;
+            }
+
+            let pool = Pool {
+                start,
+                end,
+                per_block,
+                rewards,
+                shares,
+            };
+
+            Pools::<T, I>::insert(&asset, pool);
+            Self::deposit_event(Event::<T, I>::PoolAdded(asset));
             Ok(().into())
         }
     }
 }
 
 impl<T: Config<I>, I: 'static> Pallet<T, I> {
-    pub fn pool_account_id(asset_id: u16) -> T::AccountId {
+    pub fn pool_account_id(asset_id: AssetIdOf<T, I>) -> T::AccountId {
         let account_id: T::AccountId = T::PalletId::get().into_account();
         let entropy = (b"modlpy/liquidity", &[account_id], asset_id).using_encoded(blake2_256);
         T::AccountId::decode(&mut &entropy[..]).unwrap_or_default()
+    }
+
+    fn block_to_balance(input: T::BlockNumber) -> T::Balance {
+        T::Balance::from(input.saturated_into::<u128>())
     }
 }
