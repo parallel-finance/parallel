@@ -31,7 +31,7 @@ fn get_price_from_oracle() {
         );
 
         // currency not exist
-        assert_eq!(Prices::get_price(&xDOT), None);
+        assert_eq!(Prices::get_price(&XDOT), None);
     });
 }
 
@@ -43,7 +43,7 @@ fn set_price_work() {
             Some((Price::from_inner(10_000_000_000 * PRICE_ONE), 0))
         );
         // set DOT price
-        EmergencyPrice::<Runtime>::insert(DOT, Price::saturating_from_integer(99));
+        EmergencyPrice::<Test>::insert(DOT, Price::saturating_from_integer(99));
         assert_eq!(
             Prices::get_price(&DOT),
             Some((Price::from_inner(9_900_000_000 * PRICE_ONE), 0))
@@ -59,14 +59,14 @@ fn reset_price_work() {
             Some((Price::from_inner(10_000_000_000 * PRICE_ONE), 0))
         );
         // set DOT price
-        EmergencyPrice::<Runtime>::insert(DOT, Price::saturating_from_integer(99));
+        EmergencyPrice::<Test>::insert(DOT, Price::saturating_from_integer(99));
         assert_eq!(
             Prices::get_price(&DOT),
             Some((Price::from_inner(9_900_000_000 * PRICE_ONE), 0))
         );
 
         // reset DOT price
-        EmergencyPrice::<Runtime>::remove(DOT);
+        EmergencyPrice::<Test>::remove(DOT);
         assert_eq!(
             Prices::get_price(&DOT),
             Some((Price::from_inner(10_000_000_000 * PRICE_ONE), 0))
@@ -161,7 +161,7 @@ fn get_liquid_price_work() {
         );
 
         assert_eq!(
-            Prices::get_price(&xKSM),
+            Prices::get_price(&XKSM),
             LiquidStakingExchangeRateProvider::get_exchange_rate()
                 .checked_mul_int(500 * 1_000_000 * PRICE_ONE)
                 .map(|i| (Price::from_inner(i), 0))

@@ -40,9 +40,13 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+pub mod weights;
+
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
+
+    use weights::WeightInfo;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -64,6 +68,9 @@ pub mod pallet {
 
         /// Decimal provider.
         type Decimal: DecimalProvider;
+
+        /// Weight information
+        type WeightInfo: WeightInfo;
     }
 
     #[pallet::event]
@@ -90,7 +97,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Set emergency price
-        #[pallet::weight(100)]
+        #[pallet::weight(<T as Config>::WeightInfo::set_price())]
         #[transactional]
         pub fn set_price(
             origin: OriginFor<T>,
@@ -105,7 +112,7 @@ pub mod pallet {
         }
 
         /// Reset emergency price
-        #[pallet::weight(100)]
+        #[pallet::weight(<T as Config>::WeightInfo::reset_price())]
         #[transactional]
         pub fn reset_price(
             origin: OriginFor<T>,

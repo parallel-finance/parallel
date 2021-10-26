@@ -23,22 +23,16 @@ use sp_runtime::{testing::Header, traits::IdentityLookup, FixedPointNumber};
 pub type AccountId = u128;
 pub type BlockNumber = u64;
 
-mod prices {
-    pub use super::super::*;
-}
-
 pub const DOT: CurrencyId = 10;
-#[allow(non_upper_case_globals)]
-pub const xDOT: CurrencyId = 11;
+pub const XDOT: CurrencyId = 11;
 pub const KSM: CurrencyId = 20;
-#[allow(non_upper_case_globals)]
-pub const xKSM: CurrencyId = 21;
+pub const XKSM: CurrencyId = 21;
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
 }
 
-impl frame_system::Config for Runtime {
+impl frame_system::Config for Test {
     type Origin = Origin;
     type Index = u64;
     type BlockNumber = BlockNumber;
@@ -102,15 +96,15 @@ impl ExchangeRateProvider for LiquidStakingExchangeRateProvider {
 ord_parameter_types! {
     pub const One: AccountId = 1;
     pub const StakingCurrency: CurrencyId = KSM;
-    pub const LiquidCurrency: CurrencyId = xKSM;
+    pub const LiquidCurrency: CurrencyId = XKSM;
 }
 pub struct Decimal;
 #[allow(non_upper_case_globals)]
 impl DecimalProvider for Decimal {
     fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
         match *asset_id {
-            DOT | xDOT => Some(10),
-            KSM | xKSM => Some(12),
+            DOT | XDOT => Some(10),
+            KSM | XKSM => Some(12),
             _ => None,
         }
     }
@@ -122,36 +116,37 @@ impl LiquidStakingCurrenciesProvider<CurrencyId> for LiquidStaking {
         Some(KSM)
     }
     fn get_liquid_currency() -> Option<CurrencyId> {
-        Some(xKSM)
+        Some(XKSM)
     }
 }
 
-impl Config for Runtime {
+impl crate::Config for Test {
     type Event = Event;
     type Source = MockDataProvider;
     type FeederOrigin = EnsureSignedBy<One, AccountId>;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
     type LiquidStakingExchangeRateProvider = LiquidStakingExchangeRateProvider;
     type Decimal = Decimal;
+    type WeightInfo = ();
 }
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
-type Block = frame_system::mocking::MockBlock<Runtime>;
+type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
+type Block = frame_system::mocking::MockBlock<Test>;
 
 construct_runtime!(
-    pub enum Runtime where
+    pub enum Test where
         Block = Block,
         NodeBlock = Block,
         UncheckedExtrinsic = UncheckedExtrinsic
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-        Prices: prices::{Pallet, Storage, Call, Event<T>},
+        Prices: crate::{Pallet, Storage, Call, Event<T>},
     }
 );
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
     let t = frame_system::GenesisConfig::default()
-        .build_storage::<Runtime>()
+        .build_storage::<Test>()
         .unwrap();
 
     t.into()

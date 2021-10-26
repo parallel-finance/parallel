@@ -513,6 +513,7 @@ impl pallet_membership::Config<ValidatorFeedersMembershipInstance> for Runtime {
 impl pallet_nominee_election::Config for Runtime {
     type Event = Event;
     type MaxValidators = MaxValidators;
+    type WeightInfo = pallet_nominee_election::weights::SubstrateWeight<Runtime>;
     type Members = ValidatorFeedersMembership;
 }
 
@@ -1003,6 +1004,7 @@ impl pallet_prices::Config for Runtime {
     type LiquidStakingExchangeRateProvider = LiquidStaking;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
     type Decimal = Decimal;
+    type WeightInfo = pallet_prices::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
