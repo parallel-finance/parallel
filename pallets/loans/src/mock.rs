@@ -181,6 +181,7 @@ impl pallet_prices::Config for Test {
     type LiquidStakingExchangeRateProvider = LiquidStaking;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
     type Decimal = Decimal;
+    type WeightInfo = ();
 }
 
 pub struct MockPriceFeeder;

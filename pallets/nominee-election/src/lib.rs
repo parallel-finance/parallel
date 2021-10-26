@@ -49,6 +49,8 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+pub mod weights;
+
 /// Info of the validator to be elected
 #[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, Default, TypeInfo)]
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
@@ -66,6 +68,7 @@ pub struct ValidatorInfo<AccountId> {
 pub mod pallet {
 
     use super::*;
+    use weights::WeightInfo;
 
     type ValidatorSet<T> = BoundedVec<
         ValidatorInfo<<T as frame_system::Config>::AccountId>,
@@ -82,6 +85,9 @@ pub mod pallet {
 
         /// Approved accouts which can set validators
         type Members: SortedMembers<Self::AccountId>;
+
+        /// Weight information
+        type WeightInfo: WeightInfo;
     }
 
     /// Validators selected by off-chain client
@@ -117,7 +123,7 @@ pub mod pallet {
         /// Set selected validators
         ///
         /// If the validators passed are empty, return an error
-        #[pallet::weight(1000)]
+        #[pallet::weight(<T as Config>::WeightInfo::set_validators())]
         #[transactional]
         pub fn set_validators(
             origin: OriginFor<T>,

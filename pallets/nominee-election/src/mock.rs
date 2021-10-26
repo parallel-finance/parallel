@@ -36,7 +36,7 @@ parameter_types! {
     pub const BlockHashCount: u64 = 250;
 }
 
-impl frame_system::Config for Runtime {
+impl frame_system::Config for Test {
     type Origin = Origin;
     type Index = u64;
     type BlockNumber = BlockNumber;
@@ -76,17 +76,18 @@ impl SortedMembers<AccountId> for Six {
     }
 }
 
-impl Config for Runtime {
+impl Config for Test {
     type Event = Event;
     type MaxValidators = MaxValidators;
+    type WeightInfo = pallet_nominee_election::weights::SubstrateWeight<Test>;
     type Members = Six;
 }
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
-type Block = frame_system::mocking::MockBlock<Runtime>;
+type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
+type Block = frame_system::mocking::MockBlock<Test>;
 
 construct_runtime!(
-    pub enum Runtime where
+    pub enum Test where
         Block = Block,
         NodeBlock = Block,
         UncheckedExtrinsic = UncheckedExtrinsic
@@ -112,7 +113,7 @@ pub const MOCK_VALIDATOR_FOUR: ValidatorInfo<AccountId> = ValidatorInfo {
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
     let t = frame_system::GenesisConfig::default()
-        .build_storage::<Runtime>()
+        .build_storage::<Test>()
         .unwrap();
 
     t.into()
