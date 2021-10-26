@@ -22,7 +22,7 @@
 //! EXECUTION: Some(Wasm), WASM-EXECUTION: Compiled, CHAIN: Some("vanilla-dev"), DB CACHE: 128
 
 // Executed Command:
-// target/release/parallel
+// ./target/release/parallel
 // benchmark
 // --chain=vanilla-dev
 // --execution=wasm
@@ -69,82 +69,82 @@ pub trait WeightInfo {
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
     fn add_market() -> Weight {
-        (65_000_000 as Weight)
+        (63_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(3 as Weight))
             .saturating_add(T::DbWeight::get().writes(4 as Weight))
     }
     fn activate_market() -> Weight {
-        (42_000_000 as Weight)
+        (40_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(1 as Weight))
             .saturating_add(T::DbWeight::get().writes(1 as Weight))
     }
     fn update_rate_model() -> Weight {
-        (42_000_000 as Weight)
+        (36_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(1 as Weight))
             .saturating_add(T::DbWeight::get().writes(1 as Weight))
     }
     fn update_market() -> Weight {
-        (37_000_000 as Weight)
+        (34_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(1 as Weight))
             .saturating_add(T::DbWeight::get().writes(1 as Weight))
     }
     fn force_update_market() -> Weight {
-        (38_000_000 as Weight)
+        (34_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(1 as Weight))
             .saturating_add(T::DbWeight::get().writes(1 as Weight))
     }
     fn mint() -> Weight {
-        (182_000_000 as Weight)
+        (179_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(10 as Weight))
             .saturating_add(T::DbWeight::get().writes(7 as Weight))
     }
     fn borrow() -> Weight {
-        (297_000_000 as Weight)
+        (257_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(11 as Weight))
             .saturating_add(T::DbWeight::get().writes(5 as Weight))
     }
     fn redeem() -> Weight {
-        (192_000_000 as Weight)
+        (169_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(9 as Weight))
             .saturating_add(T::DbWeight::get().writes(6 as Weight))
     }
     fn redeem_all() -> Weight {
-        (191_000_000 as Weight)
+        (183_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(10 as Weight))
             .saturating_add(T::DbWeight::get().writes(7 as Weight))
     }
     fn repay_borrow() -> Weight {
-        (150_000_000 as Weight)
+        (146_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(8 as Weight))
             .saturating_add(T::DbWeight::get().writes(5 as Weight))
     }
     fn repay_borrow_all() -> Weight {
-        (153_000_000 as Weight)
+        (150_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(8 as Weight))
             .saturating_add(T::DbWeight::get().writes(5 as Weight))
     }
     fn collateral_asset() -> Weight {
-        (70_000_000 as Weight)
+        (59_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(3 as Weight))
             .saturating_add(T::DbWeight::get().writes(1 as Weight))
     }
     fn liquidate_borrow() -> Weight {
-        (519_000_000 as Weight)
+        (471_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(16 as Weight))
             .saturating_add(T::DbWeight::get().writes(7 as Weight))
     }
     fn add_reserves() -> Weight {
-        (166_000_000 as Weight)
+        (140_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(7 as Weight))
             .saturating_add(T::DbWeight::get().writes(5 as Weight))
     }
     fn reduce_reserves() -> Weight {
-        (145_000_000 as Weight)
+        (121_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(6 as Weight))
             .saturating_add(T::DbWeight::get().writes(4 as Weight))
     }
     fn accrue_interest() -> Weight {
-        (102_000_000 as Weight)
+        (100_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(7 as Weight))
             .saturating_add(T::DbWeight::get().writes(7 as Weight))
     }
@@ -153,82 +153,82 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 // For backwards compatibility and tests
 impl WeightInfo for () {
     fn add_market() -> Weight {
-        (65_000_000 as Weight)
+        (63_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(3 as Weight))
             .saturating_add(RocksDbWeight::get().writes(4 as Weight))
     }
     fn activate_market() -> Weight {
-        (42_000_000 as Weight)
+        (40_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(1 as Weight))
             .saturating_add(RocksDbWeight::get().writes(1 as Weight))
     }
     fn update_rate_model() -> Weight {
-        (42_000_000 as Weight)
+        (36_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(1 as Weight))
             .saturating_add(RocksDbWeight::get().writes(1 as Weight))
     }
     fn update_market() -> Weight {
-        (37_000_000 as Weight)
+        (34_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(1 as Weight))
             .saturating_add(RocksDbWeight::get().writes(1 as Weight))
     }
     fn force_update_market() -> Weight {
-        (38_000_000 as Weight)
+        (34_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(1 as Weight))
             .saturating_add(RocksDbWeight::get().writes(1 as Weight))
     }
     fn mint() -> Weight {
-        (182_000_000 as Weight)
+        (179_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(10 as Weight))
             .saturating_add(RocksDbWeight::get().writes(7 as Weight))
     }
     fn borrow() -> Weight {
-        (297_000_000 as Weight)
+        (257_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(11 as Weight))
             .saturating_add(RocksDbWeight::get().writes(5 as Weight))
     }
     fn redeem() -> Weight {
-        (192_000_000 as Weight)
+        (169_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(9 as Weight))
             .saturating_add(RocksDbWeight::get().writes(6 as Weight))
     }
     fn redeem_all() -> Weight {
-        (191_000_000 as Weight)
+        (183_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(10 as Weight))
             .saturating_add(RocksDbWeight::get().writes(7 as Weight))
     }
     fn repay_borrow() -> Weight {
-        (150_000_000 as Weight)
+        (146_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(8 as Weight))
             .saturating_add(RocksDbWeight::get().writes(5 as Weight))
     }
     fn repay_borrow_all() -> Weight {
-        (153_000_000 as Weight)
+        (150_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(8 as Weight))
             .saturating_add(RocksDbWeight::get().writes(5 as Weight))
     }
     fn collateral_asset() -> Weight {
-        (70_000_000 as Weight)
+        (59_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(3 as Weight))
             .saturating_add(RocksDbWeight::get().writes(1 as Weight))
     }
     fn liquidate_borrow() -> Weight {
-        (519_000_000 as Weight)
+        (471_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(16 as Weight))
             .saturating_add(RocksDbWeight::get().writes(7 as Weight))
     }
     fn add_reserves() -> Weight {
-        (166_000_000 as Weight)
+        (140_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(7 as Weight))
             .saturating_add(RocksDbWeight::get().writes(5 as Weight))
     }
     fn reduce_reserves() -> Weight {
-        (145_000_000 as Weight)
+        (121_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(6 as Weight))
             .saturating_add(RocksDbWeight::get().writes(4 as Weight))
     }
     fn accrue_interest() -> Weight {
-        (102_000_000 as Weight)
+        (100_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(7 as Weight))
             .saturating_add(RocksDbWeight::get().writes(7 as Weight))
     }

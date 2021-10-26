@@ -27,10 +27,9 @@ use frame_system::pallet_prelude::*;
 use orml_oracle::DataProviderExtended;
 use orml_traits::DataProvider;
 use primitives::*;
-use scale_info::build::FieldBuilder;
 use sp_runtime::{
     traits::{CheckedDiv, CheckedMul},
-    FixedI128, FixedU128,
+    FixedU128,
 };
 use sp_std::vec::Vec;
 
@@ -130,14 +129,16 @@ impl<T: Config> Pallet<T> {
     // get emergency price, the timestamp is zero
     fn get_emergency_price(asset_id: &CurrencyId) -> Option<PriceDetail> {
         Self::emergency_price(asset_id).and_then(|p| {
-            log::info!("1111 {:#?} {:#?}", asset_id, p);
-            let decimal = T::Decimal::get_decimal(asset_id)?;
-            log::info!("2222 {:#?}", decimal);
-            let mantissa = 10u128.checked_pow(decimal as u32)?;
-            log::info!("3333 {:#?}", mantissa);
+            let mantissa = Self::get_asset_mantissa(asset_id)?;
             p.checked_div(&FixedU128::from_inner(mantissa))
                 .map(|price| (price, 0))
         })
+    }
+
+    fn get_asset_mantissa(asset_id: &CurrencyId) -> Option<u128> {
+        let decimal = T::Decimal::get_decimal(asset_id)?;
+        log::trace!("asset id {:#?}, decimal {:#?}", asset_id, decimal);
+        10u128.checked_pow(decimal as u32)
     }
 }
 

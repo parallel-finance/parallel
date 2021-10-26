@@ -444,7 +444,7 @@ pub mod pallet {
         ///
         /// - `asset_id`: Market related currency
         /// - `rate_model`: The new rate model to be updated
-        #[pallet::weight(T::WeightInfo::update_market())] // TODO: update_rate_model
+        #[pallet::weight(T::WeightInfo::update_rate_model())]
         #[transactional]
         pub fn update_rate_model(
             origin: OriginFor<T>,
@@ -464,8 +464,12 @@ pub mod pallet {
 
         /// Updates a stored market. Returns `Err` if the market currency does not exist.
         ///
-        /// - `asset_id`: Market related currency
-        /// - `market`: The new market parameters
+        /// - `asset_id`: market related currency
+        /// - `collateral_factor`: the collateral utilization ratio
+        /// - `reserve_factor`: fraction of interest currently set aside for reserves
+        /// - `close_factor`: maximum liquidation ratio at one time
+        /// - `liquidate_incentive`: liquidation incentive ratio
+        /// - `cap`: market capacity
         #[pallet::weight(T::WeightInfo::update_market())]
         #[transactional]
         pub fn update_market(
@@ -499,9 +503,9 @@ pub mod pallet {
         /// Force updates a stored market. Returns `Err` if the market currency
         /// does not exist.
         ///
-        /// - `asset_id`: Market related currency
-        /// - `market`: The new market parameters
-        #[pallet::weight(T::WeightInfo::update_market())] // TODO: force_update_market
+        /// - `asset_id`: market related currency
+        /// - `market`: the new market parameters
+        #[pallet::weight(T::WeightInfo::force_update_market())]
         #[transactional]
         pub fn force_update_market(
             origin: OriginFor<T>,
@@ -1109,14 +1113,16 @@ impl<T: Config> Pallet<T> {
         repay_amount: BalanceOf<T>,
         market: &Market<BalanceOf<T>>,
     ) -> DispatchResult {
-        log::info!("1234,{:#?},{:#?}", liquidate_asset_id, repay_amount);
-        let (l, shortfall) = Self::get_account_liquidity(borrower)?;
-        log::info!("5678,{:#?},{:#?}", l, shortfall);
+        log::trace!(
+            "liquidate asset id {:#?}, repay amount {:#?}",
+            liquidate_asset_id,
+            repay_amount
+        );
+        let (_, shortfall) = Self::get_account_liquidity(borrower)?;
         if shortfall.is_zero() {
             return Err(Error::<T>::InsufficientShortfall.into());
         }
 
-        log::info!("9999,{:#?},{:#?}", l, shortfall);
         // The liquidator may not repay more than 50%(close_factor) of the borrower's borrow balance.
         let account_borrows = Self::current_borrow_balance(borrower, liquidate_asset_id)?;
         if market.close_factor.mul_ceil(account_borrows) < repay_amount {
