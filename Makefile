@@ -1,5 +1,6 @@
 PARA_ID        							:= 2085
 CHAIN          							:= vanilla-dev
+RUNTIME        							:= vanilla-runtime
 BLOCK_AT       							:= 0x0000000000000000000000000000000000000000000000000000000000000000
 URL            							:= ws://localhost:9947
 KEYSTORE_PATH  							:= keystore
@@ -99,7 +100,7 @@ logs:
 
 .PHONY: wasm
 wasm:
-	./scripts/srtool-build.sh
+	PACKAGE=$(RUNTIME) ./scripts/srtool-build.sh
 
 .PHONY: spec
 spec:

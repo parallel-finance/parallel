@@ -7,7 +7,7 @@ cd $DIR/../
 set -xe
 
 RUSTC_VERSION=1.53.0;
-PACKAGE=${PACKAGE:-heiko-runtime};
+PACKAGE=${PACKAGE:-vanilla-runtime};
 BUILD_OPTS=$BUILD_OPTS;
 
 docker run --rm -it \
