@@ -63,6 +63,7 @@ fn collateral_value_must_be_greater_than_liquidation_value() {
         MockPriceFeeder::set_price(KSM, Rate::from_float(2000.0));
         Loans::mutate_market(KSM, |market| {
             market.liquidate_incentive = Rate::from_float(200.0);
+            market.clone()
         })
         .unwrap();
         assert_noop!(
@@ -122,6 +123,7 @@ fn liquidator_cannot_take_inactive_market_currency() {
         MockPriceFeeder::set_price(KSM, 2.into());
         assert_ok!(Loans::mutate_market(DOT, |stored_market| {
             stored_market.state = MarketState::Supervision;
+            stored_market.clone()
         }));
         assert_noop!(
             Loans::liquidate_borrow(Origin::signed(BOB), ALICE, KSM, dollar(50), DOT),

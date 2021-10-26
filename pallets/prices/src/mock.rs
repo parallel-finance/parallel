@@ -17,16 +17,16 @@
 use super::*;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, traits::Everything};
 use frame_system::EnsureSignedBy;
+pub use primitives::tokens::{DOT, KSM, XDOT, XKSM};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, FixedPointNumber};
 
 pub type AccountId = u128;
 pub type BlockNumber = u64;
 
-pub const DOT: CurrencyId = 10;
-pub const XDOT: CurrencyId = 11;
-pub const KSM: CurrencyId = 20;
-pub const XKSM: CurrencyId = 21;
+mod prices {
+    pub use super::super::*;
+}
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
@@ -95,9 +95,8 @@ impl ExchangeRateProvider for LiquidStakingExchangeRateProvider {
 
 ord_parameter_types! {
     pub const One: AccountId = 1;
-    pub const StakingCurrency: CurrencyId = KSM;
-    pub const LiquidCurrency: CurrencyId = XKSM;
 }
+
 pub struct Decimal;
 #[allow(non_upper_case_globals)]
 impl DecimalProvider for Decimal {

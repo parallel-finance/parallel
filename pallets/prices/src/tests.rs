@@ -43,10 +43,23 @@ fn set_price_work() {
             Some((Price::from_inner(10_000_000_000 * PRICE_ONE), 0))
         );
         // set DOT price
-        EmergencyPrice::<Test>::insert(DOT, Price::saturating_from_integer(99));
+        assert_ok!(Prices::set_price(
+            Origin::signed(1),
+            DOT,
+            Price::saturating_from_integer(99)
+        ));
         assert_eq!(
             Prices::get_price(&DOT),
             Some((Price::from_inner(9_900_000_000 * PRICE_ONE), 0))
+        );
+        assert_ok!(Prices::set_price(
+            Origin::signed(1),
+            KSM,
+            Price::saturating_from_integer(1)
+        ));
+        assert_eq!(
+            Prices::get_emergency_price(&KSM),
+            Some((1_000_000.into(), 0))
         );
     });
 }
