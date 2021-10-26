@@ -36,7 +36,7 @@ async function main() {
   let call = []
 
   for (const { name, symbol, assetId, decimal, marketOption, balances } of config.assets) {
-    console.log(`Create ${name}(${symbol}) asset.`)
+    console.log(`Create ${name}(${symbol}) asset, ptokenId is ${marketOption.ptokenId}`)
     call.push(
       api.tx.sudo.sudo(api.tx.assets.forceCreate(assetId, signer.address, true, 1)),
       api.tx.sudo.sudo(api.tx.assets.forceSetMetadata(assetId, name, symbol, decimal, false)),
