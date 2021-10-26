@@ -23,7 +23,7 @@ const PRICE_ONE: u128 = 1_000_000_000_000_000_000;
 
 #[test]
 fn get_price_from_oracle() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // currency exist
         assert_eq!(
             Prices::get_price(&DOT),
@@ -37,7 +37,7 @@ fn get_price_from_oracle() {
 
 #[test]
 fn set_price_work() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         assert_eq!(
             Prices::get_price(&DOT),
             Some((Price::from_inner(10_000_000_000 * PRICE_ONE), 0))
@@ -53,7 +53,7 @@ fn set_price_work() {
 
 #[test]
 fn reset_price_work() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         assert_eq!(
             Prices::get_price(&DOT),
             Some((Price::from_inner(10_000_000_000 * PRICE_ONE), 0))
@@ -76,7 +76,7 @@ fn reset_price_work() {
 
 #[test]
 fn set_price_call_work() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         System::set_block_number(1);
 
         // set emergency price from 100 to 90
@@ -115,7 +115,7 @@ fn set_price_call_work() {
 
 #[test]
 fn reset_price_call_work() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         System::set_block_number(1);
 
         // set emergency price from 100 to 90
@@ -154,7 +154,7 @@ fn reset_price_call_work() {
 
 #[test]
 fn get_liquid_price_work() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         assert_eq!(
             Prices::get_price(&KSM),
             Some((Price::from_inner(500 * 1_000_000 * PRICE_ONE), 0))

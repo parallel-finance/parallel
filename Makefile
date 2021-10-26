@@ -115,8 +115,8 @@ image:
 
 .PHONY: keystore
 keystore:
-	docker run --rm -v "$(PWD):/app" parallelfinance/parallel:latest key insert -d /app --keystore-path /app/$(KEYSTORE_PATH) --suri "$(SURI)" --key-type aura
-	docker run --rm -v "$(PWD):/app" parallelfinance/parallel:latest key insert -d /app --keystore-path /app/$(KEYSTORE_PATH) --suri "$(SURI)" --key-type gran
+	cargo run --bin parallel key insert -d . --keystore-path $(KEYSTORE_PATH) --suri "$(SURI)" --key-type aura
+	cargo run --bin parallel key insert -d . --keystore-path $(KEYSTORE_PATH) --suri "$(SURI)" --key-type gran
 
 .PHONY: snapshot
 snapshot:

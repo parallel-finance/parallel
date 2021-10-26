@@ -512,7 +512,6 @@ impl pallet_membership::Config<ValidatorFeedersMembershipInstance> for Runtime {
 
 impl pallet_nominee_election::Config for Runtime {
     type Event = Event;
-    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type MaxValidators = MaxValidators;
     type Members = ValidatorFeedersMembership;
 }

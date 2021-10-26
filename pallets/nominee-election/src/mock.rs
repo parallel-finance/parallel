@@ -21,7 +21,7 @@ use frame_support::{
     construct_runtime, ord_parameter_types, parameter_types,
     traits::{Everything, SortedMembers},
 };
-use frame_system::EnsureSignedBy;
+
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 
@@ -78,7 +78,6 @@ impl SortedMembers<AccountId> for Six {
 
 impl Config for Runtime {
     type Event = Event;
-    type UpdateOrigin = EnsureSignedBy<One, AccountId>;
     type MaxValidators = MaxValidators;
     type Members = Six;
 }
@@ -97,14 +96,6 @@ construct_runtime!(
     }
 );
 
-pub struct ExtBuilder;
-
-impl Default for ExtBuilder {
-    fn default() -> Self {
-        ExtBuilder
-    }
-}
-
 pub const MOCK_VALIDATOR_THREE: ValidatorInfo<AccountId> = ValidatorInfo {
     name: None,
     address: 3,
@@ -119,12 +110,10 @@ pub const MOCK_VALIDATOR_FOUR: ValidatorInfo<AccountId> = ValidatorInfo {
     score: 99,
 };
 
-impl ExtBuilder {
-    pub fn build(self) -> sp_io::TestExternalities {
-        let t = frame_system::GenesisConfig::default()
-            .build_storage::<Runtime>()
-            .unwrap();
+pub fn new_test_ext() -> sp_io::TestExternalities {
+    let t = frame_system::GenesisConfig::default()
+        .build_storage::<Runtime>()
+        .unwrap();
 
-        t.into()
-    }
+    t.into()
 }
