@@ -50,8 +50,8 @@ cumulus-pallet-xcmp-queue       = { git = 'https://github.com/paritytech/cumulus
 cumulus-primitives-core         = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.12' }
 parachain-info                  = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.12' }
 
-orml-xcm-support = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
-orml-xtokens     = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
+orml-xcm-support = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'update-polkadot-v0.9.12' }
+orml-xtokens     = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'update-polkadot-v0.9.12' }
 
 [features]
 default            = ['std']
