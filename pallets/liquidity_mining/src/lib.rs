@@ -29,6 +29,7 @@ use frame_support::{
     },
     transactional, Blake2_128Concat, PalletId,
 };
+use frame_system::ensure_signed;
 use frame_system::pallet_prelude::OriginFor;
 pub use pallet::*;
 use primitives::{Balance, CurrencyId};
@@ -77,6 +78,8 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T, I = ()> {
+        /// Pool does not exist
+        PoolDoesNotExist,
         /// Per block and rewards are not same size
         PerBlockAndRewardsAreNotSameSize,
         /// Pool associacted with asset already exists
@@ -85,6 +88,8 @@ pub mod pallet {
         NotANewlyCreatedAsset,
         /// Not a valid duration
         NotAValidDuration,
+        /// Not a valid amount
+        NotAValidAmount,
     }
 
     #[pallet::event]
@@ -93,6 +98,12 @@ pub mod pallet {
         /// Add new pool
         /// [asset_id]
         PoolAdded(AssetIdOf<T, I>),
+		/// Deposited Assets in pool
+		/// [sender, asset_id]
+		DepositedAssets(T::AccountId, AssetIdOf<T, I>),
+		/// Withdrew Assets from pool
+		/// [sender, asset_id]
+		WithdrewAssets(T::AccountId, AssetIdOf<T, I>),
     }
 
     #[pallet::hooks]
@@ -210,6 +221,56 @@ pub mod pallet {
             Self::deposit_event(Event::<T, I>::PoolAdded(asset));
             Ok(().into())
         }
+
+        /// Depositing Assets in a Pool
+        #[pallet::weight(10000)]
+        #[transactional]
+        pub fn deposit(
+            origin: OriginFor<T>,
+            asset: AssetIdOf<T, I>,
+            amount: BalanceOf<T, I>,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            ensure!(amount == Zero::zero(), Error::<T, I>::NotAValidAmount);
+
+            let asset_pool_account = Self::pool_account_id(asset);
+            Pools::<T, I>::try_mutate(asset, |liquidity_pool| -> DispatchResult {
+                let pool = liquidity_pool
+                    .take()
+                    .ok_or(Error::<T, I>::PoolDoesNotExist)?;
+
+                let current_block_number = <frame_system::Pallet<T>>::block_number();
+                ensure!(
+                    current_block_number >= pool.start && current_block_number <= pool.end,
+                    Error::<T, I>::NotAValidDuration
+                );
+
+                T::Assets::transfer(asset, &who, &asset_pool_account, amount, true)?;
+
+                T::Assets::mint_into(pool.shares, &who, amount)?;
+
+				Self::deposit_event(Event::<T, I>::DepositedAssets(who, asset));
+                Ok(())
+            })
+        }
+
+		/// Claiming Rewards or Withdrawing Assets from a Pool
+		#[pallet::weight(10000)]
+		#[transactional]
+		pub fn withdraw(
+			origin: OriginFor<T>,
+			asset: AssetIdOf<T, I>,
+			amount: BalanceOf<T, I>,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+			ensure!(amount == Zero::zero(), Error::<T, I>::NotAValidAmount);
+
+			let asset_pool_account = Self::pool_account_id(asset);
+
+			Self::deposit_event(Event::<T, I>::WithdrewAssets(who, asset));
+			Ok(().into())
+		}
+
     }
 }
 
