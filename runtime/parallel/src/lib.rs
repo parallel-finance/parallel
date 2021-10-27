@@ -25,7 +25,7 @@ mod weights;
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
     dispatch::Weight,
-    traits::{fungibles::Mutate, Contains, Everything, Nothing},
+    traits::{fungibles::{Mutate, InspectMetadata}, Contains, Everything, Nothing},
     PalletId,
 };
 
