@@ -14,16 +14,20 @@
 
 use crate::CurrencyId;
 
+// Native Token
 pub const HKO: CurrencyId = 0;
 pub const PARA: CurrencyId = 1;
 
+// Polkadot ecosystem
 pub const KSM: CurrencyId = 100;
 pub const DOT: CurrencyId = 101;
 pub const USDT: CurrencyId = 102;
 
+// Liquid Staking Derivative
 pub const XKSM: CurrencyId = 1000;
 pub const XDOT: CurrencyId = 1001;
 
+// Money Market Derivative
 pub const PHKO: CurrencyId = 2000;
 pub const PPARA: CurrencyId = 2001;
 pub const PKSM: CurrencyId = 2100;
@@ -34,21 +38,35 @@ pub const PXKSM: CurrencyId = 3000;
 pub const PXDOT: CurrencyId = 3001;
 
 // Token Registration Information
-// +──────────+────────+────────────────────+
-// | Network  | Token  | Register in block  |
-// +──────────+────────+────────────────────+
-// | Kusama   | HKO    | Native             |
-// | Kusama   | PARA   | N/A                |
-// | Kusama   | KSM    | N/A                |
-// | Kusama   | XKSM   | N/A                |
-// | Kusama   | DOT    | N/A                |
-// | Kusama   | XDOT   | N/A                |
-// | Kusama   | USDT   | N/A                |
-// | Pokadot  | HKO    | N/A                |
-// | Pokadot  | PARA   | Native             |
-// | Pokadot  | KSM    | N/A                |
-// | Pokadot  | XKSM   | N/A                |
-// | Pokadot  | DOT    | N/A                |
-// | Pokadot  | XDOT   | N/A                |
-// | Pokadot  | USDT   | N/A                |
-// +──────────+────────+────────────────────+
+// +───────────+──────────────+────────────────────+
+// | Network   | Token        | Register in block  |
+// +───────────+──────────────+────────────────────+
+// | Heiko     | HKO          | Native             |
+// | Heiko     | PARA         | N/A                |
+// | Heiko     | KSM          | N/A                |
+// | Heiko     | DOT          | N/A                |
+// | Heiko     | USDT         | N/A                |
+// | Heiko     | XKSM         | N/A                |
+// | Heiko     | XDOT         | N/A                |
+// | Heiko     | PHKO         | N/A                |
+// | Heiko     | PPARA        | N/A                |
+// | Heiko     | PKSM         | N/A                |
+// | Heiko     | PDOT         | N/A                |
+// | Heiko     | PUSDT        | N/A                |
+// | Heiko     | PXKSM        | N/A                |
+// | Heiko     | PXDOT        | N/A                |
+// | Parallel  | HKO          | N/A                |
+// | Parallel  | PARA         | N/A                |
+// | Parallel  | KSM          | N/A                |
+// | Parallel  | DOT          | N/A                |
+// | Parallel  | USDT         | N/A                |
+// | Parallel  | XKSM         | N/A                |
+// | Parallel  | XDOT         | N/A                |
+// | Parallel  | PHKO         | N/A                |
+// | Parallel  | PPARA        | N/A                |
+// | Parallel  | PKSM         | N/A                |
+// | Parallel  | PDOT         | N/A                |
+// | Parallel  | PUSDT        | N/A                |
+// | Parallel  | PXKSM        | N/A                |
+// | Parallel  | PXDOT        | N/A                |
+// +──────────+───────────────+────────────────────+
