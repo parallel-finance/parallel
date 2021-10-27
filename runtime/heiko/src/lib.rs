@@ -62,7 +62,7 @@ use polkadot_parachain::primitives::Sibling;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::HEIKO_PREFIX,
-    tokens::{HKO, KSM, USDT, XKSM},
+    tokens::{HKO, KSM, XKSM},
     Index, *,
 };
 use scale_info::TypeInfo;

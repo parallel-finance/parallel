@@ -44,7 +44,7 @@ use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::HEIKO_PREFIX,
-    tokens::{HKO, KSM, USDT, XKSM},
+    tokens::{HKO, KSM, XKSM},
     Index, *,
 };
 use sp_api::impl_runtime_apis;

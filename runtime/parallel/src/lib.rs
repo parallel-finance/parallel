@@ -62,7 +62,7 @@ use polkadot_parachain::primitives::Sibling;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::PARALLEL_PREFIX,
-    tokens::{DOT, PARA, USDT, XDOT},
+    tokens::{DOT, PARA, XDOT},
     Index, *,
 };
 
