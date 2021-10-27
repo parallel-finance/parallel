@@ -23,7 +23,6 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 mod weights;
 
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_benchmarking::Zero;
 use frame_support::{
     dispatch::Weight,
     traits::{fungibles::{Mutate, InspectMetadata}, Contains, Everything, InstanceFilter, Nothing, OnRuntimeUpgrade},
@@ -40,7 +39,7 @@ use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{
         self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT,
-        BlockNumberProvider, Convert,
+        BlockNumberProvider, Convert, Zero,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Permill, RuntimeDebug,
