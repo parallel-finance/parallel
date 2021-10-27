@@ -1,5 +1,9 @@
 # CHANGE LOG
 
+## 2021.10.31
+
+- Bump to polkadot-v0.9.12
+
 ## 2021.10.17
 
 - Support building staging, QA docker (#732)

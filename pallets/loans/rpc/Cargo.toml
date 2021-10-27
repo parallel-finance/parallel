@@ -11,9 +11,9 @@ jsonrpc-core-client = '18.0.0'
 jsonrpc-derive      = '18.0.0'
 primitives          = { package = 'parallel-primitives', path = '../../../primitives', default-features = false }
 serde               = { version = '1.0.124', features = ['derive'] }
-sp-api              = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.11' }
-sp-blockchain       = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.11' }
-sp-core             = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.11' }
-sp-runtime          = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.11' }
+sp-api              = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.12' }
+sp-blockchain       = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.12' }
+sp-core             = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.12' }
+sp-runtime          = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.12' }
 
 pallet-loans-rpc-runtime-api = { path = 'runtime-api', default-features = false }
