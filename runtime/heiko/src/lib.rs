@@ -23,9 +23,10 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 mod weights;
 
 use codec::{Decode, Encode, MaxEncodedLen};
+use frame_benchmarking::Zero;
 use frame_support::{
     dispatch::Weight,
-    traits::{fungibles::Mutate, Contains, Everything, InstanceFilter, Nothing, OnRuntimeUpgrade},
+    traits::{fungibles::{Mutate, InspectMetadata}, Contains, Everything, InstanceFilter, Nothing, OnRuntimeUpgrade},
     PalletId,
 };
 use orml_traits::{DataProvider, DataProviderExtended};
@@ -984,13 +985,11 @@ impl DataProviderExtended<CurrencyId, TimeStampedPrice> for AggregatedDataProvid
 pub struct Decimal;
 impl DecimalProvider for Decimal {
     fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
-        // TODO should find a way, get decimal from pallet_assets
-        // pallet_assets::Metadata::<Runtime>::get(asset_id).decimals
-        match *asset_id {
-            KSM | XKSM => Some(12),
-            HKO => Some(12),
-            USDT => Some(6),
-            _ => None,
+        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(asset_id);
+        if decimal.is_zero(){
+            None
+        }else {
+            Some(decimal)
         }
     }
 }

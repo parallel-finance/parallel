@@ -956,12 +956,11 @@ impl DataProviderExtended<CurrencyId, TimeStampedPrice> for AggregatedDataProvid
 pub struct Decimal;
 impl DecimalProvider for Decimal {
     fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
-        // pallet_assets::Metadata::<Runtime>::get(asset_id).decimals
-        match *asset_id {
-            KSM | XKSM => Some(12),
-            HKO => Some(12),
-            USDT => Some(6),
-            _ => None,
+        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(asset_id);
+        if decimal.is_zero(){
+            None
+        }else {
+            Some(decimal)
         }
     }
 }
