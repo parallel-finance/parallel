@@ -1292,7 +1292,7 @@ impl pallet_router::Config for Runtime {
 }
 
 parameter_types! {
-    pub const NativeCurrencyId: CurrencyId = tokens::PARA;
+    pub const NativeCurrencyId: CurrencyId = tokens::HKO;
 }
 
 impl pallet_currency_adapter::Config for Runtime {
