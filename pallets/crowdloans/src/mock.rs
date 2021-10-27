@@ -2,7 +2,8 @@ use cumulus_primitives_core::ParaId;
 use frame_support::traits::Nothing;
 use frame_support::{
     construct_runtime,
-    dispatch::Weight, parameter_types, sp_io,
+    dispatch::Weight,
+    parameter_types, sp_io,
     traits::{Everything, GenesisBuild, SortedMembers},
     weights::constants::WEIGHT_PER_SECOND,
     PalletId,
@@ -328,13 +329,13 @@ pub type PariticipateOrigin =
 
 pub type CloseOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
-    
+
 pub type AuctionFailedOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
-    
+
 pub type AuctionCompletedOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
-    
+
 pub type SlotExpiredOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
 

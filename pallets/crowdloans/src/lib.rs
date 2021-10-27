@@ -212,7 +212,8 @@ pub mod pallet {
 
                 // 4. mutate our storage to register a new vault
                 // inialize new vault
-                let new_vault = crowdloan_structs::Vault::from((ctoken, currency, contribution_strategy));
+                let new_vault =
+                    crowdloan_structs::Vault::from((ctoken, currency, contribution_strategy));
 
                 // store update
                 *vault = Some(new_vault);
@@ -246,26 +247,23 @@ pub mod pallet {
 
             // 3. Make sure origin has at least amount of vault.currency
             // get amount origin has
-            let origin_currency_amount = T::Assets::balance(vault.relay_currency, &who);
+            let reducible_balance =
+                T::Assets::can_withdraw(vault.relay_currency, &who, amount).into_result()?;
 
-            ensure!(
-                origin_currency_amount >= amount,
-                Error::<T>::InsufficientBalance
-            );
-
-            Self::deposit_event(Event::<T>::Contributed(crowdloan, amount));
+            // emit event
+            Self::deposit_event(Event::<T>::Contributed(crowdloan, reducible_balance));
 
             // 4. Wire amount of vault.currency to the pallet's account id
             T::Assets::transfer(
                 vault.relay_currency,
                 &who,
                 &Self::account_id(),
-                amount,
+                reducible_balance,
                 true,
             )?;
 
             // 5. Create amount of vault.ctoken to origin
-            T::Assets::mint_into(vault.ctoken, &who, amount)?;
+            T::Assets::mint_into(vault.ctoken, &who, reducible_balance)?;
 
             Ok(().into())
         }

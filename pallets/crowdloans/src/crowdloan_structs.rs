@@ -16,10 +16,7 @@
 
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
-use sp_runtime::{
-    traits::{Zero},
-    DispatchError, DispatchResult, RuntimeDebug,
-};
+use sp_runtime::{traits::Zero, DispatchError, DispatchResult, RuntimeDebug};
 use sp_std::marker::PhantomData;
 
 #[derive(Clone, Copy, PartialEq, Decode, Encode, RuntimeDebug, TypeInfo)]
@@ -58,7 +55,6 @@ pub struct Vault<ParaId, CurrencyId, Balance> {
     pub contributed: Balance,
 }
 
-
 /// a default initalization for a vault
 impl<ParaId, CurrencyId: Zero, Balance: Zero> Default for Vault<ParaId, CurrencyId, Balance> {
     fn default() -> Self {
@@ -73,10 +69,20 @@ impl<ParaId, CurrencyId: Zero, Balance: Zero> Default for Vault<ParaId, Currency
 }
 
 /// init default vault with ctoken and currency override
-impl<ParaId, CurrencyId: Zero, Balance: Zero> From<(CurrencyId, CurrencyId, ContributionStrategy<ParaId, CurrencyId, Balance>)>
-    for Vault<ParaId, CurrencyId, Balance>
+impl<ParaId, CurrencyId: Zero, Balance: Zero>
+    From<(
+        CurrencyId,
+        CurrencyId,
+        ContributionStrategy<ParaId, CurrencyId, Balance>,
+    )> for Vault<ParaId, CurrencyId, Balance>
 {
-    fn from(currency_override: (CurrencyId, CurrencyId, ContributionStrategy<ParaId, CurrencyId, Balance>)) -> Self {
+    fn from(
+        currency_override: (
+            CurrencyId,
+            CurrencyId,
+            ContributionStrategy<ParaId, CurrencyId, Balance>,
+        ),
+    ) -> Self {
         Self {
             ctoken: currency_override.0,
             relay_currency: currency_override.1,
