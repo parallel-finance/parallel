@@ -247,23 +247,24 @@ pub mod pallet {
 
             // 3. Make sure origin has at least amount of vault.currency
             // get amount origin has
-            let reducible_balance =
-                T::Assets::can_withdraw(vault.relay_currency, &who, amount).into_result()?;
+            let balance = T::Assets::balance(vault.relay_currency, &who);
+
+            ensure!(balance >= amount, Error::<T>::InsufficientBalance);
 
             // emit event
-            Self::deposit_event(Event::<T>::Contributed(crowdloan, reducible_balance));
+            Self::deposit_event(Event::<T>::Contributed(crowdloan, amount));
 
             // 4. Wire amount of vault.currency to the pallet's account id
             T::Assets::transfer(
                 vault.relay_currency,
                 &who,
                 &Self::account_id(),
-                reducible_balance,
+                amount,
                 true,
             )?;
 
             // 5. Create amount of vault.ctoken to origin
-            T::Assets::mint_into(vault.ctoken, &who, reducible_balance)?;
+            T::Assets::mint_into(vault.ctoken, &who, amount)?;
 
             Ok(().into())
         }

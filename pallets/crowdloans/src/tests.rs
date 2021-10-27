@@ -8,7 +8,6 @@ use primitives::tokens;
 use sp_runtime::traits::Zero;
 use sp_runtime::traits::{One, UniqueSaturatedInto};
 use sp_runtime::MultiAddress::Id;
-use xcm_simulator::TestExt;
 
 #[test]
 fn create_new_vault_should_work() {
@@ -106,12 +105,11 @@ fn contribute_should_work() {
 
 #[test]
 fn participate_should_work() {
-    // execute this test on a specific parachain
-    ParaA::execute_with(|| {
+    new_test_ext().execute_with(|| {
         let crowdloan = ParaId::from(1337);
         let currency = tokens::DOT;
         let ctoken = 10;
-        let amount = 1_000_000;
+        let amount = 100_000;
 
         let contribution_strategy = ContributionStrategy::XCM; //XCM;
 
@@ -148,7 +146,7 @@ fn participate_should_work() {
 
         let dot_bal = Assets::balance(tokens::DOT, ALICE);
 
-        assert_eq!(9999999000000, dot_bal)
+        assert_eq!(999_999_900_000, dot_bal)
     });
 }
 
@@ -276,7 +274,11 @@ fn claim_refund_should_work() {
 
         // check that we're in the right phase
         if let Some(vault) = Crowdloan::vaults(ParaId::from(crowdloan)) {
-            assert_eq!(vault.phase, VaultPhase::Closed)
+            // vault should be in a state we allow
+            assert!(
+                vault.phase == VaultPhase::Failed || vault.phase == VaultPhase::Expired,
+                "Vault in incorrect state"
+            );
         }
     });
 }

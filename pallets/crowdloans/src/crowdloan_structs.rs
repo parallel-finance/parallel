@@ -127,9 +127,9 @@ impl<ParaId: std::fmt::Display, CurrencyId, Balance>
         Ok(())
     }
     fn withdraw(self, _: ParaId, _: CurrencyId) -> Result<(), DispatchError> {
-        todo!()
+        Ok(())
     }
     fn refund(self, _: ParaId, _: CurrencyId) -> Result<(), DispatchError> {
-        todo!()
+        Ok(())
     }
 }
