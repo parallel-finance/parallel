@@ -1,4 +1,5 @@
 use cumulus_primitives_core::ParaId;
+use polkadot_runtime_common::{auctions, crowdloan, paras_registrar};
 use frame_support::traits::Nothing;
 use frame_support::{
     construct_runtime,
@@ -353,6 +354,7 @@ impl crate::Config for Test {
     type AuctionFailedOrigin = AuctionFailedOrigin;
     type AuctionCompletedOrigin = AuctionCompletedOrigin;
     type SlotExpiredOrigin = SlotExpiredOrigin;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation;
 }
 
 parameter_types! {
@@ -457,11 +459,14 @@ decl_test_network! {
     }
 }
 
-// pub type WestendRuntime = westend_runtime::Runtime;
-// pub type RelayBalances = pallet_balances::Pallet<WestendRuntime>;
-// pub type RelaySystem = frame_system::Pallet<WestendRuntime>;
-// pub type RelayEvent = westend_runtime::Event;
-// pub type ParaSystem = frame_system::Pallet<Test>;
+pub type WestendRuntime = westend_runtime::Runtime;
+pub type RelayBalances = pallet_balances::Pallet<WestendRuntime>;
+pub type RelaySystem = frame_system::Pallet<WestendRuntime>;
+pub type RelayEvent = westend_runtime::Event;
+pub type ParaSystem = frame_system::Pallet<Test>;
+pub type RelayCrowdloan = crowdloan::Pallet<WestendRuntime>;
+pub type RelayAuction = auctions::Pallet<WestendRuntime>;
+pub type RelayRegistrar = paras_registrar::Pallet<WestendRuntime>;
 
 pub fn para_a_id() -> ParaId {
     ParaId::from(1)

@@ -22,6 +22,7 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+pub mod calls;
 pub mod crowdloan_structs;
 
 pub use pallet::*;
@@ -44,7 +45,7 @@ pub mod pallet {
     use frame_system::pallet_prelude::OriginFor;
     use primitives::{Balance, CurrencyId};
     use sp_runtime::{
-        traits::{AccountIdConversion, Zero},
+        traits::{AccountIdConversion, Convert, Zero},
         DispatchError,
     };
     use xcm::latest::prelude::*;
@@ -103,6 +104,9 @@ pub mod pallet {
 
         /// The origin which can call slot expired
         type SlotExpiredOrigin: EnsureOrigin<Self::Origin>;
+
+        /// Convert `T::AccountId` to `MultiLocation`.
+        type AccountIdToMultiLocation: Convert<Self::AccountId, MultiLocation>;
     }
 
     #[pallet::event]
@@ -140,17 +144,14 @@ pub mod pallet {
         XcmFeesCompensationTooLow,
         /// Vault with specific ctoken already created
         CTokenVaultCreated,
+        /// Fail to send xcm to relaychain.
+        SendXcmError,
     }
 
     #[pallet::storage]
     #[pallet::getter(fn vaults)]
-    pub type Vaults<T: Config> = StorageMap<
-        _,
-        Blake2_128Concat,
-        ParaId,
-        Vault<ParaId, AssetIdOf<T>, BalanceOf<T>>,
-        OptionQuery,
-    >;
+    pub type Vaults<T: Config> =
+        StorageMap<_, Blake2_128Concat, ParaId, Vault<T, AssetIdOf<T>>, OptionQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig {
@@ -194,7 +195,7 @@ pub mod pallet {
             currency: AssetIdOf<T>,
             crowdloan: ParaId,
             ctoken: AssetIdOf<T>,
-            contribution_strategy: ContributionStrategy<ParaId, CurrencyId, Balance>,
+            contribution_strategy: ContributionStrategy<CurrencyId>,
         ) -> DispatchResult {
             // 1. EnsureOrigin
             T::CreateVaultOrigin::ensure_origin(origin)?;
@@ -297,7 +298,7 @@ pub mod pallet {
                     // cannot underflow because we checked that vault_contents.contributed < vault_ctoken_issuance
                     let amount = vault_ctoken_issuance - vault_contents.contributed;
 
-                    vault_contents.contribution_strategy.execute(
+                    vault_contents.contribution_strategy.execute::<T>(
                         crowdloan,
                         vault_contents.relay_currency,
                         amount,
@@ -307,7 +308,7 @@ pub mod pallet {
                     vault_contents.contributed = vault_ctoken_issuance;
 
                     // update storage
-                    *vault = Some(*vault_contents);
+                    *vault = Some(vault_contents.clone());
 
                     // Emit event of trade with rate calculated
                     Self::deposit_event(Event::<T>::VaultParticipated(crowdloan, amount));
@@ -338,7 +339,7 @@ pub mod pallet {
                     vault_contents.phase = VaultPhase::Closed;
 
                     // update storage
-                    *vault = Some(*vault_contents);
+                    *vault = Some(vault_contents.clone());
 
                     // Emit event of trade with rate calculated
                     Self::deposit_event(Event::<T>::VaultClosed(crowdloan));
@@ -374,7 +375,7 @@ pub mod pallet {
                     vault_contents.phase = VaultPhase::Failed;
 
                     // update storage
-                    *vault = Some(*vault_contents);
+                    *vault = Some(vault_contents.clone());
 
                     // Emit event of trade with rate calculated
                     Self::deposit_event(Event::<T>::VaultAuctionFailed(crowdloan));
@@ -455,7 +456,7 @@ pub mod pallet {
                     vault_contents.phase = VaultPhase::Expired;
 
                     // update storage
-                    *vault = Some(*vault_contents);
+                    *vault = Some(vault_contents.clone());
 
                     // Emit event of trade with rate calculated
                     Self::deposit_event(Event::<T>::VaultSlotExpired(crowdloan));
@@ -482,9 +483,7 @@ pub mod pallet {
         // Returns a stored Vault.
         //
         // Returns `Err` if market does not exist.
-        pub fn vault(
-            crowdloan: ParaId,
-        ) -> Result<Vault<ParaId, AssetIdOf<T>, BalanceOf<T>>, DispatchError> {
+        pub fn vault(crowdloan: ParaId) -> Result<Vault<T, AssetIdOf<T>>, DispatchError> {
             Vaults::<T>::try_get(crowdloan).map_err(|_err| Error::<T>::VaultDoesNotExist.into())
         }
 

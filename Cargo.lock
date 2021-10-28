@@ -5253,6 +5253,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-core-primitives",
  "polkadot-parachain",
+ "polkadot-runtime-common",
  "polkadot-runtime-parachains",
  "scale-info",
  "serde",

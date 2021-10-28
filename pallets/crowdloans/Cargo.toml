@@ -17,6 +17,7 @@ scale-info         = { version = '1.0', default-features = false, features = ['d
 sp-runtime         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
 sp-std             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.11', default-features = false }
 xcm                = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11', default-features = false }
+xcm-executor       = { git = "https://github.com/paritytech/polkadot.git", branch = "release-v0.9.11", default-features = false }
 
 cumulus-primitives-core = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.11', default-features = false }
 
@@ -35,6 +36,7 @@ sp-io            = { git = 'https://github.com/paritytech/substrate.git', branch
 
 pallet-xcm                  = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11' }
 polkadot-core-primitives    = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11' }
+polkadot-runtime-common     = { git = "https://github.com/paritytech/polkadot.git", branch = "release-v0.9.11" }
 polkadot-parachain          = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11' }
 polkadot-runtime-parachains = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11' }
 westend-runtime             = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.11' }
