@@ -5238,6 +5238,46 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-crowdloans"
+version = "3.0.0"
+dependencies = [
+ "cumulus-pallet-dmp-queue",
+ "cumulus-pallet-parachain-system",
+ "cumulus-pallet-xcm",
+ "cumulus-pallet-xcmp-queue",
+ "cumulus-primitives-core",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "orml-xcm-support",
+ "orml-xtokens",
+ "pallet-assets",
+ "pallet-babe",
+ "pallet-balances",
+ "pallet-session",
+ "pallet-timestamp",
+ "pallet-utility",
+ "pallet-xcm",
+ "parachain-info",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "polkadot-core-primitives",
+ "polkadot-parachain",
+ "polkadot-runtime-parachains",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "westend-runtime",
+ "xcm",
+ "xcm-builder",
+ "xcm-executor",
+ "xcm-simulator",
+]
+
+[[package]]
 name = "pallet-currency-adapter"
 version = "1.7.1"
 dependencies = [
