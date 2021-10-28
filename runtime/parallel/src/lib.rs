@@ -25,7 +25,10 @@ mod weights;
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
     dispatch::Weight,
-    traits::{fungibles::{Mutate, InspectMetadata}, Contains, Everything, Nothing},
+    traits::{
+        fungibles::{InspectMetadata, Mutate},
+        Contains, Everything, Nothing,
+    },
     PalletId,
 };
 
@@ -975,11 +978,10 @@ pub struct Decimal;
 impl DecimalProvider for Decimal {
     fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
         let decimal = <Assets as InspectMetadata<AccountId>>::decimals(asset_id);
-        if decimal.is_zero(){
-            None
-        }else {
-            Some(decimal)
+        if !decimal.is_zero() {
+            return Some(decimal);
         }
+        None
     }
 }
 

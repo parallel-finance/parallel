@@ -29,7 +29,10 @@ use scale_info::TypeInfo;
 use frame_support::{
     dispatch::Weight,
     log,
-    traits::{fungibles::{Mutate, InspectMetadata}, Contains, Everything, InstanceFilter, Nothing},
+    traits::{
+        fungibles::{InspectMetadata, Mutate},
+        Contains, Everything, InstanceFilter, Nothing,
+    },
     PalletId,
 };
 use frame_system::{
@@ -957,11 +960,10 @@ pub struct Decimal;
 impl DecimalProvider for Decimal {
     fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
         let decimal = <Assets as InspectMetadata<AccountId>>::decimals(asset_id);
-        if decimal.is_zero(){
-            None
-        }else {
-            Some(decimal)
+        if !decimal.is_zero() {
+            return Some(decimal);
         }
+        None
     }
 }
 
