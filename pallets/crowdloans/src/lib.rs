@@ -139,7 +139,7 @@ pub mod pallet {
         /// Xcm fees given are too low to execute on relaychain
         XcmFeesCompensationTooLow,
         /// Vault with specific ctoken already created
-        TokenAlreadyInUse,
+        CTokenVaultAlreadyCreated,
     }
 
     #[pallet::storage]
@@ -205,7 +205,7 @@ pub mod pallet {
             // make sure both project_shares and currency_shares are new assets
             ensure!(
                 ctoken_issuance == Zero::zero(),
-                Error::<T>::TokenAlreadyInUse
+                Error::<T>::CTokenVaultAlreadyCreated
             );
 
             // 3. make sure no similar vault already exists as identified by crowdloan
