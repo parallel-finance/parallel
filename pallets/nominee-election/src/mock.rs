@@ -21,7 +21,7 @@ use frame_support::{
     construct_runtime, ord_parameter_types, parameter_types,
     traits::{Everything, SortedMembers},
 };
-use frame_system::EnsureSignedBy;
+
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 
@@ -36,7 +36,7 @@ parameter_types! {
     pub const BlockHashCount: u64 = 250;
 }
 
-impl frame_system::Config for Runtime {
+impl frame_system::Config for Test {
     type Origin = Origin;
     type Index = u64;
     type BlockNumber = BlockNumber;
@@ -76,18 +76,18 @@ impl SortedMembers<AccountId> for Six {
     }
 }
 
-impl Config for Runtime {
+impl Config for Test {
     type Event = Event;
-    type UpdateOrigin = EnsureSignedBy<One, AccountId>;
     type MaxValidators = MaxValidators;
+    type WeightInfo = pallet_nominee_election::weights::SubstrateWeight<Test>;
     type Members = Six;
 }
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
-type Block = frame_system::mocking::MockBlock<Runtime>;
+type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
+type Block = frame_system::mocking::MockBlock<Test>;
 
 construct_runtime!(
-    pub enum Runtime where
+    pub enum Test where
         Block = Block,
         NodeBlock = Block,
         UncheckedExtrinsic = UncheckedExtrinsic
@@ -96,14 +96,6 @@ construct_runtime!(
         NomineeElection: pallet_nominee_election::{Pallet, Call, Storage, Event<T>},
     }
 );
-
-pub struct ExtBuilder;
-
-impl Default for ExtBuilder {
-    fn default() -> Self {
-        ExtBuilder
-    }
-}
 
 pub const MOCK_VALIDATOR_THREE: ValidatorInfo<AccountId> = ValidatorInfo {
     name: None,
@@ -119,12 +111,10 @@ pub const MOCK_VALIDATOR_FOUR: ValidatorInfo<AccountId> = ValidatorInfo {
     score: 99,
 };
 
-impl ExtBuilder {
-    pub fn build(self) -> sp_io::TestExternalities {
-        let t = frame_system::GenesisConfig::default()
-            .build_storage::<Runtime>()
-            .unwrap();
+pub fn new_test_ext() -> sp_io::TestExternalities {
+    let t = frame_system::GenesisConfig::default()
+        .build_storage::<Test>()
+        .unwrap();
 
-        t.into()
-    }
+    t.into()
 }

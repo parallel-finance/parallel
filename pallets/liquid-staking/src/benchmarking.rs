@@ -50,9 +50,7 @@ const REMAINING_WEIGHT: Weight = 100000000000u64;
 
 fn initial_set_up<T: Config + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>>(
     caller: T::AccountId,
-) where
-    [u8; 32]: From<<T as frame_system::Config>::AccountId>,
-{
+) {
     let account_id = T::Lookup::unlookup(caller.clone());
     let staking_pool_account = LiquidStaking::<T>::account_id();
 
@@ -92,7 +90,6 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
 benchmarks! {
     where_clause {
         where
-            [u8; 32]: From<<T as frame_system::Config>::AccountId>,
             T: pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>
     }
 

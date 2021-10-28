@@ -74,7 +74,7 @@ where
             Err(_) => return DepositConsequence::UnknownAsset,
         };
 
-        if Self::ensure_market(underlying_id).is_err() {
+        if Self::ensure_active_market(underlying_id).is_err() {
             return DepositConsequence::UnknownAsset;
         }
 
@@ -104,7 +104,7 @@ where
             Err(_) => return WithdrawConsequence::UnknownAsset,
         };
 
-        if Self::ensure_market(underlying_id).is_err() {
+        if Self::ensure_active_market(underlying_id).is_err() {
             return WithdrawConsequence::UnknownAsset;
         }
 
@@ -203,7 +203,7 @@ where
             return Ok(voucher_balance);
         }
 
-        let market = Self::ensure_market(underlying_id)?;
+        let market = Self::ensure_active_market(underlying_id)?;
         let collateral_value = Self::collateral_asset_value(who, underlying_id, &market)?;
 
         // liquidity of all assets

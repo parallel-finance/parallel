@@ -268,6 +268,7 @@ fn with_transaction_rollback_works() {
 
         Loans::mutate_market(DOT, |market| {
             market.rate_model = error_model;
+            market.clone()
         })
         .unwrap();
         run_to_block(20);

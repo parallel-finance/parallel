@@ -22,10 +22,10 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 mod weights;
 
-use codec::Encode;
+use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
     dispatch::Weight,
-    traits::{fungibles::Mutate, Contains, Everything, Nothing},
+    traits::{fungibles::Mutate, Contains, Everything, InstanceFilter, Nothing, OnRuntimeUpgrade},
     PalletId,
 };
 use orml_traits::{DataProvider, DataProviderExtended};
@@ -42,7 +42,8 @@ use sp_runtime::{
         BlockNumberProvider, Convert,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Permill, SaturatedConversion,
+    ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Permill, RuntimeDebug,
+    SaturatedConversion,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -64,6 +65,7 @@ use primitives::{
     tokens::{HKO, KSM, USDT, XKSM},
     Index, *,
 };
+use scale_info::TypeInfo;
 use xcm::latest::prelude::*;
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
@@ -196,17 +198,35 @@ impl Contains<Call> for BaseCallFilter {
         matches!(
             call,
             // System
+            Call::System(_) |
             Call::Timestamp(_) |
             // Governance
             Call::Sudo(_)  |
+            Call::Democracy(_) |
+            Call::GeneralCouncil(_) |
+            Call::TechnicalCommittee(_) |
+            Call::Treasury(_) |
+            Call::Scheduler(_) |
             // Parachain
             Call::ParachainSystem(_) |
             // Consensus
-            Call::Authorship(_)
+            Call::Authorship(_) |
+            Call::Session(_) |
+            // Utility
+            Call::Utility(_) |
+            Call::Multisig(_) |
+            Call::Proxy(_) |
+            // 3rd Party
+            Call::Vesting(_) |
+            Call::Oracle(_) |
+            Call::XTokens(_) |
+            Call::OrmlXcm(_) |
+            // Loans
+            Call::Loans(_) |
+            Call::Prices(_) |
+            // Membership
+            Call::OracleMembership(_)
         )
-
-        // // System
-        // Call::System(_) |
 
         // // Parachain
         // Call::XcmpQueue(_) |
@@ -214,33 +234,11 @@ impl Contains<Call> for BaseCallFilter {
         // Call::PolkadotXcm(_) |
         // Call::CumulusXcm(_) |
 
-        // // Utility, Currencies
-        // Call::Utility(_) |
-        // Call::Balances(_) |
-        // Call::Multisig(_) |
-
         // // Consensus
         // Call::CollatorSelection(_) |
-        // Call::Session(_) |
-
-        // // Governance
-        // Call::Democracy(_) |
-        // Call::GeneralCouncil(_) |
-        // Call::TechnicalCommittee(_) |
-        // Call::Treasury(_) |
-        // Call::Scheduler(_) |
-
-        // // 3rd Party
-        // Call::Vesting(_) |
-        // Call::Oracle(_) |
-        // Call::XTokens(_) |
-        // Call::OrmlXcm(_) |
-        // Call::Vesting(_) |
 
         // // Loans
-        // Call::Loans(_) |
         // Call::Liquidation(_) |
-        // Call::Prices(_) |
 
         // // LiquidStaking
         // Call::LiquidStaking(_) |
@@ -249,7 +247,6 @@ impl Contains<Call> for BaseCallFilter {
         // // Membership
         // Call::GeneralCouncilMembership(_) |
         // Call::TechnicalCommitteeMembership(_) |
-        // Call::OracleMembership(_) |
         // Call::LiquidStakingAgentMembership(_) |
         // Call::ValidatorFeedersMembership(_)
     }
@@ -384,10 +381,11 @@ impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
 pub struct AccountIdToMultiLocation;
 impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
     fn convert(account_id: AccountId) -> MultiLocation {
-        MultiLocation::from(Junction::AccountId32 {
+        X1(AccountId32 {
             network: NetworkId::Any,
             id: account_id.into(),
         })
+        .into()
     }
 }
 
@@ -474,14 +472,6 @@ parameter_types! {
     pub const MinUnstakeAmount: Balance = 500_000_000_000;
 }
 
-pub struct DerivativeProviderT;
-
-impl DerivativeProvider<AccountId> for DerivativeProviderT {
-    fn derivative_account_id(who: AccountId, index: u16) -> AccountId {
-        Utility::derivative_account_id(who, index)
-    }
-}
-
 impl pallet_liquid_staking::Config for Runtime {
     type Event = Event;
     type PalletId = StakingPalletId;
@@ -492,7 +482,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type XcmSender = XcmRouter;
     type DerivativeIndex = DerivativeIndex;
-    type DerivativeProvider = DerivativeProviderT;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;
     type MaxRewardsPerEra = MaxRewardsPerEra;
     type MaxSlashesPerEra = MaxSlashesPerEra;
@@ -522,8 +512,8 @@ impl pallet_membership::Config<ValidatorFeedersMembershipInstance> for Runtime {
 
 impl pallet_nominee_election::Config for Runtime {
     type Event = Event;
-    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type MaxValidators = MaxValidators;
+    type WeightInfo = pallet_nominee_election::weights::SubstrateWeight<Runtime>;
     type Members = ValidatorFeedersMembership;
 }
 
@@ -711,6 +701,68 @@ impl pallet_sudo::Config for Runtime {
     type Call = Call;
 }
 
+#[derive(
+    Copy,
+    Clone,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Encode,
+    Decode,
+    RuntimeDebug,
+    MaxEncodedLen,
+    TypeInfo,
+)]
+pub enum ProxyType {
+    Any,
+}
+impl Default for ProxyType {
+    fn default() -> Self {
+        Self::Any
+    }
+}
+
+impl InstanceFilter<Call> for ProxyType {
+    fn filter(&self, _c: &Call) -> bool {
+        match self {
+            ProxyType::Any => true,
+        }
+    }
+    fn is_superset(&self, o: &Self) -> bool {
+        match (self, o) {
+            (ProxyType::Any, _) => true,
+        }
+    }
+}
+
+parameter_types! {
+    // One storage item; key size 32, value size 8; .
+    pub const ProxyDepositBase: Balance = deposit(1, 40);
+    // Additional storage item size of 33 bytes.
+    pub const ProxyDepositFactor: Balance = deposit(0, 33);
+    pub const MaxProxies: u16 = 32;
+    // One storage item; key size 32, value size 16
+    pub const AnnouncementDepositBase: Balance = deposit(1, 48);
+    pub const AnnouncementDepositFactor: Balance = deposit(0, 66);
+    pub const MaxPending: u16 = 32;
+}
+
+impl pallet_proxy::Config for Runtime {
+    type Event = Event;
+    type Call = Call;
+    type Currency = Balances;
+    type ProxyType = ProxyType;
+    type ProxyDepositBase = ProxyDepositBase;
+    type ProxyDepositFactor = ProxyDepositFactor;
+    type MaxProxies = MaxProxies;
+    type WeightInfo = pallet_proxy::weights::SubstrateWeight<Runtime>;
+    type MaxPending = MaxPending;
+    type CallHasher = BlakeTwo256;
+    type AnnouncementDepositBase = AnnouncementDepositBase;
+    type AnnouncementDepositFactor = AnnouncementDepositFactor;
+}
+
 impl pallet_utility::Config for Runtime {
     type Event = Event;
     type Call = Call;
@@ -718,8 +770,7 @@ impl pallet_utility::Config for Runtime {
 }
 
 /// No local origins on this chain are allowed to dispatch XCM sends/executions.
-#[allow(unused_parens)]
-pub type LocalOriginToLocation = (SignedToAccountId32<Origin, AccountId, RelayNetwork>);
+pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNetwork>;
 
 /// The means for routing XCM messages which are not for local execution into the right message
 /// queues.
@@ -953,6 +1004,7 @@ impl pallet_prices::Config for Runtime {
     type LiquidStakingExchangeRateProvider = LiquidStaking;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
     type Decimal = Decimal;
+    type WeightInfo = pallet_prices::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -1240,7 +1292,7 @@ impl pallet_router::Config for Runtime {
 }
 
 parameter_types! {
-    pub const NativeCurrencyId: CurrencyId = tokens::PARA;
+    pub const NativeCurrencyId: CurrencyId = tokens::HKO;
 }
 
 impl pallet_currency_adapter::Config for Runtime {
@@ -1264,6 +1316,7 @@ construct_runtime!(
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 4,
         TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 5,
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 6,
+        Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 7,
 
         // Governance
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
@@ -1350,8 +1403,16 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPallets,
-    (),
+    SetSafeXcmVersion,
 >;
+
+pub struct SetSafeXcmVersion;
+impl OnRuntimeUpgrade for SetSafeXcmVersion {
+    fn on_runtime_upgrade() -> u64 {
+        let _ = PolkadotXcm::force_default_xcm_version(Origin::root(), Some(2));
+        RocksDbWeight::get().writes(1)
+    }
+}
 
 impl_runtime_apis! {
     impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {

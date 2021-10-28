@@ -59,7 +59,6 @@ pub struct Market<Balance> {
     pub state: MarketState,
     /// Upper bound of market capacity
     pub cap: Balance,
-
     /// Ptoken asset id
     pub ptoken_id: CurrencyId,
 }

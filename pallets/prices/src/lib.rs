@@ -22,7 +22,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{pallet_prelude::*, transactional};
+use frame_support::{log, pallet_prelude::*, transactional, weights::DispatchClass};
 use frame_system::pallet_prelude::*;
 use orml_oracle::DataProviderExtended;
 use orml_traits::DataProvider;
@@ -40,9 +40,13 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+pub mod weights;
+
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
+
+    use weights::WeightInfo;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -64,6 +68,9 @@ pub mod pallet {
 
         /// Decimal provider.
         type Decimal: DecimalProvider;
+
+        /// Weight information
+        type WeightInfo: WeightInfo;
     }
 
     #[pallet::event]
@@ -90,7 +97,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Set emergency price
-        #[pallet::weight(100)]
+        #[pallet::weight((<T as Config>::WeightInfo::set_price(), DispatchClass::Operational))]
         #[transactional]
         pub fn set_price(
             origin: OriginFor<T>,
@@ -105,7 +112,7 @@ pub mod pallet {
         }
 
         /// Reset emergency price
-        #[pallet::weight(100)]
+        #[pallet::weight((<T as Config>::WeightInfo::reset_price(), DispatchClass::Operational))]
         #[transactional]
         pub fn reset_price(
             origin: OriginFor<T>,
@@ -122,13 +129,16 @@ impl<T: Config> Pallet<T> {
     // get emergency price, the timestamp is zero
     fn get_emergency_price(asset_id: &CurrencyId) -> Option<PriceDetail> {
         Self::emergency_price(asset_id).and_then(|p| {
-            10u128
-                .checked_pow(T::Decimal::get_decimal(asset_id)?.into())
-                .and_then(|d| {
-                    p.checked_div(&FixedU128::from_inner(d))
-                        .map(|price| (price, 0))
-                })
+            let mantissa = Self::get_asset_mantissa(asset_id)?;
+            p.checked_div(&FixedU128::from_inner(mantissa))
+                .map(|price| (price, 0))
         })
+    }
+
+    fn get_asset_mantissa(asset_id: &CurrencyId) -> Option<u128> {
+        let decimal = T::Decimal::get_decimal(asset_id)?;
+        log::trace!("asset id {:#?}, decimal {:#?}", asset_id, decimal);
+        10u128.checked_pow(decimal as u32)
     }
 }
 

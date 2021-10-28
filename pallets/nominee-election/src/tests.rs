@@ -20,15 +20,15 @@ use mock::*;
 
 #[test]
 fn set_validators_works() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         assert_eq!(NomineeElection::validators(), vec![]);
         assert_noop!(
             NomineeElection::set_validators(Origin::signed(1), vec![]),
-            Error::<Runtime>::BadValidatorsFeeder
+            Error::<Test>::BadValidatorsFeeder
         );
         assert_noop!(
             NomineeElection::set_validators(Origin::signed(6), vec![]),
-            Error::<Runtime>::NoEmptyValidators
+            Error::<Test>::NoEmptyValidators
         );
         assert_ok!(NomineeElection::set_validators(
             Origin::signed(6),
@@ -40,7 +40,7 @@ fn set_validators_works() {
                 Origin::signed(6),
                 vec![MOCK_VALIDATOR_THREE, MOCK_VALIDATOR_FOUR]
             ),
-            Error::<Runtime>::MaxValidatorsExceeded
+            Error::<Test>::MaxValidatorsExceeded
         );
     });
 }

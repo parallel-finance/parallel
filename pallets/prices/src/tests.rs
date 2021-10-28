@@ -23,7 +23,7 @@ const PRICE_ONE: u128 = 1_000_000_000_000_000_000;
 
 #[test]
 fn get_price_from_oracle() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         // currency exist
         assert_eq!(
             Prices::get_price(&DOT),
@@ -31,42 +31,55 @@ fn get_price_from_oracle() {
         );
 
         // currency not exist
-        assert_eq!(Prices::get_price(&xDOT), None);
+        assert_eq!(Prices::get_price(&XDOT), None);
     });
 }
 
 #[test]
 fn set_price_work() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         assert_eq!(
             Prices::get_price(&DOT),
             Some((Price::from_inner(10_000_000_000 * PRICE_ONE), 0))
         );
         // set DOT price
-        EmergencyPrice::<Runtime>::insert(DOT, Price::saturating_from_integer(99));
+        assert_ok!(Prices::set_price(
+            Origin::signed(1),
+            DOT,
+            Price::saturating_from_integer(99)
+        ));
         assert_eq!(
             Prices::get_price(&DOT),
             Some((Price::from_inner(9_900_000_000 * PRICE_ONE), 0))
+        );
+        assert_ok!(Prices::set_price(
+            Origin::signed(1),
+            KSM,
+            Price::saturating_from_integer(1)
+        ));
+        assert_eq!(
+            Prices::get_emergency_price(&KSM),
+            Some((1_000_000.into(), 0))
         );
     });
 }
 
 #[test]
 fn reset_price_work() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         assert_eq!(
             Prices::get_price(&DOT),
             Some((Price::from_inner(10_000_000_000 * PRICE_ONE), 0))
         );
         // set DOT price
-        EmergencyPrice::<Runtime>::insert(DOT, Price::saturating_from_integer(99));
+        EmergencyPrice::<Test>::insert(DOT, Price::saturating_from_integer(99));
         assert_eq!(
             Prices::get_price(&DOT),
             Some((Price::from_inner(9_900_000_000 * PRICE_ONE), 0))
         );
 
         // reset DOT price
-        EmergencyPrice::<Runtime>::remove(DOT);
+        EmergencyPrice::<Test>::remove(DOT);
         assert_eq!(
             Prices::get_price(&DOT),
             Some((Price::from_inner(10_000_000_000 * PRICE_ONE), 0))
@@ -76,7 +89,7 @@ fn reset_price_work() {
 
 #[test]
 fn set_price_call_work() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         System::set_block_number(1);
 
         // set emergency price from 100 to 90
@@ -115,7 +128,7 @@ fn set_price_call_work() {
 
 #[test]
 fn reset_price_call_work() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         System::set_block_number(1);
 
         // set emergency price from 100 to 90
@@ -154,14 +167,14 @@ fn reset_price_call_work() {
 
 #[test]
 fn get_liquid_price_work() {
-    ExtBuilder::default().build().execute_with(|| {
+    new_test_ext().execute_with(|| {
         assert_eq!(
             Prices::get_price(&KSM),
             Some((Price::from_inner(500 * 1_000_000 * PRICE_ONE), 0))
         );
 
         assert_eq!(
-            Prices::get_price(&xKSM),
+            Prices::get_price(&XKSM),
             LiquidStakingExchangeRateProvider::get_exchange_rate()
                 .checked_mul_int(500 * 1_000_000 * PRICE_ONE)
                 .map(|i| (Price::from_inner(i), 0))

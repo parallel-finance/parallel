@@ -272,7 +272,7 @@ impl<T: Config> Pallet<T> {
                         .unwrap_or_default();
                     let under_collatoral_value = match collateral_value
                         .checked_mul(&collateral_factor)
-                        .ok_or(pallet_loans::Error::<T>::PriceOracleNotReady)
+                        .ok_or(ArithmeticError::Overflow)
                     {
                         Err(_e) => {
                             acc.remove(&k2);

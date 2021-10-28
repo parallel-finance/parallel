@@ -1,5 +1,6 @@
 PARA_ID        							:= 2085
 CHAIN          							:= vanilla-dev
+RUNTIME        							:= vanilla-runtime
 BLOCK_AT       							:= 0x0000000000000000000000000000000000000000000000000000000000000000
 URL            							:= ws://localhost:9947
 KEYSTORE_PATH  							:= keystore
@@ -87,6 +88,7 @@ launch: shutdown
 	docker image pull parallelfinance/polkadot:$(RELAY_DOCKER_TAG)
 	docker image pull parallelfinance/parallel:$(DOCKER_TAG)
 	docker image pull parallelfinance/stake-client:latest
+	docker image pull parallelfinance/liquidation-client:latest
 	docker image pull parallelfinance/nominate-client:latest
 	docker image pull parallelfinance/oracle-client:latest
 	docker image pull parallelfinance/parallel-dapp:latest
@@ -99,7 +101,7 @@ logs:
 
 .PHONY: wasm
 wasm:
-	./scripts/srtool-build.sh
+	PACKAGE=$(RUNTIME) ./scripts/srtool-build.sh
 
 .PHONY: spec
 spec:
@@ -115,8 +117,8 @@ image:
 
 .PHONY: keystore
 keystore:
-	docker run --rm -v "$(PWD):/app" parallelfinance/parallel:latest key insert -d /app --keystore-path /app/$(KEYSTORE_PATH) --suri "$(SURI)" --key-type aura
-	docker run --rm -v "$(PWD):/app" parallelfinance/parallel:latest key insert -d /app --keystore-path /app/$(KEYSTORE_PATH) --suri "$(SURI)" --key-type gran
+	cargo run --bin parallel key insert -d . --keystore-path $(KEYSTORE_PATH) --suri "$(SURI)" --key-type aura
+	cargo run --bin parallel key insert -d . --keystore-path $(KEYSTORE_PATH) --suri "$(SURI)" --key-type gran
 
 .PHONY: snapshot
 snapshot:

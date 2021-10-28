@@ -49,6 +49,8 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+pub mod weights;
+
 /// Info of the validator to be elected
 #[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, Default, TypeInfo)]
 #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
@@ -66,6 +68,7 @@ pub struct ValidatorInfo<AccountId> {
 pub mod pallet {
 
     use super::*;
+    use weights::WeightInfo;
 
     type ValidatorSet<T> = BoundedVec<
         ValidatorInfo<<T as frame_system::Config>::AccountId>,
@@ -76,15 +79,15 @@ pub mod pallet {
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-        /// The origin which can update staking election coefficients
-        type UpdateOrigin: EnsureOrigin<Self::Origin>;
-
         /// The maximum size of selected validators
         #[pallet::constant]
         type MaxValidators: Get<u32>;
 
         /// Approved accouts which can set validators
         type Members: SortedMembers<Self::AccountId>;
+
+        /// Weight information
+        type WeightInfo: WeightInfo;
     }
 
     /// Validators selected by off-chain client
@@ -95,8 +98,8 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(crate) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// Validator set updated (old_validators, new_validators)
-        ValidorsUpdated(ValidatorSet<T>, ValidatorSet<T>),
+        /// Validator set updated
+        ValidatorsUpdated(ValidatorSet<T>),
     }
 
     #[pallet::error]
@@ -120,7 +123,7 @@ pub mod pallet {
         /// Set selected validators
         ///
         /// If the validators passed are empty, return an error
-        #[pallet::weight(1000)]
+        #[pallet::weight(<T as Config>::WeightInfo::set_validators())]
         #[transactional]
         pub fn set_validators(
             origin: OriginFor<T>,
@@ -133,13 +136,12 @@ pub mod pallet {
             );
             ensure!(!validators.is_empty(), Error::<T>::NoEmptyValidators);
 
-            let old_validators = Self::validators();
             let new_validators: ValidatorSet<T> = validators
                 .try_into()
                 .map_err(|_| Error::<T>::MaxValidatorsExceeded)?;
 
             Validators::<T>::put(new_validators.clone());
-            Self::deposit_event(Event::<T>::ValidorsUpdated(old_validators, new_validators));
+            Self::deposit_event(Event::<T>::ValidatorsUpdated(new_validators));
             Ok(())
         }
     }
