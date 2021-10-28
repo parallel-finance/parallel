@@ -39,7 +39,7 @@ use serde::{Deserialize, Serialize};
 use sp_io::hashing::blake2_256;
 use sp_runtime::{
     traits::{AccountIdConversion, Saturating, StaticLookup, Zero},
-    SaturatedConversion,
+    ArithmeticError, SaturatedConversion,
 };
 
 pub type AssetIdOf<T, I = ()> =
@@ -98,12 +98,12 @@ pub mod pallet {
         /// Add new pool
         /// [asset_id]
         PoolAdded(AssetIdOf<T, I>),
-		/// Deposited Assets in pool
-		/// [sender, asset_id]
-		DepositedAssets(T::AccountId, AssetIdOf<T, I>),
-		/// Withdrew Assets from pool
-		/// [sender, asset_id]
-		WithdrewAssets(T::AccountId, AssetIdOf<T, I>),
+        /// Deposited Assets in pool
+        /// [sender, asset_id]
+        DepositedAssets(T::AccountId, AssetIdOf<T, I>),
+        /// Withdrew Assets from pool
+        /// [sender, asset_id]
+        WithdrewAssets(T::AccountId, AssetIdOf<T, I>),
     }
 
     #[pallet::hooks]
@@ -249,28 +249,54 @@ pub mod pallet {
 
                 T::Assets::mint_into(pool.shares, &who, amount)?;
 
-				Self::deposit_event(Event::<T, I>::DepositedAssets(who, asset));
+                Self::deposit_event(Event::<T, I>::DepositedAssets(who, asset));
                 Ok(())
             })
         }
 
-		/// Claiming Rewards or Withdrawing Assets from a Pool
-		#[pallet::weight(10000)]
-		#[transactional]
-		pub fn withdraw(
-			origin: OriginFor<T>,
-			asset: AssetIdOf<T, I>,
-			amount: BalanceOf<T, I>,
-		) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin)?;
-			ensure!(amount == Zero::zero(), Error::<T, I>::NotAValidAmount);
+        /// Claiming Rewards or Withdrawing Assets from a Pool
+        #[pallet::weight(10000)]
+        #[transactional]
+        pub fn withdraw(
+            origin: OriginFor<T>,
+            asset: AssetIdOf<T, I>,
+            amount: BalanceOf<T, I>,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            ensure!(amount == Zero::zero(), Error::<T, I>::NotAValidAmount);
 
-			let asset_pool_account = Self::pool_account_id(asset);
+            let asset_pool_account = Self::pool_account_id(asset);
 
-			Self::deposit_event(Event::<T, I>::WithdrewAssets(who, asset));
-			Ok(().into())
-		}
+            Pools::<T, I>::try_mutate(asset, |liquidity_pool| -> DispatchResultWithPostInfo {
+                let pool = liquidity_pool
+                    .take()
+                    .ok_or(Error::<T, I>::PoolDoesNotExist)?;
 
+                let rewards_per_block = pool.per_block.iter().zip(pool.rewards.iter());
+
+                for (_, (b, r)) in rewards_per_block.enumerate() {
+                    let duration: T::BlockNumber =
+                        <frame_system::Pallet<T>>::block_number().saturating_sub(pool.start);
+                    let amount_to_reward = (amount
+                        .checked_div(T::Assets::total_issuance(pool.shares))
+                        .ok_or(ArithmeticError::Overflow)?)
+                    .saturating_mul(Self::block_to_balance(duration).saturating_mul(b.clone()));
+
+                    T::Assets::transfer(
+                        r.clone(),
+                        &asset_pool_account,
+                        &who,
+                        amount_to_reward,
+                        true,
+                    )?;
+                }
+
+                T::Assets::transfer(asset, &asset_pool_account, &who, amount, true)?;
+                T::Assets::burn_from(pool.shares, &who, amount)?;
+                Self::deposit_event(Event::<T, I>::WithdrewAssets(who, asset));
+                Ok(().into())
+            })
+        }
     }
 }
 
