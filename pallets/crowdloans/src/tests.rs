@@ -2,7 +2,7 @@ use super::*;
 use crate::mock::*;
 use crowdloan_structs::*;
 use cumulus_primitives_core::ParaId;
-use frame_support::assert_ok;
+use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
 use primitives::tokens;
 use sp_runtime::traits::Zero;
@@ -100,6 +100,46 @@ fn contribute_should_work() {
             // check pallet balance
             assert_eq!(pallet_balance, amount);
         }
+    });
+}
+
+#[test]
+fn contribute_should_fail_insufficent_funds() {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337);
+        let currency = tokens::XDOT;
+        let ctoken = 10;
+        let amount = 1_000;
+
+        let contribution_strategy = ContributionStrategy::XCM;
+
+        // create the ctoken asset
+        assert_ok!(Assets::force_create(
+            RawOrigin::Root.into(),
+            ctoken.unique_saturated_into(),
+            sp_runtime::MultiAddress::Id(Crowdloan::account_id()),
+            true,
+            One::one(),
+        ));
+
+        // create a vault to contribute to
+        assert_ok!(Crowdloan::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            currency,                             // token
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            contribution_strategy,                // contribution_strategy
+        ));
+
+        // do contribute
+        assert_noop!(
+            Crowdloan::contribute(
+                Origin::signed(BOB), // origin
+                crowdloan,           // crowdloan
+                amount,              // amount
+            ),
+            Error::<Test>::InsufficientBalance
+        );
     });
 }
 

@@ -139,7 +139,7 @@ pub mod pallet {
         /// Xcm fees given are too low to execute on relaychain
         XcmFeesCompensationTooLow,
         /// Vault with specific ctoken already created
-        CTokenVaultCreated,
+        TokenAlreadyInUse,
     }
 
     #[pallet::storage]
@@ -205,7 +205,7 @@ pub mod pallet {
             // make sure both project_shares and currency_shares are new assets
             ensure!(
                 ctoken_issuance == Zero::zero(),
-                Error::<T>::CTokenVaultCreated
+                Error::<T>::TokenAlreadyInUse
             );
 
             // 3. make sure no similar vault already exists as identified by crowdloan
@@ -249,12 +249,7 @@ pub mod pallet {
                 Error::<T>::IncorrectVaultPhase
             );
 
-            // 3. Make sure origin has at least amount of vault.currency
-            // get amount origin has
-            let balance = T::Assets::balance(vault.relay_currency, &who);
-
-            ensure!(balance >= amount, Error::<T>::InsufficientBalance);
-
+            // 3. Make sure origin has at least amount of vault.currency (checked in transfer)
             // 4. Wire amount of vault.currency to the pallet's account id
             T::Assets::transfer(
                 vault.relay_currency,
@@ -262,7 +257,8 @@ pub mod pallet {
                 &Self::account_id(),
                 amount,
                 true,
-            )?;
+            )
+            .map_err(|_: DispatchError| Error::<T>::InsufficientBalance)?;
 
             // 5. Create amount of vault.ctoken to origin
             T::Assets::mint_into(vault.ctoken, &who, amount)?;
