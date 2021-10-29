@@ -25,7 +25,7 @@ sp-runtime = { git = 'https://github.com/paritytech/substrate.git', branch = 'po
 sp-std     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
 
 [dev-dependencies]
-orml-oracle             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'update-polkadot-v0.9.12' }
+orml-oracle             = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git' }
 pallet-currency-adapter = { path = '../currency-adapter' }
 sp-core                 = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
 sp-io                   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }

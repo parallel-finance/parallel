@@ -2774,13 +2774,13 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
  "hex-literal",
- "orml-oracle 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
+ "orml-oracle",
  "orml-oracle-rpc-runtime-api",
- "orml-traits 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
+ "orml-traits",
  "orml-vesting",
  "orml-xcm",
- "orml-xcm-support 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
- "orml-xtokens 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
+ "orml-xcm-support",
+ "orml-xtokens",
  "pallet-amm",
  "pallet-assets",
  "pallet-aura",
@@ -4791,30 +4791,12 @@ dependencies = [
 [[package]]
 name = "orml-oracle"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=update-polkadot-v0.9.12#cc4f54c75d6b4a46483a0feffe99768d476905fd"
-dependencies = [
- "frame-support",
- "frame-system",
- "orml-traits 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=update-polkadot-v0.9.12)",
- "orml-utilities 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=update-polkadot-v0.9.12)",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-application-crypto",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "orml-oracle"
-version = "0.4.1-dev"
 source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#ee37b76a7a8cf159e6c41851942758746318bb84"
 dependencies = [
  "frame-support",
  "frame-system",
- "orml-traits 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
- "orml-utilities 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
+ "orml-traits",
+ "orml-utilities",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -4852,30 +4834,12 @@ dependencies = [
 [[package]]
 name = "orml-traits"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=update-polkadot-v0.9.12#cc4f54c75d6b4a46483a0feffe99768d476905fd"
-dependencies = [
- "frame-support",
- "impl-trait-for-tuples",
- "num-traits",
- "orml-utilities 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=update-polkadot-v0.9.12)",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "xcm",
-]
-
-[[package]]
-name = "orml-traits"
-version = "0.4.1-dev"
 source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#ee37b76a7a8cf159e6c41851942758746318bb84"
 dependencies = [
  "frame-support",
  "impl-trait-for-tuples",
  "num-traits",
- "orml-utilities 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
+ "orml-utilities",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -4883,20 +4847,6 @@ dependencies = [
  "sp-runtime",
  "sp-std",
  "xcm",
-]
-
-[[package]]
-name = "orml-utilities"
-version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=update-polkadot-v0.9.12#cc4f54c75d6b4a46483a0feffe99768d476905fd"
-dependencies = [
- "frame-support",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-io",
- "sp-runtime",
- "sp-std",
 ]
 
 [[package]]
@@ -4945,45 +4895,11 @@ dependencies = [
 [[package]]
 name = "orml-xcm-support"
 version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=update-polkadot-v0.9.12#cc4f54c75d6b4a46483a0feffe99768d476905fd"
-dependencies = [
- "frame-support",
- "orml-traits 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=update-polkadot-v0.9.12)",
- "parity-scale-codec",
- "sp-runtime",
- "sp-std",
- "xcm",
- "xcm-executor",
-]
-
-[[package]]
-name = "orml-xcm-support"
-version = "0.4.1-dev"
 source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git#ee37b76a7a8cf159e6c41851942758746318bb84"
 dependencies = [
  "frame-support",
- "orml-traits 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
+ "orml-traits",
  "parity-scale-codec",
- "sp-runtime",
- "sp-std",
- "xcm",
- "xcm-executor",
-]
-
-[[package]]
-name = "orml-xtokens"
-version = "0.4.1-dev"
-source = "git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=update-polkadot-v0.9.12#cc4f54c75d6b4a46483a0feffe99768d476905fd"
-dependencies = [
- "cumulus-primitives-core",
- "frame-support",
- "frame-system",
- "orml-traits 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=update-polkadot-v0.9.12)",
- "orml-xcm-support 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=update-polkadot-v0.9.12)",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-io",
  "sp-runtime",
  "sp-std",
  "xcm",
@@ -4998,8 +4914,8 @@ dependencies = [
  "cumulus-primitives-core",
  "frame-support",
  "frame-system",
- "orml-traits 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
- "orml-xcm-support 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
+ "orml-traits",
+ "orml-xcm-support",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -5329,8 +5245,8 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "orml-xcm-support 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
- "orml-xtokens 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
+ "orml-xcm-support",
+ "orml-xtokens",
  "pallet-assets",
  "pallet-babe",
  "pallet-balances",
@@ -5531,8 +5447,8 @@ dependencies = [
  "frame-support",
  "frame-system",
  "kusama-runtime",
- "orml-xcm-support 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=update-polkadot-v0.9.12)",
- "orml-xtokens 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=update-polkadot-v0.9.12)",
+ "orml-xcm-support",
+ "orml-xtokens",
  "pallet-assets",
  "pallet-babe",
  "pallet-balances",
@@ -5585,8 +5501,8 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "orml-oracle 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git?branch=update-polkadot-v0.9.12)",
- "orml-traits 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
+ "orml-oracle",
+ "orml-traits",
  "pallet-assets",
  "pallet-balances",
  "pallet-currency-adapter",
@@ -5787,8 +5703,8 @@ version = "1.7.1"
 dependencies = [
  "frame-support",
  "frame-system",
- "orml-oracle 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
- "orml-traits 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
+ "orml-oracle",
+ "orml-traits",
  "parallel-primitives",
  "parity-scale-codec",
  "scale-info",
@@ -6225,7 +6141,7 @@ version = "1.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
- "orml-oracle 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
+ "orml-oracle",
  "parity-scale-codec",
  "serde",
  "sp-consensus-aura",
@@ -6257,13 +6173,13 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
  "hex-literal",
- "orml-oracle 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
+ "orml-oracle",
  "orml-oracle-rpc-runtime-api",
- "orml-traits 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
+ "orml-traits",
  "orml-vesting",
  "orml-xcm",
- "orml-xcm-support 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
- "orml-xtokens 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
+ "orml-xcm-support",
+ "orml-xtokens",
  "pallet-amm",
  "pallet-assets",
  "pallet-aura",
@@ -11388,13 +11304,13 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
  "hex-literal",
- "orml-oracle 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
+ "orml-oracle",
  "orml-oracle-rpc-runtime-api",
- "orml-traits 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
+ "orml-traits",
  "orml-vesting",
  "orml-xcm",
- "orml-xcm-support 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
- "orml-xtokens 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library.git)",
+ "orml-xcm-support",
+ "orml-xtokens",
  "pallet-amm",
  "pallet-assets",
  "pallet-aura",
