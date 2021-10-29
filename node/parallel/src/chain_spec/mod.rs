@@ -57,7 +57,7 @@ pub fn accumulate(
 
 /// set default ss58 crypto
 pub fn set_default_ss58_version(spec: &Box<dyn sc_service::ChainSpec>) {
-    use ss58_registry::Ss58AddressFormatRegistry;
+    use sp_core::crypto::Ss58AddressFormatRegistry
 
     let ss58_version = if spec.is_heiko() {
         Ss58AddressFormatRegistry::HeikoAccount

@@ -51,7 +51,6 @@ try-runtime-cli              = { git = 'https://github.com/paritytech/substrate.
 serde           = { version = '1.0.119', features = ['derive'] }
 serde_json      = '1.0.64'
 structopt       = '0.3.8'
-ss58-registry   = '1.2.0'
 
 orml-oracle-rpc            = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'update-polkadot-v0.9.12', default-features = false }
 substrate-frame-rpc-system = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12' }
