@@ -75,6 +75,33 @@ fn transfer_initial_balance<
     .ok();
     pallet_assets::Pallet::<T>::force_create(SystemOrigin::Root.into(), USDT, account_id, true, 1)
         .ok();
+    pallet_assets::Pallet::<T>::force_set_metadata(
+        SystemOrigin::Root.into(),
+        KSM,
+        [10u8; 3].to_vec(),
+        [11u8; 3].to_vec(),
+        12,
+        true,
+    )
+    .ok();
+    pallet_assets::Pallet::<T>::force_set_metadata(
+        SystemOrigin::Root.into(),
+        XKSM,
+        [20u8; 3].to_vec(),
+        [21u8; 3].to_vec(),
+        12,
+        true,
+    )
+    .ok();
+    pallet_assets::Pallet::<T>::force_set_metadata(
+        SystemOrigin::Root.into(),
+        USDT,
+        [30u8; 3].to_vec(),
+        [31u8; 3].to_vec(),
+        6,
+        true,
+    )
+    .ok();
     T::Assets::mint_into(USDT, &caller, INITIAL_AMOUNT.into()).unwrap();
     T::Assets::mint_into(KSM, &caller, INITIAL_AMOUNT.into()).unwrap();
     T::Assets::mint_into(XKSM, &caller, INITIAL_AMOUNT.into()).unwrap();
