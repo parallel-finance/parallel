@@ -12,7 +12,7 @@ codec              = { package = 'parity-scale-codec', version = '2.3.1', defaul
 frame-benchmarking = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false, optional = true }
 frame-support      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
 frame-system       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
-orml-traits        = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'update-polkadot-v0.9.12', default-features = false }
+orml-traits        = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 pallet-assets      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
 pallet-balances    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
 pallet-prices      = { path = '../prices', default-features = false }

@@ -78,13 +78,13 @@ pallet-collator-selection       = { git = 'https://github.com/paritytech/cumulus
 parachain-info                  = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.12', default-features = false }
 
 # ORML dependencies
-orml-oracle                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'update-polkadot-v0.9.12', default-features = false }
-orml-oracle-rpc-runtime-api = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'update-polkadot-v0.9.12', default-features = false }
-orml-traits                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'update-polkadot-v0.9.12', default-features = false }
-orml-vesting                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'update-polkadot-v0.9.12', default-features = false }
-orml-xcm                    = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'update-polkadot-v0.9.12', default-features = false }
-orml-xcm-support            = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'update-polkadot-v0.9.12', default-features = false }
-orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', branch = 'update-polkadot-v0.9.12', default-features = false }
+orml-oracle                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-oracle-rpc-runtime-api = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-traits                 = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-vesting                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-xcm                    = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-xcm-support            = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
+orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 
 # Parallel dependencies
 pallet-amm                   = { path = '../../pallets/amm', default-features = false }
