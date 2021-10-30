@@ -27,6 +27,7 @@ pub use crate::rate_model::*;
 use frame_support::{
     log,
     pallet_prelude::*,
+    require_transactional,
     storage::{with_transaction, TransactionOutcome},
     traits::{
         tokens::fungibles::{Inspect, Mutate, Transfer},
@@ -860,6 +861,13 @@ impl<T: Config> Pallet<T> {
     ) -> Result<(Liquidity, Shortfall), DispatchError> {
         let total_borrow_value = Self::total_borrowed_value(account)?;
         let total_collateral_value = Self::total_collateral_value(account)?;
+        log::trace!(
+            target: "loans::get_account_liquidity",
+            "account: {:?}, total_borrow_value: {:?}, total_collateral_value: {:?}",
+            account,
+            total_borrow_value,
+            total_collateral_value
+        );
         if total_collateral_value > total_borrow_value {
             Ok((
                 total_collateral_value - total_borrow_value,
@@ -938,6 +946,14 @@ impl<T: Config> Pallet<T> {
         voucher_amount: BalanceOf<T>,
         market: &Market<BalanceOf<T>>,
     ) -> DispatchResult {
+        log::trace!(
+            target: "loans::redeem_allowed",
+            "asset_id: {:?}, redeemer: {:?}, voucher_amount: {:?}, market: {:?}",
+            asset_id,
+            redeemer,
+            voucher_amount,
+            market
+        );
         let deposit = Self::account_deposits(asset_id, redeemer);
         if deposit.voucher_balance < voucher_amount {
             return Err(Error::<T>::InsufficientDeposit.into());
@@ -958,6 +974,12 @@ impl<T: Config> Pallet<T> {
             .ok_or(ArithmeticError::Overflow)?;
 
         let (liquidity, _) = Self::get_account_liquidity(redeemer)?;
+        log::trace!(
+            target: "loans::redeem_allowed",
+            "liquidity: {:?}, redeem_value: {:?}",
+            liquidity.into_inner(),
+            redeem_effects_value.into_inner(),
+        );
         if liquidity < redeem_effects_value {
             return Err(Error::<T>::InsufficientLiquidity.into());
         }
@@ -965,6 +987,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    #[require_transactional]
     pub fn redeem_internal(
         who: &T::AccountId,
         asset_id: AssetIdOf<T>,
@@ -1018,6 +1041,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    #[require_transactional]
     fn repay_borrow_internal(
         borrower: &T::AccountId,
         asset_id: AssetIdOf<T>,
@@ -1084,6 +1108,7 @@ impl<T: Config> Pallet<T> {
         Ok(recent_borrow_balance)
     }
 
+    #[require_transactional]
     fn update_earned_stored(who: &T::AccountId, asset_id: AssetIdOf<T>) -> DispatchResult {
         let deposits = AccountDeposits::<T>::get(asset_id, who);
         let exchange_rate = ExchangeRate::<T>::get(asset_id);
@@ -1114,9 +1139,12 @@ impl<T: Config> Pallet<T> {
         market: &Market<BalanceOf<T>>,
     ) -> DispatchResult {
         log::trace!(
-            "liquidate asset id {:#?}, repay amount {:#?}",
+            target: "loans::liquidate_borrow_allowed",
+            "borrower: {:?}, liquidate_asset_id {:?}, repay_amount {:?}, market: {:?}",
+            borrower,
             liquidate_asset_id,
-            repay_amount
+            repay_amount,
+            market
         );
         let (_, shortfall) = Self::get_account_liquidity(borrower)?;
         if shortfall.is_zero() {
@@ -1141,6 +1169,7 @@ impl<T: Config> Pallet<T> {
     /// account for borrower. Then the protocol will reduce borrower's debt
     /// and liquidator will receive collateral_token(as voucher amount) from
     /// borrower.
+    #[require_transactional]
     pub fn liquidate_borrow_internal(
         liquidator: T::AccountId,
         borrower: T::AccountId,
@@ -1200,7 +1229,7 @@ impl<T: Config> Pallet<T> {
             .into_inner();
 
         //inside transfer token
-        Self::liquidate_repay_borrow_internal(
+        Self::liquidated_transfer(
             &liquidator,
             &borrower,
             liquidate_asset_id,
@@ -1212,7 +1241,8 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    fn liquidate_repay_borrow_internal(
+    #[require_transactional]
+    fn liquidated_transfer(
         liquidator: &T::AccountId,
         borrower: &T::AccountId,
         liquidate_asset_id: AssetIdOf<T>,
@@ -1220,6 +1250,17 @@ impl<T: Config> Pallet<T> {
         repay_amount: BalanceOf<T>,
         collateral_underlying_amount: BalanceOf<T>,
     ) -> DispatchResult {
+        log::trace!(
+            target: "loans::liquidated_transfer",
+            "liquidator: {:?}, borrower: {:?}, liquidate_asset_id: {:?},
+                collateral_asset_id: {:?}, repay_amount: {:?}, collateral_underlying_amount: {:?}",
+            liquidator,
+            borrower,
+            liquidate_asset_id,
+            collateral_asset_id,
+            repay_amount,
+            collateral_underlying_amount
+        );
         // 1.liquidator repay borrower's debt,
         // transfer from liquidator to module account
         T::Assets::transfer(
@@ -1371,6 +1412,9 @@ impl<T: Config> Pallet<T> {
         if price.is_zero() {
             return Err(Error::<T>::PriceIsZero.into());
         }
+        log::trace!(
+            target: "loans::get_price", "price {:?}", price
+        );
 
         Ok(price)
     }
