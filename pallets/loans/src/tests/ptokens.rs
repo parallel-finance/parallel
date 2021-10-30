@@ -1,7 +1,7 @@
 use crate::{
     mock::{
-        market_mock, new_test_ext, Loans, Origin, Test, ALICE, DAVE, HKO, KSM, MARKET_MOCK, PHKO,
-        PKSM, PUSDT, USDT, XDOT,
+        market_mock, new_test_ext, Loans, Origin, Test, ALICE, DAVE, HKO, KSM, PHKO, PKSM, PUSDT,
+        USDT, XDOT,
     },
     tests::dollar,
     Error,
@@ -130,7 +130,7 @@ fn transfer_ptoken_works() {
         );
         // DAVE Redeem 51 HKO should cause InsufficientDeposit
         assert_noop!(
-            Loans::redeem_allowed(HKO, &DAVE, dollar(51) * 50, &MARKET_MOCK),
+            Loans::redeem_allowed(HKO, &DAVE, dollar(51) * 50),
             Error::<Test>::InsufficientDeposit
         );
 
@@ -141,12 +141,7 @@ fn transfer_ptoken_works() {
             dollar(50)
         );
         // ALICE Redeem 50 HKO should be succeeded
-        assert_ok!(Loans::redeem_allowed(
-            HKO,
-            &ALICE,
-            dollar(50) * 50,
-            &MARKET_MOCK
-        ));
+        assert_ok!(Loans::redeem_allowed(HKO, &ALICE, dollar(50) * 50));
     })
 }
 
@@ -188,11 +183,6 @@ fn transfer_ptokens_under_collateral_works() {
         );
         // ALICE Redeem 20 HKO should be succeeded
         // Also means that transfer ptoken succeed
-        assert_ok!(Loans::redeem_allowed(
-            HKO,
-            &ALICE,
-            dollar(20) * 50,
-            &MARKET_MOCK
-        ));
+        assert_ok!(Loans::redeem_allowed(HKO, &ALICE, dollar(20) * 50,));
     })
 }
