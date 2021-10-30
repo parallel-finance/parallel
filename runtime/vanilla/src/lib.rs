@@ -29,7 +29,10 @@ use scale_info::TypeInfo;
 use frame_support::{
     dispatch::Weight,
     log, match_type,
-    traits::{fungibles::Mutate, Contains, Everything, InstanceFilter, Nothing},
+    traits::{
+        fungibles::{InspectMetadata, Mutate},
+        Contains, Everything, InstanceFilter, Nothing,
+    },
     PalletId,
 };
 use frame_system::{

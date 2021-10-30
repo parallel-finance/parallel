@@ -26,7 +26,10 @@ use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
     dispatch::Weight,
     match_type,
-    traits::{fungibles::Mutate, Contains, Everything, InstanceFilter, Nothing, OnRuntimeUpgrade},
+    traits::{
+        fungibles::{InspectMetadata, Mutate},
+        Contains, Everything, InstanceFilter, Nothing, OnRuntimeUpgrade,
+    },
     PalletId,
 };
 use orml_traits::{DataProvider, DataProviderExtended};
