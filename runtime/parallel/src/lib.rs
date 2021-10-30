@@ -900,8 +900,8 @@ match_type! {
 pub type Barrier = (
     TakeWeightCredit,
     AllowKnownQueryResponses<PolkadotXcm>,
-    AllowSubscriptionsFrom<Everything>,
-    AllowTopLevelPaidExecutionFrom<ParentOrSiblings>,
+    AllowSubscriptionsFrom<ParentOrSiblings>,
+    AllowTopLevelPaidExecutionFrom<Everything>,
 );
 
 pub struct ToTreasury;
