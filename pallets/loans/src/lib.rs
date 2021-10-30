@@ -723,8 +723,7 @@ pub mod pallet {
             }
             // turn off the collateral button after checking the liquidity
             let total_collateral_value = Self::total_collateral_value(&who)?;
-            let market = Self::market(asset_id)?;
-            let collateral_asset_value = Self::collateral_asset_value(&who, asset_id, &market)?;
+            let collateral_asset_value = Self::collateral_asset_value(&who, asset_id)?;
             let total_borrowed_value = Self::total_borrowed_value(&who)?;
             log::trace!(
                 target: "loans::collateral_asset",
@@ -871,7 +870,7 @@ impl<T: Config> Pallet<T> {
         log::trace!(
             target: "loans::get_account_liquidity",
             "account: {:?}, total_borrow_value: {:?}, total_collateral_value: {:?}",
-            account.to_string(),
+            account,
             total_borrow_value.into_inner(),
             total_collateral_value.into_inner(),
         );
@@ -906,11 +905,9 @@ impl<T: Config> Pallet<T> {
         Ok(total_borrow_value)
     }
 
-    //TODO(alannotnerd): remove market
     fn collateral_asset_value(
         borrower: &T::AccountId,
         asset_id: AssetIdOf<T>,
-        market: &Market<BalanceOf<T>>,
     ) -> Result<FixedU128, DispatchError> {
         if !AccountDeposits::<T>::contains_key(asset_id, borrower) {
             return Ok(FixedU128::zero());
@@ -924,6 +921,7 @@ impl<T: Config> Pallet<T> {
         }
         let exchange_rate = ExchangeRate::<T>::get(asset_id);
         let currency_price = Self::get_price(asset_id)?;
+        let market = Self::market(asset_id)?;
         let collateral_amount = exchange_rate
             .checked_mul_int(market.collateral_factor.mul_floor(deposits.voucher_balance))
             .ok_or(ArithmeticError::Overflow)?;
@@ -935,9 +933,9 @@ impl<T: Config> Pallet<T> {
 
     fn total_collateral_value(borrower: &T::AccountId) -> Result<FixedU128, DispatchError> {
         let mut total_asset_value: FixedU128 = FixedU128::zero();
-        for (asset_id, market) in Self::active_markets() {
+        for (asset_id, _market) in Self::active_markets() {
             total_asset_value = total_asset_value
-                .checked_add(&Self::collateral_asset_value(borrower, asset_id, &market)?)
+                .checked_add(&Self::collateral_asset_value(borrower, asset_id)?)
                 .ok_or(ArithmeticError::Overflow)?;
         }
 
@@ -945,20 +943,17 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Checks if the redeemer should be allowed to redeem tokens in given market
-    // TODO(yz89): remove market
     fn redeem_allowed(
         asset_id: AssetIdOf<T>,
         redeemer: &T::AccountId,
         voucher_amount: BalanceOf<T>,
-        market: &Market<BalanceOf<T>>,
     ) -> DispatchResult {
         log::trace!(
             target: "loans::redeem_allowed",
-            "asset_id: {:?}, redeemer: {:?}, voucher_amount: {:?}, market: {:#?}",
+            "asset_id: {:?}, redeemer: {:?}, voucher_amount: {:?}",
             asset_id,
-            redeemer.to_string(),
+            redeemer,
             voucher_amount,
-            market
         );
         let deposit = Self::account_deposits(asset_id, redeemer);
         if deposit.voucher_balance < voucher_amount {
@@ -971,6 +966,7 @@ impl<T: Config> Pallet<T> {
         let exchange_rate = Self::exchange_rate(asset_id);
         let redeem_amount = Self::calc_underlying_amount(voucher_amount, exchange_rate)?;
         Self::ensure_enough_cash(asset_id, redeem_amount)?;
+        let market = Self::market(asset_id)?;
         let redeem_effects_value = Self::get_price(asset_id)?
             .checked_mul(&FixedU128::from_inner(
                 market.collateral_factor.mul_ceil(redeem_amount),
@@ -997,8 +993,7 @@ impl<T: Config> Pallet<T> {
         asset_id: AssetIdOf<T>,
         voucher_amount: BalanceOf<T>,
     ) -> Result<BalanceOf<T>, DispatchError> {
-        let market = Self::market(asset_id)?;
-        Self::redeem_allowed(asset_id, who, voucher_amount, &market)?;
+        Self::redeem_allowed(asset_id, who, voucher_amount)?;
         let exchange_rate = Self::exchange_rate(asset_id);
         let redeem_amount = Self::calc_underlying_amount(voucher_amount, exchange_rate)?;
         AccountDeposits::<T>::try_mutate_exists(asset_id, who, |deposits| -> DispatchResult {

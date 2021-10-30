@@ -204,7 +204,7 @@ where
         }
 
         let market = Self::ensure_active_market(underlying_id)?;
-        let collateral_value = Self::collateral_asset_value(who, underlying_id, &market)?;
+        let collateral_value = Self::collateral_asset_value(who, underlying_id)?;
 
         // liquidity of all assets
         let (liquidity, _) = Self::get_account_liquidity(who)?;
