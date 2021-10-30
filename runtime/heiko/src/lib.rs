@@ -25,7 +25,10 @@ mod weights;
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
     dispatch::Weight,
-    traits::{fungibles::Mutate, Contains, Everything, InstanceFilter, Nothing, OnRuntimeUpgrade},
+    traits::{
+        fungibles::{InspectMetadata, Mutate},
+        Contains, Everything, InstanceFilter, Nothing, OnRuntimeUpgrade,
+    },
     PalletId,
 };
 use orml_traits::{DataProvider, DataProviderExtended};
@@ -39,7 +42,7 @@ use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{
         self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT,
-        BlockNumberProvider, Convert,
+        BlockNumberProvider, Convert, Zero,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Permill, RuntimeDebug,
@@ -62,7 +65,7 @@ use polkadot_parachain::primitives::Sibling;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::HEIKO_PREFIX,
-    tokens::{HKO, KSM, USDT, XKSM},
+    tokens::{HKO, KSM, XKSM},
     Index, *,
 };
 use scale_info::TypeInfo;
@@ -607,7 +610,6 @@ impl pallet_authorship::Config for Runtime {
 }
 
 parameter_types! {
-    pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(33);
     pub const Period: u32 = 6 * HOURS;
     pub const Offset: u32 = 0;
 }
@@ -624,7 +626,6 @@ impl pallet_session::Config for Runtime {
     type SessionHandler =
         <opaque::SessionKeys as sp_runtime::traits::OpaqueKeys>::KeyTypeIdProviders;
     type Keys = opaque::SessionKeys;
-    type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
     type WeightInfo = ();
 }
 
@@ -986,14 +987,11 @@ impl DataProviderExtended<CurrencyId, TimeStampedPrice> for AggregatedDataProvid
 pub struct Decimal;
 impl DecimalProvider for Decimal {
     fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
-        // TODO should find a way, get decimal from pallet_assets
-        // pallet_assets::Metadata::<Runtime>::get(asset_id).decimals
-        match *asset_id {
-            KSM | XKSM => Some(12),
-            HKO => Some(12),
-            USDT => Some(6),
-            _ => None,
+        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(asset_id);
+        if !decimal.is_zero() {
+            return Some(decimal);
         }
+        None
     }
 }
 

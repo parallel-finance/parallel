@@ -1,5 +1,79 @@
 # CHANGE LOG
 
+## 2021.10.30
+
+- Bump to polkadot-v0.9.12 (#819)
+
+## 2021.10.28
+
+- convert spec to code and setup testing framework (#640)
+
+## 2021.10.27
+
+- fix the error native currendy id (#817)
+- restruct token registry (#816)
+
+## 2021.10.26
+
+- Intro liquidation client && Fix launch config (#815)
+- Improve the markets governance (#802)
+- use static weights for nominee-election & prices (#813)
+- cleanup nominee-election & prices pallet (#812)
+
+## 2021.10.25
+
+- adapt create-volume script for polkadot-v0.9.11 (#811)
+- make sure enough cash when user borrow (#809) 
+- enable proxy for parallel, vanilla (#810)
+- set safe xcm version to 2 (#808)
+- enable governance (#807)
+- enable parachain xcm trace (#806)
+- add proxy pallet & enable some call filters (#804)
+
+## 2021.10.24
+
+- add launch before sending batch all tx (#800)
+- allow known query responses to pass barrier check (#797)
+- AMM pool creation via governance only (#700)
+
+## 2021.10.23
+
+- cleanup liquid staking's event & error naming (#793)
+- add payout-slashed's weights (#792)
+- fix refund's dest location & bump cargo.toml (#789)
+
+## 2021.10.22
+
+- bump parallel-js to v1.4.2 (#786)
+- Slash from insurance (#784) 
+- use kusama_runtime for testing & add host configuration (#785)
+
+## 2021.10.21
+
+- Disable direct XCM execution (#772)
+- Impl ptoken in money market (#694) 
+- export polkadot-xcm storage & config (#767)
+- update launch & parachain-launch version (#766)
+- allow version subscription between relaychain & parachain (#764)
+- use pallet_xcm to wrap version & handle response (#763)
+
+## 2021.10.20
+
+- set max_assets to 1 and disable xcm execute from other chains (#760)
+
+## 2021.10.19
+
+- bump polkadot to v0.9.11 (#693)
+- add vanilla-live chainspec (#753)
+- add insurance call (#751) 
+
+## 2021.10.18
+
+- use UpdateOrigin for non-transact call (#748)
+- add update_reserve_factor call (#739)
+- burn fees in ump_transact instead (#733)
+- Goverance xcm weight in Liquidstaking (#735)
+
 ## 2021.10.17
 
 - Support building staging, QA docker (#732)
