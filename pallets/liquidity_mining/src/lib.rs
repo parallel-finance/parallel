@@ -254,6 +254,8 @@ pub mod pallet {
 
                 T::Assets::mint_into(pool.shares, &who, amount)?;
 
+                *liquidity_pool = Some(pool);
+
                 Self::deposit_event(Event::<T, I>::DepositedAssets(who, asset));
                 Ok(())
             })
@@ -268,7 +270,7 @@ pub mod pallet {
             amount: BalanceOf<T, I>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            ensure!(amount == Zero::zero(), Error::<T, I>::NotAValidAmount);
+            ensure!(amount != Zero::zero(), Error::<T, I>::NotAValidAmount);
 
             let asset_pool_account = Self::pool_account_id(asset);
 
@@ -298,6 +300,8 @@ pub mod pallet {
 
                 T::Assets::transfer(asset, &asset_pool_account, &who, amount, true)?;
                 T::Assets::burn_from(pool.shares, &who, amount)?;
+
+                *liquidity_pool = Some(pool);
                 Self::deposit_event(Event::<T, I>::WithdrewAssets(who, asset));
                 Ok(().into())
             })
