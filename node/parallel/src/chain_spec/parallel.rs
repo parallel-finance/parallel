@@ -13,7 +13,6 @@
 // limitations under the License.
 
 use cumulus_primitives_core::ParaId;
-use hex_literal::hex;
 use parallel_runtime::{
     opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, DemocracyConfig,
     GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
@@ -26,8 +25,11 @@ use primitives::{network::NetworkType, *};
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::{crypto::UncheckedInto, sr25519};
+use sp_core::sr25519;
 use sp_runtime::{traits::Zero, FixedPointNumber};
+
+// use hex_literal::hex;
+// use sp_core::crypto::UncheckedInto;
 
 use crate::chain_spec::{
     accumulate, as_properties, get_account_id_from_seed, get_authority_keys_from_seed, Extensions,
@@ -119,113 +121,88 @@ pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
     )
 }
 
-pub fn parallel_local_testnet_config(id: ParaId) -> ChainSpec {
-    ChainSpec::from_genesis(
-        // Name
-        "Parallel Local Testnet",
-        // ID
-        "parallel-local",
-        ChainType::Local,
-        move || {
-            let root_key = "5Hgbc62tVKhXr8ovtLFNGdb4Ye3RY6RchK1gLEg2ZjktZMjv"
-                .parse()
-                .unwrap();
-            let invulnerables: Vec<(AccountId, AuraId)> = vec![(
-                // 5Hgbc62tVKhXr8ovtLFNGdb4Ye3RY6RchK1gLEg2ZjktZMjv//collator
-                hex!["48bc67ff7bb9ee70ff7229dd8d89e5dd9e3a171eb5876e3fe8d617f9e67d9f5b"].into(),
-                hex!["48bc67ff7bb9ee70ff7229dd8d89e5dd9e3a171eb5876e3fe8d617f9e67d9f5b"]
-                    .unchecked_into(),
-            )];
-            // 5Hgbc62tVKhXr8ovtLFNGdb4Ye3RY6RchK1gLEg2ZjktZMjv//oracle
-            let oracle_accounts = vec!["5DLKFBGUSpr5FuqxsAyUab1u3uvtBypbV5mqtsRP5ZX73u1R"
-                .parse()
-                .unwrap()];
-            // 5Hgbc62tVKhXr8ovtLFNGdb4Ye3RY6RchK1gLEg2ZjktZMjv//validator_feeder
-            let validator_feeders = vec!["5DRwhn5ajqck2pZmL9Rp1ebSKrErWzQqKQC9ZvqR7Cn8TBN5"
-                .parse()
-                .unwrap()];
-            // 5Hgbc62tVKhXr8ovtLFNGdb4Ye3RY6RchK1gLEg2ZjktZMjv//agent
-            let liquid_staking_agents = vec!["5C5PQJQvvTuq5zQJLN4GtxXn6Pp8YTB4ko7yXmhvxyQF5CHn"
-                .parse()
-                .unwrap()];
-            let initial_allocation = accumulate(
-                vec![
-                    // Faucet accounts
-                    "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                        .parse()
-                        .unwrap(),
-                    // Team members accounts
-                    "5G4fc9GN6DeFQm4h2HKq3d9hBTsBJWSLWkyuk35cKHh2sqEz"
-                        .parse()
-                        .unwrap(),
-                    "5DhZeTQqotvntGtrg69T2VK9pzUPXHiVyGUTmp5XFTDTT7ME"
-                        .parse()
-                        .unwrap(),
-                    "5GBykvvrUz3vwTttgHzUEPdm7G1FND1reBfddQLdiaCbhoMd"
-                        .parse()
-                        .unwrap(),
-                    "5G3f6iLDU6mbyEiJH8icoLhFy4RZ6TvWUZSkDwtg1nXTV3QK"
-                        .parse()
-                        .unwrap(),
-                    "5G97JLuuT1opraWvfS6Smt4jaAZuyDquP9GjamKVcPC366qU"
-                        .parse()
-                        .unwrap(),
-                    "5G9eFoXB95fdwFJK9utBf1AgiLvhPUvzArYR2knzXKrKtZPZ"
-                        .parse()
-                        .unwrap(),
-                    "1Gu7GSgLSPrhc1Wci9wAGP6nvzQfaUCYqbfXxjYjMG9bob6"
-                        .parse()
-                        .unwrap(),
-                ]
-                .iter()
-                .flat_map(|x: &AccountId| {
-                    if x == &"5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-                        .parse()
-                        .unwrap()
-                    {
-                        vec![(x.clone(), 10_u128.pow(20))]
-                    } else {
-                        vec![(x.clone(), 10_u128.pow(16))]
-                    }
-                }),
-            );
-            let council = vec![
-                "5G3f6iLDU6mbyEiJH8icoLhFy4RZ6TvWUZSkDwtg1nXTV3QK"
-                    .parse()
-                    .unwrap(),
-                "5GBykvvrUz3vwTttgHzUEPdm7G1FND1reBfddQLdiaCbhoMd"
-                    .parse()
-                    .unwrap(),
-                "5DhZeTQqotvntGtrg69T2VK9pzUPXHiVyGUTmp5XFTDTT7ME"
-                    .parse()
-                    .unwrap(),
-                "1Gu7GSgLSPrhc1Wci9wAGP6nvzQfaUCYqbfXxjYjMG9bob6"
-                    .parse()
-                    .unwrap(),
-            ];
-            let technical_committee = vec![];
-
-            parallel_genesis(
-                root_key,
-                invulnerables,
-                oracle_accounts,
-                initial_allocation,
-                validator_feeders,
-                liquid_staking_agents,
-                council,
-                technical_committee,
-                id,
-            )
-        },
-        vec![],
-        TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
-        Some("parallel-local"),
-        Some(as_properties(NetworkType::Parallel)),
-        Extensions {
-            relay_chain: "westend".into(),
-            para_id: id.into(),
-        },
-    )
+pub fn parallel_config(_id: ParaId) -> Result<ChainSpec, String> {
+    ChainSpec::from_json_bytes(&include_bytes!("../../../../resources/specs/parallel.json")[..])
+    // Ok(ChainSpec::from_genesis(
+    //     // Name
+    //     "Parallel",
+    //     // ID
+    //     "parallel",
+    //     ChainType::Live,
+    //     move || {
+    //         let root_key: AccountId = "5GpSUyyzqeL55TLDrHLifYcvxshzqQ9c4JaogkEcuVvirE3w"
+    //             .parse()
+    //             .unwrap();
+    //         let invulnerables: Vec<(AccountId, AuraId)> = vec![
+    //             (
+    //                 // 5EA4X7f81kBRVRtVH6qotiQPmdTSw6oqLqNGuRqHxbLyUhAf
+    //                 hex!["5c8e4059d8eeef6e9cd387961c38a0a28a8a713190ca995a0c2e9dd4d926f07e"].into(),
+    //                 hex!["5c8e4059d8eeef6e9cd387961c38a0a28a8a713190ca995a0c2e9dd4d926f07e"]
+    //                     .unchecked_into(),
+    //             ),
+    //             (
+    //                 // 5GNYurfysPCrD8Y1CFd8Lc9CJJRCNPYhJEufeGfLJ3gQe5d5
+    //                 hex!["be8d3d4c7781682236df1e068e1746024c958d12df9f84e025d7e4c3f7126404"].into(),
+    //                 hex!["be8d3d4c7781682236df1e068e1746024c958d12df9f84e025d7e4c3f7126404"]
+    //                     .unchecked_into(),
+    //             ),
+    //             (
+    //                 // 5GzmRkqBrfryUbtwf2n694H9Nm75ubCSPsVQf7zmYDHw6fR5
+    //                 hex!["da2c3477a12743c98e734f14a100fd8aa6885d5d4f9ce32a5ce0f9602500547e"].into(),
+    //                 hex!["da2c3477a12743c98e734f14a100fd8aa6885d5d4f9ce32a5ce0f9602500547e"]
+    //                     .unchecked_into(),
+    //             ),
+    //             (
+    //                 // 5DHu97jdzpTk2anCRc2QRvvZ9d2f2e1SxbATPJsEHfqrAF49
+    //                 hex!["364c685c411c72d90718c71c305a479854bb0d49c439bf51f4ea4f1317d6c969"].into(),
+    //                 hex!["364c685c411c72d90718c71c305a479854bb0d49c439bf51f4ea4f1317d6c969"]
+    //                     .unchecked_into(),
+    //             ),
+    //             (
+    //                 // 5Hp61nKPbaPt3GGxxmMtkfT6t3Tt6K7996RWuCwxbmwmQ7bs
+    //                 hex!["fe434ea4283ee8c49e8aeda990698e3815fc78b0c46529154c7dcba462f7e33a"].into(),
+    //                 hex!["fe434ea4283ee8c49e8aeda990698e3815fc78b0c46529154c7dcba462f7e33a"]
+    //                     .unchecked_into(),
+    //             ),
+    //         ];
+    //         let oracle_accounts = vec![];
+    //         let validator_feeders = vec![];
+    //         let liquid_staking_agents = vec![];
+    //         let initial_allocation: Vec<(AccountId, Balance)> = serde_json::from_str(include_str!(
+    //             "../../../../resources/parallel-allocation-PARA.json"
+    //         ))
+    //         .unwrap();
+    //         let initial_allocation: Vec<(AccountId, Balance)> = accumulate(initial_allocation);
+    //         let council = vec![];
+    //         let technical_committee = vec![];
+    //
+    //         parallel_genesis(
+    //             root_key,
+    //             invulnerables,
+    //             oracle_accounts,
+    //             initial_allocation,
+    //             validator_feeders,
+    //             liquid_staking_agents,
+    //             council,
+    //             technical_committee,
+    //             id,
+    //         )
+    //     },
+    //     vec![
+    //         "/dns/bootnode-0.parallel.fi/tcp/30333/p2p/12D3KooWNngQxhrT19QqK2dCPtCQb5kB92RscWMnPfNxCC1sgr3N".parse().unwrap(),
+    //         "/dns/bootnode-1.parallel.fi/tcp/30333/p2p/12D3KooWMzctxpmtti9dWsPaosh2cPCBZFUGeQhmT6W1ynErwKKB".parse().unwrap(),
+    //         "/dns/bootnode-2.parallel.fi/tcp/30333/p2p/12D3KooWAWRTCjiVo3VoSZYMCwKk6CQCSLTqVVjBnbWhvp71Ey6Y".parse().unwrap(),
+    //         "/dns/bootnode-3.parallel.fi/tcp/30333/p2p/12D3KooWSMKQCs6JXjVdaqBSyoMZLBNWrLjJ3QzTET7Zd7kWoB8G".parse().unwrap(),
+    //         "/dns/bootnode-4.parallel.fi/tcp/30333/p2p/12D3KooWCAhW29HjprkLmQ39gCTJmHsEWSqLXPkCz27qVbsGjpLk".parse().unwrap(),
+    //     ],
+    //     TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
+    //     Some("parallel"),
+    //     Some(as_properties(network::NetworkType::Parallel)),
+    //     Extensions {
+    //         relay_chain: "polkadot".into(),
+    //         para_id: id.into(),
+    //     },
+    // ))
 }
 
 fn parallel_genesis(
