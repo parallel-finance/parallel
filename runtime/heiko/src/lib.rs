@@ -25,6 +25,7 @@ mod weights;
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
     dispatch::Weight,
+    match_type,
     traits::{
         fungibles::{InspectMetadata, Mutate},
         Contains, Everything, InstanceFilter, Nothing, OnRuntimeUpgrade,
@@ -898,10 +899,17 @@ pub type XcmOriginToTransactDispatchOrigin = (
     XcmPassthrough<Origin>,
 );
 
+match_type! {
+    pub type ParentOrSiblings: impl Contains<MultiLocation> = {
+        MultiLocation { parents: 1, interior: Here } |
+        MultiLocation { parents: 1, interior: X1(_) }
+    };
+}
+
 pub type Barrier = (
     TakeWeightCredit,
     AllowKnownQueryResponses<PolkadotXcm>,
-    AllowSubscriptionsFrom<Everything>,
+    AllowSubscriptionsFrom<ParentOrSiblings>,
     AllowTopLevelPaidExecutionFrom<Everything>,
 );
 

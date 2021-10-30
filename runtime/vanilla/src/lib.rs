@@ -28,7 +28,7 @@ use scale_info::TypeInfo;
 
 use frame_support::{
     dispatch::Weight,
-    log,
+    log, match_type,
     traits::{
         fungibles::{InspectMetadata, Mutate},
         Contains, Everything, InstanceFilter, Nothing,
@@ -874,10 +874,17 @@ parameter_types! {
     pub KsmPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), ksm_per_second());
 }
 
+match_type! {
+    pub type ParentOrSiblings: impl Contains<MultiLocation> = {
+        MultiLocation { parents: 1, interior: Here } |
+        MultiLocation { parents: 1, interior: X1(_) }
+    };
+}
+
 pub type Barrier = (
     TakeWeightCredit,
     AllowKnownQueryResponses<PolkadotXcm>,
-    AllowSubscriptionsFrom<Everything>,
+    AllowSubscriptionsFrom<ParentOrSiblings>,
     AllowTopLevelPaidExecutionFrom<Everything>,
 );
 
