@@ -19,6 +19,11 @@ PARA_ID=2085
 PARA_CHAIN="heiko"
 RELAY_CHAIN="kusama"
 VOLUME="chains"
+NODE_NAME="$1"
+
+if [ $# -lt 1 ]; then
+  echo "help: ./fullnode.sh <NODE_NAME>" && exit 1
+fi
 
 docker container stop heiko-fullnode || true
 docker container rm heiko-fullnode || true
@@ -45,11 +50,12 @@ docker run --restart=always --name heiko-fullnode \
     --ws-external \
     --rpc-external \
     --rpc-cors all \
+    --ws-max-connections 4096 \
     --pruning archive \
     --wasm-execution=compiled \
-    --ws-max-connections 4096 \
     --execution=wasm \
     --listen-addr=/ip4/0.0.0.0/tcp/$PARA_P2P_PORT \
+    --name=$NODE_NAME \
     --prometheus-external \
   -- \
     --chain=$RELAY_CHAIN \
@@ -58,11 +64,13 @@ docker run --restart=always --name heiko-fullnode \
     --ws-external \
     --rpc-external \
     --rpc-cors all \
+    --ws-max-connections 4096 \
     --wasm-execution=compiled \
     --execution=wasm \
     --database=RocksDb \
     --unsafe-pruning \
     --pruning=1000 \
-    --listen-addr=/ip4/0.0.0.0/tcp/$RELAY_P2P_PORT
+    --listen-addr=/ip4/0.0.0.0/tcp/$RELAY_P2P_PORT \
+    --name="${NODE_NAME}_Embedded_Relay"
 
 # docker logs -f heiko-fullnode
