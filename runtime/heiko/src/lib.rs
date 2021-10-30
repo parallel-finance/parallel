@@ -25,10 +25,8 @@ mod weights;
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
     dispatch::Weight,
-    traits::{
-        fungibles::{InspectMetadata, Mutate},
-        Contains, Everything, InstanceFilter, Nothing, OnRuntimeUpgrade,
-    },
+    match_type,
+    traits::{fungibles::Mutate, Contains, Everything, InstanceFilter, Nothing, OnRuntimeUpgrade},
     PalletId,
 };
 use orml_traits::{DataProvider, DataProviderExtended};
@@ -898,11 +896,18 @@ pub type XcmOriginToTransactDispatchOrigin = (
     XcmPassthrough<Origin>,
 );
 
+match_type! {
+    pub type ParentOrSiblings: impl Contains<MultiLocation> = {
+        MultiLocation { parents: 1, interior: Here } |
+        MultiLocation { parents: 1, interior: X1(_) }
+    };
+}
+
 pub type Barrier = (
     TakeWeightCredit,
     AllowKnownQueryResponses<PolkadotXcm>,
     AllowSubscriptionsFrom<Everything>,
-    AllowTopLevelPaidExecutionFrom<Everything>,
+    AllowTopLevelPaidExecutionFrom<ParentOrSiblings>,
 );
 
 pub struct ToTreasury;
