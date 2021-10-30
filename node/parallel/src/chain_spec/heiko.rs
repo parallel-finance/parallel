@@ -21,13 +21,13 @@ use heiko_runtime::{
     TechnicalCommitteeMembershipConfig, ValidatorFeedersMembershipConfig, VestingConfig,
     WASM_BINARY,
 };
-
-// use hex_literal::hex;
-// use sp_core::crypto::UncheckedInto;
 use primitives::*;
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+
+// use hex_literal::hex;
+// use sp_core::crypto::UncheckedInto;
 
 use crate::chain_spec::{
     accumulate, as_properties, get_account_id_from_seed, get_authority_keys_from_seed, Extensions,
@@ -180,9 +180,14 @@ pub fn heiko_config(_id: ParaId) -> Result<ChainSpec, String> {
     //         )
     //     },
     //     vec![
-    //         "/dns/heiko-bootnode-0.parallel.fi/tcp/30333/p2p/12D3KooWLUTzbrJJDowUKMPfEZrDY6eH8HXvm8hrG6YrdUmdrKPz".parse().unwrap(),
-    //         "/dns/heiko-bootnode-1.parallel.fi/tcp/30333/p2p/12D3KooWEckTASdnkQC8MfBNnzKGfQJmdmzCBWrwra26nTqY4Hmu".parse().unwrap(),
-    //         "/dns/heiko-bootnode-2.parallel.fi/tcp/30333/p2p/12D3KooWFJe4LfS15nTBUduq3cMKmHEWwKYrJFmMnAa7wT5W1eZE".parse().unwrap(),
+    //          "/dns/heiko-bootnode-0.parallel.fi/tcp/30333/p2p/12D3KooWLUTzbrJJDowUKMPfEZrDY6eH8HXvm8hrG6YrdUmdrKPz".parse().unwrap(),
+    //          "/dns/heiko-bootnode-1.parallel.fi/tcp/30333/p2p/12D3KooWEckTASdnkQC8MfBNnzKGfQJmdmzCBWrwra26nTqY4Hmu".parse().unwrap(),
+    //          "/dns/heiko-bootnode-2.parallel.fi/tcp/30333/p2p/12D3KooWFJe4LfS15nTBUduq3cMKmHEWwKYrJFmMnAa7wT5W1eZE".parse().unwrap(),
+    //          "/dns/heiko-bootnode-3.parallel.fi/tcp/30333/p2p/12D3KooWA8jSwEbscptbwv1KqY7d7n2qURbd6zUaaPvzTVBMMgSd".parse().unwrap(),
+    //          "/dns/heiko-bootnode-4.parallel.fi/tcp/30333/p2p/12D3KooWPmc7C5qkcxLzw5qWuxHM4SQs16w9Ecdy6b6zpPzpuPhX".parse().unwrap(),
+    //          "/dns/heiko-bootnode-5.parallel.fi/tcp/30333/p2p/12D3KooWBPS34UM3bbv82hfL3LJq7eioRjFSJp6JArGnEj4ZhukN".parse().unwrap(),
+    //          "/dns/heiko-bootnode-6.parallel.fi/tcp/30333/p2p/12D3KooWNQD9ejZBon81yJuLeV6PWekVqVPX6B72UPepQzWTh8mX".parse().unwrap(),
+    //          "/dns/heiko-bootnode-7.parallel.fi/tcp/30333/p2p/12D3KooWL63x8ZPkY2ZekUqyvyNwsakwbuy8Rq3Dt9tJcxw5NFTt".parse().unwrap()
     //     ],
     //     TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
     //     Some("heiko"),
