@@ -236,7 +236,7 @@ pub mod pallet {
             amount: BalanceOf<T, I>,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
-            ensure!(amount == Zero::zero(), Error::<T, I>::NotAValidAmount);
+            ensure!(amount != Zero::zero(), Error::<T, I>::NotAValidAmount);
 
             let asset_pool_account = Self::pool_account_id(asset);
             Pools::<T, I>::try_mutate(asset, |liquidity_pool| -> DispatchResult {
