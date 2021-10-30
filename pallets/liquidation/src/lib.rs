@@ -36,7 +36,7 @@ use sp_runtime::{
         Duration,
     },
     traits::{CheckedAdd, CheckedMul, Zero},
-    ArithmeticError, FixedPointNumber, FixedU128, Percent, SaturatedConversion,
+    ArithmeticError, FixedPointNumber, FixedU128, Percent,
 };
 use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
@@ -203,7 +203,7 @@ impl<T: Config> Pallet<T> {
                         pallet_loans::Pallet::<T>::current_balance_from_snapshot(k1, snapshot)
                             .map_err(|_| ArithmeticError::Overflow)?;
                     price
-                        .checked_mul(&FixedU128::from_inner(result.saturated_into()))
+                        .checked_mul(&FixedU128::from_inner(result))
                         .ok_or_else(|| ArithmeticError::Overflow.into())
                 }) {
                     Err(_e) => {
@@ -258,7 +258,7 @@ impl<T: Config> Pallet<T> {
                     let collateral_value =
                         match pallet_loans::Pallet::<T>::get_price(k1).and_then(|price| {
                             price
-                                .checked_mul(&FixedU128::from_inner(balance.saturated_into()))
+                                .checked_mul(&FixedU128::from_inner(balance))
                                 .ok_or_else(|| ArithmeticError::Overflow.into())
                         }) {
                             Err(_e) => {
