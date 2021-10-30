@@ -45,7 +45,7 @@ use sp_runtime::{
         AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One, StaticLookup,
         Zero,
     },
-    ArithmeticError, FixedPointNumber, FixedU128, SaturatedConversion,
+    ArithmeticError, FixedPointNumber, FixedU128,
 };
 use sp_std::result::Result;
 
@@ -726,6 +726,13 @@ pub mod pallet {
             let market = Self::market(asset_id)?;
             let collateral_asset_value = Self::collateral_asset_value(&who, asset_id, &market)?;
             let total_borrowed_value = Self::total_borrowed_value(&who)?;
+            log::trace!(
+                target: "loans::collateral_asset",
+                "total_collateral_value: {:?}, collateral_asset_value: {:?}, total_borrowed_value: {:?}",
+                total_collateral_value.into_inner(),
+                collateral_asset_value.into_inner(),
+                total_borrowed_value.into_inner(),
+            );
             if total_collateral_value
                 < total_borrowed_value
                     .checked_add(&collateral_asset_value)
@@ -864,9 +871,9 @@ impl<T: Config> Pallet<T> {
         log::trace!(
             target: "loans::get_account_liquidity",
             "account: {:?}, total_borrow_value: {:?}, total_collateral_value: {:?}",
-            account,
-            total_borrow_value,
-            total_collateral_value
+            account.to_string(),
+            total_borrow_value.into_inner(),
+            total_collateral_value.into_inner(),
         );
         if total_collateral_value > total_borrow_value {
             Ok((
@@ -891,9 +898,7 @@ impl<T: Config> Pallet<T> {
             }
             let borrow_currency_price = Self::get_price(asset_id)?;
             total_borrow_value = borrow_currency_price
-                .checked_mul(&FixedU128::from_inner(
-                    currency_borrow_amount.saturated_into(),
-                ))
+                .checked_mul(&FixedU128::from_inner(currency_borrow_amount))
                 .and_then(|r| r.checked_add(&total_borrow_value))
                 .ok_or(ArithmeticError::Overflow)?;
         }
@@ -924,7 +929,7 @@ impl<T: Config> Pallet<T> {
             .ok_or(ArithmeticError::Overflow)?;
 
         Ok(currency_price
-            .checked_mul(&FixedU128::from_inner(collateral_amount.saturated_into()))
+            .checked_mul(&FixedU128::from_inner(collateral_amount))
             .ok_or(ArithmeticError::Overflow)?)
     }
 
@@ -940,6 +945,7 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Checks if the redeemer should be allowed to redeem tokens in given market
+    // TODO(yz89): remove market
     fn redeem_allowed(
         asset_id: AssetIdOf<T>,
         redeemer: &T::AccountId,
@@ -948,9 +954,9 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         log::trace!(
             target: "loans::redeem_allowed",
-            "asset_id: {:?}, redeemer: {:?}, voucher_amount: {:?}, market: {:?}",
+            "asset_id: {:?}, redeemer: {:?}, voucher_amount: {:?}, market: {:#?}",
             asset_id,
-            redeemer,
+            redeemer.to_string(),
             voucher_amount,
             market
         );
@@ -967,9 +973,7 @@ impl<T: Config> Pallet<T> {
         Self::ensure_enough_cash(asset_id, redeem_amount)?;
         let redeem_effects_value = Self::get_price(asset_id)?
             .checked_mul(&FixedU128::from_inner(
-                market
-                    .collateral_factor
-                    .mul_ceil(redeem_amount.saturated_into()),
+                market.collateral_factor.mul_ceil(redeem_amount),
             ))
             .ok_or(ArithmeticError::Overflow)?;
 
@@ -1031,7 +1035,7 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         Self::ensure_enough_cash(asset_id, borrow_amount)?;
         let borrow_value = Self::get_price(asset_id)?
-            .checked_mul(&FixedU128::from_inner(borrow_amount.saturated_into()))
+            .checked_mul(&FixedU128::from_inner(borrow_amount))
             .ok_or(ArithmeticError::Overflow)?;
         let (liquidity, _) = Self::get_account_liquidity(borrower)?;
         if liquidity < borrow_value {
@@ -1199,14 +1203,12 @@ impl<T: Config> Pallet<T> {
         // Calculate the collateral value
         let collateral_token_price = Self::get_price(collateral_asset_id)?;
         let collateral_value = collateral_token_price
-            .checked_mul(&FixedU128::from_inner(
-                borrower_deposit_amount.saturated_into(),
-            ))
+            .checked_mul(&FixedU128::from_inner(borrower_deposit_amount))
             .ok_or(ArithmeticError::Overflow)?;
 
         // The incentive for liquidator and punishment for the borrower
         let liquidate_value = Self::get_price(liquidate_asset_id)?
-            .checked_mul(&FixedU128::from_inner(repay_amount.saturated_into()))
+            .checked_mul(&FixedU128::from_inner(repay_amount))
             .and_then(|a| a.checked_mul(&market.liquidate_incentive))
             .ok_or(Error::<T>::LiquidateValueOverflow)?;
 
@@ -1235,7 +1237,7 @@ impl<T: Config> Pallet<T> {
             liquidate_asset_id,
             collateral_asset_id,
             repay_amount,
-            real_collateral_underlying_amount.saturated_into(),
+            real_collateral_underlying_amount,
         )?;
 
         Ok(())
@@ -1395,11 +1397,10 @@ impl<T: Config> Pallet<T> {
         underlying_amount: BalanceOf<T>,
         exchange_rate: Rate,
     ) -> Result<BalanceOf<T>, DispatchError> {
-        Ok(FixedU128::from_inner(underlying_amount.saturated_into())
+        Ok(FixedU128::from_inner(underlying_amount)
             .checked_div(&exchange_rate)
             .map(|r| r.into_inner())
-            .ok_or(ArithmeticError::Underflow)?
-            .saturated_into())
+            .ok_or(ArithmeticError::Underflow)?)
     }
 
     fn get_total_cash(asset_id: AssetIdOf<T>) -> BalanceOf<T> {
@@ -1413,7 +1414,7 @@ impl<T: Config> Pallet<T> {
             return Err(Error::<T>::PriceIsZero.into());
         }
         log::trace!(
-            target: "loans::get_price", "price {:?}", price
+            target: "loans::get_price", "price: {:?}", price.into_inner()
         );
 
         Ok(price)
