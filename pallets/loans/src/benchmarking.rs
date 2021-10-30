@@ -78,8 +78,8 @@ fn transfer_initial_balance<
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),
         KSM,
-        [10u8; 3].to_vec(),
-        [11u8; 3].to_vec(),
+        b"kusama".to_vec(),
+        b"KSM".to_vec(),
         12,
         true,
     )
@@ -87,8 +87,8 @@ fn transfer_initial_balance<
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),
         XKSM,
-        [20u8; 3].to_vec(),
-        [21u8; 3].to_vec(),
+        b"xkusama".to_vec(),
+        b"XKSM".to_vec(),
         12,
         true,
     )
@@ -96,8 +96,8 @@ fn transfer_initial_balance<
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),
         USDT,
-        [30u8; 3].to_vec(),
-        [31u8; 3].to_vec(),
+        b"tether".to_vec(),
+        b"USDT".to_vec(),
         6,
         true,
     )
