@@ -1181,7 +1181,7 @@ impl<T: Config> Pallet<T> {
             .ok_or(ArithmeticError::Overflow)?;
 
         let collateral_value = Self::get_asset_value(collateral_asset_id, borrower_deposit_amount)?;
-        // liquidate_value contains the incentive for liquidator and the punishment for the borrower
+        // liquidate_value contains the incentive of liquidator and the punishment of the borrower
         let liquidate_value = Self::get_asset_value(liquidate_asset_id, repay_amount)?
             .checked_mul(&market.liquidate_incentive)
             .ok_or(ArithmeticError::Overflow)?;
@@ -1402,8 +1402,8 @@ impl<T: Config> Pallet<T> {
     }
 
     // Returns the value of the asset, in dollars.
-    // Formula: `value = oracle_price * balance / 1e18(price decimal) / asset_decimal`
-    // As the price is a result of `oracle_price * 10.pow(18-asset_decimal)`,
+    // Formula: `value = oracle_price * balance / 1e18(oracle_price_decimal) / asset_decimal`
+    // As the price is a result of `oracle_price * 10.pow(18 - asset_decimal)`,
     // then `value = price * balance / 1e18`.
     // We use FixedU128::from_inner(balance) instead of `balance / 1e18`.
     //
