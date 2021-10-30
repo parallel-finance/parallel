@@ -28,7 +28,7 @@ use frame_support::{
     match_type,
     traits::{
         fungibles::{InspectMetadata, Mutate},
-        Contains, Everything, InstanceFilter, Nothing, OnRuntimeUpgrade,
+        Contains, Everything, InstanceFilter, Nothing,
     },
     PalletId,
 };
@@ -1409,16 +1409,8 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPallets,
-    SetSafeXcmVersion,
+    (),
 >;
-
-pub struct SetSafeXcmVersion;
-impl OnRuntimeUpgrade for SetSafeXcmVersion {
-    fn on_runtime_upgrade() -> u64 {
-        let _ = PolkadotXcm::force_default_xcm_version(Origin::root(), Some(2));
-        RocksDbWeight::get().writes(1)
-    }
-}
 
 impl_runtime_apis! {
     impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
