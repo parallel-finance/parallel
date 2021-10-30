@@ -30,6 +30,7 @@ parachains:
       - --rpc-methods=unsafe
       - --force-authoring
       - -lxcm=trace
+      - -lloans=trace
     relaychainFlags:
       - --no-beefy
     nodes:
