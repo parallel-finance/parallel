@@ -229,7 +229,9 @@ impl Contains<Call> for BaseCallFilter {
             Call::Loans(_) |
             Call::Prices(_) |
             // Membership
-            Call::OracleMembership(_)
+            Call::OracleMembership(_) |
+            Call::GeneralCouncilMembership(_) |
+            Call::TechnicalCommitteeMembership(_)
         )
 
         // // Parachain
@@ -249,8 +251,6 @@ impl Contains<Call> for BaseCallFilter {
         // Call::NomineeElection(_) |
 
         // // Membership
-        // Call::GeneralCouncilMembership(_) |
-        // Call::TechnicalCommitteeMembership(_) |
         // Call::LiquidStakingAgentMembership(_) |
         // Call::ValidatorFeedersMembership(_)
     }

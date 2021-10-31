@@ -15,11 +15,10 @@
 use cumulus_primitives_core::ParaId;
 use parallel_runtime::{
     opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, DemocracyConfig,
-    GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
-    LiquidStakingAgentMembershipConfig, LiquidStakingConfig, OracleMembershipConfig,
-    ParachainInfoConfig, PolkadotXcmConfig, SessionConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeMembershipConfig, ValidatorFeedersMembershipConfig, VestingConfig,
-    WASM_BINARY,
+    GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig, LiquidStakingConfig,
+    OracleMembershipConfig, ParachainInfoConfig, PolkadotXcmConfig, SessionConfig, SudoConfig,
+    SystemConfig, TechnicalCommitteeMembershipConfig, ValidatorFeedersMembershipConfig,
+    VestingConfig, WASM_BINARY,
 };
 use primitives::{network::NetworkType, *};
 use sc_service::ChainType;
@@ -55,7 +54,6 @@ pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
             ];
             let oracle_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Ferdie")];
             let validator_feeders = vec![get_account_id_from_seed::<sr25519::Public>("Eve")];
-            let liquid_staking_agents = vec![get_account_id_from_seed::<sr25519::Public>("Dave")];
             let initial_allocation: Vec<(AccountId, Balance)> = accumulate(
                 vec![
                     // Faucet accounts
@@ -104,7 +102,6 @@ pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
                 oracle_accounts,
                 initial_allocation,
                 validator_feeders,
-                liquid_staking_agents,
                 council,
                 technical_committee,
                 id,
@@ -167,7 +164,6 @@ pub fn parallel_config(_id: ParaId) -> Result<ChainSpec, String> {
     //         ];
     //         let oracle_accounts = vec![];
     //         let validator_feeders = vec![];
-    //         let liquid_staking_agents = vec![];
     //         let initial_allocation: Vec<(AccountId, Balance)> = serde_json::from_str(include_str!(
     //             "../../../../resources/parallel-allocation-PARA.json"
     //         ))
@@ -182,7 +178,6 @@ pub fn parallel_config(_id: ParaId) -> Result<ChainSpec, String> {
     //             oracle_accounts,
     //             initial_allocation,
     //             validator_feeders,
-    //             liquid_staking_agents,
     //             council,
     //             technical_committee,
     //             id,
@@ -211,7 +206,6 @@ fn parallel_genesis(
     oracle_accounts: Vec<AccountId>,
     initial_allocation: Vec<(AccountId, Balance)>,
     validator_feeders: Vec<AccountId>,
-    liquid_staking_agents: Vec<AccountId>,
     council: Vec<AccountId>,
     technical_committee: Vec<AccountId>,
     id: ParaId,
@@ -273,10 +267,6 @@ fn parallel_genesis(
         treasury: Default::default(),
         oracle_membership: OracleMembershipConfig {
             members: oracle_accounts,
-            phantom: Default::default(),
-        },
-        liquid_staking_agent_membership: LiquidStakingAgentMembershipConfig {
-            members: liquid_staking_agents,
             phantom: Default::default(),
         },
         validator_feeders_membership: ValidatorFeedersMembershipConfig {
