@@ -129,8 +129,6 @@ pub mod pallet {
         DepositsAreNotCollateral,
         /// Insufficient shortfall to repay
         InsufficientShortfall,
-        /// Liquidate value overflow
-        LiquidateValueOverflow,
         /// Insufficient reserves
         InsufficientReserves,
         /// Invalid rate model params
@@ -889,16 +887,13 @@ impl<T: Config> Pallet<T> {
 
     fn total_borrowed_value(borrower: &T::AccountId) -> Result<FixedU128, DispatchError> {
         let mut total_borrow_value: FixedU128 = FixedU128::zero();
-
         for (asset_id, _) in Self::active_markets() {
             let currency_borrow_amount = Self::current_borrow_balance(borrower, asset_id)?;
             if currency_borrow_amount.is_zero() {
                 continue;
             }
-            let borrow_currency_price = Self::get_price(asset_id)?;
-            total_borrow_value = borrow_currency_price
-                .checked_mul(&FixedU128::from_inner(currency_borrow_amount))
-                .and_then(|r| r.checked_add(&total_borrow_value))
+            total_borrow_value = Self::get_asset_value(asset_id, currency_borrow_amount)?
+                .checked_add(&total_borrow_value)
                 .ok_or(ArithmeticError::Overflow)?;
         }
 
@@ -919,16 +914,12 @@ impl<T: Config> Pallet<T> {
         if deposits.voucher_balance.is_zero() {
             return Ok(FixedU128::zero());
         }
-        let exchange_rate = ExchangeRate::<T>::get(asset_id);
-        let currency_price = Self::get_price(asset_id)?;
         let market = Self::market(asset_id)?;
-        let collateral_amount = exchange_rate
+        let collateral_amount = Self::exchange_rate(asset_id)
             .checked_mul_int(market.collateral_factor.mul_floor(deposits.voucher_balance))
             .ok_or(ArithmeticError::Overflow)?;
 
-        Ok(currency_price
-            .checked_mul(&FixedU128::from_inner(collateral_amount))
-            .ok_or(ArithmeticError::Overflow)?)
+        Self::get_asset_value(asset_id, collateral_amount)
     }
 
     fn total_collateral_value(borrower: &T::AccountId) -> Result<FixedU128, DispatchError> {
@@ -967,19 +958,15 @@ impl<T: Config> Pallet<T> {
         let redeem_amount = Self::calc_underlying_amount(voucher_amount, exchange_rate)?;
         Self::ensure_enough_cash(asset_id, redeem_amount)?;
         let market = Self::market(asset_id)?;
-        let redeem_effects_value = Self::get_price(asset_id)?
-            .checked_mul(&FixedU128::from_inner(
-                market.collateral_factor.mul_ceil(redeem_amount),
-            ))
-            .ok_or(ArithmeticError::Overflow)?;
-
-        let (liquidity, _) = Self::get_account_liquidity(redeemer)?;
+        let effects_amount = market.collateral_factor.mul_ceil(redeem_amount);
+        let redeem_effects_value = Self::get_asset_value(asset_id, effects_amount)?;
         log::trace!(
             target: "loans::redeem_allowed",
-            "liquidity: {:?}, redeem_value: {:?}",
-            liquidity.into_inner(),
+            "redeem_amount: {:?}, redeem_dffects_value: {:?}",
+            redeem_amount,
             redeem_effects_value.into_inner(),
         );
+        let (liquidity, _) = Self::get_account_liquidity(redeemer)?;
         if liquidity < redeem_effects_value {
             return Err(Error::<T>::InsufficientLiquidity.into());
         }
@@ -1029,9 +1016,7 @@ impl<T: Config> Pallet<T> {
         borrow_amount: BalanceOf<T>,
     ) -> DispatchResult {
         Self::ensure_enough_cash(asset_id, borrow_amount)?;
-        let borrow_value = Self::get_price(asset_id)?
-            .checked_mul(&FixedU128::from_inner(borrow_amount))
-            .ok_or(ArithmeticError::Overflow)?;
+        let borrow_value = Self::get_asset_value(asset_id, borrow_amount)?;
         let (liquidity, _) = Self::get_account_liquidity(borrower)?;
         if liquidity < borrow_value {
             return Err(Error::<T>::InsufficientLiquidity.into());
@@ -1195,17 +1180,11 @@ impl<T: Config> Pallet<T> {
             .checked_mul_int(deposits.voucher_balance)
             .ok_or(ArithmeticError::Overflow)?;
 
-        // Calculate the collateral value
-        let collateral_token_price = Self::get_price(collateral_asset_id)?;
-        let collateral_value = collateral_token_price
-            .checked_mul(&FixedU128::from_inner(borrower_deposit_amount))
+        let collateral_value = Self::get_asset_value(collateral_asset_id, borrower_deposit_amount)?;
+        // liquidate_value contains the incentive of liquidator and the punishment of the borrower
+        let liquidate_value = Self::get_asset_value(liquidate_asset_id, repay_amount)?
+            .checked_mul(&market.liquidate_incentive)
             .ok_or(ArithmeticError::Overflow)?;
-
-        // The incentive for liquidator and punishment for the borrower
-        let liquidate_value = Self::get_price(liquidate_asset_id)?
-            .checked_mul(&FixedU128::from_inner(repay_amount))
-            .and_then(|a| a.checked_mul(&market.liquidate_incentive))
-            .ok_or(Error::<T>::LiquidateValueOverflow)?;
 
         if collateral_value < liquidate_value {
             return Err(Error::<T>::InsufficientCollateral.into());
@@ -1220,6 +1199,7 @@ impl<T: Config> Pallet<T> {
         // if liquidate_value >= 340282366920938463463.374607431768211455,
         // FixedU128::saturating_from_integer(liquidate_value) will overflow, so we use from_inner
         // instead of saturating_from_integer, and after calculation use into_inner to get final value.
+        let collateral_token_price = Self::get_price(collateral_asset_id)?;
         let real_collateral_underlying_amount = liquidate_value
             .checked_div(&collateral_token_price)
             .ok_or(ArithmeticError::Underflow)?
@@ -1402,6 +1382,12 @@ impl<T: Config> Pallet<T> {
         T::Assets::reducible_balance(asset_id, &Self::account_id(), false)
     }
 
+    // Returns the uniform format price.
+    // Formula: `price = oracle_price * 10.pow(18 - asset_decimal)`
+    // This particular price makes it easy to calculate the value ,
+    // because we don't have to consider decimal for each asset. ref: get_asset_value
+    //
+    // Reutrns `Err` if the oracle price not ready
     pub fn get_price(asset_id: AssetIdOf<T>) -> Result<Price, DispatchError> {
         let (price, _) =
             T::PriceFeeder::get_price(&asset_id).ok_or(Error::<T>::PriceOracleNotReady)?;
@@ -1413,6 +1399,24 @@ impl<T: Config> Pallet<T> {
         );
 
         Ok(price)
+    }
+
+    // Returns the value of the asset, in dollars.
+    // Formula: `value = oracle_price * balance / 1e18(oracle_price_decimal) / asset_decimal`
+    // As the price is a result of `oracle_price * 10.pow(18 - asset_decimal)`,
+    // then `value = price * balance / 1e18`.
+    // We use FixedU128::from_inner(balance) instead of `balance / 1e18`.
+    //
+    // Returns `Err` if oracle price not ready or arithmetic error.
+    pub fn get_asset_value(
+        asset_id: AssetIdOf<T>,
+        amount: BalanceOf<T>,
+    ) -> Result<FixedU128, DispatchError> {
+        let value = Self::get_price(asset_id)?
+            .checked_mul(&FixedU128::from_inner(amount))
+            .ok_or(ArithmeticError::Overflow)?;
+
+        Ok(value)
     }
 
     // Returns a stored Market.
