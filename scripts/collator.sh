@@ -44,7 +44,7 @@ docker run --restart=always --name heiko-collator \
   -p $RELAY_P2P_PORT:$RELAY_P2P_PORT \
   -v "$VOLUME:/data" \
   -v "$(realpath $KEYSTORE_PATH):/app/keystore" \
-  parallelfinance/parallel:v1.7.1 \
+  parallelfinance/parallel:v1.7.2 \
     -d /data \
     --chain=$PARA_CHAIN \
     --collator \
