@@ -919,7 +919,7 @@ impl<T: Config> Pallet<T> {
             .checked_mul_int(market.collateral_factor.mul_floor(deposits.voucher_balance))
             .ok_or(ArithmeticError::Overflow)?;
 
-        Ok(Self::get_asset_value(asset_id, collateral_amount)?)
+        Self::get_asset_value(asset_id, collateral_amount)
     }
 
     fn total_collateral_value(borrower: &T::AccountId) -> Result<FixedU128, DispatchError> {
