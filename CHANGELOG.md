@@ -1,5 +1,9 @@
 # CHANGE LOG
 
+## 2021.11.1
+
+- fix the inconsistent liquidity calculation (#839)
+
 ## 2021.10.30
 
 - Bump to polkadot-v0.9.12 (#819)

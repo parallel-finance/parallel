@@ -80,7 +80,7 @@ fn redeem_all_should_be_accurate() {
         run_to_block(150);
 
         assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), KSM));
-        // It failed with InsufficientLiquidity before #
+        // It failed with InsufficientLiquidity before #839
         assert_ok!(Loans::redeem_all(Origin::signed(ALICE), KSM));
     })
 }
