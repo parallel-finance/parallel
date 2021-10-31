@@ -199,18 +199,11 @@ impl Contains<Call> for BaseCallFilter {
     fn contains(call: &Call) -> bool {
         matches!(
             call,
-            // System, Utility, Currencies
+            // System
             Call::System(_) |
             Call::Timestamp(_) |
-            Call::Multisig(_)  |
-            Call::Utility(_) |
-            Call::Proxy(_) |
-            Call::Balances(_) |
-            Call::Assets(pallet_assets::Call::mint { .. }) |
-            Call::Assets(pallet_assets::Call::transfer { .. }) |
-            Call::Assets(pallet_assets::Call::burn { .. }) |
             // Governance
-            Call::Sudo(_) |
+            Call::Sudo(_)  |
             Call::Democracy(_) |
             Call::GeneralCouncil(_) |
             Call::TechnicalCommittee(_) |
@@ -218,35 +211,45 @@ impl Contains<Call> for BaseCallFilter {
             Call::Scheduler(_) |
             // Parachain
             Call::ParachainSystem(_) |
-            Call::XcmpQueue(_) |
-            Call::DmpQueue(_) |
-            Call::PolkadotXcm(_) |
-            Call::CumulusXcm(_) |
             // Consensus
             Call::Authorship(_) |
-            Call::CollatorSelection(_) |
             Call::Session(_) |
+            // Utility
+            Call::Utility(_) |
+            Call::Multisig(_) |
+            Call::Proxy(_) |
             // 3rd Party
-            Call::Oracle(_) |
-            Call::XTokens(_) |
-            Call::OrmlXcm(_) |
             Call::Vesting(_) |
-            // Loans
-            Call::Loans(_) |
-            // Call::Liquidation(_) |
-            Call::Prices(_) |
-            // LiquidStaking
-            Call::LiquidStaking(_) |
-            Call::NomineeElection(_) |
             // Membership
             Call::GeneralCouncilMembership(_) |
-            Call::TechnicalCommitteeMembership(_) |
-            Call::OracleMembership(_) |
-            Call::LiquidStakingAgentMembership(_) |
-            Call::ValidatorFeedersMembership(_) |
-            // AMM
-            Call::AMM(_)
+            Call::TechnicalCommitteeMembership(_)
         )
+        // // 3rd Party
+        // Call::Oracle(_) |
+        // Call::XTokens(_) |
+        // Call::OrmlXcm(_) |
+
+        // // Parachain
+        // Call::XcmpQueue(_) |
+        // Call::DmpQueue(_) |
+        // Call::PolkadotXcm(_) |
+        // Call::CumulusXcm(_) |
+
+        // // Consensus
+        // Call::CollatorSelection(_) |
+
+        // // Loans
+        // Call::Liquidation(_) |
+        // Call::Loans(_) |
+        // Call::Prices(_) |
+
+        // // LiquidStaking
+        // Call::LiquidStaking(_) |
+        // Call::NomineeElection(_) |
+
+        // // Membership
+        // Call::ValidatorFeedersMembership(_) |
+        // Call::OracleMembership(_)
     }
 }
 
@@ -441,24 +444,6 @@ impl pallet_loans::Config for Runtime {
     type WeightInfo = pallet_loans::weights::SubstrateWeight<Runtime>;
     type UnixTime = Timestamp;
     type Assets = CurrencyAdapter;
-}
-
-parameter_types! {
-    pub const LiquidStakingAgentMaxMembers: u32 = 100;
-}
-
-type LiquidStakingAgentMembershipInstance = pallet_membership::Instance4;
-impl pallet_membership::Config<LiquidStakingAgentMembershipInstance> for Runtime {
-    type Event = Event;
-    type AddOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type RemoveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type SwapOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type ResetOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type PrimeOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type MembershipInitialized = ();
-    type MembershipChanged = ();
-    type MaxMembers = LiquidStakingAgentMaxMembers;
-    type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1356,8 +1341,7 @@ construct_runtime!(
         GeneralCouncilMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 70,
         TechnicalCommitteeMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>} = 71,
         OracleMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
-        LiquidStakingAgentMembership: pallet_membership::<Instance4>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,
-        ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74,
+        ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,
 
         // AMM
         AMM: pallet_amm::{Pallet, Call, Storage, Event<T>} = 80,
