@@ -1307,6 +1307,19 @@ impl pallet_currency_adapter::Config for Runtime {
     type GetNativeCurrencyId = NativeCurrencyId;
 }
 
+parameter_types! {
+    pub const LMPalletId: PalletId = PalletId(*b"par/lqmp");
+    pub const MaxRewardTokens: u32 = 1000;
+}
+
+impl pallet_liquidity_mining::Config for Runtime {
+    type Event = Event;
+    type Assets = CurrencyAdapter;
+    type PalletId = LMPalletId;
+    type MaxRewardTokens = MaxRewardTokens;
+    type CreateOrigin = EnsureRoot<AccountId>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -1373,6 +1386,9 @@ construct_runtime!(
         AMM: pallet_amm::{Pallet, Call, Storage, Event<T>} = 80,
         AMMRoute: pallet_router::{Pallet, Call, Event<T>} = 81,
         CurrencyAdapter: pallet_currency_adapter::{Pallet, Call} = 82,
+
+        // LiquidityMining
+        LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 83,
     }
 );
 
