@@ -57,17 +57,17 @@ pub fn accumulate(
 
 /// set default ss58 crypto
 pub fn set_default_ss58_version(spec: &Box<dyn sc_service::ChainSpec>) {
-    use sp_core::crypto::Ss58AddressFormat;
+    use sp_core::crypto::Ss58AddressFormatRegistry;
 
     let ss58_version = if spec.is_heiko() {
-        Ss58AddressFormat::HeikoAccount
+        Ss58AddressFormatRegistry::HeikoAccount
     } else if spec.is_parallel() {
-        Ss58AddressFormat::ParallelAccount
+        Ss58AddressFormatRegistry::ParallelAccount
     } else {
-        Ss58AddressFormat::SubstrateAccount
+        Ss58AddressFormatRegistry::SubstrateAccount
     };
 
-    sp_core::crypto::set_default_ss58_version(ss58_version);
+    sp_core::crypto::set_default_ss58_version(ss58_version.into());
 }
 
 /// Generate chain properties for network.

@@ -28,8 +28,11 @@ use scale_info::TypeInfo;
 
 use frame_support::{
     dispatch::Weight,
-    log,
-    traits::{fungibles::Mutate, Contains, Everything, InstanceFilter, Nothing},
+    log, match_type,
+    traits::{
+        fungibles::{InspectMetadata, Mutate},
+        Contains, Everything, InstanceFilter, Nothing,
+    },
     PalletId,
 };
 use frame_system::{
@@ -44,7 +47,7 @@ use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::HEIKO_PREFIX,
-    tokens::{HKO, KSM, USDT, XKSM},
+    tokens::{HKO, KSM, XKSM},
     Index, *,
 };
 use sp_api::impl_runtime_apis;
@@ -56,7 +59,7 @@ use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{
         self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT,
-        BlockNumberProvider, Convert,
+        BlockNumberProvider, Convert, Zero,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Permill, RuntimeDebug,
@@ -132,7 +135,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("vanilla"),
     impl_name: create_runtime_str!("vanilla"),
     authoring_version: 1,
-    spec_version: 171,
+    spec_version: 172,
     impl_version: 20,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
@@ -584,7 +587,6 @@ impl pallet_authorship::Config for Runtime {
 }
 
 parameter_types! {
-    pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(33);
     pub const Period: u32 = 3 * MINUTES;
     pub const Offset: u32 = 0;
 }
@@ -601,7 +603,6 @@ impl pallet_session::Config for Runtime {
     type SessionHandler =
         <opaque::SessionKeys as sp_runtime::traits::OpaqueKeys>::KeyTypeIdProviders;
     type Keys = opaque::SessionKeys;
-    type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
     type WeightInfo = ();
 }
 
@@ -874,10 +875,17 @@ parameter_types! {
     pub KsmPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), ksm_per_second());
 }
 
+match_type! {
+    pub type ParentOrSiblings: impl Contains<MultiLocation> = {
+        MultiLocation { parents: 1, interior: Here } |
+        MultiLocation { parents: 1, interior: X1(_) }
+    };
+}
+
 pub type Barrier = (
     TakeWeightCredit,
     AllowKnownQueryResponses<PolkadotXcm>,
-    AllowSubscriptionsFrom<Everything>,
+    AllowSubscriptionsFrom<ParentOrSiblings>,
     AllowTopLevelPaidExecutionFrom<Everything>,
 );
 
@@ -959,13 +967,11 @@ impl DataProviderExtended<CurrencyId, TimeStampedPrice> for AggregatedDataProvid
 pub struct Decimal;
 impl DecimalProvider for Decimal {
     fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
-        // pallet_assets::Metadata::<Runtime>::get(asset_id).decimals
-        match *asset_id {
-            KSM | XKSM => Some(12),
-            HKO => Some(12),
-            USDT => Some(6),
-            _ => None,
+        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(asset_id);
+        if !decimal.is_zero() {
+            return Some(decimal);
         }
+        None
     }
 }
 

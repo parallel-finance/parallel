@@ -25,7 +25,11 @@ mod weights;
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
     dispatch::Weight,
-    traits::{fungibles::Mutate, Contains, Everything, Nothing},
+    match_type,
+    traits::{
+        fungibles::{InspectMetadata, Mutate},
+        Contains, Everything, Nothing,
+    },
     PalletId,
 };
 
@@ -41,7 +45,7 @@ use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{
         self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT,
-        BlockNumberProvider, Convert,
+        BlockNumberProvider, Convert, Zero,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Permill, RuntimeDebug,
@@ -62,7 +66,7 @@ use polkadot_parachain::primitives::Sibling;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::PARALLEL_PREFIX,
-    tokens::{DOT, PARA, USDT, XDOT},
+    tokens::{DOT, PARA, XDOT},
     Index, *,
 };
 
@@ -132,7 +136,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("parallel"),
     impl_name: create_runtime_str!("parallel"),
     authoring_version: 1,
-    spec_version: 171,
+    spec_version: 172,
     impl_version: 20,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
@@ -196,18 +200,11 @@ impl Contains<Call> for BaseCallFilter {
     fn contains(call: &Call) -> bool {
         matches!(
             call,
-            // System, Utility, Currencies
+            // System
             Call::System(_) |
             Call::Timestamp(_) |
-            Call::Multisig(_)  |
-            Call::Utility(_) |
-            Call::Proxy(_) |
-            Call::Balances(_) |
-            Call::Assets(pallet_assets::Call::mint { .. }) |
-            Call::Assets(pallet_assets::Call::transfer { .. }) |
-            Call::Assets(pallet_assets::Call::burn { .. }) |
             // Governance
-            Call::Sudo(_) |
+            Call::Sudo(_)  |
             Call::Democracy(_) |
             Call::GeneralCouncil(_) |
             Call::TechnicalCommittee(_) |
@@ -215,35 +212,45 @@ impl Contains<Call> for BaseCallFilter {
             Call::Scheduler(_) |
             // Parachain
             Call::ParachainSystem(_) |
-            Call::XcmpQueue(_) |
-            Call::DmpQueue(_) |
-            Call::PolkadotXcm(_) |
-            Call::CumulusXcm(_) |
             // Consensus
             Call::Authorship(_) |
-            Call::CollatorSelection(_) |
             Call::Session(_) |
+            // Utility
+            Call::Utility(_) |
+            Call::Multisig(_) |
+            Call::Proxy(_) |
             // 3rd Party
-            Call::Oracle(_) |
-            Call::XTokens(_) |
-            Call::OrmlXcm(_) |
             Call::Vesting(_) |
-            // Loans
-            Call::Loans(_) |
-            // Call::Liquidation(_) |
-            Call::Prices(_) |
-            // LiquidStaking
-            Call::LiquidStaking(_) |
-            Call::NomineeElection(_) |
             // Membership
             Call::GeneralCouncilMembership(_) |
-            Call::TechnicalCommitteeMembership(_) |
-            Call::OracleMembership(_) |
-            Call::LiquidStakingAgentMembership(_) |
-            Call::ValidatorFeedersMembership(_) |
-            // AMM
-            Call::AMM(_)
+            Call::TechnicalCommitteeMembership(_)
         )
+        // // 3rd Party
+        // Call::Oracle(_) |
+        // Call::XTokens(_) |
+        // Call::OrmlXcm(_) |
+
+        // // Parachain
+        // Call::XcmpQueue(_) |
+        // Call::DmpQueue(_) |
+        // Call::PolkadotXcm(_) |
+        // Call::CumulusXcm(_) |
+
+        // // Consensus
+        // Call::CollatorSelection(_) |
+
+        // // Loans
+        // Call::Liquidation(_) |
+        // Call::Loans(_) |
+        // Call::Prices(_) |
+
+        // // LiquidStaking
+        // Call::LiquidStaking(_) |
+        // Call::NomineeElection(_) |
+
+        // // Membership
+        // Call::ValidatorFeedersMembership(_) |
+        // Call::OracleMembership(_)
     }
 }
 
@@ -441,24 +448,6 @@ impl pallet_loans::Config for Runtime {
 }
 
 parameter_types! {
-    pub const LiquidStakingAgentMaxMembers: u32 = 100;
-}
-
-type LiquidStakingAgentMembershipInstance = pallet_membership::Instance4;
-impl pallet_membership::Config<LiquidStakingAgentMembershipInstance> for Runtime {
-    type Event = Event;
-    type AddOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type RemoveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type SwapOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type ResetOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type PrimeOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type MembershipInitialized = ();
-    type MembershipChanged = ();
-    type MaxMembers = LiquidStakingAgentMaxMembers;
-    type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
-}
-
-parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const DerivativeIndex: u16 = 0;
     pub const UnstakeQueueCapacity: u32 = 1000;
@@ -603,7 +592,6 @@ impl pallet_authorship::Config for Runtime {
 }
 
 parameter_types! {
-    pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(33);
     pub const Period: u32 = 6 * HOURS;
     pub const Offset: u32 = 0;
 }
@@ -620,7 +608,6 @@ impl pallet_session::Config for Runtime {
     type SessionHandler =
         <opaque::SessionKeys as sp_runtime::traits::OpaqueKeys>::KeyTypeIdProviders;
     type Keys = opaque::SessionKeys;
-    type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
     type WeightInfo = ();
 }
 
@@ -892,10 +879,17 @@ parameter_types! {
     pub DotPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), dot_per_second());
 }
 
+match_type! {
+    pub type ParentOrSiblings: impl Contains<MultiLocation> = {
+        MultiLocation { parents: 1, interior: Here } |
+        MultiLocation { parents: 1, interior: X1(_) }
+    };
+}
+
 pub type Barrier = (
     TakeWeightCredit,
     AllowKnownQueryResponses<PolkadotXcm>,
-    AllowSubscriptionsFrom<Everything>,
+    AllowSubscriptionsFrom<ParentOrSiblings>,
     AllowTopLevelPaidExecutionFrom<Everything>,
 );
 
@@ -977,13 +971,11 @@ impl DataProviderExtended<CurrencyId, TimeStampedPrice> for AggregatedDataProvid
 pub struct Decimal;
 impl DecimalProvider for Decimal {
     fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
-        // pallet_assets::Metadata::<Runtime>::get(asset_id).decimals
-        match *asset_id {
-            DOT | XDOT => Some(10),
-            PARA => Some(12),
-            USDT => Some(6),
-            _ => None,
+        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(asset_id);
+        if !decimal.is_zero() {
+            return Some(decimal);
         }
+        None
     }
 }
 
@@ -1363,8 +1355,7 @@ construct_runtime!(
         GeneralCouncilMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 70,
         TechnicalCommitteeMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>} = 71,
         OracleMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
-        LiquidStakingAgentMembership: pallet_membership::<Instance4>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,
-        ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74,
+        ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,
 
         // AMM
         AMM: pallet_amm::{Pallet, Call, Storage, Event<T>} = 80,
