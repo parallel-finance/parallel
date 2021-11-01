@@ -8,6 +8,7 @@ use primitives::tokens;
 use sp_runtime::traits::Zero;
 use sp_runtime::traits::{One, UniqueSaturatedInto};
 use sp_runtime::MultiAddress::Id;
+use xcm_simulator::TestExt;
 
 #[test]
 fn create_new_vault_should_work() {
@@ -105,11 +106,12 @@ fn contribute_should_work() {
 
 #[test]
 fn participate_should_work() {
-    new_test_ext().execute_with(|| {
+    let xcm_transfer_amount = 100_000;
+
+    ParaA::execute_with(|| {
         let crowdloan = ParaId::from(1337);
         let currency = tokens::DOT;
         let ctoken = 10;
-        let amount = 100_000;
 
         let contribution_strategy = ContributionStrategy::XCM; //XCM;
 
@@ -135,7 +137,7 @@ fn participate_should_work() {
         assert_ok!(Crowdloan::contribute(
             Origin::signed(ALICE), // origin
             crowdloan,             // crowdloan
-            amount,                // amount
+            xcm_transfer_amount,   // amount
         ));
 
         // do participate
@@ -146,7 +148,17 @@ fn participate_should_work() {
 
         let dot_bal = Assets::balance(tokens::DOT, ALICE);
 
-        assert_eq!(999_999_900_000, dot_bal)
+        // 10_000_000_000_000 -  100_000 == 9_999_999_900_000
+        assert_eq!(9_999_999_900_000, dot_bal)
+    });
+
+    Relay::execute_with(|| {
+        print_events::<westend_runtime::Runtime>("Relay");
+        let crowdloan_balance_on_relay = RelayBalances::free_balance(Crowdloan::account_id());
+
+        println!("{:#?}", crowdloan_balance_on_relay);
+
+        assert_eq!(crowdloan_balance_on_relay, xcm_transfer_amount)
     });
 }
 
@@ -319,6 +331,6 @@ fn slot_expired_should_work() {
 fn print_events<T: frame_system::Config>(context: &str) {
     println!("------ {:?} events ------", context);
     frame_system::Pallet::<T>::events().iter().for_each(|r| {
-        println!("{:?}", r.event);
+        println!("{:#?}", r.event);
     });
 }
