@@ -209,9 +209,8 @@ pub mod pallet {
             let asset_pool_account = Self::pool_account_id(asset);
 
             for (_, (b, r)) in rewards_per_block.enumerate() {
-                let balance =
-                    Self::block_to_balance(end.saturating_sub(start)).saturating_mul(b.clone());
-                T::Assets::transfer(r.clone(), &stash, &asset_pool_account, balance, true)?;
+                let balance = Self::block_to_balance(end.saturating_sub(start)).saturating_mul(*b);
+                T::Assets::transfer(*r, &stash, &asset_pool_account, balance, true)?;
             }
 
             let pool = Pool {
@@ -287,15 +286,9 @@ pub mod pallet {
                     let amount_to_reward = (amount
                         .checked_div(T::Assets::total_issuance(pool.shares))
                         .ok_or(ArithmeticError::Overflow)?)
-                    .saturating_mul(Self::block_to_balance(duration).saturating_mul(b.clone()));
+                    .saturating_mul(Self::block_to_balance(duration).saturating_mul(*b));
 
-                    T::Assets::transfer(
-                        r.clone(),
-                        &asset_pool_account,
-                        &who,
-                        amount_to_reward,
-                        true,
-                    )?;
+                    T::Assets::transfer(*r, &asset_pool_account, &who, amount_to_reward, true)?;
                 }
 
                 T::Assets::transfer(asset, &asset_pool_account, &who, amount, true)?;
@@ -317,6 +310,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     }
 
     fn block_to_balance(input: T::BlockNumber) -> T::Balance {
-        T::Balance::from(input.saturated_into::<u128>())
+        input.saturated_into::<u128>()
     }
 }
