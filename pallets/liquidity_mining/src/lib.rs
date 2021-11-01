@@ -18,12 +18,12 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+extern crate alloc;
+
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
 mod tests;
-
-extern crate alloc;
 
 use codec::{Decode, Encode};
 use frame_support::{
