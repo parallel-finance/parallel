@@ -68,3 +68,19 @@ fn ensure_capacity_fails_when_market_not_existed() {
         );
     });
 }
+
+#[test]
+fn redeem_all_should_be_accurate() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(Loans::mint(Origin::signed(ALICE), KSM, dollar(200)));
+        assert_ok!(Loans::collateral_asset(Origin::signed(ALICE), KSM, true));
+        assert_ok!(Loans::borrow(Origin::signed(ALICE), KSM, dollar(50)));
+
+        // let exchange_rate greater than 0.02
+        run_to_block(150);
+
+        assert_ok!(Loans::repay_borrow_all(Origin::signed(ALICE), KSM));
+        // It failed with InsufficientLiquidity before #839
+        assert_ok!(Loans::redeem_all(Origin::signed(ALICE), KSM));
+    })
+}

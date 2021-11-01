@@ -914,12 +914,13 @@ impl<T: Config> Pallet<T> {
         if deposits.voucher_balance.is_zero() {
             return Ok(FixedU128::zero());
         }
+        let exchange_rate = Self::exchange_rate(asset_id);
+        let underlying_amount =
+            Self::calc_underlying_amount(deposits.voucher_balance, exchange_rate)?;
         let market = Self::market(asset_id)?;
-        let collateral_amount = Self::exchange_rate(asset_id)
-            .checked_mul_int(market.collateral_factor.mul_floor(deposits.voucher_balance))
-            .ok_or(ArithmeticError::Overflow)?;
+        let effects_amount = market.collateral_factor.mul_ceil(underlying_amount);
 
-        Self::get_asset_value(asset_id, collateral_amount)
+        Self::get_asset_value(asset_id, effects_amount)
     }
 
     fn total_collateral_value(borrower: &T::AccountId) -> Result<FixedU128, DispatchError> {
