@@ -130,6 +130,11 @@ impl<T: Config> Pallet<T> {
     fn get_emergency_price(asset_id: &CurrencyId) -> Option<PriceDetail> {
         Self::emergency_price(asset_id).and_then(|p| {
             let mantissa = Self::get_asset_mantissa(asset_id)?;
+            log::trace!(
+                target: "price::get_emergency_price",
+                "mantissa: {:?}",
+                mantissa
+            );
             p.checked_div(&FixedU128::from_inner(mantissa))
                 .map(|price| (price, 0))
         })
