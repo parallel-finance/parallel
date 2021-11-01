@@ -17,33 +17,13 @@ fn create_pool_should_work() {
             BOB,
             0,
             3,
-            vec![1; 1000].try_into().unwrap(),
-            vec![DOT; 1000].try_into().unwrap(),
+            vec![(1, DOT); 1000].try_into().unwrap(),
             SAMPLE_LP_TOKEN,
         ));
 
         assert!(Pools::<Test>::contains_key(DOT));
 
         assert_eq!(Assets::balance(DOT, BOB), initial_balance - 3000);
-    })
-}
-
-#[test]
-fn create_pool_should_not_work_if_block_and_rewards_not_same_size() {
-    new_test_ext().execute_with(|| {
-        assert_noop!(
-            LiquidityMining::create(
-                RawOrigin::Signed(ALICE).into(),
-                DOT,
-                BOB,
-                0,
-                3,
-                vec![1; 999].try_into().unwrap(),
-                vec![DOT; 1000].try_into().unwrap(),
-                SAMPLE_LP_TOKEN,
-            ),
-            Error::<Test>::PerBlockAndRewardsAreNotSameSize
-        );
     })
 }
 
@@ -56,8 +36,7 @@ fn create_pool_should_not_work_if_pool_already_exists() {
             BOB,
             0,
             3,
-            vec![1; 1000].try_into().unwrap(),
-            vec![DOT; 1000].try_into().unwrap(),
+            vec![(1, DOT); 1000].try_into().unwrap(),
             SAMPLE_LP_TOKEN,
         ));
 
@@ -68,8 +47,7 @@ fn create_pool_should_not_work_if_pool_already_exists() {
                 BOB,
                 0,
                 3,
-                vec![1; 1000].try_into().unwrap(),
-                vec![DOT; 1000].try_into().unwrap(),
+                vec![(1, DOT); 1000].try_into().unwrap(),
                 SAMPLE_LP_TOKEN,
             ),
             Error::<Test>::PoolAlreadyExists
@@ -87,8 +65,7 @@ fn create_pool_should_not_work_if_not_a_newly_asset() {
                 BOB,
                 0,
                 3,
-                vec![1; 1000].try_into().unwrap(),
-                vec![DOT; 1000].try_into().unwrap(),
+                vec![(1, DOT); 1000].try_into().unwrap(),
                 DOT,
             ),
             Error::<Test>::NotANewlyCreatedAsset
@@ -108,8 +85,7 @@ fn deposit_should_work() {
             BOB,
             0,
             3,
-            vec![1; 1000].try_into().unwrap(),
-            vec![DOT; 1000].try_into().unwrap(),
+            vec![(1, DOT); 1000].try_into().unwrap(),
             SAMPLE_LP_TOKEN,
         ));
 
@@ -154,8 +130,7 @@ fn deposit_should_not_work_if_not_a_valid_duration() {
             BOB,
             100,
             3,
-            vec![1; 1000].try_into().unwrap(),
-            vec![DOT; 1000].try_into().unwrap(),
+            vec![(1, DOT); 1000].try_into().unwrap(),
             SAMPLE_LP_TOKEN,
         ));
 
@@ -178,8 +153,7 @@ fn withdraw_should_work() {
             BOB,
             0,
             3,
-            vec![1; 1000].try_into().unwrap(),
-            vec![DOT; 1000].try_into().unwrap(),
+            vec![(1, DOT); 1000].try_into().unwrap(),
             SAMPLE_LP_TOKEN,
         ));
 

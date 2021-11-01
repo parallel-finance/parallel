@@ -85,8 +85,6 @@ pub mod pallet {
     pub enum Error<T, I = ()> {
         /// Pool does not exist
         PoolDoesNotExist,
-        /// Per block and rewards are not same size
-        PerBlockAndRewardsAreNotSameSize,
         /// Pool associacted with asset already exists
         PoolAlreadyExists,
         /// Not a newly created asset
@@ -121,14 +119,11 @@ pub mod pallet {
         Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, TypeInfo,
     )]
     #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-    pub struct Pool<BlockNumber, BoundedBalance, AssetId, BoundedTokens> {
+    pub struct Pool<BlockNumber, AssetId, BoundedTokens> {
         /// When the liquidity program starts
         start: BlockNumber,
         /// When the liquidity program stops
         end: BlockNumber,
-        /// How much is vested into the pool every block, will be shared among
-        /// all participants
-        per_block: BoundedBalance,
         /// Which assets we use to send rewards
         rewards: BoundedTokens,
         /// Which asset we use to represent shares of the pool
@@ -144,9 +139,8 @@ pub mod pallet {
         AssetIdOf<T, I>,
         Pool<
             T::BlockNumber,
-            BoundedVec<BalanceOf<T, I>, T::MaxRewardTokens>,
             AssetIdOf<T, I>,
-            BoundedVec<AssetIdOf<T, I>, T::MaxRewardTokens>,
+            BoundedVec<(BalanceOf<T, I>, AssetIdOf<T, I>), T::MaxRewardTokens>,
         >,
         OptionQuery,
     >;
@@ -176,16 +170,10 @@ pub mod pallet {
             stash: <T::Lookup as StaticLookup>::Source,
             start: T::BlockNumber,
             end: T::BlockNumber,
-            per_block: BoundedVec<BalanceOf<T, I>, T::MaxRewardTokens>,
-            rewards: BoundedVec<AssetIdOf<T, I>, T::MaxRewardTokens>,
+            rewards: BoundedVec<(BalanceOf<T, I>, AssetIdOf<T, I>), T::MaxRewardTokens>,
             shares: AssetIdOf<T, I>,
         ) -> DispatchResultWithPostInfo {
             T::CreateOrigin::ensure_origin(origin)?;
-
-            ensure!(
-                per_block.len() == rewards.len(),
-                Error::<T, I>::PerBlockAndRewardsAreNotSameSize
-            );
 
             ensure!(
                 !Pools::<T, I>::contains_key(&asset),
@@ -205,18 +193,16 @@ pub mod pallet {
 
             let stash = T::Lookup::lookup(stash)?;
 
-            let rewards_per_block = per_block.iter().zip(rewards.iter());
             let asset_pool_account = Self::pool_account_id(asset);
 
-            for (_, (b, r)) in rewards_per_block.enumerate() {
-                let balance = Self::block_to_balance(end.saturating_sub(start)).saturating_mul(*b);
-                T::Assets::transfer(*r, &stash, &asset_pool_account, balance, true)?;
+            for (b, r) in rewards.clone() {
+                let balance = Self::block_to_balance(end.saturating_sub(start)).saturating_mul(b);
+                T::Assets::transfer(r, &stash, &asset_pool_account, balance, true)?;
             }
 
             let pool = Pool {
                 start,
                 end,
-                per_block,
                 rewards,
                 shares,
             };
@@ -278,17 +264,15 @@ pub mod pallet {
                     .take()
                     .ok_or(Error::<T, I>::PoolDoesNotExist)?;
 
-                let rewards_per_block = pool.per_block.iter().zip(pool.rewards.iter());
-
-                for (_, (b, r)) in rewards_per_block.enumerate() {
+                for (b, r) in pool.rewards.clone() {
                     let duration: T::BlockNumber =
                         <frame_system::Pallet<T>>::block_number().saturating_sub(pool.start);
                     let amount_to_reward = (amount
                         .checked_div(T::Assets::total_issuance(pool.shares))
                         .ok_or(ArithmeticError::Overflow)?)
-                    .saturating_mul(Self::block_to_balance(duration).saturating_mul(*b));
+                    .saturating_mul(Self::block_to_balance(duration).saturating_mul(b));
 
-                    T::Assets::transfer(*r, &asset_pool_account, &who, amount_to_reward, true)?;
+                    T::Assets::transfer(r, &asset_pool_account, &who, amount_to_reward, true)?;
                 }
 
                 T::Assets::transfer(asset, &asset_pool_account, &who, amount, true)?;
