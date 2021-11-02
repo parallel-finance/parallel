@@ -130,6 +130,11 @@ impl<T: Config> Pallet<T> {
     fn get_emergency_price(asset_id: &CurrencyId) -> Option<PriceDetail> {
         Self::emergency_price(asset_id).and_then(|p| {
             let mantissa = Self::get_asset_mantissa(asset_id)?;
+            log::trace!(
+                target: "price::get_emergency_price",
+                "mantissa: {:?}",
+                mantissa
+            );
             p.checked_div(&FixedU128::from_inner(mantissa))
                 .map(|price| (price, 0))
         })
@@ -137,44 +142,41 @@ impl<T: Config> Pallet<T> {
 
     fn get_asset_mantissa(asset_id: &CurrencyId) -> Option<u128> {
         let decimal = T::Decimal::get_decimal(asset_id)?;
-        log::trace!("asset id {:#?}, decimal {:#?}", asset_id, decimal);
         10u128.checked_pow(decimal as u32)
     }
 }
 
 impl<T: Config> PriceFeeder for Pallet<T> {
-    /// Get price and timestamp by currency id
+    /// Returns the uniform format price and timestamp by asset id.
+    /// Formula: `price = oracle_price * 10.pow(18 - asset_decimal)`
+    /// We use `oracle_price.checked_div(&FixedU128::from_inner(mantissa))` represent that.
+    /// This particular price makes it easy to calculate the asset value in other pallets,
+    /// because we don't have to consider decimal for each asset.
+    ///
     /// Timestamp is zero means the price is emergency price
     fn get_price(asset_id: &CurrencyId) -> Option<PriceDetail> {
         // if emergency price exists, return it, otherwise return latest price from oracle.
         Self::get_emergency_price(asset_id).or_else(|| {
+            let mantissa = Self::get_asset_mantissa(asset_id)?;
             match T::LiquidStakingCurrenciesProvider::get_staking_currency()
                 .zip(T::LiquidStakingCurrenciesProvider::get_liquid_currency())
             {
                 Some((staking_currency, liquid_currency)) if asset_id == &liquid_currency => {
                     T::Source::get(&staking_currency).and_then(|p| {
-                        10u128
-                            .checked_pow(T::Decimal::get_decimal(&staking_currency)?.into())
-                            .and_then(|d| {
-                                p.value
-                                    .checked_div(&FixedU128::from_inner(d))
-                                    .and_then(|staking_currency_price| {
-                                        staking_currency_price.checked_mul(
-                                        &T::LiquidStakingExchangeRateProvider::get_exchange_rate(),
-                                    )
-                                    })
-                                    .map(|price| (price, p.timestamp))
+                        p.value
+                            .checked_div(&FixedU128::from_inner(mantissa))
+                            .and_then(|staking_currency_price| {
+                                staking_currency_price.checked_mul(
+                                    &T::LiquidStakingExchangeRateProvider::get_exchange_rate(),
+                                )
                             })
+                            .map(|price| (price, p.timestamp))
                     })
                 }
                 _ => T::Source::get(asset_id).and_then(|p| {
-                    10u128
-                        .checked_pow(T::Decimal::get_decimal(asset_id)?.into())
-                        .and_then(|d| {
-                            p.value
-                                .checked_div(&FixedU128::from_inner(d))
-                                .map(|price| (price, p.timestamp))
-                        })
+                    p.value
+                        .checked_div(&FixedU128::from_inner(mantissa))
+                        .map(|price| (price, p.timestamp))
                 }),
             }
         })
