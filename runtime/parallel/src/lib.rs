@@ -91,7 +91,7 @@ pub use pallet_liquid_staking;
 use currency::*;
 use fee::*;
 pub use pallet_amm;
-pub use pallet_liquidity_mining;
+// pub use pallet_liquidity_mining;
 pub use pallet_loans;
 pub use pallet_multisig;
 pub use pallet_nominee_election;
@@ -1284,18 +1284,17 @@ impl pallet_currency_adapter::Config for Runtime {
     type GetNativeCurrencyId = NativeCurrencyId;
 }
 
-parameter_types! {
-    pub const LMPalletId: PalletId = PalletId(*b"par/lqmp");
-    pub const MaxRewardTokens: u32 = 1000;
-}
-
-impl pallet_liquidity_mining::Config for Runtime {
-    type Event = Event;
-    type Assets = CurrencyAdapter;
-    type PalletId = LMPalletId;
-    type MaxRewardTokens = MaxRewardTokens;
-    type CreateOrigin = EnsureRoot<AccountId>;
-}
+// parameter_types! {
+//     pub const LMPalletId: PalletId = PalletId(*b"par/lqmp");
+//     pub const MaxRewardTokens: u32 = 1000;
+// }
+// impl pallet_liquidity_mining::Config for Runtime {
+//     type Event = Event;
+//     type Assets = CurrencyAdapter;
+//     type PalletId = LMPalletId;
+//     type MaxRewardTokens = MaxRewardTokens;
+//     type CreateOrigin = EnsureRoot<AccountId>;
+// }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
@@ -1364,7 +1363,7 @@ construct_runtime!(
         CurrencyAdapter: pallet_currency_adapter::{Pallet, Call} = 82,
 
         // LiquidityMining
-        LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 83,
+        // LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 83,
     }
 );
 
