@@ -204,7 +204,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::System(_) |
             Call::Timestamp(_) |
             // Governance
-            Call::Sudo(_)  |
+            Call::Sudo(_) |
             Call::Democracy(_) |
             Call::GeneralCouncil(_) |
             Call::TechnicalCommittee(_) |
