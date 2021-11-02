@@ -1561,6 +1561,7 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_amm, AMM);
             list_benchmark!(list, extra, pallet_liquid_staking, LiquidStaking);
             list_benchmark!(list, extra, pallet_router, AMMRoute);
+            list_benchmark!(list, extra, pallet_liquidity_mining, LiquidityMining);
 
             let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1603,6 +1604,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_amm, AMM);
             add_benchmark!(params, batches, pallet_liquid_staking, LiquidStaking);
             add_benchmark!(params, batches, pallet_router, AMMRoute);
+            add_benchmark!(params, batches, pallet_liquidity_mining, LiquidityMining);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)

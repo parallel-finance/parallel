@@ -25,6 +25,8 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+mod benchmarking;
+
 use codec::{Decode, Encode};
 use frame_support::{
     pallet_prelude::*,

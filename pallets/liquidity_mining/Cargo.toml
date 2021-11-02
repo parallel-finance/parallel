@@ -18,17 +18,20 @@ scale-info         = { version = '1.0', default-features = false, features = ['d
 serde              = { version = '1', features = ['derive'], optional = true }
 sp-io              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
 sp-runtime         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
+sp-std             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
 
 
 [dev-dependencies]
 pallet-balances         = { branch = 'polkadot-v0.9.12', git = 'https://github.com/paritytech/substrate.git' }
 pallet-currency-adapter = { path = '../currency-adapter' }
 sp-core                 = { branch = 'polkadot-v0.9.12', git = 'https://github.com/paritytech/substrate.git' }
-sp-std                  = { branch = 'polkadot-v0.9.12', git = 'https://github.com/paritytech/substrate.git' }
 
 [features]
 default            = ['std']
-runtime-benchmarks = ['frame-benchmarking']
+runtime-benchmarks = [
+	'frame-benchmarking',
+	'frame-system/runtime-benchmarks',
+]
 std                = [
   'serde',
   'codec/std',
@@ -39,5 +42,6 @@ std                = [
   'sp-runtime/std',
   'pallet-assets/std',
   'scale-info/std',
+  'sp-std/std',
 ]
 try-runtime        = ['frame-support/try-runtime']
