@@ -6211,7 +6211,6 @@ dependencies = [
  "pallet-democracy",
  "pallet-liquid-staking",
  "pallet-liquidation",
- "pallet-liquidity-mining",
  "pallet-loans",
  "pallet-loans-rpc-runtime-api",
  "pallet-membership",
