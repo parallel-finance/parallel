@@ -140,7 +140,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_version: 172,
     impl_version: 20,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 2,
+    transaction_version: 3,
 };
 
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
@@ -251,7 +251,6 @@ impl Contains<Call> for BaseCallFilter {
         // Call::NomineeElection(_) |
 
         // // Membership
-        // Call::LiquidStakingAgentMembership(_) |
         // Call::ValidatorFeedersMembership(_)
     }
 }
@@ -446,24 +445,6 @@ impl pallet_loans::Config for Runtime {
     type WeightInfo = pallet_loans::weights::SubstrateWeight<Runtime>;
     type UnixTime = Timestamp;
     type Assets = CurrencyAdapter;
-}
-
-parameter_types! {
-    pub const LiquidStakingAgentMaxMembers: u32 = 100;
-}
-
-type LiquidStakingAgentMembershipInstance = pallet_membership::Instance4;
-impl pallet_membership::Config<LiquidStakingAgentMembershipInstance> for Runtime {
-    type Event = Event;
-    type AddOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type RemoveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type SwapOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type ResetOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type PrimeOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type MembershipInitialized = ();
-    type MembershipChanged = ();
-    type MaxMembers = LiquidStakingAgentMaxMembers;
-    type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1307,18 +1288,18 @@ impl pallet_currency_adapter::Config for Runtime {
     type GetNativeCurrencyId = NativeCurrencyId;
 }
 
-parameter_types! {
-    pub const LMPalletId: PalletId = PalletId(*b"par/lqmp");
-    pub const MaxRewardTokens: u32 = 1000;
-}
-
-impl pallet_liquidity_mining::Config for Runtime {
-    type Event = Event;
-    type Assets = CurrencyAdapter;
-    type PalletId = LMPalletId;
-    type MaxRewardTokens = MaxRewardTokens;
-    type CreateOrigin = EnsureRoot<AccountId>;
-}
+// parameter_types! {
+//     pub const LMPalletId: PalletId = PalletId(*b"par/lqmp");
+//     pub const MaxRewardTokens: u32 = 1000;
+// }
+//
+// impl pallet_liquidity_mining::Config for Runtime {
+//     type Event = Event;
+//     type Assets = CurrencyAdapter;
+//     type PalletId = LMPalletId;
+//     type MaxRewardTokens = MaxRewardTokens;
+//     type CreateOrigin = EnsureRoot<AccountId>;
+// }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
@@ -1379,8 +1360,7 @@ construct_runtime!(
         GeneralCouncilMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 70,
         TechnicalCommitteeMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>} = 71,
         OracleMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
-        LiquidStakingAgentMembership: pallet_membership::<Instance4>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,
-        ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74,
+        ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,
 
         // AMM
         AMM: pallet_amm::{Pallet, Call, Storage, Event<T>} = 80,
@@ -1388,7 +1368,7 @@ construct_runtime!(
         CurrencyAdapter: pallet_currency_adapter::{Pallet, Call} = 82,
 
         // LiquidityMining
-        LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 83,
+        // LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 83,
     }
 );
 
