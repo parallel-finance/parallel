@@ -16,8 +16,8 @@ PARA_P2P_PORT=30333
 
 PARA_ID=2085
 
-PARA_CHAIN="heiko"
-RELAY_CHAIN="kusama"
+PARA_CHAIN="${4:-heiko}"
+RELAY_CHAIN="${5:-kusama}"
 VOLUME="chains"
 NODE_KEY="$1"
 KEYSTORE_PATH="$2"
@@ -27,14 +27,14 @@ if [ $# -lt 3 ]; then
   echo "help: ./collator.sh <NODE_KEY> <KEYSTORE_PATH> <NODE_NAME>" && exit 1
 fi
 
-docker container stop heiko-collator || true
-docker container rm heiko-collator || true
+docker container stop $PARA_CHAIN-collator || true
+docker container rm $PARA_CHAIN-collator || true
 
 # docker volume rm $VOLUME || true
 
 docker volume create $VOLUME || true
 
-docker run --restart=always --name heiko-collator \
+docker run --restart=always --name $PARA_CHAIN-collator \
   -d \
   -p $PARA_WS_PORT:$PARA_WS_PORT \
   -p $PARA_RPC_PORT:$PARA_RPC_PORT \
@@ -71,4 +71,4 @@ docker run --restart=always --name heiko-collator \
     --listen-addr=/ip4/0.0.0.0/tcp/$RELAY_P2P_PORT \
     --name="${NODE_NAME}_Embedded_Relay"
 
-# docker logs -f heiko-collator
+# docker logs -f $PARA_CHAIN-collator

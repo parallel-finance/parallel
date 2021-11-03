@@ -6,15 +6,22 @@ cd $DIR
 
 set -xe
 
+# https://dot-rocksdb.polkashots.io
+# https://ksm-rocksdb.polkashots.io
+
 DB_PATH="polkadot/chains/ksmcc3"
-SNAPSHOT_PATH="full"
+SNAPSHOT_PATH="db/full"
 VOLUME="chains"
+
+if [ "$1" == "--polkadot" ]; then
+  DB_PATH="polkadot/chains/polkadot"
+fi
 
 # docker volume rm $VOLUME || true
 docker volume create $VOLUME || true
 
 mountpoint=$(docker volume inspect $VOLUME | jq '.[].Mountpoint' | tr -d '"')
-sudo mkdir -p $mountpoint/$DB_PATH/db
+sudo mkdir -p $mountpoint/$DB_PATH/db || true
 sudo rm -fr $mountpoint/$DB_PATH/db/full
 sudo mv $SNAPSHOT_PATH $mountpoint/$DB_PATH/db
 
