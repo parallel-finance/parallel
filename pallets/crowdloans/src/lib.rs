@@ -49,7 +49,6 @@ pub mod pallet {
         DispatchError,
     };
     use xcm::latest::prelude::*;
-    use xcm::DoubleEncoded;
 
     pub type AssetIdOf<T> =
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
@@ -485,41 +484,6 @@ pub mod pallet {
         // Returns `Err` if market does not exist.
         pub fn vault(crowdloan: ParaId) -> Result<Vault<T, AssetIdOf<T>>, DispatchError> {
             Vaults::<T>::try_get(crowdloan).map_err(|_err| Error::<T>::VaultDoesNotExist.into())
-        }
-
-        #[allow(dead_code)]
-        fn ump_transact(call: DoubleEncoded<()>, weight: Weight) -> Result<Xcm<()>, DispatchError> {
-            // let fees = Self::xcm_fees_compensation();
-            let fees = 1_000_000_000_000;
-            ensure!(!fees.is_zero(), Error::<T>::XcmFeesCompensationTooLow);
-
-            // let account_id = Self::account_id();
-            let asset: MultiAsset = (MultiLocation::here(), fees).into();
-
-            Ok(Xcm(vec![
-                WithdrawAsset(MultiAssets::from(asset.clone())),
-                BuyExecution {
-                    fees: asset.clone(),
-                    weight_limit: Unlimited,
-                },
-                Transact {
-                    origin_type: OriginKind::SovereignAccount,
-                    require_weight_at_most: weight,
-                    call,
-                },
-                RefundSurplus,
-                DepositAsset {
-                    assets: asset.into(),
-                    max_assets: 1,
-                    beneficiary: MultiLocation {
-                        parents: 1,
-                        interior: X1(AccountId32 {
-                            network: NetworkId::Any,
-                            id: Self::para_account_id().into(),
-                        }),
-                    },
-                },
-            ]))
         }
     }
 }

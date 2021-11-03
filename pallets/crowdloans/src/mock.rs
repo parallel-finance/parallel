@@ -1,5 +1,4 @@
 use cumulus_primitives_core::ParaId;
-use polkadot_runtime_common::{auctions, crowdloan, paras_registrar};
 use frame_support::traits::Nothing;
 use frame_support::{
     construct_runtime,
@@ -15,6 +14,7 @@ use frame_system::EnsureSignedBy;
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
+
 use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, DerivativeProvider};
 use sp_core::H256;
 use sp_runtime::{
@@ -297,7 +297,7 @@ impl SortedMembers<AccountId> for BobOrigin {
 }
 
 parameter_types! {
-    pub const CrowdloanPalletId: PalletId = PalletId(*b"par/lqsk");
+    pub const CrowdloanPalletId: PalletId = PalletId(*b"par/cdln");
     pub const DerivativeIndex: u16 = 0;
     pub const PeriodBasis: BlockNumber = 5u64;
     pub const UnstakeQueueCapacity: u32 = 1000;
@@ -424,8 +424,14 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     ext.execute_with(|| {
         Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
         Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
-        Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100_000 * DOT_DECIMAL).unwrap();
+        Assets::mint(
+            Origin::signed(ALICE),
+            XDOT,
+            Id(ALICE),
+            100_000 * DOT_DECIMAL,
+        )
+        .unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, Id(BOB), dot(20000f64)).unwrap();
     });
 
@@ -461,12 +467,12 @@ decl_test_network! {
 
 pub type WestendRuntime = westend_runtime::Runtime;
 pub type RelayBalances = pallet_balances::Pallet<WestendRuntime>;
-pub type RelaySystem = frame_system::Pallet<WestendRuntime>;
-pub type RelayEvent = westend_runtime::Event;
-pub type ParaSystem = frame_system::Pallet<Test>;
-pub type RelayCrowdloan = crowdloan::Pallet<WestendRuntime>;
-pub type RelayAuction = auctions::Pallet<WestendRuntime>;
-pub type RelayRegistrar = paras_registrar::Pallet<WestendRuntime>;
+// pub type RelaySystem = frame_system::Pallet<WestendRuntime>;
+// pub type RelayEvent = westend_runtime::Event;
+// pub type ParaSystem = frame_system::Pallet<Test>;
+// pub type RelayCrowdloan = crowdloan::Pallet<WestendRuntime>;
+// pub type RelayAuction = auctions::Pallet<WestendRuntime>;
+// pub type RelayRegistrar = paras_registrar::Pallet<WestendRuntime>;
 
 pub fn para_a_id() -> ParaId {
     ParaId::from(1)
@@ -500,7 +506,7 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         System::set_block_number(1);
         Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
         Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 1000 * DOT_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100_000 * DOT_DECIMAL).unwrap();
     });
 
     ext
@@ -514,7 +520,7 @@ pub fn relay_ext() -> sp_io::TestExternalities {
 
     pallet_balances::GenesisConfig::<Runtime> {
         balances: vec![
-            (ALICE, 100 * DOT_DECIMAL),
+            (ALICE, 1_000_000 * DOT_DECIMAL),
             (para_a_id().into_account(), 1_000_000 * DOT_DECIMAL),
         ],
     }

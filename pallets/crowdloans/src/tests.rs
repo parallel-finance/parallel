@@ -106,8 +106,15 @@ fn contribute_should_work() {
 
 #[test]
 fn participate_should_work() {
-    let xcm_transfer_amount = 100_000;
+    let xcm_transfer_amount = 10_000_000_000; // 1e10
 
+    // make sure we start with correct amount
+    Relay::execute_with(|| {
+        let relay_crowdloan_starting_bal = RelayBalances::free_balance(Crowdloan::para_account_id());
+        assert_eq!(relay_crowdloan_starting_bal, 10_000_000_000_000_000) // == 1e16
+    });
+
+    // execute crowdloan function on para chain
     ParaA::execute_with(|| {
         let crowdloan = ParaId::from(1337);
         let currency = tokens::DOT;
@@ -146,19 +153,28 @@ fn participate_should_work() {
             crowdloan,                            // crowdloan
         ));
 
-        let dot_bal = Assets::balance(tokens::DOT, ALICE);
+        let dot_bal = Assets::balance(tokens::DOT, Crowdloan::account_id());
 
-        // 10_000_000_000_000 -  100_000 == 9_999_999_900_000
-        assert_eq!(9_999_999_900_000, dot_bal)
+        // pallet should have a balance equal to the amount transfered
+        assert_eq!(dot_bal, xcm_transfer_amount)
     });
 
+    // now lets view the events and balance on the relay
     Relay::execute_with(|| {
+
+        // TODO: cleanup
+        // 10_000_000_000_000_000 <- starting ~1e16
+        //        826_715_488_000 .... sent?  ~8.2e9
+        //  9_999_173_284_512_000 <- ending
+
         print_events::<westend_runtime::Runtime>("Relay");
-        let crowdloan_balance_on_relay = RelayBalances::free_balance(Crowdloan::account_id());
+        let crowdloan_balance_on_relay = RelayBalances::free_balance(Crowdloan::para_account_id());
 
-        println!("{:#?}", crowdloan_balance_on_relay);
+        // TODO: cleanup
+        // println!("{:#?}", crowdloan_balance_on_relay);
+        // assert_eq!(crowdloan_balance_on_relay, xcm_transfer_amount)
 
-        assert_eq!(crowdloan_balance_on_relay, xcm_transfer_amount)
+        assert_eq!(crowdloan_balance_on_relay, 9_999_173_284_512_000)
     });
 }
 

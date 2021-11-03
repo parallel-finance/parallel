@@ -14,19 +14,18 @@
 
 // Groups common pool related structures
 
+use super::{BalanceOf, Config, Error};
 use crate::calls::*;
-use crate::{BalanceOf, Config, Error};
 use codec::{Decode, Encode};
 use cumulus_primitives_core::ParaId;
 use frame_support::traits::Get;
 use scale_info::TypeInfo;
 use sp_runtime::traits::AccountIdConversion;
-use sp_runtime::{
-    traits::{Convert, Zero},
-    DispatchError, DispatchResult, RuntimeDebug, SaturatedConversion,
-};
+use sp_runtime::traits::Convert;
+use sp_runtime::{traits::Zero, DispatchError, DispatchResult, RuntimeDebug, SaturatedConversion};
 use sp_std::marker::PhantomData;
-use xcm::{prelude::*};
+use xcm::prelude::*;
+use xcm::DoubleEncoded;
 
 #[derive(Clone, Copy, PartialEq, Decode, Encode, RuntimeDebug, TypeInfo)]
 pub enum VaultPhase {
@@ -126,33 +125,37 @@ impl<CurrencyId> ContributionStrategyExecutor<CurrencyId> for ContributionStrate
         amount: BalanceOf<T>,
     ) -> Result<(), DispatchError> {
         let amount = amount.saturated_into::<u128>();
-        let multi_asset = MultiAsset {
-            id: AssetId::Concrete(MultiLocation::here()),
-            fun: Fungibility::Fungible(2_000_000_000),
-        };
 
-        let _call_params = CrowdloanContributeCall::<T> {
+        let call_params = CrowdloanContributeCall::<T> {
             index: para_id,
             value: amount,
             signature: None,
         };
 
-        // let contribute_call: DoubleEncoded<()> = KusamaCall::Crowdloan(CrowdloanCall::Contribute(call_params)).encode().into();
+        // let fees = 900_000_000_000;
+        let fees = 900_000_000_000;
+        frame_support::ensure!(!fees.is_zero(), Error::<T>::XcmFeesCompensationTooLow);
+        let asset: MultiAsset = (MultiLocation::here(), fees).into();
+
+        let contribute_call: DoubleEncoded<()> =
+            WestendCall::Crowdloan(CrowdloanCall::Contribute(call_params))
+                .encode()
+                .into();
+
         let xcm = Xcm(vec![
-            WithdrawAsset(MultiAssets::from(multi_asset.clone())),
+            WithdrawAsset(MultiAssets::from(asset.clone())),
             BuyExecution {
-                fees: multi_asset.clone(),
+                fees: asset.clone(),
                 weight_limit: Unlimited,
             },
             Transact {
                 origin_type: OriginKind::SovereignAccount,
-                require_weight_at_most: u64::MAX,
-                // call: contribute_call,
-                call: vec![].into(),
+                require_weight_at_most: 100_000_000_000,
+                call: contribute_call,
             },
             RefundSurplus,
             DepositAsset {
-                assets: multi_asset.into(),
+                assets: asset.into(),
                 max_assets: 1,
                 beneficiary: T::AccountIdToMultiLocation::convert(
                     T::SelfParaId::get().into_account(),
