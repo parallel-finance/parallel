@@ -16,8 +16,8 @@ PARA_P2P_PORT=30333
 
 PARA_ID=2085
 
-PARA_CHAIN="heiko"
-RELAY_CHAIN="kusama"
+PARA_CHAIN="${2:-heiko}"
+RELAY_CHAIN="${3:-kusama}"
 VOLUME="chains"
 NODE_NAME="$1"
 
@@ -25,14 +25,14 @@ if [ $# -lt 1 ]; then
   echo "help: ./fullnode.sh <NODE_NAME>" && exit 1
 fi
 
-docker container stop heiko-fullnode || true
-docker container rm heiko-fullnode || true
+docker container stop $PARA_CHAIN-fullnode || true
+docker container rm $PARA_CHAIN-fullnode || true
 
 # docker volume rm $VOLUME || true
 
 docker volume create $VOLUME || true
 
-docker run --restart=always --name heiko-fullnode \
+docker run --restart=always --name $PARA_CHAIN-fullnode \
   -d \
   -p $PARA_WS_PORT:$PARA_WS_PORT \
   -p $PARA_RPC_PORT:$PARA_RPC_PORT \
@@ -73,4 +73,4 @@ docker run --restart=always --name heiko-fullnode \
     --listen-addr=/ip4/0.0.0.0/tcp/$RELAY_P2P_PORT \
     --name="${NODE_NAME}_Embedded_Relay"
 
-# docker logs -f heiko-fullnode
+# docker logs -f $PARA_CHAIN-fullnode
