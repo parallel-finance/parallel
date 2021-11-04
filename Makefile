@@ -116,6 +116,10 @@ image:
 		-f Dockerfile.release \
 		. --network=host
 
+.PHONY: key
+key:
+	docker run --rm parallelfinance/parallel:$(DOCKER_TAG) key generate-node-key
+
 .PHONY: keystore
 keystore:
 	cargo run --bin parallel key insert -d . --keystore-path $(KEYSTORE_PATH) --suri "$(SURI)" --key-type aura
