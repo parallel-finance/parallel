@@ -16,6 +16,7 @@ relaychain:
     - name: alice
     - name: bob
     - name: charlie
+    - name: dave
 
 parachains:
   - image: parallelfinance/parallel:latest
