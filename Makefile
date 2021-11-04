@@ -7,7 +7,7 @@ KEYSTORE_PATH  							:= keystore
 SURI           							:= //Alice
 LAUNCH_CONFIG  							:= config.yml
 DOCKER_TAG     							:= latest
-RELAY_DOCKER_TAG						:= v0.9.11
+RELAY_DOCKER_TAG						:= v0.9.12
 
 .PHONY: init
 init: submodules
@@ -115,6 +115,10 @@ image:
 		-t parallelfinance/parallel:$(DOCKER_TAG) \
 		-f Dockerfile.release \
 		. --network=host
+
+.PHONY: key
+key:
+	docker run --rm parallelfinance/parallel:$(DOCKER_TAG) key generate-node-key
 
 .PHONY: keystore
 keystore:
