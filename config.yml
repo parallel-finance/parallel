@@ -9,11 +9,14 @@ relaychain:
   flags:
     - --rpc-methods=unsafe
     - --no-beefy
+    - --wasm-execution=compiled
+    - --execution=wasm
     - -lxcm=trace
   nodes:
     - name: alice
     - name: bob
     - name: charlie
+    - name: dave
 
 parachains:
   - image: parallelfinance/parallel:latest
@@ -29,9 +32,13 @@ parachains:
     flags:
       - --rpc-methods=unsafe
       - --force-authoring
+      - --wasm-execution=compiled
+      - --execution=wasm
       - -lxcm=trace
       - -lloans=trace
     relaychainFlags:
+      - --wasm-execution=compiled
+      - --execution=wasm
       - --no-beefy
     nodes:
       - flags:
@@ -54,7 +61,11 @@ parachains:
     flags:
       - --rpc-methods=unsafe
       - --force-authoring
+      - --wasm-execution=compiled
+      - --execution=wasm
     relaychainFlags:
+      - --wasm-execution=compiled
+      - --execution=wasm
       - --no-beefy
     nodes:
       - flags:
