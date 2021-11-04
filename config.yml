@@ -1,5 +1,5 @@
 relaychain:
-  image: parallelfinance/polkadot:v0.9.11
+  image: parallelfinance/polkadot:v0.9.12
   chain: kusama-local
   runtimeGenesisConfig:
     configuration:
@@ -41,25 +41,25 @@ parachains:
       - flags:
           - --charlie
 
-  # - image: parallelfinance/statemine:v0.9.11
-  #   chain:
-  #     base: statemint-dev
-  #     collators:
-  #       - alice
-  #       - bob
-  #       - charlie
-  #     sudo: dave
-  #   id: 1000
-  #   parachain: true
-  #   flags:
-  #     - --rpc-methods=unsafe
-  #     - --force-authoring
-  #   relaychainFlags:
-  #     - --no-beefy
-  #   nodes:
-  #     - flags:
-  #         - --alice
-  #     - flags:
-  #         - --bob
-  #     - flags:
-  #         - --charlie
+  - image: parallelfinance/polkadot-collator:v0.9.12
+    chain:
+      base: statemine-dev
+      collators:
+        - alice
+        - bob
+        - charlie
+      sudo: dave
+    id: 1000
+    parachain: true
+    flags:
+      - --rpc-methods=unsafe
+      - --force-authoring
+    relaychainFlags:
+      - --no-beefy
+    nodes:
+      - flags:
+          - --alice
+      - flags:
+          - --bob
+      - flags:
+          - --charlie
