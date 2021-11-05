@@ -1,4 +1,4 @@
-//! AMM pallet benchmarking.
+//! Liquidity Mining pallet benchmarking.
 
 #![cfg(feature = "runtime-benchmarks")]
 use super::*;
@@ -75,7 +75,7 @@ benchmarks_instance_pallet! {
     create {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T, I>(caller.clone());
-        let stash = T::Lookup::unlookup(caller.clone());
+        let stash = T::Lookup::unlookup(caller);
         let origin = T::CreateOrigin::successful_origin();
         let call = Call::<T, I>::create {
             asset: ASSET,

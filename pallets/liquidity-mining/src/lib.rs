@@ -27,6 +27,8 @@ mod tests;
 
 mod benchmarking;
 
+pub mod weights;
+
 use codec::{Decode, Encode};
 use frame_support::{
     pallet_prelude::*,
@@ -48,6 +50,7 @@ use sp_runtime::{
     traits::{AccountIdConversion, Saturating, StaticLookup, Zero},
     ArithmeticError, SaturatedConversion,
 };
+pub use weights::WeightInfo;
 
 pub type AssetIdOf<T, I = ()> =
     <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
@@ -74,6 +77,9 @@ pub mod pallet {
         /// Defines the pallet's pallet id from which we can define each pool's account id
         #[pallet::constant]
         type PalletId: Get<PalletId>;
+
+        /// Weight information for extrinsics in this pallet.
+        type LMWeightInfo: WeightInfo;
 
         /// The origin which can create new pools.
         type CreateOrigin: EnsureOrigin<Self::Origin>;
@@ -164,7 +170,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config<I>, I: 'static> Pallet<T, I> {
         /// Create new pool, associated with a unique asset id
-        #[pallet::weight(10000)]
+        #[pallet::weight(T::LMWeightInfo::create())]
         #[transactional]
         pub fn create(
             origin: OriginFor<T>,
@@ -215,7 +221,7 @@ pub mod pallet {
         }
 
         /// Depositing Assets in a Pool
-        #[pallet::weight(10000)]
+        #[pallet::weight(T::LMWeightInfo::deposit())]
         #[transactional]
         pub fn deposit(
             origin: OriginFor<T>,
@@ -249,7 +255,7 @@ pub mod pallet {
         }
 
         /// Claiming Rewards or Withdrawing Assets from a Pool
-        #[pallet::weight(10000)]
+        #[pallet::weight(T::LMWeightInfo::withdraw())]
         #[transactional]
         pub fn withdraw(
             origin: OriginFor<T>,
