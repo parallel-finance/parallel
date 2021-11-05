@@ -140,7 +140,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_version: 172,
     impl_version: 20,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 2,
+    transaction_version: 3,
 };
 
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
@@ -251,7 +251,6 @@ impl Contains<Call> for BaseCallFilter {
         // Call::NomineeElection(_) |
 
         // // Membership
-        // Call::LiquidStakingAgentMembership(_) |
         // Call::ValidatorFeedersMembership(_)
     }
 }
@@ -446,24 +445,6 @@ impl pallet_loans::Config for Runtime {
     type WeightInfo = pallet_loans::weights::SubstrateWeight<Runtime>;
     type UnixTime = Timestamp;
     type Assets = CurrencyAdapter;
-}
-
-parameter_types! {
-    pub const LiquidStakingAgentMaxMembers: u32 = 100;
-}
-
-type LiquidStakingAgentMembershipInstance = pallet_membership::Instance4;
-impl pallet_membership::Config<LiquidStakingAgentMembershipInstance> for Runtime {
-    type Event = Event;
-    type AddOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type RemoveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type SwapOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type ResetOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type PrimeOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type MembershipInitialized = ();
-    type MembershipChanged = ();
-    type MaxMembers = LiquidStakingAgentMaxMembers;
-    type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -771,7 +752,8 @@ impl pallet_utility::Config for Runtime {
     type WeightInfo = pallet_utility::weights::SubstrateWeight<Runtime>;
 }
 
-/// No local origins on this chain are allowed to dispatch XCM sends/executions.
+/// Local origins on this chain are allowed to dispatch XCM sends/executions. However, we later
+/// block this via `ExecuteXcmOrigin`.
 pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNetwork>;
 
 /// The means for routing XCM messages which are not for local execution into the right message
@@ -1307,19 +1289,19 @@ impl pallet_currency_adapter::Config for Runtime {
     type GetNativeCurrencyId = NativeCurrencyId;
 }
 
-parameter_types! {
-    pub const LMPalletId: PalletId = PalletId(*b"par/lqmp");
-    pub const MaxRewardTokens: u32 = 1000;
-}
-
-impl pallet_liquidity_mining::Config for Runtime {
-    type Event = Event;
-    type Assets = CurrencyAdapter;
-    type PalletId = LMPalletId;
-    type MaxRewardTokens = MaxRewardTokens;
-    type CreateOrigin = EnsureRoot<AccountId>;
-    type LMWeightInfo = pallet_liquidity_mining::weights::SubstrateWeight<Runtime>;
-}
+// parameter_types! {
+//     pub const LMPalletId: PalletId = PalletId(*b"par/lqmp");
+//     pub const MaxRewardTokens: u32 = 1000;
+// }
+//
+// impl pallet_liquidity_mining::Config for Runtime {
+//     type Event = Event;
+//     type Assets = CurrencyAdapter;
+//     type PalletId = LMPalletId;
+//     type MaxRewardTokens = MaxRewardTokens;
+//     type CreateOrigin = EnsureRoot<AccountId>;
+//     type LMWeightInfo = pallet_liquidity_mining::weights::SubstrateWeight<Runtime>;
+// }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
@@ -1380,8 +1362,7 @@ construct_runtime!(
         GeneralCouncilMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 70,
         TechnicalCommitteeMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>} = 71,
         OracleMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
-        LiquidStakingAgentMembership: pallet_membership::<Instance4>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,
-        ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74,
+        ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,
 
         // AMM
         AMM: pallet_amm::{Pallet, Call, Storage, Event<T>} = 80,
@@ -1389,7 +1370,7 @@ construct_runtime!(
         CurrencyAdapter: pallet_currency_adapter::{Pallet, Call} = 82,
 
         // LiquidityMining
-        LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 83,
+        // LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 83,
     }
 );
 
@@ -1587,7 +1568,6 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_amm, AMM);
             list_benchmark!(list, extra, pallet_liquid_staking, LiquidStaking);
             list_benchmark!(list, extra, pallet_router, AMMRoute);
-            list_benchmark!(list, extra, pallet_liquidity_mining, LiquidityMining);
 
             let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1630,7 +1610,6 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_amm, AMM);
             add_benchmark!(params, batches, pallet_liquid_staking, LiquidStaking);
             add_benchmark!(params, batches, pallet_router, AMMRoute);
-            add_benchmark!(params, batches, pallet_liquidity_mining, LiquidityMining);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)

@@ -91,7 +91,7 @@ pub use pallet_liquid_staking;
 use currency::*;
 use fee::*;
 pub use pallet_amm;
-pub use pallet_liquidity_mining;
+// pub use pallet_liquidity_mining;
 pub use pallet_loans;
 pub use pallet_multisig;
 pub use pallet_nominee_election;
@@ -752,7 +752,8 @@ impl pallet_utility::Config for Runtime {
     type WeightInfo = pallet_utility::weights::SubstrateWeight<Runtime>;
 }
 
-/// No local origins on this chain are allowed to dispatch XCM sends/executions.
+/// Local origins on this chain are allowed to dispatch XCM sends/executions. However, we later
+/// block this via `ExecuteXcmOrigin`.
 pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNetwork>;
 
 /// The means for routing XCM messages which are not for local execution into the right message
@@ -1283,19 +1284,19 @@ impl pallet_currency_adapter::Config for Runtime {
     type GetNativeCurrencyId = NativeCurrencyId;
 }
 
-parameter_types! {
-    pub const LMPalletId: PalletId = PalletId(*b"par/lqmp");
-    pub const MaxRewardTokens: u32 = 1000;
-}
-
-impl pallet_liquidity_mining::Config for Runtime {
-    type Event = Event;
-    type Assets = CurrencyAdapter;
-    type PalletId = LMPalletId;
-    type MaxRewardTokens = MaxRewardTokens;
-    type CreateOrigin = EnsureRoot<AccountId>;
-    type LMWeightInfo = pallet_liquidity_mining::weights::SubstrateWeight<Runtime>;
-}
+// parameter_types! {
+//     pub const LMPalletId: PalletId = PalletId(*b"par/lqmp");
+//     pub const MaxRewardTokens: u32 = 1000;
+// }
+//
+// impl pallet_liquidity_mining::Config for Runtime {
+//     type Event = Event;
+//     type Assets = CurrencyAdapter;
+//     type PalletId = LMPalletId;
+//     type MaxRewardTokens = MaxRewardTokens;
+//     type CreateOrigin = EnsureRoot<AccountId>;
+// 	type LMWeightInfo = pallet_liquidity_mining::weights::SubstrateWeight<Runtime>;
+// }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
@@ -1364,7 +1365,7 @@ construct_runtime!(
         CurrencyAdapter: pallet_currency_adapter::{Pallet, Call} = 82,
 
         // LiquidityMining
-        LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 83,
+        // LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 83,
     }
 );
 
@@ -1562,7 +1563,6 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_amm, AMM);
             list_benchmark!(list, extra, pallet_liquid_staking, LiquidStaking);
             list_benchmark!(list, extra, pallet_router, AMMRoute);
-            list_benchmark!(list, extra, pallet_liquidity_mining, LiquidityMining);
 
             let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1605,7 +1605,6 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_amm, AMM);
             add_benchmark!(params, batches, pallet_liquid_staking, LiquidStaking);
             add_benchmark!(params, batches, pallet_router, AMMRoute);
-            add_benchmark!(params, batches, pallet_liquidity_mining, LiquidityMining);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)
