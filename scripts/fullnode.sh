@@ -25,6 +25,10 @@ if [ $# -lt 1 ]; then
   echo "help: ./fullnode.sh <NODE_NAME>" && exit 1
 fi
 
+if [[ "$PARA_CHAIN" == "parallel" ]]; then
+  PARA_ID=2012
+fi
+
 docker container stop $PARA_CHAIN-fullnode || true
 docker container rm $PARA_CHAIN-fullnode || true
 
