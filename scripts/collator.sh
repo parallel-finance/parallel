@@ -27,6 +27,10 @@ if [ $# -lt 3 ]; then
   echo "help: ./collator.sh <NODE_KEY> <KEYSTORE_PATH> <NODE_NAME>" && exit 1
 fi
 
+if [[ "$PARA_CHAIN" == "parallel" ]]; then
+  PARA_ID=2012
+fi
+
 docker container stop $PARA_CHAIN-collator || true
 docker container rm $PARA_CHAIN-collator || true
 
