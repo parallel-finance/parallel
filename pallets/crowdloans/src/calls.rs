@@ -4,6 +4,7 @@ use super::{BalanceOf, Config};
 use codec::{Decode, Encode, MaxEncodedLen};
 use cumulus_primitives_core::ParaId;
 use scale_info::TypeInfo;
+use sp_runtime::traits::StaticLookup;
 use sp_runtime::{MultiSignature, RuntimeDebug};
 use sp_std::{boxed::Box, marker::PhantomData};
 
@@ -17,10 +18,20 @@ use sp_std::{boxed::Box, marker::PhantomData};
 pub enum WestendCall<T: Config> {
     #[codec(index = 64)]
     Crowdloan(CrowdloanCall<T>),
+    #[codec(index = 4)]
+    Balances(BalancesCall<T>),
+    #[codec(index = 16)]
+    Utility(Box<UtilityCall<Self>>),
 }
 
 #[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum KusamaCall<T: Config> {
+    #[codec(index = 73)]
+    Crowdloan(CrowdloanCall<T>),
+}
+
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum PolkadotCall<T: Config> {
     #[codec(index = 73)]
     Crowdloan(CrowdloanCall<T>),
 }
@@ -104,4 +115,54 @@ impl Default for ProxyType {
     fn default() -> Self {
         Self::Any
     }
+}
+
+/// Relaychain balances.transfer_keep_alive call arguments
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct BalancesTransferKeepAliveCall<T: Config> {
+    /// dest account
+    pub dest: <T::Lookup as StaticLookup>::Source,
+    /// transfer amount
+    #[codec(compact)]
+    pub value: BalanceOf<T>,
+}
+
+/// Relaychain balances.transfer_all call arguments
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct BalancesTransferAllCall<T: Config> {
+    /// dest account
+    pub dest: <T::Lookup as StaticLookup>::Source,
+    pub keep_alive: bool,
+}
+
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum BalancesCall<T: Config> {
+    #[codec(index = 3)]
+    TransferKeepAlive(BalancesTransferKeepAliveCall<T>),
+    #[codec(index = 4)]
+    TransferAll(BalancesTransferAllCall<T>),
+}
+
+/// Relaychain utility.as_derivative call arguments
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct UtilityAsDerivativeCall<RelaychainCall> {
+    /// derivative index
+    pub index: u16,
+    /// call
+    pub call: RelaychainCall,
+}
+
+/// Relaychain utility.batch_all call arguments
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct UtilityBatchAllCall<RelaychainCall> {
+    /// calls
+    pub calls: Vec<RelaychainCall>,
+}
+
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum UtilityCall<RelaychainCall> {
+    #[codec(index = 1)]
+    AsDerivative(UtilityAsDerivativeCall<RelaychainCall>),
+    #[codec(index = 2)]
+    BatchAll(UtilityBatchAllCall<RelaychainCall>),
 }

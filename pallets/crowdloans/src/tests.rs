@@ -106,20 +106,36 @@ fn contribute_should_work() {
 
 #[test]
 fn participate_should_work() {
-    let xcm_transfer_amount = 10_000_000_000; // 1e10
+    // set vars we'll use in both para and relay chain env
+    let xcm_transfer_amount = 2 * DOT_DECIMAL;
+    let crowdloan = ParaId::from(2000);
+    let currency = tokens::DOT;
+    let ctoken = 10;
 
     // make sure we start with correct amount
     Relay::execute_with(|| {
-        let relay_crowdloan_starting_bal = RelayBalances::free_balance(Crowdloan::para_account_id());
-        assert_eq!(relay_crowdloan_starting_bal, 10_000_000_000_000_000) // == 1e16
+        // show account we should fund on relay
+        let fund_account = RelayCrowdloan::fund_account_id(crowdloan);
+        println!("Fund Account:\t{:?}", fund_account);
+
+        // get fund account starting balance
+        let fund_account_starting_balance = RelayBalances::free_balance(fund_account);
+        println!(
+            "Fund Account Starting Balance:\t{:?}",
+            fund_account_starting_balance
+        );
+
+        // get derivative para account starting balance
+        let relay_crowdloan_starting_bal =
+            RelayBalances::free_balance(Crowdloan::derivative_para_account_id());
+        println!("Starting Balance:\t{:?}", relay_crowdloan_starting_bal);
+
+        // relay derivative para account should be empty
+        assert_eq!(relay_crowdloan_starting_bal, 0)
     });
 
     // execute crowdloan function on para chain
     ParaA::execute_with(|| {
-        let crowdloan = ParaId::from(1337);
-        let currency = tokens::DOT;
-        let ctoken = 10;
-
         let contribution_strategy = ContributionStrategy::XCM; //XCM;
 
         // create the ctoken asset
@@ -140,12 +156,21 @@ fn participate_should_work() {
             contribution_strategy,                // contribution_strategy
         ));
 
+        let dot_bal = Assets::balance(tokens::DOT, Crowdloan::account_id());
+        println!("Before Contribute:\t{:?}", dot_bal);
+
         // do contribute
         assert_ok!(Crowdloan::contribute(
             Origin::signed(ALICE), // origin
             crowdloan,             // crowdloan
             xcm_transfer_amount,   // amount
         ));
+
+        let dot_bal = Assets::balance(tokens::DOT, Crowdloan::account_id());
+        println!("After Contribute:\t{:?}", dot_bal);
+
+        // pallet should have a balance equal to the amount transfered
+        assert_eq!(dot_bal, xcm_transfer_amount);
 
         // do participate
         assert_ok!(Crowdloan::participate(
@@ -155,26 +180,49 @@ fn participate_should_work() {
 
         let dot_bal = Assets::balance(tokens::DOT, Crowdloan::account_id());
 
-        // pallet should have a balance equal to the amount transfered
-        assert_eq!(dot_bal, xcm_transfer_amount)
+        // TODO:
+        // the balance should be 0 after calling participate
+        // we should have moved all of the tokens to the target
+        // crowdloan at this point
+        println!("After Participate:\t{:?}", dot_bal);
+        // assert_eq!(dot_bal, 0);
     });
 
     // now lets view the events and balance on the relay
     Relay::execute_with(|| {
-
-        // TODO: cleanup
-        // 10_000_000_000_000_000 <- starting ~1e16
-        //        826_715_488_000 .... sent?  ~8.2e9
-        //  9_999_173_284_512_000 <- ending
-
         print_events::<westend_runtime::Runtime>("Relay");
-        let crowdloan_balance_on_relay = RelayBalances::free_balance(Crowdloan::para_account_id());
 
-        // TODO: cleanup
-        // println!("{:#?}", crowdloan_balance_on_relay);
-        // assert_eq!(crowdloan_balance_on_relay, xcm_transfer_amount)
+        // TODO:
+        // check that the event we expect to happen has been emitted on the relaychain
+        // let expected_event = RelayEvent::Crowdloan(RelayCrowdloanEvent::Contributed(
+        //     Crowdloan::derivative_para_account_id(),
+        //     crowdloan,
+        //     xcm_transfer_amount,
+        // ));
+        // RelaySystem::assert_has_event(x);
 
-        assert_eq!(crowdloan_balance_on_relay, 9_999_173_284_512_000)
+        // TODO:
+        // derivative para account should be 0 again!
+        // we should have transfered tokens to this account
+        // then we should have moved those tokens into the crowdloan
+        let relay_crowdloan_ending_bal =
+            RelayBalances::free_balance(Crowdloan::derivative_para_account_id());
+        println!("Ending Balance:\t{:?}", relay_crowdloan_ending_bal);
+
+        // relay derivative para account should be empty
+        assert_eq!(relay_crowdloan_ending_bal, 0);
+
+        // TODO:
+        // get the final balance of the crowdloan we funded
+        // this value should be equal to xcm_transfer_amount minus fees
+        let fund_account_starting_balance =
+            RelayBalances::free_balance(RelayCrowdloan::fund_account_id(crowdloan));
+        println!(
+            "Fund Account Ending Balance:\t{:?}",
+            fund_account_starting_balance
+        );
+
+        assert_eq!(fund_account_starting_balance, xcm_transfer_amount - 20_000);
     });
 }
 

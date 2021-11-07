@@ -14,6 +14,8 @@ use frame_system::EnsureSignedBy;
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
+use polkadot_runtime_common::{crowdloan, paras_registrar, traits::Registrar};
+use polkadot_runtime_parachains::configuration;
 
 use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, DerivativeProvider};
 use sp_core::H256;
@@ -346,6 +348,7 @@ impl crate::Config for Test {
     type SelfParaId = SelfParaId;
     type XcmSender = XcmRouter;
     type DerivativeIndex = DerivativeIndex;
+    type DerivativeProvider = DerivativeProviderT;
     type Assets = Assets;
     type RelayNetwork = RelayNetwork;
     type CreateVaultOrigin = CreateVaultOrigin;
@@ -467,12 +470,17 @@ decl_test_network! {
 
 pub type WestendRuntime = westend_runtime::Runtime;
 pub type RelayBalances = pallet_balances::Pallet<WestendRuntime>;
+pub type RelayCrowdloan = crowdloan::Pallet<WestendRuntime>;
+pub type RelayRegistrar = paras_registrar::Pallet<WestendRuntime>;
+
+// TODO:
+// remove unneeded variables/pallet instances
 // pub type RelaySystem = frame_system::Pallet<WestendRuntime>;
 // pub type RelayEvent = westend_runtime::Event;
 // pub type ParaSystem = frame_system::Pallet<Test>;
-// pub type RelayCrowdloan = crowdloan::Pallet<WestendRuntime>;
+// pub type RelayCrowdloanEvent = crowdloan::Event<WestendRuntime>;
+// pub type ParaSystem = frame_system::Pallet<Test>;
 // pub type RelayAuction = auctions::Pallet<WestendRuntime>;
-// pub type RelayRegistrar = paras_registrar::Pallet<WestendRuntime>;
 
 pub fn para_a_id() -> ParaId {
     ParaId::from(1)
@@ -527,8 +535,58 @@ pub fn relay_ext() -> sp_io::TestExternalities {
     .assimilate_storage(&mut t)
     .unwrap();
 
+    // update config to allow parachains with code and head up to 2MB and 1MB
+    GenesisBuild::<Runtime>::assimilate_storage(
+        &configuration::GenesisConfig::<Runtime> {
+            config: configuration::HostConfiguration {
+                max_code_size: 2 * 1024 * 1024,      // 2 MB
+                max_head_data_size: 1 * 1024 * 1024, // 1 MB
+                ..Default::default()
+            },
+        },
+        &mut t,
+    )
+    .unwrap();
+
     let mut ext = sp_io::TestExternalities::new(t);
-    ext.execute_with(|| System::set_block_number(1));
+
+    ext.execute_with(|| {
+        System::set_block_number(1);
+
+        // reserve a parachain id
+        RelayRegistrar::reserve(westend_runtime::Origin::signed(ALICE)).unwrap();
+
+        // register a parachain id
+        RelayRegistrar::register(
+            westend_runtime::Origin::signed(ALICE),
+            ParaId::from(2000),
+            vec![0u8; 32].into(),
+            vec![0u8; 32].into(),
+        )
+        .unwrap();
+
+        // TODO:
+        // upgrade registered to a parachain
+        // currently fails, possibly because the blocks are not incremented?
+        // RelayRegistrar::make_parachain(ParaId::from(2000)).unwrap();
+
+        // TODO:
+        // print list of all parachains - currently empty []
+        println!("{:?}", RelayRegistrar::parachains());
+
+        // TODO:
+        // make new crowdloan for chain
+        // RelayCrowdloan::create(
+        //     westend_runtime::Origin::signed(ALICE),
+        //     ParaId::from(2000),
+        //     1000,
+        //     1,
+        //     1,
+        //     9,
+        //     None,
+        // )
+        // .unwrap();
+    });
     ext
 }
 

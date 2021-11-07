@@ -43,7 +43,7 @@ pub mod pallet {
     };
     use frame_system::ensure_signed;
     use frame_system::pallet_prelude::OriginFor;
-    use primitives::{Balance, CurrencyId};
+    use primitives::{Balance, CurrencyId, DerivativeProvider};
     use sp_runtime::{
         traits::{AccountIdConversion, Convert, Zero},
         DispatchError,
@@ -85,6 +85,9 @@ pub mod pallet {
         /// Account derivative index
         #[pallet::constant]
         type DerivativeIndex: Get<u16>;
+
+        /// Account derivative functionality provider
+        type DerivativeProvider: DerivativeProvider<Self::AccountId>;
 
         /// The origin which can create vault
         type CreateVaultOrigin: EnsureOrigin<Self::Origin>;
@@ -368,7 +371,7 @@ pub mod pallet {
                     // 3. Execute the `refund` function of the `contribution_strategy`
                     vault_contents
                         .contribution_strategy
-                        .refund(crowdloan, vault_contents.relay_currency)?;
+                        .refund::<T>(crowdloan, vault_contents.relay_currency)?;
 
                     // 4. Set `vault.phase` to `Failed`
                     vault_contents.phase = VaultPhase::Failed;
@@ -449,7 +452,7 @@ pub mod pallet {
                     // 2. Execute the `withdraw` function of our `contribution_strategy`
                     vault_contents
                         .contribution_strategy
-                        .withdraw(crowdloan, vault_contents.relay_currency)?;
+                        .withdraw::<T>(crowdloan, vault_contents.relay_currency)?;
 
                     // 3. Modify `vault.phase` to `Expired
                     vault_contents.phase = VaultPhase::Expired;
@@ -468,6 +471,9 @@ pub mod pallet {
     impl<T: Config> Pallet<T>
     where
         [u8; 32]: From<<T as frame_system::Config>::AccountId>,
+        u128: From<
+            <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance,
+        >,
     {
         /// Crowdloan pool account
         pub fn account_id() -> T::AccountId {
@@ -477,6 +483,13 @@ pub mod pallet {
         /// Parachain sovereign account
         pub fn para_account_id() -> T::AccountId {
             T::SelfParaId::get().into_account()
+        }
+
+        /// Derivative parachain account
+        pub fn derivative_para_account_id() -> T::AccountId {
+            let para_account = Self::para_account_id();
+            let derivative_index = T::DerivativeIndex::get();
+            T::DerivativeProvider::derivative_account_id(para_account, derivative_index)
         }
 
         // Returns a stored Vault.
