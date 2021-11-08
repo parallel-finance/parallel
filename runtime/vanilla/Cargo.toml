@@ -88,6 +88,7 @@ orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-r
 
 # Parallel dependencies
 pallet-amm                   = { path = '../../pallets/amm', default-features = false }
+pallet-crowdloans            = { path = '../../pallets/crowdloans', default-features = false }
 pallet-currency-adapter      = { path = '../../pallets/currency-adapter', default-features = false }
 pallet-liquid-staking        = { path = '../../pallets/liquid-staking', default-features = false }
 pallet-liquidation           = { path = '../../pallets/liquidation', default-features = false }
@@ -193,6 +194,7 @@ std                = [
   'orml-xcm/std',
   'orml-vesting/std',
   'pallet-amm/std',
+  'pallet-crowdloans/std',
   'pallet-router/std',
   'frame-try-runtime/std',
   'pallet-currency-adapter/std',
@@ -228,4 +230,5 @@ try-runtime        = [
   'pallet-liquidation/try-runtime',
   'pallet-nominee-election/try-runtime',
   'pallet-prices/try-runtime',
+  'pallet-crowdloans/try-runtime',
 ]

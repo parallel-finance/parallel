@@ -14,7 +14,7 @@ use frame_system::EnsureSignedBy;
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
-use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, DerivativeProvider};
+use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance};
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
@@ -57,7 +57,6 @@ impl cumulus_pallet_parachain_system::Config for Test {
 impl parachain_info::Config for Test {}
 
 parameter_types! {
-    pub DotLocation: MultiLocation = MultiLocation::parent();
     pub RelayNetwork: NetworkId = NetworkId::Named("westend".into());
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
@@ -296,29 +295,8 @@ impl SortedMembers<AccountId> for BobOrigin {
 }
 
 parameter_types! {
-    pub const CrowdloanPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const DerivativeIndex: u16 = 0;
-    pub const PeriodBasis: BlockNumber = 5u64;
-    pub const UnstakeQueueCapacity: u32 = 1000;
+    pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
     pub SelfParaId: ParaId = para_a_id();
-    pub MaxRewardsPerEra: Balance = dot(1000f64);
-    pub MaxSlashesPerEra: Balance = dot(1f64);
-    pub const MinStakeAmount: Balance = 0;
-    pub const MinUnstakeAmount: Balance = 0;
-}
-
-impl pallet_utility::Config for Test {
-    type Event = Event;
-    type Call = Call;
-    type WeightInfo = pallet_utility::weights::SubstrateWeight<Test>;
-}
-
-pub struct DerivativeProviderT;
-
-impl DerivativeProvider<AccountId> for DerivativeProviderT {
-    fn derivative_account_id(who: AccountId, index: u16) -> AccountId {
-        Utility::derivative_account_id(who, index)
-    }
 }
 
 pub type CreateVaultOrigin =
@@ -341,12 +319,11 @@ pub type SlotExpiredOrigin =
 
 impl crate::Config for Test {
     type Event = Event;
-    type PalletId = CrowdloanPalletId;
+    type PalletId = CrowdloansPalletId;
     type SelfParaId = SelfParaId;
     type XcmSender = XcmRouter;
-    type DerivativeIndex = DerivativeIndex;
     type Assets = Assets;
-    type RelayNetwork = RelayNetwork;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type CreateVaultOrigin = CreateVaultOrigin;
     type PariticipateOrigin = PariticipateOrigin;
     type CloseOrigin = CloseOrigin;
@@ -387,9 +364,8 @@ construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
-        Utility: pallet_utility::{Pallet, Call, Event},
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
-        Crowdloan: crate::{Pallet, Storage, Call, Event<T>},
+        Crowdloans: crate::{Pallet, Storage, Call, Event<T>},
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>},
         ParachainInfo: parachain_info::{Pallet, Storage, Config},
         XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>},
@@ -405,18 +381,9 @@ pub const ALICE: AccountId32 = AccountId32::new([1u8; 32]);
 pub const BOB: AccountId32 = AccountId32::new([2u8; 32]);
 
 pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
-    let mut t = frame_system::GenesisConfig::default()
+    let t = frame_system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap();
-
-    GenesisBuild::<Test>::assimilate_storage(
-        &crate::GenesisConfig {
-            exchange_rate: 1,  //Rate::one(),
-            reserve_factor: 1, //Ratio::from_perthousand(5),
-        },
-        &mut t,
-    )
-    .unwrap();
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
@@ -457,12 +424,6 @@ decl_test_network! {
     }
 }
 
-// pub type WestendRuntime = westend_runtime::Runtime;
-// pub type RelayBalances = pallet_balances::Pallet<WestendRuntime>;
-// pub type RelaySystem = frame_system::Pallet<WestendRuntime>;
-// pub type RelayEvent = westend_runtime::Event;
-// pub type ParaSystem = frame_system::Pallet<Test>;
-
 pub fn para_a_id() -> ParaId {
     ParaId::from(1)
 }
@@ -477,15 +438,6 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
     };
     <parachain_info::GenesisConfig as GenesisBuild<Test, _>>::assimilate_storage(
         &parachain_info_config,
-        &mut t,
-    )
-    .unwrap();
-
-    GenesisBuild::<Test>::assimilate_storage(
-        &crate::GenesisConfig {
-            exchange_rate: 1,
-            reserve_factor: 1,
-        },
         &mut t,
     )
     .unwrap();
