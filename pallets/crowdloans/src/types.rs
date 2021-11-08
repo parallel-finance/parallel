@@ -112,8 +112,7 @@ pub trait ContributionStrategyExecutor<ParaId, CurrencyId, Balance> {
     fn refund(self, para_id: ParaId, currency: CurrencyId) -> DispatchResult;
 }
 
-impl<ParaId: std::fmt::Display, CurrencyId, Balance>
-    ContributionStrategyExecutor<ParaId, CurrencyId, Balance>
+impl<ParaId, CurrencyId, Balance> ContributionStrategyExecutor<ParaId, CurrencyId, Balance>
     for ContributionStrategy<ParaId, CurrencyId, Balance>
 {
     // add code here

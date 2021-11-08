@@ -153,20 +153,6 @@ pub mod pallet {
         OptionQuery,
     >;
 
-    /// ## Tracking Contributions
-    ///
-    /// Contributions can be tracked by user's account id and the asset of the pool they are depositing into.
-    #[pallet::storage]
-    #[pallet::getter(fn deposits)]
-    pub type Deposits<T: Config<I>, I: 'static = ()> = StorageDoubleMap<
-        _,
-        Blake2_128Concat,
-        T::AccountId,
-        Blake2_128Concat,
-        AssetIdOf<T, I>,
-        BalanceOf<T, I>,
-    >;
-
     #[pallet::call]
     impl<T: Config<I>, I: 'static> Pallet<T, I> {
         /// Create new pool, associated with a unique asset id
