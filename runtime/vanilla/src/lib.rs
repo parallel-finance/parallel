@@ -1291,7 +1291,7 @@ impl pallet_liquidity_mining::Config for Runtime {
     type PalletId = LMPalletId;
     type MaxRewardTokens = MaxRewardTokens;
     type CreateOrigin = EnsureRoot<AccountId>;
-    type LMWeightInfo = pallet_liquidity_mining::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = pallet_liquidity_mining::weights::SubstrateWeight<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

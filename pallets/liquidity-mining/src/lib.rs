@@ -79,7 +79,7 @@ pub mod pallet {
         type PalletId: Get<PalletId>;
 
         /// Weight information for extrinsics in this pallet.
-        type LMWeightInfo: WeightInfo;
+        type WeightInfo: WeightInfo;
 
         /// The origin which can create new pools.
         type CreateOrigin: EnsureOrigin<Self::Origin>;
@@ -170,7 +170,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config<I>, I: 'static> Pallet<T, I> {
         /// Create new pool, associated with a unique asset id
-        #[pallet::weight(T::LMWeightInfo::create())]
+        #[pallet::weight(<T as Config<I>>::WeightInfo::create())]
         #[transactional]
         pub fn create(
             origin: OriginFor<T>,
@@ -221,7 +221,7 @@ pub mod pallet {
         }
 
         /// Depositing Assets in a Pool
-        #[pallet::weight(T::LMWeightInfo::deposit())]
+        #[pallet::weight(<T as Config<I>>::WeightInfo::deposit())]
         #[transactional]
         pub fn deposit(
             origin: OriginFor<T>,
@@ -255,7 +255,7 @@ pub mod pallet {
         }
 
         /// Claiming Rewards or Withdrawing Assets from a Pool
-        #[pallet::weight(T::LMWeightInfo::withdraw())]
+        #[pallet::weight(<T as Config<I>>::WeightInfo::withdraw())]
         #[transactional]
         pub fn withdraw(
             origin: OriginFor<T>,
