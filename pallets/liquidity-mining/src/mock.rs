@@ -161,6 +161,7 @@ impl pallet_liquidity_mining::Config for Test {
     type PalletId = LMPalletId;
     type MaxRewardTokens = MaxRewardTokens;
     type CreateOrigin = EnsureSignedBy<AliceCreatePoolOrigin, AccountId>;
+    type WeightInfo = ();
 }
 
 parameter_types! {

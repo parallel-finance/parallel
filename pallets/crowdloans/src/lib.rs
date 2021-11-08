@@ -46,6 +46,7 @@ pub mod pallet {
         traits::{AccountIdConversion, Convert, Zero},
         DispatchError,
     };
+    use sp_std::vec;
     use xcm::latest::prelude::*;
     use xcm::DoubleEncoded;
 

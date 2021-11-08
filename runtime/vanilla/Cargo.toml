@@ -126,6 +126,7 @@ runtime-benchmarks = [
   'pallet-multisig/runtime-benchmarks',
   'pallet-membership/runtime-benchmarks',
   'pallet-router/runtime-benchmarks',
+  'pallet-liquidity-mining/runtime-benchmarks',
 ]
 std                = [
   'codec/std',

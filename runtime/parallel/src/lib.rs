@@ -1288,12 +1288,14 @@ impl pallet_currency_adapter::Config for Runtime {
 //     pub const LMPalletId: PalletId = PalletId(*b"par/lqmp");
 //     pub const MaxRewardTokens: u32 = 1000;
 // }
+//
 // impl pallet_liquidity_mining::Config for Runtime {
 //     type Event = Event;
 //     type Assets = CurrencyAdapter;
 //     type PalletId = LMPalletId;
 //     type MaxRewardTokens = MaxRewardTokens;
 //     type CreateOrigin = EnsureRoot<AccountId>;
+// 	type WeightInfo = pallet_liquidity_mining::weights::SubstrateWeight<Runtime>;
 // }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

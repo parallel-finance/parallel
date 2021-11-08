@@ -25,6 +25,10 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+mod benchmarking;
+
+pub mod weights;
+
 use codec::{Decode, Encode};
 use frame_support::{
     pallet_prelude::*,
@@ -46,6 +50,7 @@ use sp_runtime::{
     traits::{AccountIdConversion, Saturating, StaticLookup, Zero},
     ArithmeticError, SaturatedConversion,
 };
+pub use weights::WeightInfo;
 
 pub type AssetIdOf<T, I = ()> =
     <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
@@ -72,6 +77,9 @@ pub mod pallet {
         /// Defines the pallet's pallet id from which we can define each pool's account id
         #[pallet::constant]
         type PalletId: Get<PalletId>;
+
+        /// Weight information for extrinsics in this pallet.
+        type WeightInfo: WeightInfo;
 
         /// The origin which can create new pools.
         type CreateOrigin: EnsureOrigin<Self::Origin>;
@@ -145,24 +153,10 @@ pub mod pallet {
         OptionQuery,
     >;
 
-    /// ## Tracking Contributions
-    ///
-    /// Contributions can be tracked by user's account id and the asset of the pool they are depositing into.
-    #[pallet::storage]
-    #[pallet::getter(fn deposits)]
-    pub type Deposits<T: Config<I>, I: 'static = ()> = StorageDoubleMap<
-        _,
-        Blake2_128Concat,
-        T::AccountId,
-        Blake2_128Concat,
-        AssetIdOf<T, I>,
-        BalanceOf<T, I>,
-    >;
-
     #[pallet::call]
     impl<T: Config<I>, I: 'static> Pallet<T, I> {
         /// Create new pool, associated with a unique asset id
-        #[pallet::weight(10000)]
+        #[pallet::weight(<T as Config<I>>::WeightInfo::create())]
         #[transactional]
         pub fn create(
             origin: OriginFor<T>,
@@ -213,7 +207,7 @@ pub mod pallet {
         }
 
         /// Depositing Assets in a Pool
-        #[pallet::weight(10000)]
+        #[pallet::weight(<T as Config<I>>::WeightInfo::deposit())]
         #[transactional]
         pub fn deposit(
             origin: OriginFor<T>,
@@ -247,7 +241,7 @@ pub mod pallet {
         }
 
         /// Claiming Rewards or Withdrawing Assets from a Pool
-        #[pallet::weight(10000)]
+        #[pallet::weight(<T as Config<I>>::WeightInfo::withdraw())]
         #[transactional]
         pub fn withdraw(
             origin: OriginFor<T>,
