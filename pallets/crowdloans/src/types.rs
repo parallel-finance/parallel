@@ -182,12 +182,13 @@ pub enum CrowdloansCall<T: Config> {
 }
 
 #[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct ProxyproxyCall<T: Config> {
+pub struct ProxyProxyCall<T: Config> {
     pub real: T::AccountId,
     pub force_proxy_type: Option<ProxyType>,
     pub call: Box<<T as frame_system::Config>::Call>,
 }
 
+// TODO: fix westend, polkadot's proxy type
 /// The type used to represent the kinds of proxying allowed.
 #[derive(
     Copy,
@@ -221,7 +222,7 @@ impl Default for ProxyType {
 #[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum ProxyCall<T: Config> {
     #[codec(index = 0)]
-    Proxy(ProxyproxyCall<T>),
+    Proxy(ProxyProxyCall<T>),
 }
 
 /// Relaychain utility.as_derivative call arguments
@@ -356,7 +357,6 @@ impl<ParaId, CurrencyId: Zero, Balance: Zero>
     }
 }
 
-#[allow(clippy::upper_case_acronyms)] // for XCM
 #[derive(Clone, Copy, PartialEq, Decode, Encode, RuntimeDebug, TypeInfo)]
 pub enum ContributionStrategy<ParaId, CurrencyId, Balance> {
     XCM,
