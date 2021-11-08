@@ -38,7 +38,6 @@ pub enum VaultPhase {
 }
 
 #[derive(Clone, Copy, PartialEq, Decode, Encode, RuntimeDebug, TypeInfo)]
-// pub struct Vault<ParaId, CurrencyId, Balance> {
 pub struct Vault<ParaId, CurrencyId, Balance> {
     /// Asset used to represent the shares of currency
     /// to be claimed back later on
