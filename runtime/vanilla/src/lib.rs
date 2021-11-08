@@ -1269,7 +1269,9 @@ impl pallet_crowdloans::Config for Runtime {
     type SelfParaId = ParachainInfo;
     type XcmSender = XcmRouter;
     type Assets = Assets;
+    type RelayNetwork = RelayNetwork;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type PariticipateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CloseOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
@@ -1365,7 +1367,7 @@ construct_runtime!(
         // Loans
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>} = 50,
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>} = 51,
-        Crowdloans: pallet_crowdloans::{Pallet, Call, Storage, Event<T>} = 52,
+        Crowdloans: pallet_crowdloans::{Pallet, Call, Storage, Config, Event<T>} = 52,
 
         // LiquidStaking
         LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config} = 60,

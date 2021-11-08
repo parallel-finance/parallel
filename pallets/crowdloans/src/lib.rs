@@ -39,16 +39,15 @@ pub mod pallet {
         },
         transactional, Blake2_128Concat, PalletId,
     };
-    use frame_system::ensure_signed;
-    use frame_system::pallet_prelude::OriginFor;
+    use frame_system::{ensure_signed, pallet_prelude::OriginFor};
+    use primitives::Ratio;
     use primitives::{Balance, CurrencyId};
     use sp_runtime::{
         traits::{AccountIdConversion, Convert, Zero},
         DispatchError,
     };
     use sp_std::vec;
-    use xcm::latest::prelude::*;
-    use xcm::DoubleEncoded;
+    use xcm::{latest::prelude::*, DoubleEncoded};
 
     pub type AssetIdOf<T> =
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
@@ -75,11 +74,18 @@ pub mod pallet {
         #[pallet::constant]
         type SelfParaId: Get<ParaId>;
 
+        /// Relay network
+        #[pallet::constant]
+        type RelayNetwork: Get<NetworkId>;
+
         #[pallet::constant]
         type PalletId: Get<PalletId>;
 
         /// Convert `T::AccountId` to `MultiLocation`.
         type AccountIdToMultiLocation: Convert<Self::AccountId, MultiLocation>;
+
+        /// The origin which can update reserve_factor etc
+        type UpdateOrigin: EnsureOrigin<Self::Origin>;
 
         /// The origin which can create vault
         type CreateVaultOrigin: EnsureOrigin<Self::Origin>;
@@ -103,20 +109,22 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// Emits when new vault created
+        /// New vault was created
         VaultCreated(ParaId, AssetIdOf<T>),
-        /// Emits when user contributes amount to vault
+        /// User contributed amount to vault
         VaultContributed(ParaId, T::AccountId, BalanceOf<T>),
-        /// Emits when vault particpates in crowdloan
+        /// Vault particpated on relaychain
         VaultParticipated(ParaId, BalanceOf<T>),
-        /// Emits when vault is closed
+        /// Vault was closed
         VaultClosed(ParaId),
-        /// Emits when auction fails
+        /// Auction failed
         VaultAuctionFailed(ParaId),
-        /// Emits when a user claims refund from vault
+        /// A user claimed refund from vault
         VaultClaimRefund(ParaId, T::AccountId, BalanceOf<T>),
-        /// Emits when a vault is expired
+        /// A vault was expired
         VaultSlotExpired(ParaId),
+        /// ReserveFactor was updated
+        ReserveFactorUpdated(Ratio),
     }
 
     #[pallet::error]
@@ -131,8 +139,6 @@ pub mod pallet {
         VaultDoesNotExist,
         /// Vault contributed greater than issuance
         ContributedGreaterThanIssuance,
-        /// Xcm fees given are too low to execute on relaychain
-        XcmFeesCompensationTooLow,
         /// Vault with specific ctoken already created
         CTokenVaultAlreadyCreated,
     }
@@ -146,6 +152,31 @@ pub mod pallet {
         Vault<ParaId, AssetIdOf<T>, BalanceOf<T>>,
         OptionQuery,
     >;
+
+    #[pallet::storage]
+    #[pallet::getter(fn reserve_factor)]
+    pub type ReserveFactor<T: Config> = StorageValue<_, Ratio, ValueQuery>;
+
+    #[pallet::genesis_config]
+    pub struct GenesisConfig {
+        pub reserve_factor: Ratio,
+    }
+
+    #[cfg(feature = "std")]
+    impl Default for GenesisConfig {
+        fn default() -> Self {
+            Self {
+                reserve_factor: Ratio::default(),
+            }
+        }
+    }
+
+    #[pallet::genesis_build]
+    impl<T: Config> GenesisBuild<T> for GenesisConfig {
+        fn build(&self) {
+            ReserveFactor::<T>::put(self.reserve_factor);
+        }
+    }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
@@ -429,6 +460,18 @@ pub mod pallet {
                 Ok(())
             })
         }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn update_reserve_factor(
+            origin: OriginFor<T>,
+            reserve_factor: Ratio,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            ReserveFactor::<T>::mutate(|v| *v = reserve_factor);
+            Self::deposit_event(Event::<T>::ReserveFactorUpdated(reserve_factor));
+            Ok(().into())
+        }
     }
 
     impl<T: Config> Pallet<T> {
@@ -451,13 +494,8 @@ pub mod pallet {
             Vaults::<T>::try_get(crowdloan).map_err(|_err| Error::<T>::VaultDoesNotExist.into())
         }
 
-        #[allow(dead_code)]
         fn ump_transact(call: DoubleEncoded<()>, weight: Weight) -> Result<Xcm<()>, DispatchError> {
-            // let fees = Self::xcm_fees_compensation();
-            let fees = 1_000_000_000_000;
-            ensure!(!fees.is_zero(), Error::<T>::XcmFeesCompensationTooLow);
-
-            let asset: MultiAsset = (MultiLocation::here(), fees).into();
+            let asset: MultiAsset = (MultiLocation::here(), 1000_000_000_000).into();
 
             Ok(Xcm(vec![
                 WithdrawAsset(MultiAssets::from(asset.clone())),

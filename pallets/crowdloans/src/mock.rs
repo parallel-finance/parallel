@@ -323,7 +323,9 @@ impl crate::Config for Test {
     type SelfParaId = SelfParaId;
     type XcmSender = XcmRouter;
     type Assets = Assets;
+    type RelayNetwork = RelayNetwork;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type UpdateOrigin = EnsureRoot<AccountId>;
     type CreateVaultOrigin = CreateVaultOrigin;
     type PariticipateOrigin = PariticipateOrigin;
     type CloseOrigin = CloseOrigin;

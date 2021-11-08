@@ -106,7 +106,7 @@ pub mod pallet {
         /// The origin which can do operation on relaychain using parachain's sovereign account
         type RelayOrigin: EnsureOrigin<Self::Origin>;
 
-        /// The origin which can update liquid currency, staking currency
+        /// The origin which can update liquid currency, staking currency and other parameters
         type UpdateOrigin: EnsureOrigin<Self::Origin>;
 
         /// The pallet id of liquid staking, keeps all the staking assets
