@@ -44,7 +44,7 @@ pub mod pallet {
     use primitives::{Balance, CurrencyId};
     use sp_runtime::{
         traits::{AccountIdConversion, Convert, Zero},
-        DispatchError,
+        ArithmeticError, DispatchError,
     };
     use sp_std::vec;
     use xcm::{latest::prelude::*, DoubleEncoded};
@@ -157,6 +157,10 @@ pub mod pallet {
     #[pallet::getter(fn reserve_factor)]
     pub type ReserveFactor<T: Config> = StorageValue<_, Ratio, ValueQuery>;
 
+    #[pallet::storage]
+    #[pallet::getter(fn total_reserves)]
+    pub type TotalReserves<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
     #[pallet::genesis_config]
     pub struct GenesisConfig {
         pub reserve_factor: Ratio,
@@ -250,6 +254,15 @@ pub mod pallet {
                 Error::<T>::IncorrectVaultPhase
             );
 
+            let reserves = Self::reserve_factor().mul_floor(amount);
+            TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_add(reserves).ok_or(ArithmeticError::Overflow)?;
+                Ok(())
+            })?;
+            let amount = amount
+                .checked_sub(reserves)
+                .ok_or(ArithmeticError::Underflow)?;
+
             // 3. Make sure origin has at least amount of vault.currency (checked in transfer)
             // 4. Wire amount of vault.currency to the pallet's account id
             T::Assets::transfer(
@@ -279,36 +292,34 @@ pub mod pallet {
 
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
-                ensure!(vault.is_some(), Error::<T>::VaultDoesNotExist);
+                let mut vault_contents = vault.ok_or(Error::<T>::VaultDoesNotExist)?;
 
-                if let Some(vault_contents) = vault {
-                    // 2. Make sure vault.contributed is less than total_issuance(vault.currency_shares)
-                    let vault_ctoken_issuance = T::Assets::total_issuance(vault_contents.ctoken);
+                // 2. Make sure vault.contributed is less than total_issuance(vault.currency_shares)
+                let vault_ctoken_issuance = T::Assets::total_issuance(vault_contents.ctoken);
 
-                    ensure!(
-                        vault_contents.contributed < vault_ctoken_issuance,
-                        Error::<T>::ContributedGreaterThanIssuance
-                    );
+                ensure!(
+                    vault_contents.contributed < vault_ctoken_issuance,
+                    Error::<T>::ContributedGreaterThanIssuance
+                );
 
-                    // 3. Execute vault.contribution_strategy with parameters crowdloan,
-                    // cannot underflow because we checked that vault_contents.contributed < vault_ctoken_issuance
-                    let amount = vault_ctoken_issuance - vault_contents.contributed;
+                // 3. Execute vault.contribution_strategy with parameters crowdloan,
+                // cannot underflow because we checked that vault_contents.contributed < vault_ctoken_issuance
+                let amount = vault_ctoken_issuance - vault_contents.contributed;
 
-                    vault_contents.contribution_strategy.execute(
-                        crowdloan,
-                        vault_contents.relay_currency,
-                        amount,
-                    )?;
+                vault_contents.contribution_strategy.execute(
+                    crowdloan,
+                    vault_contents.relay_currency,
+                    amount,
+                )?;
 
-                    // 4. Set vault.contributed to total_issuance(vault.currency_shares)
-                    vault_contents.contributed = vault_ctoken_issuance;
+                // 4. Set vault.contributed to total_issuance(vault.currency_shares)
+                vault_contents.contributed = vault_ctoken_issuance;
 
-                    // update storage
-                    *vault = Some(*vault_contents);
+                // update storage
+                *vault = Some(vault_contents);
 
-                    // Emit event of trade with rate calculated
-                    Self::deposit_event(Event::<T>::VaultParticipated(crowdloan, amount));
-                }
+                // Emit event of trade with rate calculated
+                Self::deposit_event(Event::<T>::VaultParticipated(crowdloan, amount));
 
                 Ok(())
             })
@@ -322,24 +333,23 @@ pub mod pallet {
 
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
-                ensure!(vault.is_some(), Error::<T>::VaultDoesNotExist);
+                let mut vault_contents = vault.ok_or(Error::<T>::VaultDoesNotExist)?;
 
-                if let Some(vault_contents) = vault {
-                    // 2. Make sure vault.phase == VaultPhase::CollectingContributions
-                    ensure!(
-                        vault_contents.phase == VaultPhase::CollectingContributions,
-                        Error::<T>::IncorrectVaultPhase
-                    );
+                // 2. Make sure vault.phase == VaultPhase::CollectingContributions
+                ensure!(
+                    vault_contents.phase == VaultPhase::CollectingContributions,
+                    Error::<T>::IncorrectVaultPhase
+                );
 
-                    // 3. Change vault.phase to Closed
-                    vault_contents.phase = VaultPhase::Closed;
+                // 3. Change vault.phase to Closed
+                vault_contents.phase = VaultPhase::Closed;
 
-                    // update storage
-                    *vault = Some(*vault_contents);
+                // update storage
+                *vault = Some(vault_contents);
 
-                    // Emit event of trade with rate calculated
-                    Self::deposit_event(Event::<T>::VaultClosed(crowdloan));
-                }
+                // Emit event of trade with rate calculated
+                Self::deposit_event(Event::<T>::VaultClosed(crowdloan));
+
                 Ok(())
             })
         }
@@ -353,29 +363,28 @@ pub mod pallet {
 
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
-                ensure!(vault.is_some(), Error::<T>::VaultDoesNotExist);
+                let mut vault_contents = vault.ok_or(Error::<T>::VaultDoesNotExist)?;
 
-                if let Some(vault_contents) = vault {
-                    // 2. Make sure `vault.phase == Closed`
-                    ensure!(
-                        vault_contents.phase == VaultPhase::Closed,
-                        Error::<T>::IncorrectVaultPhase
-                    );
+                // 2. Make sure `vault.phase == Closed`
+                ensure!(
+                    vault_contents.phase == VaultPhase::Closed,
+                    Error::<T>::IncorrectVaultPhase
+                );
 
-                    // 3. Execute the `refund` function of the `contribution_strategy`
-                    vault_contents
-                        .contribution_strategy
-                        .refund(crowdloan, vault_contents.relay_currency)?;
+                // 3. Execute the `refund` function of the `contribution_strategy`
+                vault_contents
+                    .contribution_strategy
+                    .refund(crowdloan, vault_contents.relay_currency)?;
 
-                    // 4. Set `vault.phase` to `Failed`
-                    vault_contents.phase = VaultPhase::Failed;
+                // 4. Set `vault.phase` to `Failed`
+                vault_contents.phase = VaultPhase::Failed;
 
-                    // update storage
-                    *vault = Some(*vault_contents);
+                // update storage
+                *vault = Some(vault_contents);
 
-                    // Emit event of trade with rate calculated
-                    Self::deposit_event(Event::<T>::VaultAuctionFailed(crowdloan));
-                }
+                // Emit event of trade with rate calculated
+                Self::deposit_event(Event::<T>::VaultAuctionFailed(crowdloan));
+
                 Ok(())
             })
         }
@@ -392,41 +401,40 @@ pub mod pallet {
 
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
-                ensure!(vault.is_some(), Error::<T>::VaultDoesNotExist);
+                let vault_contents = vault.ok_or(Error::<T>::VaultDoesNotExist)?;
 
-                if let Some(vault_contents) = vault {
-                    // 1. Make sure `vault.phase == Failed` **or `Expired`** (more on that later)
-                    ensure!(
-                        vault_contents.phase == VaultPhase::Failed
-                            || vault_contents.phase == VaultPhase::Expired,
-                        Error::<T>::IncorrectVaultPhase
-                    );
+                // 1. Make sure `vault.phase == Failed` **or `Expired`** (more on that later)
+                ensure!(
+                    vault_contents.phase == VaultPhase::Failed
+                        || vault_contents.phase == VaultPhase::Expired,
+                    Error::<T>::IncorrectVaultPhase
+                );
 
-                    // 2. Make sure `origin` has at least `amount` of `vault.ctoken`
-                    // get amount origin has
-                    let origin_ctoken_amount =
-                        <T as Config>::Assets::balance(vault_contents.ctoken, &who);
+                // 2. Make sure `origin` has at least `amount` of `vault.ctoken`
+                // get amount origin has
+                let origin_ctoken_amount =
+                    <T as Config>::Assets::balance(vault_contents.ctoken, &who);
 
-                    ensure!(
-                        origin_ctoken_amount >= amount,
-                        Error::<T>::InsufficientBalance
-                    );
+                ensure!(
+                    origin_ctoken_amount >= amount,
+                    Error::<T>::InsufficientBalance
+                );
 
-                    // 3. Burns `amount` from `vault.ctoken`
-                    T::Assets::burn_from(vault_contents.ctoken, &who, amount)?;
+                // 3. Burns `amount` from `vault.ctoken`
+                T::Assets::burn_from(vault_contents.ctoken, &who, amount)?;
 
-                    // 4. Wire `amount` of `vault.currency` from our account id to the caller
-                    T::Assets::transfer(
-                        vault_contents.relay_currency,
-                        &Self::account_id(),
-                        &who,
-                        amount,
-                        false,
-                    )?;
+                // 4. Wire `amount` of `vault.currency` from our account id to the caller
+                T::Assets::transfer(
+                    vault_contents.relay_currency,
+                    &Self::account_id(),
+                    &who,
+                    amount,
+                    false,
+                )?;
 
-                    // Emit event of trade with rate calculated
-                    Self::deposit_event(Event::<T>::VaultClaimRefund(crowdloan, who, amount));
-                }
+                // Emit event of trade with rate calculated
+                Self::deposit_event(Event::<T>::VaultClaimRefund(crowdloan, who, amount));
+
                 Ok(())
             })
         }
@@ -440,23 +448,22 @@ pub mod pallet {
 
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
-                ensure!(vault.is_some(), Error::<T>::VaultDoesNotExist);
+                let mut vault_contents = vault.ok_or(Error::<T>::VaultDoesNotExist)?;
 
-                if let Some(vault_contents) = vault {
-                    // 2. Execute the `withdraw` function of our `contribution_strategy`
-                    vault_contents
-                        .contribution_strategy
-                        .withdraw(crowdloan, vault_contents.relay_currency)?;
+                // 2. Execute the `withdraw` function of our `contribution_strategy`
+                vault_contents
+                    .contribution_strategy
+                    .withdraw(crowdloan, vault_contents.relay_currency)?;
 
-                    // 3. Modify `vault.phase` to `Expired
-                    vault_contents.phase = VaultPhase::Expired;
+                // 3. Modify `vault.phase` to `Expired
+                vault_contents.phase = VaultPhase::Expired;
 
-                    // update storage
-                    *vault = Some(*vault_contents);
+                // update storage
+                *vault = Some(vault_contents);
 
-                    // Emit event of trade with rate calculated
-                    Self::deposit_event(Event::<T>::VaultSlotExpired(crowdloan));
-                }
+                // Emit event of trade with rate calculated
+                Self::deposit_event(Event::<T>::VaultSlotExpired(crowdloan));
+
                 Ok(())
             })
         }

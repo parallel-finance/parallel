@@ -342,16 +342,16 @@ impl<ParaId, CurrencyId: Zero, Balance: Zero>
     )> for Vault<ParaId, CurrencyId, Balance>
 {
     fn from(
-        currency_override: (
+        (ctoken, relay_currency, contribution_strategy): (
             CurrencyId,
             CurrencyId,
             ContributionStrategy<ParaId, CurrencyId, Balance>,
         ),
     ) -> Self {
         Self {
-            ctoken: currency_override.0,
-            relay_currency: currency_override.1,
-            contribution_strategy: currency_override.2,
+            ctoken,
+            relay_currency,
+            contribution_strategy,
             ..Self::default()
         }
     }
