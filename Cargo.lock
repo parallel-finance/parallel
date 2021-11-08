@@ -11353,6 +11353,7 @@ dependencies = [
  "pallet-balances",
  "pallet-collator-selection",
  "pallet-collective",
+ "pallet-crowdloans",
  "pallet-currency-adapter",
  "pallet-democracy",
  "pallet-liquid-staking",

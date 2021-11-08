@@ -1,6 +1,5 @@
 ![ghimage](https://user-images.githubusercontent.com/4702705/127602037-7ba2faf1-8459-493b-b1d6-2dc062aa6249.png)
 
-
 [![GitHub last commit](https://img.shields.io/github/last-commit/parallel-finance/parallel)](https://github.com/parallel-finance/parallel/commits/master)
 [![CI](https://github.com/parallel-finance/parallel/workflows/CI/badge.svg)](https://github.com/parallel-finance/parallel/actions)
 [![Codecov](https://codecov.io/gh/parallel-finance/parallel/branch/master/graph/badge.svg)](https://codecov.io/gh/parallel-finance/parallel)
@@ -33,5 +32,5 @@ Click [here](https://github.com/parallel-finance/parallel/blob/master/docs/DEVEL
 
 We would like to thank the following projects.
 
--   [Compound](https://compound.finance/)
--   [ORML](https://github.com/open-web3-stack/open-runtime-module-library)
+- [Compound](https://compound.finance/)
+- [ORML](https://github.com/open-web3-stack/open-runtime-module-library)

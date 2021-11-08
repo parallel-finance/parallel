@@ -89,6 +89,7 @@ pub use impls::DealWithFees;
 pub use pallet_liquid_staking;
 // pub use pallet_liquidation;
 pub use pallet_amm;
+pub use pallet_crowdloans;
 pub use pallet_liquidity_mining;
 pub use pallet_loans;
 pub use pallet_multisig;
@@ -244,7 +245,9 @@ impl Contains<Call> for BaseCallFilter {
             Call::OracleMembership(_) |
             Call::ValidatorFeedersMembership(_) |
             // AMM
-            Call::AMM(_)
+            Call::AMM(_) |
+            // Crowdloans
+            Call::Crowdloans(_)
         )
     }
 }
@@ -1257,6 +1260,25 @@ impl pallet_amm::Config for Runtime {
 }
 
 parameter_types! {
+    pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
+}
+
+impl pallet_crowdloans::Config for Runtime {
+    type Event = Event;
+    type PalletId = CrowdloansPalletId;
+    type SelfParaId = ParachainInfo;
+    type XcmSender = XcmRouter;
+    type Assets = Assets;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type PariticipateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type CloseOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type AuctionFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type AuctionCompletedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+}
+
+parameter_types! {
     pub const MaxLengthRoute: u8 = 10;
     pub const RouterPalletId: PalletId = PalletId(*b"ammroute");
 }
@@ -1342,7 +1364,7 @@ construct_runtime!(
         // Loans
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>} = 50,
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>} = 51,
-        // Liquidation: pallet_liquidation::{Pallet, Call} = 52,
+        Crowdloans: pallet_crowdloans::{Pallet, Call, Storage, Event<T>} = 52,
 
         // LiquidStaking
         LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config} = 60,

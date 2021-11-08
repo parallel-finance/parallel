@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # Crowdloans
-//!
+//! # Crowdloans pallet
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -22,14 +21,14 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-pub mod crowdloan_structs;
+pub mod types;
 
 pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use super::*;
-    use crate::crowdloan_structs::*;
+    use crate::types::*;
+
     use cumulus_primitives_core::ParaId;
     use frame_support::{
         dispatch::DispatchResult,
@@ -44,7 +43,7 @@ pub mod pallet {
     use frame_system::pallet_prelude::OriginFor;
     use primitives::{Balance, CurrencyId};
     use sp_runtime::{
-        traits::{AccountIdConversion, Zero},
+        traits::{AccountIdConversion, Convert, Zero},
         DispatchError,
     };
     use xcm::latest::prelude::*;
@@ -78,13 +77,8 @@ pub mod pallet {
         #[pallet::constant]
         type PalletId: Get<PalletId>;
 
-        /// Relay network
-        #[pallet::constant]
-        type RelayNetwork: Get<NetworkId>;
-
-        /// Account derivative index
-        #[pallet::constant]
-        type DerivativeIndex: Get<u16>;
+        /// Convert `T::AccountId` to `MultiLocation`.
+        type AccountIdToMultiLocation: Convert<Self::AccountId, MultiLocation>;
 
         /// The origin which can create vault
         type CreateVaultOrigin: EnsureOrigin<Self::Origin>;
@@ -152,32 +146,8 @@ pub mod pallet {
         OptionQuery,
     >;
 
-    #[pallet::genesis_config]
-    pub struct GenesisConfig {
-        pub exchange_rate: usize,
-        pub reserve_factor: usize,
-    }
-
-    #[cfg(feature = "std")]
-    impl Default for GenesisConfig {
-        fn default() -> Self {
-            Self {
-                exchange_rate: 1,
-                reserve_factor: 1,
-            }
-        }
-    }
-
-    #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig {
-        fn build(&self) {}
-    }
-
     #[pallet::call]
-    impl<T: Config> Pallet<T>
-    where
-        [u8; 32]: From<<T as frame_system::Config>::AccountId>,
-    {
+    impl<T: Config> Pallet<T> {
         /// Create a new vault via a governance decision
         /// - `currency` is the currency or token which needs to be deposited to fill
         ///   the vault and later participate in the crowdloans
@@ -216,8 +186,7 @@ pub mod pallet {
 
                 // 4. mutate our storage to register a new vault
                 // inialize new vault
-                let new_vault =
-                    crowdloan_structs::Vault::from((ctoken, currency, contribution_strategy));
+                let new_vault = Vault::from((ctoken, currency, contribution_strategy));
 
                 // store update
                 *vault = Some(new_vault);
@@ -461,10 +430,7 @@ pub mod pallet {
         }
     }
 
-    impl<T: Config> Pallet<T>
-    where
-        [u8; 32]: From<<T as frame_system::Config>::AccountId>,
-    {
+    impl<T: Config> Pallet<T> {
         /// Crowdloan pool account
         pub fn account_id() -> T::AccountId {
             T::PalletId::get().into_account()
@@ -490,7 +456,6 @@ pub mod pallet {
             let fees = 1_000_000_000_000;
             ensure!(!fees.is_zero(), Error::<T>::XcmFeesCompensationTooLow);
 
-            // let account_id = Self::account_id();
             let asset: MultiAsset = (MultiLocation::here(), fees).into();
 
             Ok(Xcm(vec![
@@ -508,21 +473,9 @@ pub mod pallet {
                 DepositAsset {
                     assets: asset.into(),
                     max_assets: 1,
-                    beneficiary: MultiLocation {
-                        parents: 1,
-                        interior: X1(AccountId32 {
-                            network: NetworkId::Any,
-                            id: Self::para_account_id().into(),
-                        }),
-                    },
+                    beneficiary: T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 },
             ]))
         }
     }
 }
-
-// impl<T: Config> ExchangeRateProvider for Pallet<T> {
-//     fn get_exchange_rate() -> Rate {
-//         ExchangeRate::<T>::get()
-//     }
-// }
