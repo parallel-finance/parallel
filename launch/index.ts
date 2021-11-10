@@ -13,7 +13,7 @@ async function main() {
       types: {
         'Compact<TAssetBalance>': 'Compact<Balance>'
       },
-      provider: new WsProvider('ws://localhost:9947')
+      provider: new WsProvider('ws://localhost:9948')
     })
   )
 
