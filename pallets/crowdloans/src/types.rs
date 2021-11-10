@@ -17,7 +17,10 @@
 use super::{AssetIdOf, BalanceOf, Config, Error, Event, Pallet as Crowdloans};
 
 use codec::{Decode, Encode};
-use frame_support::traits::Get;
+use frame_support::{
+    require_transactional,
+    traits::{fungibles::Mutate, Get},
+};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, DispatchError, DispatchResult, RuntimeDebug};
 use sp_std::marker::PhantomData;
@@ -94,12 +97,19 @@ pub trait ContributionStrategyExecutor {
 }
 
 impl ContributionStrategyExecutor for ContributionStrategy {
+    #[require_transactional]
     fn execute<T: Config>(
         self,
         para_id: ParaId,
         _currency_id: AssetIdOf<T>,
         amount: BalanceOf<T>,
     ) -> Result<(), DispatchError> {
+        T::Assets::burn_from(
+            T::RelayCurrency::get(),
+            &Crowdloans::<T>::account_id(),
+            amount,
+        )?;
+
         switch_relay!({
             let call = RelaychainCall::<T>::Crowdloans(CrowdloansCall::Contribute(
                 CrowdloansContributeCall {
@@ -127,6 +137,7 @@ impl ContributionStrategyExecutor for ContributionStrategy {
         Ok(())
     }
 
+    #[require_transactional]
     fn withdraw<T: Config>(self, para_id: ParaId, _: AssetIdOf<T>) -> Result<(), DispatchError> {
         switch_relay!({
             let call =
@@ -156,7 +167,9 @@ impl ContributionStrategyExecutor for ContributionStrategy {
         Ok(())
     }
 
+    #[require_transactional]
     fn refund<T: Config>(self, para_id: ParaId, _: AssetIdOf<T>) -> Result<(), DispatchError> {
+        // TODO: should mint into pallet account
         switch_relay!({
             let call =
                 RelaychainCall::<T>::Crowdloans(CrowdloansCall::Refund(CrowdloansRefundCall {
