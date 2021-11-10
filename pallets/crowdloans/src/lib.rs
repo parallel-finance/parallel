@@ -32,7 +32,6 @@ pub use pallet::*;
 pub mod pallet {
     use crate::types::*;
 
-    use cumulus_primitives_core::ParaId;
     use frame_support::{
         dispatch::DispatchResult,
         pallet_prelude::*,
@@ -43,7 +42,7 @@ pub mod pallet {
         transactional, Blake2_128Concat, PalletId,
     };
     use frame_system::{ensure_signed, pallet_prelude::OriginFor};
-    use primitives::{ump::XcmWeightMisc, Balance, CurrencyId, Ratio};
+    use primitives::{ump::XcmWeightMisc, Balance, CurrencyId, ParaId, Ratio};
     use sp_runtime::{
         traits::{AccountIdConversion, Convert, Zero},
         ArithmeticError, DispatchError, MultiSignature,

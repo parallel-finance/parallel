@@ -1,10 +1,11 @@
+use super::ParaId;
+
 use codec::{Decode, Encode, MaxEncodedLen};
-use cumulus_primitives_core::ParaId;
 use frame_support::pallet_prelude::Weight;
 use frame_system::Config;
 use scale_info::TypeInfo;
 use sp_runtime::{traits::StaticLookup, MultiSignature, RuntimeDebug};
-use sp_std::marker::PhantomData;
+use sp_std::{boxed::Box, marker::PhantomData, vec::Vec};
 
 /// A destination account for payment.
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]

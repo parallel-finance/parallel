@@ -39,7 +39,6 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use cumulus_primitives_core::ParaId;
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         ensure,
@@ -65,7 +64,7 @@ pub mod pallet {
     use sp_std::{boxed::Box, vec::Vec};
     use xcm::{latest::prelude::*, DoubleEncoded};
 
-    use primitives::{ump::*, Balance, CurrencyId, Rate, Ratio};
+    use primitives::{ump::*, Balance, CurrencyId, ParaId, Rate, Ratio};
 
     use crate::{types::*, weights::WeightInfo};
 

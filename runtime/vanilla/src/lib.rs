@@ -23,7 +23,6 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 mod weights;
 
 use codec::{Decode, Encode, MaxEncodedLen};
-use cumulus_primitives_core::ParaId;
 use scale_info::TypeInfo;
 
 use frame_support::{

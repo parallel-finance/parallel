@@ -17,14 +17,13 @@
 use super::{AssetIdOf, BalanceOf, Config, Error, Event, Pallet as Crowdloans};
 
 use codec::{Decode, Encode};
-use cumulus_primitives_core::ParaId;
 use frame_support::traits::Get;
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, DispatchError, DispatchResult, RuntimeDebug};
 use sp_std::marker::PhantomData;
 use xcm::latest::prelude::*;
 
-use primitives::ump::*;
+use primitives::{ump::*, ParaId};
 
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum VaultPhase {

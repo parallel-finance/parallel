@@ -1,4 +1,3 @@
-use cumulus_primitives_core::ParaId;
 use frame_support::{
     construct_runtime,
     dispatch::Weight,
@@ -11,7 +10,7 @@ use frame_system::{EnsureOneOf, EnsureRoot, EnsureSignedBy};
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
-use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance};
+use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId};
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
