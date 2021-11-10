@@ -29,6 +29,8 @@ use frame_system::pallet_prelude::*;
 
 pub use pallet::*;
 
+mod mock;
+
 pub type ChainId = u8;
 
 #[frame_support::pallet]
