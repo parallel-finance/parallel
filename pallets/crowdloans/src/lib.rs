@@ -25,6 +25,7 @@ mod tests;
 extern crate primitives;
 
 pub mod types;
+pub mod weights;
 
 pub use pallet::*;
 
@@ -49,6 +50,8 @@ pub mod pallet {
     };
     use sp_std::vec;
     use xcm::{latest::prelude::*, DoubleEncoded};
+
+    use crate::weights::WeightInfo;
 
     pub type AssetIdOf<T> =
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
@@ -109,6 +112,9 @@ pub mod pallet {
 
         /// The origin which can call slot expired
         type SlotExpiredOrigin: EnsureOrigin<Self::Origin>;
+
+        /// Weight information
+        type WeightInfo: WeightInfo;
     }
 
     #[pallet::event]
@@ -213,7 +219,7 @@ pub mod pallet {
         ///   contributions
         /// - `contribution_strategy` represents how we can contribute coins to the
         ///   crowdloan on the relay chain
-        #[pallet::weight(10_000)]
+        #[pallet::weight(<T as Config>::WeightInfo::create_vault())]
         pub fn create_vault(
             origin: OriginFor<T>,
             crowdloan: ParaId,
@@ -254,7 +260,7 @@ pub mod pallet {
 
         /// Contribute `amount` to the vault of `crowdloan` and receive some
         /// shares from it
-        #[pallet::weight(10_000)]
+        #[pallet::weight(<T as Config>::WeightInfo::contribute())]
         #[transactional]
         pub fn contribute(
             origin: OriginFor<T>,
@@ -304,7 +310,7 @@ pub mod pallet {
 
         /// Once a auction loan vault is expired, move the coins to the relay chain
         /// and participate in a relay chain crowdloan by using the call `call`.
-        #[pallet::weight(10_000)]
+        #[pallet::weight(<T as Config>::WeightInfo::participate())]
         pub fn participate(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             // 1. EnsureOrigin
             T::PariticipateOrigin::ensure_origin(origin)?;
@@ -346,7 +352,7 @@ pub mod pallet {
         }
 
         /// Mark the associated vault as closed and stop accepting contributions for it
-        #[pallet::weight(10_000)]
+        #[pallet::weight(<T as Config>::WeightInfo::close())]
         pub fn close(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             // 1. EnsureOrigin
             T::CloseOrigin::ensure_origin(origin)?;
@@ -377,7 +383,7 @@ pub mod pallet {
 
         /// If a `crowdloan` failed, get the coins back and mark the vault as ready
         /// for distribution
-        #[pallet::weight(10_000)]
+        #[pallet::weight(<T as Config>::WeightInfo::auction_failed())]
         pub fn auction_failed(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             // 1. `EnsureOrigin`
             T::AuctionFailedOrigin::ensure_origin(origin)?;
@@ -413,7 +419,7 @@ pub mod pallet {
 
         /// If a `crowdloan` failed, claim back your share of the assets you
         /// contributed
-        #[pallet::weight(10_000)]
+        #[pallet::weight(<T as Config>::WeightInfo::claim_refund())]
         pub fn claim_refund(
             origin: OriginFor<T>,
             crowdloan: ParaId,
@@ -463,7 +469,7 @@ pub mod pallet {
 
         /// If a `crowdloan` succeeded and its slot expired, use `call` to
         /// claim back the funds lent to the parachain
-        #[pallet::weight(10_000)]
+        #[pallet::weight(<T as Config>::WeightInfo::slot_expired())]
         pub fn slot_expired(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             // 1. `EnsureOrigin`
             T::SlotExpiredOrigin::ensure_origin(origin)?;
@@ -491,7 +497,7 @@ pub mod pallet {
             })
         }
 
-        #[pallet::weight(10_000)]
+        #[pallet::weight(<T as Config>::WeightInfo::update_reserve_factor())]
         #[transactional]
         pub fn update_reserve_factor(
             origin: OriginFor<T>,
@@ -503,7 +509,7 @@ pub mod pallet {
             Ok(().into())
         }
 
-        #[pallet::weight(10_000)]
+        #[pallet::weight(<T as Config>::WeightInfo::update_xcm_fees_compensation())]
         #[transactional]
         pub fn update_xcm_fees_compensation(
             origin: OriginFor<T>,
@@ -515,7 +521,7 @@ pub mod pallet {
             Ok(().into())
         }
 
-        #[pallet::weight(10_000)]
+        #[pallet::weight(<T as Config>::WeightInfo::update_xcm_weight())]
         #[transactional]
         pub fn update_xcm_weight(
             origin: OriginFor<T>,

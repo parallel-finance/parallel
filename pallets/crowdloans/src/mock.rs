@@ -330,6 +330,7 @@ impl crate::Config for Test {
     type AuctionFailedOrigin = AuctionFailedOrigin;
     type AuctionCompletedOrigin = AuctionCompletedOrigin;
     type SlotExpiredOrigin = SlotExpiredOrigin;
+    type WeightInfo = ();
 }
 
 parameter_types! {
