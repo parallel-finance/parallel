@@ -139,6 +139,7 @@ impl ContributionStrategyExecutor for ContributionStrategy {
 
     #[require_transactional]
     fn withdraw<T: Config>(self, para_id: ParaId, _: AssetIdOf<T>) -> Result<(), DispatchError> {
+        // TODO: should mint into pallet account
         switch_relay!({
             let call =
                 RelaychainCall::<T>::Crowdloans(CrowdloansCall::Withdraw(CrowdloansWithdrawCall {
@@ -169,7 +170,8 @@ impl ContributionStrategyExecutor for ContributionStrategy {
 
     #[require_transactional]
     fn refund<T: Config>(self, para_id: ParaId, _: AssetIdOf<T>) -> Result<(), DispatchError> {
-        // TODO: should mint into pallet account
+        // TODO: should mint into pallet account, but what'll be the amount?
+        // refund can be called multiple times because it only handles part of contributors at one time
         switch_relay!({
             let call =
                 RelaychainCall::<T>::Crowdloans(CrowdloansCall::Refund(CrowdloansRefundCall {
