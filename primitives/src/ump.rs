@@ -170,7 +170,6 @@ pub struct ProxyProxyCall<T: Config> {
     pub call: Box<<T as frame_system::Config>::Call>,
 }
 
-// TODO: fix westend, polkadot's proxy type
 /// The type used to represent the kinds of proxying allowed.
 #[derive(
     Copy,
@@ -186,13 +185,12 @@ pub struct ProxyProxyCall<T: Config> {
     TypeInfo,
 )]
 pub enum ProxyType {
-    Any,
-    NonTransfer,
-    Governance,
-    Staking,
-    IdentityJudgement,
-    CancelProxy,
-    Auction,
+    Any = 0,
+    NonTransfer = 1,
+    Governance = 2,
+    Staking = 3,
+    CancelProxy = 6,
+    Auction = 7,
 }
 
 impl Default for ProxyType {
@@ -316,10 +314,6 @@ macro_rules! switch_relay {
             $( $code )*
         } else if <T as Config>::RelayNetwork::get() == NetworkId::Kusama {
             use primitives::ump::KusamaCall as RelaychainCall;
-
-            $( $code )*
-        } else if <T as Config>::RelayNetwork::get() == NetworkId::Named("westend".into()) {
-            use primitives::ump::WestendCall as RelaychainCall;
 
             $( $code )*
         } else {

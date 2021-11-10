@@ -1,16 +1,13 @@
 use cumulus_primitives_core::ParaId;
-use frame_support::traits::Nothing;
 use frame_support::{
     construct_runtime,
     dispatch::Weight,
     parameter_types, sp_io,
-    traits::{Everything, GenesisBuild, SortedMembers},
+    traits::{Everything, GenesisBuild, Nothing, SortedMembers},
     weights::constants::WEIGHT_PER_SECOND,
     PalletId,
 };
-use frame_system::EnsureOneOf;
-use frame_system::EnsureRoot;
-use frame_system::EnsureSignedBy;
+use frame_system::{EnsureOneOf, EnsureRoot, EnsureSignedBy};
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
@@ -36,7 +33,7 @@ use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chai
 
 pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
-pub use westend_runtime;
+pub use kusama_runtime;
 
 parameter_types! {
     pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND / 4;
@@ -413,8 +410,8 @@ decl_test_parachain! {
 
 decl_test_relay_chain! {
     pub struct Relay {
-        Runtime = westend_runtime::Runtime,
-        XcmConfig = westend_runtime::XcmConfig,
+        Runtime = kusama_runtime::Runtime,
+        XcmConfig = kusama_runtime::XcmConfig,
         new_ext = relay_ext(),
     }
 }
@@ -458,7 +455,7 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
 }
 
 pub fn relay_ext() -> sp_io::TestExternalities {
-    use westend_runtime::{Runtime, System};
+    use kusama_runtime::{Runtime, System};
     let mut t = frame_system::GenesisConfig::default()
         .build_storage::<Runtime>()
         .unwrap();
