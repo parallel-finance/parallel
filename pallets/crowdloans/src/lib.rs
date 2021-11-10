@@ -21,6 +21,9 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+#[macro_use]
+extern crate primitives;
+
 pub mod types;
 
 pub use pallet::*;
@@ -40,8 +43,7 @@ pub mod pallet {
         transactional, Blake2_128Concat, PalletId,
     };
     use frame_system::{ensure_signed, pallet_prelude::OriginFor};
-    use primitives::{ump::XcmWeightMisc, Ratio};
-    use primitives::{Balance, CurrencyId};
+    use primitives::{ump::XcmWeightMisc, Balance, CurrencyId, Ratio};
     use sp_runtime::{
         traits::{AccountIdConversion, Convert, Zero},
         ArithmeticError, DispatchError,
@@ -149,6 +151,8 @@ pub mod pallet {
         ContributedGreaterThanIssuance,
         /// Vault with specific ctoken already created
         CTokenVaultAlreadyCreated,
+        /// Xcm message send failure
+        SendXcmError,
     }
 
     #[pallet::storage]
@@ -411,7 +415,7 @@ pub mod pallet {
         pub fn claim_refund(
             origin: OriginFor<T>,
             crowdloan: ParaId,
-            amount: BalanceOf<T>,
+            #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
@@ -538,7 +542,10 @@ pub mod pallet {
             Vaults::<T>::try_get(crowdloan).map_err(|_err| Error::<T>::VaultDoesNotExist.into())
         }
 
-        fn ump_transact(call: DoubleEncoded<()>, weight: Weight) -> Result<Xcm<()>, DispatchError> {
+        pub(crate) fn ump_transact(
+            call: DoubleEncoded<()>,
+            weight: Weight,
+        ) -> Result<Xcm<()>, DispatchError> {
             let fees = Self::xcm_fees_compensation();
             let account_id = Self::account_id();
             let relay_currency = T::RelayCurrency::get();
