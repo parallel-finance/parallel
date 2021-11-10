@@ -30,29 +30,12 @@ mod tests;
 pub mod types;
 pub mod weights;
 
+#[macro_use]
+extern crate primitives;
+
 use primitives::{ExchangeRateProvider, LiquidStakingCurrenciesProvider, Rate};
 
 pub use pallet::*;
-
-macro_rules! switch_relay {
-    ({ $( $code:tt )* }) => {
-        if T::RelayNetwork::get() == NetworkId::Polkadot {
-            use primitives::ump::PolkadotCall as RelaychainCall;
-
-            $( $code )*
-        } else if T::RelayNetwork::get() == NetworkId::Kusama {
-            use primitives::ump::KusamaCall as RelaychainCall;
-
-            $( $code )*
-        } else if T::RelayNetwork::get() == NetworkId::Named("westend".into()) {
-            use primitives::ump::WestendCall as RelaychainCall;
-
-            $( $code )*
-        } else {
-            unreachable!()
-        }
-    }
-}
 
 #[frame_support::pallet]
 pub mod pallet {

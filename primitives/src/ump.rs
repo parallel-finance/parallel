@@ -300,3 +300,24 @@ impl Default for XcmWeightMisc<Weight> {
         }
     }
 }
+
+#[macro_export]
+macro_rules! switch_relay {
+    ({ $( $code:tt )* }) => {
+        if <T as Config>::RelayNetwork::get() == NetworkId::Polkadot {
+            use primitives::ump::PolkadotCall as RelaychainCall;
+
+            $( $code )*
+        } else if <T as Config>::RelayNetwork::get() == NetworkId::Kusama {
+            use primitives::ump::KusamaCall as RelaychainCall;
+
+            $( $code )*
+        } else if <T as Config>::RelayNetwork::get() == NetworkId::Named("westend".into()) {
+            use primitives::ump::WestendCall as RelaychainCall;
+
+            $( $code )*
+        } else {
+            unreachable!()
+        }
+    }
+}
