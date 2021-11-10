@@ -209,8 +209,6 @@ pub mod pallet {
         ExceededMaxSlashesPerEra,
         /// Exceeded staking pool's capacity
         ExceededStakingPoolCapacity,
-        /// Xcm fees given are too low to execute on relaychain
-        XcmFeesCompensationTooLow,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -1039,8 +1037,6 @@ pub mod pallet {
         #[require_transactional]
         fn ump_transact(call: DoubleEncoded<()>, weight: Weight) -> Result<Xcm<()>, DispatchError> {
             let fees = Self::xcm_fees_compensation();
-            ensure!(!fees.is_zero(), Error::<T>::XcmFeesCompensationTooLow);
-
             let staking_currency = Self::staking_currency()?;
             let account_id = Self::account_id();
             let asset: MultiAsset = (MultiLocation::here(), fees).into();

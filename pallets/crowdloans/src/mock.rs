@@ -58,6 +58,7 @@ impl parachain_info::Config for Test {}
 
 parameter_types! {
     pub RelayNetwork: NetworkId = NetworkId::Named("westend".into());
+    pub RelayCurrency: CurrencyId = DOT;
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 }
@@ -324,6 +325,7 @@ impl crate::Config for Test {
     type XcmSender = XcmRouter;
     type Assets = Assets;
     type RelayNetwork = RelayNetwork;
+    type RelayCurrency = RelayCurrency;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type CreateVaultOrigin = CreateVaultOrigin;

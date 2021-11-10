@@ -821,6 +821,7 @@ impl parachain_info::Config for Runtime {}
 parameter_types! {
     pub const RelayLocation: MultiLocation = MultiLocation::parent();
     pub RelayNetwork: NetworkId = NetworkId::Kusama;
+    pub RelayCurrency: CurrencyId = KSM;
     pub VanillaNetwork: NetworkId = NetworkId::Named("vanilla".into());
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation =  MultiLocation::new(0, X1(Parachain(ParachainInfo::parachain_id().into())));
@@ -1270,6 +1271,7 @@ impl pallet_crowdloans::Config for Runtime {
     type XcmSender = XcmRouter;
     type Assets = Assets;
     type RelayNetwork = RelayNetwork;
+    type RelayCurrency = RelayCurrency;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;

@@ -40,7 +40,7 @@ pub mod pallet {
         transactional, Blake2_128Concat, PalletId,
     };
     use frame_system::{ensure_signed, pallet_prelude::OriginFor};
-    use primitives::Ratio;
+    use primitives::{ump::XcmWeightMisc, Ratio};
     use primitives::{Balance, CurrencyId};
     use sp_runtime::{
         traits::{AccountIdConversion, Convert, Zero},
@@ -77,6 +77,10 @@ pub mod pallet {
         /// Relay network
         #[pallet::constant]
         type RelayNetwork: Get<NetworkId>;
+
+        /// Relay currency
+        #[pallet::constant]
+        type RelayCurrency: Get<CurrencyId>;
 
         #[pallet::constant]
         type PalletId: Get<PalletId>;
@@ -125,6 +129,10 @@ pub mod pallet {
         VaultSlotExpired(ParaId),
         /// ReserveFactor was updated
         ReserveFactorUpdated(Ratio),
+        /// Xcm weight in BuyExecution message
+        XcmWeightUpdated(XcmWeightMisc<Weight>),
+        /// Compensation for extrinsics on relaychain was set to new value
+        XcmFeesCompensationUpdated(BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -160,6 +168,14 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn total_reserves)]
     pub type TotalReserves<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn xcm_fees_compensation)]
+    pub type XcmFeesCompensation<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn xcm_weight)]
+    pub type XcmWeight<T: Config> = StorageValue<_, XcmWeightMisc<Weight>, ValueQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig {
@@ -480,6 +496,30 @@ pub mod pallet {
             Self::deposit_event(Event::<T>::ReserveFactorUpdated(reserve_factor));
             Ok(().into())
         }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn update_xcm_fees_compensation(
+            origin: OriginFor<T>,
+            #[pallet::compact] fees: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            XcmFeesCompensation::<T>::mutate(|v| *v = fees);
+            Self::deposit_event(Event::<T>::XcmFeesCompensationUpdated(fees));
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn update_xcm_weight(
+            origin: OriginFor<T>,
+            xcm_weight_misc: XcmWeightMisc<Weight>,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            XcmWeight::<T>::mutate(|v| *v = xcm_weight_misc);
+            Self::deposit_event(Event::<T>::XcmWeightUpdated(xcm_weight_misc));
+            Ok(().into())
+        }
     }
 
     impl<T: Config> Pallet<T> {
@@ -493,17 +533,24 @@ pub mod pallet {
             T::SelfParaId::get().into_account()
         }
 
-        // Returns a stored Vault.
-        //
-        // Returns `Err` if market does not exist.
-        pub fn vault(
+        fn vault(
             crowdloan: ParaId,
         ) -> Result<Vault<ParaId, AssetIdOf<T>, BalanceOf<T>>, DispatchError> {
             Vaults::<T>::try_get(crowdloan).map_err(|_err| Error::<T>::VaultDoesNotExist.into())
         }
 
         fn ump_transact(call: DoubleEncoded<()>, weight: Weight) -> Result<Xcm<()>, DispatchError> {
-            let asset: MultiAsset = (MultiLocation::here(), 1000_000_000_000).into();
+            let fees = Self::xcm_fees_compensation();
+            let account_id = Self::account_id();
+            let relay_currency = T::RelayCurrency::get();
+            let asset: MultiAsset = (MultiLocation::here(), fees).into();
+
+            T::Assets::burn_from(relay_currency, &account_id, fees)?;
+
+            TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
+                Ok(())
+            })?;
 
             Ok(Xcm(vec![
                 WithdrawAsset(MultiAssets::from(asset.clone())),
