@@ -161,7 +161,7 @@ pub mod pallet {
         Rebonding(BalanceOf<T>),
         /// Sent staking.withdraw_unbonded call to relaychain
         WithdrawingUnbonded(u32),
-        /// Send staking.nominate call to relaychain
+        /// Sent staking.nominate call to relaychain
         Nominating(Vec<T::AccountId>),
         /// Compensation for extrinsics on relaychain was set to new value
         XcmFeesCompensationUpdated(BalanceOf<T>),

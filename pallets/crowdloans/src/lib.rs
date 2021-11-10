@@ -46,7 +46,7 @@ pub mod pallet {
     use primitives::{ump::XcmWeightMisc, Balance, CurrencyId, Ratio};
     use sp_runtime::{
         traits::{AccountIdConversion, Convert, Zero},
-        ArithmeticError, DispatchError,
+        ArithmeticError, DispatchError, MultiSignature,
     };
     use sp_std::vec;
     use xcm::{latest::prelude::*, DoubleEncoded};
@@ -135,6 +135,12 @@ pub mod pallet {
         XcmWeightUpdated(XcmWeightMisc<Weight>),
         /// Compensation for extrinsics on relaychain was set to new value
         XcmFeesCompensationUpdated(BalanceOf<T>),
+        /// Sent crowdloan.contribute call to relaychain
+        Contributing(ParaId, BalanceOf<T>, Option<MultiSignature>),
+        /// Sent crowdloan.withdraw call to relaychain
+        Withdrawing(ParaId, T::AccountId),
+        /// Sent crowdloan.refund call to relaychain
+        Refunding(ParaId),
     }
 
     #[pallet::error]
