@@ -37,15 +37,15 @@ pub use pallet::*;
 macro_rules! switch_relay {
     ({ $( $code:tt )* }) => {
         if T::RelayNetwork::get() == NetworkId::Polkadot {
-            use crate::types::PolkadotCall as RelaychainCall;
+            use primitives::ump::PolkadotCall as RelaychainCall;
 
             $( $code )*
         } else if T::RelayNetwork::get() == NetworkId::Kusama {
-            use crate::types::KusamaCall as RelaychainCall;
+            use primitives::ump::KusamaCall as RelaychainCall;
 
             $( $code )*
         } else if T::RelayNetwork::get() == NetworkId::Named("westend".into()) {
-            use crate::types::WestendCall as RelaychainCall;
+            use primitives::ump::WestendCall as RelaychainCall;
 
             $( $code )*
         } else {
@@ -82,7 +82,7 @@ pub mod pallet {
     use sp_std::{boxed::Box, vec::Vec};
     use xcm::{latest::prelude::*, DoubleEncoded};
 
-    use primitives::{Balance, CurrencyId, Rate, Ratio};
+    use primitives::{ump::*, Balance, CurrencyId, Rate, Ratio};
 
     use crate::{types::*, weights::WeightInfo};
 

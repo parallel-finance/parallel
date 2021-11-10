@@ -259,9 +259,6 @@ pub mod pallet {
                 *b = b.checked_add(reserves).ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
-            let amount = amount
-                .checked_sub(reserves)
-                .ok_or(ArithmeticError::Underflow)?;
 
             // 3. Make sure origin has at least amount of vault.currency (checked in transfer)
             // 4. Wire amount of vault.currency to the pallet's account id
@@ -273,6 +270,10 @@ pub mod pallet {
                 true,
             )
             .map_err(|_: DispatchError| Error::<T>::InsufficientBalance)?;
+
+            let amount = amount
+                .checked_sub(reserves)
+                .ok_or(ArithmeticError::Underflow)?;
 
             // 5. Create amount of vault.ctoken to origin
             T::Assets::mint_into(vault.ctoken, &who, amount)?;

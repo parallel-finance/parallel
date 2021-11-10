@@ -17,6 +17,7 @@
 pub mod currency;
 pub mod network;
 pub mod tokens;
+pub mod ump;
 
 use codec::{Decode, Encode};
 use sp_runtime::{

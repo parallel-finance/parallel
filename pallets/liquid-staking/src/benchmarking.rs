@@ -1,7 +1,7 @@
 //! Liquid staking pallet benchmarking.
 #![cfg(feature = "runtime-benchmarks")]
 use super::{
-    types::{RewardDestination, StakingSettlementKind, XcmWeightMisc},
+    types::{StakingSettlementKind, XcmWeightMisc},
     *,
 };
 
@@ -15,6 +15,7 @@ use frame_support::{
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{
     tokens::{DOT, XDOT},
+    ump::RewardDestination,
     Balance, CurrencyId, Rate, Ratio,
 };
 use sp_runtime::traits::{One, StaticLookup};

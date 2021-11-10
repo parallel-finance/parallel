@@ -1,6 +1,6 @@
 use crate::{
     mock::*,
-    types::{MatchingLedger, RewardDestination, StakingSettlementKind},
+    types::{MatchingLedger, StakingSettlementKind},
     *,
 };
 
@@ -8,6 +8,7 @@ use frame_support::{assert_err, assert_ok, traits::Hooks};
 
 use primitives::{
     tokens::{DOT, XDOT},
+    ump::RewardDestination,
     Balance, Rate,
 };
 use sp_runtime::traits::One;

@@ -6174,10 +6174,12 @@ dependencies = [
 name = "parallel-primitives"
 version = "1.0.0"
 dependencies = [
+ "cumulus-primitives-core",
  "frame-support",
  "frame-system",
  "orml-oracle",
  "parity-scale-codec",
+ "scale-info",
  "serde",
  "sp-consensus-aura",
  "sp-core",
