@@ -1,5 +1,6 @@
-use super::*;
+use super::{types::*, *};
 use crate::mock::*;
+
 use cumulus_primitives_core::ParaId;
 use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
@@ -8,7 +9,6 @@ use sp_runtime::{
     traits::{One, UniqueSaturatedInto, Zero},
     MultiAddress::Id,
 };
-use types::*;
 
 #[test]
 fn create_new_vault_should_work() {

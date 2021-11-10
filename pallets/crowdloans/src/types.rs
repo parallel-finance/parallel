@@ -14,13 +14,14 @@
 
 // Groups common pool related structures
 
-use codec::{Decode, Encode};
+use super::{AssetIdOf, BalanceOf, Config};
 
+use codec::{Decode, Encode};
+use cumulus_primitives_core::ParaId;
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, DispatchError, DispatchResult, RuntimeDebug};
-use sp_std::marker::PhantomData;
 
-#[derive(Clone, Copy, PartialEq, Decode, Encode, RuntimeDebug, TypeInfo)]
+#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum VaultPhase {
     /// Vault is open for contributions
     CollectingContributions,
@@ -38,88 +39,70 @@ pub enum VaultPhase {
     Expired,
 }
 
-#[derive(Clone, Copy, PartialEq, Decode, Encode, RuntimeDebug, TypeInfo)]
-pub struct Vault<ParaId, CurrencyId, Balance> {
+#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+#[scale_info(skip_type_params(T))]
+pub struct Vault<T: Config> {
     /// Asset used to represent the shares of currency
     /// to be claimed back later on
-    pub ctoken: CurrencyId,
+    pub ctoken: AssetIdOf<T>,
     /// Which phase the vault is at
     pub phase: VaultPhase,
     /// How we contribute coins to the crowdloan
-    pub contribution_strategy: ContributionStrategy<ParaId, CurrencyId, Balance>,
+    pub contribution_strategy: ContributionStrategy,
     /// Tracks how many coins were contributed on the relay chain
-    pub contributed: Balance,
+    pub contributed: BalanceOf<T>,
 }
 
-/// a default initalization for a vault
-impl<ParaId, CurrencyId: Zero, Balance: Zero> Default for Vault<ParaId, CurrencyId, Balance> {
-    fn default() -> Self {
-        Vault {
-            ctoken: Zero::zero(),
+/// init default vault with ctoken and currency override
+impl<T: Config> From<(AssetIdOf<T>, ContributionStrategy)> for Vault<T> {
+    fn from((ctoken, contribution_strategy): (AssetIdOf<T>, ContributionStrategy)) -> Self {
+        Self {
+            ctoken,
+            contribution_strategy,
             phase: VaultPhase::CollectingContributions,
-            contribution_strategy: ContributionStrategy::XCM,
             contributed: Zero::zero(),
         }
     }
 }
 
-/// init default vault with ctoken and currency override
-impl<ParaId, CurrencyId: Zero, Balance: Zero>
-    From<(
-        CurrencyId,
-        ContributionStrategy<ParaId, CurrencyId, Balance>,
-    )> for Vault<ParaId, CurrencyId, Balance>
-{
-    fn from(
-        (ctoken, contribution_strategy): (
-            CurrencyId,
-            ContributionStrategy<ParaId, CurrencyId, Balance>,
-        ),
-    ) -> Self {
-        Self {
-            ctoken,
-            contribution_strategy,
-            ..Self::default()
-        }
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Decode, Encode, RuntimeDebug, TypeInfo)]
-pub enum ContributionStrategy<ParaId, CurrencyId, Balance> {
+#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum ContributionStrategy {
     XCM,
     XCMWithProxy,
-    _Phantom(PhantomData<(ParaId, CurrencyId, Balance)>),
 }
 
-pub trait ContributionStrategyExecutor<ParaId, CurrencyId, Balance> {
+pub trait ContributionStrategyExecutor {
     /// Execute the strategy to contribute `amount` of coins to the crowdloan
     /// of the given parachain id
-    fn execute(self, para_id: ParaId, currency: CurrencyId, amount: Balance) -> DispatchResult;
+    fn execute<T: Config>(
+        self,
+        para_id: ParaId,
+        currency: AssetIdOf<T>,
+        amount: BalanceOf<T>,
+    ) -> DispatchResult;
 
     /// Withdraw coins from the relay chain's crowdloans and send it back
     /// to our parachain
-    fn withdraw(self, para_id: ParaId, currency: CurrencyId) -> DispatchResult;
+    fn withdraw<T: Config>(self, para_id: ParaId, currency: AssetIdOf<T>) -> DispatchResult;
 
     /// Ask for a refund of the coins on the relay chain
-    fn refund(self, para_id: ParaId, currency: CurrencyId) -> DispatchResult;
+    fn refund<T: Config>(self, para_id: ParaId, currency: AssetIdOf<T>) -> DispatchResult;
 }
 
-impl<ParaId, CurrencyId, Balance> ContributionStrategyExecutor<ParaId, CurrencyId, Balance>
-    for ContributionStrategy<ParaId, CurrencyId, Balance>
-{
+impl ContributionStrategyExecutor for ContributionStrategy {
     // add code here
-    fn execute(
+    fn execute<T: Config>(
         self,
         _para_id: ParaId,
-        _currency_id: CurrencyId,
-        _amount: Balance,
+        _currency_id: AssetIdOf<T>,
+        _amount: BalanceOf<T>,
     ) -> Result<(), DispatchError> {
         Ok(())
     }
-    fn withdraw(self, _: ParaId, _: CurrencyId) -> Result<(), DispatchError> {
+    fn withdraw<T: Config>(self, _: ParaId, _: AssetIdOf<T>) -> Result<(), DispatchError> {
         Ok(())
     }
-    fn refund(self, _: ParaId, _: CurrencyId) -> Result<(), DispatchError> {
+    fn refund<T: Config>(self, _: ParaId, _: AssetIdOf<T>) -> Result<(), DispatchError> {
         Ok(())
     }
 }

@@ -65,9 +65,9 @@ pub mod pallet {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Assets for deposit/withdraw assets to/from crowdloan account
-        type Assets: Transfer<Self::AccountId, AssetId = CurrencyId>
+        type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
-            + Mutate<Self::AccountId, Balance = Balance>;
+            + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
 
         /// XCM message sender
         type XcmSender: SendXcm;
@@ -82,7 +82,7 @@ pub mod pallet {
 
         /// Relay currency
         #[pallet::constant]
-        type RelayCurrency: Get<CurrencyId>;
+        type RelayCurrency: Get<AssetIdOf<Self>>;
 
         #[pallet::constant]
         type PalletId: Get<PalletId>;
@@ -157,13 +157,7 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn vaults)]
-    pub type Vaults<T: Config> = StorageMap<
-        _,
-        Blake2_128Concat,
-        ParaId,
-        Vault<ParaId, AssetIdOf<T>, BalanceOf<T>>,
-        OptionQuery,
-    >;
+    pub type Vaults<T: Config> = StorageMap<_, Blake2_128Concat, ParaId, Vault<T>, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn reserve_factor)]
@@ -219,7 +213,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             crowdloan: ParaId,
             ctoken: AssetIdOf<T>,
-            contribution_strategy: ContributionStrategy<ParaId, CurrencyId, Balance>,
+            contribution_strategy: ContributionStrategy,
         ) -> DispatchResult {
             // 1. EnsureOrigin
             T::CreateVaultOrigin::ensure_origin(origin)?;
@@ -312,7 +306,8 @@ pub mod pallet {
 
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
-                let mut vault_contents = vault.ok_or(Error::<T>::VaultDoesNotExist)?;
+                let mut vault_contents =
+                    vault.as_ref().ok_or(Error::<T>::VaultDoesNotExist)?.clone();
 
                 // 2. Make sure vault.contributed is less than total_issuance(vault.currency_shares)
                 let vault_ctoken_issuance = T::Assets::total_issuance(vault_contents.ctoken);
@@ -326,7 +321,7 @@ pub mod pallet {
                 // cannot underflow because we checked that vault_contents.contributed < vault_ctoken_issuance
                 let amount = vault_ctoken_issuance - vault_contents.contributed;
 
-                vault_contents.contribution_strategy.execute(
+                vault_contents.contribution_strategy.execute::<T>(
                     crowdloan,
                     T::RelayCurrency::get(),
                     amount,
@@ -353,7 +348,8 @@ pub mod pallet {
 
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
-                let mut vault_contents = vault.ok_or(Error::<T>::VaultDoesNotExist)?;
+                let mut vault_contents =
+                    vault.as_ref().ok_or(Error::<T>::VaultDoesNotExist)?.clone();
 
                 // 2. Make sure vault.phase == VaultPhase::CollectingContributions
                 ensure!(
@@ -383,7 +379,8 @@ pub mod pallet {
 
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
-                let mut vault_contents = vault.ok_or(Error::<T>::VaultDoesNotExist)?;
+                let mut vault_contents =
+                    vault.as_ref().ok_or(Error::<T>::VaultDoesNotExist)?.clone();
 
                 // 2. Make sure `vault.phase == Closed`
                 ensure!(
@@ -394,7 +391,7 @@ pub mod pallet {
                 // 3. Execute the `refund` function of the `contribution_strategy`
                 vault_contents
                     .contribution_strategy
-                    .refund(crowdloan, T::RelayCurrency::get())?;
+                    .refund::<T>(crowdloan, T::RelayCurrency::get())?;
 
                 // 4. Set `vault.phase` to `Failed`
                 vault_contents.phase = VaultPhase::Failed;
@@ -421,7 +418,7 @@ pub mod pallet {
 
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
-                let vault_contents = vault.ok_or(Error::<T>::VaultDoesNotExist)?;
+                let vault_contents = vault.as_ref().ok_or(Error::<T>::VaultDoesNotExist)?.clone();
 
                 // 1. Make sure `vault.phase == Failed` **or `Expired`** (more on that later)
                 ensure!(
@@ -433,7 +430,7 @@ pub mod pallet {
                 // 2. Make sure `origin` has at least `amount` of `vault.ctoken`
                 // get amount origin has
                 let origin_ctoken_amount =
-                    <T as Config>::Assets::balance(vault_contents.ctoken, &who);
+                    <T as Config>::Assets::reducible_balance(vault_contents.ctoken, &who, true);
 
                 ensure!(
                     origin_ctoken_amount >= amount,
@@ -468,12 +465,13 @@ pub mod pallet {
 
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
-                let mut vault_contents = vault.ok_or(Error::<T>::VaultDoesNotExist)?;
+                let mut vault_contents =
+                    vault.as_ref().ok_or(Error::<T>::VaultDoesNotExist)?.clone();
 
                 // 2. Execute the `withdraw` function of our `contribution_strategy`
                 vault_contents
                     .contribution_strategy
-                    .withdraw(crowdloan, T::RelayCurrency::get())?;
+                    .withdraw::<T>(crowdloan, T::RelayCurrency::get())?;
 
                 // 3. Modify `vault.phase` to `Expired
                 vault_contents.phase = VaultPhase::Expired;
@@ -536,9 +534,7 @@ pub mod pallet {
             T::SelfParaId::get().into_account()
         }
 
-        fn vault(
-            crowdloan: ParaId,
-        ) -> Result<Vault<ParaId, AssetIdOf<T>, BalanceOf<T>>, DispatchError> {
+        fn vault(crowdloan: ParaId) -> Result<Vault<T>, DispatchError> {
             Vaults::<T>::try_get(crowdloan).map_err(|_err| Error::<T>::VaultDoesNotExist.into())
         }
 

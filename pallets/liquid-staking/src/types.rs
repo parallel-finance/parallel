@@ -6,6 +6,7 @@ use sp_runtime::{
     RuntimeDebug,
 };
 use sp_std::cmp::Ordering;
+
 /// Category of staking settlement at the end of era.
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, TypeInfo)]
 pub enum StakingSettlementKind {
