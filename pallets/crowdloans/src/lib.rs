@@ -213,7 +213,6 @@ pub mod pallet {
         #[pallet::weight(10_000)]
         pub fn create_vault(
             origin: OriginFor<T>,
-            currency: AssetIdOf<T>,
             crowdloan: ParaId,
             ctoken: AssetIdOf<T>,
             contribution_strategy: ContributionStrategy<ParaId, CurrencyId, Balance>,
@@ -238,7 +237,7 @@ pub mod pallet {
 
                 // 4. mutate our storage to register a new vault
                 // inialize new vault
-                let new_vault = Vault::from((ctoken, currency, contribution_strategy));
+                let new_vault = Vault::from((ctoken, contribution_strategy));
 
                 // store update
                 *vault = Some(new_vault);
@@ -279,7 +278,7 @@ pub mod pallet {
             // 3. Make sure origin has at least amount of vault.currency (checked in transfer)
             // 4. Wire amount of vault.currency to the pallet's account id
             T::Assets::transfer(
-                vault.relay_currency,
+                T::RelayCurrency::get(),
                 &who,
                 &Self::account_id(),
                 amount,
@@ -325,7 +324,7 @@ pub mod pallet {
 
                 vault_contents.contribution_strategy.execute(
                     crowdloan,
-                    vault_contents.relay_currency,
+                    T::RelayCurrency::get(),
                     amount,
                 )?;
 
@@ -391,7 +390,7 @@ pub mod pallet {
                 // 3. Execute the `refund` function of the `contribution_strategy`
                 vault_contents
                     .contribution_strategy
-                    .refund(crowdloan, vault_contents.relay_currency)?;
+                    .refund(crowdloan, T::RelayCurrency::get())?;
 
                 // 4. Set `vault.phase` to `Failed`
                 vault_contents.phase = VaultPhase::Failed;
@@ -442,7 +441,7 @@ pub mod pallet {
 
                 // 4. Wire `amount` of `vault.currency` from our account id to the caller
                 T::Assets::transfer(
-                    vault_contents.relay_currency,
+                    T::RelayCurrency::get(),
                     &Self::account_id(),
                     &who,
                     amount,
@@ -470,7 +469,7 @@ pub mod pallet {
                 // 2. Execute the `withdraw` function of our `contribution_strategy`
                 vault_contents
                     .contribution_strategy
-                    .withdraw(crowdloan, vault_contents.relay_currency)?;
+                    .withdraw(crowdloan, T::RelayCurrency::get())?;
 
                 // 3. Modify `vault.phase` to `Expired
                 vault_contents.phase = VaultPhase::Expired;
