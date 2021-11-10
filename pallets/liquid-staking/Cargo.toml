@@ -32,7 +32,7 @@ serde            = { version = '1' }
 sp-core          = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12' }
 sp-io            = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12' }
 
-kusama-runtime              = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.12', features = ['runtime-benchmarks'] }
+kusama-runtime              = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.12' }
 pallet-xcm                  = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.12' }
 polkadot-core-primitives    = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.12' }
 polkadot-parachain          = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.12' }
