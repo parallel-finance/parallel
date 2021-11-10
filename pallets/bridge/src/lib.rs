@@ -30,6 +30,7 @@ use frame_system::pallet_prelude::*;
 pub use pallet::*;
 
 mod mock;
+mod tests;
 
 pub type ChainId = u8;
 
