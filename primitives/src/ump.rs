@@ -1,5 +1,6 @@
 use codec::{Decode, Encode, MaxEncodedLen};
 use cumulus_primitives_core::ParaId;
+use frame_support::pallet_prelude::Weight;
 use frame_system::Config;
 use scale_info::TypeInfo;
 use sp_runtime::{traits::StaticLookup, MultiSignature, RuntimeDebug};
@@ -264,4 +265,38 @@ pub enum PolkadotCall<T: Config> {
     Utility(Box<UtilityCall<Self>>),
     #[codec(index = 73)]
     Crowdloans(CrowdloansCall<T>),
+}
+
+/// The xcm weight when execute ump call wrapped in xcm message
+#[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct XcmWeightMisc<Weight> {
+    /// The weight when execute bond xcm message
+    pub bond_weight: Weight,
+    /// The weight when execute bond_extra xcm message
+    pub bond_extra_weight: Weight,
+    /// The weight when execute unbond xcm message
+    pub unbond_weight: Weight,
+    /// The weight when execute rebond xcm message
+    pub rebond_weight: Weight,
+    /// The weight when execute withdraw_unbonded xcm message
+    pub withdraw_unbonded_weight: Weight,
+    /// The weight when execute nominate xcm message
+    pub nominate_weight: Weight,
+    /// The weight when execute nominate xcm message
+    pub contribute_weight: Weight,
+}
+
+impl Default for XcmWeightMisc<Weight> {
+    fn default() -> Self {
+        let default_weight = 3_000_000_000;
+        XcmWeightMisc {
+            bond_weight: default_weight,
+            bond_extra_weight: default_weight,
+            unbond_weight: default_weight,
+            rebond_weight: default_weight,
+            withdraw_unbonded_weight: default_weight,
+            nominate_weight: default_weight,
+            contribute_weight: default_weight,
+        }
+    }
 }

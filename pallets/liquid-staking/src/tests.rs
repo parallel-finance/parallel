@@ -8,13 +8,11 @@ use frame_support::{assert_err, assert_ok, traits::Hooks};
 
 use primitives::{
     tokens::{DOT, XDOT},
-    ump::RewardDestination,
+    ump::{RewardDestination, XcmWeightMisc},
     Balance, Rate,
 };
 use sp_runtime::traits::One;
 use xcm_simulator::TestExt;
-
-use types::*;
 
 #[test]
 fn stake_fails_due_to_exceed_capacity() {
@@ -468,6 +466,7 @@ fn test_update_xcm_weight_work() {
             rebond_weight: 4,
             withdraw_unbonded_weight: 5,
             nominate_weight: 6,
+            contribute_weight: 7,
         };
         assert_ok!(LiquidStaking::update_xcm_weight(Origin::signed(BOB), misc));
         assert_eq!(XcmWeight::<Test>::get(), misc);
