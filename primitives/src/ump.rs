@@ -282,8 +282,12 @@ pub struct XcmWeightMisc<Weight> {
     pub withdraw_unbonded_weight: Weight,
     /// The weight when execute nominate xcm message
     pub nominate_weight: Weight,
-    /// The weight when execute nominate xcm message
+    /// The weight when execute contribute xcm message
     pub contribute_weight: Weight,
+    /// The weight when execute withdraw xcm message
+    pub withdraw_weight: Weight,
+    /// The weight when execute refund xcm message
+    pub refund_weight: Weight,
 }
 
 impl Default for XcmWeightMisc<Weight> {
@@ -297,6 +301,8 @@ impl Default for XcmWeightMisc<Weight> {
             withdraw_unbonded_weight: default_weight,
             nominate_weight: default_weight,
             contribute_weight: default_weight,
+            withdraw_weight: default_weight,
+            refund_weight: default_weight,
         }
     }
 }

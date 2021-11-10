@@ -14,12 +14,17 @@
 
 // Groups common pool related structures
 
-use super::{AssetIdOf, BalanceOf, Config};
+use super::{AssetIdOf, BalanceOf, Config, Error, Pallet as Crowdloans};
 
 use codec::{Decode, Encode};
 use cumulus_primitives_core::ParaId;
+use frame_support::traits::Get;
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, DispatchError, DispatchResult, RuntimeDebug};
+use sp_std::marker::PhantomData;
+use xcm::latest::prelude::*;
+
+use primitives::ump::*;
 
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum VaultPhase {
@@ -93,16 +98,86 @@ impl ContributionStrategyExecutor for ContributionStrategy {
     // add code here
     fn execute<T: Config>(
         self,
-        _para_id: ParaId,
+        para_id: ParaId,
         _currency_id: AssetIdOf<T>,
-        _amount: BalanceOf<T>,
+        amount: BalanceOf<T>,
     ) -> Result<(), DispatchError> {
+        switch_relay!({
+            let call = RelaychainCall::<T>::Crowdloans(CrowdloansCall::Contribute(
+                CrowdloansContributeCall {
+                    index: para_id,
+                    value: amount,
+                    signature: None,
+                },
+            ));
+
+            let msg = Crowdloans::<T>::ump_transact(
+                call.encode().into(),
+                Crowdloans::<T>::xcm_weight().contribute_weight,
+            )?;
+
+            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                Ok(()) => {
+                    //
+                }
+                Err(_e) => {
+                    return Err(Error::<T>::SendXcmError.into());
+                }
+            }
+        });
+
         Ok(())
     }
-    fn withdraw<T: Config>(self, _: ParaId, _: AssetIdOf<T>) -> Result<(), DispatchError> {
+
+    fn withdraw<T: Config>(self, para_id: ParaId, _: AssetIdOf<T>) -> Result<(), DispatchError> {
+        switch_relay!({
+            let call =
+                RelaychainCall::<T>::Crowdloans(CrowdloansCall::Withdraw(CrowdloansWithdrawCall {
+                    who: Crowdloans::<T>::para_account_id(),
+                    index: para_id,
+                }));
+
+            let msg = Crowdloans::<T>::ump_transact(
+                call.encode().into(),
+                Crowdloans::<T>::xcm_weight().withdraw_weight,
+            )?;
+
+            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                Ok(()) => {
+                    //
+                }
+                Err(_e) => {
+                    return Err(Error::<T>::SendXcmError.into());
+                }
+            }
+        });
+
         Ok(())
     }
-    fn refund<T: Config>(self, _: ParaId, _: AssetIdOf<T>) -> Result<(), DispatchError> {
+
+    fn refund<T: Config>(self, para_id: ParaId, _: AssetIdOf<T>) -> Result<(), DispatchError> {
+        switch_relay!({
+            let call =
+                RelaychainCall::<T>::Crowdloans(CrowdloansCall::Refund(CrowdloansRefundCall {
+                    index: para_id,
+                    _ghost: PhantomData::default(),
+                }));
+
+            let msg = Crowdloans::<T>::ump_transact(
+                call.encode().into(),
+                Crowdloans::<T>::xcm_weight().refund_weight,
+            )?;
+
+            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                Ok(()) => {
+                    //
+                }
+                Err(_e) => {
+                    return Err(Error::<T>::SendXcmError.into());
+                }
+            }
+        });
+
         Ok(())
     }
 }
