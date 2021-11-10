@@ -47,13 +47,12 @@ pub mod pallet {
 
         /// Root origin that can be used to bypass admin permissions
         type RootOperatorAccountId: Get<Self::AccountId>;
-        
 
         /// The identifier for this chain.
         /// This must be unique and must not collide with existing IDs within a set of bridged chains.
         #[pallet::constant]
         type ChainId: Get<ChainId>;
-        
+
         /// The bridge's pallet id, keep all deposited assets.
         #[pallet::constant]
         type PalletId: Get<PalletId>;

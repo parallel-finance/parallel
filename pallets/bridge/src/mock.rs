@@ -1,10 +1,7 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{
-    parameter_types,
-    traits::Everything,
-};
+use frame_support::{parameter_types, traits::Everything};
 use frame_system::{self as system, EnsureRoot};
 
 use crate::{self as bridge, ChainId, Config};
