@@ -17,6 +17,7 @@
 pub mod currency;
 pub mod network;
 pub mod tokens;
+pub mod ump;
 
 use codec::{Decode, Encode};
 use sp_runtime::{
@@ -86,6 +87,8 @@ pub type PriceDetail = (Price, Timestamp);
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+
+pub use cumulus_primitives_core::ParaId;
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]

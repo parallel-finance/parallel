@@ -1,9 +1,6 @@
 //! Liquid staking pallet benchmarking.
 #![cfg(feature = "runtime-benchmarks")]
-use super::{
-    types::{RewardDestination, StakingSettlementKind, XcmWeightMisc},
-    *,
-};
+use super::{types::StakingSettlementKind, *};
 
 use crate::Pallet as LiquidStaking;
 
@@ -15,6 +12,7 @@ use frame_support::{
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{
     tokens::{DOT, XDOT},
+    ump::{RewardDestination, XcmWeightMisc},
     Balance, CurrencyId, Rate, Ratio,
 };
 use sp_runtime::traits::{One, StaticLookup};
@@ -31,6 +29,9 @@ const XCM_WEIGHT: XcmWeightMisc<Weight> = XcmWeightMisc {
     rebond_weight: 3_000_000_000,
     withdraw_unbonded_weight: 3_000_000_000,
     nominate_weight: 3_000_000_000,
+    contribute_weight: 3_000_000_000,
+    withdraw_weight: 3_000_000_000,
+    refund_weight: 3_000_000_000,
 };
 const INITIAL_INSURANCE: u128 = 1000000000000u128;
 const INITIAL_AMOUNT: u128 = 1000000000000000u128;

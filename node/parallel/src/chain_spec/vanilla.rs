@@ -12,22 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use cumulus_primitives_core::ParaId;
 use primitives::{network::NetworkType, *};
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-// use hex_literal::hex;
-// use sp_core::crypto::UncheckedInto;
 use sp_core::sr25519;
 use sp_runtime::{traits::Zero, FixedPointNumber};
 use vanilla_runtime::{
-    opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, DemocracyConfig,
-    GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig, LiquidStakingConfig,
-    OracleMembershipConfig, ParachainInfoConfig, PolkadotXcmConfig, SessionConfig, SudoConfig,
-    SystemConfig, TechnicalCommitteeMembershipConfig, ValidatorFeedersMembershipConfig,
-    VestingConfig, WASM_BINARY,
+    opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, CrowdloansConfig,
+    DemocracyConfig, GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
+    LiquidStakingConfig, OracleMembershipConfig, ParachainInfoConfig, PolkadotXcmConfig,
+    SessionConfig, SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig,
+    ValidatorFeedersMembershipConfig, VestingConfig, WASM_BINARY,
 };
+
+// use hex_literal::hex;
+// use sp_core::crypto::UncheckedInto;
 
 use crate::chain_spec::{
     accumulate, as_properties, get_account_id_from_seed, get_authority_keys_from_seed, Extensions,
@@ -300,6 +300,9 @@ fn vanilla_genesis(
         parachain_info: ParachainInfoConfig { parachain_id: id },
         liquid_staking: LiquidStakingConfig {
             exchange_rate: Rate::saturating_from_rational(100, 100), // 1
+            reserve_factor: Ratio::from_perthousand(5),
+        },
+        crowdloans: CrowdloansConfig {
             reserve_factor: Ratio::from_perthousand(5),
         },
         democracy: DemocracyConfig::default(),

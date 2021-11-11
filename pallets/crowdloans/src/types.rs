@@ -14,12 +14,20 @@
 
 // Groups common pool related structures
 
+use super::{AssetIdOf, BalanceOf, Config, Error, Event, Pallet as Crowdloans};
+
 use codec::{Decode, Encode};
+use frame_support::{
+    require_transactional,
+    traits::{fungibles::Mutate, Get},
+};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, DispatchError, DispatchResult, RuntimeDebug};
-use sp_std::marker::PhantomData;
+use xcm::latest::prelude::*;
 
-#[derive(Clone, Copy, PartialEq, Decode, Encode, RuntimeDebug, TypeInfo)]
+use primitives::{ump::*, ParaId};
+
+#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum VaultPhase {
     /// Vault is open for contributions
     CollectingContributions,
@@ -37,97 +45,125 @@ pub enum VaultPhase {
     Expired,
 }
 
-#[derive(Clone, Copy, PartialEq, Decode, Encode, RuntimeDebug, TypeInfo)]
-pub struct Vault<ParaId, CurrencyId, Balance> {
+#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+#[scale_info(skip_type_params(T))]
+pub struct Vault<T: Config> {
     /// Asset used to represent the shares of currency
     /// to be claimed back later on
-    pub ctoken: CurrencyId,
-    /// Indicates in which currency contributions are received, in most
-    /// cases this will be the asset representing the relay chain's native
-    /// token
-    pub relay_currency: CurrencyId,
+    pub ctoken: AssetIdOf<T>,
     /// Which phase the vault is at
     pub phase: VaultPhase,
     /// How we contribute coins to the crowdloan
-    pub contribution_strategy: ContributionStrategy<ParaId, CurrencyId, Balance>,
+    pub contribution_strategy: ContributionStrategy,
     /// Tracks how many coins were contributed on the relay chain
-    pub contributed: Balance,
+    pub contributed: BalanceOf<T>,
 }
 
-/// a default initalization for a vault
-impl<ParaId, CurrencyId: Zero, Balance: Zero> Default for Vault<ParaId, CurrencyId, Balance> {
-    fn default() -> Self {
-        Vault {
-            ctoken: Zero::zero(),
-            relay_currency: Zero::zero(),
+/// init default vault with ctoken and currency override
+impl<T: Config> From<(AssetIdOf<T>, ContributionStrategy)> for Vault<T> {
+    fn from((ctoken, contribution_strategy): (AssetIdOf<T>, ContributionStrategy)) -> Self {
+        Self {
+            ctoken,
+            contribution_strategy,
             phase: VaultPhase::CollectingContributions,
-            contribution_strategy: ContributionStrategy::XCM,
             contributed: Zero::zero(),
         }
     }
 }
 
-/// init default vault with ctoken and currency override
-impl<ParaId, CurrencyId: Zero, Balance: Zero>
-    From<(
-        CurrencyId,
-        CurrencyId,
-        ContributionStrategy<ParaId, CurrencyId, Balance>,
-    )> for Vault<ParaId, CurrencyId, Balance>
-{
-    fn from(
-        currency_override: (
-            CurrencyId,
-            CurrencyId,
-            ContributionStrategy<ParaId, CurrencyId, Balance>,
-        ),
-    ) -> Self {
-        Self {
-            ctoken: currency_override.0,
-            relay_currency: currency_override.1,
-            contribution_strategy: currency_override.2,
-            ..Self::default()
-        }
-    }
-}
-
-#[allow(clippy::upper_case_acronyms)] // for XCM
-#[derive(Clone, Copy, PartialEq, Decode, Encode, RuntimeDebug, TypeInfo)]
-pub enum ContributionStrategy<ParaId, CurrencyId, Balance> {
+#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum ContributionStrategy {
     XCM,
     XCMWithProxy,
-    _Phantom(PhantomData<(ParaId, CurrencyId, Balance)>),
 }
 
-pub trait ContributionStrategyExecutor<ParaId, CurrencyId, Balance> {
+pub trait ContributionStrategyExecutor {
     /// Execute the strategy to contribute `amount` of coins to the crowdloan
     /// of the given parachain id
-    fn execute(self, para_id: ParaId, currency: CurrencyId, amount: Balance) -> DispatchResult;
+    fn execute<T: Config>(self, para_id: ParaId, amount: BalanceOf<T>) -> DispatchResult;
 
     /// Withdraw coins from the relay chain's crowdloans and send it back
     /// to our parachain
-    fn withdraw(self, para_id: ParaId, currency: CurrencyId) -> DispatchResult;
-
-    /// Ask for a refund of the coins on the relay chain
-    fn refund(self, para_id: ParaId, currency: CurrencyId) -> DispatchResult;
+    fn withdraw<T: Config>(self, para_id: ParaId, amount: BalanceOf<T>) -> DispatchResult;
 }
 
-impl<ParaId, CurrencyId, Balance> ContributionStrategyExecutor<ParaId, CurrencyId, Balance>
-    for ContributionStrategy<ParaId, CurrencyId, Balance>
-{
-    // add code here
-    fn execute(
+impl ContributionStrategyExecutor for ContributionStrategy {
+    #[require_transactional]
+    fn execute<T: Config>(
         self,
-        _para_id: ParaId,
-        _currency_id: CurrencyId,
-        _amount: Balance,
+        para_id: ParaId,
+        amount: BalanceOf<T>,
     ) -> Result<(), DispatchError> {
+        T::Assets::burn_from(
+            T::RelayCurrency::get(),
+            &Crowdloans::<T>::account_id(),
+            amount,
+        )?;
+
+        switch_relay!({
+            let call = RelaychainCall::<T>::Crowdloans(CrowdloansCall::Contribute(
+                CrowdloansContributeCall {
+                    index: para_id,
+                    value: amount,
+                    signature: None,
+                },
+            ));
+
+            let msg = Crowdloans::<T>::ump_transact(
+                call.encode().into(),
+                Crowdloans::<T>::xcm_weight().contribute_weight,
+            )?;
+
+            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                Ok(()) => {
+                    Crowdloans::<T>::deposit_event(Event::<T>::Contributing(para_id, amount, None));
+                }
+                Err(_e) => {
+                    return Err(Error::<T>::SendXcmError.into());
+                }
+            }
+        });
+
         Ok(())
     }
-    fn withdraw(self, _: ParaId, _: CurrencyId) -> Result<(), DispatchError> {
-        Ok(())
-    }
-    fn refund(self, _: ParaId, _: CurrencyId) -> Result<(), DispatchError> {
+
+    #[require_transactional]
+    fn withdraw<T: Config>(
+        self,
+        para_id: ParaId,
+        amount: BalanceOf<T>,
+    ) -> Result<(), DispatchError> {
+        switch_relay!({
+            let call =
+                RelaychainCall::<T>::Crowdloans(CrowdloansCall::Withdraw(CrowdloansWithdrawCall {
+                    who: Crowdloans::<T>::para_account_id(),
+                    index: para_id,
+                }));
+
+            let msg = Crowdloans::<T>::ump_transact(
+                call.encode().into(),
+                Crowdloans::<T>::xcm_weight().withdraw_weight,
+            )?;
+
+            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                Ok(()) => {
+                    Crowdloans::<T>::deposit_event(Event::<T>::Withdrawing(
+                        para_id,
+                        Crowdloans::<T>::para_account_id(),
+                    ));
+                }
+                Err(_e) => {
+                    return Err(Error::<T>::SendXcmError.into());
+                }
+            }
+        });
+
+        T::Assets::mint_into(
+            T::RelayCurrency::get(),
+            &Crowdloans::<T>::account_id(),
+            amount,
+        )?;
+
         Ok(())
     }
 }

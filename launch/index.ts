@@ -50,7 +50,8 @@ async function main() {
     api.tx.sudo.sudo(api.tx.liquidStaking.setLiquidCurrency(config.liquidAsset)),
     api.tx.sudo.sudo(api.tx.liquidStaking.setStakingCurrency(config.stakingAsset)),
     api.tx.sudo.sudo(api.tx.liquidStaking.updateStakingPoolCapacity('10000000000000000')),
-    api.tx.sudo.sudo(api.tx.liquidStaking.updateXcmFeesCompensation('50000000000'))
+    api.tx.sudo.sudo(api.tx.liquidStaking.updateXcmFeesCompensation('50000000000')),
+    api.tx.sudo.sudo(api.tx.crowdloans.updateXcmFeesCompensation('50000000000'))
   )
 
   console.log('Submit batches.')

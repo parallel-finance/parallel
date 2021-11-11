@@ -20,7 +20,6 @@ use cumulus_client_network::build_block_announce_validator;
 use cumulus_client_service::{
     prepare_node_config, start_collator, start_full_node, StartCollatorParams, StartFullNodeParams,
 };
-use cumulus_primitives_core::ParaId;
 
 use polkadot_service::ConstructRuntimeApi;
 use sc_client_api::call_executor::ExecutorProvider;

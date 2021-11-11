@@ -1,20 +1,18 @@
-use cumulus_primitives_core::ParaId;
-use frame_support::traits::Nothing;
+use super::TotalReserves;
+
 use frame_support::{
     construct_runtime,
     dispatch::Weight,
     parameter_types, sp_io,
-    traits::{Everything, GenesisBuild, SortedMembers},
+    traits::{Everything, GenesisBuild, Nothing, SortedMembers},
     weights::constants::WEIGHT_PER_SECOND,
     PalletId,
 };
-use frame_system::EnsureOneOf;
-use frame_system::EnsureRoot;
-use frame_system::EnsureSignedBy;
+use frame_system::{EnsureOneOf, EnsureRoot, EnsureSignedBy};
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
-use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance};
+use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId};
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
@@ -36,7 +34,7 @@ use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chai
 
 pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
-pub use westend_runtime;
+pub use kusama_runtime;
 
 parameter_types! {
     pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND / 4;
@@ -57,7 +55,8 @@ impl cumulus_pallet_parachain_system::Config for Test {
 impl parachain_info::Config for Test {}
 
 parameter_types! {
-    pub RelayNetwork: NetworkId = NetworkId::Named("westend".into());
+    pub RelayNetwork: NetworkId = NetworkId::Kusama;
+    pub RelayCurrency: CurrencyId = DOT;
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 }
@@ -323,13 +322,17 @@ impl crate::Config for Test {
     type SelfParaId = SelfParaId;
     type XcmSender = XcmRouter;
     type Assets = Assets;
+    type RelayNetwork = RelayNetwork;
+    type RelayCurrency = RelayCurrency;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type UpdateOrigin = EnsureRoot<AccountId>;
     type CreateVaultOrigin = CreateVaultOrigin;
     type PariticipateOrigin = PariticipateOrigin;
     type CloseOrigin = CloseOrigin;
     type AuctionFailedOrigin = AuctionFailedOrigin;
     type AuctionCompletedOrigin = AuctionCompletedOrigin;
     type SlotExpiredOrigin = SlotExpiredOrigin;
+    type WeightInfo = ();
 }
 
 parameter_types! {
@@ -391,7 +394,15 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
         Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, Id(BOB), dot(20000f64)).unwrap();
+        Assets::mint(
+            Origin::signed(ALICE),
+            DOT,
+            Id(Crowdloans::account_id()),
+            dot(10f64) + 1,
+        )
+        .unwrap();
+        TotalReserves::<Test>::mutate(|b| *b = dot(10f64));
+        Crowdloans::update_xcm_fees_compensation(Origin::root(), dot(10f64)).unwrap();
     });
 
     ext
@@ -409,8 +420,8 @@ decl_test_parachain! {
 
 decl_test_relay_chain! {
     pub struct Relay {
-        Runtime = westend_runtime::Runtime,
-        XcmConfig = westend_runtime::XcmConfig,
+        Runtime = kusama_runtime::Runtime,
+        XcmConfig = kusama_runtime::XcmConfig,
         new_ext = relay_ext(),
     }
 }
@@ -447,14 +458,24 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         System::set_block_number(1);
         Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
         Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 1000 * DOT_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+        Assets::mint(
+            Origin::signed(ALICE),
+            DOT,
+            Id(Crowdloans::account_id()),
+            dot(10f64) + 1,
+        )
+        .unwrap();
+        TotalReserves::<Test>::mutate(|b| *b = dot(10f64));
+        Crowdloans::update_xcm_fees_compensation(Origin::root(), dot(10f64)).unwrap();
     });
 
     ext
 }
 
 pub fn relay_ext() -> sp_io::TestExternalities {
-    use westend_runtime::{Runtime, System};
+    use kusama_runtime::{Runtime, System};
     let mut t = frame_system::GenesisConfig::default()
         .build_storage::<Runtime>()
         .unwrap();

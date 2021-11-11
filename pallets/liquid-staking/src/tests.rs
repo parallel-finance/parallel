@@ -1,6 +1,6 @@
 use crate::{
     mock::*,
-    types::{MatchingLedger, RewardDestination, StakingSettlementKind},
+    types::{MatchingLedger, StakingSettlementKind},
     *,
 };
 
@@ -8,12 +8,11 @@ use frame_support::{assert_err, assert_ok, traits::Hooks};
 
 use primitives::{
     tokens::{DOT, XDOT},
+    ump::{RewardDestination, XcmWeightMisc},
     Balance, Rate,
 };
 use sp_runtime::traits::One;
 use xcm_simulator::TestExt;
-
-use types::*;
 
 #[test]
 fn stake_fails_due_to_exceed_capacity() {
@@ -432,10 +431,10 @@ fn test_transfer_bond() {
             xcm_transfer_amount,
             RewardDestination::Staked
         ));
-        print_events::<Test>("ParaA");
+        // print_events::<Test>("ParaA");
     });
     Relay::execute_with(|| {
-        print_events::<kusama_runtime::Runtime>("Relay");
+        // print_events::<kusama_runtime::Runtime>("Relay");
         let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
         assert_eq!(ledger.total, xcm_transfer_amount);
         assert_eq!(
@@ -449,12 +448,12 @@ fn test_transfer_bond() {
     });
 }
 
-fn print_events<T: frame_system::Config>(context: &str) {
-    println!("------ {:?} events ------", context);
-    frame_system::Pallet::<T>::events().iter().for_each(|r| {
-        println!("{:?}", r.event);
-    });
-}
+// fn print_events<T: frame_system::Config>(context: &str) {
+//     println!("------ {:?} events ------", context);
+//     frame_system::Pallet::<T>::events().iter().for_each(|r| {
+//         println!("{:?}", r.event);
+//     });
+// }
 
 #[test]
 fn test_update_xcm_weight_work() {
@@ -467,6 +466,9 @@ fn test_update_xcm_weight_work() {
             rebond_weight: 4,
             withdraw_unbonded_weight: 5,
             nominate_weight: 6,
+            contribute_weight: 7,
+            withdraw_weight: 8,
+            refund_weight: 9,
         };
         assert_ok!(LiquidStaking::update_xcm_weight(Origin::signed(BOB), misc));
         assert_eq!(XcmWeight::<Test>::get(), misc);
