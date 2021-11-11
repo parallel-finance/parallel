@@ -290,7 +290,7 @@ pub mod pallet {
                 &who,
                 &Self::account_id(),
                 amount,
-                true,
+                false,
             )
             .map_err(|_: DispatchError| Error::<T>::InsufficientBalance)?;
 
@@ -430,7 +430,7 @@ pub mod pallet {
                 // 2. Make sure `origin` has at least `amount` of `vault.ctoken`
                 // get amount origin has
                 let origin_ctoken_amount =
-                    <T as Config>::Assets::reducible_balance(vault_contents.ctoken, &who, true);
+                    <T as Config>::Assets::reducible_balance(vault_contents.ctoken, &who, false);
 
                 ensure!(
                     origin_ctoken_amount >= amount,

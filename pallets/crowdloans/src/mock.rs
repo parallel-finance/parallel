@@ -1,3 +1,5 @@
+use super::TotalReserves;
+
 use frame_support::{
     construct_runtime,
     dispatch::Weight,
@@ -392,6 +394,14 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
         Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+        Assets::mint(
+            Origin::signed(ALICE),
+            DOT,
+            Id(Crowdloans::account_id()),
+            dot(10f64) + 1,
+        )
+        .unwrap();
+        TotalReserves::<Test>::mutate(|b| *b = dot(10f64));
         Crowdloans::update_xcm_fees_compensation(Origin::root(), dot(10f64)).unwrap();
     });
 
@@ -450,6 +460,14 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
         Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+        Assets::mint(
+            Origin::signed(ALICE),
+            DOT,
+            Id(Crowdloans::account_id()),
+            dot(10f64) + 1,
+        )
+        .unwrap();
+        TotalReserves::<Test>::mutate(|b| *b = dot(10f64));
         Crowdloans::update_xcm_fees_compensation(Origin::root(), dot(10f64)).unwrap();
     });
 

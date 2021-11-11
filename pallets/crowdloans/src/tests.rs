@@ -87,12 +87,6 @@ fn contribute_should_work() {
         let ctoken_balance = Assets::balance(vault.ctoken, ALICE);
 
         assert_eq!(ctoken_balance, amount);
-
-        // check user balance
-        let pallet_balance = Assets::balance(tokens::DOT, Crowdloans::account_id());
-
-        // check pallet balance
-        assert_eq!(pallet_balance, amount);
     });
 }
 
