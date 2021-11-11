@@ -14,6 +14,11 @@ pub type AccountId = u128;
 type EnsureRootOrigin = EnsureRoot<AccountId>;
 
 pub const ALICE: AccountId = 1;
+pub const BOB: AccountId = 2;
+pub const CHARLIE: AccountId = 3;
+pub const DAVE: AccountId = 4;
+pub const _EVE: AccountId = 5;
+pub const FERDIE: AccountId = 6;
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
@@ -103,7 +108,10 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        Bridge::set_relayer_threshold(2).unwrap();
+        BridgeMembership::add_member(Origin::root(), ALICE).unwrap();
+        BridgeMembership::add_member(Origin::root(), BOB).unwrap();
+        BridgeMembership::add_member(Origin::root(), CHARLIE).unwrap();
+
         System::set_block_number(0);
         run_to_block(1);
     });

@@ -20,6 +20,7 @@
 //! and the security of funds is secured by multiple signatures
 
 #![cfg_attr(not(feature = "std"), no_std)]
+
 use frame_support::{
     pallet_prelude::*,
     traits::{ChangeMembers, Get, SortedMembers},
@@ -28,6 +29,7 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 
 pub use pallet::*;
+use sp_runtime::traits::AccountIdConversion;
 
 mod mock;
 mod tests;
@@ -46,6 +48,7 @@ pub mod pallet {
         type AdminMembers: SortedMembers<Self::AccountId>;
 
         /// Root origin that can be used to bypass admin permissions
+        /// This will be removed later
         type RootOperatorAccountId: Get<Self::AccountId>;
 
         /// The identifier for this chain.
@@ -65,10 +68,10 @@ pub mod pallet {
     /// Error for the Assets Pallet
     #[pallet::error]
     pub enum Error<T> {
-        /// Relayer threshold not set
-        ThresholdNotSet,
+        /// Vote threshold not set
+        VoteThresholdNotSet,
         /// The new threshold is invalid
-        InvalidThreshold,
+        InvalidVoteThreshold,
         /// Origin has no permission to operate on the bridge
         OriginNoPermission,
     }
@@ -79,34 +82,30 @@ pub mod pallet {
     pub enum Event<T> {
         /// Vote threshold has changed
         /// [new_threshold]
-        RelayerThresholdChanged(u32),
+        VoteThresholdChanged(u32),
     }
 
     #[pallet::type_value]
-    pub fn DefaultRelayerThreshold() -> u32 {
+    pub fn DefaultVoteThreshold() -> u32 {
         3u32
     }
     #[pallet::storage]
-    #[pallet::getter(fn relayer_threshold)]
-    pub type RelayerThreshold<T: Config> =
-        StorageValue<_, u32, ValueQuery, DefaultRelayerThreshold>;
+    #[pallet::getter(fn vote_threshold)]
+    pub type VoteThreshold<T: Config> = StorageValue<_, u32, ValueQuery, DefaultVoteThreshold>;
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::weight(0)]
         pub fn set_threshold(origin: OriginFor<T>, threshold: u32) -> DispatchResult {
             Self::ensure_admin(origin)?;
-            Self::set_relayer_threshold(threshold)
+            Self::set_vote_threshold(threshold)
         }
     }
 
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
         fn on_finalize(_n: T::BlockNumber) {
-            let threshold = Self::relayer_threshold();
-            if threshold != DefaultRelayerThreshold::get() {
-                Self::deposit_event(Event::RelayerThresholdChanged(threshold));
-            }
+            // do nothing
         }
     }
 }
@@ -122,14 +121,28 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    /// Set a new voting threshold
-    pub fn set_relayer_threshold(threshold: u32) -> DispatchResult {
-        ensure!(threshold > 0, Error::<T>::InvalidThreshold);
+    /// Provides an AccountId for the bridge pallet.
+    /// Used for teleport/materialize account.
+    pub fn account_id() -> T::AccountId {
+        T::PalletId::get().into_account()
+    }
 
-        RelayerThreshold::<T>::put(threshold);
-        Self::deposit_event(Event::RelayerThresholdChanged(threshold));
+    /// Set a new voting threshold
+    pub fn set_vote_threshold(threshold: u32) -> DispatchResult {
+        ensure!(
+            threshold > 0 && threshold <= Self::get_members_count(),
+            Error::<T>::InvalidVoteThreshold
+        );
+
+        VoteThreshold::<T>::put(threshold);
+        Self::deposit_event(Event::VoteThresholdChanged(threshold));
 
         Ok(())
+    }
+
+    /// Get the count of members in the `AdminMembers`.
+    pub fn get_members_count() -> u32 {
+        T::AdminMembers::count() as u32
     }
 }
 
