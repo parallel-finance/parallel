@@ -122,7 +122,7 @@ impl pallet_membership::Config<BridgeMembershipInstance> for Test {
 }
 
 parameter_types! {
-    pub const DefaultRealyerThreshold: ChainId = 1;
+    pub const ParallelHeiko: ChainId = 1;
     pub const ZeroAccountId: AccountId = 0u128;
     pub const BridgePalletId: PalletId = PalletId(*b"par/brid");
 }
@@ -133,7 +133,7 @@ impl Config for Test {
 
     type RootOperatorAccountId = ZeroAccountId;
 
-    type ChainId = DefaultRealyerThreshold;
+    type ChainId = ParallelHeiko;
     type PalletId = BridgePalletId;
 
     type Assets = CurrencyAdapter;
