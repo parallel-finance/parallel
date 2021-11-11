@@ -974,7 +974,7 @@ impl<T: Config> Pallet<T> {
         );
 
         Self::ensure_liquidity(redeemer, redeem_effects_value)?;
-        
+
         Ok(())
     }
 
@@ -1022,7 +1022,7 @@ impl<T: Config> Pallet<T> {
         Self::ensure_enough_cash(asset_id, borrow_amount)?;
         let borrow_value = Self::get_asset_value(asset_id, borrow_amount)?;
         Self::ensure_liquidity(borrower, borrow_value)?;
-        
+
         Ok(())
     }
 

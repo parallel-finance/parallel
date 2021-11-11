@@ -212,6 +212,7 @@ where
         if liquidity >= collateral_value {
             return Ok(voucher_balance);
         }
+
         // Formula
         // reducible_underlying_amount = liquidity / collateral_factor / price
         let price = Self::get_price(underlying_id)?;
