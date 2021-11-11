@@ -220,6 +220,7 @@ pub mod pallet {
         /// - `contribution_strategy` represents how we can contribute coins to the
         ///   crowdloan on the relay chain
         #[pallet::weight(<T as Config>::WeightInfo::create_vault())]
+        #[transactional]
         pub fn create_vault(
             origin: OriginFor<T>,
             crowdloan: ParaId,
@@ -311,6 +312,7 @@ pub mod pallet {
         /// Once a auction loan vault is expired, move the coins to the relay chain
         /// and participate in a relay chain crowdloan by using the call `call`.
         #[pallet::weight(<T as Config>::WeightInfo::participate())]
+        #[transactional]
         pub fn participate(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             // 1. EnsureOrigin
             T::PariticipateOrigin::ensure_origin(origin)?;
@@ -353,6 +355,7 @@ pub mod pallet {
 
         /// Mark the associated vault as closed and stop accepting contributions for it
         #[pallet::weight(<T as Config>::WeightInfo::close())]
+        #[transactional]
         pub fn close(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             // 1. EnsureOrigin
             T::CloseOrigin::ensure_origin(origin)?;
@@ -384,6 +387,7 @@ pub mod pallet {
         /// If a `crowdloan` failed, get the coins back and mark the vault as ready
         /// for distribution
         #[pallet::weight(<T as Config>::WeightInfo::auction_failed())]
+        #[transactional]
         pub fn auction_failed(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             // 1. `EnsureOrigin`
             T::AuctionFailedOrigin::ensure_origin(origin)?;
@@ -420,6 +424,7 @@ pub mod pallet {
         /// If a `crowdloan` failed, claim back your share of the assets you
         /// contributed
         #[pallet::weight(<T as Config>::WeightInfo::claim_refund())]
+        #[transactional]
         pub fn claim_refund(
             origin: OriginFor<T>,
             crowdloan: ParaId,
@@ -470,6 +475,7 @@ pub mod pallet {
         /// If a `crowdloan` succeeded and its slot expired, use `call` to
         /// claim back the funds lent to the parachain
         #[pallet::weight(<T as Config>::WeightInfo::slot_expired())]
+        #[transactional]
         pub fn slot_expired(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             // 1. `EnsureOrigin`
             T::SlotExpiredOrigin::ensure_origin(origin)?;
