@@ -392,7 +392,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
         Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, Id(BOB), dot(20000f64)).unwrap();
+        Crowdloans::update_xcm_fees_compensation(Origin::root(), dot(10f64)).unwrap();
     });
 
     ext
@@ -448,7 +448,9 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         System::set_block_number(1);
         Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
         Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 1000 * DOT_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+        Crowdloans::update_xcm_fees_compensation(Origin::root(), dot(10f64)).unwrap();
     });
 
     ext

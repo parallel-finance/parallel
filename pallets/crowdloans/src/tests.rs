@@ -33,17 +33,16 @@ fn create_new_vault_should_work() {
             contribution_strategy,                // contribution_strategy
         ));
 
-        if let Some(just_created_vault) = Crowdloans::vaults(crowdloan) {
-            assert_eq!(
-                just_created_vault,
-                Vault {
-                    ctoken,
-                    phase: VaultPhase::CollectingContributions,
-                    contribution_strategy: contribution_strategy,
-                    contributed: Zero::zero(),
-                }
-            );
-        }
+        let just_created_vault = Crowdloans::vaults(crowdloan).unwrap();
+        assert_eq!(
+            just_created_vault,
+            Vault {
+                ctoken,
+                phase: VaultPhase::CollectingContributions,
+                contribution_strategy: contribution_strategy,
+                contributed: Zero::zero(),
+            }
+        );
     });
 }
 
@@ -81,20 +80,19 @@ fn contribute_should_work() {
         ));
 
         // check that we're in the right phase
-        if let Some(vault) = Crowdloans::vaults(crowdloan) {
-            assert_eq!(vault.phase, VaultPhase::CollectingContributions);
+        let vault = Crowdloans::vaults(crowdloan).unwrap();
+        assert_eq!(vault.phase, VaultPhase::CollectingContributions);
 
-            // check if ctoken minted to user
-            let ctoken_balance = Assets::balance(vault.ctoken, ALICE);
+        // check if ctoken minted to user
+        let ctoken_balance = Assets::balance(vault.ctoken, ALICE);
 
-            assert_eq!(ctoken_balance, amount);
+        assert_eq!(ctoken_balance, amount);
 
-            // check user balance
-            let pallet_balance = Assets::balance(tokens::DOT, Crowdloans::account_id());
+        // check user balance
+        let pallet_balance = Assets::balance(tokens::DOT, Crowdloans::account_id());
 
-            // check pallet balance
-            assert_eq!(pallet_balance, amount);
-        }
+        // check pallet balance
+        assert_eq!(pallet_balance, amount);
     });
 }
 
@@ -204,9 +202,8 @@ fn close_should_work() {
         ));
 
         // check that we're in the right phase
-        if let Some(vault) = Crowdloans::vaults(crowdloan) {
-            assert_eq!(vault.phase, VaultPhase::Closed)
-        }
+        let vault = Crowdloans::vaults(crowdloan).unwrap();
+        assert_eq!(vault.phase, VaultPhase::Closed)
     });
 }
 
@@ -239,9 +236,8 @@ fn auction_failed_should_work() {
         ));
 
         // check that we're in the right phase
-        if let Some(vault) = Crowdloans::vaults(ParaId::from(crowdloan)) {
-            assert_eq!(vault.phase, VaultPhase::Failed)
-        }
+        let vault = Crowdloans::vaults(ParaId::from(crowdloan)).unwrap();
+        assert_eq!(vault.phase, VaultPhase::Failed)
     });
 }
 
@@ -298,13 +294,12 @@ fn claim_refund_should_work() {
         ));
 
         // check that we're in the right phase
-        if let Some(vault) = Crowdloans::vaults(ParaId::from(crowdloan)) {
-            // vault should be in a state we allow
-            assert!(
-                vault.phase == VaultPhase::Failed || vault.phase == VaultPhase::Expired,
-                "Vault in incorrect state"
-            );
-        }
+        let vault = Crowdloans::vaults(ParaId::from(crowdloan)).unwrap();
+        // vault should be in a state we allow
+        assert!(
+            vault.phase == VaultPhase::Failed || vault.phase == VaultPhase::Expired,
+            "Vault in incorrect state"
+        );
     });
 }
 
@@ -331,17 +326,7 @@ fn slot_expired_should_work() {
         ));
 
         // check that we're in the right phase
-        if let Some(vault) = Crowdloans::vaults(ParaId::from(crowdloan)) {
-            assert_eq!(vault.phase, VaultPhase::Expired)
-        }
-    });
-}
-
-#[allow(dead_code)]
-/// helper for showing events on other chains
-fn print_events<T: frame_system::Config>(context: &str) {
-    println!("------ {:?} events ------", context);
-    frame_system::Pallet::<T>::events().iter().for_each(|r| {
-        println!("{:?}", r.event);
+        let vault = Crowdloans::vaults(ParaId::from(crowdloan)).unwrap();
+        assert_eq!(vault.phase, VaultPhase::Expired)
     });
 }
