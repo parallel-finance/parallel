@@ -81,19 +81,14 @@ pub enum ContributionStrategy {
 pub trait ContributionStrategyExecutor {
     /// Execute the strategy to contribute `amount` of coins to the crowdloan
     /// of the given parachain id
-    fn execute<T: Config>(
-        self,
-        para_id: ParaId,
-        currency: AssetIdOf<T>,
-        amount: BalanceOf<T>,
-    ) -> DispatchResult;
+    fn execute<T: Config>(self, para_id: ParaId, amount: BalanceOf<T>) -> DispatchResult;
 
     /// Withdraw coins from the relay chain's crowdloans and send it back
     /// to our parachain
-    fn withdraw<T: Config>(self, para_id: ParaId, currency: AssetIdOf<T>) -> DispatchResult;
+    fn withdraw<T: Config>(self, para_id: ParaId, amount: BalanceOf<T>) -> DispatchResult;
 
     /// Ask for a refund of the coins on the relay chain
-    fn refund<T: Config>(self, para_id: ParaId, currency: AssetIdOf<T>) -> DispatchResult;
+    fn refund<T: Config>(self, para_id: ParaId) -> DispatchResult;
 }
 
 impl ContributionStrategyExecutor for ContributionStrategy {
@@ -101,7 +96,6 @@ impl ContributionStrategyExecutor for ContributionStrategy {
     fn execute<T: Config>(
         self,
         para_id: ParaId,
-        _currency_id: AssetIdOf<T>,
         amount: BalanceOf<T>,
     ) -> Result<(), DispatchError> {
         T::Assets::burn_from(
@@ -138,8 +132,11 @@ impl ContributionStrategyExecutor for ContributionStrategy {
     }
 
     #[require_transactional]
-    fn withdraw<T: Config>(self, para_id: ParaId, _: AssetIdOf<T>) -> Result<(), DispatchError> {
-        // TODO: should mint into pallet account
+    fn withdraw<T: Config>(
+        self,
+        para_id: ParaId,
+        amount: BalanceOf<T>,
+    ) -> Result<(), DispatchError> {
         switch_relay!({
             let call =
                 RelaychainCall::<T>::Crowdloans(CrowdloansCall::Withdraw(CrowdloansWithdrawCall {
@@ -165,11 +162,17 @@ impl ContributionStrategyExecutor for ContributionStrategy {
             }
         });
 
+        T::Assets::mint_into(
+            T::RelayCurrency::get(),
+            &Crowdloans::<T>::account_id(),
+            amount,
+        )?;
+
         Ok(())
     }
 
     #[require_transactional]
-    fn refund<T: Config>(self, para_id: ParaId, _: AssetIdOf<T>) -> Result<(), DispatchError> {
+    fn refund<T: Config>(self, para_id: ParaId) -> Result<(), DispatchError> {
         // TODO: should mint into pallet account, but what'll be the amount?
         // refund can be called multiple times because it only handles part of contributors at one time
         switch_relay!({

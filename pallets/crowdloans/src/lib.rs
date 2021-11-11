@@ -334,11 +334,9 @@ pub mod pallet {
                 // cannot underflow because we checked that vault_contents.contributed < vault_ctoken_issuance
                 let amount = vault_ctoken_issuance - vault_contents.contributed;
 
-                vault_contents.contribution_strategy.execute::<T>(
-                    crowdloan,
-                    T::RelayCurrency::get(),
-                    amount,
-                )?;
+                vault_contents
+                    .contribution_strategy
+                    .execute::<T>(crowdloan, amount)?;
 
                 // 4. Set vault.contributed to total_issuance(vault.currency_shares)
                 vault_contents.contributed = vault_ctoken_issuance;
@@ -406,7 +404,7 @@ pub mod pallet {
                 // 3. Execute the `refund` function of the `contribution_strategy`
                 vault_contents
                     .contribution_strategy
-                    .refund::<T>(crowdloan, T::RelayCurrency::get())?;
+                    .refund::<T>(crowdloan)?;
 
                 // 4. Set `vault.phase` to `Failed`
                 vault_contents.phase = VaultPhase::Failed;
@@ -421,7 +419,7 @@ pub mod pallet {
             })
         }
 
-        /// If a `crowdloan` failed, claim back your share of the assets you
+        /// If a `crowdloan` failed or expired, claim back your share of the assets you
         /// contributed
         #[pallet::weight(<T as Config>::WeightInfo::claim_refund())]
         #[transactional]
@@ -488,7 +486,7 @@ pub mod pallet {
                 // 2. Execute the `withdraw` function of our `contribution_strategy`
                 vault_contents
                     .contribution_strategy
-                    .withdraw::<T>(crowdloan, T::RelayCurrency::get())?;
+                    .withdraw::<T>(crowdloan, vault_contents.contributed)?;
 
                 // 3. Modify `vault.phase` to `Expired
                 vault_contents.phase = VaultPhase::Expired;
