@@ -431,10 +431,10 @@ fn test_transfer_bond() {
             xcm_transfer_amount,
             RewardDestination::Staked
         ));
-        print_events::<Test>("ParaA");
+        // print_events::<Test>("ParaA");
     });
     Relay::execute_with(|| {
-        print_events::<kusama_runtime::Runtime>("Relay");
+        // print_events::<kusama_runtime::Runtime>("Relay");
         let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
         assert_eq!(ledger.total, xcm_transfer_amount);
         assert_eq!(
@@ -448,12 +448,12 @@ fn test_transfer_bond() {
     });
 }
 
-fn print_events<T: frame_system::Config>(context: &str) {
-    println!("------ {:?} events ------", context);
-    frame_system::Pallet::<T>::events().iter().for_each(|r| {
-        println!("{:?}", r.event);
-    });
-}
+// fn print_events<T: frame_system::Config>(context: &str) {
+//     println!("------ {:?} events ------", context);
+//     frame_system::Pallet::<T>::events().iter().for_each(|r| {
+//         println!("{:?}", r.event);
+//     });
+// }
 
 #[test]
 fn test_update_xcm_weight_work() {
