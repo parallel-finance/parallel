@@ -393,7 +393,7 @@ pub mod pallet {
                 // 3. Execute the `refund` function of the `contribution_strategy`
                 vault_contents
                     .contribution_strategy
-                    .refund::<T>(crowdloan)?;
+                    .withdraw::<T>(crowdloan, vault_contents.contributed)?;
 
                 // 4. Set `vault.phase` to `Failed`
                 vault_contents.phase = VaultPhase::Failed;

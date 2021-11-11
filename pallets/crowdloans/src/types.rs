@@ -23,7 +23,6 @@ use frame_support::{
 };
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, DispatchError, DispatchResult, RuntimeDebug};
-use sp_std::marker::PhantomData;
 use xcm::latest::prelude::*;
 
 use primitives::{ump::*, ParaId};
@@ -86,9 +85,6 @@ pub trait ContributionStrategyExecutor {
     /// Withdraw coins from the relay chain's crowdloans and send it back
     /// to our parachain
     fn withdraw<T: Config>(self, para_id: ParaId, amount: BalanceOf<T>) -> DispatchResult;
-
-    /// Ask for a refund of the coins on the relay chain
-    fn refund<T: Config>(self, para_id: ParaId) -> DispatchResult;
 }
 
 impl ContributionStrategyExecutor for ContributionStrategy {
@@ -167,35 +163,6 @@ impl ContributionStrategyExecutor for ContributionStrategy {
             &Crowdloans::<T>::account_id(),
             amount,
         )?;
-
-        Ok(())
-    }
-
-    #[require_transactional]
-    fn refund<T: Config>(self, para_id: ParaId) -> Result<(), DispatchError> {
-        // TODO: should mint into pallet account, but what'll be the amount?
-        // refund can be called multiple times because it only handles part of contributors at one time
-        switch_relay!({
-            let call =
-                RelaychainCall::<T>::Crowdloans(CrowdloansCall::Refund(CrowdloansRefundCall {
-                    index: para_id,
-                    _ghost: PhantomData::default(),
-                }));
-
-            let msg = Crowdloans::<T>::ump_transact(
-                call.encode().into(),
-                Crowdloans::<T>::xcm_weight().refund_weight,
-            )?;
-
-            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                Ok(()) => {
-                    Crowdloans::<T>::deposit_event(Event::<T>::Refunding(para_id));
-                }
-                Err(_e) => {
-                    return Err(Error::<T>::SendXcmError.into());
-                }
-            }
-        });
 
         Ok(())
     }
