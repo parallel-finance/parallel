@@ -206,11 +206,12 @@ where
         let market = Self::ensure_active_market(underlying_id)?;
         let collateral_value = Self::collateral_asset_value(who, underlying_id)?;
 
-        if let Ok(()) = Self::ensure_liquidity(who, collateral_value) {
-            return Ok(voucher_balance);
-        }
+        // liquidity of all assets
         let (liquidity, _) = Self::get_account_liquidity(who)?;
 
+        if liquidity >= collateral_value {
+            return Ok(voucher_balance);
+        }
         // Formula
         // reducible_underlying_amount = liquidity / collateral_factor / price
         let price = Self::get_price(underlying_id)?;
