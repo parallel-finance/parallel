@@ -5156,8 +5156,12 @@ version = "1.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
+ "pallet-assets",
+ "pallet-balances",
  "pallet-collective",
+ "pallet-currency-adapter",
  "pallet-membership",
+ "parallel-primitives",
  "parity-scale-codec",
  "scale-info",
  "sp-core",

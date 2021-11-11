@@ -23,16 +23,26 @@
 
 use frame_support::{
     pallet_prelude::*,
-    traits::{ChangeMembers, Get, SortedMembers},
+    traits::{
+        tokens::fungibles::{Inspect, Mutate, Transfer},
+        ChangeMembers, Get, SortedMembers,
+    },
     PalletId,
 };
 use frame_system::pallet_prelude::*;
+use primitives::{Balance, CurrencyId};
+use sp_runtime::traits::AccountIdConversion;
 
 pub use pallet::*;
-use sp_runtime::traits::AccountIdConversion;
 
 mod mock;
 mod tests;
+
+// type AssetIdOf<T> =
+//     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
+
+// type BalanceOf<T> =
+//     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 
 pub type ChainId = u8;
 
@@ -59,6 +69,11 @@ pub mod pallet {
         /// The bridge's pallet id, keep all teleported assets.
         #[pallet::constant]
         type PalletId: Get<PalletId>;
+
+        /// Assets for teleport/materialize assets to/from bridge pallet
+        type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
     }
 
     #[pallet::pallet]
