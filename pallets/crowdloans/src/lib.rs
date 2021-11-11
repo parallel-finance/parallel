@@ -210,8 +210,6 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Create a new vault via a governance decision
-        /// - `currency` is the currency or token which needs to be deposited to fill
-        ///   the vault and later participate in the crowdloans
         /// - `crowdloan` represents which crowdloan we are supporting on the relay
         ///   chain
         /// - `ctoken` is a new asset created for this vault to represent the shares
@@ -235,7 +233,7 @@ pub mod pallet {
 
             // make sure both project_shares and currency_shares are new assets
             ensure!(
-                ctoken_issuance == Zero::zero(),
+                ctoken_issuance.is_zero(),
                 Error::<T>::CTokenVaultAlreadyCreated
             );
 
