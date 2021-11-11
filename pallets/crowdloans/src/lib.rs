@@ -317,8 +317,7 @@ pub mod pallet {
 
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
-                let mut vault_contents =
-                    vault.as_ref().ok_or(Error::<T>::VaultDoesNotExist)?.clone();
+                let mut vault_contents = vault.as_mut().ok_or(Error::<T>::VaultDoesNotExist)?;
 
                 // 2. Make sure vault.contributed is less than total_issuance(vault.currency_shares)
                 let vault_ctoken_issuance = T::Assets::total_issuance(vault_contents.ctoken);
@@ -339,9 +338,6 @@ pub mod pallet {
                 // 4. Set vault.contributed to total_issuance(vault.currency_shares)
                 vault_contents.contributed = vault_ctoken_issuance;
 
-                // update storage
-                *vault = Some(vault_contents);
-
                 // Emit event of trade with rate calculated
                 Self::deposit_event(Event::<T>::VaultParticipated(crowdloan, amount));
 
@@ -358,8 +354,7 @@ pub mod pallet {
 
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
-                let mut vault_contents =
-                    vault.as_ref().ok_or(Error::<T>::VaultDoesNotExist)?.clone();
+                let mut vault_contents = vault.as_mut().ok_or(Error::<T>::VaultDoesNotExist)?;
 
                 // 2. Make sure vault.phase == VaultPhase::CollectingContributions
                 ensure!(
@@ -369,9 +364,6 @@ pub mod pallet {
 
                 // 3. Change vault.phase to Closed
                 vault_contents.phase = VaultPhase::Closed;
-
-                // update storage
-                *vault = Some(vault_contents);
 
                 // Emit event of trade with rate calculated
                 Self::deposit_event(Event::<T>::VaultClosed(crowdloan));
@@ -390,8 +382,7 @@ pub mod pallet {
 
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
-                let mut vault_contents =
-                    vault.as_ref().ok_or(Error::<T>::VaultDoesNotExist)?.clone();
+                let mut vault_contents = vault.as_mut().ok_or(Error::<T>::VaultDoesNotExist)?;
 
                 // 2. Make sure `vault.phase == Closed`
                 ensure!(
@@ -406,9 +397,6 @@ pub mod pallet {
 
                 // 4. Set `vault.phase` to `Failed`
                 vault_contents.phase = VaultPhase::Failed;
-
-                // update storage
-                *vault = Some(vault_contents);
 
                 // Emit event of trade with rate calculated
                 Self::deposit_event(Event::<T>::VaultAuctionFailed(crowdloan));
@@ -430,7 +418,7 @@ pub mod pallet {
 
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
-                let vault_contents = vault.as_ref().ok_or(Error::<T>::VaultDoesNotExist)?.clone();
+                let vault_contents = vault.as_mut().ok_or(Error::<T>::VaultDoesNotExist)?;
 
                 // 1. Make sure `vault.phase == Failed` **or `Expired`** (more on that later)
                 ensure!(
@@ -478,8 +466,7 @@ pub mod pallet {
 
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
-                let mut vault_contents =
-                    vault.as_ref().ok_or(Error::<T>::VaultDoesNotExist)?.clone();
+                let mut vault_contents = vault.as_mut().ok_or(Error::<T>::VaultDoesNotExist)?;
 
                 // 2. Execute the `withdraw` function of our `contribution_strategy`
                 vault_contents
@@ -488,9 +475,6 @@ pub mod pallet {
 
                 // 3. Modify `vault.phase` to `Expired
                 vault_contents.phase = VaultPhase::Expired;
-
-                // update storage
-                *vault = Some(vault_contents);
 
                 // Emit event of trade with rate calculated
                 Self::deposit_event(Event::<T>::VaultSlotExpired(crowdloan));
