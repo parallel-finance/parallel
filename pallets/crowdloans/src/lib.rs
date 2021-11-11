@@ -144,8 +144,6 @@ pub mod pallet {
         Contributing(ParaId, BalanceOf<T>, Option<MultiSignature>),
         /// Sent crowdloan.withdraw call to relaychain
         Withdrawing(ParaId, T::AccountId),
-        /// Sent crowdloan.refund call to relaychain
-        Refunding(ParaId),
     }
 
     #[pallet::error]
