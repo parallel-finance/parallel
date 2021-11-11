@@ -56,7 +56,7 @@ pub mod pallet {
         #[pallet::constant]
         type ChainId: Get<ChainId>;
 
-        /// The bridge's pallet id, keep all deposited assets.
+        /// The bridge's pallet id, keep all teleported assets.
         #[pallet::constant]
         type PalletId: Get<PalletId>;
     }
@@ -65,7 +65,7 @@ pub mod pallet {
     #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(PhantomData<T>);
 
-    /// Error for the Assets Pallet
+    /// Error for the Bridge Pallet
     #[pallet::error]
     pub enum Error<T> {
         /// Vote threshold not set
