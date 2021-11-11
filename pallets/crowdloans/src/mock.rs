@@ -53,7 +53,7 @@ impl cumulus_pallet_parachain_system::Config for Test {
 impl parachain_info::Config for Test {}
 
 parameter_types! {
-    pub RelayNetwork: NetworkId = NetworkId::Named("westend".into());
+    pub RelayNetwork: NetworkId = NetworkId::Kusama;
     pub RelayCurrency: CurrencyId = DOT;
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
