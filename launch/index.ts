@@ -2,8 +2,9 @@ import fs from 'fs'
 import shell from 'shelljs'
 import dotenv from 'dotenv'
 import config from './config'
-import util from '@polkadot/util'
 import util_crypto from '@polkadot/util-crypto'
+import { stringToU8a, bnToU8a } from '@polkadot/util'
+import { decodeAddress, encodeAddress } from '@polkadot/keyring'
 import { options } from '@parallel-finance/api'
 import { KeyringPair } from '@polkadot/keyring/types'
 import { ApiPromise, Keyring, WsProvider } from '@polkadot/api'
@@ -38,16 +39,16 @@ async function nextIndex(api: ApiPromise, signer: KeyringPair) {
 }
 
 function subAccountId(signer: KeyringPair, index: number) {
-  let seedBytes = util.stringToU8a('modlpy/utilisuba')
-  let whoBytes = util_crypto.decodeAddress(signer.address)
-  let indexBytes = util.bnToU8a(index, 16)
+  let seedBytes = stringToU8a('modlpy/utilisuba')
+  let whoBytes = decodeAddress(signer.address)
+  let indexBytes = bnToU8a(index, 16)
   let combinedBytes = new Uint8Array(seedBytes.length + whoBytes.length + indexBytes.length)
   combinedBytes.set(seedBytes)
   combinedBytes.set(whoBytes, seedBytes.length)
   combinedBytes.set(indexBytes, seedBytes.length + whoBytes.length)
 
   let entropy = util_crypto.blake2AsU8a(combinedBytes, 256)
-  return util_crypto.encodeAddress(entropy)
+  return encodeAddress(entropy)
 }
 
 async function para() {
