@@ -98,6 +98,14 @@ const config = {
       },
       balances: []
     }
+  ],
+  crowdloans: [
+    {
+      paraId: 2000,
+      image: 'parallelfinance/polkadot-collator:v0.9.12',
+      chain: 'shell',
+      ctokenId: 4000
+    }
   ]
 }
 

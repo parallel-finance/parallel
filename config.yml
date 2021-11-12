@@ -25,7 +25,6 @@ parachains:
       collators:
         - alice
         - bob
-        - charlie
       sudo: dave
     id: 2085
     parachain: true
@@ -45,8 +44,6 @@ parachains:
           - --alice
       - flags:
           - --bob
-      - flags:
-          - --charlie
 
   - image: parallelfinance/polkadot-collator:v0.9.12
     chain:
@@ -54,7 +51,6 @@ parachains:
       collators:
         - alice
         - bob
-        - charlie
       sudo: dave
     id: 1000
     parachain: true
@@ -72,5 +68,3 @@ parachains:
           - --alice
       - flags:
           - --bob
-      - flags:
-          - --charlie
