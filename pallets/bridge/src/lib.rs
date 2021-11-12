@@ -38,8 +38,8 @@ pub use pallet::*;
 mod mock;
 mod tests;
 
-// type AssetIdOf<T> =
-//     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
+type AssetIdOf<T> =
+    <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
 
 type BalanceOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
@@ -95,6 +95,10 @@ pub mod pallet {
         ChainIdAlreadyRegistered,
         /// The chain_id is not registed and the related operation will be invalid
         ChainIdNotRegistered,
+        /// The currency_id is invalid, it cannot be a existed currency_id
+        CurrencyIdAlreadyRegistered,
+        /// The currency_id is not registed and the related operation will be invalid
+        CurrencyIdNotRegistered,
     }
 
     /// Event for the Bridge Pallet
@@ -108,6 +112,14 @@ pub mod pallet {
         /// New chain_id has been registered
         /// [new_chain_id]
         ChainIdRegistered(ChainId),
+
+        /// Initialize a cross-chain transfer
+        /// [dest_id, chain_nonce, currency_id, amount, recipient]
+        Teleported(ChainId, ChainNonce, CurrencyId, BalanceOf<T>, TeleAccount),
+        
+        /// New currency_id has been registered
+        /// [asset_id, currency_id]
+        CurrencyIdRegistered(AssetIdOf<T>, CurrencyId),
     }
 
     #[pallet::type_value]
@@ -120,7 +132,16 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn chain_nonces)]
-    pub type ChainNonces<T: Config> = StorageMap<_, Blake2_256, ChainId, ChainNonce, ValueQuery>;
+    pub type ChainNonces<T: Config> =
+        StorageMap<_, Blake2_256, ChainId, ChainNonce, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn currency_ids)]
+    pub type CurrencyIds<T: Config> = StorageMap<_, Twox64Concat, AssetIdOf<T>, CurrencyId, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn asset_ids)]
+    pub type AssetIds<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, AssetIdOf<T>, ValueQuery>;
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
@@ -134,24 +155,60 @@ pub mod pallet {
         #[pallet::weight(0)]
         pub fn register_chain(origin: OriginFor<T>, id: ChainId) -> DispatchResult {
             Self::ensure_admin(origin)?;
-
+            
             // Registered chain_id cannot be this chain_id
-            ensure!(
-                id != T::ChainId::get(),
-                Error::<T>::ChainIdAlreadyRegistered
-            );
-
+            ensure!(id != T::ChainId::get(), Error::<T>::ChainIdAlreadyRegistered);
+    
             // Registered chain_id cannot be a existed chain_id
             ensure!(
                 !Self::chain_registered(id),
                 Error::<T>::ChainIdAlreadyRegistered
             );
-
+            
             // Register a new chain_id
             ChainNonces::<T>::insert(id, 0);
             Self::deposit_event(Event::ChainIdRegistered(id));
-
+    
             Ok(())
+        }
+        
+        #[pallet::weight(0)]
+        pub fn register_currency(
+            origin: OriginFor<T>,
+            asset_id: AssetIdOf<T>,
+            currency_id: CurrencyId,
+        ) -> DispatchResultWithPostInfo {
+            Self::ensure_admin(origin)?;
+            ensure!(
+                !CurrencyIds::<T>::contains_key(currency_id)
+                    && !AssetIds::<T>::contains_key(asset_id),
+                Error::<T>::CurrencyIdAlreadyRegistered,
+            );
+    
+            CurrencyIds::<T>::insert(asset_id, currency_id);
+            AssetIds::<T>::insert(currency_id, asset_id);
+
+            Self::deposit_event(Event::CurrencyIdRegistered(asset_id, currency_id));
+            Ok(().into())
+        }
+
+        /// Teleport the currency to specified recipient in the destination chain
+        #[pallet::weight(0)]
+        pub fn teleport(
+            origin: OriginFor<T>,
+            dest_id: ChainId,
+            currency_id: CurrencyId,
+            to: TeleAccount,
+            amount: BalanceOf<T>,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            Self::ensure_chain_registered(dest_id)?;
+            Self::ensure_currency_registered(currency_id)?;
+            let asset_id = AssetIds::<T>::get(currency_id);
+            
+            T::Assets::transfer(asset_id, &who, &Self::account_id(), amount, true)?;
+
+            Self::internal_teleport(dest_id, currency_id, to, amount)
         }
     }
 
@@ -183,11 +240,28 @@ impl<T: Config> Pallet<T> {
 
     /// Checks if a chain is registered
     fn chain_registered(id: ChainId) -> bool {
-        return ChainNonces::<T>::contains_key(id);
+        return ChainNonces::<T>::contains_key(id)
     }
 
     fn ensure_chain_registered(id: ChainId) -> DispatchResult {
-        ensure!(Self::chain_registered(id), Error::<T>::ChainIdNotRegistered);
+        ensure!(
+            Self::chain_registered(id),
+            Error::<T>::ChainIdNotRegistered
+        );
+
+        Ok(())
+    }
+
+    /// Checks if a currency is registered
+    fn currency_registered(currency_id: CurrencyId) -> bool {
+        return AssetIds::<T>::contains_key(currency_id)
+    }
+    
+    fn ensure_currency_registered(currency_id: CurrencyId) -> DispatchResult {
+        ensure!(
+            Self::currency_registered(currency_id),
+            Error::<T>::CurrencyIdNotRegistered
+        );
 
         Ok(())
     }
@@ -215,6 +289,19 @@ impl<T: Config> Pallet<T> {
         let nonce = Self::chain_nonces(id) + 1;
         ChainNonces::<T>::insert(id, nonce);
         nonce
+    }
+
+    /// Initiates a transfer of the currency
+    fn internal_teleport(
+        dest_id: ChainId,
+        currency_id: CurrencyId,
+        to: TeleAccount,
+        amount: BalanceOf<T>,
+    ) -> DispatchResult {          
+        let nonce = Self::bump_nonce(dest_id);
+
+        Self::deposit_event(Event::Teleported(dest_id, nonce, currency_id, amount, to));
+        Ok(())
     }
 }
 

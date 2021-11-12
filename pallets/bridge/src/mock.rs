@@ -14,15 +14,23 @@ pub type AccountId = u128;
 
 type EnsureRootOrigin = EnsureRoot<AccountId>;
 
+// Account Ids
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CHARLIE: AccountId = 3;
 pub const DAVE: AccountId = 4;
-pub const _EVE: AccountId = 5;
+pub const EVE: AccountId = 5;
 pub const FERDIE: AccountId = 6;
+
+// TeleAccount Ids
+// pub const TELE: TeleAccount = concat!("TELE", "\0\0\0\0\0\0\0\0\0\0").as_bytes().to_vec();
 
 // Chain Ids
 pub const ETH: ChainId = 1;
+pub const BNB: ChainId = 2;
+
+// Currency Ids
+pub const EHKO: CurrencyId = 0;
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
@@ -168,11 +176,14 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
+        Balances::set_balance(Origin::root(), EVE, dollar(100), dollar(0)).unwrap();
+
         BridgeMembership::add_member(Origin::root(), ALICE).unwrap();
         BridgeMembership::add_member(Origin::root(), BOB).unwrap();
         BridgeMembership::add_member(Origin::root(), CHARLIE).unwrap();
 
         Bridge::register_chain(Origin::signed(ALICE), ETH).unwrap();
+        Bridge::register_currency(Origin::signed(ALICE), HKO, EHKO).unwrap();
 
         System::set_block_number(0);
         run_to_block(1);
@@ -186,3 +197,8 @@ pub(crate) fn run_to_block(n: BlockNumber) {
         System::set_block_number(b);
     }
 }
+
+pub fn dollar(d: u128) -> u128 {
+    d.saturating_mul(10_u128.pow(12))
+}
+
