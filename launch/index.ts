@@ -118,9 +118,11 @@ async function relay() {
     ).stdout.trim()
     const wasm = exec(`docker run --rm ${image} export-genesis-wasm --chain ${chain}`).stdout.trim()
     const subAccount = subAccountId(signer, derivativeIndex)
-    call.push(api.tx.balances.transfer(subAccount, 1000))
+    call.push(api.tx.balances.transfer(subAccount, 1000000000000000))
     call.push(
-      api.tx.sudo.sudo(api.tx.registrar.forceRegister(subAccount, 100, paraId, state, wasm))
+      api.tx.sudo.sudo(
+        api.tx.registrar.forceRegister(subAccount, 100000000000000, paraId, state, wasm)
+      )
     )
   }
 
