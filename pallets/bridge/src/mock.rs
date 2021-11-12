@@ -21,6 +21,9 @@ pub const DAVE: AccountId = 4;
 pub const _EVE: AccountId = 5;
 pub const FERDIE: AccountId = 6;
 
+// Chain Ids
+pub const ETH: ChainId = 1;
+
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
     pub const SS58Prefix: u8 = 42;
@@ -122,7 +125,7 @@ impl pallet_membership::Config<BridgeMembershipInstance> for Test {
 }
 
 parameter_types! {
-    pub const ParallelHeiko: ChainId = 1;
+    pub const ParallelHeiko: ChainId = 0;
     pub const ZeroAccountId: AccountId = 0u128;
     pub const BridgePalletId: PalletId = PalletId(*b"par/brid");
 }
@@ -168,6 +171,8 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         BridgeMembership::add_member(Origin::root(), ALICE).unwrap();
         BridgeMembership::add_member(Origin::root(), BOB).unwrap();
         BridgeMembership::add_member(Origin::root(), CHARLIE).unwrap();
+
+        Bridge::register_chain(Origin::signed(ALICE), ETH).unwrap();
 
         System::set_block_number(0);
         run_to_block(1);

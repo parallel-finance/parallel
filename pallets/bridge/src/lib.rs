@@ -41,10 +41,12 @@ mod tests;
 // type AssetIdOf<T> =
 //     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
 
-// type BalanceOf<T> =
-//     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
+type BalanceOf<T> =
+    <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 
 pub type ChainId = u8;
+pub type ChainNonce = u64;
+pub type TeleAccount = Vec<u8>;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -89,31 +91,67 @@ pub mod pallet {
         InvalidVoteThreshold,
         /// Origin has no permission to operate on the bridge
         OriginNoPermission,
+        /// The chain_id is invalid, it cannot be a existed chain_id or this chain_id
+        ChainIdAlreadyRegistered,
+        /// The chain_id is not registed and the related operation will be invalid
+        ChainIdNotRegistered,
     }
 
     /// Event for the Bridge Pallet
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
-    pub enum Event<T> {
+    pub enum Event<T: Config> {
         /// Vote threshold has changed
         /// [new_threshold]
         VoteThresholdChanged(u32),
+
+        /// New chain_id has been registered
+        /// [new_chain_id]
+        ChainIdRegistered(ChainId),
     }
 
     #[pallet::type_value]
     pub fn DefaultVoteThreshold() -> u32 {
-        3u32
+        1u32
     }
     #[pallet::storage]
     #[pallet::getter(fn vote_threshold)]
     pub type VoteThreshold<T: Config> = StorageValue<_, u32, ValueQuery, DefaultVoteThreshold>;
 
+    #[pallet::storage]
+    #[pallet::getter(fn chain_nonces)]
+    pub type ChainNonces<T: Config> = StorageMap<_, Blake2_256, ChainId, ChainNonce, ValueQuery>;
+
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        /// Set the threshold required to reach multi-signature consensus
         #[pallet::weight(0)]
         pub fn set_threshold(origin: OriginFor<T>, threshold: u32) -> DispatchResult {
             Self::ensure_admin(origin)?;
             Self::set_vote_threshold(threshold)
+        }
+
+        #[pallet::weight(0)]
+        pub fn register_chain(origin: OriginFor<T>, id: ChainId) -> DispatchResult {
+            Self::ensure_admin(origin)?;
+
+            // Registered chain_id cannot be this chain_id
+            ensure!(
+                id != T::ChainId::get(),
+                Error::<T>::ChainIdAlreadyRegistered
+            );
+
+            // Registered chain_id cannot be a existed chain_id
+            ensure!(
+                !Self::chain_registered(id),
+                Error::<T>::ChainIdAlreadyRegistered
+            );
+
+            // Register a new chain_id
+            ChainNonces::<T>::insert(id, 0);
+            Self::deposit_event(Event::ChainIdRegistered(id));
+
+            Ok(())
         }
     }
 
@@ -126,7 +164,14 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
-    pub fn ensure_admin(origin: T::Origin) -> DispatchResult {
+    /// Provides an AccountId for the bridge pallet.
+    /// Used for teleport/materialize account.
+    pub fn account_id() -> T::AccountId {
+        T::PalletId::get().into_account()
+    }
+
+    /// Checks if the origin is admin members
+    fn ensure_admin(origin: T::Origin) -> DispatchResult {
         let who = ensure_signed(origin)?;
         ensure!(
             T::AdminMembers::contains(&who) || who == T::RootOperatorAccountId::get(),
@@ -136,10 +181,15 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    /// Provides an AccountId for the bridge pallet.
-    /// Used for teleport/materialize account.
-    pub fn account_id() -> T::AccountId {
-        T::PalletId::get().into_account()
+    /// Checks if a chain is registered
+    fn chain_registered(id: ChainId) -> bool {
+        return ChainNonces::<T>::contains_key(id);
+    }
+
+    fn ensure_chain_registered(id: ChainId) -> DispatchResult {
+        ensure!(Self::chain_registered(id), Error::<T>::ChainIdNotRegistered);
+
+        Ok(())
     }
 
     /// Set a new voting threshold
@@ -158,6 +208,13 @@ impl<T: Config> Pallet<T> {
     /// Get the count of members in the `AdminMembers`.
     pub fn get_members_count() -> u32 {
         T::AdminMembers::count() as u32
+    }
+
+    /// Increments the chain nonce for the specified chain_id
+    fn bump_nonce(id: ChainId) -> ChainNonce {
+        let nonce = Self::chain_nonces(id) + 1;
+        ChainNonces::<T>::insert(id, nonce);
+        nonce
     }
 }
 
