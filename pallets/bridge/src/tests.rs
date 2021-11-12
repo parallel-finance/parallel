@@ -66,7 +66,7 @@ fn register_chain_works() {
             Error::<Test>::ChainIdAlreadyRegistered,
         );
         Bridge::register_chain(Origin::signed(ALICE), BNB).unwrap();
-        
+
         assert_noop!(
             Bridge::register_chain(Origin::signed(ALICE), BNB),
             Error::<Test>::ChainIdAlreadyRegistered,
@@ -80,6 +80,9 @@ fn teleport_works() {
         assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(100));
         Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(50)).unwrap();
         assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(50));
-        assert_eq!(<Test as Config>::Assets::balance(HKO, &Bridge::account_id()), dollar(50));
+        assert_eq!(
+            <Test as Config>::Assets::balance(HKO, &Bridge::account_id()),
+            dollar(50)
+        );
     });
 }

@@ -116,7 +116,7 @@ pub mod pallet {
         /// Initialize a cross-chain transfer
         /// [dest_id, chain_nonce, currency_id, amount, recipient]
         Teleported(ChainId, ChainNonce, CurrencyId, BalanceOf<T>, TeleAccount),
-        
+
         /// New currency_id has been registered
         /// [asset_id, currency_id]
         CurrencyIdRegistered(AssetIdOf<T>, CurrencyId),
@@ -132,16 +132,17 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn chain_nonces)]
-    pub type ChainNonces<T: Config> =
-        StorageMap<_, Blake2_256, ChainId, ChainNonce, ValueQuery>;
+    pub type ChainNonces<T: Config> = StorageMap<_, Blake2_256, ChainId, ChainNonce, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn currency_ids)]
-    pub type CurrencyIds<T: Config> = StorageMap<_, Twox64Concat, AssetIdOf<T>, CurrencyId, ValueQuery>;
+    pub type CurrencyIds<T: Config> =
+        StorageMap<_, Twox64Concat, AssetIdOf<T>, CurrencyId, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn asset_ids)]
-    pub type AssetIds<T: Config> = StorageMap<_, Twox64Concat, CurrencyId, AssetIdOf<T>, ValueQuery>;
+    pub type AssetIds<T: Config> =
+        StorageMap<_, Twox64Concat, CurrencyId, AssetIdOf<T>, ValueQuery>;
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
@@ -155,23 +156,26 @@ pub mod pallet {
         #[pallet::weight(0)]
         pub fn register_chain(origin: OriginFor<T>, id: ChainId) -> DispatchResult {
             Self::ensure_admin(origin)?;
-            
+
             // Registered chain_id cannot be this chain_id
-            ensure!(id != T::ChainId::get(), Error::<T>::ChainIdAlreadyRegistered);
-    
+            ensure!(
+                id != T::ChainId::get(),
+                Error::<T>::ChainIdAlreadyRegistered
+            );
+
             // Registered chain_id cannot be a existed chain_id
             ensure!(
                 !Self::chain_registered(id),
                 Error::<T>::ChainIdAlreadyRegistered
             );
-            
+
             // Register a new chain_id
             ChainNonces::<T>::insert(id, 0);
             Self::deposit_event(Event::ChainIdRegistered(id));
-    
+
             Ok(())
         }
-        
+
         #[pallet::weight(0)]
         pub fn register_currency(
             origin: OriginFor<T>,
@@ -184,7 +188,7 @@ pub mod pallet {
                     && !AssetIds::<T>::contains_key(asset_id),
                 Error::<T>::CurrencyIdAlreadyRegistered,
             );
-    
+
             CurrencyIds::<T>::insert(asset_id, currency_id);
             AssetIds::<T>::insert(currency_id, asset_id);
 
@@ -205,7 +209,7 @@ pub mod pallet {
             Self::ensure_chain_registered(dest_id)?;
             Self::ensure_currency_registered(currency_id)?;
             let asset_id = AssetIds::<T>::get(currency_id);
-            
+
             T::Assets::transfer(asset_id, &who, &Self::account_id(), amount, true)?;
 
             Self::internal_teleport(dest_id, currency_id, to, amount)
@@ -240,23 +244,20 @@ impl<T: Config> Pallet<T> {
 
     /// Checks if a chain is registered
     fn chain_registered(id: ChainId) -> bool {
-        return ChainNonces::<T>::contains_key(id)
+        ChainNonces::<T>::contains_key(id)
     }
 
     fn ensure_chain_registered(id: ChainId) -> DispatchResult {
-        ensure!(
-            Self::chain_registered(id),
-            Error::<T>::ChainIdNotRegistered
-        );
+        ensure!(Self::chain_registered(id), Error::<T>::ChainIdNotRegistered);
 
         Ok(())
     }
 
     /// Checks if a currency is registered
     fn currency_registered(currency_id: CurrencyId) -> bool {
-        return AssetIds::<T>::contains_key(currency_id)
+        AssetIds::<T>::contains_key(currency_id)
     }
-    
+
     fn ensure_currency_registered(currency_id: CurrencyId) -> DispatchResult {
         ensure!(
             Self::currency_registered(currency_id),
@@ -297,7 +298,7 @@ impl<T: Config> Pallet<T> {
         currency_id: CurrencyId,
         to: TeleAccount,
         amount: BalanceOf<T>,
-    ) -> DispatchResult {          
+    ) -> DispatchResult {
         let nonce = Self::bump_nonce(dest_id);
 
         Self::deposit_event(Event::Teleported(dest_id, nonce, currency_id, amount, to));

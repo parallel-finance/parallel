@@ -201,4 +201,3 @@ pub(crate) fn run_to_block(n: BlockNumber) {
 pub fn dollar(d: u128) -> u128 {
     d.saturating_mul(10_u128.pow(12))
 }
-
