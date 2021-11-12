@@ -116,7 +116,7 @@ async function relay() {
     const wasm = exec(`docker run --rm ${image} export-genesis-wasm --chain ${chain}`).stdout.trim()
 
     console.log(`Registering parathread: ${paraId}.`)
-    api.tx.sudo
+    await api.tx.sudo
       .sudo(
         api.tx.registrar.forceRegister(
           subAccountId(signer, derivativeIndex),
