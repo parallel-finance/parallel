@@ -117,11 +117,15 @@ async function relay() {
       `docker run --rm ${image} export-genesis-state --chain ${chain} --parachain-id ${paraId}`
     ).stdout.trim()
     const wasm = exec(`docker run --rm ${image} export-genesis-wasm --chain ${chain}`).stdout.trim()
-    const subAccount = subAccountId(signer, derivativeIndex)
-    call.push(api.tx.balances.transfer(subAccount, 1000000000000000))
     call.push(
       api.tx.sudo.sudo(
-        api.tx.registrar.forceRegister(subAccount, 100000000000000, paraId, state, wasm)
+        api.tx.registrar.forceRegister(
+          subAccountId(signer, derivativeIndex),
+          100000000000000,
+          paraId,
+          state,
+          wasm
+        )
       )
     )
   }
@@ -133,6 +137,7 @@ async function relay() {
 
   const height = await chainHeight(api)
 
+  console.log('Start new auction.')
   call.push(api.tx.sudo.sudo(api.tx.auctions.newAuction(1000000, 0)))
   call.push(
     ...config.crowdloans.map(({ paraId, derivativeIndex }) =>
