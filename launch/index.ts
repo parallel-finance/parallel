@@ -120,7 +120,7 @@ async function relay() {
       .sudo(
         api.tx.registrar.forceRegister(
           subAccountId(signer, derivativeIndex),
-          100000000000000,
+          0,
           paraId,
           state,
           wasm

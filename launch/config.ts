@@ -102,7 +102,7 @@ const config = {
   crowdloans: [
     {
       paraId: 2000,
-      derivativeIndex: 1,
+      derivativeIndex: 0,
       image: 'parallelfinance/polkadot-collator:v0.9.12',
       chain: 'shell',
       ctokenId: 4000
