@@ -67,8 +67,7 @@ async function para() {
 
   const keyring = new Keyring({ type: 'sr25519', ss58Format: 110 })
   const signer = keyring.addFromUri('//Dave')
-
-  let call = []
+  const call = []
 
   for (const { name, symbol, assetId, decimal, marketOption, balances } of config.assets) {
     console.log(`Create ${name}(${symbol}) asset, ptokenId is ${marketOption.ptokenId}`)
@@ -110,15 +109,15 @@ async function relay() {
   const keyring = new Keyring({ type: 'sr25519', ss58Format: 2 })
   const signer = keyring.addFromUri(`${process.env.RELAY_CHAIN_SUDO_KEY || ''}`)
 
-  let call = []
-
   for (const { paraId, image, derivativeIndex, chain, ctokenId } of config.crowdloans) {
     const state = exec(
       `docker run --rm ${image} export-genesis-state --chain ${chain} --parachain-id ${paraId}`
     ).stdout.trim()
     const wasm = exec(`docker run --rm ${image} export-genesis-wasm --chain ${chain}`).stdout.trim()
-    call.push(
-      api.tx.sudo.sudo(
+
+    console.log(`Registering parathread: ${paraId}.`)
+    api.tx.sudo
+      .sudo(
         api.tx.registrar.forceRegister(
           subAccountId(signer, derivativeIndex),
           100000000000000,
@@ -127,17 +126,16 @@ async function relay() {
           wasm
         )
       )
-    )
+      .signAndSend(signer, { nonce: await nextIndex(api, signer) })
   }
 
-  console.log('Submit relaychain batches.')
-  await api.tx.utility.batchAll(call).signAndSend(signer, { nonce: await nextIndex(api, signer) })
   console.log('Wait parathread to be onboarded.')
   await sleep(360000)
 
   const height = await chainHeight(api)
 
   console.log('Start new auction.')
+  const call = []
   call.push(api.tx.sudo.sudo(api.tx.auctions.newAuction(1000000, 0)))
   call.push(
     ...config.crowdloans.map(({ paraId, derivativeIndex }) =>
