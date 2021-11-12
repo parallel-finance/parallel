@@ -138,6 +138,11 @@ async function relay() {
   const call = []
   call.push(api.tx.sudo.sudo(api.tx.auctions.newAuction(1000000, 0)))
   call.push(
+    ...config.crowdloans.map(({ derivativeIndex }) =>
+      api.tx.balances.transfer(subAccountId(signer, derivativeIndex), '100000000000000')
+    )
+  )
+  call.push(
     ...config.crowdloans.map(({ paraId, derivativeIndex }) =>
       api.tx.utility.asDerivative(
         derivativeIndex,
