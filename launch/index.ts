@@ -97,7 +97,7 @@ async function relay() {
   while (!(await chainHeight()))
 
   const keyring = new Keyring({ type: 'sr25519', ss58Format: 2 })
-  const signer = keyring.addFromUri(process.env.RELAY_CHAIN_SUDO_KEY)
+  const signer = keyring.addFromUri(`${process.env.RELAY_CHAIN_SUDO_KEY || ''}`)
 
   let call = []
 
@@ -116,14 +116,14 @@ async function relay() {
     .batchAll(call)
     .signAndSend(signer, { nonce: await api.rpc.system.accountNextIndex(signer.address) })
   console.log('Wait parathread to be onboarded.')
-  await sleep(300000)
+  await sleep(360000)
 
   const height = await chainHeight()
 
   call.push(api.tx.sudo.sudo(api.tx.auctions.newAuction(1000000, 0)))
   call.push(
     ...config.crowdloans.map(({ paraId }) =>
-      api.tx.crowdloan.create(paraId, '1000000000000000000', 0, 7, height + 500000)
+      api.tx.crowdloan.create(paraId, '1000000000000000000', 0, 7, height + 500000, null)
     )
   )
 
@@ -135,3 +135,4 @@ async function relay() {
 relay()
   .then(para)
   .then(() => process.exit(0))
+  .catch(() => process.exit(1))
