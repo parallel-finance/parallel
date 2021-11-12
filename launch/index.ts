@@ -2,7 +2,7 @@ import fs from 'fs'
 import shell from 'shelljs'
 import dotenv from 'dotenv'
 import config from './config'
-import util_crypto from '@polkadot/util-crypto'
+import { blake2AsU8a } from '@polkadot/util-crypto'
 import { stringToU8a, bnToU8a } from '@polkadot/util'
 import { decodeAddress, encodeAddress } from '@polkadot/keyring'
 import { options } from '@parallel-finance/api'
@@ -47,7 +47,7 @@ function subAccountId(signer: KeyringPair, index: number) {
   combinedBytes.set(whoBytes, seedBytes.length)
   combinedBytes.set(indexBytes, seedBytes.length + whoBytes.length)
 
-  let entropy = util_crypto.blake2AsU8a(combinedBytes, 256)
+  let entropy = blake2AsU8a(combinedBytes, 256)
   return encodeAddress(entropy)
 }
 
