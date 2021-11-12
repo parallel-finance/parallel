@@ -58,3 +58,5 @@ snapshot.bin
 !**/.yarn/plugins
 !**/.yarn/sdks
 !**/.yarn/versions
+
+launch/.env
