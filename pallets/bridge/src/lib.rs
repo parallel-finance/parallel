@@ -56,7 +56,7 @@ pub mod pallet {
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-        /// Origin used to administer the pallet
+        /// Admin members has permission to manage the pallet
         type AdminMembers: SortedMembers<Self::AccountId>;
 
         /// Root origin that can be used to bypass admin permissions
@@ -106,11 +106,11 @@ pub mod pallet {
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Vote threshold has changed
-        /// [new_threshold]
+        /// \[vote_threshold\]
         VoteThresholdChanged(u32),
 
         /// New chain_id has been registered
-        /// [new_chain_id]
+        /// \[chain_id\]
         ChainIdRegistered(ChainId),
 
         /// Initialize a cross-chain transfer
@@ -148,9 +148,10 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// Set the threshold required to reach multi-signature consensus
         #[pallet::weight(0)]
-        pub fn set_threshold(origin: OriginFor<T>, threshold: u32) -> DispatchResult {
+        pub fn set_vote_threshold(origin: OriginFor<T>, threshold: u32) -> DispatchResult {
             Self::ensure_admin(origin)?;
-            Self::set_vote_threshold(threshold)
+
+            Self::internal_set_vote_threshold(threshold)
         }
 
         #[pallet::weight(0)]
@@ -159,15 +160,15 @@ pub mod pallet {
 
             // Registered chain_id cannot be this chain_id
             ensure!(
-                id != T::ChainId::get(),
+                id != T::ChainId::get() && !Self::chain_registered(id),
                 Error::<T>::ChainIdAlreadyRegistered
             );
 
             // Registered chain_id cannot be a existed chain_id
-            ensure!(
-                !Self::chain_registered(id),
-                Error::<T>::ChainIdAlreadyRegistered
-            );
+            // ensure!(
+            //     ,
+            //     Error::<T>::ChainIdAlreadyRegistered
+            // );
 
             // Register a new chain_id
             ChainNonces::<T>::insert(id, 0);
@@ -268,7 +269,7 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Set a new voting threshold
-    pub fn set_vote_threshold(threshold: u32) -> DispatchResult {
+    pub fn internal_set_vote_threshold(threshold: u32) -> DispatchResult {
         ensure!(
             threshold > 0 && threshold <= Self::get_members_count(),
             Error::<T>::InvalidVoteThreshold
@@ -289,6 +290,7 @@ impl<T: Config> Pallet<T> {
     fn bump_nonce(id: ChainId) -> ChainNonce {
         let nonce = Self::chain_nonces(id) + 1;
         ChainNonces::<T>::insert(id, nonce);
+
         nonce
     }
 
