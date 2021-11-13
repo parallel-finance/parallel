@@ -378,6 +378,9 @@ pub mod pallet {
         /// If a currency is already attached to a market, then the market will be replaced
         /// by the new provided value.
         ///
+        /// The ptoken id and asset id are bound, the ptoken id of new provided market cannot
+        /// be duplicated with the existing one, otherwise it will return `InvalidPtokenId`.
+        ///
         /// - `asset_id`: Market related currency
         /// - `market`: The market that is going to be stored
         #[pallet::weight(T::WeightInfo::add_market())]
@@ -577,10 +580,12 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::ensure_active_market(asset_id)?;
+            Self::update_earned_stored(&who, asset_id)?;
 
+            // Formula
+            // underlying_token_amount = ptoken_amount * exchange_rate
             let exchange_rate = Self::exchange_rate(asset_id);
             let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
-            Self::update_earned_stored(&who, asset_id)?;
             let redeem_amount = Self::redeem_internal(&who, asset_id, voucher_amount)?;
 
             Self::deposit_event(Event::<T>::Redeemed(who, asset_id, redeem_amount));
@@ -967,10 +972,8 @@ impl<T: Config> Pallet<T> {
             redeem_amount,
             redeem_effects_value.into_inner(),
         );
-        let (liquidity, _) = Self::get_account_liquidity(redeemer)?;
-        if liquidity < redeem_effects_value {
-            return Err(Error::<T>::InsufficientLiquidity.into());
-        }
+
+        Self::ensure_liquidity(redeemer, redeem_effects_value)?;
 
         Ok(())
     }
@@ -1018,10 +1021,7 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         Self::ensure_enough_cash(asset_id, borrow_amount)?;
         let borrow_value = Self::get_asset_value(asset_id, borrow_amount)?;
-        let (liquidity, _) = Self::get_account_liquidity(borrower)?;
-        if liquidity < borrow_value {
-            return Err(Error::<T>::InsufficientLiquidity.into());
-        }
+        Self::ensure_liquidity(borrower, borrow_value)?;
 
         Ok(())
     }
@@ -1358,6 +1358,18 @@ impl<T: Config> Pallet<T> {
         );
 
         Ok(())
+    }
+    // Ensures that `account` have sufficient liquidity to move your assets
+    // Returns `Err` If InsufficientLiquidity
+    // `account`: account that need a liquidity check
+    // `reduce_amount`: values that will have an impact on liquidity
+    fn ensure_liquidity(account: &T::AccountId, reduce_amount: FixedU128) -> DispatchResult {
+        let (liquidity, _) = Self::get_account_liquidity(account)?;
+        if liquidity < reduce_amount {
+            Err(Error::<T>::InsufficientLiquidity.into())
+        } else {
+            Ok(())
+        }
     }
 
     pub fn calc_underlying_amount(
