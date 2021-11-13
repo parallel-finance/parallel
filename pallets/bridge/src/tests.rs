@@ -59,17 +59,32 @@ fn set_relayer_threshold_works() {
 }
 
 #[test]
-fn register_chain_works() {
+fn register_unregister_works() {
     new_test_ext().execute_with(|| {
         assert_noop!(
             Bridge::register_chain(Origin::signed(ALICE), ETH),
             Error::<Test>::ChainIdAlreadyRegistered,
         );
-        Bridge::register_chain(Origin::signed(ALICE), BNB).unwrap();
 
+        // Register a new chain_id succeed
+        Bridge::register_chain(Origin::signed(ALICE), BNB).unwrap();
         assert_noop!(
             Bridge::register_chain(Origin::signed(ALICE), BNB),
             Error::<Test>::ChainIdAlreadyRegistered,
+        );
+        // Teleport succeed when the chain is registered
+        Bridge::teleport(Origin::signed(EVE), BNB, EHKO, "TELE".into(), dollar(10)).unwrap();
+
+        // Unregister a exist chain_id succeed
+        Bridge::unregister_chain(Origin::signed(ALICE), ETH).unwrap();
+        assert_noop!(
+            Bridge::unregister_chain(Origin::signed(ALICE), ETH),
+            Error::<Test>::ChainIdNotRegistered,
+        );
+        // Teleport fails when the chain is not registered
+        assert_noop!(
+            Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(10)),
+            Error::<Test>::ChainIdNotRegistered,
         );
     });
 }
@@ -78,11 +93,13 @@ fn register_chain_works() {
 fn teleport_works() {
     new_test_ext().execute_with(|| {
         assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(100));
-        Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(50)).unwrap();
-        assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(50));
+
+        Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(10)).unwrap();
+
+        assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(90));
         assert_eq!(
             <Test as Config>::Assets::balance(HKO, &Bridge::account_id()),
-            dollar(50)
+            dollar(10)
         );
     });
 }

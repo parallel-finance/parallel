@@ -111,15 +111,27 @@ pub mod pallet {
 
         /// New chain_id has been registered
         /// \[chain_id\]
-        ChainIdRegistered(ChainId),
+        ChainRegistered(ChainId),
 
-        /// Initialize a cross-chain transfer
-        /// [dest_id, chain_nonce, currency_id, amount, recipient]
-        Teleported(ChainId, ChainNonce, CurrencyId, BalanceOf<T>, TeleAccount),
+        /// The chain_id has been unregistered
+        /// \[chain_id\]
+        ChainRemoved(ChainId),
 
         /// New currency_id has been registered
         /// [asset_id, currency_id]
-        CurrencyIdRegistered(AssetIdOf<T>, CurrencyId),
+        CurrencyRegistered(AssetIdOf<T>, CurrencyId),
+
+        /// The currency_id has been unregistered
+        /// [asset_id, currency_id]
+        CurrencyRemoved(AssetIdOf<T>, CurrencyId),
+        
+        /// Event emitted when currency are destoryed
+        /// [dest_id, chain_nonce, currency_id, sender, receiver, amount]
+        Burned(ChainId, ChainNonce, CurrencyId, T::AccountId, TeleAccount, BalanceOf<T>),
+        
+        /// Event emitted when currency are issued
+        /// [src_id, chain_nonce, currency_id, sender, receiver, amount]
+        Minted(ChainId, ChainNonce, CurrencyId, TeleAccount, T::AccountId, BalanceOf<T>),
     }
 
     #[pallet::type_value]
@@ -150,29 +162,46 @@ pub mod pallet {
         #[pallet::weight(0)]
         pub fn set_vote_threshold(origin: OriginFor<T>, threshold: u32) -> DispatchResult {
             Self::ensure_admin(origin)?;
+            
+            ensure!(
+                threshold > 0 && threshold <= Self::get_members_count(),
+                Error::<T>::InvalidVoteThreshold
+            );
 
-            Self::internal_set_vote_threshold(threshold)
+            // Set a new voting threshold
+            VoteThreshold::<T>::put(threshold);
+            Self::deposit_event(Event::VoteThresholdChanged(threshold));
+    
+            Ok(())
         }
 
         #[pallet::weight(0)]
         pub fn register_chain(origin: OriginFor<T>, id: ChainId) -> DispatchResult {
             Self::ensure_admin(origin)?;
 
-            // Registered chain_id cannot be this chain_id
+            // Registered chain_id cannot be this chain_id or a existed chain_id
             ensure!(
                 id != T::ChainId::get() && !Self::chain_registered(id),
                 Error::<T>::ChainIdAlreadyRegistered
             );
 
-            // Registered chain_id cannot be a existed chain_id
-            // ensure!(
-            //     ,
-            //     Error::<T>::ChainIdAlreadyRegistered
-            // );
-
             // Register a new chain_id
             ChainNonces::<T>::insert(id, 0);
-            Self::deposit_event(Event::ChainIdRegistered(id));
+            Self::deposit_event(Event::ChainRegistered(id));
+
+            Ok(())
+        }
+    
+        #[pallet::weight(0)]
+        pub fn unregister_chain(origin: OriginFor<T>, id: ChainId) -> DispatchResult {
+            Self::ensure_admin(origin)?;
+
+            // Unregistered chain_id should be existed
+            Self::ensure_chain_registered(id)?;
+
+            // Unregister the chain_id
+            ChainNonces::<T>::remove(id);
+            Self::deposit_event(Event::ChainRemoved(id));
 
             Ok(())
         }
@@ -184,6 +213,7 @@ pub mod pallet {
             currency_id: CurrencyId,
         ) -> DispatchResultWithPostInfo {
             Self::ensure_admin(origin)?;
+
             ensure!(
                 !CurrencyIds::<T>::contains_key(currency_id)
                     && !AssetIds::<T>::contains_key(asset_id),
@@ -193,7 +223,24 @@ pub mod pallet {
             CurrencyIds::<T>::insert(asset_id, currency_id);
             AssetIds::<T>::insert(currency_id, asset_id);
 
-            Self::deposit_event(Event::CurrencyIdRegistered(asset_id, currency_id));
+            Self::deposit_event(Event::CurrencyRegistered(asset_id, currency_id));
+            Ok(().into())
+        }
+
+        #[pallet::weight(0)]
+        pub fn unregister_currency(
+            origin: OriginFor<T>,
+            currency_id: CurrencyId,
+        ) -> DispatchResultWithPostInfo {
+            Self::ensure_admin(origin)?;
+
+            Self::ensure_currency_registered(currency_id)?;
+
+            let asset_id = AssetIds::<T>::get(currency_id);
+            CurrencyIds::<T>::remove(asset_id);
+            AssetIds::<T>::remove(currency_id);
+
+            Self::deposit_event(Event::CurrencyRemoved(asset_id, currency_id));
             Ok(().into())
         }
 
@@ -209,11 +256,11 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             Self::ensure_chain_registered(dest_id)?;
             Self::ensure_currency_registered(currency_id)?;
+
             let asset_id = AssetIds::<T>::get(currency_id);
+            T::Assets::transfer(asset_id, &who, &Self::account_id(), amount, false)?;
 
-            T::Assets::transfer(asset_id, &who, &Self::account_id(), amount, true)?;
-
-            Self::internal_teleport(dest_id, currency_id, to, amount)
+            Self::teleport_internal(dest_id, currency_id, who, to, amount)
         }
     }
 
@@ -268,19 +315,6 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    /// Set a new voting threshold
-    pub fn internal_set_vote_threshold(threshold: u32) -> DispatchResult {
-        ensure!(
-            threshold > 0 && threshold <= Self::get_members_count(),
-            Error::<T>::InvalidVoteThreshold
-        );
-
-        VoteThreshold::<T>::put(threshold);
-        Self::deposit_event(Event::VoteThresholdChanged(threshold));
-
-        Ok(())
-    }
-
     /// Get the count of members in the `AdminMembers`.
     pub fn get_members_count() -> u32 {
         T::AdminMembers::count() as u32
@@ -295,15 +329,16 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Initiates a transfer of the currency
-    fn internal_teleport(
+    fn teleport_internal(
         dest_id: ChainId,
         currency_id: CurrencyId,
+        who: T::AccountId,
         to: TeleAccount,
         amount: BalanceOf<T>,
     ) -> DispatchResult {
         let nonce = Self::bump_nonce(dest_id);
 
-        Self::deposit_event(Event::Teleported(dest_id, nonce, currency_id, amount, to));
+        Self::deposit_event(Event::Burned(dest_id, nonce, currency_id, who, to, amount));
         Ok(())
     }
 }
