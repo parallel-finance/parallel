@@ -1,8 +1,8 @@
 #![cfg(test)]
 
-use super::*;
+use super::{*, Event};
+use super::mock::*;
 use frame_support::{assert_noop, assert_ok};
-use mock::*;
 use primitives::tokens::HKO;
 
 #[test]

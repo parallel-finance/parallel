@@ -21,6 +21,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use crate::proposal::{MaterializeCall, Proposal, ProposalStatus};
 use frame_support::{
     pallet_prelude::*,
     traits::{
@@ -36,6 +37,7 @@ use sp_runtime::traits::AccountIdConversion;
 pub use pallet::*;
 
 mod mock;
+mod proposal;
 mod tests;
 
 type AssetIdOf<T> =
@@ -44,12 +46,19 @@ type AssetIdOf<T> =
 type BalanceOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 
+type MaterializeCallOf<T> =
+    MaterializeCall<CurrencyId, <T as frame_system::Config>::AccountId, BalanceOf<T>>;
+
+type ProposalOf<T> =
+    Proposal<<T as frame_system::Config>::AccountId, <T as frame_system::Config>::BlockNumber>;
+
 pub type ChainId = u8;
 pub type ChainNonce = u64;
 pub type TeleAccount = Vec<u8>;
 
 #[frame_support::pallet]
 pub mod pallet {
+
     use super::*;
 
     #[pallet::config]
@@ -63,6 +72,11 @@ pub mod pallet {
         /// This will be removed later
         type RootOperatorAccountId: Get<Self::AccountId>;
 
+        /// Assets for teleport/materialize assets to/from bridge pallet
+        type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
+
         /// The identifier for this chain.
         /// This must be unique and must not collide with existing IDs within a set of bridged chains.
         #[pallet::constant]
@@ -72,10 +86,9 @@ pub mod pallet {
         #[pallet::constant]
         type PalletId: Get<PalletId>;
 
-        /// Assets for teleport/materialize assets to/from bridge pallet
-        type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
-            + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
-            + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
+        /// Each proposal can live up to [ProposalLifetime] blocks
+        #[pallet::constant]
+        type ProposalLifetime: Get<Self::BlockNumber>;
     }
 
     #[pallet::pallet]
@@ -99,6 +112,18 @@ pub mod pallet {
         CurrencyIdAlreadyRegistered,
         /// The currency_id is not registed and the related operation will be invalid
         CurrencyIdNotRegistered,
+        /// The AdminMember already vote for the proposal
+        MemberAlreadyVoted,
+        /// A proposal with these parameters has already been submitted
+        ProposalAlreadyExists,
+        /// No proposal with the ID was found
+        ProposalDoesNotExist,
+        /// Cannot complete proposal, needs more votes
+        ProposalNotComplete,
+        /// Proposal has either failed or succeeded
+        ProposalAlreadyComplete,
+        /// Lifetime of proposal has been exceeded
+        ProposalExpired,
     }
 
     /// Event for the Bridge Pallet
@@ -124,14 +149,28 @@ pub mod pallet {
         /// The currency_id has been unregistered
         /// [asset_id, currency_id]
         CurrencyRemoved(AssetIdOf<T>, CurrencyId),
-        
+
         /// Event emitted when currency are destoryed
-        /// [dest_id, chain_nonce, currency_id, sender, receiver, amount]
-        Burned(ChainId, ChainNonce, CurrencyId, T::AccountId, TeleAccount, BalanceOf<T>),
-        
+        /// [dest_id, chain_nonce, currency_id, receiver, amount]
+        Burned(ChainId, ChainNonce, CurrencyId, TeleAccount, BalanceOf<T>),
+
         /// Event emitted when currency are issued
-        /// [src_id, chain_nonce, currency_id, sender, receiver, amount]
-        Minted(ChainId, ChainNonce, CurrencyId, TeleAccount, T::AccountId, BalanceOf<T>),
+        /// [src_id, chain_nonce, currency_id, receiver, amount]
+        Minted(ChainId, ChainNonce, CurrencyId, T::AccountId, BalanceOf<T>),
+
+        /// Vote submitted in favour of proposal
+        VoteFor(ChainId, ChainNonce, T::AccountId),
+        /// Vot submitted against proposal
+        VoteAgainst(ChainId, ChainNonce, T::AccountId),
+
+        /// Voting successful for a proposal
+        ProposalApproved(ChainId, ChainNonce),
+        /// Voting rejected a proposal
+        ProposalRejected(ChainId, ChainNonce),
+        /// Execution of call succeeded
+        ProposalSucceeded(ChainId, ChainNonce),
+        /// Execution of call failed
+        ProposalFailed(ChainId, ChainNonce),
     }
 
     #[pallet::type_value]
@@ -156,13 +195,26 @@ pub mod pallet {
     pub type AssetIds<T: Config> =
         StorageMap<_, Twox64Concat, CurrencyId, AssetIdOf<T>, ValueQuery>;
 
+    /// Mapping of [chain_id -> nonce -> proposal]
+    #[pallet::storage]
+    #[pallet::getter(fn proposals)]
+    pub type Proposals<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        ChainId,
+        Blake2_128Concat,
+        (ChainNonce, MaterializeCallOf<T>),
+        ProposalOf<T>,
+        OptionQuery,
+    >;
+
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Set the threshold required to reach multi-signature consensus
         #[pallet::weight(0)]
         pub fn set_vote_threshold(origin: OriginFor<T>, threshold: u32) -> DispatchResult {
             Self::ensure_admin(origin)?;
-            
+
             ensure!(
                 threshold > 0 && threshold <= Self::get_members_count(),
                 Error::<T>::InvalidVoteThreshold
@@ -171,7 +223,7 @@ pub mod pallet {
             // Set a new voting threshold
             VoteThreshold::<T>::put(threshold);
             Self::deposit_event(Event::VoteThresholdChanged(threshold));
-    
+
             Ok(())
         }
 
@@ -191,7 +243,7 @@ pub mod pallet {
 
             Ok(())
         }
-    
+
         #[pallet::weight(0)]
         pub fn unregister_chain(origin: OriginFor<T>, id: ChainId) -> DispatchResult {
             Self::ensure_admin(origin)?;
@@ -260,7 +312,32 @@ pub mod pallet {
             let asset_id = AssetIds::<T>::get(currency_id);
             T::Assets::transfer(asset_id, &who, &Self::account_id(), amount, false)?;
 
-            Self::teleport_internal(dest_id, currency_id, who, to, amount)
+            Self::teleport_internal(dest_id, currency_id, to, amount)
+        }
+
+        #[pallet::weight(0)]
+        pub fn vote_materialize(
+            origin: OriginFor<T>,
+            src_id: ChainId,
+            src_nonce: ChainNonce,
+            currency_id: CurrencyId,
+            to: T::AccountId,
+            amount: BalanceOf<T>,
+            favour: bool,
+        ) -> DispatchResult {
+            Self::ensure_admin(origin.clone())?;
+            Self::ensure_chain_registered(src_id)?;
+            Self::ensure_currency_registered(currency_id)?;
+
+            let who = ensure_signed(origin)?;
+            let call = MaterializeCall {
+                currency_id,
+                to,
+                amount,
+            };
+
+            Self::commit_vote(who, src_id, src_nonce, call.clone(), favour)?;
+            Self::resolve_proposal(src_id, src_nonce, call)
         }
     }
 
@@ -332,13 +409,99 @@ impl<T: Config> Pallet<T> {
     fn teleport_internal(
         dest_id: ChainId,
         currency_id: CurrencyId,
-        who: T::AccountId,
         to: TeleAccount,
         amount: BalanceOf<T>,
     ) -> DispatchResult {
         let nonce = Self::bump_nonce(dest_id);
 
-        Self::deposit_event(Event::Burned(dest_id, nonce, currency_id, who, to, amount));
+        Self::deposit_event(Event::Burned(dest_id, nonce, currency_id, to, amount));
+        Ok(())
+    }
+
+    fn commit_vote(
+        who: T::AccountId,
+        src_id: ChainId,
+        src_nonce: ChainNonce,
+        call: MaterializeCallOf<T>,
+        favour: bool,
+    ) -> DispatchResult {
+        let now = <frame_system::Pallet<T>>::block_number();
+
+        let mut proposal = match Self::proposals(src_id, (src_nonce, call.clone())) {
+            Some(p) => p,
+            None => Proposal {
+                expiry: now + T::ProposalLifetime::get(),
+                ..Default::default()
+            },
+        };
+
+        // Ensure the proposal isn't complete and member hasn't already voted
+        ensure!(!proposal.is_complete(), Error::<T>::ProposalAlreadyComplete);
+        ensure!(!proposal.is_expired(now), Error::<T>::ProposalExpired);
+        ensure!(!proposal.has_voted(&who), Error::<T>::MemberAlreadyVoted);
+
+        if favour {
+            proposal.votes_for.push(who.clone());
+            Self::deposit_event(Event::<T>::VoteFor(src_id, src_nonce, who));
+        } else {
+            proposal.votes_against.push(who.clone());
+            Self::deposit_event(Event::VoteAgainst(src_id, src_nonce, who));
+        }
+
+        Proposals::<T>::insert(src_id, (src_nonce, call), proposal.clone());
+
+        Ok(())
+    }
+    /// Attempts to finalize or cancel the proposal if the vote count allows.
+    fn resolve_proposal(
+        src_id: ChainId,
+        src_nonce: ChainNonce,
+        call: MaterializeCallOf<T>,
+    ) -> DispatchResult {
+        if let Some(mut proposal) = Proposals::<T>::get(src_id, (src_nonce, call.clone())) {
+            let now = <frame_system::Pallet<T>>::block_number();
+            ensure!(!proposal.is_complete(), Error::<T>::ProposalAlreadyComplete);
+            ensure!(!proposal.is_expired(now), Error::<T>::ProposalExpired);
+
+            let status =
+                proposal.try_to_complete(Self::vote_threshold(), Self::get_members_count());
+            Proposals::<T>::insert(src_id, (src_nonce, call.clone()), proposal.clone());
+
+            match status {
+                ProposalStatus::Approved => Self::execute_materialize(src_id, src_nonce, call),
+                ProposalStatus::Rejected => Self::cancel_materialize(src_id, src_nonce),
+                _ => Ok(()),
+            }
+        } else {
+            Err(Error::<T>::ProposalDoesNotExist.into())
+        }
+    }
+
+    fn execute_materialize(
+        src_id: ChainId,
+        src_nonce: ChainNonce,
+        call: MaterializeCallOf<T>,
+    ) -> DispatchResult {
+        Self::ensure_chain_registered(src_id)?;
+        Self::ensure_currency_registered(call.currency_id)?;
+
+        let asset_id = AssetIds::<T>::get(call.currency_id);
+        T::Assets::transfer(asset_id, &Self::account_id(), &call.to, call.amount, true)?;
+
+        Self::deposit_event(Event::Minted(
+            src_id,
+            src_nonce,
+            call.currency_id,
+            call.to,
+            call.amount,
+        ));
+        Ok(())
+    }
+
+    /// Cancels a proposal.
+    fn cancel_materialize(src_id: ChainId, src_nonce: ChainNonce) -> DispatchResult {
+        Self::deposit_event(Event::ProposalRejected(src_id, src_nonce));
+
         Ok(())
     }
 }

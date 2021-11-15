@@ -136,6 +136,7 @@ parameter_types! {
     pub const ParallelHeiko: ChainId = 0;
     pub const ZeroAccountId: AccountId = 0u128;
     pub const BridgePalletId: PalletId = PalletId(*b"par/brid");
+    pub const ProposalLifetime: BlockNumber = 50;
 }
 
 impl Config for Test {
@@ -148,6 +149,8 @@ impl Config for Test {
     type PalletId = BridgePalletId;
 
     type Assets = CurrencyAdapter;
+
+    type ProposalLifetime = ProposalLifetime;
 }
 
 pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
