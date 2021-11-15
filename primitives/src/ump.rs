@@ -1,4 +1,4 @@
-use super::ParaId;
+use super::{AccountId, ParaId};
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::pallet_prelude::Weight;
@@ -176,9 +176,9 @@ pub enum SystemCall {
 
 #[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct ProxyProxyCall<RelaychainCall> {
-    // pub real: AccountId,
+    pub real: AccountId,
     pub force_proxy_type: Option<ProxyType>,
-    pub call: Box<RelaychainCall>,
+    pub call: RelaychainCall,
 }
 
 /// The type used to represent the kinds of proxying allowed.
