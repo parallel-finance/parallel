@@ -31,7 +31,6 @@ const XCM_WEIGHT: XcmWeightMisc<Weight> = XcmWeightMisc {
     nominate_weight: 3_000_000_000,
     contribute_weight: 3_000_000_000,
     withdraw_weight: 3_000_000_000,
-    refund_weight: 3_000_000_000,
     add_memo_weight: 3_000_000_000,
 };
 const INITIAL_INSURANCE: u128 = 1000000000000u128;

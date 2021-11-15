@@ -147,13 +147,6 @@ pub struct CrowdloansWithdrawCall<T: Config> {
 }
 
 #[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct CrowdloansRefundCall {
-    /// - `index`: The parachain to whose crowdloan the contribution was made.
-    #[codec(compact)]
-    pub index: ParaId,
-}
-
-#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct CrowdloansAddMemoCall {
     /// - `index`: The parachain to whose crowdloan the contribution was made.
     pub index: ParaId,
@@ -166,17 +159,26 @@ pub enum CrowdloansCall<T: Config> {
     Contribute(CrowdloansContributeCall),
     #[codec(index = 2)]
     Withdraw(CrowdloansWithdrawCall<T>),
-    #[codec(index = 3)]
-    Refund(CrowdloansRefundCall),
     #[codec(index = 6)]
     AddMemo(CrowdloansAddMemoCall),
 }
 
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct SystemRemarkCall {
+    pub remark: Vec<u8>,
+}
+
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum SystemCall {
+    #[codec(index = 1)]
+    Remark(SystemRemarkCall),
+}
+
 #[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct ProxyProxyCall<T: Config> {
-    pub real: T::AccountId,
+pub struct ProxyProxyCall<RelaychainCall> {
+    // pub real: AccountId,
     pub force_proxy_type: Option<ProxyType>,
-    pub call: Box<<T as frame_system::Config>::Call>,
+    pub call: Box<RelaychainCall>,
 }
 
 /// The type used to represent the kinds of proxying allowed.
@@ -209,9 +211,9 @@ impl Default for ProxyType {
 }
 
 #[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
-pub enum ProxyCall<T: Config> {
+pub enum ProxyCall<RelaychainCall> {
     #[codec(index = 0)]
-    Proxy(ProxyProxyCall<T>),
+    Proxy(ProxyProxyCall<RelaychainCall>),
 }
 
 /// Relaychain utility.as_derivative call arguments
@@ -240,12 +242,14 @@ pub enum UtilityCall<RelaychainCall> {
 
 #[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum KusamaCall<T: Config> {
+    #[codec(index = 0)]
+    System(SystemCall),
     #[codec(index = 4)]
     Balances(BalancesCall<T>),
     #[codec(index = 6)]
     Staking(StakingCall<T>),
-    // #[codec(index = 22)]
-    // Proxy(ProxyCall<T>),
+    #[codec(index = 22)]
+    Proxy(Box<ProxyCall<Self>>),
     #[codec(index = 24)]
     Utility(Box<UtilityCall<Self>>),
     #[codec(index = 73)]
@@ -254,14 +258,16 @@ pub enum KusamaCall<T: Config> {
 
 #[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum PolkadotCall<T: Config> {
+    #[codec(index = 0)]
+    System(SystemCall),
     #[codec(index = 5)]
     Balances(BalancesCall<T>),
     #[codec(index = 7)]
     Staking(StakingCall<T>),
     #[codec(index = 26)]
     Utility(Box<UtilityCall<Self>>),
-    // #[codec(index = 29)]
-    // Proxy(ProxyCall<T>),
+    #[codec(index = 29)]
+    Proxy(Box<ProxyCall<Self>>),
     #[codec(index = 73)]
     Crowdloans(CrowdloansCall<T>),
 }
@@ -285,8 +291,6 @@ pub struct XcmWeightMisc<Weight> {
     pub contribute_weight: Weight,
     /// The weight when execute withdraw xcm message
     pub withdraw_weight: Weight,
-    /// The weight when execute refund xcm message
-    pub refund_weight: Weight,
     /// The weight when execute add_memo xcm message
     pub add_memo_weight: Weight,
 }
@@ -303,7 +307,6 @@ impl Default for XcmWeightMisc<Weight> {
             nominate_weight: default_weight,
             contribute_weight: default_weight,
             withdraw_weight: default_weight,
-            refund_weight: default_weight,
             add_memo_weight: default_weight,
         }
     }
