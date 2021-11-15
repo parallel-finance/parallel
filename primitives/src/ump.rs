@@ -1,4 +1,4 @@
-use super::{AccountId, ParaId};
+use super::{AccountId, BlockNumber, ParaId};
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::pallet_prelude::Weight;
@@ -181,6 +181,20 @@ pub struct ProxyProxyCall<RelaychainCall> {
     pub call: RelaychainCall,
 }
 
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct ProxyAddProxyCall {
+    pub delegate: AccountId,
+    pub proxy_type: Option<ProxyType>,
+    pub delay: BlockNumber,
+}
+
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct ProxyRemoveProxyCall {
+    pub delegate: AccountId,
+    pub proxy_type: Option<ProxyType>,
+    pub delay: BlockNumber,
+}
+
 /// The type used to represent the kinds of proxying allowed.
 #[derive(
     Copy,
@@ -214,6 +228,10 @@ impl Default for ProxyType {
 pub enum ProxyCall<RelaychainCall> {
     #[codec(index = 0)]
     Proxy(ProxyProxyCall<RelaychainCall>),
+    #[codec(index = 1)]
+    AddProxy(ProxyAddProxyCall),
+    #[codec(index = 2)]
+    RemoveProxy(ProxyRemoveProxyCall),
 }
 
 /// Relaychain utility.as_derivative call arguments
