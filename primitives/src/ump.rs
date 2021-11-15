@@ -5,7 +5,7 @@ use frame_support::pallet_prelude::Weight;
 use frame_system::Config;
 use scale_info::TypeInfo;
 use sp_runtime::{traits::StaticLookup, MultiSignature, RuntimeDebug};
-use sp_std::{boxed::Box, marker::PhantomData, vec::Vec};
+use sp_std::{boxed::Box, vec::Vec};
 
 /// A destination account for payment.
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
@@ -147,11 +147,17 @@ pub struct CrowdloansWithdrawCall<T: Config> {
 }
 
 #[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct CrowdloansRefundCall<T: Config> {
+pub struct CrowdloansRefundCall {
     /// - `index`: The parachain to whose crowdloan the contribution was made.
     #[codec(compact)]
     pub index: ParaId,
-    pub _ghost: PhantomData<T>,
+}
+
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct CrowdloansAddMemoCall {
+    /// - `index`: The parachain to whose crowdloan the contribution was made.
+    pub index: ParaId,
+    pub memo: Vec<u8>,
 }
 
 #[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
@@ -161,7 +167,9 @@ pub enum CrowdloansCall<T: Config> {
     #[codec(index = 2)]
     Withdraw(CrowdloansWithdrawCall<T>),
     #[codec(index = 3)]
-    Refund(CrowdloansRefundCall<T>),
+    Refund(CrowdloansRefundCall),
+    #[codec(index = 6)]
+    AddMemo(CrowdloansAddMemoCall),
 }
 
 #[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
@@ -231,23 +239,13 @@ pub enum UtilityCall<RelaychainCall> {
 }
 
 #[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
-pub enum WestendCall<T: Config> {
-    #[codec(index = 4)]
-    Balances(BalancesCall<T>),
-    #[codec(index = 6)]
-    Staking(StakingCall<T>),
-    #[codec(index = 16)]
-    Utility(Box<UtilityCall<Self>>),
-    #[codec(index = 64)]
-    Crowdloans(CrowdloansCall<T>),
-}
-
-#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum KusamaCall<T: Config> {
     #[codec(index = 4)]
     Balances(BalancesCall<T>),
     #[codec(index = 6)]
     Staking(StakingCall<T>),
+    // #[codec(index = 22)]
+    // Proxy(ProxyCall<T>),
     #[codec(index = 24)]
     Utility(Box<UtilityCall<Self>>),
     #[codec(index = 73)]
@@ -262,6 +260,8 @@ pub enum PolkadotCall<T: Config> {
     Staking(StakingCall<T>),
     #[codec(index = 26)]
     Utility(Box<UtilityCall<Self>>),
+    // #[codec(index = 29)]
+    // Proxy(ProxyCall<T>),
     #[codec(index = 73)]
     Crowdloans(CrowdloansCall<T>),
 }
@@ -287,6 +287,8 @@ pub struct XcmWeightMisc<Weight> {
     pub withdraw_weight: Weight,
     /// The weight when execute refund xcm message
     pub refund_weight: Weight,
+    /// The weight when execute add_memo xcm message
+    pub add_memo_weight: Weight,
 }
 
 impl Default for XcmWeightMisc<Weight> {
@@ -302,6 +304,7 @@ impl Default for XcmWeightMisc<Weight> {
             contribute_weight: default_weight,
             withdraw_weight: default_weight,
             refund_weight: default_weight,
+            add_memo_weight: default_weight,
         }
     }
 }

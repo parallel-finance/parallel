@@ -469,6 +469,7 @@ fn test_update_xcm_weight_work() {
             contribute_weight: 7,
             withdraw_weight: 8,
             refund_weight: 9,
+            add_memo_weight: 10,
         };
         assert_ok!(LiquidStaking::update_xcm_weight(Origin::signed(BOB), misc));
         assert_eq!(XcmWeight::<Test>::get(), misc);
