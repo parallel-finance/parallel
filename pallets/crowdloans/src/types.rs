@@ -80,7 +80,7 @@ pub enum ContributionStrategy {
 pub trait ContributionStrategyExecutor {
     /// Execute the strategy to contribute `amount` of coins to the crowdloan
     /// of the given parachain id
-    fn execute<T: Config>(self, para_id: ParaId, amount: BalanceOf<T>) -> DispatchResult;
+    fn contribute<T: Config>(self, para_id: ParaId, amount: BalanceOf<T>) -> DispatchResult;
 
     /// Withdraw coins from the relay chain's crowdloans and send it back
     /// to our parachain
@@ -89,7 +89,7 @@ pub trait ContributionStrategyExecutor {
 
 impl ContributionStrategyExecutor for ContributionStrategy {
     #[require_transactional]
-    fn execute<T: Config>(
+    fn contribute<T: Config>(
         self,
         para_id: ParaId,
         amount: BalanceOf<T>,

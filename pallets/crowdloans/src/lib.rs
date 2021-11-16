@@ -321,6 +321,10 @@ pub mod pallet {
                 let vault_ctoken_issuance = T::Assets::total_issuance(vault_contents.ctoken);
 
                 ensure!(
+                    vault_contents.phase == VaultPhase::CollectingContributions,
+                    Error::<T>::IncorrectVaultPhase
+                );
+                ensure!(
                     vault_contents.contributed < vault_ctoken_issuance,
                     Error::<T>::ContributedGreaterThanIssuance
                 );
@@ -331,7 +335,7 @@ pub mod pallet {
 
                 vault_contents
                     .contribution_strategy
-                    .execute::<T>(crowdloan, amount)?;
+                    .contribute::<T>(crowdloan, amount)?;
 
                 // 4. Set vault.contributed to total_issuance(vault.currency_shares)
                 vault_contents.contributed = vault_ctoken_issuance;
@@ -465,6 +469,11 @@ pub mod pallet {
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 // make sure there's a vault
                 let mut vault_contents = vault.as_mut().ok_or(Error::<T>::VaultDoesNotExist)?;
+
+                ensure!(
+                    vault_contents.phase == VaultPhase::Closed,
+                    Error::<T>::IncorrectVaultPhase
+                );
 
                 // 2. Execute the `withdraw` function of our `contribution_strategy`
                 vault_contents
