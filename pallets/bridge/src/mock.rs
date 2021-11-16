@@ -22,9 +22,6 @@ pub const DAVE: AccountId = 4;
 pub const EVE: AccountId = 5;
 pub const FERDIE: AccountId = 6;
 
-// TeleAccount Ids
-// pub const TELE: TeleAccount = concat!("TELE", "\0\0\0\0\0\0\0\0\0\0").as_bytes().to_vec();
-
 // Chain Ids
 pub const ETH: ChainId = 1;
 pub const BNB: ChainId = 2;
@@ -192,6 +189,21 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         run_to_block(1);
     });
     ext
+}
+
+// Checks events against the latest.
+pub fn assert_events(mut expected: Vec<Event>) {
+    let mut actual: Vec<Event> = system::Pallet::<Test>::events()
+        .iter()
+        .map(|e| e.event.clone())
+        .collect();
+
+    expected.reverse();
+
+    for evt in expected {
+        let next = actual.pop().expect("event expected");
+        assert_eq!(next, evt.into(), "Events don't match (actual,expected)");
+    }
 }
 
 /// Progress to the given block, and then finalize the block.

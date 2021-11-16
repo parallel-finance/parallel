@@ -343,7 +343,7 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-        fn on_finalize(_n: T::BlockNumber) {
+        fn on_finalize(block_number: T::BlockNumber) {
             // do nothing
         }
     }
