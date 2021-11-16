@@ -314,6 +314,11 @@ fn slot_expired_should_work() {
         ));
 
         // do close
+        assert_ok!(Crowdloans::close(
+            frame_system::RawOrigin::Root.into(), // origin
+            ParaId::from(crowdloan),              // crowdloan
+        ));
+
         assert_ok!(Crowdloans::slot_expired(
             frame_system::RawOrigin::Root.into(), // origin
             ParaId::from(crowdloan),              // crowdloan
