@@ -344,7 +344,12 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
         fn on_finalize(block_number: T::BlockNumber) {
-            // do nothing
+            let expired = Proposals::<T>::iter().filter(|x| (*x).2.is_expired(block_number));
+            expired.for_each(|x| {
+                let chain_id = x.0;
+                let chain_nonce = x.1;
+                Proposals::<T>::remove(chain_id, chain_nonce);
+            });
         }
     }
 }
