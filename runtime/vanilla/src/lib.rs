@@ -23,7 +23,6 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 mod weights;
 
 use codec::{Decode, Encode, MaxEncodedLen};
-use cumulus_primitives_core::ParaId;
 use scale_info::TypeInfo;
 
 use frame_support::{
@@ -821,6 +820,7 @@ impl parachain_info::Config for Runtime {}
 parameter_types! {
     pub const RelayLocation: MultiLocation = MultiLocation::parent();
     pub RelayNetwork: NetworkId = NetworkId::Kusama;
+    pub RelayCurrency: CurrencyId = KSM;
     pub VanillaNetwork: NetworkId = NetworkId::Named("vanilla".into());
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation =  MultiLocation::new(0, X1(Parachain(ParachainInfo::parachain_id().into())));
@@ -1269,13 +1269,17 @@ impl pallet_crowdloans::Config for Runtime {
     type SelfParaId = ParachainInfo;
     type XcmSender = XcmRouter;
     type Assets = Assets;
+    type RelayNetwork = RelayNetwork;
+    type RelayCurrency = RelayCurrency;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type PariticipateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CloseOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionCompletedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -1365,7 +1369,7 @@ construct_runtime!(
         // Loans
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>} = 50,
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>} = 51,
-        Crowdloans: pallet_crowdloans::{Pallet, Call, Storage, Event<T>} = 52,
+        Crowdloans: pallet_crowdloans::{Pallet, Call, Storage, Config, Event<T>} = 52,
 
         // LiquidStaking
         LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config} = 60,

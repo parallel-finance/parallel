@@ -1,19 +1,18 @@
-use super::*;
+use super::{types::*, *};
 use crate::mock::*;
-use cumulus_primitives_core::ParaId;
+
 use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
-use primitives::tokens;
-use sp_runtime::traits::Zero;
-use sp_runtime::traits::{One, UniqueSaturatedInto};
-use sp_runtime::MultiAddress::Id;
-use types::*;
+use primitives::{tokens, ParaId};
+use sp_runtime::{
+    traits::{One, UniqueSaturatedInto, Zero},
+    MultiAddress::Id,
+};
 
 #[test]
 fn create_new_vault_should_work() {
     new_test_ext().execute_with(|| {
         let crowdloan = ParaId::from(1337);
-        let relay_currency = tokens::DOT;
         let ctoken = 10;
 
         let contribution_strategy = ContributionStrategy::XCM;
@@ -29,24 +28,21 @@ fn create_new_vault_should_work() {
 
         assert_ok!(Crowdloans::create_vault(
             frame_system::RawOrigin::Root.into(), // origin
-            relay_currency,                       // token
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
         ));
 
-        if let Some(just_created_vault) = Crowdloans::vaults(crowdloan) {
-            assert_eq!(
-                just_created_vault,
-                Vault {
-                    ctoken,
-                    relay_currency,
-                    phase: VaultPhase::CollectingContributions,
-                    contribution_strategy: contribution_strategy,
-                    contributed: Zero::zero(),
-                }
-            );
-        }
+        let just_created_vault = Crowdloans::vaults(crowdloan).unwrap();
+        assert_eq!(
+            just_created_vault,
+            Vault {
+                ctoken,
+                phase: VaultPhase::CollectingContributions,
+                contribution_strategy: contribution_strategy,
+                contributed: Zero::zero(),
+            }
+        );
     });
 }
 
@@ -54,7 +50,6 @@ fn create_new_vault_should_work() {
 fn contribute_should_work() {
     new_test_ext().execute_with(|| {
         let crowdloan = ParaId::from(1337);
-        let currency = tokens::DOT;
         let ctoken = 10;
         let amount = 1_000;
 
@@ -72,7 +67,6 @@ fn contribute_should_work() {
         // create a vault to contribute to
         assert_ok!(Crowdloans::create_vault(
             frame_system::RawOrigin::Root.into(), // origin
-            currency,                             // token
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
@@ -86,20 +80,13 @@ fn contribute_should_work() {
         ));
 
         // check that we're in the right phase
-        if let Some(vault) = Crowdloans::vaults(crowdloan) {
-            assert_eq!(vault.phase, VaultPhase::CollectingContributions);
+        let vault = Crowdloans::vaults(crowdloan).unwrap();
+        assert_eq!(vault.phase, VaultPhase::CollectingContributions);
 
-            // check if ctoken minted to user
-            let ctoken_balance = Assets::balance(vault.ctoken, ALICE);
+        // check if ctoken minted to user
+        let ctoken_balance = Assets::balance(vault.ctoken, ALICE);
 
-            assert_eq!(ctoken_balance, amount);
-
-            // check user balance
-            let pallet_balance = Assets::balance(vault.relay_currency, Crowdloans::account_id());
-
-            // check pallet balance
-            assert_eq!(pallet_balance, amount);
-        }
+        assert_eq!(ctoken_balance, amount);
     });
 }
 
@@ -107,7 +94,6 @@ fn contribute_should_work() {
 fn contribute_should_fail_insufficent_funds() {
     new_test_ext().execute_with(|| {
         let crowdloan = ParaId::from(1337);
-        let currency = tokens::XDOT;
         let ctoken = 10;
         let amount = 1_000;
 
@@ -125,7 +111,6 @@ fn contribute_should_fail_insufficent_funds() {
         // create a vault to contribute to
         assert_ok!(Crowdloans::create_vault(
             frame_system::RawOrigin::Root.into(), // origin
-            currency,                             // token
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
@@ -147,7 +132,6 @@ fn contribute_should_fail_insufficent_funds() {
 fn participate_should_work() {
     new_test_ext().execute_with(|| {
         let crowdloan = ParaId::from(1337);
-        let currency = tokens::DOT;
         let ctoken = 10;
         let amount = 100_000;
 
@@ -165,7 +149,6 @@ fn participate_should_work() {
         // create a vault to contribute to
         assert_ok!(Crowdloans::create_vault(
             frame_system::RawOrigin::Root.into(), // origin
-            currency,                             // token
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
@@ -194,7 +177,6 @@ fn participate_should_work() {
 fn close_should_work() {
     new_test_ext().execute_with(|| {
         let crowdloan = ParaId::from(1337);
-        let currency = tokens::DOT;
         let ctoken = 10;
 
         let contribution_strategy = ContributionStrategy::XCM;
@@ -202,7 +184,6 @@ fn close_should_work() {
         // create a vault to contribute to
         assert_ok!(Crowdloans::create_vault(
             frame_system::RawOrigin::Root.into(), // origin
-            currency,                             // token
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
@@ -215,9 +196,8 @@ fn close_should_work() {
         ));
 
         // check that we're in the right phase
-        if let Some(vault) = Crowdloans::vaults(crowdloan) {
-            assert_eq!(vault.phase, VaultPhase::Closed)
-        }
+        let vault = Crowdloans::vaults(crowdloan).unwrap();
+        assert_eq!(vault.phase, VaultPhase::Closed)
     });
 }
 
@@ -225,7 +205,6 @@ fn close_should_work() {
 fn auction_failed_should_work() {
     new_test_ext().execute_with(|| {
         let crowdloan = 1337;
-        let currency = tokens::DOT;
         let ctoken = 10;
 
         let contribution_strategy = ContributionStrategy::XCM;
@@ -233,7 +212,6 @@ fn auction_failed_should_work() {
         // create a vault to contribute to
         assert_ok!(Crowdloans::create_vault(
             frame_system::RawOrigin::Root.into(), // origin
-            currency,                             // token
             ParaId::from(crowdloan),              // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
@@ -252,9 +230,8 @@ fn auction_failed_should_work() {
         ));
 
         // check that we're in the right phase
-        if let Some(vault) = Crowdloans::vaults(ParaId::from(crowdloan)) {
-            assert_eq!(vault.phase, VaultPhase::Failed)
-        }
+        let vault = Crowdloans::vaults(ParaId::from(crowdloan)).unwrap();
+        assert_eq!(vault.phase, VaultPhase::Failed)
     });
 }
 
@@ -262,7 +239,6 @@ fn auction_failed_should_work() {
 fn claim_refund_should_work() {
     new_test_ext().execute_with(|| {
         let crowdloan = 1337;
-        let currency = tokens::DOT;
         let ctoken = 10;
         let amount = 1_000;
 
@@ -280,7 +256,6 @@ fn claim_refund_should_work() {
         // create a vault to contribute to
         assert_ok!(Crowdloans::create_vault(
             frame_system::RawOrigin::Root.into(), // origin
-            currency,                             // token
             ParaId::from(crowdloan),              // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
@@ -313,13 +288,12 @@ fn claim_refund_should_work() {
         ));
 
         // check that we're in the right phase
-        if let Some(vault) = Crowdloans::vaults(ParaId::from(crowdloan)) {
-            // vault should be in a state we allow
-            assert!(
-                vault.phase == VaultPhase::Failed || vault.phase == VaultPhase::Expired,
-                "Vault in incorrect state"
-            );
-        }
+        let vault = Crowdloans::vaults(ParaId::from(crowdloan)).unwrap();
+        // vault should be in a state we allow
+        assert!(
+            vault.phase == VaultPhase::Failed || vault.phase == VaultPhase::Expired,
+            "Vault in incorrect state"
+        );
     });
 }
 
@@ -327,7 +301,6 @@ fn claim_refund_should_work() {
 fn slot_expired_should_work() {
     new_test_ext().execute_with(|| {
         let crowdloan = 1337;
-        let currency = tokens::DOT;
         let ctoken = 10;
 
         let contribution_strategy = ContributionStrategy::XCM;
@@ -335,7 +308,6 @@ fn slot_expired_should_work() {
         // create a vault to contribute to
         assert_ok!(Crowdloans::create_vault(
             frame_system::RawOrigin::Root.into(), // origin
-            currency,                             // token
             ParaId::from(crowdloan),              // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
@@ -348,17 +320,7 @@ fn slot_expired_should_work() {
         ));
 
         // check that we're in the right phase
-        if let Some(vault) = Crowdloans::vaults(ParaId::from(crowdloan)) {
-            assert_eq!(vault.phase, VaultPhase::Expired)
-        }
-    });
-}
-
-#[allow(dead_code)]
-/// helper for showing events on other chains
-fn print_events<T: frame_system::Config>(context: &str) {
-    println!("------ {:?} events ------", context);
-    frame_system::Pallet::<T>::events().iter().for_each(|r| {
-        println!("{:?}", r.event);
+        let vault = Crowdloans::vaults(ParaId::from(crowdloan)).unwrap();
+        assert_eq!(vault.phase, VaultPhase::Expired)
     });
 }

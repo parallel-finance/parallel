@@ -36,6 +36,12 @@ pub const PUSDT: CurrencyId = 2102;
 
 pub const PXKSM: CurrencyId = 3000;
 pub const PXDOT: CurrencyId = 3001;
+pub const PCKSM: CurrencyId = 3100;
+pub const PCDOT: CurrencyId = 3101;
+
+// Crowdloans Derivative
+pub const CKSM: CurrencyId = 4000;
+pub const CDOT: CurrencyId = 4001;
 
 // Token Registration Information
 // +───────────+──────────────+────────────────────+
@@ -69,4 +75,6 @@ pub const PXDOT: CurrencyId = 3001;
 // | Parallel  | PUSDT        | N/A                |
 // | Parallel  | PXKSM        | N/A                |
 // | Parallel  | PXDOT        | N/A                |
+// | Parallel  | CKSM         | N/A                |
+// | Parallel  | CDOT         | N/A                |
 // +──────────+───────────────+────────────────────+

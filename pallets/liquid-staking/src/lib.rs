@@ -30,33 +30,15 @@ mod tests;
 pub mod types;
 pub mod weights;
 
+#[macro_use]
+extern crate primitives;
+
 use primitives::{ExchangeRateProvider, LiquidStakingCurrenciesProvider, Rate};
 
 pub use pallet::*;
 
-macro_rules! switch_relay {
-    ({ $( $code:tt )* }) => {
-        if T::RelayNetwork::get() == NetworkId::Polkadot {
-            use crate::types::PolkadotCall as RelaychainCall;
-
-            $( $code )*
-        } else if T::RelayNetwork::get() == NetworkId::Kusama {
-            use crate::types::KusamaCall as RelaychainCall;
-
-            $( $code )*
-        } else if T::RelayNetwork::get() == NetworkId::Named("westend".into()) {
-            use crate::types::WestendCall as RelaychainCall;
-
-            $( $code )*
-        } else {
-            unreachable!()
-        }
-    }
-}
-
 #[frame_support::pallet]
 pub mod pallet {
-    use cumulus_primitives_core::ParaId;
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
         ensure,
@@ -82,7 +64,7 @@ pub mod pallet {
     use sp_std::{boxed::Box, vec::Vec};
     use xcm::{latest::prelude::*, DoubleEncoded};
 
-    use primitives::{Balance, CurrencyId, Rate, Ratio};
+    use primitives::{ump::*, Balance, CurrencyId, ParaId, Rate, Ratio};
 
     use crate::{types::*, weights::WeightInfo};
 
@@ -106,7 +88,7 @@ pub mod pallet {
         /// The origin which can do operation on relaychain using parachain's sovereign account
         type RelayOrigin: EnsureOrigin<Self::Origin>;
 
-        /// The origin which can update liquid currency, staking currency
+        /// The origin which can update liquid currency, staking currency and other parameters
         type UpdateOrigin: EnsureOrigin<Self::Origin>;
 
         /// The pallet id of liquid staking, keeps all the staking assets
@@ -178,7 +160,7 @@ pub mod pallet {
         Rebonding(BalanceOf<T>),
         /// Sent staking.withdraw_unbonded call to relaychain
         WithdrawingUnbonded(u32),
-        /// Send staking.nominate call to relaychain
+        /// Sent staking.nominate call to relaychain
         Nominating(Vec<T::AccountId>),
         /// Compensation for extrinsics on relaychain was set to new value
         XcmFeesCompensationUpdated(BalanceOf<T>),
@@ -226,8 +208,6 @@ pub mod pallet {
         ExceededMaxSlashesPerEra,
         /// Exceeded staking pool's capacity
         ExceededStakingPoolCapacity,
-        /// Xcm fees given are too low to execute on relaychain
-        XcmFeesCompensationTooLow,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -1056,8 +1036,6 @@ pub mod pallet {
         #[require_transactional]
         fn ump_transact(call: DoubleEncoded<()>, weight: Weight) -> Result<Xcm<()>, DispatchError> {
             let fees = Self::xcm_fees_compensation();
-            ensure!(!fees.is_zero(), Error::<T>::XcmFeesCompensationTooLow);
-
             let staking_currency = Self::staking_currency()?;
             let account_id = Self::account_id();
             let asset: MultiAsset = (MultiLocation::here(), fees).into();
