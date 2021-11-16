@@ -210,12 +210,12 @@ pub struct ProxyRemoveProxyCall {
     TypeInfo,
 )]
 pub enum ProxyType {
-    Any = 0,
-    NonTransfer = 1,
-    Governance = 2,
-    Staking = 3,
-    CancelProxy = 6,
-    Auction = 7,
+    Any = 0_isize,
+    NonTransfer = 1_isize,
+    Governance = 2_isize,
+    Staking = 3_isize,
+    CancelProxy = 6_isize,
+    Auction = 7_isize,
 }
 
 impl Default for ProxyType {
