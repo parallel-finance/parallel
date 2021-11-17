@@ -1261,7 +1261,7 @@ impl pallet_amm::Config for Runtime {
 
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
-    pub const MaxReserves: Balance = 1000_000_000_000;
+    pub const MaxReserves: Balance = 1_000_000_000_000;
     pub const PariticipationPeriod: BlockNumber = 10;
 }
 
