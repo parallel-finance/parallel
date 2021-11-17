@@ -31,14 +31,16 @@ use frame_support::{
     PalletId,
 };
 use frame_system::pallet_prelude::*;
-use primitives::{Balance, CurrencyId};
+use primitives::{Balance, CurrencyId, ChainId};
 use sp_runtime::traits::AccountIdConversion;
+use scale_info::prelude::vec::Vec;
 
 pub use pallet::*;
 
 mod mock;
 mod proposal;
 mod tests;
+mod benchmarking;
 
 type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
@@ -52,7 +54,7 @@ type MaterializeCallOf<T> =
 type ProposalOf<T> =
     Proposal<<T as frame_system::Config>::AccountId, <T as frame_system::Config>::BlockNumber>;
 
-pub type ChainId = u8;
+// pub type ChainId = u8;
 pub type ChainNonce = u64;
 pub type TeleAccount = Vec<u8>;
 
@@ -70,7 +72,7 @@ pub mod pallet {
 
         /// Root origin that can be used to bypass admin permissions
         /// This will be removed later
-        type RootOperatorAccountId: Get<Self::AccountId>;
+        type RootOperatorOrigin: EnsureOrigin<Self::Origin>;
 
         /// Assets for teleport/materialize assets to/from bridge pallet
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
@@ -363,13 +365,17 @@ impl<T: Config> Pallet<T> {
 
     /// Checks if the origin is admin members
     fn ensure_admin(origin: T::Origin) -> DispatchResult {
-        let who = ensure_signed(origin)?;
-        ensure!(
-            T::AdminMembers::contains(&who) || who == T::RootOperatorAccountId::get(),
-            Error::<T>::OriginNoPermission
-        );
+        if let Err(_) = T::RootOperatorOrigin::ensure_origin(origin.clone()) {
+            let who = ensure_signed(origin)?;
+            ensure!(
+                T::AdminMembers::contains(&who),
+                Error::<T>::OriginNoPermission
+            );
 
-        Ok(())
+            Ok(())
+        } else {
+            Ok(())
+        }
     }
 
     /// Checks if a chain is registered

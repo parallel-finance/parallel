@@ -5154,6 +5154,7 @@ dependencies = [
 name = "pallet-bridge"
 version = "1.0.0"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "pallet-assets",
@@ -11371,6 +11372,7 @@ dependencies = [
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
+ "pallet-bridge",
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-crowdloans",

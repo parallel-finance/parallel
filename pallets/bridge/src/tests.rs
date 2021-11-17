@@ -31,7 +31,7 @@ fn change_bridge_members_works() {
 }
 
 #[test]
-fn set_relayer_threshold_works() {
+fn set_vote_threshold_works() {
     new_test_ext().execute_with(|| {
         // General Account cannot set threshold
         assert_noop!(
@@ -40,9 +40,8 @@ fn set_relayer_threshold_works() {
         );
 
         // RootOrigin can set threshold
-        // [ZeroAccount]
         assert_noop!(
-            Bridge::set_vote_threshold(Origin::signed(0u128), 0),
+            Bridge::set_vote_threshold(Origin::root(), 0),
             Error::<Test>::InvalidVoteThreshold,
         );
 

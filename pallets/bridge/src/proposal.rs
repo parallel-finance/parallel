@@ -1,7 +1,8 @@
 use codec::{Decode, Encode};
 use frame_support::RuntimeDebug;
 // use primitives::{AccountId, Balance, CurrencyId};
-use scale_info::TypeInfo;
+use scale_info::prelude::vec::Vec;
+use scale_info::{prelude::vec, TypeInfo};
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum ProposalStatus {

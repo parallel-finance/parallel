@@ -131,7 +131,6 @@ impl pallet_membership::Config<BridgeMembershipInstance> for Test {
 
 parameter_types! {
     pub const ParallelHeiko: ChainId = 0;
-    pub const ZeroAccountId: AccountId = 0u128;
     pub const BridgePalletId: PalletId = PalletId(*b"par/brid");
     pub const ProposalLifetime: BlockNumber = 50;
 }
@@ -140,7 +139,7 @@ impl Config for Test {
     type Event = Event;
     type AdminMembers = BridgeMembership;
 
-    type RootOperatorAccountId = ZeroAccountId;
+    type RootOperatorOrigin = EnsureRoot<AccountId>;
 
     type ChainId = ParallelHeiko;
     type PalletId = BridgePalletId;
