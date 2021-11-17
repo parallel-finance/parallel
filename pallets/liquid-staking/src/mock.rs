@@ -11,8 +11,7 @@ use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_parachains::configuration::HostConfiguration;
-use primitives::ParaId;
-use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, Rate, Ratio};
+use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId, Rate, Ratio};
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
