@@ -1240,7 +1240,6 @@ parameter_types! {
 
 parameter_types! {
     pub const ParallelHeiko: ChainId = 0;
-    // pub const ZeroAccountId: AccountId = 0u128;
     pub const BridgePalletId: PalletId = PalletId(*b"par/brid");
     pub const ProposalLifetime: BlockNumber = 200;
 }
@@ -1419,7 +1418,7 @@ construct_runtime!(
         OracleMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
         ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74,
         BridgeMembership: pallet_membership::<Instance6>::{Pallet, Call, Storage, Event<T>, Config<T>} = 75,
-    
+
         // AMM
         AMM: pallet_amm::{Pallet, Call, Storage, Event<T>} = 80,
         AMMRoute: pallet_router::{Pallet, Call, Event<T>} = 81,
@@ -1427,7 +1426,7 @@ construct_runtime!(
 
         // LiquidityMining
         LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 83,
-        
+
         // Bridge
         Bridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 90,
     }

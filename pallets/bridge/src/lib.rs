@@ -31,16 +31,16 @@ use frame_support::{
     PalletId,
 };
 use frame_system::pallet_prelude::*;
-use primitives::{Balance, CurrencyId, ChainId};
-use sp_runtime::traits::AccountIdConversion;
+use primitives::{Balance, ChainId, CurrencyId};
 use scale_info::prelude::vec::Vec;
+use sp_runtime::traits::AccountIdConversion;
 
 pub use pallet::*;
 
+mod benchmarking;
 mod mock;
 mod proposal;
 mod tests;
-mod benchmarking;
 
 type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;

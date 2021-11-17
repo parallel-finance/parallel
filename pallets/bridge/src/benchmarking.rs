@@ -7,10 +7,7 @@ use crate::Pallet as Bridge;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::assert_ok;
 use frame_system::RawOrigin as SystemOrigin;
-use primitives::{
-    ChainId,
-    CurrencyId,
-};
+use primitives::{ChainId, CurrencyId};
 
 const ETH: ChainId = 1;
 
@@ -28,61 +25,61 @@ benchmarks! {
     }
 
     set_vote_threshold {
-        // let caller: T::AccountId = whitelisted_caller();
-    }: _(SystemOrigin::Root, 1)
+        let caller: T::AccountId = whitelisted_caller();
+        // pallet_membership::Members::<T>::put(caller.clone());
+    }: _(SystemOrigin::Signed(caller), 1)
     verify {
         assert_last_event::<T>(Event::VoteThresholdChanged(1).into())
     }
 
     register_chain {
-        // let caller: T::AccountId = whitelisted_caller();
-    }: _(SystemOrigin::Root, ETH)
+        let caller: T::AccountId = whitelisted_caller();
+    }: _(SystemOrigin::Signed(caller), ETH)
     verify {
         assert_last_event::<T>(Event::ChainRegistered(ETH).into())
     }
-    
+
     unregister_chain {
-        // let caller: T::AccountId = whitelisted_caller();
-        assert_ok!(Bridge::<T>::register_chain(SystemOrigin::Root.into(), ETH));
-    }: _(SystemOrigin::Root, ETH)
+        let caller: T::AccountId = whitelisted_caller();
+        assert_ok!(Bridge::<T>::register_chain(T::RootOperatorOrigin::successful_origin(), ETH));
+    }: _(SystemOrigin::Signed(caller), ETH)
     verify {
         assert_last_event::<T>(Event::ChainRemoved(ETH).into())
     }
-    
+
     register_currency {
-        // let caller: T::AccountId = whitelisted_caller();
-    }: _(SystemOrigin::Root, HKO, EHKO)
+        let caller: T::AccountId = whitelisted_caller();
+    }: _(SystemOrigin::Signed(caller), HKO, EHKO)
     verify {
         assert_last_event::<T>(Event::CurrencyRegistered(HKO, EHKO).into())
     }
 
     unregister_currency {
-        // let caller: T::AccountId = whitelisted_caller();
-        assert_ok!(Bridge::<T>::register_currency(SystemOrigin::Root.into(), HKO, EHKO));
-    }: _(SystemOrigin::Root, EHKO)
+        let caller: T::AccountId = whitelisted_caller();
+        assert_ok!(Bridge::<T>::register_currency(T::RootOperatorOrigin::successful_origin(), HKO, EHKO));
+    }: _(SystemOrigin::Signed(caller), EHKO)
     verify {
         assert_last_event::<T>(Event::CurrencyRemoved(HKO, EHKO).into())
     }
 
     teleport {
-        // let caller: T::AccountId = whitelisted_caller();
-        assert_ok!(Bridge::<T>::register_chain(SystemOrigin::Root.into(), ETH));
-        assert_ok!(Bridge::<T>::register_currency(SystemOrigin::Root.into(), HKO, EHKO));
+        let caller: T::AccountId = whitelisted_caller();
+        assert_ok!(Bridge::<T>::register_chain(T::RootOperatorOrigin::successful_origin(), ETH));
+        assert_ok!(Bridge::<T>::register_currency(T::RootOperatorOrigin::successful_origin(), HKO, EHKO));
         let tele: TeleAccount = whitelisted_caller();
-    }: _(SystemOrigin::Root, ETH, 0, tele.clone(), 10000000000)
+    }: _(SystemOrigin::Signed(caller), ETH, 0, tele.clone(), 10000000000)
     verify {
         assert_last_event::<T>(Event::Burned(ETH, 0, EHKO, tele, 10000000000).into());
     }
-    
+
     vote_materialize {
-        // let caller: T::AccountId = whitelisted_caller();
-        assert_ok!(Bridge::<T>::register_chain(SystemOrigin::Root.into(), ETH));
-        assert_ok!(Bridge::<T>::register_currency(SystemOrigin::Root.into(), HKO, EHKO));
+        let caller: T::AccountId = whitelisted_caller();
+        assert_ok!(Bridge::<T>::register_chain(T::RootOperatorOrigin::successful_origin(), ETH));
+        assert_ok!(Bridge::<T>::register_currency(T::RootOperatorOrigin::successful_origin(), HKO, EHKO));
         let recipient: T::AccountId = whitelisted_caller();
-    }: _(SystemOrigin::Root, ETH, 0, EHKO, recipient.clone(), 10000000000, true)
+    }: _(SystemOrigin::Signed(caller), ETH, 0, EHKO, recipient.clone(), 10000000000, true)
     verify {
         assert_last_event::<T>(Event::Minted(ETH, 0, EHKO, recipient, 10000000000).into());
     }
 }
-impl_benchmark_test_suite!{Bridge, crate::mock::new_test_ext(), crate::mock::Test}
-
+impl_benchmark_test_suite! {Bridge, crate::mock::new_test_ext(), crate::mock::Test}

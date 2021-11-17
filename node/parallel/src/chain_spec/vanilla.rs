@@ -19,10 +19,10 @@ use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::sr25519;
 use sp_runtime::{traits::Zero, FixedPointNumber};
 use vanilla_runtime::{
-    opaque::SessionKeys, BalancesConfig, CollatorSelectionConfig, CrowdloansConfig,
-    DemocracyConfig, GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
-    LiquidStakingConfig, OracleMembershipConfig, BridgeMembershipConfig, ParachainInfoConfig, PolkadotXcmConfig,
-    SessionConfig, SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig,
+    opaque::SessionKeys, BalancesConfig, BridgeMembershipConfig, CollatorSelectionConfig,
+    CrowdloansConfig, DemocracyConfig, GeneralCouncilConfig, GeneralCouncilMembershipConfig,
+    GenesisConfig, LiquidStakingConfig, OracleMembershipConfig, ParachainInfoConfig,
+    PolkadotXcmConfig, SessionConfig, SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig,
     ValidatorFeedersMembershipConfig, VestingConfig, WASM_BINARY,
 };
 
@@ -95,7 +95,6 @@ pub fn vanilla_dev_config(id: ParaId) -> ChainSpec {
                 get_account_id_from_seed::<sr25519::Public>("Eve"),
                 get_account_id_from_seed::<sr25519::Public>("Ferdie"),
             ];
-            
 
             vanilla_genesis(
                 root_key,
