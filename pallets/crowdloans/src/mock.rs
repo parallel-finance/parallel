@@ -296,6 +296,7 @@ impl SortedMembers<AccountId> for BobOrigin {
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
     pub SelfParaId: ParaId = para_a_id();
+    pub const MaxReserves: Balance = 100_000_000_000;
 }
 
 pub type CreateVaultOrigin =
@@ -332,6 +333,7 @@ impl crate::Config for Test {
     type AuctionFailedOrigin = AuctionFailedOrigin;
     type AuctionCompletedOrigin = AuctionCompletedOrigin;
     type SlotExpiredOrigin = SlotExpiredOrigin;
+    type MaxReserves = MaxReserves;
     type WeightInfo = ();
 }
 

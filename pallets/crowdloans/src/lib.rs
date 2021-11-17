@@ -48,7 +48,7 @@ pub mod pallet {
         traits::{AccountIdConversion, Convert, Zero},
         ArithmeticError, DispatchError, MultiSignature,
     };
-    use sp_std::vec;
+    use sp_std::{cmp::min, vec};
     use xcm::{latest::prelude::*, DoubleEncoded};
 
     use crate::weights::WeightInfo;
@@ -92,7 +92,10 @@ pub mod pallet {
         /// Convert `T::AccountId` to `MultiLocation`.
         type AccountIdToMultiLocation: Convert<Self::AccountId, MultiLocation>;
 
-        /// The origin which can update reserve_factor etc
+        /// Max reserved token amount for paying xcm fees
+        type MaxReserves: Get<BalanceOf<Self>>;
+
+        /// The origin which can update reserve_factor, xcm_fees_compensation etc
         type UpdateOrigin: EnsureOrigin<Self::Origin>;
 
         /// The origin which can create vault
@@ -275,7 +278,10 @@ pub mod pallet {
                 Error::<T>::IncorrectVaultPhase
             );
 
-            let reserves = Self::reserve_factor().mul_floor(amount);
+            let reserves = min(
+                Self::reserve_factor().mul_floor(amount),
+                T::MaxReserves::get(),
+            );
             TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b.checked_add(reserves).ok_or(ArithmeticError::Overflow)?;
                 Ok(())
