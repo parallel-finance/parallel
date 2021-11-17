@@ -80,6 +80,8 @@ pub type Timestamp = u64;
 
 pub type CurrencyId = u32;
 
+pub type ChainId = u8;
+
 pub const SECONDS_PER_YEAR: Timestamp = 365 * 24 * 60 * 60;
 
 pub type PriceDetail = (Price, Timestamp);
