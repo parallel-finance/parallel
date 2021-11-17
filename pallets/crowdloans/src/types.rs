@@ -94,6 +94,10 @@ impl ContributionStrategyExecutor for ContributionStrategy {
         para_id: ParaId,
         amount: BalanceOf<T>,
     ) -> Result<(), DispatchError> {
+        if self == ContributionStrategy::XCMWithProxy {
+            unimplemented!()
+        }
+
         T::Assets::burn_from(
             T::RelayCurrency::get(),
             &Crowdloans::<T>::account_id(),
@@ -133,6 +137,10 @@ impl ContributionStrategyExecutor for ContributionStrategy {
         para_id: ParaId,
         amount: BalanceOf<T>,
     ) -> Result<(), DispatchError> {
+        if self == ContributionStrategy::XCMWithProxy {
+            unimplemented!()
+        }
+
         switch_relay!({
             let call =
                 RelaychainCall::<T>::Crowdloans(CrowdloansCall::Withdraw(CrowdloansWithdrawCall {
