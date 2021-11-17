@@ -54,7 +54,8 @@ pub mod pallet {
         traits::{AccountIdConversion, Convert, Zero},
         ArithmeticError, DispatchError, MultiSignature, TransactionOutcome,
     };
-    use sp_std::{cmp::min, vec};
+    use sp_std::vec;
+    use sp_std::{cmp::min, vec::Vec};
     use xcm::{latest::prelude::*, DoubleEncoded};
 
     use crate::weights::WeightInfo;
@@ -540,12 +541,12 @@ pub mod pallet {
                     match Self::participate_internal(crowdloan).and_then(|_| {
                         consumed
                             .checked_add(weight_unit)
-                            .ok_or(DispatchError::from(ArithmeticError::Overflow))
+                            .ok_or_else(|| DispatchError::from(ArithmeticError::Overflow))
                     }) {
                         Ok(next_consumed) => consumed = next_consumed,
                         Err(err) => {
                             log::error!(
-                                "Couldn't participate {}'s crowdloan! {:?}",
+                                "Couldn't participate {:?}'s crowdloan! {:?}",
                                 crowdloan,
                                 err
                             );
@@ -553,7 +554,7 @@ pub mod pallet {
                         }
                     }
                 }
-                return TransactionOutcome::Commit(consumed);
+                TransactionOutcome::Commit(consumed)
             })
         }
 
