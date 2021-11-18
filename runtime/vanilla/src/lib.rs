@@ -46,7 +46,7 @@ use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::HEIKO_PREFIX,
-    tokens::{HKO, KSM, XKSM},
+    tokens::{AUSD, HKO, KSM, XKSM},
     Index, *,
 };
 use sp_api::impl_runtime_apis;
@@ -82,7 +82,7 @@ pub mod constants;
 pub mod impls;
 // A few exports that help ease life for downstream crates.
 // re-exports
-pub use constants::{currency, fee, time};
+pub use constants::{currency, fee, paras, time};
 pub use impls::DealWithFees;
 
 pub use pallet_liquid_staking;
@@ -334,6 +334,13 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                     GeneralKey(b"HKO".to_vec()),
                 ),
             )),
+            AUSD => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(paras::karura::ID.into()),
+                    GeneralKey(b"AUSD".to_vec()),
+                ),
+            )),
             _ => None,
         }
     }
@@ -358,6 +365,10 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
             } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"HKO".to_vec() => {
                 Some(HKO)
             }
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), GeneralKey(key)),
+            } if id == paras::karura::ID && key == b"AUSD".to_vec() => Some(AUSD),
             _ => None,
         }
     }

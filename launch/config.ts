@@ -51,6 +51,30 @@ const config = {
       balances: []
     },
     {
+      name: 'Acala Dollar',
+      symbol: 'AUSD',
+      assetId: 103,
+      decimal: 12,
+      marketOption: {
+        closeFactor: 50e4,
+        collateralFactor: 50e4,
+        reserveFactor: 15e4,
+        cap: '100000000000000000',
+        liquidateIncentive: '1100000000000000000',
+        rateModel: {
+          jumpModel: {
+            baseRate: '20000000000000000',
+            jumpRate: '100000000000000000',
+            fullRate: '320000000000000000',
+            jumpUtilization: 8e5
+          }
+        },
+        state: 'Pending',
+        ptokenId: 2103
+      },
+      balances: []
+    },
+    {
       name: 'Tether Dollar',
       symbol: 'USDT',
       assetId: 102,
