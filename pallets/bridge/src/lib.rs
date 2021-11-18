@@ -369,11 +369,14 @@ impl<T: Config> Pallet<T> {
             return Ok(());
         };
 
-        let who = ensure_signed(origin)?;
-        ensure!(
-            T::AdminMembers::contains(&who),
-            Error::<T>::OriginNoPermission
-        );
+        if let Ok(who) = ensure_signed(origin) {
+            ensure!(
+                T::AdminMembers::contains(&who),
+                Error::<T>::OriginNoPermission
+            );
+        } else {
+            return Err(Error::<T>::OriginNoPermission.into());
+        }
 
         Ok(())
     }
