@@ -39,7 +39,6 @@ std = [
   'pallet-collective/std',
   'pallet-membership/std',
   'pallet-balances/std',
-  'sp-core/std',
   'sp-runtime/std',
 ]
 runtime-benchmarks = ['frame-benchmarking']
