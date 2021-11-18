@@ -48,15 +48,15 @@ parachains:
       - flags:
           - --charlie
 
-  - image: parallelfinance/polkadot-collator:v0.9.12
+  - image: parallelfinance/karura:v0.9.12
     chain:
-      base: statemine-dev
+      base: karura-dev
       collators:
         - alice
         - bob
         - charlie
       sudo: dave
-    id: 1000
+    id: 2000
     parachain: true
     flags:
       - --rpc-methods=unsafe
@@ -67,6 +67,7 @@ parachains:
       - --wasm-execution=compiled
       - --execution=wasm
       - --no-beefy
+    volumePath: /acala/data
     nodes:
       - flags:
           - --alice
