@@ -3,11 +3,12 @@ use crate::mock::*;
 
 use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
-use primitives::{tokens, ParaId};
+use primitives::{tokens, ParaId, Ratio};
 use sp_runtime::{
     traits::{One, UniqueSaturatedInto, Zero},
     MultiAddress::Id,
 };
+use primitives::ump::XcmWeightMisc;
 
 #[test]
 fn create_new_vault_should_work() {
@@ -329,3 +330,44 @@ fn slot_expired_should_work() {
         assert_eq!(vault.phase, VaultPhase::Expired)
     });
 }
+
+#[test]
+fn update_reserve_factor_should_work() {
+	new_test_ext().execute_with(|| {
+
+		assert_ok!(Crowdloans::update_reserve_factor(
+            frame_system::RawOrigin::Root.into(), // origin
+            Ratio::from_perthousand(5)          // reserve_factor
+        ));
+
+		assert_eq!(ReserveFactor::<Test>::get(), Ratio::from_perthousand(5));
+	});
+}
+
+#[test]
+fn update_xcm_fees_compensation_should_work() {
+	new_test_ext().execute_with(|| {
+
+		assert_ok!(Crowdloans::update_xcm_fees_compensation(
+            frame_system::RawOrigin::Root.into(), // origin
+            One::one()         // fees
+        ));
+
+		assert_eq!(XcmFeesCompensation::<Test>::get(), One::one());
+	});
+}
+
+#[test]
+fn update_xcm_weight_should_work() {
+	new_test_ext().execute_with(|| {
+
+		assert_ok!(Crowdloans::update_xcm_weight(
+            frame_system::RawOrigin::Root.into(), // origin
+            XcmWeightMisc::default()        // xcm_weight_misc
+        ));
+
+		assert_eq!(XcmWeight::<Test>::get(), XcmWeightMisc::default());
+	});
+}
+
+
