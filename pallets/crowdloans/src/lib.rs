@@ -35,20 +35,27 @@ pub mod pallet {
 
     use frame_support::{
         dispatch::DispatchResult,
+        log,
         pallet_prelude::*,
+        require_transactional,
+        storage::with_transaction,
         traits::{
             fungibles::{Inspect, Mutate, Transfer},
             Get,
         },
         transactional, Blake2_128Concat, PalletId,
     };
-    use frame_system::{ensure_signed, pallet_prelude::OriginFor};
+    use frame_system::{
+        ensure_signed,
+        pallet_prelude::{BlockNumberFor, OriginFor},
+    };
     use primitives::{ump::XcmWeightMisc, Balance, CurrencyId, ParaId, Ratio};
     use sp_runtime::{
         traits::{AccountIdConversion, Convert, Zero},
-        ArithmeticError, DispatchError, MultiSignature,
+        ArithmeticError, DispatchError, MultiSignature, TransactionOutcome,
     };
     use sp_std::vec;
+    use sp_std::{cmp::min, vec::Vec};
     use xcm::{latest::prelude::*, DoubleEncoded};
 
     use crate::weights::WeightInfo;
@@ -92,7 +99,13 @@ pub mod pallet {
         /// Convert `T::AccountId` to `MultiLocation`.
         type AccountIdToMultiLocation: Convert<Self::AccountId, MultiLocation>;
 
-        /// The origin which can update reserve_factor etc
+        /// Max reserved token amount for paying xcm fees
+        type MaxReserves: Get<BalanceOf<Self>>;
+
+        /// Period of particpating on relaychain
+        type PariticipationPeriod: Get<BlockNumberFor<Self>>;
+
+        /// The origin which can update reserve_factor, xcm_fees_compensation etc
         type UpdateOrigin: EnsureOrigin<Self::Origin>;
 
         /// The origin which can create vault
@@ -205,6 +218,17 @@ pub mod pallet {
         }
     }
 
+    #[pallet::hooks]
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn on_initialize(n: BlockNumberFor<T>) -> frame_support::weights::Weight {
+            if !(n % T::PariticipationPeriod::get()).is_zero() {
+                return Zero::zero();
+            }
+
+            Self::participate_all()
+        }
+    }
+
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Create a new vault via a governance decision
@@ -275,7 +299,10 @@ pub mod pallet {
                 Error::<T>::IncorrectVaultPhase
             );
 
-            let reserves = Self::reserve_factor().mul_floor(amount);
+            let reserves = min(
+                Self::reserve_factor().mul_floor(amount),
+                T::MaxReserves::get(),
+            );
             TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b.checked_add(reserves).ok_or(ArithmeticError::Overflow)?;
                 Ok(())
@@ -312,39 +339,7 @@ pub mod pallet {
         pub fn participate(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             // 1. EnsureOrigin
             T::PariticipateOrigin::ensure_origin(origin)?;
-
-            Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
-                // make sure there's a vault
-                let mut vault_contents = vault.as_mut().ok_or(Error::<T>::VaultDoesNotExist)?;
-
-                // 2. Make sure vault.contributed is less than total_issuance(vault.currency_shares)
-                let vault_ctoken_issuance = T::Assets::total_issuance(vault_contents.ctoken);
-
-                ensure!(
-                    vault_contents.phase == VaultPhase::CollectingContributions,
-                    Error::<T>::IncorrectVaultPhase
-                );
-                ensure!(
-                    vault_contents.contributed < vault_ctoken_issuance,
-                    Error::<T>::ContributedGreaterThanIssuance
-                );
-
-                // 3. Execute vault.contribution_strategy with parameters crowdloan,
-                // cannot underflow because we checked that vault_contents.contributed < vault_ctoken_issuance
-                let amount = vault_ctoken_issuance - vault_contents.contributed;
-
-                vault_contents
-                    .contribution_strategy
-                    .contribute::<T>(crowdloan, amount)?;
-
-                // 4. Set vault.contributed to total_issuance(vault.currency_shares)
-                vault_contents.contributed = vault_ctoken_issuance;
-
-                // Emit event of trade with rate calculated
-                Self::deposit_event(Event::<T>::VaultParticipated(crowdloan, amount));
-
-                Ok(())
-            })
+            Self::participate_internal(crowdloan)
         }
 
         /// Mark the associated vault as closed and stop accepting contributions for it
@@ -538,8 +533,79 @@ pub mod pallet {
             T::SelfParaId::get().into_account()
         }
 
+        fn participate_all() -> Weight {
+            with_transaction(|| {
+                let mut consumed: Weight = 0;
+                let weight_unit = <T as Config>::WeightInfo::participate();
+                for crowdloan in Self::active_crowdloans().into_iter() {
+                    match Self::participate_internal(crowdloan).and_then(|_| {
+                        consumed
+                            .checked_add(weight_unit)
+                            .ok_or_else(|| DispatchError::from(ArithmeticError::Overflow))
+                    }) {
+                        Ok(next_consumed) => consumed = next_consumed,
+                        Err(err) => {
+                            log::error!(
+                                "Couldn't participate {:?}'s crowdloan! {:?}",
+                                crowdloan,
+                                err
+                            );
+                            return TransactionOutcome::Rollback(0);
+                        }
+                    }
+                }
+                TransactionOutcome::Commit(consumed)
+            })
+        }
+
+        #[require_transactional]
+        fn participate_internal(crowdloan: ParaId) -> DispatchResult {
+            Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
+                // make sure there's a vault
+                let mut vault_contents = vault.as_mut().ok_or(Error::<T>::VaultDoesNotExist)?;
+
+                // 2. Make sure vault.contributed is less than total_issuance(vault.currency_shares)
+                let vault_ctoken_issuance = T::Assets::total_issuance(vault_contents.ctoken);
+
+                ensure!(
+                    vault_contents.phase == VaultPhase::CollectingContributions,
+                    Error::<T>::IncorrectVaultPhase
+                );
+                ensure!(
+                    vault_contents.contributed <= vault_ctoken_issuance,
+                    Error::<T>::ContributedGreaterThanIssuance
+                );
+
+                // 3. Execute vault.contribution_strategy with parameters crowdloan,
+                // cannot underflow because we checked that vault_contents.contributed < vault_ctoken_issuance
+                let amount = vault_ctoken_issuance - vault_contents.contributed;
+                if amount.is_zero() {
+                    return Ok(());
+                }
+
+                vault_contents
+                    .contribution_strategy
+                    .contribute::<T>(crowdloan, amount)?;
+
+                // 4. Set vault.contributed to total_issuance(vault.currency_shares)
+                vault_contents.contributed = vault_ctoken_issuance;
+
+                // Emit event of trade with rate calculated
+                Self::deposit_event(Event::<T>::VaultParticipated(crowdloan, amount));
+
+                Ok(())
+            })
+        }
+
         fn vault(crowdloan: ParaId) -> Result<Vault<T>, DispatchError> {
             Vaults::<T>::try_get(crowdloan).map_err(|_err| Error::<T>::VaultDoesNotExist.into())
+        }
+
+        fn active_crowdloans() -> Vec<ParaId> {
+            Vaults::<T>::iter()
+                .filter(|(_, vault)| vault.phase == VaultPhase::CollectingContributions)
+                .map(|(para_id, _)| para_id)
+                .collect()
         }
 
         pub(crate) fn ump_transact(
