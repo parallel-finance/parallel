@@ -131,7 +131,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("parallel"),
     impl_name: create_runtime_str!("parallel"),
     authoring_version: 1,
-    spec_version: 171,
+    spec_version: 172,
     impl_version: 20,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
@@ -1224,20 +1224,6 @@ parameter_types! {
     pub const MaxVestingSchedules: u32 = 100;
 }
 
-pub struct RelaychainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
-
-impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
-    for RelaychainBlockNumberProvider<T>
-{
-    type BlockNumber = BlockNumber;
-
-    fn current_block_number() -> Self::BlockNumber {
-        cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
-            .map(|d| d.relay_parent_number)
-            .unwrap_or_default()
-    }
-}
-
 impl orml_vesting::Config for Runtime {
     type Event = Event;
     type Currency = Balances;
@@ -1245,7 +1231,7 @@ impl orml_vesting::Config for Runtime {
     type VestedTransferOrigin = EnsureSigned<AccountId>;
     type WeightInfo = ();
     type MaxVestingSchedules = MaxVestingSchedules;
-    type BlockNumberProvider = RelaychainBlockNumberProvider<Runtime>;
+    type BlockNumberProvider = frame_system::Pallet<Runtime>;
 }
 
 parameter_types! {
