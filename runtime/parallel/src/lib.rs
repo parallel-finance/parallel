@@ -992,7 +992,7 @@ impl CurrencyProvider<CurrencyId, CurrencyType> for Currencies {
                     None
                 } else {
                     Some(decimal)
-                };
+                }
             }
             _ => None,
         }
