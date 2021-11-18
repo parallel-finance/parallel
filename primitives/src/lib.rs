@@ -101,7 +101,17 @@ pub trait PriceFeeder {
     fn get_price(asset_id: &CurrencyId) -> Option<PriceDetail>;
 }
 
-pub trait DecimalProvider {
+pub enum CurrencyType {
+    Native,
+    PolkaEcosystem,
+    LiquidStaking,
+    MoneyMarket,
+    Crowdloans,
+    Unknown,
+}
+
+pub trait CurrencyProvider<CurrencyId, CurrencyType> {
+    fn get_currency_type(asset_id: &CurrencyId) -> CurrencyType;
     fn get_decimal(asset_id: &CurrencyId) -> Option<u8>;
 }
 

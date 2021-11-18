@@ -144,6 +144,8 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
 pub const PRIMARY_PROBABILITY: (u64, u64) = (1, 4);
 
+pub const NATIVE_ASSET_ID: u32 = tokens::HKO;
+
 #[derive(codec::Encode, codec::Decode)]
 pub enum XCMPMessage<XAccountId, XBalance> {
     /// Transfer tokens to the given account from the Parachain account.
@@ -968,14 +970,32 @@ impl DataProviderExtended<CurrencyId, TimeStampedPrice> for AggregatedDataProvid
     }
 }
 
-pub struct Decimal;
-impl DecimalProvider for Decimal {
-    fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
-        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(asset_id);
-        if !decimal.is_zero() {
-            return Some(decimal);
+pub struct Currencies;
+impl CurrencyProvider<CurrencyId, CurrencyType> for Currencies {
+    fn get_currency_type(asset_id: &CurrencyId) -> CurrencyType {
+        match *asset_id {
+            NATIVE_ASSET_ID => CurrencyType::Native,
+            100..=199 => CurrencyType::PolkaEcosystem,
+            1000..=1099 => CurrencyType::LiquidStaking,
+            2000..=2099 | 2100..=2199 | 3000..=3099 => CurrencyType::MoneyMarket,
+            4000..=4099 => CurrencyType::Crowdloans,
+            _ => CurrencyType::Unknown,
         }
-        None
+    }
+
+    fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
+        match Self::get_currency_type(asset_id) {
+            CurrencyType::Native => Some(12_u8),
+            CurrencyType::PolkaEcosystem | CurrencyType::LiquidStaking => {
+                let decimal = <Assets as InspectMetadata<AccountId>>::decimals(asset_id);
+                return if decimal.is_zero() {
+                    None
+                } else {
+                    Some(decimal)
+                };
+            }
+            _ => None,
+        }
     }
 }
 
@@ -985,7 +1005,7 @@ impl pallet_prices::Config for Runtime {
     type FeederOrigin = EnsureRoot<AccountId>;
     type LiquidStakingExchangeRateProvider = LiquidStaking;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
-    type Decimal = Decimal;
+    type CurrencyProvider = Currencies;
     type WeightInfo = pallet_prices::weights::SubstrateWeight<Runtime>;
 }
 
@@ -1301,7 +1321,7 @@ impl pallet_router::Config for Runtime {
 }
 
 parameter_types! {
-    pub const NativeCurrencyId: CurrencyId = tokens::HKO;
+    pub const NativeCurrencyId: CurrencyId = NATIVE_ASSET_ID;
 }
 
 impl pallet_currency_adapter::Config for Runtime {
