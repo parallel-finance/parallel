@@ -363,19 +363,19 @@ impl<T: Config> Pallet<T> {
         T::PalletId::get().into_account()
     }
 
-    /// Checks if the origin is admin members
+    /// Checks if the origin is root or admin members
     fn ensure_admin(origin: T::Origin) -> DispatchResult {
-        if let Err(_) = T::RootOperatorOrigin::ensure_origin(origin.clone()) {
-            let who = ensure_signed(origin)?;
-            ensure!(
-                T::AdminMembers::contains(&who),
-                Error::<T>::OriginNoPermission
-            );
+        if T::RootOperatorOrigin::ensure_origin(origin.clone()).is_ok() {
+            return Ok(());
+        };
 
-            Ok(())
-        } else {
-            Ok(())
-        }
+        let who = ensure_signed(origin)?;
+        ensure!(
+            T::AdminMembers::contains(&who),
+            Error::<T>::OriginNoPermission
+        );
+
+        Ok(())
     }
 
     /// Checks if a chain is registered
