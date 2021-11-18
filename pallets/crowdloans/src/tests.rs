@@ -3,12 +3,12 @@ use crate::mock::*;
 
 use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
+use primitives::ump::XcmWeightMisc;
 use primitives::{tokens, ParaId, Ratio};
 use sp_runtime::{
     traits::{One, UniqueSaturatedInto, Zero},
     MultiAddress::Id,
 };
-use primitives::ump::XcmWeightMisc;
 
 #[test]
 fn create_new_vault_should_work() {
@@ -49,12 +49,11 @@ fn create_new_vault_should_work() {
 
 #[test]
 fn create_new_vault_should_not_work_if_vault_is_already_created() {
-	new_test_ext().execute_with(|| {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337);
+        let ctoken = 10;
 
-		let crowdloan = ParaId::from(1337);
-		let ctoken = 10;
-
-		assert_ok!(Assets::force_create(
+        assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
             sp_runtime::MultiAddress::Id(Crowdloans::account_id()),
@@ -62,31 +61,36 @@ fn create_new_vault_should_not_work_if_vault_is_already_created() {
             One::one(),
         ));
 
-		Assets::mint(Origin::signed(Crowdloans::account_id()), ctoken, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+        Assets::mint(
+            Origin::signed(Crowdloans::account_id()),
+            ctoken,
+            Id(ALICE),
+            100 * DOT_DECIMAL,
+        )
+        .unwrap();
 
-		assert_noop!(
+        assert_noop!(
             Crowdloans::create_vault(
-            frame_system::RawOrigin::Root.into(), // origin
-            crowdloan,                            // crowdloan
-            ctoken,                               // ctoken
-            ContributionStrategy::XCM,            // contribution_strategy
-        	),
+                frame_system::RawOrigin::Root.into(), // origin
+                crowdloan,                            // crowdloan
+                ctoken,                               // ctoken
+                ContributionStrategy::XCM,            // contribution_strategy
+            ),
             Error::<Test>::CTokenVaultAlreadyCreated
         );
-	});
+    });
 }
 
 #[test]
 fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
-	new_test_ext().execute_with(|| {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337);
+        let ctoken = 10;
 
-		let crowdloan = ParaId::from(1337);
-		let ctoken = 10;
+        let contribution_strategy = ContributionStrategy::XCM;
 
-		let contribution_strategy = ContributionStrategy::XCM;
-
-		// create the ctoken asset
-		assert_ok!(Assets::force_create(
+        // create the ctoken asset
+        assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
             sp_runtime::MultiAddress::Id(Crowdloans::account_id()),
@@ -94,25 +98,24 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
             One::one(),
         ));
 
-		assert_ok!(Crowdloans::create_vault(
+        assert_ok!(Crowdloans::create_vault(
             frame_system::RawOrigin::Root.into(), // origin
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
         ));
 
-		assert_noop!(
+        assert_noop!(
             Crowdloans::create_vault(
-            frame_system::RawOrigin::Root.into(), // origin
-            crowdloan,                            // crowdloan
-            ctoken,                               // ctoken
-            contribution_strategy,                // contribution_strategy
-        ),
+                frame_system::RawOrigin::Root.into(), // origin
+                crowdloan,                            // crowdloan
+                ctoken,                               // ctoken
+                contribution_strategy,                // contribution_strategy
+            ),
             Error::<Test>::CrowdloanAlreadyExists
         );
-	});
+    });
 }
-
 
 #[test]
 fn contribute_should_work() {
@@ -400,41 +403,36 @@ fn slot_expired_should_work() {
 
 #[test]
 fn update_reserve_factor_should_work() {
-	new_test_ext().execute_with(|| {
-
-		assert_ok!(Crowdloans::update_reserve_factor(
+    new_test_ext().execute_with(|| {
+        assert_ok!(Crowdloans::update_reserve_factor(
             frame_system::RawOrigin::Root.into(), // origin
-            Ratio::from_perthousand(5)          // reserve_factor
+            Ratio::from_perthousand(5)            // reserve_factor
         ));
 
-		assert_eq!(ReserveFactor::<Test>::get(), Ratio::from_perthousand(5));
-	});
+        assert_eq!(ReserveFactor::<Test>::get(), Ratio::from_perthousand(5));
+    });
 }
 
 #[test]
 fn update_xcm_fees_compensation_should_work() {
-	new_test_ext().execute_with(|| {
-
-		assert_ok!(Crowdloans::update_xcm_fees_compensation(
+    new_test_ext().execute_with(|| {
+        assert_ok!(Crowdloans::update_xcm_fees_compensation(
             frame_system::RawOrigin::Root.into(), // origin
-            One::one()         // fees
+            One::one()                            // fees
         ));
 
-		assert_eq!(XcmFeesCompensation::<Test>::get(), One::one());
-	});
+        assert_eq!(XcmFeesCompensation::<Test>::get(), One::one());
+    });
 }
 
 #[test]
 fn update_xcm_weight_should_work() {
-	new_test_ext().execute_with(|| {
-
-		assert_ok!(Crowdloans::update_xcm_weight(
+    new_test_ext().execute_with(|| {
+        assert_ok!(Crowdloans::update_xcm_weight(
             frame_system::RawOrigin::Root.into(), // origin
-            XcmWeightMisc::default()        // xcm_weight_misc
+            XcmWeightMisc::default()              // xcm_weight_misc
         ));
 
-		assert_eq!(XcmWeight::<Test>::get(), XcmWeightMisc::default());
-	});
+        assert_eq!(XcmWeight::<Test>::get(), XcmWeightMisc::default());
+    });
 }
-
-
