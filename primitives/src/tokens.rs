@@ -22,6 +22,7 @@ pub const PARA: CurrencyId = 1;
 pub const KSM: CurrencyId = 100;
 pub const DOT: CurrencyId = 101;
 pub const USDT: CurrencyId = 102;
+pub const AUSD: CurrencyId = 103;
 
 // Liquid Staking Derivative
 pub const XKSM: CurrencyId = 1000;
@@ -33,6 +34,7 @@ pub const PPARA: CurrencyId = 2001;
 pub const PKSM: CurrencyId = 2100;
 pub const PDOT: CurrencyId = 2101;
 pub const PUSDT: CurrencyId = 2102;
+pub const PAUSD: CurrencyId = 2103;
 
 pub const PXKSM: CurrencyId = 3000;
 pub const PXDOT: CurrencyId = 3001;

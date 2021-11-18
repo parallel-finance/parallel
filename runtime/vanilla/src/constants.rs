@@ -91,3 +91,12 @@ pub mod fee {
         hko_per_second / 100
     }
 }
+
+/// Parachains-related
+pub mod paras {
+
+    pub mod karura {
+
+        pub const ID: u32 = 2000;
+    }
+}
