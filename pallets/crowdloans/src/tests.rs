@@ -48,6 +48,73 @@ fn create_new_vault_should_work() {
 }
 
 #[test]
+fn create_new_vault_should_not_work_if_vault_is_already_created() {
+	new_test_ext().execute_with(|| {
+
+		let crowdloan = ParaId::from(1337);
+		let ctoken = 10;
+
+		assert_ok!(Assets::force_create(
+            RawOrigin::Root.into(),
+            ctoken.unique_saturated_into(),
+            sp_runtime::MultiAddress::Id(Crowdloans::account_id()),
+            true,
+            One::one(),
+        ));
+
+		Assets::mint(Origin::signed(Crowdloans::account_id()), ctoken, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+
+		assert_noop!(
+            Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            ContributionStrategy::XCM,            // contribution_strategy
+        	),
+            Error::<Test>::CTokenVaultAlreadyCreated
+        );
+	});
+}
+
+#[test]
+fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
+	new_test_ext().execute_with(|| {
+
+		let crowdloan = ParaId::from(1337);
+		let ctoken = 10;
+
+		let contribution_strategy = ContributionStrategy::XCM;
+
+		// create the ctoken asset
+		assert_ok!(Assets::force_create(
+            RawOrigin::Root.into(),
+            ctoken.unique_saturated_into(),
+            sp_runtime::MultiAddress::Id(Crowdloans::account_id()),
+            true,
+            One::one(),
+        ));
+
+		assert_ok!(Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            contribution_strategy,                // contribution_strategy
+        ));
+
+		assert_noop!(
+            Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            contribution_strategy,                // contribution_strategy
+        ),
+            Error::<Test>::CrowdloanAlreadyExists
+        );
+	});
+}
+
+
+#[test]
 fn contribute_should_work() {
     new_test_ext().execute_with(|| {
         let crowdloan = ParaId::from(1337);
