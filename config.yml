@@ -1,5 +1,5 @@
 relaychain:
-  image: parallelfinance/polkadot:v0.9.12
+  image: parallelfinance/polkadot:v0.9.12-1
   chain: kusama-local
   runtimeGenesisConfig:
     configuration:
