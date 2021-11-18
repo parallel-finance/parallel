@@ -993,7 +993,7 @@ impl CurrencyProvider<CurrencyId, CurrencyType> for Currencies {
             CurrencyType::Native => Some(12_u8),
             CurrencyType::PolkaEcosystem | CurrencyType::LiquidStaking => {
                 let decimal = <Assets as InspectMetadata<AccountId>>::decimals(asset_id);
-                return if decimal.is_zero() {
+                if decimal.is_zero() {
                     None
                 } else {
                     Some(decimal)
