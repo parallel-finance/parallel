@@ -26,7 +26,11 @@ which those capabilities are implemented. You can learn more about
 [The Path of Parachain Block](https://polkadot.network/the-path-of-a-parachain-block/) on the
 official Polkadot Blog.
 
-Click [here](https://github.com/parallel-finance/parallel/blob/master/docs/DEVELOPER-GUIDE.md) to jump to developer guide.
+Click the following guides for more details:
+
+- [DEVELOPER GUIDE](https://github.com/parallel-finance/parallel/blob/master/docs/DEVELOPER-GUIDE.md)
+- [LAUNCH GUIDE](https://github.com/parallel-finance/parallel/blob/master/docs/LAUNCH.md)
+- [COLLATOR GUIDE](https://github.com/parallel-finance/parallel/blob/master/docs/COLLATOR.md)
 
 ## Open Source Credits
 
