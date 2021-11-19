@@ -3,7 +3,8 @@ use crate::mock::*;
 
 use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
-use primitives::{tokens, ParaId};
+use primitives::ump::XcmWeightMisc;
+use primitives::{tokens, ParaId, Ratio};
 use sp_runtime::{
     traits::{One, UniqueSaturatedInto, Zero},
     MultiAddress::Id,
@@ -42,6 +43,76 @@ fn create_new_vault_should_work() {
                 contribution_strategy: contribution_strategy,
                 contributed: Zero::zero(),
             }
+        );
+    });
+}
+
+#[test]
+fn create_new_vault_should_not_work_if_vault_is_already_created() {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337);
+        let ctoken = 10;
+
+        assert_ok!(Assets::force_create(
+            RawOrigin::Root.into(),
+            ctoken.unique_saturated_into(),
+            sp_runtime::MultiAddress::Id(Crowdloans::account_id()),
+            true,
+            One::one(),
+        ));
+
+        Assets::mint(
+            Origin::signed(Crowdloans::account_id()),
+            ctoken,
+            Id(ALICE),
+            100 * DOT_DECIMAL,
+        )
+        .unwrap();
+
+        assert_noop!(
+            Crowdloans::create_vault(
+                frame_system::RawOrigin::Root.into(), // origin
+                crowdloan,                            // crowdloan
+                ctoken,                               // ctoken
+                ContributionStrategy::XCM,            // contribution_strategy
+            ),
+            Error::<Test>::CTokenVaultAlreadyCreated
+        );
+    });
+}
+
+#[test]
+fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337);
+        let ctoken = 10;
+
+        let contribution_strategy = ContributionStrategy::XCM;
+
+        // create the ctoken asset
+        assert_ok!(Assets::force_create(
+            RawOrigin::Root.into(),
+            ctoken.unique_saturated_into(),
+            sp_runtime::MultiAddress::Id(Crowdloans::account_id()),
+            true,
+            One::one(),
+        ));
+
+        assert_ok!(Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            contribution_strategy,                // contribution_strategy
+        ));
+
+        assert_noop!(
+            Crowdloans::create_vault(
+                frame_system::RawOrigin::Root.into(), // origin
+                crowdloan,                            // crowdloan
+                ctoken,                               // ctoken
+                contribution_strategy,                // contribution_strategy
+            ),
+            Error::<Test>::CrowdloanAlreadyExists
         );
     });
 }
@@ -327,5 +398,41 @@ fn slot_expired_should_work() {
         // check that we're in the right phase
         let vault = Crowdloans::vaults(ParaId::from(crowdloan)).unwrap();
         assert_eq!(vault.phase, VaultPhase::Expired)
+    });
+}
+
+#[test]
+fn update_reserve_factor_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(Crowdloans::update_reserve_factor(
+            frame_system::RawOrigin::Root.into(), // origin
+            Ratio::from_perthousand(5)            // reserve_factor
+        ));
+
+        assert_eq!(ReserveFactor::<Test>::get(), Ratio::from_perthousand(5));
+    });
+}
+
+#[test]
+fn update_xcm_fees_compensation_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(Crowdloans::update_xcm_fees_compensation(
+            frame_system::RawOrigin::Root.into(), // origin
+            One::one()                            // fees
+        ));
+
+        assert_eq!(XcmFeesCompensation::<Test>::get(), One::one());
+    });
+}
+
+#[test]
+fn update_xcm_weight_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(Crowdloans::update_xcm_weight(
+            frame_system::RawOrigin::Root.into(), // origin
+            XcmWeightMisc::default()              // xcm_weight_misc
+        ));
+
+        assert_eq!(XcmWeight::<Test>::get(), XcmWeightMisc::default());
     });
 }
