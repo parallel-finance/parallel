@@ -1262,6 +1262,8 @@ impl pallet_amm::Config for Runtime {
 
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
+    pub const MaxReserves: Balance = 1_000_000_000_000;
+    pub const PariticipationPeriod: BlockNumber = 10;
 }
 
 impl pallet_crowdloans::Config for Runtime {
@@ -1280,6 +1282,8 @@ impl pallet_crowdloans::Config for Runtime {
     type AuctionFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionCompletedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type MaxReserves = MaxReserves;
+    type PariticipationPeriod = PariticipationPeriod;
     type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
 }
 
