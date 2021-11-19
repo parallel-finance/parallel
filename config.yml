@@ -8,14 +8,14 @@ relaychain:
         validation_upgrade_delay: 1
     hrmp:
       preopenHrmpChannels:
-        - - 2085
-          - 2000
-          - 8
-          - 102400
-        - - 2000
-          - 2085
-          - 8
-          - 102400
+        - sender: 2085
+          recipient: 2000
+          maxCapacity: 8
+          maxMessageSize: 102400
+        - sender: 2000
+          recipient: 2085
+          maxCapacity: 8
+          maxMessageSize: 102400
   flags:
     - --rpc-methods=unsafe
     - --no-beefy
