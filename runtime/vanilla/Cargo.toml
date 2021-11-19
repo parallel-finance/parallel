@@ -127,6 +127,7 @@ runtime-benchmarks = [
   'pallet-membership/runtime-benchmarks',
   'pallet-router/runtime-benchmarks',
   'pallet-liquidity-mining/runtime-benchmarks',
+  'pallet-crowdloans/runtime-benchmarks',
 ]
 std                = [
   'codec/std',
@@ -200,6 +201,7 @@ std                = [
   'frame-try-runtime/std',
   'pallet-currency-adapter/std',
   'pallet-liquidity-mining/std',
+  'pallet-crowdloans/std',
 ]
 try-runtime        = [
   'frame-support/try-runtime',
