@@ -361,17 +361,12 @@ impl<T: Config> Pallet<T> {
 
     /// Checks if the origin is root or admin members
     fn ensure_admin(origin: T::Origin) -> DispatchResult {
-        if T::RootOperatorOrigin::ensure_origin(origin.clone()).is_ok() {
-            return Ok(());
-        };
-
-        if let Ok(who) = ensure_signed(origin) {
+        if T::RootOperatorOrigin::ensure_origin(origin.clone()).is_err() {
+            let who = ensure_signed(origin)?;
             ensure!(
                 T::AdminMembers::contains(&who),
                 Error::<T>::OriginNoPermission
             );
-        } else {
-            return Err(Error::<T>::OriginNoPermission.into());
         }
 
         Ok(())
