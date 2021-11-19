@@ -58,6 +58,7 @@ docker run --restart=always --name $PARA_CHAIN-fullnode \
     --pruning archive \
     --wasm-execution=compiled \
     --execution=wasm \
+    --state-cache-size 1 \
     --listen-addr=/ip4/0.0.0.0/tcp/$PARA_P2P_PORT \
     --name=$NODE_NAME \
     --prometheus-external \
