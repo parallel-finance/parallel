@@ -176,6 +176,7 @@ benchmarks! {
         let ctoken = 14;
         initial_set_up::<T>(caller, ctoken);
         assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
+        assert_ok!(Crowdloans::<T>::close(SystemOrigin::Root.into(), crowdloan));
     }: _(
         SystemOrigin::Root,
         crowdloan
