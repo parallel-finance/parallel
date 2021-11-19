@@ -336,10 +336,7 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
             )),
             AUSD => Some(MultiLocation::new(
                 1,
-                X2(
-                    Parachain(paras::karura::ID.into()),
-                    GeneralKey(b"AUSD".to_vec()),
-                ),
+                X2(Parachain(paras::karura::ID), GeneralKey(b"AUSD".to_vec())),
             )),
             _ => None,
         }
