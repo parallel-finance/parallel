@@ -885,6 +885,13 @@ pub type XcmOriginToTransactDispatchOrigin = (
 
 parameter_types! {
     pub KsmPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), ksm_per_second());
+    pub HkoPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(b"HKO".to_vec())),
+        ).into(),
+        ksm_per_second() * 30
+    );
 }
 
 match_type! {
@@ -916,6 +923,11 @@ impl TakeRevenue for ToTreasury {
     }
 }
 
+pub type Trader = (
+    FixedRateOfFungible<KsmPerSecond, ToTreasury>,
+    FixedRateOfFungible<HkoPerSecond, ToTreasury>,
+);
+
 pub struct XcmConfig;
 impl Config for XcmConfig {
     type Call = Call;
@@ -929,7 +941,7 @@ impl Config for XcmConfig {
     type LocationInverter = LocationInverter<Ancestry>;
     type Barrier = Barrier;
     type Weigher = FixedWeightBounds<BaseXcmWeight, Call, MaxInstructions>;
-    type Trader = FixedRateOfFungible<KsmPerSecond, ToTreasury>;
+    type Trader = Trader;
     type ResponseHandler = PolkadotXcm;
     type SubscriptionService = PolkadotXcm;
     type AssetTrap = PolkadotXcm;
