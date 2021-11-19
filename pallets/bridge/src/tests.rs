@@ -160,7 +160,7 @@ fn vote_materialize_works() {
             amount: dollar(10),
         };
 
-        if let Some(_p) = Bridge::proposals(ETH, (1, call)) {
+        if let Some(_p) = Bridge::votes(ETH, (1, call)) {
             run_to_block(200);
         } else {
             run_to_block(300);

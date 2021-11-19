@@ -1,3 +1,4 @@
+// The main logic reference to chainbridge-substrate v1
 // Copyright 2021 Parallel Finance Developer.
 // This file is part of Parallel Finance.
 
@@ -17,7 +18,7 @@
 //! ## Overview
 //!
 //! The bridge pallet implement the transfer of tokens between `parallel` and `eth chains`
-//! and the security of funds is secured by multiple signatures
+//! and the security of funds is secured by multiple signatures mechanism
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -37,7 +38,6 @@ use sp_runtime::traits::AccountIdConversion;
 
 pub use pallet::*;
 
-mod benchmarking;
 mod mock;
 mod proposal;
 mod tests;
@@ -116,12 +116,8 @@ pub mod pallet {
         CurrencyIdNotRegistered,
         /// The AdminMember already vote for the proposal
         MemberAlreadyVoted,
-        /// A proposal with these parameters has already been submitted
-        ProposalAlreadyExists,
-        /// No proposal with the ID was found
+        /// No proposal was found
         ProposalDoesNotExist,
-        /// Cannot complete proposal, needs more votes
-        ProposalNotComplete,
         /// Proposal has either failed or succeeded
         ProposalAlreadyComplete,
         /// Lifetime of proposal has been exceeded
@@ -162,17 +158,15 @@ pub mod pallet {
 
         /// Vote submitted in favour of proposal
         VoteFor(ChainId, ChainNonce, T::AccountId),
+
         /// Vot submitted against proposal
         VoteAgainst(ChainId, ChainNonce, T::AccountId),
 
         /// Voting successful for a proposal
         ProposalApproved(ChainId, ChainNonce),
+
         /// Voting rejected a proposal
         ProposalRejected(ChainId, ChainNonce),
-        /// Execution of call succeeded
-        ProposalSucceeded(ChainId, ChainNonce),
-        /// Execution of call failed
-        ProposalFailed(ChainId, ChainNonce),
     }
 
     #[pallet::type_value]
@@ -199,8 +193,8 @@ pub mod pallet {
 
     /// Mapping of [chain_id -> nonce -> proposal]
     #[pallet::storage]
-    #[pallet::getter(fn proposals)]
-    pub type Proposals<T: Config> = StorageDoubleMap<
+    #[pallet::getter(fn votes)]
+    pub type ProposalVotes<T: Config> = StorageDoubleMap<
         _,
         Blake2_128Concat,
         ChainId,
@@ -345,13 +339,15 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-        fn on_finalize(block_number: T::BlockNumber) {
-            let expired = Proposals::<T>::iter().filter(|x| (*x).2.is_expired(block_number));
+        fn on_idle(block_number: T::BlockNumber, _remain_weight: Weight) -> u64 {
+            let expired = ProposalVotes::<T>::iter().filter(|x| (*x).2.is_expired(block_number));
             expired.for_each(|x| {
                 let chain_id = x.0;
                 let chain_nonce = x.1;
-                Proposals::<T>::remove(chain_id, chain_nonce);
+                ProposalVotes::<T>::remove(chain_id, chain_nonce);
             });
+
+            0
         }
     }
 }
@@ -441,7 +437,7 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         let now = <frame_system::Pallet<T>>::block_number();
 
-        let mut proposal = match Self::proposals(src_id, (src_nonce, call.clone())) {
+        let mut proposal = match Self::votes(src_id, (src_nonce, call.clone())) {
             Some(p) => p,
             None => Proposal {
                 expiry: now + T::ProposalLifetime::get(),
@@ -462,7 +458,7 @@ impl<T: Config> Pallet<T> {
             Self::deposit_event(Event::VoteAgainst(src_id, src_nonce, who));
         }
 
-        Proposals::<T>::insert(src_id, (src_nonce, call), proposal.clone());
+        ProposalVotes::<T>::insert(src_id, (src_nonce, call), proposal.clone());
 
         Ok(())
     }
@@ -472,14 +468,14 @@ impl<T: Config> Pallet<T> {
         src_nonce: ChainNonce,
         call: MaterializeCallOf<T>,
     ) -> DispatchResult {
-        if let Some(mut proposal) = Proposals::<T>::get(src_id, (src_nonce, call.clone())) {
+        if let Some(mut proposal) = ProposalVotes::<T>::get(src_id, (src_nonce, call.clone())) {
             let now = <frame_system::Pallet<T>>::block_number();
             ensure!(!proposal.is_complete(), Error::<T>::ProposalAlreadyComplete);
             ensure!(!proposal.is_expired(now), Error::<T>::ProposalExpired);
 
             let status =
                 proposal.try_to_complete(Self::vote_threshold(), Self::get_members_count());
-            Proposals::<T>::insert(src_id, (src_nonce, call.clone()), proposal.clone());
+            ProposalVotes::<T>::insert(src_id, (src_nonce, call.clone()), proposal.clone());
 
             match status {
                 ProposalStatus::Approved => Self::execute_materialize(src_id, src_nonce, call),
@@ -498,6 +494,8 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         Self::ensure_chain_registered(src_id)?;
         Self::ensure_currency_registered(call.currency_id)?;
+
+        Self::deposit_event(Event::ProposalApproved(src_id, src_nonce));
 
         let asset_id = AssetIds::<T>::get(call.currency_id);
         T::Assets::transfer(asset_id, &Self::account_id(), &call.to, call.amount, true)?;
