@@ -10,11 +10,11 @@ relaychain:
       preopenHrmpChannels:
         - - 2085
           - 2000
-          - 1024
+          - 8
           - 102400
         - - 2000
           - 2085
-          - 1024
+          - 8
           - 102400
   flags:
     - --rpc-methods=unsafe
