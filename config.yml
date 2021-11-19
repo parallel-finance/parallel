@@ -6,6 +6,16 @@ relaychain:
       config:
         validation_upgrade_frequency: 1
         validation_upgrade_delay: 1
+    hrmp:
+      preopenHrmpChannels:
+        - sender: 2085
+          recipient: 2000
+          maxCapacity: 1024
+          maxMessageSize: 102400
+        - sender: 2000
+          recipient: 2085
+          maxCapacity: 1024
+          maxMessageSize: 102400
   flags:
     - --rpc-methods=unsafe
     - --no-beefy
