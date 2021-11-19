@@ -243,11 +243,14 @@ impl Contains<Call> for BaseCallFilter {
             Call::GeneralCouncilMembership(_) |
             Call::TechnicalCommitteeMembership(_) |
             Call::OracleMembership(_) |
+            Call::BridgeMembership(_) |
             Call::ValidatorFeedersMembership(_) |
             // AMM
             Call::AMM(_) |
             // Crowdloans
-            Call::Crowdloans(_)
+            Call::Crowdloans(_) |
+            // Bridge
+            Call::Bridge(_)
         )
     }
 }
