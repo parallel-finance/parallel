@@ -67,7 +67,7 @@ pub mod pallet {
         type LiquidStakingExchangeRateProvider: ExchangeRateProvider;
 
         /// Decimal provider.
-        type DecimalProvider: DecimalProvider<CurrencyId>;
+        type Decimal: DecimalProvider<CurrencyId>;
 
         /// Weight information
         type WeightInfo: WeightInfo;

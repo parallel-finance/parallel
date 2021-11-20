@@ -173,7 +173,7 @@ impl pallet_prices::Config for Test {
     type FeederOrigin = EnsureRoot<AccountId>;
     type LiquidStakingExchangeRateProvider = LiquidStaking;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
-    type DecimalProvider = Currencies;
+    type Decimal = Currencies;
     type WeightInfo = ();
 }
 

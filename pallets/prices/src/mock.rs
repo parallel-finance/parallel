@@ -122,7 +122,7 @@ impl crate::Config for Test {
     type FeederOrigin = EnsureSignedBy<One, AccountId>;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
     type LiquidStakingExchangeRateProvider = LiquidStakingExchangeRateProvider;
-    type DecimalProvider = Currencies;
+    type Decimal = Currencies;
     type WeightInfo = ();
 }
 

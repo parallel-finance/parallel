@@ -998,7 +998,7 @@ impl pallet_prices::Config for Runtime {
     type FeederOrigin = EnsureRoot<AccountId>;
     type LiquidStakingExchangeRateProvider = LiquidStaking;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
-    type DecimalProvider = Currencies;
+    type Decimal = Currencies;
     type WeightInfo = pallet_prices::weights::SubstrateWeight<Runtime>;
 }
 
