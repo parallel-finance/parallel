@@ -96,11 +96,7 @@ ord_parameter_types! {
 
 pub struct Currencies;
 #[allow(non_upper_case_globals)]
-impl CurrencyProvider<CurrencyId, CurrencyType> for Currencies {
-    fn get_currency_type(_currency_id: &CurrencyId) -> CurrencyType {
-        CurrencyType::Unknown
-    }
-
+impl DecimalProvider<CurrencyId> for Currencies {
     fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
         match *asset_id {
             DOT | XDOT => Some(10),
@@ -126,7 +122,7 @@ impl crate::Config for Test {
     type FeederOrigin = EnsureSignedBy<One, AccountId>;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
     type LiquidStakingExchangeRateProvider = LiquidStakingExchangeRateProvider;
-    type CurrencyProvider = Currencies;
+    type DecimalProvider = Currencies;
     type WeightInfo = ();
 }
 

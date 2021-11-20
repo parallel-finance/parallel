@@ -140,11 +140,7 @@ impl ExchangeRateProvider for LiquidStakingExchangeRateProvider {
 }
 
 pub struct Currencies;
-impl CurrencyProvider<CurrencyId, CurrencyType> for Currencies {
-    fn get_currency_type(_currency_id: &CurrencyId) -> CurrencyType {
-        CurrencyType::Unknown
-    }
-
+impl DecimalProvider<CurrencyId> for Currencies {
     fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
         match *asset_id {
             KSM | XKSM => Some(12),
@@ -177,7 +173,7 @@ impl pallet_prices::Config for Test {
     type FeederOrigin = EnsureRoot<AccountId>;
     type LiquidStakingExchangeRateProvider = LiquidStaking;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
-    type CurrencyProvider = Currencies;
+    type DecimalProvider = Currencies;
     type WeightInfo = ();
 }
 

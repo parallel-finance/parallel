@@ -67,7 +67,7 @@ pub mod pallet {
         type LiquidStakingExchangeRateProvider: ExchangeRateProvider;
 
         /// Decimal provider.
-        type CurrencyProvider: CurrencyProvider<CurrencyId, CurrencyType>;
+        type DecimalProvider: DecimalProvider<CurrencyId>;
 
         /// Weight information
         type WeightInfo: WeightInfo;
@@ -141,7 +141,7 @@ impl<T: Config> Pallet<T> {
     }
 
     fn get_asset_mantissa(asset_id: &CurrencyId) -> Option<u128> {
-        let decimal = T::CurrencyProvider::get_decimal(asset_id)?;
+        let decimal = T::DecimalProvider::get_decimal(asset_id)?;
         10u128.checked_pow(decimal as u32)
     }
 }
