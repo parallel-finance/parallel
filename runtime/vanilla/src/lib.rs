@@ -46,7 +46,7 @@ use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::HEIKO_PREFIX,
-    tokens::{AUSD, HKO, KSM, XKSM},
+    tokens::{HKO, KSM, KUSD, XKSM},
     Index, *,
 };
 use sp_api::impl_runtime_apis;
@@ -334,9 +334,9 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                     GeneralKey(b"HKO".to_vec()),
                 ),
             )),
-            AUSD => Some(MultiLocation::new(
+            KUSD => Some(MultiLocation::new(
                 1,
-                X2(Parachain(paras::karura::ID), GeneralKey(b"AUSD".to_vec())),
+                X2(Parachain(paras::karura::ID), GeneralKey(b"KUSD".to_vec())),
             )),
             _ => None,
         }
@@ -365,7 +365,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
-            } if id == paras::karura::ID && key == b"AUSD".to_vec() => Some(AUSD),
+            } if id == paras::karura::ID && key == b"KUSD".to_vec() => Some(KUSD),
             _ => None,
         }
     }
@@ -891,6 +891,13 @@ parameter_types! {
             X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(b"HKO".to_vec())),
         ).into(),
         ksm_per_second() * 30
+    );
+    pub KusdPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(paras::karura::ID), GeneralKey(b"KUSD".to_vec())),
+        ).into(),
+        ksm_per_second() * 400
     );
 }
 

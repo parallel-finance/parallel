@@ -51,8 +51,8 @@ const config = {
       balances: []
     },
     {
-      name: 'Acala Dollar',
-      symbol: 'AUSD',
+      name: 'Karura Dollar',
+      symbol: 'KUSD',
       assetId: 103,
       decimal: 12,
       marketOption: {
