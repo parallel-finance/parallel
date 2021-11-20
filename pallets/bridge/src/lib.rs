@@ -32,11 +32,11 @@ use frame_support::{
     PalletId,
 };
 use frame_system::pallet_prelude::*;
+pub use pallet::*;
 use primitives::{Balance, ChainId, CurrencyId};
 use scale_info::prelude::vec::Vec;
 use sp_runtime::traits::AccountIdConversion;
 pub use weights::WeightInfo;
-pub use pallet::*;
 
 mod benchmarking;
 mod mock;
