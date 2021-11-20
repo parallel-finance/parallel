@@ -147,6 +147,8 @@ impl Config for Test {
     type Assets = CurrencyAdapter;
 
     type ProposalLifetime = ProposalLifetime;
+
+    type WeightInfo = ();
 }
 
 pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;

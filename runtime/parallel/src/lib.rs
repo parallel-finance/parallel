@@ -1252,6 +1252,7 @@ impl pallet_bridge::Config for Runtime {
     type PalletId = BridgePalletId;
     type Assets = CurrencyAdapter;
     type ProposalLifetime = ProposalLifetime;
+    type WeightInfo = pallet_bridge::weights::SubstrateWeight<Runtime>;
 }
 
 pub struct RelaychainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);

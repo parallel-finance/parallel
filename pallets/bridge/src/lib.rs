@@ -35,13 +35,14 @@ use frame_system::pallet_prelude::*;
 use primitives::{Balance, ChainId, CurrencyId};
 use scale_info::prelude::vec::Vec;
 use sp_runtime::traits::AccountIdConversion;
-
+pub use weights::WeightInfo;
 pub use pallet::*;
 
 mod benchmarking;
 mod mock;
 mod proposal;
 mod tests;
+pub mod weights;
 
 type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
@@ -92,6 +93,9 @@ pub mod pallet {
         /// Each proposal can live up to [ProposalLifetime] blocks
         #[pallet::constant]
         type ProposalLifetime: Get<Self::BlockNumber>;
+
+        /// Information on runtime weights.
+        type WeightInfo: WeightInfo;
     }
 
     #[pallet::pallet]
@@ -208,7 +212,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Set the threshold required to reach multi-signature consensus
-        #[pallet::weight(0)]
+        #[pallet::weight(T::WeightInfo::set_vote_threshold())]
         pub fn set_vote_threshold(origin: OriginFor<T>, threshold: u32) -> DispatchResult {
             Self::ensure_admin(origin)?;
 
@@ -224,7 +228,7 @@ pub mod pallet {
             Ok(())
         }
 
-        #[pallet::weight(0)]
+        #[pallet::weight(T::WeightInfo::register_chain())]
         pub fn register_chain(origin: OriginFor<T>, id: ChainId) -> DispatchResult {
             Self::ensure_admin(origin)?;
 
@@ -241,7 +245,7 @@ pub mod pallet {
             Ok(())
         }
 
-        #[pallet::weight(0)]
+        #[pallet::weight(T::WeightInfo::unregister_chain())]
         pub fn unregister_chain(origin: OriginFor<T>, id: ChainId) -> DispatchResult {
             Self::ensure_admin(origin)?;
 
@@ -255,7 +259,7 @@ pub mod pallet {
             Ok(())
         }
 
-        #[pallet::weight(0)]
+        #[pallet::weight(T::WeightInfo::register_currency())]
         pub fn register_currency(
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
@@ -276,7 +280,7 @@ pub mod pallet {
             Ok(().into())
         }
 
-        #[pallet::weight(0)]
+        #[pallet::weight(T::WeightInfo::unregister_currency())]
         pub fn unregister_currency(
             origin: OriginFor<T>,
             currency_id: CurrencyId,
@@ -294,7 +298,7 @@ pub mod pallet {
         }
 
         /// Teleport the currency to specified recipient in the destination chain
-        #[pallet::weight(0)]
+        #[pallet::weight(T::WeightInfo::teleport())]
         pub fn teleport(
             origin: OriginFor<T>,
             dest_id: ChainId,
@@ -312,8 +316,8 @@ pub mod pallet {
             Self::teleport_internal(dest_id, currency_id, to, amount)
         }
 
-        #[pallet::weight(0)]
-        pub fn vote_materialize(
+        #[pallet::weight(T::WeightInfo::materialize())]
+        pub fn materialize(
             origin: OriginFor<T>,
             src_id: ChainId,
             src_nonce: ChainNonce,

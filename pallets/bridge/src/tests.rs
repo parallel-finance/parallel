@@ -104,13 +104,12 @@ fn teleport_works() {
 }
 
 #[test]
-fn vote_materialize_works() {
+fn materialize_works() {
     new_test_ext().execute_with(|| {
         // EVE has 50 HKO left, and then requests for materializing 20 EHKO
         // Default vote threshold is 1
         Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(50)).unwrap();
-        Bridge::vote_materialize(Origin::signed(ALICE), ETH, 0, EHKO, EVE, dollar(10), true)
-            .unwrap();
+        Bridge::materialize(Origin::signed(ALICE), ETH, 0, EHKO, EVE, dollar(10), true).unwrap();
         assert_eq!(
             <Test as Config>::Assets::balance(HKO, &Bridge::account_id()),
             dollar(40)
@@ -119,7 +118,7 @@ fn vote_materialize_works() {
 
         // The chain_nonce should be unique to avoid comduplicate call
         assert_noop!(
-            Bridge::vote_materialize(Origin::signed(ALICE), ETH, 0, EHKO, EVE, dollar(10), true),
+            Bridge::materialize(Origin::signed(ALICE), ETH, 0, EHKO, EVE, dollar(10), true),
             Error::<Test>::ProposalAlreadyComplete,
         );
 
@@ -127,18 +126,15 @@ fn vote_materialize_works() {
         // Vote_for:    [ALICE, CHARLIE]
         // Vote_against [BOB]
         assert_ok!(Bridge::set_vote_threshold(Origin::signed(ALICE), 2));
-        Bridge::vote_materialize(Origin::signed(ALICE), ETH, 1, EHKO, EVE, dollar(10), true)
-            .unwrap();
+        Bridge::materialize(Origin::signed(ALICE), ETH, 1, EHKO, EVE, dollar(10), true).unwrap();
         assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(60));
-        Bridge::vote_materialize(Origin::signed(BOB), ETH, 1, EHKO, EVE, dollar(10), false)
-            .unwrap();
+        Bridge::materialize(Origin::signed(BOB), ETH, 1, EHKO, EVE, dollar(10), false).unwrap();
         assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(60));
         assert_noop!(
-            Bridge::vote_materialize(Origin::signed(BOB), ETH, 1, EHKO, EVE, dollar(10), true),
+            Bridge::materialize(Origin::signed(BOB), ETH, 1, EHKO, EVE, dollar(10), true),
             Error::<Test>::MemberAlreadyVoted,
         );
-        Bridge::vote_materialize(Origin::signed(CHARLIE), ETH, 1, EHKO, EVE, dollar(10), true)
-            .unwrap();
+        Bridge::materialize(Origin::signed(CHARLIE), ETH, 1, EHKO, EVE, dollar(10), true).unwrap();
         assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(70));
         assert_eq!(
             <Test as Config>::Assets::balance(HKO, &Bridge::account_id()),

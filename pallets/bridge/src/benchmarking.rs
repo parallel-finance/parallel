@@ -4,7 +4,7 @@
 
 use super::*;
 use crate::Pallet as Bridge;
-use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
+use frame_benchmarking::{benchmarks, whitelisted_caller};
 use frame_support::assert_ok;
 use frame_system::RawOrigin as SystemOrigin;
 use primitives::{ChainId, CurrencyId};
