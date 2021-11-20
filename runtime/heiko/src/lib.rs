@@ -975,8 +975,8 @@ impl DataProviderExtended<CurrencyId, TimeStampedPrice> for AggregatedDataProvid
     }
 }
 
-pub struct Currencies;
-impl DecimalProvider<CurrencyId> for Currencies {
+pub struct Decimal;
+impl DecimalProvider<CurrencyId> for Decimal {
     fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
         match *asset_id {
             NATIVE_ASSET_ID => Some(12_u8),
@@ -998,7 +998,7 @@ impl pallet_prices::Config for Runtime {
     type FeederOrigin = EnsureRoot<AccountId>;
     type LiquidStakingExchangeRateProvider = LiquidStaking;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
-    type Decimal = Currencies;
+    type Decimal = Decimal;
     type WeightInfo = pallet_prices::weights::SubstrateWeight<Runtime>;
 }
 
