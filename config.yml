@@ -1,11 +1,21 @@
 relaychain:
-  image: parallelfinance/polkadot:v0.9.12
+  image: parallelfinance/polkadot:v0.9.12-1
   chain: kusama-local
   runtimeGenesisConfig:
     configuration:
       config:
         validation_upgrade_frequency: 1
         validation_upgrade_delay: 1
+    hrmp:
+      preopenHrmpChannels:
+        - sender: 2085
+          recipient: 2000
+          maxCapacity: 8
+          maxMessageSize: 102400
+        - sender: 2000
+          recipient: 2085
+          maxCapacity: 8
+          maxMessageSize: 102400
   flags:
     - --rpc-methods=unsafe
     - --no-beefy
@@ -48,15 +58,15 @@ parachains:
       - flags:
           - --charlie
 
-  - image: parallelfinance/polkadot-collator:v0.9.12
+  - image: parallelfinance/karura:v0.9.12
     chain:
-      base: statemine-dev
+      base: karura-dev
       collators:
         - alice
         - bob
         - charlie
       sudo: dave
-    id: 1000
+    id: 2000
     parachain: true
     flags:
       - --rpc-methods=unsafe
@@ -67,6 +77,7 @@ parachains:
       - --wasm-execution=compiled
       - --execution=wasm
       - --no-beefy
+    volumePath: /acala/data
     nodes:
       - flags:
           - --alice

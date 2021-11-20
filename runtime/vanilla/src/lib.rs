@@ -46,7 +46,7 @@ use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::HEIKO_PREFIX,
-    tokens::{HKO, KSM, XKSM},
+    tokens::{HKO, KSM, KUSD, XKSM},
     Index, *,
 };
 use sp_api::impl_runtime_apis;
@@ -82,7 +82,7 @@ pub mod constants;
 pub mod impls;
 // A few exports that help ease life for downstream crates.
 // re-exports
-pub use constants::{currency, fee, time};
+pub use constants::{currency, fee, paras, time};
 pub use impls::DealWithFees;
 
 pub use pallet_liquid_staking;
@@ -334,6 +334,10 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                     GeneralKey(b"HKO".to_vec()),
                 ),
             )),
+            KUSD => Some(MultiLocation::new(
+                1,
+                X2(Parachain(paras::karura::ID), GeneralKey(b"KUSD".to_vec())),
+            )),
             _ => None,
         }
     }
@@ -358,6 +362,10 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
             } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"HKO".to_vec() => {
                 Some(HKO)
             }
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), GeneralKey(key)),
+            } if id == paras::karura::ID && key == b"KUSD".to_vec() => Some(KUSD),
             _ => None,
         }
     }
@@ -877,6 +885,20 @@ pub type XcmOriginToTransactDispatchOrigin = (
 
 parameter_types! {
     pub KsmPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), ksm_per_second());
+    pub HkoPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(b"HKO".to_vec())),
+        ).into(),
+        ksm_per_second() * 30
+    );
+    pub KusdPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(paras::karura::ID), GeneralKey(b"KUSD".to_vec())),
+        ).into(),
+        ksm_per_second() * 400
+    );
 }
 
 match_type! {
@@ -908,6 +930,12 @@ impl TakeRevenue for ToTreasury {
     }
 }
 
+pub type Trader = (
+    FixedRateOfFungible<KsmPerSecond, ToTreasury>,
+    FixedRateOfFungible<HkoPerSecond, ToTreasury>,
+    FixedRateOfFungible<KusdPerSecond, ToTreasury>,
+);
+
 pub struct XcmConfig;
 impl Config for XcmConfig {
     type Call = Call;
@@ -921,7 +949,7 @@ impl Config for XcmConfig {
     type LocationInverter = LocationInverter<Ancestry>;
     type Barrier = Barrier;
     type Weigher = FixedWeightBounds<BaseXcmWeight, Call, MaxInstructions>;
-    type Trader = FixedRateOfFungible<KsmPerSecond, ToTreasury>;
+    type Trader = Trader;
     type ResponseHandler = PolkadotXcm;
     type SubscriptionService = PolkadotXcm;
     type AssetTrap = PolkadotXcm;
