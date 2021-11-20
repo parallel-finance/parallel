@@ -94,9 +94,9 @@ ord_parameter_types! {
     pub const One: AccountId = 1;
 }
 
-pub struct Currencies;
+pub struct Decimal;
 #[allow(non_upper_case_globals)]
-impl DecimalProvider<CurrencyId> for Currencies {
+impl DecimalProvider<CurrencyId> for Decimal {
     fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
         match *asset_id {
             DOT | XDOT => Some(10),
@@ -122,7 +122,7 @@ impl crate::Config for Test {
     type FeederOrigin = EnsureSignedBy<One, AccountId>;
     type LiquidStakingCurrenciesProvider = LiquidStaking;
     type LiquidStakingExchangeRateProvider = LiquidStakingExchangeRateProvider;
-    type Decimal = Currencies;
+    type Decimal = Decimal;
     type WeightInfo = ();
 }
 
