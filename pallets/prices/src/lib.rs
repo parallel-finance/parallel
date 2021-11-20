@@ -141,7 +141,7 @@ impl<T: Config> Pallet<T> {
     }
 
     fn get_asset_mantissa(asset_id: &CurrencyId) -> Option<u128> {
-        let decimal = T::DecimalProvider::get_decimal(asset_id)?;
+        let decimal = T::Decimal::get_decimal(asset_id)?;
         10u128.checked_pow(decimal as u32)
     }
 }
