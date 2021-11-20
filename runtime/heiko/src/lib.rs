@@ -1265,7 +1265,6 @@ impl pallet_amm::Config for Runtime {
     type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
 }
 
-
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
     pub const MaxReserves: Balance = 1_000_000_000_000;
@@ -1292,7 +1291,6 @@ impl pallet_crowdloans::Config for Runtime {
     type PariticipationPeriod = PariticipationPeriod;
     type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
 }
-
 
 parameter_types! {
     pub const MaxLengthRoute: u8 = 10;
