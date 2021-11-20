@@ -38,6 +38,7 @@ use sp_runtime::traits::AccountIdConversion;
 
 pub use pallet::*;
 
+mod benchmarking;
 mod mock;
 mod proposal;
 mod tests;
