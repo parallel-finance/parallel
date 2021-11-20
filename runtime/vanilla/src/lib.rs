@@ -933,6 +933,7 @@ impl TakeRevenue for ToTreasury {
 pub type Trader = (
     FixedRateOfFungible<KsmPerSecond, ToTreasury>,
     FixedRateOfFungible<HkoPerSecond, ToTreasury>,
+    FixedRateOfFungible<KusdPerSecond, ToTreasury>,
 );
 
 pub struct XcmConfig;
