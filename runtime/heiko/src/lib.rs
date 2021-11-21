@@ -145,6 +145,8 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
 pub const PRIMARY_PROBABILITY: (u64, u64) = (1, 4);
 
+pub const NATIVE_ASSET_ID: u32 = tokens::HKO;
+
 #[derive(codec::Encode, codec::Decode)]
 pub enum XCMPMessage<XAccountId, XBalance> {
     /// Transfer tokens to the given account from the Parachain account.
@@ -974,13 +976,19 @@ impl DataProviderExtended<CurrencyId, TimeStampedPrice> for AggregatedDataProvid
 }
 
 pub struct Decimal;
-impl DecimalProvider for Decimal {
+impl DecimalProvider<CurrencyId> for Decimal {
     fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
-        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(asset_id);
-        if !decimal.is_zero() {
-            return Some(decimal);
+        match *asset_id {
+            NATIVE_ASSET_ID => Some(12_u8),
+            _ => {
+                let decimal = <Assets as InspectMetadata<AccountId>>::decimals(asset_id);
+                if decimal.is_zero() {
+                    None
+                } else {
+                    Some(decimal)
+                }
+            }
         }
-        None
     }
 }
 
@@ -1279,7 +1287,7 @@ impl pallet_router::Config for Runtime {
 }
 
 parameter_types! {
-    pub const NativeCurrencyId: CurrencyId = tokens::HKO;
+    pub const NativeCurrencyId: CurrencyId = NATIVE_ASSET_ID;
 }
 
 impl pallet_currency_adapter::Config for Runtime {
