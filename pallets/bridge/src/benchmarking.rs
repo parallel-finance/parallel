@@ -18,7 +18,7 @@ const EHKO: CurrencyId = 0;
 fn transfer_initial_balance<T: Config + pallet_balances::Config<Balance = Balance>>(
     caller: T::AccountId,
 ) {
-    let account_id = T::Lookup::unlookup(caller.clone());
+    let account_id = T::Lookup::unlookup(caller);
     // T::Assets::mint_into(USDT, &caller, INITIAL_AMOUNT.into()).unwrap();
     pallet_balances::Pallet::<T>::set_balance(
         SystemOrigin::Root.into(),
@@ -30,7 +30,7 @@ fn transfer_initial_balance<T: Config + pallet_balances::Config<Balance = Balanc
 }
 
 pub fn dollar(d: u128) -> u128 {
-    d.saturating_mul(10_u128.pow(12)).into()
+    d.saturating_mul(10_u128.pow(12))
 }
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
@@ -87,5 +87,5 @@ benchmarks! {
         assert_ok!(Bridge::<T>::register_currency(SystemOrigin::Root.into(), HKO, EHKO));
         transfer_initial_balance::<T>(caller.clone());
         let tele: TeleAccount = whitelisted_caller();
-    }: _(SystemOrigin::Signed(caller), ETH, 0, tele.clone(), dollar(50))
+    }: _(SystemOrigin::Signed(caller), ETH, 0, tele, dollar(50))
 }
