@@ -64,7 +64,7 @@ docker run --restart=always --name $PARA_CHAIN-collator \
     --rpc-external \
     --rpc-cors all \
     --rpc-methods Unsafe \
-    --state-cache-size 1 \
+    --state-cache-size 0 \
     --listen-addr=/ip4/0.0.0.0/tcp/$PARA_P2P_PORT \
     --name=$NODE_NAME \
     --prometheus-external \
