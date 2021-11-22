@@ -134,15 +134,15 @@ pub mod pallet {
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Vote threshold has changed
-        /// \[vote_threshold\]
+        /// [vote_threshold]
         VoteThresholdChanged(u32),
 
         /// New chain_id has been registered
-        /// \[chain_id\]
+        /// [chain_id]
         ChainRegistered(ChainId),
 
         /// The chain_id has been unregistered
-        /// \[chain_id\]
+        /// [chain_id]
         ChainRemoved(ChainId),
 
         /// New currency_id has been registered
@@ -153,24 +153,39 @@ pub mod pallet {
         /// [asset_id, currency_id]
         CurrencyRemoved(AssetIdOf<T>, CurrencyId),
 
-        /// Event emitted when currency are destoryed
+        /// Event emitted when currency is destoryed by teleportation
         /// [dest_id, chain_nonce, currency_id, receiver, amount]
-        Burned(ChainId, ChainNonce, CurrencyId, TeleAccount, BalanceOf<T>),
+        TeleportBurned(ChainId, ChainNonce, CurrencyId, TeleAccount, BalanceOf<T>),
 
-        /// Event emitted when currency are issued
+        /// Event emitted when currency is issued by materialization
         /// [src_id, chain_nonce, currency_id, receiver, amount]
-        Minted(ChainId, ChainNonce, CurrencyId, T::AccountId, BalanceOf<T>),
+        MaterializeMinted(ChainId, ChainNonce, CurrencyId, T::AccountId, BalanceOf<T>),
+
+        /// Event emitted when a proposal is initialized by materialization
+        /// [src_id, src_nonce, voter, currency_id, to, amount]
+        MaterializeInitialized(
+            ChainId,
+            ChainNonce,
+            T::AccountId,
+            CurrencyId,
+            T::AccountId,
+            BalanceOf<T>,
+        ),
 
         /// Vote submitted in favour of proposal
+        /// [src_id, src_nonce, voter]
         VoteFor(ChainId, ChainNonce, T::AccountId),
 
         /// Vot submitted against proposal
+        /// [src_id, src_nonce, voter]
         VoteAgainst(ChainId, ChainNonce, T::AccountId),
 
         /// Voting successful for a proposal
+        /// [src_id, src_nonce]
         ProposalApproved(ChainId, ChainNonce),
 
         /// Voting rejected a proposal
+        /// [src_id, src_nonce]
         ProposalRejected(ChainId, ChainNonce),
     }
 
@@ -424,7 +439,13 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         let nonce = Self::bump_nonce(dest_id);
 
-        Self::deposit_event(Event::Burned(dest_id, nonce, currency_id, to, amount));
+        Self::deposit_event(Event::TeleportBurned(
+            dest_id,
+            nonce,
+            currency_id,
+            to,
+            amount,
+        ));
         Ok(())
     }
 
@@ -439,10 +460,25 @@ impl<T: Config> Pallet<T> {
 
         let mut proposal = match Self::votes(src_id, (src_nonce, call.clone())) {
             Some(p) => p,
-            None => Proposal {
-                expiry: now + T::ProposalLifetime::get(),
-                ..Default::default()
-            },
+            None => {
+                let MaterializeCall {
+                    currency_id,
+                    to,
+                    amount,
+                } = call.clone();
+                Self::deposit_event(Event::<T>::MaterializeInitialized(
+                    src_id,
+                    src_nonce,
+                    who.clone(),
+                    currency_id,
+                    to,
+                    amount,
+                ));
+                Proposal {
+                    expiry: now + T::ProposalLifetime::get(),
+                    ..Default::default()
+                }
+            }
         };
 
         // Ensure the proposal isn't complete and member hasn't already voted
@@ -500,7 +536,7 @@ impl<T: Config> Pallet<T> {
         let asset_id = AssetIds::<T>::get(call.currency_id);
         T::Assets::transfer(asset_id, &Self::account_id(), &call.to, call.amount, true)?;
 
-        Self::deposit_event(Event::Minted(
+        Self::deposit_event(Event::MaterializeMinted(
             src_id,
             src_nonce,
             call.currency_id,

@@ -141,7 +141,7 @@ fn materialize_works() {
             dollar(30)
         );
         // Success in generating `Minted` event
-        assert_events(vec![mock::Event::Bridge(Event::Minted(
+        assert_events(vec![mock::Event::Bridge(Event::MaterializeMinted(
             ETH,
             1,
             EHKO,
