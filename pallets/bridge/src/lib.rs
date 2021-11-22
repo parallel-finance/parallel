@@ -25,11 +25,12 @@
 use crate::proposal::{MaterializeCall, Proposal, ProposalStatus};
 use frame_support::{
     pallet_prelude::*,
+    require_transactional,
     traits::{
         tokens::fungibles::{Inspect, Mutate, Transfer},
         ChangeMembers, Get, SortedMembers,
     },
-    PalletId,
+    transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
 pub use pallet::*;
@@ -228,6 +229,7 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// Set the threshold required to reach multi-signature consensus
         #[pallet::weight(T::WeightInfo::set_vote_threshold())]
+        #[transactional]
         pub fn set_vote_threshold(origin: OriginFor<T>, threshold: u32) -> DispatchResult {
             Self::ensure_admin(origin)?;
 
@@ -244,6 +246,7 @@ pub mod pallet {
         }
 
         #[pallet::weight(T::WeightInfo::register_chain())]
+        #[transactional]
         pub fn register_chain(origin: OriginFor<T>, id: ChainId) -> DispatchResult {
             Self::ensure_admin(origin)?;
 
@@ -261,6 +264,7 @@ pub mod pallet {
         }
 
         #[pallet::weight(T::WeightInfo::unregister_chain())]
+        #[transactional]
         pub fn unregister_chain(origin: OriginFor<T>, id: ChainId) -> DispatchResult {
             Self::ensure_admin(origin)?;
 
@@ -275,6 +279,7 @@ pub mod pallet {
         }
 
         #[pallet::weight(T::WeightInfo::register_currency())]
+        #[transactional]
         pub fn register_currency(
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
@@ -296,6 +301,7 @@ pub mod pallet {
         }
 
         #[pallet::weight(T::WeightInfo::unregister_currency())]
+        #[transactional]
         pub fn unregister_currency(
             origin: OriginFor<T>,
             currency_id: CurrencyId,
@@ -314,6 +320,7 @@ pub mod pallet {
 
         /// Teleport the currency to specified recipient in the destination chain
         #[pallet::weight(T::WeightInfo::teleport())]
+        #[transactional]
         pub fn teleport(
             origin: OriginFor<T>,
             dest_id: ChainId,
@@ -332,6 +339,7 @@ pub mod pallet {
         }
 
         #[pallet::weight(T::WeightInfo::materialize())]
+        #[transactional]
         pub fn materialize(
             origin: OriginFor<T>,
             src_id: ChainId,
@@ -431,6 +439,7 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Initiates a transfer of the currency
+    #[require_transactional]
     fn teleport_internal(
         dest_id: ChainId,
         currency_id: CurrencyId,
@@ -449,6 +458,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    #[require_transactional]
     fn commit_vote(
         who: T::AccountId,
         src_id: ChainId,
@@ -498,7 +508,9 @@ impl<T: Config> Pallet<T> {
 
         Ok(())
     }
+    
     /// Attempts to finalize or cancel the proposal if the vote count allows.
+    #[require_transactional]
     fn resolve_proposal(
         src_id: ChainId,
         src_nonce: ChainNonce,
