@@ -1310,6 +1310,19 @@ impl pallet_currency_adapter::Config for Runtime {
 //     type WeightInfo = pallet_liquidity_mining::weights::SubstrateWeight<Runtime>;
 // }
 
+pub enum WhiteListFilter {}
+impl<T> Contains<T> for WhiteListFilter {
+    fn contains(_: &T) -> bool {
+        true
+    }
+}
+
+impl pallet_emergency_shutdown::Config for Runtime {
+    type Event = Event;
+    type Whitelist = WhiteListFilter;
+    type ShutdownOrigin = EnsureRoot<AccountId>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -1378,6 +1391,9 @@ construct_runtime!(
 
         // LiquidityMining
         // LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 83,
+
+        // Emergency Shutdown
+        EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Event<T>} = 84,
     }
 );
 
