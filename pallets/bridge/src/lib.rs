@@ -508,7 +508,7 @@ impl<T: Config> Pallet<T> {
 
         Ok(())
     }
-    
+
     /// Attempts to finalize or cancel the proposal if the vote count allows.
     #[require_transactional]
     fn resolve_proposal(
