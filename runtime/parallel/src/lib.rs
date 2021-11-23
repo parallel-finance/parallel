@@ -209,27 +209,30 @@ impl Contains<Call> for BaseCallFilter {
             Call::Democracy(_) |
             Call::GeneralCouncil(_) |
             Call::TechnicalCommittee(_) |
-            Call::Treasury(_) |
             Call::Scheduler(_) |
             // Parachain
             Call::ParachainSystem(_) |
             // Consensus
             Call::Authorship(_) |
             Call::Session(_) |
-            // Utility
-            Call::Utility(_) |
-            Call::Multisig(_) |
-            Call::Proxy(_) |
-            // 3rd Party
-            Call::Vesting(_) |
             // Membership
             Call::GeneralCouncilMembership(_) |
             Call::TechnicalCommitteeMembership(_)
         )
+
+        // // Governance
+        // Call::Treasury(_) |
+
+        // // Utility
+        // Call::Utility(_) |
+        // Call::Multisig(_) |
+        // Call::Proxy(_) |
+
         // // 3rd Party
         // Call::Oracle(_) |
         // Call::XTokens(_) |
         // Call::OrmlXcm(_) |
+        // Call::Vesting(_) |
 
         // // Parachain
         // Call::XcmpQueue(_) |
@@ -255,9 +258,16 @@ impl Contains<Call> for BaseCallFilter {
     }
 }
 
+pub enum WhiteListFilter {}
+impl Contains<Call> for WhiteListFilter {
+    fn contains(call: &Call) -> bool {
+        BaseCallFilter::contains(call) && EmergencyShutdown::contains(call)
+    }
+}
+
 impl frame_system::Config for Runtime {
     /// The basic call filter to use in dispatchable.
-    type BaseCallFilter = BaseCallFilter;
+    type BaseCallFilter = WhiteListFilter;
     /// Block & extrinsics weights: base values and limits.
     type BlockWeights = RuntimeBlockWeights;
     /// The maximum length of a block (in bytes).
@@ -1332,13 +1342,6 @@ impl pallet_currency_adapter::Config for Runtime {
 //     type CreateOrigin = EnsureRoot<AccountId>;
 // 	type WeightInfo = pallet_liquidity_mining::weights::SubstrateWeight<Runtime>;
 // }
-
-pub enum WhiteListFilter {}
-impl<T> Contains<T> for WhiteListFilter {
-    fn contains(_: &T) -> bool {
-        true
-    }
-}
 
 impl pallet_emergency_shutdown::Config for Runtime {
     type Event = Event;

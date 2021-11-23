@@ -44,23 +44,17 @@ pub mod pallet {
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Toggled Shutdown Flag
-        ToggledShutdownFlag,
+        /// [flag]
+        ToggledShutdownFlag(bool),
     }
 
     #[pallet::pallet]
     pub struct Pallet<T>(_);
 
-    pub struct Default;
-    impl frame_support::traits::Get<bool> for Default {
-        fn get() -> bool {
-            false
-        }
-    }
-
     /// Represent shutdown flag
     #[pallet::storage]
-    #[pallet::getter(fn something)]
-    pub type IsShutDownFlagOn<T> = StorageValue<_, bool, ValueQuery, Default>;
+    #[pallet::getter(fn is_shut_down_flag)]
+    pub type IsShutDownFlagOn<T> = StorageValue<_, bool, ValueQuery>;
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
@@ -69,12 +63,22 @@ pub mod pallet {
         pub fn toggle_shutdown_flag(origin: OriginFor<T>) -> DispatchResult {
             T::ShutdownOrigin::ensure_origin(origin)?;
 
-            // Update storage.
-            <IsShutDownFlagOn<T>>::put(true);
+            let updated_flag = !<IsShutDownFlagOn<T>>::get();
+            <IsShutDownFlagOn<T>>::put(updated_flag);
 
             // Emit an event.
-            Self::deposit_event(Event::ToggledShutdownFlag);
+            Self::deposit_event(Event::ToggledShutdownFlag(updated_flag));
             Ok(())
+        }
+    }
+}
+
+impl<T: Config> Contains<T::Call> for Pallet<T> {
+    fn contains(call: &T::Call) -> bool {
+        if Self::is_shut_down_flag() {
+            T::Whitelist::contains(call)
+        } else {
+            true
         }
     }
 }
