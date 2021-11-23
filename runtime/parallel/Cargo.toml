@@ -88,6 +88,7 @@ orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-r
 
 # Parallel dependencies
 pallet-amm              = { path = '../../pallets/amm', default-features = false }
+pallet-bridge           = { path = '../../pallets/bridge', default-features = false }
 pallet-currency-adapter = { path = '../../pallets/currency-adapter', default-features = false }
 pallet-crowdloans       = { path = '../../pallets/crowdloans', default-features = false }
 pallet-liquid-staking   = { path = '../../pallets/liquid-staking', default-features = false }
@@ -116,6 +117,7 @@ runtime-benchmarks = [
   'frame-system-benchmarking',
   'frame-system/runtime-benchmarks',
   'pallet-balances/runtime-benchmarks',
+  'pallet-bridge/runtime-benchmarks',
   'pallet-timestamp/runtime-benchmarks',
   'pallet-loans/runtime-benchmarks',
   'pallet-liquid-staking/runtime-benchmarks',
@@ -167,6 +169,7 @@ std                = [
   'xcm-builder/std',
   'xcm-executor/std',
   'primitives/std',
+  'pallet-bridge/std',
   'pallet-loans/std',
   'pallet-loans-rpc-runtime-api/std',
   'pallet-nominee-election/std',
@@ -225,6 +228,7 @@ try-runtime        = [
   'orml-xcm/try-runtime',
   'orml-vesting/try-runtime',
   'frame-try-runtime',
+  'pallet-bridge/try-runtime',
   'pallet-loans/try-runtime',
   'pallet-liquid-staking/try-runtime',
   'pallet-liquidation/try-runtime',

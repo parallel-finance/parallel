@@ -87,6 +87,7 @@ pub use impls::DealWithFees;
 pub use pallet_liquid_staking;
 // pub use pallet_liquidation;
 pub use pallet_amm;
+pub use pallet_bridge;
 pub use pallet_crowdloans;
 pub use pallet_liquidity_mining;
 pub use pallet_loans;
@@ -243,11 +244,14 @@ impl Contains<Call> for BaseCallFilter {
             Call::GeneralCouncilMembership(_) |
             Call::TechnicalCommitteeMembership(_) |
             Call::OracleMembership(_) |
+            Call::BridgeMembership(_) |
             Call::ValidatorFeedersMembership(_) |
             // AMM
             Call::AMM(_) |
             // Crowdloans
-            Call::Crowdloans(_)
+            Call::Crowdloans(_) |
+            // Bridge
+            Call::Bridge(_)
         )
     }
 }
@@ -1248,8 +1252,45 @@ impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
 }
 
 parameter_types! {
+    pub const BridgeMaxMembers: u32 = 100;
+}
+
+type EnsureRootOrigin = EnsureRoot<AccountId>;
+
+type BridgeMembershipInstance = pallet_membership::Instance6;
+impl pallet_membership::Config<BridgeMembershipInstance> for Runtime {
+    type Event = Event;
+    type AddOrigin = EnsureRootOrigin;
+    type RemoveOrigin = EnsureRootOrigin;
+    type SwapOrigin = EnsureRootOrigin;
+    type ResetOrigin = EnsureRootOrigin;
+    type PrimeOrigin = EnsureRootOrigin;
+    type MembershipInitialized = ();
+    type MembershipChanged = ();
+    type MaxMembers = BridgeMaxMembers;
+    type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
+}
+
+parameter_types! {
     pub MinVestedTransfer: Balance = 0;
     pub const MaxVestingSchedules: u32 = 100;
+}
+
+parameter_types! {
+    pub const ParallelHeiko: ChainId = 0;
+    pub const BridgePalletId: PalletId = PalletId(*b"par/brid");
+    pub const ProposalLifetime: BlockNumber = 200;
+}
+
+impl pallet_bridge::Config for Runtime {
+    type Event = Event;
+    type AdminMembers = BridgeMembership;
+    type RootOperatorOrigin = EnsureRootOrigin;
+    type ChainId = ParallelHeiko;
+    type PalletId = BridgePalletId;
+    type Assets = CurrencyAdapter;
+    type ProposalLifetime = ProposalLifetime;
+    type WeightInfo = pallet_bridge::weights::SubstrateWeight<Runtime>;
 }
 
 impl orml_vesting::Config for Runtime {
@@ -1405,6 +1446,7 @@ construct_runtime!(
         TechnicalCommitteeMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>} = 71,
         OracleMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
         ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74,
+        BridgeMembership: pallet_membership::<Instance6>::{Pallet, Call, Storage, Event<T>, Config<T>} = 75,
 
         // AMM
         AMM: pallet_amm::{Pallet, Call, Storage, Event<T>} = 80,
@@ -1413,6 +1455,9 @@ construct_runtime!(
 
         // LiquidityMining
         LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 83,
+
+        // Bridge
+        Bridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 90,
     }
 );
 
@@ -1605,6 +1650,7 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_membership, TechnicalCommitteeMembership);
             // list_benchmark!(list, extra, pallet_liquid_staking, LiquidStaking);
             list_benchmark!(list, extra, pallet_multisig, Multisig);
+            list_benchmark!(list, extra, pallet_bridge, Bridge);
             list_benchmark!(list, extra, pallet_loans, Loans);
             list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
             list_benchmark!(list, extra, pallet_timestamp, Timestamp);
@@ -1649,6 +1695,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, frame_system, SystemBench::<Runtime>);
             add_benchmark!(params, batches, pallet_balances, Balances);
             add_benchmark!(params, batches, pallet_timestamp, Timestamp);
+            add_benchmark!(params, batches, pallet_bridge, Bridge);
             add_benchmark!(params, batches, pallet_loans, Loans);
             add_benchmark!(params, batches, pallet_multisig, Multisig);
             add_benchmark!(params, batches, pallet_membership, TechnicalCommitteeMembership);

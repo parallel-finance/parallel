@@ -2801,6 +2801,7 @@ dependencies = [
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
+ "pallet-bridge",
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-currency-adapter",
@@ -5151,6 +5152,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-bridge"
+version = "1.0.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-collective",
+ "pallet-currency-adapter",
+ "pallet-membership",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-bridge-dispatch"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/polkadot.git?branch=release-v0.9.12#5feed981cf0fe671447eabaa9c0d235a8dd0003e"
@@ -6220,6 +6242,7 @@ dependencies = [
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
+ "pallet-bridge",
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-crowdloans",
@@ -11352,6 +11375,7 @@ dependencies = [
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
+ "pallet-bridge",
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-crowdloans",
