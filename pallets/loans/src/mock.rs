@@ -140,7 +140,7 @@ impl ExchangeRateProvider for LiquidStakingExchangeRateProvider {
 }
 
 pub struct Decimal;
-impl DecimalProvider for Decimal {
+impl DecimalProvider<CurrencyId> for Decimal {
     fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
         match *asset_id {
             KSM | XKSM => Some(12),

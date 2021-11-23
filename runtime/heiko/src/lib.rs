@@ -42,8 +42,7 @@ use sp_core::{
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{
-        self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT,
-        BlockNumberProvider, Convert, Zero,
+        self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, Zero,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Permill, RuntimeDebug,
@@ -145,6 +144,8 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
 pub const PRIMARY_PROBABILITY: (u64, u64) = (1, 4);
+
+pub const NATIVE_ASSET_ID: u32 = tokens::HKO;
 
 #[derive(codec::Encode, codec::Decode)]
 pub enum XCMPMessage<XAccountId, XBalance> {
@@ -975,13 +976,19 @@ impl DataProviderExtended<CurrencyId, TimeStampedPrice> for AggregatedDataProvid
 }
 
 pub struct Decimal;
-impl DecimalProvider for Decimal {
+impl DecimalProvider<CurrencyId> for Decimal {
     fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
-        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(asset_id);
-        if !decimal.is_zero() {
-            return Some(decimal);
+        match *asset_id {
+            NATIVE_ASSET_ID => Some(12_u8),
+            _ => {
+                let decimal = <Assets as InspectMetadata<AccountId>>::decimals(asset_id);
+                if decimal.is_zero() {
+                    None
+                } else {
+                    Some(decimal)
+                }
+            }
         }
-        None
     }
 }
 
@@ -1260,20 +1267,6 @@ parameter_types! {
     pub const MaxVestingSchedules: u32 = 100;
 }
 
-pub struct RelaychainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
-
-impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
-    for RelaychainBlockNumberProvider<T>
-{
-    type BlockNumber = BlockNumber;
-
-    fn current_block_number() -> Self::BlockNumber {
-        cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
-            .map(|d| d.relay_parent_number)
-            .unwrap_or_default()
-    }
-}
-
 impl orml_vesting::Config for Runtime {
     type Event = Event;
     type Currency = Balances;
@@ -1281,7 +1274,7 @@ impl orml_vesting::Config for Runtime {
     type VestedTransferOrigin = frame_system::EnsureSigned<AccountId>;
     type WeightInfo = ();
     type MaxVestingSchedules = MaxVestingSchedules;
-    type BlockNumberProvider = RelaychainBlockNumberProvider<Runtime>;
+    type BlockNumberProvider = frame_system::Pallet<Runtime>;
 }
 
 parameter_types! {
@@ -1317,7 +1310,7 @@ impl pallet_router::Config for Runtime {
 }
 
 parameter_types! {
-    pub const NativeCurrencyId: CurrencyId = tokens::HKO;
+    pub const NativeCurrencyId: CurrencyId = NATIVE_ASSET_ID;
 }
 
 impl pallet_currency_adapter::Config for Runtime {

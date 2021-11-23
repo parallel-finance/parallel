@@ -22,6 +22,7 @@ pub const PARA: CurrencyId = 1;
 pub const KSM: CurrencyId = 100;
 pub const DOT: CurrencyId = 101;
 pub const USDT: CurrencyId = 102;
+pub const KUSD: CurrencyId = 103;
 
 // Liquid Staking Derivative
 pub const XKSM: CurrencyId = 1000;
@@ -33,6 +34,7 @@ pub const PPARA: CurrencyId = 2001;
 pub const PKSM: CurrencyId = 2100;
 pub const PDOT: CurrencyId = 2101;
 pub const PUSDT: CurrencyId = 2102;
+pub const PKUSD: CurrencyId = 2103;
 
 pub const PXKSM: CurrencyId = 3000;
 pub const PXDOT: CurrencyId = 3001;
@@ -40,6 +42,7 @@ pub const PCKSM: CurrencyId = 3100;
 pub const PCDOT: CurrencyId = 3101;
 
 // Crowdloans Derivative
+// TODO: should use different tokens for crowdloan projects
 pub const CKSM: CurrencyId = 4000;
 pub const CDOT: CurrencyId = 4001;
 
@@ -52,6 +55,7 @@ pub const CDOT: CurrencyId = 4001;
 // | Heiko     | KSM          | N/A                |
 // | Heiko     | DOT          | N/A                |
 // | Heiko     | USDT         | N/A                |
+// | Heiko     | KUSD         | N/A                |
 // | Heiko     | XKSM         | N/A                |
 // | Heiko     | XDOT         | N/A                |
 // | Heiko     | PHKO         | N/A                |
@@ -61,11 +65,14 @@ pub const CDOT: CurrencyId = 4001;
 // | Heiko     | PUSDT        | N/A                |
 // | Heiko     | PXKSM        | N/A                |
 // | Heiko     | PXDOT        | N/A                |
+// | Heiko     | PCKSM        | N/A                |
+// | Heiko     | PCDOT        | N/A                |
 // | Parallel  | HKO          | N/A                |
-// | Parallel  | PARA         | N/A                |
+// | Parallel  | PARA         | Native             |
 // | Parallel  | KSM          | N/A                |
 // | Parallel  | DOT          | N/A                |
 // | Parallel  | USDT         | N/A                |
+// | Parallel  | KUSD         | N/A                |
 // | Parallel  | XKSM         | N/A                |
 // | Parallel  | XDOT         | N/A                |
 // | Parallel  | PHKO         | N/A                |
@@ -75,6 +82,8 @@ pub const CDOT: CurrencyId = 4001;
 // | Parallel  | PUSDT        | N/A                |
 // | Parallel  | PXKSM        | N/A                |
 // | Parallel  | PXDOT        | N/A                |
+// | Parallel  | PCKSM        | N/A                |
+// | Parallel  | PCDOT        | N/A                |
 // | Parallel  | CKSM         | N/A                |
 // | Parallel  | CDOT         | N/A                |
 // +──────────+───────────────+────────────────────+
