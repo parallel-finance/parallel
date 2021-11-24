@@ -266,7 +266,7 @@ fn claim_refund_should_work() {
     new_test_ext().execute_with(|| {
         let crowdloan = 1337;
         let ctoken = 10;
-        let amount = 10000000000000;
+        let amount = 1_000u128;
 
         let contribution_strategy = ContributionStrategy::XCM;
 

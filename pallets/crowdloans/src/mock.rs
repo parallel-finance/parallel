@@ -398,10 +398,10 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
             Origin::signed(ALICE),
             DOT,
             Id(Crowdloans::account_id()),
-            dot(10f64) + 1,
+            dot(30f64) + 1,
         )
         .unwrap();
-        TotalReserves::<Test>::mutate(|b| *b = dot(10f64));
+        TotalReserves::<Test>::mutate(|b| *b = dot(30f64));
         Crowdloans::update_xcm_fees_compensation(Origin::root(), dot(10f64)).unwrap();
     });
 
@@ -464,10 +464,10 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
             Origin::signed(ALICE),
             DOT,
             Id(Crowdloans::account_id()),
-            dot(10f64) + 1,
+            dot(30f64) + 1,
         )
         .unwrap();
-        TotalReserves::<Test>::mutate(|b| *b = dot(10f64));
+        TotalReserves::<Test>::mutate(|b| *b = dot(30f64));
         Crowdloans::update_xcm_fees_compensation(Origin::root(), dot(10f64)).unwrap();
     });
 
