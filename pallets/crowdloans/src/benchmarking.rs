@@ -34,6 +34,7 @@ const XCM_WEIGHT: XcmWeightMisc<Weight> = XcmWeightMisc {
     add_memo_weight: 3_000_000_000,
 };
 const CONTRIBUTE_AMOUNT: u128 = 20000000000000u128;
+const CONTRIBUTED_AMOUNT: u128 = 19900000000000u128;
 const INITIAL_INSURANCE: u128 = 1000000000000u128;
 const INITIAL_AMOUNT: u128 = 1000000000000000u128;
 
@@ -106,6 +107,11 @@ benchmarks! {
         let caller: T::AccountId = whitelisted_caller();
         let crowdloan = ParaId::from(1336);
         initial_set_up::<T>(caller.clone(), ctoken);
+        Crowdloans::<T>::update_reserve_factor(
+            SystemOrigin::Root.into(),
+            RESERVE_FACTOR,
+        )
+        .unwrap();
         assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
     }: _(
         SystemOrigin::Signed(caller.clone()),
@@ -113,7 +119,7 @@ benchmarks! {
         CONTRIBUTE_AMOUNT
     )
     verify {
-        assert_last_event::<T>(Event::VaultContributed(crowdloan, caller, CONTRIBUTE_AMOUNT).into())
+        assert_last_event::<T>(Event::VaultContributed(crowdloan, caller, CONTRIBUTED_AMOUNT).into())
     }
 
     close {
