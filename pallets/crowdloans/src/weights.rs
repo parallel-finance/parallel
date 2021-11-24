@@ -49,7 +49,6 @@ use sp_std::marker::PhantomData;
 pub trait WeightInfo {
     fn create_vault() -> Weight;
     fn contribute() -> Weight;
-    fn participate() -> Weight;
     fn close() -> Weight;
     fn auction_failed() -> Weight;
     fn claim_refund() -> Weight;
@@ -70,11 +69,6 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
     fn contribute() -> Weight {
         (139_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(9 as Weight))
-            .saturating_add(T::DbWeight::get().writes(7 as Weight))
-    }
-    fn participate() -> Weight {
-        (147_000_000 as Weight)
-            .saturating_add(T::DbWeight::get().reads(14 as Weight))
             .saturating_add(T::DbWeight::get().writes(7 as Weight))
     }
     fn close() -> Weight {
@@ -124,11 +118,6 @@ impl WeightInfo for () {
     fn contribute() -> Weight {
         (139_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(9 as Weight))
-            .saturating_add(RocksDbWeight::get().writes(7 as Weight))
-    }
-    fn participate() -> Weight {
-        (147_000_000 as Weight)
-            .saturating_add(RocksDbWeight::get().reads(14 as Weight))
             .saturating_add(RocksDbWeight::get().writes(7 as Weight))
     }
     fn close() -> Weight {
