@@ -44,10 +44,7 @@ pub mod pallet {
         },
         transactional, Blake2_128Concat, PalletId,
     };
-    use frame_system::{
-        ensure_signed,
-        pallet_prelude::{BlockNumberFor, OriginFor},
-    };
+    use frame_system::{ensure_signed, pallet_prelude::OriginFor};
     use primitives::{ump::XcmWeightMisc, Balance, CurrencyId, ParaId, Ratio};
     use sp_runtime::{
         traits::{AccountIdConversion, Convert, Zero},
@@ -100,9 +97,6 @@ pub mod pallet {
 
         /// Max reserved token amount for paying xcm fees
         type MaxReserves: Get<BalanceOf<Self>>;
-
-        /// Period of particpating on relaychain
-        type PariticipationPeriod: Get<BlockNumberFor<Self>>;
 
         /// The origin which can update reserve_factor, xcm_fees_compensation etc
         type UpdateOrigin: EnsureOrigin<Self::Origin>;
