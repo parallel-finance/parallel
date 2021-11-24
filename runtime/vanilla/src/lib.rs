@@ -258,8 +258,8 @@ impl Contains<Call> for BaseCallFilter {
     }
 }
 
-pub enum WhiteListFilter {}
-impl Contains<Call> for WhiteListFilter {
+pub enum CallFilterRouter {}
+impl Contains<Call> for CallFilterRouter {
     fn contains(call: &Call) -> bool {
         BaseCallFilter::contains(call) && EmergencyShutdown::contains(call)
     }
@@ -267,7 +267,7 @@ impl Contains<Call> for WhiteListFilter {
 
 impl frame_system::Config for Runtime {
     /// The basic call filter to use in dispatchable.
-    type BaseCallFilter = WhiteListFilter;
+    type BaseCallFilter = CallFilterRouter;
     /// Block & extrinsics weights: base values and limits.
     type BlockWeights = RuntimeBlockWeights;
     /// The maximum length of a block (in bytes).
@@ -1370,6 +1370,13 @@ impl pallet_liquidity_mining::Config for Runtime {
     type MaxRewardTokens = MaxRewardTokens;
     type CreateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = pallet_liquidity_mining::weights::SubstrateWeight<Runtime>;
+}
+
+pub enum WhiteListFilter {}
+impl<T> Contains<T> for WhiteListFilter {
+    fn contains(_: &T) -> bool {
+        true
+    }
 }
 
 impl pallet_emergency_shutdown::Config for Runtime {
