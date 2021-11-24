@@ -7,10 +7,7 @@ use crate::{Pallet as Crowdloans, TotalReserves};
 
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_system::{self, RawOrigin as SystemOrigin};
-use primitives::ump::XcmWeightMisc;
-use primitives::ParaId;
-use primitives::Ratio;
-use primitives::{tokens, CurrencyId};
+use primitives::{tokens, ump::XcmWeightMisc, CurrencyId, ParaId, Ratio};
 use sp_runtime::traits::StaticLookup;
 use sp_std::prelude::*;
 
