@@ -20,7 +20,6 @@ use primitives::Balance;
 
 use sp_runtime::traits::One;
 
-const MAX_RESERVES: Balance = 100_000_000_000;
 const XCM_FEES_COMPENSATION: u128 = 50000000000u128;
 const RESERVE_FACTOR: Ratio = Ratio::from_perthousand(5);
 const XCM_WEIGHT: XcmWeightMisc<Weight> = XcmWeightMisc {
@@ -116,28 +115,6 @@ benchmarks! {
     verify {
         assert_last_event::<T>(Event::VaultContributed(crowdloan, caller, CONTRIBUTE_AMOUNT).into())
     }
-
-    participate {
-        let ctoken = 10;
-        let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1337);
-        initial_set_up::<T>(caller.clone(), ctoken);
-        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
-        Crowdloans::<T>::update_reserve_factor(
-            SystemOrigin::Root.into(),
-            RESERVE_FACTOR,
-        )
-        .unwrap();
-        assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller).into(), crowdloan, CONTRIBUTE_AMOUNT));
-
-    }: _(
-        SystemOrigin::Root,
-        crowdloan
-    )
-    verify {
-        assert_last_event::<T>(Event::VaultParticipated(crowdloan, CONTRIBUTE_AMOUNT-MAX_RESERVES).into())
-    }
-
 
     close {
         let ctoken = 11;

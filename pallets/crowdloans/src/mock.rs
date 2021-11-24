@@ -303,9 +303,6 @@ parameter_types! {
 pub type CreateVaultOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
-pub type PariticipateOrigin =
-    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
-
 pub type CloseOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
@@ -329,7 +326,6 @@ impl crate::Config for Test {
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type CreateVaultOrigin = CreateVaultOrigin;
-    type PariticipateOrigin = PariticipateOrigin;
     type CloseOrigin = CloseOrigin;
     type AuctionFailedOrigin = AuctionFailedOrigin;
     type AuctionCompletedOrigin = AuctionCompletedOrigin;
