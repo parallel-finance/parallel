@@ -1,6 +1,6 @@
 [package]
 authors = ['Parallel Team']
-edition = '2021'
+edition = '2018'
 name = 'pallet-bridge'
 version = '1.0.0'
 
