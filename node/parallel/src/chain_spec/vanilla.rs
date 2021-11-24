@@ -306,7 +306,7 @@ fn vanilla_genesis(
             reserve_factor: Ratio::from_rational(5u32, 100_000u32),
         },
         crowdloans: CrowdloansConfig {
-            reserve_factor: Ratio::from_perthousand(5),
+            reserve_factor: Ratio::from_rational(5u32, 10_000u32),
         },
         democracy: DemocracyConfig::default(),
         general_council: GeneralCouncilConfig::default(),

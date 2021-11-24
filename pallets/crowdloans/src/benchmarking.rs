@@ -3,7 +3,7 @@
 #![cfg(feature = "runtime-benchmarks")]
 use super::{types::*, *};
 
-use crate::Pallet as Crowdloans;
+use crate::{Pallet as Crowdloans, TotalReserves};
 
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_system::{self, RawOrigin as SystemOrigin};
@@ -35,7 +35,7 @@ const XCM_WEIGHT: XcmWeightMisc<Weight> = XcmWeightMisc {
 };
 const CONTRIBUTE_AMOUNT: u128 = 20000000000000u128;
 const CONTRIBUTED_AMOUNT: u128 = 19900000000000u128;
-const INITIAL_INSURANCE: u128 = 1000000000000u128;
+const INITIAL_RESERVES: u128 = 1000000000000u128;
 const INITIAL_AMOUNT: u128 = 1000000000000000u128;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
@@ -76,9 +76,11 @@ fn initial_set_up<T: Config + pallet_assets::Config<AssetId = CurrencyId, Balanc
     T::Assets::mint_into(
         tokens::DOT,
         &Crowdloans::<T>::account_id(),
-        INITIAL_INSURANCE,
+        INITIAL_RESERVES,
     )
     .unwrap();
+
+    TotalReserves::<T>::mutate(|b| *b = INITIAL_RESERVES);
 }
 
 benchmarks! {
