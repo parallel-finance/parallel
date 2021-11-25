@@ -1414,7 +1414,7 @@ construct_runtime!(
         TechnicalCommitteeMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>} = 71,
         OracleMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
         ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,
-        BridgeMembership: pallet_membership::<Instance6>::{Pallet, Call, Storage, Event<T>, Config<T>} = 75,
+        BridgeMembership: pallet_membership::<Instance6>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74,
 
         // AMM
         AMM: pallet_amm::{Pallet, Call, Storage, Event<T>} = 80,
@@ -1681,6 +1681,7 @@ impl_runtime_apis! {
             let weight = Executive::try_runtime_upgrade().unwrap();
             (weight, RuntimeBlockWeights::get().max_block)
         }
+
         fn execute_block_no_check(block: Block) -> Weight {
             Executive::execute_block_no_check(block)
         }

@@ -36,7 +36,7 @@ use frame_support::{
 };
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureOneOf, EnsureRoot,
+    EnsureOneOf, EnsureRoot, EnsureSigned,
 };
 
 use orml_traits::{DataProvider, DataProviderExtended};
@@ -1297,7 +1297,7 @@ impl orml_vesting::Config for Runtime {
     type Event = Event;
     type Currency = Balances;
     type MinVestedTransfer = MinVestedTransfer;
-    type VestedTransferOrigin = frame_system::EnsureSigned<AccountId>;
+    type VestedTransferOrigin = EnsureSigned<AccountId>;
     type WeightInfo = ();
     type MaxVestingSchedules = MaxVestingSchedules;
     type BlockNumberProvider = frame_system::Pallet<Runtime>;
@@ -1442,8 +1442,8 @@ construct_runtime!(
         GeneralCouncilMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 70,
         TechnicalCommitteeMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>} = 71,
         OracleMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
-        ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74,
-        BridgeMembership: pallet_membership::<Instance6>::{Pallet, Call, Storage, Event<T>, Config<T>} = 75,
+        ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,
+        BridgeMembership: pallet_membership::<Instance6>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74,
 
         // AMM
         AMM: pallet_amm::{Pallet, Call, Storage, Event<T>} = 80,
