@@ -90,6 +90,7 @@ orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-r
 pallet-amm              = { path = '../../pallets/amm', default-features = false }
 pallet-bridge           = { path = '../../pallets/bridge', default-features = false }
 pallet-currency-adapter = { path = '../../pallets/currency-adapter', default-features = false }
+pallet-crowdloans       = { path = '../../pallets/crowdloans', default-features = false }
 pallet-liquid-staking   = { path = '../../pallets/liquid-staking', default-features = false }
 pallet-liquidation      = { path = '../../pallets/liquidation', default-features = false }
 # pallet-liquidity-mining      = { path = '../../pallets/liquidity-mining', default-features = false }
@@ -119,6 +120,7 @@ runtime-benchmarks = [
   'pallet-balances/runtime-benchmarks',
   'pallet-timestamp/runtime-benchmarks',
   'pallet-collective/runtime-benchmarks',
+  'pallet-crowdloans/runtime-benchmarks',
   'pallet-loans/runtime-benchmarks',
   'pallet-liquid-staking/runtime-benchmarks',
   'pallet-xcm/runtime-benchmarks',
@@ -149,6 +151,7 @@ std                = [
   'frame-benchmarking/std',
   'frame-system-rpc-runtime-api/std',
   'pallet-balances/std',
+  'pallet-crowdloans/std',
   'pallet-xcm/std',
   'pallet-timestamp/std',
   'pallet-sudo/std',

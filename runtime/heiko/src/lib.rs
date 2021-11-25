@@ -828,6 +828,7 @@ impl parachain_info::Config for Runtime {}
 parameter_types! {
     pub RelayLocation: MultiLocation = MultiLocation::parent();
     pub const RelayNetwork: NetworkId = NetworkId::Kusama;
+    pub RelayCurrency: CurrencyId = KSM;
     pub HeikoNetwork: NetworkId = NetworkId::Named("heiko".into());
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation =  MultiLocation::new(0, X1(Parachain(ParachainInfo::parachain_id().into())));
@@ -1296,6 +1297,33 @@ impl pallet_amm::Config for Runtime {
 }
 
 parameter_types! {
+    pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
+    pub const MaxReserves: Balance = 1_000_000_000_000;
+    pub const PariticipationPeriod: BlockNumber = 10;
+}
+
+impl pallet_crowdloans::Config for Runtime {
+    type Event = Event;
+    type PalletId = CrowdloansPalletId;
+    type SelfParaId = ParachainInfo;
+    type XcmSender = XcmRouter;
+    type Assets = Assets;
+    type RelayNetwork = RelayNetwork;
+    type RelayCurrency = RelayCurrency;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type PariticipateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type CloseOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type AuctionFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type AuctionCompletedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type MaxReserves = MaxReserves;
+    type PariticipationPeriod = PariticipationPeriod;
+    type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
     pub const MaxLengthRoute: u8 = 10;
     pub const RouterPalletId: PalletId = PalletId(*b"ammroute");
 }
@@ -1382,6 +1410,7 @@ construct_runtime!(
         // Loans
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>} = 50,
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>} = 51,
+        Crowdloans: pallet_crowdloans::{Pallet, Call, Storage, Config, Event<T>} = 52,
         // Liquidation: pallet_liquidation::{Pallet, Call} = 52,
 
         // LiquidStaking
@@ -1603,6 +1632,7 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_amm, AMM);
             list_benchmark!(list, extra, pallet_liquid_staking, LiquidStaking);
             list_benchmark!(list, extra, pallet_router, AMMRoute);
+            list_benchmark!(list, extra, pallet_crowdloans, Crowdloans);
 
             let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1646,6 +1676,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_amm, AMM);
             add_benchmark!(params, batches, pallet_liquid_staking, LiquidStaking);
             add_benchmark!(params, batches, pallet_router, AMMRoute);
+            add_benchmark!(params, batches, pallet_crowdloans, Crowdloans);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)
