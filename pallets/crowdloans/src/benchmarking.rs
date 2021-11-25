@@ -7,7 +7,7 @@ use crate::{Pallet as Crowdloans, TotalReserves};
 
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_system::{self, RawOrigin as SystemOrigin};
-use primitives::{tokens, ump::XcmWeightMisc, CurrencyId, ParaId, Ratio};
+use primitives::{ump::XcmWeightMisc, CurrencyId, ParaId, Ratio};
 use sp_runtime::traits::StaticLookup;
 use sp_std::prelude::*;
 
@@ -47,7 +47,7 @@ fn initial_set_up<T: Config + pallet_assets::Config<AssetId = CurrencyId, Balanc
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        tokens::DOT,
+        T::RelayCurrency::get(),
         account_id.clone(),
         true,
         One::one(),
@@ -65,13 +65,13 @@ fn initial_set_up<T: Config + pallet_assets::Config<AssetId = CurrencyId, Balanc
     .ok();
 
     // fund caller with dot
-    T::Assets::mint_into(tokens::DOT, &caller, INITIAL_AMOUNT).ok();
+    T::Assets::mint_into(T::RelayCurrency::get(), &caller, INITIAL_AMOUNT).ok();
 
     Crowdloans::<T>::update_xcm_fees_compensation(SystemOrigin::Root.into(), XCM_FEES_COMPENSATION)
         .unwrap();
 
     T::Assets::mint_into(
-        tokens::DOT,
+        T::RelayCurrency::get(),
         &Crowdloans::<T>::account_id(),
         INITIAL_RESERVES,
     )
