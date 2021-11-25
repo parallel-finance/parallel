@@ -206,34 +206,34 @@ impl Contains<Call> for BaseCallFilter {
             Call::System(_) |
             Call::Timestamp(_) |
             // Governance
-            Call::Sudo(_) |
+            Call::Sudo(_)  |
             Call::Democracy(_) |
             Call::GeneralCouncil(_) |
             Call::TechnicalCommittee(_) |
+            Call::Treasury(_) |
             Call::Scheduler(_) |
             // Parachain
             Call::ParachainSystem(_) |
             // Consensus
             Call::Authorship(_) |
             Call::Session(_) |
+            // Utility
+            Call::Utility(_) |
+            Call::Multisig(_) |
+            Call::Proxy(_) |
+            // 3rd Party
+            Call::Vesting(_) |
+            Call::Oracle(_) |
+            Call::XTokens(_) |
+            Call::OrmlXcm(_) |
+            // Loans
+            Call::Loans(_) |
+            Call::Prices(_) |
             // Membership
+            Call::OracleMembership(_) |
             Call::GeneralCouncilMembership(_) |
             Call::TechnicalCommitteeMembership(_)
         )
-
-        // // Governance
-        // Call::Treasury(_) |
-
-        // // Utility
-        // Call::Utility(_) |
-        // Call::Multisig(_) |
-        // Call::Proxy(_) |
-
-        // // 3rd Party
-        // Call::Oracle(_) |
-        // Call::XTokens(_) |
-        // Call::OrmlXcm(_) |
-        // Call::Vesting(_) |
 
         // // Parachain
         // Call::XcmpQueue(_) |
@@ -246,16 +246,13 @@ impl Contains<Call> for BaseCallFilter {
 
         // // Loans
         // Call::Liquidation(_) |
-        // Call::Loans(_) |
-        // Call::Prices(_) |
 
         // // LiquidStaking
         // Call::LiquidStaking(_) |
         // Call::NomineeElection(_) |
 
         // // Membership
-        // Call::ValidatorFeedersMembership(_) |
-        // Call::OracleMembership(_)
+        // Call::ValidatorFeedersMembership(_)
     }
 }
 
@@ -1344,9 +1341,37 @@ impl pallet_currency_adapter::Config for Runtime {
 // }
 
 pub enum WhiteListFilter {}
-impl<T> Contains<T> for WhiteListFilter {
-    fn contains(_: &T) -> bool {
-        true
+impl Contains<Call> for WhiteListFilter {
+    fn contains(call: &Call) -> bool {
+        matches!(
+            call,
+            // System
+            Call::System(_) |
+            Call::Timestamp(_) |
+            // Governance
+            Call::Sudo(_) |
+            Call::Democracy(_) |
+            Call::GeneralCouncil(_) |
+            Call::TechnicalCommittee(_) |
+            Call::Treasury(_) |
+            Call::Scheduler(_) |
+            // Parachain
+            Call::ParachainSystem(_) |
+            // Consensus
+            Call::Authorship(_) |
+            Call::Session(_) |
+            // Utility
+            Call::Utility(_) |
+            Call::Multisig(_) |
+            Call::Proxy(_) |
+            // 3rd Party
+            Call::Vesting(_) |
+            // Membership
+            Call::GeneralCouncilMembership(_) |
+            Call::TechnicalCommitteeMembership(_) |
+			// Emergency Shutdown pallet
+			Call::EmergencyShutdown(_)
+        )
     }
 }
 

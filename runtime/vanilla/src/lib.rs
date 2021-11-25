@@ -201,60 +201,58 @@ impl Contains<Call> for BaseCallFilter {
     fn contains(call: &Call) -> bool {
         matches!(
             call,
-            // System
+            // System, Utility, Currencies
             Call::System(_) |
             Call::Timestamp(_) |
+            Call::Multisig(_)  |
+            Call::Utility(_) |
+            Call::Proxy(_) |
+            Call::Balances(_) |
+            Call::Assets(pallet_assets::Call::mint { .. }) |
+            Call::Assets(pallet_assets::Call::transfer { .. }) |
+            Call::Assets(pallet_assets::Call::burn { .. }) |
             // Governance
             Call::Sudo(_) |
             Call::Democracy(_) |
             Call::GeneralCouncil(_) |
             Call::TechnicalCommittee(_) |
+            Call::Treasury(_) |
             Call::Scheduler(_) |
             // Parachain
             Call::ParachainSystem(_) |
+            Call::XcmpQueue(_) |
+            Call::DmpQueue(_) |
+            Call::PolkadotXcm(_) |
+            Call::CumulusXcm(_) |
             // Consensus
             Call::Authorship(_) |
+            Call::CollatorSelection(_) |
             Call::Session(_) |
+            // 3rd Party
+            Call::Oracle(_) |
+            Call::XTokens(_) |
+            Call::OrmlXcm(_) |
+            Call::Vesting(_) |
+            // Loans
+            Call::Loans(_) |
+            // Call::Liquidation(_) |
+            Call::Prices(_) |
+            // LiquidStaking
+            Call::LiquidStaking(_) |
+            Call::NomineeElection(_) |
             // Membership
             Call::GeneralCouncilMembership(_) |
-            Call::TechnicalCommitteeMembership(_)
+            Call::TechnicalCommitteeMembership(_) |
+            Call::OracleMembership(_) |
+            Call::BridgeMembership(_) |
+            Call::ValidatorFeedersMembership(_) |
+            // AMM
+            Call::AMM(_) |
+            // Crowdloans
+            Call::Crowdloans(_) |
+            // Bridge
+            Call::Bridge(_)
         )
-
-        // // Governance
-        // Call::Treasury(_) |
-
-        // // Utility
-        // Call::Utility(_) |
-        // Call::Multisig(_) |
-        // Call::Proxy(_) |
-
-        // // 3rd Party
-        // Call::Oracle(_) |
-        // Call::XTokens(_) |
-        // Call::OrmlXcm(_) |
-        // Call::Vesting(_) |
-
-        // // Parachain
-        // Call::XcmpQueue(_) |
-        // Call::DmpQueue(_) |
-        // Call::PolkadotXcm(_) |
-        // Call::CumulusXcm(_) |
-
-        // // Consensus
-        // Call::CollatorSelection(_) |
-
-        // // Loans
-        // Call::Liquidation(_) |
-        // Call::Loans(_) |
-        // Call::Prices(_) |
-
-        // // LiquidStaking
-        // Call::LiquidStaking(_) |
-        // Call::NomineeElection(_) |
-
-        // // Membership
-        // Call::ValidatorFeedersMembership(_) |
-        // Call::OracleMembership(_)
     }
 }
 
@@ -1396,9 +1394,37 @@ impl pallet_liquidity_mining::Config for Runtime {
 }
 
 pub enum WhiteListFilter {}
-impl<T> Contains<T> for WhiteListFilter {
-    fn contains(_: &T) -> bool {
-        true
+impl Contains<Call> for WhiteListFilter {
+    fn contains(call: &Call) -> bool {
+        matches!(
+            call,
+            // System
+            Call::System(_) |
+            Call::Timestamp(_) |
+            // Governance
+            Call::Sudo(_) |
+            Call::Democracy(_) |
+            Call::GeneralCouncil(_) |
+            Call::TechnicalCommittee(_) |
+            Call::Treasury(_) |
+            Call::Scheduler(_) |
+            // Parachain
+            Call::ParachainSystem(_) |
+            // Consensus
+            Call::Authorship(_) |
+            Call::Session(_) |
+            // Utility
+            Call::Utility(_) |
+            Call::Multisig(_) |
+            Call::Proxy(_) |
+            // 3rd Party
+            Call::Vesting(_) |
+            // Membership
+            Call::GeneralCouncilMembership(_) |
+            Call::TechnicalCommitteeMembership(_) |
+			// Emergency Shutdown pallet
+			Call::EmergencyShutdown(_)
+        )
     }
 }
 
