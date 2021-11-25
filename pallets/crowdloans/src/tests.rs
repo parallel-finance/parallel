@@ -3,8 +3,7 @@ use crate::mock::*;
 
 use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
-use primitives::ump::XcmWeightMisc;
-use primitives::{ParaId, Ratio};
+use primitives::{ump::XcmWeightMisc, ParaId, Ratio};
 use sp_runtime::{
     traits::{One, UniqueSaturatedInto, Zero},
     MultiAddress::Id,
