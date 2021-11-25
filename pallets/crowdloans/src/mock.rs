@@ -16,7 +16,7 @@ use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId};
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
-    traits::{AccountIdConversion, AccountIdLookup, BlakeTwo256, Convert},
+    traits::{AccountIdConversion, AccountIdLookup, BlakeTwo256, Convert, Zero},
     AccountId32,
     MultiAddress::Id,
 };
