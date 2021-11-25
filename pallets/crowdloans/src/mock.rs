@@ -88,7 +88,7 @@ parameter_types! {
 pub struct GiftConvert;
 impl Convert<Balance, Balance> for GiftConvert {
     fn convert(_amount: Balance) -> Balance {
-        return 0;
+        return Zero::zero();
     }
 }
 

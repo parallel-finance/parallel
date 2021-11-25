@@ -12,9 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use frame_support::traits::{
-    fungibles::{Inspect, Mutate, Transfer},
-    Get,
+use frame_support::{
+    log,
+    traits::{
+        fungibles::{Inspect, Mutate, Transfer},
+        Get,
+    },
 };
 use sp_runtime::{traits::Convert, SaturatedConversion};
 use sp_std::{convert::Into, marker::PhantomData, prelude::*, result};
@@ -126,7 +129,16 @@ impl<
                             gift_amount,
                             false,
                         ) {
-                            return Err(XcmError::FailedToTransactAsset(e.into()));
+                            log::error!(
+                                target: "xcm::deposit_asset",
+                                "who: {:?}, currency_id: {:?}, amount: {:?}, native_currency_id: {:?}, gift_amount: {:?}, err: {:?}",
+                                who,
+                                currency_id,
+                                amount,
+                                native_currency_id,
+                                gift_amount,
+                                e
+                            );
                         }
                     }
                 }

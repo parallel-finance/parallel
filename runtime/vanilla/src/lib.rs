@@ -859,7 +859,7 @@ parameter_types! {
 pub struct GiftConvert;
 impl Convert<Balance, Balance> for GiftConvert {
     fn convert(amount: Balance) -> Balance {
-        if amount >= 500_000_000_000 {
+        if amount >= DOLLARS / 2 {
             return 1_000_000_000_000;
         }
         Zero::zero()
