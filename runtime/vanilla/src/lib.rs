@@ -864,8 +864,8 @@ impl Convert<Balance, Balance> for GiftConvert {
             return Zero::zero();
         }
 
-        if amount >= 10_u128.pow(decimal.into()) / 2 {
-            return DOLLARS;
+        if amount >= 10_u128.pow(decimal.into()) {
+            return DOLLARS / 2;
         }
 
         Zero::zero()
