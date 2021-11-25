@@ -1313,13 +1313,11 @@ impl pallet_crowdloans::Config for Runtime {
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type PariticipateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CloseOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionCompletedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type MaxReserves = MaxReserves;
-    type PariticipationPeriod = PariticipationPeriod;
     type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
 }
 
