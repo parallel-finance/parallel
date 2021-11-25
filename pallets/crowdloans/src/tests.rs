@@ -306,19 +306,19 @@ fn claim_refund_should_work() {
         ));
 
         // do claim
-        // assert_ok!(Crowdloans::claim_refund(
-        //     Origin::signed(ALICE),   // origin
-        //     ParaId::from(crowdloan), // crowdloan
-        //     amount                   // amount
-        // ));
-        //
-        // // check that we're in the right phase
-        // let vault = Crowdloans::vaults(ParaId::from(crowdloan)).unwrap();
-        // // vault should be in a state we allow
-        // assert!(
-        //     vault.phase == VaultPhase::Failed || vault.phase == VaultPhase::Expired,
-        //     "Vault in incorrect state"
-        // );
+        assert_ok!(Crowdloans::claim_refund(
+            Origin::signed(ALICE),   // origin
+            ParaId::from(crowdloan), // crowdloan
+            amount                   // amount
+        ));
+
+        // check that we're in the right phase
+        let vault = Crowdloans::vaults(ParaId::from(crowdloan)).unwrap();
+        // vault should be in a state we allow
+        assert!(
+            vault.phase == VaultPhase::Failed || vault.phase == VaultPhase::Expired,
+            "Vault in incorrect state"
+        );
     });
 }
 
