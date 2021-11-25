@@ -145,6 +145,8 @@ pub mod pallet {
         Contributing(ParaId, BalanceOf<T>, Option<MultiSignature>),
         /// Sent crowdloan.withdraw call to relaychain
         Withdrawing(ParaId, T::AccountId),
+        /// Reserves added
+        ReservesAdded(BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -496,6 +498,28 @@ pub mod pallet {
             T::UpdateOrigin::ensure_origin(origin)?;
             XcmWeight::<T>::mutate(|v| *v = xcm_weight_misc);
             Self::deposit_event(Event::<T>::XcmWeightUpdated(xcm_weight_misc));
+            Ok(().into())
+        }
+
+        #[pallet::weight(<T as Config>::WeightInfo::add_reserves())]
+        #[transactional]
+        pub fn add_reserves(
+            origin: OriginFor<T>,
+            #[pallet::compact] amount: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            T::Assets::transfer(
+                T::RelayCurrency::get(),
+                &who,
+                &Self::account_id(),
+                amount,
+                false,
+            )?;
+            TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
+                Ok(())
+            })?;
+            Self::deposit_event(Event::<T>::ReservesAdded(amount));
             Ok(().into())
         }
     }

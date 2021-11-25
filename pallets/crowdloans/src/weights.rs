@@ -56,6 +56,7 @@ pub trait WeightInfo {
     fn update_reserve_factor() -> Weight;
     fn update_xcm_fees_compensation() -> Weight;
     fn update_xcm_weight() -> Weight;
+    fn add_reserves() -> Weight;
 }
 
 /// Weights for pallet_crowdloans using the Substrate node and recommended hardware.
@@ -106,6 +107,9 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().reads(1 as Weight))
             .saturating_add(T::DbWeight::get().writes(1 as Weight))
     }
+    fn add_reserves() -> Weight {
+        (10_000 as Weight)
+    }
 }
 
 // For backwards compatibility and tests
@@ -154,5 +158,8 @@ impl WeightInfo for () {
         (25_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(1 as Weight))
             .saturating_add(RocksDbWeight::get().writes(1 as Weight))
+    }
+    fn add_reserves() -> Weight {
+        (10_000 as Weight)
     }
 }

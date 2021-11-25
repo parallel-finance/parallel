@@ -64,7 +64,7 @@ fn create_new_vault_should_not_work_if_vault_is_already_created() {
             Origin::signed(Crowdloans::account_id()),
             ctoken,
             Id(ALICE),
-            100 * DOT_DECIMAL,
+            dot(100f64),
         )
         .unwrap();
 
@@ -388,5 +388,24 @@ fn update_xcm_weight_should_work() {
         ));
 
         assert_eq!(XcmWeight::<Test>::get(), XcmWeightMisc::default());
+    });
+}
+
+#[test]
+fn add_reserves_should_work() {
+    new_test_ext().execute_with(|| {
+        let amount = 1_000;
+
+        assert_ok!(Crowdloans::add_reserves(Origin::signed(ALICE), amount));
+
+        assert_eq!(
+            Assets::balance(
+                <Test as Config>::RelayCurrency::get(),
+                Crowdloans::account_id(),
+            ),
+            dot(30f64) + amount
+        );
+
+        assert_eq!(TotalReserves::<Test>::get(), dot(30f64) + amount);
     });
 }
