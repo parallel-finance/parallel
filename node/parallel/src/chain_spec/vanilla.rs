@@ -305,9 +305,6 @@ fn vanilla_genesis(
             exchange_rate: Rate::saturating_from_rational(100, 100), // 1
             reserve_factor: Ratio::from_rational(5u32, 100_000u32),
         },
-        crowdloans: CrowdloansConfig {
-            reserve_factor: Ratio::from_rational(5u32, 10_000u32),
-        },
         democracy: DemocracyConfig::default(),
         general_council: GeneralCouncilConfig::default(),
         general_council_membership: GeneralCouncilMembershipConfig {
@@ -337,6 +334,9 @@ fn vanilla_genesis(
         },
         polkadot_xcm: PolkadotXcmConfig {
             safe_xcm_version: Some(2),
+        },
+        crowdloans: CrowdloansConfig {
+            reserve_factor: Ratio::from_rational(5u32, 1000u32),
         },
     }
 }

@@ -286,7 +286,7 @@ fn parallel_genesis(
             safe_xcm_version: Some(2),
         },
         crowdloans: CrowdloansConfig {
-            reserve_factor: Ratio::from_rational(5u32, 10_000u32),
+            reserve_factor: Ratio::from_rational(5u32, 1000u32),
         },
     }
 }
