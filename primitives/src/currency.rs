@@ -12,7 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use frame_support::traits::fungibles::{Inspect, Mutate};
+use frame_support::{
+    log,
+    traits::{
+        fungibles::{Inspect, Mutate, Transfer},
+        Get,
+    },
+};
 use sp_runtime::{traits::Convert, SaturatedConversion};
 use sp_std::{convert::Into, marker::PhantomData, prelude::*, result};
 use xcm::latest::prelude::*;
@@ -22,15 +28,23 @@ pub struct MultiCurrencyAdapter<
     MultiCurrency,
     Match,
     AccountId,
+    Balance,
     AccountIdConvert,
     CurrencyIdConvert,
+    NativeCurrencyId,
+    GiftAccount,
+    GiftConvert,
 >(
     PhantomData<(
         MultiCurrency,
         Match,
         AccountId,
+        Balance,
         AccountIdConvert,
         CurrencyIdConvert,
+        NativeCurrencyId,
+        GiftAccount,
+        GiftConvert,
     )>,
 );
 
@@ -60,13 +74,29 @@ impl From<Error> for XcmError {
 }
 
 impl<
-        MultiCurrency: Inspect<AccountId> + Mutate<AccountId>,
+        MultiCurrency: Inspect<AccountId, Balance = Balance>
+            + Mutate<AccountId, Balance = Balance>
+            + Transfer<AccountId, Balance = Balance>,
         Match: MatchesFungible<MultiCurrency::Balance>,
         AccountId: sp_std::fmt::Debug + Clone,
+        Balance: frame_support::traits::tokens::Balance,
         AccountIdConvert: MoreConvert<MultiLocation, AccountId>,
         CurrencyIdConvert: Convert<MultiAsset, Option<MultiCurrency::AssetId>>,
+        NativeCurrencyId: Get<MultiCurrency::AssetId>,
+        GiftAccount: Get<AccountId>,
+        GiftConvert: Convert<MultiCurrency::Balance, MultiCurrency::Balance>,
     > TransactAsset
-    for MultiCurrencyAdapter<MultiCurrency, Match, AccountId, AccountIdConvert, CurrencyIdConvert>
+    for MultiCurrencyAdapter<
+        MultiCurrency,
+        Match,
+        AccountId,
+        Balance,
+        AccountIdConvert,
+        CurrencyIdConvert,
+        NativeCurrencyId,
+        GiftAccount,
+        GiftConvert,
+    >
 {
     fn deposit_asset(asset: &MultiAsset, location: &MultiLocation) -> XcmResult {
         match (
@@ -76,6 +106,43 @@ impl<
         ) {
             // known asset
             (Ok(who), Some(currency_id), Some(amount)) => {
+                if let MultiAsset {
+                    id:
+                        AssetId::Concrete(MultiLocation {
+                            parents: 1,
+                            interior: Here,
+                        }),
+                    ..
+                } = asset
+                {
+                    let gift_account = GiftAccount::get();
+                    let native_currency_id = NativeCurrencyId::get();
+                    let gift_amount = GiftConvert::convert(amount);
+                    let reducible_balance =
+                        MultiCurrency::reducible_balance(native_currency_id, &gift_account, false);
+
+                    if !gift_amount.is_zero() && reducible_balance >= gift_amount {
+                        if let Err(e) = MultiCurrency::transfer(
+                            native_currency_id,
+                            &gift_account,
+                            &who,
+                            gift_amount,
+                            false,
+                        ) {
+                            log::error!(
+                                target: "xcm::deposit_asset",
+                                "who: {:?}, currency_id: {:?}, amount: {:?}, native_currency_id: {:?}, gift_amount: {:?}, err: {:?}",
+                                who,
+                                currency_id,
+                                amount,
+                                native_currency_id,
+                                gift_amount,
+                                e
+                            );
+                        }
+                    }
+                }
+
                 MultiCurrency::mint_into(currency_id, &who, amount)
                     .map_err(|e| XcmError::FailedToTransactAsset(e.into()))
             }

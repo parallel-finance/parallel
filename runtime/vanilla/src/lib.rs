@@ -36,7 +36,7 @@ use frame_support::{
 };
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureOneOf, EnsureRoot,
+    EnsureOneOf, EnsureRoot, EnsureSigned,
 };
 
 use orml_traits::{DataProvider, DataProviderExtended};
@@ -144,7 +144,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
 pub const PRIMARY_PROBABILITY: (u64, u64) = (1, 4);
 
-pub const NATIVE_ASSET_ID: u32 = tokens::HKO;
+pub const NATIVE_ASSET_ID: u32 = HKO;
 
 #[derive(codec::Encode, codec::Decode)]
 pub enum XCMPMessage<XAccountId, XBalance> {
@@ -858,6 +858,27 @@ pub type LocationToAccountId = (
     AccountId32Aliases<RelayNetwork, AccountId>,
 );
 
+parameter_types! {
+    pub const NativeCurrencyId: CurrencyId = NATIVE_ASSET_ID;
+    pub GiftAccount: AccountId = PalletId(*b"par/gift").into_account();
+}
+
+pub struct GiftConvert;
+impl Convert<Balance, Balance> for GiftConvert {
+    fn convert(amount: Balance) -> Balance {
+        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(&KSM);
+        if decimal.is_zero() {
+            return Zero::zero();
+        }
+
+        if amount >= 10_u128.pow(decimal.into()) {
+            return DOLLARS / 8;
+        }
+
+        Zero::zero()
+    }
+}
+
 /// Means for transacting assets on this chain.
 pub type LocalAssetTransactor = MultiCurrencyAdapter<
     // Use this currency:
@@ -866,9 +887,13 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
     IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
     // Our chain's account ID type (we can't get away without mentioning it explicitly):
     AccountId,
+    Balance,
     // Do a simple punn to convert an AccountId32 MultiLocation into a native chain account ID:
     LocationToAccountId,
     CurrencyIdConvert,
+    NativeCurrencyId,
+    GiftAccount,
+    GiftConvert,
 >;
 
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
@@ -1304,7 +1329,7 @@ impl orml_vesting::Config for Runtime {
     type Event = Event;
     type Currency = Balances;
     type MinVestedTransfer = MinVestedTransfer;
-    type VestedTransferOrigin = frame_system::EnsureSigned<AccountId>;
+    type VestedTransferOrigin = EnsureSigned<AccountId>;
     type WeightInfo = ();
     type MaxVestingSchedules = MaxVestingSchedules;
     type BlockNumberProvider = frame_system::Pallet<Runtime>;
@@ -1330,8 +1355,8 @@ impl pallet_amm::Config for Runtime {
 
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
-    pub const MaxReserves: Balance = 1_000_000_000_000;
-    pub const PariticipationPeriod: BlockNumber = 10;
+    pub const MaxReserves: Balance = 100_000_000_000;
+    pub RefundLocation: AccountId = ParachainInfo::parachain_id().into_account();
 }
 
 impl pallet_crowdloans::Config for Runtime {
@@ -1343,15 +1368,14 @@ impl pallet_crowdloans::Config for Runtime {
     type RelayNetwork = RelayNetwork;
     type RelayCurrency = RelayCurrency;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type RefundLocation = RefundLocation;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type PariticipateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CloseOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionCompletedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type MaxReserves = MaxReserves;
-    type PariticipationPeriod = PariticipationPeriod;
     type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
 }
 
@@ -1367,10 +1391,6 @@ impl pallet_router::Config for Runtime {
     type AMMRouterWeightInfo = pallet_router::weights::SubstrateWeight<Runtime>;
     type MaxLengthRoute = MaxLengthRoute;
     type Assets = CurrencyAdapter;
-}
-
-parameter_types! {
-    pub const NativeCurrencyId: CurrencyId = NATIVE_ASSET_ID;
 }
 
 impl pallet_currency_adapter::Config for Runtime {
@@ -1493,8 +1513,8 @@ construct_runtime!(
         GeneralCouncilMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 70,
         TechnicalCommitteeMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>} = 71,
         OracleMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
-        ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74,
-        BridgeMembership: pallet_membership::<Instance6>::{Pallet, Call, Storage, Event<T>, Config<T>} = 75,
+        ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,
+        BridgeMembership: pallet_membership::<Instance6>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74,
 
         // AMM
         AMM: pallet_amm::{Pallet, Call, Storage, Event<T>} = 80,
@@ -1699,7 +1719,6 @@ impl_runtime_apis! {
 
             list_benchmark!(list, extra, pallet_balances, Balances);
             list_benchmark!(list, extra, pallet_membership, TechnicalCommitteeMembership);
-            // list_benchmark!(list, extra, pallet_liquid_staking, LiquidStaking);
             list_benchmark!(list, extra, pallet_multisig, Multisig);
             list_benchmark!(list, extra, pallet_bridge, Bridge);
             list_benchmark!(list, extra, pallet_loans, Loans);

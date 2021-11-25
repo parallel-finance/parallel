@@ -236,4 +236,5 @@ try-runtime        = [
   'pallet-liquidation/try-runtime',
   'pallet-nominee-election/try-runtime',
   'pallet-prices/try-runtime',
+  'pallet-crowdloans/try-runtime',
 ]

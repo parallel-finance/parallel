@@ -145,7 +145,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
 pub const PRIMARY_PROBABILITY: (u64, u64) = (1, 4);
 
-pub const NATIVE_ASSET_ID: u32 = tokens::HKO;
+pub const NATIVE_ASSET_ID: u32 = HKO;
 
 #[derive(codec::Encode, codec::Decode)]
 pub enum XCMPMessage<XAccountId, XBalance> {
@@ -835,6 +835,7 @@ impl parachain_info::Config for Runtime {}
 parameter_types! {
     pub RelayLocation: MultiLocation = MultiLocation::parent();
     pub const RelayNetwork: NetworkId = NetworkId::Kusama;
+    pub RelayCurrency: CurrencyId = KSM;
     pub HeikoNetwork: NetworkId = NetworkId::Named("heiko".into());
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation =  MultiLocation::new(0, X1(Parachain(ParachainInfo::parachain_id().into())));
@@ -852,6 +853,27 @@ pub type LocationToAccountId = (
     AccountId32Aliases<RelayNetwork, AccountId>,
 );
 
+parameter_types! {
+    pub const NativeCurrencyId: CurrencyId = NATIVE_ASSET_ID;
+    pub GiftAccount: AccountId = PalletId(*b"par/gift").into_account();
+}
+
+pub struct GiftConvert;
+impl Convert<Balance, Balance> for GiftConvert {
+    fn convert(amount: Balance) -> Balance {
+        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(&KSM);
+        if decimal.is_zero() {
+            return Zero::zero();
+        }
+
+        if amount >= 10_u128.pow(decimal.into()) {
+            return DOLLARS / 8;
+        }
+
+        Zero::zero()
+    }
+}
+
 /// Means for transacting assets on this chain.
 pub type LocalAssetTransactor = MultiCurrencyAdapter<
     // Use this currency:
@@ -860,9 +882,13 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
     IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
     // Our chain's account ID type (we can't get away without mentioning it explicitly):
     AccountId,
+    Balance,
     // Do a simple punn to convert an AccountId32 MultiLocation into a native chain account ID:
     LocationToAccountId,
     CurrencyIdConvert,
+    NativeCurrencyId,
+    GiftAccount,
+    GiftConvert,
 >;
 
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
@@ -1303,6 +1329,32 @@ impl pallet_amm::Config for Runtime {
 }
 
 parameter_types! {
+    pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
+    pub const MaxReserves: Balance = 1_000_000_000_000;
+    pub RefundLocation: AccountId = ParachainInfo::parachain_id().into_account();
+}
+
+impl pallet_crowdloans::Config for Runtime {
+    type Event = Event;
+    type PalletId = CrowdloansPalletId;
+    type SelfParaId = ParachainInfo;
+    type XcmSender = XcmRouter;
+    type Assets = Assets;
+    type RelayNetwork = RelayNetwork;
+    type RelayCurrency = RelayCurrency;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type RefundLocation = RefundLocation;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type CloseOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type AuctionFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type AuctionCompletedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type MaxReserves = MaxReserves;
+    type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
     pub const MaxLengthRoute: u8 = 10;
     pub const RouterPalletId: PalletId = PalletId(*b"ammroute");
 }
@@ -1314,10 +1366,6 @@ impl pallet_router::Config for Runtime {
     type AMMRouterWeightInfo = pallet_router::weights::SubstrateWeight<Runtime>;
     type MaxLengthRoute = MaxLengthRoute;
     type Assets = CurrencyAdapter;
-}
-
-parameter_types! {
-    pub const NativeCurrencyId: CurrencyId = NATIVE_ASSET_ID;
 }
 
 impl pallet_currency_adapter::Config for Runtime {
@@ -1430,6 +1478,7 @@ construct_runtime!(
         // Loans
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>} = 50,
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>} = 51,
+        Crowdloans: pallet_crowdloans::{Pallet, Call, Storage, Config, Event<T>} = 52,
         // Liquidation: pallet_liquidation::{Pallet, Call} = 52,
 
         // LiquidStaking
@@ -1441,7 +1490,7 @@ construct_runtime!(
         TechnicalCommitteeMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>} = 71,
         OracleMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
         ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,
-        BridgeMembership: pallet_membership::<Instance6>::{Pallet, Call, Storage, Event<T>, Config<T>} = 75,
+        BridgeMembership: pallet_membership::<Instance6>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74,
 
         // AMM
         AMM: pallet_amm::{Pallet, Call, Storage, Event<T>} = 80,
@@ -1655,6 +1704,7 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_amm, AMM);
             list_benchmark!(list, extra, pallet_liquid_staking, LiquidStaking);
             list_benchmark!(list, extra, pallet_router, AMMRoute);
+            list_benchmark!(list, extra, pallet_crowdloans, Crowdloans);
 
             let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1698,6 +1748,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_amm, AMM);
             add_benchmark!(params, batches, pallet_liquid_staking, LiquidStaking);
             add_benchmark!(params, batches, pallet_router, AMMRoute);
+            add_benchmark!(params, batches, pallet_crowdloans, Crowdloans);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)

@@ -14,9 +14,9 @@
 
 use parallel_runtime::{
     opaque::SessionKeys, BalancesConfig, BridgeMembershipConfig, CollatorSelectionConfig,
-    DemocracyConfig, GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
-    LiquidStakingConfig, OracleMembershipConfig, ParachainInfoConfig, PolkadotXcmConfig,
-    SessionConfig, SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig,
+    CrowdloansConfig, DemocracyConfig, GeneralCouncilConfig, GeneralCouncilMembershipConfig,
+    GenesisConfig, LiquidStakingConfig, OracleMembershipConfig, ParachainInfoConfig,
+    PolkadotXcmConfig, SessionConfig, SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig,
     ValidatorFeedersMembershipConfig, VestingConfig, WASM_BINARY,
 };
 use primitives::{network::NetworkType, *};
@@ -285,6 +285,8 @@ fn parallel_genesis(
         polkadot_xcm: PolkadotXcmConfig {
             safe_xcm_version: Some(2),
         },
-        crowdloans: Default::default(),
+        crowdloans: CrowdloansConfig {
+            reserve_factor: Ratio::from_rational(5u32, 1000u32),
+        },
     }
 }

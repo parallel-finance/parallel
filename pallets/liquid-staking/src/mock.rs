@@ -15,7 +15,7 @@ use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId, Rat
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
-    traits::{AccountIdConversion, AccountIdLookup, BlakeTwo256, Convert, One},
+    traits::{AccountIdConversion, AccountIdLookup, BlakeTwo256, Convert, One, Zero},
     AccountId32,
     MultiAddress::Id,
 };
@@ -79,12 +79,28 @@ parameter_types! {
     pub DotPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), 1);
 }
 
+parameter_types! {
+    pub const NativeCurrencyId: CurrencyId = HKO;
+    pub GiftAccount: AccountId = PalletId(*b"par/gift").into_account();
+}
+
+pub struct GiftConvert;
+impl Convert<Balance, Balance> for GiftConvert {
+    fn convert(_amount: Balance) -> Balance {
+        return Zero::zero();
+    }
+}
+
 pub type LocalAssetTransactor = MultiCurrencyAdapter<
     Assets,
     IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
     AccountId,
+    Balance,
     LocationToAccountId,
     CurrencyIdConvert,
+    NativeCurrencyId,
+    GiftAccount,
+    GiftConvert,
 >;
 
 pub type XcmRouter = ParachainXcmRouter<ParachainInfo>;
