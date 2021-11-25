@@ -3,8 +3,7 @@ use crate::mock::*;
 
 use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
-use primitives::ump::XcmWeightMisc;
-use primitives::{tokens, ParaId, Ratio};
+use primitives::{ump::XcmWeightMisc, ParaId, Ratio};
 use sp_runtime::{
     traits::{One, UniqueSaturatedInto, Zero},
     MultiAddress::Id,
@@ -65,7 +64,7 @@ fn create_new_vault_should_not_work_if_vault_is_already_created() {
             Origin::signed(Crowdloans::account_id()),
             ctoken,
             Id(ALICE),
-            100 * DOT_DECIMAL,
+            dot(100f64),
         )
         .unwrap();
 
@@ -200,51 +199,6 @@ fn contribute_should_fail_insufficent_funds() {
 }
 
 #[test]
-fn participate_should_work() {
-    new_test_ext().execute_with(|| {
-        let crowdloan = ParaId::from(1337);
-        let ctoken = 10;
-        let amount = 100_000;
-
-        let contribution_strategy = ContributionStrategy::XCM; //XCM;
-
-        // create the ctoken asset
-        assert_ok!(Assets::force_create(
-            RawOrigin::Root.into(),
-            ctoken.unique_saturated_into(),
-            sp_runtime::MultiAddress::Id(Crowdloans::account_id()),
-            true,
-            One::one(),
-        ));
-
-        // create a vault to contribute to
-        assert_ok!(Crowdloans::create_vault(
-            frame_system::RawOrigin::Root.into(), // origin
-            crowdloan,                            // crowdloan
-            ctoken,                               // ctoken
-            contribution_strategy,                // contribution_strategy
-        ));
-
-        // do contribute
-        assert_ok!(Crowdloans::contribute(
-            Origin::signed(ALICE), // origin
-            crowdloan,             // crowdloan
-            amount,                // amount
-        ));
-
-        // do participate
-        assert_ok!(Crowdloans::participate(
-            frame_system::RawOrigin::Root.into(), // origin
-            crowdloan,                            // crowdloan
-        ));
-
-        let dot_bal = Assets::balance(tokens::DOT, ALICE);
-
-        assert_eq!(999_999_900_000, dot_bal)
-    });
-}
-
-#[test]
 fn close_should_work() {
     new_test_ext().execute_with(|| {
         let crowdloan = ParaId::from(1337);
@@ -311,7 +265,7 @@ fn claim_refund_should_work() {
     new_test_ext().execute_with(|| {
         let crowdloan = 1337;
         let ctoken = 10;
-        let amount = 1_000;
+        let amount = 1_000u128;
 
         let contribution_strategy = ContributionStrategy::XCM;
 
@@ -434,5 +388,24 @@ fn update_xcm_weight_should_work() {
         ));
 
         assert_eq!(XcmWeight::<Test>::get(), XcmWeightMisc::default());
+    });
+}
+
+#[test]
+fn add_reserves_should_work() {
+    new_test_ext().execute_with(|| {
+        let amount = 1_000;
+
+        assert_ok!(Crowdloans::add_reserves(Origin::signed(ALICE), amount));
+
+        assert_eq!(
+            Assets::balance(
+                <Test as Config>::RelayCurrency::get(),
+                Crowdloans::account_id(),
+            ),
+            dot(30f64) + amount
+        );
+
+        assert_eq!(TotalReserves::<Test>::get(), dot(30f64) + amount);
     });
 }

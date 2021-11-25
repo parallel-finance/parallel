@@ -312,15 +312,12 @@ impl SortedMembers<AccountId> for BobOrigin {
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
     pub SelfParaId: ParaId = para_a_id();
+    pub RefundLocation: AccountId = para_a_id().into_account();
     pub const MaxReserves: Balance = 100_000_000_000;
-    pub const PariticipationPeriod: BlockNumber = 10;
 }
 
 pub type CreateVaultOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
-
-pub type PariticipateOrigin =
-    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
 
 pub type CloseOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
@@ -343,15 +340,14 @@ impl crate::Config for Test {
     type RelayNetwork = RelayNetwork;
     type RelayCurrency = RelayCurrency;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type RefundLocation = RefundLocation;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type CreateVaultOrigin = CreateVaultOrigin;
-    type PariticipateOrigin = PariticipateOrigin;
     type CloseOrigin = CloseOrigin;
     type AuctionFailedOrigin = AuctionFailedOrigin;
     type AuctionCompletedOrigin = AuctionCompletedOrigin;
     type SlotExpiredOrigin = SlotExpiredOrigin;
     type MaxReserves = MaxReserves;
-    type PariticipationPeriod = PariticipationPeriod;
     type WeightInfo = ();
 }
 
@@ -418,10 +414,10 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
             Origin::signed(ALICE),
             DOT,
             Id(Crowdloans::account_id()),
-            dot(10f64) + 1,
+            dot(30f64),
         )
         .unwrap();
-        TotalReserves::<Test>::mutate(|b| *b = dot(10f64));
+        TotalReserves::<Test>::mutate(|b| *b = dot(30f64));
         Crowdloans::update_xcm_fees_compensation(Origin::root(), dot(10f64)).unwrap();
     });
 
@@ -484,10 +480,10 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
             Origin::signed(ALICE),
             DOT,
             Id(Crowdloans::account_id()),
-            dot(10f64) + 1,
+            dot(30f64),
         )
         .unwrap();
-        TotalReserves::<Test>::mutate(|b| *b = dot(10f64));
+        TotalReserves::<Test>::mutate(|b| *b = dot(30f64));
         Crowdloans::update_xcm_fees_compensation(Origin::root(), dot(10f64)).unwrap();
     });
 

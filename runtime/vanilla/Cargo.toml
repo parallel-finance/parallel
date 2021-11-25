@@ -204,7 +204,6 @@ std                = [
   'frame-try-runtime/std',
   'pallet-currency-adapter/std',
   'pallet-liquidity-mining/std',
-  'pallet-crowdloans/std',
 ]
 try-runtime        = [
   'frame-support/try-runtime',

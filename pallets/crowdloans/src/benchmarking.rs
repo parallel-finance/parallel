@@ -3,14 +3,11 @@
 #![cfg(feature = "runtime-benchmarks")]
 use super::{types::*, *};
 
-use crate::Pallet as Crowdloans;
+use crate::{Pallet as Crowdloans, TotalReserves};
 
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_system::{self, RawOrigin as SystemOrigin};
-use primitives::ump::XcmWeightMisc;
-use primitives::ParaId;
-use primitives::Ratio;
-use primitives::{tokens, CurrencyId};
+use primitives::{ump::XcmWeightMisc, CurrencyId, ParaId, Ratio};
 use sp_runtime::traits::StaticLookup;
 use sp_std::prelude::*;
 
@@ -20,7 +17,6 @@ use primitives::Balance;
 
 use sp_runtime::traits::One;
 
-const MAX_RESERVES: Balance = 100_000_000_000;
 const XCM_FEES_COMPENSATION: u128 = 50000000000u128;
 const RESERVE_FACTOR: Ratio = Ratio::from_perthousand(5);
 const XCM_WEIGHT: XcmWeightMisc<Weight> = XcmWeightMisc {
@@ -35,8 +31,10 @@ const XCM_WEIGHT: XcmWeightMisc<Weight> = XcmWeightMisc {
     add_memo_weight: 3_000_000_000,
 };
 const CONTRIBUTE_AMOUNT: u128 = 20000000000000u128;
-const INITIAL_INSURANCE: u128 = 1000000000000u128;
+const CONTRIBUTED_AMOUNT: u128 = 19900000000000u128;
+const INITIAL_RESERVES: u128 = 1000000000000u128;
 const INITIAL_AMOUNT: u128 = 1000000000000000u128;
+const ADD_RESERVES_AMOUNT: u128 = 500000000000000u128;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
     frame_system::Pallet::<T>::assert_last_event(generic_event.into());
@@ -50,7 +48,7 @@ fn initial_set_up<T: Config + pallet_assets::Config<AssetId = CurrencyId, Balanc
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        tokens::DOT,
+        T::RelayCurrency::get(),
         account_id.clone(),
         true,
         One::one(),
@@ -68,17 +66,19 @@ fn initial_set_up<T: Config + pallet_assets::Config<AssetId = CurrencyId, Balanc
     .ok();
 
     // fund caller with dot
-    T::Assets::mint_into(tokens::DOT, &caller, INITIAL_AMOUNT).ok();
+    T::Assets::mint_into(T::RelayCurrency::get(), &caller, INITIAL_AMOUNT).ok();
 
     Crowdloans::<T>::update_xcm_fees_compensation(SystemOrigin::Root.into(), XCM_FEES_COMPENSATION)
         .unwrap();
 
     T::Assets::mint_into(
-        tokens::DOT,
+        T::RelayCurrency::get(),
         &Crowdloans::<T>::account_id(),
-        INITIAL_INSURANCE,
+        INITIAL_RESERVES,
     )
     .unwrap();
+
+    TotalReserves::<T>::mutate(|b| *b = INITIAL_RESERVES);
 }
 
 benchmarks! {
@@ -107,6 +107,11 @@ benchmarks! {
         let caller: T::AccountId = whitelisted_caller();
         let crowdloan = ParaId::from(1336);
         initial_set_up::<T>(caller.clone(), ctoken);
+        Crowdloans::<T>::update_reserve_factor(
+            SystemOrigin::Root.into(),
+            RESERVE_FACTOR,
+        )
+        .unwrap();
         assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
     }: _(
         SystemOrigin::Signed(caller.clone()),
@@ -114,30 +119,8 @@ benchmarks! {
         CONTRIBUTE_AMOUNT
     )
     verify {
-        assert_last_event::<T>(Event::VaultContributed(crowdloan, caller, CONTRIBUTE_AMOUNT).into())
+        assert_last_event::<T>(Event::VaultContributed(crowdloan, caller, CONTRIBUTED_AMOUNT).into())
     }
-
-    participate {
-        let ctoken = 10;
-        let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1337);
-        initial_set_up::<T>(caller.clone(), ctoken);
-        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
-        Crowdloans::<T>::update_reserve_factor(
-            SystemOrigin::Root.into(),
-            RESERVE_FACTOR,
-        )
-        .unwrap();
-        assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller).into(), crowdloan, CONTRIBUTE_AMOUNT));
-
-    }: _(
-        SystemOrigin::Root,
-        crowdloan
-    )
-    verify {
-        assert_last_event::<T>(Event::VaultParticipated(crowdloan, CONTRIBUTE_AMOUNT-MAX_RESERVES).into())
-    }
-
 
     close {
         let ctoken = 11;
@@ -235,6 +218,19 @@ benchmarks! {
     }: _(SystemOrigin::Root, XCM_WEIGHT)
     verify {
         assert_last_event::<T>(Event::XcmWeightUpdated(XCM_WEIGHT).into())
+    }
+
+    add_reserves {
+        let ctoken = 15;
+        let caller: T::AccountId = whitelisted_caller();
+        let crowdloan = ParaId::from(1342);
+        initial_set_up::<T>(caller.clone(), ctoken);
+    }: _(
+        SystemOrigin::Signed(caller.clone()),
+        ADD_RESERVES_AMOUNT
+    )
+    verify {
+        assert_last_event::<T>(Event::ReservesAdded(ADD_RESERVES_AMOUNT).into())
     }
 }
 
