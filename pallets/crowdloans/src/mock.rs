@@ -296,6 +296,7 @@ impl SortedMembers<AccountId> for BobOrigin {
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
     pub SelfParaId: ParaId = para_a_id();
+    pub RefundLocation: AccountId = para_a_id().into_account();
     pub const MaxReserves: Balance = 100_000_000_000;
 }
 
@@ -323,6 +324,7 @@ impl crate::Config for Test {
     type RelayNetwork = RelayNetwork;
     type RelayCurrency = RelayCurrency;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type RefundLocation = RefundLocation;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type CreateVaultOrigin = CreateVaultOrigin;
     type CloseOrigin = CloseOrigin;

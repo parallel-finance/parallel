@@ -95,6 +95,9 @@ pub mod pallet {
         /// Convert `T::AccountId` to `MultiLocation`.
         type AccountIdToMultiLocation: Convert<Self::AccountId, MultiLocation>;
 
+        /// Account on relaychain for receiving refunded fees
+        type RefundLocation: Get<Self::AccountId>;
+
         /// Max reserved token amount for paying xcm fees
         type MaxReserves: Get<BalanceOf<Self>>;
 
@@ -570,7 +573,7 @@ pub mod pallet {
                 DepositAsset {
                     assets: asset.into(),
                     max_assets: 1,
-                    beneficiary: T::AccountIdToMultiLocation::convert(Self::para_account_id()),
+                    beneficiary: T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
                 },
             ]))
         }
