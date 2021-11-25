@@ -854,9 +854,15 @@ parameter_types! {
 pub struct GiftConvert;
 impl Convert<Balance, Balance> for GiftConvert {
     fn convert(amount: Balance) -> Balance {
-        if amount >= DOLLARS / 2 {
-            return 1_000_000_000_000;
+        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(&KSM);
+        if decimal.is_zero() {
+            return Zero::zero();
         }
+
+        if amount >= 10_u128.pow(decimal.into()) / 2 {
+            return DOLLARS;
+        }
+
         Zero::zero()
     }
 }
