@@ -34,6 +34,7 @@ const CONTRIBUTE_AMOUNT: u128 = 20000000000000u128;
 const CONTRIBUTED_AMOUNT: u128 = 19900000000000u128;
 const INITIAL_RESERVES: u128 = 1000000000000u128;
 const INITIAL_AMOUNT: u128 = 1000000000000000u128;
+const ADD_RESERVES_AMOUNT: u128 = 500000000000000u128;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
     frame_system::Pallet::<T>::assert_last_event(generic_event.into());
@@ -217,6 +218,19 @@ benchmarks! {
     }: _(SystemOrigin::Root, XCM_WEIGHT)
     verify {
         assert_last_event::<T>(Event::XcmWeightUpdated(XCM_WEIGHT).into())
+    }
+
+    add_reserves {
+        let ctoken = 15;
+        let caller: T::AccountId = whitelisted_caller();
+        let crowdloan = ParaId::from(1342);
+        initial_set_up::<T>(caller.clone(), ctoken);
+    }: _(
+        SystemOrigin::Signed(caller.clone()),
+        ADD_RESERVES_AMOUNT
+    )
+    verify {
+        assert_last_event::<T>(Event::ReservesAdded(ADD_RESERVES_AMOUNT).into())
     }
 }
 
