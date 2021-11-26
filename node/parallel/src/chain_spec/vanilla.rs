@@ -303,7 +303,7 @@ fn vanilla_genesis(
         parachain_info: ParachainInfoConfig { parachain_id: id },
         liquid_staking: LiquidStakingConfig {
             exchange_rate: Rate::saturating_from_rational(100, 100), // 1
-            reserve_factor: Ratio::from_rational(5u32, 100_000u32),
+            reserve_factor: Ratio::from_rational(5u32, 1000u32),
         },
         democracy: DemocracyConfig::default(),
         general_council: GeneralCouncilConfig::default(),
