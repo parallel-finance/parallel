@@ -353,7 +353,7 @@ pub mod pallet {
                 if let Err(err) =
                     T::Assets::transfer(staking_currency, &account_id, who, *amount, false)
                 {
-                    log::error!("Transfer failed {:?}", err);
+                    log::error!(target: "liquidstaking::on_idle", "Transfer failed {:?}", err);
                     // break if we cannot afford this
                     break;
                 }
