@@ -38,3 +38,6 @@ std     = [
   'scale-info/std',
   'cumulus-primitives-core/std',
 ]
+
+[lib]
+doctest = false

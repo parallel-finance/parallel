@@ -27,10 +27,7 @@ sp-io                   = { git = 'https://github.com/paritytech/substrate.git',
 
 [features]
 default            = ['std']
-runtime-benchmarks = [
-	'frame-benchmarking',
-	'frame-system/runtime-benchmarks',
-]
+runtime-benchmarks = ['frame-benchmarking', 'frame-system/runtime-benchmarks']
 std                = [
   'frame-support/std',
   'frame-system/std',
@@ -42,3 +39,6 @@ std                = [
   'sp-runtime/std',
   'scale-info/std',
 ]
+
+[lib]
+doctest = false
