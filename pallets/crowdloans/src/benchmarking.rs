@@ -125,7 +125,7 @@ benchmarks! {
     close {
         let ctoken = 11;
         let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1338);
+        let crowdloan = ParaId::from(1337);
         initial_set_up::<T>(caller, ctoken);
         assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
     }: _(
@@ -134,6 +134,21 @@ benchmarks! {
     )
     verify {
         assert_last_event::<T>(Event::VaultClosed(crowdloan).into())
+    }
+
+    reopen {
+        let ctoken = 13;
+        let caller: T::AccountId = whitelisted_caller();
+        let crowdloan = ParaId::from(1338);
+        initial_set_up::<T>(caller, ctoken);
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
+        assert_ok!(Crowdloans::<T>::close(SystemOrigin::Root.into(), crowdloan));
+    }: _(
+        SystemOrigin::Root,
+        crowdloan
+    )
+    verify {
+        assert_last_event::<T>(Event::VaultReOpened(crowdloan).into())
     }
 
     auction_failed {

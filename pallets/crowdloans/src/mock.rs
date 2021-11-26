@@ -319,7 +319,7 @@ parameter_types! {
 pub type CreateVaultOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
-pub type CloseOrigin =
+pub type CloseReOpenOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
 pub type AuctionFailedOrigin =
@@ -343,7 +343,7 @@ impl crate::Config for Test {
     type RefundLocation = RefundLocation;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type CreateVaultOrigin = CreateVaultOrigin;
-    type CloseOrigin = CloseOrigin;
+    type CloseReOpenOrigin = CloseReOpenOrigin;
     type AuctionFailedOrigin = AuctionFailedOrigin;
     type AuctionCompletedOrigin = AuctionCompletedOrigin;
     type SlotExpiredOrigin = SlotExpiredOrigin;

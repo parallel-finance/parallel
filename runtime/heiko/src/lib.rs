@@ -1339,7 +1339,7 @@ impl pallet_crowdloans::Config for Runtime {
     type RefundLocation = RefundLocation;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type CloseOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type CloseReOpenOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionCompletedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
