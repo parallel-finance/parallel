@@ -1,6 +1,6 @@
 use crate as pallet_emergency_shutdown;
 use frame_support::parameter_types;
-use frame_support::traits::Everything;
+use frame_support::traits::Contains;
 use frame_system as system;
 use frame_system::EnsureRoot;
 use sp_core::H256;
@@ -29,8 +29,25 @@ parameter_types! {
     pub const SS58Prefix: u8 = 42;
 }
 
+pub enum CallFilterRouter {}
+impl Contains<Call> for CallFilterRouter {
+    fn contains(call: &Call) -> bool {
+        EmergencyShutdown::contains(call)
+    }
+}
+
+pub struct TestBaseCallFilter;
+impl Contains<Call> for TestBaseCallFilter {
+    fn contains(c: &Call) -> bool {
+        match *c {
+            Call::System(frame_system::Call::remark { .. }) => false,
+            _ => false,
+        }
+    }
+}
+
 impl system::Config for Test {
-    type BaseCallFilter = Everything;
+    type BaseCallFilter = CallFilterRouter;
     type BlockWeights = ();
     type BlockLength = ();
     type DbWeight = ();
@@ -57,7 +74,7 @@ impl system::Config for Test {
 
 impl pallet_emergency_shutdown::Config for Test {
     type Event = Event;
-    type Whitelist = Everything;
+    type Whitelist = TestBaseCallFilter;
     type ShutdownOrigin = EnsureRoot<u64>;
 }
 
