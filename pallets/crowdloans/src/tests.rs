@@ -227,6 +227,40 @@ fn close_should_work() {
 }
 
 #[test]
+fn reopen_should_work() {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337);
+        let ctoken = 10;
+
+        let contribution_strategy = ContributionStrategy::XCM;
+
+        // create a vault to contribute to
+        assert_ok!(Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            contribution_strategy,                // contribution_strategy
+        ));
+
+        // do close
+        assert_ok!(Crowdloans::close(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
+        // do reopen
+        assert_ok!(Crowdloans::reopen(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
+        // check that we're in the right phase
+        let vault = Crowdloans::vaults(crowdloan).unwrap();
+        assert_eq!(vault.phase, VaultPhase::CollectingContributions)
+    });
+}
+
+#[test]
 fn auction_failed_should_work() {
     new_test_ext().execute_with(|| {
         let crowdloan = 1337;
