@@ -45,7 +45,7 @@ docker run --restart=always --name $PARA_CHAIN-fullnode \
   -p $RELAY_RPC_PORT:$RELAY_RPC_PORT \
   -p $RELAY_P2P_PORT:$RELAY_P2P_PORT \
   -v "$VOLUME:/data" \
-  parallelfinance/parallel:v1.7.2 \
+  parallelfinance/parallel:v1.7.3 \
     -d /data \
     --chain=$PARA_CHAIN \
     --parachain-id=$PARA_ID \
