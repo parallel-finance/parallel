@@ -2771,7 +2771,7 @@ dependencies = [
 
 [[package]]
 name = "heiko-runtime"
-version = "1.7.2"
+version = "1.7.3"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -4954,7 +4954,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-amm"
-version = "1.7.2"
+version = "1.7.3"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5154,7 +5154,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-bridge"
-version = "1.0.0"
+version = "1.7.3"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5312,7 +5312,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-currency-adapter"
-version = "1.7.2"
+version = "1.7.3"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5473,7 +5473,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-liquid-staking"
-version = "1.7.2"
+version = "1.7.3"
 dependencies = [
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
@@ -5513,7 +5513,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-liquidation"
-version = "1.7.2"
+version = "1.7.3"
 dependencies = [
  "alt_serde",
  "alt_serde_json",
@@ -5532,7 +5532,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-liquidity-mining"
-version = "1.7.2"
+version = "1.7.3"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5552,7 +5552,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-loans"
-version = "1.7.2"
+version = "1.7.3"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5576,7 +5576,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-loans-rpc"
-version = "1.7.2"
+version = "1.7.3"
 dependencies = [
  "jsonrpc-core",
  "jsonrpc-core-client",
@@ -5593,7 +5593,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-loans-rpc-runtime-api"
-version = "1.7.2"
+version = "1.7.3"
 dependencies = [
  "parallel-primitives",
  "parity-scale-codec",
@@ -5700,7 +5700,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-nominee-election"
-version = "1.7.2"
+version = "1.7.3"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5755,7 +5755,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-prices"
-version = "1.7.2"
+version = "1.7.3"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -5802,7 +5802,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-router"
-version = "1.7.2"
+version = "1.7.3"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -6124,7 +6124,7 @@ dependencies = [
 
 [[package]]
 name = "parallel"
-version = "1.7.2"
+version = "1.7.3"
 dependencies = [
  "cumulus-client-cli",
  "cumulus-client-collator",
@@ -6213,7 +6213,7 @@ dependencies = [
 
 [[package]]
 name = "parallel-runtime"
-version = "1.7.2"
+version = "1.7.3"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -11346,7 +11346,7 @@ dependencies = [
 
 [[package]]
 name = "vanilla-runtime"
-version = "1.7.2"
+version = "1.7.3"
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
