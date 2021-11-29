@@ -43,6 +43,16 @@ jobs:
         run: |
           subwasm meta ${{ steps.srtool_build.outputs.wasm }}
           subwasm --json meta ${{ steps.srtool_build.outputs.wasm }} > ${{ matrix.chain }}-metadata.json
+      - name: Diff with heiko live runtime
+        if: matrix.chain == 'heiko'
+        run: |
+          subwasm get wss://heiko-rpc.parallel.fi --output heiko-live.wasm
+          subwasm diff ${{ steps.srtool_build.outputs.wasm_compressed }} heiko-live.wasm | tee ${{ matrix.chain }}-diff.txt
+      - name: Diff with parallel live runtime
+        if: matrix.chain == 'parallel'
+        run: |
+          subwasm get wss://rpc.parallel.fi --output parallel-live.wasm
+          subwasm diff ${{ steps.srtool_build.outputs.wasm_compressed }} parallel-live.wasm | tee ${{ matrix.chain }}-diff.txt
       - name: Archive Runtime
         uses: actions/upload-artifact@v2
         with:
@@ -52,6 +62,7 @@ jobs:
             ${{ matrix.chain }}-info_compressed.json
             ${{ matrix.chain }}-srtool-digest.json
             ${{ matrix.chain }}-metadata.json
+            ${{ matrix.chain }}-diff.txt
             ${{ steps.srtool_build.outputs.wasm }}
             ${{ steps.srtool_build.outputs.wasm_compressed }}
       - name: Get Runtime Version
