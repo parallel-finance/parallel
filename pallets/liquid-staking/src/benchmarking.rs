@@ -251,16 +251,13 @@ benchmarks! {
         let alice: T::AccountId = account("Sample", 100, SEED);
         let bob: T::AccountId = account("Sample", 101, SEED);
         let charlie: T::AccountId = account("Sample", 102, SEED);
-        let eve: T::AccountId = account("Sample", 103, SEED);
         initial_set_up::<T>(alice.clone());
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
         StakingPool::<T>::mutate(|b| *b += 2 * STAKED_AMOUNT);
         T::Assets::mint_into(XDOT, &bob, STAKED_AMOUNT).unwrap();
         T::Assets::mint_into(XDOT, &charlie, STAKED_AMOUNT).unwrap();
-        T::Assets::mint_into(XDOT, &eve, STAKED_AMOUNT).unwrap();
         LiquidStaking::<T>::unstake(SystemOrigin::Signed(bob).into(), STAKED_AMOUNT).unwrap();
         LiquidStaking::<T>::unstake(SystemOrigin::Signed(charlie).into(), STAKED_AMOUNT).unwrap();
-        LiquidStaking::<T>::unstake(SystemOrigin::Signed(eve).into(), STAKED_AMOUNT).unwrap();
 
         // Simulate withdraw_unbonded
         T::Assets::mint_into(DOT, &LiquidStaking::<T>::account_id(), 10 * STAKED_AMOUNT).unwrap();
