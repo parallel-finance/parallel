@@ -256,9 +256,16 @@ impl Contains<Call> for BaseCallFilter {
     }
 }
 
+pub struct CallFilterRouter {}
+impl Contains<Call> for CallFilterRouter {
+    fn contains(call: &Call) -> bool {
+        BaseCallFilter::contains(call) && EmergencyShutdown::contains(call)
+    }
+}
+
 impl frame_system::Config for Runtime {
     /// The basic call filter to use in dispatchable.
-    type BaseCallFilter = BaseCallFilter;
+    type BaseCallFilter = CallFilterRouter;
     /// Block & extrinsics weights: base values and limits.
     type BlockWeights = RuntimeBlockWeights;
     /// The maximum length of a block (in bytes).
@@ -1383,6 +1390,47 @@ impl pallet_currency_adapter::Config for Runtime {
 //     type WeightInfo = pallet_liquidity_mining::weights::SubstrateWeight<Runtime>;
 // }
 
+pub enum WhiteListFilter {}
+impl Contains<Call> for WhiteListFilter {
+    fn contains(call: &Call) -> bool {
+        matches!(
+            call,
+            // System
+            Call::System(_) |
+            Call::Timestamp(_) |
+            // Governance
+            Call::Sudo(_) |
+            Call::Democracy(_) |
+            Call::GeneralCouncil(_) |
+            Call::TechnicalCommittee(_) |
+            Call::Treasury(_) |
+            Call::Scheduler(_) |
+            // Parachain
+            Call::ParachainSystem(_) |
+            // Consensus
+            Call::Authorship(_) |
+            Call::Session(_) |
+            // Utility
+            Call::Utility(_) |
+            Call::Multisig(_) |
+            Call::Proxy(_) |
+            // 3rd Party
+            Call::Vesting(_) |
+            // Membership
+            Call::GeneralCouncilMembership(_) |
+            Call::TechnicalCommitteeMembership(_) |
+            // Emergency Shutdown pallet
+            Call::EmergencyShutdown(_)
+        )
+    }
+}
+
+impl pallet_emergency_shutdown::Config for Runtime {
+    type Event = Event;
+    type Whitelist = WhiteListFilter;
+    type ShutdownOrigin = EnsureRoot<AccountId>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -1456,6 +1504,10 @@ construct_runtime!(
 
         // Bridge
         Bridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 90,
+
+        // Emergency Shutdown
+        EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Event<T>} = 91,
+
     }
 );
 

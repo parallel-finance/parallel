@@ -2807,6 +2807,7 @@ dependencies = [
  "pallet-crowdloans",
  "pallet-currency-adapter",
  "pallet-democracy",
+ "pallet-emergency-shutdown",
  "pallet-liquid-staking",
  "pallet-liquidation",
  "pallet-loans",
@@ -5381,6 +5382,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-emergency-shutdown"
+version = "1.7.2"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-gilt"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.12#d76f39995315ec36980908e4b99709bd14927044"
@@ -6249,6 +6264,7 @@ dependencies = [
  "pallet-crowdloans",
  "pallet-currency-adapter",
  "pallet-democracy",
+ "pallet-emergency-shutdown",
  "pallet-liquid-staking",
  "pallet-liquidation",
  "pallet-loans",
@@ -11382,6 +11398,7 @@ dependencies = [
  "pallet-crowdloans",
  "pallet-currency-adapter",
  "pallet-democracy",
+ "pallet-emergency-shutdown",
  "pallet-liquid-staking",
  "pallet-liquidation",
  "pallet-liquidity-mining",

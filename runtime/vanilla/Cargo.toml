@@ -91,6 +91,7 @@ pallet-amm                   = { path = '../../pallets/amm', default-features = 
 pallet-bridge                = { path = '../../pallets/bridge', default-features = false }
 pallet-crowdloans            = { path = '../../pallets/crowdloans', default-features = false }
 pallet-currency-adapter      = { path = '../../pallets/currency-adapter', default-features = false }
+pallet-emergency-shutdown    = { path = '../../pallets/emergency-shutdown', default-features = false }
 pallet-liquid-staking        = { path = '../../pallets/liquid-staking', default-features = false }
 pallet-liquidation           = { path = '../../pallets/liquidation', default-features = false }
 pallet-liquidity-mining      = { path = '../../pallets/liquidity-mining', default-features = false }
@@ -204,6 +205,8 @@ std                = [
   'frame-try-runtime/std',
   'pallet-currency-adapter/std',
   'pallet-liquidity-mining/std',
+  'pallet-crowdloans/std',
+  'pallet-emergency-shutdown/std'
 ]
 try-runtime        = [
   'frame-support/try-runtime',
