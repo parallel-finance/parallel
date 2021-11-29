@@ -103,7 +103,7 @@ pub mod pallet {
         type MaxReservesPerContribution: Get<BalanceOf<Self>>;
 
         /// Minimum contribute amount
-        type MinContributeAmount: Get<BalanceOf<Self>>;
+        type MinContribution: Get<BalanceOf<Self>>;
 
         /// The origin which can update reserve_factor, xcm_fees_compensation etc
         type UpdateOrigin: EnsureOrigin<Self::Origin>;
@@ -289,6 +289,11 @@ pub mod pallet {
             let amount = amount
                 .checked_sub(reserves)
                 .ok_or(ArithmeticError::Underflow)?;
+
+            ensure!(
+                amount >= T::MinContribution::get(),
+                Error::<T>::InsufficientBalance
+            );
 
             vault
                 .contribution_strategy
