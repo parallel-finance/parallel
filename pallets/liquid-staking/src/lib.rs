@@ -41,7 +41,7 @@ pub use pallet::*;
 pub mod pallet {
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
-        ensure,
+        ensure, log,
         pallet_prelude::*,
         require_transactional,
         traits::{
@@ -337,12 +337,23 @@ pub mod pallet {
                 let free_balance =
                     T::Assets::reducible_balance(staking_currency, &account_id, false)
                         .saturating_sub(Self::insurance_pool());
+
+                log::trace!(
+                    target: "liquidstaking::on_idle",
+                    "account: {:?}, unstake_amount: {:?}, remaining_weight: {:?}, pallet_free_balance: {:?}",
+                    who,
+                    amount,
+                    remaining_weight,
+                    free_balance,
+                );
                 if free_balance < *amount {
                     return remaining_weight;
                 }
 
-                if T::Assets::transfer(staking_currency, &account_id, who, *amount, false).is_err()
+                if let Err(err) =
+                    T::Assets::transfer(staking_currency, &account_id, who, *amount, false)
                 {
+                    log::error!(target: "liquidstaking::on_idle", "Transfer failed {:?}", err);
                     // break if we cannot afford this
                     break;
                 }
@@ -1039,6 +1050,14 @@ pub mod pallet {
             let staking_currency = Self::staking_currency()?;
             let account_id = Self::account_id();
             let asset: MultiAsset = (MultiLocation::here(), fees).into();
+
+            log::trace!(
+                target: "liquidstaking::ump_transact",
+                "call: {:?}, asset: {:?}, xcm_weight: {:?}",
+                &call,
+                &asset,
+                weight,
+            );
 
             T::Assets::burn_from(staking_currency, &account_id, fees)?;
 
