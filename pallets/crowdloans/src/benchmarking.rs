@@ -119,7 +119,7 @@ benchmarks! {
         CONTRIBUTE_AMOUNT
     )
     verify {
-        assert_last_event::<T>(Event::VaultContributed(crowdloan, caller, CONTRIBUTED_AMOUNT).into())
+        assert_last_event::<T>(Event::VaultContributing(crowdloan, caller, CONTRIBUTED_AMOUNT).into())
     }
 
     close {

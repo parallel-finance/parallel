@@ -75,7 +75,7 @@ fn create_new_vault_should_not_work_if_vault_is_already_created() {
                 ctoken,                               // ctoken
                 ContributionStrategy::XCM,            // contribution_strategy
             ),
-            Error::<Test>::CTokenVaultAlreadyCreated
+            Error::<Test>::CTokenAlreadyTaken
         );
     });
 }
