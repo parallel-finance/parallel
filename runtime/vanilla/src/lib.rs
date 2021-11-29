@@ -252,7 +252,9 @@ impl Contains<Call> for BaseCallFilter {
             // Crowdloans
             Call::Crowdloans(_) |
             // Bridge
-            Call::Bridge(_)
+            Call::Bridge(_) |
+            // Liquidity Mining
+            Call::LiquidityMining(_)
         )
     }
 }
