@@ -1348,7 +1348,8 @@ impl pallet_amm::Config for Runtime {
 
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
-    pub const MaxReserves: Balance = 100_000_000_000;
+    pub const MaxReservesPerContribution: Balance = 100_000_000_000;
+    pub const MinContribution: Balance = 100_000_000_000;
     pub RefundLocation: AccountId = ParachainInfo::parachain_id().into_account();
 }
 
@@ -1362,13 +1363,14 @@ impl pallet_crowdloans::Config for Runtime {
     type RelayCurrency = RelayCurrency;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type RefundLocation = RefundLocation;
+    type MaxReservesPerContribution = MaxReservesPerContribution;
+    type MinContribution = MinContribution;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CloseReOpenOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionCompletedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type MaxReserves = MaxReserves;
     type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
 }
 
