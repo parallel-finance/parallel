@@ -102,6 +102,9 @@ pub mod pallet {
         /// Max reserved token amount for paying xcm fees
         type MaxReserves: Get<BalanceOf<Self>>;
 
+        /// Minimum contribute amount
+        type MinContributeAmount: Get<BalanceOf<Self>>;
+
         /// The origin which can update reserve_factor, xcm_fees_compensation etc
         type UpdateOrigin: EnsureOrigin<Self::Origin>;
 
