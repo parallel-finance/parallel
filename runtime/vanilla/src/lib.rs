@@ -201,12 +201,9 @@ impl Contains<Call> for BaseCallFilter {
     fn contains(call: &Call) -> bool {
         matches!(
             call,
-            // System, Utility, Currencies
+            // System, Currencies
             Call::System(_) |
             Call::Timestamp(_) |
-            Call::Multisig(_)  |
-            Call::Utility(_) |
-            Call::Proxy(_) |
             Call::Balances(_) |
             Call::Assets(pallet_assets::Call::mint { .. }) |
             Call::Assets(pallet_assets::Call::transfer { .. }) |
@@ -228,6 +225,10 @@ impl Contains<Call> for BaseCallFilter {
             Call::Authorship(_) |
             Call::CollatorSelection(_) |
             Call::Session(_) |
+            // Utility
+            Call::Multisig(_)  |
+            Call::Utility(_) |
+            Call::Proxy(_) |
             // 3rd Party
             Call::Oracle(_) |
             Call::XTokens(_) |
@@ -256,7 +257,7 @@ impl Contains<Call> for BaseCallFilter {
     }
 }
 
-pub struct CallFilterRouter {}
+pub struct CallFilterRouter;
 impl Contains<Call> for CallFilterRouter {
     fn contains(call: &Call) -> bool {
         BaseCallFilter::contains(call) && EmergencyShutdown::contains(call)
@@ -1287,16 +1288,14 @@ parameter_types! {
     pub const BridgeMaxMembers: u32 = 100;
 }
 
-type EnsureRootOrigin = EnsureRoot<AccountId>;
-
 type BridgeMembershipInstance = pallet_membership::Instance6;
 impl pallet_membership::Config<BridgeMembershipInstance> for Runtime {
     type Event = Event;
-    type AddOrigin = EnsureRootOrigin;
-    type RemoveOrigin = EnsureRootOrigin;
-    type SwapOrigin = EnsureRootOrigin;
-    type ResetOrigin = EnsureRootOrigin;
-    type PrimeOrigin = EnsureRootOrigin;
+    type AddOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type RemoveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type SwapOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type ResetOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type PrimeOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type MembershipInitialized = ();
     type MembershipChanged = ();
     type MaxMembers = BridgeMaxMembers;
@@ -1317,7 +1316,7 @@ parameter_types! {
 impl pallet_bridge::Config for Runtime {
     type Event = Event;
     type AdminMembers = BridgeMembership;
-    type RootOperatorOrigin = EnsureRootOrigin;
+    type RootOperatorOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type ChainId = ParallelHeiko;
     type PalletId = BridgePalletId;
     type Assets = CurrencyAdapter;
@@ -1415,7 +1414,7 @@ impl pallet_liquidity_mining::Config for Runtime {
     type WeightInfo = pallet_liquidity_mining::weights::SubstrateWeight<Runtime>;
 }
 
-pub enum WhiteListFilter {}
+pub struct WhiteListFilter;
 impl Contains<Call> for WhiteListFilter {
     fn contains(call: &Call) -> bool {
         matches!(
@@ -1523,14 +1522,10 @@ construct_runtime!(
         AMMRoute: pallet_router::{Pallet, Call, Event<T>} = 81,
         CurrencyAdapter: pallet_currency_adapter::{Pallet, Call} = 82,
 
-        // LiquidityMining
-        LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 83,
-
-        // Bridge
+        // Others
         Bridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 90,
-
-        // Emergency Shutdown
         EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Event<T>} = 91,
+        LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 92,
     }
 );
 

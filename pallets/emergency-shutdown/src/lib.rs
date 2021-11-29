@@ -15,7 +15,7 @@
 //! # Emergency Shut-Down pallet
 //!
 //! ## Overview
-//!
+//! Emergency shutdown calls not in whitelist
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
