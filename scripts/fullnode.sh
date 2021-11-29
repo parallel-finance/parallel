@@ -73,6 +73,7 @@ docker run --restart=always --name $PARA_CHAIN-fullnode \
     --wasm-execution=compiled \
     --execution=wasm \
     --database=RocksDb \
+    --state-cache-size 0 \
     --unsafe-pruning \
     --pruning=1000 \
     --listen-addr=/ip4/0.0.0.0/tcp/$RELAY_P2P_PORT \
