@@ -1442,8 +1442,8 @@ impl Contains<Call> for WhiteListFilter {
             // Membership
             Call::GeneralCouncilMembership(_) |
             Call::TechnicalCommitteeMembership(_) |
-			// Emergency Shutdown pallet
-			Call::EmergencyShutdown(_)
+            // Emergency Shutdown pallet
+            Call::EmergencyShutdown(_)
         )
     }
 }

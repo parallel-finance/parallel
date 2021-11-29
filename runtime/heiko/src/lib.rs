@@ -1417,8 +1417,8 @@ impl Contains<Call> for WhiteListFilter {
             // Membership
             Call::GeneralCouncilMembership(_) |
             Call::TechnicalCommitteeMembership(_) |
-			// Emergency Shutdown pallet
-			Call::EmergencyShutdown(_)
+            // Emergency Shutdown pallet
+            Call::EmergencyShutdown(_)
         )
     }
 }
@@ -1504,7 +1504,7 @@ construct_runtime!(
         Bridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 90,
 
         // Emergency Shutdown
-        EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Event<T>} = 84,
+        EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Event<T>} = 91,
 
     }
 );
