@@ -313,7 +313,7 @@ parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
     pub SelfParaId: ParaId = para_a_id();
     pub RefundLocation: AccountId = para_a_id().into_account();
-    pub const MaxReserves: Balance = 100_000_000_000;
+    pub const MaxReservesPerContribution: Balance = 100_000_000_000;
     pub const MinContributeAmount: Balance = 0;
 }
 
@@ -342,7 +342,7 @@ impl crate::Config for Test {
     type RelayCurrency = RelayCurrency;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type RefundLocation = RefundLocation;
-    type MaxReserves = MaxReserves;
+    type MaxReservesPerContribution = MaxReservesPerContribution;
     type MinContributeAmount = MinContributeAmount;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type CreateVaultOrigin = CreateVaultOrigin;

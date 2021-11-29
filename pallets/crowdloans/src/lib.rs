@@ -100,7 +100,7 @@ pub mod pallet {
         type RefundLocation: Get<Self::AccountId>;
 
         /// Max reserved token amount for paying xcm fees
-        type MaxReserves: Get<BalanceOf<Self>>;
+        type MaxReservesPerContribution: Get<BalanceOf<Self>>;
 
         /// Minimum contribute amount
         type MinContributeAmount: Get<BalanceOf<Self>>;
@@ -270,7 +270,7 @@ pub mod pallet {
 
             let reserves = min(
                 Self::reserve_factor().mul_floor(amount),
-                T::MaxReserves::get(),
+                T::MaxReservesPerContribution::get(),
             );
             TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b.checked_add(reserves).ok_or(ArithmeticError::Overflow)?;
