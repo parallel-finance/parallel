@@ -48,7 +48,7 @@ pub mod pallet {
     use primitives::{ump::XcmWeightMisc, Balance, CurrencyId, ParaId, Ratio};
     use sp_runtime::{
         traits::{AccountIdConversion, Convert, Zero},
-        ArithmeticError, DispatchError, MultiSignature,
+        ArithmeticError, DispatchError,
     };
     use sp_std::cmp::min;
     use sp_std::vec;
@@ -130,7 +130,7 @@ pub mod pallet {
         /// New vault was created
         VaultCreated(ParaId, AssetIdOf<T>),
         /// User contributed amount to vault
-        VaultContributed(ParaId, T::AccountId, BalanceOf<T>),
+        VaultContributing(ParaId, T::AccountId, BalanceOf<T>),
         /// Vault was closed
         VaultClosed(ParaId),
         /// Vault was reopened
@@ -147,10 +147,6 @@ pub mod pallet {
         XcmWeightUpdated(XcmWeightMisc<Weight>),
         /// Compensation for extrinsics on relaychain was set to new value
         XcmFeesCompensationUpdated(BalanceOf<T>),
-        /// Sent crowdloan.contribute call to relaychain
-        Contributing(ParaId, BalanceOf<T>, Option<MultiSignature>),
-        /// Sent crowdloan.withdraw call to relaychain
-        Withdrawing(ParaId, T::AccountId),
         /// Reserves added
         ReservesAdded(BalanceOf<T>),
     }
@@ -159,7 +155,7 @@ pub mod pallet {
     pub enum Error<T> {
         /// Vault is not in correct phase
         IncorrectVaultPhase,
-        /// Crowdload ParaId aready exists
+        /// Crowdloan ParaId aready exists
         CrowdloanAlreadyExists,
         /// Amount is not enough
         InsufficientBalance,
@@ -167,8 +163,8 @@ pub mod pallet {
         VaultDoesNotExist,
         /// Vault contributed greater than issuance
         ContributedGreaterThanIssuance,
-        /// Vault with specific ctoken already created
-        CTokenVaultAlreadyCreated,
+        /// Ctoken already taken by another vault
+        CTokenAlreadyTaken,
         /// Xcm message send failure
         SendXcmError,
     }
@@ -236,10 +232,7 @@ pub mod pallet {
 
             let ctoken_issuance = T::Assets::total_issuance(ctoken);
 
-            ensure!(
-                ctoken_issuance.is_zero(),
-                Error::<T>::CTokenVaultAlreadyCreated
-            );
+            ensure!(ctoken_issuance.is_zero(), Error::<T>::CTokenAlreadyTaken);
 
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 ensure!(vault.is_none(), Error::<T>::CrowdloanAlreadyExists);
@@ -286,15 +279,13 @@ pub mod pallet {
                 &who,
                 &Self::account_id(),
                 amount,
-                false,
+                true,
             )
             .map_err(|_: DispatchError| Error::<T>::InsufficientBalance)?;
 
             let amount = amount
                 .checked_sub(reserves)
                 .ok_or(ArithmeticError::Underflow)?;
-
-            T::Assets::mint_into(vault.ctoken, &who, amount)?;
 
             vault
                 .contribution_strategy
@@ -305,9 +296,11 @@ pub mod pallet {
                 .checked_add(amount)
                 .ok_or(ArithmeticError::Overflow)?;
 
+            T::Assets::mint_into(vault.ctoken, &who, amount)?;
+
             Vaults::<T>::insert(crowdloan, vault);
 
-            Self::deposit_event(Event::<T>::VaultContributed(crowdloan, who, amount));
+            Self::deposit_event(Event::<T>::VaultContributing(crowdloan, who, amount));
 
             Ok(().into())
         }
@@ -334,7 +327,7 @@ pub mod pallet {
             })
         }
 
-        /// Mark the associated vault as CollectingContributions and accepting more contributions for it
+        /// Mark the associated vault as CollectingContributions and continue to accept contributions
         #[pallet::weight(<T as Config>::WeightInfo::reopen())]
         #[transactional]
         pub fn reopen(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
@@ -402,13 +395,10 @@ pub mod pallet {
                     Error::<T>::IncorrectVaultPhase
                 );
 
-                let origin_ctoken_amount =
+                let ctoken_amount =
                     <T as Config>::Assets::reducible_balance(vault.ctoken, &who, false);
 
-                ensure!(
-                    origin_ctoken_amount >= amount,
-                    Error::<T>::InsufficientBalance
-                );
+                ensure!(ctoken_amount >= amount, Error::<T>::InsufficientBalance);
 
                 T::Assets::burn_from(vault.ctoken, &who, amount)?;
 
@@ -453,6 +443,7 @@ pub mod pallet {
             })
         }
 
+        /// Add more reserves so that can be used for xcm fees
         #[pallet::weight(<T as Config>::WeightInfo::add_reserves())]
         #[transactional]
         pub fn add_reserves(
@@ -477,6 +468,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        /// Update reserve_factor for charging less/more fees
         #[pallet::weight(<T as Config>::WeightInfo::update_reserve_factor())]
         #[transactional]
         pub fn update_reserve_factor(
@@ -489,6 +481,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        /// Update xm fees amount to be used in xcm.Withdraw message
         #[pallet::weight(<T as Config>::WeightInfo::update_xcm_fees_compensation())]
         #[transactional]
         pub fn update_xcm_fees_compensation(
@@ -501,6 +494,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        /// Update xcm weight to be used in xcm.Transact message
         #[pallet::weight(<T as Config>::WeightInfo::update_xcm_weight())]
         #[transactional]
         pub fn update_xcm_weight(
@@ -515,12 +509,12 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        /// Crowdloan pool account
+        /// Crowdloans pool account
         pub fn account_id() -> T::AccountId {
             T::PalletId::get().into_account()
         }
 
-        /// Parachain sovereign account
+        /// Parachain's sovereign account on relaychain
         pub fn para_account_id() -> T::AccountId {
             T::SelfParaId::get().into_account()
         }

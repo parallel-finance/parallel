@@ -14,7 +14,7 @@
 
 // Groups common pool related structures
 
-use super::{AssetIdOf, BalanceOf, Config, Error, Event, Pallet as Crowdloans};
+use super::{AssetIdOf, BalanceOf, Config, Error, Pallet as Crowdloans};
 
 use codec::{Decode, Encode};
 use frame_support::{
@@ -118,13 +118,8 @@ impl ContributionStrategyExecutor for ContributionStrategy {
                 Crowdloans::<T>::xcm_weight().contribute_weight,
             )?;
 
-            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                Ok(()) => {
-                    Crowdloans::<T>::deposit_event(Event::<T>::Contributing(para_id, amount, None));
-                }
-                Err(_e) => {
-                    return Err(Error::<T>::SendXcmError.into());
-                }
+            if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                return Err(Error::<T>::SendXcmError.into());
             }
         });
 
@@ -153,16 +148,8 @@ impl ContributionStrategyExecutor for ContributionStrategy {
                 Crowdloans::<T>::xcm_weight().withdraw_weight,
             )?;
 
-            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                Ok(()) => {
-                    Crowdloans::<T>::deposit_event(Event::<T>::Withdrawing(
-                        para_id,
-                        Crowdloans::<T>::para_account_id(),
-                    ));
-                }
-                Err(_e) => {
-                    return Err(Error::<T>::SendXcmError.into());
-                }
+            if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                return Err(Error::<T>::SendXcmError.into());
             }
         });
 
