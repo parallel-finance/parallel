@@ -255,7 +255,7 @@ impl Contains<Call> for BaseCallFilter {
     }
 }
 
-pub struct CallFilterRouter {}
+pub struct CallFilterRouter;
 impl Contains<Call> for CallFilterRouter {
     fn contains(call: &Call) -> bool {
         BaseCallFilter::contains(call) && EmergencyShutdown::contains(call)
@@ -1253,46 +1253,44 @@ impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
     type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
 }
 
-parameter_types! {
-    pub const BridgeMaxMembers: u32 = 100;
-}
-
-type EnsureRootOrigin = EnsureRoot<AccountId>;
-
-type BridgeMembershipInstance = pallet_membership::Instance6;
-impl pallet_membership::Config<BridgeMembershipInstance> for Runtime {
-    type Event = Event;
-    type AddOrigin = EnsureRootOrigin;
-    type RemoveOrigin = EnsureRootOrigin;
-    type SwapOrigin = EnsureRootOrigin;
-    type ResetOrigin = EnsureRootOrigin;
-    type PrimeOrigin = EnsureRootOrigin;
-    type MembershipInitialized = ();
-    type MembershipChanged = ();
-    type MaxMembers = BridgeMaxMembers;
-    type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
-}
+// parameter_types! {
+//     pub const BridgeMaxMembers: u32 = 100;
+// }
+//
+// type BridgeMembershipInstance = pallet_membership::Instance6;
+// impl pallet_membership::Config<BridgeMembershipInstance> for Runtime {
+//     type Event = Event;
+//     type AddOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+//     type RemoveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+//     type SwapOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+//     type ResetOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+//     type PrimeOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+//     type MembershipInitialized = ();
+//     type MembershipChanged = ();
+//     type MaxMembers = BridgeMaxMembers;
+//     type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
+// }
+//
+// parameter_types! {
+//     pub const ParallelHeiko: ChainId = 0;
+//     pub const BridgePalletId: PalletId = PalletId(*b"par/brid");
+//     pub const ProposalLifetime: BlockNumber = 200;
+// }
+//
+// impl pallet_bridge::Config for Runtime {
+//     type Event = Event;
+//     type AdminMembers = BridgeMembership;
+//     type RootOperatorOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+//     type ChainId = ParallelHeiko;
+//     type PalletId = BridgePalletId;
+//     type Assets = CurrencyAdapter;
+//     type ProposalLifetime = ProposalLifetime;
+//     type WeightInfo = pallet_bridge::weights::SubstrateWeight<Runtime>;
+// }
 
 parameter_types! {
     pub MinVestedTransfer: Balance = 0;
     pub const MaxVestingSchedules: u32 = 100;
-}
-
-parameter_types! {
-    pub const ParallelHeiko: ChainId = 0;
-    pub const BridgePalletId: PalletId = PalletId(*b"par/brid");
-    pub const ProposalLifetime: BlockNumber = 200;
-}
-
-impl pallet_bridge::Config for Runtime {
-    type Event = Event;
-    type AdminMembers = BridgeMembership;
-    type RootOperatorOrigin = EnsureRootOrigin;
-    type ChainId = ParallelHeiko;
-    type PalletId = BridgePalletId;
-    type Assets = CurrencyAdapter;
-    type ProposalLifetime = ProposalLifetime;
-    type WeightInfo = pallet_bridge::weights::SubstrateWeight<Runtime>;
 }
 
 impl orml_vesting::Config for Runtime {
@@ -1385,7 +1383,7 @@ impl pallet_currency_adapter::Config for Runtime {
 // 	type WeightInfo = pallet_liquidity_mining::weights::SubstrateWeight<Runtime>;
 // }
 
-pub enum WhiteListFilter {}
+pub struct WhiteListFilter;
 impl Contains<Call> for WhiteListFilter {
     fn contains(call: &Call) -> bool {
         matches!(
@@ -1413,9 +1411,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::Vesting(_) |
             // Membership
             Call::GeneralCouncilMembership(_) |
-            Call::TechnicalCommitteeMembership(_) |
-            // Emergency Shutdown pallet
-            Call::EmergencyShutdown(_)
+            Call::TechnicalCommitteeMembership(_)
         )
     }
 }
@@ -1476,7 +1472,7 @@ construct_runtime!(
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>} = 50,
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>} = 51,
         Crowdloans: pallet_crowdloans::{Pallet, Call, Storage, Config, Event<T>} = 52,
-        // Liquidation: pallet_liquidation::{Pallet, Call} = 52,
+        // Liquidation: pallet_liquidation::{Pallet, Call} = 53,
 
         // LiquidStaking
         LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config} = 60,
@@ -1487,20 +1483,17 @@ construct_runtime!(
         TechnicalCommitteeMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>} = 71,
         OracleMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
         ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,
-        BridgeMembership: pallet_membership::<Instance6>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74,
+        // BridgeMembership: pallet_membership::<Instance6>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74,
 
         // AMM
         AMM: pallet_amm::{Pallet, Call, Storage, Event<T>} = 80,
         AMMRoute: pallet_router::{Pallet, Call, Event<T>} = 81,
         CurrencyAdapter: pallet_currency_adapter::{Pallet, Call} = 82,
 
-        // LiquidityMining
-        // LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 83,
-        // Bridge
-        Bridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 90,
-
-        // Emergency Shutdown
+        // Others
+        // Bridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 90,
         EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Event<T>} = 91,
+        // LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 92,
     }
 );
 
@@ -1692,7 +1685,7 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_balances, Balances);
             list_benchmark!(list, extra, pallet_membership, TechnicalCommitteeMembership);
             list_benchmark!(list, extra, pallet_multisig, Multisig);
-            list_benchmark!(list, extra, pallet_bridge, Bridge);
+            // list_benchmark!(list, extra, pallet_bridge, Bridge);
             list_benchmark!(list, extra, pallet_loans, Loans);
             list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
             list_benchmark!(list, extra, pallet_timestamp, Timestamp);
@@ -1736,7 +1729,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, frame_system, SystemBench::<Runtime>);
             add_benchmark!(params, batches, pallet_balances, Balances);
             add_benchmark!(params, batches, pallet_timestamp, Timestamp);
-            add_benchmark!(params, batches, pallet_bridge, Bridge);
+            // add_benchmark!(params, batches, pallet_bridge, Bridge);
             add_benchmark!(params, batches, pallet_loans, Loans);
             add_benchmark!(params, batches, pallet_multisig, Multisig);
             add_benchmark!(params, batches, pallet_membership, TechnicalCommitteeMembership);

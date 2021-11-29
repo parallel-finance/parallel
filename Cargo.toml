@@ -1,5 +1,6 @@
 [profile.release]
-panic = 'unwind'
+overflow-checks = true
+panic           = 'unwind'
 
 [workspace]
 members = ['node/*', 'pallets/*', 'runtime/*']

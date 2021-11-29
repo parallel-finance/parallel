@@ -13,6 +13,10 @@
 // limitations under the License.
 
 //! # Crowdloans pallet
+//!
+//! ## Overview
+//!
+//! Support your favorite parachains' crowdloans while releasing liquidity via crowdloans derivatives
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
