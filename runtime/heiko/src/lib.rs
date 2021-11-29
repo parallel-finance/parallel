@@ -256,7 +256,7 @@ impl Contains<Call> for BaseCallFilter {
     }
 }
 
-pub enum CallFilterRouter {}
+pub struct CallFilterRouter {}
 impl Contains<Call> for CallFilterRouter {
     fn contains(call: &Call) -> bool {
         BaseCallFilter::contains(call) && EmergencyShutdown::contains(call)

@@ -80,10 +80,6 @@ pub mod pallet {
 
 impl<T: Config> Contains<T::Call> for Pallet<T> {
     fn contains(call: &T::Call) -> bool {
-        if Self::is_shut_down_flag() {
-            T::Whitelist::contains(call)
-        } else {
-            true
-        }
+        !Self::is_shut_down_flag() || T::Whitelist::contains(call)
     }
 }

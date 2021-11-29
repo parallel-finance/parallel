@@ -256,7 +256,7 @@ impl Contains<Call> for BaseCallFilter {
     }
 }
 
-pub enum CallFilterRouter {}
+pub struct CallFilterRouter {}
 impl Contains<Call> for CallFilterRouter {
     fn contains(call: &Call) -> bool {
         BaseCallFilter::contains(call) && EmergencyShutdown::contains(call)
@@ -1528,7 +1528,7 @@ construct_runtime!(
         Bridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 90,
 
         // Emergency Shutdown
-        EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Event<T>} = 84,
+        EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Event<T>} = 91,
     }
 );
 
