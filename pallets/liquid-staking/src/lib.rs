@@ -215,16 +215,6 @@ pub mod pallet {
     #[pallet::getter(fn exchange_rate)]
     pub type ExchangeRate<T: Config> = StorageValue<_, Rate, ValueQuery>;
 
-    /// Total amount of staked assets on relaycahin.
-    #[pallet::storage]
-    #[pallet::getter(fn staking_pool)]
-    pub type StakingPool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
-
-    /// Total amount of slash in relaychain
-    #[pallet::storage]
-    #[pallet::getter(fn total_slashed)]
-    pub type TotalSlashed<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
-
     /// Total amount of charged assets to be used as xcm fees.
     #[pallet::storage]
     #[pallet::getter(fn insurance_pool)]
@@ -401,16 +391,6 @@ pub mod pallet {
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
             T::Assets::mint_into(Self::liquid_currency()?, &who, liquid_amount)?;
 
-            StakingPool::<T>::try_mutate(|b| -> DispatchResult {
-                let new_amount = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
-                ensure!(
-                    new_amount <= StakingPoolCapacity::<T>::get(),
-                    Error::<T>::ExceededStakingPoolCapacity
-                );
-                *b = new_amount;
-                Ok(())
-            })?;
-
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
                 p.total_stake_amount = p
                     .total_stake_amount
@@ -420,6 +400,25 @@ pub mod pallet {
             })?;
 
             Self::deposit_event(Event::<T>::Staked(who, amount));
+            Ok(().into())
+        }
+
+        #[pallet::weight(0)]
+        #[transactional]
+        pub fn update_bonded_amount(
+            origin: OriginFor<T>,
+            #[pallet::compact] bonded_amount: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            T::RelayOrigin::ensure_origin(origin)?;
+            let exchange_rate = Rate::checked_from_rational(
+                bonded_amount,
+                T::Assets::total_issuance(Self::liquid_currency()?),
+            )
+            .ok_or(Error::<T>::InvalidExchangeRate)?;
+            let old_exchange_rate = Self::exchange_rate();
+            if exchange_rate > old_exchange_rate {
+                ExchangeRate::<T>::put(exchange_rate);
+            }
             Ok(().into())
         }
 
@@ -459,12 +458,6 @@ pub mod pallet {
             }
 
             T::Assets::burn_from(Self::liquid_currency()?, &who, liquid_amount)?;
-            StakingPool::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b
-                    .checked_sub(asset_amount)
-                    .ok_or(ArithmeticError::Underflow)?;
-                Ok(())
-            })?;
 
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
                 p.total_unstake_amount = p
@@ -475,50 +468,6 @@ pub mod pallet {
             })?;
 
             Self::deposit_event(Event::<T>::Unstaked(who, liquid_amount, asset_amount));
-            Ok(().into())
-        }
-
-        /// Handle staking settlement at the end of an era
-        /// such as getting reward or been slashed on relaychain.
-        #[pallet::weight(<T as Config>::WeightInfo::record_staking_settlement())]
-        #[transactional]
-        pub fn record_staking_settlement(
-            origin: OriginFor<T>,
-            #[pallet::compact] amount: BalanceOf<T>,
-            kind: StakingSettlementKind,
-        ) -> DispatchResultWithPostInfo {
-            T::RelayOrigin::ensure_origin(origin)?;
-            use StakingSettlementKind::*;
-            match kind {
-                Reward => {
-                    ensure!(
-                        amount <= T::MaxRewardsPerEra::get(),
-                        Error::<T>::ExceededMaxRewardsPerEra
-                    );
-                    StakingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        *p = p.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
-                        Ok(())
-                    })?;
-                    // update exchange rate.
-                    let exchange_rate = Rate::checked_from_rational(
-                        StakingPool::<T>::get(),
-                        T::Assets::total_issuance(Self::liquid_currency()?),
-                    )
-                    .ok_or(Error::<T>::InvalidExchangeRate)?;
-                    ExchangeRate::<T>::put(exchange_rate);
-                }
-                Slash => {
-                    ensure!(
-                        amount <= T::MaxSlashesPerEra::get(),
-                        Error::<T>::ExceededMaxSlashesPerEra
-                    );
-                    TotalSlashed::<T>::try_mutate(|p| -> DispatchResult {
-                        *p = p.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
-                        Ok(())
-                    })?;
-                }
-            };
-            Self::deposit_event(Event::<T>::StakingSettlementRecorded(kind, amount));
             Ok(().into())
         }
 
@@ -582,9 +531,11 @@ pub mod pallet {
         /// chain.
         #[pallet::weight(<T as Config>::WeightInfo::payout_slashed())]
         #[transactional]
-        pub fn payout_slashed(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+        pub fn payout_slashed(
+            origin: OriginFor<T>,
+            #[pallet::compact] amount: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
-            let amount = TotalSlashed::<T>::take();
             InsurancePool::<T>::try_mutate(|v| -> DispatchResult {
                 *v = v.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
                 Ok(())
