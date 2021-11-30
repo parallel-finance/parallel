@@ -2,7 +2,7 @@
 authors = ['Parallel Team']
 edition = '2018'
 name    = 'pallet-prices'
-version = '1.7.2'
+version = '1.7.3'
 
 [dependencies]
 codec         = { package = 'parity-scale-codec', version = '2.3.1', default-features = false }
@@ -34,3 +34,6 @@ std         = [
   'scale-info/std',
 ]
 try-runtime = ['frame-support/try-runtime']
+
+[lib]
+doctest = false

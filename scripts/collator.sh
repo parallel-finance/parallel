@@ -48,7 +48,7 @@ docker run --restart=always --name $PARA_CHAIN-collator \
   -p $RELAY_P2P_PORT:$RELAY_P2P_PORT \
   -v "$VOLUME:/data" \
   -v "$(realpath $KEYSTORE_PATH):/app/keystore" \
-  parallelfinance/parallel:v1.7.2 \
+  parallelfinance/parallel:v1.7.3 \
     -d /data \
     --chain=$PARA_CHAIN \
     --collator \
@@ -75,6 +75,7 @@ docker run --restart=always --name $PARA_CHAIN-collator \
     --wasm-execution=compiled \
     --execution=wasm \
     --database=RocksDb \
+    --state-cache-size 0 \
     --unsafe-pruning \
     --pruning=1000 \
     --listen-addr=/ip4/0.0.0.0/tcp/$RELAY_P2P_PORT \

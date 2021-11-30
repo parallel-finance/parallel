@@ -158,9 +158,9 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().writes(6 as Weight))
     }
     fn on_idle() -> Weight {
-        (263_000_000 as Weight)
-            .saturating_add(T::DbWeight::get().reads(9 as Weight))
-            .saturating_add(T::DbWeight::get().writes(7 as Weight))
+        (131_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(7 as Weight))
+            .saturating_add(T::DbWeight::get().writes(5 as Weight))
     }
 }
 
@@ -253,8 +253,8 @@ impl WeightInfo for () {
             .saturating_add(RocksDbWeight::get().writes(6 as Weight))
     }
     fn on_idle() -> Weight {
-        (263_000_000 as Weight)
-            .saturating_add(RocksDbWeight::get().reads(9 as Weight))
-            .saturating_add(RocksDbWeight::get().writes(7 as Weight))
+        (131_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(7 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(5 as Weight))
     }
 }

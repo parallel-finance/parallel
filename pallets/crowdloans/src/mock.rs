@@ -313,13 +313,14 @@ parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
     pub SelfParaId: ParaId = para_a_id();
     pub RefundLocation: AccountId = para_a_id().into_account();
-    pub const MaxReserves: Balance = 100_000_000_000;
+    pub const MaxReservesPerContribution: Balance = 100_000_000_000;
+    pub const MinContribution: Balance = 0;
 }
 
 pub type CreateVaultOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
-pub type CloseOrigin =
+pub type CloseReOpenOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
 pub type AuctionFailedOrigin =
@@ -341,13 +342,15 @@ impl crate::Config for Test {
     type RelayCurrency = RelayCurrency;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type RefundLocation = RefundLocation;
+    type MaxReservesPerContribution = MaxReservesPerContribution;
+    type MinContribution = MinContribution;
+    type BlockNumberProvider = frame_system::Pallet<Test>;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type CreateVaultOrigin = CreateVaultOrigin;
-    type CloseOrigin = CloseOrigin;
+    type CloseReOpenOrigin = CloseReOpenOrigin;
     type AuctionFailedOrigin = AuctionFailedOrigin;
     type AuctionCompletedOrigin = AuctionCompletedOrigin;
     type SlotExpiredOrigin = SlotExpiredOrigin;
-    type MaxReserves = MaxReserves;
     type WeightInfo = ();
 }
 

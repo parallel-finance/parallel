@@ -38,7 +38,7 @@ fn create_new_vault_should_work() {
             just_created_vault,
             Vault {
                 ctoken,
-                phase: VaultPhase::CollectingContributions,
+                phase: VaultPhase::Contributing,
                 contribution_strategy: contribution_strategy,
                 contributed: Zero::zero(),
             }
@@ -75,7 +75,7 @@ fn create_new_vault_should_not_work_if_vault_is_already_created() {
                 ctoken,                               // ctoken
                 ContributionStrategy::XCM,            // contribution_strategy
             ),
-            Error::<Test>::CTokenVaultAlreadyCreated
+            Error::<Test>::CTokenAlreadyTaken
         );
     });
 }
@@ -147,11 +147,12 @@ fn contribute_should_work() {
             Origin::signed(ALICE), // origin
             crowdloan,             // crowdloan
             amount,                // amount
+            None
         ));
 
         // check that we're in the right phase
         let vault = Crowdloans::vaults(crowdloan).unwrap();
-        assert_eq!(vault.phase, VaultPhase::CollectingContributions);
+        assert_eq!(vault.phase, VaultPhase::Contributing);
 
         // check if ctoken minted to user
         let ctoken_balance = Assets::balance(vault.ctoken, ALICE);
@@ -192,6 +193,7 @@ fn contribute_should_fail_insufficent_funds() {
                 Origin::signed(BOB), // origin
                 crowdloan,           // crowdloan
                 amount,              // amount
+                None
             ),
             Error::<Test>::InsufficientBalance
         );
@@ -223,6 +225,40 @@ fn close_should_work() {
         // check that we're in the right phase
         let vault = Crowdloans::vaults(crowdloan).unwrap();
         assert_eq!(vault.phase, VaultPhase::Closed)
+    });
+}
+
+#[test]
+fn reopen_should_work() {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337);
+        let ctoken = 10;
+
+        let contribution_strategy = ContributionStrategy::XCM;
+
+        // create a vault to contribute to
+        assert_ok!(Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            contribution_strategy,                // contribution_strategy
+        ));
+
+        // do close
+        assert_ok!(Crowdloans::close(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
+        // do reopen
+        assert_ok!(Crowdloans::reopen(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
+        // check that we're in the right phase
+        let vault = Crowdloans::vaults(crowdloan).unwrap();
+        assert_eq!(vault.phase, VaultPhase::Contributing)
     });
 }
 
@@ -291,6 +327,7 @@ fn claim_refund_should_work() {
             Origin::signed(ALICE),   // origin
             ParaId::from(crowdloan), // crowdloan
             amount,                  // amount
+            None
         ));
 
         // do close

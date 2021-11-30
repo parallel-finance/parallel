@@ -2,7 +2,7 @@
 authors = ['Parallel Team']
 edition = '2018'
 name    = 'pallet-router'
-version = '1.7.2'
+version = '1.7.3'
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']
@@ -27,10 +27,7 @@ sp-io                   = { git = 'https://github.com/paritytech/substrate.git',
 
 [features]
 default            = ['std']
-runtime-benchmarks = [
-	'frame-benchmarking',
-	'frame-system/runtime-benchmarks',
-]
+runtime-benchmarks = ['frame-benchmarking', 'frame-system/runtime-benchmarks']
 std                = [
   'frame-support/std',
   'frame-system/std',
@@ -42,3 +39,6 @@ std                = [
   'sp-runtime/std',
   'scale-info/std',
 ]
+
+[lib]
+doctest = false

@@ -135,10 +135,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("vanilla"),
     impl_name: create_runtime_str!("vanilla"),
     authoring_version: 1,
-    spec_version: 172,
+    spec_version: 173,
     impl_version: 20,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 2,
+    transaction_version: 4,
 };
 
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
@@ -201,12 +201,9 @@ impl Contains<Call> for BaseCallFilter {
     fn contains(call: &Call) -> bool {
         matches!(
             call,
-            // System, Utility, Currencies
+            // System, Currencies
             Call::System(_) |
             Call::Timestamp(_) |
-            Call::Multisig(_)  |
-            Call::Utility(_) |
-            Call::Proxy(_) |
             Call::Balances(_) |
             Call::Assets(pallet_assets::Call::mint { .. }) |
             Call::Assets(pallet_assets::Call::transfer { .. }) |
@@ -228,6 +225,10 @@ impl Contains<Call> for BaseCallFilter {
             Call::Authorship(_) |
             Call::CollatorSelection(_) |
             Call::Session(_) |
+            // Utility
+            Call::Multisig(_)  |
+            Call::Utility(_) |
+            Call::Proxy(_) |
             // 3rd Party
             Call::Oracle(_) |
             Call::XTokens(_) |
@@ -251,14 +252,23 @@ impl Contains<Call> for BaseCallFilter {
             // Crowdloans
             Call::Crowdloans(_) |
             // Bridge
-            Call::Bridge(_)
+            Call::Bridge(_) |
+            // Liquidity Mining
+            Call::LiquidityMining(_)
         )
+    }
+}
+
+pub struct CallFilterRouter;
+impl Contains<Call> for CallFilterRouter {
+    fn contains(call: &Call) -> bool {
+        BaseCallFilter::contains(call) && EmergencyShutdown::contains(call)
     }
 }
 
 impl frame_system::Config for Runtime {
     /// The basic call filter to use in dispatchable.
-    type BaseCallFilter = BaseCallFilter;
+    type BaseCallFilter = CallFilterRouter;
     /// Block & extrinsics weights: base values and limits.
     type BlockWeights = RuntimeBlockWeights;
     /// The maximum length of a block (in bytes).
@@ -865,7 +875,7 @@ impl Convert<Balance, Balance> for GiftConvert {
         }
 
         if amount >= 10_u128.pow(decimal.into()) {
-            return DOLLARS / 8;
+            return DOLLARS / 40;
         }
 
         Zero::zero()
@@ -1280,16 +1290,14 @@ parameter_types! {
     pub const BridgeMaxMembers: u32 = 100;
 }
 
-type EnsureRootOrigin = EnsureRoot<AccountId>;
-
 type BridgeMembershipInstance = pallet_membership::Instance6;
 impl pallet_membership::Config<BridgeMembershipInstance> for Runtime {
     type Event = Event;
-    type AddOrigin = EnsureRootOrigin;
-    type RemoveOrigin = EnsureRootOrigin;
-    type SwapOrigin = EnsureRootOrigin;
-    type ResetOrigin = EnsureRootOrigin;
-    type PrimeOrigin = EnsureRootOrigin;
+    type AddOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type RemoveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type SwapOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type ResetOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type PrimeOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type MembershipInitialized = ();
     type MembershipChanged = ();
     type MaxMembers = BridgeMaxMembers;
@@ -1310,7 +1318,7 @@ parameter_types! {
 impl pallet_bridge::Config for Runtime {
     type Event = Event;
     type AdminMembers = BridgeMembership;
-    type RootOperatorOrigin = EnsureRootOrigin;
+    type RootOperatorOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type ChainId = ParallelHeiko;
     type PalletId = BridgePalletId;
     type Assets = CurrencyAdapter;
@@ -1348,7 +1356,8 @@ impl pallet_amm::Config for Runtime {
 
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
-    pub const MaxReserves: Balance = 100_000_000_000;
+    pub const MaxReservesPerContribution: Balance = 100_000_000_000;
+    pub const MinContribution: Balance = 100_000_000_000;
     pub RefundLocation: AccountId = ParachainInfo::parachain_id().into_account();
 }
 
@@ -1362,13 +1371,15 @@ impl pallet_crowdloans::Config for Runtime {
     type RelayCurrency = RelayCurrency;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type RefundLocation = RefundLocation;
+    type MaxReservesPerContribution = MaxReservesPerContribution;
+    type MinContribution = MinContribution;
+    type BlockNumberProvider = frame_system::Pallet<Runtime>;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type CloseOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type CloseReOpenOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionCompletedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type MaxReserves = MaxReserves;
     type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
 }
 
@@ -1404,6 +1415,78 @@ impl pallet_liquidity_mining::Config for Runtime {
     type MaxRewardTokens = MaxRewardTokens;
     type CreateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = pallet_liquidity_mining::weights::SubstrateWeight<Runtime>;
+}
+
+pub struct WhiteListFilter;
+impl Contains<Call> for WhiteListFilter {
+    fn contains(call: &Call) -> bool {
+        matches!(
+            call,
+            // System, Currencies
+            Call::System(_) |
+            Call::Timestamp(_) |
+            Call::Balances(_) |
+            Call::Assets(pallet_assets::Call::mint { .. }) |
+            Call::Assets(pallet_assets::Call::transfer { .. }) |
+            Call::Assets(pallet_assets::Call::burn { .. }) |
+            // Governance
+            Call::Sudo(_) |
+            Call::Democracy(_) |
+            Call::GeneralCouncil(_) |
+            Call::TechnicalCommittee(_) |
+            Call::Treasury(_) |
+            Call::Scheduler(_) |
+            // Parachain
+            Call::ParachainSystem(_) |
+            Call::XcmpQueue(_) |
+            Call::DmpQueue(_) |
+            Call::PolkadotXcm(_) |
+            Call::CumulusXcm(_) |
+            // Consensus
+            Call::Authorship(_) |
+            Call::CollatorSelection(_) |
+            Call::Session(_) |
+            // Utility
+            Call::Multisig(_)  |
+            Call::Utility(_) |
+            Call::Proxy(_) |
+            // 3rd Party
+            Call::Oracle(_) |
+            Call::XTokens(_) |
+            Call::OrmlXcm(_) |
+            Call::Vesting(_) |
+            // Loans
+            // Call::Loans(_) |
+            // Call::Liquidation(_) |
+            Call::Prices(_) |
+            // LiquidStaking
+            // Call::LiquidStaking(_) |
+            Call::NomineeElection(_) |
+            // Membership
+            Call::GeneralCouncilMembership(_) |
+            Call::TechnicalCommitteeMembership(_) |
+            Call::OracleMembership(_) |
+            Call::BridgeMembership(_) |
+            Call::ValidatorFeedersMembership(_)
+        )
+        // // AMM
+        // Call::AMM(_) |
+        //
+        // // Crowdloans
+        // Call::Crowdloans(_) |
+        //
+        // // Bridge
+        // Call::Bridge(_) |
+        //
+        // // Liquidity Mining
+        // Call::LiquidityMining(_)
+    }
+}
+
+impl pallet_emergency_shutdown::Config for Runtime {
+    type Event = Event;
+    type Whitelist = WhiteListFilter;
+    type ShutdownOrigin = EnsureRoot<AccountId>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -1473,11 +1556,10 @@ construct_runtime!(
         AMMRoute: pallet_router::{Pallet, Call, Event<T>} = 81,
         CurrencyAdapter: pallet_currency_adapter::{Pallet, Call} = 82,
 
-        // LiquidityMining
-        LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 83,
-
-        // Bridge
+        // Others
         Bridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 90,
+        EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Event<T>} = 91,
+        LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 92,
     }
 );
 
