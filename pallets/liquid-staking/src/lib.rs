@@ -174,6 +174,8 @@ pub mod pallet {
         InsurancesAdded(T::AccountId, BalanceOf<T>),
         /// Slash was paid by insurance pool
         SlashPaid(BalanceOf<T>),
+        /// Exchange rate was set to new value
+        ExchangeRateUpdated(Rate),
     }
 
     #[pallet::error]
@@ -429,6 +431,7 @@ pub mod pallet {
             let old_exchange_rate = Self::exchange_rate();
             if exchange_rate > old_exchange_rate {
                 ExchangeRate::<T>::put(exchange_rate);
+                Self::deposit_event(Event::<T>::ExchangeRateUpdated(exchange_rate));
             }
             Ok(().into())
         }
