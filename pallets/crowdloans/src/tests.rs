@@ -147,7 +147,7 @@ fn contribute_should_work() {
             Origin::signed(ALICE), // origin
             crowdloan,             // crowdloan
             amount,                // amount
-            None
+            Vec::new()
         ));
 
         // check that we're in the right phase
@@ -193,7 +193,7 @@ fn contribute_should_fail_insufficent_funds() {
                 Origin::signed(BOB), // origin
                 crowdloan,           // crowdloan
                 amount,              // amount
-                None
+                Vec::new()
             ),
             Error::<Test>::InsufficientBalance
         );
@@ -327,7 +327,7 @@ fn claim_refund_should_work() {
             Origin::signed(ALICE),   // origin
             ParaId::from(crowdloan), // crowdloan
             amount,                  // amount
-            None
+            Vec::new()
         ));
 
         // do close

@@ -141,7 +141,7 @@ pub mod pallet {
         /// New vault was created
         VaultCreated(ParaId, AssetIdOf<T>),
         /// User contributed amount to vault
-        VaultContributing(ParaId, T::AccountId, BalanceOf<T>, Option<Vec<u8>>),
+        VaultContributing(ParaId, T::AccountId, BalanceOf<T>, Vec<u8>),
         /// Vault was closed
         VaultClosed(ParaId),
         /// Vault was reopened
@@ -266,7 +266,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             crowdloan: ParaId,
             #[pallet::compact] amount: BalanceOf<T>,
-            referral_code: Option<Vec<u8>>,
+            referral_code: Vec<u8>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 

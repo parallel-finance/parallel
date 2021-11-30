@@ -117,10 +117,10 @@ benchmarks! {
         SystemOrigin::Signed(caller.clone()),
         crowdloan,
         CONTRIBUTE_AMOUNT,
-        None
+        Vec::new()
     )
     verify {
-        assert_last_event::<T>(Event::VaultContributing(crowdloan, caller, CONTRIBUTED_AMOUNT, None).into())
+        assert_last_event::<T>(Event::VaultContributing(crowdloan, caller, CONTRIBUTED_AMOUNT, Vec::new()).into())
     }
 
     close {
@@ -163,7 +163,7 @@ benchmarks! {
             RESERVE_FACTOR,
         )
         .unwrap();
-        assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller).into(), crowdloan, CONTRIBUTE_AMOUNT, None));
+        assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller).into(), crowdloan, CONTRIBUTE_AMOUNT, Vec::new()));
         assert_ok!(Crowdloans::<T>::close(SystemOrigin::Root.into(), crowdloan));
 
     }: _(
@@ -185,7 +185,7 @@ benchmarks! {
             RESERVE_FACTOR,
         )
         .unwrap();
-        assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller.clone()).into(), crowdloan, CONTRIBUTE_AMOUNT, None));
+        assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller.clone()).into(), crowdloan, CONTRIBUTE_AMOUNT, Vec::new()));
         assert_ok!(Crowdloans::<T>::close(SystemOrigin::Root.into(), crowdloan));
         assert_ok!(Crowdloans::<T>::auction_failed(SystemOrigin::Root.into(), crowdloan));
     }: _(
@@ -208,7 +208,7 @@ benchmarks! {
             RESERVE_FACTOR,
         )
         .unwrap();
-        assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller).into(), crowdloan, CONTRIBUTE_AMOUNT, None));
+        assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller).into(), crowdloan, CONTRIBUTE_AMOUNT, Vec::new()));
         assert_ok!(Crowdloans::<T>::close(SystemOrigin::Root.into(), crowdloan));
     }: _(
         SystemOrigin::Root,
