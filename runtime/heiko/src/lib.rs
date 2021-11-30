@@ -205,6 +205,7 @@ impl Contains<Call> for BaseCallFilter {
             // System
             Call::System(_) |
             Call::Timestamp(_) |
+            Call::Assets(pallet_assets::Call::transfer { .. }) |
             Call::Balances(_) |
             // Governance
             Call::Sudo(_) |
@@ -869,7 +870,7 @@ impl Convert<Balance, Balance> for GiftConvert {
         }
 
         if amount >= 10_u128.pow(decimal.into()) {
-            return DOLLARS / 8;
+            return DOLLARS / 40;
         }
 
         Zero::zero()
