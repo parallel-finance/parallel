@@ -84,6 +84,7 @@ benchmarks! {
 
     set_currency_fee {
         let caller: T::AccountId = whitelisted_caller();
+        assert_ok!(Bridge::<T>::register_currency(SystemOrigin::Root.into(), HKO, EHKO, 0));
     }: _(SystemOrigin::Root, EHKO, dollar(1))
     verify {
         assert_last_event::<T>(Event::CurrencyFeeChanged(EHKO, dollar(1)).into())
@@ -122,5 +123,6 @@ benchmarks! {
             amount: dollar(10),
             favour: true,
         };
-    }: { call.dispatch_bypass_filter(origin)? }
+        let caller2: T::AccountId = whitelisted_caller();
+    }: { call.dispatch_bypass_filter(SystemOrigin::Signed(caller2).into())? }
 }

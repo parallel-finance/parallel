@@ -417,7 +417,6 @@ pub mod pallet {
             amount: BalanceOf<T>,
             favour: bool,
         ) -> DispatchResult {
-            Self::ensure_admin(origin.clone())?;
             Self::ensure_chain_registered(src_id)?;
             Self::ensure_currency_registered(currency_id)?;
 
