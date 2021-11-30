@@ -23,12 +23,9 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use super::*;
 
     #[pallet::config]
-    pub trait Config: frame_system::Config {
-        type XCM: ParallelXCM;
-    }
+    pub trait Config: frame_system::Config {}
 
     #[pallet::pallet]
     pub struct Pallet<T>(_);
