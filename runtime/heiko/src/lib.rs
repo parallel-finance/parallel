@@ -205,6 +205,7 @@ impl Contains<Call> for BaseCallFilter {
             // System
             Call::System(_) |
             Call::Timestamp(_) |
+            Call::Assets(pallet_assets::Call::transfer { .. }) |
             Call::Balances(_) |
             // Governance
             Call::Sudo(_) |
