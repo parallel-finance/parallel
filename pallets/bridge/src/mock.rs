@@ -184,7 +184,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         BridgeMembership::add_member(Origin::root(), CHARLIE).unwrap();
 
         Bridge::register_chain(Origin::signed(ALICE), ETH).unwrap();
-        Bridge::register_currency(Origin::signed(ALICE), HKO, EHKO).unwrap();
+        Bridge::register_currency(Origin::signed(ALICE), HKO, EHKO, dollar(0)).unwrap();
 
         System::set_block_number(0);
         run_to_block(1);

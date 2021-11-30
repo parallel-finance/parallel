@@ -69,31 +69,38 @@ benchmarks! {
 
     register_currency {
         let caller: T::AccountId = whitelisted_caller();
-    }: _(SystemOrigin::Root, HKO, EHKO)
+    }: _(SystemOrigin::Root, HKO, EHKO, 0)
     verify {
         assert_last_event::<T>(Event::CurrencyRegistered(HKO, EHKO).into())
     }
 
     unregister_currency {
         let caller: T::AccountId = whitelisted_caller();
-        assert_ok!(Bridge::<T>::register_currency(SystemOrigin::Root.into(), HKO, EHKO));
+        assert_ok!(Bridge::<T>::register_currency(SystemOrigin::Root.into(), HKO, EHKO, 0));
     }: _(SystemOrigin::Root, EHKO)
     verify {
         assert_last_event::<T>(Event::CurrencyRemoved(HKO, EHKO).into())
     }
 
+    set_currency_fee {
+        let caller: T::AccountId = whitelisted_caller();
+    }: _(SystemOrigin::Root, EHKO, dollar(1))
+    verify {
+        assert_last_event::<T>(Event::CurrencyFeeChanged(EHKO, dollar(1)).into())
+    }
+
     teleport {
         let caller: T::AccountId = whitelisted_caller();
         assert_ok!(Bridge::<T>::register_chain(SystemOrigin::Root.into(), ETH));
-        assert_ok!(Bridge::<T>::register_currency(SystemOrigin::Root.into(), HKO, EHKO));
+        assert_ok!(Bridge::<T>::register_currency(SystemOrigin::Root.into(), HKO, EHKO, 0));
         transfer_initial_balance::<T>(caller.clone());
         let tele: TeleAccount = whitelisted_caller();
-    }: _(SystemOrigin::Signed(caller), ETH, 0, tele, dollar(50))
+    }: _(SystemOrigin::Signed(caller), ETH, EHKO, tele, dollar(50))
 
     materialize {
         let caller: T::AccountId = whitelisted_caller();
         assert_ok!(Bridge::<T>::register_chain(T::RootOperatorOrigin::successful_origin(), ETH));
-        assert_ok!(Bridge::<T>::register_currency(T::RootOperatorOrigin::successful_origin(), HKO, EHKO));
+        assert_ok!(Bridge::<T>::register_currency(T::RootOperatorOrigin::successful_origin(), HKO, EHKO, 0));
         transfer_initial_balance::<T>(caller.clone());
         let tele: TeleAccount = whitelisted_caller();
         assert_ok!(

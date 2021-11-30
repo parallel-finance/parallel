@@ -36,7 +36,7 @@ use frame_system::pallet_prelude::*;
 pub use pallet::*;
 use primitives::{Balance, ChainId, CurrencyId};
 use scale_info::prelude::vec::Vec;
-use sp_runtime::traits::AccountIdConversion;
+use sp_runtime::{traits::AccountIdConversion, ArithmeticError};
 pub use weights::WeightInfo;
 
 mod benchmarking;
@@ -154,6 +154,10 @@ pub mod pallet {
         /// [asset_id, currency_id]
         CurrencyRemoved(AssetIdOf<T>, CurrencyId),
 
+        /// Currency fee has changed
+        /// [currency_id, fee]
+        CurrencyFeeChanged(CurrencyId, BalanceOf<T>),
+
         /// Event emitted when currency is destoryed by teleportation
         /// [dest_id, chain_nonce, currency_id, receiver, amount]
         TeleportBurned(ChainId, ChainNonce, CurrencyId, TeleAccount, BalanceOf<T>),
@@ -211,6 +215,13 @@ pub mod pallet {
     #[pallet::getter(fn asset_ids)]
     pub type AssetIds<T: Config> =
         StorageMap<_, Twox64Concat, CurrencyId, AssetIdOf<T>, ValueQuery>;
+
+    /// Constrant to store the fees of cross-chain transaction
+    /// Can be modify by the bridge members
+    #[pallet::storage]
+    #[pallet::getter(fn currency_fees)]
+    pub type CurrencyFees<T: Config> =
+        StorageMap<_, Twox64Concat, CurrencyId, BalanceOf<T>, ValueQuery>;
 
     /// Mapping of [chain_id -> (nonce, call) -> proposal]
     #[pallet::storage]
@@ -295,6 +306,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
             currency_id: CurrencyId,
+            fee: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             Self::ensure_admin(origin)?;
 
@@ -306,6 +318,7 @@ pub mod pallet {
 
             CurrencyIds::<T>::insert(asset_id, currency_id);
             AssetIds::<T>::insert(currency_id, asset_id);
+            CurrencyFees::<T>::insert(currency_id, fee);
 
             Self::deposit_event(Event::CurrencyRegistered(asset_id, currency_id));
             Ok(().into())
@@ -325,9 +338,27 @@ pub mod pallet {
             let asset_id = AssetIds::<T>::get(currency_id);
             CurrencyIds::<T>::remove(asset_id);
             AssetIds::<T>::remove(currency_id);
+            CurrencyFees::<T>::remove(currency_id);
 
             Self::deposit_event(Event::CurrencyRemoved(asset_id, currency_id));
             Ok(().into())
+        }
+
+        /// Set the cross-chain transaction fee for a registered currency
+        #[pallet::weight(T::WeightInfo::set_currency_fee())]
+        #[transactional]
+        pub fn set_currency_fee(
+            origin: OriginFor<T>,
+            currency_id: CurrencyId,
+            new_fee: BalanceOf<T>,
+        ) -> DispatchResult {
+            Self::ensure_admin(origin)?;
+            Self::ensure_currency_registered(currency_id)?;
+
+            CurrencyFees::<T>::mutate(currency_id, |fee| *fee = new_fee);
+
+            Self::deposit_event(Event::CurrencyFeeChanged(currency_id, new_fee));
+            Ok(())
         }
 
         /// Teleport the currency to specified recipient in the destination chain
@@ -354,8 +385,13 @@ pub mod pallet {
             Self::ensure_currency_registered(currency_id)?;
 
             let asset_id = AssetIds::<T>::get(currency_id);
-            T::Assets::transfer(asset_id, &who, &Self::account_id(), amount, false)?;
+            let total_amount = amount
+                .checked_add(Self::currency_fees(currency_id))
+                .ok_or(ArithmeticError::Overflow)?;
+            T::Assets::transfer(asset_id, &who, &Self::account_id(), total_amount, false)?;
 
+            // The amount and fees will be locked here
+            // but only the amount will be teleported
             Self::teleport_internal(dest_id, currency_id, to, amount)
         }
 

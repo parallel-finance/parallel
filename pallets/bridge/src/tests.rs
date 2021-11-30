@@ -150,3 +150,25 @@ fn materialize_works() {
         ))]);
     })
 }
+
+#[test]
+fn set_currency_fee_works() {
+    new_test_ext().execute_with(|| {
+        // Set fee equal to 1 HKO
+        Bridge::set_currency_fee(Origin::signed(ALICE), EHKO, dollar(1)).unwrap();
+
+        // Initial balance of EVE is 100 HKO
+        assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(100));
+
+        Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(10)).unwrap();
+
+        // After teleport, EVE should have 89 HKO
+        // balance = 100 - 10 - fee(1) = 89 HKO
+        assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(89));
+
+        assert_eq!(
+            <Test as Config>::Assets::balance(HKO, &Bridge::account_id()),
+            dollar(11)
+        );
+    });
+}

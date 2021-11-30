@@ -52,6 +52,7 @@ pub trait WeightInfo {
     fn unregister_chain() -> Weight;
     fn register_currency() -> Weight;
     fn unregister_currency() -> Weight;
+    fn set_currency_fee() -> Weight;
     fn teleport() -> Weight;
     fn materialize() -> Weight;
 }
@@ -83,6 +84,11 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
         (16_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(1 as Weight))
             .saturating_add(T::DbWeight::get().writes(2 as Weight))
+    }
+    fn set_currency_fee() -> Weight {
+        (15_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(2 as Weight))
+            .saturating_add(T::DbWeight::get().writes(1 as Weight))
     }
     fn teleport() -> Weight {
         (52_000_000 as Weight)
@@ -122,6 +128,11 @@ impl WeightInfo for () {
         (16_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(1 as Weight))
             .saturating_add(RocksDbWeight::get().writes(2 as Weight))
+    }
+    fn set_currency_fee() -> Weight {
+        (15_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(2 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(1 as Weight))
     }
     fn teleport() -> Weight {
         (52_000_000 as Weight)
