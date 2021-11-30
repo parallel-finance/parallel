@@ -344,6 +344,7 @@ impl crate::Config for Test {
     type RefundLocation = RefundLocation;
     type MaxReservesPerContribution = MaxReservesPerContribution;
     type MinContribution = MinContribution;
+    type BlockNumberProvider = frame_system::Pallet<Test>;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type CreateVaultOrigin = CreateVaultOrigin;
     type CloseReOpenOrigin = CloseReOpenOrigin;

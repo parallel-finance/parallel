@@ -14,6 +14,8 @@
 
 // Groups common pool related structures
 
+use crate::AccountIdOf;
+
 use super::{AssetIdOf, BalanceOf, Config, Error, Pallet as Crowdloans};
 
 use codec::{Decode, Encode};
@@ -21,8 +23,12 @@ use frame_support::{
     require_transactional,
     traits::{fungibles::Mutate, Get},
 };
-use scale_info::TypeInfo;
-use sp_runtime::{traits::Zero, DispatchError, DispatchResult, RuntimeDebug};
+use scale_info::{prelude::*, TypeInfo};
+use sp_runtime::{
+    traits::{BlockNumberProvider, Zero},
+    DispatchError, DispatchResult, RuntimeDebug,
+};
+use sp_std::boxed::Box;
 use xcm::latest::prelude::*;
 
 use primitives::{ump::*, ParaId};
@@ -30,7 +36,7 @@ use primitives::{ump::*, ParaId};
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum VaultPhase {
     /// Vault is open for contributions
-    CollectingContributions,
+    Contributing,
     /// The vault is closed and we should avoid future contributions. This happens when
     /// - there are no contribution
     /// - user cancelled
@@ -65,7 +71,7 @@ impl<T: Config> From<(AssetIdOf<T>, ContributionStrategy)> for Vault<T> {
         Self {
             ctoken,
             contribution_strategy,
-            phase: VaultPhase::CollectingContributions,
+            phase: VaultPhase::Contributing,
             contributed: Zero::zero(),
         }
     }
@@ -80,7 +86,12 @@ pub enum ContributionStrategy {
 pub trait ContributionStrategyExecutor {
     /// Execute the strategy to contribute `amount` of coins to the crowdloan
     /// of the given parachain id
-    fn contribute<T: Config>(self, para_id: ParaId, amount: BalanceOf<T>) -> DispatchResult;
+    fn contribute<T: Config>(
+        self,
+        who: &AccountIdOf<T>,
+        para_id: ParaId,
+        amount: BalanceOf<T>,
+    ) -> DispatchResult;
 
     /// Withdraw coins from the relay chain's crowdloans and send it back
     /// to our parachain
@@ -91,6 +102,7 @@ impl ContributionStrategyExecutor for ContributionStrategy {
     #[require_transactional]
     fn contribute<T: Config>(
         self,
+        who: &AccountIdOf<T>,
         para_id: ParaId,
         amount: BalanceOf<T>,
     ) -> Result<(), DispatchError> {
@@ -105,13 +117,26 @@ impl ContributionStrategyExecutor for ContributionStrategy {
         )?;
 
         switch_relay!({
-            let call = RelaychainCall::<T>::Crowdloans(CrowdloansCall::Contribute(
-                CrowdloansContributeCall {
-                    index: para_id,
-                    value: amount,
-                    signature: None,
-                },
-            ));
+            let call =
+                RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
+                    calls: vec![
+                        RelaychainCall::<T>::System(SystemCall::Remark(SystemRemarkCall {
+                            remark: format!(
+                                "{:?}#{:?}",
+                                T::BlockNumberProvider::current_block_number(),
+                                who
+                            )
+                            .into_bytes(),
+                        })),
+                        RelaychainCall::<T>::Crowdloans(CrowdloansCall::Contribute(
+                            CrowdloansContributeCall {
+                                index: para_id,
+                                value: amount,
+                                signature: None,
+                            },
+                        )),
+                    ],
+                })));
 
             let msg = Crowdloans::<T>::ump_transact(
                 call.encode().into(),

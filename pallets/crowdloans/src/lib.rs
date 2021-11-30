@@ -51,15 +51,16 @@ pub mod pallet {
     use frame_system::{ensure_signed, pallet_prelude::OriginFor};
     use primitives::{ump::XcmWeightMisc, Balance, CurrencyId, ParaId, Ratio};
     use sp_runtime::{
-        traits::{AccountIdConversion, Convert, Zero},
+        traits::{AccountIdConversion, BlockNumberProvider, Convert, Zero},
         ArithmeticError, DispatchError,
     };
     use sp_std::cmp::min;
-    use sp_std::vec;
+    use sp_std::{vec, vec::Vec};
     use xcm::{latest::prelude::*, DoubleEncoded};
 
     use crate::weights::WeightInfo;
 
+    pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
     pub type AssetIdOf<T> =
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
     pub type BalanceOf<T> =
@@ -108,6 +109,9 @@ pub mod pallet {
 
         /// Minimum contribute amount
         type MinContribution: Get<BalanceOf<Self>>;
+
+        /// The block number provider
+        type BlockNumberProvider: BlockNumberProvider<BlockNumber = Self::BlockNumber>;
 
         /// The origin which can update reserve_factor, xcm_fees_compensation etc
         type UpdateOrigin: EnsureOrigin<Self::Origin>;
@@ -269,7 +273,7 @@ pub mod pallet {
             let mut vault = Self::vault(crowdloan)?;
 
             ensure!(
-                vault.phase == VaultPhase::CollectingContributions,
+                vault.phase == VaultPhase::Contributing,
                 Error::<T>::IncorrectVaultPhase
             );
 
@@ -302,7 +306,7 @@ pub mod pallet {
 
             vault
                 .contribution_strategy
-                .contribute::<T>(crowdloan, amount)?;
+                .contribute::<T>(&who, crowdloan, amount)?;
 
             vault.contributed = vault
                 .contributed
@@ -333,7 +337,7 @@ pub mod pallet {
                 let mut vault = vault.as_mut().ok_or(Error::<T>::VaultDoesNotExist)?;
 
                 ensure!(
-                    vault.phase == VaultPhase::CollectingContributions,
+                    vault.phase == VaultPhase::Contributing,
                     Error::<T>::IncorrectVaultPhase
                 );
 
@@ -345,7 +349,7 @@ pub mod pallet {
             })
         }
 
-        /// Mark the associated vault as CollectingContributions and continue to accept contributions
+        /// Mark the associated vault as Contributing and continue to accept contributions
         #[pallet::weight(<T as Config>::WeightInfo::reopen())]
         #[transactional]
         pub fn reopen(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
@@ -359,7 +363,7 @@ pub mod pallet {
                     Error::<T>::IncorrectVaultPhase
                 );
 
-                vault.phase = VaultPhase::CollectingContributions;
+                vault.phase = VaultPhase::Contributing;
 
                 Self::deposit_event(Event::<T>::VaultReOpened(crowdloan));
 

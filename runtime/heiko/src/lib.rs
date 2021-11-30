@@ -1348,6 +1348,7 @@ impl pallet_crowdloans::Config for Runtime {
     type RefundLocation = RefundLocation;
     type MaxReservesPerContribution = MaxReservesPerContribution;
     type MinContribution = MinContribution;
+    type BlockNumberProvider = frame_system::Pallet<Runtime>;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CloseReOpenOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;

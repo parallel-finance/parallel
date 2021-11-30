@@ -38,7 +38,7 @@ fn create_new_vault_should_work() {
             just_created_vault,
             Vault {
                 ctoken,
-                phase: VaultPhase::CollectingContributions,
+                phase: VaultPhase::Contributing,
                 contribution_strategy: contribution_strategy,
                 contributed: Zero::zero(),
             }
@@ -152,7 +152,7 @@ fn contribute_should_work() {
 
         // check that we're in the right phase
         let vault = Crowdloans::vaults(crowdloan).unwrap();
-        assert_eq!(vault.phase, VaultPhase::CollectingContributions);
+        assert_eq!(vault.phase, VaultPhase::Contributing);
 
         // check if ctoken minted to user
         let ctoken_balance = Assets::balance(vault.ctoken, ALICE);
@@ -258,7 +258,7 @@ fn reopen_should_work() {
 
         // check that we're in the right phase
         let vault = Crowdloans::vaults(crowdloan).unwrap();
-        assert_eq!(vault.phase, VaultPhase::CollectingContributions)
+        assert_eq!(vault.phase, VaultPhase::Contributing)
     });
 }
 
