@@ -6,6 +6,7 @@ use super::*;
 use crate::Pallet as Bridge;
 use frame_benchmarking::{benchmarks, whitelisted_caller};
 use frame_support::assert_ok;
+use frame_support::dispatch::UnfilteredDispatchable;
 use frame_system::RawOrigin as SystemOrigin;
 use primitives::{ChainId, CurrencyId};
 use sp_runtime::traits::StaticLookup;
@@ -88,4 +89,31 @@ benchmarks! {
         transfer_initial_balance::<T>(caller.clone());
         let tele: TeleAccount = whitelisted_caller();
     }: _(SystemOrigin::Signed(caller), ETH, 0, tele, dollar(50))
+
+    materialize {
+        let caller: T::AccountId = whitelisted_caller();
+        assert_ok!(Bridge::<T>::register_chain(T::RootOperatorOrigin::successful_origin(), ETH));
+        assert_ok!(Bridge::<T>::register_currency(T::RootOperatorOrigin::successful_origin(), HKO, EHKO));
+        transfer_initial_balance::<T>(caller.clone());
+        let tele: TeleAccount = whitelisted_caller();
+        assert_ok!(
+            Bridge::<T>::teleport(
+                SystemOrigin::Signed(caller).into(),
+                ETH,
+                0,
+                tele,
+                dollar(50)
+            )
+        );
+        let recipient: T::AccountId = whitelisted_caller();
+        let origin = T::RootOperatorOrigin::successful_origin();
+        let call = Call::<T>::materialize {
+            src_id: ETH,
+            src_nonce: 1,
+            currency_id: EHKO,
+            to: recipient,
+            amount: dollar(10),
+            favour: true,
+        };
+    }: { call.dispatch_bypass_filter(origin)? }
 }

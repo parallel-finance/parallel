@@ -148,18 +148,5 @@ fn materialize_works() {
             EVE,
             dollar(10),
         ))]);
-
-        run_to_block(100);
-        let call = MaterializeCall {
-            currency_id: EHKO,
-            to: EVE,
-            amount: dollar(10),
-        };
-
-        if let Some(_p) = Bridge::votes(ETH, (1, call)) {
-            run_to_block(200);
-        } else {
-            run_to_block(300);
-        }
     })
 }

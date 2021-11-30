@@ -124,9 +124,9 @@ pub mod pallet {
         MemberAlreadyVoted,
         /// No proposal was found
         ProposalDoesNotExist,
-        /// Proposal has either failed or succeeded
+        /// Proposal has been finished
         ProposalAlreadyComplete,
-        /// Lifetime of proposal has been exceeded
+        /// The proposal has exceeded its life time.
         ProposalExpired,
     }
 
@@ -173,19 +173,19 @@ pub mod pallet {
             BalanceOf<T>,
         ),
 
-        /// Vote submitted in favour of proposal
+        /// Vote for a proposal
         /// [src_id, src_nonce, voter]
         VoteFor(ChainId, ChainNonce, T::AccountId),
 
-        /// Vot submitted against proposal
+        /// Vote against a proposal
         /// [src_id, src_nonce, voter]
         VoteAgainst(ChainId, ChainNonce, T::AccountId),
 
-        /// Voting successful for a proposal
+        /// Proposal was approved successfully
         /// [src_id, src_nonce]
         ProposalApproved(ChainId, ChainNonce),
 
-        /// Voting rejected a proposal
+        /// Proposal was rejected
         /// [src_id, src_nonce]
         ProposalRejected(ChainId, ChainNonce),
     }
@@ -212,7 +212,7 @@ pub mod pallet {
     pub type AssetIds<T: Config> =
         StorageMap<_, Twox64Concat, CurrencyId, AssetIdOf<T>, ValueQuery>;
 
-    /// Mapping of [chain_id -> nonce -> proposal]
+    /// Mapping of [chain_id -> (nonce, call) -> proposal]
     #[pallet::storage]
     #[pallet::getter(fn votes)]
     pub type ProposalVotes<T: Config> = StorageDoubleMap<
@@ -245,24 +245,30 @@ pub mod pallet {
             Ok(())
         }
 
+        /// Register the specified chain_id
+        ///
+        /// Only registered chains are allowed to cross-chain
+        ///
+        /// - `chain_id`: should be unique.
         #[pallet::weight(T::WeightInfo::register_chain())]
         #[transactional]
-        pub fn register_chain(origin: OriginFor<T>, id: ChainId) -> DispatchResult {
+        pub fn register_chain(origin: OriginFor<T>, chain_id: ChainId) -> DispatchResult {
             Self::ensure_admin(origin)?;
 
             // Registered chain_id cannot be this chain_id or a existed chain_id
             ensure!(
-                id != T::ChainId::get() && !Self::chain_registered(id),
+                chain_id != T::ChainId::get() && !Self::chain_registered(chain_id),
                 Error::<T>::ChainIdAlreadyRegistered
             );
 
-            // Register a new chain_id
-            ChainNonces::<T>::insert(id, 0);
-            Self::deposit_event(Event::ChainRegistered(id));
+            // Write a new chain_id to storage
+            ChainNonces::<T>::insert(chain_id, 0);
+            Self::deposit_event(Event::ChainRegistered(chain_id));
 
             Ok(())
         }
 
+        /// Unregister the specified chain_id    
         #[pallet::weight(T::WeightInfo::unregister_chain())]
         #[transactional]
         pub fn unregister_chain(origin: OriginFor<T>, id: ChainId) -> DispatchResult {
@@ -278,6 +284,11 @@ pub mod pallet {
             Ok(())
         }
 
+        /// Register the specified currency_id
+        ///
+        /// Only registered currencies are allowed to cross-chain
+        ///
+        /// - `currency_id`: should be unique.
         #[pallet::weight(T::WeightInfo::register_currency())]
         #[transactional]
         pub fn register_currency(
@@ -300,6 +311,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        /// Unregister the specified currency_id
         #[pallet::weight(T::WeightInfo::unregister_currency())]
         #[transactional]
         pub fn unregister_currency(
@@ -319,6 +331,15 @@ pub mod pallet {
         }
 
         /// Teleport the currency to specified recipient in the destination chain
+        ///
+        /// Transfer funds from one account to an account in another registered chain.
+        /// Support for native token and tokens of Assets pallet
+        /// The caller's assets will be locked into palletId
+        ///
+        /// - `dest_id`: chain_id of the destination chain, should be registered.
+        /// - `currency_id`: currency_id of the currency to be teleported, should be registered.
+        /// - `to`: recipient of the currency of another chain
+        /// - `amount`: amount to be teleported, the decimal of currency may be different
         #[pallet::weight(T::WeightInfo::teleport())]
         #[transactional]
         pub fn teleport(
@@ -338,6 +359,17 @@ pub mod pallet {
             Self::teleport_internal(dest_id, currency_id, to, amount)
         }
 
+        /// Materialize the currency to specified recipient in this chain
+        ///
+        /// The first call to the same cross-chain transaction will create a proposal
+        /// And subsequent calls will update the existing state until completion
+        ///
+        /// - `src_id`: chain_id of the source chain, should be registered.
+        /// - `src_nonce`: nonce of the source chain, should be unique to identify the cross-cahin tx.
+        /// - `currency_id`: currency_id of the currency to be materialized, should be registered.
+        /// - `to`: recipient of the currency of this chain
+        /// - `amount`: amount to be materialized, the decimal of currency may be different
+        /// - `favour`: whether to favour the cross-chain transaction or not, always be true for now.
         #[pallet::weight(T::WeightInfo::materialize())]
         #[transactional]
         pub fn materialize(
@@ -367,7 +399,7 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-        fn on_idle(block_number: T::BlockNumber, _remain_weight: Weight) -> u64 {
+        fn on_initialize(block_number: T::BlockNumber) -> u64 {
             let expired = ProposalVotes::<T>::iter().filter(|x| (*x).2.is_expired(block_number));
             expired.for_each(|x| {
                 let chain_id = x.0;
