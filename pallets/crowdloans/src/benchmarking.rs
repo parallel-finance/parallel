@@ -138,6 +138,19 @@ benchmarks! {
         assert_last_event::<T>(Event::VaultClosed(crowdloan).into())
     }
 
+    toggle_vrf_delay {
+        let ctoken = 11;
+        let caller: T::AccountId = whitelisted_caller();
+        let crowdloan = ParaId::from(1337);
+        initial_set_up::<T>(caller, ctoken);
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, TransactionPaymentStrategy::Fees));
+    }: _(
+        SystemOrigin::Root
+    )
+    verify {
+        assert_last_event::<T>(Event::VrfDelayToggled(true).into())
+    }
+
     reopen {
         let ctoken = 13;
         let caller: T::AccountId = whitelisted_caller();
