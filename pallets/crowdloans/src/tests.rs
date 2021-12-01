@@ -171,6 +171,51 @@ fn contribute_should_work() {
 }
 
 #[test]
+fn toggle_vrf_should_work() {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337);
+        let ctoken = 10;
+        let amount = 1_000;
+
+        let contribution_strategy = ContributionStrategy::XCM;
+        let transaction_payment_strategy = TransactionPaymentStrategy::Fees;
+
+        // create the ctoken asset
+        assert_ok!(Assets::force_create(
+            RawOrigin::Root.into(),
+            ctoken.unique_saturated_into(),
+            sp_runtime::MultiAddress::Id(Crowdloans::account_id()),
+            true,
+            One::one(),
+        ));
+
+        // create a vault to contribute to
+        assert_ok!(Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            contribution_strategy,                // contribution_strategy
+            transaction_payment_strategy          // transaction_payment_strategy
+        ));
+
+        assert_ok!(Crowdloans::toggle_vrf_delay(
+            frame_system::RawOrigin::Root.into(), // origin
+        ));
+
+        // do contribute
+        assert_noop!(
+            Crowdloans::contribute(
+                Origin::signed(ALICE), // origin
+                crowdloan,             // crowdloan
+                amount,                // amount
+                Vec::new()
+            ),
+            Error::<Test>::VrfDelayInProgress
+        );
+    });
+}
+
+#[test]
 fn contribute_should_fail_insufficent_funds() {
     new_test_ext().execute_with(|| {
         let crowdloan = ParaId::from(1337);

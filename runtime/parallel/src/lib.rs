@@ -1342,6 +1342,7 @@ impl pallet_crowdloans::Config for Runtime {
     type MinContribution = MinContribution;
     type BlockNumberProvider = frame_system::Pallet<Runtime>;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type VrfDelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CloseReOpenOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
