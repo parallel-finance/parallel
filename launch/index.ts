@@ -41,7 +41,7 @@ async function nextIndex(api: ApiPromise, signer: KeyringPair) {
 function subAccountId(signer: KeyringPair, index: number) {
   let seedBytes = stringToU8a('modlpy/utilisuba')
   let whoBytes = decodeAddress(signer.address)
-  let indexBytes = bnToU8a(index, 16)
+  let indexBytes = bnToU8a(index, 16).reverse()
   let combinedBytes = new Uint8Array(seedBytes.length + whoBytes.length + indexBytes.length)
   combinedBytes.set(seedBytes)
   combinedBytes.set(whoBytes, seedBytes.length)
