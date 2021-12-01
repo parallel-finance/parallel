@@ -116,6 +116,9 @@ pub mod pallet {
         /// The origin which can update reserve_factor, xcm_fees_compensation etc
         type UpdateOrigin: EnsureOrigin<Self::Origin>;
 
+        /// The origin which can toggle vrf delay
+        type VrfDelayOrigin: EnsureOrigin<Self::Origin>;
+
         /// The origin which can create vault
         type CreateVaultOrigin: EnsureOrigin<Self::Origin>;
 
@@ -160,6 +163,8 @@ pub mod pallet {
         XcmFeesCompensationUpdated(BalanceOf<T>),
         /// Reserves added
         ReservesAdded(BalanceOf<T>),
+        /// Vrf delay toggled
+        VrfDelayToggled(bool),
     }
 
     #[pallet::error]
@@ -176,6 +181,8 @@ pub mod pallet {
         ContributedGreaterThanIssuance,
         /// Ctoken already taken by another vault
         CTokenAlreadyTaken,
+        /// No contributions allowed during the VRF delay
+        VrfDelayInProgress,
         /// Xcm message send failure
         SendXcmError,
     }
@@ -199,6 +206,10 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn xcm_weight)]
     pub type XcmWeight<T: Config> = StorageValue<_, XcmWeightMisc<Weight>, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn is_vrf)]
+    pub type IsVrfDelayInProgress<T: Config> = StorageValue<_, bool, ValueQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig {
@@ -224,13 +235,6 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Create a new vault via a governance decision
-        /// - `crowdloan` represents which crowdloan we are supporting on the relay
-        ///   chain
-        /// - `ctoken` is a new asset created for this vault to represent the shares
-        ///   of the vault's contributors which will later be used for refunding their
-        ///   contributions
-        /// - `contribution_strategy` represents how we can contribute coins to the
-        ///   crowdloan on the relay chain
         #[pallet::weight(<T as Config>::WeightInfo::create_vault())]
         #[transactional]
         pub fn create_vault(
@@ -278,6 +282,8 @@ pub mod pallet {
                 vault.phase == VaultPhase::Contributing,
                 Error::<T>::IncorrectVaultPhase
             );
+
+            ensure!(!Self::is_vrf(), Error::<T>::VrfDelayInProgress);
 
             T::Assets::transfer(
                 T::RelayCurrency::get(),
@@ -329,6 +335,21 @@ pub mod pallet {
             ));
 
             Ok(().into())
+        }
+
+        /// Mark the start/end of vrf delay, no contribution is allowed if
+        /// the vrf delay is in progress
+        #[pallet::weight(<T as Config>::WeightInfo::toggle_vrf_delay())]
+        #[transactional]
+        pub fn toggle_vrf_delay(origin: OriginFor<T>) -> DispatchResult {
+            T::VrfDelayOrigin::ensure_origin(origin)?;
+            let is_vrf = Self::is_vrf();
+
+            IsVrfDelayInProgress::<T>::mutate(|b| *b = !is_vrf);
+
+            Self::deposit_event(Event::<T>::VrfDelayToggled(!is_vrf));
+
+            Ok(())
         }
 
         /// Mark the associated vault as closed and stop accepting contributions for it

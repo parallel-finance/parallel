@@ -54,6 +54,7 @@ pub trait WeightInfo {
     fn auction_failed() -> Weight;
     fn claim_refund() -> Weight;
     fn slot_expired() -> Weight;
+    fn toggle_vrf_delay() -> Weight;
     fn update_reserve_factor() -> Weight;
     fn update_xcm_fees_compensation() -> Weight;
     fn update_xcm_weight() -> Weight;
@@ -97,6 +98,9 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
         (177_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(12 as Weight))
             .saturating_add(T::DbWeight::get().writes(6 as Weight))
+    }
+    fn toggle_vrf_delay() -> Weight {
+        (10_000 as Weight)
     }
     fn update_reserve_factor() -> Weight {
         (28_000_000 as Weight)
@@ -156,6 +160,9 @@ impl WeightInfo for () {
         (177_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(12 as Weight))
             .saturating_add(RocksDbWeight::get().writes(6 as Weight))
+    }
+    fn toggle_vrf_delay() -> Weight {
+        (10_000 as Weight)
     }
     fn update_reserve_factor() -> Weight {
         (28_000_000 as Weight)
