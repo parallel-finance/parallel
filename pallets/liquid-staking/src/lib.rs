@@ -416,26 +416,6 @@ pub mod pallet {
             Ok(().into())
         }
 
-        #[pallet::weight(0)]
-        #[transactional]
-        pub fn update_bonded_amount(
-            origin: OriginFor<T>,
-            #[pallet::compact] bonded_amount: BalanceOf<T>,
-        ) -> DispatchResultWithPostInfo {
-            T::RelayOrigin::ensure_origin(origin)?;
-            let exchange_rate = Rate::checked_from_rational(
-                bonded_amount,
-                T::Assets::total_issuance(Self::liquid_currency()?),
-            )
-            .ok_or(Error::<T>::InvalidExchangeRate)?;
-            let old_exchange_rate = Self::exchange_rate();
-            if exchange_rate > old_exchange_rate {
-                ExchangeRate::<T>::put(exchange_rate);
-                Self::deposit_event(Event::<T>::ExchangeRateUpdated(exchange_rate));
-            }
-            Ok(().into())
-        }
-
         /// Unstake by exchange derivative for assets, the assets will not be avaliable immediately.
         /// Instead, the request is recorded and pending for the nomination accounts on relaychain
         /// chain to do the `unbond` operation.
@@ -561,19 +541,33 @@ pub mod pallet {
 
         /// Do settlement for matching pool.
         ///
-        /// Calculate the imbalance of current state and send corresponding operations to
+        /// The extrinsic does two things:
+        /// 1. Update exchange rate
+        /// 2. Calculate the imbalance of current matching state and send corresponding operations to
         /// relay-chain.
         #[pallet::weight(<T as Config>::WeightInfo::settlement())]
         #[transactional]
         pub fn settlement(
             origin: OriginFor<T>,
-            bond_extra: bool,
+            #[pallet::compact] bonded_amount: BalanceOf<T>,
             #[pallet::compact] unbonding_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
 
-            if Self::matching_pool().is_matched() {
-                return Ok(().into());
+            let bond_extra = !bonded_amount.is_zero();
+
+            // Update exchange rate
+            let matching_pool = MatchingPool::<T>::get();
+            let exchange_rate = Rate::checked_from_rational(
+                bonded_amount + matching_pool.total_stake_amount,
+                T::Assets::total_issuance(Self::liquid_currency()?)
+                    + matching_pool.total_unstake_amount,
+            )
+            .ok_or(Error::<T>::InvalidExchangeRate)?;
+            let old_exchange_rate = Self::exchange_rate();
+            if exchange_rate > old_exchange_rate {
+                ExchangeRate::<T>::put(exchange_rate);
+                Self::deposit_event(Event::<T>::ExchangeRateUpdated(exchange_rate));
             }
 
             let (bond_amount, rebond_amount, unbond_amount) =

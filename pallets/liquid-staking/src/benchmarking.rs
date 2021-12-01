@@ -1,6 +1,6 @@
 //! Liquid staking pallet benchmarking.
 #![cfg(feature = "runtime-benchmarks")]
-use super::{types::StakingSettlementKind, *};
+use super::*;
 
 use crate::Pallet as LiquidStaking;
 
@@ -39,7 +39,7 @@ const INITIAL_AMOUNT: u128 = 1000000000000000u128;
 const STAKE_AMOUNT: u128 = 20000000000000u128;
 const STAKED_AMOUNT: u128 = 19900000000000u128; // 20000000000000 * (1 - 5/1000)
 const UNSTAKE_AMOUNT: u128 = 10000000000000u128;
-const REWARDS: u128 = 10000000000000u128;
+// const REWARDS: u128 = 10000000000000u128;
 const SLASHES: u128 = 1000000000u128;
 const BOND_AMOUNT: u128 = 10000000000000u128;
 const UNBOND_AMOUNT: u128 = 5000000000000u128;
@@ -148,7 +148,7 @@ benchmarks! {
         LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice.clone()).into(), UNSTAKE_AMOUNT).unwrap();
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
         LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice).into(), UNSTAKE_AMOUNT).unwrap();
-    }: _(SystemOrigin::Root, false,  UNBONDING_AMOUNT)
+    }: _(SystemOrigin::Root, 0u128,  UNBONDING_AMOUNT)
     verify {
         assert_last_event::<T>(Event::<T>::Settlement(2 * STAKED_AMOUNT - 2 * UNSTAKE_AMOUNT, 0u128, 0u128).into());
     }
