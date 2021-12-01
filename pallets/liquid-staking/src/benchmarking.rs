@@ -185,15 +185,6 @@ benchmarks! {
         assert_last_event::<T>(Event::<T>::WithdrawingUnbonded(0).into());
     }
 
-    record_staking_settlement {
-        let alice: T::AccountId = account("Sample", 100, SEED);
-        initial_set_up::<T>(alice.clone());
-        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
-    }: _(SystemOrigin::Root, REWARDS, StakingSettlementKind::Reward)
-    verify {
-        assert_last_event::<T>(Event::<T>::StakingSettlementRecorded(StakingSettlementKind::Reward, REWARDS).into());
-    }
-
     set_liquid_currency {
     }: _(SystemOrigin::Root, XDOT)
     verify {
@@ -215,7 +206,6 @@ benchmarks! {
     update_staking_pool_capacity {
     }: _(SystemOrigin::Root, MARKET_CAP)
     verify {
-        assert_eq!(StakingPoolCapacity::<T>::get(), MARKET_CAP);
     }
 
     update_xcm_fees_compensation {
@@ -241,8 +231,7 @@ benchmarks! {
     payout_slashed {
         let alice: T::AccountId = account("Sample", 100, SEED);
         initial_set_up::<T>(alice);
-        LiquidStaking::<T>::record_staking_settlement(SystemOrigin::Root.into(), SLASHES, StakingSettlementKind::Slash).unwrap();
-    }: _(SystemOrigin::Root)
+    }: _(SystemOrigin::Root, SLASHES)
     verify {
         assert_eq!(InsurancePool::<T>::get(), INITIAL_INSURANCE - SLASHES - XCM_FEES_COMPENSATION);
     }
@@ -253,7 +242,7 @@ benchmarks! {
         let charlie: T::AccountId = account("Sample", 102, SEED);
         initial_set_up::<T>(alice.clone());
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
-        StakingPool::<T>::mutate(|b| *b += 2 * STAKED_AMOUNT);
+        // StakingPool::<T>::mutate(|b| *b += 2 * STAKED_AMOUNT);
         T::Assets::mint_into(XDOT, &bob, STAKED_AMOUNT).unwrap();
         T::Assets::mint_into(XDOT, &charlie, STAKED_AMOUNT).unwrap();
         LiquidStaking::<T>::unstake(SystemOrigin::Signed(bob).into(), STAKED_AMOUNT).unwrap();
