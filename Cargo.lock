@@ -5289,6 +5289,7 @@ dependencies = [
  "pallet-assets",
  "pallet-babe",
  "pallet-balances",
+ "pallet-parallel-xcm",
  "pallet-session",
  "pallet-timestamp",
  "pallet-utility",
@@ -5774,11 +5775,14 @@ version = "1.7.3"
 dependencies = [
  "frame-support",
  "frame-system",
+ "pallet-assets",
+ "parallel-primitives",
  "parity-scale-codec",
  "scale-info",
  "sp-io",
  "sp-runtime",
  "sp-std",
+ "xcm",
 ]
 
 [[package]]

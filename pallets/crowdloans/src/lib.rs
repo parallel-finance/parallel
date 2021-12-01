@@ -55,10 +55,10 @@ pub mod pallet {
         ArithmeticError, DispatchError,
     };
     use sp_std::cmp::min;
-    use sp_std::vec;
-    use xcm::{latest::prelude::*, DoubleEncoded};
+    use xcm::latest::prelude::*;
 
     use crate::weights::WeightInfo;
+    use pallet_parallel_xcm::ParallelXCM;
 
     pub type AssetIdOf<T> =
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
@@ -129,6 +129,9 @@ pub mod pallet {
 
         /// Weight information
         type WeightInfo: WeightInfo;
+
+        /// To expose XCM helper functions
+        type XCM: ParallelXCM<BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
     }
 
     #[pallet::event]
@@ -183,14 +186,6 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn reserve_factor)]
     pub type ReserveFactor<T: Config> = StorageValue<_, Ratio, ValueQuery>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn total_reserves)]
-    pub type TotalReserves<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn xcm_fees_compensation)]
-    pub type XcmFeesCompensation<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn xcm_weight)]
@@ -276,10 +271,8 @@ pub mod pallet {
                 Self::reserve_factor().mul_floor(amount),
                 T::MaxReservesPerContribution::get(),
             );
-            TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_add(reserves).ok_or(ArithmeticError::Overflow)?;
-                Ok(())
-            })?;
+
+            T::XCM::update_total_reserves(reserves)?;
 
             T::Assets::transfer(
                 T::RelayCurrency::get(),
@@ -471,10 +464,7 @@ pub mod pallet {
                 amount,
                 false,
             )?;
-            TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
-                Ok(())
-            })?;
+            T::XCM::update_total_reserves(amount)?;
 
             Self::deposit_event(Event::<T>::ReservesAdded(amount));
             Ok(().into())
@@ -501,7 +491,7 @@ pub mod pallet {
             #[pallet::compact] fees: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
-            XcmFeesCompensation::<T>::mutate(|v| *v = fees);
+            T::XCM::update_xcm_fees_compensation(fees);
             Self::deposit_event(Event::<T>::XcmFeesCompensationUpdated(fees));
             Ok(().into())
         }
@@ -533,42 +523,6 @@ pub mod pallet {
 
         fn vault(crowdloan: ParaId) -> Result<Vault<T>, DispatchError> {
             Vaults::<T>::try_get(crowdloan).map_err(|_err| Error::<T>::VaultDoesNotExist.into())
-        }
-
-        pub(crate) fn ump_transact(
-            call: DoubleEncoded<()>,
-            weight: Weight,
-        ) -> Result<Xcm<()>, DispatchError> {
-            let fees = Self::xcm_fees_compensation();
-            let account_id = Self::account_id();
-            let relay_currency = T::RelayCurrency::get();
-            let asset: MultiAsset = (MultiLocation::here(), fees).into();
-
-            T::Assets::burn_from(relay_currency, &account_id, fees)?;
-
-            TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
-                Ok(())
-            })?;
-
-            Ok(Xcm(vec![
-                WithdrawAsset(MultiAssets::from(asset.clone())),
-                BuyExecution {
-                    fees: asset.clone(),
-                    weight_limit: Unlimited,
-                },
-                Transact {
-                    origin_type: OriginKind::SovereignAccount,
-                    require_weight_at_most: weight,
-                    call,
-                },
-                RefundSurplus,
-                DepositAsset {
-                    assets: asset.into(),
-                    max_assets: 1,
-                    beneficiary: T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
-                },
-            ]))
         }
     }
 }

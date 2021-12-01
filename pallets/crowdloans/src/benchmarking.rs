@@ -3,15 +3,14 @@
 #![cfg(feature = "runtime-benchmarks")]
 use super::{types::*, *};
 
-use crate::{Pallet as Crowdloans, TotalReserves};
+use crate::Pallet as Crowdloans;
 
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
+use frame_support::{assert_ok, pallet_prelude::*, traits::fungibles::Mutate};
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{ump::XcmWeightMisc, CurrencyId, ParaId, Ratio};
 use sp_runtime::traits::StaticLookup;
 use sp_std::prelude::*;
-
-use frame_support::{assert_ok, pallet_prelude::*, traits::fungibles::Mutate};
 
 use primitives::Balance;
 

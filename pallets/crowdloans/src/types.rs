@@ -25,7 +25,9 @@ use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, DispatchError, DispatchResult, RuntimeDebug};
 use xcm::latest::prelude::*;
 
+use pallet_parallel_xcm::ParallelXCM;
 use primitives::{ump::*, ParaId};
+use sp_runtime::traits::Convert;
 
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum VaultPhase {
@@ -113,9 +115,13 @@ impl ContributionStrategyExecutor for ContributionStrategy {
                 },
             ));
 
-            let msg = Crowdloans::<T>::ump_transact(
+            let relay_currency = T::RelayCurrency::get();
+            let msg = T::XCM::ump_transact(
                 call.encode().into(),
                 Crowdloans::<T>::xcm_weight().contribute_weight,
+                T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
+                relay_currency,
+                Crowdloans::<T>::account_id(),
             )?;
 
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
@@ -143,11 +149,14 @@ impl ContributionStrategyExecutor for ContributionStrategy {
                     index: para_id,
                 }));
 
-            let msg = Crowdloans::<T>::ump_transact(
+            let relay_currency = T::RelayCurrency::get();
+            let msg = T::XCM::ump_transact(
                 call.encode().into(),
                 Crowdloans::<T>::xcm_weight().withdraw_weight,
+                T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
+                relay_currency,
+                Crowdloans::<T>::account_id(),
             )?;
-
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
             }
