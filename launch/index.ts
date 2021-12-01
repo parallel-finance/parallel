@@ -3,11 +3,18 @@ import shell from 'shelljs'
 import dotenv from 'dotenv'
 import config from './config'
 import { blake2AsU8a } from '@polkadot/util-crypto'
-import { stringToU8a, bnToU8a } from '@polkadot/util'
+import { stringToU8a, bnToU8a, BN, u8aConcat, u8aToHex } from '@polkadot/util'
 import { decodeAddress, encodeAddress } from '@polkadot/keyring'
 import { options } from '@parallel-finance/api'
 import { KeyringPair } from '@polkadot/keyring/types'
 import { ApiPromise, Keyring, WsProvider } from '@polkadot/api'
+
+const EMPTY_U8A_32 = new Uint8Array(32)
+const BN_EIGHTEEN = new BN(18)
+const GiftPalletId = 'par/gift'
+
+const createAddress = (id: string) =>
+  encodeAddress(u8aConcat(stringToU8a(`modl${id}`), EMPTY_U8A_32).subarray(0, 32))
 
 dotenv.config()
 
@@ -81,7 +88,7 @@ async function para() {
   }
 
   for (const { paraId, image, chain, ctokenId } of config.crowdloans) {
-    call.push(api.tx.sudo.sudo(api.tx.crowdloans.createVault(paraId, ctokenId, 'XCM')))
+    call.push(api.tx.sudo.sudo(api.tx.crowdloans.createVault(paraId, ctokenId, 'XCM', 'Reserves')))
   }
 
   call.push(
@@ -89,7 +96,8 @@ async function para() {
     api.tx.sudo.sudo(api.tx.liquidStaking.setStakingCurrency(config.stakingAsset)),
     api.tx.sudo.sudo(api.tx.liquidStaking.updateStakingPoolCapacity('10000000000000000')),
     api.tx.sudo.sudo(api.tx.liquidStaking.updateXcmFeesCompensation('50000000000')),
-    api.tx.sudo.sudo(api.tx.crowdloans.updateXcmFeesCompensation('50000000000'))
+    api.tx.sudo.sudo(api.tx.crowdloans.updateXcmFeesCompensation('50000000000')),
+    api.tx.balances.transfer(createAddress(GiftPalletId), '1000000000000000')
   )
 
   console.log('Submit parachain batches.')
@@ -146,7 +154,7 @@ async function relay() {
     ...config.crowdloans.map(({ paraId, derivativeIndex }) =>
       api.tx.utility.asDerivative(
         derivativeIndex,
-        api.tx.crowdloan.create(paraId, '1000000000000000000', 0, 7, height + 500000, null)
+        api.tx.crowdloan.create(paraId, '100000000000000000', 0, 7, height + 500000, null)
       )
     )
   )
