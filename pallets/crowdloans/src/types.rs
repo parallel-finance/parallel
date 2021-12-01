@@ -61,16 +61,31 @@ pub struct Vault<T: Config> {
     pub phase: VaultPhase,
     /// How we contribute coins to the crowdloan
     pub contribution_strategy: ContributionStrategy,
+    /// XCM Transaction payment strategy
+    pub transaction_payment_strategy: TransactionPaymentStrategy,
     /// Tracks how many coins were contributed on the relay chain
     pub contributed: BalanceOf<T>,
 }
 
 /// init default vault with ctoken and currency override
-impl<T: Config> From<(AssetIdOf<T>, ContributionStrategy)> for Vault<T> {
-    fn from((ctoken, contribution_strategy): (AssetIdOf<T>, ContributionStrategy)) -> Self {
+impl<T: Config>
+    From<(
+        AssetIdOf<T>,
+        ContributionStrategy,
+        TransactionPaymentStrategy,
+    )> for Vault<T>
+{
+    fn from(
+        (ctoken, contribution_strategy, transaction_payment_strategy): (
+            AssetIdOf<T>,
+            ContributionStrategy,
+            TransactionPaymentStrategy,
+        ),
+    ) -> Self {
         Self {
             ctoken,
             contribution_strategy,
+            transaction_payment_strategy,
             phase: VaultPhase::Contributing,
             contributed: Zero::zero(),
         }
@@ -80,7 +95,12 @@ impl<T: Config> From<(AssetIdOf<T>, ContributionStrategy)> for Vault<T> {
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum ContributionStrategy {
     XCM,
-    XCMWithProxy,
+}
+
+#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum TransactionPaymentStrategy {
+    Fees,
+    Reserves,
 }
 
 pub trait ContributionStrategyExecutor {
@@ -106,10 +126,6 @@ impl ContributionStrategyExecutor for ContributionStrategy {
         para_id: ParaId,
         amount: BalanceOf<T>,
     ) -> Result<(), DispatchError> {
-        if self == ContributionStrategy::XCMWithProxy {
-            unimplemented!()
-        }
-
         T::Assets::burn_from(
             T::RelayCurrency::get(),
             &Crowdloans::<T>::account_id(),
@@ -157,10 +173,6 @@ impl ContributionStrategyExecutor for ContributionStrategy {
         para_id: ParaId,
         amount: BalanceOf<T>,
     ) -> Result<(), DispatchError> {
-        if self == ContributionStrategy::XCMWithProxy {
-            unimplemented!()
-        }
-
         switch_relay!({
             let call =
                 RelaychainCall::<T>::Crowdloans(CrowdloansCall::Withdraw(CrowdloansWithdrawCall {

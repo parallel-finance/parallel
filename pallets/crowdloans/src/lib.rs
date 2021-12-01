@@ -238,6 +238,7 @@ pub mod pallet {
             crowdloan: ParaId,
             ctoken: AssetIdOf<T>,
             contribution_strategy: ContributionStrategy,
+            transaction_payment_strategy: TransactionPaymentStrategy,
         ) -> DispatchResult {
             T::CreateVaultOrigin::ensure_origin(origin)?;
 
@@ -248,7 +249,8 @@ pub mod pallet {
             Vaults::<T>::try_mutate(&crowdloan, |vault| -> Result<_, DispatchError> {
                 ensure!(vault.is_none(), Error::<T>::CrowdloanAlreadyExists);
 
-                let new_vault = Vault::from((ctoken, contribution_strategy));
+                let new_vault =
+                    Vault::from((ctoken, contribution_strategy, transaction_payment_strategy));
 
                 *vault = Some(new_vault);
 
@@ -265,7 +267,7 @@ pub mod pallet {
         pub fn contribute(
             origin: OriginFor<T>,
             crowdloan: ParaId,
-            #[pallet::compact] amount: BalanceOf<T>,
+            #[pallet::compact] mut amount: BalanceOf<T>,
             referral_code: Vec<u8>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
@@ -277,15 +279,6 @@ pub mod pallet {
                 Error::<T>::IncorrectVaultPhase
             );
 
-            let reserves = min(
-                Self::reserve_factor().mul_floor(amount),
-                T::MaxReservesPerContribution::get(),
-            );
-            TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_add(reserves).ok_or(ArithmeticError::Overflow)?;
-                Ok(())
-            })?;
-
             T::Assets::transfer(
                 T::RelayCurrency::get(),
                 &who,
@@ -295,9 +288,20 @@ pub mod pallet {
             )
             .map_err(|_: DispatchError| Error::<T>::InsufficientBalance)?;
 
-            let amount = amount
-                .checked_sub(reserves)
-                .ok_or(ArithmeticError::Underflow)?;
+            if vault.transaction_payment_strategy == TransactionPaymentStrategy::Fees {
+                let reserves = min(
+                    Self::reserve_factor().mul_floor(amount),
+                    T::MaxReservesPerContribution::get(),
+                );
+                TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
+                    *b = b.checked_add(reserves).ok_or(ArithmeticError::Overflow)?;
+                    Ok(())
+                })?;
+
+                amount = amount
+                    .checked_sub(reserves)
+                    .ok_or(ArithmeticError::Underflow)?;
+            }
 
             ensure!(
                 amount >= T::MinContribution::get(),

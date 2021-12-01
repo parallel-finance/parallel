@@ -81,7 +81,7 @@ async function para() {
   }
 
   for (const { paraId, image, chain, ctokenId } of config.crowdloans) {
-    call.push(api.tx.sudo.sudo(api.tx.crowdloans.createVault(paraId, ctokenId, 'XCM')))
+    call.push(api.tx.sudo.sudo(api.tx.crowdloans.createVault(paraId, ctokenId, 'XCM', 'Reserves')))
   }
 
   call.push(
@@ -146,7 +146,7 @@ async function relay() {
     ...config.crowdloans.map(({ paraId, derivativeIndex }) =>
       api.tx.utility.asDerivative(
         derivativeIndex,
-        api.tx.crowdloan.create(paraId, '1000000000000000000', 0, 7, height + 500000, null)
+        api.tx.crowdloan.create(paraId, '100000000000000000', 0, 7, height + 500000, null)
       )
     )
   )
