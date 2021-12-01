@@ -99,8 +99,8 @@ const config = {
       balances: [['5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf', '100000000000000000000']]
     },
     {
-      name: 'Parallel Subsocial Crowdloans Kusama',
-      symbol: 'CKSM-SUB',
+      name: 'Parallel SherpaX Crowdloans Kusama',
+      symbol: 'CKSM-KSX',
       assetId: 4000,
       decimal: 12,
       marketOption: {
@@ -123,8 +123,8 @@ const config = {
       balances: []
     },
     {
-      name: 'Parallel SherpaX Crowdloans Kusama',
-      symbol: 'CKSM-KSX',
+      name: 'Parallel Sakura Crowdloans Kusama',
+      symbol: 'CKSM-SKU',
       assetId: 4001,
       decimal: 12,
       marketOption: {
@@ -147,8 +147,8 @@ const config = {
       balances: []
     },
     {
-      name: 'Parallel Sakura Crowdloans Kusama',
-      symbol: 'CKSM-SKU',
+      name: 'Parallel Subsocial Crowdloans Kusama',
+      symbol: 'CKSM-SUB',
       assetId: 4002,
       decimal: 12,
       marketOption: {
@@ -173,21 +173,21 @@ const config = {
   ],
   crowdloans: [
     {
-      paraId: 2100,
+      paraId: 2013,
       derivativeIndex: 0,
       image: 'parallelfinance/polkadot-collator:v0.9.12',
       chain: 'shell',
       ctokenId: 4000
     },
     {
-      paraId: 2013,
+      paraId: 2016,
       derivativeIndex: 1,
       image: 'parallelfinance/polkadot-collator:v0.9.12',
       chain: 'shell',
       ctokenId: 4001
     },
     {
-      paraId: 2016,
+      paraId: 2100,
       derivativeIndex: 2,
       image: 'parallelfinance/polkadot-collator:v0.9.12',
       chain: 'shell',
