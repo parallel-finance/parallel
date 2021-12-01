@@ -1358,7 +1358,7 @@ parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
     pub const MaxReservesPerContribution: Balance = 100_000_000_000;
     pub const MinContribution: Balance = 100_000_000_000;
-    pub RefundLocation: AccountId = ParachainInfo::parachain_id().into_account();
+    pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
 }
 
 impl pallet_crowdloans::Config for Runtime {
