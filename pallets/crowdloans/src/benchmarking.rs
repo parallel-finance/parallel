@@ -17,7 +17,7 @@ use primitives::Balance;
 
 use sp_runtime::traits::One;
 
-const XCM_FEES_COMPENSATION: u128 = 50000000000u128;
+const XCM_FEES: u128 = 50000000000u128;
 const RESERVE_FACTOR: Ratio = Ratio::from_perthousand(5);
 const XCM_WEIGHT: XcmWeightMisc<Weight> = XcmWeightMisc {
     bond_weight: 3_000_000_000,
@@ -31,7 +31,6 @@ const XCM_WEIGHT: XcmWeightMisc<Weight> = XcmWeightMisc {
     add_memo_weight: 3_000_000_000,
 };
 const CONTRIBUTE_AMOUNT: u128 = 20000000000000u128;
-const CONTRIBUTED_AMOUNT: u128 = 19900000000000u128;
 const INITIAL_RESERVES: u128 = 1000000000000u128;
 const INITIAL_AMOUNT: u128 = 1000000000000000u128;
 const ADD_RESERVES_AMOUNT: u128 = 500000000000000u128;
@@ -68,8 +67,7 @@ fn initial_set_up<T: Config + pallet_assets::Config<AssetId = CurrencyId, Balanc
     // fund caller with dot
     T::Assets::mint_into(T::RelayCurrency::get(), &caller, INITIAL_AMOUNT).ok();
 
-    Crowdloans::<T>::update_xcm_fees_compensation(SystemOrigin::Root.into(), XCM_FEES_COMPENSATION)
-        .unwrap();
+    Crowdloans::<T>::update_xcm_fees(SystemOrigin::Root.into(), XCM_FEES).unwrap();
 
     T::Assets::mint_into(
         T::RelayCurrency::get(),
@@ -97,7 +95,7 @@ benchmarks! {
         crowdloan,
         ctoken,
         ContributionStrategy::XCM,
-        TransactionPaymentStrategy::Fees
+        XcmFeesPaymentStrategy::Reserves
     )
     verify {
         assert_last_event::<T>(Event::<T>::VaultCreated(crowdloan, ctoken).into());
@@ -113,7 +111,7 @@ benchmarks! {
             RESERVE_FACTOR,
         )
         .unwrap();
-        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, TransactionPaymentStrategy::Fees));
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, XcmFeesPaymentStrategy::Reserves));
     }: _(
         SystemOrigin::Signed(caller.clone()),
         crowdloan,
@@ -121,7 +119,7 @@ benchmarks! {
         Vec::new()
     )
     verify {
-        assert_last_event::<T>(Event::VaultContributing(crowdloan, caller, CONTRIBUTED_AMOUNT, Vec::new()).into())
+        assert_last_event::<T>(Event::VaultContributing(crowdloan, caller, CONTRIBUTE_AMOUNT, Vec::new()).into())
     }
 
     close {
@@ -129,7 +127,7 @@ benchmarks! {
         let caller: T::AccountId = whitelisted_caller();
         let crowdloan = ParaId::from(1337);
         initial_set_up::<T>(caller, ctoken);
-        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, TransactionPaymentStrategy::Fees));
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, XcmFeesPaymentStrategy::Reserves));
     }: _(
         SystemOrigin::Root,
         crowdloan
@@ -143,7 +141,7 @@ benchmarks! {
         let caller: T::AccountId = whitelisted_caller();
         let crowdloan = ParaId::from(1337);
         initial_set_up::<T>(caller, ctoken);
-        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, TransactionPaymentStrategy::Fees));
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, XcmFeesPaymentStrategy::Reserves));
     }: _(
         SystemOrigin::Root
     )
@@ -156,7 +154,7 @@ benchmarks! {
         let caller: T::AccountId = whitelisted_caller();
         let crowdloan = ParaId::from(1338);
         initial_set_up::<T>(caller, ctoken);
-        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, TransactionPaymentStrategy::Fees));
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, XcmFeesPaymentStrategy::Reserves));
         assert_ok!(Crowdloans::<T>::close(SystemOrigin::Root.into(), crowdloan));
     }: _(
         SystemOrigin::Root,
@@ -171,7 +169,7 @@ benchmarks! {
         let crowdloan = ParaId::from(1339);
         let ctoken = 12;
         initial_set_up::<T>(caller.clone(), ctoken);
-        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, TransactionPaymentStrategy::Fees));
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, XcmFeesPaymentStrategy::Reserves));
         Crowdloans::<T>::update_reserve_factor(
             SystemOrigin::Root.into(),
             RESERVE_FACTOR,
@@ -193,7 +191,7 @@ benchmarks! {
         let crowdloan = ParaId::from(1340);
         let ctoken = 13;
         initial_set_up::<T>(caller.clone(), ctoken);
-        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, TransactionPaymentStrategy::Fees));
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, XcmFeesPaymentStrategy::Reserves));
         Crowdloans::<T>::update_reserve_factor(
             SystemOrigin::Root.into(),
             RESERVE_FACTOR,
@@ -216,7 +214,7 @@ benchmarks! {
         let crowdloan = ParaId::from(1341);
         let ctoken = 14;
         initial_set_up::<T>(caller.clone(), ctoken);
-        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, TransactionPaymentStrategy::Fees));
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, XcmFeesPaymentStrategy::Reserves));
         Crowdloans::<T>::update_reserve_factor(
             SystemOrigin::Root.into(),
             RESERVE_FACTOR,
@@ -238,10 +236,10 @@ benchmarks! {
         assert_last_event::<T>(Event::ReserveFactorUpdated(RESERVE_FACTOR).into())
     }
 
-    update_xcm_fees_compensation {
-    }: _(SystemOrigin::Root, XCM_FEES_COMPENSATION)
+    update_xcm_fees {
+    }: _(SystemOrigin::Root, XCM_FEES)
     verify {
-        assert_last_event::<T>(Event::XcmFeesCompensationUpdated(XCM_FEES_COMPENSATION).into())
+        assert_last_event::<T>(Event::XcmFeesUpdated(XCM_FEES).into())
     }
 
     update_xcm_weight {
