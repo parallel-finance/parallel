@@ -45,7 +45,7 @@ async function nextIndex(api: ApiPromise, signer: KeyringPair) {
   return await api.rpc.system.accountNextIndex(signer.address)
 }
 
-async function downwardTransfer(paraId: number, api: ApiPromise, account: string, amount: string) {
+function downwardTransfer(api: ApiPromise, paraId: number, account: string, amount: string) {
   return api.tx.xcmPallet.reserveTransferAssets(
     api.createType('XcmVersionedMultiLocation', {
       V1: api.createType('MultiLocationV1', {
@@ -204,8 +204,8 @@ async function relay() {
   )
   call.push(
     downwardTransfer(
-      2085,
       api,
+      2085,
       '5EYCAe5iie3JmgLB4rm1NHQtyYGiaYYBEB1jt7p35dXjQWJ8',
       '1000000000000000'
     )
