@@ -16,6 +16,12 @@ const ETH: ChainId = 1;
 const HKO: CurrencyId = 0;
 const EHKO: CurrencyId = 0;
 
+const EHKO_CURRENCY: Currency = Currency {
+    id: EHKO,
+    external: false,
+    fee: 0,
+};
+
 fn transfer_initial_balance<T: Config + pallet_balances::Config<Balance = Balance>>(
     caller: T::AccountId,
 ) {
@@ -69,14 +75,14 @@ benchmarks! {
 
     register_currency {
         let caller: T::AccountId = whitelisted_caller();
-    }: _(SystemOrigin::Root, HKO, EHKO, 0)
+    }: _(SystemOrigin::Root, HKO, EHKO_CURRENCY)
     verify {
         assert_last_event::<T>(Event::CurrencyRegistered(HKO, EHKO).into())
     }
 
     unregister_currency {
         let caller: T::AccountId = whitelisted_caller();
-        assert_ok!(Bridge::<T>::register_currency(SystemOrigin::Root.into(), HKO, EHKO, 0));
+        assert_ok!(Bridge::<T>::register_currency(SystemOrigin::Root.into(), HKO, EHKO_CURRENCY));
     }: _(SystemOrigin::Root, EHKO)
     verify {
         assert_last_event::<T>(Event::CurrencyRemoved(HKO, EHKO).into())
@@ -84,7 +90,7 @@ benchmarks! {
 
     set_currency_fee {
         let caller: T::AccountId = whitelisted_caller();
-        assert_ok!(Bridge::<T>::register_currency(SystemOrigin::Root.into(), HKO, EHKO, 0));
+        assert_ok!(Bridge::<T>::register_currency(SystemOrigin::Root.into(), HKO, EHKO_CURRENCY));
     }: _(SystemOrigin::Root, EHKO, dollar(1))
     verify {
         assert_last_event::<T>(Event::CurrencyFeeChanged(EHKO, dollar(1)).into())
@@ -93,7 +99,7 @@ benchmarks! {
     teleport {
         let caller: T::AccountId = whitelisted_caller();
         assert_ok!(Bridge::<T>::register_chain(SystemOrigin::Root.into(), ETH));
-        assert_ok!(Bridge::<T>::register_currency(SystemOrigin::Root.into(), HKO, EHKO, 0));
+        assert_ok!(Bridge::<T>::register_currency(SystemOrigin::Root.into(), HKO, EHKO_CURRENCY));
         transfer_initial_balance::<T>(caller.clone());
         let tele: TeleAccount = whitelisted_caller();
     }: _(SystemOrigin::Signed(caller), ETH, EHKO, tele, dollar(50))
@@ -101,7 +107,7 @@ benchmarks! {
     materialize {
         let caller: T::AccountId = whitelisted_caller();
         assert_ok!(Bridge::<T>::register_chain(T::RootOperatorOrigin::successful_origin(), ETH));
-        assert_ok!(Bridge::<T>::register_currency(T::RootOperatorOrigin::successful_origin(), HKO, EHKO, 0));
+        assert_ok!(Bridge::<T>::register_currency(T::RootOperatorOrigin::successful_origin(), HKO, EHKO_CURRENCY));
         transfer_initial_balance::<T>(caller.clone());
         let tele: TeleAccount = whitelisted_caller();
         assert_ok!(
@@ -123,6 +129,5 @@ benchmarks! {
             amount: dollar(10),
             favour: true,
         };
-        let caller2: T::AccountId = whitelisted_caller();
-    }: { call.dispatch_bypass_filter(SystemOrigin::Signed(caller2).into())? }
+    }: { call.dispatch_bypass_filter(origin)? }
 }
