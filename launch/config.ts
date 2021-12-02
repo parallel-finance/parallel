@@ -1,6 +1,8 @@
 const config = {
   liquidAsset: 1000,
   stakingAsset: 100,
+  leaseIndex: 0,
+  paraId: 2085,
   assets: [
     {
       name: 'Kusama',
@@ -177,21 +179,30 @@ const config = {
       derivativeIndex: 0,
       image: 'parallelfinance/polkadot-collator:v0.9.12',
       chain: 'shell',
-      ctokenId: 4000
+      ctokenId: 4000,
+      cap: '100000000000000000',
+      leaseStart: 0,
+      leaseEnd: 7
     },
     {
       paraId: 2016,
       derivativeIndex: 1,
       image: 'parallelfinance/polkadot-collator:v0.9.12',
       chain: 'shell',
-      ctokenId: 4001
+      ctokenId: 4001,
+      cap: '100000000000000000',
+      leaseStart: 0,
+      leaseEnd: 7
     },
     {
       paraId: 2100,
       derivativeIndex: 2,
       image: 'parallelfinance/polkadot-collator:v0.9.12',
       chain: 'shell',
-      ctokenId: 4002
+      ctokenId: 4002,
+      cap: '100000000000000000',
+      leaseStart: 0,
+      leaseEnd: 7
     }
   ]
 }

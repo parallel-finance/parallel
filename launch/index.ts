@@ -173,7 +173,7 @@ async function relay() {
       .sudo(
         api.tx.registrar.forceRegister(
           subAccountId(signer, derivativeIndex),
-          0,
+          config.leaseIndex,
           paraId,
           state,
           wasm
@@ -189,21 +189,23 @@ async function relay() {
 
   console.log('Start new auction.')
   const call = []
-  call.push(api.tx.sudo.sudo(api.tx.auctions.newAuction(1000000, 0)))
+  call.push(api.tx.sudo.sudo(api.tx.auctions.newAuction(1000000, config.leaseIndex)))
   call.push(
     ...config.crowdloans.map(({ derivativeIndex }) =>
       api.tx.balances.transfer(subAccountId(signer, derivativeIndex), '100000000000000')
     )
   )
   call.push(
-    ...config.crowdloans.map(({ paraId, derivativeIndex }) =>
+    ...config.crowdloans.map(({ paraId, derivativeIndex, cap, leaseStart, leaseEnd }) =>
       api.tx.utility.asDerivative(
         derivativeIndex,
-        api.tx.crowdloan.create(paraId, '100000000000000000', 0, 7, height + 500000, null)
+        api.tx.crowdloan.create(paraId, cap, leaseStart, leaseEnd, height + 500000, null)
       )
     )
   )
-  call.push(downwardTransfer(api, 2085, createAddress(XcmFeesPalletId), '1000000000000000'))
+  call.push(
+    downwardTransfer(api, config.paraId, createAddress(XcmFeesPalletId), '1000000000000000')
+  )
 
   await api.tx.utility.batchAll(call).signAndSend(signer, { nonce: await nextIndex(api, signer) })
 }
