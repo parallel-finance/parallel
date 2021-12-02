@@ -1354,6 +1354,11 @@ impl pallet_crowdloans::Config for Runtime {
     type AuctionCompletedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
+    type XCM = ParallelXCM;
+}
+
+impl pallet_parallel_xcm::Config for Runtime {
+    type Assets = Assets;
 }
 
 parameter_types! {
@@ -1516,6 +1521,9 @@ construct_runtime!(
         // Bridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 90,
         EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Event<T>} = 91,
         // LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 92,
+
+        // XCM
+        ParallelXCM: pallet_parallel_xcm::{Pallet} = 93,
     }
 );
 

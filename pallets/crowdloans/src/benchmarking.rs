@@ -8,11 +8,11 @@ use crate::Pallet as Crowdloans;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{assert_ok, pallet_prelude::*, traits::fungibles::Mutate};
 use frame_system::{self, RawOrigin as SystemOrigin};
+use pallet_parallel_xcm::ParallelXCM;
+use primitives::Balance;
 use primitives::{ump::XcmWeightMisc, CurrencyId, ParaId, Ratio};
 use sp_runtime::traits::StaticLookup;
 use sp_std::prelude::*;
-
-use primitives::Balance;
 
 use sp_runtime::traits::One;
 
@@ -77,7 +77,7 @@ fn initial_set_up<T: Config + pallet_assets::Config<AssetId = CurrencyId, Balanc
     )
     .unwrap();
 
-    TotalReserves::<T>::mutate(|b| *b = INITIAL_RESERVES);
+    T::XCM::update_total_reserves(INITIAL_RESERVES).unwrap();
 }
 
 benchmarks! {
