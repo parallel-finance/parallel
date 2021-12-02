@@ -12,6 +12,7 @@ import { ApiPromise, Keyring, WsProvider } from '@polkadot/api'
 const EMPTY_U8A_32 = new Uint8Array(32)
 const BN_EIGHTEEN = new BN(18)
 const GiftPalletId = 'par/gift'
+const XcmFeesPalletId = 'par/fees'
 
 const createAddress = (id: string) =>
   encodeAddress(u8aConcat(stringToU8a(`modl${id}`), EMPTY_U8A_32).subarray(0, 32))
@@ -202,14 +203,7 @@ async function relay() {
       )
     )
   )
-  call.push(
-    downwardTransfer(
-      api,
-      2085,
-      '5EYCAe5iie3JmgLB4rm1NHQtyYGiaYYBEB1jt7p35dXjQWJ8',
-      '1000000000000000'
-    )
-  )
+  call.push(downwardTransfer(api, 2085, createAddress(XcmFeesPalletId), '1000000000000000'))
 
   await api.tx.utility.batchAll(call).signAndSend(signer, { nonce: await nextIndex(api, signer) })
 }
