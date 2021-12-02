@@ -499,7 +499,11 @@ fn add_reserves_should_work() {
     new_test_ext().execute_with(|| {
         let amount = 1_000;
 
-        assert_ok!(Crowdloans::add_reserves(Origin::signed(ALICE), amount));
+        assert_ok!(Crowdloans::add_reserves(
+            Origin::signed(ALICE),
+            sp_runtime::MultiAddress::Id(ALICE),
+            amount
+        ));
 
         assert_eq!(
             Assets::balance(

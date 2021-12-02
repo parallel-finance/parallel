@@ -326,6 +326,9 @@ pub type VrfDelayOrigin =
 pub type CloseReOpenOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
+pub type ReserveOrigin =
+    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+
 pub type AuctionFailedOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
 
@@ -351,6 +354,7 @@ impl crate::Config for Test {
     type CloseReOpenOrigin = CloseReOpenOrigin;
     type AuctionFailedOrigin = AuctionFailedOrigin;
     type SlotExpiredOrigin = SlotExpiredOrigin;
+    type ReserveOrigin = ReserveOrigin;
     type WeightInfo = ();
 }
 
