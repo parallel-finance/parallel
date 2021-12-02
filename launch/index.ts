@@ -96,7 +96,7 @@ async function para() {
     api.tx.sudo.sudo(api.tx.liquidStaking.setStakingCurrency(config.stakingAsset)),
     api.tx.sudo.sudo(api.tx.liquidStaking.updateStakingPoolCapacity('10000000000000000')),
     api.tx.sudo.sudo(api.tx.liquidStaking.updateXcmFeesCompensation('50000000000')),
-    api.tx.sudo.sudo(api.tx.crowdloans.updateXcmFeesCompensation('50000000000')),
+    api.tx.sudo.sudo(api.tx.crowdloans.updateXcmFees('20000000000')),
     api.tx.balances.transfer(createAddress(GiftPalletId), '1000000000000000')
   )
 
