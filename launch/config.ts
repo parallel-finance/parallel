@@ -1,7 +1,7 @@
 const config = {
   liquidAsset: 1000,
   stakingAsset: 100,
-  auctionDuration: 43200,
+  auctionDuration: 201600,
   leaseIndex: 0,
   paraId: 2085,
   assets: [
@@ -182,7 +182,7 @@ const config = {
       chain: 'shell',
       ctokenId: 4000,
       cap: '10000000000000000',
-      duration: 43200,
+      duration: 202800,
       leaseStart: 0,
       leaseEnd: 7
     },
@@ -193,7 +193,7 @@ const config = {
       chain: 'shell',
       ctokenId: 4001,
       cap: '1000000000000000',
-      duration: 7200,
+      duration: 43200,
       leaseStart: 0,
       leaseEnd: 7
     },
@@ -204,7 +204,7 @@ const config = {
       chain: 'shell',
       ctokenId: 4002,
       cap: '100000000000000',
-      duration: 300,
+      duration: 28800,
       leaseStart: 0,
       leaseEnd: 7
     }
