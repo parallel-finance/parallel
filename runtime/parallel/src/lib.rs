@@ -1347,6 +1347,7 @@ impl pallet_crowdloans::Config for Runtime {
     type CloseReOpenOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type ReserveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
 }
 

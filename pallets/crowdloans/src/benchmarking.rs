@@ -254,11 +254,12 @@ benchmarks! {
         let crowdloan = ParaId::from(1342);
         initial_set_up::<T>(caller.clone(), ctoken);
     }: _(
-        SystemOrigin::Signed(caller.clone()),
+        SystemOrigin::Root,
+        T::Lookup::unlookup(caller.clone()),
         ADD_RESERVES_AMOUNT
     )
     verify {
-        assert_last_event::<T>(Event::ReservesAdded(ADD_RESERVES_AMOUNT).into())
+        assert_last_event::<T>(Event::ReservesAdded(caller, ADD_RESERVES_AMOUNT).into())
     }
 }
 

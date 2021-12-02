@@ -53,7 +53,7 @@ pub mod pallet {
     use primitives::{ump::*, Balance, CurrencyId, ParaId, Ratio};
     use scale_info::prelude::format;
     use sp_runtime::{
-        traits::{AccountIdConversion, BlockNumberProvider, Convert, Zero},
+        traits::{AccountIdConversion, BlockNumberProvider, Convert, StaticLookup, Zero},
         ArithmeticError, DispatchError,
     };
     use sp_std::{boxed::Box, vec, vec::Vec};
@@ -135,6 +135,9 @@ pub mod pallet {
         /// The origin which can call slot expired
         type SlotExpiredOrigin: EnsureOrigin<Self::Origin>;
 
+        /// The origin which can add/reduce reserves.
+        type ReserveOrigin: EnsureOrigin<Self::Origin>;
+
         /// Weight information
         type WeightInfo: WeightInfo;
     }
@@ -163,7 +166,7 @@ pub mod pallet {
         /// Fees for extrinsics on relaychain were set to new value
         XcmFeesUpdated(BalanceOf<T>),
         /// Reserves added
-        ReservesAdded(BalanceOf<T>),
+        ReservesAdded(T::AccountId, BalanceOf<T>),
         /// Vrf delay toggled
         VrfDelayToggled(bool),
     }
@@ -483,13 +486,15 @@ pub mod pallet {
         #[transactional]
         pub fn add_reserves(
             origin: OriginFor<T>,
+            payer: <T::Lookup as StaticLookup>::Source,
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
+            T::ReserveOrigin::ensure_origin(origin)?;
+            let payer = T::Lookup::lookup(payer)?;
 
             T::Assets::transfer(
                 T::RelayCurrency::get(),
-                &who,
+                &payer,
                 &Self::account_id(),
                 amount,
                 false,
@@ -499,7 +504,7 @@ pub mod pallet {
                 Ok(())
             })?;
 
-            Self::deposit_event(Event::<T>::ReservesAdded(amount));
+            Self::deposit_event(Event::<T>::ReservesAdded(payer, amount));
             Ok(().into())
         }
 

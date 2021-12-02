@@ -45,6 +45,50 @@ async function nextIndex(api: ApiPromise, signer: KeyringPair) {
   return await api.rpc.system.accountNextIndex(signer.address)
 }
 
+async function downwardTransfer(paraId: number, api: ApiPromise, account: string, amount: string) {
+  return api.tx.xcmPallet.reserveTransferAssets(
+    api.createType('XcmVersionedMultiLocation', {
+      V1: api.createType('MultiLocationV1', {
+        parents: 0,
+        interior: api.createType('JunctionsV1', {
+          X1: api.createType('JunctionV1', {
+            Parachain: api.createType('Compact<u32>', paraId)
+          })
+        })
+      })
+    }),
+    api.createType('XcmVersionedMultiLocation', {
+      V1: api.createType('MultiLocationV1', {
+        parents: 0,
+        interior: api.createType('JunctionsV1', {
+          X1: api.createType('JunctionV1', {
+            AccountId32: {
+              network: api.createType('NetworkId', 'Any'),
+              id: account
+            }
+          })
+        })
+      })
+    }),
+    api.createType('XcmVersionedMultiAssets', {
+      V1: [
+        api.createType(' XcmV1MultiAsset', {
+          id: api.createType('XcmAssetId', {
+            Concrete: api.createType('MultiLocationV1', {
+              parents: 0,
+              interior: api.createType('JunctionsV1', 'Here')
+            })
+          }),
+          fun: api.createType('FungibilityV1', {
+            Fungible: amount
+          })
+        })
+      ]
+    }),
+    0
+  )
+}
+
 function subAccountId(signer: KeyringPair, index: number) {
   let seedBytes = stringToU8a('modlpy/utilisuba')
   let whoBytes = decodeAddress(signer.address)
@@ -88,7 +132,7 @@ async function para() {
   }
 
   for (const { paraId, image, chain, ctokenId } of config.crowdloans) {
-    call.push(api.tx.sudo.sudo(api.tx.crowdloans.createVault(paraId, ctokenId, 'XCM', 'Reserves')))
+    call.push(api.tx.sudo.sudo(api.tx.crowdloans.createVault(paraId, ctokenId, 'XCM', 'Payer')))
   }
 
   call.push(
@@ -156,6 +200,14 @@ async function relay() {
         derivativeIndex,
         api.tx.crowdloan.create(paraId, '100000000000000000', 0, 7, height + 500000, null)
       )
+    )
+  )
+  call.push(
+    downwardTransfer(
+      2085,
+      api,
+      '5EYCAe5iie3JmgLB4rm1NHQtyYGiaYYBEB1jt7p35dXjQWJ8',
+      '1000000000000000'
     )
   )
 
