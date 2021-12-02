@@ -194,6 +194,8 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
+        Assets::force_create(Origin::root(), USDT, ALICE, true, 1).unwrap();
+
         Balances::set_balance(Origin::root(), EVE, dollar(100), dollar(0)).unwrap();
 
         BridgeMembership::add_member(Origin::root(), ALICE).unwrap();

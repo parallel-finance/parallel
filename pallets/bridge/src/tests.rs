@@ -172,3 +172,45 @@ fn set_currency_fee_works() {
         );
     });
 }
+
+#[test]
+fn teleport_external_currency_works() {
+    new_test_ext().execute_with(|| {
+        Assets::mint(Origin::signed(ALICE), USDT, EVE, dollar(100)).unwrap();
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), dollar(100));
+
+        Bridge::teleport(Origin::signed(EVE), ETH, EUSDT, "TELE".into(), dollar(10)).unwrap();
+
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), dollar(90));
+        assert_eq!(
+            <Test as Config>::Assets::balance(USDT, &Bridge::account_id()),
+            dollar(0)
+        );
+    });
+}
+
+#[test]
+fn materialize_external_currency_works() {
+    new_test_ext().execute_with(|| {
+        // EVE has 0 USDT, and then requests for materializing 10 USDT
+        // Default vote threshold is 1
+        Bridge::materialize(Origin::signed(ALICE), ETH, 0, EUSDT, EVE, dollar(10), true).unwrap();
+        assert_eq!(
+            <Test as Config>::Assets::balance(USDT, &Bridge::account_id()),
+            dollar(0)
+        );
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), dollar(10));
+
+        assert_noop!(
+            Bridge::teleport(Origin::signed(EVE), ETH, EUSDT, "TELE".into(), dollar(11)),
+            pallet_assets::Error::<Test>::BalanceLow,
+        );
+        Bridge::teleport(Origin::signed(EVE), ETH, EUSDT, "TELE".into(), dollar(10)).unwrap();
+
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), dollar(0));
+        assert_eq!(
+            <Test as Config>::Assets::balance(USDT, &Bridge::account_id()),
+            dollar(0)
+        );
+    })
+}
