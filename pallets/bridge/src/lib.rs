@@ -267,7 +267,7 @@ pub mod pallet {
                 Error::<T>::ChainIdAlreadyRegistered
             );
 
-            // Write a new chain_id to storage
+            // Write a new chain_id into storage
             ChainNonces::<T>::insert(chain_id, 0);
             Self::deposit_event(Event::ChainRegistered(chain_id));
 

@@ -120,7 +120,6 @@ benchmarks! {
             )
         );
         let recipient: T::AccountId = whitelisted_caller();
-        let origin = T::RootOperatorOrigin::successful_origin();
         let call = Call::<T>::materialize {
             src_id: ETH,
             src_nonce: 1,
@@ -129,5 +128,6 @@ benchmarks! {
             amount: dollar(10),
             favour: true,
         };
-    }: { call.dispatch_bypass_filter(origin)? }
+        let caller2: T::AccountId = whitelisted_caller();
+    }: { call.dispatch_bypass_filter(SystemOrigin::Signed(caller2).into())? }
 }
