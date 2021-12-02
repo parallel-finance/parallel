@@ -189,17 +189,17 @@ async function relay() {
 
   console.log('Start new auction.')
   const call = []
-  call.push(api.tx.sudo.sudo(api.tx.auctions.newAuction(1000000, config.leaseIndex)))
+  call.push(api.tx.sudo.sudo(api.tx.auctions.newAuction(config.auctionDuration, config.leaseIndex)))
   call.push(
     ...config.crowdloans.map(({ derivativeIndex }) =>
       api.tx.balances.transfer(subAccountId(signer, derivativeIndex), '100000000000000')
     )
   )
   call.push(
-    ...config.crowdloans.map(({ paraId, derivativeIndex, cap, leaseStart, leaseEnd }) =>
+    ...config.crowdloans.map(({ paraId, derivativeIndex, cap, duration, leaseStart, leaseEnd }) =>
       api.tx.utility.asDerivative(
         derivativeIndex,
-        api.tx.crowdloan.create(paraId, cap, leaseStart, leaseEnd, height + 500000, null)
+        api.tx.crowdloan.create(paraId, cap, leaseStart, leaseEnd, height + duration, null)
       )
     )
   )
