@@ -214,8 +214,7 @@ async function relay() {
   await api.tx.utility.batchAll(call).signAndSend(signer, { nonce: await nextIndex(api, signer) })
 }
 
-relay()
-  .then(para)
+Promise.all([relay(), para()])
   .then(() => process.exit(0))
   .catch(err => {
     console.error(err)
