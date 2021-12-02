@@ -22,7 +22,10 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use crate::proposal::{MaterializeCall, Proposal, ProposalStatus};
+use crate::{
+    currency::Currency,
+    proposal::{MaterializeCall, Proposal, ProposalStatus},
+};
 use frame_support::{
     pallet_prelude::*,
     require_transactional,
@@ -40,6 +43,7 @@ use sp_runtime::{traits::AccountIdConversion, ArithmeticError};
 pub use weights::WeightInfo;
 
 mod benchmarking;
+mod currency;
 mod mock;
 mod proposal;
 mod tests;
@@ -57,13 +61,11 @@ type MaterializeCallOf<T> =
 type ProposalOf<T> =
     Proposal<<T as frame_system::Config>::AccountId, <T as frame_system::Config>::BlockNumber>;
 
-// pub type ChainId = u8;
 pub type ChainNonce = u64;
 pub type TeleAccount = Vec<u8>;
 
 #[frame_support::pallet]
 pub mod pallet {
-
     use super::*;
 
     #[pallet::config]
@@ -116,10 +118,10 @@ pub mod pallet {
         ChainIdAlreadyRegistered,
         /// The chain_id is not registed and the related operation will be invalid
         ChainIdNotRegistered,
-        /// The currency_id is invalid, it cannot be a existed currency_id
-        CurrencyIdAlreadyRegistered,
-        /// The currency_id is not registed and the related operation will be invalid
-        CurrencyIdNotRegistered,
+        /// The currency is invalid, it cannot be a existed currency_id
+        CurrencyAlreadyRegistered,
+        /// The currency is not registed and the related operation will be invalid
+        CurrencyNotRegistered,
         /// The AdminMember already vote for the proposal
         MemberAlreadyVoted,
         /// No proposal was found
@@ -207,21 +209,14 @@ pub mod pallet {
     pub type ChainNonces<T: Config> = StorageMap<_, Blake2_256, ChainId, ChainNonce, ValueQuery>;
 
     #[pallet::storage]
-    #[pallet::getter(fn currency_ids)]
-    pub type CurrencyIds<T: Config> =
-        StorageMap<_, Twox64Concat, AssetIdOf<T>, CurrencyId, ValueQuery>;
+    #[pallet::getter(fn currencies)]
+    pub type Currencies<T: Config> =
+        StorageMap<_, Twox64Concat, AssetIdOf<T>, Currency, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn asset_ids)]
     pub type AssetIds<T: Config> =
         StorageMap<_, Twox64Concat, CurrencyId, AssetIdOf<T>, ValueQuery>;
-
-    /// Constrant to store the fees of cross-chain transaction
-    /// Can be modify by the bridge members
-    #[pallet::storage]
-    #[pallet::getter(fn currency_fees)]
-    pub type CurrencyFees<T: Config> =
-        StorageMap<_, Twox64Concat, CurrencyId, BalanceOf<T>, ValueQuery>;
 
     /// Mapping of [chain_id -> (nonce, call) -> proposal]
     #[pallet::storage]
@@ -305,22 +300,20 @@ pub mod pallet {
         pub fn register_currency(
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
-            currency_id: CurrencyId,
-            fee: BalanceOf<T>,
+            currency: Currency,
         ) -> DispatchResultWithPostInfo {
             Self::ensure_admin(origin)?;
 
             ensure!(
-                !CurrencyIds::<T>::contains_key(currency_id)
-                    && !AssetIds::<T>::contains_key(asset_id),
-                Error::<T>::CurrencyIdAlreadyRegistered,
+                !Currencies::<T>::contains_key(asset_id)
+                    && !AssetIds::<T>::contains_key(currency.clone().id),
+                Error::<T>::CurrencyAlreadyRegistered,
             );
 
-            CurrencyIds::<T>::insert(asset_id, currency_id);
-            AssetIds::<T>::insert(currency_id, asset_id);
-            CurrencyFees::<T>::insert(currency_id, fee);
+            Currencies::<T>::insert(asset_id, currency.clone());
+            AssetIds::<T>::insert(currency.id, asset_id);
 
-            Self::deposit_event(Event::CurrencyRegistered(asset_id, currency_id));
+            Self::deposit_event(Event::CurrencyRegistered(asset_id, currency.id));
             Ok(().into())
         }
 
@@ -332,13 +325,11 @@ pub mod pallet {
             currency_id: CurrencyId,
         ) -> DispatchResultWithPostInfo {
             Self::ensure_admin(origin)?;
-
             Self::ensure_currency_registered(currency_id)?;
 
             let asset_id = AssetIds::<T>::get(currency_id);
-            CurrencyIds::<T>::remove(asset_id);
+            Currencies::<T>::remove(asset_id);
             AssetIds::<T>::remove(currency_id);
-            CurrencyFees::<T>::remove(currency_id);
 
             Self::deposit_event(Event::CurrencyRemoved(asset_id, currency_id));
             Ok(().into())
@@ -355,7 +346,10 @@ pub mod pallet {
             Self::ensure_admin(origin)?;
             Self::ensure_currency_registered(currency_id)?;
 
-            CurrencyFees::<T>::mutate(currency_id, |fee| *fee = new_fee);
+            let asset_id = AssetIds::<T>::get(currency_id);
+            Currencies::<T>::mutate(asset_id, |currency| {
+                currency.fee = new_fee;
+            });
 
             Self::deposit_event(Event::CurrencyFeeChanged(currency_id, new_fee));
             Ok(())
@@ -385,13 +379,14 @@ pub mod pallet {
             Self::ensure_currency_registered(currency_id)?;
 
             let asset_id = AssetIds::<T>::get(currency_id);
-            let total_amount = amount
-                .checked_add(Self::currency_fees(currency_id))
-                .ok_or(ArithmeticError::Overflow)?;
-            T::Assets::transfer(asset_id, &who, &Self::account_id(), total_amount, false)?;
+            let Currency { external, fee, .. } = Currencies::<T>::get(asset_id);
+            let total_amount = amount.checked_add(fee).ok_or(ArithmeticError::Overflow)?;
+            if external {
+                T::Assets::burn_from(asset_id, &who, total_amount)?;
+            } else {
+                T::Assets::transfer(asset_id, &who, &Self::account_id(), total_amount, false)?;
+            }
 
-            // The amount and fees will be locked here
-            // but only the amount will be teleported
             Self::teleport_internal(dest_id, currency_id, to, amount)
         }
 
@@ -479,7 +474,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    /// Checks if a currency is registered
+    /// Checks if a currency_id is registered
     fn currency_registered(currency_id: CurrencyId) -> bool {
         AssetIds::<T>::contains_key(currency_id)
     }
@@ -487,7 +482,7 @@ impl<T: Config> Pallet<T> {
     fn ensure_currency_registered(currency_id: CurrencyId) -> DispatchResult {
         ensure!(
             Self::currency_registered(currency_id),
-            Error::<T>::CurrencyIdNotRegistered
+            Error::<T>::CurrencyNotRegistered
         );
 
         Ok(())
@@ -614,7 +609,12 @@ impl<T: Config> Pallet<T> {
         Self::deposit_event(Event::ProposalApproved(src_id, src_nonce));
 
         let asset_id = AssetIds::<T>::get(call.currency_id);
-        T::Assets::transfer(asset_id, &Self::account_id(), &call.to, call.amount, true)?;
+        let Currency { external, .. } = Currencies::<T>::get(asset_id);
+        if external {
+            T::Assets::mint_into(asset_id, &call.to, call.amount)?;
+        } else {
+            T::Assets::transfer(asset_id, &Self::account_id(), &call.to, call.amount, true)?;
+        }
 
         Self::deposit_event(Event::MaterializeMinted(
             src_id,
