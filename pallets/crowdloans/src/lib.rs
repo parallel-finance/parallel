@@ -128,9 +128,6 @@ pub mod pallet {
         /// The origin which can call auction failed
         type AuctionFailedOrigin: EnsureOrigin<Self::Origin>;
 
-        /// The origin which can call auction completed
-        type AuctionCompletedOrigin: EnsureOrigin<Self::Origin>;
-
         /// The origin which can call slot expired
         type SlotExpiredOrigin: EnsureOrigin<Self::Origin>;
 
@@ -293,21 +290,6 @@ pub mod pallet {
                 true,
             )
             .map_err(|_: DispatchError| Error::<T>::InsufficientBalance)?;
-
-            if vault.transaction_payment_strategy == TransactionPaymentStrategy::Fees {
-                let reserves = min(
-                    Self::reserve_factor().mul_floor(amount),
-                    T::MaxReservesPerContribution::get(),
-                );
-                TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
-                    *b = b.checked_add(reserves).ok_or(ArithmeticError::Overflow)?;
-                    Ok(())
-                })?;
-
-                amount = amount
-                    .checked_sub(reserves)
-                    .ok_or(ArithmeticError::Underflow)?;
-            }
 
             ensure!(
                 amount >= T::MinContribution::get(),
