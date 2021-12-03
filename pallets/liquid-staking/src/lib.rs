@@ -558,13 +558,15 @@ pub mod pallet {
 
             // Update exchange rate
             let matching_pool = MatchingPool::<T>::get();
+            let old_exchange_rate = Self::exchange_rate();
             let exchange_rate = Rate::checked_from_rational(
                 bonded_amount + matching_pool.total_stake_amount,
                 T::Assets::total_issuance(Self::liquid_currency()?)
-                    + matching_pool.total_unstake_amount,
+                    + old_exchange_rate
+                        .checked_mul_int(matching_pool.total_unstake_amount)
+                        .ok_or(ArithmeticError::Overflow)?,
             )
             .ok_or(Error::<T>::InvalidExchangeRate)?;
-            let old_exchange_rate = Self::exchange_rate();
             if exchange_rate > old_exchange_rate {
                 ExchangeRate::<T>::put(exchange_rate);
                 Self::deposit_event(Event::<T>::ExchangeRateUpdated(exchange_rate));
