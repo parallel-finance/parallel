@@ -75,6 +75,7 @@ use xcm_executor::{Config, XcmExecutor};
 
 pub mod constants;
 pub mod impls;
+mod vesting_migration;
 // A few exports that help ease life for downstream crates.
 // re-exports
 pub use constants::{currency, fee, time};
@@ -130,7 +131,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("heiko"),
     impl_name: create_runtime_str!("heiko"),
     authoring_version: 1,
-    spec_version: 172,
+    spec_version: 173,
     impl_version: 20,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
@@ -1386,14 +1387,25 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPallets,
-    SetSafeXcmVersion,
+    OrmlVestingStorageMigration,
 >;
 
-pub struct SetSafeXcmVersion;
-impl OnRuntimeUpgrade for SetSafeXcmVersion {
-    fn on_runtime_upgrade() -> u64 {
-        let _ = PolkadotXcm::force_default_xcm_version(Origin::root(), Some(2));
-        RocksDbWeight::get().writes(1)
+pub struct OrmlVestingStorageMigration;
+impl OnRuntimeUpgrade for OrmlVestingStorageMigration {
+    fn on_runtime_upgrade() -> frame_support::weights::Weight {
+        vesting_migration::migrate::<Runtime>()
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn pre_upgrade() -> Result<(), &'static str> {
+        vesting_migration::pre_migrate::<Runtime>();
+        Ok(())
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn post_upgrade() -> Result<(), &'static str> {
+        vesting_migration::post_migrate::<Runtime>();
+        Ok(())
     }
 }
 
