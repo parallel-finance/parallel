@@ -23,6 +23,8 @@ use sp_runtime::{traits::Zero, RuntimeDebug};
 
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum VaultPhase {
+    /// Vault is open for contributions but wont execute contribute call on relaychain
+    Pending,
     /// Vault is open for contributions
     Contributing,
     /// The vault is closed and we should avoid future contributions. This happens when
@@ -51,6 +53,8 @@ pub struct Vault<T: Config> {
     pub phase: VaultPhase,
     /// Tracks how many coins were contributed on the relay chain
     pub contributed: BalanceOf<T>,
+    /// Tracks how many coins were gathered but not contributed on the relay chain
+    pub pending: BalanceOf<T>,
     /// How we contribute coins to the crowdloan
     pub contribution_strategy: ContributionStrategy,
     /// XCM Transaction payment strategy
@@ -68,8 +72,9 @@ impl<T: Config> Vault<T> {
         Self {
             id,
             ctoken,
-            phase: VaultPhase::Contributing,
+            phase: VaultPhase::Pending,
             contributed: Zero::zero(),
+            pending: Zero::zero(),
             contribution_strategy,
             xcm_fees_payment_strategy,
         }
