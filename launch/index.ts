@@ -132,8 +132,11 @@ async function para() {
     call.push(...balances.map(([account, amount]) => api.tx.assets.mint(assetId, account, amount)))
   }
 
-  for (const { paraId, image, chain, ctokenId } of config.crowdloans) {
+  for (const { paraId, image, chain, ctokenId, pending } of config.crowdloans) {
     call.push(api.tx.sudo.sudo(api.tx.crowdloans.createVault(paraId, ctokenId, 'XCM', 'Payer')))
+    if (!pending) {
+      call.push(api.tx.sudo.sudo(api.tx.crowdloans.open(paraId)))
+    }
   }
 
   call.push(
