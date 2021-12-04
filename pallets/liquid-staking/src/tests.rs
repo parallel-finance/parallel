@@ -14,15 +14,15 @@ use primitives::{
 use sp_runtime::traits::One;
 use xcm_simulator::TestExt;
 
-#[test]
-fn stake_fails_due_to_exceed_capacity() {
-    new_test_ext().execute_with(|| {
-        assert_err!(
-            LiquidStaking::stake(Origin::signed(BOB), dot(10053f64)),
-            Error::<Test>::ExceededStakingPoolCapacity
-        );
-    })
-}
+// #[test]
+// fn stake_fails_due_to_exceed_capacity() {
+//     new_test_ext().execute_with(|| {
+//         assert_err!(
+//             LiquidStaking::stake(Origin::signed(BOB), dot(10053f64)),
+//             Error::<Test>::ExceededStakingPoolCapacity
+//         );
+//     })
+// }
 
 #[test]
 fn stake_should_work() {
@@ -30,7 +30,6 @@ fn stake_should_work() {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), dot(10f64)));
         // Check storage is correct
         assert_eq!(ExchangeRate::<Test>::get(), Rate::one());
-        assert_eq!(StakingPool::<Test>::get(), dot(9.95f64));
         assert_eq!(
             MatchingPool::<Test>::get(),
             MatchingLedger {
@@ -60,7 +59,6 @@ fn unstake_should_work() {
 
         // Check storage is correct
         assert_eq!(ExchangeRate::<Test>::get(), Rate::one());
-        assert_eq!(StakingPool::<Test>::get(), dot(3.95f64));
         assert_eq!(
             MatchingPool::<Test>::get(),
             MatchingLedger {
@@ -80,50 +78,6 @@ fn unstake_should_work() {
             dot(4f64)
         );
     })
-}
-
-#[test]
-fn test_record_staking_settlement_ok() {
-    new_test_ext().execute_with(|| {
-        assert_ok!(LiquidStaking::record_staking_settlement(
-            Origin::signed(ALICE),
-            dot(200f64),
-            StakingSettlementKind::Reward
-        ));
-
-        assert_eq!(LiquidStaking::exchange_rate(), Rate::from(2));
-    })
-}
-
-#[test]
-fn test_record_slash_should_not_change_exchange_rate_and_increase_total_slashed() {
-    new_test_ext().execute_with(|| {
-        LiquidStaking::record_staking_settlement(
-            Origin::signed(ALICE),
-            dot(1f64),
-            StakingSettlementKind::Slash,
-        )
-        .unwrap();
-
-        assert_eq!(LiquidStaking::exchange_rate(), Rate::from(1));
-        assert_eq!(LiquidStaking::total_slashed(), dot(1f64));
-    })
-}
-
-#[test]
-fn test_payout_slashed_should_work() {
-    TestNet::reset();
-
-    ParaA::execute_with(|| {
-        LiquidStaking::stake(Origin::signed(ALICE), dot(10000f64)).unwrap();
-        LiquidStaking::record_staking_settlement(
-            Origin::signed(ALICE),
-            dot(0.1f64),
-            StakingSettlementKind::Slash,
-        )
-        .unwrap();
-        assert_ok!(LiquidStaking::payout_slashed(Origin::signed(ALICE)));
-    });
 }
 
 enum StakeOp {
@@ -167,12 +121,12 @@ fn test_settlement_should_work() {
             stake_ops.into_iter().for_each(StakeOp::execute);
             assert_eq!(LiquidStaking::insurance_pool(), insurance_pool);
             assert_eq!(
-                LiquidStaking::matching_pool().matching(unbonding_amount),
-                matching_result
+                LiquidStaking::matching_pool().matching::<LiquidStaking>(unbonding_amount),
+                Ok(matching_result)
             );
             assert_ok!(LiquidStaking::settlement(
                 Origin::signed(ALICE),
-                true,
+                dot(0f64),
                 unbonding_amount,
             ));
             Pallet::<Test>::on_idle(0, 10000);
