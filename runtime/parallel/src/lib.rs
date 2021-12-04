@@ -1322,6 +1322,7 @@ impl pallet_amm::Config for Runtime {
 }
 
 parameter_types! {
+    pub LockPeriod: u64 = 2_000;
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
     pub const MaxReservesPerContribution: Balance = 10_000_000_000;
     pub const MinContribution: Balance = 50_000_000_000;
@@ -1348,6 +1349,7 @@ impl pallet_crowdloans::Config for Runtime {
     type AuctionCompletedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
+    type LockPeriod = LockPeriod;
 }
 
 parameter_types! {

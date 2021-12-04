@@ -38,9 +38,15 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
     use crate::types::*;
+    use frame_system::pallet_prelude::BlockNumberFor;
+    use sp_runtime::offchain::{
+        storage_lock::{StorageLock, Time},
+        Duration,
+    };
 
     use frame_support::{
         dispatch::DispatchResult,
+        log,
         pallet_prelude::*,
         traits::{
             fungibles::{Inspect, Mutate, Transfer},
@@ -55,7 +61,7 @@ pub mod pallet {
         ArithmeticError, DispatchError,
     };
     use sp_std::cmp::min;
-    use sp_std::{vec, vec::Vec};
+    use sp_std::{collections::btree_map::BTreeMap, vec, vec::Vec};
     use xcm::{latest::prelude::*, DoubleEncoded};
 
     use crate::weights::WeightInfo;
@@ -70,6 +76,15 @@ pub mod pallet {
     #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(_);
 
+    #[pallet::hooks]
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn offchain_worker(block_number: T::BlockNumber) {
+            if let Err(e) = Self::distribute_project_tokens(block_number) {
+                log::error!("Failed to run offchain project token distribution: {:?}", e);
+            }
+        }
+    }
+
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
@@ -78,6 +93,10 @@ pub mod pallet {
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
+
+        /// The lockdown time when running offchain worker
+        #[pallet::constant]
+        type LockPeriod: Get<u64>;
 
         /// XCM message sender
         type XcmSender: SendXcm;
@@ -160,6 +179,8 @@ pub mod pallet {
         XcmFeesCompensationUpdated(BalanceOf<T>),
         /// Reserves added
         ReservesAdded(BalanceOf<T>),
+        /// Distributed tokens
+        DistributedProjectToken(AssetIdOf<T>, T::AccountId, BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -178,6 +199,8 @@ pub mod pallet {
         CTokenAlreadyTaken,
         /// Xcm message send failure
         SendXcmError,
+        /// Failed to get lock to run offchain worker
+        GetLockFailed,
     }
 
     #[pallet::storage]
@@ -531,6 +554,78 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
+        fn distribute_project_tokens(_block_number: T::BlockNumber) -> Result<(), Error<T>> {
+            let mut lock = StorageLock::<Time>::with_deadline(
+                b"distribute_project_tokens::lock",
+                Duration::from_millis(T::LockPeriod::get()),
+            );
+            if lock.try_lock().is_err() {
+                return Err(Error::<T>::GetLockFailed);
+            }
+            // AccountId, cTokenId, percentOfIssuance
+            let ownership_snapshot = Self::ctoken_ownership_snapshot();
+
+            // now for each account lets payout
+            for (account_id, accounts_ownership) in ownership_snapshot.iter() {
+                // payout for each vault
+                for (ctoken, percent_of_ctokens) in accounts_ownership.iter() {
+                    // get the total number of ptokens to be distributed
+                    let ptoken = Self::get_ptoken_from_ctoken(ctoken);
+                    let current_distribution_total = Self::get_distribution_amount(ptoken);
+
+                    // the user should recieve this portion of ptokens
+                    let amount = current_distribution_total * percent_of_ctokens;
+
+                    // transfer tokens to user from this account
+                    T::Assets::transfer(ptoken, &Self::account_id(), &account_id, amount, true)
+                        .map_err(|_: DispatchError| Error::<T>::InsufficientBalance)?;
+
+                    // emit event that we distributed
+                    Self::deposit_event(Event::<T>::DistributedProjectToken(
+                        ptoken,
+                        account_id.clone(),
+                        amount,
+                    ));
+                }
+            }
+            Ok(())
+        }
+
+        // TODO: how do we determine the ptoken for each ctoken
+        fn get_ptoken_from_ctoken(_ctoken: &u32) -> u32 {
+            0
+        }
+
+        // TODO: how do we determine the balance of tokens to distribute this iteration
+        fn get_distribution_amount(_ptoken: u32) -> u128 {
+            10_000
+        }
+
+        pub fn ctoken_ownership_snapshot() -> BTreeMap<T::AccountId, BTreeMap<u32, u128>> {
+            // iterate over all accounts on chain and build ownership map for each
+            frame_system::Account::<T>::iter()
+                .map(|(who, _account_information)| {
+                    // iterate over each vault and build a map of ctoken and percent
+                    let ctoken_ownership_map: BTreeMap<u32, u128> = Vaults::<T>::iter()
+                        .map(|(_para_id, vault)| {
+                            // get total issuance
+                            let ctoken_issuance = T::Assets::total_issuance(vault.ctoken);
+
+                            // get individuals balance
+                            let balance = T::Assets::balance(vault.ctoken, &who.clone());
+
+                            // percent of total ctokens
+                            let percent_of_payout = balance / ctoken_issuance;
+
+                            // vault.ctoken, who, percent_of_payout
+                            (vault.ctoken, percent_of_payout)
+                        })
+                        .collect(); // we collect in to a variable for readability
+                    (who, ctoken_ownership_map)
+                })
+                .collect()
+        }
+
         /// Crowdloans pool account
         pub fn account_id() -> T::AccountId {
             T::PalletId::get().into_account()

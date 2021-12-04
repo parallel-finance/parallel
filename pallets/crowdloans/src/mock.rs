@@ -55,6 +55,7 @@ impl cumulus_pallet_parachain_system::Config for Test {
 impl parachain_info::Config for Test {}
 
 parameter_types! {
+    pub LockPeriod: u64 = 2_000;
     pub RelayNetwork: NetworkId = NetworkId::Kusama;
     pub RelayCurrency: CurrencyId = DOT;
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
@@ -352,6 +353,7 @@ impl crate::Config for Test {
     type AuctionCompletedOrigin = AuctionCompletedOrigin;
     type SlotExpiredOrigin = SlotExpiredOrigin;
     type WeightInfo = ();
+    type LockPeriod = LockPeriod;
 }
 
 parameter_types! {

@@ -446,3 +446,46 @@ fn add_reserves_should_work() {
         assert_eq!(TotalReserves::<Test>::get(), dot(30f64) + amount);
     });
 }
+
+#[test]
+fn off_chain_test() {
+    new_test_ext().execute_with(|| {
+        // start a vault with a contributer
+        let crowdloan = ParaId::from(1337);
+        let ctoken = 10;
+        let amount = 1_000;
+
+        let contribution_strategy = ContributionStrategy::XCM;
+
+        // create the ctoken asset
+        assert_ok!(Assets::force_create(
+            RawOrigin::Root.into(),
+            ctoken.unique_saturated_into(),
+            sp_runtime::MultiAddress::Id(Crowdloans::account_id()),
+            true,
+            One::one(),
+        ));
+
+        // create a vault to contribute to
+        assert_ok!(Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            contribution_strategy,                // contribution_strategy
+        ));
+
+        // do contribute
+        assert_ok!(Crowdloans::contribute(
+            Origin::signed(ALICE), // origin
+            crowdloan,             // crowdloan
+            amount,                // amount
+            Vec::new()
+        ));
+
+        // now do off-chain work
+        let snapshot = Crowdloans::ctoken_ownership_snapshot();
+        println!("{:#?}", snapshot);
+
+        assert_eq!(1, 0);
+    });
+}
