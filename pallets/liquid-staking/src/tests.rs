@@ -121,8 +121,8 @@ fn test_settlement_should_work() {
             stake_ops.into_iter().for_each(StakeOp::execute);
             assert_eq!(LiquidStaking::insurance_pool(), insurance_pool);
             assert_eq!(
-                LiquidStaking::matching_pool().matching(unbonding_amount),
-                matching_result
+                LiquidStaking::matching_pool().matching::<LiquidStaking>(unbonding_amount),
+                Ok(matching_result)
             );
             assert_ok!(LiquidStaking::settlement(
                 Origin::signed(ALICE),

@@ -456,7 +456,7 @@ pub mod pallet {
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
                 p.total_unstake_amount = p
                     .total_unstake_amount
-                    .checked_add(asset_amount)
+                    .checked_add(liquid_amount)
                     .ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
@@ -562,9 +562,7 @@ pub mod pallet {
             let exchange_rate = Rate::checked_from_rational(
                 bonded_amount + matching_pool.total_stake_amount,
                 T::Assets::total_issuance(Self::liquid_currency()?)
-                    + old_exchange_rate
-                        .checked_mul_int(matching_pool.total_unstake_amount)
-                        .ok_or(ArithmeticError::Overflow)?,
+                    + matching_pool.total_unstake_amount,
             )
             .ok_or(Error::<T>::InvalidExchangeRate)?;
             if exchange_rate > old_exchange_rate {
@@ -573,7 +571,7 @@ pub mod pallet {
             }
 
             let (bond_amount, rebond_amount, unbond_amount) =
-                MatchingPool::<T>::take().matching(unbonding_amount);
+                MatchingPool::<T>::take().matching::<Self>(unbonding_amount)?;
             let staking_currency = Self::staking_currency()?;
             let account_id = Self::account_id();
 
