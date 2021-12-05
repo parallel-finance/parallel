@@ -21,7 +21,7 @@ jobs:
         uses: chevdor/srtool-actions@v0.3.0
         with:
           chain: ${{ matrix.chain }}
-          tag: srtool:1.56.1
+          tag: 1.56.1
           runtime_dir: runtime/${{ matrix.chain }}
       - name: Summary
         run: |
