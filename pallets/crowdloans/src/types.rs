@@ -14,7 +14,7 @@
 
 // Groups common pool related structures
 
-use super::{AssetIdOf, BalanceOf, Config, Error, Pallet as Crowdloans};
+use super::{AssetIdOf, BalanceOf, Config, Pallet as Crowdloans};
 
 use codec::{Decode, Encode};
 use frame_support::{
@@ -23,10 +23,9 @@ use frame_support::{
 };
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, DispatchError, DispatchResult, RuntimeDebug};
-use xcm::latest::prelude::*;
 
 use pallet_parallel_xcm::ParallelXCM;
-use primitives::{ump::*, ParaId};
+use primitives::ParaId;
 use sp_runtime::traits::Convert;
 
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
@@ -106,28 +105,14 @@ impl ContributionStrategyExecutor for ContributionStrategy {
             amount,
         )?;
 
-        switch_relay!({
-            let call = RelaychainCall::<T>::Crowdloans(CrowdloansCall::Contribute(
-                CrowdloansContributeCall {
-                    index: para_id,
-                    value: amount,
-                    signature: None,
-                },
-            ));
-
-            let relay_currency = T::RelayCurrency::get();
-            let msg = T::XCM::ump_transact(
-                call.encode().into(),
-                Crowdloans::<T>::xcm_weight().contribute_weight,
-                T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
-                relay_currency,
-                Crowdloans::<T>::account_id(),
-            )?;
-
-            if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                return Err(Error::<T>::SendXcmError.into());
-            }
-        });
+        T::XCM::contribute(
+            para_id,
+            Crowdloans::<T>::xcm_weight().withdraw_weight,
+            T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
+            T::RelayCurrency::get(),
+            Crowdloans::<T>::account_id(),
+            amount,
+        )?;
 
         Ok(())
     }
@@ -142,25 +127,14 @@ impl ContributionStrategyExecutor for ContributionStrategy {
             unimplemented!()
         }
 
-        switch_relay!({
-            let call =
-                RelaychainCall::<T>::Crowdloans(CrowdloansCall::Withdraw(CrowdloansWithdrawCall {
-                    who: Crowdloans::<T>::para_account_id(),
-                    index: para_id,
-                }));
-
-            let relay_currency = T::RelayCurrency::get();
-            let msg = T::XCM::ump_transact(
-                call.encode().into(),
-                Crowdloans::<T>::xcm_weight().withdraw_weight,
-                T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
-                relay_currency,
-                Crowdloans::<T>::account_id(),
-            )?;
-            if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                return Err(Error::<T>::SendXcmError.into());
-            }
-        });
+        T::XCM::withdraw(
+            para_id,
+            Crowdloans::<T>::xcm_weight().withdraw_weight,
+            T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
+            T::RelayCurrency::get(),
+            Crowdloans::<T>::account_id(),
+            Crowdloans::<T>::para_account_id(),
+        )?;
 
         T::Assets::mint_into(
             T::RelayCurrency::get(),

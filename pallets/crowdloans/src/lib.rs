@@ -78,16 +78,9 @@ pub mod pallet {
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
 
-        /// XCM message sender
-        type XcmSender: SendXcm;
-
         /// Returns the parachain ID we are running with.
         #[pallet::constant]
         type SelfParaId: Get<ParaId>;
-
-        /// Relay network
-        #[pallet::constant]
-        type RelayNetwork: Get<NetworkId>;
 
         /// Relay currency
         #[pallet::constant]

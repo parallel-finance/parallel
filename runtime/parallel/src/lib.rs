@@ -1332,9 +1332,7 @@ impl pallet_crowdloans::Config for Runtime {
     type Event = Event;
     type PalletId = CrowdloansPalletId;
     type SelfParaId = ParachainInfo;
-    type XcmSender = XcmRouter;
     type Assets = Assets;
-    type RelayNetwork = RelayNetwork;
     type RelayCurrency = RelayCurrency;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type RefundLocation = RefundLocation;
@@ -1352,6 +1350,8 @@ impl pallet_crowdloans::Config for Runtime {
 
 impl pallet_parallel_xcm::Config for Runtime {
     type Assets = Assets;
+    type XcmSender = XcmRouter;
+    type RelayNetwork = RelayNetwork;
 }
 
 parameter_types! {

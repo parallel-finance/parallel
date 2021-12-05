@@ -26,7 +26,8 @@ use frame_support::{
     pallet_prelude::*,
     traits::fungibles::{Inspect, Mutate, Transfer},
 };
-use primitives::{Balance, CurrencyId};
+use primitives::switch_relay;
+use primitives::{ump::*, Balance, CurrencyId, ParaId};
 use sp_runtime::ArithmeticError;
 use sp_std::vec;
 use xcm::{latest::prelude::*, DoubleEncoded};
@@ -46,6 +47,13 @@ pub mod pallet {
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
+
+        /// XCM message sender
+        type XcmSender: SendXcm;
+
+        /// Relay network
+        #[pallet::constant]
+        type RelayNetwork: Get<NetworkId>;
     }
 
     #[pallet::storage]
@@ -58,6 +66,12 @@ pub mod pallet {
 
     #[pallet::pallet]
     pub struct Pallet<T>(_);
+
+    #[pallet::error]
+    pub enum Error<T> {
+        /// Xcm message send failure
+        SendXcmError,
+    }
 }
 
 pub trait ParallelXCM<Balance, AssetId, AccountId> {
@@ -72,6 +86,24 @@ pub trait ParallelXCM<Balance, AssetId, AccountId> {
         relay_currency: AssetId,
         account_id: AccountId,
     ) -> Result<Xcm<()>, DispatchError>;
+
+    fn withdraw(
+        para_id: ParaId,
+        weight: Weight,
+        beneficiary: MultiLocation,
+        relay_currency: AssetId,
+        account_id: AccountId,
+        para_account_id: AccountId,
+    ) -> Result<(), DispatchError>;
+
+    fn contribute(
+        para_id: ParaId,
+        weight: Weight,
+        beneficiary: MultiLocation,
+        relay_currency: AssetId,
+        account_id: AccountId,
+        amount: Balance,
+    ) -> Result<(), DispatchError>;
 }
 
 impl<T: Config> ParallelXCM<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T> {
@@ -121,5 +153,67 @@ impl<T: Config> ParallelXCM<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet
                 beneficiary,
             },
         ]))
+    }
+
+    fn withdraw(
+        para_id: ParaId,
+        weight: Weight,
+        beneficiary: MultiLocation,
+        relay_currency: AssetIdOf<T>,
+        account_id: T::AccountId,
+        para_account_id: T::AccountId,
+    ) -> Result<(), DispatchError> {
+        switch_relay!({
+            let call =
+                RelaychainCall::<T>::Crowdloans(CrowdloansCall::Withdraw(CrowdloansWithdrawCall {
+                    who: para_account_id,
+                    index: para_id,
+                }));
+
+            let msg = Self::ump_transact(
+                call.encode().into(),
+                weight,
+                beneficiary,
+                relay_currency,
+                account_id,
+            )?;
+            if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                return Err(Error::<T>::SendXcmError.into());
+            }
+        });
+
+        Ok(())
+    }
+
+    fn contribute(
+        para_id: ParaId,
+        weight: Weight,
+        beneficiary: MultiLocation,
+        relay_currency: AssetIdOf<T>,
+        account_id: T::AccountId,
+        amount: BalanceOf<T>,
+    ) -> Result<(), DispatchError> {
+        switch_relay!({
+            let call = RelaychainCall::<T>::Crowdloans(CrowdloansCall::Contribute(
+                CrowdloansContributeCall {
+                    index: para_id,
+                    value: amount,
+                    signature: None,
+                },
+            ));
+
+            let msg = Self::ump_transact(
+                call.encode().into(),
+                weight,
+                beneficiary,
+                relay_currency,
+                account_id,
+            )?;
+            if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                return Err(Error::<T>::SendXcmError.into());
+            }
+        });
+
+        Ok(())
     }
 }
