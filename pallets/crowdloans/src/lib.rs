@@ -72,8 +72,13 @@ pub mod pallet {
     pub struct Pallet<T>(_);
 
     #[pallet::config]
-    pub trait Config: frame_system::Config {
+    pub trait Config: frame_system::Config + pallet_xcm::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
+        type Origin: IsType<<Self as frame_system::Config>::Origin>
+            + Into<Result<pallet_xcm::Origin, <Self as Config>::Origin>>;
+
+        type Call: IsType<<Self as pallet_xcm::Config>::Call> + From<Call<Self>>;
 
         /// Assets for deposit/withdraw assets to/from crowdloan account
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
@@ -118,25 +123,25 @@ pub mod pallet {
         type BlockNumberProvider: BlockNumberProvider<BlockNumber = Self::BlockNumber>;
 
         /// The origin which can update reserve_factor, xcm_fees etc
-        type UpdateOrigin: EnsureOrigin<Self::Origin>;
+        type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The origin which can toggle vrf delay
-        type VrfDelayOrigin: EnsureOrigin<Self::Origin>;
+        type VrfDelayOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The origin which can create vault
-        type CreateVaultOrigin: EnsureOrigin<Self::Origin>;
+        type CreateVaultOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The origin which can close/reopen vault
-        type CloseReOpenOrigin: EnsureOrigin<Self::Origin>;
+        type CloseReOpenOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The origin which can call auction failed
-        type AuctionFailedOrigin: EnsureOrigin<Self::Origin>;
+        type AuctionFailedOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The origin which can call slot expired
-        type SlotExpiredOrigin: EnsureOrigin<Self::Origin>;
+        type SlotExpiredOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The origin which can add/reduce reserves.
-        type ReserveOrigin: EnsureOrigin<Self::Origin>;
+        type ReserveOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// Weight information
         type WeightInfo: WeightInfo;
@@ -289,6 +294,11 @@ pub mod pallet {
 
             ensure!(!Self::is_vrf(), Error::<T>::VrfDelayInProgress);
 
+            ensure!(
+                amount >= T::MinContribution::get(),
+                Error::<T>::InsufficientBalance
+            );
+
             T::Assets::transfer(
                 T::RelayCurrency::get(),
                 &who,
@@ -297,11 +307,6 @@ pub mod pallet {
                 true,
             )
             .map_err(|_: DispatchError| Error::<T>::InsufficientBalance)?;
-
-            ensure!(
-                amount >= T::MinContribution::get(),
-                Error::<T>::InsufficientBalance
-            );
 
             Self::do_contribute(&who, crowdloan, amount, vault.xcm_fees_payment_strategy)?;
 
