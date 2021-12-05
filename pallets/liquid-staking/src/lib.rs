@@ -78,18 +78,23 @@ pub mod pallet {
     pub struct Pallet<T>(_);
 
     #[pallet::config]
-    pub trait Config: frame_system::Config + pallet_utility::Config {
+    pub trait Config: frame_system::Config + pallet_utility::Config + pallet_xcm::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
+        type Origin: IsType<<Self as frame_system::Config>::Origin>
+            + Into<Result<pallet_xcm::Origin, <Self as Config>::Origin>>;
+
+        type Call: IsType<<Self as pallet_xcm::Config>::Call> + From<Call<Self>>;
 
         /// Assets for deposit/withdraw assets to/from pallet account
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId>
             + Mutate<Self::AccountId, Balance = Balance>;
 
         /// The origin which can do operation on relaychain using parachain's sovereign account
-        type RelayOrigin: EnsureOrigin<Self::Origin>;
+        type RelayOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The origin which can update liquid currency, staking currency and other parameters
-        type UpdateOrigin: EnsureOrigin<Self::Origin>;
+        type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The pallet id of liquid staking, keeps all the staking assets
         #[pallet::constant]

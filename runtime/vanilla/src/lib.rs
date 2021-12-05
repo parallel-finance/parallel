@@ -479,6 +479,8 @@ parameter_types! {
 
 impl pallet_liquid_staking::Config for Runtime {
     type Event = Event;
+    type Call = Call;
+    type Origin = Origin;
     type PalletId = StakingPalletId;
     type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
