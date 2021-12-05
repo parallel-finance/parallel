@@ -1,10 +1,6 @@
-use crate::{
-    mock::*,
-    types::{MatchingLedger, StakingSettlementKind},
-    *,
-};
+use crate::{mock::*, types::MatchingLedger, *};
 
-use frame_support::{assert_err, assert_ok, traits::Hooks};
+use frame_support::{assert_ok, traits::Hooks};
 
 use primitives::{
     tokens::{DOT, XDOT},

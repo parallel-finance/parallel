@@ -33,7 +33,7 @@ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash 
 2. rust
 
 ```
-RUST_TOOLCHAIN=nightly-2021-09-29
+RUST_TOOLCHAIN=nightly-2021-11-07
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
     sh -s -- -y --default-toolchain ${RUST_TOOLCHAIN} --component rust-src --target wasm32-unknown-unknown
 ```
