@@ -337,6 +337,8 @@ pub type SlotExpiredOrigin =
 
 impl crate::Config for Test {
     type Event = Event;
+    type Call = Call;
+    type Origin = Origin;
     type PalletId = CrowdloansPalletId;
     type SelfParaId = SelfParaId;
     type XcmSender = XcmRouter;

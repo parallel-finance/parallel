@@ -1363,6 +1363,8 @@ parameter_types! {
 
 impl pallet_crowdloans::Config for Runtime {
     type Event = Event;
+    type Call = Call;
+    type Origin = Origin;
     type PalletId = CrowdloansPalletId;
     type SelfParaId = ParachainInfo;
     type XcmSender = XcmRouter;
