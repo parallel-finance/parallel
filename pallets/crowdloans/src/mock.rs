@@ -345,7 +345,6 @@ impl crate::Config for Test {
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type RefundLocation = RefundLocation;
     type MinContribution = MinContribution;
-    type BlockNumberProvider = frame_system::Pallet<Test>;
     type XcmFeesPayer = XcmFeesPayer;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type CreateVaultOrigin = CreateVaultOrigin;
@@ -362,6 +361,7 @@ impl pallet_parallel_xcm::Config for Test {
     type Assets = Assets;
     type XcmSender = XcmRouter;
     type RelayNetwork = RelayNetwork;
+    type BlockNumberProvider = frame_system::Pallet<Test>;
 }
 
 parameter_types! {
