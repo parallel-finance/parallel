@@ -346,3 +346,9 @@ macro_rules! switch_relay {
         }
     }
 }
+
+#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum XcmFeesPaymentStrategy {
+    Payer,
+    Reserves,
+}

@@ -38,13 +38,14 @@ pub const PKUSD: CurrencyId = 2103;
 
 pub const PXKSM: CurrencyId = 3000;
 pub const PXDOT: CurrencyId = 3001;
-pub const PCKSM: CurrencyId = 3100;
-pub const PCDOT: CurrencyId = 3101;
+pub const PCKSM_KSX: CurrencyId = 3100;
+pub const PCKSM_SKU: CurrencyId = 3101;
+pub const PCKSM_SUB: CurrencyId = 3102;
 
 // Crowdloans Derivative
-// TODO: should use different tokens for crowdloan projects
-pub const CKSM: CurrencyId = 4000;
-pub const CDOT: CurrencyId = 4001;
+pub const CKSM_KSX: CurrencyId = 4000;
+pub const CKSM_SKU: CurrencyId = 4001;
+pub const CKSM_SUB: CurrencyId = 4002;
 
 // Token Registration Information
 // +───────────+──────────────+────────────────────+
@@ -65,8 +66,12 @@ pub const CDOT: CurrencyId = 4001;
 // | Heiko     | PUSDT        | N/A                |
 // | Heiko     | PXKSM        | N/A                |
 // | Heiko     | PXDOT        | N/A                |
-// | Heiko     | PCKSM        | N/A                |
-// | Heiko     | PCDOT        | N/A                |
+// | Heiko     | PCKSM_KSX    | N/A                |
+// | Heiko     | PCKSM_SKU    | N/A                |
+// | Heiko     | PCKSM_SUB    | N/A                |
+// | Heiko     | CKSM_KSX     | N/A                |
+// | Heiko     | CKSM_SKU     | N/A                |
+// | Heiko     | CKSM_SUB     | N/A                |
 // | Parallel  | HKO          | N/A                |
 // | Parallel  | PARA         | Native             |
 // | Parallel  | KSM          | N/A                |
@@ -82,8 +87,4 @@ pub const CDOT: CurrencyId = 4001;
 // | Parallel  | PUSDT        | N/A                |
 // | Parallel  | PXKSM        | N/A                |
 // | Parallel  | PXDOT        | N/A                |
-// | Parallel  | PCKSM        | N/A                |
-// | Parallel  | PCDOT        | N/A                |
-// | Parallel  | CKSM         | N/A                |
-// | Parallel  | CDOT         | N/A                |
 // +──────────+───────────────+────────────────────+

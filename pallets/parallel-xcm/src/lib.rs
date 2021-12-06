@@ -28,10 +28,12 @@ use frame_support::{
 };
 use primitives::switch_relay;
 use primitives::{ump::*, Balance, CurrencyId, ParaId};
+use sp_runtime::traits::BlockNumberProvider;
 use sp_runtime::ArithmeticError;
 use sp_std::vec;
 use xcm::{latest::prelude::*, DoubleEncoded};
 
+pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 pub type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
 pub type BalanceOf<T> =
@@ -54,6 +56,9 @@ pub mod pallet {
         /// Relay network
         #[pallet::constant]
         type RelayNetwork: Get<NetworkId>;
+
+        /// The block number provider
+        type BlockNumberProvider: BlockNumberProvider<BlockNumber = Self::BlockNumber>;
     }
 
     #[pallet::storage]
@@ -85,24 +90,31 @@ pub trait ParallelXCM<Balance, AssetId, AccountId> {
         beneficiary: MultiLocation,
         relay_currency: AssetId,
         account_id: AccountId,
+        xcm_fees_payer: AccountId,
+        xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
     ) -> Result<Xcm<()>, DispatchError>;
 
-    fn withdraw(
+    fn do_withdraw(
         para_id: ParaId,
         weight: Weight,
         beneficiary: MultiLocation,
         relay_currency: AssetId,
         account_id: AccountId,
         para_account_id: AccountId,
+        xcm_fees_payer: AccountId,
+        xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
     ) -> Result<(), DispatchError>;
 
-    fn contribute(
+    fn do_contribute(
         para_id: ParaId,
         weight: Weight,
         beneficiary: MultiLocation,
         relay_currency: AssetId,
         account_id: AccountId,
         amount: Balance,
+        xcm_fees_payer: AccountId,
+        xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
+        who: &AccountId,
     ) -> Result<(), DispatchError>;
 }
 
@@ -124,16 +136,25 @@ impl<T: Config> ParallelXCM<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         account_id: T::AccountId,
+        xcm_fees_payer: T::AccountId,
+        xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
     ) -> Result<Xcm<()>, DispatchError> {
         let fees = Self::xcm_fees();
         let asset: MultiAsset = (MultiLocation::here(), fees).into();
 
-        T::Assets::burn_from(relay_currency, &account_id, fees)?;
+        match xcm_fees_payment_strategy {
+            XcmFeesPaymentStrategy::Reserves => {
+                T::Assets::burn_from(relay_currency, &account_id, fees)?;
 
-        TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
-            *b = b.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
-            Ok(())
-        })?;
+                TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
+                    *b = b.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
+                    Ok(())
+                })?;
+            }
+            XcmFeesPaymentStrategy::Payer => {
+                T::Assets::burn_from(relay_currency, &xcm_fees_payer, fees)?;
+            }
+        }
 
         Ok(Xcm(vec![
             WithdrawAsset(MultiAssets::from(asset.clone())),
@@ -155,13 +176,15 @@ impl<T: Config> ParallelXCM<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet
         ]))
     }
 
-    fn withdraw(
+    fn do_withdraw(
         para_id: ParaId,
         weight: Weight,
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         account_id: T::AccountId,
         para_account_id: T::AccountId,
+        xcm_fees_payer: T::AccountId,
+        xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
     ) -> Result<(), DispatchError> {
         switch_relay!({
             let call =
@@ -176,6 +199,8 @@ impl<T: Config> ParallelXCM<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet
                 beneficiary,
                 relay_currency,
                 account_id,
+                xcm_fees_payer,
+                xcm_fees_payment_strategy,
             )?;
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
@@ -185,22 +210,38 @@ impl<T: Config> ParallelXCM<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet
         Ok(())
     }
 
-    fn contribute(
+    fn do_contribute(
         para_id: ParaId,
         weight: Weight,
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         account_id: T::AccountId,
         amount: BalanceOf<T>,
+        xcm_fees_payer: T::AccountId,
+        xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
+        who: &T::AccountId,
     ) -> Result<(), DispatchError> {
         switch_relay!({
-            let call = RelaychainCall::<T>::Crowdloans(CrowdloansCall::Contribute(
-                CrowdloansContributeCall {
-                    index: para_id,
-                    value: amount,
-                    signature: None,
-                },
-            ));
+            let call =
+                RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
+                    calls: vec![
+                        RelaychainCall::<T>::System(SystemCall::Remark(SystemRemarkCall {
+                            remark: format!(
+                                "{:?}#{:?}",
+                                T::BlockNumberProvider::current_block_number(),
+                                who
+                            )
+                            .into_bytes(),
+                        })),
+                        RelaychainCall::<T>::Crowdloans(CrowdloansCall::Contribute(
+                            CrowdloansContributeCall {
+                                index: para_id,
+                                value: amount,
+                                signature: None,
+                            },
+                        )),
+                    ],
+                })));
 
             let msg = Self::ump_transact(
                 call.encode().into(),
@@ -208,6 +249,8 @@ impl<T: Config> ParallelXCM<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet
                 beneficiary,
                 relay_currency,
                 account_id,
+                xcm_fees_payer,
+                xcm_fees_payment_strategy,
             )?;
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());

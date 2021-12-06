@@ -332,6 +332,8 @@ impl pallet_utility::Config for Test {
 
 impl crate::Config for Test {
     type Event = Event;
+    type Call = Call;
+    type Origin = Origin;
     type PalletId = StakingPalletId;
     type SelfParaId = SelfParaId;
     type WeightInfo = ();
