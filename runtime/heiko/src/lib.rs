@@ -1364,7 +1364,7 @@ impl pallet_parallel_xcm::Config for Runtime {
     type Assets = Assets;
     type XcmSender = XcmRouter;
     type RelayNetwork = RelayNetwork;
-	type BlockNumberProvider = frame_system::Pallet<Runtime>;
+    type BlockNumberProvider = frame_system::Pallet<Runtime>;
 }
 
 parameter_types! {
