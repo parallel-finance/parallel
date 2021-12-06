@@ -1348,7 +1348,6 @@ impl pallet_crowdloans::Config for Runtime {
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type RefundLocation = RefundLocation;
     type MinContribution = MinContribution;
-    type BlockNumberProvider = frame_system::Pallet<Runtime>;
     type XcmFeesPayer = XcmFeesPayer;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type VrfDelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
@@ -1365,6 +1364,7 @@ impl pallet_parallel_xcm::Config for Runtime {
     type Assets = Assets;
     type XcmSender = XcmRouter;
     type RelayNetwork = RelayNetwork;
+	type BlockNumberProvider = frame_system::Pallet<Runtime>;
 }
 
 parameter_types! {
