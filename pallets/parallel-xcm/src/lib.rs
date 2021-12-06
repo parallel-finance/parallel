@@ -108,7 +108,7 @@ pub trait ParallelXCM<Balance, AssetId, AccountId> {
 
 impl<T: Config> ParallelXCM<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T> {
     fn update_xcm_fees(fees: BalanceOf<T>) {
-		XcmFees::<T>::mutate(|v| *v = fees);
+        XcmFees::<T>::mutate(|v| *v = fees);
     }
 
     fn update_total_reserves(reserves: BalanceOf<T>) -> DispatchResult {

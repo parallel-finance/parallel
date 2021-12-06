@@ -67,8 +67,7 @@ fn initial_set_up<T: Config + pallet_assets::Config<AssetId = CurrencyId, Balanc
     // fund caller with dot
     T::Assets::mint_into(T::RelayCurrency::get(), &caller, INITIAL_AMOUNT).ok();
 
-    Crowdloans::<T>::update_xcm_fees(SystemOrigin::Root.into(), XCM_FEES_COMPENSATION)
-        .unwrap();
+    Crowdloans::<T>::update_xcm_fees(SystemOrigin::Root.into(), XCM_FEES_COMPENSATION).unwrap();
 
     T::Assets::mint_into(
         T::RelayCurrency::get(),
