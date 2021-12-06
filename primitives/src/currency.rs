@@ -24,6 +24,7 @@ use sp_std::{convert::Into, marker::PhantomData, prelude::*, result};
 use xcm::latest::prelude::*;
 use xcm_executor::traits::{Convert as MoreConvert, MatchesFungible, TransactAsset};
 
+#[allow(clippy::type_complexity)]
 pub struct MultiCurrencyAdapter<
     MultiCurrency,
     Match,

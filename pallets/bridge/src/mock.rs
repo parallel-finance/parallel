@@ -132,7 +132,7 @@ parameter_types! {
     pub const BridgeMaxMembers: u32 = 100;
 }
 
-type BridgeMembershipInstance = pallet_membership::Instance1;
+type BridgeMembershipInstance = pallet_membership::Instance6;
 impl pallet_membership::Config<BridgeMembershipInstance> for Test {
     type Event = Event;
     type AddOrigin = EnsureRootOrigin;
@@ -154,11 +154,13 @@ parameter_types! {
 
 impl Config for Test {
     type Event = Event;
+
     type AdminMembers = BridgeMembership;
 
     type RootOperatorOrigin = EnsureRoot<AccountId>;
 
     type ChainId = ParallelHeiko;
+
     type PalletId = BridgePalletId;
 
     type Assets = CurrencyAdapter;
@@ -183,7 +185,7 @@ frame_support::construct_runtime!(
         CurrencyAdapter: pallet_currency_adapter::{Pallet, Call},
         Bridge: bridge::{Pallet, Call, Storage, Event<T>},
         // Membership
-        BridgeMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>},
+        BridgeMembership: pallet_membership::<Instance6>::{Pallet, Call, Storage, Event<T>, Config<T>},
     }
 );
 

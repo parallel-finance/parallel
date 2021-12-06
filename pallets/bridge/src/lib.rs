@@ -22,10 +22,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use crate::{
-    currency::Currency,
-    proposal::{MaterializeCall, Proposal, ProposalStatus},
-};
+use crate::proposal::{Currency, MaterializeCall, Proposal, ProposalStatus};
 use frame_support::{
     pallet_prelude::*,
     require_transactional,
@@ -43,7 +40,6 @@ use sp_runtime::{traits::AccountIdConversion, ArithmeticError};
 pub use weights::WeightInfo;
 
 mod benchmarking;
-mod currency;
 mod mock;
 mod proposal;
 mod tests;
@@ -69,7 +65,11 @@ pub mod pallet {
     use super::*;
 
     #[pallet::config]
-    pub trait Config: frame_system::Config {
+    pub trait Config:
+        frame_system::Config
+        + pallet_assets::Config
+        + pallet_membership::Config<pallet_membership::Instance6>
+    {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Admin members has permission to manage the pallet
@@ -234,7 +234,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Set the threshold required to reach multi-signature consensus
-        #[pallet::weight(T::WeightInfo::set_vote_threshold())]
+        #[pallet::weight(<T as Config>::WeightInfo::set_vote_threshold())]
         #[transactional]
         pub fn set_vote_threshold(origin: OriginFor<T>, threshold: u32) -> DispatchResult {
             Self::ensure_admin(origin)?;
@@ -256,7 +256,7 @@ pub mod pallet {
         /// Only registered chains are allowed to cross-chain
         ///
         /// - `chain_id`: should be unique.
-        #[pallet::weight(T::WeightInfo::register_chain())]
+        #[pallet::weight(<T as Config>::WeightInfo::register_chain())]
         #[transactional]
         pub fn register_chain(origin: OriginFor<T>, chain_id: ChainId) -> DispatchResult {
             Self::ensure_admin(origin)?;
@@ -275,7 +275,7 @@ pub mod pallet {
         }
 
         /// Unregister the specified chain_id    
-        #[pallet::weight(T::WeightInfo::unregister_chain())]
+        #[pallet::weight(<T as Config>::WeightInfo::unregister_chain())]
         #[transactional]
         pub fn unregister_chain(origin: OriginFor<T>, id: ChainId) -> DispatchResult {
             Self::ensure_admin(origin)?;
@@ -295,7 +295,7 @@ pub mod pallet {
         /// Only registered currencies are allowed to cross-chain
         ///
         /// - `currency_id`: should be unique.
-        #[pallet::weight(T::WeightInfo::register_currency())]
+        #[pallet::weight(<T as Config>::WeightInfo::register_currency())]
         #[transactional]
         pub fn register_currency(
             origin: OriginFor<T>,
@@ -318,7 +318,7 @@ pub mod pallet {
         }
 
         /// Unregister the specified currency_id
-        #[pallet::weight(T::WeightInfo::unregister_currency())]
+        #[pallet::weight(<T as Config>::WeightInfo::unregister_currency())]
         #[transactional]
         pub fn unregister_currency(
             origin: OriginFor<T>,
@@ -336,7 +336,7 @@ pub mod pallet {
         }
 
         /// Set the cross-chain transaction fee for a registered currency
-        #[pallet::weight(T::WeightInfo::set_currency_fee())]
+        #[pallet::weight(<T as Config>::WeightInfo::set_currency_fee())]
         #[transactional]
         pub fn set_currency_fee(
             origin: OriginFor<T>,
@@ -365,7 +365,7 @@ pub mod pallet {
         /// - `currency_id`: currency_id of the currency to be teleported, should be registered.
         /// - `to`: recipient of the currency of another chain
         /// - `amount`: amount to be teleported, the decimal of currency may be different
-        #[pallet::weight(T::WeightInfo::teleport())]
+        #[pallet::weight(<T as Config>::WeightInfo::teleport())]
         #[transactional]
         pub fn teleport(
             origin: OriginFor<T>,
@@ -401,7 +401,7 @@ pub mod pallet {
         /// - `to`: recipient of the currency of this chain
         /// - `amount`: amount to be materialized, the decimal of currency may be different
         /// - `favour`: whether to favour the cross-chain transaction or not, always be true for now.
-        #[pallet::weight(T::WeightInfo::materialize())]
+        #[pallet::weight(<T as Config>::WeightInfo::materialize())]
         #[transactional]
         pub fn materialize(
             origin: OriginFor<T>,
