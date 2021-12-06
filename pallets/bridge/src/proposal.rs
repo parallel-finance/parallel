@@ -1,15 +1,8 @@
 use codec::{Decode, Encode};
 use frame_support::RuntimeDebug;
-use primitives::{Balance, CurrencyId};
+// use primitives::{AccountId, Balance, CurrencyId};
 use scale_info::prelude::vec::Vec;
 use scale_info::{prelude::vec, TypeInfo};
-
-#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
-pub struct Currency {
-    pub id: CurrencyId,
-    pub external: bool,
-    pub fee: Balance,
-}
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum ProposalStatus {
