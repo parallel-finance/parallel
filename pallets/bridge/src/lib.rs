@@ -22,10 +22,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use crate::{
-    currency::Currency,
-    proposal::{MaterializeCall, Proposal, ProposalStatus},
-};
+use crate::types::{Currency, MaterializeCall, Proposal, ProposalStatus};
 use frame_support::{
     pallet_prelude::*,
     require_transactional,
@@ -43,10 +40,9 @@ use sp_runtime::{traits::AccountIdConversion, ArithmeticError};
 pub use weights::WeightInfo;
 
 mod benchmarking;
-mod currency;
 mod mock;
-mod proposal;
 mod tests;
+mod types;
 pub mod weights;
 
 type AssetIdOf<T> =
