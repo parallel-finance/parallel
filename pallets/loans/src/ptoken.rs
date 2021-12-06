@@ -74,7 +74,7 @@ where
             Err(_) => return DepositConsequence::UnknownAsset,
         };
 
-        if Self::ensure_active_market(underlying_id).is_err() {
+        if !Self::active_markets().any(|(id, _)| id == underlying_id) {
             return DepositConsequence::UnknownAsset;
         }
 
@@ -104,7 +104,7 @@ where
             Err(_) => return WithdrawConsequence::UnknownAsset,
         };
 
-        if Self::ensure_active_market(underlying_id).is_err() {
+        if !Self::active_markets().any(|(id, _)| id == underlying_id) {
             return WithdrawConsequence::UnknownAsset;
         }
 
