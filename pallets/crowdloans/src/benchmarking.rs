@@ -67,7 +67,7 @@ fn initial_set_up<T: Config + pallet_assets::Config<AssetId = CurrencyId, Balanc
     // fund caller with dot
     T::Assets::mint_into(T::RelayCurrency::get(), &caller, INITIAL_AMOUNT).ok();
 
-    Crowdloans::<T>::update_xcm_fees_compensation(SystemOrigin::Root.into(), XCM_FEES_COMPENSATION)
+    Crowdloans::<T>::update_xcm_fees(SystemOrigin::Root.into(), XCM_FEES_COMPENSATION)
         .unwrap();
 
     T::Assets::mint_into(
@@ -222,7 +222,7 @@ benchmarks! {
         assert_last_event::<T>(Event::ReserveFactorUpdated(RESERVE_FACTOR).into())
     }
 
-    update_xcm_fees_compensation {
+    update_xcm_fees {
     }: _(SystemOrigin::Root, XCM_FEES_COMPENSATION)
     verify {
         assert_last_event::<T>(Event::XcmFeesCompensationUpdated(XCM_FEES_COMPENSATION).into())

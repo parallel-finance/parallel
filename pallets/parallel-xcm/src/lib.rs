@@ -57,8 +57,8 @@ pub mod pallet {
     }
 
     #[pallet::storage]
-    #[pallet::getter(fn xcm_fees_compensation)]
-    pub type XcmFeesCompensation<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+    #[pallet::getter(fn xcm_fees)]
+    pub type XcmFees<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn total_reserves)]
@@ -75,7 +75,7 @@ pub mod pallet {
 }
 
 pub trait ParallelXCM<Balance, AssetId, AccountId> {
-    fn update_xcm_fees_compensation(fees: Balance);
+    fn update_xcm_fees(fees: Balance);
 
     fn update_total_reserves(reserves: Balance) -> DispatchResult;
 
@@ -107,8 +107,8 @@ pub trait ParallelXCM<Balance, AssetId, AccountId> {
 }
 
 impl<T: Config> ParallelXCM<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T> {
-    fn update_xcm_fees_compensation(fees: BalanceOf<T>) {
-        XcmFeesCompensation::<T>::mutate(|v| *v = fees);
+    fn update_xcm_fees(fees: BalanceOf<T>) {
+		XcmFees::<T>::mutate(|v| *v = fees);
     }
 
     fn update_total_reserves(reserves: BalanceOf<T>) -> DispatchResult {
@@ -125,7 +125,7 @@ impl<T: Config> ParallelXCM<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet
         relay_currency: AssetIdOf<T>,
         account_id: T::AccountId,
     ) -> Result<Xcm<()>, DispatchError> {
-        let fees = Self::xcm_fees_compensation();
+        let fees = Self::xcm_fees();
         let asset: MultiAsset = (MultiLocation::here(), fees).into();
 
         T::Assets::burn_from(relay_currency, &account_id, fees)?;

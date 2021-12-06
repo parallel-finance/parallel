@@ -4,7 +4,7 @@ use crate::mock::*;
 use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
 use pallet_parallel_xcm::TotalReserves;
-use pallet_parallel_xcm::XcmFeesCompensation;
+use pallet_parallel_xcm::XcmFees;
 use primitives::{ump::XcmWeightMisc, ParaId, Ratio};
 use sp_runtime::{
     traits::{One, UniqueSaturatedInto, Zero},
@@ -406,12 +406,12 @@ fn update_reserve_factor_should_work() {
 #[test]
 fn update_xcm_fees_compensation_should_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Crowdloans::update_xcm_fees_compensation(
+        assert_ok!(Crowdloans::update_xcm_fees(
             frame_system::RawOrigin::Root.into(), // origin
             One::one()                            // fees
         ));
 
-        assert_eq!(XcmFeesCompensation::<Test>::get(), One::one());
+        assert_eq!(XcmFees::<Test>::get(), One::one());
     });
 }
 

@@ -102,7 +102,7 @@ pub mod pallet {
         /// Minimum contribute amount
         type MinContribution: Get<BalanceOf<Self>>;
 
-        /// The origin which can update reserve_factor, xcm_fees_compensation etc
+        /// The origin which can update reserve_factor, xcm_fees etc
         type UpdateOrigin: EnsureOrigin<Self::Origin>;
 
         /// The origin which can create vault
@@ -477,14 +477,14 @@ pub mod pallet {
         }
 
         /// Update xm fees amount to be used in xcm.Withdraw message
-        #[pallet::weight(<T as Config>::WeightInfo::update_xcm_fees_compensation())]
+        #[pallet::weight(<T as Config>::WeightInfo::update_xcm_fees())]
         #[transactional]
-        pub fn update_xcm_fees_compensation(
+        pub fn update_xcm_fees(
             origin: OriginFor<T>,
             #[pallet::compact] fees: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
-            T::XCM::update_xcm_fees_compensation(fees);
+            T::XCM::update_xcm_fees(fees);
             Self::deposit_event(Event::<T>::XcmFeesCompensationUpdated(fees));
             Ok(().into())
         }
