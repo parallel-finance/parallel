@@ -35,10 +35,11 @@ fn create_new_vault_should_work() {
             xcm_fees_payment_strategy             // xcm_fees_payment_strategy
         ));
 
-        let just_created_vault = Crowdloans::vaults(crowdloan).unwrap();
+        let just_created_vault = Crowdloans::vaults(crowdloan, 0).unwrap();
         assert_eq!(
             just_created_vault,
             Vault {
+                id: 0,
                 ctoken,
                 phase: VaultPhase::Contributing,
                 contribution_strategy,
@@ -118,7 +119,7 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
                 contribution_strategy,                // contribution_strategy
                 xcm_fees_payment_strategy             // xcm_fees_payment_strategy
             ),
-            Error::<Test>::CrowdloanAlreadyExists
+            Error::<Test>::CTokenAlreadyTaken
         );
     });
 }
@@ -160,7 +161,7 @@ fn contribute_should_work() {
         ));
 
         // check that we're in the right phase
-        let vault = Crowdloans::vaults(crowdloan).unwrap();
+        let vault = Crowdloans::vaults(crowdloan, 0).unwrap();
         assert_eq!(vault.phase, VaultPhase::Contributing);
 
         // check if ctoken minted to user
@@ -281,7 +282,7 @@ fn close_should_work() {
         ));
 
         // check that we're in the right phase
-        let vault = Crowdloans::vaults(crowdloan).unwrap();
+        let vault = Crowdloans::vaults(crowdloan, 0).unwrap();
         assert_eq!(vault.phase, VaultPhase::Closed)
     });
 }
@@ -317,7 +318,7 @@ fn reopen_should_work() {
         ));
 
         // check that we're in the right phase
-        let vault = Crowdloans::vaults(crowdloan).unwrap();
+        let vault = Crowdloans::vaults(crowdloan, 0).unwrap();
         assert_eq!(vault.phase, VaultPhase::Contributing)
     });
 }
@@ -353,7 +354,7 @@ fn auction_failed_should_work() {
         ));
 
         // check that we're in the right phase
-        let vault = Crowdloans::vaults(ParaId::from(crowdloan)).unwrap();
+        let vault = Crowdloans::vaults(ParaId::from(crowdloan), 0).unwrap();
         assert_eq!(vault.phase, VaultPhase::Failed)
     });
 }
@@ -408,13 +409,13 @@ fn claim_refund_should_work() {
 
         // do claim
         assert_ok!(Crowdloans::claim_refund(
-            Origin::signed(ALICE),   // origin
-            ParaId::from(crowdloan), // crowdloan
-            amount                   // amount
+            Origin::signed(ALICE), // origin
+            ctoken,                // ctoken
+            amount                 // amount
         ));
 
         // check that we're in the right phase
-        let vault = Crowdloans::vaults(ParaId::from(crowdloan)).unwrap();
+        let vault = Crowdloans::vaults(ParaId::from(crowdloan), 0).unwrap();
         // vault should be in a state we allow
         assert!(
             vault.phase == VaultPhase::Failed || vault.phase == VaultPhase::Expired,
@@ -450,10 +451,11 @@ fn slot_expired_should_work() {
         assert_ok!(Crowdloans::slot_expired(
             frame_system::RawOrigin::Root.into(), // origin
             ParaId::from(crowdloan),              // crowdloan
+            0
         ));
 
         // check that we're in the right phase
-        let vault = Crowdloans::vaults(ParaId::from(crowdloan)).unwrap();
+        let vault = Crowdloans::vaults(ParaId::from(crowdloan), 0).unwrap();
         assert_eq!(vault.phase, VaultPhase::Expired)
     });
 }
