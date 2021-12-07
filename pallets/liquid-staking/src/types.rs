@@ -49,7 +49,7 @@ impl<Balance: AtLeast32BitUnsigned + FixedPointOperand + Copy + Clone> MatchingL
             return Ok((
                 Zero::zero(),
                 Zero::zero(),
-                self.total_unstake_amount - self.total_stake_amount,
+                unstake_asset_amout - self.total_stake_amount,
             ));
         }
 
