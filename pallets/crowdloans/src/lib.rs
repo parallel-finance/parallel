@@ -285,7 +285,8 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
-            let mut vault = Self::vault(crowdloan)?;
+            let mut vault =
+                Vaults::<T>::try_get(crowdloan).map_err(|_| Error::<T>::VaultDoesNotExist)?;
 
             ensure!(
                 vault.phase == VaultPhase::Contributing,
@@ -567,10 +568,6 @@ pub mod pallet {
         /// Xcm fees payer account on parachain
         pub fn xcm_fees_payer() -> T::AccountId {
             T::XcmFeesPayer::get().into_account()
-        }
-
-        fn vault(crowdloan: ParaId) -> Result<Vault<T>, DispatchError> {
-            Vaults::<T>::try_get(crowdloan).map_err(|_err| Error::<T>::VaultDoesNotExist.into())
         }
 
         #[require_transactional]
