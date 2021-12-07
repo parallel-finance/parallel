@@ -3,9 +3,11 @@ use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use sp_runtime::{
     traits::{AtLeast32BitUnsigned, Zero},
-    RuntimeDebug,
+    ArithmeticError, DispatchError, FixedPointNumber, FixedPointOperand, RuntimeDebug,
 };
 use sp_std::cmp::Ordering;
+
+use primitives::ExchangeRateProvider;
 
 /// Category of staking settlement at the end of era.
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, TypeInfo)]
@@ -24,36 +26,38 @@ pub struct MatchingLedger<Balance> {
     pub total_unstake_amount: Balance,
 }
 
-impl<Balance: AtLeast32BitUnsigned + Copy + Clone> MatchingLedger<Balance> {
+impl<Balance: AtLeast32BitUnsigned + FixedPointOperand + Copy + Clone> MatchingLedger<Balance> {
     /// Matching requests in current period.
     ///
     /// `unbonding_amount` is the total amount of the unbonding asset in relaychain.
     ///
     /// the returned tri-tuple is formed as `(bond_amount, rebond_amount, unbond_amount)`.
-    pub fn matching(&self, unbonding_amount: Balance) -> (Balance, Balance, Balance) {
+    pub fn matching<T: ExchangeRateProvider>(
+        &self,
+        unbonding_amount: Balance,
+    ) -> Result<(Balance, Balance, Balance), DispatchError> {
         use Ordering::*;
 
+        let unstake_asset_amout = T::get_exchange_rate()
+            .checked_mul_int(self.total_unstake_amount)
+            .ok_or(ArithmeticError::Overflow)?;
+
         if matches!(
-            self.total_stake_amount.cmp(&self.total_unstake_amount),
+            self.total_stake_amount.cmp(&unstake_asset_amout),
             Less | Equal
         ) {
-            return (
+            return Ok((
                 Zero::zero(),
                 Zero::zero(),
                 self.total_unstake_amount - self.total_stake_amount,
-            );
+            ));
         }
 
-        let amount = self.total_stake_amount - self.total_unstake_amount;
+        let amount = self.total_stake_amount - unstake_asset_amout;
         if amount < unbonding_amount {
-            (Zero::zero(), amount, Zero::zero())
+            Ok((Zero::zero(), amount, Zero::zero()))
         } else {
-            (amount - unbonding_amount, unbonding_amount, Zero::zero())
+            Ok((amount - unbonding_amount, unbonding_amount, Zero::zero()))
         }
-    }
-
-    #[inline]
-    pub fn is_matched(&self) -> bool {
-        self.total_stake_amount == self.total_unstake_amount
     }
 }

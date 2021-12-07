@@ -135,7 +135,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("vanilla"),
     impl_name: create_runtime_str!("vanilla"),
     authoring_version: 1,
-    spec_version: 173,
+    spec_version: 174,
     impl_version: 20,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 4,
@@ -479,6 +479,8 @@ parameter_types! {
 
 impl pallet_liquid_staking::Config for Runtime {
     type Event = Event;
+    type Call = Call;
+    type Origin = Origin;
     type PalletId = StakingPalletId;
     type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
@@ -875,7 +877,7 @@ impl Convert<Balance, Balance> for GiftConvert {
         }
 
         if amount >= 10_u128.pow(decimal.into()) {
-            return DOLLARS / 8;
+            return DOLLARS / 40;
         }
 
         Zero::zero()
@@ -1357,13 +1359,15 @@ impl pallet_amm::Config for Runtime {
 
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
-    pub const MaxReservesPerContribution: Balance = 100_000_000_000;
     pub const MinContribution: Balance = 100_000_000_000;
-    pub RefundLocation: AccountId = ParachainInfo::parachain_id().into_account();
+    pub const XcmFeesPayer: PalletId = PalletId(*b"par/fees");
+    pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
 }
 
 impl pallet_crowdloans::Config for Runtime {
     type Event = Event;
+    type Call = Call;
+    type Origin = Origin;
     type PalletId = CrowdloansPalletId;
     type SelfParaId = ParachainInfo;
     type XcmSender = XcmRouter;
@@ -1372,14 +1376,16 @@ impl pallet_crowdloans::Config for Runtime {
     type RelayCurrency = RelayCurrency;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type RefundLocation = RefundLocation;
-    type MaxReservesPerContribution = MaxReservesPerContribution;
     type MinContribution = MinContribution;
+    type BlockNumberProvider = frame_system::Pallet<Runtime>;
+    type XcmFeesPayer = XcmFeesPayer;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type VrfDelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CloseReOpenOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type AuctionCompletedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type ReserveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
 }
 

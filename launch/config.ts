@@ -1,6 +1,9 @@
 const config = {
   liquidAsset: 1000,
   stakingAsset: 100,
+  auctionDuration: 201600,
+  leaseIndex: 0,
+  paraId: 2085,
   assets: [
     {
       name: 'Kusama',
@@ -99,8 +102,8 @@ const config = {
       balances: [['5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf', '100000000000000000000']]
     },
     {
-      name: 'Parallel Crowdloans Kusama',
-      symbol: 'CKSM',
+      name: 'Parallel SherpaX Crowdloans Kusama',
+      symbol: 'CKSM-KSX',
       assetId: 4000,
       decimal: 12,
       marketOption: {
@@ -121,15 +124,89 @@ const config = {
         ptokenId: 3100
       },
       balances: []
+    },
+    {
+      name: 'Parallel Sakura Crowdloans Kusama',
+      symbol: 'CKSM-SKU',
+      assetId: 4001,
+      decimal: 12,
+      marketOption: {
+        closeFactor: 50e4,
+        collateralFactor: 50e4,
+        reserveFactor: 15e4,
+        cap: '100000000000000000',
+        liquidateIncentive: '1100000000000000000',
+        rateModel: {
+          jumpModel: {
+            baseRate: '20000000000000000',
+            jumpRate: '100000000000000000',
+            fullRate: '320000000000000000',
+            jumpUtilization: 8e5
+          }
+        },
+        state: 'Pending',
+        ptokenId: 3101
+      },
+      balances: []
+    },
+    {
+      name: 'Parallel Subsocial Crowdloans Kusama',
+      symbol: 'CKSM-SUB',
+      assetId: 4002,
+      decimal: 12,
+      marketOption: {
+        closeFactor: 50e4,
+        collateralFactor: 50e4,
+        reserveFactor: 15e4,
+        cap: '100000000000000000',
+        liquidateIncentive: '1100000000000000000',
+        rateModel: {
+          jumpModel: {
+            baseRate: '20000000000000000',
+            jumpRate: '100000000000000000',
+            fullRate: '320000000000000000',
+            jumpUtilization: 8e5
+          }
+        },
+        state: 'Pending',
+        ptokenId: 3102
+      },
+      balances: []
     }
   ],
   crowdloans: [
     {
-      paraId: 2001,
+      paraId: 2013,
       derivativeIndex: 0,
       image: 'parallelfinance/polkadot-collator:v0.9.12',
       chain: 'shell',
-      ctokenId: 4000
+      ctokenId: 4000,
+      cap: '100000000000000',
+      duration: 28800,
+      leaseStart: 0,
+      leaseEnd: 7
+    },
+    {
+      paraId: 2016,
+      derivativeIndex: 1,
+      image: 'parallelfinance/polkadot-collator:v0.9.12',
+      chain: 'shell',
+      ctokenId: 4001,
+      cap: '1000000000000000',
+      duration: 43200,
+      leaseStart: 0,
+      leaseEnd: 7
+    },
+    {
+      paraId: 2100,
+      derivativeIndex: 2,
+      image: 'parallelfinance/polkadot-collator:v0.9.12',
+      chain: 'shell',
+      ctokenId: 4002,
+      cap: '10000000000000000',
+      duration: 202800,
+      leaseStart: 0,
+      leaseEnd: 7
     }
   ]
 }

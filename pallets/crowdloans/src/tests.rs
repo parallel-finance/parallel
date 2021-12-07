@@ -16,6 +16,7 @@ fn create_new_vault_should_work() {
         let ctoken = 10;
 
         let contribution_strategy = ContributionStrategy::XCM;
+        let xcm_fees_payment_strategy = XcmFeesPaymentStrategy::Reserves;
 
         // create the ctoken asset
         assert_ok!(Assets::force_create(
@@ -31,6 +32,7 @@ fn create_new_vault_should_work() {
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            xcm_fees_payment_strategy             // xcm_fees_payment_strategy
         ));
 
         let just_created_vault = Crowdloans::vaults(crowdloan).unwrap();
@@ -38,8 +40,9 @@ fn create_new_vault_should_work() {
             just_created_vault,
             Vault {
                 ctoken,
-                phase: VaultPhase::CollectingContributions,
-                contribution_strategy: contribution_strategy,
+                phase: VaultPhase::Contributing,
+                contribution_strategy,
+                xcm_fees_payment_strategy,
                 contributed: Zero::zero(),
             }
         );
@@ -74,6 +77,7 @@ fn create_new_vault_should_not_work_if_vault_is_already_created() {
                 crowdloan,                            // crowdloan
                 ctoken,                               // ctoken
                 ContributionStrategy::XCM,            // contribution_strategy
+                XcmFeesPaymentStrategy::Reserves      // xcm_fees_payment_strategy
             ),
             Error::<Test>::CTokenAlreadyTaken
         );
@@ -87,6 +91,7 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
         let ctoken = 10;
 
         let contribution_strategy = ContributionStrategy::XCM;
+        let xcm_fees_payment_strategy = XcmFeesPaymentStrategy::Reserves;
 
         // create the ctoken asset
         assert_ok!(Assets::force_create(
@@ -102,6 +107,7 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            xcm_fees_payment_strategy             // xcm_fees_payment_strategy
         ));
 
         assert_noop!(
@@ -110,6 +116,7 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
                 crowdloan,                            // crowdloan
                 ctoken,                               // ctoken
                 contribution_strategy,                // contribution_strategy
+                xcm_fees_payment_strategy             // xcm_fees_payment_strategy
             ),
             Error::<Test>::CrowdloanAlreadyExists
         );
@@ -124,6 +131,7 @@ fn contribute_should_work() {
         let amount = 1_000;
 
         let contribution_strategy = ContributionStrategy::XCM;
+        let xcm_fees_payment_strategy = XcmFeesPaymentStrategy::Reserves;
 
         // create the ctoken asset
         assert_ok!(Assets::force_create(
@@ -140,6 +148,7 @@ fn contribute_should_work() {
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            xcm_fees_payment_strategy             // xcm_fees_payment_strategy
         ));
 
         // do contribute
@@ -147,16 +156,62 @@ fn contribute_should_work() {
             Origin::signed(ALICE), // origin
             crowdloan,             // crowdloan
             amount,                // amount
+            Vec::new()
         ));
 
         // check that we're in the right phase
         let vault = Crowdloans::vaults(crowdloan).unwrap();
-        assert_eq!(vault.phase, VaultPhase::CollectingContributions);
+        assert_eq!(vault.phase, VaultPhase::Contributing);
 
         // check if ctoken minted to user
         let ctoken_balance = Assets::balance(vault.ctoken, ALICE);
 
         assert_eq!(ctoken_balance, amount);
+    });
+}
+
+#[test]
+fn toggle_vrf_should_work() {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337);
+        let ctoken = 10;
+        let amount = 1_000;
+
+        let contribution_strategy = ContributionStrategy::XCM;
+        let xcm_fees_payment_strategy = XcmFeesPaymentStrategy::Reserves;
+
+        // create the ctoken asset
+        assert_ok!(Assets::force_create(
+            RawOrigin::Root.into(),
+            ctoken.unique_saturated_into(),
+            sp_runtime::MultiAddress::Id(Crowdloans::account_id()),
+            true,
+            One::one(),
+        ));
+
+        // create a vault to contribute to
+        assert_ok!(Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            contribution_strategy,                // contribution_strategy
+            xcm_fees_payment_strategy             // xcm_fees_payment_strategy
+        ));
+
+        assert_ok!(Crowdloans::toggle_vrf_delay(
+            frame_system::RawOrigin::Root.into(), // origin
+        ));
+
+        // do contribute
+        assert_noop!(
+            Crowdloans::contribute(
+                Origin::signed(ALICE), // origin
+                crowdloan,             // crowdloan
+                amount,                // amount
+                Vec::new()
+            ),
+            Error::<Test>::VrfDelayInProgress
+        );
     });
 }
 
@@ -168,6 +223,7 @@ fn contribute_should_fail_insufficent_funds() {
         let amount = 1_000;
 
         let contribution_strategy = ContributionStrategy::XCM;
+        let xcm_fees_payment_strategy = XcmFeesPaymentStrategy::Reserves;
 
         // create the ctoken asset
         assert_ok!(Assets::force_create(
@@ -184,6 +240,7 @@ fn contribute_should_fail_insufficent_funds() {
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            xcm_fees_payment_strategy             // xcm_fees_payment_strategy
         ));
 
         // do contribute
@@ -192,6 +249,7 @@ fn contribute_should_fail_insufficent_funds() {
                 Origin::signed(BOB), // origin
                 crowdloan,           // crowdloan
                 amount,              // amount
+                Vec::new()
             ),
             Error::<Test>::InsufficientBalance
         );
@@ -205,6 +263,7 @@ fn close_should_work() {
         let ctoken = 10;
 
         let contribution_strategy = ContributionStrategy::XCM;
+        let xcm_fees_payment_strategy = XcmFeesPaymentStrategy::Reserves;
 
         // create a vault to contribute to
         assert_ok!(Crowdloans::create_vault(
@@ -212,6 +271,7 @@ fn close_should_work() {
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            xcm_fees_payment_strategy             // xcm_fees_payment_strategy
         ));
 
         // do close
@@ -233,6 +293,7 @@ fn reopen_should_work() {
         let ctoken = 10;
 
         let contribution_strategy = ContributionStrategy::XCM;
+        let xcm_fees_payment_strategy = XcmFeesPaymentStrategy::Reserves;
 
         // create a vault to contribute to
         assert_ok!(Crowdloans::create_vault(
@@ -240,6 +301,7 @@ fn reopen_should_work() {
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            xcm_fees_payment_strategy             // xcm_fees_payment_strategy
         ));
 
         // do close
@@ -256,7 +318,7 @@ fn reopen_should_work() {
 
         // check that we're in the right phase
         let vault = Crowdloans::vaults(crowdloan).unwrap();
-        assert_eq!(vault.phase, VaultPhase::CollectingContributions)
+        assert_eq!(vault.phase, VaultPhase::Contributing)
     });
 }
 
@@ -267,6 +329,7 @@ fn auction_failed_should_work() {
         let ctoken = 10;
 
         let contribution_strategy = ContributionStrategy::XCM;
+        let xcm_fees_payment_strategy = XcmFeesPaymentStrategy::Reserves;
 
         // create a vault to contribute to
         assert_ok!(Crowdloans::create_vault(
@@ -274,6 +337,7 @@ fn auction_failed_should_work() {
             ParaId::from(crowdloan),              // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            xcm_fees_payment_strategy             // xcm_fees_payment_strategy
         ));
 
         // do close
@@ -302,6 +366,7 @@ fn claim_refund_should_work() {
         let amount = 1_000u128;
 
         let contribution_strategy = ContributionStrategy::XCM;
+        let xcm_fees_payment_strategy = XcmFeesPaymentStrategy::Reserves;
 
         // create the ctoken asset
         assert_ok!(Assets::force_create(
@@ -318,6 +383,7 @@ fn claim_refund_should_work() {
             ParaId::from(crowdloan),              // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            xcm_fees_payment_strategy             // xcm_fees_payment_strategy
         ));
 
         // do contribute
@@ -325,6 +391,7 @@ fn claim_refund_should_work() {
             Origin::signed(ALICE),   // origin
             ParaId::from(crowdloan), // crowdloan
             amount,                  // amount
+            Vec::new()
         ));
 
         // do close
@@ -363,6 +430,7 @@ fn slot_expired_should_work() {
         let ctoken = 10;
 
         let contribution_strategy = ContributionStrategy::XCM;
+        let xcm_fees_payment_strategy = XcmFeesPaymentStrategy::Reserves;
 
         // create a vault to contribute to
         assert_ok!(Crowdloans::create_vault(
@@ -370,6 +438,7 @@ fn slot_expired_should_work() {
             ParaId::from(crowdloan),              // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            xcm_fees_payment_strategy             // xcm_fees_payment_strategy
         ));
 
         // do close
@@ -402,14 +471,14 @@ fn update_reserve_factor_should_work() {
 }
 
 #[test]
-fn update_xcm_fees_compensation_should_work() {
+fn update_xcm_fees_should_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Crowdloans::update_xcm_fees_compensation(
+        assert_ok!(Crowdloans::update_xcm_fees(
             frame_system::RawOrigin::Root.into(), // origin
             One::one()                            // fees
         ));
 
-        assert_eq!(XcmFeesCompensation::<Test>::get(), One::one());
+        assert_eq!(XcmFees::<Test>::get(), One::one());
     });
 }
 
@@ -430,7 +499,11 @@ fn add_reserves_should_work() {
     new_test_ext().execute_with(|| {
         let amount = 1_000;
 
-        assert_ok!(Crowdloans::add_reserves(Origin::signed(ALICE), amount));
+        assert_ok!(Crowdloans::add_reserves(
+            Origin::signed(ALICE),
+            sp_runtime::MultiAddress::Id(ALICE),
+            amount
+        ));
 
         assert_eq!(
             Assets::balance(

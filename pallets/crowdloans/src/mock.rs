@@ -313,27 +313,32 @@ parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
     pub SelfParaId: ParaId = para_a_id();
     pub RefundLocation: AccountId = para_a_id().into_account();
-    pub const MaxReservesPerContribution: Balance = 100_000_000_000;
+    pub const XcmFeesPayer: PalletId = PalletId(*b"par/fees");
     pub const MinContribution: Balance = 0;
 }
 
 pub type CreateVaultOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
+pub type VrfDelayOrigin =
+    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+
 pub type CloseReOpenOrigin =
+    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+
+pub type ReserveOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
 pub type AuctionFailedOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
-
-pub type AuctionCompletedOrigin =
-    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
 pub type SlotExpiredOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
 
 impl crate::Config for Test {
     type Event = Event;
+    type Call = Call;
+    type Origin = Origin;
     type PalletId = CrowdloansPalletId;
     type SelfParaId = SelfParaId;
     type XcmSender = XcmRouter;
@@ -342,14 +347,16 @@ impl crate::Config for Test {
     type RelayCurrency = RelayCurrency;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type RefundLocation = RefundLocation;
-    type MaxReservesPerContribution = MaxReservesPerContribution;
     type MinContribution = MinContribution;
+    type BlockNumberProvider = frame_system::Pallet<Test>;
+    type XcmFeesPayer = XcmFeesPayer;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type CreateVaultOrigin = CreateVaultOrigin;
+    type VrfDelayOrigin = VrfDelayOrigin;
     type CloseReOpenOrigin = CloseReOpenOrigin;
     type AuctionFailedOrigin = AuctionFailedOrigin;
-    type AuctionCompletedOrigin = AuctionCompletedOrigin;
     type SlotExpiredOrigin = SlotExpiredOrigin;
+    type ReserveOrigin = ReserveOrigin;
     type WeightInfo = ();
 }
 
@@ -420,7 +427,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         )
         .unwrap();
         TotalReserves::<Test>::mutate(|b| *b = dot(30f64));
-        Crowdloans::update_xcm_fees_compensation(Origin::root(), dot(10f64)).unwrap();
+        Crowdloans::update_xcm_fees(Origin::root(), dot(10f64)).unwrap();
     });
 
     ext
@@ -486,7 +493,7 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         )
         .unwrap();
         TotalReserves::<Test>::mutate(|b| *b = dot(30f64));
-        Crowdloans::update_xcm_fees_compensation(Origin::root(), dot(10f64)).unwrap();
+        Crowdloans::update_xcm_fees(Origin::root(), dot(10f64)).unwrap();
     });
 
     ext
