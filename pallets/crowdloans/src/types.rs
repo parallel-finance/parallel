@@ -42,34 +42,36 @@ pub enum VaultPhase {
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 #[scale_info(skip_type_params(T))]
 pub struct Vault<T: Config> {
+    /// Vault ID
+    pub id: u32,
     /// Asset used to represent the shares of currency
     /// to be claimed back later on
     pub ctoken: AssetIdOf<T>,
     /// Which phase the vault is at
     pub phase: VaultPhase,
+    /// Tracks how many coins were contributed on the relay chain
+    pub contributed: BalanceOf<T>,
     /// How we contribute coins to the crowdloan
     pub contribution_strategy: ContributionStrategy,
     /// XCM Transaction payment strategy
     pub xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
-    /// Tracks how many coins were contributed on the relay chain
-    pub contributed: BalanceOf<T>,
 }
 
 /// init default vault with ctoken and currency override
-impl<T: Config> From<(AssetIdOf<T>, ContributionStrategy, XcmFeesPaymentStrategy)> for Vault<T> {
-    fn from(
-        (ctoken, contribution_strategy, xcm_fees_payment_strategy): (
-            AssetIdOf<T>,
-            ContributionStrategy,
-            XcmFeesPaymentStrategy,
-        ),
+impl<T: Config> Vault<T> {
+    pub fn new(
+        id: u32,
+        ctoken: AssetIdOf<T>,
+        contribution_strategy: ContributionStrategy,
+        xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
     ) -> Self {
         Self {
+            id,
             ctoken,
-            contribution_strategy,
-            xcm_fees_payment_strategy,
             phase: VaultPhase::Contributing,
             contributed: Zero::zero(),
+            contribution_strategy,
+            xcm_fees_payment_strategy,
         }
     }
 }

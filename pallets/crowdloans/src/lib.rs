@@ -151,7 +151,7 @@ pub mod pallet {
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         /// New vault was created
-        VaultCreated(ParaId, AssetIdOf<T>),
+        VaultCreated(ParaId, u32, AssetIdOf<T>),
         /// User contributed amount to vault
         VaultContributing(ParaId, T::AccountId, BalanceOf<T>, Vec<u8>),
         /// Vault was closed
@@ -161,9 +161,9 @@ pub mod pallet {
         /// Auction failed
         VaultAuctionFailed(ParaId),
         /// A user claimed refund from vault
-        VaultClaimRefund(ParaId, T::AccountId, BalanceOf<T>),
+        VaultClaimRefund(AssetIdOf<T>, T::AccountId, BalanceOf<T>),
         /// A vault was expired
-        VaultSlotExpired(ParaId),
+        VaultSlotExpired(ParaId, u32),
         /// ReserveFactor was updated
         ReserveFactorUpdated(Ratio),
         /// Xcm weight in BuyExecution message
@@ -188,6 +188,8 @@ pub mod pallet {
         VaultDoesNotExist,
         /// Ctoken already taken by another vault
         CTokenAlreadyTaken,
+        /// ParaId already taken by another vault
+        ParaIdAlreadyTaken,
         /// No contributions allowed during the VRF delay
         VrfDelayInProgress,
         /// Xcm message send failure
@@ -222,7 +224,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn ctokens_registry)]
     pub type CTokensRegistry<T: Config> =
-        StorageMap<_, Blake2_128Concat, (ParaId, u32), OptionQuery>;
+        StorageMap<_, Blake2_128Concat, AssetIdOf<T>, (ParaId, u32), OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn last_indexes)]
@@ -263,19 +265,36 @@ pub mod pallet {
         ) -> DispatchResult {
             T::CreateVaultOrigin::ensure_origin(origin)?;
 
+            let ctoken_issuance = T::Assets::total_issuance(ctoken);
             ensure!(
-                !Vaults::<T>::contains_key(crowdloan),
-                Error::<T>::CrowdloanAlreadyExists
+                ctoken_issuance.is_zero() && !CTokensRegistry::<T>::contains_key(ctoken),
+                Error::<T>::CTokenAlreadyTaken
             );
 
-            let ctoken_issuance = T::Assets::total_issuance(ctoken);
-            ensure!(ctoken_issuance.is_zero(), Error::<T>::CTokenAlreadyTaken);
+            if let Some(vault) = Self::last_vault(crowdloan) {
+                if vault.phase != VaultPhase::Failed && vault.phase != VaultPhase::Expired {
+                    return Err(DispatchError::from(Error::<T>::ParaIdAlreadyTaken));
+                }
+            }
 
-            let new_vault = Vault::from((ctoken, contribution_strategy, xcm_fees_payment_strategy));
+            let next_index = Self::next_index(crowdloan);
+            ensure!(
+                !Vaults::<T>::contains_key(crowdloan, next_index),
+                DispatchError::from(Error::<T>::CrowdloanAlreadyExists)
+            );
 
-            Vaults::<T>::insert(crowdloan, new_vault);
+            let new_vault = Vault::new(
+                next_index,
+                ctoken,
+                contribution_strategy,
+                xcm_fees_payment_strategy,
+            );
 
-            Self::deposit_event(Event::<T>::VaultCreated(crowdloan, ctoken));
+            Vaults::<T>::insert(crowdloan, next_index, new_vault);
+            CTokensRegistry::<T>::insert(ctoken, (crowdloan, next_index));
+            LastIndexes::<T>::insert(crowdloan, next_index);
+
+            Self::deposit_event(Event::<T>::VaultCreated(crowdloan, next_index, ctoken));
 
             Ok(())
         }
@@ -292,8 +311,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
-            let mut vault =
-                Vaults::<T>::try_get(crowdloan).map_err(|_| Error::<T>::VaultDoesNotExist)?;
+            let mut vault = Self::last_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
 
             ensure!(
                 vault.phase == VaultPhase::Contributing,
@@ -325,7 +343,7 @@ pub mod pallet {
 
             T::Assets::mint_into(vault.ctoken, &who, amount)?;
 
-            Vaults::<T>::insert(crowdloan, vault);
+            Vaults::<T>::insert(crowdloan, vault.id, vault);
 
             Self::deposit_event(Event::<T>::VaultContributing(
                 crowdloan,
@@ -352,7 +370,7 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Mark the associated vault as closed and stop accepting contributions for it
+        /// Mark the associated vault as `Closed` and stop accepting contributions
         #[pallet::weight(<T as Config>::WeightInfo::close())]
         #[transactional]
         pub fn close(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
@@ -365,7 +383,7 @@ pub mod pallet {
             })
         }
 
-        /// Mark the associated vault as Contributing and continue to accept contributions
+        /// Mark the associated vault as `Contributing` and continue to accept contributions
         #[pallet::weight(<T as Config>::WeightInfo::reopen())]
         #[transactional]
         pub fn reopen(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
@@ -403,13 +421,14 @@ pub mod pallet {
         #[transactional]
         pub fn claim_refund(
             origin: OriginFor<T>,
-            crowdloan: ParaId,
+            ctoken: AssetIdOf<T>,
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
-            let vault =
-                Vaults::<T>::try_get(crowdloan).map_err(|_| Error::<T>::VaultDoesNotExist)?;
+            let vault = CTokensRegistry::<T>::get(ctoken)
+                .and_then(|(crowdloan, index)| Vaults::<T>::get(crowdloan, index))
+                .ok_or(Error::<T>::VaultDoesNotExist)?;
 
             ensure!(
                 vault.phase == VaultPhase::Failed || vault.phase == VaultPhase::Expired,
@@ -430,7 +449,7 @@ pub mod pallet {
                 false,
             )?;
 
-            Self::deposit_event(Event::<T>::VaultClaimRefund(crowdloan, who, amount));
+            Self::deposit_event(Event::<T>::VaultClaimRefund(ctoken, who, amount));
 
             Ok(())
         }
@@ -439,17 +458,23 @@ pub mod pallet {
         /// claim back the funds lent to the parachain
         #[pallet::weight(<T as Config>::WeightInfo::slot_expired())]
         #[transactional]
-        pub fn slot_expired(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
+        pub fn slot_expired(origin: OriginFor<T>, crowdloan: ParaId, id: u32) -> DispatchResult {
             T::SlotExpiredOrigin::ensure_origin(origin)?;
 
-            Self::try_mutate_vault(crowdloan, VaultPhase::Closed, |vault| {
+            Vaults::<T>::try_mutate(crowdloan, id, |vault| {
+                let vault = vault.as_mut().ok_or(Error::<T>::VaultDoesNotExist)?;
+                ensure!(
+                    vault.phase == VaultPhase::Closed,
+                    Error::<T>::IncorrectVaultPhase
+                );
+
                 Self::do_withdraw(
                     crowdloan,
                     vault.contributed,
                     vault.xcm_fees_payment_strategy,
                 )?;
                 vault.phase = VaultPhase::Expired;
-                Self::deposit_event(Event::<T>::VaultSlotExpired(crowdloan));
+                Self::deposit_event(Event::<T>::VaultSlotExpired(crowdloan, id));
 
                 Ok(())
             })
@@ -538,15 +563,26 @@ pub mod pallet {
             T::XcmFeesPayer::get().into_account()
         }
 
+        fn next_index(crowdloan: ParaId) -> u32 {
+            Self::last_indexes(crowdloan)
+                .and_then(|idx| idx.checked_add(1u32))
+                .unwrap_or(0)
+        }
+
+        fn last_vault(crowdloan: ParaId) -> Option<Vault<T>> {
+            Self::last_indexes(crowdloan)
+                .and_then(|last_index| Vaults::<T>::get(crowdloan, last_index))
+        }
+
+        #[require_transactional]
         fn try_mutate_vault<F>(crowdloan: ParaId, phase: VaultPhase, cb: F) -> DispatchResult
         where
             F: FnOnce(&mut Vault<T>) -> DispatchResult,
         {
-            Vaults::<T>::try_mutate(crowdloan, |vault| {
+            let last_index = Self::last_indexes(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
+            Vaults::<T>::try_mutate(crowdloan, last_index, |vault| {
                 let vault = vault.as_mut().ok_or(Error::<T>::VaultDoesNotExist)?;
-
                 ensure!(vault.phase == phase, Error::<T>::IncorrectVaultPhase);
-
                 cb(vault)
             })
         }
