@@ -98,9 +98,9 @@ pallet-liquidity-mining      = { path = '../../pallets/liquidity-mining', defaul
 pallet-loans                 = { path = '../../pallets/loans', default-features = false }
 pallet-loans-rpc-runtime-api = { path = '../../pallets/loans/rpc/runtime-api', default-features = false }
 pallet-nominee-election      = { path = '../../pallets/nominee-election', default-features = false }
-pallet-parallel-xcm          = { path = '../../pallets/parallel-xcm', default-features = false }
 pallet-prices                = { path = '../../pallets/prices', default-features = false }
 pallet-router                = { path = '../../pallets/router', default-features = false }
+pallet-xcm-helper            = { path = '../../pallets/xcm-helper', default-features = false }
 primitives                   = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 
 [build-dependencies.substrate-wasm-builder]
@@ -208,7 +208,7 @@ std                = [
   'pallet-liquidity-mining/std',
   'pallet-crowdloans/std',
   'pallet-emergency-shutdown/std',
-  'pallet-parallel-xcm/std'
+  'pallet-xcm-helper/std',
 ]
 try-runtime        = [
   'frame-support/try-runtime',
@@ -242,4 +242,5 @@ try-runtime        = [
   'pallet-nominee-election/try-runtime',
   'pallet-prices/try-runtime',
   'pallet-crowdloans/try-runtime',
+  'pallet-xcm-helper/try-runtime',
 ]

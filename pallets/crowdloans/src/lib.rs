@@ -59,7 +59,7 @@ pub mod pallet {
     use xcm::latest::prelude::*;
 
     use crate::weights::WeightInfo;
-    use pallet_parallel_xcm::ParallelXCM;
+    use pallet_xcm_helper::XcmHelper;
 
     pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
     pub type AssetIdOf<T> =
@@ -137,7 +137,7 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
 
         /// To expose XCM helper functions
-        type XCM: ParallelXCM<BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
+        type XCM: XcmHelper<BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
     }
 
     #[pallet::event]
@@ -187,8 +187,6 @@ pub mod pallet {
         ParaIdAlreadyTaken,
         /// No contributions allowed during the VRF delay
         VrfDelayInProgress,
-        /// Xcm message send failure
-        SendXcmError,
     }
 
     #[pallet::storage]
@@ -293,23 +291,18 @@ pub mod pallet {
             T::OpenCloseOrigin::ensure_origin(origin)?;
 
             Self::try_mutate_vault(crowdloan, VaultPhase::Pending, |vault| {
-                let pending_amount = vault.pending;
-                Self::do_contribute(
-                    None,
-                    crowdloan,
-                    pending_amount,
-                    vault.xcm_fees_payment_strategy,
-                )?;
+                let amount = vault.pending;
+                Self::do_contribute(None, crowdloan, amount, vault.xcm_fees_payment_strategy)?;
 
                 vault.contributed = vault
                     .contributed
-                    .checked_add(pending_amount)
+                    .checked_add(amount)
                     .ok_or(ArithmeticError::Overflow)?;
 
                 vault.pending = Zero::zero();
                 vault.phase = VaultPhase::Contributing;
 
-                Self::deposit_event(Event::<T>::VaultOpened(crowdloan, pending_amount));
+                Self::deposit_event(Event::<T>::VaultOpened(crowdloan, amount));
 
                 Ok(())
             })

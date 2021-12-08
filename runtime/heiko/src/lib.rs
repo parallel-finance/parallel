@@ -1357,10 +1357,10 @@ impl pallet_crowdloans::Config for Runtime {
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type ReserveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
-    type XCM = ParallelXCM;
+    type XCM = XcmHelper;
 }
 
-impl pallet_parallel_xcm::Config for Runtime {
+impl pallet_xcm_helper::Config for Runtime {
     type Assets = Assets;
     type XcmSender = XcmRouter;
     type RelayNetwork = RelayNetwork;
@@ -1529,7 +1529,7 @@ construct_runtime!(
         // LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 92,
 
         // XCM
-        ParallelXCM: pallet_parallel_xcm::{Pallet} = 93,
+        XcmHelper: pallet_xcm_helper::{Pallet} = 93,
     }
 );
 

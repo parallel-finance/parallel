@@ -8,8 +8,8 @@ use frame_support::{
 };
 use frame_system::{EnsureOneOf, EnsureRoot, EnsureSignedBy};
 use orml_xcm_support::IsNativeConcrete;
-use pallet_parallel_xcm::TotalReserves;
 use pallet_xcm::XcmPassthrough;
+use pallet_xcm_helper::TotalReserves;
 use polkadot_parachain::primitives::Sibling;
 use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId};
 use sp_core::H256;
@@ -354,10 +354,10 @@ impl crate::Config for Test {
     type SlotExpiredOrigin = SlotExpiredOrigin;
     type ReserveOrigin = ReserveOrigin;
     type WeightInfo = ();
-    type XCM = ParallelXCM;
+    type XCM = XcmHelper;
 }
 
-impl pallet_parallel_xcm::Config for Test {
+impl pallet_xcm_helper::Config for Test {
     type Assets = Assets;
     type XcmSender = XcmRouter;
     type RelayNetwork = RelayNetwork;
@@ -404,7 +404,7 @@ construct_runtime!(
         DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>},
         CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin},
         PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin},
-        ParallelXCM: pallet_parallel_xcm::{Pallet},
+        XcmHelper: pallet_xcm_helper::{Pallet},
         XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
     }
 );
