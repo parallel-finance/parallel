@@ -34,6 +34,7 @@ const CONTRIBUTE_AMOUNT: u128 = 20000000000000u128;
 const INITIAL_RESERVES: u128 = 1000000000000u128;
 const INITIAL_AMOUNT: u128 = 1000000000000000u128;
 const ADD_RESERVES_AMOUNT: u128 = 500000000000000u128;
+const VAULT_ID: u32 = 0;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
     frame_system::Pallet::<T>::assert_last_event(generic_event.into());
@@ -98,7 +99,7 @@ benchmarks! {
         XcmFeesPaymentStrategy::Reserves
     )
     verify {
-        assert_last_event::<T>(Event::<T>::VaultCreated(crowdloan, ctoken).into());
+        assert_last_event::<T>(Event::<T>::VaultCreated(crowdloan, VAULT_ID, ctoken).into());
     }
 
     contribute {
@@ -202,11 +203,11 @@ benchmarks! {
         assert_ok!(Crowdloans::<T>::auction_failed(SystemOrigin::Root.into(), crowdloan));
     }: _(
         SystemOrigin::Signed(caller.clone()),
-        crowdloan,
+        ctoken,
         1_000
     )
     verify {
-        assert_last_event::<T>(Event::VaultClaimRefund(crowdloan, caller, 1_000).into())
+        assert_last_event::<T>(Event::VaultClaimRefund(ctoken, caller, 1_000).into())
     }
 
     slot_expired {
@@ -224,10 +225,11 @@ benchmarks! {
         assert_ok!(Crowdloans::<T>::close(SystemOrigin::Root.into(), crowdloan));
     }: _(
         SystemOrigin::Root,
-        crowdloan
+        crowdloan,
+        VAULT_ID
     )
     verify {
-        assert_last_event::<T>(Event::VaultSlotExpired(crowdloan).into())
+        assert_last_event::<T>(Event::VaultSlotExpired(crowdloan, VAULT_ID).into())
     }
 
     update_reserve_factor {
