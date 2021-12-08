@@ -119,7 +119,7 @@ benchmarks! {
         Vec::new()
     )
     verify {
-        assert_last_event::<T>(Event::VaultContributing(crowdloan, caller, CONTRIBUTE_AMOUNT, Vec::new()).into())
+        assert_last_event::<T>(Event::VaultContributed(crowdloan, caller, CONTRIBUTE_AMOUNT, Vec::new()).into())
     }
 
     close {
@@ -202,11 +202,11 @@ benchmarks! {
         assert_ok!(Crowdloans::<T>::auction_failed(SystemOrigin::Root.into(), crowdloan));
     }: _(
         SystemOrigin::Signed(caller.clone()),
-        crowdloan,
+        ctoken,
         1_000
     )
     verify {
-        assert_last_event::<T>(Event::VaultClaimRefund(crowdloan, caller, 1_000).into())
+        assert_last_event::<T>(Event::VaultClaimRefund(ctoken, caller, 1_000).into())
     }
 
     slot_expired {
