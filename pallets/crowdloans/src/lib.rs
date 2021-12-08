@@ -132,7 +132,7 @@ pub mod pallet {
         type CreateVaultOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The origin which can close/reopen vault
-        type OpenCloseOrigin: EnsureOrigin<Self::Origin>;
+        type OpenCloseOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The origin which can call auction failed
         type AuctionFailedOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
@@ -155,7 +155,7 @@ pub mod pallet {
         /// User contributed amount to vault
         VaultContributed(ParaId, T::AccountId, BalanceOf<T>, Vec<u8>),
         /// Vault was opened
-        VaultOpened(ParaId),
+        VaultOpened(ParaId, BalanceOf<T>),
         /// Vault was closed
         VaultClosed(ParaId),
         /// Vault was reopened
@@ -308,9 +308,18 @@ pub mod pallet {
             T::OpenCloseOrigin::ensure_origin(origin)?;
 
             Self::try_mutate_vault(crowdloan, VaultPhase::Pending, |vault| {
+                let pending_amount = vault.pending;
+                Self::do_contribute(None, crowdloan, pending_amount, vault.xcm_fees_payment_strategy)?;
+
+                vault.contributed = vault
+                    .contributed
+                    .checked_add(pending_amount)
+                    .ok_or(ArithmeticError::Overflow)?;
+
+                vault.pending = Zero::zero();
                 vault.phase = VaultPhase::Contributing;
 
-                Self::deposit_event(Event::<T>::VaultOpened(crowdloan));
+                Self::deposit_event(Event::<T>::VaultOpened(crowdloan, pending_amount));
 
                 Ok(())
             })
@@ -354,22 +363,20 @@ pub mod pallet {
             match vault.phase {
                 VaultPhase::Contributing => {
                     Self::do_contribute(
-                        &who,
+                        Some(&who),
                         crowdloan,
                         amount,
-                        pending_amount,
                         vault.xcm_fees_payment_strategy,
                     )?;
 
                     vault.contributed = vault
                         .contributed
-                        .checked_add(new_amount)
+                        .checked_add(amount)
                         .ok_or(ArithmeticError::Overflow)?;
-
-                    vault.pending = Zero::zero();
                 }
                 VaultPhase::Pending => {
-                    vault.pending = pending_amount
+                    vault.pending = vault
+                        .pending
                         .checked_add(amount)
                         .ok_or(ArithmeticError::Overflow)?;
                 }
@@ -616,10 +623,9 @@ pub mod pallet {
 
         #[require_transactional]
         fn do_contribute(
-            who: &AccountIdOf<T>,
-            para_id: ParaId,
+            who: Option<&AccountIdOf<T>>,
+            crowdloan: ParaId,
             amount: BalanceOf<T>,
-            pending_amount: BalanceOf<T>,
             xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
         ) -> Result<(), DispatchError> {
             T::Assets::burn_from(T::RelayCurrency::get(), &Self::account_id(), amount)?;
@@ -630,17 +636,16 @@ pub mod pallet {
                         calls: vec![
                             RelaychainCall::<T>::System(SystemCall::Remark(SystemRemarkCall {
                                 remark: format!(
-                                    "{:?}#{:?}#{:?}#{:?}",
+                                    "{:?}#{:?}#{:?}",
                                     T::BlockNumberProvider::current_block_number(),
                                     who,
                                     amount,
-                                    pending_amount
                                 )
                                 .into_bytes(),
                             })),
                             RelaychainCall::<T>::Crowdloans(CrowdloansCall::Contribute(
                                 CrowdloansContributeCall {
-                                    index: para_id,
+                                    index: crowdloan,
                                     value: amount,
                                     signature: None,
                                 },

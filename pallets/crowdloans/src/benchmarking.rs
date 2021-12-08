@@ -134,7 +134,7 @@ benchmarks! {
         crowdloan
     )
     verify {
-        assert_last_event::<T>(Event::VaultOpened(crowdloan).into())
+        assert_last_event::<T>(Event::VaultOpened(crowdloan, Zero::zero()).into())
     }
 
     close {
