@@ -157,8 +157,15 @@ pub mod pallet {
         BridgeTokenFeeChanged(CurrencyId, BalanceOf<T>),
 
         /// Event emitted when bridge token is destoryed by teleportation
-        /// [dest_id, chain_nonce, bridge_token_id, receiver, amount]
-        TeleportBurned(ChainId, ChainNonce, CurrencyId, TeleAccount, BalanceOf<T>),
+        /// [dest_id, chain_nonce, bridge_token_id, receiver, amount, fee]
+        TeleportBurned(
+            ChainId,
+            ChainNonce,
+            CurrencyId,
+            TeleAccount,
+            BalanceOf<T>,
+            BalanceOf<T>,
+        ),
 
         /// Event emitted when bridge token is issued by materialization
         /// [src_id, chain_nonce, bridge_token_id, receiver, amount]
@@ -376,15 +383,15 @@ pub mod pallet {
 
             let asset_id = AssetIds::<T>::get(bridge_token_id);
             let BridgeToken { external, fee, .. } = BridgeTokens::<T>::get(asset_id);
-            let total_amount = amount.checked_add(fee).ok_or(ArithmeticError::Overflow)?;
+            let actual_amount = amount.checked_sub(fee).ok_or(ArithmeticError::Underflow)?;
             if external {
-                T::Assets::burn_from(asset_id, &who, total_amount)?;
+                T::Assets::burn_from(asset_id, &who, amount)?;
                 T::Assets::mint_into(asset_id, &Self::account_id(), fee)?;
             } else {
-                T::Assets::transfer(asset_id, &who, &Self::account_id(), total_amount, false)?;
+                T::Assets::transfer(asset_id, &who, &Self::account_id(), amount, false)?;
             }
 
-            Self::teleport_internal(dest_id, bridge_token_id, to, amount)
+            Self::teleport_internal(dest_id, bridge_token_id, to, actual_amount, fee)
         }
 
         /// Materialize the bridge token to specified recipient in this chain
@@ -505,6 +512,7 @@ impl<T: Config> Pallet<T> {
         bridge_token_id: CurrencyId,
         to: TeleAccount,
         amount: BalanceOf<T>,
+        fee: BalanceOf<T>,
     ) -> DispatchResult {
         let nonce = Self::bump_nonce(dest_id);
 
@@ -514,6 +522,7 @@ impl<T: Config> Pallet<T> {
             bridge_token_id,
             to,
             amount,
+            fee,
         ));
         Ok(())
     }
