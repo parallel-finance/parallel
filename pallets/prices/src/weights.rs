@@ -17,7 +17,6 @@
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 #![allow(clippy::all)]
-#![rustfmt::skip]
 
 use frame_support::weights::Weight;
 use sp_std::marker::PhantomData;

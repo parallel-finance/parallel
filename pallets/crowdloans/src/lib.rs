@@ -309,7 +309,12 @@ pub mod pallet {
 
             Self::try_mutate_vault(crowdloan, VaultPhase::Pending, |vault| {
                 let pending_amount = vault.pending;
-                Self::do_contribute(None, crowdloan, pending_amount, vault.xcm_fees_payment_strategy)?;
+                Self::do_contribute(
+                    None,
+                    crowdloan,
+                    pending_amount,
+                    vault.xcm_fees_payment_strategy,
+                )?;
 
                 vault.contributed = vault
                     .contributed
