@@ -23,10 +23,7 @@ use frame_support::{
     },
 };
 
-impl<T: Config> Inspect<T::AccountId> for Pallet<T>
-where
-    BalanceOf<T>: From<u128>,
-{
+impl<T: Config> Inspect<T::AccountId> for Pallet<T> {
     type AssetId = AssetIdOf<T>;
     type Balance = BalanceOf<T>;
 
@@ -74,8 +71,10 @@ where
             Err(_) => return DepositConsequence::UnknownAsset,
         };
 
-        if Self::ensure_active_market(underlying_id).is_err() {
-            return DepositConsequence::UnknownAsset;
+        if let Err(res) =
+            Self::ensure_active_market(underlying_id).map_err(|_| DepositConsequence::UnknownAsset)
+        {
+            return res;
         }
 
         if Self::total_supply(underlying_id)
@@ -104,8 +103,10 @@ where
             Err(_) => return WithdrawConsequence::UnknownAsset,
         };
 
-        if Self::ensure_active_market(underlying_id).is_err() {
-            return WithdrawConsequence::UnknownAsset;
+        if let Err(res) =
+            Self::ensure_active_market(underlying_id).map_err(|_| WithdrawConsequence::UnknownAsset)
+        {
+            return res;
         }
 
         let sub_result = Self::balance(ptoken_id, who).checked_sub(amount);
@@ -122,10 +123,7 @@ where
     }
 }
 
-impl<T: Config> Transfer<T::AccountId> for Pallet<T>
-where
-    BalanceOf<T>: From<u128>,
-{
+impl<T: Config> Transfer<T::AccountId> for Pallet<T> {
     /// Returns `Err` if the reducible ptoken of `who` is insufficient
     ///
     /// For ptoken, We don't care if keep_alive is enabled
@@ -147,10 +145,7 @@ where
     }
 }
 
-impl<T: Config> Pallet<T>
-where
-    BalanceOf<T>: From<u128>,
-{
+impl<T: Config> Pallet<T> {
     #[require_transactional]
     fn transfer_ptokens_internal(
         ptoken_id: AssetIdOf<T>,
