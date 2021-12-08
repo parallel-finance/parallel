@@ -26,11 +26,9 @@ use frame_support::{
     pallet_prelude::*,
     traits::fungibles::{Inspect, Mutate, Transfer},
 };
-use primitives::switch_relay;
-use primitives::{ump::*, Balance, CurrencyId, ParaId};
+use primitives::{switch_relay, ump::*, Balance, CurrencyId, ParaId};
 use scale_info::prelude::format;
-use sp_runtime::traits::BlockNumberProvider;
-use sp_runtime::ArithmeticError;
+use sp_runtime::{traits::BlockNumberProvider, ArithmeticError};
 use sp_std::{boxed::Box, vec};
 use xcm::{latest::prelude::*, DoubleEncoded};
 
@@ -80,7 +78,7 @@ pub mod pallet {
     }
 }
 
-pub trait ParallelXCM<Balance, AssetId, AccountId> {
+pub trait XcmHelper<Balance, AssetId, AccountId> {
     fn update_xcm_fees(fees: Balance);
 
     fn update_reserves(amount: Balance) -> DispatchResult;
@@ -126,7 +124,7 @@ pub trait ParallelXCM<Balance, AssetId, AccountId> {
     ) -> Result<(), DispatchError>;
 }
 
-impl<T: Config> ParallelXCM<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T> {
+impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T> {
     fn update_xcm_fees(fees: BalanceOf<T>) {
         XcmFees::<T>::mutate(|v| *v = fees);
     }

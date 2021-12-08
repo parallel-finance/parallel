@@ -2815,7 +2815,6 @@ dependencies = [
  "pallet-membership",
  "pallet-multisig",
  "pallet-nominee-election",
- "pallet-parallel-xcm",
  "pallet-prices",
  "pallet-proxy",
  "pallet-router",
@@ -2828,6 +2827,7 @@ dependencies = [
  "pallet-treasury",
  "pallet-utility",
  "pallet-xcm",
+ "pallet-xcm-helper",
  "parachain-info",
  "parallel-primitives",
  "parity-scale-codec",
@@ -5290,11 +5290,11 @@ dependencies = [
  "pallet-assets",
  "pallet-babe",
  "pallet-balances",
- "pallet-parallel-xcm",
  "pallet-session",
  "pallet-timestamp",
  "pallet-utility",
  "pallet-xcm",
+ "pallet-xcm-helper",
  "parachain-info",
  "parallel-primitives",
  "parity-scale-codec",
@@ -5771,22 +5771,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-parallel-xcm"
-version = "1.7.3"
-dependencies = [
- "frame-support",
- "frame-system",
- "pallet-assets",
- "parallel-primitives",
- "parity-scale-codec",
- "scale-info",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "xcm",
-]
-
-[[package]]
 name = "pallet-prices"
 version = "1.7.5"
 dependencies = [
@@ -6143,6 +6127,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-xcm-helper"
+version = "1.7.5"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-assets",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "xcm",
+]
+
+[[package]]
 name = "parachain-info"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/cumulus.git?branch=polkadot-v0.9.12#935bac869a72baef17e46d2ae1abc8c0c650cef5"
@@ -6226,7 +6226,7 @@ dependencies = [
 
 [[package]]
 name = "parallel-primitives"
-version = "1.0.0"
+version = "1.7.5"
 dependencies = [
  "cumulus-primitives-core",
  "frame-support",
@@ -6290,7 +6290,6 @@ dependencies = [
  "pallet-membership",
  "pallet-multisig",
  "pallet-nominee-election",
- "pallet-parallel-xcm",
  "pallet-prices",
  "pallet-proxy",
  "pallet-router",
@@ -6303,6 +6302,7 @@ dependencies = [
  "pallet-treasury",
  "pallet-utility",
  "pallet-xcm",
+ "pallet-xcm-helper",
  "parachain-info",
  "parallel-primitives",
  "parity-scale-codec",
@@ -11426,7 +11426,6 @@ dependencies = [
  "pallet-membership",
  "pallet-multisig",
  "pallet-nominee-election",
- "pallet-parallel-xcm",
  "pallet-prices",
  "pallet-proxy",
  "pallet-router",
@@ -11439,6 +11438,7 @@ dependencies = [
  "pallet-treasury",
  "pallet-utility",
  "pallet-xcm",
+ "pallet-xcm-helper",
  "parachain-info",
  "parallel-primitives",
  "parity-scale-codec",

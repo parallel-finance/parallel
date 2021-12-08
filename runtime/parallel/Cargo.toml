@@ -87,20 +87,20 @@ orml-xcm-support            = { git = 'https://github.com/open-web3-stack/open-r
 orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 
 # Parallel dependencies
-pallet-amm              	 = { path = '../../pallets/amm', default-features = false }
-pallet-bridge                = { path = '../../pallets/bridge', default-features = false }
-pallet-currency-adapter 	 = { path = '../../pallets/currency-adapter', default-features = false }
-pallet-crowdloans       	 = { path = '../../pallets/crowdloans', default-features = false }
-pallet-emergency-shutdown    = { path = '../../pallets/emergency-shutdown', default-features = false }
-pallet-liquid-staking        = { path = '../../pallets/liquid-staking', default-features = false }
-pallet-liquidation           = { path = '../../pallets/liquidation', default-features = false }
+pallet-amm                = { path = '../../pallets/amm', default-features = false }
+pallet-bridge             = { path = '../../pallets/bridge', default-features = false }
+pallet-crowdloans         = { path = '../../pallets/crowdloans', default-features = false }
+pallet-currency-adapter   = { path = '../../pallets/currency-adapter', default-features = false }
+pallet-emergency-shutdown = { path = '../../pallets/emergency-shutdown', default-features = false }
+pallet-liquid-staking     = { path = '../../pallets/liquid-staking', default-features = false }
+pallet-liquidation        = { path = '../../pallets/liquidation', default-features = false }
 # pallet-liquidity-mining      = { path = '../../pallets/liquidity-mining', default-features = false }
 pallet-loans                 = { path = '../../pallets/loans', default-features = false }
 pallet-loans-rpc-runtime-api = { path = '../../pallets/loans/rpc/runtime-api', default-features = false }
 pallet-nominee-election      = { path = '../../pallets/nominee-election', default-features = false }
-pallet-parallel-xcm          = { path = '../../pallets/parallel-xcm', default-features = false }
 pallet-prices                = { path = '../../pallets/prices', default-features = false }
 pallet-router                = { path = '../../pallets/router', default-features = false }
+pallet-xcm-helper            = { path = '../../pallets/xcm-helper', default-features = false }
 primitives                   = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 
 [build-dependencies.substrate-wasm-builder]
@@ -205,7 +205,7 @@ std                = [
   'pallet-currency-adapter/std',
   'pallet-crowdloans/std',
   'pallet-emergency-shutdown/std',
-  'pallet-parallel-xcm/std'
+  'pallet-xcm-helper/std',
 ]
 try-runtime        = [
   'frame-support/try-runtime',
@@ -239,4 +239,5 @@ try-runtime        = [
   'pallet-nominee-election/try-runtime',
   'pallet-prices/try-runtime',
   'pallet-crowdloans/try-runtime',
+  'pallet-xcm-helper/try-runtime',
 ]
