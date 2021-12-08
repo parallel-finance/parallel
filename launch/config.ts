@@ -184,7 +184,8 @@ const config = {
       cap: '100000000000000',
       duration: 28800,
       leaseStart: 0,
-      leaseEnd: 7
+      leaseEnd: 7,
+      pending: false
     },
     {
       paraId: 2016,
@@ -195,7 +196,8 @@ const config = {
       cap: '1000000000000000',
       duration: 43200,
       leaseStart: 0,
-      leaseEnd: 7
+      leaseEnd: 7,
+      pending: true
     },
     {
       paraId: 2100,
@@ -206,7 +208,8 @@ const config = {
       cap: '10000000000000000',
       duration: 202800,
       leaseStart: 0,
-      leaseEnd: 7
+      leaseEnd: 7,
+      pending: false
     }
   ]
 }

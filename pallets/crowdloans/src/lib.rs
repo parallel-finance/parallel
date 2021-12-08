@@ -132,7 +132,7 @@ pub mod pallet {
         type CreateVaultOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The origin which can close/reopen vault
-        type CloseReOpenOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        type OpenCloseOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The origin which can call auction failed
         type AuctionFailedOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
@@ -154,6 +154,8 @@ pub mod pallet {
         VaultCreated(ParaId, AssetIdOf<T>),
         /// User contributed amount to vault
         VaultContributed(ParaId, T::AccountId, BalanceOf<T>, Vec<u8>),
+        /// Vault was opened
+        VaultOpened(ParaId, BalanceOf<T>),
         /// Vault was closed
         VaultClosed(ParaId),
         /// Vault was reopened
@@ -299,6 +301,35 @@ pub mod pallet {
             Ok(())
         }
 
+        /// Mark the associated vault as ready for real contributions on the relaychain
+        #[pallet::weight(<T as Config>::WeightInfo::open())]
+        #[transactional]
+        pub fn open(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
+            T::OpenCloseOrigin::ensure_origin(origin)?;
+
+            Self::try_mutate_vault(crowdloan, VaultPhase::Pending, |vault| {
+                let pending_amount = vault.pending;
+                Self::do_contribute(
+                    None,
+                    crowdloan,
+                    pending_amount,
+                    vault.xcm_fees_payment_strategy,
+                )?;
+
+                vault.contributed = vault
+                    .contributed
+                    .checked_add(pending_amount)
+                    .ok_or(ArithmeticError::Overflow)?;
+
+                vault.pending = Zero::zero();
+                vault.phase = VaultPhase::Contributing;
+
+                Self::deposit_event(Event::<T>::VaultOpened(crowdloan, pending_amount));
+
+                Ok(())
+            })
+        }
+
         /// Contribute `amount` to the vault of `crowdloan` and receive some
         /// shares from it
         #[pallet::weight(<T as Config>::WeightInfo::contribute())]
@@ -314,7 +345,7 @@ pub mod pallet {
             let mut vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
 
             ensure!(
-                vault.phase == VaultPhase::Contributing,
+                vault.phase == VaultPhase::Contributing || vault.phase == VaultPhase::Pending,
                 Error::<T>::IncorrectVaultPhase
             );
 
@@ -334,12 +365,28 @@ pub mod pallet {
             )
             .map_err(|_: DispatchError| Error::<T>::InsufficientBalance)?;
 
-            Self::do_contribute(&who, crowdloan, amount, vault.xcm_fees_payment_strategy)?;
+            match vault.phase {
+                VaultPhase::Contributing => {
+                    Self::do_contribute(
+                        Some(&who),
+                        crowdloan,
+                        amount,
+                        vault.xcm_fees_payment_strategy,
+                    )?;
 
-            vault.contributed = vault
-                .contributed
-                .checked_add(amount)
-                .ok_or(ArithmeticError::Overflow)?;
+                    vault.contributed = vault
+                        .contributed
+                        .checked_add(amount)
+                        .ok_or(ArithmeticError::Overflow)?;
+                }
+                VaultPhase::Pending => {
+                    vault.pending = vault
+                        .pending
+                        .checked_add(amount)
+                        .ok_or(ArithmeticError::Overflow)?;
+                }
+                _ => unreachable!(),
+            }
 
             T::Assets::mint_into(vault.ctoken, &who, amount)?;
 
@@ -374,7 +421,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::close())]
         #[transactional]
         pub fn close(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
-            T::CloseReOpenOrigin::ensure_origin(origin)?;
+            T::OpenCloseOrigin::ensure_origin(origin)?;
 
             Self::try_mutate_vault(crowdloan, VaultPhase::Contributing, |vault| {
                 vault.phase = VaultPhase::Closed;
@@ -387,7 +434,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::reopen())]
         #[transactional]
         pub fn reopen(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
-            T::CloseReOpenOrigin::ensure_origin(origin)?;
+            T::OpenCloseOrigin::ensure_origin(origin)?;
 
             Self::try_mutate_vault(crowdloan, VaultPhase::Closed, |vault| {
                 vault.phase = VaultPhase::Contributing;
@@ -581,8 +628,8 @@ pub mod pallet {
 
         #[require_transactional]
         fn do_contribute(
-            who: &AccountIdOf<T>,
-            para_id: ParaId,
+            who: Option<&AccountIdOf<T>>,
+            crowdloan: ParaId,
             amount: BalanceOf<T>,
             xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
         ) -> Result<(), DispatchError> {
@@ -596,13 +643,13 @@ pub mod pallet {
                                 remark: format!(
                                     "{:?}#{:?}",
                                     T::BlockNumberProvider::current_block_number(),
-                                    who
+                                    who,
                                 )
                                 .into_bytes(),
                             })),
                             RelaychainCall::<T>::Crowdloans(CrowdloansCall::Contribute(
                                 CrowdloansContributeCall {
-                                    index: para_id,
+                                    index: crowdloan,
                                     value: amount,
                                     signature: None,
                                 },

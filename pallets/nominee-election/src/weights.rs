@@ -14,6 +14,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#![allow(unused_parens)]
+#![allow(unused_imports)]
+#![allow(clippy::all)]
 
 use frame_support::weights::Weight;
 use sp_std::marker::PhantomData;

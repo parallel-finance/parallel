@@ -323,7 +323,7 @@ pub type CreateVaultOrigin =
 pub type VrfDelayOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
-pub type CloseReOpenOrigin =
+pub type OpenCloseOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
 pub type ReserveOrigin =
@@ -353,7 +353,7 @@ impl crate::Config for Test {
     type UpdateOrigin = EnsureRoot<AccountId>;
     type CreateVaultOrigin = CreateVaultOrigin;
     type VrfDelayOrigin = VrfDelayOrigin;
-    type CloseReOpenOrigin = CloseReOpenOrigin;
+    type OpenCloseOrigin = OpenCloseOrigin;
     type AuctionFailedOrigin = AuctionFailedOrigin;
     type SlotExpiredOrigin = SlotExpiredOrigin;
     type ReserveOrigin = ReserveOrigin;
