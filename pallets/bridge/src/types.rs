@@ -5,7 +5,7 @@ use scale_info::prelude::vec::Vec;
 use scale_info::{prelude::vec, TypeInfo};
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
-pub struct Currency {
+pub struct BridgeToken {
     pub id: CurrencyId,
     pub external: bool,
     pub fee: Balance,
@@ -20,7 +20,7 @@ pub enum ProposalStatus {
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
 pub struct MaterializeCall<T, E, R> {
-    pub currency_id: T,
+    pub bridge_token_id: T,
     pub to: E,
     pub amount: R,
 }

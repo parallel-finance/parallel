@@ -50,9 +50,9 @@ pub trait WeightInfo {
     fn set_vote_threshold() -> Weight;
     fn register_chain() -> Weight;
     fn unregister_chain() -> Weight;
-    fn register_currency() -> Weight;
-    fn unregister_currency() -> Weight;
-    fn set_currency_fee() -> Weight;
+    fn register_bridge_token() -> Weight;
+    fn unregister_bridge_token() -> Weight;
+    fn set_bridge_token_fee() -> Weight;
     fn teleport() -> Weight;
     fn materialize() -> Weight;
 }
@@ -75,17 +75,17 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().reads(1 as Weight))
             .saturating_add(T::DbWeight::get().writes(1 as Weight))
     }
-    fn register_currency() -> Weight {
+    fn register_bridge_token() -> Weight {
         (30_817_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(2 as Weight))
             .saturating_add(T::DbWeight::get().writes(2 as Weight))
     }
-    fn unregister_currency() -> Weight {
+    fn unregister_bridge_token() -> Weight {
         (30_536_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(1 as Weight))
             .saturating_add(T::DbWeight::get().writes(2 as Weight))
     }
-    fn set_currency_fee() -> Weight {
+    fn set_bridge_token_fee() -> Weight {
         (31_773_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(2 as Weight))
             .saturating_add(T::DbWeight::get().writes(1 as Weight))
@@ -119,17 +119,17 @@ impl WeightInfo for () {
             .saturating_add(RocksDbWeight::get().reads(1 as Weight))
             .saturating_add(RocksDbWeight::get().writes(1 as Weight))
     }
-    fn register_currency() -> Weight {
+    fn register_bridge_token() -> Weight {
         (30_817_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(2 as Weight))
             .saturating_add(RocksDbWeight::get().writes(2 as Weight))
     }
-    fn unregister_currency() -> Weight {
+    fn unregister_bridge_token() -> Weight {
         (30_536_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(1 as Weight))
             .saturating_add(RocksDbWeight::get().writes(2 as Weight))
     }
-    fn set_currency_fee() -> Weight {
+    fn set_bridge_token_fee() -> Weight {
         (31_773_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(2 as Weight))
             .saturating_add(RocksDbWeight::get().writes(1 as Weight))

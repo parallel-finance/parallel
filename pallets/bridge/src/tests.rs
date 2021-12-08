@@ -152,10 +152,10 @@ fn materialize_works() {
 }
 
 #[test]
-fn set_currency_fee_works() {
+fn set_bridge_token_fee_works() {
     new_test_ext().execute_with(|| {
         // Set fee equal to 1 HKO
-        Bridge::set_currency_fee(Origin::signed(ALICE), EHKO, dollar(1)).unwrap();
+        Bridge::set_bridge_token_fee(Origin::signed(ALICE), EHKO, dollar(1)).unwrap();
 
         // Initial balance of EVE is 100 HKO
         assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(100));

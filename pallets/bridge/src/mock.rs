@@ -34,13 +34,13 @@ pub const EHKO: CurrencyId = 0;
 pub const EUSDT: CurrencyId = 2;
 
 // Currencies
-pub const EHKO_CURRENCY: Currency = Currency {
+pub const EHKO_CURRENCY: BridgeToken = BridgeToken {
     id: EHKO,
     external: false,
     fee: 0,
 };
 
-pub const EUSDT_CURRENCY: Currency = Currency {
+pub const EUSDT_CURRENCY: BridgeToken = BridgeToken {
     id: EUSDT,
     external: true,
     fee: 0,
@@ -203,8 +203,8 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         BridgeMembership::add_member(Origin::root(), CHARLIE).unwrap();
 
         Bridge::register_chain(Origin::signed(ALICE), ETH).unwrap();
-        Bridge::register_currency(Origin::signed(ALICE), HKO, EHKO_CURRENCY).unwrap();
-        Bridge::register_currency(Origin::signed(ALICE), USDT, EUSDT_CURRENCY).unwrap();
+        Bridge::register_bridge_token(Origin::signed(ALICE), HKO, EHKO_CURRENCY).unwrap();
+        Bridge::register_bridge_token(Origin::signed(ALICE), USDT, EUSDT_CURRENCY).unwrap();
 
         System::set_block_number(0);
         run_to_block(1);
