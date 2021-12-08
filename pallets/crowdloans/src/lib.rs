@@ -153,7 +153,7 @@ pub mod pallet {
         /// New vault was created
         VaultCreated(ParaId, u32, AssetIdOf<T>),
         /// User contributed amount to vault
-        VaultContributing(ParaId, T::AccountId, BalanceOf<T>, Vec<u8>),
+        VaultContributed(ParaId, T::AccountId, BalanceOf<T>, Vec<u8>),
         /// Vault was closed
         VaultClosed(ParaId),
         /// Vault was reopened
@@ -345,7 +345,7 @@ pub mod pallet {
 
             Vaults::<T>::insert(crowdloan, vault.id, vault);
 
-            Self::deposit_event(Event::<T>::VaultContributing(
+            Self::deposit_event(Event::<T>::VaultContributed(
                 crowdloan,
                 who,
                 amount,
