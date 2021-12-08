@@ -1336,14 +1336,11 @@ impl pallet_crowdloans::Config for Runtime {
     type Origin = Origin;
     type PalletId = CrowdloansPalletId;
     type SelfParaId = ParachainInfo;
-    type XcmSender = XcmRouter;
     type Assets = Assets;
-    type RelayNetwork = RelayNetwork;
     type RelayCurrency = RelayCurrency;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type RefundLocation = RefundLocation;
     type MinContribution = MinContribution;
-    type BlockNumberProvider = frame_system::Pallet<Runtime>;
     type XcmFeesPayer = XcmFeesPayer;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type VrfDelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
@@ -1353,6 +1350,14 @@ impl pallet_crowdloans::Config for Runtime {
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type ReserveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
+    type XCM = ParallelXCM;
+}
+
+impl pallet_parallel_xcm::Config for Runtime {
+    type Assets = Assets;
+    type XcmSender = XcmRouter;
+    type RelayNetwork = RelayNetwork;
+    type BlockNumberProvider = frame_system::Pallet<Runtime>;
 }
 
 parameter_types! {
@@ -1500,6 +1505,9 @@ construct_runtime!(
         // Bridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 90,
         EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Event<T>} = 91,
         // LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 92,
+
+        // XCM
+        ParallelXCM: pallet_parallel_xcm::{Pallet} = 93,
     }
 );
 

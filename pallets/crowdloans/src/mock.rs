@@ -1,5 +1,3 @@
-use super::TotalReserves;
-
 use frame_support::{
     construct_runtime,
     dispatch::Weight,
@@ -10,6 +8,7 @@ use frame_support::{
 };
 use frame_system::{EnsureOneOf, EnsureRoot, EnsureSignedBy};
 use orml_xcm_support::IsNativeConcrete;
+use pallet_parallel_xcm::TotalReserves;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId};
@@ -341,14 +340,11 @@ impl crate::Config for Test {
     type Origin = Origin;
     type PalletId = CrowdloansPalletId;
     type SelfParaId = SelfParaId;
-    type XcmSender = XcmRouter;
     type Assets = Assets;
-    type RelayNetwork = RelayNetwork;
     type RelayCurrency = RelayCurrency;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type RefundLocation = RefundLocation;
     type MinContribution = MinContribution;
-    type BlockNumberProvider = frame_system::Pallet<Test>;
     type XcmFeesPayer = XcmFeesPayer;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type CreateVaultOrigin = CreateVaultOrigin;
@@ -358,6 +354,14 @@ impl crate::Config for Test {
     type SlotExpiredOrigin = SlotExpiredOrigin;
     type ReserveOrigin = ReserveOrigin;
     type WeightInfo = ();
+    type XCM = ParallelXCM;
+}
+
+impl pallet_parallel_xcm::Config for Test {
+    type Assets = Assets;
+    type XcmSender = XcmRouter;
+    type RelayNetwork = RelayNetwork;
+    type BlockNumberProvider = frame_system::Pallet<Test>;
 }
 
 parameter_types! {
@@ -400,7 +404,7 @@ construct_runtime!(
         DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>},
         CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin},
         PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin},
-
+        ParallelXCM: pallet_parallel_xcm::{Pallet},
         XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
     }
 );

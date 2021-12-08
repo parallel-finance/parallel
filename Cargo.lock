@@ -2815,6 +2815,7 @@ dependencies = [
  "pallet-membership",
  "pallet-multisig",
  "pallet-nominee-election",
+ "pallet-parallel-xcm",
  "pallet-prices",
  "pallet-proxy",
  "pallet-router",
@@ -5289,6 +5290,7 @@ dependencies = [
  "pallet-assets",
  "pallet-babe",
  "pallet-balances",
+ "pallet-parallel-xcm",
  "pallet-session",
  "pallet-timestamp",
  "pallet-utility",
@@ -5766,6 +5768,22 @@ dependencies = [
  "sp-runtime",
  "sp-staking",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-parallel-xcm"
+version = "1.7.3"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-assets",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "xcm",
 ]
 
 [[package]]
@@ -6272,6 +6290,7 @@ dependencies = [
  "pallet-membership",
  "pallet-multisig",
  "pallet-nominee-election",
+ "pallet-parallel-xcm",
  "pallet-prices",
  "pallet-proxy",
  "pallet-router",
@@ -11407,6 +11426,7 @@ dependencies = [
  "pallet-membership",
  "pallet-multisig",
  "pallet-nominee-election",
+ "pallet-parallel-xcm",
  "pallet-prices",
  "pallet-proxy",
  "pallet-router",

@@ -1,0 +1,36 @@
+[package]
+authors = ['Parallel Team']
+edition = '2018'
+name    = 'pallet-parallel-xcm'
+version = '1.7.3'
+
+[package.metadata.docs.rs]
+targets = ['x86_64-unknown-linux-gnu']
+
+[dependencies]
+codec         = { package = 'parity-scale-codec', version = '2.3.1', features = ['max-encoded-len'], default-features = false }
+frame-support = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
+frame-system  = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
+pallet-assets = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
+primitives    = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
+scale-info    = { version = '1.0', default-features = false, features = ['derive'] }
+sp-io         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
+sp-runtime    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
+sp-std        = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
+xcm           = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.12', default-features = false }
+
+
+[features]
+default     = ['std']
+std         = [
+  'codec/std',
+  'frame-support/std',
+  'frame-system/std',
+  'sp-runtime/std',
+  'scale-info/std',
+  'sp-std/std',
+  'xcm/std',
+  'pallet-assets/std',
+  'primitives/std',
+]
+try-runtime = ['frame-support/try-runtime']

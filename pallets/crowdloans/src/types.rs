@@ -18,6 +18,7 @@ use super::{AssetIdOf, BalanceOf, Config};
 
 use codec::{Decode, Encode};
 
+use primitives::ump::XcmFeesPaymentStrategy;
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, RuntimeDebug};
 
@@ -84,10 +85,4 @@ impl<T: Config> Vault<T> {
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum ContributionStrategy {
     XCM,
-}
-
-#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub enum XcmFeesPaymentStrategy {
-    Payer,
-    Reserves,
 }

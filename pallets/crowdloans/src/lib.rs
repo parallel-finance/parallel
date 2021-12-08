@@ -51,15 +51,15 @@ pub mod pallet {
     };
     use frame_system::{ensure_signed, pallet_prelude::OriginFor};
     use primitives::{ump::*, Balance, CurrencyId, ParaId, Ratio};
-    use scale_info::prelude::format;
     use sp_runtime::{
-        traits::{AccountIdConversion, BlockNumberProvider, Convert, StaticLookup, Zero},
+        traits::{AccountIdConversion, Convert, StaticLookup, Zero},
         ArithmeticError, DispatchError,
     };
-    use sp_std::{boxed::Box, vec, vec::Vec};
-    use xcm::{latest::prelude::*, DoubleEncoded};
+    use sp_std::vec::Vec;
+    use xcm::latest::prelude::*;
 
     use crate::weights::WeightInfo;
+    use pallet_parallel_xcm::ParallelXCM;
 
     pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
     pub type AssetIdOf<T> =
@@ -85,16 +85,9 @@ pub mod pallet {
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
 
-        /// XCM message sender
-        type XcmSender: SendXcm;
-
         /// Returns the parachain ID we are running with.
         #[pallet::constant]
         type SelfParaId: Get<ParaId>;
-
-        /// Relay network
-        #[pallet::constant]
-        type RelayNetwork: Get<NetworkId>;
 
         /// Relay currency
         #[pallet::constant]
@@ -119,9 +112,6 @@ pub mod pallet {
         #[pallet::constant]
         type MinContribution: Get<BalanceOf<Self>>;
 
-        /// The block number provider
-        type BlockNumberProvider: BlockNumberProvider<BlockNumber = Self::BlockNumber>;
-
         /// The origin which can update reserve_factor, xcm_fees etc
         type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
@@ -145,6 +135,9 @@ pub mod pallet {
 
         /// Weight information
         type WeightInfo: WeightInfo;
+
+        /// To expose XCM helper functions
+        type XCM: ParallelXCM<BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
     }
 
     #[pallet::event]
@@ -206,14 +199,6 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn reserve_factor)]
     pub type ReserveFactor<T: Config> = StorageValue<_, Ratio, ValueQuery>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn total_reserves)]
-    pub type TotalReserves<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn xcm_fees)]
-    pub type XcmFees<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn xcm_weight)]
@@ -531,17 +516,12 @@ pub mod pallet {
             T::ReserveOrigin::ensure_origin(origin)?;
             let payer = T::Lookup::lookup(payer)?;
 
-            T::Assets::transfer(
+            T::XCM::update_total_reserves(
                 T::RelayCurrency::get(),
-                &payer,
-                &Self::account_id(),
+                payer.clone(),
                 amount,
-                false,
+                Self::account_id(),
             )?;
-            TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
-                Ok(())
-            })?;
 
             Self::deposit_event(Event::<T>::ReservesAdded(payer, amount));
             Ok(().into())
@@ -568,7 +548,7 @@ pub mod pallet {
             #[pallet::compact] fees: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
-            XcmFees::<T>::mutate(|v| *v = fees);
+            T::XCM::update_xcm_fees(fees);
             Self::deposit_event(Event::<T>::XcmFeesUpdated(fees));
             Ok(().into())
         }
@@ -635,38 +615,17 @@ pub mod pallet {
         ) -> Result<(), DispatchError> {
             T::Assets::burn_from(T::RelayCurrency::get(), &Self::account_id(), amount)?;
 
-            switch_relay!({
-                let call =
-                    RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
-                        calls: vec![
-                            RelaychainCall::<T>::System(SystemCall::Remark(SystemRemarkCall {
-                                remark: format!(
-                                    "{:?}#{:?}",
-                                    T::BlockNumberProvider::current_block_number(),
-                                    who,
-                                )
-                                .into_bytes(),
-                            })),
-                            RelaychainCall::<T>::Crowdloans(CrowdloansCall::Contribute(
-                                CrowdloansContributeCall {
-                                    index: crowdloan,
-                                    value: amount,
-                                    signature: None,
-                                },
-                            )),
-                        ],
-                    })));
-
-                let msg = Self::ump_transact(
-                    call.encode().into(),
-                    Self::xcm_weight().contribute_weight,
-                    xcm_fees_payment_strategy,
-                )?;
-
-                if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                    return Err(Error::<T>::SendXcmError.into());
-                }
-            });
+            T::XCM::do_contribute(
+                crowdloan,
+                Self::xcm_weight().withdraw_weight,
+                T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
+                T::RelayCurrency::get(),
+                Self::account_id(),
+                amount,
+                Self::xcm_fees_payer(),
+                xcm_fees_payment_strategy,
+                who,
+            )?;
 
             Ok(())
         }
@@ -677,74 +636,20 @@ pub mod pallet {
             amount: BalanceOf<T>,
             xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
         ) -> Result<(), DispatchError> {
-            switch_relay!({
-                let call = RelaychainCall::<T>::Crowdloans(CrowdloansCall::Withdraw(
-                    CrowdloansWithdrawCall {
-                        who: Self::para_account_id(),
-                        index: para_id,
-                    },
-                ));
-
-                let msg = Self::ump_transact(
-                    call.encode().into(),
-                    Self::xcm_weight().withdraw_weight,
-                    xcm_fees_payment_strategy,
-                )?;
-
-                if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                    return Err(Error::<T>::SendXcmError.into());
-                }
-            });
+            T::XCM::do_withdraw(
+                para_id,
+                Self::xcm_weight().withdraw_weight,
+                T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
+                T::RelayCurrency::get(),
+                Self::account_id(),
+                Self::para_account_id(),
+                Self::xcm_fees_payer(),
+                xcm_fees_payment_strategy,
+            )?;
 
             T::Assets::mint_into(T::RelayCurrency::get(), &Self::account_id(), amount)?;
 
             Ok(())
-        }
-
-        #[require_transactional]
-        fn ump_transact(
-            call: DoubleEncoded<()>,
-            weight: Weight,
-            xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
-        ) -> Result<Xcm<()>, DispatchError> {
-            let fees = Self::xcm_fees();
-            let account_id = Self::account_id();
-            let xcm_fees_payer = Self::xcm_fees_payer();
-            let relay_currency = T::RelayCurrency::get();
-            let asset: MultiAsset = (MultiLocation::here(), fees).into();
-
-            match xcm_fees_payment_strategy {
-                XcmFeesPaymentStrategy::Reserves => {
-                    T::Assets::burn_from(relay_currency, &account_id, fees)?;
-
-                    TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
-                        *b = b.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
-                        Ok(())
-                    })?;
-                }
-                XcmFeesPaymentStrategy::Payer => {
-                    T::Assets::burn_from(relay_currency, &xcm_fees_payer, fees)?;
-                }
-            }
-
-            Ok(Xcm(vec![
-                WithdrawAsset(MultiAssets::from(asset.clone())),
-                BuyExecution {
-                    fees: asset.clone(),
-                    weight_limit: Unlimited,
-                },
-                Transact {
-                    origin_type: OriginKind::SovereignAccount,
-                    require_weight_at_most: weight,
-                    call,
-                },
-                RefundSurplus,
-                DepositAsset {
-                    assets: asset.into(),
-                    max_assets: 1,
-                    beneficiary: T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
-                },
-            ]))
         }
     }
 }

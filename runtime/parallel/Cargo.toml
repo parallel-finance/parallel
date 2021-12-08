@@ -98,6 +98,7 @@ pallet-liquidation           = { path = '../../pallets/liquidation', default-fea
 pallet-loans                 = { path = '../../pallets/loans', default-features = false }
 pallet-loans-rpc-runtime-api = { path = '../../pallets/loans/rpc/runtime-api', default-features = false }
 pallet-nominee-election      = { path = '../../pallets/nominee-election', default-features = false }
+pallet-parallel-xcm          = { path = '../../pallets/parallel-xcm', default-features = false }
 pallet-prices                = { path = '../../pallets/prices', default-features = false }
 pallet-router                = { path = '../../pallets/router', default-features = false }
 primitives                   = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
@@ -203,7 +204,8 @@ std                = [
   'frame-try-runtime/std',
   'pallet-currency-adapter/std',
   'pallet-crowdloans/std',
-  'pallet-emergency-shutdown/std'
+  'pallet-emergency-shutdown/std',
+  'pallet-parallel-xcm/std'
 ]
 try-runtime        = [
   'frame-support/try-runtime',
