@@ -636,10 +636,9 @@ pub mod pallet {
                         calls: vec![
                             RelaychainCall::<T>::System(SystemCall::Remark(SystemRemarkCall {
                                 remark: format!(
-                                    "{:?}#{:?}#{:?}",
+                                    "{:?}#{:?}",
                                     T::BlockNumberProvider::current_block_number(),
                                     who,
-                                    amount,
                                 )
                                 .into_bytes(),
                             })),
