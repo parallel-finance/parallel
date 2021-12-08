@@ -74,7 +74,7 @@ fn initial_set_up<T: Config + pallet_assets::Config<AssetId = CurrencyId, Balanc
     )
     .unwrap();
 
-    T::XCM::update_total_reserves(INITIAL_RESERVES).unwrap();
+    T::XCM::update_reserves(INITIAL_RESERVES).unwrap();
 }
 
 benchmarks! {

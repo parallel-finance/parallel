@@ -83,7 +83,14 @@ pub mod pallet {
 pub trait ParallelXCM<Balance, AssetId, AccountId> {
     fn update_xcm_fees(fees: Balance);
 
-    fn update_total_reserves(reserves: Balance) -> DispatchResult;
+    fn update_reserves(amount: Balance) -> DispatchResult;
+
+    fn update_total_reserves(
+        relay_currency: AssetId,
+        payer: AccountId,
+        amount: Balance,
+        account_id: AccountId,
+    ) -> DispatchResult;
 
     fn ump_transact(
         call: DoubleEncoded<()>,
@@ -124,11 +131,21 @@ impl<T: Config> ParallelXCM<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet
         XcmFees::<T>::mutate(|v| *v = fees);
     }
 
-    fn update_total_reserves(reserves: BalanceOf<T>) -> DispatchResult {
+    fn update_reserves(amount: Balance) -> DispatchResult {
         TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
-            *b = b.checked_add(reserves).ok_or(ArithmeticError::Overflow)?;
+            *b = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
             Ok(())
         })
+    }
+    fn update_total_reserves(
+        relay_currency: AssetIdOf<T>,
+        payer: T::AccountId,
+        amount: BalanceOf<T>,
+        account_id: T::AccountId,
+    ) -> DispatchResult {
+        T::Assets::transfer(relay_currency, &payer, &account_id, amount, false)?;
+
+        Self::update_reserves(amount)
     }
 
     fn ump_transact(

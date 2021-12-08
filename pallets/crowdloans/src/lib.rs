@@ -516,14 +516,12 @@ pub mod pallet {
             T::ReserveOrigin::ensure_origin(origin)?;
             let payer = T::Lookup::lookup(payer)?;
 
-            T::Assets::transfer(
+            T::XCM::update_total_reserves(
                 T::RelayCurrency::get(),
-                &payer,
-                &Self::account_id(),
+                payer.clone(),
                 amount,
-                false,
+                Self::account_id(),
             )?;
-            T::XCM::update_total_reserves(amount)?;
 
             Self::deposit_event(Event::<T>::ReservesAdded(payer, amount));
             Ok(().into())
