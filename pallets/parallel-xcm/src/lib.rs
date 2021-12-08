@@ -115,7 +115,7 @@ pub trait ParallelXCM<Balance, AssetId, AccountId> {
         amount: Balance,
         xcm_fees_payer: AccountId,
         xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
-        who: &AccountId,
+        who: Option<&AccountId>,
     ) -> Result<(), DispatchError>;
 }
 
@@ -220,7 +220,7 @@ impl<T: Config> ParallelXCM<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet
         amount: BalanceOf<T>,
         xcm_fees_payer: T::AccountId,
         xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
-        who: &T::AccountId,
+        who: Option<&T::AccountId>,
     ) -> Result<(), DispatchError> {
         switch_relay!({
             let call =

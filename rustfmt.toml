@@ -1,0 +1,6 @@
+ignore = [
+  "weights.rs",
+  "runtime/heiko/src/weights",
+  "runtime/parallel/src/weights",
+  "runtime/vanilla/src/weights",
+]

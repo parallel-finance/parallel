@@ -222,7 +222,7 @@ impl WeightInfo for () {
             .saturating_add(RocksDbWeight::get().reads(7 as Weight))
             .saturating_add(RocksDbWeight::get().writes(5 as Weight))
     }
-    fn reduce_reserves() -> Weight {
+            fn reduce_reserves() -> Weight {
         (121_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(6 as Weight))
             .saturating_add(RocksDbWeight::get().writes(4 as Weight))

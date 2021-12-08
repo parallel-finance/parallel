@@ -1345,7 +1345,7 @@ impl pallet_crowdloans::Config for Runtime {
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type VrfDelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type CloseReOpenOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type OpenCloseOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type ReserveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;

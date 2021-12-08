@@ -45,10 +45,11 @@ fn create_new_vault_should_work() {
             Vault {
                 id: VAULT_ID,
                 ctoken,
-                phase: VaultPhase::Contributing,
+                phase: VaultPhase::Pending,
+                contributed: Zero::zero(),
+                pending: Zero::zero(),
                 contribution_strategy,
                 xcm_fees_payment_strategy,
-                contributed: Zero::zero(),
             }
         );
     });
@@ -154,6 +155,12 @@ fn contribute_should_work() {
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
             xcm_fees_payment_strategy             // xcm_fees_payment_strategy
+        ));
+
+        // do open
+        assert_ok!(Crowdloans::open(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
         ));
 
         // do contribute
@@ -279,6 +286,12 @@ fn close_should_work() {
             xcm_fees_payment_strategy             // xcm_fees_payment_strategy
         ));
 
+        // do open
+        assert_ok!(Crowdloans::open(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
         // do close
         assert_ok!(Crowdloans::close(
             frame_system::RawOrigin::Root.into(), // origin
@@ -307,6 +320,12 @@ fn reopen_should_work() {
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
             xcm_fees_payment_strategy             // xcm_fees_payment_strategy
+        ));
+
+        // do open
+        assert_ok!(Crowdloans::open(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
         ));
 
         // do close
@@ -343,6 +362,12 @@ fn auction_failed_should_work() {
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
             xcm_fees_payment_strategy             // xcm_fees_payment_strategy
+        ));
+
+        // do open
+        assert_ok!(Crowdloans::open(
+            frame_system::RawOrigin::Root.into(), // origin
+            ParaId::from(crowdloan),              // crowdloan
         ));
 
         // do close
@@ -389,6 +414,12 @@ fn claim_refund_should_work() {
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
             xcm_fees_payment_strategy             // xcm_fees_payment_strategy
+        ));
+
+        // do open
+        assert_ok!(Crowdloans::open(
+            frame_system::RawOrigin::Root.into(), // origin
+            ParaId::from(crowdloan),              // crowdloan
         ));
 
         // do contribute
@@ -444,6 +475,12 @@ fn slot_expired_should_work() {
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
             xcm_fees_payment_strategy             // xcm_fees_payment_strategy
+        ));
+
+        // do open
+        assert_ok!(Crowdloans::open(
+            frame_system::RawOrigin::Root.into(), // origin
+            ParaId::from(crowdloan),              // crowdloan
         ));
 
         // do close
