@@ -227,8 +227,8 @@ pub mod pallet {
         StorageMap<_, Blake2_128Concat, AssetIdOf<T>, (ParaId, u32), OptionQuery>;
 
     #[pallet::storage]
-    #[pallet::getter(fn last_indexes)]
-    pub type LastIndexes<T: Config> = StorageMap<_, Blake2_128Concat, ParaId, u32, OptionQuery>;
+    #[pallet::getter(fn current_index)]
+    pub type BatchIndexes<T: Config> = StorageMap<_, Blake2_128Concat, ParaId, u32, OptionQuery>;
 
     #[pallet::genesis_config]
     pub struct GenesisConfig {
@@ -271,7 +271,7 @@ pub mod pallet {
                 Error::<T>::CTokenAlreadyTaken
             );
 
-            if let Some(vault) = Self::last_vault(crowdloan) {
+            if let Some(vault) = Self::current_vault(crowdloan) {
                 if vault.phase != VaultPhase::Failed && vault.phase != VaultPhase::Expired {
                     return Err(DispatchError::from(Error::<T>::ParaIdAlreadyTaken));
                 }
@@ -292,7 +292,7 @@ pub mod pallet {
 
             Vaults::<T>::insert(crowdloan, next_index, new_vault);
             CTokensRegistry::<T>::insert(ctoken, (crowdloan, next_index));
-            LastIndexes::<T>::insert(crowdloan, next_index);
+            BatchIndexes::<T>::insert(crowdloan, next_index);
 
             Self::deposit_event(Event::<T>::VaultCreated(crowdloan, next_index, ctoken));
 
@@ -311,7 +311,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
-            let mut vault = Self::last_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
+            let mut vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
 
             ensure!(
                 vault.phase == VaultPhase::Contributing,
@@ -426,8 +426,8 @@ pub mod pallet {
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
-            let vault = CTokensRegistry::<T>::get(ctoken)
-                .and_then(|(crowdloan, index)| Vaults::<T>::get(crowdloan, index))
+            let vault = Self::ctokens_registry(ctoken)
+                .and_then(|(crowdloan, index)| Self::vaults(crowdloan, index))
                 .ok_or(Error::<T>::VaultDoesNotExist)?;
 
             ensure!(
@@ -564,14 +564,13 @@ pub mod pallet {
         }
 
         fn next_index(crowdloan: ParaId) -> u32 {
-            Self::last_indexes(crowdloan)
+            Self::current_index(crowdloan)
                 .and_then(|idx| idx.checked_add(1u32))
                 .unwrap_or(0)
         }
 
-        fn last_vault(crowdloan: ParaId) -> Option<Vault<T>> {
-            Self::last_indexes(crowdloan)
-                .and_then(|last_index| Vaults::<T>::get(crowdloan, last_index))
+        fn current_vault(crowdloan: ParaId) -> Option<Vault<T>> {
+            Self::current_index(crowdloan).and_then(|index| Self::vaults(crowdloan, index))
         }
 
         #[require_transactional]
@@ -579,8 +578,8 @@ pub mod pallet {
         where
             F: FnOnce(&mut Vault<T>) -> DispatchResult,
         {
-            let last_index = Self::last_indexes(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
-            Vaults::<T>::try_mutate(crowdloan, last_index, |vault| {
+            let index = Self::current_index(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
+            Vaults::<T>::try_mutate(crowdloan, index, |vault| {
                 let vault = vault.as_mut().ok_or(Error::<T>::VaultDoesNotExist)?;
                 ensure!(vault.phase == phase, Error::<T>::IncorrectVaultPhase);
                 cb(vault)
