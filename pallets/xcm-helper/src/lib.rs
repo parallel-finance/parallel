@@ -87,11 +87,11 @@ pub trait XcmHelper<Balance, AssetId, AccountId> {
 
     fn update_xcm_weight(xcm_weight_misc: XcmWeightMisc<Weight>);
 
-    fn update_reserves(
+    fn add_reserves(
         relay_currency: AssetId,
         payer: AccountId,
         amount: Balance,
-        account_id: AccountId,
+        payee: AccountId,
     ) -> DispatchResult;
 
     fn ump_transact(
@@ -135,13 +135,13 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
         XcmWeight::<T>::mutate(|v| *v = xcm_weight_misc);
     }
 
-    fn update_reserves(
+    fn add_reserves(
         relay_currency: AssetIdOf<T>,
         payer: T::AccountId,
         amount: BalanceOf<T>,
-        account_id: T::AccountId,
+        payee: T::AccountId,
     ) -> DispatchResult {
-        T::Assets::transfer(relay_currency, &payer, &account_id, amount, false)?;
+        T::Assets::transfer(relay_currency, &payer, &payee, amount, false)?;
 
         TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
             *b = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;

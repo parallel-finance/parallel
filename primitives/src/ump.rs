@@ -22,6 +22,12 @@ pub enum RewardDestination<AccountId> {
     None,
 }
 
+#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum XcmFeesPaymentStrategy {
+    Payer,
+    Reserves,
+}
+
 /// Relaychain staking.bond call arguments
 #[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct StakingBondCall<T: Config> {
@@ -345,10 +351,4 @@ macro_rules! switch_relay {
             unreachable!()
         }
     }
-}
-
-#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub enum XcmFeesPaymentStrategy {
-    Payer,
-    Reserves,
 }

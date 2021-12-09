@@ -500,7 +500,7 @@ pub mod pallet {
             T::ReserveOrigin::ensure_origin(origin)?;
             let payer = T::Lookup::lookup(payer)?;
 
-            T::XCM::update_reserves(
+            T::XCM::add_reserves(
                 T::RelayCurrency::get(),
                 payer.clone(),
                 amount,
