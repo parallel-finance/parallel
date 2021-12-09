@@ -65,6 +65,10 @@ pub mod pallet {
     pub type XcmFees<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     #[pallet::storage]
+    #[pallet::getter(fn xcm_weight)]
+    pub type XcmWeight<T: Config> = StorageValue<_, XcmWeightMisc<Weight>, ValueQuery>;
+
+    #[pallet::storage]
     #[pallet::getter(fn total_reserves)]
     pub type TotalReserves<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
@@ -80,6 +84,8 @@ pub mod pallet {
 
 pub trait XcmHelper<Balance, AssetId, AccountId> {
     fn update_xcm_fees(fees: Balance);
+
+    fn update_xcm_weight(xcm_weight_misc: XcmWeightMisc<Weight>);
 
     fn update_reserves(
         relay_currency: AssetId,
@@ -100,7 +106,6 @@ pub trait XcmHelper<Balance, AssetId, AccountId> {
 
     fn do_withdraw(
         para_id: ParaId,
-        weight: Weight,
         beneficiary: MultiLocation,
         relay_currency: AssetId,
         account_id: AccountId,
@@ -111,7 +116,6 @@ pub trait XcmHelper<Balance, AssetId, AccountId> {
 
     fn do_contribute(
         para_id: ParaId,
-        weight: Weight,
         beneficiary: MultiLocation,
         relay_currency: AssetId,
         account_id: AccountId,
@@ -125,6 +129,10 @@ pub trait XcmHelper<Balance, AssetId, AccountId> {
 impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T> {
     fn update_xcm_fees(fees: BalanceOf<T>) {
         XcmFees::<T>::mutate(|v| *v = fees);
+    }
+
+    fn update_xcm_weight(xcm_weight_misc: XcmWeightMisc<Weight>) {
+        XcmWeight::<T>::mutate(|v| *v = xcm_weight_misc);
     }
 
     fn update_reserves(
@@ -189,7 +197,6 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
 
     fn do_withdraw(
         para_id: ParaId,
-        weight: Weight,
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         account_id: T::AccountId,
@@ -206,7 +213,7 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
 
             let msg = Self::ump_transact(
                 call.encode().into(),
-                weight,
+                Self::xcm_weight().withdraw_weight,
                 beneficiary,
                 relay_currency,
                 account_id,
@@ -224,7 +231,6 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
 
     fn do_contribute(
         para_id: ParaId,
-        weight: Weight,
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         account_id: T::AccountId,
@@ -257,7 +263,7 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
 
             let msg = Self::ump_transact(
                 call.encode().into(),
-                weight,
+                Self::xcm_weight().contribute_weight,
                 beneficiary,
                 relay_currency,
                 account_id,

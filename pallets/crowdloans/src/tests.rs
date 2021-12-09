@@ -3,8 +3,7 @@ use crate::mock::*;
 
 use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
-use pallet_xcm_helper::TotalReserves;
-use pallet_xcm_helper::XcmFees;
+use pallet_xcm_helper::{TotalReserves, XcmFees, XcmWeight};
 use primitives::{ump::*, ParaId, Ratio};
 use sp_runtime::{
     traits::{One, UniqueSaturatedInto, Zero},
