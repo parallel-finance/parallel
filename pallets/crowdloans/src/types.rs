@@ -18,7 +18,6 @@ use super::{AssetIdOf, BalanceOf, Config};
 
 use codec::{Decode, Encode};
 
-use primitives::ump::XcmFeesPaymentStrategy;
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, RuntimeDebug};
 
@@ -58,18 +57,11 @@ pub struct Vault<T: Config> {
     pub pending: BalanceOf<T>,
     /// How we contribute coins to the crowdloan
     pub contribution_strategy: ContributionStrategy,
-    /// XCM Transaction payment strategy
-    pub xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
 }
 
 /// init default vault with ctoken and currency override
 impl<T: Config> Vault<T> {
-    pub fn new(
-        id: u32,
-        ctoken: AssetIdOf<T>,
-        contribution_strategy: ContributionStrategy,
-        xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
-    ) -> Self {
+    pub fn new(id: u32, ctoken: AssetIdOf<T>, contribution_strategy: ContributionStrategy) -> Self {
         Self {
             id,
             ctoken,
@@ -77,7 +69,6 @@ impl<T: Config> Vault<T> {
             contributed: Zero::zero(),
             pending: Zero::zero(),
             contribution_strategy,
-            xcm_fees_payment_strategy,
         }
     }
 }

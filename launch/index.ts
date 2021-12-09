@@ -133,7 +133,7 @@ async function para() {
   }
 
   for (const { paraId, image, chain, ctokenId, pending } of config.crowdloans) {
-    call.push(api.tx.sudo.sudo(api.tx.crowdloans.createVault(paraId, ctokenId, 'XCM', 'Payer')))
+    call.push(api.tx.sudo.sudo(api.tx.crowdloans.createVault(paraId, ctokenId, 'XCM')))
     if (!pending) {
       call.push(api.tx.sudo.sudo(api.tx.crowdloans.open(paraId)))
     }
