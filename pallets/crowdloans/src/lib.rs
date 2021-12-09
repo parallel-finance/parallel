@@ -509,7 +509,7 @@ pub mod pallet {
             T::ReserveOrigin::ensure_origin(origin)?;
             let payer = T::Lookup::lookup(payer)?;
 
-            T::XCM::update_total_reserves(
+            T::XCM::update_reserves(
                 T::RelayCurrency::get(),
                 payer.clone(),
                 amount,
@@ -610,7 +610,7 @@ pub mod pallet {
 
             T::XCM::do_contribute(
                 crowdloan,
-                Self::xcm_weight().withdraw_weight,
+                Self::xcm_weight().contribute_weight,
                 T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
                 T::RelayCurrency::get(),
                 Self::account_id(),

@@ -8,9 +8,12 @@ use crate::Pallet as Crowdloans;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{assert_ok, pallet_prelude::*, traits::fungibles::Mutate};
 use frame_system::{self, RawOrigin as SystemOrigin};
-use pallet_xcm_helper::XcmHelper;
+use pallet_xcm_helper::TotalReserves;
 use primitives::{ump::*, Balance, CurrencyId, ParaId, Ratio};
-use sp_runtime::traits::{StaticLookup, Zero};
+use sp_runtime::{
+    traits::{StaticLookup, Zero},
+    ArithmeticError,
+};
 use sp_std::prelude::*;
 
 use sp_runtime::traits::One;
@@ -37,7 +40,11 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
     frame_system::Pallet::<T>::assert_last_event(generic_event.into());
 }
 
-fn initial_set_up<T: Config + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>>(
+fn initial_set_up<
+    T: Config
+        + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>
+        + pallet_xcm_helper::Config,
+>(
     caller: T::AccountId,
     ctoken: u32,
 ) {
@@ -63,24 +70,35 @@ fn initial_set_up<T: Config + pallet_assets::Config<AssetId = CurrencyId, Balanc
     .ok();
 
     // fund caller with dot
-    T::Assets::mint_into(T::RelayCurrency::get(), &caller, INITIAL_AMOUNT).ok();
+    <T as pallet_xcm_helper::Config>::Assets::mint_into(
+        T::RelayCurrency::get(),
+        &caller,
+        INITIAL_AMOUNT,
+    )
+    .ok();
 
     Crowdloans::<T>::update_xcm_fees(SystemOrigin::Root.into(), XCM_FEES).unwrap();
 
-    T::Assets::mint_into(
+    <T as pallet_xcm_helper::Config>::Assets::mint_into(
         T::RelayCurrency::get(),
         &Crowdloans::<T>::account_id(),
         INITIAL_RESERVES,
     )
     .unwrap();
 
-    T::XCM::update_reserves(INITIAL_RESERVES).unwrap();
+    TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
+        *b = b
+            .checked_add(INITIAL_RESERVES)
+            .ok_or(ArithmeticError::Overflow)?;
+        Ok(())
+    })
+    .unwrap();
 }
 
 benchmarks! {
     where_clause {
         where
-            T: pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>
+            T: pallet_assets::Config<AssetId = CurrencyId, Balance = Balance> + pallet_xcm_helper::Config
     }
 
     create_vault {

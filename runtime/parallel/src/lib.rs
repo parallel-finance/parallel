@@ -969,7 +969,7 @@ parameter_types! {
       pub const MinimumCount: u32 = 1;
       pub const ExpiresIn: Moment = 1000 * 60 * 60; // 60 mins
       pub const MaxHasDispatchedSize: u32 = 100;
-      pub ZeroAccountId: AccountId = AccountId::from([0u8; 32]);
+      pub RootOperator: AccountId = AccountId::from([1u8; 32]);
 }
 
 type ParallelDataProvider = orml_oracle::Instance1;
@@ -981,7 +981,7 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
     type Time = Timestamp;
     type OracleKey = CurrencyId;
     type OracleValue = Price;
-    type RootOperatorAccountId = ZeroAccountId;
+    type RootOperatorAccountId = RootOperator;
     type MaxHasDispatchedSize = MaxHasDispatchedSize;
     type WeightInfo = ();
     type Members = OracleMembership;
@@ -1430,7 +1430,7 @@ impl Contains<Call> for WhiteListFilter {
 impl pallet_emergency_shutdown::Config for Runtime {
     type Event = Event;
     type Whitelist = WhiteListFilter;
-    type ShutdownOrigin = EnsureRoot<AccountId>;
+    type ShutdownOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -1505,8 +1505,6 @@ construct_runtime!(
         // Bridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 90,
         EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Event<T>} = 91,
         // LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 92,
-
-        // XCM
         XcmHelper: pallet_xcm_helper::{Pallet} = 93,
     }
 );

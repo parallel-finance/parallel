@@ -81,9 +81,7 @@ pub mod pallet {
 pub trait XcmHelper<Balance, AssetId, AccountId> {
     fn update_xcm_fees(fees: Balance);
 
-    fn update_reserves(amount: Balance) -> DispatchResult;
-
-    fn update_total_reserves(
+    fn update_reserves(
         relay_currency: AssetId,
         payer: AccountId,
         amount: Balance,
@@ -129,13 +127,7 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
         XcmFees::<T>::mutate(|v| *v = fees);
     }
 
-    fn update_reserves(amount: Balance) -> DispatchResult {
-        TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
-            *b = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
-            Ok(())
-        })
-    }
-    fn update_total_reserves(
+    fn update_reserves(
         relay_currency: AssetIdOf<T>,
         payer: T::AccountId,
         amount: BalanceOf<T>,
@@ -143,7 +135,10 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
     ) -> DispatchResult {
         T::Assets::transfer(relay_currency, &payer, &account_id, amount, false)?;
 
-        Self::update_reserves(amount)
+        TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
+            *b = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
+            Ok(())
+        })
     }
 
     fn ump_transact(
@@ -218,6 +213,7 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
                 xcm_fees_payer,
                 xcm_fees_payment_strategy,
             )?;
+
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
             }
@@ -268,6 +264,7 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
                 xcm_fees_payer,
                 xcm_fees_payment_strategy,
             )?;
+
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
             }
