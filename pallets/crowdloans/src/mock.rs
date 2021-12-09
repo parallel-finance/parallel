@@ -9,7 +9,6 @@ use frame_support::{
 use frame_system::{EnsureOneOf, EnsureRoot, EnsureSignedBy};
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
-use pallet_xcm_helper::TotalReserves;
 use polkadot_parachain::primitives::Sibling;
 use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId};
 use sp_core::H256;
@@ -312,7 +311,6 @@ parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
     pub SelfParaId: ParaId = para_a_id();
     pub RefundLocation: AccountId = para_a_id().into_account();
-    pub const XcmFeesPayer: PalletId = PalletId(*b"par/fees");
     pub const MinContribution: Balance = 0;
 }
 
@@ -323,9 +321,6 @@ pub type VrfDelayOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
 pub type OpenCloseOrigin =
-    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
-
-pub type ReserveOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
 pub type AuctionFailedOrigin =
@@ -345,21 +340,24 @@ impl crate::Config for Test {
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type RefundLocation = RefundLocation;
     type MinContribution = MinContribution;
-    type XcmFeesPayer = XcmFeesPayer;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type CreateVaultOrigin = CreateVaultOrigin;
     type VrfDelayOrigin = VrfDelayOrigin;
     type OpenCloseOrigin = OpenCloseOrigin;
     type AuctionFailedOrigin = AuctionFailedOrigin;
     type SlotExpiredOrigin = SlotExpiredOrigin;
-    type ReserveOrigin = ReserveOrigin;
     type WeightInfo = ();
     type XCM = XcmHelper;
+}
+
+parameter_types! {
+    pub const XcmHelperPalletId: PalletId = PalletId(*b"par/fees");
 }
 
 impl pallet_xcm_helper::Config for Test {
     type Assets = Assets;
     type XcmSender = XcmRouter;
+    type PalletId = XcmHelperPalletId;
     type RelayNetwork = RelayNetwork;
     type BlockNumberProvider = frame_system::Pallet<Test>;
 }
@@ -430,7 +428,13 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
             dot(30f64),
         )
         .unwrap();
-        TotalReserves::<Test>::mutate(|b| *b = dot(30f64));
+        Assets::mint(
+            Origin::signed(ALICE),
+            DOT,
+            Id(XcmHelper::account_id()),
+            dot(30f64),
+        )
+        .unwrap();
         Crowdloans::update_xcm_fees(Origin::root(), dot(10f64)).unwrap();
     });
 
@@ -496,7 +500,13 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
             dot(30f64),
         )
         .unwrap();
-        TotalReserves::<Test>::mutate(|b| *b = dot(30f64));
+        Assets::mint(
+            Origin::signed(ALICE),
+            DOT,
+            Id(XcmHelper::account_id()),
+            dot(30f64),
+        )
+        .unwrap();
         Crowdloans::update_xcm_fees(Origin::root(), dot(10f64)).unwrap();
     });
 

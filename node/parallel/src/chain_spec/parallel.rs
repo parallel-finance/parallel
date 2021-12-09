@@ -16,7 +16,6 @@ use parallel_runtime::{
     opaque::SessionKeys,
     BalancesConfig,
     CollatorSelectionConfig,
-    CrowdloansConfig,
     DemocracyConfig,
     GeneralCouncilConfig,
     GeneralCouncilMembershipConfig,
@@ -299,9 +298,6 @@ fn parallel_genesis(
         },
         polkadot_xcm: PolkadotXcmConfig {
             safe_xcm_version: Some(2),
-        },
-        crowdloans: CrowdloansConfig {
-            reserve_factor: Ratio::from_rational(5u32, 1000u32),
         },
     }
 }
