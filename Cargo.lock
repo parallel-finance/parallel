@@ -5510,6 +5510,7 @@ dependencies = [
  "pallet-timestamp",
  "pallet-utility",
  "pallet-xcm",
+ "pallet-xcm-helper",
  "parachain-info",
  "parallel-primitives",
  "parity-scale-codec",

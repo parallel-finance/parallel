@@ -20,7 +20,7 @@ use sp_std::{prelude::*, vec};
 
 const SEED: u32 = 0;
 const MARKET_CAP: u128 = 10000000000000000u128;
-const XCM_FEES_COMPENSATION: u128 = 50000000000u128;
+const XCM_FEES: u128 = 50000000000u128;
 const RESERVE_FACTOR: Ratio = Ratio::from_perthousand(5);
 const XCM_WEIGHT: XcmWeightMisc<Weight> = XcmWeightMisc {
     bond_weight: 3_000_000_000,
@@ -73,11 +73,7 @@ fn initial_set_up<T: Config + pallet_assets::Config<AssetId = CurrencyId, Balanc
     LiquidStaking::<T>::set_staking_currency(SystemOrigin::Root.into(), DOT).unwrap();
     LiquidStaking::<T>::update_staking_pool_capacity(SystemOrigin::Root.into(), MARKET_CAP)
         .unwrap();
-    LiquidStaking::<T>::update_xcm_fees_compensation(
-        SystemOrigin::Root.into(),
-        XCM_FEES_COMPENSATION,
-    )
-    .unwrap();
+    LiquidStaking::<T>::update_xcm_fees(SystemOrigin::Root.into(), XCM_FEES).unwrap();
 
     T::Assets::mint_into(DOT, &staking_pool_account, INITIAL_INSURANCE).unwrap();
     ExchangeRate::<T>::mutate(|b| *b = Rate::one());
@@ -208,10 +204,10 @@ benchmarks! {
     verify {
     }
 
-    update_xcm_fees_compensation {
-    }: _(SystemOrigin::Root, XCM_FEES_COMPENSATION)
+    update_xcm_fees {
+    }: _(SystemOrigin::Root, XCM_FEES)
     verify {
-        assert_eq!(XcmFeesCompensation::<T>::get(), XCM_FEES_COMPENSATION);
+        assert_last_event::<T>(Event::XcmFeesUpdated(XCM_FEES).into())
     }
 
     update_xcm_weight {
@@ -233,7 +229,7 @@ benchmarks! {
         initial_set_up::<T>(alice);
     }: _(SystemOrigin::Root, SLASHES)
     verify {
-        assert_eq!(InsurancePool::<T>::get(), INITIAL_INSURANCE - SLASHES - XCM_FEES_COMPENSATION);
+        assert_eq!(InsurancePool::<T>::get(), INITIAL_INSURANCE - SLASHES - XCM_FEES);
     }
 
     on_idle {

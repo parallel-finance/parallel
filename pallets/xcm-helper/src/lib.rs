@@ -23,6 +23,7 @@ pub use pallet::*;
 
 use frame_support::{
     dispatch::DispatchResult,
+    log,
     pallet_prelude::*,
     traits::fungibles::{Inspect, Mutate, Transfer},
 };
@@ -90,7 +91,7 @@ pub trait XcmHelper<Balance, AssetId, AccountId> {
         account_id: AccountId,
     ) -> DispatchResult;
 
-    fn ump_transact(
+    fn ump_transact_crowdloan(
         call: DoubleEncoded<()>,
         weight: Weight,
         beneficiary: MultiLocation,
@@ -98,6 +99,14 @@ pub trait XcmHelper<Balance, AssetId, AccountId> {
         account_id: AccountId,
         xcm_fees_payer: AccountId,
         xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
+    ) -> Result<Xcm<()>, DispatchError>;
+
+    fn ump_transact_staking(
+        call: DoubleEncoded<()>,
+        weight: Weight,
+        beneficiary: MultiLocation,
+        staking_currency: AssetId,
+        account_id: AccountId,
     ) -> Result<Xcm<()>, DispatchError>;
 
     fn do_withdraw(
@@ -146,7 +155,7 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
         Self::update_reserves(amount)
     }
 
-    fn ump_transact(
+    fn ump_transact_crowdloan(
         call: DoubleEncoded<()>,
         weight: Weight,
         beneficiary: MultiLocation,
@@ -192,6 +201,46 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
         ]))
     }
 
+    fn ump_transact_staking(
+        call: DoubleEncoded<()>,
+        weight: Weight,
+        beneficiary: MultiLocation,
+        staking_currency: AssetIdOf<T>,
+        account_id: T::AccountId,
+    ) -> Result<Xcm<()>, DispatchError> {
+        let fees = Self::xcm_fees();
+        let asset: MultiAsset = (MultiLocation::here(), fees).into();
+
+        log::trace!(
+            target: "liquidstaking::ump_transact",
+            "call: {:?}, asset: {:?}, xcm_weight: {:?}",
+            &call,
+            &asset,
+            weight,
+        );
+
+        T::Assets::burn_from(staking_currency, &account_id, fees)?;
+
+        Ok(Xcm(vec![
+            WithdrawAsset(MultiAssets::from(asset.clone())),
+            BuyExecution {
+                fees: asset.clone(),
+                weight_limit: Unlimited,
+            },
+            Transact {
+                origin_type: OriginKind::SovereignAccount,
+                require_weight_at_most: weight,
+                call,
+            },
+            RefundSurplus,
+            DepositAsset {
+                assets: asset.into(),
+                max_assets: 1,
+                beneficiary,
+            },
+        ]))
+    }
+
     fn do_withdraw(
         para_id: ParaId,
         weight: Weight,
@@ -209,7 +258,7 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
                     index: para_id,
                 }));
 
-            let msg = Self::ump_transact(
+            let msg = Self::ump_transact_crowdloan(
                 call.encode().into(),
                 weight,
                 beneficiary,
@@ -259,7 +308,7 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
                     ],
                 })));
 
-            let msg = Self::ump_transact(
+            let msg = Self::ump_transact_crowdloan(
                 call.encode().into(),
                 weight,
                 beneficiary,

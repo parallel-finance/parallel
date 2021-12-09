@@ -62,11 +62,12 @@ pub mod pallet {
     };
     use sp_std::vec;
     use sp_std::{boxed::Box, vec::Vec};
-    use xcm::{latest::prelude::*, DoubleEncoded};
+    use xcm::latest::prelude::*;
 
     use primitives::{ump::*, Balance, CurrencyId, ParaId, Rate, Ratio};
 
     use crate::{types::*, weights::WeightInfo};
+    use pallet_xcm_helper::XcmHelper;
 
     pub type AssetIdOf<T> =
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
@@ -140,6 +141,9 @@ pub mod pallet {
 
         /// Weight information
         type WeightInfo: WeightInfo;
+
+        /// To expose XCM helper functions
+        type XCM: XcmHelper<BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
     }
 
     #[pallet::event]
@@ -168,7 +172,7 @@ pub mod pallet {
         /// Sent staking.nominate call to relaychain
         Nominating(Vec<T::AccountId>),
         /// Compensation for extrinsics on relaychain was set to new value
-        XcmFeesCompensationUpdated(BalanceOf<T>),
+        XcmFeesUpdated(BalanceOf<T>),
         /// Capacity of staking pool was set to new value
         StakingPoolCapacityUpdated(BalanceOf<T>),
         /// Xcm weight in BuyExecution message
@@ -256,11 +260,6 @@ pub mod pallet {
     /// Staking currency asset id
     #[pallet::storage]
     pub type StakingCurrency<T: Config> = StorageValue<_, AssetIdOf<T>, OptionQuery>;
-
-    /// Relaychain xcm fees compensation
-    #[pallet::storage]
-    #[pallet::getter(fn xcm_fees_compensation)]
-    pub type XcmFeesCompensation<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     /// Xcm weight in BuyExecution
     #[pallet::storage]
@@ -472,15 +471,15 @@ pub mod pallet {
 
         /// Update default xcm fees
         /// it reflects xcm fees consumed on relaychain
-        #[pallet::weight(<T as Config>::WeightInfo::update_xcm_fees_compensation())]
+        #[pallet::weight(<T as Config>::WeightInfo::update_xcm_fees())]
         #[transactional]
-        pub fn update_xcm_fees_compensation(
+        pub fn update_xcm_fees(
             origin: OriginFor<T>,
             #[pallet::compact] fees: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
-            XcmFeesCompensation::<T>::mutate(|v| *v = fees);
-            Self::deposit_event(Event::<T>::XcmFeesCompensationUpdated(fees));
+            T::XCM::update_xcm_fees(fees);
+            Self::deposit_event(Event::<T>::XcmFeesUpdated(fees));
             Ok(().into())
         }
 
@@ -680,6 +679,7 @@ pub mod pallet {
                 .into_iter()
                 .map(T::Lookup::unlookup)
                 .collect();
+            let staking_currency = Self::staking_currency()?;
 
             switch_relay!({
                 let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
@@ -693,8 +693,13 @@ pub mod pallet {
                     },
                 )));
 
-                let msg =
-                    Self::ump_transact(call.encode().into(), Self::xcm_weight().nominate_weight)?;
+                let msg = T::XCM::ump_transact_staking(
+                    call.encode().into(),
+                    Self::xcm_weight().nominate_weight,
+                    T::AccountIdToMultiLocation::convert(Self::para_account_id()),
+                    staking_currency,
+                    Self::account_id(),
+                )?;
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -795,6 +800,7 @@ pub mod pallet {
         ) -> DispatchResult {
             let stash = Self::derivative_para_account_id();
             let controller = stash.clone();
+            let staking_currency = Self::staking_currency()?;
 
             switch_relay!({
                 let call =
@@ -821,7 +827,13 @@ pub mod pallet {
                         ],
                     })));
 
-                let msg = Self::ump_transact(call.encode().into(), Self::xcm_weight().bond_weight)?;
+                let msg = T::XCM::ump_transact_staking(
+                    call.encode().into(),
+                    Self::xcm_weight().bond_weight,
+                    T::AccountIdToMultiLocation::convert(Self::para_account_id()),
+                    staking_currency,
+                    Self::account_id(),
+                )?;
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -839,6 +851,7 @@ pub mod pallet {
         #[require_transactional]
         fn bond_extra_internal(value: BalanceOf<T>) -> DispatchResult {
             let stash = T::Lookup::unlookup(Self::derivative_para_account_id());
+            let staking_currency = Self::staking_currency()?;
 
             switch_relay!({
                 let call =
@@ -858,8 +871,13 @@ pub mod pallet {
                         ],
                     })));
 
-                let msg =
-                    Self::ump_transact(call.encode().into(), Self::xcm_weight().bond_extra_weight)?;
+                let msg = T::XCM::ump_transact_staking(
+                    call.encode().into(),
+                    Self::xcm_weight().bond_extra_weight,
+                    T::AccountIdToMultiLocation::convert(Self::para_account_id()),
+                    staking_currency,
+                    Self::account_id(),
+                )?;
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -876,6 +894,8 @@ pub mod pallet {
 
         #[require_transactional]
         fn unbond_internal(value: BalanceOf<T>) -> DispatchResult {
+            let staking_currency = Self::staking_currency()?;
+
             switch_relay!({
                 let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
                     UtilityAsDerivativeCall {
@@ -886,8 +906,13 @@ pub mod pallet {
                     },
                 )));
 
-                let msg =
-                    Self::ump_transact(call.encode().into(), Self::xcm_weight().unbond_weight)?;
+                let msg = T::XCM::ump_transact_staking(
+                    call.encode().into(),
+                    Self::xcm_weight().unbond_weight,
+                    T::AccountIdToMultiLocation::convert(Self::para_account_id()),
+                    staking_currency,
+                    Self::account_id(),
+                )?;
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -904,6 +929,8 @@ pub mod pallet {
 
         #[require_transactional]
         fn rebond_internal(value: BalanceOf<T>) -> DispatchResult {
+            let staking_currency = Self::staking_currency()?;
+
             switch_relay!({
                 let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
                     UtilityAsDerivativeCall {
@@ -914,8 +941,13 @@ pub mod pallet {
                     },
                 )));
 
-                let msg =
-                    Self::ump_transact(call.encode().into(), Self::xcm_weight().rebond_weight)?;
+                let msg = T::XCM::ump_transact_staking(
+                    call.encode().into(),
+                    Self::xcm_weight().rebond_weight,
+                    T::AccountIdToMultiLocation::convert(Self::para_account_id()),
+                    staking_currency,
+                    Self::account_id(),
+                )?;
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                     Ok(()) => {
@@ -935,6 +967,8 @@ pub mod pallet {
             num_slashing_spans: u32,
             amount: BalanceOf<T>,
         ) -> DispatchResult {
+            let staking_currency = Self::staking_currency()?;
+
             T::Assets::mint_into(Self::staking_currency()?, &Self::account_id(), amount)?;
 
             switch_relay!({
@@ -965,9 +999,12 @@ pub mod pallet {
                         ],
                     })));
 
-                let msg = Self::ump_transact(
+                let msg = T::XCM::ump_transact_staking(
                     call.encode().into(),
                     Self::xcm_weight().withdraw_unbonded_weight,
+                    T::AccountIdToMultiLocation::convert(Self::para_account_id()),
+                    staking_currency,
+                    Self::account_id(),
                 )?;
 
                 match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
@@ -995,48 +1032,6 @@ pub mod pallet {
         #[inline]
         fn pop_unstake_task() {
             UnstakeQueue::<T>::mutate(|v| v.remove(0));
-        }
-
-        #[require_transactional]
-        fn ump_transact(call: DoubleEncoded<()>, weight: Weight) -> Result<Xcm<()>, DispatchError> {
-            let fees = Self::xcm_fees_compensation();
-            let staking_currency = Self::staking_currency()?;
-            let account_id = Self::account_id();
-            let asset: MultiAsset = (MultiLocation::here(), fees).into();
-
-            log::trace!(
-                target: "liquidstaking::ump_transact",
-                "call: {:?}, asset: {:?}, xcm_weight: {:?}",
-                &call,
-                &asset,
-                weight,
-            );
-
-            T::Assets::burn_from(staking_currency, &account_id, fees)?;
-
-            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
-                Ok(())
-            })?;
-
-            Ok(Xcm(vec![
-                WithdrawAsset(MultiAssets::from(asset.clone())),
-                BuyExecution {
-                    fees: asset.clone(),
-                    weight_limit: Unlimited,
-                },
-                Transact {
-                    origin_type: OriginKind::SovereignAccount,
-                    require_weight_at_most: weight,
-                    call,
-                },
-                RefundSurplus,
-                DepositAsset {
-                    assets: asset.into(),
-                    max_assets: 1,
-                    beneficiary: T::AccountIdToMultiLocation::convert(Self::para_account_id()),
-                },
-            ]))
         }
     }
 }
