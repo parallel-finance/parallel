@@ -65,6 +65,10 @@ pub mod pallet {
     pub type XcmFees<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     #[pallet::storage]
+    #[pallet::getter(fn xcm_weight)]
+    pub type XcmWeight<T: Config> = StorageValue<_, XcmWeightMisc<Weight>, ValueQuery>;
+
+    #[pallet::storage]
     #[pallet::getter(fn total_reserves)]
     pub type TotalReserves<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
@@ -81,11 +85,13 @@ pub mod pallet {
 pub trait XcmHelper<Balance, AssetId, AccountId> {
     fn update_xcm_fees(fees: Balance);
 
-    fn update_reserves(
+    fn update_xcm_weight(xcm_weight_misc: XcmWeightMisc<Weight>);
+
+    fn add_reserves(
         relay_currency: AssetId,
         payer: AccountId,
         amount: Balance,
-        account_id: AccountId,
+        payee: AccountId,
     ) -> DispatchResult;
 
     fn ump_transact(
@@ -100,7 +106,6 @@ pub trait XcmHelper<Balance, AssetId, AccountId> {
 
     fn do_withdraw(
         para_id: ParaId,
-        weight: Weight,
         beneficiary: MultiLocation,
         relay_currency: AssetId,
         account_id: AccountId,
@@ -111,7 +116,6 @@ pub trait XcmHelper<Balance, AssetId, AccountId> {
 
     fn do_contribute(
         para_id: ParaId,
-        weight: Weight,
         beneficiary: MultiLocation,
         relay_currency: AssetId,
         account_id: AccountId,
@@ -127,13 +131,17 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
         XcmFees::<T>::mutate(|v| *v = fees);
     }
 
-    fn update_reserves(
+    fn update_xcm_weight(xcm_weight_misc: XcmWeightMisc<Weight>) {
+        XcmWeight::<T>::mutate(|v| *v = xcm_weight_misc);
+    }
+
+    fn add_reserves(
         relay_currency: AssetIdOf<T>,
         payer: T::AccountId,
         amount: BalanceOf<T>,
-        account_id: T::AccountId,
+        payee: T::AccountId,
     ) -> DispatchResult {
-        T::Assets::transfer(relay_currency, &payer, &account_id, amount, false)?;
+        T::Assets::transfer(relay_currency, &payer, &payee, amount, false)?;
 
         TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
             *b = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
@@ -189,7 +197,6 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
 
     fn do_withdraw(
         para_id: ParaId,
-        weight: Weight,
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         account_id: T::AccountId,
@@ -206,7 +213,7 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
 
             let msg = Self::ump_transact(
                 call.encode().into(),
-                weight,
+                Self::xcm_weight().withdraw_weight,
                 beneficiary,
                 relay_currency,
                 account_id,
@@ -224,7 +231,6 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
 
     fn do_contribute(
         para_id: ParaId,
-        weight: Weight,
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         account_id: T::AccountId,
@@ -257,7 +263,7 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
 
             let msg = Self::ump_transact(
                 call.encode().into(),
-                weight,
+                Self::xcm_weight().contribute_weight,
                 beneficiary,
                 relay_currency,
                 account_id,

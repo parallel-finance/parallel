@@ -199,10 +199,6 @@ pub mod pallet {
     pub type ReserveFactor<T: Config> = StorageValue<_, Ratio, ValueQuery>;
 
     #[pallet::storage]
-    #[pallet::getter(fn xcm_weight)]
-    pub type XcmWeight<T: Config> = StorageValue<_, XcmWeightMisc<Weight>, ValueQuery>;
-
-    #[pallet::storage]
     #[pallet::getter(fn is_vrf)]
     pub type IsVrfDelayInProgress<T: Config> = StorageValue<_, bool, ValueQuery>;
 
@@ -328,11 +324,6 @@ pub mod pallet {
             );
 
             ensure!(!Self::is_vrf(), Error::<T>::VrfDelayInProgress);
-
-            ensure!(
-                amount >= T::MinContribution::get(),
-                Error::<T>::InsufficientBalance
-            );
 
             T::Assets::transfer(
                 T::RelayCurrency::get(),
@@ -509,7 +500,7 @@ pub mod pallet {
             T::ReserveOrigin::ensure_origin(origin)?;
             let payer = T::Lookup::lookup(payer)?;
 
-            T::XCM::update_reserves(
+            T::XCM::add_reserves(
                 T::RelayCurrency::get(),
                 payer.clone(),
                 amount,
@@ -554,7 +545,7 @@ pub mod pallet {
             xcm_weight_misc: XcmWeightMisc<Weight>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
-            XcmWeight::<T>::mutate(|v| *v = xcm_weight_misc);
+            T::XCM::update_xcm_weight(xcm_weight_misc);
             Self::deposit_event(Event::<T>::XcmWeightUpdated(xcm_weight_misc));
             Ok(().into())
         }
@@ -606,11 +597,15 @@ pub mod pallet {
             amount: BalanceOf<T>,
             xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
         ) -> Result<(), DispatchError> {
+            ensure!(
+                amount >= T::MinContribution::get(),
+                Error::<T>::InsufficientBalance
+            );
+
             T::Assets::burn_from(T::RelayCurrency::get(), &Self::account_id(), amount)?;
 
             T::XCM::do_contribute(
                 crowdloan,
-                Self::xcm_weight().contribute_weight,
                 T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
                 T::RelayCurrency::get(),
                 Self::account_id(),
@@ -631,7 +626,6 @@ pub mod pallet {
         ) -> Result<(), DispatchError> {
             T::XCM::do_withdraw(
                 para_id,
-                Self::xcm_weight().withdraw_weight,
                 T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
                 T::RelayCurrency::get(),
                 Self::account_id(),
