@@ -118,14 +118,6 @@ pub mod pallet {
         #[pallet::constant]
         type UnstakeQueueCapacity: Get<u32>;
 
-        /// Max rewards per era
-        #[pallet::constant]
-        type MaxRewardsPerEra: Get<BalanceOf<Self>>;
-
-        /// Max slashes per era
-        #[pallet::constant]
-        type MaxSlashesPerEra: Get<BalanceOf<Self>>;
-
         /// Minimum stake amount
         #[pallet::constant]
         type MinStakeAmount: Get<BalanceOf<Self>>;

@@ -318,8 +318,6 @@ parameter_types! {
     pub const DerivativeIndex: u16 = 0;
     pub const UnstakeQueueCapacity: u32 = 1000;
     pub SelfParaId: ParaId = para_a_id();
-    pub MaxRewardsPerEra: Balance = dot(1000f64);
-    pub MaxSlashesPerEra: Balance = dot(1f64);
     pub const MinStakeAmount: Balance = 0;
     pub const MinUnstakeAmount: Balance = 0;
 }
@@ -344,8 +342,6 @@ impl crate::Config for Test {
     type RelayOrigin = RelayOrigin;
     type UpdateOrigin = UpdateOrigin;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;
-    type MaxRewardsPerEra = MaxRewardsPerEra;
-    type MaxSlashesPerEra = MaxSlashesPerEra;
     type RelayNetwork = RelayNetwork;
     type MinStakeAmount = MinStakeAmount;
     type MinUnstakeAmount = MinUnstakeAmount;

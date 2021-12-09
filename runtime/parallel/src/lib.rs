@@ -459,8 +459,6 @@ parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const DerivativeIndex: u16 = 0;
     pub const UnstakeQueueCapacity: u32 = 1000;
-    pub const MaxRewardsPerEra: Balance = 100_000_000_000_000;
-    pub const MaxSlashesPerEra: Balance = 10_000_000_000_000;
     pub const MinStakeAmount: Balance = 10_000_000_000;
     pub const MinUnstakeAmount: Balance = 5_000_000_000;
 }
@@ -479,8 +477,6 @@ impl pallet_liquid_staking::Config for Runtime {
     type DerivativeIndex = DerivativeIndex;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;
-    type MaxRewardsPerEra = MaxRewardsPerEra;
-    type MaxSlashesPerEra = MaxSlashesPerEra;
     type RelayNetwork = RelayNetwork;
     type MinStakeAmount = MinStakeAmount;
     type MinUnstakeAmount = MinUnstakeAmount;
@@ -863,7 +859,7 @@ impl Convert<Balance, Balance> for GiftConvert {
             return Zero::zero();
         }
 
-        if amount >= 10 * 10_u128.pow(decimal.into()) {
+        if amount >= 5 * 10_u128.pow(decimal.into()) {
             return 125 * DOLLARS / 100;
         }
 
@@ -1325,7 +1321,7 @@ impl pallet_amm::Config for Runtime {
 
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
-    pub const MinContribution: Balance = 50_000_000_000;
+    pub const MinContribution: Balance = 55_000_000_000;
     pub const XcmFeesPayer: PalletId = PalletId(*b"par/fees");
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
 }
