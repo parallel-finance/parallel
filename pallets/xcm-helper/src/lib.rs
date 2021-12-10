@@ -85,7 +85,7 @@ pub mod pallet {
     }
 }
 
-pub trait XcmHelper<Balance, AssetId, AccountId> {
+pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
     fn update_xcm_fees(fees: Balance);
 
     fn update_xcm_weight(xcm_weight_misc: XcmWeightMisc<Weight>);
@@ -104,6 +104,7 @@ pub trait XcmHelper<Balance, AssetId, AccountId> {
         beneficiary: MultiLocation,
         relay_currency: AssetId,
         para_account_id: AccountId,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<(), DispatchError>;
 
     fn do_contribute(
@@ -112,6 +113,7 @@ pub trait XcmHelper<Balance, AssetId, AccountId> {
         relay_currency: AssetId,
         amount: Balance,
         who: Option<&AccountId>,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<(), DispatchError>;
 }
 
@@ -142,7 +144,7 @@ impl<T: Config> Pallet<T> {
     }
 }
 
-impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T> {
+impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T> {
     fn update_xcm_fees(fees: BalanceOf<T>) {
         XcmFees::<T>::mutate(|v| *v = fees);
     }
@@ -196,6 +198,7 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         para_account_id: T::AccountId,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<(), DispatchError> {
         switch_relay!({
             let call =
@@ -204,12 +207,15 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
                     index: para_id,
                 }));
 
-            let msg = Self::ump_transact(
+            let mut msg = Self::ump_transact(
                 call.encode().into(),
                 Self::xcm_weight().withdraw_weight,
                 beneficiary,
                 relay_currency,
             )?;
+
+            Self::report_outcome_notify(&mut msg, MultiLocation::parent(), notify, 100u32.into())
+                .unwrap();
 
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
@@ -225,6 +231,7 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
         relay_currency: AssetIdOf<T>,
         amount: BalanceOf<T>,
         who: Option<&T::AccountId>,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<(), DispatchError> {
         switch_relay!({
             let call =
@@ -248,12 +255,15 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
                     ],
                 })));
 
-            let msg = Self::ump_transact(
+            let mut msg = Self::ump_transact(
                 call.encode().into(),
                 Self::xcm_weight().contribute_weight,
                 beneficiary,
                 relay_currency,
             )?;
+
+            Self::report_outcome_notify(&mut msg, MultiLocation::parent(), notify, 100u32.into())
+                .unwrap();
 
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());

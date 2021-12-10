@@ -127,7 +127,7 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
 
         /// To expose XCM helper functions
-        type XCM: XcmHelper<BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
+        type XCM: XcmHelper<Self, BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
     }
 
     #[pallet::event]
@@ -580,6 +580,10 @@ pub mod pallet {
                 T::RelayCurrency::get(),
                 amount,
                 who,
+                <T as Config>::Call::from(Call::<T>::notification_received {
+                    query_id: 0,
+                    response: Default::default(),
+                }),
             )?;
 
             Ok(())
@@ -599,6 +603,10 @@ pub mod pallet {
                 T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
                 T::RelayCurrency::get(),
                 Self::para_account_id(),
+                <T as Config>::Call::from(Call::<T>::notification_received {
+                    query_id: 0,
+                    response: Default::default(),
+                }),
             )?;
 
             T::Assets::mint_into(T::RelayCurrency::get(), &Self::account_id(), amount)?;
