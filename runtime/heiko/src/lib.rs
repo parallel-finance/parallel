@@ -461,8 +461,6 @@ parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const DerivativeIndex: u16 = 0;
     pub const UnstakeQueueCapacity: u32 = 1000;
-    pub const MaxRewardsPerEra: Balance = 10_000_000_000_000_000;
-    pub const MaxSlashesPerEra: Balance = 1_000_000_000_000_000;
     pub const MinStakeAmount: Balance = 1_000_000_000_000;
     pub const MinUnstakeAmount: Balance = 500_000_000_000;
 }
@@ -481,8 +479,6 @@ impl pallet_liquid_staking::Config for Runtime {
     type DerivativeIndex = DerivativeIndex;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;
-    type MaxRewardsPerEra = MaxRewardsPerEra;
-    type MaxSlashesPerEra = MaxSlashesPerEra;
     type RelayNetwork = RelayNetwork;
     type MinStakeAmount = MinStakeAmount;
     type MinUnstakeAmount = MinUnstakeAmount;
@@ -871,7 +867,7 @@ impl Convert<Balance, Balance> for GiftConvert {
             return Zero::zero();
         }
 
-        if amount >= 10_u128.pow(decimal.into()) {
+        if amount >= 10_u128.pow((decimal - 1).into()) {
             return DOLLARS / 40;
         }
 
@@ -977,7 +973,7 @@ parameter_types! {
       pub const MinimumCount: u32 = 1;
       pub const ExpiresIn: Moment = 1000 * 60 * 60; // 60 mins
       pub const MaxHasDispatchedSize: u32 = 100;
-      pub ZeroAccountId: AccountId = AccountId::from([0u8; 32]);
+      pub RootOperator: AccountId = AccountId::from([1u8; 32]);
 }
 
 type ParallelDataProvider = orml_oracle::Instance1;
@@ -989,7 +985,7 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
     type Time = Timestamp;
     type OracleKey = CurrencyId;
     type OracleValue = Price;
-    type RootOperatorAccountId = ZeroAccountId;
+    type RootOperatorAccountId = RootOperator;
     type MaxHasDispatchedSize = MaxHasDispatchedSize;
     type WeightInfo = ();
     type Members = OracleMembership;
@@ -1333,8 +1329,8 @@ impl pallet_amm::Config for Runtime {
 
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
-    pub const MinContribution: Balance = 100_000_000_000;
-    pub const XcmFeesPayer: PalletId = PalletId(*b"par/fees");
+    pub const MinContribution: Balance = 110_000_000_000;
+    pub const XcmHelperPalletId: PalletId = PalletId(*b"par/fees");
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
 }
 
@@ -1349,14 +1345,12 @@ impl pallet_crowdloans::Config for Runtime {
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type RefundLocation = RefundLocation;
     type MinContribution = MinContribution;
-    type XcmFeesPayer = XcmFeesPayer;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type VrfDelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type OpenCloseOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type ReserveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
     type XCM = XcmHelper;
 }
@@ -1365,6 +1359,7 @@ impl pallet_xcm_helper::Config for Runtime {
     type Assets = Assets;
     type XcmSender = XcmRouter;
     type RelayNetwork = RelayNetwork;
+    type PalletId = XcmHelperPalletId;
     type BlockNumberProvider = frame_system::Pallet<Runtime>;
 }
 
@@ -1453,7 +1448,7 @@ impl Contains<Call> for WhiteListFilter {
 impl pallet_emergency_shutdown::Config for Runtime {
     type Event = Event;
     type Whitelist = WhiteListFilter;
-    type ShutdownOrigin = EnsureRoot<AccountId>;
+    type ShutdownOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -1505,7 +1500,7 @@ construct_runtime!(
         // Loans
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>} = 50,
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>} = 51,
-        Crowdloans: pallet_crowdloans::{Pallet, Call, Storage, Config, Event<T>} = 52,
+        Crowdloans: pallet_crowdloans::{Pallet, Call, Storage, Event<T>} = 52,
         // Liquidation: pallet_liquidation::{Pallet, Call} = 53,
 
         // LiquidStaking
@@ -1528,8 +1523,6 @@ construct_runtime!(
         // Bridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 90,
         EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Event<T>} = 91,
         // LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 92,
-
-        // XCM
         XcmHelper: pallet_xcm_helper::{Pallet} = 93,
     }
 );

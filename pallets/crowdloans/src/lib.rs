@@ -50,9 +50,9 @@ pub mod pallet {
         transactional, Blake2_128Concat, PalletId,
     };
     use frame_system::{ensure_signed, pallet_prelude::OriginFor};
-    use primitives::{ump::*, Balance, CurrencyId, ParaId, Ratio};
+    use primitives::{ump::*, Balance, CurrencyId, ParaId};
     use sp_runtime::{
-        traits::{AccountIdConversion, Convert, StaticLookup, Zero},
+        traits::{AccountIdConversion, Convert, Zero},
         ArithmeticError, DispatchError,
     };
     use sp_std::vec::Vec;
@@ -104,10 +104,6 @@ pub mod pallet {
         #[pallet::constant]
         type RefundLocation: Get<Self::AccountId>;
 
-        /// Xcm fees payer
-        #[pallet::constant]
-        type XcmFeesPayer: Get<PalletId>;
-
         /// Minimum contribute amount
         #[pallet::constant]
         type MinContribution: Get<BalanceOf<Self>>;
@@ -129,9 +125,6 @@ pub mod pallet {
 
         /// The origin which can call slot expired
         type SlotExpiredOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
-
-        /// The origin which can add/reduce reserves.
-        type ReserveOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// Weight information
         type WeightInfo: WeightInfo;
@@ -159,14 +152,10 @@ pub mod pallet {
         VaultClaimRefund(AssetIdOf<T>, T::AccountId, BalanceOf<T>),
         /// A vault was expired
         VaultSlotExpired(ParaId),
-        /// ReserveFactor was updated
-        ReserveFactorUpdated(Ratio),
         /// Xcm weight in BuyExecution message
         XcmWeightUpdated(XcmWeightMisc<Weight>),
         /// Fees for extrinsics on relaychain were set to new value
         XcmFeesUpdated(BalanceOf<T>),
-        /// Reserves added
-        ReservesAdded(T::AccountId, BalanceOf<T>),
         /// Vrf delay toggled
         VrfDelayToggled(bool),
     }
@@ -177,7 +166,9 @@ pub mod pallet {
         IncorrectVaultPhase,
         /// Crowdloan ParaId aready exists
         CrowdloanAlreadyExists,
-        /// Amount is not enough
+        /// Contribution is not enough
+        InsufficientContribution,
+        /// Balance is not enough
         InsufficientBalance,
         /// Vault does not exist
         VaultDoesNotExist,
@@ -195,14 +186,6 @@ pub mod pallet {
         StorageDoubleMap<_, Blake2_128Concat, ParaId, Blake2_128Concat, u32, Vault<T>, OptionQuery>;
 
     #[pallet::storage]
-    #[pallet::getter(fn reserve_factor)]
-    pub type ReserveFactor<T: Config> = StorageValue<_, Ratio, ValueQuery>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn xcm_weight)]
-    pub type XcmWeight<T: Config> = StorageValue<_, XcmWeightMisc<Weight>, ValueQuery>;
-
-    #[pallet::storage]
     #[pallet::getter(fn is_vrf)]
     pub type IsVrfDelayInProgress<T: Config> = StorageValue<_, bool, ValueQuery>;
 
@@ -215,27 +198,6 @@ pub mod pallet {
     #[pallet::getter(fn current_index)]
     pub type BatchIndexes<T: Config> = StorageMap<_, Blake2_128Concat, ParaId, u32, OptionQuery>;
 
-    #[pallet::genesis_config]
-    pub struct GenesisConfig {
-        pub reserve_factor: Ratio,
-    }
-
-    #[cfg(feature = "std")]
-    impl Default for GenesisConfig {
-        fn default() -> Self {
-            Self {
-                reserve_factor: Ratio::default(),
-            }
-        }
-    }
-
-    #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig {
-        fn build(&self) {
-            ReserveFactor::<T>::put(self.reserve_factor);
-        }
-    }
-
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Create a new vault via a governance decision
@@ -246,7 +208,6 @@ pub mod pallet {
             crowdloan: ParaId,
             ctoken: AssetIdOf<T>,
             contribution_strategy: ContributionStrategy,
-            xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
         ) -> DispatchResult {
             T::CreateVaultOrigin::ensure_origin(origin)?;
 
@@ -268,12 +229,7 @@ pub mod pallet {
                 Error::<T>::CrowdloanAlreadyExists
             );
 
-            let new_vault = Vault::new(
-                next_index,
-                ctoken,
-                contribution_strategy,
-                xcm_fees_payment_strategy,
-            );
+            let new_vault = Vault::new(next_index, ctoken, contribution_strategy);
 
             Vaults::<T>::insert(crowdloan, next_index, new_vault);
             CTokensRegistry::<T>::insert(ctoken, (crowdloan, next_index));
@@ -292,12 +248,14 @@ pub mod pallet {
 
             Self::try_mutate_vault(crowdloan, VaultPhase::Pending, |vault| {
                 let amount = vault.pending;
-                Self::do_contribute(None, crowdloan, amount, vault.xcm_fees_payment_strategy)?;
+                if amount >= T::MinContribution::get() {
+                    Self::do_contribute(None, crowdloan, amount)?;
 
-                vault.contributed = vault
-                    .contributed
-                    .checked_add(amount)
-                    .ok_or(ArithmeticError::Overflow)?;
+                    vault.contributed = vault
+                        .contributed
+                        .checked_add(amount)
+                        .ok_or(ArithmeticError::Overflow)?;
+                }
 
                 vault.pending = Zero::zero();
                 vault.phase = VaultPhase::Contributing;
@@ -331,7 +289,7 @@ pub mod pallet {
 
             ensure!(
                 amount >= T::MinContribution::get(),
-                Error::<T>::InsufficientBalance
+                Error::<T>::InsufficientContribution
             );
 
             T::Assets::transfer(
@@ -340,17 +298,11 @@ pub mod pallet {
                 &Self::account_id(),
                 amount,
                 true,
-            )
-            .map_err(|_: DispatchError| Error::<T>::InsufficientBalance)?;
+            )?;
 
             match vault.phase {
                 VaultPhase::Contributing => {
-                    Self::do_contribute(
-                        Some(&who),
-                        crowdloan,
-                        amount,
-                        vault.xcm_fees_payment_strategy,
-                    )?;
+                    Self::do_contribute(Some(&who), crowdloan, amount)?;
 
                     vault.contributed = vault
                         .contributed
@@ -429,11 +381,7 @@ pub mod pallet {
             T::AuctionFailedOrigin::ensure_origin(origin)?;
 
             Self::try_mutate_vault(crowdloan, VaultPhase::Closed, |vault| {
-                Self::do_withdraw(
-                    crowdloan,
-                    vault.contributed,
-                    vault.xcm_fees_payment_strategy,
-                )?;
+                Self::do_withdraw(crowdloan, vault.contributed)?;
                 vault.phase = VaultPhase::Failed;
                 Self::deposit_event(Event::<T>::VaultAuctionFailed(crowdloan));
                 Ok(())
@@ -461,7 +409,6 @@ pub mod pallet {
             );
 
             let ctoken_amount = <T as Config>::Assets::reducible_balance(vault.ctoken, &who, false);
-
             ensure!(ctoken_amount >= amount, Error::<T>::InsufficientBalance);
 
             T::Assets::burn_from(vault.ctoken, &who, amount)?;
@@ -487,50 +434,11 @@ pub mod pallet {
             T::SlotExpiredOrigin::ensure_origin(origin)?;
 
             Self::try_mutate_vault(crowdloan, VaultPhase::Closed, |vault| {
-                Self::do_withdraw(
-                    crowdloan,
-                    vault.contributed,
-                    vault.xcm_fees_payment_strategy,
-                )?;
+                Self::do_withdraw(crowdloan, vault.contributed)?;
                 vault.phase = VaultPhase::Expired;
                 Self::deposit_event(Event::<T>::VaultSlotExpired(crowdloan));
                 Ok(())
             })
-        }
-
-        /// Add more reserves so that can be used for xcm fees
-        #[pallet::weight(<T as Config>::WeightInfo::add_reserves())]
-        #[transactional]
-        pub fn add_reserves(
-            origin: OriginFor<T>,
-            payer: <T::Lookup as StaticLookup>::Source,
-            #[pallet::compact] amount: BalanceOf<T>,
-        ) -> DispatchResultWithPostInfo {
-            T::ReserveOrigin::ensure_origin(origin)?;
-            let payer = T::Lookup::lookup(payer)?;
-
-            T::XCM::update_total_reserves(
-                T::RelayCurrency::get(),
-                payer.clone(),
-                amount,
-                Self::account_id(),
-            )?;
-
-            Self::deposit_event(Event::<T>::ReservesAdded(payer, amount));
-            Ok(().into())
-        }
-
-        /// Update reserve_factor for charging less/more fees
-        #[pallet::weight(<T as Config>::WeightInfo::update_reserve_factor())]
-        #[transactional]
-        pub fn update_reserve_factor(
-            origin: OriginFor<T>,
-            reserve_factor: Ratio,
-        ) -> DispatchResultWithPostInfo {
-            T::UpdateOrigin::ensure_origin(origin)?;
-            ReserveFactor::<T>::mutate(|v| *v = reserve_factor);
-            Self::deposit_event(Event::<T>::ReserveFactorUpdated(reserve_factor));
-            Ok(().into())
         }
 
         /// Update xm fees amount to be used in xcm.Withdraw message
@@ -554,7 +462,7 @@ pub mod pallet {
             xcm_weight_misc: XcmWeightMisc<Weight>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
-            XcmWeight::<T>::mutate(|v| *v = xcm_weight_misc);
+            T::XCM::update_xcm_weight(xcm_weight_misc);
             Self::deposit_event(Event::<T>::XcmWeightUpdated(xcm_weight_misc));
             Ok(().into())
         }
@@ -569,11 +477,6 @@ pub mod pallet {
         /// Parachain's sovereign account on relaychain
         pub fn para_account_id() -> T::AccountId {
             T::SelfParaId::get().into_account()
-        }
-
-        /// Xcm fees payer account on parachain
-        pub fn xcm_fees_payer() -> T::AccountId {
-            T::XcmFeesPayer::get().into_account()
         }
 
         fn next_index(crowdloan: ParaId) -> u32 {
@@ -604,19 +507,14 @@ pub mod pallet {
             who: Option<&AccountIdOf<T>>,
             crowdloan: ParaId,
             amount: BalanceOf<T>,
-            xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
         ) -> Result<(), DispatchError> {
             T::Assets::burn_from(T::RelayCurrency::get(), &Self::account_id(), amount)?;
 
             T::XCM::do_contribute(
                 crowdloan,
-                Self::xcm_weight().withdraw_weight,
                 T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
                 T::RelayCurrency::get(),
-                Self::account_id(),
                 amount,
-                Self::xcm_fees_payer(),
-                xcm_fees_payment_strategy,
                 who,
             )?;
 
@@ -624,20 +522,12 @@ pub mod pallet {
         }
 
         #[require_transactional]
-        fn do_withdraw(
-            para_id: ParaId,
-            amount: BalanceOf<T>,
-            xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
-        ) -> Result<(), DispatchError> {
+        fn do_withdraw(para_id: ParaId, amount: BalanceOf<T>) -> Result<(), DispatchError> {
             T::XCM::do_withdraw(
                 para_id,
-                Self::xcm_weight().withdraw_weight,
                 T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
                 T::RelayCurrency::get(),
-                Self::account_id(),
                 Self::para_account_id(),
-                Self::xcm_fees_payer(),
-                xcm_fees_payment_strategy,
             )?;
 
             T::Assets::mint_into(T::RelayCurrency::get(), &Self::account_id(), amount)?;

@@ -26,10 +26,11 @@ use frame_support::{
     log,
     pallet_prelude::*,
     traits::fungibles::{Inspect, Mutate, Transfer},
+    PalletId,
 };
 use primitives::{switch_relay, ump::*, Balance, CurrencyId, ParaId};
 use scale_info::prelude::format;
-use sp_runtime::{traits::BlockNumberProvider, ArithmeticError};
+use sp_runtime::traits::{AccountIdConversion, BlockNumberProvider};
 use sp_std::{boxed::Box, vec};
 use xcm::{latest::prelude::*, DoubleEncoded};
 
@@ -57,6 +58,10 @@ pub mod pallet {
         #[pallet::constant]
         type RelayNetwork: Get<NetworkId>;
 
+        /// Pallet account for collecting xcm fees
+        #[pallet::constant]
+        type PalletId: Get<PalletId>;
+
         /// The block number provider
         type BlockNumberProvider: BlockNumberProvider<BlockNumber = Self::BlockNumber>;
     }
@@ -66,8 +71,8 @@ pub mod pallet {
     pub type XcmFees<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     #[pallet::storage]
-    #[pallet::getter(fn total_reserves)]
-    pub type TotalReserves<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+    #[pallet::getter(fn xcm_weight)]
+    pub type XcmWeight<T: Config> = StorageValue<_, XcmWeightMisc<Weight>, ValueQuery>;
 
     #[pallet::pallet]
     pub struct Pallet<T>(_);
@@ -82,23 +87,15 @@ pub mod pallet {
 pub trait XcmHelper<Balance, AssetId, AccountId> {
     fn update_xcm_fees(fees: Balance);
 
-    fn update_reserves(amount: Balance) -> DispatchResult;
+    fn update_xcm_weight(xcm_weight_misc: XcmWeightMisc<Weight>);
 
-    fn update_total_reserves(
-        relay_currency: AssetId,
-        payer: AccountId,
-        amount: Balance,
-        account_id: AccountId,
-    ) -> DispatchResult;
+    fn add_xcm_fees(relay_currency: AssetId, payer: AccountId, amount: Balance) -> DispatchResult;
 
     fn ump_transact_crowdloan(
         call: DoubleEncoded<()>,
         weight: Weight,
         beneficiary: MultiLocation,
         relay_currency: AssetId,
-        account_id: AccountId,
-        xcm_fees_payer: AccountId,
-        xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
     ) -> Result<Xcm<()>, DispatchError>;
 
     fn ump_transact_staking(
@@ -111,26 +108,24 @@ pub trait XcmHelper<Balance, AssetId, AccountId> {
 
     fn do_withdraw(
         para_id: ParaId,
-        weight: Weight,
         beneficiary: MultiLocation,
         relay_currency: AssetId,
-        account_id: AccountId,
         para_account_id: AccountId,
-        xcm_fees_payer: AccountId,
-        xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
     ) -> Result<(), DispatchError>;
 
     fn do_contribute(
         para_id: ParaId,
-        weight: Weight,
         beneficiary: MultiLocation,
         relay_currency: AssetId,
-        account_id: AccountId,
         amount: Balance,
-        xcm_fees_payer: AccountId,
-        xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
         who: Option<&AccountId>,
     ) -> Result<(), DispatchError>;
+}
+
+impl<T: Config> Pallet<T> {
+    pub fn account_id() -> T::AccountId {
+        T::PalletId::get().into_account()
+    }
 }
 
 impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T> {
@@ -138,21 +133,17 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
         XcmFees::<T>::mutate(|v| *v = fees);
     }
 
-    fn update_reserves(amount: Balance) -> DispatchResult {
-        TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
-            *b = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
-            Ok(())
-        })
+    fn update_xcm_weight(xcm_weight_misc: XcmWeightMisc<Weight>) {
+        XcmWeight::<T>::mutate(|v| *v = xcm_weight_misc);
     }
-    fn update_total_reserves(
+
+    fn add_xcm_fees(
         relay_currency: AssetIdOf<T>,
         payer: T::AccountId,
         amount: BalanceOf<T>,
-        account_id: T::AccountId,
     ) -> DispatchResult {
-        T::Assets::transfer(relay_currency, &payer, &account_id, amount, false)?;
-
-        Self::update_reserves(amount)
+        T::Assets::transfer(relay_currency, &payer, &Self::account_id(), amount, false)?;
+        Ok(())
     }
 
     fn ump_transact_crowdloan(
@@ -160,26 +151,11 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
         weight: Weight,
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
-        account_id: T::AccountId,
-        xcm_fees_payer: T::AccountId,
-        xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
     ) -> Result<Xcm<()>, DispatchError> {
         let fees = Self::xcm_fees();
         let asset: MultiAsset = (MultiLocation::here(), fees).into();
 
-        match xcm_fees_payment_strategy {
-            XcmFeesPaymentStrategy::Reserves => {
-                T::Assets::burn_from(relay_currency, &account_id, fees)?;
-
-                TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
-                    *b = b.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
-                    Ok(())
-                })?;
-            }
-            XcmFeesPaymentStrategy::Payer => {
-                T::Assets::burn_from(relay_currency, &xcm_fees_payer, fees)?;
-            }
-        }
+        T::Assets::burn_from(relay_currency, &Self::account_id(), fees)?;
 
         Ok(Xcm(vec![
             WithdrawAsset(MultiAssets::from(asset.clone())),
@@ -243,13 +219,9 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
 
     fn do_withdraw(
         para_id: ParaId,
-        weight: Weight,
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
-        account_id: T::AccountId,
         para_account_id: T::AccountId,
-        xcm_fees_payer: T::AccountId,
-        xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
     ) -> Result<(), DispatchError> {
         switch_relay!({
             let call =
@@ -260,13 +232,11 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
 
             let msg = Self::ump_transact_crowdloan(
                 call.encode().into(),
-                weight,
+                Self::xcm_weight().withdraw_weight,
                 beneficiary,
                 relay_currency,
-                account_id,
-                xcm_fees_payer,
-                xcm_fees_payment_strategy,
             )?;
+
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
             }
@@ -277,13 +247,9 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
 
     fn do_contribute(
         para_id: ParaId,
-        weight: Weight,
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
-        account_id: T::AccountId,
         amount: BalanceOf<T>,
-        xcm_fees_payer: T::AccountId,
-        xcm_fees_payment_strategy: XcmFeesPaymentStrategy,
         who: Option<&T::AccountId>,
     ) -> Result<(), DispatchError> {
         switch_relay!({
@@ -310,13 +276,11 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
 
             let msg = Self::ump_transact_crowdloan(
                 call.encode().into(),
-                weight,
+                Self::xcm_weight().contribute_weight,
                 beneficiary,
                 relay_currency,
-                account_id,
-                xcm_fees_payer,
-                xcm_fees_payment_strategy,
             )?;
+
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
             }

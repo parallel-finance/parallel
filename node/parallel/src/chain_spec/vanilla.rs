@@ -20,9 +20,9 @@ use sp_core::sr25519;
 use sp_runtime::{traits::Zero, FixedPointNumber};
 use vanilla_runtime::{
     opaque::SessionKeys, BalancesConfig, BridgeMembershipConfig, CollatorSelectionConfig,
-    CrowdloansConfig, DemocracyConfig, GeneralCouncilConfig, GeneralCouncilMembershipConfig,
-    GenesisConfig, LiquidStakingConfig, OracleMembershipConfig, ParachainInfoConfig,
-    PolkadotXcmConfig, SessionConfig, SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig,
+    DemocracyConfig, GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
+    LiquidStakingConfig, OracleMembershipConfig, ParachainInfoConfig, PolkadotXcmConfig,
+    SessionConfig, SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig,
     ValidatorFeedersMembershipConfig, VestingConfig, WASM_BINARY,
 };
 
@@ -334,9 +334,6 @@ fn vanilla_genesis(
         },
         polkadot_xcm: PolkadotXcmConfig {
             safe_xcm_version: Some(2),
-        },
-        crowdloans: CrowdloansConfig {
-            reserve_factor: Ratio::from_rational(5u32, 1000u32),
         },
     }
 }

@@ -2,9 +2,8 @@
 
 #![cfg(feature = "runtime-benchmarks")]
 use super::*;
-use crate::Pallet as Loans;
+use crate::{AccountBorrows, Pallet as Loans};
 
-use crate::AccountBorrows;
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::assert_ok;
 use frame_system::{self, RawOrigin as SystemOrigin};
