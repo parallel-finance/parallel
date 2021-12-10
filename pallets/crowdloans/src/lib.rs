@@ -41,6 +41,7 @@ pub mod pallet {
 
     use frame_support::{
         dispatch::DispatchResult,
+        log,
         pallet_prelude::*,
         require_transactional,
         traits::{
@@ -229,6 +230,14 @@ pub mod pallet {
                 Error::<T>::CrowdloanAlreadyExists
             );
 
+            log::trace!(
+                target: "crowdloans::create_vault",
+                "ctoken_issuance: {:?}, next_index: {:?}, ctoken: {:?}",
+                ctoken_issuance,
+                next_index,
+                ctoken,
+            );
+
             let new_vault = Vault::new(next_index, ctoken, contribution_strategy);
 
             Vaults::<T>::insert(crowdloan, next_index, new_vault);
@@ -310,6 +319,13 @@ pub mod pallet {
                         .ok_or(ArithmeticError::Overflow)?;
                 }
                 VaultPhase::Pending => {
+                    log::trace!(
+                        target: "crowdloans::contribute",
+                        "Contibute pending. crowdloan: {:?}, amount: {:?}",
+                        crowdloan,
+                        amount,
+                    );
+
                     vault.pending = vault
                         .pending
                         .checked_add(amount)
@@ -340,6 +356,12 @@ pub mod pallet {
             T::VrfDelayOrigin::ensure_origin(origin)?;
             let is_vrf = Self::is_vrf();
 
+            log::trace!(
+                target: "crowdloans::toggle_vrf_delay",
+                "pre-toggle. is_vrf: {:?}",
+                is_vrf,
+            );
+
             IsVrfDelayInProgress::<T>::mutate(|b| *b = !is_vrf);
 
             Self::deposit_event(Event::<T>::VrfDelayToggled(!is_vrf));
@@ -352,6 +374,12 @@ pub mod pallet {
         #[transactional]
         pub fn close(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             T::OpenCloseOrigin::ensure_origin(origin)?;
+
+            log::trace!(
+                target: "crowdloans::close",
+                "pre-toggle. crowdloan: {:?}",
+                crowdloan,
+            );
 
             Self::try_mutate_vault(crowdloan, VaultPhase::Contributing, |vault| {
                 vault.phase = VaultPhase::Closed;
@@ -366,6 +394,12 @@ pub mod pallet {
         pub fn reopen(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             T::OpenCloseOrigin::ensure_origin(origin)?;
 
+            log::trace!(
+                target: "crowdloans::reopen",
+                "pre-toggle. crowdloan: {:?}",
+                crowdloan,
+            );
+
             Self::try_mutate_vault(crowdloan, VaultPhase::Closed, |vault| {
                 vault.phase = VaultPhase::Contributing;
                 Self::deposit_event(Event::<T>::VaultReOpened(crowdloan));
@@ -379,6 +413,12 @@ pub mod pallet {
         #[transactional]
         pub fn auction_failed(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             T::AuctionFailedOrigin::ensure_origin(origin)?;
+
+            log::trace!(
+                target: "crowdloans::auction_failed",
+                "pre-toggle. crowdloan: {:?}",
+                crowdloan,
+            );
 
             Self::try_mutate_vault(crowdloan, VaultPhase::Closed, |vault| {
                 Self::do_withdraw(crowdloan, vault.contributed)?;
@@ -410,6 +450,12 @@ pub mod pallet {
 
             let ctoken_amount = <T as Config>::Assets::reducible_balance(vault.ctoken, &who, false);
             ensure!(ctoken_amount >= amount, Error::<T>::InsufficientBalance);
+
+            log::trace!(
+                target: "crowdloans::claim_refund",
+                "pre-toggle. ctoken: {:?}",
+                ctoken,
+            );
 
             T::Assets::burn_from(vault.ctoken, &who, amount)?;
 
@@ -510,6 +556,14 @@ pub mod pallet {
         ) -> Result<(), DispatchError> {
             T::Assets::burn_from(T::RelayCurrency::get(), &Self::account_id(), amount)?;
 
+            log::trace!(
+                target: "crowdloans::do_contribute",
+                "who: {:?}, crowdloan: {:?}, amount: {:?}",
+                &who,
+                &crowdloan,
+                &amount,
+            );
+
             T::XCM::do_contribute(
                 crowdloan,
                 T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
@@ -523,6 +577,13 @@ pub mod pallet {
 
         #[require_transactional]
         fn do_withdraw(para_id: ParaId, amount: BalanceOf<T>) -> Result<(), DispatchError> {
+            log::trace!(
+                target: "crowdloans::do_withdraw",
+                "para_id: {:?}, amount: {:?}",
+                &para_id,
+                &amount,
+            );
+
             T::XCM::do_withdraw(
                 para_id,
                 T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
