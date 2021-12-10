@@ -465,8 +465,6 @@ parameter_types! {
 
 impl pallet_liquid_staking::Config for Runtime {
     type Event = Event;
-    type Call = Call;
-    type Origin = Origin;
     type PalletId = StakingPalletId;
     type WeightInfo = ();
     type SelfParaId = ParachainInfo;
@@ -1328,8 +1326,6 @@ parameter_types! {
 
 impl pallet_crowdloans::Config for Runtime {
     type Event = Event;
-    type Call = Call;
-    type Origin = Origin;
     type PalletId = CrowdloansPalletId;
     type SelfParaId = ParachainInfo;
     type Assets = Assets;
@@ -1349,6 +1345,8 @@ impl pallet_crowdloans::Config for Runtime {
 
 impl pallet_xcm_helper::Config for Runtime {
     type Assets = Assets;
+    type Origin = Origin;
+    type Call = Call;
     type XcmSender = XcmRouter;
     type RelayNetwork = RelayNetwork;
     type PalletId = XcmHelperPalletId;

@@ -14,7 +14,6 @@ frame-support      = { git = 'https://github.com/paritytech/substrate.git', bran
 frame-system       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
 pallet-assets      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
 pallet-utility     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
-pallet-xcm         = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.12', default-features = false }
 scale-info         = { version = '1.0', default-features = false, features = ['derive'] }
 sp-runtime         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
 sp-std             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
@@ -29,6 +28,7 @@ pallet-balances  = { git = 'https://github.com/paritytech/substrate.git', branch
 pallet-session   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12' }
 pallet-staking   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12' }
 pallet-timestamp = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12' }
+pallet-xcm       = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.12' }
 serde            = { version = '1' }
 sp-core          = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12' }
 sp-io            = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12' }
@@ -65,7 +65,6 @@ std                = [
   'xcm/std',
   'pallet-utility/std',
   'scale-info/std',
-  'pallet-xcm/std',
 ]
 try-runtime        = ['frame-support/try-runtime']
 

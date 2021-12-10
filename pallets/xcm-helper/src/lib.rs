@@ -22,16 +22,19 @@
 pub use pallet::*;
 
 use frame_support::{
-    dispatch::DispatchResult,
+    dispatch::{DispatchResult, Dispatchable, GetDispatchInfo, PostDispatchInfo},
     pallet_prelude::*,
     traits::fungibles::{Inspect, Mutate, Transfer},
     PalletId,
 };
+use frame_system::Config as SysConfig;
+use pallet_xcm::Origin;
 use primitives::{switch_relay, ump::*, Balance, CurrencyId, ParaId};
 use scale_info::prelude::format;
 use sp_runtime::traits::{AccountIdConversion, BlockNumberProvider};
 use sp_std::{boxed::Box, vec};
 use xcm::{latest::prelude::*, DoubleEncoded};
+use xcm_executor::traits::InvertLocation;
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 pub type AssetIdOf<T> =
@@ -60,6 +63,15 @@ pub mod pallet {
         /// Pallet account for collecting xcm fees
         #[pallet::constant]
         type PalletId: Get<PalletId>;
+
+        /// The outer `Origin` type.
+        type Origin: From<Origin> + From<<Self as SysConfig>::Origin>;
+
+        /// The outer `Call` type.
+        type Call: Parameter
+            + GetDispatchInfo
+            + IsType<<Self as SysConfig>::Call>
+            + Dispatchable<Origin = <Self as Config>::Origin, PostInfo = PostDispatchInfo>;
 
         /// The block number provider
         type BlockNumberProvider: BlockNumberProvider<BlockNumber = Self::BlockNumber>;
@@ -116,6 +128,31 @@ pub trait XcmHelper<Balance, AssetId, AccountId> {
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> T::AccountId {
         T::PalletId::get().into_account()
+    }
+
+    fn report_outcome_notify(
+        message: &mut Xcm<()>,
+        responder: impl Into<MultiLocation>,
+        notify: impl Into<<T as Config>::Call>,
+        timeout: T::BlockNumber,
+    ) -> Result<(), XcmError>
+    where
+        T: pallet_xcm::Config,
+        <T as pallet_xcm::Config>::Call: From<<T as Config>::Call>,
+    {
+        let responder = responder.into();
+        let dest = <T as pallet_xcm::Config>::LocationInverter::invert_location(&responder)
+            .map_err(|()| XcmError::MultiLocationNotInvertible)?;
+        let notify: <T as Config>::Call = notify.into();
+        let max_response_weight = notify.get_dispatch_info().weight;
+        let query_id = pallet_xcm::Pallet::<T>::new_notify_query(responder, notify, timeout);
+        let report_error = Xcm(vec![ReportError {
+            dest,
+            query_id,
+            max_response_weight,
+        }]);
+        message.0.insert(2, SetAppendix(report_error));
+        Ok(())
     }
 }
 

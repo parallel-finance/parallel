@@ -331,8 +331,6 @@ pub type SlotExpiredOrigin =
 
 impl crate::Config for Test {
     type Event = Event;
-    type Call = Call;
-    type Origin = Origin;
     type PalletId = CrowdloansPalletId;
     type SelfParaId = SelfParaId;
     type Assets = Assets;
@@ -356,6 +354,8 @@ parameter_types! {
 
 impl pallet_xcm_helper::Config for Test {
     type Assets = Assets;
+    type Origin = Origin;
+    type Call = Call;
     type XcmSender = XcmRouter;
     type PalletId = XcmHelperPalletId;
     type RelayNetwork = RelayNetwork;
