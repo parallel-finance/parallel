@@ -30,6 +30,7 @@ use frame_support::{
 };
 use primitives::{switch_relay, ump::*, Balance, CurrencyId, ParaId};
 use scale_info::prelude::format;
+use sp_runtime::traits::StaticLookup;
 use sp_runtime::traits::{AccountIdConversion, BlockNumberProvider};
 use sp_std::{boxed::Box, vec};
 use xcm::{latest::prelude::*, DoubleEncoded};
@@ -46,6 +47,9 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
+        /// Because this pallet emits events, it depends on the runtime's definition of an event.
+        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
         /// Assets for deposit/withdraw assets to/from crowdloan account
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
@@ -77,10 +81,23 @@ pub mod pallet {
     #[pallet::pallet]
     pub struct Pallet<T>(_);
 
+    #[pallet::event]
+    #[pallet::generate_deposit(pub(super) fn deposit_event)]
+    pub enum Event<T: Config> {
+        /// Sent staking.bond call to relaychain
+        Bonding(T::AccountId, BalanceOf<T>, RewardDestination<T::AccountId>),
+        /// Sent staking.bond_extra call to relaychain
+        BondingExtra(BalanceOf<T>),
+    }
+
     #[pallet::error]
     pub enum Error<T> {
         /// Xcm message send failure
         SendXcmError,
+        /// Failed to send staking.bond call
+        BondFailed,
+        /// Failed to send staking.bond_extra call
+        BondExtraFailed,
     }
 }
 
@@ -120,6 +137,27 @@ pub trait XcmHelper<Balance, AssetId, AccountId> {
         amount: Balance,
         who: Option<&AccountId>,
     ) -> Result<(), DispatchError>;
+
+    fn bond_internal(
+        value: Balance,
+        payee: RewardDestination<AccountId>,
+        stash: AccountId,
+        weight: Weight,
+        beneficiary: MultiLocation,
+        staking_currency: AssetId,
+        account_id: AccountId,
+        index: u16,
+    ) -> DispatchResult;
+
+    fn bond_extra_internal(
+        value: Balance,
+        stash: AccountId,
+        weight: Weight,
+        beneficiary: MultiLocation,
+        staking_currency: AssetId,
+        account_id: AccountId,
+        index: u16,
+    ) -> DispatchResult;
 }
 
 impl<T: Config> Pallet<T> {
@@ -286,6 +324,114 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
             }
         });
 
+        Ok(())
+    }
+
+    fn bond_internal(
+        value: BalanceOf<T>,
+        payee: RewardDestination<T::AccountId>,
+        stash: T::AccountId,
+        weight: Weight,
+        beneficiary: MultiLocation,
+        staking_currency: AssetIdOf<T>,
+        account_id: T::AccountId,
+        index: u16,
+    ) -> DispatchResult {
+        let controller = stash.clone();
+
+        switch_relay!({
+            let call =
+                RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
+                    calls: vec![
+                        RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
+                            BalancesTransferKeepAliveCall {
+                                dest: T::Lookup::unlookup(stash),
+                                value,
+                            },
+                        )),
+                        RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                            UtilityAsDerivativeCall {
+                                index,
+                                call: RelaychainCall::Staking::<T>(StakingCall::Bond(
+                                    StakingBondCall {
+                                        controller: T::Lookup::unlookup(controller.clone()),
+                                        value,
+                                        payee: payee.clone(),
+                                    },
+                                )),
+                            },
+                        ))),
+                    ],
+                })));
+
+            let msg = Self::ump_transact_staking(
+                call.encode().into(),
+                weight,
+                beneficiary,
+                staking_currency,
+                account_id,
+            )?;
+
+            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                Ok(()) => {
+                    Self::deposit_event(Event::<T>::Bonding(controller, value, payee));
+                }
+                Err(_e) => {
+                    return Err(Error::<T>::BondFailed.into());
+                }
+            }
+        });
+
+        Ok(())
+    }
+
+    fn bond_extra_internal(
+        value: BalanceOf<T>,
+        stash: T::AccountId,
+        weight: Weight,
+        beneficiary: MultiLocation,
+        staking_currency: AssetIdOf<T>,
+        account_id: T::AccountId,
+        index: u16,
+    ) -> DispatchResult {
+        switch_relay!({
+            let call =
+                RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
+                    calls: vec![
+                        RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
+                            BalancesTransferKeepAliveCall {
+                                dest: T::Lookup::unlookup(stash),
+                                value,
+                            },
+                        )),
+                        RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                            UtilityAsDerivativeCall {
+                                index,
+                                call: RelaychainCall::Staking::<T>(StakingCall::BondExtra(
+                                    StakingBondExtraCall { value },
+                                )),
+                            },
+                        ))),
+                    ],
+                })));
+
+            let msg = Self::ump_transact_staking(
+                call.encode().into(),
+                weight,
+                beneficiary,
+                staking_currency,
+                account_id,
+            )?;
+
+            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                Ok(()) => {
+                    Self::deposit_event(Event::<T>::BondingExtra(value));
+                }
+                Err(_e) => {
+                    return Err(Error::<T>::BondExtraFailed.into());
+                }
+            }
+        });
         Ok(())
     }
 }

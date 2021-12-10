@@ -790,98 +790,29 @@ pub mod pallet {
             value: BalanceOf<T>,
             payee: RewardDestination<T::AccountId>,
         ) -> DispatchResult {
-            let stash = Self::derivative_para_account_id();
-            let controller = stash.clone();
-            let staking_currency = Self::staking_currency()?;
-
-            switch_relay!({
-                let call =
-                    RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
-                        calls: vec![
-                            RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
-                                BalancesTransferKeepAliveCall {
-                                    dest: T::Lookup::unlookup(stash),
-                                    value,
-                                },
-                            )),
-                            RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
-                                UtilityAsDerivativeCall {
-                                    index: T::DerivativeIndex::get(),
-                                    call: RelaychainCall::Staking::<T>(StakingCall::Bond(
-                                        StakingBondCall {
-                                            controller: T::Lookup::unlookup(controller.clone()),
-                                            value,
-                                            payee: payee.clone(),
-                                        },
-                                    )),
-                                },
-                            ))),
-                        ],
-                    })));
-
-                let msg = T::XCM::ump_transact_staking(
-                    call.encode().into(),
-                    Self::xcm_weight().bond_weight,
-                    T::AccountIdToMultiLocation::convert(Self::para_account_id()),
-                    staking_currency,
-                    Self::account_id(),
-                )?;
-
-                match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                    Ok(()) => {
-                        Self::deposit_event(Event::<T>::Bonding(controller, value, payee));
-                    }
-                    Err(_e) => {
-                        return Err(Error::<T>::BondFailed.into());
-                    }
-                }
-            });
-
-            Ok(())
+            T::XCM::bond_internal(
+                value,
+                payee,
+                Self::derivative_para_account_id(),
+                Self::xcm_weight().bond_weight,
+                T::AccountIdToMultiLocation::convert(Self::para_account_id()),
+                Self::staking_currency()?,
+                Self::account_id(),
+                T::DerivativeIndex::get(),
+            )
         }
 
         #[require_transactional]
         fn bond_extra_internal(value: BalanceOf<T>) -> DispatchResult {
-            let stash = T::Lookup::unlookup(Self::derivative_para_account_id());
-            let staking_currency = Self::staking_currency()?;
-
-            switch_relay!({
-                let call =
-                    RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
-                        calls: vec![
-                            RelaychainCall::Balances(BalancesCall::TransferKeepAlive(
-                                BalancesTransferKeepAliveCall { dest: stash, value },
-                            )),
-                            RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
-                                UtilityAsDerivativeCall {
-                                    index: T::DerivativeIndex::get(),
-                                    call: RelaychainCall::Staking::<T>(StakingCall::BondExtra(
-                                        StakingBondExtraCall { value },
-                                    )),
-                                },
-                            ))),
-                        ],
-                    })));
-
-                let msg = T::XCM::ump_transact_staking(
-                    call.encode().into(),
-                    Self::xcm_weight().bond_extra_weight,
-                    T::AccountIdToMultiLocation::convert(Self::para_account_id()),
-                    staking_currency,
-                    Self::account_id(),
-                )?;
-
-                match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                    Ok(()) => {
-                        Self::deposit_event(Event::<T>::BondingExtra(value));
-                    }
-                    Err(_e) => {
-                        return Err(Error::<T>::BondExtraFailed.into());
-                    }
-                }
-            });
-
-            Ok(())
+            T::XCM::bond_extra_internal(
+                value,
+                Self::derivative_para_account_id(),
+                Self::xcm_weight().bond_weight,
+                T::AccountIdToMultiLocation::convert(Self::para_account_id()),
+                Self::staking_currency()?,
+                Self::account_id(),
+                T::DerivativeIndex::get(),
+            )
         }
 
         #[require_transactional]
