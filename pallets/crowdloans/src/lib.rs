@@ -27,9 +27,6 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-#[macro_use]
-extern crate primitives;
-
 pub mod types;
 pub mod weights;
 
@@ -37,7 +34,7 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use crate::types::*;
+    use crate::{types::*, weights::WeightInfo};
 
     use frame_support::{
         dispatch::DispatchResult,
@@ -59,7 +56,6 @@ pub mod pallet {
     use sp_std::vec::Vec;
     use xcm::latest::prelude::*;
 
-    use crate::weights::WeightInfo;
     use pallet_xcm_helper::XcmHelper;
 
     pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -73,13 +69,18 @@ pub mod pallet {
     pub struct Pallet<T>(_);
 
     #[pallet::config]
-    pub trait Config: frame_system::Config {
+    pub trait Config: frame_system::Config + pallet_xcm::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Assets for deposit/withdraw assets to/from crowdloan account
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
+
+        type Origin: IsType<<Self as frame_system::Config>::Origin>
+            + Into<Result<pallet_xcm::Origin, <Self as Config>::Origin>>;
+
+        type Call: IsType<<Self as pallet_xcm::Config>::Call> + From<Call<Self>>;
 
         /// Returns the parachain ID we are running with.
         #[pallet::constant]
@@ -154,6 +155,8 @@ pub mod pallet {
         XcmFeesUpdated(BalanceOf<T>),
         /// Vrf delay toggled
         VrfDelayToggled(bool),
+        /// Notification received
+        NotificationReceived(QueryId, Response),
     }
 
     #[pallet::error]
@@ -259,9 +262,10 @@ pub mod pallet {
                         .contributed
                         .checked_add(amount)
                         .ok_or(ArithmeticError::Overflow)?;
+
+                    vault.pending = Zero::zero();
                 }
 
-                vault.pending = Zero::zero();
                 vault.phase = VaultPhase::Contributing;
 
                 Self::deposit_event(Event::<T>::VaultOpened(crowdloan, amount));
@@ -505,6 +509,17 @@ pub mod pallet {
             T::UpdateOrigin::ensure_origin(origin)?;
             T::XCM::update_xcm_weight(xcm_weight_misc);
             Self::deposit_event(Event::<T>::XcmWeightUpdated(xcm_weight_misc));
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn notification_received(
+            _origin: OriginFor<T>,
+            query_id: QueryId,
+            response: Response,
+        ) -> DispatchResultWithPostInfo {
+            Self::deposit_event(Event::<T>::NotificationReceived(query_id, response));
             Ok(().into())
         }
     }
