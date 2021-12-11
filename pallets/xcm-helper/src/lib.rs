@@ -88,6 +88,14 @@ pub mod pallet {
         Bonding(T::AccountId, BalanceOf<T>, RewardDestination<T::AccountId>),
         /// Sent staking.bond_extra call to relaychain
         BondingExtra(BalanceOf<T>),
+        /// Sent staking.unbond call to relaychain
+        Unbonding(BalanceOf<T>),
+        /// Sent staking.rebond call to relaychain
+        Rebonding(BalanceOf<T>),
+        /// Sent staking.withdraw_unbonded call to relaychain
+        WithdrawingUnbonded(u32),
+        /// Sent staking.nominate call to relaychain
+        Nominating(Vec<T::AccountId>),
     }
 
     #[pallet::error]
@@ -98,6 +106,14 @@ pub mod pallet {
         BondFailed,
         /// Failed to send staking.bond_extra call
         BondExtraFailed,
+        /// Failed to send staking.unbond call
+        UnbondFailed,
+        /// Failed to send staking.rebond call
+        RebondFailed,
+        /// Failed to send staking.withdraw_unbonded call
+        WithdrawUnbondedFailed,
+        /// Failed to send staking.nominate call
+        NominateFailed,
     }
 }
 
@@ -152,6 +168,44 @@ pub trait XcmHelper<Balance, AssetId, AccountId> {
     fn bond_extra_internal(
         value: Balance,
         stash: AccountId,
+        weight: Weight,
+        beneficiary: MultiLocation,
+        staking_currency: AssetId,
+        account_id: AccountId,
+        index: u16,
+    ) -> DispatchResult;
+
+    fn unbond_internal(
+        value: Balance,
+        weight: Weight,
+        beneficiary: MultiLocation,
+        staking_currency: AssetId,
+        account_id: AccountId,
+        index: u16,
+    ) -> DispatchResult;
+
+    fn rebond_internal(
+        value: Balance,
+        weight: Weight,
+        beneficiary: MultiLocation,
+        staking_currency: AssetId,
+        account_id: AccountId,
+        index: u16,
+    ) -> DispatchResult;
+
+    fn withdraw_unbonded_internal(
+        num_slashing_spans: u32,
+        amount: Balance,
+        weight: Weight,
+        beneficiary: MultiLocation,
+        staking_currency: AssetId,
+        account_id: AccountId,
+        para_account_id: AccountId,
+        index: u16,
+    ) -> DispatchResult;
+
+    fn nominate(
+        targets: Vec<AccountId>,
         weight: Weight,
         beneficiary: MultiLocation,
         staking_currency: AssetId,
@@ -432,6 +486,190 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
                 }
             }
         });
+        Ok(())
+    }
+
+    fn unbond_internal(
+        value: BalanceOf<T>,
+        weight: Weight,
+        beneficiary: MultiLocation,
+        staking_currency: AssetIdOf<T>,
+        account_id: T::AccountId,
+        index: u16,
+    ) -> DispatchResult {
+        switch_relay!({
+            let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                UtilityAsDerivativeCall {
+                    index,
+                    call: RelaychainCall::Staking::<T>(StakingCall::Unbond(StakingUnbondCall {
+                        value,
+                    })),
+                },
+            )));
+
+            let msg = Self::ump_transact_staking(
+                call.encode().into(),
+                weight,
+                beneficiary,
+                staking_currency,
+                account_id,
+            )?;
+
+            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                Ok(()) => {
+                    Self::deposit_event(Event::<T>::Unbonding(value));
+                }
+                Err(_e) => {
+                    return Err(Error::<T>::UnbondFailed.into());
+                }
+            }
+        });
+
+        Ok(())
+    }
+
+    fn rebond_internal(
+        value: BalanceOf<T>,
+        weight: Weight,
+        beneficiary: MultiLocation,
+        staking_currency: AssetIdOf<T>,
+        account_id: T::AccountId,
+        index: u16,
+    ) -> DispatchResult {
+        switch_relay!({
+            let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                UtilityAsDerivativeCall {
+                    index,
+                    call: RelaychainCall::Staking::<T>(StakingCall::Rebond(StakingRebondCall {
+                        value,
+                    })),
+                },
+            )));
+
+            let msg = Self::ump_transact_staking(
+                call.encode().into(),
+                weight,
+                beneficiary,
+                staking_currency,
+                account_id,
+            )?;
+
+            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                Ok(()) => {
+                    Self::deposit_event(Event::<T>::Rebonding(value));
+                }
+                Err(_e) => {
+                    return Err(Error::<T>::RebondFailed.into());
+                }
+            }
+        });
+
+        Ok(())
+    }
+
+    fn withdraw_unbonded_internal(
+        num_slashing_spans: u32,
+        amount: BalanceOf<T>,
+        weight: Weight,
+        beneficiary: MultiLocation,
+        staking_currency: AssetIdOf<T>,
+        account_id: T::AccountId,
+        para_account_id: T::AccountId,
+        index: u16,
+    ) -> DispatchResult {
+        T::Assets::mint_into(staking_currency, &account_id, amount)?;
+
+        switch_relay!({
+            let call =
+                RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
+                    calls: vec![
+                        RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                            UtilityAsDerivativeCall {
+                                index,
+                                call: RelaychainCall::Staking::<T>(StakingCall::WithdrawUnbonded(
+                                    StakingWithdrawUnbondedCall { num_slashing_spans },
+                                )),
+                            },
+                        ))),
+                        RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                            UtilityAsDerivativeCall {
+                                index,
+                                call: RelaychainCall::Balances::<T>(BalancesCall::TransferAll(
+                                    BalancesTransferAllCall {
+                                        dest: T::Lookup::unlookup(para_account_id),
+                                        keep_alive: true,
+                                    },
+                                )),
+                            },
+                        ))),
+                    ],
+                })));
+
+            let msg = Self::ump_transact_staking(
+                call.encode().into(),
+                weight,
+                beneficiary,
+                staking_currency,
+                account_id,
+            )?;
+
+            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                Ok(()) => {
+                    Self::deposit_event(Event::<T>::WithdrawingUnbonded(num_slashing_spans));
+                }
+                Err(_e) => {
+                    return Err(Error::<T>::WithdrawUnbondedFailed.into());
+                }
+            }
+        });
+
+        Ok(())
+    }
+
+    fn nominate(
+        targets: Vec<T::AccountId>,
+        weight: Weight,
+        beneficiary: MultiLocation,
+        staking_currency: AssetIdOf<T>,
+        account_id: T::AccountId,
+        index: u16,
+    ) -> DispatchResult {
+        let targets_source = targets
+            .clone()
+            .into_iter()
+            .map(T::Lookup::unlookup)
+            .collect();
+
+        switch_relay!({
+            let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
+                UtilityAsDerivativeCall {
+                    index,
+                    call: RelaychainCall::Staking::<T>(StakingCall::Nominate(
+                        StakingNominateCall {
+                            targets: targets_source,
+                        },
+                    )),
+                },
+            )));
+
+            let msg = Self::ump_transact_staking(
+                call.encode().into(),
+                weight,
+                beneficiary,
+                staking_currency,
+                account_id,
+            )?;
+
+            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                Ok(()) => {
+                    Self::deposit_event(Event::<T>::Nominating(targets));
+                }
+                Err(_e) => {
+                    return Err(Error::<T>::NominateFailed.into());
+                }
+            }
+        });
+
         Ok(())
     }
 }
