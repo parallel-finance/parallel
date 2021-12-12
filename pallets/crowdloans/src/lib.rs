@@ -157,7 +157,7 @@ pub mod pallet {
         /// Vrf delay toggled
         VrfDelayToggled(bool),
         /// Notification received
-        NotificationReceived(QueryId, Response),
+        NotificationReceived(MultiLocation, QueryId, Response),
     }
 
     #[pallet::error]
@@ -520,8 +520,10 @@ pub mod pallet {
             query_id: QueryId,
             response: Response,
         ) -> DispatchResultWithPostInfo {
-            let _responder = ensure_response(<T as Config>::Origin::from(origin))?;
-            Self::deposit_event(Event::<T>::NotificationReceived(query_id, response));
+            let responder = ensure_response(<T as Config>::Origin::from(origin))?;
+            Self::deposit_event(Event::<T>::NotificationReceived(
+                responder, query_id, response,
+            ));
             Ok(().into())
         }
     }
