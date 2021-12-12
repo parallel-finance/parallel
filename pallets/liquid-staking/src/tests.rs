@@ -146,7 +146,7 @@ fn test_transact_bond_work() {
             RewardDestination::Staked
         ));
 
-        ParaSystem::assert_has_event(mock::Event::LiquidStaking(crate::Event::Bonding(
+        ParaSystem::assert_has_event(mock::Event::XcmHelper(pallet_xcm_helper::Event::Bonding(
             LiquidStaking::derivative_para_account_id(),
             3 * DOT_DECIMAL,
             RewardDestination::Staked,

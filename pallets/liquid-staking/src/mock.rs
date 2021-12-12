@@ -328,6 +328,19 @@ impl pallet_utility::Config for Test {
     type WeightInfo = pallet_utility::weights::SubstrateWeight<Test>;
 }
 
+parameter_types! {
+    pub const XcmHelperPalletId: PalletId = PalletId(*b"par/fees");
+}
+
+impl pallet_xcm_helper::Config for Test {
+    type Event = Event;
+    type Assets = Assets;
+    type XcmSender = XcmRouter;
+    type PalletId = XcmHelperPalletId;
+    type RelayNetwork = RelayNetwork;
+    type BlockNumberProvider = frame_system::Pallet<Test>;
+}
+
 impl crate::Config for Test {
     type Event = Event;
     type Call = Call;
@@ -335,16 +348,15 @@ impl crate::Config for Test {
     type PalletId = StakingPalletId;
     type SelfParaId = SelfParaId;
     type WeightInfo = ();
-    type XcmSender = XcmRouter;
     type DerivativeIndex = DerivativeIndex;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type Assets = Assets;
     type RelayOrigin = RelayOrigin;
     type UpdateOrigin = UpdateOrigin;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;
-    type RelayNetwork = RelayNetwork;
     type MinStakeAmount = MinStakeAmount;
     type MinUnstakeAmount = MinUnstakeAmount;
+    type XCM = XcmHelper;
 }
 
 parameter_types! {
@@ -388,7 +400,7 @@ construct_runtime!(
         DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>},
         CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin},
         PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin},
-
+        XcmHelper: pallet_xcm_helper::{Pallet, Storage, Event<T>},
         XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
     }
 );
