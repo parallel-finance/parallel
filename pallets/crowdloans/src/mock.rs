@@ -352,6 +352,7 @@ impl crate::Config for Test {
 
 parameter_types! {
     pub const XcmHelperPalletId: PalletId = PalletId(*b"par/fees");
+    pub const NotifyTimeout: BlockNumber = 100;
 }
 
 impl pallet_xcm_helper::Config for Test {
@@ -359,6 +360,7 @@ impl pallet_xcm_helper::Config for Test {
     type XcmSender = XcmRouter;
     type PalletId = XcmHelperPalletId;
     type RelayNetwork = RelayNetwork;
+    type NotifyTimeout = NotifyTimeout;
     type BlockNumberProvider = frame_system::Pallet<Test>;
 }
 

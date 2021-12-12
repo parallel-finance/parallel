@@ -43,6 +43,8 @@ pub type BalanceOf<T> =
 
 #[frame_support::pallet]
 pub mod pallet {
+    use frame_system::pallet_prelude::BlockNumberFor;
+
     use super::*;
 
     #[pallet::config]
@@ -62,6 +64,10 @@ pub mod pallet {
         /// Pallet account for collecting xcm fees
         #[pallet::constant]
         type PalletId: Get<PalletId>;
+
+        /// Notify call timeout
+        #[pallet::constant]
+        type NotifyTimeout: Get<BlockNumberFor<Self>>;
 
         /// The block number provider
         type BlockNumberProvider: BlockNumberProvider<BlockNumber = Self::BlockNumber>;
@@ -105,7 +111,7 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
         relay_currency: AssetId,
         para_account_id: AccountId,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
-    ) -> Result<(), DispatchError>;
+    ) -> Result<QueryId, DispatchError>;
 
     fn do_contribute(
         para_id: ParaId,
@@ -114,7 +120,7 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
         amount: Balance,
         who: Option<&AccountId>,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
-    ) -> Result<(), DispatchError>;
+    ) -> Result<QueryId, DispatchError>;
 }
 
 impl<T: Config> Pallet<T> {
@@ -127,7 +133,7 @@ impl<T: Config> Pallet<T> {
         responder: impl Into<MultiLocation>,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
         timeout: T::BlockNumber,
-    ) -> Result<(), XcmError> {
+    ) -> Result<QueryId, XcmError> {
         let responder = responder.into();
         let dest = <T as pallet_xcm::Config>::LocationInverter::invert_location(&responder)
             .map_err(|()| XcmError::MultiLocationNotInvertible)?;
@@ -139,8 +145,10 @@ impl<T: Config> Pallet<T> {
             query_id,
             max_response_weight,
         }]);
+        // Prepend SetAppendix(Xcm(vec![ReportError])) wont be able to pass barrier check
+        // so we need to insert it after Withdraw, BuyExecution
         message.0.insert(2, SetAppendix(report_error));
-        Ok(())
+        Ok(query_id)
     }
 }
 
@@ -199,7 +207,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
         relay_currency: AssetIdOf<T>,
         para_account_id: T::AccountId,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
-    ) -> Result<(), DispatchError> {
+    ) -> Result<QueryId, DispatchError> {
         switch_relay!({
             let call =
                 RelaychainCall::<T>::Crowdloans(CrowdloansCall::Withdraw(CrowdloansWithdrawCall {
@@ -214,15 +222,20 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
                 relay_currency,
             )?;
 
-            Self::report_outcome_notify(&mut msg, MultiLocation::parent(), notify, 100u32.into())
-                .unwrap();
+            Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
+            )
+            .unwrap();
 
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
             }
         });
 
-        Ok(())
+        Ok(0u32.into())
     }
 
     fn do_contribute(
@@ -232,7 +245,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
         amount: BalanceOf<T>,
         who: Option<&T::AccountId>,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
-    ) -> Result<(), DispatchError> {
+    ) -> Result<QueryId, DispatchError> {
         switch_relay!({
             let call =
                 RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
@@ -262,14 +275,19 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
                 relay_currency,
             )?;
 
-            Self::report_outcome_notify(&mut msg, MultiLocation::parent(), notify, 100u32.into())
-                .unwrap();
+            Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
+            )
+            .unwrap();
 
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
             }
         });
 
-        Ok(())
+        Ok(0u32.into())
     }
 }
