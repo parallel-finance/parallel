@@ -208,7 +208,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
         para_account_id: T::AccountId,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
-        switch_relay!({
+        Ok(switch_relay!({
             let call =
                 RelaychainCall::<T>::Crowdloans(CrowdloansCall::Withdraw(CrowdloansWithdrawCall {
                     who: para_account_id,
@@ -222,7 +222,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
                 relay_currency,
             )?;
 
-            Self::report_outcome_notify(
+            let query_id = Self::report_outcome_notify(
                 &mut msg,
                 MultiLocation::parent(),
                 notify,
@@ -233,9 +233,9 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
             }
-        });
 
-        Ok(0u32.into())
+            query_id
+        }))
     }
 
     fn do_contribute(
@@ -246,7 +246,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
         who: Option<&T::AccountId>,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
-        switch_relay!({
+        Ok(switch_relay!({
             let call =
                 RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
                     calls: vec![
@@ -275,7 +275,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
                 relay_currency,
             )?;
 
-            Self::report_outcome_notify(
+            let query_id = Self::report_outcome_notify(
                 &mut msg,
                 MultiLocation::parent(),
                 notify,
@@ -286,8 +286,8 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
             }
-        });
 
-        Ok(0u32.into())
+            query_id
+        }))
     }
 }
