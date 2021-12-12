@@ -54,7 +54,7 @@ pub mod pallet {
         traits::{AccountIdConversion, Convert, Zero},
         ArithmeticError, DispatchError,
     };
-    use sp_std::vec::Vec;
+    use sp_std::{boxed::Box, vec::Vec};
     use xcm::latest::prelude::*;
 
     use pallet_xcm_helper::XcmHelper;
@@ -157,7 +157,7 @@ pub mod pallet {
         /// Vrf delay toggled
         VrfDelayToggled(bool),
         /// Notification received
-        NotificationReceived(MultiLocation, QueryId, Response),
+        NotificationReceived(Box<MultiLocation>, QueryId, Option<(u32, XcmError)>),
     }
 
     #[pallet::error]
@@ -257,8 +257,7 @@ pub mod pallet {
             Self::try_mutate_vault(crowdloan, VaultPhase::Pending, |vault| {
                 let amount = vault.pending;
                 if amount >= T::MinContribution::get() {
-                    Self::do_contribute(None, crowdloan, amount)?;
-                    Self::add_contribution(vault, amount)?;
+                    Self::do_contribute(None, vault, crowdloan, amount)?;
                     vault.pending = Zero::zero();
                 }
 
@@ -306,8 +305,7 @@ pub mod pallet {
 
             match vault.phase {
                 VaultPhase::Contributing => {
-                    Self::do_contribute(Some(&who), crowdloan, amount)?;
-                    Self::add_contribution(&mut vault, amount)?;
+                    Self::do_contribute(Some(&who), &mut vault, crowdloan, amount)?;
                 }
                 VaultPhase::Pending => {
                     log::trace!(
@@ -316,7 +314,6 @@ pub mod pallet {
                         crowdloan,
                         amount,
                     );
-
                     Self::add_contribution(&mut vault, amount)?;
                 }
                 _ => unreachable!(),
@@ -509,9 +506,13 @@ pub mod pallet {
             response: Response,
         ) -> DispatchResultWithPostInfo {
             let responder = ensure_response(<T as Config>::Origin::from(origin))?;
-            Self::deposit_event(Event::<T>::NotificationReceived(
-                responder, query_id, response,
-            ));
+            if let Response::ExecutionResult(res) = response {
+                Self::deposit_event(Event::<T>::NotificationReceived(
+                    Box::new(responder),
+                    query_id,
+                    res,
+                ));
+            }
             Ok(().into())
         }
     }
@@ -539,11 +540,12 @@ pub mod pallet {
 
         fn notify_placeholder() -> <T as Config>::Call {
             <T as Config>::Call::from(Call::<T>::notification_received {
-                query_id: 0,
+                query_id: Default::default(),
                 response: Default::default(),
             })
         }
 
+        #[require_transactional]
         fn add_contribution(vault: &mut Vault<T>, amount: BalanceOf<T>) -> DispatchResult {
             match vault.phase {
                 VaultPhase::Pending => {
@@ -579,6 +581,7 @@ pub mod pallet {
         #[require_transactional]
         fn do_contribute(
             who: Option<&AccountIdOf<T>>,
+            vault: &mut Vault<T>,
             crowdloan: ParaId,
             amount: BalanceOf<T>,
         ) -> Result<(), DispatchError> {
@@ -600,6 +603,8 @@ pub mod pallet {
                 who,
                 Self::notify_placeholder(),
             )?;
+
+            Self::add_contribution(vault, amount)?;
 
             Ok(())
         }
