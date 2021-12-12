@@ -102,6 +102,20 @@ benchmarks! {
         assert_last_event::<T>(Event::<T>::VaultCreated(crowdloan, ctoken).into())
     }
 
+    update_vault {
+        let crowdloan = ParaId::from(1334);
+        initial_set_up::<T>(caller);
+    }: _(
+        SystemOrigin::Root,
+        crowdloan,
+        None,
+        None,
+        None,
+    )
+    verify {
+        assert_last_event::<T>(Event::<T>::VaultUpdated(crowdloan).into())
+    }
+
     contribute {
         let ctoken = 9;
         let caller: T::AccountId = whitelisted_caller();

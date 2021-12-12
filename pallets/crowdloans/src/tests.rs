@@ -1,5 +1,6 @@
 use super::{types::*, *};
 use crate::mock::*;
+use primitives::BlockNumber;
 
 use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
@@ -17,6 +18,8 @@ fn create_new_vault_should_work() {
     new_test_ext().execute_with(|| {
         let crowdloan = ParaId::from(1337);
         let ctoken = 10;
+        let cap_limit = 1_000_000_000_000;
+        let end_block = BlockNumber::from(10);
 
         let contribution_strategy = ContributionStrategy::XCM;
 
@@ -34,6 +37,8 @@ fn create_new_vault_should_work() {
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            cap_limit,                            // cap_limit
+            end_block,                            // end_block
         ));
 
         let just_created_vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
@@ -56,6 +61,8 @@ fn create_new_vault_should_not_work_if_vault_is_already_created() {
     new_test_ext().execute_with(|| {
         let crowdloan = ParaId::from(1337);
         let ctoken = 10;
+        let cap_limit = 1_000_000_000_000;
+        let end_block = BlockNumber::from(10);
 
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
@@ -90,6 +97,8 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
     new_test_ext().execute_with(|| {
         let crowdloan = ParaId::from(1337);
         let ctoken = 10;
+        let cap_limit = 1_000_000_000_000;
+        let end_block = BlockNumber::from(10);
 
         let contribution_strategy = ContributionStrategy::XCM;
 
@@ -127,6 +136,8 @@ fn contribute_should_work() {
         let crowdloan = ParaId::from(1337);
         let ctoken = 10;
         let amount = 1_000;
+        let cap_limit = 1_000_000_000_000;
+        let end_block = BlockNumber::from(10);
 
         let contribution_strategy = ContributionStrategy::XCM;
 
@@ -178,6 +189,8 @@ fn toggle_vrf_should_work() {
         let crowdloan = ParaId::from(1337);
         let ctoken = 10;
         let amount = 1_000;
+        let cap_limit = 1_000_000_000_000;
+        let end_block = BlockNumber::from(10);
 
         let contribution_strategy = ContributionStrategy::XCM;
 
@@ -221,6 +234,8 @@ fn contribute_should_fail_insufficent_funds() {
         let crowdloan = ParaId::from(1337);
         let ctoken = 10;
         let amount = 1_000;
+        let cap_limit = 1_000_000_000_000;
+        let end_block = BlockNumber::from(10);
 
         let contribution_strategy = ContributionStrategy::XCM;
 
@@ -239,6 +254,8 @@ fn contribute_should_fail_insufficent_funds() {
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            cap_limit,                            // cap_limit
+            end_block,                            // end_block
         ));
 
         // do contribute
@@ -259,6 +276,8 @@ fn close_should_work() {
     new_test_ext().execute_with(|| {
         let crowdloan = ParaId::from(1337);
         let ctoken = 10;
+        let cap_limit = 1_000_000_000_000;
+        let end_block = BlockNumber::from(10);
 
         let contribution_strategy = ContributionStrategy::XCM;
 
@@ -268,6 +287,8 @@ fn close_should_work() {
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            cap_limit,                            // cap_limit
+            end_block,                            // end_block
         ));
 
         // do open
@@ -293,6 +314,8 @@ fn reopen_should_work() {
     new_test_ext().execute_with(|| {
         let crowdloan = ParaId::from(1337);
         let ctoken = 10;
+        let cap_limit = 1_000_000_000_000;
+        let end_block = BlockNumber::from(10);
 
         let contribution_strategy = ContributionStrategy::XCM;
 
@@ -302,6 +325,8 @@ fn reopen_should_work() {
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            cap_limit,                            // cap_limit
+            end_block,                            // end_block
         ));
 
         // do open
@@ -333,6 +358,8 @@ fn auction_failed_should_work() {
     new_test_ext().execute_with(|| {
         let crowdloan = 1337;
         let ctoken = 10;
+        let cap_limit = 1_000_000_000_000;
+        let end_block = BlockNumber::from(10);
 
         let contribution_strategy = ContributionStrategy::XCM;
 
@@ -342,6 +369,8 @@ fn auction_failed_should_work() {
             ParaId::from(crowdloan),              // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            cap_limit,                            // cap_limit
+            end_block,                            // end_block
         ));
 
         // do open
@@ -374,6 +403,8 @@ fn claim_refund_should_work() {
         let crowdloan = 1337;
         let ctoken = 10;
         let amount = 1_000u128;
+        let cap_limit = 1_000_000_000_000;
+        let end_block = BlockNumber::from(10);
 
         let contribution_strategy = ContributionStrategy::XCM;
 
@@ -392,6 +423,8 @@ fn claim_refund_should_work() {
             ParaId::from(crowdloan),              // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            cap_limit,                            // cap_limit
+            end_block,                            // end_block
         ));
 
         // do open
@@ -442,6 +475,8 @@ fn slot_expired_should_work() {
     new_test_ext().execute_with(|| {
         let crowdloan = 1337;
         let ctoken = 10;
+        let cap_limit = 1_000_000_000_000;
+        let end_block = BlockNumber::from(10);
 
         let contribution_strategy = ContributionStrategy::XCM;
 
@@ -451,6 +486,8 @@ fn slot_expired_should_work() {
             ParaId::from(crowdloan),              // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            cap_limit,                            // cap_limit
+            end_block,                            // end_block
         ));
 
         // do open

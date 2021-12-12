@@ -15,6 +15,7 @@
 // Groups common pool related structures
 
 use super::{AssetIdOf, BalanceOf, Config};
+use primitives::BlockNumber;
 
 use codec::{Decode, Encode};
 
@@ -57,11 +58,21 @@ pub struct Vault<T: Config> {
     pub pending: BalanceOf<T>,
     /// How we contribute coins to the crowdloan
     pub contribution_strategy: ContributionStrategy,
+    /// parallel enforced limit
+    pub cap_limit: BalanceOf<T>,
+    /// block that vault ends
+    pub end_block: BlockNumber,
 }
 
 /// init default vault with ctoken and currency override
 impl<T: Config> Vault<T> {
-    pub fn new(id: u32, ctoken: AssetIdOf<T>, contribution_strategy: ContributionStrategy) -> Self {
+    pub fn new(
+        id: u32,
+        ctoken: AssetIdOf<T>,
+        contribution_strategy: ContributionStrategy,
+        cap_limit: BalanceOf<T>,
+        end_block: BlockNumber,
+    ) -> Self {
         Self {
             id,
             ctoken,
@@ -69,6 +80,8 @@ impl<T: Config> Vault<T> {
             contributed: Zero::zero(),
             pending: Zero::zero(),
             contribution_strategy,
+            cap_limit,
+            end_block,
         }
     }
 }

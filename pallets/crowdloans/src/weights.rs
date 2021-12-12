@@ -49,6 +49,7 @@ use sp_std::marker::PhantomData;
 /// Weight functions needed for pallet_crowdloans.
 pub trait WeightInfo {
 	fn create_vault() -> Weight;
+	fn update_vault() -> Weight;
 	fn contribute() -> Weight;
 	fn open() -> Weight;
 	fn close() -> Weight;
@@ -65,6 +66,11 @@ pub trait WeightInfo {
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	fn create_vault() -> Weight {
+		(64_000_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(4 as Weight))
+			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+	}
+	fn update_vault() -> Weight {
 		(64_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(4 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
@@ -124,6 +130,11 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 // For backwards compatibility and tests
 impl WeightInfo for () {
 	fn create_vault() -> Weight {
+		(64_000_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(4 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(3 as Weight))
+	}
+	fn update_vault() -> Weight {
 		(64_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(4 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(3 as Weight))

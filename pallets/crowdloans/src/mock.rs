@@ -14,7 +14,9 @@ use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId};
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
-    traits::{AccountIdConversion, AccountIdLookup, BlakeTwo256, Convert, Zero},
+    traits::{
+        AccountIdConversion, AccountIdLookup, BlakeTwo256, BlockNumberProvider, Convert, Zero,
+    },
     AccountId32,
     MultiAddress::Id,
 };
@@ -33,6 +35,20 @@ use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chai
 pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
 pub use kusama_runtime;
+
+pub struct RelayChainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
+
+impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
+    for RelayChainBlockNumberProvider<T>
+{
+    type BlockNumber = BlockNumber;
+
+    fn current_block_number() -> Self::BlockNumber {
+        cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
+            .map(|d| d.relay_parent_number)
+            .unwrap_or_default()
+    }
+}
 
 parameter_types! {
     pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND / 4;
@@ -317,6 +333,9 @@ parameter_types! {
 pub type CreateVaultOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
+pub type UpdateVaultOrigin =
+    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+
 pub type VrfDelayOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
@@ -384,6 +403,7 @@ impl pallet_assets::Config for Test {
     type Freezer = ();
     type WeightInfo = ();
     type Extra = ();
+    type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Test>;
 }
 
 construct_runtime!(
