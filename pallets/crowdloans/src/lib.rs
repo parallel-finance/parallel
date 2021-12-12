@@ -258,12 +258,7 @@ pub mod pallet {
                 let amount = vault.pending;
                 if amount >= T::MinContribution::get() {
                     Self::do_contribute(None, crowdloan, amount)?;
-
-                    vault.contributed = vault
-                        .contributed
-                        .checked_add(amount)
-                        .ok_or(ArithmeticError::Overflow)?;
-
+                    Self::add_contribution(vault, amount)?;
                     vault.pending = Zero::zero();
                 }
 
@@ -312,11 +307,7 @@ pub mod pallet {
             match vault.phase {
                 VaultPhase::Contributing => {
                     Self::do_contribute(Some(&who), crowdloan, amount)?;
-
-                    vault.contributed = vault
-                        .contributed
-                        .checked_add(amount)
-                        .ok_or(ArithmeticError::Overflow)?;
+                    Self::add_contribution(&mut vault, amount)?;
                 }
                 VaultPhase::Pending => {
                     log::trace!(
@@ -326,10 +317,7 @@ pub mod pallet {
                         amount,
                     );
 
-                    vault.pending = vault
-                        .pending
-                        .checked_add(amount)
-                        .ok_or(ArithmeticError::Overflow)?;
+                    Self::add_contribution(&mut vault, amount)?;
                 }
                 _ => unreachable!(),
             }
@@ -554,6 +542,25 @@ pub mod pallet {
                 query_id: 0,
                 response: Default::default(),
             })
+        }
+
+        fn add_contribution(vault: &mut Vault<T>, amount: BalanceOf<T>) -> DispatchResult {
+            match vault.phase {
+                VaultPhase::Pending => {
+                    vault.pending = vault
+                        .pending
+                        .checked_add(amount)
+                        .ok_or(ArithmeticError::Overflow)?;
+                }
+                VaultPhase::Contributing => {
+                    vault.contributed = vault
+                        .contributed
+                        .checked_add(amount)
+                        .ok_or(ArithmeticError::Overflow)?;
+                }
+                _ => unreachable!(),
+            }
+            Ok(())
         }
 
         #[require_transactional]
