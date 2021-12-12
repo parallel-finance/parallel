@@ -86,6 +86,8 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
+        /// `MultiLocation` value ascend more parents than known ancestors of local location.
+        MultiLocationNotInvertible,
         /// Xcm message send failure
         SendXcmError,
     }
@@ -133,10 +135,10 @@ impl<T: Config> Pallet<T> {
         responder: impl Into<MultiLocation>,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
         timeout: T::BlockNumber,
-    ) -> Result<QueryId, XcmError> {
+    ) -> Result<QueryId, DispatchError> {
         let responder = responder.into();
         let dest = <T as pallet_xcm::Config>::LocationInverter::invert_location(&responder)
-            .map_err(|()| XcmError::MultiLocationNotInvertible)?;
+            .map_err(|()| Error::<T>::MultiLocationNotInvertible)?;
         let notify: <T as pallet_xcm::Config>::Call = notify.into();
         let max_response_weight = notify.get_dispatch_info().weight;
         let query_id = pallet_xcm::Pallet::<T>::new_notify_query(responder, notify, timeout);
@@ -227,8 +229,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
                 MultiLocation::parent(),
                 notify,
                 T::NotifyTimeout::get(),
-            )
-            .unwrap();
+            )?;
 
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
@@ -280,8 +281,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
                 MultiLocation::parent(),
                 notify,
                 T::NotifyTimeout::get(),
-            )
-            .unwrap();
+            )?;
 
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
