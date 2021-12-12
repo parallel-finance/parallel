@@ -48,6 +48,7 @@ pub mod pallet {
         transactional, Blake2_128Concat, PalletId,
     };
     use frame_system::{ensure_signed, pallet_prelude::OriginFor};
+    use pallet_xcm::ensure_response;
     use primitives::{ump::*, Balance, CurrencyId, ParaId};
     use sp_runtime::{
         traits::{AccountIdConversion, Convert, Zero},
@@ -515,10 +516,11 @@ pub mod pallet {
         #[pallet::weight(10_000)]
         #[transactional]
         pub fn notification_received(
-            _origin: OriginFor<T>,
+            origin: OriginFor<T>,
             query_id: QueryId,
             response: Response,
         ) -> DispatchResultWithPostInfo {
+            let _responder = ensure_response(<T as Config>::Origin::from(origin))?;
             Self::deposit_event(Event::<T>::NotificationReceived(query_id, response));
             Ok(().into())
         }
@@ -543,6 +545,13 @@ pub mod pallet {
 
         fn current_vault(crowdloan: ParaId) -> Option<Vault<T>> {
             Self::current_index(crowdloan).and_then(|index| Self::vaults(crowdloan, index))
+        }
+
+        fn notify_placeholder() -> <T as Config>::Call {
+            <T as Config>::Call::from(Call::<T>::notification_received {
+                query_id: 0,
+                response: Default::default(),
+            })
         }
 
         #[require_transactional]
@@ -580,10 +589,7 @@ pub mod pallet {
                 T::RelayCurrency::get(),
                 amount,
                 who,
-                <T as Config>::Call::from(Call::<T>::notification_received {
-                    query_id: 0,
-                    response: Default::default(),
-                }),
+                Self::notify_placeholder(),
             )?;
 
             Ok(())
@@ -603,10 +609,7 @@ pub mod pallet {
                 T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
                 T::RelayCurrency::get(),
                 Self::para_account_id(),
-                <T as Config>::Call::from(Call::<T>::notification_received {
-                    query_id: 0,
-                    response: Default::default(),
-                }),
+                Self::notify_placeholder(),
             )?;
 
             T::Assets::mint_into(T::RelayCurrency::get(), &Self::account_id(), amount)?;
