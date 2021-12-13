@@ -472,7 +472,7 @@ pub mod pallet {
             })
         }
 
-        /// Update xm fees amount to be used in xcm.Withdraw message
+        /// Update xcm fees amount to be used in xcm.Withdraw message
         #[pallet::weight(<T as Config>::WeightInfo::update_xcm_fees())]
         #[transactional]
         pub fn update_xcm_fees(
