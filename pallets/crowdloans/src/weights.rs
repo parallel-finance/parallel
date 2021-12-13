@@ -35,7 +35,6 @@
 // --template=./.maintain/frame-weight-template.hbs
 // --output=./pallets/crowdloans/src/weights.rs
 
-
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 #![allow(clippy::all)]
@@ -48,134 +47,134 @@ use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_crowdloans.
 pub trait WeightInfo {
-	fn create_vault() -> Weight;
-	fn contribute() -> Weight;
-	fn open() -> Weight;
-	fn close() -> Weight;
-	fn toggle_vrf_delay() -> Weight;
-	fn reopen() -> Weight;
-	fn auction_failed() -> Weight;
-	fn claim_refund() -> Weight;
-	fn slot_expired() -> Weight;
-	fn update_xcm_fees() -> Weight;
-	fn update_xcm_weight() -> Weight;
+    fn create_vault() -> Weight;
+    fn contribute() -> Weight;
+    fn open() -> Weight;
+    fn close() -> Weight;
+    fn set_vrfs() -> Weight;
+    fn reopen() -> Weight;
+    fn auction_failed() -> Weight;
+    fn claim_refund() -> Weight;
+    fn slot_expired() -> Weight;
+    fn update_xcm_fees() -> Weight;
+    fn update_xcm_weight() -> Weight;
 }
 
 /// Weights for pallet_crowdloans using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
-	fn create_vault() -> Weight {
-		(64_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
-	}
-	fn contribute() -> Weight {
-		(347_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(18 as Weight))
-			.saturating_add(T::DbWeight::get().writes(10 as Weight))
-	}
-	fn open() -> Weight {
-		(41_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
-	}
-	fn close() -> Weight {
-		(40_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
-	}
-	fn toggle_vrf_delay() -> Weight {
-		(32_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
-	}
-	fn reopen() -> Weight {
-		(41_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
-	}
-	fn auction_failed() -> Weight {
-		(206_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(14 as Weight))
-			.saturating_add(T::DbWeight::get().writes(7 as Weight))
-	}
-	fn claim_refund() -> Weight {
-		(173_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(7 as Weight))
-			.saturating_add(T::DbWeight::get().writes(5 as Weight))
-	}
-	fn slot_expired() -> Weight {
-		(208_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(14 as Weight))
-			.saturating_add(T::DbWeight::get().writes(7 as Weight))
-	}
-	fn update_xcm_fees() -> Weight {
-		(31_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
-	}
-	fn update_xcm_weight() -> Weight {
-		(33_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
-	}
+    fn create_vault() -> Weight {
+        (64_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(4 as Weight))
+            .saturating_add(T::DbWeight::get().writes(3 as Weight))
+    }
+    fn contribute() -> Weight {
+        (347_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(18 as Weight))
+            .saturating_add(T::DbWeight::get().writes(10 as Weight))
+    }
+    fn open() -> Weight {
+        (41_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(2 as Weight))
+            .saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
+    fn close() -> Weight {
+        (40_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(2 as Weight))
+            .saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
+    fn set_vrfs() -> Weight {
+        (32_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(1 as Weight))
+            .saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
+    fn reopen() -> Weight {
+        (41_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(2 as Weight))
+            .saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
+    fn auction_failed() -> Weight {
+        (206_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(14 as Weight))
+            .saturating_add(T::DbWeight::get().writes(7 as Weight))
+    }
+    fn claim_refund() -> Weight {
+        (173_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(7 as Weight))
+            .saturating_add(T::DbWeight::get().writes(5 as Weight))
+    }
+    fn slot_expired() -> Weight {
+        (208_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(14 as Weight))
+            .saturating_add(T::DbWeight::get().writes(7 as Weight))
+    }
+    fn update_xcm_fees() -> Weight {
+        (31_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(1 as Weight))
+            .saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
+    fn update_xcm_weight() -> Weight {
+        (33_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(1 as Weight))
+            .saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
-	fn create_vault() -> Weight {
-		(64_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(4 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(3 as Weight))
-	}
-	fn contribute() -> Weight {
-		(347_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(18 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(10 as Weight))
-	}
-	fn open() -> Weight {
-		(41_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(2 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
-	}
-	fn close() -> Weight {
-		(40_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(2 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
-	}
-	fn toggle_vrf_delay() -> Weight {
-		(32_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
-	}
-	fn reopen() -> Weight {
-		(41_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(2 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
-	}
-	fn auction_failed() -> Weight {
-		(206_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(14 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(7 as Weight))
-	}
-	fn claim_refund() -> Weight {
-		(173_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(7 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(5 as Weight))
-	}
-	fn slot_expired() -> Weight {
-		(208_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(14 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(7 as Weight))
-	}
-	fn update_xcm_fees() -> Weight {
-		(31_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
-	}
-	fn update_xcm_weight() -> Weight {
-		(33_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
-	}
+    fn create_vault() -> Weight {
+        (64_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(4 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(3 as Weight))
+    }
+    fn contribute() -> Weight {
+        (347_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(18 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(10 as Weight))
+    }
+    fn open() -> Weight {
+        (41_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(2 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(1 as Weight))
+    }
+    fn close() -> Weight {
+        (40_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(2 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(1 as Weight))
+    }
+    fn set_vrfs() -> Weight {
+        (32_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(1 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(1 as Weight))
+    }
+    fn reopen() -> Weight {
+        (41_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(2 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(1 as Weight))
+    }
+    fn auction_failed() -> Weight {
+        (206_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(14 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(7 as Weight))
+    }
+    fn claim_refund() -> Weight {
+        (173_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(7 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(5 as Weight))
+    }
+    fn slot_expired() -> Weight {
+        (208_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(14 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(7 as Weight))
+    }
+    fn update_xcm_fees() -> Weight {
+        (31_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(1 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(1 as Weight))
+    }
+    fn update_xcm_weight() -> Weight {
+        (33_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(1 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(1 as Weight))
+    }
 }

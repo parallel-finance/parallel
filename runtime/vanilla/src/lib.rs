@@ -1354,6 +1354,7 @@ impl pallet_amm::Config for Runtime {
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
     pub const MinContribution: Balance = 110_000_000_000;
+    pub const MaxVrfs: u32 = 10;
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
 }
 
@@ -1368,6 +1369,7 @@ impl pallet_crowdloans::Config for Runtime {
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type RefundLocation = RefundLocation;
     type MinContribution = MinContribution;
+    type MaxVrfs = MaxVrfs;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type VrfDelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;

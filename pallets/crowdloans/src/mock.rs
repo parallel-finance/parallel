@@ -309,9 +309,10 @@ impl SortedMembers<AccountId> for BobOrigin {
 
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
+    pub const MaxVrfs: u16 = 10;
+    pub const MinContribution: Balance = 0;
     pub SelfParaId: ParaId = para_a_id();
     pub RefundLocation: AccountId = para_a_id().into_account();
-    pub const MinContribution: Balance = 0;
 }
 
 pub type CreateVaultOrigin =
@@ -340,6 +341,7 @@ impl crate::Config for Test {
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type RefundLocation = RefundLocation;
     type MinContribution = MinContribution;
+    type MaxVrfs = MaxVrfs;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type CreateVaultOrigin = CreateVaultOrigin;
     type VrfDelayOrigin = VrfDelayOrigin;

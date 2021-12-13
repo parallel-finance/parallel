@@ -45,7 +45,7 @@ pub mod pallet {
             fungibles::{Inspect, Mutate, Transfer},
             Get,
         },
-        transactional, Blake2_128Concat, PalletId,
+        transactional, Blake2_128Concat, BoundedVec, PalletId,
     };
     use frame_system::{ensure_signed, pallet_prelude::OriginFor};
     use pallet_xcm::ensure_response;
@@ -54,7 +54,7 @@ pub mod pallet {
         traits::{AccountIdConversion, Convert, Zero},
         ArithmeticError, DispatchError,
     };
-    use sp_std::{boxed::Box, vec::Vec};
+    use sp_std::{boxed::Box, convert::TryInto, vec::Vec};
     use xcm::latest::prelude::*;
 
     use pallet_xcm_helper::XcmHelper;
@@ -106,6 +106,10 @@ pub mod pallet {
         #[pallet::constant]
         type MinContribution: Get<BalanceOf<Self>>;
 
+        /// Maximum number of vrf crowdloans
+        #[pallet::constant]
+        type MaxVrfs: Get<u32>;
+
         /// The origin which can update reserve_factor, xcm_fees etc
         type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
@@ -139,7 +143,7 @@ pub mod pallet {
         /// User contributed amount to vault
         VaultContributed(ParaId, T::AccountId, BalanceOf<T>, Vec<u8>),
         /// Vault was opened
-        VaultOpened(ParaId, BalanceOf<T>),
+        VaultOpened(ParaId),
         /// Vault was closed
         VaultClosed(ParaId),
         /// Vault was reopened
@@ -154,8 +158,8 @@ pub mod pallet {
         XcmWeightUpdated(XcmWeightMisc<Weight>),
         /// Fees for extrinsics on relaychain were set to new value
         XcmFeesUpdated(BalanceOf<T>),
-        /// Vrf delay toggled
-        VrfDelayToggled(bool),
+        /// Vrfs updated
+        VrfsUpdated(BoundedVec<ParaId, T::MaxVrfs>),
         /// Notification received
         NotificationReceived(Box<MultiLocation>, QueryId, Option<(u32, XcmError)>),
     }
@@ -178,6 +182,8 @@ pub mod pallet {
         ParaIdAlreadyTaken,
         /// No contributions allowed during the VRF delay
         VrfDelayInProgress,
+        /// Exceeded maximum vrfs
+        ExceededMaxVrfs,
     }
 
     #[pallet::storage]
@@ -186,8 +192,9 @@ pub mod pallet {
         StorageDoubleMap<_, Blake2_128Concat, ParaId, Blake2_128Concat, u32, Vault<T>, OptionQuery>;
 
     #[pallet::storage]
-    #[pallet::getter(fn is_vrf)]
-    pub type IsVrfDelayInProgress<T: Config> = StorageValue<_, bool, ValueQuery>;
+    #[pallet::getter(fn vrfs)]
+    pub type Vrfs<T: Config> =
+        StorageValue<_, BoundedVec<ParaId, <T as Config>::MaxVrfs>, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn ctokens_registry)]
@@ -254,17 +261,15 @@ pub mod pallet {
         pub fn open(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             T::OpenCloseOrigin::ensure_origin(origin)?;
 
+            log::trace!(
+                target: "crowdloans::open",
+                "pre-toggle. crowdloan: {:?}",
+                crowdloan,
+            );
+
             Self::try_mutate_vault(crowdloan, VaultPhase::Pending, |vault| {
-                let amount = vault.pending;
-                if amount >= T::MinContribution::get() {
-                    Self::do_contribute(None, vault, crowdloan, amount)?;
-                    vault.pending = Zero::zero();
-                }
-
                 vault.phase = VaultPhase::Contributing;
-
-                Self::deposit_event(Event::<T>::VaultOpened(crowdloan, amount));
-
+                Self::deposit_event(Event::<T>::VaultOpened(crowdloan));
                 Ok(())
             })
         }
@@ -288,11 +293,14 @@ pub mod pallet {
                 Error::<T>::IncorrectVaultPhase
             );
 
-            ensure!(!Self::is_vrf(), Error::<T>::VrfDelayInProgress);
-
             ensure!(
                 amount >= T::MinContribution::get(),
                 Error::<T>::InsufficientContribution
+            );
+
+            ensure!(
+                !Self::vrfs().iter().any(|&c| c == crowdloan),
+                Error::<T>::VrfDelayInProgress
             );
 
             T::Assets::transfer(
@@ -303,20 +311,21 @@ pub mod pallet {
                 true,
             )?;
 
+            log::trace!(
+                target: "crowdloans::contribute",
+                "who: {:?}, crowdloan: {:?}, amount: {:?}",
+                &who,
+                &crowdloan,
+                &amount,
+            );
+
             match vault.phase {
-                VaultPhase::Contributing => {
+                VaultPhase::Contributing if Self::vrfs().iter().len() == 0 => {
                     Self::do_contribute(Some(&who), &mut vault, crowdloan, amount)?;
                 }
-                VaultPhase::Pending => {
-                    log::trace!(
-                        target: "crowdloans::contribute",
-                        "Contibute pending. crowdloan: {:?}, amount: {:?}",
-                        crowdloan,
-                        amount,
-                    );
+                _ => {
                     Self::add_contribution(&mut vault, amount)?;
                 }
-                _ => unreachable!(),
             }
 
             T::Assets::mint_into(vault.ctoken, &who, amount)?;
@@ -333,23 +342,24 @@ pub mod pallet {
             Ok(().into())
         }
 
-        /// Mark the start/end of vrf delay, no contribution is allowed if
-        /// the vrf delay is in progress
-        #[pallet::weight(<T as Config>::WeightInfo::toggle_vrf_delay())]
+        /// Set crowdloans which entered vrf period
+        #[pallet::weight(<T as Config>::WeightInfo::set_vrfs())]
         #[transactional]
-        pub fn toggle_vrf_delay(origin: OriginFor<T>) -> DispatchResult {
+        pub fn set_vrfs(origin: OriginFor<T>, vrfs: Vec<ParaId>) -> DispatchResult {
             T::VrfDelayOrigin::ensure_origin(origin)?;
-            let is_vrf = Self::is_vrf();
 
             log::trace!(
-                target: "crowdloans::toggle_vrf_delay",
-                "pre-toggle. is_vrf: {:?}",
-                is_vrf,
+                target: "crowdloans::set_vrfs",
+                "pre-toggle. vrfs: {:?}",
+                vrfs
             );
 
-            IsVrfDelayInProgress::<T>::mutate(|b| *b = !is_vrf);
+            Vrfs::<T>::try_mutate(|b| -> Result<(), DispatchError> {
+                *b = vrfs.try_into().map_err(|_| Error::<T>::ExceededMaxVrfs)?;
+                Ok(())
+            })?;
 
-            Self::deposit_event(Event::<T>::VrfDelayToggled(!is_vrf));
+            Self::deposit_event(Event::<T>::VrfsUpdated(Self::vrfs()));
 
             Ok(())
         }
@@ -586,14 +596,6 @@ pub mod pallet {
             amount: BalanceOf<T>,
         ) -> Result<(), DispatchError> {
             T::Assets::burn_from(T::RelayCurrency::get(), &Self::account_id(), amount)?;
-
-            log::trace!(
-                target: "crowdloans::do_contribute",
-                "who: {:?}, crowdloan: {:?}, amount: {:?}",
-                &who,
-                &crowdloan,
-                &amount,
-            );
 
             T::XCM::do_contribute(
                 crowdloan,
