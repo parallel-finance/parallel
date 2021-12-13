@@ -41,12 +41,13 @@ pub struct RelayChainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
 impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
     for RelayChainBlockNumberProvider<T>
 {
-    type BlockNumber = BlockNumber;
+    type BlockNumber = primitives::BlockNumber;
 
     fn current_block_number() -> Self::BlockNumber {
         cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
             .map(|d| d.relay_parent_number)
             .unwrap_or_default()
+            .into()
     }
 }
 
@@ -361,12 +362,14 @@ impl crate::Config for Test {
     type MinContribution = MinContribution;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type CreateVaultOrigin = CreateVaultOrigin;
+    type UpdateVaultOrigin = UpdateVaultOrigin;
     type VrfDelayOrigin = VrfDelayOrigin;
     type OpenCloseOrigin = OpenCloseOrigin;
     type AuctionFailedOrigin = AuctionFailedOrigin;
     type SlotExpiredOrigin = SlotExpiredOrigin;
     type WeightInfo = ();
     type XCM = XcmHelper;
+    type BlockNumberProvider = RelayChainBlockNumberProvider<Test>;
 }
 
 parameter_types! {
@@ -403,7 +406,6 @@ impl pallet_assets::Config for Test {
     type Freezer = ();
     type WeightInfo = ();
     type Extra = ();
-    type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Test>;
 }
 
 construct_runtime!(

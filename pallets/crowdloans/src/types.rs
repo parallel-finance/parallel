@@ -59,7 +59,7 @@ pub struct Vault<T: Config> {
     /// How we contribute coins to the crowdloan
     pub contribution_strategy: ContributionStrategy,
     /// parallel enforced limit
-    pub cap_limit: BalanceOf<T>,
+    pub cap: BalanceOf<T>,
     /// block that vault ends
     pub end_block: BlockNumber,
 }
@@ -70,7 +70,7 @@ impl<T: Config> Vault<T> {
         id: u32,
         ctoken: AssetIdOf<T>,
         contribution_strategy: ContributionStrategy,
-        cap_limit: BalanceOf<T>,
+        cap: BalanceOf<T>,
         end_block: BlockNumber,
     ) -> Self {
         Self {
@@ -80,7 +80,7 @@ impl<T: Config> Vault<T> {
             contributed: Zero::zero(),
             pending: Zero::zero(),
             contribution_strategy,
-            cap_limit,
+            cap,
             end_block,
         }
     }

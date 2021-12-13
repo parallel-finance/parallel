@@ -52,7 +52,7 @@ pub mod pallet {
     use frame_system::{ensure_signed, pallet_prelude::OriginFor};
     use primitives::{ump::*, Balance, BlockNumber, CurrencyId, ParaId};
     use sp_runtime::{
-        traits::{AccountIdConversion, Convert, Zero},
+        traits::{AccountIdConversion, BlockNumberProvider, Convert, Zero},
         ArithmeticError, DispatchError,
     };
     use sp_std::vec::Vec;
@@ -133,7 +133,7 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
 
         /// The relay's BlockNumber provider
-        type RelayChainBlockNumberProvider: Get<Self::RelayChainBlockNumberProvider>;
+        type BlockNumberProvider: BlockNumberProvider<BlockNumber = primitives::BlockNumber>;
 
         /// To expose XCM helper functions
         type XCM: XcmHelper<BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
@@ -187,7 +187,9 @@ pub mod pallet {
         /// No contributions allowed during the VRF delay
         VrfDelayInProgress,
         /// Attempted contribution violates contribution cap
-        ViolatesCapCheck,
+        ExceededCap,
+        /// Current relay block is greater then vault end block
+        ExceededCrowdloanEndBlock,
     }
 
     #[pallet::storage]
@@ -218,7 +220,7 @@ pub mod pallet {
             crowdloan: ParaId,
             ctoken: AssetIdOf<T>,
             contribution_strategy: ContributionStrategy,
-            cap_limit: BalanceOf<T>,
+            cap: BalanceOf<T>,
             end_block: BlockNumber,
         ) -> DispatchResult {
             T::CreateVaultOrigin::ensure_origin(origin)?;
@@ -229,19 +231,18 @@ pub mod pallet {
                 Error::<T>::CTokenAlreadyTaken
             );
 
-            if let Some(vault) = Self::current_vault(crowdloan) {
-                if vault.phase != VaultPhase::Failed && vault.phase != VaultPhase::Expired {
-                    return Err(DispatchError::from(Error::<T>::ParaIdAlreadyTaken));
-                }
-            }
-
             let next_index = Self::next_index(crowdloan);
             ensure!(
                 !Vaults::<T>::contains_key(crowdloan, next_index),
                 Error::<T>::CrowdloanAlreadyExists
             );
 
-            let new_vault = Vault::new(next_index, ctoken, contribution_strategy, cap_limit);
+            let new_vault = Vault::new(next_index, ctoken, contribution_strategy, cap, end_block);
+
+            ensure!(
+                T::BlockNumberProvider::current_block_number() <= new_vault.end_block,
+                Error::<T>::ExceededCrowdloanEndBlock
+            );
 
             Vaults::<T>::insert(crowdloan, next_index, new_vault);
             CTokensRegistry::<T>::insert(ctoken, (crowdloan, next_index));
@@ -258,7 +259,7 @@ pub mod pallet {
         pub fn update_vault(
             origin: OriginFor<T>,
             crowdloan: ParaId,
-            cap_limit: Option<BalanceOf<T>>,
+            cap: Option<BalanceOf<T>>,
             end_block: Option<BlockNumber>,
             contribution_strategy: Option<ContributionStrategy>,
         ) -> DispatchResult {
@@ -266,11 +267,16 @@ pub mod pallet {
 
             let mut vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
 
-            if let Some(cap_limit) = cap_limit {
-                vault.cap_limit = cap_limit;
+            if let Some(cap) = cap {
+                vault.cap = cap;
             }
 
             if let Some(end_block) = end_block {
+                ensure!(
+                    T::BlockNumberProvider::current_block_number() <= end_block,
+                    Error::<T>::ExceededCrowdloanEndBlock
+                );
+
                 vault.end_block = end_block;
             }
 
@@ -323,9 +329,10 @@ pub mod pallet {
 
             let mut vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
 
-            if T::RelaychainBlockNumberProvider::current_block_number() >= vault.end_block {
-                return Err(Error::<T>::ExceededCrowdloanEndBlock);
-            }
+            ensure!(
+                T::BlockNumberProvider::current_block_number() <= vault.end_block,
+                Error::<T>::ExceededCrowdloanEndBlock
+            );
 
             ensure!(
                 vault.phase == VaultPhase::Contributing || vault.phase == VaultPhase::Pending,
@@ -347,15 +354,10 @@ pub mod pallet {
                 true,
             )?;
 
-            let total_amount = vault.contributed = vault
-                .contributed
-                .checked_add(vault.pending)
-                .ok_or(ArithmeticError::Overflow)?
-                .checked_add(amount)
-                .ok_or(ArithmeticError::Overflow)?;
+            let total_amount = Self::cap(&vault, amount)?;
 
             // throw if new value overflows cap
-            ensure!(total_amount < vault.cap_limit, Error::<T>::ViolatesCapCheck);
+            ensure!(total_amount < vault.cap, Error::<T>::ExceededCap);
 
             match vault.phase {
                 VaultPhase::Contributing => {
@@ -544,6 +546,14 @@ pub mod pallet {
 
         fn current_vault(crowdloan: ParaId) -> Option<Vault<T>> {
             Self::current_index(crowdloan).and_then(|index| Self::vaults(crowdloan, index))
+        }
+
+        fn cap(vault: &Vault<T>, amount: BalanceOf<T>) -> Result<BalanceOf<T>, ArithmeticError> {
+            vault
+                .contributed
+                .checked_add(vault.pending)
+                .and_then(|sum| sum.checked_add(amount))
+                .ok_or(ArithmeticError::Overflow)
         }
 
         #[require_transactional]
