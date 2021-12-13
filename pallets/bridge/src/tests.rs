@@ -148,18 +148,136 @@ fn materialize_works() {
             EVE,
             dollar(10),
         ))]);
+    })
+}
 
-        run_to_block(100);
-        let call = MaterializeCall {
-            currency_id: EHKO,
-            to: EVE,
-            amount: dollar(10),
-        };
+#[test]
+fn set_bridge_token_fee_works() {
+    new_test_ext().execute_with(|| {
+        // Case 1: Bridge toke is HKO
+        // Set HKO fee equal to 1 HKO
+        Bridge::set_bridge_token_fee(Origin::signed(ALICE), EHKO, dollar(1)).unwrap();
 
-        if let Some(_p) = Bridge::votes(ETH, (1, call)) {
-            run_to_block(200);
-        } else {
-            run_to_block(300);
-        }
+        // Initial balance of EVE is 100 HKO
+        assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(100));
+
+        Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(10)).unwrap();
+
+        // After teleport 10 HKO, EVE should have 90 HKO
+        assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(90));
+        assert_eq!(
+            <Test as Config>::Assets::balance(HKO, &Bridge::account_id()),
+            dollar(10)
+        );
+
+        // Success in generating `TeleportBurned` event
+        // actual amount is 9 HKO
+        // fee is 1 HKO
+        assert_events(vec![mock::Event::Bridge(Event::TeleportBurned(
+            ETH,
+            1,
+            EHKO,
+            "TELE".into(),
+            dollar(9),
+            dollar(1),
+        ))]);
+
+        // Case 2: Bridge toke is EUSDT
+        // Set EUSDT fee equal to 1 EUSDT
+        Bridge::set_bridge_token_fee(Origin::signed(ALICE), EUSDT, dollar(1)).unwrap();
+
+        // EVE has 10 USDT initialized
+        Assets::mint(Origin::signed(ALICE), USDT, EVE, dollar(10)).unwrap();
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), dollar(10));
+
+        // EVE teleport 10 EUSDT
+        Bridge::teleport(Origin::signed(EVE), ETH, EUSDT, "TELE".into(), dollar(10)).unwrap();
+
+        // After teleport 10 EUSDT
+        // EVE should have 0 USDT
+        // PalletId should receive the fee equal to 1 USDT
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), dollar(0));
+        assert_eq!(
+            <Test as Config>::Assets::balance(USDT, &Bridge::account_id()),
+            dollar(1)
+        );
+
+        // Success in generating `TeleportBurned` event
+        // actual amount is 9 EUSDT
+        // fee is 1 EUSDT
+        assert_events(vec![mock::Event::Bridge(Event::TeleportBurned(
+            ETH,
+            2,
+            EUSDT,
+            "TELE".into(),
+            dollar(9),
+            dollar(1),
+        ))]);
+    });
+}
+
+#[test]
+fn teleport_external_currency_works() {
+    new_test_ext().execute_with(|| {
+        // Set EUSDT fee equal to 1 USDT
+        Bridge::set_bridge_token_fee(Origin::signed(ALICE), EUSDT, dollar(1)).unwrap();
+
+        // EVE has 100 USDT initialized
+        Assets::mint(Origin::signed(ALICE), USDT, EVE, dollar(100)).unwrap();
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), dollar(100));
+
+        // EVE teleport 10 EUSDT
+        Bridge::teleport(Origin::signed(EVE), ETH, EUSDT, "TELE".into(), dollar(10)).unwrap();
+
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), dollar(90));
+        assert_eq!(
+            <Test as Config>::Assets::balance(USDT, &Bridge::account_id()),
+            dollar(1),
+        );
+
+        assert_events(vec![mock::Event::Bridge(Event::TeleportBurned(
+            ETH,
+            1,
+            EUSDT,
+            "TELE".into(),
+            dollar(9),
+            dollar(1),
+        ))]);
+    });
+}
+
+#[test]
+fn materialize_external_currency_works() {
+    new_test_ext().execute_with(|| {
+        // External token use Assets::mint other than Balances::transfer
+        assert_eq!(
+            <Test as Config>::Assets::balance(USDT, &Bridge::account_id()),
+            dollar(0)
+        );
+
+        // EVE has 0 USDT, and then requests for materializing 10 USDT
+        // Default vote threshold is 1
+        Bridge::materialize(Origin::signed(ALICE), ETH, 1, EUSDT, EVE, dollar(10), true).unwrap();
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), dollar(10));
+
+        assert_events(vec![mock::Event::Bridge(Event::MaterializeMinted(
+            ETH,
+            1,
+            EUSDT,
+            EVE,
+            dollar(10),
+        ))]);
+
+        assert_noop!(
+            Bridge::teleport(Origin::signed(EVE), ETH, EUSDT, "TELE".into(), dollar(11)),
+            pallet_assets::Error::<Test>::BalanceLow,
+        );
+        Bridge::teleport(Origin::signed(EVE), ETH, EUSDT, "TELE".into(), dollar(10)).unwrap();
+
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), dollar(0));
+        assert_eq!(
+            <Test as Config>::Assets::balance(USDT, &Bridge::account_id()),
+            dollar(0)
+        );
     })
 }

@@ -1310,6 +1310,7 @@ parameter_types! {
 parameter_types! {
     pub const ParallelHeiko: ChainId = 0;
     pub const BridgePalletId: PalletId = PalletId(*b"par/brid");
+    // Set a short lifetime for development
     pub const ProposalLifetime: BlockNumber = 200;
 }
 

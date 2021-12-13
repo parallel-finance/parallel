@@ -22,7 +22,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use crate::proposal::{MaterializeCall, Proposal, ProposalStatus};
+use crate::types::{BridgeToken, MaterializeCall, Proposal, ProposalStatus};
 use frame_support::{
     pallet_prelude::*,
     require_transactional,
@@ -36,13 +36,13 @@ use frame_system::pallet_prelude::*;
 pub use pallet::*;
 use primitives::{Balance, ChainId, CurrencyId};
 use scale_info::prelude::vec::Vec;
-use sp_runtime::traits::AccountIdConversion;
+use sp_runtime::{traits::AccountIdConversion, ArithmeticError};
 pub use weights::WeightInfo;
 
 mod benchmarking;
 mod mock;
-mod proposal;
 mod tests;
+mod types;
 pub mod weights;
 
 type AssetIdOf<T> =
@@ -57,13 +57,11 @@ type MaterializeCallOf<T> =
 type ProposalOf<T> =
     Proposal<<T as frame_system::Config>::AccountId, <T as frame_system::Config>::BlockNumber>;
 
-// pub type ChainId = u8;
 pub type ChainNonce = u64;
 pub type TeleAccount = Vec<u8>;
 
 #[frame_support::pallet]
 pub mod pallet {
-
     use super::*;
 
     #[pallet::config]
@@ -116,17 +114,17 @@ pub mod pallet {
         ChainIdAlreadyRegistered,
         /// The chain_id is not registed and the related operation will be invalid
         ChainIdNotRegistered,
-        /// The currency_id is invalid, it cannot be a existed currency_id
-        CurrencyIdAlreadyRegistered,
-        /// The currency_id is not registed and the related operation will be invalid
-        CurrencyIdNotRegistered,
+        /// The bridge token is invalid, it cannot be a existed bridge_token_id
+        BridgeTokenAlreadyRegistered,
+        /// The bridge token is not registed and the related operation will be invalid
+        BridgeTokenNotRegistered,
         /// The AdminMember already vote for the proposal
         MemberAlreadyVoted,
         /// No proposal was found
         ProposalDoesNotExist,
-        /// Proposal has either failed or succeeded
+        /// Proposal has been finished
         ProposalAlreadyComplete,
-        /// Lifetime of proposal has been exceeded
+        /// The proposal has exceeded its life time.
         ProposalExpired,
     }
 
@@ -146,24 +144,35 @@ pub mod pallet {
         /// [chain_id]
         ChainRemoved(ChainId),
 
-        /// New currency_id has been registered
-        /// [asset_id, currency_id]
-        CurrencyRegistered(AssetIdOf<T>, CurrencyId),
+        /// New bridge_token_id has been registered
+        /// [asset_id, bridge_token_id]
+        BridgeTokenRegistered(AssetIdOf<T>, CurrencyId),
 
-        /// The currency_id has been unregistered
-        /// [asset_id, currency_id]
-        CurrencyRemoved(AssetIdOf<T>, CurrencyId),
+        /// The bridge_token_id has been unregistered
+        /// [asset_id, bridge_token_id]
+        BridgeTokenRemoved(AssetIdOf<T>, CurrencyId),
 
-        /// Event emitted when currency is destoryed by teleportation
-        /// [dest_id, chain_nonce, currency_id, receiver, amount]
-        TeleportBurned(ChainId, ChainNonce, CurrencyId, TeleAccount, BalanceOf<T>),
+        /// Bridge token fee has changed
+        /// [bridge_token_id, fee]
+        BridgeTokenFeeChanged(CurrencyId, BalanceOf<T>),
 
-        /// Event emitted when currency is issued by materialization
-        /// [src_id, chain_nonce, currency_id, receiver, amount]
+        /// Event emitted when bridge token is destoryed by teleportation
+        /// [dest_id, chain_nonce, bridge_token_id, receiver, amount, fee]
+        TeleportBurned(
+            ChainId,
+            ChainNonce,
+            CurrencyId,
+            TeleAccount,
+            BalanceOf<T>,
+            BalanceOf<T>,
+        ),
+
+        /// Event emitted when bridge token is issued by materialization
+        /// [src_id, chain_nonce, bridge_token_id, receiver, amount]
         MaterializeMinted(ChainId, ChainNonce, CurrencyId, T::AccountId, BalanceOf<T>),
 
         /// Event emitted when a proposal is initialized by materialization
-        /// [src_id, src_nonce, voter, currency_id, to, amount]
+        /// [src_id, src_nonce, voter, bridge_token_id, to, amount]
         MaterializeInitialized(
             ChainId,
             ChainNonce,
@@ -173,19 +182,19 @@ pub mod pallet {
             BalanceOf<T>,
         ),
 
-        /// Vote submitted in favour of proposal
+        /// Vote for a proposal
         /// [src_id, src_nonce, voter]
         VoteFor(ChainId, ChainNonce, T::AccountId),
 
-        /// Vot submitted against proposal
+        /// Vote against a proposal
         /// [src_id, src_nonce, voter]
         VoteAgainst(ChainId, ChainNonce, T::AccountId),
 
-        /// Voting successful for a proposal
+        /// Proposal was approved successfully
         /// [src_id, src_nonce]
         ProposalApproved(ChainId, ChainNonce),
 
-        /// Voting rejected a proposal
+        /// Proposal was rejected
         /// [src_id, src_nonce]
         ProposalRejected(ChainId, ChainNonce),
     }
@@ -203,16 +212,16 @@ pub mod pallet {
     pub type ChainNonces<T: Config> = StorageMap<_, Blake2_256, ChainId, ChainNonce, ValueQuery>;
 
     #[pallet::storage]
-    #[pallet::getter(fn currency_ids)]
-    pub type CurrencyIds<T: Config> =
-        StorageMap<_, Twox64Concat, AssetIdOf<T>, CurrencyId, ValueQuery>;
+    #[pallet::getter(fn bridge_tokens)]
+    pub type BridgeTokens<T: Config> =
+        StorageMap<_, Twox64Concat, AssetIdOf<T>, BridgeToken, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn asset_ids)]
     pub type AssetIds<T: Config> =
         StorageMap<_, Twox64Concat, CurrencyId, AssetIdOf<T>, ValueQuery>;
 
-    /// Mapping of [chain_id -> nonce -> proposal]
+    /// Mapping of [chain_id -> (nonce, call) -> proposal]
     #[pallet::storage]
     #[pallet::getter(fn votes)]
     pub type ProposalVotes<T: Config> = StorageDoubleMap<
@@ -245,24 +254,30 @@ pub mod pallet {
             Ok(())
         }
 
+        /// Register the specified chain_id
+        ///
+        /// Only registered chains are allowed to cross-chain
+        ///
+        /// - `chain_id`: should be unique.
         #[pallet::weight(T::WeightInfo::register_chain())]
         #[transactional]
-        pub fn register_chain(origin: OriginFor<T>, id: ChainId) -> DispatchResult {
+        pub fn register_chain(origin: OriginFor<T>, chain_id: ChainId) -> DispatchResult {
             Self::ensure_admin(origin)?;
 
             // Registered chain_id cannot be this chain_id or a existed chain_id
             ensure!(
-                id != T::ChainId::get() && !Self::chain_registered(id),
+                chain_id != T::ChainId::get() && !Self::chain_registered(chain_id),
                 Error::<T>::ChainIdAlreadyRegistered
             );
 
-            // Register a new chain_id
-            ChainNonces::<T>::insert(id, 0);
-            Self::deposit_event(Event::ChainRegistered(id));
+            // Write a new chain_id into storage
+            ChainNonces::<T>::insert(chain_id, 0);
+            Self::deposit_event(Event::ChainRegistered(chain_id));
 
             Ok(())
         }
 
+        /// Unregister the specified chain_id    
         #[pallet::weight(T::WeightInfo::unregister_chain())]
         #[transactional]
         pub fn unregister_chain(origin: OriginFor<T>, id: ChainId) -> DispatchResult {
@@ -278,84 +293,136 @@ pub mod pallet {
             Ok(())
         }
 
-        #[pallet::weight(T::WeightInfo::register_currency())]
+        /// Register the specified bridge_token_id
+        ///
+        /// Only registered bridge_tokens are allowed to cross-chain
+        ///
+        /// - `bridge_token`: bridge_token_id should be unique.
+        #[pallet::weight(T::WeightInfo::register_bridge_token())]
         #[transactional]
-        pub fn register_currency(
+        pub fn register_bridge_token(
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
-            currency_id: CurrencyId,
+            bridge_token: BridgeToken,
         ) -> DispatchResultWithPostInfo {
             Self::ensure_admin(origin)?;
 
             ensure!(
-                !CurrencyIds::<T>::contains_key(currency_id)
-                    && !AssetIds::<T>::contains_key(asset_id),
-                Error::<T>::CurrencyIdAlreadyRegistered,
+                !BridgeTokens::<T>::contains_key(asset_id)
+                    && !AssetIds::<T>::contains_key(bridge_token.clone().id),
+                Error::<T>::BridgeTokenAlreadyRegistered,
             );
 
-            CurrencyIds::<T>::insert(asset_id, currency_id);
-            AssetIds::<T>::insert(currency_id, asset_id);
+            BridgeTokens::<T>::insert(asset_id, bridge_token.clone());
+            AssetIds::<T>::insert(bridge_token.id, asset_id);
 
-            Self::deposit_event(Event::CurrencyRegistered(asset_id, currency_id));
+            Self::deposit_event(Event::BridgeTokenRegistered(asset_id, bridge_token.id));
             Ok(().into())
         }
 
-        #[pallet::weight(T::WeightInfo::unregister_currency())]
+        /// Unregister the specified bridge_token_id
+        #[pallet::weight(T::WeightInfo::unregister_bridge_token())]
         #[transactional]
-        pub fn unregister_currency(
+        pub fn unregister_bridge_token(
             origin: OriginFor<T>,
-            currency_id: CurrencyId,
+            bridge_token_id: CurrencyId,
         ) -> DispatchResultWithPostInfo {
             Self::ensure_admin(origin)?;
+            Self::ensure_bridge_token_registered(bridge_token_id)?;
 
-            Self::ensure_currency_registered(currency_id)?;
+            let asset_id = AssetIds::<T>::get(bridge_token_id);
+            BridgeTokens::<T>::remove(asset_id);
+            AssetIds::<T>::remove(bridge_token_id);
 
-            let asset_id = AssetIds::<T>::get(currency_id);
-            CurrencyIds::<T>::remove(asset_id);
-            AssetIds::<T>::remove(currency_id);
-
-            Self::deposit_event(Event::CurrencyRemoved(asset_id, currency_id));
+            Self::deposit_event(Event::BridgeTokenRemoved(asset_id, bridge_token_id));
             Ok(().into())
         }
 
-        /// Teleport the currency to specified recipient in the destination chain
+        /// Set the cross-chain transaction fee for a registered bridge token
+        #[pallet::weight(T::WeightInfo::set_bridge_token_fee())]
+        #[transactional]
+        pub fn set_bridge_token_fee(
+            origin: OriginFor<T>,
+            bridge_token_id: CurrencyId,
+            new_fee: BalanceOf<T>,
+        ) -> DispatchResult {
+            Self::ensure_admin(origin)?;
+            Self::ensure_bridge_token_registered(bridge_token_id)?;
+
+            let asset_id = AssetIds::<T>::get(bridge_token_id);
+            BridgeTokens::<T>::mutate(asset_id, |token| {
+                token.fee = new_fee;
+            });
+
+            Self::deposit_event(Event::BridgeTokenFeeChanged(bridge_token_id, new_fee));
+            Ok(())
+        }
+
+        /// Teleport the bridge token to specified recipient in the destination chain
+        ///
+        /// Transfer funds from one account to an account in another registered chain.
+        /// Support for native token and tokens of Assets pallet
+        /// The caller's assets will be locked into palletId
+        ///
+        /// - `dest_id`: chain_id of the destination chain, should be registered.
+        /// - `bridge_token_id`: bridge token should be registered before teleport.
+        /// - `to`: recipient of the bridge token of another chain
+        /// - `amount`: amount to be teleported, the decimal of bridge token may be different
         #[pallet::weight(T::WeightInfo::teleport())]
         #[transactional]
         pub fn teleport(
             origin: OriginFor<T>,
             dest_id: ChainId,
-            currency_id: CurrencyId,
+            bridge_token_id: CurrencyId,
             to: TeleAccount,
             amount: BalanceOf<T>,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
             Self::ensure_chain_registered(dest_id)?;
-            Self::ensure_currency_registered(currency_id)?;
+            Self::ensure_bridge_token_registered(bridge_token_id)?;
 
-            let asset_id = AssetIds::<T>::get(currency_id);
-            T::Assets::transfer(asset_id, &who, &Self::account_id(), amount, false)?;
+            let asset_id = AssetIds::<T>::get(bridge_token_id);
+            let BridgeToken { external, fee, .. } = BridgeTokens::<T>::get(asset_id);
+            let actual_amount = amount.checked_sub(fee).ok_or(ArithmeticError::Underflow)?;
+            if external {
+                T::Assets::burn_from(asset_id, &who, amount)?;
+                T::Assets::mint_into(asset_id, &Self::account_id(), fee)?;
+            } else {
+                T::Assets::transfer(asset_id, &who, &Self::account_id(), amount, false)?;
+            }
 
-            Self::teleport_internal(dest_id, currency_id, to, amount)
+            Self::teleport_internal(dest_id, bridge_token_id, to, actual_amount, fee)
         }
 
+        /// Materialize the bridge token to specified recipient in this chain
+        ///
+        /// The first call to the same cross-chain transaction will create a proposal
+        /// And subsequent calls will update the existing state until completion
+        ///
+        /// - `src_id`: chain_id of the source chain, should be registered.
+        /// - `src_nonce`: nonce of the source chain, should be unique to identify the cross-cahin tx.
+        /// - `bridge_token_id`: bridge_token_id of the bridge token to be materialized, should be registered.
+        /// - `to`: recipient of the bridge token of this chain
+        /// - `amount`: amount to be materialized, the decimal of bridge token may be different
+        /// - `favour`: whether to favour the cross-chain transaction or not, always be true for now.
         #[pallet::weight(T::WeightInfo::materialize())]
         #[transactional]
         pub fn materialize(
             origin: OriginFor<T>,
             src_id: ChainId,
             src_nonce: ChainNonce,
-            currency_id: CurrencyId,
+            bridge_token_id: CurrencyId,
             to: T::AccountId,
             amount: BalanceOf<T>,
             favour: bool,
         ) -> DispatchResult {
             Self::ensure_admin(origin.clone())?;
             Self::ensure_chain_registered(src_id)?;
-            Self::ensure_currency_registered(currency_id)?;
+            Self::ensure_bridge_token_registered(bridge_token_id)?;
 
             let who = ensure_signed(origin)?;
             let call = MaterializeCall {
-                currency_id,
+                bridge_token_id,
                 to,
                 amount,
             };
@@ -367,7 +434,7 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-        fn on_idle(block_number: T::BlockNumber, _remain_weight: Weight) -> u64 {
+        fn on_initialize(block_number: T::BlockNumber) -> u64 {
             let expired = ProposalVotes::<T>::iter().filter(|x| (*x).2.is_expired(block_number));
             expired.for_each(|x| {
                 let chain_id = x.0;
@@ -411,15 +478,15 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    /// Checks if a currency is registered
-    fn currency_registered(currency_id: CurrencyId) -> bool {
-        AssetIds::<T>::contains_key(currency_id)
+    /// Checks if a bridge_token_id is registered
+    fn bridge_token_registered(bridge_token_id: CurrencyId) -> bool {
+        AssetIds::<T>::contains_key(bridge_token_id)
     }
 
-    fn ensure_currency_registered(currency_id: CurrencyId) -> DispatchResult {
+    fn ensure_bridge_token_registered(bridge_token_id: CurrencyId) -> DispatchResult {
         ensure!(
-            Self::currency_registered(currency_id),
-            Error::<T>::CurrencyIdNotRegistered
+            Self::bridge_token_registered(bridge_token_id),
+            Error::<T>::BridgeTokenNotRegistered
         );
 
         Ok(())
@@ -438,22 +505,24 @@ impl<T: Config> Pallet<T> {
         nonce
     }
 
-    /// Initiates a transfer of the currency
+    /// Initiates a transfer of the bridge token
     #[require_transactional]
     fn teleport_internal(
         dest_id: ChainId,
-        currency_id: CurrencyId,
+        bridge_token_id: CurrencyId,
         to: TeleAccount,
         amount: BalanceOf<T>,
+        fee: BalanceOf<T>,
     ) -> DispatchResult {
         let nonce = Self::bump_nonce(dest_id);
 
         Self::deposit_event(Event::TeleportBurned(
             dest_id,
             nonce,
-            currency_id,
+            bridge_token_id,
             to,
             amount,
+            fee,
         ));
         Ok(())
     }
@@ -472,7 +541,7 @@ impl<T: Config> Pallet<T> {
             Some(p) => p,
             None => {
                 let MaterializeCall {
-                    currency_id,
+                    bridge_token_id,
                     to,
                     amount,
                 } = call.clone();
@@ -480,7 +549,7 @@ impl<T: Config> Pallet<T> {
                     src_id,
                     src_nonce,
                     who.clone(),
-                    currency_id,
+                    bridge_token_id,
                     to,
                     amount,
                 ));
@@ -541,17 +610,22 @@ impl<T: Config> Pallet<T> {
         call: MaterializeCallOf<T>,
     ) -> DispatchResult {
         Self::ensure_chain_registered(src_id)?;
-        Self::ensure_currency_registered(call.currency_id)?;
+        Self::ensure_bridge_token_registered(call.bridge_token_id)?;
 
         Self::deposit_event(Event::ProposalApproved(src_id, src_nonce));
 
-        let asset_id = AssetIds::<T>::get(call.currency_id);
-        T::Assets::transfer(asset_id, &Self::account_id(), &call.to, call.amount, true)?;
+        let asset_id = AssetIds::<T>::get(call.bridge_token_id);
+        let BridgeToken { external, .. } = BridgeTokens::<T>::get(asset_id);
+        if external {
+            T::Assets::mint_into(asset_id, &call.to, call.amount)?;
+        } else {
+            T::Assets::transfer(asset_id, &Self::account_id(), &call.to, call.amount, true)?;
+        }
 
         Self::deposit_event(Event::MaterializeMinted(
             src_id,
             src_nonce,
-            call.currency_id,
+            call.bridge_token_id,
             call.to,
             call.amount,
         ));
