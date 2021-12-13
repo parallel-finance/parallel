@@ -196,12 +196,6 @@ pub mod pallet {
         StakingCurrencyNotReady,
         /// Exceeded unstake queue's capacity
         ExceededUnstakeQueueCapacity,
-        /// Exceeded max rewards per era
-        ExceededMaxRewardsPerEra,
-        /// Exceeded max slashes per era
-        ExceededMaxSlashesPerEra,
-        /// Exceeded staking pool's capacity
-        ExceededStakingPoolCapacity,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
