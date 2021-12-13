@@ -32,6 +32,7 @@ use primitives::{switch_relay, ump::*, Balance, CurrencyId, ParaId};
 use scale_info::prelude::format;
 use sp_runtime::traits::StaticLookup;
 use sp_runtime::traits::{AccountIdConversion, BlockNumberProvider};
+use sp_runtime::ArithmeticError;
 use sp_std::{boxed::Box, vec};
 use xcm::{latest::prelude::*, DoubleEncoded};
 
@@ -69,6 +70,11 @@ pub mod pallet {
         /// The block number provider
         type BlockNumberProvider: BlockNumberProvider<BlockNumber = Self::BlockNumber>;
     }
+
+    /// Total amount of charged assets to be used as xcm fees.
+    #[pallet::storage]
+    #[pallet::getter(fn insurance_pool)]
+    pub type InsurancePool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn xcm_fees)]
@@ -212,6 +218,12 @@ pub trait XcmHelper<Balance, AssetId, AccountId> {
         account_id: AccountId,
         index: u16,
     ) -> DispatchResult;
+
+    fn get_insurance_pool() -> Balance;
+
+    fn update_insurance_pool(fees: Balance) -> DispatchResult;
+
+    fn reduce_insurance_pool(fees: Balance) -> DispatchResult;
 }
 
 impl<T: Config> Pallet<T> {
@@ -288,6 +300,8 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
         );
 
         T::Assets::burn_from(staking_currency, &account_id, fees)?;
+
+        Self::reduce_insurance_pool(fees)?;
 
         Ok(Xcm(vec![
             WithdrawAsset(MultiAssets::from(asset.clone())),
@@ -671,5 +685,23 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
         });
 
         Ok(())
+    }
+
+    fn get_insurance_pool() -> BalanceOf<T> {
+        Self::insurance_pool()
+    }
+
+    fn update_insurance_pool(fees: BalanceOf<T>) -> DispatchResult {
+        InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
+            *b = b.checked_add(fees).ok_or(ArithmeticError::Overflow)?;
+            Ok(())
+        })
+    }
+
+    fn reduce_insurance_pool(amount: BalanceOf<T>) -> DispatchResult {
+        InsurancePool::<T>::try_mutate(|v| -> DispatchResult {
+            *v = v.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
+            Ok(())
+        })
     }
 }

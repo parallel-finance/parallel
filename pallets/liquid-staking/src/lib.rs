@@ -210,11 +210,6 @@ pub mod pallet {
     #[pallet::getter(fn exchange_rate)]
     pub type ExchangeRate<T: Config> = StorageValue<_, Rate, ValueQuery>;
 
-    /// Total amount of charged assets to be used as xcm fees.
-    #[pallet::storage]
-    #[pallet::getter(fn insurance_pool)]
-    pub type InsurancePool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
-
     /// Fraction of reward currently set aside for reserves.
     #[pallet::storage]
     #[pallet::getter(fn reserve_factor)]
@@ -316,7 +311,7 @@ pub mod pallet {
                 // InsurancePool should not be embazzled.
                 let free_balance =
                     T::Assets::reducible_balance(staking_currency, &account_id, false)
-                        .saturating_sub(Self::insurance_pool());
+                        .saturating_sub(T::XCM::get_insurance_pool());
 
                 log::trace!(
                     target: "liquidstaking::on_idle",
@@ -379,10 +374,7 @@ pub mod pallet {
 
             // calculate staking fee and add it to insurance pool
             let fees = Self::reserve_factor().mul_floor(amount);
-            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_add(fees).ok_or(ArithmeticError::Overflow)?;
-                Ok(())
-            })?;
+            T::XCM::update_insurance_pool(fees)?;
 
             // amount that we should mint to user
             let amount = amount.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
@@ -518,10 +510,7 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
-            InsurancePool::<T>::try_mutate(|v| -> DispatchResult {
-                *v = v.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
-                Ok(())
-            })?;
+            T::XCM::reduce_insurance_pool(amount)?;
             Self::bond_extra_internal(amount)?;
             Self::deposit_event(Event::<T>::SlashPaid(amount));
             Ok(().into())
@@ -705,10 +694,7 @@ pub mod pallet {
                 false,
             )?;
 
-            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
-                Ok(())
-            })?;
+            T::XCM::update_insurance_pool(amount)?;
             Self::deposit_event(Event::<T>::InsurancesAdded(who, amount));
             Ok(())
         }
