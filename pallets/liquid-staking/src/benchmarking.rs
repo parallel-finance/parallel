@@ -91,7 +91,7 @@ fn initial_set_up<
     T::XCM::update_insurance_pool(INITIAL_INSURANCE).unwrap();
 }
 
-fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
+fn assert_last_event<T: Config + pallet_xcm_helper::Config,>(generic_event: <T as Config>::Event) {
     frame_system::Pallet::<T>::assert_last_event(generic_event.into());
 }
 
@@ -124,7 +124,7 @@ benchmarks! {
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
     }: _(SystemOrigin::Root, BOND_AMOUNT,  RewardDestination::Staked)
     verify {
-        assert_last_event::<T>(Event::<T>::Bonding(LiquidStaking::<T>::derivative_para_account_id(), BOND_AMOUNT, RewardDestination::Staked).into());
+        assert_last_event::<T as pallet_xcm_helper::Config>(Event::<T>::Bonding(LiquidStaking::<T>::derivative_para_account_id(), BOND_AMOUNT, RewardDestination::Staked).into());
     }
 
     nominate {
