@@ -659,7 +659,7 @@ pub mod pallet {
             T::RelayOrigin::ensure_origin(origin)?;
             T::XCM::nominate(
                 targets,
-                Self::xcm_weight().bond_weight,
+                Self::xcm_weight().nominate_weight,
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
                 Self::account_id(),
@@ -768,7 +768,7 @@ pub mod pallet {
             T::XCM::bond_extra_internal(
                 value,
                 Self::derivative_para_account_id(),
-                Self::xcm_weight().bond_weight,
+                Self::xcm_weight().bond_extra_weight,
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
                 Self::account_id(),
@@ -780,7 +780,7 @@ pub mod pallet {
         fn unbond_internal(value: BalanceOf<T>) -> DispatchResult {
             T::XCM::unbond_internal(
                 value,
-                Self::xcm_weight().bond_weight,
+                Self::xcm_weight().unbond_weight,
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
                 Self::account_id(),
@@ -792,7 +792,7 @@ pub mod pallet {
         fn rebond_internal(value: BalanceOf<T>) -> DispatchResult {
             T::XCM::rebond_internal(
                 value,
-                Self::xcm_weight().bond_weight,
+                Self::xcm_weight().rebond_weight,
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
                 Self::account_id(),
@@ -808,7 +808,7 @@ pub mod pallet {
             T::XCM::withdraw_unbonded_internal(
                 num_slashing_spans,
                 amount,
-                Self::xcm_weight().bond_weight,
+                Self::xcm_weight().withdraw_unbonded_weight,
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
                 Self::account_id(),
