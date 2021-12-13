@@ -1,8 +1,15 @@
 use codec::{Decode, Encode};
 use frame_support::RuntimeDebug;
-// use primitives::{AccountId, Balance, CurrencyId};
+use primitives::{Balance, CurrencyId};
 use scale_info::prelude::vec::Vec;
 use scale_info::{prelude::vec, TypeInfo};
+
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
+pub struct BridgeToken {
+    pub id: CurrencyId,
+    pub external: bool,
+    pub fee: Balance,
+}
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum ProposalStatus {
@@ -13,7 +20,7 @@ pub enum ProposalStatus {
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
 pub struct MaterializeCall<T, E, R> {
-    pub currency_id: T,
+    pub bridge_token_id: T,
     pub to: E,
     pub amount: R,
 }
