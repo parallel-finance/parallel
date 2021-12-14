@@ -41,6 +41,7 @@ pub mod pallet {
         log,
         pallet_prelude::*,
         require_transactional,
+        storage::{child, ChildTriePrefixIterator},
         traits::{
             fungibles::{Inspect, Mutate, Transfer},
             Get,
@@ -49,9 +50,9 @@ pub mod pallet {
     };
     use frame_system::{ensure_signed, pallet_prelude::OriginFor};
     use pallet_xcm::ensure_response;
-    use primitives::{ump::*, Balance, CurrencyId, ParaId};
+    use primitives::{ump::*, Balance, CurrencyId, ParaId, TrieIndex};
     use sp_runtime::{
-        traits::{AccountIdConversion, Convert, Zero},
+        traits::{AccountIdConversion, Convert, Hash, Zero},
         ArithmeticError, DispatchError,
     };
     use sp_std::{boxed::Box, convert::TryInto, vec::Vec};
@@ -204,6 +205,10 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn current_index)]
     pub type BatchIndexes<T: Config> = StorageMap<_, Blake2_128Concat, ParaId, u32, OptionQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn next_trie_index)]
+    pub type NextTrieIndex<T> = StorageValue<_, u32, ValueQuery>;
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
@@ -533,6 +538,11 @@ pub mod pallet {
             T::PalletId::get().into_account()
         }
 
+        /// Crowdloans vault account
+        pub fn vault_account_id(index: ParaId) -> T::AccountId {
+            T::PalletId::get().into_sub_account(index)
+        }
+
         /// Parachain's sovereign account on relaychain
         pub fn para_account_id() -> T::AccountId {
             T::SelfParaId::get().into_account()
@@ -586,6 +596,61 @@ pub mod pallet {
                 ensure!(vault.phase == phase, Error::<T>::IncorrectVaultPhase);
                 cb(vault)
             })
+        }
+
+        fn id_from_index(index: TrieIndex, pending: bool) -> child::ChildInfo {
+            let mut buf = Vec::new();
+            buf.extend_from_slice({
+                if pending {
+                    b"crowdloan:pending"
+                } else {
+                    b"crowdloan"
+                }
+            });
+            buf.extend_from_slice(&index.encode()[..]);
+            child::ChildInfo::new_default(T::Hashing::hash(&buf[..]).as_ref())
+        }
+
+        pub fn contribution_put(
+            index: TrieIndex,
+            who: &T::AccountId,
+            balance: &BalanceOf<T>,
+            pending: bool,
+        ) {
+            who.using_encoded(|b| {
+                child::put(
+                    &Self::id_from_index(index, pending),
+                    b,
+                    &(balance, &Vec::<u8>::new()),
+                )
+            });
+        }
+
+        pub fn contribution_get(
+            index: TrieIndex,
+            who: &T::AccountId,
+            pending: bool,
+        ) -> (BalanceOf<T>, Vec<u8>) {
+            who.using_encoded(|b| {
+                child::get_or_default::<(BalanceOf<T>, Vec<u8>)>(
+                    &Self::id_from_index(index, pending),
+                    b,
+                )
+            })
+        }
+
+        pub fn contribution_kill(index: TrieIndex, who: &T::AccountId, pending: bool) {
+            who.using_encoded(|b| child::kill(&Self::id_from_index(index, pending), b));
+        }
+
+        pub fn contribution_iterator(
+            index: TrieIndex,
+            pending: bool,
+        ) -> ChildTriePrefixIterator<(T::AccountId, (BalanceOf<T>, Vec<u8>))> {
+            ChildTriePrefixIterator::<_>::with_prefix_over_key::<Identity>(
+                &Self::id_from_index(index, pending),
+                &[],
+            )
         }
 
         #[require_transactional]
