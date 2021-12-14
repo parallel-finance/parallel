@@ -91,7 +91,7 @@ fn initial_set_up<
     T::XCM::update_insurance_pool(INITIAL_INSURANCE).unwrap();
 }
 
-fn assert_last_event<T: Config + pallet_xcm_helper::Config,>(generic_event: <T as Config>::Event) {
+fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
     frame_system::Pallet::<T>::assert_last_event(generic_event.into());
 }
 
