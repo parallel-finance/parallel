@@ -338,7 +338,7 @@ pub mod pallet {
                     Self::do_contribute(&who, &mut vault, crowdloan, amount)?;
                 }
                 _ => {
-                    Self::add_contribution(&who, &mut vault, amount)?;
+                    Self::do_pending_contribution(&who, &mut vault, amount)?;
                 }
             }
 
@@ -579,7 +579,7 @@ pub mod pallet {
         }
 
         #[require_transactional]
-        fn add_contribution(
+        fn do_pending_contribution(
             who: &AccountIdOf<T>,
             vault: &mut Vault<T>,
             amount: BalanceOf<T>,
@@ -673,7 +673,7 @@ pub mod pallet {
         ) -> Result<(), DispatchError> {
             T::Assets::burn_from(T::RelayCurrency::get(), &Self::account_id(), amount)?;
 
-            T::XCM::do_contribute(
+            let query_id = T::XCM::do_contribute(
                 crowdloan,
                 T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
                 T::RelayCurrency::get(),
@@ -682,7 +682,15 @@ pub mod pallet {
                 Self::notify_placeholder(),
             )?;
 
-            Self::add_contribution(who, vault, amount)?;
+            XcmInflight::<T>::insert(
+                query_id,
+                XcmInflightRequest::Contribute {
+                    who: who.clone(),
+                    amount: amount,
+                },
+            );
+
+            Self::do_pending_contribution(who, vault, amount)?;
 
             Ok(())
         }
@@ -696,13 +704,21 @@ pub mod pallet {
                 &amount,
             );
 
-            T::XCM::do_withdraw(
+            let query_id = T::XCM::do_withdraw(
                 para_id,
                 T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
                 T::RelayCurrency::get(),
                 Self::para_account_id(),
                 Self::notify_placeholder(),
             )?;
+
+            XcmInflight::<T>::insert(
+                query_id,
+                XcmInflightRequest::Withdraw {
+                    index: para_id,
+                    amount: amount,
+                },
+            );
 
             T::Assets::mint_into(T::RelayCurrency::get(), &Self::account_id(), amount)?;
 
