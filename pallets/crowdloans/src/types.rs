@@ -21,6 +21,8 @@ use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, RuntimeDebug};
 
+use primitives::TrieIndex;
+
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum VaultPhase {
     /// Vault is open for contributions but wont execute contribute call on relaychain
@@ -57,11 +59,18 @@ pub struct Vault<T: Config> {
     pub pending: BalanceOf<T>,
     /// How we contribute coins to the crowdloan
     pub contribution_strategy: ContributionStrategy,
+    /// child storage trie index where we store all contributions
+    pub trie_index: TrieIndex,
 }
 
 /// init default vault with ctoken and currency override
 impl<T: Config> Vault<T> {
-    pub fn new(id: u32, ctoken: AssetIdOf<T>, contribution_strategy: ContributionStrategy) -> Self {
+    pub fn new(
+        id: u32,
+        ctoken: AssetIdOf<T>,
+        contribution_strategy: ContributionStrategy,
+        trie_index: TrieIndex,
+    ) -> Self {
         Self {
             id,
             ctoken,
@@ -69,6 +78,7 @@ impl<T: Config> Vault<T> {
             contributed: Zero::zero(),
             pending: Zero::zero(),
             contribution_strategy,
+            trie_index,
         }
     }
 }

@@ -249,7 +249,11 @@ pub mod pallet {
                 ctoken,
             );
 
-            let new_vault = Vault::new(next_index, ctoken, contribution_strategy);
+            let trie_index = Self::next_trie_index();
+            let next_trie_index = trie_index.checked_add(1).ok_or(ArithmeticError::Overflow)?;
+            let new_vault = Vault::new(next_index, ctoken, contribution_strategy, trie_index);
+
+            NextTrieIndex::<T>::put(next_trie_index);
 
             Vaults::<T>::insert(crowdloan, next_index, new_vault);
             CTokensRegistry::<T>::insert(ctoken, (crowdloan, next_index));

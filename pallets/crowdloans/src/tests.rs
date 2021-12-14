@@ -46,6 +46,7 @@ fn create_new_vault_should_work() {
                 contributed: Zero::zero(),
                 pending: Zero::zero(),
                 contribution_strategy,
+                trie_index: Zero::zero(),
             }
         );
     });
