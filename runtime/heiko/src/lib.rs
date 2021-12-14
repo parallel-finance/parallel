@@ -42,7 +42,8 @@ use sp_core::{
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{
-        self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, Zero,
+        self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT,
+        BlockNumberProvider, Convert, Zero,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Permill, RuntimeDebug,
