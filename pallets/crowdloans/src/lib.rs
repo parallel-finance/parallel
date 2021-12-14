@@ -329,7 +329,7 @@ pub mod pallet {
             T::Assets::transfer(
                 T::RelayCurrency::get(),
                 &who,
-                &Self::account_id(),
+                &Self::vault_account_id(crowdloan),
                 amount,
                 true,
             )?;
@@ -455,9 +455,9 @@ pub mod pallet {
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
-            let vault = Self::ctokens_registry(ctoken)
-                .and_then(|(crowdloan, index)| Self::vaults(crowdloan, index))
-                .ok_or(Error::<T>::VaultDoesNotExist)?;
+            let (crowdloan, index) =
+                Self::ctokens_registry(ctoken).ok_or(Error::<T>::VaultDoesNotExist)?;
+            let vault = Self::vaults(crowdloan, index).ok_or(Error::<T>::VaultDoesNotExist)?;
 
             ensure!(
                 vault.phase == VaultPhase::Failed || vault.phase == VaultPhase::Expired,
@@ -477,7 +477,7 @@ pub mod pallet {
 
             T::Assets::transfer(
                 T::RelayCurrency::get(),
-                &Self::account_id(),
+                &Self::vault_account_id(crowdloan),
                 &who,
                 amount,
                 false,
@@ -547,15 +547,15 @@ pub mod pallet {
                                 T::Assets::mint_into(vault.ctoken, &who, amount)?;
                                 T::Assets::burn_from(
                                     T::RelayCurrency::get(),
-                                    &Self::account_id(),
+                                    &Self::vault_account_id(index),
                                     amount,
                                 )?;
-                                Self::migrate_pending(&who, &mut vault, amount)?;
+                                Self::do_migrate_pending(&who, &mut vault, amount)?;
                             }
-                            XcmInflightRequest::Withdraw { index: _, amount } => {
+                            XcmInflightRequest::Withdraw { index, amount } => {
                                 T::Assets::mint_into(
                                     T::RelayCurrency::get(),
-                                    &Self::account_id(),
+                                    &Self::vault_account_id(index),
                                     amount,
                                 )?;
                             }
@@ -564,14 +564,10 @@ pub mod pallet {
                         XcmInflight::<T>::remove(&query_id);
                     }
                     (Some(request), Some(_)) => match request {
-                        XcmInflightRequest::Contribute {
-                            index: _,
-                            who,
-                            amount,
-                        } => {
+                        XcmInflightRequest::Contribute { index, who, amount } => {
                             T::Assets::transfer(
                                 T::RelayCurrency::get(),
-                                &Self::account_id(),
+                                &Self::vault_account_id(index),
                                 &who,
                                 amount,
                                 true,
@@ -596,9 +592,14 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        /// Crowdloans pool account
+        /// Crowdloans main account
         pub fn account_id() -> T::AccountId {
             T::PalletId::get().into_account()
+        }
+
+        /// Crowdloans vault account
+        pub fn vault_account_id(crowdloan: ParaId) -> T::AccountId {
+            T::PalletId::get().into_sub_account(crowdloan)
         }
 
         /// Parachain's sovereign account on relaychain
@@ -645,7 +646,7 @@ pub mod pallet {
             Ok(())
         }
 
-        fn migrate_pending(
+        fn do_migrate_pending(
             who: &AccountIdOf<T>,
             vault: &mut Vault<T>,
             amount: BalanceOf<T>,
