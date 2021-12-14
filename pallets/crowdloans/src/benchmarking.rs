@@ -115,8 +115,8 @@ benchmarks! {
     }: _(
         SystemOrigin::Root,
         crowdloan,
-        Some(1_000_000_000_001)
-        Some(BlockNumber::from(1_000_000_001u32))
+        Some(1_000_000_000_001),
+        Some(BlockNumber::from(1_000_000_001u32)),
         Some(ContributionStrategy::XCM)
     )
     verify {
