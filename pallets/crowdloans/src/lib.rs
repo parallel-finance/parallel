@@ -532,10 +532,27 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let responder = ensure_response(<T as Config>::Origin::from(origin))?;
             if let Response::ExecutionResult(res) = response {
-                // TODO: should remove xcm inflight request
-                // if succeeded, should mutate contributed, burn KSM/DOT from account id
-                // also need to migrate contribution from pending child storage to normal storage
-                // if fails, should return back users' KSM/DOT ?
+                if let Some(request) = Self::xcm_inflight(&query_id) {
+                    if res.is_none() {
+                        match request {
+                            XcmInflightRequest::Contribute { index, who, amount } => {
+                                T::Assets::burn_from(
+                                    T::RelayCurrency::get(),
+                                    &Self::account_id(),
+                                    amount,
+                                )?;
+
+                                Self::migrate_pending();
+                            }
+                            XcmInflightRequest::Withdraw { index, amount } => {}
+                        }
+                    }
+                    // TODO: should remove xcm inflight request
+                    // if succeeded, should mutate contributed, burn KSM/DOT from account id
+                    // also need to migrate contribution from pending child storage to normal storage
+                    // if fails, should return back users' KSM/DOT ?
+                }
+
                 Self::deposit_event(Event::<T>::NotificationReceived(
                     Box::new(responder),
                     query_id,
@@ -669,6 +686,8 @@ pub mod pallet {
             )
         }
 
+        pub fn migrate_pending() {}
+
         #[require_transactional]
         fn do_contribute(
             who: &AccountIdOf<T>,
@@ -691,6 +710,7 @@ pub mod pallet {
             XcmInflight::<T>::insert(
                 query_id,
                 XcmInflightRequest::Contribute {
+                    index: crowdloan,
                     who: who.clone(),
                     amount: amount,
                 },

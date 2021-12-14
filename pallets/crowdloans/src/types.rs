@@ -92,6 +92,7 @@ pub enum ContributionStrategy {
 #[scale_info(skip_type_params(T))]
 pub enum XcmInflightRequest<T: Config> {
     Contribute {
+        index: ParaId,
         who: AccountIdOf<T>,
         amount: BalanceOf<T>,
     },
