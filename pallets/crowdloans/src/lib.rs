@@ -281,6 +281,7 @@ pub mod pallet {
                 crowdloan,
             );
 
+            // TODO: should check if still have pending contributions
             Self::try_mutate_vault(crowdloan, VaultPhase::Pending, |vault| {
                 vault.phase = VaultPhase::Contributing;
                 Self::deposit_event(Event::<T>::VaultOpened(crowdloan));
@@ -531,6 +532,10 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let responder = ensure_response(<T as Config>::Origin::from(origin))?;
             if let Response::ExecutionResult(res) = response {
+                // TODO: should remove xcm inflight request
+                // if succeeded, should mutate contributed, burn KSM/DOT from account id
+                // also need to migrate contribution from pending child storage to normal storage
+                // if fails, should return back users' KSM/DOT ?
                 Self::deposit_event(Event::<T>::NotificationReceived(
                     Box::new(responder),
                     query_id,
@@ -671,6 +676,7 @@ pub mod pallet {
             crowdloan: ParaId,
             amount: BalanceOf<T>,
         ) -> Result<(), DispatchError> {
+            // TODO: should burn after receiving notify
             T::Assets::burn_from(T::RelayCurrency::get(), &Self::account_id(), amount)?;
 
             let query_id = T::XCM::do_contribute(
@@ -720,6 +726,7 @@ pub mod pallet {
                 },
             );
 
+            // TODO: should mint after receiving notify
             T::Assets::mint_into(T::RelayCurrency::get(), &Self::account_id(), amount)?;
 
             Ok(())
