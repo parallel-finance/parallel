@@ -572,19 +572,18 @@ pub mod pallet {
         #[require_transactional]
         fn add_contribution(vault: &mut Vault<T>, amount: BalanceOf<T>) -> DispatchResult {
             match vault.phase {
-                VaultPhase::Pending => {
-                    vault.pending = vault
-                        .pending
-                        .checked_add(amount)
-                        .ok_or(ArithmeticError::Overflow)?;
-                }
                 VaultPhase::Contributing => {
                     vault.contributed = vault
                         .contributed
                         .checked_add(amount)
                         .ok_or(ArithmeticError::Overflow)?;
                 }
-                _ => unreachable!(),
+                _ => {
+                    vault.pending = vault
+                        .pending
+                        .checked_add(amount)
+                        .ok_or(ArithmeticError::Overflow)?;
+                }
             }
             Ok(())
         }
