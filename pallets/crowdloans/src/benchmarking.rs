@@ -8,7 +8,7 @@ use crate::Pallet as Crowdloans;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{assert_ok, pallet_prelude::*, traits::fungibles::Mutate};
 use frame_system::{self, RawOrigin as SystemOrigin};
-use primitives::{ump::*, Balance, CurrencyId, ParaId};
+use primitives::{ump::*, Balance, BlockNumber, CurrencyId, ParaId};
 use sp_runtime::traits::{StaticLookup, Zero};
 use sp_std::prelude::*;
 
@@ -90,7 +90,7 @@ benchmarks! {
     create_vault {
         let ctoken = 8;
         let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1334);
+        let crowdloan = ParaId::from(1334u32);
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
 
@@ -108,14 +108,14 @@ benchmarks! {
     }
 
     update_vault {
-        let crowdloan = ParaId::from(1334);
+        let crowdloan = ParaId::from(1334u32);
         initial_set_up::<T>(caller);
     }: _(
         SystemOrigin::Root,
         crowdloan,
         1_000_000_000_001,
         BlockNumber::from(1_000_000_001u32),
-        ContributionStrategy::XCM,
+        ContributionStrategy::XCM
     )
     verify {
         assert_last_event::<T>(Event::<T>::VaultUpdated(crowdloan).into())
@@ -124,7 +124,7 @@ benchmarks! {
     contribute {
         let ctoken = 9;
         let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1335);
+        let crowdloan = ParaId::from(1335u32);
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
 
@@ -144,7 +144,7 @@ benchmarks! {
     open {
         let ctoken = 10;
         let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1336);
+        let crowdloan = ParaId::from(1336u32);
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
 
@@ -161,7 +161,7 @@ benchmarks! {
     close {
         let ctoken = 11;
         let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1337);
+        let crowdloan = ParaId::from(1337u32);
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
 
@@ -179,7 +179,7 @@ benchmarks! {
     toggle_vrf_delay {
         let ctoken = 12;
         let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1338);
+        let crowdloan = ParaId::from(1338u32);
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
 
@@ -195,7 +195,7 @@ benchmarks! {
     reopen {
         let ctoken = 13;
         let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1339);
+        let crowdloan = ParaId::from(1339u32);
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
 
@@ -214,7 +214,7 @@ benchmarks! {
     auction_failed {
         let ctoken = 14;
         let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1340);
+        let crowdloan = ParaId::from(1340u32);
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
 
@@ -235,7 +235,7 @@ benchmarks! {
     claim_refund {
         let ctoken = 15;
         let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1341);
+        let crowdloan = ParaId::from(1341u32);
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
 
@@ -257,7 +257,7 @@ benchmarks! {
     slot_expired {
         let ctoken = 16;
         let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1342);
+        let crowdloan = ParaId::from(1342u32);
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
 
