@@ -185,6 +185,8 @@ pub mod pallet {
         VrfDelayInProgress,
         /// Exceeded maximum vrfs
         ExceededMaxVrfs,
+        /// Pending contribution must be killed before entering `Contributing` vault phase
+        PendingContributionExists,
     }
 
     #[pallet::storage]
@@ -246,17 +248,18 @@ pub mod pallet {
                 Error::<T>::CrowdloanAlreadyExists
             );
 
-            log::trace!(
-                target: "crowdloans::create_vault",
-                "ctoken_issuance: {:?}, next_index: {:?}, ctoken: {:?}",
-                ctoken_issuance,
-                next_index,
-                ctoken,
-            );
-
             let trie_index = Self::next_trie_index();
             let next_trie_index = trie_index.checked_add(1).ok_or(ArithmeticError::Overflow)?;
             let new_vault = Vault::new(next_index, ctoken, contribution_strategy, trie_index);
+
+            log::trace!(
+                target: "crowdloans::create_vault",
+                "ctoken_issuance: {:?}, next_index: {:?}, trie_index: {:?}, ctoken: {:?}",
+                ctoken_issuance,
+                next_index,
+                trie_index,
+                ctoken,
+            );
 
             NextTrieIndex::<T>::put(next_trie_index);
 
@@ -281,8 +284,13 @@ pub mod pallet {
                 crowdloan,
             );
 
-            // TODO: should check if still have pending contributions
             Self::try_mutate_vault(crowdloan, VaultPhase::Pending, |vault| {
+                ensure!(
+                    Self::contribution_iterator(vault.trie_index, true)
+                        .count()
+                        .is_zero(),
+                    Error::<T>::PendingContributionExists
+                );
                 vault.phase = VaultPhase::Contributing;
                 Self::deposit_event(Event::<T>::VaultOpened(crowdloan));
                 Ok(())
@@ -342,8 +350,6 @@ pub mod pallet {
                     Self::do_pending_contribution(&who, &mut vault, amount)?;
                 }
             }
-
-            T::Assets::mint_into(vault.ctoken, &who, amount)?;
 
             Vaults::<T>::insert(crowdloan, vault.id, vault);
 
@@ -532,25 +538,51 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let responder = ensure_response(<T as Config>::Origin::from(origin))?;
             if let Response::ExecutionResult(res) = response {
-                if let Some(request) = Self::xcm_inflight(&query_id) {
-                    if res.is_none() {
+                match (Self::xcm_inflight(&query_id), res) {
+                    (Some(request), None) => {
                         match request {
                             XcmInflightRequest::Contribute { index, who, amount } => {
+                                let mut vault = Self::current_vault(index)
+                                    .ok_or(Error::<T>::VaultDoesNotExist)?;
+                                T::Assets::mint_into(vault.ctoken, &who, amount)?;
                                 T::Assets::burn_from(
                                     T::RelayCurrency::get(),
                                     &Self::account_id(),
                                     amount,
                                 )?;
-
-                                Self::migrate_pending();
+                                Self::migrate_pending(&who, &mut vault, amount)?;
                             }
-                            XcmInflightRequest::Withdraw { index, amount } => {}
+                            XcmInflightRequest::Withdraw { index: _, amount } => {
+                                T::Assets::mint_into(
+                                    T::RelayCurrency::get(),
+                                    &Self::account_id(),
+                                    amount,
+                                )?;
+                            }
                         }
+
+                        XcmInflight::<T>::remove(&query_id);
                     }
-                    // TODO: should remove xcm inflight request
-                    // if succeeded, should mutate contributed, burn KSM/DOT from account id
-                    // also need to migrate contribution from pending child storage to normal storage
-                    // if fails, should return back users' KSM/DOT ?
+                    (Some(request), Some(_)) => match request {
+                        XcmInflightRequest::Contribute {
+                            index: _,
+                            who,
+                            amount,
+                        } => {
+                            T::Assets::transfer(
+                                T::RelayCurrency::get(),
+                                &Self::account_id(),
+                                &who,
+                                amount,
+                                true,
+                            )?;
+                        }
+                        XcmInflightRequest::Withdraw {
+                            index: _,
+                            amount: _,
+                        } => {}
+                    },
+                    _ => {}
                 }
 
                 Self::deposit_event(Event::<T>::NotificationReceived(
@@ -567,11 +599,6 @@ pub mod pallet {
         /// Crowdloans pool account
         pub fn account_id() -> T::AccountId {
             T::PalletId::get().into_account()
-        }
-
-        /// Crowdloans vault account
-        pub fn vault_account_id(index: ParaId) -> T::AccountId {
-            T::PalletId::get().into_sub_account(index)
         }
 
         /// Parachain's sovereign account on relaychain
@@ -610,11 +637,44 @@ pub mod pallet {
                 .pending
                 .checked_add(amount)
                 .ok_or(ArithmeticError::Overflow)?;
-            let (contributed, _) = Self::contribution_get(vault.trie_index, who, true);
+            let (pending, _) = Self::contribution_get(vault.trie_index, who, true);
+            let new_pending = pending
+                .checked_add(amount)
+                .ok_or(ArithmeticError::Overflow)?;
+            Self::contribution_put(vault.trie_index, who, &new_pending, true);
+            Ok(())
+        }
+
+        fn migrate_pending(
+            who: &AccountIdOf<T>,
+            vault: &mut Vault<T>,
+            amount: BalanceOf<T>,
+        ) -> DispatchResult {
+            vault.pending = vault
+                .pending
+                .checked_sub(amount)
+                .ok_or(ArithmeticError::Underflow)?;
+            vault.contributed = vault
+                .contributed
+                .checked_add(amount)
+                .ok_or(ArithmeticError::Overflow)?;
+
+            let (pending, _) = Self::contribution_get(vault.trie_index, who, true);
+            let new_pending = pending
+                .checked_sub(amount)
+                .ok_or(ArithmeticError::Underflow)?;
+            if new_pending.is_zero() {
+                Self::contribution_kill(vault.trie_index, who, true);
+            } else {
+                Self::contribution_put(vault.trie_index, who, &new_pending, true);
+            }
+
+            let (contributed, _) = Self::contribution_get(vault.trie_index, who, false);
             let new_contributed = contributed
                 .checked_add(amount)
                 .ok_or(ArithmeticError::Overflow)?;
-            Self::contribution_put(vault.trie_index, who, &new_contributed, true);
+            Self::contribution_put(vault.trie_index, who, &new_contributed, false);
+
             Ok(())
         }
 
@@ -644,7 +704,7 @@ pub mod pallet {
             child::ChildInfo::new_default(T::Hashing::hash(&buf[..]).as_ref())
         }
 
-        pub fn contribution_put(
+        fn contribution_put(
             index: TrieIndex,
             who: &T::AccountId,
             balance: &BalanceOf<T>,
@@ -659,7 +719,7 @@ pub mod pallet {
             });
         }
 
-        pub fn contribution_get(
+        fn contribution_get(
             index: TrieIndex,
             who: &T::AccountId,
             pending: bool,
@@ -672,11 +732,11 @@ pub mod pallet {
             })
         }
 
-        pub fn contribution_kill(index: TrieIndex, who: &T::AccountId, pending: bool) {
+        fn contribution_kill(index: TrieIndex, who: &T::AccountId, pending: bool) {
             who.using_encoded(|b| child::kill(&Self::id_from_index(index, pending), b));
         }
 
-        pub fn contribution_iterator(
+        fn contribution_iterator(
             index: TrieIndex,
             pending: bool,
         ) -> ChildTriePrefixIterator<(T::AccountId, (BalanceOf<T>, Vec<u8>))> {
@@ -686,8 +746,6 @@ pub mod pallet {
             )
         }
 
-        pub fn migrate_pending() {}
-
         #[require_transactional]
         fn do_contribute(
             who: &AccountIdOf<T>,
@@ -695,9 +753,6 @@ pub mod pallet {
             crowdloan: ParaId,
             amount: BalanceOf<T>,
         ) -> Result<(), DispatchError> {
-            // TODO: should burn after receiving notify
-            T::Assets::burn_from(T::RelayCurrency::get(), &Self::account_id(), amount)?;
-
             let query_id = T::XCM::do_contribute(
                 crowdloan,
                 T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
@@ -745,9 +800,6 @@ pub mod pallet {
                     amount: amount,
                 },
             );
-
-            // TODO: should mint after receiving notify
-            T::Assets::mint_into(T::RelayCurrency::get(), &Self::account_id(), amount)?;
 
             Ok(())
         }
