@@ -325,7 +325,7 @@ pub mod pallet {
             );
 
             match vault.phase {
-                VaultPhase::Contributing if Self::vrfs().iter().len() == 0 => {
+                VaultPhase::Contributing if !Self::has_vrfs() => {
                     Self::do_contribute(Some(&who), &mut vault, crowdloan, amount)?;
                 }
                 _ => {
@@ -546,6 +546,10 @@ pub mod pallet {
         /// Parachain's sovereign account on relaychain
         pub fn para_account_id() -> T::AccountId {
             T::SelfParaId::get().into_account()
+        }
+
+        fn has_vrfs() -> bool {
+            Self::vrfs().iter().len() != 0
         }
 
         fn next_index(crowdloan: ParaId) -> u32 {
