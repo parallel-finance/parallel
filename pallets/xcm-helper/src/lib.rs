@@ -29,9 +29,8 @@ use frame_support::{
 };
 
 use primitives::{switch_relay, ump::*, Balance, CurrencyId, ParaId};
-use scale_info::prelude::format;
 use sp_runtime::traits::{AccountIdConversion, BlockNumberProvider};
-use sp_std::{boxed::Box, vec};
+use sp_std::vec;
 use xcm::{latest::prelude::*, DoubleEncoded};
 use xcm_executor::traits::InvertLocation;
 
@@ -120,7 +119,7 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
         beneficiary: MultiLocation,
         relay_currency: AssetId,
         amount: Balance,
-        who: Option<&AccountId>,
+        who: &AccountId,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError>;
 }
@@ -244,30 +243,17 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         amount: BalanceOf<T>,
-        who: Option<&T::AccountId>,
+        _who: &T::AccountId,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
         Ok(switch_relay!({
-            let call =
-                RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
-                    calls: vec![
-                        RelaychainCall::<T>::System(SystemCall::Remark(SystemRemarkCall {
-                            remark: format!(
-                                "{:?}#{:?}",
-                                T::BlockNumberProvider::current_block_number(),
-                                who
-                            )
-                            .into_bytes(),
-                        })),
-                        RelaychainCall::<T>::Crowdloans(CrowdloansCall::Contribute(
-                            CrowdloansContributeCall {
-                                index: para_id,
-                                value: amount,
-                                signature: None,
-                            },
-                        )),
-                    ],
-                })));
+            let call = RelaychainCall::<T>::Crowdloans(CrowdloansCall::Contribute(
+                CrowdloansContributeCall {
+                    index: para_id,
+                    value: amount,
+                    signature: None,
+                },
+            ));
 
             let mut msg = Self::ump_transact(
                 call.encode().into(),

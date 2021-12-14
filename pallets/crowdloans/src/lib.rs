@@ -330,7 +330,7 @@ pub mod pallet {
 
             match vault.phase {
                 VaultPhase::Contributing if !Self::has_vrfs() => {
-                    Self::do_contribute(Some(&who), &mut vault, crowdloan, amount)?;
+                    Self::do_contribute(&who, &mut vault, crowdloan, amount)?;
                 }
                 _ => {
                     Self::add_contribution(&mut vault, amount)?;
@@ -662,7 +662,7 @@ pub mod pallet {
 
         #[require_transactional]
         fn do_contribute(
-            who: Option<&AccountIdOf<T>>,
+            who: &AccountIdOf<T>,
             vault: &mut Vault<T>,
             crowdloan: ParaId,
             amount: BalanceOf<T>,
