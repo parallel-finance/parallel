@@ -14,14 +14,14 @@
 
 // Groups common pool related structures
 
-use super::{AssetIdOf, BalanceOf, Config};
+use super::{AccountIdOf, AssetIdOf, BalanceOf, Config};
 
 use codec::{Decode, Encode};
 
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, RuntimeDebug};
 
-use primitives::TrieIndex;
+use primitives::{ParaId, TrieIndex};
 
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum VaultPhase {
@@ -86,4 +86,17 @@ impl<T: Config> Vault<T> {
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum ContributionStrategy {
     XCM,
+}
+
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+#[scale_info(skip_type_params(T))]
+pub enum XcmInflightRequest<T: Config> {
+    Contribute {
+        who: AccountIdOf<T>,
+        amount: BalanceOf<T>,
+    },
+    Withdraw {
+        index: ParaId,
+        amount: BalanceOf<T>,
+    },
 }

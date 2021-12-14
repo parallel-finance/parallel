@@ -210,6 +210,11 @@ pub mod pallet {
     #[pallet::getter(fn next_trie_index)]
     pub type NextTrieIndex<T> = StorageValue<_, u32, ValueQuery>;
 
+    #[pallet::storage]
+    #[pallet::getter(fn xcm_inflight)]
+    pub type XcmInflight<T> =
+        StorageMap<_, Blake2_128Concat, QueryId, XcmInflightRequest<T>, OptionQuery>;
+
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Create a new vault via a governance decision
@@ -333,7 +338,7 @@ pub mod pallet {
                     Self::do_contribute(&who, &mut vault, crowdloan, amount)?;
                 }
                 _ => {
-                    Self::add_contribution(&mut vault, amount)?;
+                    Self::add_contribution(&who, &mut vault, amount)?;
                 }
             }
 
@@ -574,21 +579,20 @@ pub mod pallet {
         }
 
         #[require_transactional]
-        fn add_contribution(vault: &mut Vault<T>, amount: BalanceOf<T>) -> DispatchResult {
-            match vault.phase {
-                VaultPhase::Contributing => {
-                    vault.contributed = vault
-                        .contributed
-                        .checked_add(amount)
-                        .ok_or(ArithmeticError::Overflow)?;
-                }
-                _ => {
-                    vault.pending = vault
-                        .pending
-                        .checked_add(amount)
-                        .ok_or(ArithmeticError::Overflow)?;
-                }
-            }
+        fn add_contribution(
+            who: &AccountIdOf<T>,
+            vault: &mut Vault<T>,
+            amount: BalanceOf<T>,
+        ) -> DispatchResult {
+            vault.pending = vault
+                .pending
+                .checked_add(amount)
+                .ok_or(ArithmeticError::Overflow)?;
+            let (contributed, _) = Self::contribution_get(vault.trie_index, who, true);
+            let new_contributed = contributed
+                .checked_add(amount)
+                .ok_or(ArithmeticError::Overflow)?;
+            Self::contribution_put(vault.trie_index, who, &new_contributed, true);
             Ok(())
         }
 
@@ -678,7 +682,7 @@ pub mod pallet {
                 Self::notify_placeholder(),
             )?;
 
-            Self::add_contribution(vault, amount)?;
+            Self::add_contribution(who, vault, amount)?;
 
             Ok(())
         }
