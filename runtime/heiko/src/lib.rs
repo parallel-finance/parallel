@@ -1333,6 +1333,21 @@ parameter_types! {
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
 }
 
+pub struct RelayChainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
+
+impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
+    for RelayChainBlockNumberProvider<T>
+{
+    type BlockNumber = primitives::BlockNumber;
+
+    fn current_block_number() -> Self::BlockNumber {
+        cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
+            .map(|d| d.relay_parent_number)
+            .unwrap_or_default()
+            .into()
+    }
+}
+
 impl pallet_crowdloans::Config for Runtime {
     type Event = Event;
     type Call = Call;
@@ -1353,6 +1368,7 @@ impl pallet_crowdloans::Config for Runtime {
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
     type XCM = XcmHelper;
+    type BlockNumberProvider = RelayChainBlockNumberProvider<Runtime>;
 }
 
 impl pallet_xcm_helper::Config for Runtime {
