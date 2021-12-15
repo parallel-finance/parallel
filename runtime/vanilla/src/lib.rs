@@ -1371,7 +1371,7 @@ impl pallet_crowdloans::Config for Runtime {
     type MinContribution = MinContribution;
     type MaxVrfs = MaxVrfs;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type VrfDelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type VrfOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type OpenCloseOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;

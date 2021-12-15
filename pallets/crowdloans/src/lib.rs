@@ -114,8 +114,8 @@ pub mod pallet {
         /// The origin which can update reserve_factor, xcm_fees etc
         type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
-        /// The origin which can toggle vrf delay
-        type VrfDelayOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        /// The origin which can set vrfs
+        type VrfOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The origin which can create vault
         type CreateVaultOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
@@ -368,7 +368,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::set_vrfs())]
         #[transactional]
         pub fn set_vrfs(origin: OriginFor<T>, vrfs: Vec<ParaId>) -> DispatchResult {
-            T::VrfDelayOrigin::ensure_origin(origin)?;
+            T::VrfOrigin::ensure_origin(origin)?;
 
             log::trace!(
                 target: "crowdloans::set_vrfs",

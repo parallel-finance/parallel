@@ -318,7 +318,7 @@ parameter_types! {
 pub type CreateVaultOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
-pub type VrfDelayOrigin =
+pub type VrfOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
 pub type OpenCloseOrigin =
@@ -344,7 +344,7 @@ impl crate::Config for Test {
     type MaxVrfs = MaxVrfs;
     type UpdateOrigin = EnsureRoot<AccountId>;
     type CreateVaultOrigin = CreateVaultOrigin;
-    type VrfDelayOrigin = VrfDelayOrigin;
+    type VrfOrigin = VrfOrigin;
     type OpenCloseOrigin = OpenCloseOrigin;
     type AuctionFailedOrigin = AuctionFailedOrigin;
     type SlotExpiredOrigin = SlotExpiredOrigin;
