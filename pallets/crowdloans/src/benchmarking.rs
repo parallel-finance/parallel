@@ -9,8 +9,8 @@ use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_call
 use frame_support::{assert_ok, pallet_prelude::*, traits::fungibles::Mutate};
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{ump::*, Balance, CurrencyId, ParaId};
-use sp_runtime::traits::{StaticLookup, Zero};
-use sp_std::prelude::*;
+use sp_runtime::traits::StaticLookup;
+use sp_std::{convert::TryInto, prelude::*};
 
 use sp_runtime::traits::One;
 
@@ -130,7 +130,7 @@ benchmarks! {
         crowdloan
     )
     verify {
-        assert_last_event::<T>(Event::VaultOpened(crowdloan, Zero::zero()).into())
+        assert_last_event::<T>(Event::VaultOpened(crowdloan).into())
     }
 
     close {
@@ -148,17 +148,19 @@ benchmarks! {
         assert_last_event::<T>(Event::VaultClosed(crowdloan).into())
     }
 
-    toggle_vrf_delay {
+    set_vrfs {
         let ctoken = 12;
         let caller: T::AccountId = whitelisted_caller();
         let crowdloan = ParaId::from(1338);
         initial_set_up::<T>(caller, ctoken);
         assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
     }: _(
-        SystemOrigin::Root
+        SystemOrigin::Root,
+        vec![ParaId::from(1336u32), ParaId::from(1337u32)]
     )
     verify {
-        assert_last_event::<T>(Event::VrfDelayToggled(true).into())
+        let vrfs: BoundedVec<ParaId, T::MaxVrfs>  = vec![ParaId::from(1336), ParaId::from(1337)].try_into().unwrap();
+        assert_last_event::<T>(Event::VrfsUpdated(vrfs).into())
     }
 
     reopen {
@@ -203,8 +205,18 @@ benchmarks! {
         assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
         assert_ok!(Crowdloans::<T>::open(SystemOrigin::Root.into(), crowdloan));
         assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller.clone()).into(), crowdloan, CONTRIBUTE_AMOUNT, Vec::new()));
+        assert_ok!(<T as pallet_xcm_helper::Config>::Assets::mint_into(
+            ctoken,
+            &caller,
+            1_000,
+        ));
         assert_ok!(Crowdloans::<T>::close(SystemOrigin::Root.into(), crowdloan));
         assert_ok!(Crowdloans::<T>::auction_failed(SystemOrigin::Root.into(), crowdloan));
+        assert_ok!(<T as pallet_xcm_helper::Config>::Assets::mint_into(
+            T::RelayCurrency::get(),
+            &Crowdloans::<T>::vault_account_id(crowdloan),
+            1_000,
+        ));
     }: _(
         SystemOrigin::Signed(caller.clone()),
         ctoken,

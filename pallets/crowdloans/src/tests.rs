@@ -24,7 +24,7 @@ fn create_new_vault_should_work() {
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            sp_runtime::MultiAddress::Id(Crowdloans::account_id()),
+            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(crowdloan)),
             true,
             One::one(),
         ));
@@ -46,6 +46,7 @@ fn create_new_vault_should_work() {
                 contributed: Zero::zero(),
                 pending: Zero::zero(),
                 contribution_strategy,
+                trie_index: Zero::zero(),
             }
         );
     });
@@ -60,13 +61,13 @@ fn create_new_vault_should_not_work_if_vault_is_already_created() {
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            sp_runtime::MultiAddress::Id(Crowdloans::account_id()),
+            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(crowdloan)),
             true,
             One::one(),
         ));
 
         Assets::mint(
-            Origin::signed(Crowdloans::account_id()),
+            Origin::signed(Crowdloans::vault_account_id(crowdloan)),
             ctoken,
             Id(ALICE),
             dot(100f64),
@@ -97,7 +98,7 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            sp_runtime::MultiAddress::Id(Crowdloans::account_id()),
+            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(crowdloan)),
             true,
             One::one(),
         ));
@@ -134,7 +135,7 @@ fn contribute_should_work() {
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            sp_runtime::MultiAddress::Id(Crowdloans::account_id()),
+            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(ParaId::from(crowdloan))),
             true,
             One::one(),
         ));
@@ -165,53 +166,17 @@ fn contribute_should_work() {
         let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
         assert_eq!(vault.phase, VaultPhase::Contributing);
 
+        Crowdloans::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
+        )
+        .unwrap();
+
         // check if ctoken minted to user
         let ctoken_balance = Assets::balance(vault.ctoken, ALICE);
 
         assert_eq!(ctoken_balance, amount);
-    });
-}
-
-#[test]
-fn toggle_vrf_should_work() {
-    new_test_ext().execute_with(|| {
-        let crowdloan = ParaId::from(1337);
-        let ctoken = 10;
-        let amount = 1_000;
-
-        let contribution_strategy = ContributionStrategy::XCM;
-
-        // create the ctoken asset
-        assert_ok!(Assets::force_create(
-            RawOrigin::Root.into(),
-            ctoken.unique_saturated_into(),
-            sp_runtime::MultiAddress::Id(Crowdloans::account_id()),
-            true,
-            One::one(),
-        ));
-
-        // create a vault to contribute to
-        assert_ok!(Crowdloans::create_vault(
-            frame_system::RawOrigin::Root.into(), // origin
-            crowdloan,                            // crowdloan
-            ctoken,                               // ctoken
-            contribution_strategy,                // contribution_strategy
-        ));
-
-        assert_ok!(Crowdloans::toggle_vrf_delay(
-            frame_system::RawOrigin::Root.into(), // origin
-        ));
-
-        // do contribute
-        assert_noop!(
-            Crowdloans::contribute(
-                Origin::signed(ALICE), // origin
-                crowdloan,             // crowdloan
-                amount,                // amount
-                Vec::new()
-            ),
-            Error::<Test>::VrfDelayInProgress
-        );
     });
 }
 
@@ -228,7 +193,7 @@ fn contribute_should_fail_insufficent_funds() {
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            sp_runtime::MultiAddress::Id(Crowdloans::account_id()),
+            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(ParaId::from(crowdloan))),
             true,
             One::one(),
         ));
@@ -371,8 +336,8 @@ fn auction_failed_should_work() {
 #[test]
 fn claim_refund_should_work() {
     new_test_ext().execute_with(|| {
-        let crowdloan = 1337;
-        let ctoken = 10;
+        let crowdloan = 1337u32;
+        let ctoken = 10u32;
         let amount = 1_000u128;
 
         let contribution_strategy = ContributionStrategy::XCM;
@@ -381,7 +346,7 @@ fn claim_refund_should_work() {
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            Id(Crowdloans::account_id()),
+            Id(Crowdloans::vault_account_id(ParaId::from(crowdloan))),
             true,
             One::one(),
         ));
@@ -408,6 +373,13 @@ fn claim_refund_should_work() {
             Vec::new()
         ));
 
+        Crowdloans::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
+        )
+        .unwrap();
+
         // do close
         assert_ok!(Crowdloans::close(
             frame_system::RawOrigin::Root.into(), // origin
@@ -419,6 +391,13 @@ fn claim_refund_should_work() {
             frame_system::RawOrigin::Root.into(), // origin
             ParaId::from(crowdloan),              // crowdloan
         ));
+
+        Crowdloans::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            1,
+            Response::ExecutionResult(None),
+        )
+        .unwrap();
 
         // do claim
         assert_ok!(Crowdloans::claim_refund(

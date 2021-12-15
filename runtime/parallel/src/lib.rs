@@ -465,8 +465,6 @@ parameter_types! {
 
 impl pallet_liquid_staking::Config for Runtime {
     type Event = Event;
-    type Call = Call;
-    type Origin = Origin;
     type PalletId = StakingPalletId;
     type WeightInfo = ();
     type SelfParaId = ParachainInfo;
@@ -1322,14 +1320,15 @@ impl pallet_amm::Config for Runtime {
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
     pub const MinContribution: Balance = 55_000_000_000;
-    pub const XcmHelperPalletId: PalletId = PalletId(*b"par/fees");
+    pub const MaxVrfs: u32 = 10;
+    pub const MigrateKeysLimit: u32 = 10;
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
 }
 
 impl pallet_crowdloans::Config for Runtime {
     type Event = Event;
-    type Call = Call;
     type Origin = Origin;
+    type Call = Call;
     type PalletId = CrowdloansPalletId;
     type SelfParaId = ParachainInfo;
     type Assets = Assets;
@@ -1337,8 +1336,11 @@ impl pallet_crowdloans::Config for Runtime {
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type RefundLocation = RefundLocation;
     type MinContribution = MinContribution;
+    type MaxVrfs = MaxVrfs;
+    type MigrateKeysLimit = MigrateKeysLimit;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type VrfDelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type MigrateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type VrfOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type OpenCloseOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
@@ -1347,11 +1349,17 @@ impl pallet_crowdloans::Config for Runtime {
     type XCM = XcmHelper;
 }
 
+parameter_types! {
+    pub const XcmHelperPalletId: PalletId = PalletId(*b"par/fees");
+    pub const NotifyTimeout: BlockNumber = 100;
+}
+
 impl pallet_xcm_helper::Config for Runtime {
     type Assets = Assets;
     type XcmSender = XcmRouter;
     type RelayNetwork = RelayNetwork;
     type PalletId = XcmHelperPalletId;
+    type NotifyTimeout = NotifyTimeout;
     type BlockNumberProvider = frame_system::Pallet<Runtime>;
 }
 

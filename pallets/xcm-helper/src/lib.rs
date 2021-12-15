@@ -22,16 +22,17 @@
 pub use pallet::*;
 
 use frame_support::{
-    dispatch::DispatchResult,
+    dispatch::{DispatchResult, GetDispatchInfo},
     pallet_prelude::*,
     traits::fungibles::{Inspect, Mutate, Transfer},
     PalletId,
 };
+
 use primitives::{switch_relay, ump::*, Balance, CurrencyId, ParaId};
-use scale_info::prelude::format;
 use sp_runtime::traits::{AccountIdConversion, BlockNumberProvider};
-use sp_std::{boxed::Box, vec};
+use sp_std::vec;
 use xcm::{latest::prelude::*, DoubleEncoded};
+use xcm_executor::traits::InvertLocation;
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 pub type AssetIdOf<T> =
@@ -41,10 +42,12 @@ pub type BalanceOf<T> =
 
 #[frame_support::pallet]
 pub mod pallet {
+    use frame_system::pallet_prelude::BlockNumberFor;
+
     use super::*;
 
     #[pallet::config]
-    pub trait Config: frame_system::Config {
+    pub trait Config: frame_system::Config + pallet_xcm::Config {
         /// Assets for deposit/withdraw assets to/from crowdloan account
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
@@ -60,6 +63,10 @@ pub mod pallet {
         /// Pallet account for collecting xcm fees
         #[pallet::constant]
         type PalletId: Get<PalletId>;
+
+        /// Notify call timeout
+        #[pallet::constant]
+        type NotifyTimeout: Get<BlockNumberFor<Self>>;
 
         /// The block number provider
         type BlockNumberProvider: BlockNumberProvider<BlockNumber = Self::BlockNumber>;
@@ -78,12 +85,14 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
+        /// `MultiLocation` value ascend more parents than known ancestors of local location.
+        MultiLocationNotInvertible,
         /// Xcm message send failure
         SendXcmError,
     }
 }
 
-pub trait XcmHelper<Balance, AssetId, AccountId> {
+pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
     fn update_xcm_fees(fees: Balance);
 
     fn update_xcm_weight(xcm_weight_misc: XcmWeightMisc<Weight>);
@@ -102,24 +111,49 @@ pub trait XcmHelper<Balance, AssetId, AccountId> {
         beneficiary: MultiLocation,
         relay_currency: AssetId,
         para_account_id: AccountId,
-    ) -> Result<(), DispatchError>;
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError>;
 
     fn do_contribute(
         para_id: ParaId,
         beneficiary: MultiLocation,
         relay_currency: AssetId,
         amount: Balance,
-        who: Option<&AccountId>,
-    ) -> Result<(), DispatchError>;
+        who: &AccountId,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError>;
 }
 
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> T::AccountId {
         T::PalletId::get().into_account()
     }
+
+    pub fn report_outcome_notify(
+        message: &mut Xcm<()>,
+        responder: impl Into<MultiLocation>,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        timeout: T::BlockNumber,
+    ) -> Result<QueryId, DispatchError> {
+        let responder = responder.into();
+        let dest = <T as pallet_xcm::Config>::LocationInverter::invert_location(&responder)
+            .map_err(|()| Error::<T>::MultiLocationNotInvertible)?;
+        let notify: <T as pallet_xcm::Config>::Call = notify.into();
+        let max_response_weight = notify.get_dispatch_info().weight;
+        let query_id = pallet_xcm::Pallet::<T>::new_notify_query(responder, notify, timeout);
+        let report_error = Xcm(vec![ReportError {
+            dest,
+            query_id,
+            max_response_weight,
+        }]);
+        // Prepend SetAppendix(Xcm(vec![ReportError])) wont be able to pass barrier check
+        // so we need to insert it after Withdraw, BuyExecution
+        message.0.insert(2, SetAppendix(report_error));
+        Ok(query_id)
+    }
 }
 
-impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T> {
+impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T> {
     fn update_xcm_fees(fees: BalanceOf<T>) {
         XcmFees::<T>::mutate(|v| *v = fees);
     }
@@ -173,27 +207,35 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         para_account_id: T::AccountId,
-    ) -> Result<(), DispatchError> {
-        switch_relay!({
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError> {
+        Ok(switch_relay!({
             let call =
                 RelaychainCall::<T>::Crowdloans(CrowdloansCall::Withdraw(CrowdloansWithdrawCall {
                     who: para_account_id,
                     index: para_id,
                 }));
 
-            let msg = Self::ump_transact(
+            let mut msg = Self::ump_transact(
                 call.encode().into(),
                 Self::xcm_weight().withdraw_weight,
                 beneficiary,
                 relay_currency,
             )?;
 
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
+            )?;
+
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
             }
-        });
 
-        Ok(())
+            query_id
+        }))
     }
 
     fn do_contribute(
@@ -201,42 +243,37 @@ impl<T: Config> XcmHelper<BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         amount: BalanceOf<T>,
-        who: Option<&T::AccountId>,
-    ) -> Result<(), DispatchError> {
-        switch_relay!({
-            let call =
-                RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
-                    calls: vec![
-                        RelaychainCall::<T>::System(SystemCall::Remark(SystemRemarkCall {
-                            remark: format!(
-                                "{:?}#{:?}",
-                                T::BlockNumberProvider::current_block_number(),
-                                who
-                            )
-                            .into_bytes(),
-                        })),
-                        RelaychainCall::<T>::Crowdloans(CrowdloansCall::Contribute(
-                            CrowdloansContributeCall {
-                                index: para_id,
-                                value: amount,
-                                signature: None,
-                            },
-                        )),
-                    ],
-                })));
+        _who: &T::AccountId,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError> {
+        Ok(switch_relay!({
+            let call = RelaychainCall::<T>::Crowdloans(CrowdloansCall::Contribute(
+                CrowdloansContributeCall {
+                    index: para_id,
+                    value: amount,
+                    signature: None,
+                },
+            ));
 
-            let msg = Self::ump_transact(
+            let mut msg = Self::ump_transact(
                 call.encode().into(),
                 Self::xcm_weight().contribute_weight,
                 beneficiary,
                 relay_currency,
             )?;
 
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
+            )?;
+
             if let Err(_e) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
             }
-        });
 
-        Ok(())
+            query_id
+        }))
     }
 }
