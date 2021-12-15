@@ -120,6 +120,7 @@ async function para() {
   const keyring = new Keyring({ type: 'sr25519', ss58Format: 110 })
   const signer = keyring.addFromUri('//Dave')
   const call = []
+  const height = await chainHeight(api)
 
   for (const { name, symbol, assetId, decimal, marketOption, balances } of config.assets) {
     console.log(`Create ${name}(${symbol}) asset, ptokenId is ${marketOption.ptokenId}`)
@@ -132,8 +133,8 @@ async function para() {
     call.push(...balances.map(([account, amount]) => api.tx.assets.mint(assetId, account, amount)))
   }
 
-  for (const { paraId, image, chain, ctokenId, pending } of config.crowdloans) {
-    call.push(api.tx.sudo.sudo(api.tx.crowdloans.createVault(paraId, ctokenId, 'XCM')))
+  for (const { paraId, image, chain, ctokenId, cap, duration, pending } of config.crowdloans) {
+    call.push(api.tx.sudo.sudo(api.tx.crowdloans.createVault(paraId, ctokenId, 'XCM', cap, height + duration)))
     if (!pending) {
       call.push(api.tx.sudo.sudo(api.tx.crowdloans.open(paraId)))
     }
