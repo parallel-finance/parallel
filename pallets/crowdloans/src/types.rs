@@ -92,12 +92,13 @@ pub enum ContributionStrategy {
 #[scale_info(skip_type_params(T))]
 pub enum XcmInflightRequest<T: Config> {
     Contribute {
-        index: ParaId,
+        crowdloan: ParaId,
         who: AccountIdOf<T>,
         amount: BalanceOf<T>,
     },
     Withdraw {
-        index: ParaId,
+        crowdloan: ParaId,
         amount: BalanceOf<T>,
+        target_phase: VaultPhase,
     },
 }

@@ -116,7 +116,7 @@ benchmarks! {
         Vec::new()
     )
     verify {
-        assert_last_event::<T>(Event::VaultContributed(crowdloan, caller, CONTRIBUTE_AMOUNT, Vec::new()).into())
+        assert_last_event::<T>(Event::VaultContributing(crowdloan, caller, CONTRIBUTE_AMOUNT, Vec::new()).into())
     }
 
     open {
@@ -194,7 +194,7 @@ benchmarks! {
         crowdloan
     )
     verify {
-        assert_last_event::<T>(Event::VaultAuctionFailed(crowdloan).into())
+        assert_last_event::<T>(Event::VaultAuctionFailing(crowdloan).into())
     }
 
     claim_refund {
@@ -205,6 +205,7 @@ benchmarks! {
         assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
         assert_ok!(Crowdloans::<T>::open(SystemOrigin::Root.into(), crowdloan));
         assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller.clone()).into(), crowdloan, CONTRIBUTE_AMOUNT, Vec::new()));
+        // TODO: should call notification_received instead
         assert_ok!(<T as pallet_xcm_helper::Config>::Assets::mint_into(
             ctoken,
             &caller,
@@ -212,11 +213,15 @@ benchmarks! {
         ));
         assert_ok!(Crowdloans::<T>::close(SystemOrigin::Root.into(), crowdloan));
         assert_ok!(Crowdloans::<T>::auction_failed(SystemOrigin::Root.into(), crowdloan));
+        // TODO: should call notification_received instead
         assert_ok!(<T as pallet_xcm_helper::Config>::Assets::mint_into(
             T::RelayCurrency::get(),
             &Crowdloans::<T>::vault_account_id(crowdloan),
             1_000,
         ));
+        let mut vault = Vaults::<T>::get(&crowdloan, &0u32).unwrap();
+        vault.phase = VaultPhase::Failed;
+        Vaults::<T>::insert(crowdloan, vault.id, vault);
     }: _(
         SystemOrigin::Signed(caller.clone()),
         ctoken,
@@ -240,7 +245,7 @@ benchmarks! {
         crowdloan
     )
     verify {
-        assert_last_event::<T>(Event::VaultSlotExpired(crowdloan).into())
+        assert_last_event::<T>(Event::VaultSlotExpiring(crowdloan).into())
     }
 
     update_xcm_fees {
