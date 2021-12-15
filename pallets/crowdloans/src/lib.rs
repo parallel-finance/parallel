@@ -573,65 +573,8 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let responder = ensure_response(<T as Config>::Origin::from(origin))?;
             if let Response::ExecutionResult(res) = response {
-                match (Self::xcm_inflight(&query_id), res) {
-                    (Some(request), None) => {
-                        match request {
-                            XcmInflightRequest::Contribute {
-                                crowdloan,
-                                who,
-                                amount,
-                            } => {
-                                let mut vault = Self::current_vault(crowdloan)
-                                    .ok_or(Error::<T>::VaultDoesNotExist)?;
-                                T::Assets::mint_into(vault.ctoken, &who, amount)?;
-                                T::Assets::burn_from(
-                                    T::RelayCurrency::get(),
-                                    &Self::vault_account_id(crowdloan),
-                                    amount,
-                                )?;
-                                Self::do_migrate_pending(&who, &mut vault, amount)?;
-                                Vaults::<T>::insert(crowdloan, vault.id, vault);
-                            }
-                            XcmInflightRequest::Withdraw {
-                                crowdloan,
-                                amount,
-                                target_phase,
-                            } => {
-                                let mut vault = Self::current_vault(crowdloan)
-                                    .ok_or(Error::<T>::VaultDoesNotExist)?;
-                                T::Assets::mint_into(
-                                    T::RelayCurrency::get(),
-                                    &Self::vault_account_id(crowdloan),
-                                    amount,
-                                )?;
-                                vault.phase = target_phase;
-                                Vaults::<T>::insert(crowdloan, vault.id, vault);
-                            }
-                        }
-
-                        XcmInflight::<T>::remove(&query_id);
-                    }
-                    (Some(request), Some(_)) => match request {
-                        XcmInflightRequest::Contribute {
-                            crowdloan: index,
-                            who,
-                            amount,
-                        } => {
-                            T::Assets::transfer(
-                                T::RelayCurrency::get(),
-                                &Self::vault_account_id(index),
-                                &who,
-                                amount,
-                                true,
-                            )?;
-                        }
-                        XcmInflightRequest::Withdraw {
-                            crowdloan: _,
-                            amount: _,
-                            target_phase: _,
-                        } => {}
-                    },
-                    _ => {}
+                if let Some(request) = Self::xcm_inflight(&query_id) {
+                    Self::do_notification_received(query_id, request, res.is_none())?;
                 }
 
                 Self::deposit_event(Event::<T>::NotificationReceived(
@@ -724,6 +667,68 @@ pub mod pallet {
                 .checked_add(amount)
                 .ok_or(ArithmeticError::Overflow)?;
             Self::contribution_put(vault.trie_index, who, &new_contributed, false);
+
+            Ok(())
+        }
+
+        #[require_transactional]
+        fn do_notification_received(
+            query_id: QueryId,
+            request: XcmInflightRequest<T>,
+            executed: bool,
+        ) -> DispatchResult {
+            match request {
+                XcmInflightRequest::Contribute {
+                    crowdloan,
+                    who,
+                    amount,
+                } if executed => {
+                    let mut vault =
+                        Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
+                    T::Assets::mint_into(vault.ctoken, &who, amount)?;
+                    T::Assets::burn_from(
+                        T::RelayCurrency::get(),
+                        &Self::vault_account_id(crowdloan),
+                        amount,
+                    )?;
+                    Self::do_migrate_pending(&who, &mut vault, amount)?;
+                    Vaults::<T>::insert(crowdloan, vault.id, vault);
+                }
+                XcmInflightRequest::Contribute {
+                    crowdloan: index,
+                    who,
+                    amount,
+                } if !executed => {
+                    // refund
+                    T::Assets::transfer(
+                        T::RelayCurrency::get(),
+                        &Self::vault_account_id(index),
+                        &who,
+                        amount,
+                        true,
+                    )?;
+                }
+                XcmInflightRequest::Withdraw {
+                    crowdloan,
+                    amount,
+                    target_phase,
+                } => {
+                    let mut vault =
+                        Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
+                    T::Assets::mint_into(
+                        T::RelayCurrency::get(),
+                        &Self::vault_account_id(crowdloan),
+                        amount,
+                    )?;
+                    vault.phase = target_phase;
+                    Vaults::<T>::insert(crowdloan, vault.id, vault);
+                }
+                _ => {}
+            }
+
+            if executed {
+                XcmInflight::<T>::remove(&query_id);
+            }
 
             Ok(())
         }
