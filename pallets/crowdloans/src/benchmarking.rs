@@ -30,7 +30,7 @@ const XCM_WEIGHT: XcmWeightMisc<Weight> = XcmWeightMisc {
 const CONTRIBUTE_AMOUNT: u128 = 20000000000000u128;
 const INITIAL_RESERVES: u128 = 1000000000000000u128;
 const INITIAL_AMOUNT: u128 = 1000000000000000u128;
-const LARGE_CAP: u32 = 1000_000_000_000_000u32;
+const LARGE_CAP: u128 = 1000_000_000_000_000u128;
 const CAP: u32 = 1_000_000_000_000u32;
 const END_BLOCK: u32 = 1_000_000_000u32;
 
@@ -278,7 +278,7 @@ benchmarks! {
     migrate_pending {
         let ctoken = 17;
         let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1343);
+        let crowdloan = ParaId::from(1343u32);
 
         initial_set_up::<T>(caller.clone(), ctoken);
         assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, LARGE_CAP, END_BLOCK));
@@ -296,7 +296,7 @@ benchmarks! {
     notification_received {
         let ctoken = 18;
         let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1344);
+        let crowdloan = ParaId::from(1344u32);
 
         initial_set_up::<T>(caller.clone(), ctoken);
         assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, LARGE_CAP, END_BLOCK));

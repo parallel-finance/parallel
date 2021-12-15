@@ -19,7 +19,6 @@ fn create_new_vault_should_work() {
         let ctoken = 10;
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
-        let trie_index = Zero::zero();
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create the ctoken asset
@@ -37,8 +36,7 @@ fn create_new_vault_should_work() {
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
-            end_block,                            // end_block
-            trie_index,                           // trie_index
+            end_block                             // end_block
         ));
 
         let just_created_vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
@@ -53,7 +51,6 @@ fn create_new_vault_should_work() {
                 contribution_strategy,
                 cap,
                 end_block
-                trie_index: Zero::zero(),
             }
         );
     });
@@ -66,7 +63,6 @@ fn create_new_vault_should_not_work_if_vault_is_already_created() {
         let ctoken = 10;
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
-        let trie_index = Zero::zero();
 
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
@@ -91,8 +87,7 @@ fn create_new_vault_should_not_work_if_vault_is_already_created() {
                 ctoken,                               // ctoken
                 ContributionStrategy::XCM,            // contribution_strategy
                 cap,                                  // cap
-                end_block,                            // end_block
-                trie_index,                           // trie_index
+                end_block                             // end_block
             ),
             Error::<Test>::CTokenAlreadyTaken
         );
@@ -106,7 +101,6 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
         let ctoken = 10;
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
-        let trie_index = Zero::zero();
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create the ctoken asset
@@ -124,8 +118,7 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
-            end_block,                            // end_block
-            trie_index,                           // trie_index
+            end_block                             // end_block
         ));
 
         assert_noop!(
@@ -135,8 +128,7 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
                 ctoken,                               // ctoken
                 contribution_strategy,                // contribution_strategy
                 cap,                                  // cap
-                end_block,                            // end_block
-                trie_index,                           // trie_index
+                end_block                             // end_block
             ),
             Error::<Test>::CTokenAlreadyTaken
         );
@@ -151,7 +143,6 @@ fn set_vrfs_should_work() {
         let amount = 1_000;
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
-        let trie_index = Zero::zero();
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create the ctoken asset
@@ -170,8 +161,7 @@ fn set_vrfs_should_work() {
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
-            end_block,                            // end_block
-            trie_index,                           // trie_index
+            end_block                             // end_block
         ));
 
         // do open
@@ -206,7 +196,6 @@ fn contribute_should_work() {
         let amount = 1_000;
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
-        let trie_index = Zero::zero();
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create the ctoken asset
@@ -225,8 +214,7 @@ fn contribute_should_work() {
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
-            end_block,                            // end_block
-            trie_index,                           // trie_index
+            end_block                             // end_block
         ));
 
         // do open
@@ -269,7 +257,6 @@ fn contribute_should_fail_insufficent_funds() {
         let amount = 1_000;
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
-        let trie_index = Zero::zero();
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create the ctoken asset
@@ -288,8 +275,7 @@ fn contribute_should_fail_insufficent_funds() {
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
-            end_block,                            // end_block
-            trie_index,                           // trie_index
+            end_block                             // end_block
         ));
 
         // do contribute
@@ -312,7 +298,6 @@ fn close_should_work() {
         let ctoken = 10;
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
-        let trie_index = Zero::zero();
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create a vault to contribute to
@@ -322,8 +307,7 @@ fn close_should_work() {
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
-            end_block,                            // end_block
-            trie_index,                           // trie_index
+            end_block                             // end_block
         ));
 
         // do open
@@ -351,7 +335,6 @@ fn reopen_should_work() {
         let ctoken = 10;
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
-        let trie_index = Zero::zero();
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create a vault to contribute to
@@ -361,8 +344,7 @@ fn reopen_should_work() {
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
-            end_block,                            // end_block
-            trie_index,                           // trie_index
+            end_block                             // end_block
         ));
 
         // do open
@@ -396,7 +378,6 @@ fn auction_failed_should_work() {
         let ctoken = 10;
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
-        let trie_index = Zero::zero();
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create a vault to contribute to
@@ -406,8 +387,7 @@ fn auction_failed_should_work() {
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
-            end_block,                            // end_block
-            trie_index,                           // trie_index
+            end_block                             // end_block
         ));
 
         // do open
@@ -449,7 +429,6 @@ fn claim_refund_should_work() {
         let amount = 1_000u128;
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
-        let trie_index = Zero::zero();
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create the ctoken asset
@@ -468,8 +447,7 @@ fn claim_refund_should_work() {
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
-            end_block,                            // end_block
-            trie_index,                           // trie_index
+            end_block                             // end_block
         ));
 
         // do open
@@ -536,7 +514,6 @@ fn slot_expired_should_work() {
         let ctoken = 10;
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
-        let trie_index = Zero::zero();
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create a vault to contribute to
@@ -546,8 +523,7 @@ fn slot_expired_should_work() {
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
-            end_block,                            // end_block
-            trie_index,                           // trie_index
+            end_block                             // end_block
         ));
 
         // do open
