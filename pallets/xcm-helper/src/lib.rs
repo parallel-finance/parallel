@@ -45,6 +45,7 @@ pub type BalanceOf<T> =
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
+    use sp_std::vec::Vec;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
