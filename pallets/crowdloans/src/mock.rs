@@ -431,13 +431,6 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         Assets::mint(
             Origin::signed(ALICE),
             DOT,
-            Id(Crowdloans::account_id()),
-            dot(30f64),
-        )
-        .unwrap();
-        Assets::mint(
-            Origin::signed(ALICE),
-            DOT,
             Id(XcmHelper::account_id()),
             dot(30f64),
         )
@@ -500,13 +493,6 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
         Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
-        Assets::mint(
-            Origin::signed(ALICE),
-            DOT,
-            Id(Crowdloans::account_id()),
-            dot(30f64),
-        )
-        .unwrap();
         Assets::mint(
             Origin::signed(ALICE),
             DOT,

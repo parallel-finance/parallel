@@ -629,11 +629,6 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        /// Crowdloans main account
-        pub fn account_id() -> T::AccountId {
-            T::PalletId::get().into_account()
-        }
-
         /// Crowdloans vault account
         pub fn vault_account_id(crowdloan: ParaId) -> T::AccountId {
             T::PalletId::get().into_sub_account(crowdloan)
