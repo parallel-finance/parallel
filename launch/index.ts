@@ -121,6 +121,7 @@ async function para() {
   const signer = keyring.addFromUri('//Dave')
   const call = []
   const height = await chainHeight(api)
+  const trie_index = 0
 
   for (const { name, symbol, assetId, decimal, marketOption, balances } of config.assets) {
     console.log(`Create ${name}(${symbol}) asset, ptokenId is ${marketOption.ptokenId}`)
@@ -134,7 +135,7 @@ async function para() {
   }
 
   for (const { paraId, image, chain, ctokenId, cap, duration, pending } of config.crowdloans) {
-    call.push(api.tx.sudo.sudo(api.tx.crowdloans.createVault(paraId, ctokenId, 'XCM', cap, height + duration)))
+    call.push(api.tx.sudo.sudo(api.tx.crowdloans.createVault(paraId, ctokenId, 'XCM', cap, height + duration, trie_index)))
     if (!pending) {
       call.push(api.tx.sudo.sudo(api.tx.crowdloans.open(paraId)))
     }

@@ -67,7 +67,7 @@ fn create_new_vault_should_not_work_if_vault_is_already_created() {
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
         let trie_index = Zero::zero();
-      
+
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),

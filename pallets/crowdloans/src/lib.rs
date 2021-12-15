@@ -274,8 +274,15 @@ pub mod pallet {
 
             let trie_index = Self::next_trie_index();
             let next_trie_index = trie_index.checked_add(1).ok_or(ArithmeticError::Overflow)?;
-            let new_vault = Vault::new(next_index, ctoken, contribution_strategy, cap, end_block, trie_index);
-          
+            let new_vault = Vault::new(
+                next_index,
+                ctoken,
+                contribution_strategy,
+                cap,
+                end_block,
+                trie_index,
+            );
+
             log::trace!(
                 target: "crowdloans::create_vault",
                 "ctoken_issuance: {:?}, next_index: {:?}, trie_index: {:?}, ctoken: {:?}",
@@ -419,7 +426,7 @@ pub mod pallet {
                 &crowdloan,
                 &amount,
             );
-                  
+
             Self::deposit_event(Event::<T>::VaultContributing(
                 crowdloan,
                 who,
@@ -676,7 +683,7 @@ pub mod pallet {
                 .checked_add(vault.pending)
                 .and_then(|sum| sum.checked_add(amount))
                 .ok_or(ArithmeticError::Overflow)
-       }
+        }
 
         fn notify_placeholder() -> <T as Config>::Call {
             <T as Config>::Call::from(Call::<T>::notification_received {
