@@ -33,6 +33,7 @@ use scale_info::prelude::format;
 use sp_runtime::traits::StaticLookup;
 use sp_runtime::traits::{AccountIdConversion, BlockNumberProvider};
 use sp_runtime::ArithmeticError;
+use sp_std::vec::Vec;
 use sp_std::{boxed::Box, vec};
 use xcm::{latest::prelude::*, DoubleEncoded};
 
@@ -45,7 +46,6 @@ pub type BalanceOf<T> =
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use sp_std::vec::Vec;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
