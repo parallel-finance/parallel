@@ -148,20 +148,20 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// New vault was created
         VaultCreated(ParaId, AssetIdOf<T>),
-        /// User contributed amount to vault
-        VaultContributed(ParaId, T::AccountId, BalanceOf<T>, Vec<u8>),
+        /// User is contributing amount to vault
+        VaultContributing(ParaId, T::AccountId, BalanceOf<T>, Vec<u8>),
         /// Vault was opened
         VaultOpened(ParaId),
         /// Vault was closed
         VaultClosed(ParaId),
         /// Vault was reopened
         VaultReOpened(ParaId),
-        /// Auction failed
-        VaultAuctionFailed(ParaId),
+        /// Auction is failing
+        VaultAuctionFailing(ParaId),
         /// A user claimed refund from vault
         VaultClaimRefund(AssetIdOf<T>, T::AccountId, BalanceOf<T>),
-        /// A vault was expired
-        VaultSlotExpired(ParaId),
+        /// A vault is expiring
+        VaultSlotExpiring(ParaId),
         /// Xcm weight in BuyExecution message
         XcmWeightUpdated(XcmWeightMisc<Weight>),
         /// Fees for extrinsics on relaychain were set to new value
@@ -355,14 +355,14 @@ pub mod pallet {
             );
 
             if vault.phase == VaultPhase::Contributing && !Self::has_vrfs() {
-                Self::do_contribute(&who, &mut vault, crowdloan, amount)?;
+                Self::do_contribute(&who, crowdloan, amount)?;
             }
 
             Self::do_pending_contribution(&who, &mut vault, amount)?;
 
             Vaults::<T>::insert(crowdloan, vault.id, vault);
 
-            Self::deposit_event(Event::<T>::VaultContributed(
+            Self::deposit_event(Event::<T>::VaultContributing(
                 crowdloan,
                 who,
                 amount,
@@ -446,9 +446,8 @@ pub mod pallet {
             );
 
             Self::try_mutate_vault(crowdloan, VaultPhase::Closed, |vault| {
-                Self::do_withdraw(crowdloan, vault.contributed)?;
-                vault.phase = VaultPhase::Failed;
-                Self::deposit_event(Event::<T>::VaultAuctionFailed(crowdloan));
+                Self::do_withdraw(crowdloan, vault.contributed, VaultPhase::Failed)?;
+                Self::deposit_event(Event::<T>::VaultAuctionFailing(crowdloan));
                 Ok(())
             })
         }
@@ -505,20 +504,19 @@ pub mod pallet {
             T::SlotExpiredOrigin::ensure_origin(origin)?;
 
             Self::try_mutate_vault(crowdloan, VaultPhase::Closed, |vault| {
-                Self::do_withdraw(crowdloan, vault.contributed)?;
-                vault.phase = VaultPhase::Expired;
-                Self::deposit_event(Event::<T>::VaultSlotExpired(crowdloan));
+                Self::do_withdraw(crowdloan, vault.contributed, VaultPhase::Expired)?;
+                Self::deposit_event(Event::<T>::VaultSlotExpiring(crowdloan));
                 Ok(())
             })
         }
 
         /// migrate pending contribution by sending xcm
-        #[pallet::weight(10_000)]
+        #[pallet::weight(<T as Config>::WeightInfo::migrate_pending())]
         #[transactional]
         pub fn migrate_pending(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             T::MigrateOrigin::ensure_origin(origin)?;
 
-            let mut vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
+            let vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
             let contributions = Self::contribution_iterator(vault.trie_index, true);
             let mut migrated_count = 0u32;
             let mut all_migrated = true;
@@ -527,7 +525,7 @@ pub mod pallet {
                     all_migrated = false;
                     break;
                 }
-                Self::do_contribute(&who, &mut vault, crowdloan, amount)?;
+                Self::do_contribute(&who, crowdloan, amount)?;
                 migrated_count += 1;
             }
 
@@ -566,7 +564,7 @@ pub mod pallet {
             Ok(().into())
         }
 
-        #[pallet::weight(10_000)]
+        #[pallet::weight(<T as Config>::WeightInfo::notification_received())]
         #[transactional]
         pub fn notification_received(
             origin: OriginFor<T>,
@@ -575,48 +573,8 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let responder = ensure_response(<T as Config>::Origin::from(origin))?;
             if let Response::ExecutionResult(res) = response {
-                match (Self::xcm_inflight(&query_id), res) {
-                    (Some(request), None) => {
-                        match request {
-                            XcmInflightRequest::Contribute { index, who, amount } => {
-                                let mut vault = Self::current_vault(index)
-                                    .ok_or(Error::<T>::VaultDoesNotExist)?;
-                                T::Assets::mint_into(vault.ctoken, &who, amount)?;
-                                T::Assets::burn_from(
-                                    T::RelayCurrency::get(),
-                                    &Self::vault_account_id(index),
-                                    amount,
-                                )?;
-                                Self::do_migrate_pending(&who, &mut vault, amount)?;
-                                Vaults::<T>::insert(index, vault.id, vault);
-                            }
-                            XcmInflightRequest::Withdraw { index, amount } => {
-                                T::Assets::mint_into(
-                                    T::RelayCurrency::get(),
-                                    &Self::vault_account_id(index),
-                                    amount,
-                                )?;
-                            }
-                        }
-
-                        XcmInflight::<T>::remove(&query_id);
-                    }
-                    (Some(request), Some(_)) => match request {
-                        XcmInflightRequest::Contribute { index, who, amount } => {
-                            T::Assets::transfer(
-                                T::RelayCurrency::get(),
-                                &Self::vault_account_id(index),
-                                &who,
-                                amount,
-                                true,
-                            )?;
-                        }
-                        XcmInflightRequest::Withdraw {
-                            index: _,
-                            amount: _,
-                        } => {}
-                    },
-                    _ => {}
+                if let Some(request) = Self::xcm_inflight(&query_id) {
+                    Self::do_notification_received(query_id, request, res.is_none())?;
                 }
 
                 Self::deposit_event(Event::<T>::NotificationReceived(
@@ -679,6 +637,7 @@ pub mod pallet {
             Ok(())
         }
 
+        #[require_transactional]
         fn do_migrate_pending(
             who: &AccountIdOf<T>,
             vault: &mut Vault<T>,
@@ -708,6 +667,68 @@ pub mod pallet {
                 .checked_add(amount)
                 .ok_or(ArithmeticError::Overflow)?;
             Self::contribution_put(vault.trie_index, who, &new_contributed, false);
+
+            Ok(())
+        }
+
+        #[require_transactional]
+        fn do_notification_received(
+            query_id: QueryId,
+            request: XcmInflightRequest<T>,
+            executed: bool,
+        ) -> DispatchResult {
+            match request {
+                XcmInflightRequest::Contribute {
+                    crowdloan,
+                    who,
+                    amount,
+                } if executed => {
+                    let mut vault =
+                        Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
+                    T::Assets::mint_into(vault.ctoken, &who, amount)?;
+                    T::Assets::burn_from(
+                        T::RelayCurrency::get(),
+                        &Self::vault_account_id(crowdloan),
+                        amount,
+                    )?;
+                    Self::do_migrate_pending(&who, &mut vault, amount)?;
+                    Vaults::<T>::insert(crowdloan, vault.id, vault);
+                }
+                XcmInflightRequest::Contribute {
+                    crowdloan: index,
+                    who,
+                    amount,
+                } if !executed => {
+                    // refund
+                    T::Assets::transfer(
+                        T::RelayCurrency::get(),
+                        &Self::vault_account_id(index),
+                        &who,
+                        amount,
+                        true,
+                    )?;
+                }
+                XcmInflightRequest::Withdraw {
+                    crowdloan,
+                    amount,
+                    target_phase,
+                } => {
+                    let mut vault =
+                        Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
+                    T::Assets::mint_into(
+                        T::RelayCurrency::get(),
+                        &Self::vault_account_id(crowdloan),
+                        amount,
+                    )?;
+                    vault.phase = target_phase;
+                    Vaults::<T>::insert(crowdloan, vault.id, vault);
+                }
+                _ => {}
+            }
+
+            if executed {
+                XcmInflight::<T>::remove(&query_id);
+            }
 
             Ok(())
         }
@@ -783,7 +804,6 @@ pub mod pallet {
         #[require_transactional]
         fn do_contribute(
             who: &AccountIdOf<T>,
-            _vault: &mut Vault<T>,
             crowdloan: ParaId,
             amount: BalanceOf<T>,
         ) -> Result<(), DispatchError> {
@@ -799,7 +819,7 @@ pub mod pallet {
             XcmInflight::<T>::insert(
                 query_id,
                 XcmInflightRequest::Contribute {
-                    index: crowdloan,
+                    crowdloan,
                     who: who.clone(),
                     amount,
                 },
@@ -809,16 +829,20 @@ pub mod pallet {
         }
 
         #[require_transactional]
-        fn do_withdraw(para_id: ParaId, amount: BalanceOf<T>) -> Result<(), DispatchError> {
+        fn do_withdraw(
+            crowdloan: ParaId,
+            amount: BalanceOf<T>,
+            target_phase: VaultPhase,
+        ) -> Result<(), DispatchError> {
             log::trace!(
                 target: "crowdloans::do_withdraw",
                 "para_id: {:?}, amount: {:?}",
-                &para_id,
+                &crowdloan,
                 &amount,
             );
 
             let query_id = T::XCM::do_withdraw(
-                para_id,
+                crowdloan,
                 T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
                 T::RelayCurrency::get(),
                 Self::para_account_id(),
@@ -828,8 +852,9 @@ pub mod pallet {
             XcmInflight::<T>::insert(
                 query_id,
                 XcmInflightRequest::Withdraw {
-                    index: para_id,
+                    crowdloan,
                     amount,
+                    target_phase,
                 },
             );
 
