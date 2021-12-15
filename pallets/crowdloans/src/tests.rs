@@ -166,6 +166,13 @@ fn contribute_should_work() {
         let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
         assert_eq!(vault.phase, VaultPhase::Contributing);
 
+        Crowdloans::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
+        )
+        .unwrap();
+
         // check if ctoken minted to user
         let ctoken_balance = Assets::balance(vault.ctoken, ALICE);
 
@@ -366,6 +373,13 @@ fn claim_refund_should_work() {
             Vec::new()
         ));
 
+        Crowdloans::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
+        )
+        .unwrap();
+
         // do close
         assert_ok!(Crowdloans::close(
             frame_system::RawOrigin::Root.into(), // origin
@@ -377,6 +391,13 @@ fn claim_refund_should_work() {
             frame_system::RawOrigin::Root.into(), // origin
             ParaId::from(crowdloan),              // crowdloan
         ));
+
+        Crowdloans::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            1,
+            Response::ExecutionResult(None),
+        )
+        .unwrap();
 
         // do claim
         assert_ok!(Crowdloans::claim_refund(

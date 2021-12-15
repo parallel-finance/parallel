@@ -473,7 +473,7 @@ pub mod pallet {
                 Error::<T>::IncorrectVaultPhase
             );
 
-            let ctoken_amount = <T as Config>::Assets::reducible_balance(vault.ctoken, &who, false);
+            let ctoken_amount = T::Assets::reducible_balance(vault.ctoken, &who, false);
             ensure!(ctoken_amount >= amount, Error::<T>::InsufficientBalance);
 
             log::trace!(
@@ -588,6 +588,7 @@ pub mod pallet {
                                     amount,
                                 )?;
                                 Self::do_migrate_pending(&who, &mut vault, amount)?;
+                                Vaults::<T>::insert(index, vault.id, vault);
                             }
                             XcmInflightRequest::Withdraw { index, amount } => {
                                 T::Assets::mint_into(
