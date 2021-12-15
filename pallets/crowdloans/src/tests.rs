@@ -154,7 +154,6 @@ fn set_vrfs_should_work() {
             crowdloan,                            // crowdloan
         ));
 
-        // do open
         assert_ok!(Crowdloans::set_vrfs(
             frame_system::RawOrigin::Root.into(),
             vec![crowdloan]
