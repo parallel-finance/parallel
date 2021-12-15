@@ -1372,7 +1372,6 @@ impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
         cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
             .map(|d| d.relay_parent_number)
             .unwrap_or_default()
-            .into()
     }
 }
 

@@ -217,7 +217,7 @@ benchmarks! {
         let ctoken = 14;
         let caller: T::AccountId = whitelisted_caller();
         let crowdloan = ParaId::from(1340u32);
-        let cap = 1_000_000_000_000;
+        let cap = 1000_000_000_000_000;
         let end_block = 1_000_000_000u32;
 
         initial_set_up::<T>(caller.clone(), ctoken);
@@ -238,7 +238,7 @@ benchmarks! {
         let ctoken = 15;
         let caller: T::AccountId = whitelisted_caller();
         let crowdloan = ParaId::from(1341u32);
-        let cap = 1_000_000_000_000;
+        let cap = 1000_000_000_000_000;
         let end_block = 1_000_000_000u32;
 
         initial_set_up::<T>(caller.clone(), ctoken);
@@ -260,7 +260,7 @@ benchmarks! {
         let ctoken = 16;
         let caller: T::AccountId = whitelisted_caller();
         let crowdloan = ParaId::from(1342u32);
-        let cap = 1_000_000_000_000;
+        let cap = 1000_000_000_000_000;
         let end_block = 1_000_000_000u32;
 
         initial_set_up::<T>(caller.clone(), ctoken);
