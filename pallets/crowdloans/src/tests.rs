@@ -456,6 +456,13 @@ fn slot_expired_should_work() {
             ParaId::from(crowdloan),              // crowdloan
         ));
 
+        Crowdloans::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
+        )
+        .unwrap();
+
         // check that we're in the right phase
         let vault = Crowdloans::vaults(ParaId::from(crowdloan), VAULT_ID).unwrap();
         assert_eq!(vault.phase, VaultPhase::Expired)
