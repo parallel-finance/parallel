@@ -205,8 +205,18 @@ benchmarks! {
         assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
         assert_ok!(Crowdloans::<T>::open(SystemOrigin::Root.into(), crowdloan));
         assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller.clone()).into(), crowdloan, CONTRIBUTE_AMOUNT, Vec::new()));
+        assert_ok!(<T as pallet_xcm_helper::Config>::Assets::mint_into(
+            ctoken,
+            &caller,
+            1_000,
+        ));
         assert_ok!(Crowdloans::<T>::close(SystemOrigin::Root.into(), crowdloan));
         assert_ok!(Crowdloans::<T>::auction_failed(SystemOrigin::Root.into(), crowdloan));
+        assert_ok!(<T as pallet_xcm_helper::Config>::Assets::mint_into(
+            T::RelayCurrency::get(),
+            &Crowdloans::<T>::vault_account_id(crowdloan),
+            1_000,
+        ));
     }: _(
         SystemOrigin::Signed(caller.clone()),
         ctoken,
