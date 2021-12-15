@@ -30,8 +30,8 @@ const XCM_WEIGHT: XcmWeightMisc<Weight> = XcmWeightMisc {
 const CONTRIBUTE_AMOUNT: u128 = 20000000000000u128;
 const INITIAL_RESERVES: u128 = 1000000000000000u128;
 const INITIAL_AMOUNT: u128 = 1000000000000000u128;
-const LARGE_CAP: u128 = 1000_000_000_000_000u128;
-const CAP: u32 = 1_000_000_000_000u32;
+const LARGE_CAP: u128 = 1_000_000_000_000_000u128;
+const CAP: u128 = 1_000_000_000_000u128;
 const END_BLOCK: u32 = 1_000_000_000u32;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {

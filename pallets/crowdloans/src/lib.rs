@@ -52,7 +52,7 @@ pub mod pallet {
     use pallet_xcm::ensure_response;
     use primitives::{ump::*, Balance, BlockNumber, CurrencyId, ParaId, TrieIndex};
     use sp_runtime::{
-        traits::{AccountIdConversion, BlockNumberProvider, Convert, Zero},
+        traits::{AccountIdConversion, BlockNumberProvider, Convert, Hash, Zero},
         ArithmeticError, DispatchError,
     };
     use sp_std::{boxed::Box, convert::TryInto, vec::Vec};
@@ -586,8 +586,10 @@ pub mod pallet {
 
             let vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
             let contributions = Self::contribution_iterator(vault.trie_index, true);
-            let mut migrated_count = 0u32;
+            let mut migrated_count: u32 = 0u32;
             let mut all_migrated = true;
+
+            #[allow(clippy::explicit_counter_loop)]
             for (who, (amount, _)) in contributions {
                 if migrated_count >= T::MigrateKeysLimit::get() {
                     all_migrated = false;
