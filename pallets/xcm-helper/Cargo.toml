@@ -12,12 +12,14 @@ codec         = { package = 'parity-scale-codec', version = '2.3.1', features = 
 frame-support = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
 frame-system  = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
 pallet-assets = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
+pallet-xcm    = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.12', default-features = false }
 primitives    = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 scale-info    = { version = '1.0', default-features = false, features = ['derive'] }
 sp-io         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
 sp-runtime    = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
 sp-std        = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
 xcm           = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.12', default-features = false }
+xcm-executor  = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.12', default-features = false }
 
 
 [features]
@@ -30,7 +32,9 @@ std         = [
   'scale-info/std',
   'sp-std/std',
   'xcm/std',
+  'xcm-executor/std',
   'pallet-assets/std',
+  'pallet-xcm/std',
   'primitives/std',
 ]
 try-runtime = ['frame-support/try-runtime']

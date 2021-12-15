@@ -14,13 +14,14 @@
 
 // Groups common pool related structures
 
-use super::{AssetIdOf, BalanceOf, Config};
-use primitives::BlockNumber;
+use super::{AccountIdOf, AssetIdOf, BalanceOf, Config};
 
 use codec::{Decode, Encode};
 
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, RuntimeDebug};
+
+use primitives::{BlockNumber, ParaId, TrieIndex};
 
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum VaultPhase {
@@ -62,6 +63,8 @@ pub struct Vault<T: Config> {
     pub cap: BalanceOf<T>,
     /// block that vault ends
     pub end_block: BlockNumber,
+    /// child storage trie index where we store all contributions
+    pub trie_index: TrieIndex,
 }
 
 /// init default vault with ctoken and currency override
@@ -72,6 +75,7 @@ impl<T: Config> Vault<T> {
         contribution_strategy: ContributionStrategy,
         cap: BalanceOf<T>,
         end_block: BlockNumber,
+        trie_index: TrieIndex,
     ) -> Self {
         Self {
             id,
@@ -82,6 +86,7 @@ impl<T: Config> Vault<T> {
             contribution_strategy,
             cap,
             end_block,
+            trie_index,
         }
     }
 }
@@ -89,4 +94,19 @@ impl<T: Config> Vault<T> {
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum ContributionStrategy {
     XCM,
+}
+
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+#[scale_info(skip_type_params(T))]
+pub enum XcmInflightRequest<T: Config> {
+    Contribute {
+        crowdloan: ParaId,
+        who: AccountIdOf<T>,
+        amount: BalanceOf<T>,
+    },
+    Withdraw {
+        crowdloan: ParaId,
+        amount: BalanceOf<T>,
+        target_phase: VaultPhase,
+    },
 }

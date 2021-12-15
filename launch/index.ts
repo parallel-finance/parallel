@@ -158,6 +158,7 @@ async function relay() {
   const api = await ApiPromise.create({
     provider: new WsProvider('ws://localhost:9944')
   })
+  const chain = await api.rpc.system.chain().then(c => c.toString())
 
   console.log('Wait for relaychain to produce blocks')
   do await sleep(1000)
@@ -207,9 +208,11 @@ async function relay() {
       )
     )
   )
-  call.push(
-    downwardTransfer(api, config.paraId, createAddress(XcmFeesPalletId), '1000000000000000')
-  )
+  if (chain.includes('Kusama')) {
+    call.push(
+      downwardTransfer(api, config.paraId, createAddress(XcmFeesPalletId), '1000000000000000')
+    )
+  }
 
   await api.tx.utility.batchAll(call).signAndSend(signer, { nonce: await nextIndex(api, signer) })
 }

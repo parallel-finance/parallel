@@ -19,14 +19,14 @@ fn create_new_vault_should_work() {
         let ctoken = 10;
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
-
+        let trie_index = Zero::zero();
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create the ctoken asset
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            sp_runtime::MultiAddress::Id(Crowdloans::account_id()),
+            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(crowdloan)),
             true,
             One::one(),
         ));
@@ -38,6 +38,7 @@ fn create_new_vault_should_work() {
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
             end_block,                            // end_block
+            trie_index,                           // trie_index
         ));
 
         let just_created_vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
@@ -52,6 +53,7 @@ fn create_new_vault_should_work() {
                 contribution_strategy,
                 cap,
                 end_block
+                trie_index: Zero::zero(),
             }
         );
     });
@@ -64,17 +66,18 @@ fn create_new_vault_should_not_work_if_vault_is_already_created() {
         let ctoken = 10;
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
-
+        let trie_index = Zero::zero();
+      
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            sp_runtime::MultiAddress::Id(Crowdloans::account_id()),
+            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(crowdloan)),
             true,
             One::one(),
         ));
 
         Assets::mint(
-            Origin::signed(Crowdloans::account_id()),
+            Origin::signed(Crowdloans::vault_account_id(crowdloan)),
             ctoken,
             Id(ALICE),
             dot(100f64),
@@ -89,6 +92,7 @@ fn create_new_vault_should_not_work_if_vault_is_already_created() {
                 ContributionStrategy::XCM,            // contribution_strategy
                 cap,                                  // cap
                 end_block,                            // end_block
+                trie_index,                           // trie_index
             ),
             Error::<Test>::CTokenAlreadyTaken
         );
@@ -102,14 +106,14 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
         let ctoken = 10;
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
-
+        let trie_index = Zero::zero();
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create the ctoken asset
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            sp_runtime::MultiAddress::Id(Crowdloans::account_id()),
+            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(crowdloan)),
             true,
             One::one(),
         ));
@@ -121,6 +125,7 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
             end_block,                            // end_block
+            trie_index,                           // trie_index
         ));
 
         assert_noop!(
@@ -131,6 +136,7 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
                 contribution_strategy,                // contribution_strategy
                 cap,                                  // cap
                 end_block,                            // end_block
+                trie_index,                           // trie_index
             ),
             Error::<Test>::CTokenAlreadyTaken
         );
@@ -138,21 +144,21 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
 }
 
 #[test]
-fn contribute_should_work() {
+fn set_vrfs_should_work() {
     new_test_ext().execute_with(|| {
         let crowdloan = ParaId::from(1337u32);
         let ctoken = 10;
         let amount = 1_000;
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
-
+        let trie_index = Zero::zero();
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create the ctoken asset
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            sp_runtime::MultiAddress::Id(Crowdloans::account_id()),
+            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(ParaId::from(crowdloan))),
             true,
             One::one(),
         ));
@@ -165,6 +171,62 @@ fn contribute_should_work() {
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
             end_block,                            // end_block
+            trie_index,                           // trie_index
+        ));
+
+        // do open
+        assert_ok!(Crowdloans::open(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
+        assert_ok!(Crowdloans::set_vrfs(
+            frame_system::RawOrigin::Root.into(),
+            vec![crowdloan]
+        ));
+
+        // do contribute
+        assert_noop!(
+            Crowdloans::contribute(
+                Origin::signed(ALICE), // origin
+                crowdloan,             // crowdloan
+                amount,                // amount
+                Vec::new()
+            ),
+            Error::<Test>::VrfDelayInProgress
+        );
+    })
+}
+
+#[test]
+fn contribute_should_work() {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337u32);
+        let ctoken = 10;
+        let amount = 1_000;
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
+        let trie_index = Zero::zero();
+        let contribution_strategy = ContributionStrategy::XCM;
+
+        // create the ctoken asset
+        assert_ok!(Assets::force_create(
+            RawOrigin::Root.into(),
+            ctoken.unique_saturated_into(),
+            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(ParaId::from(crowdloan))),
+            true,
+            One::one(),
+        ));
+
+        // create a vault to contribute to
+        assert_ok!(Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block,                            // end_block
+            trie_index,                           // trie_index
         ));
 
         // do open
@@ -185,57 +247,17 @@ fn contribute_should_work() {
         let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
         assert_eq!(vault.phase, VaultPhase::Contributing);
 
+        Crowdloans::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
+        )
+        .unwrap();
+
         // check if ctoken minted to user
         let ctoken_balance = Assets::balance(vault.ctoken, ALICE);
 
         assert_eq!(ctoken_balance, amount);
-    });
-}
-
-#[test]
-fn toggle_vrf_should_work() {
-    new_test_ext().execute_with(|| {
-        let crowdloan = ParaId::from(1337u32);
-        let ctoken = 10;
-        let amount = 1_000;
-        let cap = 1_000_000_000_000;
-        let end_block = BlockNumber::from(1_000_000_000u32);
-
-        let contribution_strategy = ContributionStrategy::XCM;
-
-        // create the ctoken asset
-        assert_ok!(Assets::force_create(
-            RawOrigin::Root.into(),
-            ctoken.unique_saturated_into(),
-            sp_runtime::MultiAddress::Id(Crowdloans::account_id()),
-            true,
-            One::one(),
-        ));
-
-        // create a vault to contribute to
-        assert_ok!(Crowdloans::create_vault(
-            frame_system::RawOrigin::Root.into(), // origin
-            crowdloan,                            // crowdloan
-            ctoken,                               // ctoken
-            contribution_strategy,                // contribution_strategy
-            cap,                                  // cap
-            end_block,                            // end_block
-        ));
-
-        assert_ok!(Crowdloans::toggle_vrf_delay(
-            frame_system::RawOrigin::Root.into(), // origin
-        ));
-
-        // do contribute
-        assert_noop!(
-            Crowdloans::contribute(
-                Origin::signed(ALICE), // origin
-                crowdloan,             // crowdloan
-                amount,                // amount
-                Vec::new()
-            ),
-            Error::<Test>::VrfDelayInProgress
-        );
     });
 }
 
@@ -247,14 +269,14 @@ fn contribute_should_fail_insufficent_funds() {
         let amount = 1_000;
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
-
+        let trie_index = Zero::zero();
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create the ctoken asset
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            sp_runtime::MultiAddress::Id(Crowdloans::account_id()),
+            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(ParaId::from(crowdloan))),
             true,
             One::one(),
         ));
@@ -267,6 +289,7 @@ fn contribute_should_fail_insufficent_funds() {
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
             end_block,                            // end_block
+            trie_index,                           // trie_index
         ));
 
         // do contribute
@@ -289,7 +312,7 @@ fn close_should_work() {
         let ctoken = 10;
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
-
+        let trie_index = Zero::zero();
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create a vault to contribute to
@@ -300,6 +323,7 @@ fn close_should_work() {
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
             end_block,                            // end_block
+            trie_index,                           // trie_index
         ));
 
         // do open
@@ -327,7 +351,7 @@ fn reopen_should_work() {
         let ctoken = 10;
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
-
+        let trie_index = Zero::zero();
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create a vault to contribute to
@@ -338,6 +362,7 @@ fn reopen_should_work() {
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
             end_block,                            // end_block
+            trie_index,                           // trie_index
         ));
 
         // do open
@@ -371,7 +396,7 @@ fn auction_failed_should_work() {
         let ctoken = 10;
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
-
+        let trie_index = Zero::zero();
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create a vault to contribute to
@@ -382,6 +407,7 @@ fn auction_failed_should_work() {
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
             end_block,                            // end_block
+            trie_index,                           // trie_index
         ));
 
         // do open
@@ -402,6 +428,13 @@ fn auction_failed_should_work() {
             crowdloan,                            // crowdloan
         ));
 
+        Crowdloans::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
+        )
+        .unwrap();
+
         // check that we're in the right phase
         let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
         assert_eq!(vault.phase, VaultPhase::Failed)
@@ -412,18 +445,18 @@ fn auction_failed_should_work() {
 fn claim_refund_should_work() {
     new_test_ext().execute_with(|| {
         let crowdloan = ParaId::from(1337u32);
-        let ctoken = 10;
+        let ctoken = 10u32;
         let amount = 1_000u128;
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
-
+        let trie_index = Zero::zero();
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create the ctoken asset
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            Id(Crowdloans::account_id()),
+            Id(Crowdloans::vault_account_id(ParaId::from(crowdloan))),
             true,
             One::one(),
         ));
@@ -436,6 +469,7 @@ fn claim_refund_should_work() {
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
             end_block,                            // end_block
+            trie_index,                           // trie_index
         ));
 
         // do open
@@ -452,6 +486,13 @@ fn claim_refund_should_work() {
             Vec::new()
         ));
 
+        Crowdloans::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
+        )
+        .unwrap();
+
         // do close
         assert_ok!(Crowdloans::close(
             frame_system::RawOrigin::Root.into(), // origin
@@ -463,6 +504,13 @@ fn claim_refund_should_work() {
             frame_system::RawOrigin::Root.into(), // origin
             crowdloan,                            // crowdloan
         ));
+
+        Crowdloans::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            1,
+            Response::ExecutionResult(None),
+        )
+        .unwrap();
 
         // do claim
         assert_ok!(Crowdloans::claim_refund(
@@ -488,7 +536,7 @@ fn slot_expired_should_work() {
         let ctoken = 10;
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
-
+        let trie_index = Zero::zero();
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create a vault to contribute to
@@ -499,6 +547,7 @@ fn slot_expired_should_work() {
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
             end_block,                            // end_block
+            trie_index,                           // trie_index
         ));
 
         // do open
@@ -517,6 +566,13 @@ fn slot_expired_should_work() {
             frame_system::RawOrigin::Root.into(), // origin
             crowdloan,                            // crowdloan
         ));
+
+        Crowdloans::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
+        )
+        .unwrap();
 
         // check that we're in the right phase
         let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();

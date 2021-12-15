@@ -326,9 +326,11 @@ impl SortedMembers<AccountId> for BobOrigin {
 
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
+    pub const MaxVrfs: u32 = 10;
+    pub const MinContribution: Balance = 0;
+    pub const MigrateKeysLimit: u32 = 10;
     pub SelfParaId: ParaId = para_a_id();
     pub RefundLocation: AccountId = para_a_id().into_account();
-    pub const MinContribution: Balance = 0;
 }
 
 pub type CreateVaultOrigin =
@@ -337,7 +339,7 @@ pub type CreateVaultOrigin =
 pub type UpdateVaultOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
-pub type VrfDelayOrigin =
+pub type VrfOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
 pub type OpenCloseOrigin =
@@ -351,8 +353,8 @@ pub type SlotExpiredOrigin =
 
 impl crate::Config for Test {
     type Event = Event;
-    type Call = Call;
     type Origin = Origin;
+    type Call = Call;
     type PalletId = CrowdloansPalletId;
     type SelfParaId = SelfParaId;
     type Assets = Assets;
@@ -360,10 +362,13 @@ impl crate::Config for Test {
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type RefundLocation = RefundLocation;
     type MinContribution = MinContribution;
+    type MaxVrfs = MaxVrfs;
+    type MigrateKeysLimit = MigrateKeysLimit;
     type UpdateOrigin = EnsureRoot<AccountId>;
+    type MigrateOrigin = EnsureRoot<AccountId>;
     type CreateVaultOrigin = CreateVaultOrigin;
     type UpdateVaultOrigin = UpdateVaultOrigin;
-    type VrfDelayOrigin = VrfDelayOrigin;
+    type VrfOrigin = VrfOrigin;
     type OpenCloseOrigin = OpenCloseOrigin;
     type AuctionFailedOrigin = AuctionFailedOrigin;
     type SlotExpiredOrigin = SlotExpiredOrigin;
@@ -374,6 +379,7 @@ impl crate::Config for Test {
 
 parameter_types! {
     pub const XcmHelperPalletId: PalletId = PalletId(*b"par/fees");
+    pub const NotifyTimeout: BlockNumber = 100;
 }
 
 impl pallet_xcm_helper::Config for Test {
@@ -381,6 +387,7 @@ impl pallet_xcm_helper::Config for Test {
     type XcmSender = XcmRouter;
     type PalletId = XcmHelperPalletId;
     type RelayNetwork = RelayNetwork;
+    type NotifyTimeout = NotifyTimeout;
     type BlockNumberProvider = frame_system::Pallet<Test>;
 }
 
@@ -446,13 +453,6 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         Assets::mint(
             Origin::signed(ALICE),
             DOT,
-            Id(Crowdloans::account_id()),
-            dot(30f64),
-        )
-        .unwrap();
-        Assets::mint(
-            Origin::signed(ALICE),
-            DOT,
             Id(XcmHelper::account_id()),
             dot(30f64),
         )
@@ -515,13 +515,6 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
         Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
-        Assets::mint(
-            Origin::signed(ALICE),
-            DOT,
-            Id(Crowdloans::account_id()),
-            dot(30f64),
-        )
-        .unwrap();
         Assets::mint(
             Origin::signed(ALICE),
             DOT,
