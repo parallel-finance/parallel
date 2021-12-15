@@ -111,8 +111,15 @@ pub mod pallet {
         #[pallet::constant]
         type MaxVrfs: Get<u32>;
 
+        /// Maximum keys to be migrated in one extrinsic
+        #[pallet::constant]
+        type MigrateKeysLimit: Get<u32>;
+
         /// The origin which can update reserve_factor, xcm_fees etc
         type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+
+        /// The origin which can migrate pending contribution
+        type MigrateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The origin which can set vrfs
         type VrfOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
@@ -163,6 +170,10 @@ pub mod pallet {
         VrfsUpdated(BoundedVec<ParaId, T::MaxVrfs>),
         /// Notification received
         NotificationReceived(Box<MultiLocation>, QueryId, Option<(u32, XcmError)>),
+        /// All migrated
+        AllMigrated(ParaId),
+        /// Partially migrated
+        PartiallyMigrated(ParaId),
     }
 
     #[pallet::error]
@@ -343,14 +354,11 @@ pub mod pallet {
                 &amount,
             );
 
-            match vault.phase {
-                VaultPhase::Contributing if !Self::has_vrfs() => {
-                    Self::do_contribute(&who, &mut vault, crowdloan, amount)?;
-                }
-                _ => {
-                    Self::do_pending_contribution(&who, &mut vault, amount)?;
-                }
+            if vault.phase == VaultPhase::Contributing && !Self::has_vrfs() {
+                Self::do_contribute(&who, &mut vault, crowdloan, amount)?;
             }
+
+            Self::do_pending_contribution(&who, &mut vault, amount)?;
 
             Vaults::<T>::insert(crowdloan, vault.id, vault);
 
@@ -502,6 +510,34 @@ pub mod pallet {
                 Self::deposit_event(Event::<T>::VaultSlotExpired(crowdloan));
                 Ok(())
             })
+        }
+
+        /// migrate pending contribution by sending xcm
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn migrate_pending(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
+            T::MigrateOrigin::ensure_origin(origin)?;
+
+            let mut vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
+            let contributions = Self::contribution_iterator(vault.trie_index, true);
+            let mut migrated_count = 0u32;
+            let mut all_migrated = true;
+            for (who, (amount, _)) in contributions {
+                if migrated_count >= T::MigrateKeysLimit::get() {
+                    all_migrated = false;
+                    break;
+                }
+                Self::do_contribute(&who, &mut vault, crowdloan, amount)?;
+                migrated_count += 1;
+            }
+
+            if all_migrated {
+                Self::deposit_event(Event::<T>::AllMigrated(crowdloan));
+            } else {
+                Self::deposit_event(Event::<T>::PartiallyMigrated(crowdloan));
+            }
+
+            Ok(())
         }
 
         /// Update xcm fees amount to be used in xcm.Withdraw message
@@ -751,7 +787,7 @@ pub mod pallet {
         #[require_transactional]
         fn do_contribute(
             who: &AccountIdOf<T>,
-            vault: &mut Vault<T>,
+            _vault: &mut Vault<T>,
             crowdloan: ParaId,
             amount: BalanceOf<T>,
         ) -> Result<(), DispatchError> {
@@ -772,8 +808,6 @@ pub mod pallet {
                     amount,
                 },
             );
-
-            Self::do_pending_contribution(who, vault, amount)?;
 
             Ok(())
         }
