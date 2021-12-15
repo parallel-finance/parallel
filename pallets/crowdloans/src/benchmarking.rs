@@ -28,7 +28,7 @@ const XCM_WEIGHT: XcmWeightMisc<Weight> = XcmWeightMisc {
     add_memo_weight: 3_000_000_000,
 };
 const CONTRIBUTE_AMOUNT: u128 = 20000000000000u128;
-const INITIAL_RESERVES: u128 = 1000000000000u128;
+const INITIAL_RESERVES: u128 = 1000000000000000u128;
 const INITIAL_AMOUNT: u128 = 1000000000000000u128;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
@@ -243,6 +243,39 @@ benchmarks! {
     )
     verify {
         assert_last_event::<T>(Event::VaultSlotExpiring(crowdloan).into())
+    }
+
+    migrate_pending {
+        let ctoken = 17;
+        let caller: T::AccountId = whitelisted_caller();
+        let crowdloan = ParaId::from(1343);
+        initial_set_up::<T>(caller.clone(), ctoken);
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
+        for _ in 0..10 {
+            assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller.clone()).into(), crowdloan, CONTRIBUTE_AMOUNT, Vec::new()));
+        }
+    }: _(
+        SystemOrigin::Root,
+        crowdloan
+    )
+    verify {
+        assert_last_event::<T>(Event::AllMigrated(crowdloan).into())
+    }
+
+    notification_received {
+        let ctoken = 18;
+        let caller: T::AccountId = whitelisted_caller();
+        let crowdloan = ParaId::from(1344);
+        initial_set_up::<T>(caller.clone(), ctoken);
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
+        assert_ok!(Crowdloans::<T>::open(SystemOrigin::Root.into(), crowdloan));
+        assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller).into(), crowdloan, CONTRIBUTE_AMOUNT, Vec::new()));
+    }: _(
+        pallet_xcm::Origin::Response(MultiLocation::parent()),
+        0u64,
+        Response::ExecutionResult(None)
+    )
+    verify {
     }
 
     update_xcm_fees {

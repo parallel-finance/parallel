@@ -511,7 +511,7 @@ pub mod pallet {
         }
 
         /// migrate pending contribution by sending xcm
-        #[pallet::weight(10_000)]
+        #[pallet::weight(<T as Config>::WeightInfo::migrate_pending())]
         #[transactional]
         pub fn migrate_pending(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             T::MigrateOrigin::ensure_origin(origin)?;
@@ -564,7 +564,7 @@ pub mod pallet {
             Ok(().into())
         }
 
-        #[pallet::weight(10_000)]
+        #[pallet::weight(<T as Config>::WeightInfo::notification_received())]
         #[transactional]
         pub fn notification_received(
             origin: OriginFor<T>,

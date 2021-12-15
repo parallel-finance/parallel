@@ -57,6 +57,8 @@ pub trait WeightInfo {
 	fn auction_failed() -> Weight;
 	fn claim_refund() -> Weight;
 	fn slot_expired() -> Weight;
+	fn migrate_pending() -> Weight;
+	fn notification_received() -> Weight;
 	fn update_xcm_fees() -> Weight;
 	fn update_xcm_weight() -> Weight;
 }
@@ -65,22 +67,22 @@ pub trait WeightInfo {
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	fn create_vault() -> Weight {
-		(69_000_000 as Weight)
+		(70_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(5 as Weight))
 			.saturating_add(T::DbWeight::get().writes(4 as Weight))
 	}
 	fn contribute() -> Weight {
-		(302_000_000 as Weight)
+		(309_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(18 as Weight))
 			.saturating_add(T::DbWeight::get().writes(12 as Weight))
 	}
 	fn open() -> Weight {
-		(77_000_000 as Weight)
+		(71_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	fn close() -> Weight {
-		(41_000_000 as Weight)
+		(43_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
@@ -90,17 +92,17 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	fn reopen() -> Weight {
-		(40_000_000 as Weight)
+		(42_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	fn auction_failed() -> Weight {
-		(177_000_000 as Weight)
+		(176_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(13 as Weight))
 			.saturating_add(T::DbWeight::get().writes(8 as Weight))
 	}
 	fn claim_refund() -> Weight {
-		(190_000_000 as Weight)
+		(179_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(7 as Weight))
 			.saturating_add(T::DbWeight::get().writes(5 as Weight))
 	}
@@ -109,8 +111,18 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(13 as Weight))
 			.saturating_add(T::DbWeight::get().writes(8 as Weight))
 	}
+	fn migrate_pending() -> Weight {
+		(203_000_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(15 as Weight))
+			.saturating_add(T::DbWeight::get().writes(7 as Weight))
+	}
+	fn notification_received() -> Weight {
+		(208_000_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(10 as Weight))
+			.saturating_add(T::DbWeight::get().writes(9 as Weight))
+	}
 	fn update_xcm_fees() -> Weight {
-		(30_000_000 as Weight)
+		(31_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
@@ -124,22 +136,22 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 // For backwards compatibility and tests
 impl WeightInfo for () {
 	fn create_vault() -> Weight {
-		(69_000_000 as Weight)
+		(70_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(5 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(4 as Weight))
 	}
 	fn contribute() -> Weight {
-		(302_000_000 as Weight)
+		(309_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(18 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(12 as Weight))
 	}
 	fn open() -> Weight {
-		(77_000_000 as Weight)
+		(71_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(3 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
 	}
 	fn close() -> Weight {
-		(41_000_000 as Weight)
+		(43_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(2 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
 	}
@@ -149,17 +161,17 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
 	}
 	fn reopen() -> Weight {
-		(40_000_000 as Weight)
+		(42_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(2 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
 	}
 	fn auction_failed() -> Weight {
-		(177_000_000 as Weight)
+		(176_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(13 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(8 as Weight))
 	}
 	fn claim_refund() -> Weight {
-		(190_000_000 as Weight)
+		(179_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(7 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(5 as Weight))
 	}
@@ -168,8 +180,18 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads(13 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(8 as Weight))
 	}
+	fn migrate_pending() -> Weight {
+		(203_000_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(15 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(7 as Weight))
+	}
+	fn notification_received() -> Weight {
+		(208_000_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(10 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(9 as Weight))
+	}
 	fn update_xcm_fees() -> Weight {
-		(30_000_000 as Weight)
+		(31_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
 	}
