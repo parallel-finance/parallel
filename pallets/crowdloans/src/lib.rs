@@ -186,7 +186,7 @@ pub mod pallet {
         /// Exceeded maximum vrfs
         ExceededMaxVrfs,
         /// Pending contribution must be killed before entering `Contributing` vault phase
-        PendingContributionExists,
+        PendingContributionNotKilled,
     }
 
     #[pallet::storage]
@@ -288,8 +288,9 @@ pub mod pallet {
                 ensure!(
                     Self::contribution_iterator(vault.trie_index, true)
                         .count()
-                        .is_zero(),
-                    Error::<T>::PendingContributionExists
+                        .is_zero()
+                        && vault.pending.is_zero(),
+                    Error::<T>::PendingContributionNotKilled
                 );
                 vault.phase = VaultPhase::Contributing;
                 Self::deposit_event(Event::<T>::VaultOpened(crowdloan));
