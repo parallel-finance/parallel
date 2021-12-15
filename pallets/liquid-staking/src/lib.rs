@@ -647,13 +647,17 @@ pub mod pallet {
         pub fn nominate(origin: OriginFor<T>, targets: Vec<T::AccountId>) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
             T::XCM::nominate(
-                targets,
+                targets.clone(),
                 Self::xcm_weight().nominate_weight,
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
                 Self::account_id(),
                 T::DerivativeIndex::get(),
-            )
+            )?;
+
+            Self::deposit_event(Event::<T>::Nominating(targets));
+
+            Ok(())
         }
 
         /// Set liquid currency via governance
@@ -739,14 +743,20 @@ pub mod pallet {
         ) -> DispatchResult {
             T::XCM::bond_internal(
                 value,
-                payee,
+                payee.clone(),
                 Self::derivative_para_account_id(),
                 Self::xcm_weight().bond_weight,
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
                 Self::account_id(),
                 T::DerivativeIndex::get(),
-            )
+            )?;
+            Self::deposit_event(Event::<T>::Bonding(
+                Self::derivative_para_account_id(),
+                value,
+                payee,
+            ));
+            Ok(())
         }
 
         #[require_transactional]
@@ -759,7 +769,9 @@ pub mod pallet {
                 Self::staking_currency()?,
                 Self::account_id(),
                 T::DerivativeIndex::get(),
-            )
+            )?;
+            Self::deposit_event(Event::<T>::BondingExtra(value));
+            Ok(())
         }
 
         #[require_transactional]
@@ -771,7 +783,11 @@ pub mod pallet {
                 Self::staking_currency()?,
                 Self::account_id(),
                 T::DerivativeIndex::get(),
-            )
+            )?;
+
+            Self::deposit_event(Event::<T>::Unbonding(value));
+
+            Ok(())
         }
 
         #[require_transactional]
@@ -783,7 +799,11 @@ pub mod pallet {
                 Self::staking_currency()?,
                 Self::account_id(),
                 T::DerivativeIndex::get(),
-            )
+            )?;
+
+            Self::deposit_event(Event::<T>::Rebonding(value));
+
+            Ok(())
         }
 
         #[require_transactional]
@@ -800,7 +820,11 @@ pub mod pallet {
                 Self::account_id(),
                 Self::para_account_id(),
                 T::DerivativeIndex::get(),
-            )
+            )?;
+
+            Self::deposit_event(Event::<T>::WithdrawingUnbonded(num_slashing_spans));
+
+            Ok(())
         }
 
         #[inline]
