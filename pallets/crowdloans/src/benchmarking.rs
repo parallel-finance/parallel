@@ -11,6 +11,7 @@ use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{ump::*, Balance, CurrencyId, ParaId};
 use sp_runtime::traits::StaticLookup;
 use sp_std::{convert::TryInto, prelude::*};
+use xcm::latest::prelude::*;
 
 use sp_runtime::traits::One;
 
@@ -84,7 +85,8 @@ fn initial_set_up<
 benchmarks! {
     where_clause {
         where
-            T: pallet_assets::Config<AssetId = CurrencyId, Balance = Balance> + pallet_xcm_helper::Config
+            T: pallet_assets::Config<AssetId = CurrencyId, Balance = Balance> + pallet_xcm_helper::Config,
+            <T as frame_system::Config>::Origin: From<pallet_xcm::Origin>
     }
 
     create_vault {
@@ -205,23 +207,18 @@ benchmarks! {
         assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
         assert_ok!(Crowdloans::<T>::open(SystemOrigin::Root.into(), crowdloan));
         assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller.clone()).into(), crowdloan, CONTRIBUTE_AMOUNT, Vec::new()));
-        // TODO: should call notification_received instead
-        assert_ok!(<T as pallet_xcm_helper::Config>::Assets::mint_into(
-            ctoken,
-            &caller,
-            1_000,
+        assert_ok!(Crowdloans::<T>::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
         ));
         assert_ok!(Crowdloans::<T>::close(SystemOrigin::Root.into(), crowdloan));
         assert_ok!(Crowdloans::<T>::auction_failed(SystemOrigin::Root.into(), crowdloan));
-        // TODO: should call notification_received instead
-        assert_ok!(<T as pallet_xcm_helper::Config>::Assets::mint_into(
-            T::RelayCurrency::get(),
-            &Crowdloans::<T>::vault_account_id(crowdloan),
-            1_000,
+        assert_ok!(Crowdloans::<T>::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            1,
+            Response::ExecutionResult(None),
         ));
-        let mut vault = Vaults::<T>::get(&crowdloan, &0u32).unwrap();
-        vault.phase = VaultPhase::Failed;
-        Vaults::<T>::insert(crowdloan, vault.id, vault);
     }: _(
         SystemOrigin::Signed(caller.clone()),
         ctoken,
