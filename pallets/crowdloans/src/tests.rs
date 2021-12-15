@@ -50,7 +50,8 @@ fn create_new_vault_should_work() {
                 pending: Zero::zero(),
                 contribution_strategy,
                 cap,
-                end_block
+                end_block,
+                trie_index: Zero::zero()
             }
         );
     });
