@@ -768,7 +768,7 @@ pub mod pallet {
                 XcmInflightRequest::Contribute {
                     index: crowdloan,
                     who: who.clone(),
-                    amount: amount,
+                    amount,
                 },
             );
 
@@ -798,7 +798,7 @@ pub mod pallet {
                 query_id,
                 XcmInflightRequest::Withdraw {
                     index: para_id,
-                    amount: amount,
+                    amount,
                 },
             );
 
