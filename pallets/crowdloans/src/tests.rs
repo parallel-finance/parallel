@@ -123,6 +123,57 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
 }
 
 #[test]
+fn set_vrfs_should_work() {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337);
+        let ctoken = 10;
+        let amount = 1_000;
+
+        let contribution_strategy = ContributionStrategy::XCM;
+
+        // create the ctoken asset
+        assert_ok!(Assets::force_create(
+            RawOrigin::Root.into(),
+            ctoken.unique_saturated_into(),
+            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(ParaId::from(crowdloan))),
+            true,
+            One::one(),
+        ));
+
+        // create a vault to contribute to
+        assert_ok!(Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            contribution_strategy,                // contribution_strategy
+        ));
+
+        // do open
+        assert_ok!(Crowdloans::open(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
+        // do open
+        assert_ok!(Crowdloans::set_vrfs(
+            frame_system::RawOrigin::Root.into(),
+            vec![crowdloan]
+        ));
+
+        // do contribute
+        assert_noop!(
+            Crowdloans::contribute(
+                Origin::signed(ALICE), // origin
+                crowdloan,             // crowdloan
+                amount,                // amount
+                Vec::new()
+            ),
+            Error::<Test>::VrfDelayInProgress
+        );
+    })
+}
+
+#[test]
 fn contribute_should_work() {
     new_test_ext().execute_with(|| {
         let crowdloan = ParaId::from(1337);
