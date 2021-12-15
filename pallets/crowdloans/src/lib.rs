@@ -143,7 +143,9 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
 
         /// The relay's BlockNumber provider
-        type BlockNumberProvider: BlockNumberProvider<BlockNumber = primitives::BlockNumber>;
+        type RelayChainBlockNumberProvider: BlockNumberProvider<
+            BlockNumber = primitives::BlockNumber,
+        >;
 
         /// To expose XCM helper functions
         type XCM: XcmHelper<Self, BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
@@ -205,7 +207,7 @@ pub mod pallet {
         /// Attempted contribution violates contribution cap
         ExceededCap,
         /// Current relay block is greater then vault end block
-        ExceededCrowdloanEndBlock,
+        ExceededEndBlock,
         /// Exceeded maximum vrfs
         ExceededMaxVrfs,
         /// Pending contribution must be killed before entering `Contributing` vault phase
@@ -250,7 +252,7 @@ pub mod pallet {
             crowdloan: ParaId,
             ctoken: AssetIdOf<T>,
             contribution_strategy: ContributionStrategy,
-            cap: BalanceOf<T>,
+            #[pallet::compact] cap: BalanceOf<T>,
             end_block: BlockNumber,
         ) -> DispatchResult {
             T::CreateVaultOrigin::ensure_origin(origin)?;
@@ -268,8 +270,8 @@ pub mod pallet {
             );
 
             ensure!(
-                T::BlockNumberProvider::current_block_number() <= end_block,
-                Error::<T>::ExceededCrowdloanEndBlock
+                T::RelayChainBlockNumberProvider::current_block_number() <= end_block,
+                Error::<T>::ExceededEndBlock
             );
 
             let trie_index = Self::next_trie_index();
@@ -285,11 +287,12 @@ pub mod pallet {
 
             log::trace!(
                 target: "crowdloans::create_vault",
-                "ctoken_issuance: {:?}, next_index: {:?}, trie_index: {:?}, ctoken: {:?}",
+                "ctoken_issuance: {:?}, next_index: {:?}, trie_index: {:?}, ctoken: {:?}, trie_index: {:?}",
                 ctoken_issuance,
                 next_index,
                 trie_index,
                 ctoken,
+                trie_index,
             );
 
             NextTrieIndex::<T>::put(next_trie_index);
@@ -322,8 +325,8 @@ pub mod pallet {
 
             if let Some(end_block) = end_block {
                 ensure!(
-                    T::BlockNumberProvider::current_block_number() <= end_block,
-                    Error::<T>::ExceededCrowdloanEndBlock
+                    T::RelayChainBlockNumberProvider::current_block_number() <= end_block,
+                    Error::<T>::ExceededEndBlock
                 );
 
                 vault.end_block = end_block;
@@ -379,8 +382,8 @@ pub mod pallet {
             let mut vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
 
             ensure!(
-                T::BlockNumberProvider::current_block_number() <= vault.end_block,
-                Error::<T>::ExceededCrowdloanEndBlock
+                T::RelayChainBlockNumberProvider::current_block_number() <= vault.end_block,
+                Error::<T>::ExceededEndBlock
             );
 
             ensure!(
@@ -406,10 +409,10 @@ pub mod pallet {
                 true,
             )?;
 
-            let total_amount = Self::cap(&vault, amount)?;
+            let total_contribution = Self::cap(&vault, amount)?;
 
             // throw if new value overflows cap
-            ensure!(total_amount < vault.cap, Error::<T>::ExceededCap);
+            ensure!(total_contribution <= vault.cap, Error::<T>::ExceededCap);
 
             if vault.phase == VaultPhase::Contributing && !Self::has_vrfs() {
                 Self::do_contribute(&who, crowdloan, amount)?;

@@ -1397,7 +1397,7 @@ impl pallet_crowdloans::Config for Runtime {
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
     type XCM = XcmHelper;
-    type BlockNumberProvider = RelayChainBlockNumberProvider<Runtime>;
+    type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Runtime>;
 }
 
 parameter_types! {

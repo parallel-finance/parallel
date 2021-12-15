@@ -374,7 +374,7 @@ impl crate::Config for Test {
     type SlotExpiredOrigin = SlotExpiredOrigin;
     type WeightInfo = ();
     type XCM = XcmHelper;
-    type BlockNumberProvider = RelayChainBlockNumberProvider<Test>;
+    type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Test>;
 }
 
 parameter_types! {
