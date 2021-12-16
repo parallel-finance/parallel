@@ -579,8 +579,14 @@ pub mod pallet {
         pub fn slot_expired(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             T::SlotExpiredOrigin::ensure_origin(origin)?;
 
+            // inital read to check if vault exists and is in the correct phase
+            let vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
+            ensure!(
+                vault.phase == VaultPhase::Expired,
+                Error::<T>::IncorrectVaultPhase
+            );
+
             Self::try_mutate_vault(crowdloan, VaultPhase::Closed, |vault| {
-                ensure!(vault.phase == VaultPhase::Expired, Error::<T>::IncorrectPhase);
                 Self::do_withdraw(crowdloan, vault.contributed, VaultPhase::Expired)?;
                 Self::deposit_event(Event::<T>::VaultSlotExpiring(crowdloan));
                 Ok(())
