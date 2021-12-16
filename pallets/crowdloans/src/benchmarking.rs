@@ -115,6 +115,8 @@ benchmarks! {
         let crowdloan = ParaId::from(1334u32);
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T>(caller, ctoken);
+        // create vault before update
+        Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, CAP, END_BLOCK)
     }: _(
         SystemOrigin::Root,
         crowdloan,
