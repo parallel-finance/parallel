@@ -579,6 +579,7 @@ pub mod pallet {
             T::SlotExpiredOrigin::ensure_origin(origin)?;
 
             Self::try_mutate_vault(crowdloan, VaultPhase::Closed, |vault| {
+                ensure!(vault.phase == VaultPhase::Expired, Error::<T>::IncorrectPhase);
                 Self::do_withdraw(crowdloan, vault.contributed, VaultPhase::Expired)?;
                 Self::deposit_event(Event::<T>::VaultSlotExpiring(crowdloan));
                 Ok(())
