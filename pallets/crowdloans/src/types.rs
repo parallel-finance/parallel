@@ -27,21 +27,21 @@ use primitives::{ParaId, TrieIndex};
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum VaultPhase {
     /// Vault is open for contributions but wont execute contribute call on relaychain
-    Pending,
+    Pending = 0,
     /// Vault is open for contributions
-    Contributing,
+    Contributing = 1,
     /// The vault is closed and we should avoid future contributions. This happens when
     /// - there are no contribution
     /// - user cancelled
     /// - crowdloan reached its cap
     /// - parachain won the slot
-    Closed,
+    Closed = 2,
     /// The vault's crowdloan failed, we have to distribute its assets back
     /// to the contributors
-    Failed,
+    Failed = 3,
     /// The vault's crowdloan and its associated parachain slot expired, it is
     /// now possible to get back the money we put in
-    Expired,
+    Expired = 5,
 }
 
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
@@ -94,7 +94,7 @@ impl<T: Config> Vault<T> {
 
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum ContributionStrategy {
-    XCM,
+    XCM = 0,
 }
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
