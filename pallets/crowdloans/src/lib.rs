@@ -263,6 +263,13 @@ pub mod pallet {
                 Error::<T>::CTokenAlreadyTaken
             );
 
+            // users shouldn't be able to create a new vault if the previous one is not finished
+            if let Some(vault) = Self::current_vault(crowdloan) {
+                if vault.phase != VaultPhase::Failed && vault.phase != VaultPhase::Expired {
+                    return Err(DispatchError::from(Error::<T>::ParaIdAlreadyTaken));
+                }
+            }
+
             let next_index = Self::next_index(crowdloan);
             ensure!(
                 !Vaults::<T>::contains_key(crowdloan, next_index),
