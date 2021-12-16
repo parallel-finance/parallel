@@ -593,6 +593,10 @@ pub mod pallet {
             T::MigrateOrigin::ensure_origin(origin)?;
 
             let vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
+            ensure!(
+                vault.phase == VaultPhase::Pending,
+                Error::<T>::IncorrectVaultPhase
+            );
             let contributions = Self::contribution_iterator(vault.trie_index, true);
             let mut migrated_count: u32 = 0u32;
             let mut all_migrated = true;
