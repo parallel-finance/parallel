@@ -13,7 +13,7 @@ use polkadot_parachain::primitives::Sibling;
 use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId};
 use sp_core::H256;
 use sp_runtime::{
-    testing::Header,
+    generic,
     traits::{
         AccountIdConversion, AccountIdLookup, BlakeTwo256, BlockNumberProvider, Convert, Zero,
     },
@@ -259,11 +259,12 @@ impl orml_xtokens::Config for Test {
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
-type BlockNumber = u64;
+type BlockNumber = u32;
+type Index = u32;
 pub const DOT_DECIMAL: u128 = 10u128.pow(10);
 
 parameter_types! {
-    pub const BlockHashCount: u64 = 250;
+    pub const BlockHashCount: u32 = 250;
     pub const SS58Prefix: u8 = 42;
 }
 
@@ -274,13 +275,13 @@ impl frame_system::Config for Test {
     type DbWeight = ();
     type Origin = Origin;
     type Call = Call;
-    type Index = u64;
+    type Index = Index;
     type BlockNumber = BlockNumber;
     type Hash = H256;
     type Hashing = BlakeTwo256;
     type AccountId = AccountId;
     type Lookup = AccountIdLookup<AccountId, ()>;
-    type Header = Header;
+    type Header = generic::Header<BlockNumber, BlakeTwo256>;
     type Event = Event;
     type BlockHashCount = BlockHashCount;
     type Version = ();
