@@ -596,7 +596,6 @@ pub mod pallet {
             let mut migrated_count: u32 = 0u32;
             let mut all_migrated = true;
 
-            #[allow(clippy::explicit_counter_loop)]
             for (who, (amount, _)) in contributions {
                 if migrated_count >= T::MigrateKeysLimit::get() {
                     all_migrated = false;
