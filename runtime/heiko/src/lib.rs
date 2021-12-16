@@ -42,7 +42,8 @@ use sp_core::{
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{
-        self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, Zero,
+        self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT,
+        BlockNumberProvider, Convert, Zero,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Permill, RuntimeDebug,
@@ -1332,6 +1333,20 @@ parameter_types! {
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
 }
 
+pub struct RelayChainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
+
+impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
+    for RelayChainBlockNumberProvider<T>
+{
+    type BlockNumber = primitives::BlockNumber;
+
+    fn current_block_number() -> Self::BlockNumber {
+        cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
+            .map(|d| d.relay_parent_number)
+            .unwrap_or_default()
+    }
+}
+
 impl pallet_crowdloans::Config for Runtime {
     type Event = Event;
     type Origin = Origin;
@@ -1349,11 +1364,13 @@ impl pallet_crowdloans::Config for Runtime {
     type MigrateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type VrfOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type UpdateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type OpenCloseOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
     type XCM = XcmHelper;
+    type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Runtime>;
 }
 
 parameter_types! {

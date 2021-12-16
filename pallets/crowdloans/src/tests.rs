@@ -4,7 +4,7 @@ use crate::mock::*;
 use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
 use pallet_xcm_helper::{XcmFees, XcmWeight};
-use primitives::{ump::*, ParaId};
+use primitives::{ump::*, BlockNumber, ParaId};
 use sp_runtime::{
     traits::{One, UniqueSaturatedInto, Zero},
     MultiAddress::Id,
@@ -15,9 +15,10 @@ pub const VAULT_ID: u32 = 0;
 #[test]
 fn create_new_vault_should_work() {
     new_test_ext().execute_with(|| {
-        let crowdloan = ParaId::from(1337);
+        let crowdloan = ParaId::from(1337u32);
         let ctoken = 10;
-
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create the ctoken asset
@@ -34,6 +35,8 @@ fn create_new_vault_should_work() {
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
         ));
 
         let just_created_vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
@@ -46,7 +49,9 @@ fn create_new_vault_should_work() {
                 contributed: Zero::zero(),
                 pending: Zero::zero(),
                 contribution_strategy,
-                trie_index: Zero::zero(),
+                cap,
+                end_block,
+                trie_index: Zero::zero()
             }
         );
     });
@@ -55,8 +60,10 @@ fn create_new_vault_should_work() {
 #[test]
 fn create_new_vault_should_not_work_if_vault_is_already_created() {
     new_test_ext().execute_with(|| {
-        let crowdloan = ParaId::from(1337);
+        let crowdloan = ParaId::from(1337u32);
         let ctoken = 10;
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
 
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
@@ -80,6 +87,8 @@ fn create_new_vault_should_not_work_if_vault_is_already_created() {
                 crowdloan,                            // crowdloan
                 ctoken,                               // ctoken
                 ContributionStrategy::XCM,            // contribution_strategy
+                cap,                                  // cap
+                end_block                             // end_block
             ),
             Error::<Test>::CTokenAlreadyTaken
         );
@@ -89,9 +98,10 @@ fn create_new_vault_should_not_work_if_vault_is_already_created() {
 #[test]
 fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
     new_test_ext().execute_with(|| {
-        let crowdloan = ParaId::from(1337);
+        let crowdloan = ParaId::from(1337u32);
         let ctoken = 10;
-
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create the ctoken asset
@@ -108,6 +118,8 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
         ));
 
         assert_noop!(
@@ -116,6 +128,8 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
                 crowdloan,                            // crowdloan
                 ctoken,                               // ctoken
                 contribution_strategy,                // contribution_strategy
+                cap,                                  // cap
+                end_block                             // end_block
             ),
             Error::<Test>::CTokenAlreadyTaken
         );
@@ -125,10 +139,11 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
 #[test]
 fn set_vrfs_should_work() {
     new_test_ext().execute_with(|| {
-        let crowdloan = ParaId::from(1337);
+        let crowdloan = ParaId::from(1337u32);
         let ctoken = 10;
         let amount = 1_000;
-
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create the ctoken asset
@@ -146,6 +161,8 @@ fn set_vrfs_should_work() {
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
         ));
 
         // do open
@@ -175,10 +192,11 @@ fn set_vrfs_should_work() {
 #[test]
 fn contribute_should_work() {
     new_test_ext().execute_with(|| {
-        let crowdloan = ParaId::from(1337);
+        let crowdloan = ParaId::from(1337u32);
         let ctoken = 10;
         let amount = 1_000;
-
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create the ctoken asset
@@ -196,6 +214,8 @@ fn contribute_should_work() {
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
         ));
 
         // do open
@@ -233,10 +253,11 @@ fn contribute_should_work() {
 #[test]
 fn contribute_should_fail_insufficent_funds() {
     new_test_ext().execute_with(|| {
-        let crowdloan = ParaId::from(1337);
+        let crowdloan = ParaId::from(1337u32);
         let ctoken = 10;
         let amount = 1_000;
-
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create the ctoken asset
@@ -254,6 +275,8 @@ fn contribute_should_fail_insufficent_funds() {
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
         ));
 
         // do contribute
@@ -272,9 +295,10 @@ fn contribute_should_fail_insufficent_funds() {
 #[test]
 fn close_should_work() {
     new_test_ext().execute_with(|| {
-        let crowdloan = ParaId::from(1337);
+        let crowdloan = ParaId::from(1337u32);
         let ctoken = 10;
-
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create a vault to contribute to
@@ -283,6 +307,8 @@ fn close_should_work() {
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
         ));
 
         // do open
@@ -306,9 +332,10 @@ fn close_should_work() {
 #[test]
 fn reopen_should_work() {
     new_test_ext().execute_with(|| {
-        let crowdloan = ParaId::from(1337);
+        let crowdloan = ParaId::from(1337u32);
         let ctoken = 10;
-
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create a vault to contribute to
@@ -317,6 +344,8 @@ fn reopen_should_work() {
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
         ));
 
         // do open
@@ -346,35 +375,38 @@ fn reopen_should_work() {
 #[test]
 fn auction_failed_should_work() {
     new_test_ext().execute_with(|| {
-        let crowdloan = 1337;
+        let crowdloan = ParaId::from(1337u32);
         let ctoken = 10;
-
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create a vault to contribute to
         assert_ok!(Crowdloans::create_vault(
             frame_system::RawOrigin::Root.into(), // origin
-            ParaId::from(crowdloan),              // crowdloan
+            crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
         ));
 
         // do open
         assert_ok!(Crowdloans::open(
             frame_system::RawOrigin::Root.into(), // origin
-            ParaId::from(crowdloan),              // crowdloan
+            crowdloan,                            // crowdloan
         ));
 
         // do close
         assert_ok!(Crowdloans::close(
             frame_system::RawOrigin::Root.into(), // origin
-            ParaId::from(crowdloan),              // crowdloan
+            crowdloan,                            // crowdloan
         ));
 
         // set to failed
         assert_ok!(Crowdloans::auction_failed(
             frame_system::RawOrigin::Root.into(), // origin
-            ParaId::from(crowdloan),              // crowdloan
+            crowdloan,                            // crowdloan
         ));
 
         Crowdloans::notification_received(
@@ -385,7 +417,7 @@ fn auction_failed_should_work() {
         .unwrap();
 
         // check that we're in the right phase
-        let vault = Crowdloans::vaults(ParaId::from(crowdloan), VAULT_ID).unwrap();
+        let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
         assert_eq!(vault.phase, VaultPhase::Failed)
     });
 }
@@ -393,10 +425,11 @@ fn auction_failed_should_work() {
 #[test]
 fn claim_refund_should_work() {
     new_test_ext().execute_with(|| {
-        let crowdloan = 1337u32;
+        let crowdloan = ParaId::from(1337u32);
         let ctoken = 10u32;
         let amount = 1_000u128;
-
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create the ctoken asset
@@ -411,22 +444,24 @@ fn claim_refund_should_work() {
         // create a vault to contribute to
         assert_ok!(Crowdloans::create_vault(
             frame_system::RawOrigin::Root.into(), // origin
-            ParaId::from(crowdloan),              // crowdloan
+            crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
         ));
 
         // do open
         assert_ok!(Crowdloans::open(
             frame_system::RawOrigin::Root.into(), // origin
-            ParaId::from(crowdloan),              // crowdloan
+            crowdloan,                            // crowdloan
         ));
 
         // do contribute
         assert_ok!(Crowdloans::contribute(
-            Origin::signed(ALICE),   // origin
-            ParaId::from(crowdloan), // crowdloan
-            amount,                  // amount
+            Origin::signed(ALICE), // origin
+            crowdloan,             // crowdloan
+            amount,                // amount
             Vec::new()
         ));
 
@@ -440,13 +475,13 @@ fn claim_refund_should_work() {
         // do close
         assert_ok!(Crowdloans::close(
             frame_system::RawOrigin::Root.into(), // origin
-            ParaId::from(crowdloan),              // crowdloan
+            crowdloan,                            // crowdloan
         ));
 
         // set to failed
         assert_ok!(Crowdloans::auction_failed(
             frame_system::RawOrigin::Root.into(), // origin
-            ParaId::from(crowdloan),              // crowdloan
+            crowdloan,                            // crowdloan
         ));
 
         Crowdloans::notification_received(
@@ -464,7 +499,7 @@ fn claim_refund_should_work() {
         ));
 
         // check that we're in the right phase
-        let vault = Crowdloans::vaults(ParaId::from(crowdloan), VAULT_ID).unwrap();
+        let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
         // vault should be in a state we allow
         assert!(
             vault.phase == VaultPhase::Failed || vault.phase == VaultPhase::Expired,
@@ -476,34 +511,37 @@ fn claim_refund_should_work() {
 #[test]
 fn slot_expired_should_work() {
     new_test_ext().execute_with(|| {
-        let crowdloan = 1337;
+        let crowdloan = ParaId::from(1337u32);
         let ctoken = 10;
-
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
         let contribution_strategy = ContributionStrategy::XCM;
 
         // create a vault to contribute to
         assert_ok!(Crowdloans::create_vault(
             frame_system::RawOrigin::Root.into(), // origin
-            ParaId::from(crowdloan),              // crowdloan
+            crowdloan,                            // crowdloan
             ctoken,                               // ctoken
             contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
         ));
 
         // do open
         assert_ok!(Crowdloans::open(
             frame_system::RawOrigin::Root.into(), // origin
-            ParaId::from(crowdloan),              // crowdloan
+            crowdloan,                            // crowdloan
         ));
 
         // do close
         assert_ok!(Crowdloans::close(
             frame_system::RawOrigin::Root.into(), // origin
-            ParaId::from(crowdloan),              // crowdloan
+            crowdloan,                            // crowdloan
         ));
 
         assert_ok!(Crowdloans::slot_expired(
             frame_system::RawOrigin::Root.into(), // origin
-            ParaId::from(crowdloan),              // crowdloan
+            crowdloan,                            // crowdloan
         ));
 
         Crowdloans::notification_received(
@@ -514,7 +552,7 @@ fn slot_expired_should_work() {
         .unwrap();
 
         // check that we're in the right phase
-        let vault = Crowdloans::vaults(ParaId::from(crowdloan), VAULT_ID).unwrap();
+        let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
         assert_eq!(vault.phase, VaultPhase::Expired)
     });
 }

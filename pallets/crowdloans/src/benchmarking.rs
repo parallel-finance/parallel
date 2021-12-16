@@ -30,6 +30,9 @@ const XCM_WEIGHT: XcmWeightMisc<Weight> = XcmWeightMisc {
 const CONTRIBUTE_AMOUNT: u128 = 20000000000000u128;
 const INITIAL_RESERVES: u128 = 1000000000000000u128;
 const INITIAL_AMOUNT: u128 = 1000000000000000u128;
+const LARGE_CAP: u128 = 1_000_000_000_000_000u128;
+const CAP: u128 = 1_000_000_000_000_000u128;
+const END_BLOCK: u32 = 1_000_000_000u32;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
     frame_system::Pallet::<T>::assert_last_event(generic_event.into());
@@ -92,24 +95,46 @@ benchmarks! {
     create_vault {
         let ctoken = 8;
         let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1334);
+        let crowdloan = ParaId::from(1334u32);
+
         initial_set_up::<T>(caller, ctoken);
     }: _(
         SystemOrigin::Root,
         crowdloan,
         ctoken,
-        ContributionStrategy::XCM
+        ContributionStrategy::XCM,
+        CAP,
+        END_BLOCK
     )
     verify {
         assert_last_event::<T>(Event::<T>::VaultCreated(crowdloan, ctoken).into())
     }
 
+    update_vault {
+        let ctoken = 8;
+        let crowdloan = ParaId::from(1334u32);
+        let caller: T::AccountId = whitelisted_caller();
+        initial_set_up::<T>(caller, ctoken);
+        // create vault before update
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, CAP, END_BLOCK));
+    }: _(
+        SystemOrigin::Root,
+        crowdloan,
+        Some(1_000_000_000_001),
+        Some(1_000_000_001u32),
+        Some(ContributionStrategy::XCM)
+    )
+    verify {
+        assert_last_event::<T>(Event::<T>::VaultUpdated(crowdloan).into())
+    }
+
     contribute {
         let ctoken = 9;
         let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1335);
+        let crowdloan = ParaId::from(1335u32);
+
         initial_set_up::<T>(caller.clone(), ctoken);
-        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, CAP, END_BLOCK));
         assert_ok!(Crowdloans::<T>::open(SystemOrigin::Root.into(), crowdloan));
     }: _(
         SystemOrigin::Signed(caller.clone()),
@@ -124,9 +149,10 @@ benchmarks! {
     open {
         let ctoken = 10;
         let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1336);
+        let crowdloan = ParaId::from(1336u32);
+
         initial_set_up::<T>(caller, ctoken);
-        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, CAP, END_BLOCK));
     }: _(
         SystemOrigin::Root,
         crowdloan
@@ -138,9 +164,10 @@ benchmarks! {
     close {
         let ctoken = 11;
         let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1337);
+        let crowdloan = ParaId::from(1337u32);
+
         initial_set_up::<T>(caller, ctoken);
-        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, CAP, END_BLOCK));
         assert_ok!(Crowdloans::<T>::open(SystemOrigin::Root.into(), crowdloan));
     }: _(
         SystemOrigin::Root,
@@ -153,9 +180,10 @@ benchmarks! {
     set_vrfs {
         let ctoken = 12;
         let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1338);
+        let crowdloan = ParaId::from(1338u32);
+
         initial_set_up::<T>(caller, ctoken);
-        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, CAP, END_BLOCK));
     }: _(
         SystemOrigin::Root,
         vec![ParaId::from(1336u32), ParaId::from(1337u32)]
@@ -168,9 +196,10 @@ benchmarks! {
     reopen {
         let ctoken = 13;
         let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1339);
+        let crowdloan = ParaId::from(1339u32);
+
         initial_set_up::<T>(caller, ctoken);
-        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, CAP, END_BLOCK));
         assert_ok!(Crowdloans::<T>::open(SystemOrigin::Root.into(), crowdloan));
         assert_ok!(Crowdloans::<T>::close(SystemOrigin::Root.into(), crowdloan));
     }: _(
@@ -184,9 +213,10 @@ benchmarks! {
     auction_failed {
         let ctoken = 14;
         let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1340);
+        let crowdloan = ParaId::from(1340u32);
+
         initial_set_up::<T>(caller.clone(), ctoken);
-        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, LARGE_CAP, END_BLOCK));
         assert_ok!(Crowdloans::<T>::open(SystemOrigin::Root.into(), crowdloan));
         assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller).into(), crowdloan, CONTRIBUTE_AMOUNT, Vec::new()));
         assert_ok!(Crowdloans::<T>::close(SystemOrigin::Root.into(), crowdloan));
@@ -202,9 +232,10 @@ benchmarks! {
     claim_refund {
         let ctoken = 15;
         let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1341);
+        let crowdloan = ParaId::from(1341u32);
+
         initial_set_up::<T>(caller.clone(), ctoken);
-        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, LARGE_CAP, END_BLOCK));
         assert_ok!(Crowdloans::<T>::open(SystemOrigin::Root.into(), crowdloan));
         assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller.clone()).into(), crowdloan, CONTRIBUTE_AMOUNT, Vec::new()));
         assert_ok!(Crowdloans::<T>::notification_received(
@@ -231,9 +262,10 @@ benchmarks! {
     slot_expired {
         let ctoken = 16;
         let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1342);
+        let crowdloan = ParaId::from(1342u32);
+
         initial_set_up::<T>(caller.clone(), ctoken);
-        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, LARGE_CAP, END_BLOCK));
         assert_ok!(Crowdloans::<T>::open(SystemOrigin::Root.into(), crowdloan));
         assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller).into(), crowdloan, CONTRIBUTE_AMOUNT, Vec::new()));
         assert_ok!(Crowdloans::<T>::close(SystemOrigin::Root.into(), crowdloan));
@@ -248,9 +280,10 @@ benchmarks! {
     migrate_pending {
         let ctoken = 17;
         let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1343);
+        let crowdloan = ParaId::from(1343u32);
+
         initial_set_up::<T>(caller.clone(), ctoken);
-        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, LARGE_CAP, END_BLOCK));
         for _ in 0..10 {
             assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller.clone()).into(), crowdloan, CONTRIBUTE_AMOUNT, Vec::new()));
         }
@@ -265,9 +298,10 @@ benchmarks! {
     notification_received {
         let ctoken = 18;
         let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1344);
+        let crowdloan = ParaId::from(1344u32);
+
         initial_set_up::<T>(caller.clone(), ctoken);
-        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM));
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, ContributionStrategy::XCM, LARGE_CAP, END_BLOCK));
         assert_ok!(Crowdloans::<T>::open(SystemOrigin::Root.into(), crowdloan));
         assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller).into(), crowdloan, CONTRIBUTE_AMOUNT, Vec::new()));
     }: _(

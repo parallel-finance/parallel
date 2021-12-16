@@ -21,7 +21,7 @@ use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, RuntimeDebug};
 
-use primitives::{ParaId, TrieIndex};
+use primitives::{BlockNumber, ParaId, TrieIndex};
 
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum VaultPhase {
@@ -59,6 +59,10 @@ pub struct Vault<T: Config> {
     pub pending: BalanceOf<T>,
     /// How we contribute coins to the crowdloan
     pub contribution_strategy: ContributionStrategy,
+    /// parallel enforced limit
+    pub cap: BalanceOf<T>,
+    /// block that vault ends
+    pub end_block: BlockNumber,
     /// child storage trie index where we store all contributions
     pub trie_index: TrieIndex,
 }
@@ -69,6 +73,8 @@ impl<T: Config> Vault<T> {
         id: u32,
         ctoken: AssetIdOf<T>,
         contribution_strategy: ContributionStrategy,
+        cap: BalanceOf<T>,
+        end_block: BlockNumber,
         trie_index: TrieIndex,
     ) -> Self {
         Self {
@@ -78,6 +84,8 @@ impl<T: Config> Vault<T> {
             contributed: Zero::zero(),
             pending: Zero::zero(),
             contribution_strategy,
+            cap,
+            end_block,
             trie_index,
         }
     }
