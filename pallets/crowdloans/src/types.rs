@@ -18,10 +18,11 @@ use super::{AccountIdOf, AssetIdOf, BalanceOf, Config};
 
 use codec::{Decode, Encode};
 
+use frame_system::pallet_prelude::BlockNumberFor;
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, RuntimeDebug};
 
-use primitives::{BlockNumber, ParaId, TrieIndex};
+use primitives::{ParaId, TrieIndex};
 
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum VaultPhase {
@@ -62,7 +63,7 @@ pub struct Vault<T: Config> {
     /// parallel enforced limit
     pub cap: BalanceOf<T>,
     /// block that vault ends
-    pub end_block: BlockNumber,
+    pub end_block: BlockNumberFor<T>,
     /// child storage trie index where we store all contributions
     pub trie_index: TrieIndex,
 }
@@ -74,7 +75,7 @@ impl<T: Config> Vault<T> {
         ctoken: AssetIdOf<T>,
         contribution_strategy: ContributionStrategy,
         cap: BalanceOf<T>,
-        end_block: BlockNumber,
+        end_block: BlockNumberFor<T>,
         trie_index: TrieIndex,
     ) -> Self {
         Self {
