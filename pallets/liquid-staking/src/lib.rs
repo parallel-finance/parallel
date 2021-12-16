@@ -81,11 +81,6 @@ pub mod pallet {
     pub trait Config: frame_system::Config + pallet_utility::Config + pallet_xcm::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-        type Origin: IsType<<Self as frame_system::Config>::Origin>
-            + Into<Result<pallet_xcm::Origin, <Self as Config>::Origin>>;
-
-        type Call: IsType<<Self as pallet_xcm::Config>::Call> + From<Call<Self>>;
-
         /// Assets for deposit/withdraw assets to/from pallet account
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId>
             + Mutate<Self::AccountId, Balance = Balance>;
@@ -127,7 +122,7 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
 
         /// To expose XCM helper functions
-        type XCM: XcmHelper<BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
+        type XCM: XcmHelper<Self, BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
     }
 
     #[pallet::event]
@@ -197,12 +192,6 @@ pub mod pallet {
         StakingCurrencyNotReady,
         /// Exceeded unstake queue's capacity
         ExceededUnstakeQueueCapacity,
-        /// Exceeded max rewards per era
-        ExceededMaxRewardsPerEra,
-        /// Exceeded max slashes per era
-        ExceededMaxSlashesPerEra,
-        /// Exceeded staking pool's capacity
-        ExceededStakingPoolCapacity,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.

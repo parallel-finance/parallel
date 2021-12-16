@@ -330,6 +330,7 @@ impl pallet_utility::Config for Test {
 
 parameter_types! {
     pub const XcmHelperPalletId: PalletId = PalletId(*b"par/fees");
+    pub const NotifyTimeout: BlockNumber = 100;
 }
 
 impl pallet_xcm_helper::Config for Test {
@@ -338,13 +339,12 @@ impl pallet_xcm_helper::Config for Test {
     type XcmSender = XcmRouter;
     type PalletId = XcmHelperPalletId;
     type RelayNetwork = RelayNetwork;
+    type NotifyTimeout = NotifyTimeout;
     type BlockNumberProvider = frame_system::Pallet<Test>;
 }
 
 impl crate::Config for Test {
     type Event = Event;
-    type Call = Call;
-    type Origin = Origin;
     type PalletId = StakingPalletId;
     type SelfParaId = SelfParaId;
     type WeightInfo = ();

@@ -10,8 +10,7 @@ use frame_support::{
     weights::Weight,
 };
 use frame_system::{self, RawOrigin as SystemOrigin};
-use pallet_xcm_helper::InsurancePool;
-use pallet_xcm_helper::XcmHelper;
+use pallet_xcm_helper::{InsurancePool, XcmHelper};
 use primitives::{
     tokens::{DOT, XDOT},
     ump::{RewardDestination, XcmWeightMisc},
