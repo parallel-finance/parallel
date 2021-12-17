@@ -10,7 +10,6 @@ use frame_support::{
     weights::Weight,
 };
 use frame_system::{self, RawOrigin as SystemOrigin};
-use pallet_xcm_helper::{InsurancePool, XcmHelper};
 use primitives::{
     tokens::{DOT, XDOT},
     ump::{RewardDestination, XcmWeightMisc},
@@ -87,7 +86,7 @@ fn initial_set_up<
     )
     .unwrap();
     ExchangeRate::<T>::mutate(|b| *b = Rate::one());
-    T::XCM::update_insurance_pool(INITIAL_INSURANCE).unwrap();
+    InsurancePool::<T>::mutate(|b| *b = INITIAL_INSURANCE);
 }
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {

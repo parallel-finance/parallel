@@ -2,7 +2,6 @@ use crate::{mock::*, types::MatchingLedger, *};
 
 use frame_support::{assert_ok, traits::Hooks};
 
-use pallet_xcm_helper::InsurancePool;
 use primitives::{
     tokens::{DOT, XDOT},
     ump::{RewardDestination, XcmWeightMisc},

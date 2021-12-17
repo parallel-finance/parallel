@@ -239,6 +239,11 @@ pub mod pallet {
     #[pallet::getter(fn staking_pool_capacity)]
     pub type StakingPoolCapacity<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
+    /// Total amount of charged assets to be used as xcm fees.
+    #[pallet::storage]
+    #[pallet::getter(fn insurance_pool)]
+    pub type InsurancePool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
     #[pallet::genesis_config]
     pub struct GenesisConfig {
         pub exchange_rate: Rate,
@@ -300,7 +305,7 @@ pub mod pallet {
                 // InsurancePool should not be embazzled.
                 let free_balance =
                     T::Assets::reducible_balance(staking_currency, &account_id, false)
-                        .saturating_sub(T::XCM::get_insurance_pool());
+                        .saturating_sub(Self::insurance_pool());
 
                 log::trace!(
                     target: "liquidstaking::on_idle",
@@ -363,7 +368,10 @@ pub mod pallet {
 
             // calculate staking fee and add it to insurance pool
             let fees = Self::reserve_factor().mul_floor(amount);
-            T::XCM::update_insurance_pool(fees)?;
+            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_add(fees).ok_or(ArithmeticError::Overflow)?;
+                Ok(())
+            })?;
 
             // amount that we should mint to user
             let amount = amount.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
@@ -499,7 +507,10 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
-            T::XCM::reduce_insurance_pool(amount)?;
+            InsurancePool::<T>::try_mutate(|v| -> DispatchResult {
+                *v = v.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
+                Ok(())
+            })?;
             Self::bond_extra_internal(amount)?;
             Self::deposit_event(Event::<T>::SlashPaid(amount));
             Ok(().into())
@@ -640,7 +651,6 @@ pub mod pallet {
                 Self::xcm_weight().nominate_weight,
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
-                Self::account_id(),
                 T::DerivativeIndex::get(),
             )?;
 
@@ -687,7 +697,10 @@ pub mod pallet {
                 false,
             )?;
 
-            T::XCM::update_insurance_pool(amount)?;
+            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
+                Ok(())
+            })?;
             Self::deposit_event(Event::<T>::InsurancesAdded(who, amount));
             Ok(())
         }
@@ -737,7 +750,6 @@ pub mod pallet {
                 Self::xcm_weight().bond_weight,
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
-                Self::account_id(),
                 T::DerivativeIndex::get(),
             )?;
             Self::deposit_event(Event::<T>::Bonding(
@@ -756,7 +768,6 @@ pub mod pallet {
                 Self::xcm_weight().bond_extra_weight,
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
-                Self::account_id(),
                 T::DerivativeIndex::get(),
             )?;
             Self::deposit_event(Event::<T>::BondingExtra(value));
@@ -770,7 +781,6 @@ pub mod pallet {
                 Self::xcm_weight().unbond_weight,
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
-                Self::account_id(),
                 T::DerivativeIndex::get(),
             )?;
 
@@ -786,7 +796,6 @@ pub mod pallet {
                 Self::xcm_weight().rebond_weight,
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
-                Self::account_id(),
                 T::DerivativeIndex::get(),
             )?;
 
@@ -806,7 +815,6 @@ pub mod pallet {
                 Self::xcm_weight().withdraw_unbonded_weight,
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
-                Self::account_id(),
                 Self::para_account_id(),
                 T::DerivativeIndex::get(),
             )?;
