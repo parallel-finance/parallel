@@ -510,12 +510,11 @@ pub mod pallet {
             })
         }
 
-
         /// Mark the associated vault as `Succeed` if vault is `Closed`
         #[pallet::weight(<T as Config>::WeightInfo::succeed())]
         #[transactional]
         pub fn succeed(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
-            T::AuctionSucceedOrigin::ensure_origin(origin)?;
+            T::OpenCloseOrigin::ensure_origin(origin)?;
 
             log::trace!(
                 target: "crowdloans::succeed",
