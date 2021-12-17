@@ -48,11 +48,14 @@ pub mod pallet {
         },
         transactional, Blake2_128Concat, BoundedVec, PalletId,
     };
-    use frame_system::{ensure_signed, pallet_prelude::OriginFor};
+    use frame_system::{
+        ensure_signed,
+        pallet_prelude::{BlockNumberFor, OriginFor},
+    };
     use pallet_xcm::ensure_response;
     use primitives::{ump::*, Balance, CurrencyId, ParaId, TrieIndex};
     use sp_runtime::{
-        traits::{AccountIdConversion, Convert, Hash, Zero},
+        traits::{AccountIdConversion, BlockNumberProvider, Convert, Hash, Zero},
         ArithmeticError, DispatchError,
     };
     use sp_std::{boxed::Box, convert::TryInto, vec::Vec};
@@ -127,6 +130,9 @@ pub mod pallet {
         /// The origin which can create vault
         type CreateVaultOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
+        /// The origin which can update vault
+        type UpdateVaultOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+
         /// The origin which can close/reopen vault
         type OpenCloseOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
@@ -139,6 +145,9 @@ pub mod pallet {
         /// Weight information
         type WeightInfo: WeightInfo;
 
+        /// The relay's BlockNumber provider
+        type RelayChainBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
+
         /// To expose XCM helper functions
         type XCM: XcmHelper<Self, BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
     }
@@ -148,6 +157,8 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// New vault was created
         VaultCreated(ParaId, AssetIdOf<T>),
+        /// Existing vault was updated
+        VaultUpdated(ParaId),
         /// User is contributing amount to vault
         VaultContributing(ParaId, T::AccountId, BalanceOf<T>, Vec<u8>),
         /// Vault was opened
@@ -194,6 +205,10 @@ pub mod pallet {
         ParaIdAlreadyTaken,
         /// No contributions allowed during the VRF delay
         VrfDelayInProgress,
+        /// Attempted contribution violates contribution cap
+        ExceededCap,
+        /// Current relay block is greater then vault end block
+        ExceededEndBlock,
         /// Exceeded maximum vrfs
         ExceededMaxVrfs,
         /// Pending contribution must be killed before entering `Contributing` vault phase
@@ -238,6 +253,8 @@ pub mod pallet {
             crowdloan: ParaId,
             ctoken: AssetIdOf<T>,
             contribution_strategy: ContributionStrategy,
+            #[pallet::compact] cap: BalanceOf<T>,
+            end_block: BlockNumberFor<T>,
         ) -> DispatchResult {
             T::CreateVaultOrigin::ensure_origin(origin)?;
 
@@ -247,6 +264,7 @@ pub mod pallet {
                 Error::<T>::CTokenAlreadyTaken
             );
 
+            // users shouldn't be able to create a new vault if the previous one is not finished
             if let Some(vault) = Self::current_vault(crowdloan) {
                 if vault.phase != VaultPhase::Failed && vault.phase != VaultPhase::Expired {
                     return Err(DispatchError::from(Error::<T>::ParaIdAlreadyTaken));
@@ -259,26 +277,74 @@ pub mod pallet {
                 Error::<T>::CrowdloanAlreadyExists
             );
 
+            ensure!(
+                T::RelayChainBlockNumberProvider::current_block_number() <= end_block,
+                Error::<T>::ExceededEndBlock
+            );
+
             let trie_index = Self::next_trie_index();
             let next_trie_index = trie_index.checked_add(1).ok_or(ArithmeticError::Overflow)?;
-            let new_vault = Vault::new(next_index, ctoken, contribution_strategy, trie_index);
+            let new_vault = Vault::new(
+                next_index,
+                ctoken,
+                contribution_strategy,
+                cap,
+                end_block,
+                trie_index,
+            );
 
             log::trace!(
                 target: "crowdloans::create_vault",
-                "ctoken_issuance: {:?}, next_index: {:?}, trie_index: {:?}, ctoken: {:?}",
+                "ctoken_issuance: {:?}, next_index: {:?}, trie_index: {:?}, ctoken: {:?}, trie_index: {:?}",
                 ctoken_issuance,
                 next_index,
                 trie_index,
                 ctoken,
+                trie_index,
             );
 
             NextTrieIndex::<T>::put(next_trie_index);
-
             Vaults::<T>::insert(crowdloan, next_index, new_vault);
             CTokensRegistry::<T>::insert(ctoken, (crowdloan, next_index));
             BatchIndexes::<T>::insert(crowdloan, next_index);
 
             Self::deposit_event(Event::<T>::VaultCreated(crowdloan, ctoken));
+
+            Ok(())
+        }
+
+        /// Update an exisiting vault via a governance decision
+        #[pallet::weight(<T as Config>::WeightInfo::update_vault())]
+        #[transactional]
+        pub fn update_vault(
+            origin: OriginFor<T>,
+            crowdloan: ParaId,
+            cap: Option<BalanceOf<T>>,
+            end_block: Option<BlockNumberFor<T>>,
+            contribution_strategy: Option<ContributionStrategy>,
+        ) -> DispatchResult {
+            T::UpdateVaultOrigin::ensure_origin(origin)?;
+
+            let mut vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
+
+            if let Some(cap) = cap {
+                vault.cap = cap;
+            }
+
+            if let Some(end_block) = end_block {
+                ensure!(
+                    T::RelayChainBlockNumberProvider::current_block_number() <= end_block,
+                    Error::<T>::ExceededEndBlock
+                );
+
+                vault.end_block = end_block;
+            }
+
+            if let Some(contribution_strategy) = contribution_strategy {
+                vault.contribution_strategy = contribution_strategy;
+            }
+
+            Self::deposit_event(Event::<T>::VaultUpdated(crowdloan));
 
             Ok(())
         }
@@ -324,6 +390,11 @@ pub mod pallet {
             let mut vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
 
             ensure!(
+                T::RelayChainBlockNumberProvider::current_block_number() <= vault.end_block,
+                Error::<T>::ExceededEndBlock
+            );
+
+            ensure!(
                 vault.phase == VaultPhase::Contributing || vault.phase == VaultPhase::Pending,
                 Error::<T>::IncorrectVaultPhase
             );
@@ -346,6 +417,19 @@ pub mod pallet {
                 true,
             )?;
 
+            let total_contribution = Self::cap(&vault, amount)?;
+
+            // throw if new value overflows cap
+            ensure!(total_contribution <= vault.cap, Error::<T>::ExceededCap);
+
+            if vault.phase == VaultPhase::Contributing && !Self::has_vrfs() {
+                Self::do_contribute(&who, crowdloan, amount)?;
+            }
+
+            Self::do_update_pending(&who, &mut vault, amount, true)?;
+
+            Vaults::<T>::insert(crowdloan, vault.id, vault);
+
             log::trace!(
                 target: "crowdloans::contribute",
                 "who: {:?}, crowdloan: {:?}, amount: {:?}",
@@ -353,14 +437,6 @@ pub mod pallet {
                 &crowdloan,
                 &amount,
             );
-
-            if vault.phase == VaultPhase::Contributing && !Self::has_vrfs() {
-                Self::do_contribute(&who, crowdloan, amount)?;
-            }
-
-            Self::do_pending_contribution(&who, &mut vault, amount)?;
-
-            Vaults::<T>::insert(crowdloan, vault.id, vault);
 
             Self::deposit_event(Event::<T>::VaultContributing(
                 crowdloan,
@@ -517,9 +593,14 @@ pub mod pallet {
             T::MigrateOrigin::ensure_origin(origin)?;
 
             let vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
+            ensure!(
+                vault.phase == VaultPhase::Pending,
+                Error::<T>::IncorrectVaultPhase
+            );
             let contributions = Self::contribution_iterator(vault.trie_index, true);
-            let mut migrated_count = 0u32;
+            let mut migrated_count: u32 = 0u32;
             let mut all_migrated = true;
+
             for (who, (amount, _)) in contributions {
                 if migrated_count >= T::MigrateKeysLimit::get() {
                     all_migrated = false;
@@ -612,6 +693,14 @@ pub mod pallet {
             Self::current_index(crowdloan).and_then(|index| Self::vaults(crowdloan, index))
         }
 
+        fn cap(vault: &Vault<T>, amount: BalanceOf<T>) -> Result<BalanceOf<T>, ArithmeticError> {
+            vault
+                .contributed
+                .checked_add(vault.pending)
+                .and_then(|sum| sum.checked_add(amount))
+                .ok_or(ArithmeticError::Overflow)
+        }
+
         fn notify_placeholder() -> <T as Config>::Call {
             <T as Config>::Call::from(Call::<T>::notification_received {
                 query_id: Default::default(),
@@ -620,19 +709,30 @@ pub mod pallet {
         }
 
         #[require_transactional]
-        fn do_pending_contribution(
+        fn do_update_pending(
             who: &AccountIdOf<T>,
             vault: &mut Vault<T>,
             amount: BalanceOf<T>,
+            addition: bool,
         ) -> DispatchResult {
-            vault.pending = vault
-                .pending
-                .checked_add(amount)
-                .ok_or(ArithmeticError::Overflow)?;
             let (pending, _) = Self::contribution_get(vault.trie_index, who, true);
-            let new_pending = pending
-                .checked_add(amount)
-                .ok_or(ArithmeticError::Overflow)?;
+            let new_pending = if addition {
+                vault.pending = vault
+                    .pending
+                    .checked_add(amount)
+                    .ok_or(ArithmeticError::Overflow)?;
+                pending
+                    .checked_add(amount)
+                    .ok_or(ArithmeticError::Overflow)?
+            } else {
+                vault.pending = vault
+                    .pending
+                    .checked_sub(amount)
+                    .ok_or(ArithmeticError::Underflow)?;
+                pending
+                    .checked_sub(amount)
+                    .ok_or(ArithmeticError::Underflow)?
+            };
             Self::contribution_put(vault.trie_index, who, &new_pending, true);
             Ok(())
         }
@@ -695,24 +795,27 @@ pub mod pallet {
                     Vaults::<T>::insert(crowdloan, vault.id, vault);
                 }
                 XcmInflightRequest::Contribute {
-                    crowdloan: index,
+                    crowdloan,
                     who,
                     amount,
                 } if !executed => {
-                    // refund
+                    let mut vault =
+                        Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
                     T::Assets::transfer(
                         T::RelayCurrency::get(),
-                        &Self::vault_account_id(index),
+                        &Self::vault_account_id(crowdloan),
                         &who,
                         amount,
                         true,
                     )?;
+                    Self::do_update_pending(&who, &mut vault, amount, false)?;
+                    Vaults::<T>::insert(crowdloan, vault.id, vault);
                 }
                 XcmInflightRequest::Withdraw {
                     crowdloan,
                     amount,
                     target_phase,
-                } => {
+                } if executed => {
                     let mut vault =
                         Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
                     T::Assets::mint_into(

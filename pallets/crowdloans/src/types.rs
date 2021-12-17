@@ -18,6 +18,7 @@ use super::{AccountIdOf, AssetIdOf, BalanceOf, Config};
 
 use codec::{Decode, Encode};
 
+use frame_system::pallet_prelude::BlockNumberFor;
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, RuntimeDebug};
 
@@ -26,21 +27,21 @@ use primitives::{ParaId, TrieIndex};
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum VaultPhase {
     /// Vault is open for contributions but wont execute contribute call on relaychain
-    Pending,
+    Pending = 0,
     /// Vault is open for contributions
-    Contributing,
+    Contributing = 1,
     /// The vault is closed and we should avoid future contributions. This happens when
     /// - there are no contribution
     /// - user cancelled
     /// - crowdloan reached its cap
     /// - parachain won the slot
-    Closed,
+    Closed = 2,
     /// The vault's crowdloan failed, we have to distribute its assets back
     /// to the contributors
-    Failed,
+    Failed = 3,
     /// The vault's crowdloan and its associated parachain slot expired, it is
     /// now possible to get back the money we put in
-    Expired,
+    Expired = 5,
 }
 
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
@@ -59,6 +60,10 @@ pub struct Vault<T: Config> {
     pub pending: BalanceOf<T>,
     /// How we contribute coins to the crowdloan
     pub contribution_strategy: ContributionStrategy,
+    /// parallel enforced limit
+    pub cap: BalanceOf<T>,
+    /// block that vault ends
+    pub end_block: BlockNumberFor<T>,
     /// child storage trie index where we store all contributions
     pub trie_index: TrieIndex,
 }
@@ -69,6 +74,8 @@ impl<T: Config> Vault<T> {
         id: u32,
         ctoken: AssetIdOf<T>,
         contribution_strategy: ContributionStrategy,
+        cap: BalanceOf<T>,
+        end_block: BlockNumberFor<T>,
         trie_index: TrieIndex,
     ) -> Self {
         Self {
@@ -78,6 +85,8 @@ impl<T: Config> Vault<T> {
             contributed: Zero::zero(),
             pending: Zero::zero(),
             contribution_strategy,
+            cap,
+            end_block,
             trie_index,
         }
     }
@@ -85,7 +94,7 @@ impl<T: Config> Vault<T> {
 
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum ContributionStrategy {
-    XCM,
+    XCM = 0,
 }
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
