@@ -32,7 +32,7 @@ use frame_support::{
 use primitives::{switch_relay, ump::*, Balance, CurrencyId, ParaId};
 use sp_runtime::traits::{AccountIdConversion, BlockNumberProvider, StaticLookup};
 use sp_runtime::ArithmeticError;
-use sp_std::{boxed::Box, vec::Vec};
+use sp_std::{boxed::Box, vec, vec::Vec};
 use xcm::{latest::prelude::*, DoubleEncoded};
 use xcm_executor::traits::InvertLocation;
 
