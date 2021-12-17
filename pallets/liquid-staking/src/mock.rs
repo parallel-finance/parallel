@@ -328,21 +328,35 @@ impl pallet_utility::Config for Test {
     type WeightInfo = pallet_utility::weights::SubstrateWeight<Test>;
 }
 
+parameter_types! {
+    pub const XcmHelperPalletId: PalletId = PalletId(*b"par/fees");
+    pub const NotifyTimeout: BlockNumber = 100;
+}
+
+impl pallet_xcm_helper::Config for Test {
+    type Event = Event;
+    type Assets = Assets;
+    type XcmSender = XcmRouter;
+    type PalletId = XcmHelperPalletId;
+    type RelayNetwork = RelayNetwork;
+    type NotifyTimeout = NotifyTimeout;
+    type BlockNumberProvider = frame_system::Pallet<Test>;
+}
+
 impl crate::Config for Test {
     type Event = Event;
     type PalletId = StakingPalletId;
     type SelfParaId = SelfParaId;
     type WeightInfo = ();
-    type XcmSender = XcmRouter;
     type DerivativeIndex = DerivativeIndex;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type Assets = Assets;
     type RelayOrigin = RelayOrigin;
     type UpdateOrigin = UpdateOrigin;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;
-    type RelayNetwork = RelayNetwork;
     type MinStakeAmount = MinStakeAmount;
     type MinUnstakeAmount = MinUnstakeAmount;
+    type XCM = XcmHelper;
 }
 
 parameter_types! {
@@ -386,7 +400,7 @@ construct_runtime!(
         DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>},
         CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin},
         PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin},
-
+        XcmHelper: pallet_xcm_helper::{Pallet, Storage, Event<T>},
         XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
     }
 );
@@ -419,7 +433,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         LiquidStaking::set_liquid_currency(Origin::signed(BOB), XDOT).unwrap();
         LiquidStaking::set_staking_currency(Origin::signed(BOB), DOT).unwrap();
         LiquidStaking::update_staking_pool_capacity(Origin::signed(BOB), dot(10000f64)).unwrap();
-        LiquidStaking::update_xcm_fees_compensation(Origin::signed(BOB), dot(10f64)).unwrap();
+        LiquidStaking::update_xcm_fees(Origin::signed(BOB), dot(10f64)).unwrap();
     });
 
     ext
@@ -542,7 +556,7 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         LiquidStaking::set_liquid_currency(Origin::signed(BOB), XDOT).unwrap();
         LiquidStaking::set_staking_currency(Origin::signed(BOB), DOT).unwrap();
         LiquidStaking::update_staking_pool_capacity(Origin::signed(BOB), dot(10000f64)).unwrap();
-        LiquidStaking::update_xcm_fees_compensation(Origin::signed(BOB), dot(10f64)).unwrap();
+        LiquidStaking::update_xcm_fees(Origin::signed(BOB), dot(10f64)).unwrap();
     });
 
     ext
