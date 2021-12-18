@@ -213,6 +213,8 @@ pub mod pallet {
         ExceededMaxVrfs,
         /// Pending contribution must be killed before entering `Contributing` vault phase
         PendingContributionNotKilled,
+        /// Invalid params input
+        InvalidParams,
     }
 
     #[pallet::storage]
@@ -258,6 +260,8 @@ pub mod pallet {
         ) -> DispatchResult {
             T::CreateVaultOrigin::ensure_origin(origin)?;
 
+            ensure!(!cap.is_zero(), Error::<T>::InvalidParams);
+
             let ctoken_issuance = T::Assets::total_issuance(ctoken);
             ensure!(
                 ctoken_issuance.is_zero() && !CTokensRegistry::<T>::contains_key(ctoken),
@@ -295,12 +299,11 @@ pub mod pallet {
 
             log::trace!(
                 target: "crowdloans::create_vault",
-                "ctoken_issuance: {:?}, next_index: {:?}, trie_index: {:?}, ctoken: {:?}, trie_index: {:?}",
+                "ctoken_issuance: {:?}, next_index: {:?}, trie_index: {:?}, ctoken: {:?}",
                 ctoken_issuance,
                 next_index,
                 trie_index,
-                ctoken,
-                trie_index,
+                ctoken
             );
 
             NextTrieIndex::<T>::put(next_trie_index);
@@ -388,6 +391,8 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
 
             let mut vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
+
+            ensure!(!amount.is_zero(), Error::<T>::InvalidParams);
 
             ensure!(
                 T::RelayChainBlockNumberProvider::current_block_number() <= vault.end_block,
@@ -538,6 +543,8 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
+
+            ensure!(!amount.is_zero(), Error::<T>::InvalidParams);
 
             let (crowdloan, index) =
                 Self::ctokens_registry(ctoken).ok_or(Error::<T>::VaultDoesNotExist)?;
