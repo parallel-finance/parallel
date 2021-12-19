@@ -125,6 +125,8 @@ pub mod pallet {
 }
 
 pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
+    fn get_xcm_fees() -> Balance;
+
     fn update_xcm_fees(fees: Balance);
 
     fn update_xcm_weight(xcm_weight_misc: XcmWeightMisc<Weight>);
@@ -239,6 +241,10 @@ impl<T: Config> Pallet<T> {
 }
 
 impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T> {
+    fn get_xcm_fees() -> BalanceOf<T> {
+        Self::xcm_fees()
+    }
+
     fn update_xcm_fees(fees: BalanceOf<T>) {
         XcmFees::<T>::mutate(|v| *v = fees);
     }
