@@ -74,6 +74,26 @@ fn create_pool_should_not_work_if_not_a_newly_asset() {
 }
 
 #[test]
+fn create_pool_should_not_work_if_endblock_smaller_than_startblock() {
+    new_test_ext().execute_with(|| {
+        let (start_block, end_block) = (6, 2);
+
+        assert_noop!(
+            LiquidityMining::create(
+                RawOrigin::Signed(ALICE).into(),
+                DOT,
+                BOB,
+                start_block,
+                end_block,
+                vec![(1, DOT); 1000].try_into().unwrap(),
+                DOT,
+            ),
+            Error::<Test>::SmallerThanEndBlock
+        );
+    })
+}
+
+#[test]
 fn deposit_should_work() {
     new_test_ext().execute_with(|| {
         let initial_balance = Assets::balance(DOT, BOB);
@@ -124,16 +144,26 @@ fn deposit_should_not_work_if_pool_does_not_exist() {
 #[test]
 fn deposit_should_not_work_if_not_a_valid_duration() {
     new_test_ext().execute_with(|| {
+        let (start_block, end_block) = (3, 100);
         assert_ok!(LiquidityMining::create(
             RawOrigin::Signed(ALICE).into(),
             DOT,
             BOB,
-            100,
-            3,
+            start_block,
+            end_block,
             vec![(1, DOT); 1000].try_into().unwrap(),
             SAMPLE_LP_TOKEN,
         ));
 
+        // current block number is smaller than pool.start
+        System::set_block_number(start_block - 1);
+        assert_noop!(
+            LiquidityMining::deposit(RawOrigin::Signed(BOB).into(), DOT, 1000),
+            Error::<Test>::NotAValidDuration
+        );
+
+        // current block number is bigger than pool.end
+        System::set_block_number(end_block + 1);
         assert_noop!(
             LiquidityMining::deposit(RawOrigin::Signed(BOB).into(), DOT, 1000),
             Error::<Test>::NotAValidDuration

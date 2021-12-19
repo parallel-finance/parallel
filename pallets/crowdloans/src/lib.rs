@@ -212,6 +212,12 @@ pub mod pallet {
         ExceededMaxVrfs,
         /// Pending contribution must be killed before entering `Contributing` vault phase
         PendingContributionNotKilled,
+        /// Balance is zero
+        ZeroAmount,
+        /// XcmWeightMisc cannot have zero value
+        ZeroXcmWeightMisc,
+        /// Xcm fees cannot be zero
+        ZeroXcmFees,
     }
 
     #[pallet::storage]
@@ -538,6 +544,8 @@ pub mod pallet {
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
+            ensure!(amount > Zero::zero(), Error::<T>::ZeroAmount);
+
             let (crowdloan, index) =
                 Self::ctokens_registry(ctoken).ok_or(Error::<T>::VaultDoesNotExist)?;
             let vault = Self::vaults(crowdloan, index).ok_or(Error::<T>::VaultDoesNotExist)?;
@@ -622,6 +630,9 @@ pub mod pallet {
             #[pallet::compact] fees: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
+
+            ensure!(fees > Zero::zero(), Error::<T>::ZeroXcmFees);
+
             T::XCM::update_xcm_fees(fees);
             Self::deposit_event(Event::<T>::XcmFeesUpdated(fees));
             Ok(().into())
@@ -635,6 +646,31 @@ pub mod pallet {
             xcm_weight_misc: XcmWeightMisc<Weight>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
+
+            let XcmWeightMisc {
+                bond_weight,
+                bond_extra_weight,
+                unbond_weight,
+                rebond_weight,
+                withdraw_unbonded_weight,
+                nominate_weight,
+                contribute_weight,
+                withdraw_weight,
+                add_memo_weight,
+            } = xcm_weight_misc;
+            ensure!(
+                bond_weight > Zero::zero()
+                    && bond_extra_weight > Zero::zero()
+                    && unbond_weight > Zero::zero()
+                    && rebond_weight > Zero::zero()
+                    && withdraw_unbonded_weight > Zero::zero()
+                    && nominate_weight > Zero::zero()
+                    && contribute_weight > Zero::zero()
+                    && withdraw_weight > Zero::zero()
+                    && add_memo_weight > Zero::zero(),
+                Error::<T>::ZeroXcmWeightMisc
+            );
+
             T::XCM::update_xcm_weight(xcm_weight_misc);
             Self::deposit_event(Event::<T>::XcmWeightUpdated(xcm_weight_misc));
             Ok(().into())

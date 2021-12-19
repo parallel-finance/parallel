@@ -1,13 +1,13 @@
 use crate::{mock::*, types::MatchingLedger, *};
 
-use frame_support::{assert_ok, traits::Hooks};
+use frame_support::{assert_noop, assert_ok, traits::Hooks};
 
 use primitives::{
     tokens::{DOT, XDOT},
     ump::{RewardDestination, XcmWeightMisc},
-    Balance, Rate,
+    Balance, Rate, Ratio,
 };
-use sp_runtime::traits::One;
+use sp_runtime::traits::{One, Zero};
 use xcm_simulator::TestExt;
 
 // #[test]
@@ -431,5 +431,39 @@ fn test_add_insurances_work() {
         assert_eq!(LiquidStaking::insurance_pool(), 0);
         assert_ok!(LiquidStaking::add_insurances(Origin::signed(BOB), 123));
         assert_eq!(LiquidStaking::insurance_pool(), 123);
+    })
+}
+
+#[test]
+fn update_staking_pool_capacity_should_not_work_if_with_invalid_param() {
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            LiquidStaking::update_staking_pool_capacity(Origin::root(), Zero::zero()),
+            Error::<Test>::ZeroCap
+        );
+    })
+}
+
+#[test]
+fn update_reserve_factor_should_not_work_if_with_invalid_param() {
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            LiquidStaking::update_reserve_factor(Origin::root(), Ratio::zero()),
+            Error::<Test>::InvalidFactor
+        );
+        assert_noop!(
+            LiquidStaking::update_reserve_factor(Origin::root(), Ratio::one()),
+            Error::<Test>::InvalidFactor
+        );
+    })
+}
+
+#[test]
+fn update_xcm_fees_compensation_should_not_work_if_with_invalid_param() {
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            LiquidStaking::update_xcm_fees_compensation(Origin::root(), Zero::zero()),
+            Error::<Test>::ZeroFees
+        );
     })
 }
