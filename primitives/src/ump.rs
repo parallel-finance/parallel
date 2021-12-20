@@ -4,7 +4,10 @@ use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::pallet_prelude::Weight;
 use frame_system::Config;
 use scale_info::TypeInfo;
-use sp_runtime::{traits::StaticLookup, MultiSignature, RuntimeDebug};
+use sp_runtime::{
+    traits::{StaticLookup, Zero},
+    MultiSignature, RuntimeDebug,
+};
 use sp_std::{boxed::Box, vec::Vec};
 
 /// A destination account for payment.
@@ -327,6 +330,21 @@ impl Default for XcmWeightMisc<Weight> {
             withdraw_weight: default_weight,
             add_memo_weight: default_weight,
         }
+    }
+}
+
+impl XcmWeightMisc<Weight> {
+    pub fn is_zero(&self) -> bool {
+        let zero_weight: Weight = Zero::zero();
+        self.bond_weight == zero_weight
+            && self.bond_extra_weight == zero_weight
+            && self.unbond_weight == zero_weight
+            && self.rebond_weight == zero_weight
+            && self.withdraw_unbonded_weight == zero_weight
+            && self.nominate_weight == zero_weight
+            && self.contribute_weight == zero_weight
+            && self.withdraw_weight == zero_weight
+            && self.add_memo_weight == zero_weight
     }
 }
 

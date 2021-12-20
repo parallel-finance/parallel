@@ -2,6 +2,7 @@ use crate::{mock::*, types::MatchingLedger, *};
 
 use frame_support::{assert_noop, assert_ok, traits::Hooks};
 
+use pallet_xcm_helper::InsurancePool;
 use primitives::{
     tokens::{DOT, XDOT},
     ump::{RewardDestination, XcmWeightMisc},
@@ -115,7 +116,7 @@ fn test_settlement_should_work() {
         for (stake_ops, unbonding_amount, matching_result, insurance_pool) in test_case.into_iter()
         {
             stake_ops.into_iter().for_each(StakeOp::execute);
-            assert_eq!(LiquidStaking::insurance_pool(), insurance_pool);
+            assert_eq!(InsurancePool::<Test>::get(), insurance_pool);
             assert_eq!(
                 LiquidStaking::matching_pool().matching::<LiquidStaking>(unbonding_amount),
                 Ok(matching_result)
@@ -146,7 +147,7 @@ fn test_transact_bond_work() {
             RewardDestination::Staked
         ));
 
-        ParaSystem::assert_has_event(mock::Event::LiquidStaking(crate::Event::Bonding(
+        ParaSystem::assert_has_event(mock::Event::XcmHelper(pallet_xcm_helper::Event::Bonding(
             LiquidStaking::derivative_para_account_id(),
             3 * DOT_DECIMAL,
             RewardDestination::Staked,
@@ -428,9 +429,9 @@ fn test_update_xcm_weight_work() {
 #[test]
 fn test_add_insurances_work() {
     new_test_ext().execute_with(|| {
-        assert_eq!(LiquidStaking::insurance_pool(), 0);
+        assert_eq!(InsurancePool::<Test>::get(), 0);
         assert_ok!(LiquidStaking::add_insurances(Origin::signed(BOB), 123));
-        assert_eq!(LiquidStaking::insurance_pool(), 123);
+        assert_eq!(InsurancePool::<Test>::get(), 123);
     })
 }
 
@@ -462,7 +463,7 @@ fn update_reserve_factor_should_not_work_if_with_invalid_param() {
 fn update_xcm_fees_compensation_should_not_work_if_with_invalid_param() {
     new_test_ext().execute_with(|| {
         assert_noop!(
-            LiquidStaking::update_xcm_fees_compensation(Origin::root(), Zero::zero()),
+            LiquidStaking::update_xcm_fees(Origin::root(), Zero::zero()),
             Error::<Test>::ZeroFees
         );
     })

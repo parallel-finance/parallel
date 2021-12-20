@@ -10,6 +10,7 @@ use frame_support::{
     weights::Weight,
 };
 use frame_system::{self, RawOrigin as SystemOrigin};
+use pallet_xcm_helper::{InsurancePool, XcmHelper};
 use primitives::{
     tokens::{DOT, XDOT},
     ump::{RewardDestination, XcmWeightMisc},
@@ -20,7 +21,7 @@ use sp_std::{prelude::*, vec};
 
 const SEED: u32 = 0;
 const MARKET_CAP: u128 = 10000000000000000u128;
-const XCM_FEES_COMPENSATION: u128 = 50000000000u128;
+const XCM_FEES: u128 = 50000000000u128;
 const RESERVE_FACTOR: Ratio = Ratio::from_perthousand(5);
 const XCM_WEIGHT: XcmWeightMisc<Weight> = XcmWeightMisc {
     bond_weight: 3_000_000_000,
@@ -49,7 +50,11 @@ const INSURANCE_AMOUNT: u128 = 5000000000000u128;
 const UNBONDING_AMOUNT: u128 = 0u128;
 const REMAINING_WEIGHT: Weight = 100000000000u64;
 
-fn initial_set_up<T: Config + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>>(
+fn initial_set_up<
+    T: Config
+        + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>
+        + pallet_xcm_helper::Config,
+>(
     caller: T::AccountId,
 ) {
     let account_id = T::Lookup::unlookup(caller.clone());
@@ -67,21 +72,22 @@ fn initial_set_up<T: Config + pallet_assets::Config<AssetId = CurrencyId, Balanc
     pallet_assets::Pallet::<T>::force_create(SystemOrigin::Root.into(), XDOT, account_id, true, 1)
         .ok();
 
-    T::Assets::mint_into(DOT, &caller, INITIAL_AMOUNT).unwrap();
+    <T as pallet_xcm_helper::Config>::Assets::mint_into(DOT, &caller, INITIAL_AMOUNT).unwrap();
 
     LiquidStaking::<T>::set_liquid_currency(SystemOrigin::Root.into(), XDOT).unwrap();
     LiquidStaking::<T>::set_staking_currency(SystemOrigin::Root.into(), DOT).unwrap();
     LiquidStaking::<T>::update_staking_pool_capacity(SystemOrigin::Root.into(), MARKET_CAP)
         .unwrap();
-    LiquidStaking::<T>::update_xcm_fees_compensation(
-        SystemOrigin::Root.into(),
-        XCM_FEES_COMPENSATION,
+    LiquidStaking::<T>::update_xcm_fees(SystemOrigin::Root.into(), XCM_FEES).unwrap();
+
+    <T as pallet_xcm_helper::Config>::Assets::mint_into(
+        DOT,
+        &staking_pool_account,
+        INITIAL_INSURANCE,
     )
     .unwrap();
-
-    T::Assets::mint_into(DOT, &staking_pool_account, INITIAL_INSURANCE).unwrap();
     ExchangeRate::<T>::mutate(|b| *b = Rate::one());
-    InsurancePool::<T>::mutate(|b| *b = INITIAL_INSURANCE);
+    T::XCM::update_insurance_pool(INITIAL_INSURANCE).unwrap();
 }
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
@@ -91,7 +97,7 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
 benchmarks! {
     where_clause {
         where
-            T: pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>
+            T: pallet_assets::Config<AssetId = CurrencyId, Balance = Balance> + pallet_xcm_helper::Config
     }
 
     stake {
@@ -208,10 +214,10 @@ benchmarks! {
     verify {
     }
 
-    update_xcm_fees_compensation {
-    }: _(SystemOrigin::Root, XCM_FEES_COMPENSATION)
+    update_xcm_fees {
+    }: _(SystemOrigin::Root, XCM_FEES)
     verify {
-        assert_eq!(XcmFeesCompensation::<T>::get(), XCM_FEES_COMPENSATION);
+        assert_last_event::<T>(Event::XcmFeesUpdated(XCM_FEES).into())
     }
 
     update_xcm_weight {
@@ -233,7 +239,7 @@ benchmarks! {
         initial_set_up::<T>(alice);
     }: _(SystemOrigin::Root, SLASHES)
     verify {
-        assert_eq!(InsurancePool::<T>::get(), INITIAL_INSURANCE - SLASHES - XCM_FEES_COMPENSATION);
+        assert_eq!(InsurancePool::<T>::get(), INITIAL_INSURANCE - SLASHES - XCM_FEES);
     }
 
     on_idle {
@@ -243,13 +249,13 @@ benchmarks! {
         initial_set_up::<T>(alice.clone());
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
         // StakingPool::<T>::mutate(|b| *b += 2 * STAKED_AMOUNT);
-        T::Assets::mint_into(XDOT, &bob, STAKED_AMOUNT).unwrap();
-        T::Assets::mint_into(XDOT, &charlie, STAKED_AMOUNT).unwrap();
+        <T as pallet_xcm_helper::Config>::Assets::mint_into(XDOT, &bob, STAKED_AMOUNT).unwrap();
+        <T as pallet_xcm_helper::Config>::Assets::mint_into(XDOT, &charlie, STAKED_AMOUNT).unwrap();
         LiquidStaking::<T>::unstake(SystemOrigin::Signed(bob).into(), STAKED_AMOUNT).unwrap();
         LiquidStaking::<T>::unstake(SystemOrigin::Signed(charlie).into(), STAKED_AMOUNT).unwrap();
 
         // Simulate withdraw_unbonded
-        T::Assets::mint_into(DOT, &LiquidStaking::<T>::account_id(), 10 * STAKED_AMOUNT).unwrap();
+        <T as pallet_xcm_helper::Config>::Assets::mint_into(DOT, &LiquidStaking::<T>::account_id(), 10 * STAKED_AMOUNT).unwrap();
     }: {
         LiquidStaking::<T>::on_idle(0u32.into(), REMAINING_WEIGHT)
     }
