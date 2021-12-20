@@ -167,6 +167,8 @@ pub mod pallet {
         VaultClosed(ParaId),
         /// Vault was reopened
         VaultReOpened(ParaId),
+        /// Vault is successful
+        VaultSucceeded(ParaId),
         /// Auction is failing
         VaultAuctionFailing(ParaId),
         /// A user claimed refund from vault
@@ -513,6 +515,25 @@ pub mod pallet {
             })
         }
 
+        /// Mark the associated vault as `Succeed` if vault is `Closed`
+        #[pallet::weight(<T as Config>::WeightInfo::auction_succeeded())]
+        #[transactional]
+        pub fn auction_succeeded(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
+            T::OpenCloseOrigin::ensure_origin(origin)?;
+
+            log::trace!(
+                target: "crowdloans::auction_succeeded",
+                "pre-toggle. crowdloan: {:?}",
+                crowdloan,
+            );
+
+            Self::try_mutate_vault(crowdloan, VaultPhase::Closed, |vault| {
+                vault.phase = VaultPhase::Succeeded;
+                Self::deposit_event(Event::<T>::VaultSucceeded(crowdloan));
+                Ok(())
+            })
+        }
+
         /// If a `crowdloan` failed, get the coins back and mark the vault as ready
         /// for distribution
         #[pallet::weight(<T as Config>::WeightInfo::auction_failed())]
@@ -586,7 +607,7 @@ pub mod pallet {
         pub fn slot_expired(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             T::SlotExpiredOrigin::ensure_origin(origin)?;
 
-            Self::try_mutate_vault(crowdloan, VaultPhase::Closed, |vault| {
+            Self::try_mutate_vault(crowdloan, VaultPhase::Succeeded, |vault| {
                 Self::do_withdraw(crowdloan, vault.contributed, VaultPhase::Expired)?;
                 Self::deposit_event(Event::<T>::VaultSlotExpiring(crowdloan));
                 Ok(())

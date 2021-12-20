@@ -539,6 +539,12 @@ fn slot_expired_should_work() {
             crowdloan,                            // crowdloan
         ));
 
+        // do succeed
+        assert_ok!(Crowdloans::auction_succeeded(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
         assert_ok!(Crowdloans::slot_expired(
             frame_system::RawOrigin::Root.into(), // origin
             crowdloan,                            // crowdloan
@@ -554,6 +560,49 @@ fn slot_expired_should_work() {
         // check that we're in the right phase
         let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
         assert_eq!(vault.phase, VaultPhase::Expired)
+    });
+}
+
+#[test]
+fn suceed_should_work() {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337u32);
+        let ctoken = 10;
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
+        let contribution_strategy = ContributionStrategy::XCM;
+
+        // create a vault to contribute to
+        assert_ok!(Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
+        ));
+
+        // do open
+        assert_ok!(Crowdloans::open(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
+        // do close
+        assert_ok!(Crowdloans::close(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
+        // do succeed
+        assert_ok!(Crowdloans::auction_succeeded(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
+        // check that we're in the right phase
+        let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
+        assert_eq!(vault.phase, VaultPhase::Succeeded)
     });
 }
 

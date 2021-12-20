@@ -39,6 +39,8 @@ pub enum VaultPhase {
     /// The vault's crowdloan failed, we have to distribute its assets back
     /// to the contributors
     Failed = 3,
+    /// Phase between Closed and Expired so we know this parachain won the auction
+    Succeeded = 4,
     /// The vault's crowdloan and its associated parachain slot expired, it is
     /// now possible to get back the money we put in
     Expired = 5,

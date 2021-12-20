@@ -55,6 +55,7 @@ pub trait WeightInfo {
 	fn close() -> Weight;
 	fn set_vrfs() -> Weight;
 	fn reopen() -> Weight;
+	fn auction_succeeded() -> Weight;
 	fn auction_failed() -> Weight;
 	fn claim_refund() -> Weight;
 	fn slot_expired() -> Weight;
@@ -97,6 +98,11 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	fn reopen() -> Weight {
+		(53_330_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(2 as Weight))
+			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+	}
+	fn auction_succeeded() -> Weight {
 		(53_330_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
@@ -170,6 +176,11 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
 	}
 	fn reopen() -> Weight {
+		(53_330_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(2 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
+	}
+	fn auction_succeeded() -> Weight {
 		(53_330_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(2 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
