@@ -452,8 +452,6 @@ pub mod pallet {
 
             ensure!(fees > Zero::zero(), Error::<T>::ZeroFees);
 
-            // XcmFeesCompensation::<T>::mutate(|v| *v = fees);
-            // Self::deposit_event(Event::<T>::XcmFeesCompensationUpdated(fees));
             T::XCM::update_xcm_fees(fees);
             Self::deposit_event(Event::<T>::XcmFeesUpdated(fees));
             Ok(().into())
