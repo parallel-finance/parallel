@@ -48,9 +48,6 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_xcm::Config {
-        /// Because this pallet emits events, it depends on the runtime's definition of an event.
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-
         /// Assets for deposit/withdraw assets to/from crowdloan account
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
@@ -86,41 +83,12 @@ pub mod pallet {
     #[pallet::pallet]
     pub struct Pallet<T>(_);
 
-    #[pallet::event]
-    #[pallet::generate_deposit(pub(super) fn deposit_event)]
-    pub enum Event<T: Config> {
-        /// Sent staking.bond call to relaychain
-        Bonding(T::AccountId, BalanceOf<T>, RewardDestination<T::AccountId>),
-        /// Sent staking.bond_extra call to relaychain
-        BondingExtra(BalanceOf<T>),
-        /// Sent staking.unbond call to relaychain
-        Unbonding(BalanceOf<T>),
-        /// Sent staking.rebond call to relaychain
-        Rebonding(BalanceOf<T>),
-        /// Sent staking.withdraw_unbonded call to relaychain
-        WithdrawingUnbonded(u32),
-        /// Sent staking.nominate call to relaychain
-        Nominating(Vec<T::AccountId>),
-    }
-
     #[pallet::error]
     pub enum Error<T> {
         /// `MultiLocation` value ascend more parents than known ancestors of local location.
         MultiLocationNotInvertible,
         /// Xcm message send failure
         SendXcmError,
-        /// Failed to send staking.bond call
-        BondFailed,
-        /// Failed to send staking.bond_extra call
-        BondExtraFailed,
-        /// Failed to send staking.unbond call
-        UnbondFailed,
-        /// Failed to send staking.rebond call
-        RebondFailed,
-        /// Failed to send staking.withdraw_unbonded call
-        WithdrawUnbondedFailed,
-        /// Failed to send staking.nominate call
-        NominateFailed,
     }
 }
 
@@ -157,54 +125,48 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError>;
 
-    fn bond_internal(
+    fn do_bond(
         value: Balance,
         payee: RewardDestination<AccountId>,
         stash: AccountId,
-        weight: Weight,
         beneficiary: MultiLocation,
         staking_currency: AssetId,
         index: u16,
     ) -> DispatchResult;
 
-    fn bond_extra_internal(
+    fn do_bond_extra(
         value: Balance,
         stash: AccountId,
-        weight: Weight,
         beneficiary: MultiLocation,
         staking_currency: AssetId,
         index: u16,
     ) -> DispatchResult;
 
-    fn unbond_internal(
+    fn do_unbond(
         value: Balance,
-        weight: Weight,
         beneficiary: MultiLocation,
         staking_currency: AssetId,
         index: u16,
     ) -> DispatchResult;
 
-    fn rebond_internal(
+    fn do_rebond(
         value: Balance,
-        weight: Weight,
         beneficiary: MultiLocation,
         staking_currency: AssetId,
         index: u16,
     ) -> DispatchResult;
 
-    fn withdraw_unbonded_internal(
+    fn do_withdraw_unbonded(
         num_slashing_spans: u32,
         amount: Balance,
-        weight: Weight,
         beneficiary: MultiLocation,
         staking_currency: AssetId,
         para_account_id: AccountId,
         index: u16,
     ) -> DispatchResult;
 
-    fn nominate(
+    fn do_nominate(
         targets: Vec<AccountId>,
-        weight: Weight,
         beneficiary: MultiLocation,
         staking_currency: AssetId,
         index: u16,
@@ -368,11 +330,10 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
         }))
     }
 
-    fn bond_internal(
+    fn do_bond(
         value: BalanceOf<T>,
         payee: RewardDestination<T::AccountId>,
         stash: T::AccountId,
-        weight: Weight,
         beneficiary: MultiLocation,
         staking_currency: AssetIdOf<T>,
         index: u16,
@@ -404,26 +365,24 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
                     ],
                 })));
 
-            let msg =
-                Self::ump_transact(call.encode().into(), weight, beneficiary, staking_currency)?;
+            let msg = Self::ump_transact(
+                call.encode().into(),
+                Self::xcm_weight().bond_weight,
+                beneficiary,
+                staking_currency,
+            )?;
 
-            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                Ok(()) => {
-                    Self::deposit_event(Event::<T>::Bonding(controller, value, payee));
-                }
-                Err(_e) => {
-                    return Err(Error::<T>::BondFailed.into());
-                }
+            if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                return Err(Error::<T>::SendXcmError.into());
             }
         });
 
         Ok(())
     }
 
-    fn bond_extra_internal(
+    fn do_bond_extra(
         value: BalanceOf<T>,
         stash: T::AccountId,
-        weight: Weight,
         beneficiary: MultiLocation,
         staking_currency: AssetIdOf<T>,
         index: u16,
@@ -449,24 +408,22 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
                     ],
                 })));
 
-            let msg =
-                Self::ump_transact(call.encode().into(), weight, beneficiary, staking_currency)?;
+            let msg = Self::ump_transact(
+                call.encode().into(),
+                Self::xcm_weight().bond_extra_weight,
+                beneficiary,
+                staking_currency,
+            )?;
 
-            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                Ok(()) => {
-                    Self::deposit_event(Event::<T>::BondingExtra(value));
-                }
-                Err(_e) => {
-                    return Err(Error::<T>::BondExtraFailed.into());
-                }
+            if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                return Err(Error::<T>::SendXcmError.into());
             }
         });
         Ok(())
     }
 
-    fn unbond_internal(
+    fn do_unbond(
         value: BalanceOf<T>,
-        weight: Weight,
         beneficiary: MultiLocation,
         staking_currency: AssetIdOf<T>,
         index: u16,
@@ -481,25 +438,22 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
                 },
             )));
 
-            let msg =
-                Self::ump_transact(call.encode().into(), weight, beneficiary, staking_currency)?;
-
-            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                Ok(()) => {
-                    Self::deposit_event(Event::<T>::Unbonding(value));
-                }
-                Err(_e) => {
-                    return Err(Error::<T>::UnbondFailed.into());
-                }
+            let msg = Self::ump_transact(
+                call.encode().into(),
+                Self::xcm_weight().unbond_weight,
+                beneficiary,
+                staking_currency,
+            )?;
+            if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                return Err(Error::<T>::SendXcmError.into());
             }
         });
 
         Ok(())
     }
 
-    fn rebond_internal(
+    fn do_rebond(
         value: BalanceOf<T>,
-        weight: Weight,
         beneficiary: MultiLocation,
         staking_currency: AssetIdOf<T>,
         index: u16,
@@ -514,26 +468,24 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
                 },
             )));
 
-            let msg =
-                Self::ump_transact(call.encode().into(), weight, beneficiary, staking_currency)?;
+            let msg = Self::ump_transact(
+                call.encode().into(),
+                Self::xcm_weight().rebond_weight,
+                beneficiary,
+                staking_currency,
+            )?;
 
-            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                Ok(()) => {
-                    Self::deposit_event(Event::<T>::Rebonding(value));
-                }
-                Err(_e) => {
-                    return Err(Error::<T>::RebondFailed.into());
-                }
+            if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                return Err(Error::<T>::SendXcmError.into());
             }
         });
 
         Ok(())
     }
 
-    fn withdraw_unbonded_internal(
+    fn do_withdraw_unbonded(
         num_slashing_spans: u32,
         amount: BalanceOf<T>,
-        weight: Weight,
         beneficiary: MultiLocation,
         staking_currency: AssetIdOf<T>,
         para_account_id: T::AccountId,
@@ -567,25 +519,23 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
                     ],
                 })));
 
-            let msg =
-                Self::ump_transact(call.encode().into(), weight, beneficiary, staking_currency)?;
+            let msg = Self::ump_transact(
+                call.encode().into(),
+                Self::xcm_weight().withdraw_unbonded_weight,
+                beneficiary,
+                staking_currency,
+            )?;
 
-            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                Ok(()) => {
-                    Self::deposit_event(Event::<T>::WithdrawingUnbonded(num_slashing_spans));
-                }
-                Err(_e) => {
-                    return Err(Error::<T>::WithdrawUnbondedFailed.into());
-                }
+            if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                return Err(Error::<T>::SendXcmError.into());
             }
         });
 
         Ok(())
     }
 
-    fn nominate(
+    fn do_nominate(
         targets: Vec<T::AccountId>,
-        weight: Weight,
         beneficiary: MultiLocation,
         staking_currency: AssetIdOf<T>,
         index: u16,
@@ -608,16 +558,15 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
                 },
             )));
 
-            let msg =
-                Self::ump_transact(call.encode().into(), weight, beneficiary, staking_currency)?;
+            let msg = Self::ump_transact(
+                call.encode().into(),
+                Self::xcm_weight().nominate_weight,
+                beneficiary,
+                staking_currency,
+            )?;
 
-            match T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
-                Ok(()) => {
-                    Self::deposit_event(Event::<T>::Nominating(targets));
-                }
-                Err(_e) => {
-                    return Err(Error::<T>::NominateFailed.into());
-                }
+            if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
+                return Err(Error::<T>::SendXcmError.into());
             }
         });
 

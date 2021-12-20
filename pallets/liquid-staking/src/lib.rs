@@ -174,18 +174,6 @@ pub mod pallet {
         StakeAmountTooSmall,
         /// Unstake amount is too small
         UnstakeAmountTooSmall,
-        /// Failed to send staking.bond call
-        BondFailed,
-        /// Failed to send staking.bond_extra call
-        BondExtraFailed,
-        /// Failed to send staking.unbond call
-        UnbondFailed,
-        /// Failed to send staking.rebond call
-        RebondFailed,
-        /// Failed to send staking.withdraw_unbonded call
-        WithdrawUnbondedFailed,
-        /// Failed to send staking.nominate call
-        NominateFailed,
         /// Liquid currency hasn't been set
         LiquidCurrencyNotReady,
         /// Staking currency hasn't been set
@@ -511,7 +499,7 @@ pub mod pallet {
                 *v = v.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
                 Ok(())
             })?;
-            Self::bond_extra_internal(amount)?;
+            Self::do_bond_extra(amount)?;
             Self::deposit_event(Event::<T>::SlashPaid(amount));
             Ok(().into())
         }
@@ -556,18 +544,18 @@ pub mod pallet {
                 T::Assets::burn_from(staking_currency, &account_id, bond_amount)?;
 
                 if !bond_extra {
-                    Self::bond_internal(bond_amount, RewardDestination::Staked)?;
+                    Self::do_bond(bond_amount, RewardDestination::Staked)?;
                 } else {
-                    Self::bond_extra_internal(bond_amount)?;
+                    Self::do_bond_extra(bond_amount)?;
                 }
             }
 
             if !unbond_amount.is_zero() {
-                Self::unbond_internal(unbond_amount)?;
+                Self::do_unbond(unbond_amount)?;
             }
 
             if !rebond_amount.is_zero() {
-                Self::rebond_internal(rebond_amount)?;
+                Self::do_rebond(rebond_amount)?;
             }
 
             Self::deposit_event(Event::<T>::Settlement(
@@ -588,7 +576,7 @@ pub mod pallet {
             payee: RewardDestination<T::AccountId>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-            Self::bond_internal(value, payee)?;
+            Self::do_bond(value, payee)?;
             Ok(())
         }
 
@@ -600,7 +588,7 @@ pub mod pallet {
             #[pallet::compact] value: BalanceOf<T>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-            Self::bond_extra_internal(value)?;
+            Self::do_bond_extra(value)?;
             Ok(())
         }
 
@@ -612,7 +600,7 @@ pub mod pallet {
             #[pallet::compact] value: BalanceOf<T>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-            Self::unbond_internal(value)?;
+            Self::do_unbond(value)?;
             Ok(())
         }
 
@@ -624,7 +612,7 @@ pub mod pallet {
             #[pallet::compact] value: BalanceOf<T>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-            Self::rebond_internal(value)?;
+            Self::do_rebond(value)?;
             Ok(())
         }
 
@@ -637,7 +625,8 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-            Self::withdraw_unbonded_internal(num_slashing_spans, amount)?;
+            Self::do_withdraw_unbonded(num_slashing_spans, amount)?;
+            Self::deposit_event(Event::<T>::WithdrawingUnbonded(num_slashing_spans));
             Ok(())
         }
 
@@ -646,24 +635,12 @@ pub mod pallet {
         #[transactional]
         pub fn nominate(origin: OriginFor<T>, targets: Vec<T::AccountId>) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-            T::XCM::add_xcm_fees(
-                Self::staking_currency()?,
-                Self::account_id(),
-                T::XCM::get_xcm_fees(),
-            )?;
-            T::XCM::nominate(
+            T::XCM::do_nominate(
                 targets.clone(),
-                Self::xcm_weight().nominate_weight,
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
             )?;
-            InsurancePool::<T>::try_mutate(|v| -> DispatchResult {
-                *v = v
-                    .checked_sub(T::XCM::get_xcm_fees())
-                    .ok_or(ArithmeticError::Underflow)?;
-                Ok(())
-            })?;
             Self::deposit_event(Event::<T>::Nominating(targets));
 
             Ok(())
@@ -749,30 +726,15 @@ pub mod pallet {
         }
 
         #[require_transactional]
-        fn bond_internal(
-            value: BalanceOf<T>,
-            payee: RewardDestination<T::AccountId>,
-        ) -> DispatchResult {
-            T::XCM::add_xcm_fees(
-                Self::staking_currency()?,
-                Self::account_id(),
-                T::XCM::get_xcm_fees(),
-            )?;
-            T::XCM::bond_internal(
+        fn do_bond(value: BalanceOf<T>, payee: RewardDestination<T::AccountId>) -> DispatchResult {
+            T::XCM::do_bond(
                 value,
                 payee.clone(),
                 Self::derivative_para_account_id(),
-                Self::xcm_weight().bond_weight,
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
             )?;
-            InsurancePool::<T>::try_mutate(|v| -> DispatchResult {
-                *v = v
-                    .checked_sub(T::XCM::get_xcm_fees())
-                    .ok_or(ArithmeticError::Underflow)?;
-                Ok(())
-            })?;
             Self::deposit_event(Event::<T>::Bonding(
                 Self::derivative_para_account_id(),
                 value,
@@ -782,107 +744,55 @@ pub mod pallet {
         }
 
         #[require_transactional]
-        fn bond_extra_internal(value: BalanceOf<T>) -> DispatchResult {
-            T::XCM::add_xcm_fees(
-                Self::staking_currency()?,
-                Self::account_id(),
-                T::XCM::get_xcm_fees(),
-            )?;
-            T::XCM::bond_extra_internal(
+        fn do_bond_extra(value: BalanceOf<T>) -> DispatchResult {
+            T::XCM::do_bond_extra(
                 value,
                 Self::derivative_para_account_id(),
-                Self::xcm_weight().bond_extra_weight,
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
             )?;
-            InsurancePool::<T>::try_mutate(|v| -> DispatchResult {
-                *v = v
-                    .checked_sub(T::XCM::get_xcm_fees())
-                    .ok_or(ArithmeticError::Underflow)?;
-                Ok(())
-            })?;
             Self::deposit_event(Event::<T>::BondingExtra(value));
             Ok(())
         }
 
         #[require_transactional]
-        fn unbond_internal(value: BalanceOf<T>) -> DispatchResult {
-            T::XCM::add_xcm_fees(
-                Self::staking_currency()?,
-                Self::account_id(),
-                T::XCM::get_xcm_fees(),
-            )?;
-            T::XCM::unbond_internal(
+        fn do_unbond(value: BalanceOf<T>) -> DispatchResult {
+            T::XCM::do_unbond(
                 value,
-                Self::xcm_weight().unbond_weight,
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
             )?;
-            InsurancePool::<T>::try_mutate(|v| -> DispatchResult {
-                *v = v
-                    .checked_sub(T::XCM::get_xcm_fees())
-                    .ok_or(ArithmeticError::Underflow)?;
-                Ok(())
-            })?;
             Self::deposit_event(Event::<T>::Unbonding(value));
 
             Ok(())
         }
 
         #[require_transactional]
-        fn rebond_internal(value: BalanceOf<T>) -> DispatchResult {
-            T::XCM::add_xcm_fees(
-                Self::staking_currency()?,
-                Self::account_id(),
-                T::XCM::get_xcm_fees(),
-            )?;
-            T::XCM::rebond_internal(
+        fn do_rebond(value: BalanceOf<T>) -> DispatchResult {
+            T::XCM::do_rebond(
                 value,
-                Self::xcm_weight().rebond_weight,
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
             )?;
-            InsurancePool::<T>::try_mutate(|v| -> DispatchResult {
-                *v = v
-                    .checked_sub(T::XCM::get_xcm_fees())
-                    .ok_or(ArithmeticError::Underflow)?;
-                Ok(())
-            })?;
             Self::deposit_event(Event::<T>::Rebonding(value));
 
             Ok(())
         }
 
         #[require_transactional]
-        fn withdraw_unbonded_internal(
-            num_slashing_spans: u32,
-            amount: BalanceOf<T>,
-        ) -> DispatchResult {
-            T::XCM::add_xcm_fees(
-                Self::staking_currency()?,
-                Self::account_id(),
-                T::XCM::get_xcm_fees(),
-            )?;
-            T::XCM::withdraw_unbonded_internal(
+        fn do_withdraw_unbonded(num_slashing_spans: u32, amount: BalanceOf<T>) -> DispatchResult {
+            T::XCM::do_withdraw_unbonded(
                 num_slashing_spans,
                 amount,
-                Self::xcm_weight().withdraw_unbonded_weight,
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
                 Self::para_account_id(),
                 T::DerivativeIndex::get(),
             )?;
-            InsurancePool::<T>::try_mutate(|v| -> DispatchResult {
-                *v = v
-                    .checked_sub(T::XCM::get_xcm_fees())
-                    .ok_or(ArithmeticError::Underflow)?;
-                Ok(())
-            })?;
             Self::deposit_event(Event::<T>::WithdrawingUnbonded(num_slashing_spans));
-
             Ok(())
         }
 
