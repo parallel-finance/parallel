@@ -540,7 +540,7 @@ fn slot_expired_should_work() {
         ));
 
         // do succeed
-        assert_ok!(Crowdloans::succeed(
+        assert_ok!(Crowdloans::auction_succeeded(
             frame_system::RawOrigin::Root.into(), // origin
             crowdloan,                            // crowdloan
         ));
@@ -595,14 +595,14 @@ fn suceed_should_work() {
         ));
 
         // do succeed
-        assert_ok!(Crowdloans::succeed(
+        assert_ok!(Crowdloans::auction_succeeded(
             frame_system::RawOrigin::Root.into(), // origin
             crowdloan,                            // crowdloan
         ));
 
         // check that we're in the right phase
         let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
-        assert_eq!(vault.phase, VaultPhase::Succeed)
+        assert_eq!(vault.phase, VaultPhase::Succeeded)
     });
 }
 

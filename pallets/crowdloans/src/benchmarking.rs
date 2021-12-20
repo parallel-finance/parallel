@@ -210,7 +210,7 @@ benchmarks! {
         assert_last_event::<T>(Event::VaultReOpened(crowdloan).into())
     }
 
-    succeed {
+    auction_succeeded {
         let ctoken = 13;
         let caller: T::AccountId = whitelisted_caller();
         let crowdloan = ParaId::from(1339u32);
