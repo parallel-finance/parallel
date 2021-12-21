@@ -464,6 +464,8 @@ parameter_types! {
     pub const UnstakeQueueCapacity: u32 = 1000;
     pub const MinStakeAmount: Balance = 1_000_000_000_000;
     pub const MinUnstakeAmount: Balance = 500_000_000_000;
+    pub const StakingCurrency: CurrencyId = KSM;
+    pub const LiquidCurrency: CurrencyId = XKSM;
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -475,6 +477,8 @@ impl pallet_liquid_staking::Config for Runtime {
     type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type DerivativeIndex = DerivativeIndex;
+    type StakingCurrency = StakingCurrency;
+    type LiquidCurrency = LiquidCurrency;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;
     type MinStakeAmount = MinStakeAmount;

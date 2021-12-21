@@ -33,7 +33,9 @@ pub mod weights;
 #[macro_use]
 extern crate primitives;
 
+use frame_support::traits::{fungibles::InspectMetadata, Get};
 use primitives::{ExchangeRateProvider, LiquidStakingCurrenciesProvider, Rate};
+use sp_runtime::traits::Zero;
 
 pub use pallet::*;
 
@@ -45,8 +47,8 @@ pub mod pallet {
         pallet_prelude::*,
         require_transactional,
         traits::{
-            fungibles::{Inspect, Mutate, Transfer},
-            Get, IsType,
+            fungibles::{Inspect, InspectMetadata, Mutate, Transfer},
+            IsType,
         },
         transactional,
         weights::Weight,
@@ -57,7 +59,7 @@ pub mod pallet {
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
     use sp_runtime::{
-        traits::{AccountIdConversion, Convert, Zero},
+        traits::{AccountIdConversion, Convert},
         ArithmeticError, FixedPointNumber,
     };
     use sp_std::vec::Vec;
@@ -65,9 +67,10 @@ pub mod pallet {
 
     use primitives::{ump::*, Balance, CurrencyId, ParaId, Rate, Ratio};
 
-    use crate::{types::*, weights::WeightInfo};
+    use super::{types::*, weights::WeightInfo, *};
     use pallet_xcm_helper::XcmHelper;
 
+    pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
     pub type AssetIdOf<T> =
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
     pub type BalanceOf<T> =
@@ -83,7 +86,8 @@ pub mod pallet {
 
         /// Assets for deposit/withdraw assets to/from pallet account
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId>
-            + Mutate<Self::AccountId, Balance = Balance>;
+            + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + InspectMetadata<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
 
         /// The origin which can do operation on relaychain using parachain's sovereign account
         type RelayOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
@@ -105,6 +109,14 @@ pub mod pallet {
 
         /// Convert `T::AccountId` to `MultiLocation`.
         type AccountIdToMultiLocation: Convert<Self::AccountId, MultiLocation>;
+
+        /// Staking currency
+        #[pallet::constant]
+        type StakingCurrency: Get<AssetIdOf<Self>>;
+
+        /// Liquid currency
+        #[pallet::constant]
+        type LiquidCurrency: Get<AssetIdOf<Self>>;
 
         /// Unstake queue capacity
         #[pallet::constant]
@@ -525,9 +537,12 @@ pub mod pallet {
             let matching_pool = MatchingPool::<T>::get();
             let old_exchange_rate = Self::exchange_rate();
             let exchange_rate = Rate::checked_from_rational(
-                bonded_amount + matching_pool.total_stake_amount,
+                bonded_amount
+                    .checked_add(matching_pool.total_stake_amount)
+                    .ok_or(ArithmeticError::Overflow)?,
                 T::Assets::total_issuance(Self::liquid_currency()?)
-                    + matching_pool.total_unstake_amount,
+                    .checked_add(matching_pool.total_unstake_amount)
+                    .ok_or(ArithmeticError::Overflow)?,
             )
             .ok_or(Error::<T>::InvalidExchangeRate)?;
             if exchange_rate > old_exchange_rate {
@@ -625,7 +640,14 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-            Self::do_withdraw_unbonded(num_slashing_spans, amount)?;
+            T::XCM::do_withdraw_unbonded(
+                num_slashing_spans,
+                amount,
+                T::AccountIdToMultiLocation::convert(Self::para_account_id()),
+                Self::para_account_id(),
+                Self::staking_currency()?,
+                T::DerivativeIndex::get(),
+            )?;
             Self::deposit_event(Event::<T>::WithdrawingUnbonded(num_slashing_spans));
             Ok(())
         }
@@ -638,37 +660,10 @@ pub mod pallet {
             T::XCM::do_nominate(
                 targets.clone(),
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
+                Self::staking_currency()?,
                 T::DerivativeIndex::get(),
             )?;
-            let fees = T::XCM::get_xcm_fees();
-            T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), fees)?;
-            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
-                Ok(())
-            })?;
             Self::deposit_event(Event::<T>::Nominating(targets));
-
-            Ok(())
-        }
-
-        /// Set liquid currency via governance
-        #[pallet::weight(<T as Config>::WeightInfo::set_liquid_currency())]
-        #[transactional]
-        pub fn set_liquid_currency(origin: OriginFor<T>, asset_id: AssetIdOf<T>) -> DispatchResult {
-            T::UpdateOrigin::ensure_origin(origin)?;
-            LiquidCurrency::<T>::put(asset_id);
-            Ok(())
-        }
-
-        /// Set staking currency via governance
-        #[pallet::weight(<T as Config>::WeightInfo::set_staking_currency())]
-        #[transactional]
-        pub fn set_staking_currency(
-            origin: OriginFor<T>,
-            asset_id: AssetIdOf<T>,
-        ) -> DispatchResult {
-            T::UpdateOrigin::ensure_origin(origin)?;
-            StakingCurrency::<T>::put(asset_id);
             Ok(())
         }
 
@@ -688,7 +683,6 @@ pub mod pallet {
                 amount,
                 false,
             )?;
-
             InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
                 Ok(())
@@ -737,14 +731,9 @@ pub mod pallet {
                 payee.clone(),
                 Self::derivative_para_account_id(),
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
+                Self::staking_currency()?,
                 T::DerivativeIndex::get(),
             )?;
-            let fees = T::XCM::get_xcm_fees();
-            T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), fees)?;
-            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
-                Ok(())
-            })?;
             Self::deposit_event(Event::<T>::Bonding(
                 Self::derivative_para_account_id(),
                 value,
@@ -759,14 +748,9 @@ pub mod pallet {
                 value,
                 Self::derivative_para_account_id(),
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
+                Self::staking_currency()?,
                 T::DerivativeIndex::get(),
             )?;
-            let fees = T::XCM::get_xcm_fees();
-            T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), fees)?;
-            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
-                Ok(())
-            })?;
             Self::deposit_event(Event::<T>::BondingExtra(value));
             Ok(())
         }
@@ -776,16 +760,10 @@ pub mod pallet {
             T::XCM::do_unbond(
                 value,
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
+                Self::staking_currency()?,
                 T::DerivativeIndex::get(),
             )?;
-            let fees = T::XCM::get_xcm_fees();
-            T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), fees)?;
-            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
-                Ok(())
-            })?;
             Self::deposit_event(Event::<T>::Unbonding(value));
-
             Ok(())
         }
 
@@ -794,36 +772,10 @@ pub mod pallet {
             T::XCM::do_rebond(
                 value,
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
-                T::DerivativeIndex::get(),
-            )?;
-            let fees = T::XCM::get_xcm_fees();
-            T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), fees)?;
-            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
-                Ok(())
-            })?;
-            Self::deposit_event(Event::<T>::Rebonding(value));
-
-            Ok(())
-        }
-
-        #[require_transactional]
-        fn do_withdraw_unbonded(num_slashing_spans: u32, amount: BalanceOf<T>) -> DispatchResult {
-            T::XCM::do_withdraw_unbonded(
-                num_slashing_spans,
-                amount,
-                T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
-                Self::para_account_id(),
                 T::DerivativeIndex::get(),
             )?;
-            let fees = T::XCM::get_xcm_fees();
-            T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), fees)?;
-            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
-                Ok(())
-            })?;
-            Self::deposit_event(Event::<T>::WithdrawingUnbonded(num_slashing_spans));
+            Self::deposit_event(Event::<T>::Rebonding(value));
             Ok(())
         }
 
@@ -851,10 +803,20 @@ impl<T: Config> ExchangeRateProvider for Pallet<T> {
 
 impl<T: Config> LiquidStakingCurrenciesProvider<AssetIdOf<T>> for Pallet<T> {
     fn get_staking_currency() -> Option<AssetIdOf<T>> {
-        StakingCurrency::<T>::get()
+        let asset_id = T::StakingCurrency::get();
+        if !<T::Assets as InspectMetadata<AccountIdOf<T>>>::decimals(&asset_id).is_zero() {
+            Some(asset_id)
+        } else {
+            None
+        }
     }
 
     fn get_liquid_currency() -> Option<AssetIdOf<T>> {
-        LiquidCurrency::<T>::get()
+        let asset_id = T::LiquidCurrency::get();
+        if !<T::Assets as InspectMetadata<AccountIdOf<T>>>::decimals(&asset_id).is_zero() {
+            Some(asset_id)
+        } else {
+            None
+        }
     }
 }

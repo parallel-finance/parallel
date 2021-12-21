@@ -73,8 +73,6 @@ fn initial_set_up<
 
     <T as pallet_xcm_helper::Config>::Assets::mint_into(DOT, &caller, INITIAL_AMOUNT).unwrap();
 
-    LiquidStaking::<T>::set_liquid_currency(SystemOrigin::Root.into(), XDOT).unwrap();
-    LiquidStaking::<T>::set_staking_currency(SystemOrigin::Root.into(), DOT).unwrap();
     LiquidStaking::<T>::update_staking_pool_capacity(SystemOrigin::Root.into(), MARKET_CAP)
         .unwrap();
     LiquidStaking::<T>::update_xcm_fees(SystemOrigin::Root.into(), XCM_FEES).unwrap();
@@ -188,18 +186,6 @@ benchmarks! {
     }: _(SystemOrigin::Root, 0, WITHDRAW_AMOUNT)
     verify {
         assert_last_event::<T>(Event::<T>::WithdrawingUnbonded(0).into());
-    }
-
-    set_liquid_currency {
-    }: _(SystemOrigin::Root, XDOT)
-    verify {
-        assert_eq!(LiquidCurrency::<T>::get(), Some(XDOT));
-    }
-
-    set_staking_currency {
-    }: _(SystemOrigin::Root, DOT)
-    verify {
-        assert_eq!(StakingCurrency::<T>::get(), Some(DOT));
     }
 
     update_reserve_factor {

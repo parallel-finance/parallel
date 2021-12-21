@@ -474,6 +474,8 @@ parameter_types! {
     pub const UnstakeQueueCapacity: u32 = 1000;
     pub const MinStakeAmount: Balance = 1_000_000_000_000;
     pub const MinUnstakeAmount: Balance = 500_000_000_000;
+    pub const StakingCurrency: CurrencyId = KSM;
+    pub const LiquidCurrency: CurrencyId = XKSM;
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -484,6 +486,8 @@ impl pallet_liquid_staking::Config for Runtime {
     type WeightInfo = ();
     type SelfParaId = ParachainInfo;
     type Assets = Assets;
+    type StakingCurrency = StakingCurrency;
+    type LiquidCurrency = LiquidCurrency;
     type DerivativeIndex = DerivativeIndex;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;

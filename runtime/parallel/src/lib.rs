@@ -462,6 +462,8 @@ parameter_types! {
     pub const UnstakeQueueCapacity: u32 = 1000;
     pub const MinStakeAmount: Balance = 10_000_000_000;
     pub const MinUnstakeAmount: Balance = 5_000_000_000;
+    pub const StakingCurrency: CurrencyId = DOT;
+    pub const LiquidCurrency: CurrencyId = XDOT;
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -470,6 +472,8 @@ impl pallet_liquid_staking::Config for Runtime {
     type WeightInfo = ();
     type SelfParaId = ParachainInfo;
     type Assets = Assets;
+    type StakingCurrency = StakingCurrency;
+    type LiquidCurrency = LiquidCurrency;
     type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type DerivativeIndex = DerivativeIndex;
