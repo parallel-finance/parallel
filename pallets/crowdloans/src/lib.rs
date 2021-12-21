@@ -663,7 +663,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
 
-            ensure!(fees > Zero::zero(), Error::<T>::ZeroXcmFees);
+            ensure!(!fees.is_zero(), Error::<T>::ZeroXcmFees);
 
             T::XCM::update_xcm_fees(fees);
             Self::deposit_event(Event::<T>::XcmFeesUpdated(fees));
@@ -679,7 +679,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
 
-            ensure!(!xcm_weight_misc.is_zero(), Error::<T>::ZeroXcmWeightMisc);
+            ensure!(!xcm_weight_misc.has_zero(), Error::<T>::ZeroXcmWeightMisc);
 
             T::XCM::update_xcm_weight(xcm_weight_misc);
             Self::deposit_event(Event::<T>::XcmWeightUpdated(xcm_weight_misc));
