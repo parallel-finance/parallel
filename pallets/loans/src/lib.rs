@@ -153,6 +153,12 @@ pub mod pallet {
         ExceededMarketCapacity,
         /// Insufficient cash in the pool
         InsufficientCash,
+        /// The factor should be bigger than 0% and smaller than 100%
+        InvalidFactor,
+        /// The cap cannot be zero
+        ZeroCap,
+        /// Payer cannot be signer
+        PayerIsSigner,
     }
 
     #[pallet::event]
@@ -403,6 +409,15 @@ pub mod pallet {
                 market.rate_model.check_model(),
                 Error::<T>::InvalidRateModelParam
             );
+            ensure!(
+                market.collateral_factor > Ratio::zero() && market.collateral_factor < Ratio::one(),
+                Error::<T>::InvalidFactor,
+            );
+            ensure!(
+                market.reserve_factor > Ratio::zero() && market.reserve_factor < Ratio::one(),
+                Error::<T>::InvalidFactor,
+            );
+            ensure!(market.cap > Zero::zero(), Error::<T>::ZeroCap,);
 
             // Ensures a given `ptoken_id` not exists on the `Market` and `UnderlyingAssetId`.
             Self::ensure_ptoken(market.ptoken_id)?;
@@ -484,6 +499,17 @@ pub mod pallet {
             cap: Balance,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
+
+            ensure!(
+                collateral_factor > Ratio::zero() && collateral_factor < Ratio::one(),
+                Error::<T>::InvalidFactor
+            );
+            ensure!(
+                reserve_factor > Ratio::zero() && reserve_factor < Ratio::one(),
+                Error::<T>::InvalidFactor
+            );
+            ensure!(cap > Zero::zero(), Error::<T>::ZeroCap);
+
             let market = Self::mutate_market(asset_id, |stored_market| {
                 *stored_market = Market {
                     state: stored_market.state,
@@ -1310,11 +1336,10 @@ impl<T: Config> Pallet<T> {
 
     // Ensures a given `asset_id` is an active market.
     fn ensure_active_market(asset_id: AssetIdOf<T>) -> Result<Market<BalanceOf<T>>, DispatchError> {
-        if let Some((_, market)) = Self::active_markets().find(|(id, _)| id == &asset_id) {
-            Ok(market)
-        } else {
-            Err(<Error<T>>::MarketNotActivated.into())
-        }
+        Self::active_markets()
+            .find(|(id, _)| id == &asset_id)
+            .map(|(_, market)| market)
+            .ok_or_else(|| Error::<T>::MarketNotActivated.into())
     }
 
     /// Ensure market is enough to supply `amount` asset.

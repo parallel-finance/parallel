@@ -215,8 +215,14 @@ pub mod pallet {
         ExceededMaxVrfs,
         /// Pending contribution must be killed before entering `Contributing` vault phase
         PendingContributionNotKilled,
+        /// Capacity cannot be zero value
+        ZeroCap,
         /// Invalid params input
         InvalidParams,
+        /// XcmWeightMisc cannot have zero value
+        ZeroXcmWeightMisc,
+        /// Xcm fees cannot be zero
+        ZeroXcmFees,
     }
 
     #[pallet::storage]
@@ -262,7 +268,7 @@ pub mod pallet {
         ) -> DispatchResult {
             T::CreateVaultOrigin::ensure_origin(origin)?;
 
-            ensure!(!cap.is_zero(), Error::<T>::InvalidParams);
+            ensure!(!cap.is_zero(), Error::<T>::ZeroCap);
 
             let ctoken_issuance = T::Assets::total_issuance(ctoken);
             ensure!(
@@ -333,6 +339,7 @@ pub mod pallet {
             let mut vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
 
             if let Some(cap) = cap {
+                ensure!(!cap.is_zero(), Error::<T>::ZeroCap);
                 vault.cap = cap;
             }
 
@@ -655,6 +662,9 @@ pub mod pallet {
             #[pallet::compact] fees: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
+
+            ensure!(fees > Zero::zero(), Error::<T>::ZeroXcmFees);
+
             T::XCM::update_xcm_fees(fees);
             Self::deposit_event(Event::<T>::XcmFeesUpdated(fees));
             Ok(().into())
@@ -668,6 +678,9 @@ pub mod pallet {
             xcm_weight_misc: XcmWeightMisc<Weight>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
+
+            ensure!(!xcm_weight_misc.is_zero(), Error::<T>::ZeroXcmWeightMisc);
+
             T::XCM::update_xcm_weight(xcm_weight_misc);
             Self::deposit_event(Event::<T>::XcmWeightUpdated(xcm_weight_misc));
             Ok(().into())

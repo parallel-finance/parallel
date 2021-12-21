@@ -101,6 +101,8 @@ pub mod pallet {
         NotAValidDuration,
         /// Not a valid amount
         NotAValidAmount,
+        /// The end block is smaller than start block
+        SmallerThanEndBlock,
     }
 
     #[pallet::event]
@@ -168,6 +170,8 @@ pub mod pallet {
             shares: AssetIdOf<T, I>,
         ) -> DispatchResultWithPostInfo {
             T::CreateOrigin::ensure_origin(origin)?;
+
+            ensure!(end > start, Error::<T, I>::SmallerThanEndBlock);
 
             ensure!(
                 !Pools::<T, I>::contains_key(&asset),

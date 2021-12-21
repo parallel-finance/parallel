@@ -192,6 +192,12 @@ pub mod pallet {
         StakingCurrencyNotReady,
         /// Exceeded unstake queue's capacity
         ExceededUnstakeQueueCapacity,
+        /// The cap cannot be zero
+        ZeroCap,
+        /// The factor should be bigger than 0% and smaller than 100%
+        InvalidFactor,
+        /// fees cannot be zero
+        ZeroFees,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -443,6 +449,9 @@ pub mod pallet {
             #[pallet::compact] fees: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
+
+            ensure!(fees > Zero::zero(), Error::<T>::ZeroFees);
+
             T::XCM::update_xcm_fees(fees);
             Self::deposit_event(Event::<T>::XcmFeesUpdated(fees));
             Ok(().into())
@@ -456,6 +465,12 @@ pub mod pallet {
             reserve_factor: Ratio,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
+
+            ensure!(
+                reserve_factor > Ratio::zero() && reserve_factor < Ratio::one(),
+                Error::<T>::InvalidFactor,
+            );
+
             ReserveFactor::<T>::mutate(|v| *v = reserve_factor);
             Self::deposit_event(Event::<T>::ReserveFactorUpdated(reserve_factor));
             Ok(().into())
@@ -483,6 +498,9 @@ pub mod pallet {
             #[pallet::compact] cap: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
+
+            ensure!(cap > Zero::zero(), Error::<T>::ZeroCap);
+
             StakingPoolCapacity::<T>::mutate(|v| *v = cap);
             Self::deposit_event(Event::<T>::StakingPoolCapacityUpdated(cap));
             Ok(().into())

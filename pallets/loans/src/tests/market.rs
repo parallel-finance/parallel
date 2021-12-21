@@ -4,7 +4,7 @@ use crate::{
 };
 use frame_support::{assert_noop, assert_ok, error::BadOrigin};
 use primitives::{Rate, Ratio};
-use sp_runtime::FixedPointNumber;
+use sp_runtime::{traits::Zero, FixedPointNumber};
 
 macro_rules! rate_model_sanity_check {
     ($call:ident) => {
@@ -215,11 +215,86 @@ fn update_market_works() {
             market.reserve_factor,
             Default::default(),
             market.liquidate_incentive,
-            0
+            market.cap
         ));
 
         assert_eq!(Loans::market(DOT).unwrap().close_factor, Default::default());
-        assert_eq!(Loans::market(DOT).unwrap().cap, 0);
+        assert_eq!(Loans::market(DOT).unwrap().cap, market.cap);
+    })
+}
+
+#[test]
+fn update_market_should_not_work_if_with_invalid_params() {
+    new_test_ext().execute_with(|| {
+        assert_eq!(
+            Loans::market(DOT).unwrap().close_factor,
+            Ratio::from_percent(50)
+        );
+
+        let market = MARKET_MOCK;
+        // check error code while collateral_factor is 0% or 100%
+        assert_noop!(
+            Loans::update_market(
+                Origin::root(),
+                DOT,
+                Ratio::zero(),
+                market.reserve_factor,
+                Default::default(),
+                market.liquidate_incentive,
+                market.cap
+            ),
+            Error::<Test>::InvalidFactor
+        );
+        assert_noop!(
+            Loans::update_market(
+                Origin::root(),
+                DOT,
+                Ratio::one(),
+                market.reserve_factor,
+                Default::default(),
+                market.liquidate_incentive,
+                market.cap
+            ),
+            Error::<Test>::InvalidFactor
+        );
+        // check error code while reserve_factor is 0% or bigger than 100%
+        assert_noop!(
+            Loans::update_market(
+                Origin::root(),
+                DOT,
+                market.collateral_factor,
+                Ratio::zero(),
+                Default::default(),
+                market.liquidate_incentive,
+                market.cap
+            ),
+            Error::<Test>::InvalidFactor
+        );
+        assert_noop!(
+            Loans::update_market(
+                Origin::root(),
+                DOT,
+                market.collateral_factor,
+                Ratio::one(),
+                Default::default(),
+                market.liquidate_incentive,
+                market.cap
+            ),
+            Error::<Test>::InvalidFactor
+        );
+        // check error code while cap is zero
+        assert_noop!(
+            Loans::update_market(
+                Origin::root(),
+                DOT,
+                market.collateral_factor,
+                market.reserve_factor,
+                Default::default(),
+                Rate::from_inner(Rate::DIV / 100 * 90),
+                Zero::zero()
+            ),
+            Error::<Test>::ZeroCap
+        );
     })
 }
 
