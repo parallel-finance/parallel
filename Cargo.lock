@@ -5237,6 +5237,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-chainlink-adapter"
+version = "1.7.5"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "orml-oracle",
+ "orml-traits",
+ "pallet-chainlink-feed",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-chainlink-feed"
+version = "0.1.0"
+source = "git+https://github.com/smartcontractkit/chainlink-polkadot?branch=polkadot-v0.9.12#8ad333a2c04030f69736e5fb4651ce1ca4249a60"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-collator-selection"
 version = "3.0.0"
 source = "git+https://github.com/paritytech/cumulus.git?branch=polkadot-v0.9.12#935bac869a72baef17e46d2ae1abc8c0c650cef5"
@@ -11415,6 +11448,8 @@ dependencies = [
  "pallet-authorship",
  "pallet-balances",
  "pallet-bridge",
+ "pallet-chainlink-adapter",
+ "pallet-chainlink-feed",
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-crowdloans",

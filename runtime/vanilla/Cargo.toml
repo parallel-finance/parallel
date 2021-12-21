@@ -102,6 +102,8 @@ pallet-prices                = { path = '../../pallets/prices', default-features
 pallet-router                = { path = '../../pallets/router', default-features = false }
 pallet-xcm-helper            = { path = '../../pallets/xcm-helper', default-features = false }
 primitives                   = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
+pallet-chainlink-adapter     = { path = '../../pallets/chainlink-adapter', default-features = false }
+pallet-chainlink-feed        = { git = "https://github.com/smartcontractkit/chainlink-polkadot", branch = "polkadot-v0.9.12", default-features = false }
 
 [build-dependencies.substrate-wasm-builder]
 branch = 'polkadot-v0.9.12'
@@ -209,6 +211,8 @@ std                = [
   'pallet-crowdloans/std',
   'pallet-emergency-shutdown/std',
   'pallet-xcm-helper/std',
+  'pallet-chainlink-adapter/std',
+  'pallet-chainlink-feed/std',
 ]
 try-runtime        = [
   'frame-support/try-runtime',
@@ -243,4 +247,5 @@ try-runtime        = [
   'pallet-prices/try-runtime',
   'pallet-crowdloans/try-runtime',
   'pallet-xcm-helper/try-runtime',
+  'pallet-chainlink-adapter/try-runtime',
 ]

@@ -95,6 +95,7 @@ pub use pallet_loans;
 pub use pallet_multisig;
 pub use pallet_nominee_election;
 pub use pallet_prices;
+pub use pallet_chainlink_adapter;
 
 use currency::*;
 use fee::*;
@@ -1519,6 +1520,48 @@ impl pallet_emergency_shutdown::Config for Runtime {
     type ShutdownOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
 }
 
+parameter_types! {
+    // The minimum amount of tokens to keep in reserve for oracle payment.
+    pub MinimumReserve: Balance = ExistentialDeposit::get() * 10;
+    // Maximum length of the feed description.
+    pub const StringLimit: u32 = 30;
+    // Maximum number of oracles per feed.
+    pub const OracleCountLimit: u32 = 25;
+    // Maximum number of feeds.
+    pub const FeedLimit: FeedId = 100;
+    // LINK CurrencyId
+    // pub const LINKCurrencyId: CurrencyId = LINK;
+    pub const FeedPalletId: PalletId = PalletId(*b"par/link");
+}
+
+impl pallet_chainlink_feed::Config for Runtime {
+    type Event = Event;
+    type FeedId = FeedId;
+    type Value = u128;
+    type Currency = Balances;
+    type PalletId = FeedPalletId;
+    type MinimumReserve = MinimumReserve;
+    type StringLimit = StringLimit;
+    type OracleCountLimit = OracleCountLimit;
+    type FeedLimit = FeedLimit;
+    type OnAnswerHandler = ChainlinkAdaptor;
+    type WeightInfo = ();
+}
+
+pub struct PriceConvert;
+impl Convert<u128, Option<Price>> for PriceConvert {
+    fn convert(value: u128) -> Option<Price> {
+        Some(Price::from_inner(value))
+    }
+}
+
+impl pallet_chainlink_adapter::Config for Runtime {
+    type Event = Event;
+    type Convert = PriceConvert;
+    type Time = Timestamp;
+    type FeedMapOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -1591,6 +1634,8 @@ construct_runtime!(
         EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Event<T>} = 91,
         LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 92,
         XcmHelper: pallet_xcm_helper::{Pallet, Storage, Event<T>} = 93,
+        ChainlinkFeed: pallet_chainlink_feed::{Pallet, Call, Storage, Event<T>} = 94,
+        ChainlinkAdaptor: pallet_chainlink_adapter::{Pallet, Call, Storage, Event<T>} = 95,
     }
 );
 
