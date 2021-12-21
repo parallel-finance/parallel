@@ -105,7 +105,6 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
         call: DoubleEncoded<()>,
         weight: Weight,
         beneficiary: MultiLocation,
-        currency: AssetId,
     ) -> Result<Xcm<()>, DispatchError>;
 
     fn do_withdraw(
@@ -130,7 +129,6 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
         payee: RewardDestination<AccountId>,
         stash: AccountId,
         beneficiary: MultiLocation,
-        staking_currency: AssetId,
         index: u16,
     ) -> DispatchResult;
 
@@ -138,23 +136,12 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
         value: Balance,
         stash: AccountId,
         beneficiary: MultiLocation,
-        staking_currency: AssetId,
         index: u16,
     ) -> DispatchResult;
 
-    fn do_unbond(
-        value: Balance,
-        beneficiary: MultiLocation,
-        staking_currency: AssetId,
-        index: u16,
-    ) -> DispatchResult;
+    fn do_unbond(value: Balance, beneficiary: MultiLocation, index: u16) -> DispatchResult;
 
-    fn do_rebond(
-        value: Balance,
-        beneficiary: MultiLocation,
-        staking_currency: AssetId,
-        index: u16,
-    ) -> DispatchResult;
+    fn do_rebond(value: Balance, beneficiary: MultiLocation, index: u16) -> DispatchResult;
 
     fn do_withdraw_unbonded(
         num_slashing_spans: u32,
@@ -168,7 +155,6 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
     fn do_nominate(
         targets: Vec<AccountId>,
         beneficiary: MultiLocation,
-        staking_currency: AssetId,
         index: u16,
     ) -> DispatchResult;
 }
@@ -228,12 +214,9 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
         call: DoubleEncoded<()>,
         weight: Weight,
         beneficiary: MultiLocation,
-        currency: AssetIdOf<T>,
     ) -> Result<Xcm<()>, DispatchError> {
         let fees = Self::xcm_fees();
         let asset: MultiAsset = (MultiLocation::here(), fees).into();
-
-        T::Assets::burn_from(currency, &Self::account_id(), fees)?;
 
         Ok(Xcm(vec![
             WithdrawAsset(MultiAssets::from(asset.clone())),
@@ -269,11 +252,12 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
                     index: para_id,
                 }));
 
+            T::Assets::burn_from(relay_currency, &Self::account_id(), Self::xcm_fees())?;
+
             let mut msg = Self::ump_transact(
                 call.encode().into(),
                 Self::xcm_weight().withdraw_weight,
                 beneficiary,
-                relay_currency,
             )?;
 
             let query_id = Self::report_outcome_notify(
@@ -308,11 +292,11 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
                 },
             ));
 
+            T::Assets::burn_from(relay_currency, &Self::account_id(), Self::xcm_fees())?;
             let mut msg = Self::ump_transact(
                 call.encode().into(),
                 Self::xcm_weight().contribute_weight,
                 beneficiary,
-                relay_currency,
             )?;
 
             let query_id = Self::report_outcome_notify(
@@ -335,7 +319,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
         payee: RewardDestination<T::AccountId>,
         stash: T::AccountId,
         beneficiary: MultiLocation,
-        staking_currency: AssetIdOf<T>,
         index: u16,
     ) -> DispatchResult {
         let controller = stash.clone();
@@ -369,7 +352,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
                 call.encode().into(),
                 Self::xcm_weight().bond_weight,
                 beneficiary,
-                staking_currency,
             )?;
 
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
@@ -384,7 +366,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
         value: BalanceOf<T>,
         stash: T::AccountId,
         beneficiary: MultiLocation,
-        staking_currency: AssetIdOf<T>,
         index: u16,
     ) -> DispatchResult {
         switch_relay!({
@@ -412,7 +393,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
                 call.encode().into(),
                 Self::xcm_weight().bond_extra_weight,
                 beneficiary,
-                staking_currency,
             )?;
 
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
@@ -422,12 +402,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
         Ok(())
     }
 
-    fn do_unbond(
-        value: BalanceOf<T>,
-        beneficiary: MultiLocation,
-        staking_currency: AssetIdOf<T>,
-        index: u16,
-    ) -> DispatchResult {
+    fn do_unbond(value: BalanceOf<T>, beneficiary: MultiLocation, index: u16) -> DispatchResult {
         switch_relay!({
             let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
                 UtilityAsDerivativeCall {
@@ -442,7 +417,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
                 call.encode().into(),
                 Self::xcm_weight().unbond_weight,
                 beneficiary,
-                staking_currency,
             )?;
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
@@ -452,12 +426,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
         Ok(())
     }
 
-    fn do_rebond(
-        value: BalanceOf<T>,
-        beneficiary: MultiLocation,
-        staking_currency: AssetIdOf<T>,
-        index: u16,
-    ) -> DispatchResult {
+    fn do_rebond(value: BalanceOf<T>, beneficiary: MultiLocation, index: u16) -> DispatchResult {
         switch_relay!({
             let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
                 UtilityAsDerivativeCall {
@@ -472,7 +441,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
                 call.encode().into(),
                 Self::xcm_weight().rebond_weight,
                 beneficiary,
-                staking_currency,
             )?;
 
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
@@ -523,7 +491,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
                 call.encode().into(),
                 Self::xcm_weight().withdraw_unbonded_weight,
                 beneficiary,
-                staking_currency,
             )?;
 
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
@@ -537,7 +504,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
     fn do_nominate(
         targets: Vec<T::AccountId>,
         beneficiary: MultiLocation,
-        staking_currency: AssetIdOf<T>,
         index: u16,
     ) -> DispatchResult {
         let targets_source = targets.into_iter().map(T::Lookup::unlookup).collect();
@@ -558,7 +524,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
                 call.encode().into(),
                 Self::xcm_weight().nominate_weight,
                 beneficiary,
-                staking_currency,
             )?;
 
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {

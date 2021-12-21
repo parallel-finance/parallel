@@ -638,9 +638,14 @@ pub mod pallet {
             T::XCM::do_nominate(
                 targets.clone(),
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
-                Self::staking_currency()?,
                 T::DerivativeIndex::get(),
             )?;
+            let fees = T::XCM::get_xcm_fees();
+            T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), fees)?;
+            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
+                Ok(())
+            })?;
             Self::deposit_event(Event::<T>::Nominating(targets));
 
             Ok(())
@@ -732,9 +737,14 @@ pub mod pallet {
                 payee.clone(),
                 Self::derivative_para_account_id(),
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
-                Self::staking_currency()?,
                 T::DerivativeIndex::get(),
             )?;
+            let fees = T::XCM::get_xcm_fees();
+            T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), fees)?;
+            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
+                Ok(())
+            })?;
             Self::deposit_event(Event::<T>::Bonding(
                 Self::derivative_para_account_id(),
                 value,
@@ -749,9 +759,14 @@ pub mod pallet {
                 value,
                 Self::derivative_para_account_id(),
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
-                Self::staking_currency()?,
                 T::DerivativeIndex::get(),
             )?;
+            let fees = T::XCM::get_xcm_fees();
+            T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), fees)?;
+            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
+                Ok(())
+            })?;
             Self::deposit_event(Event::<T>::BondingExtra(value));
             Ok(())
         }
@@ -761,9 +776,14 @@ pub mod pallet {
             T::XCM::do_unbond(
                 value,
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
-                Self::staking_currency()?,
                 T::DerivativeIndex::get(),
             )?;
+            let fees = T::XCM::get_xcm_fees();
+            T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), fees)?;
+            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
+                Ok(())
+            })?;
             Self::deposit_event(Event::<T>::Unbonding(value));
 
             Ok(())
@@ -774,9 +794,14 @@ pub mod pallet {
             T::XCM::do_rebond(
                 value,
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
-                Self::staking_currency()?,
                 T::DerivativeIndex::get(),
             )?;
+            let fees = T::XCM::get_xcm_fees();
+            T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), fees)?;
+            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
+                Ok(())
+            })?;
             Self::deposit_event(Event::<T>::Rebonding(value));
 
             Ok(())
@@ -792,6 +817,12 @@ pub mod pallet {
                 Self::para_account_id(),
                 T::DerivativeIndex::get(),
             )?;
+            let fees = T::XCM::get_xcm_fees();
+            T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), fees)?;
+            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
+                Ok(())
+            })?;
             Self::deposit_event(Event::<T>::WithdrawingUnbonded(num_slashing_spans));
             Ok(())
         }
