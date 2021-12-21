@@ -1339,7 +1339,7 @@ impl<T: Config> Pallet<T> {
         Self::active_markets()
             .find(|(id, _)| id == &asset_id)
             .map(|(_, market)| market)
-            .ok_or(Error::<T>::MarketNotActivated.into())
+            .ok_or_else(|| Error::<T>::MarketNotActivated.into())
     }
 
     /// Ensure market is enough to supply `amount` asset.
