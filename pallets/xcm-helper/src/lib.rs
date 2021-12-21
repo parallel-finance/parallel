@@ -355,9 +355,9 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
                                 index,
                                 call: RelaychainCall::Staking::<T>(StakingCall::Bond(
                                     StakingBondCall {
-                                        controller: T::Lookup::unlookup(controller.clone()),
+                                        controller: T::Lookup::unlookup(controller),
                                         value,
-                                        payee: payee.clone(),
+                                        payee,
                                     },
                                 )),
                             },
@@ -540,11 +540,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
         staking_currency: AssetIdOf<T>,
         index: u16,
     ) -> DispatchResult {
-        let targets_source = targets
-            .clone()
-            .into_iter()
-            .map(T::Lookup::unlookup)
-            .collect();
+        let targets_source = targets.into_iter().map(T::Lookup::unlookup).collect();
 
         switch_relay!({
             let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
