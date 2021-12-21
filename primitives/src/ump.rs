@@ -334,17 +334,16 @@ impl Default for XcmWeightMisc<Weight> {
 }
 
 impl XcmWeightMisc<Weight> {
-    pub fn is_zero(&self) -> bool {
-        let zero_weight: Weight = Zero::zero();
-        self.bond_weight == zero_weight
-            && self.bond_extra_weight == zero_weight
-            && self.unbond_weight == zero_weight
-            && self.rebond_weight == zero_weight
-            && self.withdraw_unbonded_weight == zero_weight
-            && self.nominate_weight == zero_weight
-            && self.contribute_weight == zero_weight
-            && self.withdraw_weight == zero_weight
-            && self.add_memo_weight == zero_weight
+    pub fn has_zero(&self) -> bool {
+        self.bond_weight.is_zero()
+            || self.bond_extra_weight.is_zero()
+            || self.unbond_weight.is_zero()
+            || self.rebond_weight.is_zero()
+            || self.withdraw_unbonded_weight.is_zero()
+            || self.nominate_weight.is_zero()
+            || self.contribute_weight.is_zero()
+            || self.withdraw_weight.is_zero()
+            || self.add_memo_weight.is_zero()
     }
 }
 
