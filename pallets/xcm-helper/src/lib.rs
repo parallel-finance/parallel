@@ -99,7 +99,7 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
 
     fn update_xcm_weight(xcm_weight_misc: XcmWeightMisc<Weight>);
 
-    fn add_xcm_fees(relay_currency: AssetId, payer: AccountId, amount: Balance) -> DispatchResult;
+    fn add_xcm_fees(relay_currency: AssetId, payer: &AccountId, amount: Balance) -> DispatchResult;
 
     fn ump_transact(
         call: DoubleEncoded<()>,
@@ -217,10 +217,10 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
 
     fn add_xcm_fees(
         relay_currency: AssetIdOf<T>,
-        payer: T::AccountId,
+        payer: &T::AccountId,
         amount: BalanceOf<T>,
     ) -> DispatchResult {
-        T::Assets::transfer(relay_currency, &payer, &Self::account_id(), amount, false)?;
+        T::Assets::transfer(relay_currency, payer, &Self::account_id(), amount, false)?;
         Ok(())
     }
 

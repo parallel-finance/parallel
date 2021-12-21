@@ -33,7 +33,7 @@ pub mod weights;
 #[macro_use]
 extern crate primitives;
 
-use frame_support::traits::{fungibles::InspectMetadata, Get};
+use frame_support::traits::Get;
 use primitives::{ExchangeRateProvider, LiquidStakingCurrenciesProvider, Rate};
 use sp_runtime::traits::Zero;
 
@@ -358,6 +358,10 @@ pub mod pallet {
                 Error::<T>::StakeAmountTooSmall
             );
 
+            // calculate staking fee and add it to insurance pool
+            let fees = Self::reserve_factor().mul_floor(amount);
+            let amount = amount.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
+
             T::Assets::transfer(
                 Self::staking_currency()?,
                 &who,
@@ -366,15 +370,7 @@ pub mod pallet {
                 false,
             )?;
 
-            // calculate staking fee and add it to insurance pool
-            let fees = Self::reserve_factor().mul_floor(amount);
-            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_add(fees).ok_or(ArithmeticError::Overflow)?;
-                Ok(())
-            })?;
-
-            // amount that we should mint to user
-            let amount = amount.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
+            T::XCM::add_xcm_fees(Self::staking_currency()?, &who, fees)?;
             let liquid_amount = Self::exchange_rate()
                 .reciprocal()
                 .and_then(|r| r.checked_mul_int(amount))
@@ -705,14 +701,14 @@ pub mod pallet {
 
         /// Get staking currency or return back an error
         pub fn staking_currency() -> Result<AssetIdOf<T>, DispatchError> {
-            StakingCurrency::<T>::get()
+            Self::get_staking_currency()
                 .ok_or(Error::<T>::StakingCurrencyNotReady)
                 .map_err(Into::into)
         }
 
         /// Get liquid currency or return back an error
         pub fn liquid_currency() -> Result<AssetIdOf<T>, DispatchError> {
-            LiquidCurrency::<T>::get()
+            Self::get_liquid_currency()
                 .ok_or(Error::<T>::LiquidCurrencyNotReady)
                 .map_err(Into::into)
         }
@@ -804,19 +800,19 @@ impl<T: Config> ExchangeRateProvider for Pallet<T> {
 impl<T: Config> LiquidStakingCurrenciesProvider<AssetIdOf<T>> for Pallet<T> {
     fn get_staking_currency() -> Option<AssetIdOf<T>> {
         let asset_id = T::StakingCurrency::get();
-        if !<T::Assets as InspectMetadata<AccountIdOf<T>>>::decimals(&asset_id).is_zero() {
-            Some(asset_id)
-        } else {
-            None
-        }
+        // if !<T::Assets as InspectMetadata<AccountIdOf<T>>>::decimals(&asset_id).is_zero() {
+        Some(asset_id)
+        // } else {
+        //     None
+        // }
     }
 
     fn get_liquid_currency() -> Option<AssetIdOf<T>> {
         let asset_id = T::LiquidCurrency::get();
-        if !<T::Assets as InspectMetadata<AccountIdOf<T>>>::decimals(&asset_id).is_zero() {
-            Some(asset_id)
-        } else {
-            None
-        }
+        // if !<T::Assets as InspectMetadata<AccountIdOf<T>>>::decimals(&asset_id).is_zero() {
+        Some(asset_id)
+        // } else {
+        //     None
+        // }
     }
 }
