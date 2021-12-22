@@ -28,8 +28,7 @@ use frame_support::{
     match_type,
     traits::{
         fungibles::{InspectMetadata, Mutate},
-        Contains, Everything, Nothing,
-        EqualPrivilegeOnly,
+        Contains, EqualPrivilegeOnly, Everything, Nothing,
     },
     PalletId,
 };

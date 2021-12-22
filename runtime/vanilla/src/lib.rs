@@ -30,8 +30,7 @@ use frame_support::{
     log, match_type,
     traits::{
         fungibles::{InspectMetadata, Mutate},
-        Contains, Everything, InstanceFilter, Nothing,
-        EqualPrivilegeOnly,
+        Contains, EqualPrivilegeOnly, Everything, InstanceFilter, Nothing,
     },
     PalletId,
 };

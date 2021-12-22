@@ -271,7 +271,7 @@ fn vanilla_genesis(
         system: SystemConfig {
             code: WASM_BINARY
                 .expect("WASM binary was not build, please build it!")
-                .to_vec(), 
+                .to_vec(),
         },
         balances: BalancesConfig {
             balances: initial_allocation,
