@@ -56,6 +56,7 @@ pub fn accumulate(
 }
 
 /// set default ss58 crypto
+#[allow(clippy::borrowed_box)]
 pub fn set_default_ss58_version(spec: &Box<dyn sc_service::ChainSpec>) {
     use sp_core::crypto::Ss58AddressFormatRegistry;
 

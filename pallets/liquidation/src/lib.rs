@@ -190,6 +190,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    #[allow(clippy::type_complexity)]
     fn transform_account_borrows() -> Result<
         BTreeMap<T::AccountId, (FixedU128, Vec<BorrowMisc<AssetIdOf<T>, BalanceOf<T>>>)>,
         Error<T>,
@@ -234,6 +235,7 @@ impl<T: Config> Pallet<T> {
         Ok(result)
     }
 
+    #[allow(clippy::type_complexity)]
     fn transform_account_collateral() -> Result<
         BTreeMap<T::AccountId, (FixedU128, Vec<CollateralMisc<AssetIdOf<T>, BalanceOf<T>>>)>,
         Error<T>,
@@ -298,6 +300,7 @@ impl<T: Config> Pallet<T> {
         Ok(result)
     }
 
+    #[allow(clippy::type_complexity)]
     fn liquidate_underwater_accounts(
         signer: &Signer<T, <T as Config>::AuthorityId, ForAny>,
         aggregated_account_borrows: BTreeMap<

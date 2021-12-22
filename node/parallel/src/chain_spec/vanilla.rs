@@ -274,13 +274,12 @@ fn vanilla_genesis(
                 .to_vec(), 
         },
         balances: BalancesConfig {
-            balances: initial_allocation.clone(),
+            balances: initial_allocation,
         },
         collator_selection: CollatorSelectionConfig {
             invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
             candidacy_bond: Zero::zero(),
             desired_candidates: 16,
-            ..Default::default()
         },
         session: SessionConfig {
             keys: invulnerables
@@ -289,7 +288,7 @@ fn vanilla_genesis(
                 .map(|(acc, aura)| {
                     (
                         acc.clone(),          // account id
-                        acc.clone(),          // validator id
+                        acc,                  // validator id
                         SessionKeys { aura }, // session keys
                     )
                 })

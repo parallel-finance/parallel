@@ -235,7 +235,6 @@ fn heiko_genesis(
             invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
             candidacy_bond: Zero::zero(),
             desired_candidates: 16,
-            ..Default::default()
         },
         session: SessionConfig {
             keys: invulnerables
@@ -244,7 +243,7 @@ fn heiko_genesis(
                 .map(|(acc, aura)| {
                     (
                         acc.clone(),          // account id
-                        acc.clone(),          // validator id
+                        acc,                  // validator id
                         SessionKeys { aura }, // session keys
                     )
                 })

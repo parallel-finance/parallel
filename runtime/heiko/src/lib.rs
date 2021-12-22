@@ -677,7 +677,7 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-    pub const TransactionByteFee: Balance = 1 * MILLICENTS;
+    pub const TransactionByteFee: Balance = MILLICENTS;
     pub const OperationalFeeMultiplier: u8 = 5;
 }
 
@@ -1077,13 +1077,13 @@ type EnsureAllTechnicalComittee = EnsureOneOf<
 parameter_types! {
     pub const LaunchPeriod: BlockNumber = 7 * DAYS;
     pub const VotingPeriod: BlockNumber = 7 * DAYS;
-    pub const FastTrackVotingPeriod: BlockNumber = 1 * DAYS;
+    pub const FastTrackVotingPeriod: BlockNumber = DAYS;
     pub const InstantAllowed: bool = true;
     pub const MinimumDeposit: Balance = 100 * DOLLARS;
     pub const EnactmentPeriod: BlockNumber = 8 * DAYS;
     pub const CooloffPeriod: BlockNumber = 7 * DAYS;
     // One cent: $10,000 / MB
-    pub const PreimageByteDeposit: Balance = 1 * CENTS;
+    pub const PreimageByteDeposit: Balance = CENTS;
     pub const MaxVotes: u32 = 100;
     pub const MaxProposals: u32 = 100;
 }
@@ -1221,8 +1221,8 @@ impl pallet_scheduler::Config for Runtime {
 
 parameter_types! {
     pub const ProposalBond: Permill = Permill::from_percent(5);
-    pub const ProposalBondMinimum: Balance = 1 * DOLLARS;
-    pub const SpendPeriod: BlockNumber = 1 * DAYS;
+    pub const ProposalBondMinimum: Balance = DOLLARS;
+    pub const SpendPeriod: BlockNumber = DAYS;
     pub const Burn: Permill = Permill::from_percent(0);
     pub const TreasuryPalletId: PalletId = PalletId(*b"par/trsy");
     pub const MaxApprovals: u32 = 100;

@@ -41,10 +41,10 @@ const PARA_ID: u32 = 2085;
 fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
     let (norm_id, para_id) = extract_parachain_id(id);
     info!(
-            "Loading spec: {}, custom parachain-id = {:?}",
-            norm_id,
-            para_id.unwrap_or(ParaId::new(0)).to_string()
-        );
+        "Loading spec: {}, custom parachain-id = {:?}",
+        norm_id,
+        para_id.unwrap_or_else(|| ParaId::new(0)).to_string()
+    );
 
     Ok(match id {
         "heiko-dev" => Box::new(chain_spec::heiko::heiko_dev_config(
@@ -93,9 +93,8 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
 fn extract_parachain_id(id: &str) -> (&str, Option<ParaId>) {
     const DEV_PARAM_PREFIX: &str = "parallel-dev-";
 
-    let (norm_id, para) = if id.starts_with(DEV_PARAM_PREFIX) {
-        let suffix = &id[DEV_PARAM_PREFIX.len()..];
-        let para_id: u32 = suffix.parse().expect("Invalid parachain-id suffix");
+    let (norm_id, para) = if let Some(stripped) = id.strip_prefix(DEV_PARAM_PREFIX) {
+        let para_id: u32 = stripped.parse().expect("Invalid parachain-id suffix");
         (&id[..DEV_PARAM_PREFIX.len() - 1], Some(para_id))
     } else {
         (id, Some(PARA_ID))
@@ -186,6 +185,7 @@ impl SubstrateCli for RelayChainCli {
     }
 }
 
+#[allow(clippy::borrowed_box)]
 fn extract_genesis_wasm(chain_spec: &Box<dyn sc_service::ChainSpec>) -> Result<Vec<u8>> {
     let mut storage = chain_spec.build_storage()?;
 
@@ -316,7 +316,7 @@ pub fn run() -> Result<()> {
                 let polkadot_cli = RelayChainCli::new(
                     config.base_path.as_ref().map(|x| x.path().join("polkadot")),
                     relay_chain_id,
-                    [RelayChainCli::executable_name().to_string()]
+                    [RelayChainCli::executable_name()]
                         .iter()
                         .chain(cli.relaychain_args.iter()),
                 );
