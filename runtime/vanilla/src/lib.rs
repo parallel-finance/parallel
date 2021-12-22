@@ -474,6 +474,8 @@ parameter_types! {
     pub const UnstakeQueueCapacity: u32 = 1000;
     pub const MinStakeAmount: Balance = 1_000_000_000_000;
     pub const MinUnstakeAmount: Balance = 500_000_000_000;
+    pub const StakingCurrency: CurrencyId = KSM;
+    pub const LiquidCurrency: CurrencyId = XKSM;
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -484,6 +486,8 @@ impl pallet_liquid_staking::Config for Runtime {
     type WeightInfo = ();
     type SelfParaId = ParachainInfo;
     type Assets = Assets;
+    type StakingCurrency = StakingCurrency;
+    type LiquidCurrency = LiquidCurrency;
     type DerivativeIndex = DerivativeIndex;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;
@@ -1405,7 +1409,6 @@ parameter_types! {
 }
 
 impl pallet_xcm_helper::Config for Runtime {
-    type Event = Event;
     type Assets = Assets;
     type XcmSender = XcmRouter;
     type RelayNetwork = RelayNetwork;
@@ -1590,7 +1593,7 @@ construct_runtime!(
         Bridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 90,
         EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Event<T>} = 91,
         LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 92,
-        XcmHelper: pallet_xcm_helper::{Pallet, Storage, Event<T>} = 93,
+        XcmHelper: pallet_xcm_helper::{Pallet, Storage} = 93,
     }
 );
 

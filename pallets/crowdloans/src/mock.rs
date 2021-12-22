@@ -384,7 +384,6 @@ parameter_types! {
 }
 
 impl pallet_xcm_helper::Config for Test {
-    type Event = Event;
     type Assets = Assets;
     type XcmSender = XcmRouter;
     type PalletId = XcmHelperPalletId;
@@ -433,7 +432,7 @@ construct_runtime!(
         DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>},
         CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin},
         PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin},
-        XcmHelper: pallet_xcm_helper::{Pallet, Storage, Event<T>},
+        XcmHelper: pallet_xcm_helper::{Pallet, Storage},
         XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
     }
 );

@@ -10,7 +10,6 @@ use frame_support::{
     weights::Weight,
 };
 use frame_system::{self, RawOrigin as SystemOrigin};
-use pallet_xcm_helper::{InsurancePool, XcmHelper};
 use primitives::{
     tokens::{DOT, XDOT},
     ump::{RewardDestination, XcmWeightMisc},
@@ -41,7 +40,7 @@ const STAKE_AMOUNT: u128 = 20000000000000u128;
 const STAKED_AMOUNT: u128 = 19900000000000u128; // 20000000000000 * (1 - 5/1000)
 const UNSTAKE_AMOUNT: u128 = 10000000000000u128;
 // const REWARDS: u128 = 10000000000000u128;
-const SLASHES: u128 = 1000000000u128;
+// const SLASHES: u128 = 1000000000u128;
 const BOND_AMOUNT: u128 = 10000000000000u128;
 const UNBOND_AMOUNT: u128 = 5000000000000u128;
 const REBOND_AMOUNT: u128 = 5000000000000u128;
@@ -74,8 +73,6 @@ fn initial_set_up<
 
     <T as pallet_xcm_helper::Config>::Assets::mint_into(DOT, &caller, INITIAL_AMOUNT).unwrap();
 
-    LiquidStaking::<T>::set_liquid_currency(SystemOrigin::Root.into(), XDOT).unwrap();
-    LiquidStaking::<T>::set_staking_currency(SystemOrigin::Root.into(), DOT).unwrap();
     LiquidStaking::<T>::update_staking_pool_capacity(SystemOrigin::Root.into(), MARKET_CAP)
         .unwrap();
     LiquidStaking::<T>::update_xcm_fees(SystemOrigin::Root.into(), XCM_FEES).unwrap();
@@ -86,8 +83,14 @@ fn initial_set_up<
         INITIAL_INSURANCE,
     )
     .unwrap();
+    <T as pallet_xcm_helper::Config>::Assets::mint_into(
+        DOT,
+        &pallet_xcm_helper::Pallet::<T>::account_id(),
+        INITIAL_INSURANCE,
+    )
+    .unwrap();
     ExchangeRate::<T>::mutate(|b| *b = Rate::one());
-    T::XCM::update_insurance_pool(INITIAL_INSURANCE).unwrap();
+    InsurancePool::<T>::mutate(|b| *b = INITIAL_INSURANCE);
 }
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
@@ -191,18 +194,6 @@ benchmarks! {
         assert_last_event::<T>(Event::<T>::WithdrawingUnbonded(0).into());
     }
 
-    set_liquid_currency {
-    }: _(SystemOrigin::Root, XDOT)
-    verify {
-        assert_eq!(LiquidCurrency::<T>::get(), Some(XDOT));
-    }
-
-    set_staking_currency {
-    }: _(SystemOrigin::Root, DOT)
-    verify {
-        assert_eq!(StakingCurrency::<T>::get(), Some(DOT));
-    }
-
     update_reserve_factor {
     }: _(SystemOrigin::Root, RESERVE_FACTOR)
     verify {
@@ -234,13 +225,13 @@ benchmarks! {
         assert_eq!(InsurancePool::<T>::get(), INSURANCE_AMOUNT + INITIAL_INSURANCE);
     }
 
-    payout_slashed {
-        let alice: T::AccountId = account("Sample", 100, SEED);
-        initial_set_up::<T>(alice);
-    }: _(SystemOrigin::Root, SLASHES)
-    verify {
-        assert_eq!(InsurancePool::<T>::get(), INITIAL_INSURANCE - SLASHES - XCM_FEES);
-    }
+    // payout_slashed {
+    //     let alice: T::AccountId = account("Sample", 100, SEED);
+    //     initial_set_up::<T>(alice);
+    // }: _(SystemOrigin::Root, SLASHES)
+    // verify {
+    //     assert_eq!(InsurancePool::<T>::get(), INITIAL_INSURANCE - SLASHES - XCM_FEES);
+    // }
 
     on_idle {
         let alice: T::AccountId = account("Sample", 100, SEED);

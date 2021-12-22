@@ -2,7 +2,6 @@ use crate::{mock::*, types::MatchingLedger, *};
 
 use frame_support::{assert_noop, assert_ok, traits::Hooks};
 
-use pallet_xcm_helper::InsurancePool;
 use primitives::{
     tokens::{DOT, XDOT},
     ump::{RewardDestination, XcmWeightMisc},
@@ -10,16 +9,6 @@ use primitives::{
 };
 use sp_runtime::traits::{One, Zero};
 use xcm_simulator::TestExt;
-
-// #[test]
-// fn stake_fails_due_to_exceed_capacity() {
-//     new_test_ext().execute_with(|| {
-//         assert_err!(
-//             LiquidStaking::stake(Origin::signed(BOB), dot(10053f64)),
-//             Error::<Test>::ExceededStakingPoolCapacity
-//         );
-//     })
-// }
 
 #[test]
 fn stake_should_work() {
@@ -40,10 +29,6 @@ fn stake_should_work() {
         assert_eq!(
             <Test as Config>::Assets::balance(XDOT, &ALICE),
             dot(109.95f64)
-        );
-        assert_eq!(
-            <Test as Config>::Assets::balance(DOT, &LiquidStaking::account_id()),
-            dot(10f64)
         );
     })
 }
@@ -70,10 +55,6 @@ fn unstake_should_work() {
             <Test as Config>::Assets::balance(XDOT, &ALICE),
             dot(103.95f64)
         );
-        assert_eq!(
-            <Test as Config>::Assets::balance(DOT, &LiquidStaking::account_id()),
-            dot(4f64)
-        );
     })
 }
 
@@ -96,27 +77,23 @@ fn test_settlement_should_work() {
     use StakeOp::*;
     TestNet::reset();
     ParaA::execute_with(|| {
-        let test_case: Vec<(Vec<StakeOp>, Balance, (Balance, Balance, Balance), Balance)> = vec![
+        let test_case: Vec<(Vec<StakeOp>, Balance, (Balance, Balance, Balance))> = vec![
             (
                 vec![Stake(dot(5000f64)), Unstake(dot(1000f64))],
                 0,
                 (dot(3975f64), 0, 0),
-                dot(25f64),
             ),
             // Calculate right here.
             (
                 vec![Unstake(dot(10f64)), Unstake(dot(5f64)), Stake(dot(10f64))],
                 0,
                 (0, 0, dot(5.05f64)),
-                dot(15.05f64),
             ),
-            (vec![], 0, (0, 0, 0), dot(5.05f64)),
+            (vec![], 0, (0, 0, 0)),
         ];
 
-        for (stake_ops, unbonding_amount, matching_result, insurance_pool) in test_case.into_iter()
-        {
+        for (stake_ops, unbonding_amount, matching_result) in test_case.into_iter() {
             stake_ops.into_iter().for_each(StakeOp::execute);
-            assert_eq!(InsurancePool::<Test>::get(), insurance_pool);
             assert_eq!(
                 LiquidStaking::matching_pool().matching::<LiquidStaking>(unbonding_amount),
                 Ok(matching_result)
@@ -147,7 +124,7 @@ fn test_transact_bond_work() {
             RewardDestination::Staked
         ));
 
-        ParaSystem::assert_has_event(mock::Event::XcmHelper(pallet_xcm_helper::Event::Bonding(
+        ParaSystem::assert_has_event(mock::Event::LiquidStaking(crate::Event::Bonding(
             LiquidStaking::derivative_para_account_id(),
             3 * DOT_DECIMAL,
             RewardDestination::Staked,
@@ -358,14 +335,6 @@ fn test_transact_nominate_work() {
             RelayStaking::nominators(LiquidStaking::derivative_para_account_id()).unwrap();
         assert_eq!(nominators.targets, vec![ALICE, BOB]);
     });
-}
-
-#[test]
-fn stake_should_correctly_add_insurance_pool() {
-    new_test_ext().execute_with(|| {
-        LiquidStaking::stake(Origin::signed(ALICE), 1000).unwrap();
-        assert_eq!(InsurancePool::<Test>::get(), 5);
-    })
 }
 
 #[test]
