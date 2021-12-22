@@ -166,12 +166,12 @@ pub struct CurrencyIdConvert;
 impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
-            DOT => Some(MultiLocation::parent()),
-            XDOT => Some(MultiLocation::new(
+            KSM => Some(MultiLocation::parent()),
+            XKSM => Some(MultiLocation::new(
                 1,
                 X2(
                     Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(b"xDOT".to_vec()),
+                    GeneralKey(b"xKSM".to_vec()),
                 ),
             )),
             _ => None,
@@ -185,12 +185,12 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
             MultiLocation {
                 parents: 1,
                 interior: Here,
-            } => Some(DOT),
+            } => Some(KSM),
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xDOT".to_vec() => {
-                Some(XDOT)
+            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xKSM".to_vec() => {
+                Some(XKSM)
             }
             _ => None,
         }
@@ -244,7 +244,7 @@ impl orml_xtokens::Config for Test {
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
-pub const DOT_DECIMAL: u128 = 10u128.pow(10);
+pub const KSM_DECIMAL: u128 = 10u128.pow(12);
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
@@ -343,8 +343,8 @@ impl pallet_xcm_helper::Config for Test {
 }
 
 parameter_types! {
-    pub const StakingCurrency: CurrencyId = DOT;
-    pub const LiquidCurrency: CurrencyId = XDOT;
+    pub const StakingCurrency: CurrencyId = KSM;
+    pub const LiquidCurrency: CurrencyId = XKSM;
 }
 
 impl crate::Config for Test {
@@ -366,7 +366,7 @@ impl crate::Config for Test {
 }
 
 parameter_types! {
-    pub const AssetDeposit: Balance = DOT_DECIMAL;
+    pub const AssetDeposit: Balance = KSM_DECIMAL;
     pub const ApprovalDeposit: Balance = 0;
     pub const AssetsStringLimit: u32 = 50;
     pub const MetadataDepositBase: Balance = 0;
@@ -430,14 +430,14 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
-        Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
-        Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, Id(BOB), dot(20000f64)).unwrap();
+        Assets::force_create(Origin::root(), KSM, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(Origin::root(), XKSM, Id(ALICE), true, 1).unwrap();
+        Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), 100 * KSM_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), XKSM, Id(ALICE), 100 * KSM_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), KSM, Id(BOB), ksm(20000f64)).unwrap();
 
-        LiquidStaking::update_staking_pool_capacity(Origin::signed(BOB), dot(10000f64)).unwrap();
-        LiquidStaking::update_xcm_fees(Origin::signed(BOB), dot(10f64)).unwrap();
+        LiquidStaking::update_staking_pool_capacity(Origin::signed(BOB), ksm(10000f64)).unwrap();
+        LiquidStaking::update_xcm_fees(Origin::signed(BOB), ksm(10f64)).unwrap();
     });
 
     ext
@@ -553,12 +553,12 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
         System::set_block_number(1);
-        Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
-        Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 10000 * DOT_DECIMAL).unwrap();
+        Assets::force_create(Origin::root(), KSM, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(Origin::root(), XKSM, Id(ALICE), true, 1).unwrap();
+        Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), 10000 * KSM_DECIMAL).unwrap();
 
-        LiquidStaking::update_staking_pool_capacity(Origin::signed(BOB), dot(10000f64)).unwrap();
-        LiquidStaking::update_xcm_fees(Origin::signed(BOB), dot(10f64)).unwrap();
+        LiquidStaking::update_staking_pool_capacity(Origin::signed(BOB), ksm(10000f64)).unwrap();
+        LiquidStaking::update_xcm_fees(Origin::signed(BOB), ksm(10f64)).unwrap();
     });
 
     ext
@@ -572,8 +572,8 @@ pub fn relay_ext() -> sp_io::TestExternalities {
 
     pallet_balances::GenesisConfig::<Runtime> {
         balances: vec![
-            (ALICE, 100 * DOT_DECIMAL),
-            (para_a_id().into_account(), 1_000_000 * DOT_DECIMAL),
+            (ALICE, 100 * KSM_DECIMAL),
+            (para_a_id().into_account(), 1_000_000 * KSM_DECIMAL),
         ],
     }
     .assimilate_storage(&mut t)
@@ -590,6 +590,6 @@ pub fn relay_ext() -> sp_io::TestExternalities {
     ext
 }
 
-pub fn dot(n: f64) -> Balance {
-    ((n * 1000000f64) as u128) * DOT_DECIMAL / 1000000u128
+pub fn ksm(n: f64) -> Balance {
+    ((n * 1000000f64) as u128) * KSM_DECIMAL / 1000000u128
 }
