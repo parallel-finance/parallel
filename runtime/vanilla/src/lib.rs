@@ -1019,17 +1019,17 @@ pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 pub struct AggregatedDataProvider;
 impl DataProvider<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
     fn get(key: &CurrencyId) -> Option<TimeStampedPrice> {
-        Oracle::get(key)
+        ChainlinkAdaptor::get_no_op(key)
     }
 }
 
 impl DataProviderExtended<CurrencyId, TimeStampedPrice> for AggregatedDataProvider {
     fn get_no_op(key: &CurrencyId) -> Option<TimeStampedPrice> {
-        Oracle::get_no_op(key)
+        ChainlinkAdaptor::get_no_op(key)
     }
 
     fn get_all_values() -> Vec<(CurrencyId, Option<TimeStampedPrice>)> {
-        Oracle::get_all_values()
+        ChainlinkAdaptor::get_all_values()
     }
 }
 
