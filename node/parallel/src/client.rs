@@ -448,36 +448,6 @@ impl sc_client_api::StorageProvider<Block, crate::service::FullBackend> for Clie
             }
         }
     }
-
-    fn max_key_changes_range(
-        &self,
-        first: NumberFor<Block>,
-        last: BlockId,
-    ) -> sp_blockchain::Result<Option<(NumberFor<Block>, BlockId)>> {
-        with_client! {
-            self,
-            client,
-            {
-                client.max_key_changes_range(first, last)
-            }
-        }
-    }
-
-    fn key_changes(
-        &self,
-        first: NumberFor<Block>,
-        last: BlockId,
-        storage_key: Option<&PrefixedStorageKey>,
-        key: &StorageKey,
-    ) -> sp_blockchain::Result<Vec<(NumberFor<Block>, u32)>> {
-        with_client! {
-            self,
-            client,
-            {
-                client.key_changes(first, last, storage_key, key)
-            }
-        }
-    }
 }
 
 impl sp_blockchain::HeaderBackend<Block> for Client {
