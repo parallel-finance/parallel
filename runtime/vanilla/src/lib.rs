@@ -256,7 +256,9 @@ impl Contains<Call> for BaseCallFilter {
             // Bridge
             Call::Bridge(_) |
             // Liquidity Mining
-            Call::LiquidityMining(_)
+            Call::LiquidityMining(_) |
+            Call::ChainlinkFeed(_) |
+            Call::ChainlinkAdaptor(_)
         )
     }
 }
