@@ -11,7 +11,7 @@ use frame_support::{
 };
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{
-    tokens::{DOT, XDOT},
+    tokens::{KSM, XKSM},
     ump::{RewardDestination, XcmWeightMisc},
     Balance, CurrencyId, Rate, Ratio,
 };
@@ -39,8 +39,7 @@ const INITIAL_AMOUNT: u128 = 1000000000000000u128;
 const STAKE_AMOUNT: u128 = 20000000000000u128;
 const STAKED_AMOUNT: u128 = 19900000000000u128; // 20000000000000 * (1 - 5/1000)
 const UNSTAKE_AMOUNT: u128 = 10000000000000u128;
-// const REWARDS: u128 = 10000000000000u128;
-// const SLASHES: u128 = 1000000000u128;
+const SLASHES: u128 = 1000000000u128;
 const BOND_AMOUNT: u128 = 10000000000000u128;
 const UNBOND_AMOUNT: u128 = 5000000000000u128;
 const REBOND_AMOUNT: u128 = 5000000000000u128;
@@ -61,30 +60,30 @@ fn initial_set_up<
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        DOT,
+        KSM,
         account_id.clone(),
         true,
         1,
     )
     .ok();
 
-    pallet_assets::Pallet::<T>::force_create(SystemOrigin::Root.into(), XDOT, account_id, true, 1)
+    pallet_assets::Pallet::<T>::force_create(SystemOrigin::Root.into(), XKSM, account_id, true, 1)
         .ok();
 
-    <T as pallet_xcm_helper::Config>::Assets::mint_into(DOT, &caller, INITIAL_AMOUNT).unwrap();
+    <T as pallet_xcm_helper::Config>::Assets::mint_into(KSM, &caller, INITIAL_AMOUNT).unwrap();
 
     LiquidStaking::<T>::update_staking_pool_capacity(SystemOrigin::Root.into(), MARKET_CAP)
         .unwrap();
     LiquidStaking::<T>::update_xcm_fees(SystemOrigin::Root.into(), XCM_FEES).unwrap();
 
     <T as pallet_xcm_helper::Config>::Assets::mint_into(
-        DOT,
+        KSM,
         &staking_pool_account,
         INITIAL_INSURANCE,
     )
     .unwrap();
     <T as pallet_xcm_helper::Config>::Assets::mint_into(
-        DOT,
+        KSM,
         &pallet_xcm_helper::Pallet::<T>::account_id(),
         INITIAL_INSURANCE,
     )
@@ -225,13 +224,13 @@ benchmarks! {
         assert_eq!(InsurancePool::<T>::get(), INSURANCE_AMOUNT + INITIAL_INSURANCE);
     }
 
-    // payout_slashed {
-    //     let alice: T::AccountId = account("Sample", 100, SEED);
-    //     initial_set_up::<T>(alice);
-    // }: _(SystemOrigin::Root, SLASHES)
-    // verify {
-    //     assert_eq!(InsurancePool::<T>::get(), INITIAL_INSURANCE - SLASHES - XCM_FEES);
-    // }
+    payout_slashed {
+        let alice: T::AccountId = account("Sample", 100, SEED);
+        initial_set_up::<T>(alice);
+    }: _(SystemOrigin::Root, SLASHES)
+    verify {
+        assert_eq!(InsurancePool::<T>::get(), INITIAL_INSURANCE - SLASHES);
+    }
 
     on_idle {
         let alice: T::AccountId = account("Sample", 100, SEED);
@@ -239,14 +238,13 @@ benchmarks! {
         let charlie: T::AccountId = account("Sample", 102, SEED);
         initial_set_up::<T>(alice.clone());
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
-        // StakingPool::<T>::mutate(|b| *b += 2 * STAKED_AMOUNT);
-        <T as pallet_xcm_helper::Config>::Assets::mint_into(XDOT, &bob, STAKED_AMOUNT).unwrap();
-        <T as pallet_xcm_helper::Config>::Assets::mint_into(XDOT, &charlie, STAKED_AMOUNT).unwrap();
+        <T as pallet_xcm_helper::Config>::Assets::mint_into(XKSM, &bob, STAKED_AMOUNT).unwrap();
+        <T as pallet_xcm_helper::Config>::Assets::mint_into(XKSM, &charlie, STAKED_AMOUNT).unwrap();
         LiquidStaking::<T>::unstake(SystemOrigin::Signed(bob).into(), STAKED_AMOUNT).unwrap();
         LiquidStaking::<T>::unstake(SystemOrigin::Signed(charlie).into(), STAKED_AMOUNT).unwrap();
 
         // Simulate withdraw_unbonded
-        <T as pallet_xcm_helper::Config>::Assets::mint_into(DOT, &LiquidStaking::<T>::account_id(), 10 * STAKED_AMOUNT).unwrap();
+        <T as pallet_xcm_helper::Config>::Assets::mint_into(KSM, &LiquidStaking::<T>::account_id(), 10 * STAKED_AMOUNT).unwrap();
     }: {
         LiquidStaking::<T>::on_idle(0u32.into(), REMAINING_WEIGHT)
     }

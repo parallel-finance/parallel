@@ -3,7 +3,7 @@ use crate::{mock::*, types::MatchingLedger, *};
 use frame_support::{assert_noop, assert_ok, traits::Hooks};
 
 use primitives::{
-    tokens::{DOT, XDOT},
+    tokens::{KSM, XKSM},
     ump::{RewardDestination, XcmWeightMisc},
     Balance, Rate, Ratio,
 };
@@ -13,22 +13,22 @@ use xcm_simulator::TestExt;
 #[test]
 fn stake_should_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), dot(10f64)));
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(10f64)));
         // Check storage is correct
         assert_eq!(ExchangeRate::<Test>::get(), Rate::one());
         assert_eq!(
             MatchingPool::<Test>::get(),
             MatchingLedger {
-                total_stake_amount: dot(9.95f64),
+                total_stake_amount: ksm(9.95f64),
                 total_unstake_amount: 0,
             }
         );
 
         // Check balance is correct
-        assert_eq!(<Test as Config>::Assets::balance(DOT, &ALICE), dot(90f64));
+        assert_eq!(<Test as Config>::Assets::balance(KSM, &ALICE), ksm(90f64));
         assert_eq!(
-            <Test as Config>::Assets::balance(XDOT, &ALICE),
-            dot(109.95f64)
+            <Test as Config>::Assets::balance(XKSM, &ALICE),
+            ksm(109.95f64)
         );
     })
 }
@@ -36,24 +36,24 @@ fn stake_should_work() {
 #[test]
 fn unstake_should_work() {
     new_test_ext().execute_with(|| {
-        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), dot(10f64)));
-        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), dot(6f64)));
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(10f64)));
+        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(6f64)));
 
         // Check storage is correct
         assert_eq!(ExchangeRate::<Test>::get(), Rate::one());
         assert_eq!(
             MatchingPool::<Test>::get(),
             MatchingLedger {
-                total_stake_amount: dot(9.95f64),
-                total_unstake_amount: dot(6f64),
+                total_stake_amount: ksm(9.95f64),
+                total_unstake_amount: ksm(6f64),
             }
         );
 
         // Check balance is correct
-        assert_eq!(<Test as Config>::Assets::balance(DOT, &ALICE), dot(96f64));
+        assert_eq!(<Test as Config>::Assets::balance(KSM, &ALICE), ksm(96f64));
         assert_eq!(
-            <Test as Config>::Assets::balance(XDOT, &ALICE),
-            dot(103.95f64)
+            <Test as Config>::Assets::balance(XKSM, &ALICE),
+            ksm(103.95f64)
         );
     })
 }
@@ -79,15 +79,15 @@ fn test_settlement_should_work() {
     ParaA::execute_with(|| {
         let test_case: Vec<(Vec<StakeOp>, Balance, (Balance, Balance, Balance))> = vec![
             (
-                vec![Stake(dot(5000f64)), Unstake(dot(1000f64))],
+                vec![Stake(ksm(5000f64)), Unstake(ksm(1000f64))],
                 0,
-                (dot(3975f64), 0, 0),
+                (ksm(3975f64), 0, 0),
             ),
             // Calculate right here.
             (
-                vec![Unstake(dot(10f64)), Unstake(dot(5f64)), Stake(dot(10f64))],
+                vec![Unstake(ksm(10f64)), Unstake(ksm(5f64)), Stake(ksm(10f64))],
                 0,
-                (0, 0, dot(5.05f64)),
+                (0, 0, ksm(5.05f64)),
             ),
             (vec![], 0, (0, 0, 0)),
         ];
@@ -100,7 +100,7 @@ fn test_settlement_should_work() {
             );
             assert_ok!(LiquidStaking::settlement(
                 Origin::signed(ALICE),
-                dot(0f64),
+                ksm(0f64),
                 unbonding_amount,
             ));
             Pallet::<Test>::on_idle(0, 10000);
@@ -113,20 +113,17 @@ fn test_transact_bond_work() {
     TestNet::reset();
 
     ParaA::execute_with(|| {
-        assert_ok!(LiquidStaking::stake(
-            Origin::signed(ALICE),
-            2000 * DOT_DECIMAL,
-        ));
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(2000f64),));
 
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
-            3 * DOT_DECIMAL,
+            ksm(3f64),
             RewardDestination::Staked
         ));
 
         ParaSystem::assert_has_event(mock::Event::LiquidStaking(crate::Event::Bonding(
             LiquidStaking::derivative_para_account_id(),
-            3 * DOT_DECIMAL,
+            ksm(3f64),
             RewardDestination::Staked,
         )));
     });
@@ -134,10 +131,10 @@ fn test_transact_bond_work() {
     Relay::execute_with(|| {
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
             LiquidStaking::derivative_para_account_id(),
-            3 * DOT_DECIMAL,
+            ksm(3f64),
         )));
         let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
-        assert_eq!(ledger.total, 3 * DOT_DECIMAL);
+        assert_eq!(ledger.total, ksm(3f64));
     });
 }
 
@@ -146,26 +143,20 @@ fn test_transact_bond_extra_work() {
     TestNet::reset();
 
     ParaA::execute_with(|| {
-        assert_ok!(LiquidStaking::stake(
-            Origin::signed(ALICE),
-            4000 * DOT_DECIMAL,
-        ));
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(4000f64),));
 
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
-            2 * DOT_DECIMAL,
+            ksm(2f64),
             RewardDestination::Staked
         ));
 
-        assert_ok!(LiquidStaking::bond_extra(
-            Origin::signed(ALICE),
-            3 * DOT_DECIMAL
-        ));
+        assert_ok!(LiquidStaking::bond_extra(Origin::signed(ALICE), ksm(3f64)));
     });
 
     Relay::execute_with(|| {
         let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
-        assert_eq!(ledger.total, 5 * DOT_DECIMAL);
+        assert_eq!(ledger.total, ksm(5f64));
     });
 }
 
@@ -174,34 +165,28 @@ fn test_transact_unbond_work() {
     TestNet::reset();
 
     ParaA::execute_with(|| {
-        assert_ok!(LiquidStaking::stake(
-            Origin::signed(ALICE),
-            6000 * DOT_DECIMAL,
-        ));
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(6000f64),));
 
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
-            5 * DOT_DECIMAL,
+            ksm(5f64),
             RewardDestination::Staked
         ));
-        assert_ok!(LiquidStaking::unbond(
-            Origin::signed(ALICE),
-            2 * DOT_DECIMAL
-        ));
+        assert_ok!(LiquidStaking::unbond(Origin::signed(ALICE), ksm(2f64)));
     });
 
     Relay::execute_with(|| {
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
             LiquidStaking::derivative_para_account_id(),
-            5 * DOT_DECIMAL,
+            ksm(5f64),
         )));
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded(
             LiquidStaking::derivative_para_account_id(),
-            2 * DOT_DECIMAL,
+            ksm(2f64),
         )));
         let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
-        assert_eq!(ledger.total, 5 * DOT_DECIMAL);
-        assert_eq!(ledger.active, 3 * DOT_DECIMAL);
+        assert_eq!(ledger.total, ksm(5f64));
+        assert_eq!(ledger.active, ksm(3f64));
     });
 }
 
@@ -210,35 +195,29 @@ fn test_transact_withdraw_unbonded_work() {
     TestNet::reset();
 
     ParaA::execute_with(|| {
-        assert_ok!(LiquidStaking::stake(
-            Origin::signed(ALICE),
-            6000 * DOT_DECIMAL,
-        ));
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(6000f64),));
 
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
-            5 * DOT_DECIMAL,
+            ksm(5f64),
             RewardDestination::Staked
         ));
-        assert_ok!(LiquidStaking::unbond(
-            Origin::signed(ALICE),
-            2 * DOT_DECIMAL
-        ));
+        assert_ok!(LiquidStaking::unbond(Origin::signed(ALICE), ksm(2f64)));
     });
 
     Relay::execute_with(|| {
         let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
-        assert_eq!(ledger.total, 5 * DOT_DECIMAL);
-        assert_eq!(ledger.active, 3 * DOT_DECIMAL);
+        assert_eq!(ledger.total, ksm(5f64));
+        assert_eq!(ledger.active, ksm(3f64));
         assert_eq!(ledger.unlocking.len(), 1);
 
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
             LiquidStaking::derivative_para_account_id(),
-            5 * DOT_DECIMAL,
+            ksm(5f64),
         )));
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded(
             LiquidStaking::derivative_para_account_id(),
-            2 * DOT_DECIMAL,
+            ksm(2f64),
         )));
 
         pallet_staking::CurrentEra::<KusamaRuntime>::put(
@@ -256,8 +235,8 @@ fn test_transact_withdraw_unbonded_work() {
 
     Relay::execute_with(|| {
         let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
-        assert_eq!(ledger.total, 3 * DOT_DECIMAL);
-        assert_eq!(ledger.active, 3 * DOT_DECIMAL);
+        assert_eq!(ledger.total, ksm(3f64));
+        assert_eq!(ledger.active, ksm(3f64));
         assert_eq!(ledger.unlocking.len(), 0);
     });
 }
@@ -267,42 +246,33 @@ fn test_transact_rebond_work() {
     TestNet::reset();
 
     ParaA::execute_with(|| {
-        assert_ok!(LiquidStaking::stake(
-            Origin::signed(ALICE),
-            6000 * DOT_DECIMAL,
-        ));
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(6000f64),));
 
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
-            10 * DOT_DECIMAL,
+            ksm(10f64),
             RewardDestination::Staked
         ));
-        assert_ok!(LiquidStaking::unbond(
-            Origin::signed(ALICE),
-            5 * DOT_DECIMAL
-        ));
-        assert_ok!(LiquidStaking::rebond(
-            Origin::signed(ALICE),
-            3 * DOT_DECIMAL
-        ));
+        assert_ok!(LiquidStaking::unbond(Origin::signed(ALICE), ksm(5f64)));
+        assert_ok!(LiquidStaking::rebond(Origin::signed(ALICE), ksm(3f64)));
     });
 
     Relay::execute_with(|| {
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
             LiquidStaking::derivative_para_account_id(),
-            10 * DOT_DECIMAL,
+            ksm(10f64),
         )));
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded(
             LiquidStaking::derivative_para_account_id(),
-            5 * DOT_DECIMAL,
+            ksm(5f64),
         )));
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
             LiquidStaking::derivative_para_account_id(),
-            3 * DOT_DECIMAL,
+            ksm(3f64),
         )));
         let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
-        assert_eq!(ledger.total, 10 * DOT_DECIMAL);
-        assert_eq!(ledger.active, 8 * DOT_DECIMAL);
+        assert_eq!(ledger.total, ksm(10f64));
+        assert_eq!(ledger.active, ksm(8f64));
     });
 }
 
@@ -311,14 +281,11 @@ fn test_transact_nominate_work() {
     TestNet::reset();
 
     ParaA::execute_with(|| {
-        assert_ok!(LiquidStaking::stake(
-            Origin::signed(ALICE),
-            4000 * DOT_DECIMAL,
-        ));
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(4000f64),));
 
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
-            10 * DOT_DECIMAL,
+            ksm(10f64),
             RewardDestination::Staked
         ));
 
@@ -330,7 +297,7 @@ fn test_transact_nominate_work() {
 
     Relay::execute_with(|| {
         let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
-        assert_eq!(ledger.total, 10 * DOT_DECIMAL);
+        assert_eq!(ledger.total, ksm(10f64));
         let nominators =
             RelayStaking::nominators(LiquidStaking::derivative_para_account_id()).unwrap();
         assert_eq!(nominators.targets, vec![ALICE, BOB]);
@@ -340,12 +307,9 @@ fn test_transact_nominate_work() {
 #[test]
 fn test_transfer_bond() {
     TestNet::reset();
-    let xcm_transfer_amount = 10 * DOT_DECIMAL;
+    let xcm_transfer_amount = ksm(10f64);
     ParaA::execute_with(|| {
-        assert_ok!(LiquidStaking::stake(
-            Origin::signed(ALICE),
-            2000 * DOT_DECIMAL,
-        ));
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(2000f64),));
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
             xcm_transfer_amount,
