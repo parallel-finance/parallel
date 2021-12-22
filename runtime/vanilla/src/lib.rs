@@ -1390,7 +1390,6 @@ impl pallet_crowdloans::Config for Runtime {
     type MinContribution = MinContribution;
     type MaxVrfs = MaxVrfs;
     type MigrateKeysLimit = MigrateKeysLimit;
-    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type MigrateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type VrfOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
@@ -1409,6 +1408,8 @@ parameter_types! {
 }
 
 impl pallet_xcm_helper::Config for Runtime {
+    type Event = Event;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type Assets = Assets;
     type XcmSender = XcmRouter;
     type RelayNetwork = RelayNetwork;
@@ -1593,7 +1594,7 @@ construct_runtime!(
         Bridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 90,
         EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Event<T>} = 91,
         LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 92,
-        XcmHelper: pallet_xcm_helper::{Pallet, Storage} = 93,
+        XcmHelper: pallet_xcm_helper::{Pallet, Call, Storage, Event<T>} = 93,
     }
 );
 

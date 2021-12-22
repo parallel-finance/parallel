@@ -8,7 +8,7 @@ use crate::Pallet as Crowdloans;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{assert_ok, pallet_prelude::*, traits::fungibles::Mutate};
 use frame_system::{self, RawOrigin as SystemOrigin};
-use primitives::{ump::*, Balance, CurrencyId, ParaId};
+use primitives::{Balance, CurrencyId, ParaId};
 use sp_runtime::traits::StaticLookup;
 use sp_std::{convert::TryInto, prelude::*};
 use xcm::latest::prelude::*;
@@ -16,17 +16,6 @@ use xcm::latest::prelude::*;
 use sp_runtime::traits::One;
 
 const XCM_FEES: u128 = 50000000000u128;
-const XCM_WEIGHT: XcmWeightMisc<Weight> = XcmWeightMisc {
-    bond_weight: 3_000_000_000,
-    bond_extra_weight: 3_000_000_000,
-    unbond_weight: 3_000_000_000,
-    rebond_weight: 3_000_000_000,
-    withdraw_unbonded_weight: 3_000_000_000,
-    nominate_weight: 3_000_000_000,
-    contribute_weight: 3_000_000_000,
-    withdraw_weight: 3_000_000_000,
-    add_memo_weight: 3_000_000_000,
-};
 const CONTRIBUTE_AMOUNT: u128 = 20000000000000u128;
 const INITIAL_RESERVES: u128 = 1000000000000000u128;
 const INITIAL_AMOUNT: u128 = 1000000000000000u128;
@@ -67,6 +56,7 @@ fn initial_set_up<
     )
     .ok();
 
+    pallet_xcm_helper::Pallet::<T>::update_xcm_fees(SystemOrigin::Root.into(), XCM_FEES).unwrap();
     // fund caller with dot
     <T as pallet_xcm_helper::Config>::Assets::mint_into(
         T::RelayCurrency::get(),
@@ -74,8 +64,6 @@ fn initial_set_up<
         INITIAL_AMOUNT,
     )
     .ok();
-
-    Crowdloans::<T>::update_xcm_fees(SystemOrigin::Root.into(), XCM_FEES).unwrap();
 
     <T as pallet_xcm_helper::Config>::Assets::mint_into(
         T::RelayCurrency::get(),
@@ -330,17 +318,6 @@ benchmarks! {
     verify {
     }
 
-    update_xcm_fees {
-    }: _(SystemOrigin::Root, XCM_FEES)
-    verify {
-        assert_last_event::<T>(Event::XcmFeesUpdated(XCM_FEES).into())
-    }
-
-    update_xcm_weight {
-    }: _(SystemOrigin::Root, XCM_WEIGHT)
-    verify {
-        assert_last_event::<T>(Event::XcmWeightUpdated(XCM_WEIGHT).into())
-    }
 }
 
 impl_benchmark_test_suite!(Crowdloans, crate::mock::new_test_ext(), crate::mock::Test,);
