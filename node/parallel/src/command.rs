@@ -36,18 +36,35 @@ use sp_runtime::traits::Block as BlockT;
 use std::{io::Write, net::SocketAddr};
 
 const CHAIN_NAME: &str = "Parallel";
+const PARA_ID: u32 = 2085;
 
-fn load_spec(
-    id: &str,
-    para_id: ParaId,
-) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
+fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
+    let (norm_id, para_id) = extract_parachain_id(id);
+    info!(
+            "Loading spec: {}, custom parachain-id = {:?}",
+            norm_id,
+            para_id.unwrap_or(ParaId::new(0)).to_string()
+        );
+
     Ok(match id {
-        "heiko-dev" => Box::new(chain_spec::heiko::heiko_dev_config(para_id)),
-        "" | "heiko" => Box::new(chain_spec::heiko::heiko_config(para_id)?),
-        "parallel-dev" => Box::new(chain_spec::parallel::parallel_dev_config(para_id)),
-        "parallel" => Box::new(chain_spec::parallel::parallel_config(para_id)?),
-        "vanilla-dev" => Box::new(chain_spec::vanilla::vanilla_dev_config(para_id)),
-        "vanilla" => Box::new(chain_spec::vanilla::vanilla_config(para_id)?),
+        "heiko-dev" => Box::new(chain_spec::heiko::heiko_dev_config(
+            para_id.expect("Must specify parachain id"),
+        )),
+        "" | "heiko" => Box::new(chain_spec::heiko::heiko_config(
+            para_id.expect("Must specify parachain id"),
+        )?),
+        "parallel-dev" => Box::new(chain_spec::parallel::parallel_dev_config(
+            para_id.expect("Must specify parachain id"),
+        )),
+        "parallel" => Box::new(chain_spec::parallel::parallel_config(
+            para_id.expect("Must specify parachain id"),
+        )?),
+        "vanilla-dev" => Box::new(chain_spec::vanilla::vanilla_dev_config(
+            para_id.expect("Must specify parachain id"),
+        )),
+        "vanilla" => Box::new(chain_spec::vanilla::vanilla_config(
+            para_id.expect("Must specify parachain id"),
+        )?),
         path => {
             let path = std::path::PathBuf::from(path);
             let starts_with = |prefix: &str| {
@@ -68,6 +85,23 @@ fn load_spec(
             }
         }
     })
+}
+
+/// Extracts the normalized chain id and parachain id from the input chain id
+///
+/// E.g. "parallel-dev-2012" yields ("parallel-dev", Some(2004))
+fn extract_parachain_id(id: &str) -> (&str, Option<ParaId>) {
+    const DEV_PARAM_PREFIX: &str = "parallel-dev-";
+
+    let (norm_id, para) = if id.starts_with(DEV_PARAM_PREFIX) {
+        let suffix = &id[DEV_PARAM_PREFIX.len()..];
+        let para_id: u32 = suffix.parse().expect("Invalid parachain-id suffix");
+        (&id[..DEV_PARAM_PREFIX.len() - 1], Some(para_id))
+    } else {
+        (id, Some(PARA_ID))
+    };
+
+    (norm_id, para.map(Into::into))
 }
 
 impl SubstrateCli for Cli {
@@ -96,7 +130,7 @@ impl SubstrateCli for Cli {
     }
 
     fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
-        load_spec(id, self.run.parachain_id.unwrap_or(2085).into())
+        load_spec(id)
     }
 
     fn native_runtime_version(chain_spec: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
@@ -336,11 +370,7 @@ pub fn run() -> Result<()> {
             builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
             let _ = builder.init();
 
-            let chain_spec = &load_spec(
-                &params.chain.clone().unwrap_or_default(),
-                params.parachain_id.into(),
-            )?;
-
+            let chain_spec = &load_spec(&params.chain.clone().unwrap_or_default())?;
             switch_runtime!(chain_spec, {
                 let block: Block = generate_genesis_block(chain_spec)?;
                 let raw_header = block.header().encode();
@@ -410,8 +440,11 @@ pub fn run() -> Result<()> {
                 runner.run_node_until_exit(|config| async move {
                     let extension = chain_spec::Extensions::try_get(&*config.chain_spec);
                     let relay_chain_id = extension.map(|e| e.relay_chain.clone());
-                    let para_id = extension.map(|e| e.para_id);
+                    let para_chain_id = extension
+                        .map(|e| e.para_id)
+                        .ok_or("The para_id is required in chain-spec.")?;
                     info!("Relaychain Chain Id: {:?}", relay_chain_id);
+                    info!("Parachain Chain Id: {:?}", para_chain_id);
 
                     let polkadot_cli = RelayChainCli::new(
                         config.base_path.as_ref().map(|x| x.path().join("polkadot")),
@@ -423,7 +456,7 @@ pub fn run() -> Result<()> {
 
                     info!("Relaychain Args: {}", cli.relaychain_args.join(" "));
 
-                    let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(2085));
+                    let id = ParaId::from(para_chain_id);
 
                     let parachain_account =
                         AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(
