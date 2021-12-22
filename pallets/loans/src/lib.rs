@@ -496,7 +496,7 @@ pub mod pallet {
             reserve_factor: Ratio,
             close_factor: Ratio,
             liquidate_incentive: Rate,
-            cap: Balance,
+            #[pallet::compact] cap: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
 
@@ -563,7 +563,7 @@ pub mod pallet {
         pub fn mint(
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
-            mint_amount: BalanceOf<T>,
+            #[pallet::compact] mint_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::ensure_active_market(asset_id)?;
@@ -602,7 +602,7 @@ pub mod pallet {
         pub fn redeem(
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
-            redeem_amount: BalanceOf<T>,
+            #[pallet::compact] redeem_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::ensure_active_market(asset_id)?;
@@ -649,7 +649,7 @@ pub mod pallet {
         pub fn borrow(
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
-            borrow_amount: BalanceOf<T>,
+            #[pallet::compact] borrow_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::ensure_active_market(asset_id)?;
@@ -688,7 +688,7 @@ pub mod pallet {
         pub fn repay_borrow(
             origin: OriginFor<T>,
             asset_id: AssetIdOf<T>,
-            repay_amount: BalanceOf<T>,
+            #[pallet::compact] repay_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::ensure_active_market(asset_id)?;
@@ -788,7 +788,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             borrower: T::AccountId,
             liquidate_token: AssetIdOf<T>,
-            repay_amount: BalanceOf<T>,
+            #[pallet::compact] repay_amount: BalanceOf<T>,
             collateral_token: AssetIdOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
@@ -816,7 +816,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             payer: <T::Lookup as StaticLookup>::Source,
             asset_id: AssetIdOf<T>,
-            add_amount: BalanceOf<T>,
+            #[pallet::compact] add_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::ReserveOrigin::ensure_origin(origin)?;
             let payer = T::Lookup::lookup(payer)?;
@@ -852,7 +852,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             receiver: <T::Lookup as StaticLookup>::Source,
             asset_id: AssetIdOf<T>,
-            reduce_amount: BalanceOf<T>,
+            #[pallet::compact] reduce_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::ReserveOrigin::ensure_origin(origin)?;
             let receiver = T::Lookup::lookup(receiver)?;

@@ -431,7 +431,25 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
         Assets::force_create(Origin::root(), KSM, Id(ALICE), true, 1).unwrap();
+        Assets::force_set_metadata(
+            Origin::root(),
+            KSM,
+            b"Kusama".to_vec(),
+            b"KSM".to_vec(),
+            12,
+            false,
+        )
+        .unwrap();
         Assets::force_create(Origin::root(), XKSM, Id(ALICE), true, 1).unwrap();
+        Assets::force_set_metadata(
+            Origin::root(),
+            XKSM,
+            b"Parallel Kusama".to_vec(),
+            b"XKSM".to_vec(),
+            12,
+            false,
+        )
+        .unwrap();
         Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), 100 * KSM_DECIMAL).unwrap();
         Assets::mint(Origin::signed(ALICE), XKSM, Id(ALICE), 100 * KSM_DECIMAL).unwrap();
         Assets::mint(Origin::signed(ALICE), KSM, Id(BOB), ksm(20000f64)).unwrap();
@@ -554,7 +572,25 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
     ext.execute_with(|| {
         System::set_block_number(1);
         Assets::force_create(Origin::root(), KSM, Id(ALICE), true, 1).unwrap();
+        Assets::force_set_metadata(
+            Origin::root(),
+            KSM,
+            b"Kusama".to_vec(),
+            b"KSM".to_vec(),
+            12,
+            false,
+        )
+        .unwrap();
         Assets::force_create(Origin::root(), XKSM, Id(ALICE), true, 1).unwrap();
+        Assets::force_set_metadata(
+            Origin::root(),
+            XKSM,
+            b"Parallel Kusama".to_vec(),
+            b"XKSM".to_vec(),
+            12,
+            false,
+        )
+        .unwrap();
         Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), 10000 * KSM_DECIMAL).unwrap();
 
         LiquidStaking::update_staking_pool_capacity(Origin::signed(BOB), ksm(10000f64)).unwrap();
