@@ -462,7 +462,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
 
-            ensure!(cap > Zero::zero(), Error::<T>::ZeroCap);
+            ensure!(!cap.is_zero(), Error::<T>::ZeroCap);
 
             StakingPoolCapacity::<T>::mutate(|v| *v = cap);
             Self::deposit_event(Event::<T>::StakingPoolCapacityUpdated(cap));
