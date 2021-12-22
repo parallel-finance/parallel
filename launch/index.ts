@@ -134,18 +134,19 @@ async function para() {
   }
 
   for (const { paraId, image, chain, ctokenId, cap, duration, pending } of config.crowdloans) {
-    call.push(api.tx.sudo.sudo(api.tx.crowdloans.createVault(paraId, ctokenId, 'XCM', cap, height + duration)))
+    call.push(
+      api.tx.sudo.sudo(
+        api.tx.crowdloans.createVault(paraId, ctokenId, 'XCM', cap, height + duration)
+      )
+    )
     if (!pending) {
       call.push(api.tx.sudo.sudo(api.tx.crowdloans.open(paraId)))
     }
   }
 
   call.push(
-    api.tx.sudo.sudo(api.tx.liquidStaking.setLiquidCurrency(config.liquidAsset)),
-    api.tx.sudo.sudo(api.tx.liquidStaking.setStakingCurrency(config.stakingAsset)),
     api.tx.sudo.sudo(api.tx.liquidStaking.updateStakingPoolCapacity('10000000000000000')),
-    api.tx.sudo.sudo(api.tx.liquidStaking.updateXcmFeesCompensation('50000000000')),
-    api.tx.sudo.sudo(api.tx.crowdloans.updateXcmFees('20000000000')),
+    api.tx.sudo.sudo(api.tx.xcmHelper.updateXcmFees('50000000000')),
     api.tx.balances.transfer(createAddress(GiftPalletId), '1000000000000000')
   )
 
