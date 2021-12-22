@@ -58,12 +58,12 @@ sp-transaction-pool                        = { git = 'https://github.com/parityt
 sp-version                                 = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.13', default-features = false }
 
 # Polkadot dependencies
-pallet-xcm              = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.12', default-features = false }
-polkadot-parachain      = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.12', default-features = false }
-polkadot-runtime-common = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.12', default-features = false }
-xcm                     = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.12', default-features = false }
-xcm-builder             = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.12', default-features = false }
-xcm-executor            = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.12', default-features = false }
+pallet-xcm              = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.13', default-features = false }
+polkadot-parachain      = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.13', default-features = false }
+polkadot-runtime-common = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.13', default-features = false }
+xcm                     = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.13', default-features = false }
+xcm-builder             = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.13', default-features = false }
+xcm-executor            = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.13', default-features = false }
 
 # Cumulus dependencies
 cumulus-pallet-aura-ext         = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.13', default-features = false }
