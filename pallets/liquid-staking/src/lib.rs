@@ -33,7 +33,7 @@ pub mod weights;
 #[macro_use]
 extern crate primitives;
 
-use frame_support::traits::Get;
+use frame_support::traits::{fungibles::InspectMetadata, Get};
 use primitives::{ExchangeRateProvider, LiquidStakingCurrenciesProvider, Rate};
 use sp_runtime::traits::Zero;
 
@@ -712,7 +712,7 @@ pub mod pallet {
             T::PalletId::get().into_account()
         }
 
-        /// Parachain sovereign account
+        /// Parachain's sovereign account
         pub fn para_account_id() -> T::AccountId {
             T::SelfParaId::get().into_account()
         }
@@ -818,19 +818,19 @@ impl<T: Config> ExchangeRateProvider for Pallet<T> {
 impl<T: Config> LiquidStakingCurrenciesProvider<AssetIdOf<T>> for Pallet<T> {
     fn get_staking_currency() -> Option<AssetIdOf<T>> {
         let asset_id = T::StakingCurrency::get();
-        // if !<T::Assets as InspectMetadata<AccountIdOf<T>>>::decimals(&asset_id).is_zero() {
-        Some(asset_id)
-        // } else {
-        //     None
-        // }
+        if !<T::Assets as InspectMetadata<AccountIdOf<T>>>::decimals(&asset_id).is_zero() {
+            Some(asset_id)
+        } else {
+            None
+        }
     }
 
     fn get_liquid_currency() -> Option<AssetIdOf<T>> {
         let asset_id = T::LiquidCurrency::get();
-        // if !<T::Assets as InspectMetadata<AccountIdOf<T>>>::decimals(&asset_id).is_zero() {
-        Some(asset_id)
-        // } else {
-        //     None
-        // }
+        if !<T::Assets as InspectMetadata<AccountIdOf<T>>>::decimals(&asset_id).is_zero() {
+            Some(asset_id)
+        } else {
+            None
+        }
     }
 }

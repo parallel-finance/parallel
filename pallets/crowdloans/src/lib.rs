@@ -418,10 +418,7 @@ pub mod pallet {
                 Error::<T>::InsufficientContribution
             );
 
-            ensure!(
-                !Self::vrfs().iter().any(|&c| c == crowdloan),
-                Error::<T>::VrfDelayInProgress
-            );
+            ensure!(!Self::in_vrf(crowdloan), Error::<T>::VrfDelayInProgress);
 
             T::Assets::transfer(
                 T::RelayCurrency::get(),
@@ -431,7 +428,7 @@ pub mod pallet {
                 true,
             )?;
 
-            let total_contribution = Self::cap(&vault, amount)?;
+            let total_contribution = Self::total_contribution(&vault, amount)?;
 
             // throw if new value overflows cap
             ensure!(total_contribution <= vault.cap, Error::<T>::ExceededCap);
@@ -614,6 +611,12 @@ pub mod pallet {
         pub fn slot_expired(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             T::SlotExpiredOrigin::ensure_origin(origin)?;
 
+            log::trace!(
+                target: "crowdloans::slot_expired",
+                "pre-toggle. crowdloan: {:?}",
+                crowdloan,
+            );
+
             Self::try_mutate_vault(crowdloan, VaultPhase::Succeeded, |vault| {
                 Self::do_withdraw(crowdloan, vault.contributed, VaultPhase::Expired)?;
                 Self::deposit_event(Event::<T>::VaultSlotExpiring(crowdloan));
@@ -621,7 +624,8 @@ pub mod pallet {
             })
         }
 
-        /// migrate pending contribution by sending xcm
+        /// Migrate pending contribution by sending xcm
+        /// NOTE: this should only be called when you are sure that there is no xcm in flight
         #[pallet::weight(<T as Config>::WeightInfo::migrate_pending())]
         #[transactional]
         pub fn migrate_pending(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
@@ -629,11 +633,11 @@ pub mod pallet {
 
             let vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
             ensure!(
-                vault.phase == VaultPhase::Pending,
+                vault.phase == VaultPhase::Pending || vault.phase == VaultPhase::Closed,
                 Error::<T>::IncorrectVaultPhase
             );
             let contributions = Self::contribution_iterator(vault.trie_index, true);
-            let mut migrated_count: u32 = 0u32;
+            let mut migrated_count = 0u32;
             let mut all_migrated = true;
 
             for (who, (amount, _)) in contributions {
@@ -724,6 +728,10 @@ pub mod pallet {
             Self::vrfs().iter().len() != 0
         }
 
+        fn in_vrf(crowdloan: ParaId) -> bool {
+            Self::vrfs().iter().any(|&c| c == crowdloan)
+        }
+
         fn next_index(crowdloan: ParaId) -> u32 {
             Self::current_index(crowdloan)
                 .and_then(|idx| idx.checked_add(1u32))
@@ -734,7 +742,10 @@ pub mod pallet {
             Self::current_index(crowdloan).and_then(|index| Self::vaults(crowdloan, index))
         }
 
-        fn cap(vault: &Vault<T>, amount: BalanceOf<T>) -> Result<BalanceOf<T>, ArithmeticError> {
+        fn total_contribution(
+            vault: &Vault<T>,
+            amount: BalanceOf<T>,
+        ) -> Result<BalanceOf<T>, ArithmeticError> {
             vault
                 .contributed
                 .checked_add(vault.pending)

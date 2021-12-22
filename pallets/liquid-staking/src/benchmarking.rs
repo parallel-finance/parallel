@@ -66,9 +66,28 @@ fn initial_set_up<
         1,
     )
     .ok();
+    pallet_assets::Pallet::<T>::force_set_metadata(
+        SystemOrigin::Root.into(),
+        KSM,
+        b"Kusama".to_vec(),
+        b"KSM".to_vec(),
+        12,
+        false,
+    )
+    .unwrap();
 
     pallet_assets::Pallet::<T>::force_create(SystemOrigin::Root.into(), XKSM, account_id, true, 1)
         .ok();
+
+    pallet_assets::Pallet::<T>::force_set_metadata(
+        SystemOrigin::Root.into(),
+        XKSM,
+        b"Parallel Kusama".to_vec(),
+        b"XKSM".to_vec(),
+        12,
+        false,
+    )
+    .unwrap();
 
     <T as pallet_xcm_helper::Config>::Assets::mint_into(KSM, &caller, INITIAL_AMOUNT).unwrap();
 
