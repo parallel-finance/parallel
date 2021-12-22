@@ -1500,7 +1500,9 @@ impl Contains<Call> for WhiteListFilter {
             Call::TechnicalCommitteeMembership(_) |
             Call::OracleMembership(_) |
             Call::BridgeMembership(_) |
-            Call::ValidatorFeedersMembership(_)
+            Call::ValidatorFeedersMembership(_) |
+            Call::ChainlinkFeed(_) |
+            Call::ChainlinkAdaptor(_)
         )
         // // AMM
         // Call::AMM(_) |
