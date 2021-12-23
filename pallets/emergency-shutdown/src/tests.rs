@@ -1,8 +1,5 @@
 use crate::mock::*;
-use frame_support::{
-    assert_noop, assert_ok,
-    dispatch::*,
-};
+use frame_support::{assert_noop, assert_ok, dispatch::*};
 
 #[test]
 fn toggle_shutdown_flag_works() {
