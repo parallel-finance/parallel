@@ -2,7 +2,6 @@
 
 #![cfg(feature = "runtime-benchmarks")]
 use super::*;
-
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite};
 use frame_support::pallet_prelude::*;
 use frame_system::{self, RawOrigin as SystemOrigin};
@@ -43,4 +42,4 @@ benchmarks! {
 
 }
 
-impl_benchmark_test_suite!(Crowdloans, crate::mock::new_test_ext(), crate::mock::Test,);
+impl_benchmark_test_suite!(Pallet, crate::mock::new_test_ext(), crate::mock::Test,);

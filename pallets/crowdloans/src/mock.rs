@@ -391,6 +391,7 @@ impl pallet_xcm_helper::Config for Test {
     type RelayNetwork = RelayNetwork;
     type NotifyTimeout = NotifyTimeout;
     type BlockNumberProvider = frame_system::Pallet<Test>;
+    type WeightInfo = ();
 }
 
 parameter_types! {
