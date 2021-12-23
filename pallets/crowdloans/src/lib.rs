@@ -345,6 +345,8 @@ pub mod pallet {
                 vault.contribution_strategy = contribution_strategy;
             }
 
+            Vaults::<T>::insert(crowdloan, vault.id, vault);
+
             Self::deposit_event(Event::<T>::VaultUpdated(crowdloan));
 
             Ok(())
