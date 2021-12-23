@@ -53,7 +53,7 @@ pub mod pallet {
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
     use pallet_xcm::ensure_response;
-    use primitives::{ump::*, Balance, CurrencyId, ParaId, TrieIndex};
+    use primitives::{Balance, CurrencyId, ParaId, TrieIndex};
     use sp_runtime::{
         traits::{AccountIdConversion, BlockNumberProvider, Convert, Hash, Zero},
         ArithmeticError, DispatchError,
@@ -118,9 +118,6 @@ pub mod pallet {
         #[pallet::constant]
         type MigrateKeysLimit: Get<u32>;
 
-        /// The origin which can update reserve_factor, xcm_fees etc
-        type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
-
         /// The origin which can migrate pending contribution
         type MigrateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
@@ -175,10 +172,6 @@ pub mod pallet {
         VaultClaimRefund(AssetIdOf<T>, T::AccountId, BalanceOf<T>),
         /// A vault is expiring
         VaultSlotExpiring(ParaId),
-        /// Xcm weight in BuyExecution message
-        XcmWeightUpdated(XcmWeightMisc<Weight>),
-        /// Fees for extrinsics on relaychain were set to new value
-        XcmFeesUpdated(BalanceOf<T>),
         /// Vrfs updated
         VrfsUpdated(BoundedVec<ParaId, T::MaxVrfs>),
         /// Notification received
@@ -219,10 +212,6 @@ pub mod pallet {
         ZeroCap,
         /// Invalid params input
         InvalidParams,
-        /// XcmWeightMisc cannot have zero value
-        ZeroXcmWeightMisc,
-        /// Xcm fees cannot be zero
-        ZeroXcmFees,
     }
 
     #[pallet::storage]
@@ -656,38 +645,6 @@ pub mod pallet {
             }
 
             Ok(())
-        }
-
-        /// Update xcm fees amount to be used in xcm.Withdraw message
-        #[pallet::weight(<T as Config>::WeightInfo::update_xcm_fees())]
-        #[transactional]
-        pub fn update_xcm_fees(
-            origin: OriginFor<T>,
-            #[pallet::compact] fees: BalanceOf<T>,
-        ) -> DispatchResultWithPostInfo {
-            T::UpdateOrigin::ensure_origin(origin)?;
-
-            ensure!(!fees.is_zero(), Error::<T>::ZeroXcmFees);
-
-            T::XCM::update_xcm_fees(fees);
-            Self::deposit_event(Event::<T>::XcmFeesUpdated(fees));
-            Ok(().into())
-        }
-
-        /// Update xcm weight to be used in xcm.Transact message
-        #[pallet::weight(<T as Config>::WeightInfo::update_xcm_weight())]
-        #[transactional]
-        pub fn update_xcm_weight(
-            origin: OriginFor<T>,
-            xcm_weight_misc: XcmWeightMisc<Weight>,
-        ) -> DispatchResultWithPostInfo {
-            T::UpdateOrigin::ensure_origin(origin)?;
-
-            ensure!(!xcm_weight_misc.has_zero(), Error::<T>::ZeroXcmWeightMisc);
-
-            T::XCM::update_xcm_weight(xcm_weight_misc);
-            Self::deposit_event(Event::<T>::XcmWeightUpdated(xcm_weight_misc));
-            Ok(().into())
         }
 
         #[pallet::weight(<T as Config>::WeightInfo::notification_received())]

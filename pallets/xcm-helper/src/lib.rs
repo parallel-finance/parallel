@@ -25,7 +25,7 @@ use frame_support::{
     dispatch::{DispatchResult, GetDispatchInfo},
     pallet_prelude::*,
     traits::fungibles::{Inspect, Mutate, Transfer},
-    PalletId,
+    transactional, PalletId,
 };
 
 use primitives::{switch_relay, ump::*, Balance, CurrencyId, ParaId};
@@ -40,14 +40,20 @@ pub type AssetIdOf<T> =
 pub type BalanceOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 
+pub mod weights;
+
 #[frame_support::pallet]
 pub mod pallet {
-    use frame_system::pallet_prelude::BlockNumberFor;
+    use crate::weights::WeightInfo;
+    use frame_system::pallet_prelude::{BlockNumberFor, OriginFor};
 
     use super::*;
+    use sp_runtime::traits::Zero;
 
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_xcm::Config {
+        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
         /// Assets for deposit/withdraw assets to/from crowdloan account
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
@@ -70,6 +76,21 @@ pub mod pallet {
 
         /// The block number provider
         type BlockNumberProvider: BlockNumberProvider<BlockNumber = Self::BlockNumber>;
+
+        /// The origin which can update reserve_factor, xcm_fees etc
+        type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+
+        /// Weight information
+        type WeightInfo: WeightInfo;
+    }
+
+    #[pallet::event]
+    #[pallet::generate_deposit(pub(super) fn deposit_event)]
+    pub enum Event<T: Config> {
+        /// Xcm weight in BuyExecution message
+        XcmWeightUpdated(XcmWeightMisc<Weight>),
+        /// Fees for extrinsics on relaychain were set to new value
+        XcmFeesUpdated(BalanceOf<T>),
     }
 
     #[pallet::storage]
@@ -81,6 +102,7 @@ pub mod pallet {
     pub type XcmWeight<T: Config> = StorageValue<_, XcmWeightMisc<Weight>, ValueQuery>;
 
     #[pallet::pallet]
+    #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(_);
 
     #[pallet::error]
@@ -89,15 +111,50 @@ pub mod pallet {
         MultiLocationNotInvertible,
         /// Xcm message send failure
         SendXcmError,
+        /// XcmWeightMisc cannot have zero value
+        ZeroXcmWeightMisc,
+        /// Xcm fees cannot be zero
+        ZeroXcmFees,
+    }
+
+    #[pallet::call]
+    impl<T: Config> Pallet<T> {
+        /// Update xcm fees amount to be used in xcm.Withdraw message
+        #[pallet::weight(<T as Config>::WeightInfo::update_xcm_fees())]
+        #[transactional]
+        pub fn update_xcm_fees(
+            origin: OriginFor<T>,
+            #[pallet::compact] fees: BalanceOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+
+            ensure!(!fees.is_zero(), Error::<T>::ZeroXcmFees);
+
+            XcmFees::<T>::mutate(|v| *v = fees);
+            Self::deposit_event(Event::<T>::XcmFeesUpdated(fees));
+            Ok(().into())
+        }
+
+        /// Update xcm weight to be used in xcm.Transact message
+        #[pallet::weight(<T as Config>::WeightInfo::update_xcm_weight())]
+        #[transactional]
+        pub fn update_xcm_weight(
+            origin: OriginFor<T>,
+            xcm_weight_misc: XcmWeightMisc<Weight>,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+
+            ensure!(!xcm_weight_misc.has_zero(), Error::<T>::ZeroXcmWeightMisc);
+
+            XcmWeight::<T>::mutate(|v| *v = xcm_weight_misc);
+            Self::deposit_event(Event::<T>::XcmWeightUpdated(xcm_weight_misc));
+            Ok(().into())
+        }
     }
 }
 
 pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
     fn get_xcm_fees() -> Balance;
-
-    fn update_xcm_fees(fees: Balance);
-
-    fn update_xcm_weight(xcm_weight_misc: XcmWeightMisc<Weight>);
 
     fn add_xcm_fees(relay_currency: AssetId, payer: &AccountId, amount: Balance) -> DispatchResult;
 
@@ -205,14 +262,6 @@ impl<T: Config> Pallet<T> {
 impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T> {
     fn get_xcm_fees() -> BalanceOf<T> {
         Self::xcm_fees()
-    }
-
-    fn update_xcm_fees(fees: BalanceOf<T>) {
-        XcmFees::<T>::mutate(|v| *v = fees);
-    }
-
-    fn update_xcm_weight(xcm_weight_misc: XcmWeightMisc<Weight>) {
-        XcmWeight::<T>::mutate(|v| *v = xcm_weight_misc);
     }
 
     fn add_xcm_fees(

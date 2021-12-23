@@ -162,12 +162,8 @@ pub mod pallet {
         WithdrawingUnbonded(u32),
         /// Sent staking.nominate call to relaychain
         Nominating(Vec<T::AccountId>),
-        /// Compensation for extrinsics on relaychain was set to new value
-        XcmFeesUpdated(BalanceOf<T>),
         /// Capacity of staking pool was set to new value
         StakingPoolCapacityUpdated(BalanceOf<T>),
-        /// Xcm weight in BuyExecution message
-        XcmWeightUpdated(XcmWeightMisc<Weight>),
         /// InsurancePool's reserve_factor updated
         ReserveFactorUpdated(Ratio),
         /// Add asset to insurance pool
@@ -196,8 +192,6 @@ pub mod pallet {
         ZeroCap,
         /// The factor should be bigger than 0% and smaller than 100%
         InvalidFactor,
-        /// fees cannot be zero
-        ZeroFees,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -234,11 +228,6 @@ pub mod pallet {
     /// Staking currency asset id
     #[pallet::storage]
     pub type StakingCurrency<T: Config> = StorageValue<_, AssetIdOf<T>, OptionQuery>;
-
-    /// Xcm weight in BuyExecution
-    #[pallet::storage]
-    #[pallet::getter(fn xcm_weight)]
-    pub type XcmWeight<T: Config> = StorageValue<_, XcmWeightMisc<Weight>, ValueQuery>;
 
     /// Staking pool capacity
     #[pallet::storage]
@@ -444,23 +433,6 @@ pub mod pallet {
             Ok(().into())
         }
 
-        /// Update default xcm fees
-        /// it reflects xcm fees consumed on relaychain
-        #[pallet::weight(<T as Config>::WeightInfo::update_xcm_fees())]
-        #[transactional]
-        pub fn update_xcm_fees(
-            origin: OriginFor<T>,
-            #[pallet::compact] fees: BalanceOf<T>,
-        ) -> DispatchResultWithPostInfo {
-            T::UpdateOrigin::ensure_origin(origin)?;
-
-            ensure!(fees > Zero::zero(), Error::<T>::ZeroFees);
-
-            T::XCM::update_xcm_fees(fees);
-            Self::deposit_event(Event::<T>::XcmFeesUpdated(fees));
-            Ok(().into())
-        }
-
         /// Update insurance pool's reserve_factor
         #[pallet::weight(<T as Config>::WeightInfo::update_reserve_factor())]
         #[transactional]
@@ -480,19 +452,6 @@ pub mod pallet {
             Ok(().into())
         }
 
-        /// Update xcm transact's weight configuration
-        #[pallet::weight(<T as Config>::WeightInfo::update_xcm_weight())]
-        #[transactional]
-        pub fn update_xcm_weight(
-            origin: OriginFor<T>,
-            xcm_weight_misc: XcmWeightMisc<Weight>,
-        ) -> DispatchResultWithPostInfo {
-            T::UpdateOrigin::ensure_origin(origin)?;
-            XcmWeight::<T>::mutate(|v| *v = xcm_weight_misc);
-            Self::deposit_event(Event::<T>::XcmWeightUpdated(xcm_weight_misc));
-            Ok(().into())
-        }
-
         /// Update staking's market cap
         /// stake will be blocked if passed the cap
         #[pallet::weight(<T as Config>::WeightInfo::update_staking_pool_capacity())]
@@ -503,7 +462,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
 
-            ensure!(cap > Zero::zero(), Error::<T>::ZeroCap);
+            ensure!(!cap.is_zero(), Error::<T>::ZeroCap);
 
             StakingPoolCapacity::<T>::mutate(|v| *v = cap);
             Self::deposit_event(Event::<T>::StakingPoolCapacityUpdated(cap));
