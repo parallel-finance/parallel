@@ -1382,6 +1382,7 @@ impl pallet_xcm_helper::Config for Runtime {
     type PalletId = XcmHelperPalletId;
     type NotifyTimeout = NotifyTimeout;
     type BlockNumberProvider = frame_system::Pallet<Runtime>;
+    type WeightInfo = pallet_xcm_helper::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
