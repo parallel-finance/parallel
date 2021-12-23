@@ -335,12 +335,15 @@ parameter_types! {
 }
 
 impl pallet_xcm_helper::Config for Test {
+    type Event = Event;
+    type UpdateOrigin = UpdateOrigin;
     type Assets = Assets;
     type XcmSender = XcmRouter;
     type PalletId = XcmHelperPalletId;
     type RelayNetwork = RelayNetwork;
     type NotifyTimeout = NotifyTimeout;
     type BlockNumberProvider = frame_system::Pallet<Test>;
+    type WeightInfo = ();
 }
 
 parameter_types! {
@@ -350,6 +353,7 @@ parameter_types! {
 
 impl crate::Config for Test {
     type Event = Event;
+    type UpdateOrigin = UpdateOrigin;
     type PalletId = StakingPalletId;
     type SelfParaId = SelfParaId;
     type WeightInfo = ();
@@ -359,7 +363,6 @@ impl crate::Config for Test {
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type Assets = Assets;
     type RelayOrigin = RelayOrigin;
-    type UpdateOrigin = UpdateOrigin;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;
     type MinStakeAmount = MinStakeAmount;
     type MinUnstakeAmount = MinUnstakeAmount;
@@ -407,7 +410,7 @@ construct_runtime!(
         DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>},
         CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin},
         PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin},
-        XcmHelper: pallet_xcm_helper::{Pallet, Storage},
+        XcmHelper: pallet_xcm_helper::{Pallet, Storage, Call, Event<T>},
         XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
     }
 );
@@ -456,7 +459,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         Assets::mint(Origin::signed(ALICE), KSM, Id(BOB), ksm(20000f64)).unwrap();
 
         LiquidStaking::update_staking_pool_capacity(Origin::signed(BOB), ksm(10000f64)).unwrap();
-        LiquidStaking::update_xcm_fees(Origin::signed(BOB), ksm(10f64)).unwrap();
+        XcmHelper::update_xcm_fees(Origin::signed(BOB), ksm(10f64)).unwrap();
     });
 
     ext
@@ -595,7 +598,7 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), 10000 * KSM_DECIMAL).unwrap();
 
         LiquidStaking::update_staking_pool_capacity(Origin::signed(BOB), ksm(10000f64)).unwrap();
-        LiquidStaking::update_xcm_fees(Origin::signed(BOB), ksm(10f64)).unwrap();
+        XcmHelper::update_xcm_fees(Origin::signed(BOB), ksm(10f64)).unwrap();
     });
 
     ext

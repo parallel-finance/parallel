@@ -12,7 +12,7 @@ use frame_support::{
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{
     tokens::{KSM, XKSM},
-    ump::{RewardDestination, XcmWeightMisc},
+    ump::RewardDestination,
     Balance, CurrencyId, Rate, Ratio,
 };
 use sp_runtime::traits::{One, StaticLookup};
@@ -22,17 +22,6 @@ const SEED: u32 = 0;
 const MARKET_CAP: u128 = 10000000000000000u128;
 const XCM_FEES: u128 = 50000000000u128;
 const RESERVE_FACTOR: Ratio = Ratio::from_perthousand(5);
-const XCM_WEIGHT: XcmWeightMisc<Weight> = XcmWeightMisc {
-    bond_weight: 3_000_000_000,
-    bond_extra_weight: 3_000_000_000,
-    unbond_weight: 3_000_000_000,
-    rebond_weight: 3_000_000_000,
-    withdraw_unbonded_weight: 3_000_000_000,
-    nominate_weight: 3_000_000_000,
-    contribute_weight: 3_000_000_000,
-    withdraw_weight: 3_000_000_000,
-    add_memo_weight: 3_000_000_000,
-};
 const INITIAL_INSURANCE: u128 = 1000000000000u128;
 const INITIAL_AMOUNT: u128 = 1000000000000000u128;
 
@@ -93,7 +82,8 @@ fn initial_set_up<
 
     LiquidStaking::<T>::update_staking_pool_capacity(SystemOrigin::Root.into(), MARKET_CAP)
         .unwrap();
-    LiquidStaking::<T>::update_xcm_fees(SystemOrigin::Root.into(), XCM_FEES).unwrap();
+
+    pallet_xcm_helper::Pallet::<T>::update_xcm_fees(SystemOrigin::Root.into(), XCM_FEES).unwrap();
 
     <T as pallet_xcm_helper::Config>::Assets::mint_into(
         KSM,
@@ -221,18 +211,6 @@ benchmarks! {
     update_staking_pool_capacity {
     }: _(SystemOrigin::Root, MARKET_CAP)
     verify {
-    }
-
-    update_xcm_fees {
-    }: _(SystemOrigin::Root, XCM_FEES)
-    verify {
-        assert_last_event::<T>(Event::XcmFeesUpdated(XCM_FEES).into())
-    }
-
-    update_xcm_weight {
-    }: _(SystemOrigin::Root, XCM_WEIGHT)
-    verify {
-        assert_eq!(XcmWeight::<T>::get(), XCM_WEIGHT);
     }
 
     add_insurances {

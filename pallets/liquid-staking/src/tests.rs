@@ -4,7 +4,7 @@ use frame_support::{assert_noop, assert_ok, traits::Hooks};
 
 use primitives::{
     tokens::{KSM, XKSM},
-    ump::{RewardDestination, XcmWeightMisc},
+    ump::RewardDestination,
     Balance, Rate, Ratio,
 };
 use sp_runtime::traits::{One, Zero};
@@ -332,33 +332,6 @@ fn test_transfer_bond() {
     });
 }
 
-// fn print_events<T: frame_system::Config>(context: &str) {
-//     println!("------ {:?} events ------", context);
-//     frame_system::Pallet::<T>::events().iter().for_each(|r| {
-//         println!("{:?}", r.event);
-//     });
-// }
-
-#[test]
-fn test_update_xcm_weight_work() {
-    new_test_ext().execute_with(|| {
-        assert_eq!(XcmWeight::<Test>::get(), XcmWeightMisc::default());
-        let misc = XcmWeightMisc::<u64> {
-            bond_weight: 1,
-            bond_extra_weight: 2,
-            unbond_weight: 3,
-            rebond_weight: 4,
-            withdraw_unbonded_weight: 5,
-            nominate_weight: 6,
-            contribute_weight: 7,
-            withdraw_weight: 8,
-            add_memo_weight: 9,
-        };
-        assert_ok!(LiquidStaking::update_xcm_weight(Origin::signed(BOB), misc));
-        assert_eq!(XcmWeight::<Test>::get(), misc);
-    })
-}
-
 #[test]
 fn test_add_insurances_work() {
     new_test_ext().execute_with(|| {
@@ -388,16 +361,6 @@ fn update_reserve_factor_should_not_work_if_with_invalid_param() {
         assert_noop!(
             LiquidStaking::update_reserve_factor(Origin::root(), Ratio::one()),
             Error::<Test>::InvalidFactor
-        );
-    })
-}
-
-#[test]
-fn update_xcm_fees_compensation_should_not_work_if_with_invalid_param() {
-    new_test_ext().execute_with(|| {
-        assert_noop!(
-            LiquidStaking::update_xcm_fees(Origin::root(), Zero::zero()),
-            Error::<Test>::ZeroFees
         );
     })
 }

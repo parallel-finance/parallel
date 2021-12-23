@@ -5,7 +5,8 @@
 extern crate alloc;
 
 use super::*;
-use crate::pallet::{AssetIdOf, BalanceOf};
+use crate::pallet::BalanceOf;
+
 #[allow(unused_imports)]
 use crate::Pallet as AMMRoute;
 use core::convert::TryFrom;
@@ -20,10 +21,7 @@ use frame_support::{
 };
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{tokens, CurrencyId};
-use sp_runtime::{
-    traits::{AtLeast32BitUnsigned, One, StaticLookup},
-    FixedPointOperand,
-};
+use sp_runtime::traits::{One, StaticLookup};
 
 const DOT: CurrencyId = tokens::DOT;
 const XDOT: CurrencyId = tokens::XDOT;
@@ -34,15 +32,7 @@ fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::
     frame_system::Pallet::<T>::assert_last_event(generic_event.into());
 }
 
-fn initial_set_up<T: Config<I>, I: 'static>(caller: T::AccountId)
-where
-    <<T as crate::Config<I>>::Assets as Inspect<T::AccountId>>::Balance: From<u128>,
-    <<T as crate::Config<I>>::Assets as Inspect<T::AccountId>>::AssetId: From<u32>,
-    <<T as pallet_amm::Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance:
-        From<u128>,
-    <<T as pallet_amm::Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId:
-        From<u32>,
-{
+fn initial_set_up<T: Config<I>, I: 'static>(caller: T::AccountId) {
     let account_id = T::Lookup::unlookup(caller.clone());
 
     pallet_assets::Pallet::<T>::force_create(
@@ -95,17 +85,6 @@ where
 }
 
 benchmarks_instance_pallet! {
-     where_clause {
-        where
-            BalanceOf<T, I>: FixedPointOperand,
-            AssetIdOf<T, I>: AtLeast32BitUnsigned,
-            <<T as crate::Config<I>>::Assets as Inspect<T::AccountId>>::Balance: From<u128>,
-            <<T as crate::Config<I>>::Assets as Inspect<T::AccountId>>::AssetId: From<u32>,
-            <<T as pallet_amm::Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance:
-                From<u128>,
-            <<T as pallet_amm::Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId:
-            From<u32>,
-    }
     trade {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T, I>(caller.clone());

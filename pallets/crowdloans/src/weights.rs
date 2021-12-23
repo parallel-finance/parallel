@@ -61,8 +61,6 @@ pub trait WeightInfo {
 	fn slot_expired() -> Weight;
 	fn migrate_pending() -> Weight;
 	fn notification_received() -> Weight;
-	fn update_xcm_fees() -> Weight;
-	fn update_xcm_weight() -> Weight;
 }
 
 /// Weights for pallet_crowdloans using the Substrate node and recommended hardware.
@@ -132,16 +130,6 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(10 as Weight))
 			.saturating_add(T::DbWeight::get().writes(9 as Weight))
 	}
-	fn update_xcm_fees() -> Weight {
-		(35_436_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
-	}
-	fn update_xcm_weight() -> Weight {
-		(38_151_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
-	}
 }
 
 // For backwards compatibility and tests
@@ -209,15 +197,5 @@ impl WeightInfo for () {
 		(254_408_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(10 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(9 as Weight))
-	}
-	fn update_xcm_fees() -> Weight {
-		(35_436_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
-	}
-	fn update_xcm_weight() -> Weight {
-		(38_151_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
 	}
 }

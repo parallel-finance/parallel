@@ -8,14 +8,13 @@ use crate::Pallet as LM;
 use frame_benchmarking::{
     benchmarks_instance_pallet, impl_benchmark_test_suite, whitelisted_caller,
 };
-use frame_support::assert_ok;
-use frame_support::dispatch::UnfilteredDispatchable;
-use frame_support::traits::EnsureOrigin;
+use frame_support::{assert_ok, dispatch::UnfilteredDispatchable, traits::EnsureOrigin};
 use frame_system::{self, RawOrigin as SystemOrigin};
-use primitives::tokens::*;
-use primitives::{tokens, CurrencyId};
-use sp_runtime::traits::One;
-use sp_runtime::traits::StaticLookup;
+use primitives::{
+    tokens::{self, *},
+    CurrencyId,
+};
+use sp_runtime::traits::{One, StaticLookup};
 use sp_std::{convert::TryInto, prelude::*};
 
 const ASSET: CurrencyId = XDOT;
@@ -65,13 +64,6 @@ where
 }
 
 benchmarks_instance_pallet! {
-    where_clause {
-        where
-            <T::Assets as Inspect<T::AccountId>>::Balance: From<u128>,
-            <T::Assets as Inspect<T::AccountId>>::AssetId: From<u32>,
-
-    }
-
     create {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T, I>(caller.clone());
