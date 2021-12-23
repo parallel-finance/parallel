@@ -19,11 +19,14 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+mod benchmarking;
+
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
 mod tests;
 
+pub mod weights;
 pub use pallet::*;
 
 use frame_support::{
@@ -47,6 +50,7 @@ pub type BalanceOf<T> =
 
 #[frame_support::pallet]
 pub mod pallet {
+    use crate::weights::WeightInfo;
     use frame_system::pallet_prelude::{BlockNumberFor, OriginFor};
 
     use super::*;
@@ -81,6 +85,9 @@ pub mod pallet {
 
         /// The origin which can update reserve_factor, xcm_fees etc
         type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+
+        /// Weight information
+        type WeightInfo: WeightInfo;
     }
 
     #[pallet::event]
@@ -119,7 +126,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Update xcm fees amount to be used in xcm.Withdraw message
-        #[pallet::weight(10_000)]
+        #[pallet::weight(<T as Config>::WeightInfo::update_xcm_fees())]
         #[transactional]
         pub fn update_xcm_fees(
             origin: OriginFor<T>,
@@ -135,7 +142,7 @@ pub mod pallet {
         }
 
         /// Update xcm weight to be used in xcm.Transact message
-        #[pallet::weight(10_000)]
+        #[pallet::weight(<T as Config>::WeightInfo::update_xcm_weight())]
         #[transactional]
         pub fn update_xcm_weight(
             origin: OriginFor<T>,

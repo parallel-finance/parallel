@@ -6,7 +6,7 @@ use frame_support::{
     weights::constants::WEIGHT_PER_SECOND,
     PalletId,
 };
-use frame_system::{EnsureOneOf, EnsureRoot, EnsureSignedBy};
+use frame_system::EnsureRoot;
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
@@ -335,6 +335,7 @@ impl crate::Config for Test {
     type RelayNetwork = RelayNetwork;
     type NotifyTimeout = NotifyTimeout;
     type BlockNumberProvider = frame_system::Pallet<Test>;
+    type WeightInfo = ();
 }
 
 parameter_types! {

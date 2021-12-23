@@ -6135,6 +6135,7 @@ dependencies = [
  "cumulus-pallet-parachain-system",
  "cumulus-pallet-xcm",
  "cumulus-pallet-xcmp-queue",
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "kusama-runtime",
