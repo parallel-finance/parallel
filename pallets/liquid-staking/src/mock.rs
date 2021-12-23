@@ -325,6 +325,7 @@ parameter_types! {
 impl pallet_utility::Config for Test {
     type Event = Event;
     type Call = Call;
+    type PalletsOrigin = OriginCaller;
     type WeightInfo = pallet_utility::weights::SubstrateWeight<Test>;
 }
 
