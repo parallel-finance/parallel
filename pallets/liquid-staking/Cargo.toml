@@ -1,6 +1,6 @@
 [package]
 authors = ['Parallel Team']
-edition = '2018'
+edition = '2021'
 name    = 'pallet-liquid-staking'
 version = '1.7.5'
 

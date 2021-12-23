@@ -1,6 +1,6 @@
 [package]
 authors = ['Parallel Team']
-edition = '2018'
+edition = '2021'
 name    = 'pallet-amm'
 version = '1.7.5'
 

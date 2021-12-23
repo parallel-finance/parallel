@@ -2,7 +2,7 @@
 authors     = ['Parallel Team']
 build       = 'build.rs'
 description = 'A decentralized lending protocol which allow users to earn "double interests" from staking and lending'
-edition     = '2018'
+edition     = '2021'
 homepage    = 'https://parallel.fi'
 license     = 'Apache'
 name        = 'parallel'
