@@ -104,7 +104,6 @@ impl IdentifyVariant for Box<dyn sc_service::ChainSpec> {
 ///
 /// Use this macro if you don't actually need the full service, but just the builder in order to
 /// be able to perform chain operations.
-#[allow(clippy::type_complexity)]
 pub fn new_partial<RuntimeApi, Executor>(
     config: &Configuration,
 ) -> Result<

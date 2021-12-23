@@ -27,6 +27,7 @@ use frame_support::{
     traits::fungibles::{Inspect, Mutate, Transfer},
     PalletId,
 };
+use frame_system::pallet_prelude::BlockNumberFor;
 
 use primitives::{switch_relay, ump::*, Balance, CurrencyId, ParaId};
 use sp_runtime::traits::{AccountIdConversion, BlockNumberProvider, StaticLookup};
@@ -35,7 +36,6 @@ use xcm::{latest::prelude::*, DoubleEncoded};
 use xcm_executor::traits::InvertLocation;
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
-pub type BlockNumberOf<T> = <T as frame_system::Config>::BlockNumber;
 pub type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
 pub type BalanceOf<T> =
@@ -70,7 +70,7 @@ pub mod pallet {
         type NotifyTimeout: Get<BlockNumberFor<Self>>;
 
         /// The block number provider
-        type BlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberOf<Self>>;
+        type BlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
     }
 
     #[pallet::storage]
@@ -183,7 +183,7 @@ impl<T: Config> Pallet<T> {
         message: &mut Xcm<()>,
         responder: impl Into<MultiLocation>,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
-        timeout: BlockNumberOf<T>,
+        timeout: BlockNumberFor<T>,
     ) -> Result<QueryId, DispatchError> {
         let responder = responder.into();
         let dest = <T as pallet_xcm::Config>::LocationInverter::invert_location(&responder)

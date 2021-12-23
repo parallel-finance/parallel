@@ -17,7 +17,6 @@
 //! pallet-liquidity-mining is in charge of creating a governance-controlled incentivization program for our different products.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![allow(clippy::type_complexity)]
 
 extern crate alloc;
 

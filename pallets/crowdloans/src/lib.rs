@@ -947,7 +947,6 @@ pub mod pallet {
             who.using_encoded(|b| child::kill(&Self::id_from_index(index, pending), b));
         }
 
-        #[allow(clippy::type_complexity)]
         fn contribution_iterator(
             index: TrieIndex,
             pending: bool,

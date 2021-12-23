@@ -42,29 +42,16 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
     let (norm_id, para_id) = extract_parachain_id(id);
     info!(
         "Loading spec: {}, custom parachain-id = {:?}",
-        norm_id,
-        para_id.unwrap_or_else(|| ParaId::new(0)).to_string()
+        norm_id, para_id
     );
 
-    Ok(match id {
-        "heiko-dev" => Box::new(chain_spec::heiko::heiko_dev_config(
-            para_id.expect("Must specify parachain id"),
-        )),
-        "" | "heiko" => Box::new(chain_spec::heiko::heiko_config(
-            para_id.expect("Must specify parachain id"),
-        )?),
-        "parallel-dev" => Box::new(chain_spec::parallel::parallel_dev_config(
-            para_id.expect("Must specify parachain id"),
-        )),
-        "parallel" => Box::new(chain_spec::parallel::parallel_config(
-            para_id.expect("Must specify parachain id"),
-        )?),
-        "vanilla-dev" => Box::new(chain_spec::vanilla::vanilla_dev_config(
-            para_id.expect("Must specify parachain id"),
-        )),
-        "vanilla" => Box::new(chain_spec::vanilla::vanilla_config(
-            para_id.expect("Must specify parachain id"),
-        )?),
+    Ok(match norm_id {
+        "heiko-dev" => Box::new(chain_spec::heiko::heiko_dev_config(para_id)),
+        "" | "heiko" => Box::new(chain_spec::heiko::heiko_config(para_id)?),
+        "parallel-dev" => Box::new(chain_spec::parallel::parallel_dev_config(para_id)),
+        "parallel" => Box::new(chain_spec::parallel::parallel_config(para_id)?),
+        "vanilla-dev" => Box::new(chain_spec::vanilla::vanilla_dev_config(para_id)),
+        "vanilla" => Box::new(chain_spec::vanilla::vanilla_config(para_id)?),
         path => {
             let path = std::path::PathBuf::from(path);
             let starts_with = |prefix: &str| {
@@ -90,7 +77,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
 /// Extracts the normalized chain id and parachain id from the input chain id
 ///
 /// E.g. "parallel-dev-2012" yields ("parallel-dev", Some(2004))
-fn extract_parachain_id(id: &str) -> (&str, Option<ParaId>) {
+fn extract_parachain_id(id: &str) -> (&str, ParaId) {
     const DEV_PARAM_PREFIX: &str = "parallel-dev-";
 
     let (norm_id, para) = if let Some(stripped) = id.strip_prefix(DEV_PARAM_PREFIX) {
@@ -100,7 +87,10 @@ fn extract_parachain_id(id: &str) -> (&str, Option<ParaId>) {
         (id, Some(PARA_ID))
     };
 
-    (norm_id, para.map(Into::into))
+    (
+        norm_id,
+        para.map(Into::into).expect("Must specify parachain id"),
+    )
 }
 
 impl SubstrateCli for Cli {
@@ -444,7 +434,6 @@ pub fn run() -> Result<()> {
                         .map(|e| e.para_id)
                         .ok_or("The para_id is required in chain-spec.")?;
                     info!("Relaychain Chain Id: {:?}", relay_chain_id);
-                    info!("Parachain Chain Id: {:?}", para_chain_id);
 
                     let polkadot_cli = RelayChainCli::new(
                         config.base_path.as_ref().map(|x| x.path().join("polkadot")),
