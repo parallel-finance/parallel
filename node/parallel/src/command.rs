@@ -39,13 +39,10 @@ const CHAIN_NAME: &str = "Parallel";
 const PARA_ID: u32 = 2085;
 
 fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
-    let (norm_id, para_id) = extract_parachain_id(id);
-    info!(
-        "Loading spec: {}, custom parachain-id = {:?}",
-        norm_id, para_id
-    );
+    let para_id = ParaId::from(PARA_ID);
+    info!("Loading spec: {}, custom parachain-id = {:?}", id, para_id);
 
-    Ok(match norm_id {
+    Ok(match id {
         "heiko-dev" => Box::new(chain_spec::heiko::heiko_dev_config(para_id)),
         "" | "heiko" => Box::new(chain_spec::heiko::heiko_config(para_id)?),
         "parallel-dev" => Box::new(chain_spec::parallel::parallel_dev_config(para_id)),
@@ -72,25 +69,6 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
             }
         }
     })
-}
-
-/// Extracts the normalized chain id and parachain id from the input chain id
-///
-/// E.g. "parallel-dev-2012" yields ("parallel-dev", Some(2004))
-fn extract_parachain_id(id: &str) -> (&str, ParaId) {
-    const DEV_PARAM_PREFIX: &str = "parallel-dev-";
-
-    let (norm_id, para) = if let Some(stripped) = id.strip_prefix(DEV_PARAM_PREFIX) {
-        let para_id: u32 = stripped.parse().expect("Invalid parachain-id suffix");
-        (&id[..DEV_PARAM_PREFIX.len() - 1], Some(para_id))
-    } else {
-        (id, Some(PARA_ID))
-    };
-
-    (
-        norm_id,
-        para.map(Into::into).expect("Must specify parachain id"),
-    )
 }
 
 impl SubstrateCli for Cli {
