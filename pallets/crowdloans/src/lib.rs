@@ -345,6 +345,8 @@ pub mod pallet {
                 vault.contribution_strategy = contribution_strategy;
             }
 
+            Vaults::<T>::insert(crowdloan, vault.id, vault);
+
             Self::deposit_event(Event::<T>::VaultUpdated(crowdloan));
 
             Ok(())
@@ -743,7 +745,11 @@ pub mod pallet {
                     .checked_sub(amount)
                     .ok_or(ArithmeticError::Underflow)?
             };
-            Self::contribution_put(vault.trie_index, who, &new_pending, true);
+            if new_pending.is_zero() {
+                Self::contribution_kill(vault.trie_index, who, true);
+            } else {
+                Self::contribution_put(vault.trie_index, who, &new_pending, true);
+            }
             Ok(())
         }
 
@@ -753,25 +759,12 @@ pub mod pallet {
             vault: &mut Vault<T>,
             amount: BalanceOf<T>,
         ) -> DispatchResult {
-            vault.pending = vault
-                .pending
-                .checked_sub(amount)
-                .ok_or(ArithmeticError::Underflow)?;
+            Self::do_update_pending(who, vault, amount, false)?;
+
             vault.contributed = vault
                 .contributed
                 .checked_add(amount)
                 .ok_or(ArithmeticError::Overflow)?;
-
-            let (pending, _) = Self::contribution_get(vault.trie_index, who, true);
-            let new_pending = pending
-                .checked_sub(amount)
-                .ok_or(ArithmeticError::Underflow)?;
-            if new_pending.is_zero() {
-                Self::contribution_kill(vault.trie_index, who, true);
-            } else {
-                Self::contribution_put(vault.trie_index, who, &new_pending, true);
-            }
-
             let (contributed, _) = Self::contribution_get(vault.trie_index, who, false);
             let new_contributed = contributed
                 .checked_add(amount)
