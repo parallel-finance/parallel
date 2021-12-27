@@ -31,7 +31,7 @@ make help
 
 ### Local Testnet
 
-Polkadot (v0.9.12 branch)
+Polkadot (v0.9.13 branch)
 
 ```
 cargo build --release
@@ -59,7 +59,7 @@ In order to produce blocks you will need to register the parachain as detailed i
 
 Developer -> sudo -> paraSudoWrapper -> sudoScheduleParaInitialize(id, genesis)
 
-Ensure you set the `ParaId` to `2085` and the `parachain: Bool` to `Yes`.
+<!-- Ensure you set the `ParaId` to `2085` and the `parachain: Bool` to `Yes`. -->
 
 The files you will need are in the `./resources` folder, if you need to build them because you modified the code you can use the following commands
 
@@ -72,7 +72,7 @@ cargo build --release
 
 
 # export genesis state and wasm
-./target/release/parallel export-genesis-state --chain heiko-dev --parachain-id 2085 > ./resources/para-2085-genesis
+./target/release/parallel export-genesis-state --chain heiko-dev > ./resources/para-2085-genesis
 ./target/release/parallel export-genesis-wasm --chain heiko-dev > ./resources/para-2085.wasm
 ```
 

@@ -239,20 +239,11 @@ pub mod pallet {
     #[pallet::getter(fn insurance_pool)]
     pub type InsurancePool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
+    #[derive(Default)]
     #[pallet::genesis_config]
     pub struct GenesisConfig {
         pub exchange_rate: Rate,
         pub reserve_factor: Ratio,
-    }
-
-    #[cfg(feature = "std")]
-    impl Default for GenesisConfig {
-        fn default() -> Self {
-            Self {
-                exchange_rate: Rate::default(),
-                reserve_factor: Ratio::default(),
-            }
-        }
     }
 
     #[pallet::genesis_build]

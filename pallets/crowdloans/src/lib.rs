@@ -617,6 +617,7 @@ pub mod pallet {
 
         /// Migrate pending contribution by sending xcm
         /// NOTE: this should only be called when you are sure that there is no xcm in flight
+        #[allow(clippy::explicit_counter_loop)]
         #[pallet::weight(<T as Config>::WeightInfo::migrate_pending())]
         #[transactional]
         pub fn migrate_pending(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {

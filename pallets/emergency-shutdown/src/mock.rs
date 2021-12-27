@@ -1,7 +1,6 @@
 use crate as pallet_emergency_shutdown;
 use frame_support::parameter_types;
 use frame_support::traits::Contains;
-use frame_system as system;
 use frame_system::EnsureRoot;
 use sp_core::H256;
 use sp_runtime::{
@@ -46,7 +45,7 @@ impl Contains<Call> for TestBaseCallFilter {
     }
 }
 
-impl system::Config for Test {
+impl frame_system::Config for Test {
     type BaseCallFilter = CallFilterRouter;
     type BlockWeights = ();
     type BlockLength = ();
@@ -80,7 +79,7 @@ impl pallet_emergency_shutdown::Config for Test {
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-    system::GenesisConfig::default()
+    frame_system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap()
         .into()

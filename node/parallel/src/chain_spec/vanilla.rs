@@ -272,16 +272,14 @@ fn vanilla_genesis(
             code: WASM_BINARY
                 .expect("WASM binary was not build, please build it!")
                 .to_vec(),
-            changes_trie_config: Default::default(),
         },
         balances: BalancesConfig {
-            balances: initial_allocation.clone(),
+            balances: initial_allocation,
         },
         collator_selection: CollatorSelectionConfig {
             invulnerables: invulnerables.iter().cloned().map(|(acc, _)| acc).collect(),
             candidacy_bond: Zero::zero(),
             desired_candidates: 16,
-            ..Default::default()
         },
         session: SessionConfig {
             keys: invulnerables
@@ -290,7 +288,7 @@ fn vanilla_genesis(
                 .map(|(acc, aura)| {
                     (
                         acc.clone(),          // account id
-                        acc.clone(),          // validator id
+                        acc,                  // validator id
                         SessionKeys { aura }, // session keys
                     )
                 })
@@ -302,7 +300,7 @@ fn vanilla_genesis(
         sudo: SudoConfig { key: root_key },
         parachain_info: ParachainInfoConfig { parachain_id: id },
         liquid_staking: LiquidStakingConfig {
-            exchange_rate: Rate::saturating_from_rational(100, 100), // 1
+            exchange_rate: Rate::saturating_from_rational(100u32, 100u32), // 1
             reserve_factor: Ratio::from_rational(5u32, 1000u32),
         },
         democracy: DemocracyConfig::default(),

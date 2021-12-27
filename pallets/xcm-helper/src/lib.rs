@@ -35,6 +35,7 @@ use frame_support::{
     traits::fungibles::{Inspect, Mutate, Transfer},
     transactional, PalletId,
 };
+use frame_system::pallet_prelude::BlockNumberFor;
 
 use primitives::{switch_relay, ump::*, Balance, CurrencyId, ParaId};
 use sp_runtime::traits::{AccountIdConversion, BlockNumberProvider, StaticLookup};
@@ -61,9 +62,9 @@ pub mod pallet {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Assets for deposit/withdraw assets to/from crowdloan account
-        type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
-            + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
-            + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
+        type Assets: Transfer<AccountIdOf<Self>, AssetId = CurrencyId, Balance = Balance>
+            + Inspect<AccountIdOf<Self>, AssetId = CurrencyId, Balance = Balance>
+            + Mutate<AccountIdOf<Self>, AssetId = CurrencyId, Balance = Balance>;
 
         /// XCM message sender
         type XcmSender: SendXcm;
@@ -81,7 +82,7 @@ pub mod pallet {
         type NotifyTimeout: Get<BlockNumberFor<Self>>;
 
         /// The block number provider
-        type BlockNumberProvider: BlockNumberProvider<BlockNumber = Self::BlockNumber>;
+        type BlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
 
         /// The origin which can update reserve_factor, xcm_fees etc
         type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
@@ -237,7 +238,7 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
 }
 
 impl<T: Config> Pallet<T> {
-    pub fn account_id() -> T::AccountId {
+    pub fn account_id() -> AccountIdOf<T> {
         T::PalletId::get().into_account()
     }
 
@@ -245,7 +246,7 @@ impl<T: Config> Pallet<T> {
         message: &mut Xcm<()>,
         responder: impl Into<MultiLocation>,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
-        timeout: T::BlockNumber,
+        timeout: BlockNumberFor<T>,
     ) -> Result<QueryId, DispatchError> {
         let responder = responder.into();
         let dest = <T as pallet_xcm::Config>::LocationInverter::invert_location(&responder)
@@ -265,14 +266,14 @@ impl<T: Config> Pallet<T> {
     }
 }
 
-impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Pallet<T> {
+impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pallet<T> {
     fn get_xcm_fees() -> BalanceOf<T> {
         Self::xcm_fees()
     }
 
     fn add_xcm_fees(
         relay_currency: AssetIdOf<T>,
-        payer: &T::AccountId,
+        payer: &AccountIdOf<T>,
         amount: BalanceOf<T>,
     ) -> DispatchResult {
         T::Assets::transfer(relay_currency, payer, &Self::account_id(), amount, false)?;
@@ -313,7 +314,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
         para_id: ParaId,
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
-        para_account_id: T::AccountId,
+        para_account_id: AccountIdOf<T>,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
         Ok(switch_relay!({
@@ -350,7 +351,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         amount: BalanceOf<T>,
-        _who: &T::AccountId,
+        _who: &AccountIdOf<T>,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
         Ok(switch_relay!({
@@ -386,8 +387,8 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
 
     fn do_bond(
         value: BalanceOf<T>,
-        payee: RewardDestination<T::AccountId>,
-        stash: T::AccountId,
+        payee: RewardDestination<AccountIdOf<T>>,
+        stash: AccountIdOf<T>,
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         index: u16,
@@ -436,7 +437,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
 
     fn do_bond_extra(
         value: BalanceOf<T>,
-        stash: T::AccountId,
+        stash: AccountIdOf<T>,
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         index: u16,
@@ -542,7 +543,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
         num_slashing_spans: u32,
         amount: BalanceOf<T>,
         beneficiary: MultiLocation,
-        para_account_id: T::AccountId,
+        para_account_id: AccountIdOf<T>,
         relay_currency: AssetIdOf<T>,
         index: u16,
     ) -> DispatchResult {
@@ -590,7 +591,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, T::AccountId> for Palle
     }
 
     fn do_nominate(
-        targets: Vec<T::AccountId>,
+        targets: Vec<AccountIdOf<T>>,
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         index: u16,

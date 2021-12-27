@@ -7,7 +7,7 @@ KEYSTORE_PATH  							:= keystore
 SURI           							:= //Alice
 LAUNCH_CONFIG  							:= config.yml
 DOCKER_TAG     							:= latest
-RELAY_DOCKER_TAG						:= v0.9.12
+RELAY_DOCKER_TAG						:= v0.9.13
 
 .PHONY: init
 init: submodules
@@ -83,7 +83,7 @@ fmt:
 
 .PHONY: resources
 resources:
-	docker run --rm parallelfinance/parallel:$(DOCKER_TAG) export-genesis-state --chain $(CHAIN) --parachain-id $(PARA_ID) > ./resources/para-$(PARA_ID)-genesis
+	docker run --rm parallelfinance/parallel:$(DOCKER_TAG) export-genesis-state --chain $(CHAIN) > ./resources/para-$(PARA_ID)-genesis
 	docker run --rm parallelfinance/parallel:$(DOCKER_TAG) export-genesis-wasm --chain $(CHAIN) > ./resources/para-$(PARA_ID).wasm
 
 .PHONY: shutdown

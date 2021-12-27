@@ -1,14 +1,14 @@
 [package]
 authors = ['Parallel Team']
-edition = '2018'
+edition = '2021'
 name    = 'pallet-loans-rpc-runtime-api'
 version = '1.7.5'
 
 [dependencies]
 codec      = { package = 'parity-scale-codec', version = '2.3.1', default-features = false, features = ['derive'] }
 primitives = { package = 'parallel-primitives', path = '../../../../primitives', default-features = false }
-sp-api     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
-sp-runtime = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.12', default-features = false }
+sp-api     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.13', default-features = false }
+sp-runtime = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.13', default-features = false }
 
 [features]
 default = ['std']
