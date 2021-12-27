@@ -36,19 +36,30 @@ use sp_runtime::traits::Block as BlockT;
 use std::{io::Write, net::SocketAddr};
 
 const CHAIN_NAME: &str = "Parallel";
-const PARA_ID: u32 = 2085;
+const PARALLEL_PARA_ID: u32 = 2012;
+const HEIKO_PARA_ID: u32 = 2085;
+const VANILLA_PARA_ID: u32 = 2085;
 
 fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
-    let para_id = ParaId::from(PARA_ID);
-    info!("Loading spec: {}, custom parachain-id = {:?}", id, para_id);
-
     Ok(match id {
-        "heiko-dev" => Box::new(chain_spec::heiko::heiko_dev_config(para_id)),
-        "" | "heiko" => Box::new(chain_spec::heiko::heiko_config(para_id)?),
-        "parallel-dev" => Box::new(chain_spec::parallel::parallel_dev_config(para_id)),
-        "parallel" => Box::new(chain_spec::parallel::parallel_config(para_id)?),
-        "vanilla-dev" => Box::new(chain_spec::vanilla::vanilla_dev_config(para_id)),
-        "vanilla" => Box::new(chain_spec::vanilla::vanilla_config(para_id)?),
+        "heiko-dev" => Box::new(chain_spec::heiko::heiko_dev_config(ParaId::from(
+            HEIKO_PARA_ID,
+        ))),
+        "" | "heiko" => Box::new(chain_spec::heiko::heiko_config(ParaId::from(
+            HEIKO_PARA_ID,
+        ))?),
+        "parallel-dev" => Box::new(chain_spec::parallel::parallel_dev_config(ParaId::from(
+            PARALLEL_PARA_ID,
+        ))),
+        "parallel" => Box::new(chain_spec::parallel::parallel_config(ParaId::from(
+            PARALLEL_PARA_ID,
+        ))?),
+        "vanilla-dev" => Box::new(chain_spec::vanilla::vanilla_dev_config(ParaId::from(
+            VANILLA_PARA_ID,
+        ))),
+        "vanilla" => Box::new(chain_spec::vanilla::vanilla_config(ParaId::from(
+            VANILLA_PARA_ID,
+        ))?),
         path => {
             let path = std::path::PathBuf::from(path);
             let starts_with = |prefix: &str| {
