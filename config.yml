@@ -46,6 +46,8 @@ parachains:
       - --execution=wasm
       - -lxcm=trace
       - -lloans=trace
+      - -lliquidstaking=trace
+      - -lcrowdloans=trace
     relaychainFlags:
       - --wasm-execution=compiled
       - --execution=wasm
