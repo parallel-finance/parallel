@@ -3,8 +3,10 @@ use crate::mock::*;
 
 use frame_support::{
     assert_noop, assert_ok,
+    storage::child,
     traits::{Hooks, OneSessionHandler},
 };
+use codec::Encode;
 use frame_system::RawOrigin;
 use polkadot_parachain::primitives::{HeadData, ValidationCode};
 use primitives::{BlockNumber, ParaId};
@@ -713,4 +715,22 @@ fn xcm_contribute_should_work() {
     // ParaA::execute_with(|| {
     //     println!("para: {:?}", System::events());
     // });
+fn put_contribution_should_work() {
+    new_test_ext().execute_with(|| {
+        Crowdloans::contribution_put(0u32, &ALICE, &dot(5.0f64), true);
+        assert!(
+            ALICE.using_encoded(|b| { child::exists(&Crowdloans::id_from_index(0u32, true), b) })
+        )
+    })
+}
+
+#[test]
+fn kill_contribution_should_work() {
+    new_test_ext().execute_with(|| {
+        Crowdloans::contribution_put(0u32, &ALICE, &dot(5.0f64), true);
+        Crowdloans::contribution_kill(0u32, &ALICE, true);
+        assert!(
+            !ALICE.using_encoded(|b| { child::exists(&Crowdloans::id_from_index(0u32, true), b) })
+        )
+    })
 }

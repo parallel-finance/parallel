@@ -1019,7 +1019,7 @@ pub mod pallet {
             child::ChildInfo::new_default(T::Hashing::hash(&buf[..]).as_ref())
         }
 
-        fn contribution_put(
+        pub(crate) fn contribution_put(
             index: TrieIndex,
             who: &T::AccountId,
             balance: &BalanceOf<T>,
@@ -1035,7 +1035,7 @@ pub mod pallet {
             });
         }
 
-        fn contribution_get(
+        pub(crate) fn contribution_get(
             index: TrieIndex,
             who: &T::AccountId,
             kind: ChildStorageKind,
