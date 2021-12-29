@@ -6,7 +6,6 @@ use super::*;
 use crate::Pallet as Bridge;
 use frame_benchmarking::{benchmarks, whitelisted_caller};
 use frame_support::assert_ok;
-use frame_support::dispatch::UnfilteredDispatchable;
 use frame_system::RawOrigin as SystemOrigin;
 use primitives::{ChainId, CurrencyId};
 use sp_runtime::traits::StaticLookup;
@@ -102,12 +101,15 @@ benchmarks! {
         assert_ok!(Bridge::<T>::register_bridge_token(SystemOrigin::Root.into(), HKO, EHKO_CURRENCY));
         transfer_initial_balance::<T>(caller.clone());
         let tele: TeleAccount = whitelisted_caller();
-    }: _(SystemOrigin::Signed(caller), ETH, EHKO, tele, dollar(50))
+    }: _(SystemOrigin::Signed(caller), ETH, EHKO, tele.clone(), dollar(50))
+    verify {
+        assert_last_event::<T>(Event::TeleportBurned(ETH, 1, EHKO, tele, dollar(50), dollar(0)).into())
+    }
 
     materialize {
         let caller: T::AccountId = whitelisted_caller();
-        assert_ok!(Bridge::<T>::register_chain(T::RootOperatorOrigin::successful_origin(), ETH));
-        assert_ok!(Bridge::<T>::register_bridge_token(T::RootOperatorOrigin::successful_origin(), HKO, EHKO_CURRENCY));
+        assert_ok!(Bridge::<T>::register_chain(SystemOrigin::Root.into(), ETH));
+        assert_ok!(Bridge::<T>::register_bridge_token(SystemOrigin::Root.into(), HKO, EHKO_CURRENCY));
         transfer_initial_balance::<T>(caller.clone());
         let tele: TeleAccount = whitelisted_caller();
         assert_ok!(
@@ -120,14 +122,8 @@ benchmarks! {
             )
         );
         let recipient: T::AccountId = whitelisted_caller();
-        let call = Call::<T>::materialize {
-            src_id: ETH,
-            src_nonce: 1,
-            bridge_token_id: EHKO,
-            to: recipient,
-            amount: dollar(10),
-            favour: true,
-        };
-        let caller2: T::AccountId = whitelisted_caller();
-    }: { call.dispatch_bypass_filter(SystemOrigin::Signed(caller2).into())? }
+    }: _(SystemOrigin::Root, ETH, 1, EHKO, recipient.clone(), dollar(10), true)
+    verify {
+        assert_last_event::<T>(Event::MaterializeMinted(ETH, 1, EHKO, recipient, dollar(10)).into())
+    }
 }
