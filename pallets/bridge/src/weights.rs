@@ -56,7 +56,6 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
-
 	fn register_chain() -> Weight {
 		(16_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
@@ -99,39 +98,39 @@ impl WeightInfo for () {
 		(15_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
-		}
-		fn register_chain() -> Weight {
+	}
+	fn register_chain() -> Weight {
 		(16_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
-		}
-		fn unregister_chain() -> Weight {
-			(16_000_000 as Weight)
+	}
+	fn unregister_chain() -> Weight {
+		(16_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
-		}
-		fn register_bridge_token() -> Weight {
-			(20_000_000 as Weight)
+	}
+	fn register_bridge_token() -> Weight {
+		(20_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(2 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(2 as Weight))
-		}
-		fn unregister_bridge_token() -> Weight {
-			(19_000_000 as Weight)
-				.saturating_add(RocksDbWeight::get().reads(1 as Weight))
-				.saturating_add(RocksDbWeight::get().writes(2 as Weight))
-		}
-		fn set_bridge_token_fee() -> Weight {
-			(21_000_000 as Weight)
-				.saturating_add(RocksDbWeight::get().reads(2 as Weight))
-				.saturating_add(RocksDbWeight::get().writes(1 as Weight))
-		}
-		fn teleport() -> Weight {
-			(63_000_000 as Weight).saturating_add(RocksDbWeight::get().reads(4 as Weight))
-				.saturating_add(RocksDbWeight::get().writes(2 as Weight))
-		}
-		fn materialize() -> Weight {
-			(78_000_000 as Weight)
-				.saturating_add(RocksDbWeight::get().reads(7 as Weight))
-				.saturating_add(RocksDbWeight::get().writes(2 as Weight))
-		}
+	}
+	fn unregister_bridge_token() -> Weight {
+		(19_000_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(2 as Weight))
+	}
+	fn set_bridge_token_fee() -> Weight {
+		(21_000_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(2 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
+	}
+	fn teleport() -> Weight {
+		(63_000_000 as Weight).saturating_add(RocksDbWeight::get().reads(4 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(2 as Weight))
+	}
+	fn materialize() -> Weight {
+		(78_000_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(7 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(2 as Weight))
+	}
 }
