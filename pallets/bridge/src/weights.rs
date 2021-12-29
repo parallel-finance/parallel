@@ -46,7 +46,16 @@ use frame_support::{
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_bridge.
-pub trait WeightInfo {	fn set_vote_threshold() -> Weight;	fn register_chain() -> Weight;	fn unregister_chain() -> Weight;	fn register_bridge_token() -> Weight;	fn unregister_bridge_token() -> Weight;	fn set_bridge_token_fee() -> Weight;	fn teleport() -> Weight;	fn materialize() -> Weight;}
+pub trait WeightInfo {
+	fn set_vote_threshold() -> Weight;
+	fn register_chain() -> Weight;
+	fn unregister_chain() -> Weight;
+	fn register_bridge_token() -> Weight;
+	fn unregister_bridge_token() -> Weight;
+	fn set_bridge_token_fee() -> Weight;
+	fn teleport() -> Weight;
+	fn materialize() -> Weight;
+}
 
 /// Weights for pallet_bridge using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
