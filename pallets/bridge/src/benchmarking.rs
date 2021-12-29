@@ -101,7 +101,10 @@ benchmarks! {
         assert_ok!(Bridge::<T>::register_bridge_token(SystemOrigin::Root.into(), HKO, EHKO_CURRENCY));
         transfer_initial_balance::<T>(caller.clone());
         let tele: TeleAccount = whitelisted_caller();
-    }: _(SystemOrigin::Signed(caller), ETH, EHKO, tele, dollar(50))
+    }: _(SystemOrigin::Signed(caller), ETH, EHKO, tele.clone(), dollar(50))
+    verify {
+        assert_last_event::<T>(Event::TeleportBurned(ETH, 1, EHKO, tele, dollar(50), dollar(0)).into())
+    }
 
     materialize {
         let caller: T::AccountId = whitelisted_caller();
@@ -119,5 +122,8 @@ benchmarks! {
             )
         );
         let recipient: T::AccountId = whitelisted_caller();
-    }: _(SystemOrigin::Root, ETH, 1, EHKO, recipient, dollar(10), true)
+    }: _(SystemOrigin::Root, ETH, 1, EHKO, recipient.clone(), dollar(10), true)
+    verify {
+        assert_last_event::<T>(Event::MaterializeMinted(ETH, 1, EHKO, recipient, dollar(10)).into())
+    }
 }
