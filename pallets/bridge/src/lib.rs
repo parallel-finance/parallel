@@ -112,11 +112,11 @@ pub mod pallet {
         OriginNoPermission,
         /// The chain_id is invalid, it cannot be a existed chain_id or this chain_id
         ChainIdAlreadyRegistered,
-        /// The chain_id is not registed and the related operation will be invalid
+        /// The chain_id is not registered and the related operation will be invalid
         ChainIdNotRegistered,
         /// The bridge token is invalid, it cannot be a existed bridge_token_id
         BridgeTokenAlreadyRegistered,
-        /// The bridge token is not registed and the related operation will be invalid
+        /// The bridge token is not registered and the related operation will be invalid
         BridgeTokenNotRegistered,
         /// The AdminMember already vote for the proposal
         MemberAlreadyVoted,
@@ -416,17 +416,15 @@ pub mod pallet {
             amount: BalanceOf<T>,
             favour: bool,
         ) -> DispatchResult {
-            Self::ensure_admin(origin.clone())?;
+            let who = Self::ensure_admin(origin)?;
             Self::ensure_chain_registered(src_id)?;
             Self::ensure_bridge_token_registered(bridge_token_id)?;
 
-            let who = ensure_signed(origin)?;
             let call = MaterializeCall {
                 bridge_token_id,
                 to,
                 amount,
             };
-
             Self::commit_vote(who, src_id, src_nonce, call.clone(), favour)?;
             Self::resolve_proposal(src_id, src_nonce, call)
         }
@@ -455,16 +453,21 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Checks if the origin is root or admin members
-    fn ensure_admin(origin: T::Origin) -> DispatchResult {
+    fn ensure_admin(origin: T::Origin) -> Result<T::AccountId, Error<T>> {
         if T::RootOperatorOrigin::ensure_origin(origin.clone()).is_err() {
-            let who = ensure_signed(origin)?;
-            ensure!(
-                T::AdminMembers::contains(&who),
-                Error::<T>::OriginNoPermission
-            );
-        }
+            if let Ok(who) = ensure_signed(origin) {
+                ensure!(
+                    T::AdminMembers::contains(&who),
+                    Error::<T>::OriginNoPermission
+                );
 
-        Ok(())
+                Ok(who)
+            } else {
+                Err(Error::<T>::OriginNoPermission)
+            }
+        } else {
+            Ok(Default::default())
+        }
     }
 
     /// Checks if a chain is registered
