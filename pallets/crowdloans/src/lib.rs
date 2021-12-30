@@ -366,7 +366,7 @@ pub mod pallet {
 
             Self::try_mutate_vault(crowdloan, VaultPhase::Pending, |vault| {
                 ensure!(
-                    Self::contribution_iterator(vault.trie_index, true)
+                    Self::contribution_iterator(vault.trie_index, ChildStorageKind::Pending)
                         .count()
                         .is_zero()
                         && vault.pending.is_zero(),
@@ -628,7 +628,8 @@ pub mod pallet {
                 vault.phase == VaultPhase::Pending || vault.phase == VaultPhase::Closed,
                 Error::<T>::IncorrectVaultPhase
             );
-            let contributions = Self::contribution_iterator(vault.trie_index, true);
+            let contributions =
+                Self::contribution_iterator(vault.trie_index, ChildStorageKind::Pending);
             let mut migrated_count = 0u32;
             let mut all_migrated = true;
 
@@ -727,7 +728,8 @@ pub mod pallet {
             amount: BalanceOf<T>,
             addition: bool,
         ) -> DispatchResult {
-            let (pending, _) = Self::contribution_get(vault.trie_index, who, true);
+            let (pending, _) =
+                Self::contribution_get(vault.trie_index, who, ChildStorageKind::Pending);
             let new_pending = if addition {
                 vault.pending = vault
                     .pending
@@ -746,9 +748,14 @@ pub mod pallet {
                     .ok_or(ArithmeticError::Underflow)?
             };
             if new_pending.is_zero() {
-                Self::contribution_kill(vault.trie_index, who, true);
+                Self::contribution_kill(vault.trie_index, who, ChildStorageKind::Pending);
             } else {
-                Self::contribution_put(vault.trie_index, who, &new_pending, true);
+                Self::contribution_put(
+                    vault.trie_index,
+                    who,
+                    &new_pending,
+                    ChildStorageKind::Pending,
+                );
             }
             Ok(())
         }
@@ -765,11 +772,17 @@ pub mod pallet {
                 .contributed
                 .checked_add(amount)
                 .ok_or(ArithmeticError::Overflow)?;
-            let (contributed, _) = Self::contribution_get(vault.trie_index, who, false);
+            let (contributed, _) =
+                Self::contribution_get(vault.trie_index, who, ChildStorageKind::Contributed);
             let new_contributed = contributed
                 .checked_add(amount)
                 .ok_or(ArithmeticError::Overflow)?;
-            Self::contribution_put(vault.trie_index, who, &new_contributed, false);
+            Self::contribution_put(
+                vault.trie_index,
+                who,
+                &new_contributed,
+                ChildStorageKind::Contributed,
+            );
 
             Ok(())
         }
@@ -852,13 +865,13 @@ pub mod pallet {
             })
         }
 
-        fn id_from_index(index: TrieIndex, pending: bool) -> child::ChildInfo {
+        fn id_from_index(index: TrieIndex, kind: ChildStorageKind) -> child::ChildInfo {
             let mut buf = Vec::new();
             buf.extend_from_slice({
-                if pending {
-                    b"crowdloan:pending"
-                } else {
-                    b"crowdloan"
+                match kind {
+                    ChildStorageKind::Pending => b"crowdloan:pending",
+                    ChildStorageKind::Flying => b"crowdloan:flying",
+                    ChildStorageKind::Contributed => b"crowdloan:contributed",
                 }
             });
             buf.extend_from_slice(&index.encode()[..]);
@@ -869,11 +882,11 @@ pub mod pallet {
             index: TrieIndex,
             who: &T::AccountId,
             balance: &BalanceOf<T>,
-            pending: bool,
+            kind: ChildStorageKind,
         ) {
             who.using_encoded(|b| {
                 child::put(
-                    &Self::id_from_index(index, pending),
+                    &Self::id_from_index(index, kind),
                     b,
                     &(balance, &Vec::<u8>::new()),
                 )
@@ -883,26 +896,26 @@ pub mod pallet {
         fn contribution_get(
             index: TrieIndex,
             who: &T::AccountId,
-            pending: bool,
+            kind: ChildStorageKind,
         ) -> (BalanceOf<T>, Vec<u8>) {
             who.using_encoded(|b| {
                 child::get_or_default::<(BalanceOf<T>, Vec<u8>)>(
-                    &Self::id_from_index(index, pending),
+                    &Self::id_from_index(index, kind),
                     b,
                 )
             })
         }
 
-        fn contribution_kill(index: TrieIndex, who: &T::AccountId, pending: bool) {
-            who.using_encoded(|b| child::kill(&Self::id_from_index(index, pending), b));
+        fn contribution_kill(index: TrieIndex, who: &T::AccountId, kind: ChildStorageKind) {
+            who.using_encoded(|b| child::kill(&Self::id_from_index(index, kind), b));
         }
 
         fn contribution_iterator(
             index: TrieIndex,
-            pending: bool,
+            kind: ChildStorageKind,
         ) -> ChildTriePrefixIterator<(T::AccountId, (BalanceOf<T>, Vec<u8>))> {
             ChildTriePrefixIterator::<_>::with_prefix_over_key::<Identity>(
-                &Self::id_from_index(index, pending),
+                &Self::id_from_index(index, kind),
                 &[],
             )
         }
