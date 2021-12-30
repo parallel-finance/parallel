@@ -60,6 +60,8 @@ pub struct Vault<T: Config> {
     pub contributed: BalanceOf<T>,
     /// Tracks how many coins were gathered but not contributed on the relay chain
     pub pending: BalanceOf<T>,
+    /// Tracks how many coins were contributing on relaychain but didn't receive confirmation yet
+    pub flying: BalanceOf<T>,
     /// How we contribute coins to the crowdloan
     pub contribution_strategy: ContributionStrategy,
     /// parallel enforced limit
@@ -86,6 +88,7 @@ impl<T: Config> Vault<T> {
             phase: VaultPhase::Pending,
             contributed: Zero::zero(),
             pending: Zero::zero(),
+            flying: Zero::zero(),
             contribution_strategy,
             cap,
             end_block,
@@ -114,9 +117,15 @@ pub enum XcmInflightRequest<T: Config> {
     },
 }
 
-#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug)]
+#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug)]
 pub enum ChildStorageKind {
     Pending,
     Flying,
     Contributed,
+}
+
+#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug)]
+pub enum ArithmeticKind {
+    Addition,
+    Subtraction,
 }

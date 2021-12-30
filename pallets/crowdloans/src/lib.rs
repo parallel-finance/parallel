@@ -425,10 +425,23 @@ pub mod pallet {
             ensure!(total_contribution <= vault.cap, Error::<T>::ExceededCap);
 
             if vault.phase == VaultPhase::Contributing && !Self::has_vrfs() {
+                Self::do_update_contribution(
+                    &who,
+                    &mut vault,
+                    amount,
+                    ArithmeticKind::Addition,
+                    ChildStorageKind::Flying,
+                )?;
                 Self::do_contribute(&who, crowdloan, amount)?;
+            } else {
+                Self::do_update_contribution(
+                    &who,
+                    &mut vault,
+                    amount,
+                    ArithmeticKind::Addition,
+                    ChildStorageKind::Pending,
+                )?;
             }
-
-            Self::do_update_pending(&who, &mut vault, amount, true)?;
 
             Vaults::<T>::insert(crowdloan, vault.id, vault);
 
@@ -616,16 +629,15 @@ pub mod pallet {
         }
 
         /// Migrate pending contribution by sending xcm
-        /// NOTE: this should only be called when you are sure that there is no xcm in flight
         #[allow(clippy::explicit_counter_loop)]
         #[pallet::weight(<T as Config>::WeightInfo::migrate_pending())]
         #[transactional]
         pub fn migrate_pending(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
             T::MigrateOrigin::ensure_origin(origin)?;
 
-            let vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
+            let mut vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
             ensure!(
-                vault.phase == VaultPhase::Pending || vault.phase == VaultPhase::Closed,
+                vault.phase == VaultPhase::Pending || vault.phase == VaultPhase::Contributing,
                 Error::<T>::IncorrectVaultPhase
             );
             let contributions =
@@ -638,6 +650,13 @@ pub mod pallet {
                     all_migrated = false;
                     break;
                 }
+                Self::do_migrate_contribution(
+                    &who,
+                    &mut vault,
+                    amount,
+                    ChildStorageKind::Pending,
+                    ChildStorageKind::Flying,
+                )?;
                 Self::do_contribute(&who, crowdloan, amount)?;
                 migrated_count += 1;
             }
@@ -661,7 +680,7 @@ pub mod pallet {
             let responder = ensure_response(<T as Config>::Origin::from(origin))?;
             if let Response::ExecutionResult(res) = response {
                 if let Some(request) = Self::xcm_inflight(&query_id) {
-                    Self::do_notification_received(query_id, request, res.is_none())?;
+                    Self::do_notification_received(query_id, request, res)?;
                 }
 
                 Self::deposit_event(Event::<T>::NotificationReceived(
@@ -709,7 +728,8 @@ pub mod pallet {
         ) -> Result<BalanceOf<T>, ArithmeticError> {
             vault
                 .contributed
-                .checked_add(vault.pending)
+                .checked_add(vault.flying)
+                .and_then(|sum| sum.checked_add(vault.pending))
                 .and_then(|sum| sum.checked_add(amount))
                 .ok_or(ArithmeticError::Overflow)
         }
@@ -722,67 +742,110 @@ pub mod pallet {
         }
 
         #[require_transactional]
-        fn do_update_pending(
+        fn do_update_contribution(
             who: &AccountIdOf<T>,
             vault: &mut Vault<T>,
             amount: BalanceOf<T>,
-            addition: bool,
+            arithmetic_kind: ArithmeticKind,
+            child_storage_kind: ChildStorageKind,
         ) -> DispatchResult {
-            let (pending, _) =
-                Self::contribution_get(vault.trie_index, who, ChildStorageKind::Pending);
-            let new_pending = if addition {
-                vault.pending = vault
-                    .pending
-                    .checked_add(amount)
-                    .ok_or(ArithmeticError::Overflow)?;
-                pending
-                    .checked_add(amount)
-                    .ok_or(ArithmeticError::Overflow)?
-            } else {
-                vault.pending = vault
-                    .pending
-                    .checked_sub(amount)
-                    .ok_or(ArithmeticError::Underflow)?;
-                pending
-                    .checked_sub(amount)
-                    .ok_or(ArithmeticError::Underflow)?
+            use ArithmeticKind::*;
+            use ChildStorageKind::*;
+
+            let (contribution, _) =
+                Self::contribution_get(vault.trie_index, who, child_storage_kind);
+            let new_contribution = match (child_storage_kind, arithmetic_kind) {
+                (Pending, Addition) => {
+                    vault.pending = vault
+                        .pending
+                        .checked_add(amount)
+                        .ok_or(ArithmeticError::Overflow)?;
+                    contribution
+                        .checked_add(amount)
+                        .ok_or(ArithmeticError::Overflow)?
+                }
+                (Pending, Subtraction) => {
+                    vault.pending = vault
+                        .pending
+                        .checked_sub(amount)
+                        .ok_or(ArithmeticError::Underflow)?;
+                    contribution
+                        .checked_sub(amount)
+                        .ok_or(ArithmeticError::Underflow)?
+                }
+                (Flying, Addition) => {
+                    vault.flying = vault
+                        .flying
+                        .checked_add(amount)
+                        .ok_or(ArithmeticError::Overflow)?;
+                    contribution
+                        .checked_add(amount)
+                        .ok_or(ArithmeticError::Overflow)?
+                }
+                (Flying, Subtraction) => {
+                    vault.flying = vault
+                        .flying
+                        .checked_sub(amount)
+                        .ok_or(ArithmeticError::Underflow)?;
+                    contribution
+                        .checked_sub(amount)
+                        .ok_or(ArithmeticError::Underflow)?
+                }
+                (Contributed, Addition) => {
+                    vault.contributed = vault
+                        .contributed
+                        .checked_add(amount)
+                        .ok_or(ArithmeticError::Overflow)?;
+                    contribution
+                        .checked_add(amount)
+                        .ok_or(ArithmeticError::Overflow)?
+                }
+                (Contributed, Subtraction) => {
+                    vault.contributed = vault
+                        .contributed
+                        .checked_sub(amount)
+                        .ok_or(ArithmeticError::Underflow)?;
+                    contribution
+                        .checked_sub(amount)
+                        .ok_or(ArithmeticError::Underflow)?
+                }
             };
-            if new_pending.is_zero() {
-                Self::contribution_kill(vault.trie_index, who, ChildStorageKind::Pending);
+            if new_contribution.is_zero() {
+                Self::contribution_kill(vault.trie_index, who, child_storage_kind);
             } else {
                 Self::contribution_put(
                     vault.trie_index,
                     who,
-                    &new_pending,
-                    ChildStorageKind::Pending,
+                    &new_contribution,
+                    child_storage_kind,
                 );
             }
             Ok(())
         }
 
         #[require_transactional]
-        fn do_migrate_pending(
+        fn do_migrate_contribution(
             who: &AccountIdOf<T>,
             vault: &mut Vault<T>,
             amount: BalanceOf<T>,
+            src_child_storage_kind: ChildStorageKind,
+            dst_child_storage_kind: ChildStorageKind,
         ) -> DispatchResult {
-            Self::do_update_pending(who, vault, amount, false)?;
-
-            vault.contributed = vault
-                .contributed
-                .checked_add(amount)
-                .ok_or(ArithmeticError::Overflow)?;
-            let (contributed, _) =
-                Self::contribution_get(vault.trie_index, who, ChildStorageKind::Contributed);
-            let new_contributed = contributed
-                .checked_add(amount)
-                .ok_or(ArithmeticError::Overflow)?;
-            Self::contribution_put(
-                vault.trie_index,
+            Self::do_update_contribution(
                 who,
-                &new_contributed,
-                ChildStorageKind::Contributed,
-            );
+                vault,
+                amount,
+                ArithmeticKind::Subtraction,
+                src_child_storage_kind,
+            )?;
+
+            Self::do_update_contribution(
+                who,
+                vault,
+                amount,
+                ArithmeticKind::Addition,
+                dst_child_storage_kind,
+            )?;
 
             Ok(())
         }
@@ -791,8 +854,9 @@ pub mod pallet {
         fn do_notification_received(
             query_id: QueryId,
             request: XcmInflightRequest<T>,
-            executed: bool,
+            res: Option<(u32, XcmError)>,
         ) -> DispatchResult {
+            let executed = res.is_none();
             match request {
                 XcmInflightRequest::Contribute {
                     crowdloan,
@@ -807,7 +871,13 @@ pub mod pallet {
                         &Self::vault_account_id(crowdloan),
                         amount,
                     )?;
-                    Self::do_migrate_pending(&who, &mut vault, amount)?;
+                    Self::do_migrate_contribution(
+                        &who,
+                        &mut vault,
+                        amount,
+                        ChildStorageKind::Flying,
+                        ChildStorageKind::Contributed,
+                    )?;
                     Vaults::<T>::insert(crowdloan, vault.id, vault);
                 }
                 XcmInflightRequest::Contribute {
@@ -824,7 +894,13 @@ pub mod pallet {
                         amount,
                         true,
                     )?;
-                    Self::do_update_pending(&who, &mut vault, amount, false)?;
+                    Self::do_update_contribution(
+                        &who,
+                        &mut vault,
+                        amount,
+                        ArithmeticKind::Subtraction,
+                        ChildStorageKind::Flying,
+                    )?;
                     Vaults::<T>::insert(crowdloan, vault.id, vault);
                 }
                 XcmInflightRequest::Withdraw {

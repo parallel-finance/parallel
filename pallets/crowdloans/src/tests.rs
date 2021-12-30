@@ -47,6 +47,7 @@ fn create_new_vault_should_work() {
                 phase: VaultPhase::Pending,
                 contributed: Zero::zero(),
                 pending: Zero::zero(),
+                flying: Zero::zero(),
                 contribution_strategy,
                 cap,
                 end_block,
