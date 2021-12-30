@@ -757,7 +757,7 @@ pub mod pallet {
                 .unwrap_or(0)
         }
 
-        fn current_vault(crowdloan: ParaId) -> Option<Vault<T>> {
+        pub(crate) fn current_vault(crowdloan: ParaId) -> Option<Vault<T>> {
             Self::current_index(crowdloan).and_then(|index| Self::vaults(crowdloan, index))
         }
 

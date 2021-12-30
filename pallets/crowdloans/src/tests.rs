@@ -7,6 +7,10 @@ use frame_support::{
     traits::{Hooks, OneSessionHandler},
 };
 use codec::Encode;
+use frame_support::{
+    assert_err, assert_noop, assert_ok,
+    storage::{child, with_transaction},
+};
 use frame_system::RawOrigin;
 use polkadot_parachain::primitives::{HeadData, ValidationCode};
 use primitives::{BlockNumber, ParaId};
@@ -15,6 +19,7 @@ use sp_runtime::{
     MultiAddress::Id,
 };
 use xcm_simulator::TestExt;
+use xcm::latest::prelude::*;
 
 pub const VAULT_ID: u32 = 0;
 
@@ -100,6 +105,48 @@ fn create_new_vault_should_not_work_if_vault_is_already_created() {
             Error::<Test>::CTokenAlreadyTaken
         );
     });
+}
+
+#[test]
+fn open_should_work() {
+    new_test_ext().execute_with(|| {
+        // Prepare vault
+        let crowdloan = ParaId::from(1337u32);
+        let ctoken = 10;
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
+        let contribution_strategy = ContributionStrategy::XCM;
+        let amount = dot(5f64);
+
+        // create the ctoken asset
+        (Assets::force_create(
+            RawOrigin::Root.into(),
+            ctoken.unique_saturated_into(),
+            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(crowdloan)),
+            true,
+            One::one(),
+        ))
+        .unwrap();
+
+        (Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block,                            // end_block
+        ))
+        .unwrap();
+
+        let mut vault = Crowdloans::current_vault(crowdloan).unwrap();
+
+        Crowdloans::contribute(RawOrigin::Signed(ALICE).into(), crowdloan, amount, vec![]).unwrap();
+        let (pending, _) = Crowdloans::contribution_get(vault.trie_index, &ALICE, true);
+        assert!(pending == amount);
+
+        Crowdloans::migrate_pending(RawOrigin::Root.into(), crowdloan).unwrap();
+        //FIXME(Alan WANG): XCM simulator with response.
+    })
 }
 
 #[test]
