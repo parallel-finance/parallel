@@ -140,6 +140,32 @@ impl Config for XcmConfig {
     type AssetClaims = PolkadotXcm;
 }
 
+pub type KusamaCall = kusama_runtime::Call;
+pub type KusamaLocalAssetTransactor = kusama_runtime::LocalAssetTransactor;
+pub type KusamaXcmOriginToCallOrigin = kusama_runtime::LocalOriginConverter;
+pub type KusamaLocationInverter = kusama_runtime::LocationInverter;
+pub type KusamaAncestry = kusama_runtime::Ancestry;
+pub type KusamaBarrier = kusama_runtime::Barrier;
+pub type KusamaXcmPallet = kusama_runtime::XcmPallet;
+
+pub struct RelayXcmConfig;
+impl Config for RelayXcmConfig {
+    type Call = KusamaCall;
+    type XcmSender = RelayChainXcmRouter;
+    type AssetTransactor = KusamaLocalAssetTransactor;
+    type OriginConverter = KusamaXcmOriginToCallOrigin;
+    type IsReserve = ();
+    type IsTeleporter = ();
+    type LocationInverter = KusamaLocationInverter<KusamaAncestry>;
+    type Barrier = KusamaBarrier;
+    type Weigher = FixedWeightBounds<UnitWeightCost, KusamaCall, MaxInstructions>;
+    type Trader = FixedRateOfFungible<DotPerSecond, ()>;
+    type ResponseHandler = KusamaXcmPallet;
+    type SubscriptionService = KusamaXcmPallet;
+    type AssetTrap = KusamaXcmPallet;
+    type AssetClaims = KusamaXcmPallet;
+}
+
 impl cumulus_pallet_xcmp_queue::Config for Test {
     type Event = Event;
     type XcmExecutor = XcmExecutor<XcmConfig>;
@@ -479,7 +505,7 @@ decl_test_parachain! {
 decl_test_relay_chain! {
     pub struct Relay {
         Runtime = kusama_runtime::Runtime,
-        XcmConfig = kusama_runtime::XcmConfig,
+        XcmConfig = RelayXcmConfig,
         new_ext = relay_ext(),
     }
 }
@@ -492,6 +518,11 @@ decl_test_network! {
         ],
     }
 }
+
+pub type KusamaRuntime = kusama_runtime::Runtime;
+pub type RelayCrowdloanEvent = polkadot_runtime_common::crowdloan::Event<KusamaRuntime>;
+pub type RelaySystem = frame_system::Pallet<KusamaRuntime>;
+pub type RelayEvent = kusama_runtime::Event;
 
 pub fn para_a_id() -> ParaId {
     ParaId::from(1)

@@ -8,6 +8,7 @@ use sp_runtime::{
     traits::{One, UniqueSaturatedInto, Zero},
     MultiAddress::Id,
 };
+use xcm_simulator::TestExt;
 
 pub const VAULT_ID: u32 = 0;
 
@@ -615,3 +616,76 @@ fn suceed_should_work() {
         assert_eq!(vault.phase, VaultPhase::Succeeded)
     });
 }
+
+#[test]
+fn xcm_contribute_should_work() {
+    TestNet::reset();
+    let crowdloan = ParaId::from(1337u32);
+    let ctoken = 10;
+    let amount = 1_000;
+    let cap = 1_000_000_000_000;
+    let end_block = BlockNumber::from(1_000_000_000u32);
+    let contribution_strategy = ContributionStrategy::XCM;
+    ParaA::execute_with(|| {
+        // create the ctoken asset
+        assert_ok!(Assets::force_create(
+            RawOrigin::Root.into(),
+            ctoken.unique_saturated_into(),
+            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(ParaId::from(crowdloan))),
+            true,
+            One::one(),
+        ));
+
+        // create a vault to contribute to
+        assert_ok!(Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
+        ));
+
+        // do open
+        assert_ok!(Crowdloans::open(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
+        // do contribute
+        assert_ok!(Crowdloans::contribute(
+            Origin::signed(ALICE), // origin
+            crowdloan,             // crowdloan
+            amount,                // amount
+            Vec::new()
+        ));
+
+        // check that we're in the right phase
+        let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
+        assert_eq!(vault.phase, VaultPhase::Contributing);
+
+        // Crowdloans::notification_received(
+        //     pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+        //     0,
+        //     Response::ExecutionResult(None),
+        // )
+        // .unwrap();
+
+        // // check if ctoken minted to user
+        // let ctoken_balance = Assets::balance(vault.ctoken, ALICE);
+
+        // assert_eq!(ctoken_balance, amount);
+    });
+
+    Relay::execute_with(|| {
+        println!("{:?}",RelaySystem::events());
+        RelaySystem::assert_has_event(RelayEvent::Crowdloan(RelayCrowdloanEvent::Contributed(
+            ALICE, crowdloan, amount,
+        )));
+        // let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
+        // assert_eq!(ledger.total, ksm(3f64));
+    });
+}
+
+#[test]
+fn xcm_withdraw_should_work() {}
