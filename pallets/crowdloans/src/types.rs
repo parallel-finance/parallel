@@ -113,3 +113,10 @@ pub enum XcmInflightRequest<T: Config> {
         target_phase: VaultPhase,
     },
 }
+
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug)]
+pub enum ChildStorageKind {
+    Pending,
+    Flying,
+    Contributed,
+}
