@@ -141,7 +141,8 @@ fn open_should_work() {
         let mut vault = Crowdloans::current_vault(crowdloan).unwrap();
 
         Crowdloans::contribute(RawOrigin::Signed(ALICE).into(), crowdloan, amount, vec![]).unwrap();
-        let (pending, _) = Crowdloans::contribution_get(vault.trie_index, &ALICE, true);
+        let (pending, _) =
+            Crowdloans::contribution_get(vault.trie_index, &ALICE, ChildStorageKind::Pending);
         assert!(pending == amount);
 
         Crowdloans::migrate_pending(RawOrigin::Root.into(), crowdloan).unwrap();
@@ -764,20 +765,26 @@ fn xcm_contribute_should_work() {
     // });
 fn put_contribution_should_work() {
     new_test_ext().execute_with(|| {
-        Crowdloans::contribution_put(0u32, &ALICE, &dot(5.0f64), true);
-        assert!(
-            ALICE.using_encoded(|b| { child::exists(&Crowdloans::id_from_index(0u32, true), b) })
-        )
+        Crowdloans::contribution_put(0u32, &ALICE, &dot(5.0f64), ChildStorageKind::Pending);
+        assert!(ALICE.using_encoded(|b| {
+            child::exists(
+                &Crowdloans::id_from_index(0u32, ChildStorageKind::Pending),
+                b,
+            )
+        }))
     })
 }
 
 #[test]
 fn kill_contribution_should_work() {
     new_test_ext().execute_with(|| {
-        Crowdloans::contribution_put(0u32, &ALICE, &dot(5.0f64), true);
-        Crowdloans::contribution_kill(0u32, &ALICE, true);
-        assert!(
-            !ALICE.using_encoded(|b| { child::exists(&Crowdloans::id_from_index(0u32, true), b) })
-        )
+        Crowdloans::contribution_put(0u32, &ALICE, &dot(5.0f64), ChildStorageKind::Pending);
+        Crowdloans::contribution_kill(0u32, &ALICE, ChildStorageKind::Pending);
+        assert!(!ALICE.using_encoded(|b| {
+            child::exists(
+                &Crowdloans::id_from_index(0u32, ChildStorageKind::Pending),
+                b,
+            )
+        }))
     })
 }
