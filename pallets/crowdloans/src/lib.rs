@@ -671,6 +671,12 @@ pub mod pallet {
             );
             let contributions =
                 Self::contribution_iterator(vault.trie_index, ChildStorageKind::Pending);
+            // TODO: remove 2nd read
+            let count: u32 =
+                Self::contribution_iterator(vault.trie_index, ChildStorageKind::Pending)
+                    .count()
+                    .try_into()
+                    .map_err(|_| ArithmeticError::Overflow)?;
             let mut migrated_count = 0u32;
             let mut all_migrated = true;
 
@@ -678,16 +684,16 @@ pub mod pallet {
             for (who, (amount, referral_code)) in contributions {
                 if migrated_count >= T::MigrateKeysLimit::get() {
                     all_migrated = false;
-                } else {
-                    Self::do_migrate_contribution(
-                        &who,
-                        &mut vault,
-                        amount,
-                        ChildStorageKind::Pending,
-                        ChildStorageKind::Flying,
-                    )?;
-                    Self::do_contribute(&who, crowdloan, amount, referral_code)?;
+                    break;
                 }
+                Self::do_migrate_contribution(
+                    &who,
+                    &mut vault,
+                    amount,
+                    ChildStorageKind::Pending,
+                    ChildStorageKind::Flying,
+                )?;
+                Self::do_contribute(&who, crowdloan, amount, referral_code)?;
                 migrated_count += 1;
             }
 
@@ -696,7 +702,7 @@ pub mod pallet {
             } else {
                 Self::deposit_event(Event::<T>::PartiallyMigrated(
                     crowdloan,
-                    migrated_count - T::MigrateKeysLimit::get(),
+                    count - migrated_count,
                 ));
             }
 
