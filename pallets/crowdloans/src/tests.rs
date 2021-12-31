@@ -1,8 +1,12 @@
 use super::{types::*, *};
 use crate::mock::*;
 
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{
+    assert_noop, assert_ok,
+    traits::{Hooks, OneSessionHandler},
+};
 use frame_system::RawOrigin;
+use polkadot_parachain::primitives::{HeadData, Sibling, ValidationCode};
 use primitives::{BlockNumber, ParaId};
 use sp_runtime::{
     traits::{One, UniqueSaturatedInto, Zero},
@@ -620,12 +624,54 @@ fn suceed_should_work() {
 #[test]
 fn xcm_contribute_should_work() {
     TestNet::reset();
-    let crowdloan = ParaId::from(1337u32);
+    let crowdloan = parathread_id();
     let ctoken = 10;
-    let amount = 1_000;
-    let cap = 1_000_000_000_000;
+    let amount = 1_000_000_000_000;
+    let cap = 1_000_000_000_000_000;
     let end_block = BlockNumber::from(1_000_000_000u32);
     let contribution_strategy = ContributionStrategy::XCM;
+
+    Relay::execute_with(|| {
+        assert_ok!(RelayRegistrar::force_register(
+            frame_system::RawOrigin::Root.into(),
+            ALICE,
+            1000,
+            parathread_id(),
+            HeadData(vec![]),
+            ValidationCode(vec![]),
+        ));
+
+        assert_ok!(RelayParas::force_queue_action(
+            RawOrigin::Root.into(),
+            crowdloan
+        ));
+        pallet_session::CurrentIndex::<KusamaRuntime>::put(1);
+        <RelayInitializer as OneSessionHandler<AccountId>>::on_new_session(
+            false,
+            vec![].into_iter(),
+            vec![].into_iter(),
+        );
+        RelayInitializer::on_finalize(3);
+        assert_ok!(RelayCrowdloan::create(
+            kusama_runtime::Origin::signed(ALICE),
+            crowdloan,
+            amount,
+            0,
+            7,
+            10000,
+            None
+        ));
+        assert_ok!(RelayCrowdloan::edit(
+            RawOrigin::Root.into(),
+            crowdloan,
+            cap,
+            0,
+            7,
+            10000,
+            None
+        ));
+    });
+
     ParaA::execute_with(|| {
         // create the ctoken asset
         assert_ok!(Assets::force_create(
@@ -662,28 +708,14 @@ fn xcm_contribute_should_work() {
 
         // check that we're in the right phase
         let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
-        assert_eq!(vault.phase, VaultPhase::Contributing);
-
-        // Crowdloans::notification_received(
-        //     pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
-        //     0,
-        //     Response::ExecutionResult(None),
-        // )
-        // .unwrap();
-
-        // // check if ctoken minted to user
-        // let ctoken_balance = Assets::balance(vault.ctoken, ALICE);
-
-        // assert_eq!(ctoken_balance, amount);
+        assert_eq!(vault.phase, VaultPhase::Contributing);  
     });
-
     Relay::execute_with(|| {
-        println!("{:?}",RelaySystem::events());
         RelaySystem::assert_has_event(RelayEvent::Crowdloan(RelayCrowdloanEvent::Contributed(
-            ALICE, crowdloan, amount,
+            Crowdloans::para_account_id(),
+            crowdloan,
+            amount,
         )));
-        // let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
-        // assert_eq!(ledger.total, ksm(3f64));
     });
 }
 
