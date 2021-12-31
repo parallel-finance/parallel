@@ -56,7 +56,7 @@ pub mod pallet {
     use primitives::{Balance, CurrencyId, ParaId, TrieIndex};
     use sp_runtime::{
         traits::{AccountIdConversion, BlockNumberProvider, Convert, Hash, Zero},
-        ArithmeticError, DispatchError,
+        ArithmeticError, DispatchError, SaturatedConversion,
     };
     use sp_std::{boxed::Box, convert::TryInto, vec::Vec};
     use xcm::latest::prelude::*;
