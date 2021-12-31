@@ -56,7 +56,7 @@ pub mod pallet {
     use primitives::{Balance, CurrencyId, ParaId, TrieIndex};
     use sp_runtime::{
         traits::{AccountIdConversion, BlockNumberProvider, Convert, Hash, Zero},
-        ArithmeticError, DispatchError, SaturatedConversion,
+        ArithmeticError, DispatchError,
     };
     use sp_std::{boxed::Box, convert::TryInto, vec::Vec};
     use xcm::latest::prelude::*;
@@ -678,7 +678,6 @@ pub mod pallet {
             for (who, (amount, referral_code)) in contributions {
                 if migrated_count >= T::MigrateKeysLimit::get() {
                     all_migrated = false;
-                    break;
                 } else {
                     Self::do_migrate_contribution(
                         &who,
@@ -688,8 +687,8 @@ pub mod pallet {
                         ChildStorageKind::Flying,
                     )?;
                     Self::do_contribute(&who, crowdloan, amount, referral_code)?;
-                    migrated_count += 1;
                 }
+                migrated_count += 1;
             }
 
             if all_migrated {
@@ -697,9 +696,7 @@ pub mod pallet {
             } else {
                 Self::deposit_event(Event::<T>::PartiallyMigrated(
                     crowdloan,
-                    Self::contribution_iterator(vault.trie_index, ChildStorageKind::Pending)
-                        .count()
-                        .saturated_into::<u32>(),
+                    migrated_count - T::MigrateKeysLimit::get(),
                 ));
             }
 
