@@ -19,10 +19,10 @@ use super::{AccountIdOf, AssetIdOf, BalanceOf, Config};
 use codec::{Decode, Encode};
 
 use frame_system::pallet_prelude::BlockNumberFor;
+use primitives::{ParaId, TrieIndex};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, RuntimeDebug};
-
-use primitives::{ParaId, TrieIndex};
+use sp_std::vec::Vec;
 
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum VaultPhase {
@@ -109,6 +109,7 @@ pub enum XcmInflightRequest<T: Config> {
         crowdloan: ParaId,
         who: AccountIdOf<T>,
         amount: BalanceOf<T>,
+        referral_code: Vec<u8>,
     },
     Withdraw {
         crowdloan: ParaId,

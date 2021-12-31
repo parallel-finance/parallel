@@ -214,12 +214,12 @@ impl<T: Config> Pallet<T> {
                 };
                 let default = (FixedU128::zero(), Vec::new());
                 let existing = acc.get(&k2).unwrap_or(&default);
-                let total_loans_value: FixedU128;
-                if let Some(loans_value) = existing.0.checked_add(&loans_value) {
-                    total_loans_value = loans_value;
-                } else {
-                    return acc;
-                }
+                let total_loans_value: FixedU128 =
+                    if let Some(loans_value) = existing.0.checked_add(&loans_value) {
+                        loans_value
+                    } else {
+                        return acc;
+                    };
                 let mut loans_detail = existing.1.clone();
                 loans_detail.push(BorrowMisc {
                     currency: k1,

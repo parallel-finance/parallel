@@ -4,7 +4,7 @@
 
 use super::*;
 use crate::Pallet as Bridge;
-use frame_benchmarking::{benchmarks, whitelisted_caller};
+use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::assert_ok;
 use frame_system::RawOrigin as SystemOrigin;
 use primitives::{ChainId, CurrencyId};
@@ -127,3 +127,5 @@ benchmarks! {
         assert_last_event::<T>(Event::MaterializeMinted(ETH, 1, EHKO, recipient, dollar(10)).into())
     }
 }
+
+impl_benchmark_test_suite!(Bridge, crate::mock::new_test_ext(), crate::mock::Test,);
