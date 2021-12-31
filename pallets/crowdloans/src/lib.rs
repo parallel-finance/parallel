@@ -193,7 +193,7 @@ pub mod pallet {
         VaultContributeSucceed(ParaId, T::AccountId, BalanceOf<T>),
         /// Vault has failed to contribute
         /// [para_id, contributor, amount]
-        VaultContributFailed(ParaId, T::AccountId, BalanceOf<T>),
+        VaultContributeFailed(ParaId, T::AccountId, BalanceOf<T>),
         /// A user claimed refund from vault
         /// [ctoken_id, account, amount]
         VaultClaimRefund(AssetIdOf<T>, T::AccountId, BalanceOf<T>),
@@ -958,7 +958,7 @@ pub mod pallet {
                     )?;
                     Vaults::<T>::insert(crowdloan, vault.id, vault);
 
-                    Self::deposit_event(Event::<T>::VaultContributFailed(crowdloan, who, amount));
+                    Self::deposit_event(Event::<T>::VaultContributeFailed(crowdloan, who, amount));
                 }
                 XcmInflightRequest::Withdraw {
                     crowdloan,
