@@ -190,7 +190,7 @@ pub mod pallet {
         VaultDoWithdrawing(ParaId, BalanceOf<T>, VaultPhase),
         /// Vault successfully contributed
         /// [para_id, contributor, amount]
-        VaultContributeSucceed(ParaId, T::AccountId, BalanceOf<T>, Vec<u8>),
+        VaultContributed(ParaId, T::AccountId, BalanceOf<T>, Vec<u8>),
         /// A user claimed refund from vault
         /// [ctoken_id, account, amount]
         VaultClaimRefund(AssetIdOf<T>, T::AccountId, BalanceOf<T>),
@@ -918,7 +918,7 @@ pub mod pallet {
                     )?;
                     Vaults::<T>::insert(crowdloan, vault.id, vault);
 
-                    Self::deposit_event(Event::<T>::VaultContributeSucceed(
+                    Self::deposit_event(Event::<T>::VaultContributed(
                         crowdloan,
                         who,
                         amount,
