@@ -109,6 +109,7 @@ pub enum XcmInflightRequest<T: Config> {
         crowdloan: ParaId,
         who: AccountIdOf<T>,
         amount: BalanceOf<T>,
+        referral_code: Vec<u8>,
     },
     Withdraw {
         crowdloan: ParaId,
