@@ -411,6 +411,11 @@ pub mod pallet {
 
             ensure!(!Self::in_vrf(crowdloan), Error::<T>::VrfDelayInProgress);
 
+            ensure!(
+                Self::total_contribution(&vault, amount)? <= vault.cap,
+                Error::<T>::ExceededCap
+            );
+
             T::Assets::transfer(
                 T::RelayCurrency::get(),
                 &who,
@@ -418,11 +423,6 @@ pub mod pallet {
                 amount,
                 true,
             )?;
-
-            let total_contribution = Self::total_contribution(&vault, amount)?;
-
-            // throw if new value overflows cap
-            ensure!(total_contribution <= vault.cap, Error::<T>::ExceededCap);
 
             if vault.phase == VaultPhase::Contributing && !Self::has_vrfs() {
                 Self::do_update_contribution(
