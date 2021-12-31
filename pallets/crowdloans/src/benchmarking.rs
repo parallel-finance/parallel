@@ -237,7 +237,7 @@ benchmarks! {
         crowdloan
     )
     verify {
-        assert_last_event::<T>(Event::VaultFailed(crowdloan).into())
+        assert_last_event::<T>(Event::VaultDoWithdrawing(crowdloan, 0, VaultPhase::Failed).into())
     }
 
     claim_refund {
@@ -286,7 +286,7 @@ benchmarks! {
         crowdloan
     )
     verify {
-        assert_last_event::<T>(Event::VaultExpired(crowdloan).into())
+        assert_last_event::<T>(Event::VaultDoWithdrawing(crowdloan, 0, VaultPhase::Expired).into())
     }
 
     migrate_pending {
