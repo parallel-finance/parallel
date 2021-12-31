@@ -153,33 +153,62 @@ pub mod pallet {
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         /// New vault was created
+        /// [para_id, ctoken_id]
         VaultCreated(ParaId, AssetIdOf<T>),
         /// Existing vault was updated
-        VaultUpdated(ParaId),
-        /// User is contributing amount to vault
-        VaultContributing(ParaId, T::AccountId, BalanceOf<T>, Vec<u8>),
+        /// [para_id, vault_id, cap, end_block, contribution_strategy]
+        VaultUpdated(
+            ParaId,
+            u32,
+            BalanceOf<T>,
+            BlockNumberFor<T>,
+            ContributionStrategy,
+        ),
         /// Vault was opened
+        /// [para_id]
         VaultOpened(ParaId),
         /// Vault was closed
+        /// [para_id]
         VaultClosed(ParaId),
         /// Vault was reopened
+        /// [para_id]
         VaultReOpened(ParaId),
         /// Vault is successful
+        /// [para_id]
         VaultSucceeded(ParaId),
-        /// Auction is failing
-        VaultAuctionFailing(ParaId),
+        /// Vault is failing
+        /// [para_id]
+        VaultFailed(ParaId),
+        /// Vault is expiring
+        /// [para_id]
+        VaultExpired(ParaId),
+        /// Vault is trying to do contributing
+        /// [para_id, contributor, amount, referral_code]
+        VaultDoContributing(ParaId, T::AccountId, BalanceOf<T>, Vec<u8>),
+        /// Vault is trying to do withdrawing
+        /// [para_id, amount, target_phase]
+        VaultDoWithdrawing(ParaId, BalanceOf<T>, VaultPhase),
+        /// Vault successfully contributed
+        /// [para_id, contributor, amount]
+        VaultContributeSucceed(ParaId, T::AccountId, BalanceOf<T>),
+        /// Vault has failed to contribute
+        /// [para_id, contributor, amount]
+        VaultContributFailed(ParaId, T::AccountId, BalanceOf<T>),
         /// A user claimed refund from vault
+        /// [ctoken_id, account, amount]
         VaultClaimRefund(AssetIdOf<T>, T::AccountId, BalanceOf<T>),
-        /// A vault is expiring
-        VaultSlotExpiring(ParaId),
         /// Vrfs updated
+        /// [vrf_data]
         VrfsUpdated(BoundedVec<ParaId, T::MaxVrfs>),
         /// Notification received
+        /// [multi_location, query_id, res]
         NotificationReceived(Box<MultiLocation>, QueryId, Option<(u32, XcmError)>),
-        /// All migrated
+        /// All contributions migrated
+        /// [para_id]
         AllMigrated(ParaId),
-        /// Partially migrated
-        PartiallyMigrated(ParaId),
+        /// Partially contributions migrated
+        /// [para_id, non_migrated_count]
+        PartiallyMigrated(ParaId, u32),
     }
 
     #[pallet::error]
@@ -202,7 +231,7 @@ pub mod pallet {
         VrfDelayInProgress,
         /// Attempted contribution violates contribution cap
         ExceededCap,
-        /// Current relay block is greater then vault end block
+        /// Current relay block is greater than vault end block
         ExceededEndBlock,
         /// Exceeded maximum vrfs
         ExceededMaxVrfs,
@@ -245,6 +274,12 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Create a new vault via a governance decision
+        ///
+        /// - `ctoken`: ctoken is used for the vault, should be unique
+        /// - `crowdloan`: parachain id of the crowdloan, should be consistent with relaychain
+        /// - `contribution_strategy`: currently, only XCM strategy is supported.
+        /// - `cap`: the capacity limit for the vault
+        /// - `end_block`: the crowdloan end block for the vault
         #[pallet::weight(<T as Config>::WeightInfo::create_vault())]
         #[transactional]
         pub fn create_vault(
@@ -265,7 +300,7 @@ pub mod pallet {
                 Error::<T>::CTokenAlreadyTaken
             );
 
-            // users shouldn't be able to create a new vault if the previous one is not finished
+            // origin shouldn't be able to create a new vault if the previous one is not finished
             if let Some(vault) = Self::current_vault(crowdloan) {
                 if vault.phase != VaultPhase::Failed && vault.phase != VaultPhase::Expired {
                     return Err(DispatchError::from(Error::<T>::ParaIdAlreadyTaken));
@@ -345,9 +380,15 @@ pub mod pallet {
                 vault.contribution_strategy = contribution_strategy;
             }
 
-            Vaults::<T>::insert(crowdloan, vault.id, vault);
+            Vaults::<T>::insert(crowdloan, vault.id, vault.clone());
 
-            Self::deposit_event(Event::<T>::VaultUpdated(crowdloan));
+            Self::deposit_event(Event::<T>::VaultUpdated(
+                crowdloan,
+                vault.id,
+                vault.cap,
+                vault.end_block,
+                vault.contribution_strategy,
+            ));
 
             Ok(())
         }
@@ -411,6 +452,10 @@ pub mod pallet {
 
             ensure!(!Self::in_vrf(crowdloan), Error::<T>::VrfDelayInProgress);
 
+            let total_contribution = Self::total_contribution(&vault, amount)?;
+            // throw if new value overflows cap
+            ensure!(total_contribution <= vault.cap, Error::<T>::ExceededCap);
+
             T::Assets::transfer(
                 T::RelayCurrency::get(),
                 &who,
@@ -418,11 +463,6 @@ pub mod pallet {
                 amount,
                 true,
             )?;
-
-            let total_contribution = Self::total_contribution(&vault, amount)?;
-
-            // throw if new value overflows cap
-            ensure!(total_contribution <= vault.cap, Error::<T>::ExceededCap);
 
             if vault.phase == VaultPhase::Contributing && !Self::has_vrfs() {
                 Self::do_update_contribution(
@@ -453,7 +493,7 @@ pub mod pallet {
                 &amount,
             );
 
-            Self::deposit_event(Event::<T>::VaultContributing(
+            Self::deposit_event(Event::<T>::VaultDoContributing(
                 crowdloan,
                 who,
                 amount,
@@ -557,7 +597,11 @@ pub mod pallet {
 
             Self::try_mutate_vault(crowdloan, VaultPhase::Closed, |vault| {
                 Self::do_withdraw(crowdloan, vault.contributed, VaultPhase::Failed)?;
-                Self::deposit_event(Event::<T>::VaultAuctionFailing(crowdloan));
+                Self::deposit_event(Event::<T>::VaultDoWithdrawing(
+                    crowdloan,
+                    vault.contributed,
+                    VaultPhase::Failed,
+                ));
                 Ok(())
             })
         }
@@ -623,7 +667,11 @@ pub mod pallet {
 
             Self::try_mutate_vault(crowdloan, VaultPhase::Succeeded, |vault| {
                 Self::do_withdraw(crowdloan, vault.contributed, VaultPhase::Expired)?;
-                Self::deposit_event(Event::<T>::VaultSlotExpiring(crowdloan));
+                Self::deposit_event(Event::<T>::VaultDoWithdrawing(
+                    crowdloan,
+                    vault.contributed,
+                    VaultPhase::Expired,
+                ));
                 Ok(())
             })
         }
@@ -643,28 +691,31 @@ pub mod pallet {
             let contributions =
                 Self::contribution_iterator(vault.trie_index, ChildStorageKind::Pending);
             let mut migrated_count = 0u32;
+            let mut non_migrated_count = 0u32;
             let mut all_migrated = true;
 
+            // single migration has a processing limit
             for (who, (amount, _)) in contributions {
                 if migrated_count >= T::MigrateKeysLimit::get() {
                     all_migrated = false;
-                    break;
+                    non_migrated_count += 1;
+                } else {
+                    Self::do_migrate_contribution(
+                        &who,
+                        &mut vault,
+                        amount,
+                        ChildStorageKind::Pending,
+                        ChildStorageKind::Flying,
+                    )?;
+                    Self::do_contribute(&who, crowdloan, amount)?;
+                    migrated_count += 1;
                 }
-                Self::do_migrate_contribution(
-                    &who,
-                    &mut vault,
-                    amount,
-                    ChildStorageKind::Pending,
-                    ChildStorageKind::Flying,
-                )?;
-                Self::do_contribute(&who, crowdloan, amount)?;
-                migrated_count += 1;
             }
 
             if all_migrated {
                 Self::deposit_event(Event::<T>::AllMigrated(crowdloan));
             } else {
-                Self::deposit_event(Event::<T>::PartiallyMigrated(crowdloan));
+                Self::deposit_event(Event::<T>::PartiallyMigrated(crowdloan, non_migrated_count));
             }
 
             Ok(())
@@ -741,6 +792,7 @@ pub mod pallet {
             })
         }
 
+        /// Get and recalculate the user's contribution for the specified kind of child storage
         #[require_transactional]
         fn do_update_contribution(
             who: &AccountIdOf<T>,
@@ -879,6 +931,8 @@ pub mod pallet {
                         ChildStorageKind::Contributed,
                     )?;
                     Vaults::<T>::insert(crowdloan, vault.id, vault);
+
+                    Self::deposit_event(Event::<T>::VaultContributeSucceed(crowdloan, who, amount));
                 }
                 XcmInflightRequest::Contribute {
                     crowdloan,
@@ -902,6 +956,8 @@ pub mod pallet {
                         ChildStorageKind::Flying,
                     )?;
                     Vaults::<T>::insert(crowdloan, vault.id, vault);
+
+                    Self::deposit_event(Event::<T>::VaultContributFailed(crowdloan, who, amount));
                 }
                 XcmInflightRequest::Withdraw {
                     crowdloan,
@@ -917,6 +973,16 @@ pub mod pallet {
                     )?;
                     vault.phase = target_phase;
                     Vaults::<T>::insert(crowdloan, vault.id, vault);
+
+                    match target_phase {
+                        VaultPhase::Failed => {
+                            Self::deposit_event(Event::<T>::VaultFailed(crowdloan));
+                        }
+                        VaultPhase::Expired => {
+                            Self::deposit_event(Event::<T>::VaultExpired(crowdloan));
+                        }
+                        _ => { /* do nothing */ }
+                    }
                 }
                 _ => {}
             }
