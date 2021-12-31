@@ -21,7 +21,7 @@ use codec::{Decode, Encode};
 use frame_system::pallet_prelude::BlockNumberFor;
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, RuntimeDebug};
-
+use sp_std::vec::Vec;
 use primitives::{ParaId, TrieIndex};
 
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
