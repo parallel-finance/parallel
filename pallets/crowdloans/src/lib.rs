@@ -467,6 +467,7 @@ pub mod pallet {
                     &who,
                     &mut vault,
                     amount,
+                    Some(referral_code.clone()),
                     ArithmeticKind::Addition,
                     ChildStorageKind::Flying,
                 )?;
@@ -476,6 +477,7 @@ pub mod pallet {
                     &who,
                     &mut vault,
                     amount,
+                    Some(referral_code.clone()),
                     ArithmeticKind::Addition,
                     ChildStorageKind::Pending,
                 )?;
@@ -786,14 +788,16 @@ pub mod pallet {
             who: &AccountIdOf<T>,
             vault: &mut Vault<T>,
             amount: BalanceOf<T>,
+            new_referral_code: Option<Vec<u8>>,
             arithmetic_kind: ArithmeticKind,
             child_storage_kind: ChildStorageKind,
         ) -> DispatchResult {
             use ArithmeticKind::*;
             use ChildStorageKind::*;
 
-            let (contribution, _) =
+            let (contribution, old_referral_code) =
                 Self::contribution_get(vault.trie_index, who, child_storage_kind);
+            let referral_code = new_referral_code.unwrap_or(old_referral_code);
             let new_contribution = match (child_storage_kind, arithmetic_kind) {
                 (Pending, Addition) => {
                     vault.pending = vault
@@ -857,6 +861,7 @@ pub mod pallet {
                     vault.trie_index,
                     who,
                     &new_contribution,
+                    &referral_code,
                     child_storage_kind,
                 );
             }
@@ -875,6 +880,7 @@ pub mod pallet {
                 who,
                 vault,
                 amount,
+                None,
                 ArithmeticKind::Subtraction,
                 src_child_storage_kind,
             )?;
@@ -883,6 +889,7 @@ pub mod pallet {
                 who,
                 vault,
                 amount,
+                None,
                 ArithmeticKind::Addition,
                 dst_child_storage_kind,
             )?;
@@ -947,6 +954,7 @@ pub mod pallet {
                         &who,
                         &mut vault,
                         amount,
+                        None,
                         ArithmeticKind::Subtraction,
                         ChildStorageKind::Flying,
                     )?;
@@ -1017,13 +1025,14 @@ pub mod pallet {
             index: TrieIndex,
             who: &T::AccountId,
             balance: &BalanceOf<T>,
+            referral_code: &[u8],
             kind: ChildStorageKind,
         ) {
             who.using_encoded(|b| {
                 child::put(
                     &Self::id_from_index(index, kind),
                     b,
-                    &(balance, &Vec::<u8>::new()),
+                    &(balance, referral_code),
                 )
             });
         }
