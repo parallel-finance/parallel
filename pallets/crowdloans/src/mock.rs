@@ -9,7 +9,7 @@ use frame_support::{
 use frame_system::{EnsureOneOf, EnsureRoot, EnsureSignedBy};
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
-use polkadot_parachain::primitives::{HeadData, Sibling, ValidationCode};
+use polkadot_parachain::primitives::Sibling;
 use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId};
 use sp_core::H256;
 use sp_runtime::{
@@ -537,7 +537,6 @@ pub type RelayCrowdloan = polkadot_runtime_common::crowdloan::Pallet<KusamaRunti
 pub type RelayInitializer = polkadot_runtime_parachains::initializer::Pallet<KusamaRuntime>;
 pub type RelayCrowdloanEvent = polkadot_runtime_common::crowdloan::Event<KusamaRuntime>;
 pub type RelaySystem = frame_system::Pallet<KusamaRuntime>;
-pub type RelaySession = pallet_session::Pallet<KusamaRuntime>;
 pub type RelayEvent = kusama_runtime::Event;
 
 pub fn para_a_id() -> ParaId {

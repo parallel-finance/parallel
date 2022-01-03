@@ -6,7 +6,7 @@ use frame_support::{
     traits::{Hooks, OneSessionHandler},
 };
 use frame_system::RawOrigin;
-use polkadot_parachain::primitives::{HeadData, Sibling, ValidationCode};
+use polkadot_parachain::primitives::{HeadData, ValidationCode};
 use primitives::{BlockNumber, ParaId};
 use sp_runtime::{
     traits::{One, UniqueSaturatedInto, Zero},
@@ -661,15 +661,6 @@ fn xcm_contribute_should_work() {
             10000,
             None
         ));
-        assert_ok!(RelayCrowdloan::edit(
-            RawOrigin::Root.into(),
-            crowdloan,
-            cap,
-            0,
-            7,
-            10000,
-            None
-        ));
     });
 
     ParaA::execute_with(|| {
@@ -716,5 +707,10 @@ fn xcm_contribute_should_work() {
             crowdloan,
             amount,
         )));
+        // println!("relay: {:?}", RelaySystem::events());
     });
+
+    // ParaA::execute_with(|| {
+    //     println!("para: {:?}", System::events());
+    // });
 }
