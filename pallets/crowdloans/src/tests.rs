@@ -708,7 +708,7 @@ fn xcm_contribute_should_work() {
 
         // check that we're in the right phase
         let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
-        assert_eq!(vault.phase, VaultPhase::Contributing);  
+        assert_eq!(vault.phase, VaultPhase::Contributing);
     });
     Relay::execute_with(|| {
         RelaySystem::assert_has_event(RelayEvent::Crowdloan(RelayCrowdloanEvent::Contributed(
@@ -718,6 +718,3 @@ fn xcm_contribute_should_work() {
         )));
     });
 }
-
-#[test]
-fn xcm_withdraw_should_work() {}
