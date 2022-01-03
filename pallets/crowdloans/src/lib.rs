@@ -264,9 +264,8 @@ pub mod pallet {
     pub type NextTrieIndex<T> = StorageValue<_, u32, ValueQuery>;
 
     #[pallet::storage]
-    #[pallet::getter(fn xcm_inflight)]
-    pub type XcmInflight<T> =
-        StorageMap<_, Blake2_128Concat, QueryId, XcmInflightRequest<T>, OptionQuery>;
+    #[pallet::getter(fn xcm_request)]
+    pub type XcmRequests<T> = StorageMap<_, Blake2_128Concat, QueryId, XcmRequest<T>, OptionQuery>;
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
@@ -660,7 +659,6 @@ pub mod pallet {
         }
 
         /// Migrate pending contribution by sending xcm
-        #[allow(clippy::explicit_counter_loop)]
         #[pallet::weight(<T as Config>::WeightInfo::migrate_pending())]
         #[transactional]
         pub fn migrate_pending(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
@@ -720,7 +718,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let responder = ensure_response(<T as Config>::Origin::from(origin))?;
             if let Response::ExecutionResult(res) = response {
-                if let Some(request) = Self::xcm_inflight(&query_id) {
+                if let Some(request) = Self::xcm_request(&query_id) {
                     Self::do_notification_received(query_id, request, res)?;
                 }
 
@@ -900,12 +898,12 @@ pub mod pallet {
         #[require_transactional]
         fn do_notification_received(
             query_id: QueryId,
-            request: XcmInflightRequest<T>,
+            request: XcmRequest<T>,
             res: Option<(u32, XcmError)>,
         ) -> DispatchResult {
             let executed = res.is_none();
             match request {
-                XcmInflightRequest::Contribute {
+                XcmRequest::Contribute {
                     crowdloan,
                     who,
                     amount,
@@ -935,7 +933,7 @@ pub mod pallet {
                         referral_code,
                     ));
                 }
-                XcmInflightRequest::Contribute {
+                XcmRequest::Contribute {
                     crowdloan,
                     who,
                     amount,
@@ -960,7 +958,7 @@ pub mod pallet {
                     )?;
                     Vaults::<T>::insert(crowdloan, vault.id, vault);
                 }
-                XcmInflightRequest::Withdraw {
+                XcmRequest::Withdraw {
                     crowdloan,
                     amount,
                     target_phase,
@@ -989,7 +987,7 @@ pub mod pallet {
             }
 
             if executed {
-                XcmInflight::<T>::remove(&query_id);
+                XcmRequests::<T>::remove(&query_id);
             }
 
             Ok(())
@@ -1080,9 +1078,9 @@ pub mod pallet {
                 Self::notify_placeholder(),
             )?;
 
-            XcmInflight::<T>::insert(
+            XcmRequests::<T>::insert(
                 query_id,
-                XcmInflightRequest::Contribute {
+                XcmRequest::Contribute {
                     crowdloan,
                     who: who.clone(),
                     amount,
@@ -1121,9 +1119,9 @@ pub mod pallet {
                 Self::notify_placeholder(),
             )?;
 
-            XcmInflight::<T>::insert(
+            XcmRequests::<T>::insert(
                 query_id,
-                XcmInflightRequest::Withdraw {
+                XcmRequest::Withdraw {
                     crowdloan,
                     amount,
                     target_phase,
