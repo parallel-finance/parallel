@@ -27,23 +27,23 @@ use sp_std::vec::Vec;
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum VaultPhase {
     /// Vault is open for contributions but wont execute contribute call on relaychain
-    Pending = 0_isize,
+    Pending = 0,
     /// Vault is open for contributions
-    Contributing = 1_isize,
+    Contributing = 1,
     /// The vault is closed and we should avoid future contributions. This happens when
     /// - there are no contribution
     /// - user cancelled
     /// - crowdloan reached its cap
     /// - parachain won the slot
-    Closed = 2_isize,
+    Closed = 2,
     /// The vault's crowdloan failed, we have to distribute its assets back
     /// to the contributors
-    Failed = 3_isize,
+    Failed = 3,
     /// Phase between Closed and Expired so we know this parachain won the auction
-    Succeeded = 4_isize,
+    Succeeded = 4,
     /// The vault's crowdloan and its associated parachain slot expired, it is
     /// now possible to get back the money we put in
-    Expired = 5_isize,
+    Expired = 5,
 }
 
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
@@ -99,12 +99,12 @@ impl<T: Config> Vault<T> {
 
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum ContributionStrategy {
-    XCM = 0_isize,
+    XCM = 0,
 }
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 #[scale_info(skip_type_params(T))]
-pub enum XcmInflightRequest<T: Config> {
+pub enum XcmRequest<T: Config> {
     Contribute {
         crowdloan: ParaId,
         who: AccountIdOf<T>,
