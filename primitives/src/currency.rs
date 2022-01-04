@@ -118,15 +118,21 @@ impl<
                     let gift_account = GiftAccount::get();
                     let native_currency_id = NativeCurrencyId::get();
                     let gift_amount = GiftConvert::convert(amount);
+                    let beneficiary_native_balance =
+                        MultiCurrency::reducible_balance(native_currency_id, &who, true);
                     let reducible_balance =
                         MultiCurrency::reducible_balance(native_currency_id, &gift_account, false);
 
-                    if !gift_amount.is_zero() && reducible_balance >= gift_amount {
+                    if !gift_amount.is_zero()
+                        && reducible_balance >= gift_amount
+                        && beneficiary_native_balance < gift_amount
+                    {
+                        let diff = gift_amount - beneficiary_native_balance;
                         if let Err(e) = MultiCurrency::transfer(
                             native_currency_id,
                             &gift_account,
                             &who,
-                            gift_amount,
+                            diff,
                             false,
                         ) {
                             log::error!(
@@ -136,7 +142,7 @@ impl<
                                 currency_id,
                                 amount,
                                 native_currency_id,
-                                gift_amount,
+                                diff,
                                 e
                             );
                         }
