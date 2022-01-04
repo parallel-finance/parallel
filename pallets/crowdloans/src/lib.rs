@@ -1006,7 +1006,7 @@ pub mod pallet {
             })
         }
 
-        fn id_from_index(index: TrieIndex, kind: ChildStorageKind) -> child::ChildInfo {
+        pub(crate) fn id_from_index(index: TrieIndex, kind: ChildStorageKind) -> child::ChildInfo {
             let mut buf = Vec::new();
             buf.extend_from_slice({
                 match kind {
@@ -1048,7 +1048,11 @@ pub mod pallet {
             })
         }
 
-        fn contribution_kill(index: TrieIndex, who: &T::AccountId, kind: ChildStorageKind) {
+        pub(crate) fn contribution_kill(
+            index: TrieIndex, 
+            who: &T::AccountId, 
+            kind: ChildStorageKind
+        ) {
             who.using_encoded(|b| child::kill(&Self::id_from_index(index, kind), b));
         }
 
