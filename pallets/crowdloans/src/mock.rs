@@ -140,6 +140,43 @@ impl Config for XcmConfig {
     type AssetClaims = PolkadotXcm;
 }
 
+type KusamaXcmOriginToCallOrigin = (
+    // A `Signed` origin of the sovereign account that the original location controls.
+    SovereignSignedViaLocation<kusama_runtime::SovereignAccountOf, kusama_runtime::Origin>,
+    // A child parachain, natively expressed, has the `Parachain` origin.
+    ChildParachainAsNative<polkadot_runtime_parachains::origin::Origin, kusama_runtime::Origin>,
+    // The AccountId32 location type can be expressed natively as a `Signed` origin.
+    SignedAccountId32AsNative<kusama_runtime::KusamaNetwork, kusama_runtime::Origin>,
+    // A system child parachain, expressed as a Superuser, converts to the `Root` origin.
+    ChildSystemParachainAsSuperuser<ParaId, kusama_runtime::Origin>,
+);
+
+pub type KusamaCall = kusama_runtime::Call;
+pub type KusamaLocalAssetTransactor = kusama_runtime::LocalAssetTransactor;
+// pub type KusamaXcmOriginToCallOrigin = kusama_runtime::LocalOriginConverter;
+// pub type KusamaLocationInverter = kusama_runtime::LocationInverter;
+pub type KusamaAncestry = kusama_runtime::Ancestry;
+pub type KusamaBarrier = kusama_runtime::Barrier;
+pub type KusamaXcmPallet = kusama_runtime::XcmPallet;
+
+pub struct RelayXcmConfig;
+impl Config for RelayXcmConfig {
+    type Call = KusamaCall;
+    type XcmSender = RelayChainXcmRouter;
+    type AssetTransactor = KusamaLocalAssetTransactor;
+    type OriginConverter = KusamaXcmOriginToCallOrigin;
+    type IsReserve = ();
+    type IsTeleporter = ();
+    type LocationInverter = LocationInverter<KusamaAncestry>;
+    type Barrier = KusamaBarrier;
+    type Weigher = FixedWeightBounds<UnitWeightCost, KusamaCall, MaxInstructions>;
+    type Trader = FixedRateOfFungible<DotPerSecond, ()>;
+    type ResponseHandler = KusamaXcmPallet;
+    type SubscriptionService = KusamaXcmPallet;
+    type AssetTrap = KusamaXcmPallet;
+    type AssetClaims = KusamaXcmPallet;
+}
+
 impl cumulus_pallet_xcmp_queue::Config for Test {
     type Event = Event;
     type XcmExecutor = XcmExecutor<XcmConfig>;
@@ -479,7 +516,7 @@ decl_test_parachain! {
 decl_test_relay_chain! {
     pub struct Relay {
         Runtime = kusama_runtime::Runtime,
-        XcmConfig = kusama_runtime::XcmConfig,
+        XcmConfig = RelayXcmConfig,
         new_ext = relay_ext(),
     }
 }
@@ -493,8 +530,21 @@ decl_test_network! {
     }
 }
 
+pub type KusamaRuntime = kusama_runtime::Runtime;
+pub type RelayRegistrar = polkadot_runtime_common::paras_registrar::Pallet<KusamaRuntime>;
+pub type RelayParas = polkadot_runtime_parachains::paras::Pallet<KusamaRuntime>;
+pub type RelayCrowdloan = polkadot_runtime_common::crowdloan::Pallet<KusamaRuntime>;
+pub type RelayInitializer = polkadot_runtime_parachains::initializer::Pallet<KusamaRuntime>;
+pub type RelayCrowdloanEvent = polkadot_runtime_common::crowdloan::Event<KusamaRuntime>;
+pub type RelaySystem = frame_system::Pallet<KusamaRuntime>;
+pub type RelayEvent = kusama_runtime::Event;
+
 pub fn para_a_id() -> ParaId {
     ParaId::from(1)
+}
+
+pub fn parathread_id() -> ParaId {
+    ParaId::from(2001)
 }
 
 pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
@@ -516,7 +566,7 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         System::set_block_number(1);
         Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
         Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100_000 * DOT_DECIMAL).unwrap();
         Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
         Assets::mint(
             Origin::signed(ALICE),
@@ -539,7 +589,7 @@ pub fn relay_ext() -> sp_io::TestExternalities {
 
     pallet_balances::GenesisConfig::<Runtime> {
         balances: vec![
-            (ALICE, 100 * DOT_DECIMAL),
+            (ALICE, 100_000 * DOT_DECIMAL),
             (para_a_id().into_account(), 1_000_000 * DOT_DECIMAL),
         ],
     }

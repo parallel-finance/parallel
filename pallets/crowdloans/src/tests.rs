@@ -1,13 +1,18 @@
 use super::{types::*, *};
 use crate::mock::*;
 
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{
+    assert_noop, assert_ok,
+    traits::{Hooks, OneSessionHandler},
+};
 use frame_system::RawOrigin;
+use polkadot_parachain::primitives::{HeadData, ValidationCode};
 use primitives::{BlockNumber, ParaId};
 use sp_runtime::{
     traits::{One, UniqueSaturatedInto, Zero},
     MultiAddress::Id,
 };
+use xcm_simulator::TestExt;
 
 pub const VAULT_ID: u32 = 0;
 
@@ -614,4 +619,98 @@ fn suceed_should_work() {
         let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
         assert_eq!(vault.phase, VaultPhase::Succeeded)
     });
+}
+
+#[test]
+fn xcm_contribute_should_work() {
+    TestNet::reset();
+    let crowdloan = parathread_id();
+    let ctoken = 10;
+    let amount = 1_000_000_000_000;
+    let cap = 1_000_000_000_000_000;
+    let end_block = BlockNumber::from(1_000_000_000u32);
+    let contribution_strategy = ContributionStrategy::XCM;
+
+    Relay::execute_with(|| {
+        assert_ok!(RelayRegistrar::force_register(
+            frame_system::RawOrigin::Root.into(),
+            ALICE,
+            1000,
+            parathread_id(),
+            HeadData(vec![]),
+            ValidationCode(vec![]),
+        ));
+
+        assert_ok!(RelayParas::force_queue_action(
+            RawOrigin::Root.into(),
+            crowdloan
+        ));
+        pallet_session::CurrentIndex::<KusamaRuntime>::put(1);
+        <RelayInitializer as OneSessionHandler<AccountId>>::on_new_session(
+            false,
+            vec![].into_iter(),
+            vec![].into_iter(),
+        );
+        RelayInitializer::on_finalize(3);
+        assert_ok!(RelayCrowdloan::create(
+            kusama_runtime::Origin::signed(ALICE),
+            crowdloan,
+            amount,
+            0,
+            7,
+            10000,
+            None
+        ));
+    });
+
+    ParaA::execute_with(|| {
+        // create the ctoken asset
+        assert_ok!(Assets::force_create(
+            RawOrigin::Root.into(),
+            ctoken.unique_saturated_into(),
+            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(ParaId::from(crowdloan))),
+            true,
+            One::one(),
+        ));
+
+        // create a vault to contribute to
+        assert_ok!(Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
+        ));
+
+        // do open
+        assert_ok!(Crowdloans::open(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
+        // do contribute
+        assert_ok!(Crowdloans::contribute(
+            Origin::signed(ALICE), // origin
+            crowdloan,             // crowdloan
+            amount,                // amount
+            Vec::new()
+        ));
+
+        // check that we're in the right phase
+        let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
+        assert_eq!(vault.phase, VaultPhase::Contributing);
+    });
+    Relay::execute_with(|| {
+        RelaySystem::assert_has_event(RelayEvent::Crowdloan(RelayCrowdloanEvent::Contributed(
+            Crowdloans::para_account_id(),
+            crowdloan,
+            amount,
+        )));
+        // println!("relay: {:?}", RelaySystem::events());
+    });
+
+    // ParaA::execute_with(|| {
+    //     println!("para: {:?}", System::events());
+    // });
 }
