@@ -1,8 +1,10 @@
 use super::{types::*, *};
 use crate::mock::*;
 
+use codec::Encode;
 use frame_support::{
     assert_noop, assert_ok,
+    storage::child,
     traits::{Hooks, OneSessionHandler},
 };
 use frame_system::RawOrigin;
@@ -98,6 +100,62 @@ fn create_new_vault_should_not_work_if_vault_is_already_created() {
             Error::<Test>::CTokenAlreadyTaken
         );
     });
+}
+
+#[test]
+fn open_should_work() {
+    new_test_ext().execute_with(|| {
+        // Prepare vault
+        let crowdloan = ParaId::from(1337u32);
+        let ctoken = 10;
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
+        let contribution_strategy = ContributionStrategy::XCM;
+        let amount = dot(5f64);
+
+        // create the ctoken asset
+        (Assets::force_create(
+            RawOrigin::Root.into(),
+            ctoken.unique_saturated_into(),
+            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(crowdloan)),
+            true,
+            One::one(),
+        ))
+        .unwrap();
+
+        (Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block,                            // end_block
+        ))
+        .unwrap();
+
+        let vault = Crowdloans::current_vault(crowdloan).unwrap();
+
+        Crowdloans::contribute(RawOrigin::Signed(ALICE).into(), crowdloan, amount, vec![]).unwrap();
+        let (pending, _) =
+            Crowdloans::contribution_get(vault.trie_index, &ALICE, ChildStorageKind::Pending);
+        assert!(pending == amount);
+
+        Crowdloans::migrate_pending(RawOrigin::Root.into(), crowdloan).unwrap();
+        let (flying, _) =
+            Crowdloans::contribution_get(vault.trie_index, &ALICE, ChildStorageKind::Flying);
+        assert!(flying == amount);
+
+        Crowdloans::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
+        )
+        .unwrap();
+
+        let (contributed, _) =
+            Crowdloans::contribution_get(vault.trie_index, &ALICE, ChildStorageKind::Contributed);
+        assert!(contributed == amount);
+    })
 }
 
 #[test]
@@ -709,8 +767,46 @@ fn xcm_contribute_should_work() {
         )));
         // println!("relay: {:?}", RelaySystem::events());
     });
-
     // ParaA::execute_with(|| {
     //     println!("para: {:?}", System::events());
     // });
+}
+
+#[test]
+fn put_contribution_should_work() {
+    new_test_ext().execute_with(|| {
+        Crowdloans::contribution_put(
+            0u32,
+            &ALICE,
+            &dot(5.0f64),
+            &[0u8],
+            ChildStorageKind::Pending,
+        );
+        assert!(ALICE.using_encoded(|b| {
+            child::exists(
+                &Crowdloans::id_from_index(0u32, ChildStorageKind::Pending),
+                b,
+            )
+        }))
+    })
+}
+
+#[test]
+fn kill_contribution_should_work() {
+    new_test_ext().execute_with(|| {
+        Crowdloans::contribution_put(
+            0u32,
+            &ALICE,
+            &dot(5.0f64),
+            &[0u8],
+            ChildStorageKind::Pending,
+        );
+        Crowdloans::contribution_kill(0u32, &ALICE, ChildStorageKind::Pending);
+        assert!(!ALICE.using_encoded(|b| {
+            child::exists(
+                &Crowdloans::id_from_index(0u32, ChildStorageKind::Pending),
+                b,
+            )
+        }))
+    })
 }

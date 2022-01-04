@@ -693,6 +693,7 @@ pub mod pallet {
                     ChildStorageKind::Pending,
                     ChildStorageKind::Flying,
                 )?;
+                Vaults::<T>::insert(crowdloan, vault.id, vault.clone());
                 Self::do_contribute(&who, crowdloan, amount, referral_code)?;
                 migrated_count += 1;
             }
@@ -757,7 +758,7 @@ pub mod pallet {
                 .unwrap_or(0)
         }
 
-        fn current_vault(crowdloan: ParaId) -> Option<Vault<T>> {
+        pub(crate) fn current_vault(crowdloan: ParaId) -> Option<Vault<T>> {
             Self::current_index(crowdloan).and_then(|index| Self::vaults(crowdloan, index))
         }
 
@@ -902,6 +903,7 @@ pub mod pallet {
             res: Option<(u32, XcmError)>,
         ) -> DispatchResult {
             let executed = res.is_none();
+
             match request {
                 XcmRequest::Contribute {
                     crowdloan,
@@ -1006,7 +1008,7 @@ pub mod pallet {
             })
         }
 
-        fn id_from_index(index: TrieIndex, kind: ChildStorageKind) -> child::ChildInfo {
+        pub(crate) fn id_from_index(index: TrieIndex, kind: ChildStorageKind) -> child::ChildInfo {
             let mut buf = Vec::new();
             buf.extend_from_slice({
                 match kind {
@@ -1019,7 +1021,7 @@ pub mod pallet {
             child::ChildInfo::new_default(T::Hashing::hash(&buf[..]).as_ref())
         }
 
-        fn contribution_put(
+        pub(crate) fn contribution_put(
             index: TrieIndex,
             who: &T::AccountId,
             balance: &BalanceOf<T>,
@@ -1035,7 +1037,7 @@ pub mod pallet {
             });
         }
 
-        fn contribution_get(
+        pub(crate) fn contribution_get(
             index: TrieIndex,
             who: &T::AccountId,
             kind: ChildStorageKind,
@@ -1048,7 +1050,11 @@ pub mod pallet {
             })
         }
 
-        fn contribution_kill(index: TrieIndex, who: &T::AccountId, kind: ChildStorageKind) {
+        pub(crate) fn contribution_kill(
+            index: TrieIndex,
+            who: &T::AccountId,
+            kind: ChildStorageKind,
+        ) {
             who.using_encoded(|b| child::kill(&Self::id_from_index(index, kind), b));
         }
 
