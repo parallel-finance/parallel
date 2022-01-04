@@ -232,8 +232,6 @@ pub mod pallet {
         ExceededEndBlock,
         /// Exceeded maximum vrfs
         ExceededMaxVrfs,
-        /// Pending contribution must be killed before entering `Contributing` vault phase
-        PendingContributionNotKilled,
         /// Capacity cannot be zero value
         ZeroCap,
         /// Invalid params input
@@ -402,13 +400,6 @@ pub mod pallet {
             );
 
             Self::try_mutate_vault(crowdloan, VaultPhase::Pending, |vault| {
-                ensure!(
-                    Self::contribution_iterator(vault.trie_index, ChildStorageKind::Pending)
-                        .count()
-                        .is_zero()
-                        && vault.pending.is_zero(),
-                    Error::<T>::PendingContributionNotKilled
-                );
                 vault.phase = VaultPhase::Contributing;
                 Self::deposit_event(Event::<T>::VaultOpened(crowdloan));
                 Ok(())
@@ -693,10 +684,11 @@ pub mod pallet {
                     ChildStorageKind::Pending,
                     ChildStorageKind::Flying,
                 )?;
-                Vaults::<T>::insert(crowdloan, vault.id, vault.clone());
                 Self::do_contribute(&who, crowdloan, amount, referral_code)?;
                 migrated_count += 1;
             }
+
+            Vaults::<T>::insert(crowdloan, vault.id, vault);
 
             if all_migrated {
                 Self::deposit_event(Event::<T>::AllMigrated(crowdloan));
