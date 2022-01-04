@@ -1,15 +1,11 @@
 use super::{types::*, *};
 use crate::mock::*;
 
+use codec::Encode;
 use frame_support::{
     assert_noop, assert_ok,
     storage::child,
     traits::{Hooks, OneSessionHandler},
-};
-use codec::Encode;
-use frame_support::{
-    assert_err, assert_noop, assert_ok,
-    storage::{child, with_transaction},
 };
 use frame_system::RawOrigin;
 use polkadot_parachain::primitives::{HeadData, ValidationCode};
@@ -19,7 +15,6 @@ use sp_runtime::{
     MultiAddress::Id,
 };
 use xcm_simulator::TestExt;
-use xcm::latest::prelude::*;
 
 pub const VAULT_ID: u32 = 0;
 
@@ -138,7 +133,7 @@ fn open_should_work() {
         ))
         .unwrap();
 
-        let mut vault = Crowdloans::current_vault(crowdloan).unwrap();
+        let vault = Crowdloans::current_vault(crowdloan).unwrap();
 
         Crowdloans::contribute(RawOrigin::Signed(ALICE).into(), crowdloan, amount, vec![]).unwrap();
         let (pending, _) =
@@ -759,13 +754,21 @@ fn xcm_contribute_should_work() {
         )));
         // println!("relay: {:?}", RelaySystem::events());
     });
-
     // ParaA::execute_with(|| {
     //     println!("para: {:?}", System::events());
     // });
+}
+
+#[test]
 fn put_contribution_should_work() {
     new_test_ext().execute_with(|| {
-        Crowdloans::contribution_put(0u32, &ALICE, &dot(5.0f64), ChildStorageKind::Pending);
+        Crowdloans::contribution_put(
+            0u32,
+            &ALICE,
+            &dot(5.0f64),
+            &[0u8],
+            ChildStorageKind::Pending,
+        );
         assert!(ALICE.using_encoded(|b| {
             child::exists(
                 &Crowdloans::id_from_index(0u32, ChildStorageKind::Pending),
@@ -778,7 +781,13 @@ fn put_contribution_should_work() {
 #[test]
 fn kill_contribution_should_work() {
     new_test_ext().execute_with(|| {
-        Crowdloans::contribution_put(0u32, &ALICE, &dot(5.0f64), ChildStorageKind::Pending);
+        Crowdloans::contribution_put(
+            0u32,
+            &ALICE,
+            &dot(5.0f64),
+            &[0u8],
+            ChildStorageKind::Pending,
+        );
         Crowdloans::contribution_kill(0u32, &ALICE, ChildStorageKind::Pending);
         assert!(!ALICE.using_encoded(|b| {
             child::exists(

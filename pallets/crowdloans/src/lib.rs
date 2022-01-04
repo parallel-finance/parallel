@@ -1049,9 +1049,9 @@ pub mod pallet {
         }
 
         pub(crate) fn contribution_kill(
-            index: TrieIndex, 
-            who: &T::AccountId, 
-            kind: ChildStorageKind
+            index: TrieIndex,
+            who: &T::AccountId,
+            kind: ChildStorageKind,
         ) {
             who.using_encoded(|b| child::kill(&Self::id_from_index(index, kind), b));
         }
