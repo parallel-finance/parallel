@@ -193,7 +193,7 @@ pub mod pallet {
         VaultContributed(ParaId, T::AccountId, BalanceOf<T>, Vec<u8>),
         /// A user claimed refund from vault
         /// [ctoken_id, account, amount]
-        VaultClaimRefund(AssetIdOf<T>, T::AccountId, BalanceOf<T>),
+        VaultClaimedRefund(AssetIdOf<T>, T::AccountId, BalanceOf<T>),
         /// Vrfs updated
         /// [vrf_data]
         VrfsUpdated(BoundedVec<ParaId, T::MaxVrfs>),
@@ -634,7 +634,7 @@ pub mod pallet {
                 false,
             )?;
 
-            Self::deposit_event(Event::<T>::VaultClaimRefund(ctoken, who, amount));
+            Self::deposit_event(Event::<T>::VaultClaimedRefund(ctoken, who, amount));
 
             Ok(())
         }

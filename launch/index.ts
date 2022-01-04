@@ -170,7 +170,7 @@ async function relay() {
 
   for (const { paraId, image, derivativeIndex, chain, ctokenId } of config.crowdloans) {
     const state = exec(
-      `docker run --rm ${image} export-genesis-state --chain ${chain} --parachain-id ${paraId}`
+      `docker run --rm ${image} export-genesis-state --chain ${chain}`
     ).stdout.trim()
     const wasm = exec(`docker run --rm ${image} export-genesis-wasm --chain ${chain}`).stdout.trim()
 
