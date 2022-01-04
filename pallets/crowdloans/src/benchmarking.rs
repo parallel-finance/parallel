@@ -267,7 +267,7 @@ benchmarks! {
         1_000
     )
     verify {
-        assert_last_event::<T>(Event::VaultClaimRefund(ctoken, caller, 1_000).into())
+        assert_last_event::<T>(Event::VaultClaimedRefund(ctoken, caller, 1_000).into())
     }
 
     slot_expired {
