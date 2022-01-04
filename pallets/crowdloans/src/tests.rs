@@ -141,7 +141,20 @@ fn open_should_work() {
         assert!(pending == amount);
 
         Crowdloans::migrate_pending(RawOrigin::Root.into(), crowdloan).unwrap();
-        //FIXME(Alan WANG): XCM simulator with response.
+        let (flying, _) =
+            Crowdloans::contribution_get(vault.trie_index, &ALICE, ChildStorageKind::Flying);
+        assert!(flying == amount);
+
+        Crowdloans::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
+        )
+        .unwrap();
+
+        let (contributed, _) =
+            Crowdloans::contribution_get(vault.trie_index, &ALICE, ChildStorageKind::Contributed);
+        assert!(contributed == amount);
     })
 }
 
