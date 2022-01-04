@@ -693,6 +693,7 @@ pub mod pallet {
                     ChildStorageKind::Pending,
                     ChildStorageKind::Flying,
                 )?;
+                Vaults::<T>::insert(crowdloan, vault.id, vault.clone());
                 Self::do_contribute(&who, crowdloan, amount, referral_code)?;
                 migrated_count += 1;
             }
@@ -902,6 +903,7 @@ pub mod pallet {
             res: Option<(u32, XcmError)>,
         ) -> DispatchResult {
             let executed = res.is_none();
+
             match request {
                 XcmRequest::Contribute {
                     crowdloan,
