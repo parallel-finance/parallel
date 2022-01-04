@@ -139,17 +139,11 @@ fn open_should_work() {
         let (pending, _) =
             Crowdloans::contribution_get(vault.trie_index, &ALICE, ChildStorageKind::Pending);
         assert!(pending == amount);
-        assert_noop!(
-            Crowdloans::open(RawOrigin::Signed(ALICE).into(), crowdloan),
-            Error::<Test>::PendingContributionNotKilled
-        );
 
         Crowdloans::migrate_pending(RawOrigin::Root.into(), crowdloan).unwrap();
         let (flying, _) =
             Crowdloans::contribution_get(vault.trie_index, &ALICE, ChildStorageKind::Flying);
         assert!(flying == amount);
-
-        assert_ok!(Crowdloans::open(RawOrigin::Signed(ALICE).into(), crowdloan),);
 
         Crowdloans::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
