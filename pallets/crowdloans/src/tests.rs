@@ -135,14 +135,22 @@ fn open_should_work() {
 
         let vault = Crowdloans::current_vault(crowdloan).unwrap();
 
-        Crowdloans::contribute(RawOrigin::Signed(ALICE).into(), crowdloan, amount, vec![]).unwrap();
-        let (pending, _) =
+        Crowdloans::contribute(
+            RawOrigin::Signed(ALICE).into(),
+            crowdloan,
+            amount,
+            vec![12, 34],
+        )
+        .unwrap();
+        let (pending, referral_code) =
             Crowdloans::contribution_get(vault.trie_index, &ALICE, ChildStorageKind::Pending);
+        assert!(referral_code == vec![12, 34]);
         assert!(pending == amount);
 
         Crowdloans::migrate_pending(RawOrigin::Root.into(), crowdloan).unwrap();
-        let (flying, _) =
+        let (flying, referral_code2) =
             Crowdloans::contribution_get(vault.trie_index, &ALICE, ChildStorageKind::Flying);
+        assert!(referral_code2 == vec![12, 34]);
         assert!(flying == amount);
 
         Crowdloans::notification_received(
@@ -152,8 +160,9 @@ fn open_should_work() {
         )
         .unwrap();
 
-        let (contributed, _) =
+        let (contributed, referral_code3) =
             Crowdloans::contribution_get(vault.trie_index, &ALICE, ChildStorageKind::Contributed);
+        assert!(referral_code3 == vec![12, 34]);
         assert!(contributed == amount);
     })
 }
@@ -292,7 +301,7 @@ fn contribute_should_work() {
             Origin::signed(ALICE), // origin
             crowdloan,             // crowdloan
             amount,                // amount
-            Vec::new()
+            vec![12, 34],
         ));
 
         // check that we're in the right phase
@@ -309,6 +318,10 @@ fn contribute_should_work() {
         // check if ctoken minted to user
         let ctoken_balance = Assets::balance(vault.ctoken, ALICE);
 
+        let (contributed, referral_code) =
+            Crowdloans::contribution_get(vault.trie_index, &ALICE, ChildStorageKind::Contributed);
+        assert!(referral_code == vec![12, 34]);
+        assert!(contributed == amount);
         assert_eq!(ctoken_balance, amount);
     });
 }

@@ -19,7 +19,7 @@ use super::{AccountIdOf, AssetIdOf, BalanceOf, Config};
 use codec::{Decode, Encode};
 
 use frame_system::pallet_prelude::BlockNumberFor;
-use primitives::{ParaId, TrieIndex};
+use primitives::{ParaId, TrieIndex, VaultId};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, RuntimeDebug};
 use sp_std::vec::Vec;
@@ -50,7 +50,7 @@ pub enum VaultPhase {
 #[scale_info(skip_type_params(T))]
 pub struct Vault<T: Config> {
     /// Vault ID
-    pub id: u32,
+    pub id: VaultId,
     /// Asset used to represent the shares of currency
     /// to be claimed back later on
     pub ctoken: AssetIdOf<T>,
@@ -75,7 +75,7 @@ pub struct Vault<T: Config> {
 /// init default vault with ctoken and currency override
 impl<T: Config> Vault<T> {
     pub fn new(
-        id: u32,
+        id: VaultId,
         ctoken: AssetIdOf<T>,
         contribution_strategy: ContributionStrategy,
         cap: BalanceOf<T>,
