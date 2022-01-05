@@ -95,7 +95,16 @@ benchmarks! {
         END_BLOCK.into()
     )
     verify {
-        assert_last_event::<T>(Event::<T>::VaultCreated(crowdloan, ctoken).into())
+        assert_last_event::<T>(Event::<T>::VaultCreated(
+            crowdloan,
+            0,
+            ctoken,
+            VaultPhase::Pending,
+            ContributionStrategy::XCM,
+            CAP,
+            END_BLOCK.into(),
+            0
+        ).into())
     }
 
     update_vault {
@@ -116,9 +125,9 @@ benchmarks! {
         assert_last_event::<T>(Event::<T>::VaultUpdated(
             crowdloan,
             0,
+            ContributionStrategy::XCM,
             1_000_000_000_001u128,
             1_000_000_001u32.into(),
-            ContributionStrategy::XCM,
         ).into())
     }
 
@@ -152,7 +161,12 @@ benchmarks! {
         crowdloan
     )
     verify {
-        assert_last_event::<T>(Event::VaultOpened(crowdloan).into())
+        assert_last_event::<T>(Event::VaultPhaseChanged(
+            crowdloan,
+            0,
+            VaultPhase::Pending,
+            VaultPhase::Contributing,
+        ).into())
     }
 
     close {
@@ -168,7 +182,12 @@ benchmarks! {
         crowdloan
     )
     verify {
-        assert_last_event::<T>(Event::VaultClosed(crowdloan).into())
+        assert_last_event::<T>(Event::VaultPhaseChanged(
+            crowdloan,
+            0,
+            VaultPhase::Contributing,
+            VaultPhase::Closed,
+        ).into())
     }
 
     set_vrfs {
@@ -201,7 +220,12 @@ benchmarks! {
         crowdloan
     )
     verify {
-        assert_last_event::<T>(Event::VaultReOpened(crowdloan).into())
+        assert_last_event::<T>(Event::VaultPhaseChanged(
+            crowdloan,
+            0,
+            VaultPhase::Closed,
+            VaultPhase::Contributing,
+        ).into())
     }
 
     auction_succeeded {
@@ -218,7 +242,12 @@ benchmarks! {
         crowdloan
     )
     verify {
-        assert_last_event::<T>(Event::VaultSucceeded(crowdloan).into())
+        assert_last_event::<T>(Event::VaultPhaseChanged(
+            crowdloan,
+            0,
+            VaultPhase::Closed,
+            VaultPhase::Succeeded,
+        ).into())
     }
 
     auction_failed {

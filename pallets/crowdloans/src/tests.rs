@@ -135,7 +135,13 @@ fn open_should_work() {
 
         let vault = Crowdloans::current_vault(crowdloan).unwrap();
 
-        Crowdloans::contribute(RawOrigin::Signed(ALICE).into(), crowdloan, amount, vec![12, 34]).unwrap();
+        Crowdloans::contribute(
+            RawOrigin::Signed(ALICE).into(),
+            crowdloan,
+            amount,
+            vec![12, 34],
+        )
+        .unwrap();
         let (pending, referral_code) =
             Crowdloans::contribution_get(vault.trie_index, &ALICE, ChildStorageKind::Pending);
         assert!(referral_code == vec![12, 34]);
