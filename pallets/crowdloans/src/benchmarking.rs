@@ -146,7 +146,7 @@ benchmarks! {
         Vec::new()
     )
     verify {
-        assert_last_event::<T>(Event::VaultDoContributing(crowdloan, caller, CONTRIBUTE_AMOUNT, Vec::new()).into())
+        assert_last_event::<T>(Event::VaultDoContributing(crowdloan, 0, caller, CONTRIBUTE_AMOUNT, Vec::new()).into())
     }
 
     open {
@@ -266,7 +266,7 @@ benchmarks! {
         crowdloan
     )
     verify {
-        assert_last_event::<T>(Event::VaultDoWithdrawing(crowdloan, 0, VaultPhase::Failed).into())
+        assert_last_event::<T>(Event::VaultDoWithdrawing(crowdloan, 0, 0, VaultPhase::Failed).into())
     }
 
     claim_refund {
@@ -315,7 +315,7 @@ benchmarks! {
         crowdloan
     )
     verify {
-        assert_last_event::<T>(Event::VaultDoWithdrawing(crowdloan, 0, VaultPhase::Expired).into())
+        assert_last_event::<T>(Event::VaultDoWithdrawing(crowdloan, 0, 0, VaultPhase::Expired).into())
     }
 
     migrate_pending {

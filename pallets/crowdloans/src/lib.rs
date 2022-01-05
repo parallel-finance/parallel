@@ -53,7 +53,7 @@ pub mod pallet {
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
     use pallet_xcm::ensure_response;
-    use primitives::{Balance, CurrencyId, ParaId, TrieIndex};
+    use primitives::{Balance, CurrencyId, ParaId, TrieIndex, VaultId};
     use sp_runtime::{
         traits::{AccountIdConversion, BlockNumberProvider, Convert, Hash, Zero},
         ArithmeticError, DispatchError,
@@ -156,35 +156,35 @@ pub mod pallet {
         /// [para_id, vault_id, ctoken_id, phase, contribution_strategy, cap, end_block, trie_index]
         VaultCreated(
             ParaId,
-            u32,
+            VaultId,
             AssetIdOf<T>,
             VaultPhase,
             ContributionStrategy,
             BalanceOf<T>,
             BlockNumberFor<T>,
-            u32,
+            TrieIndex,
         ),
         /// Existing vault was updated
         /// [para_id, vault_id, cap, end_block, contribution_strategy]
         VaultUpdated(
             ParaId,
-            u32,
+            VaultId,
             ContributionStrategy,
             BalanceOf<T>,
             BlockNumberFor<T>,
         ),
         /// Vault was opened
         /// [para_id, vault_id, pre_phase, now_phase]
-        VaultPhaseChanged(ParaId, u32, VaultPhase, VaultPhase),
+        VaultPhaseChanged(ParaId, VaultId, VaultPhase, VaultPhase),
         /// Vault is trying to do contributing
-        /// [para_id, contributor, amount, referral_code]
-        VaultDoContributing(ParaId, T::AccountId, BalanceOf<T>, Vec<u8>),
+        /// [para_id, vault_id, contributor, amount, referral_code]
+        VaultDoContributing(ParaId, VaultId, T::AccountId, BalanceOf<T>, Vec<u8>),
         /// Vault is trying to do withdrawing
-        /// [para_id, amount, target_phase]
-        VaultDoWithdrawing(ParaId, BalanceOf<T>, VaultPhase),
+        /// [para_id, vault_id, amount, target_phase]
+        VaultDoWithdrawing(ParaId, VaultId, BalanceOf<T>, VaultPhase),
         /// Vault successfully contributed
-        /// [para_id, vault_id, contributor, amount]
-        VaultContributed(ParaId, u32, T::AccountId, BalanceOf<T>, Vec<u8>),
+        /// [para_id, vault_id, contributor, amount, referral_code]
+        VaultContributed(ParaId, VaultId, T::AccountId, BalanceOf<T>, Vec<u8>),
         /// A user claimed refund from vault
         /// [ctoken_id, account, amount]
         VaultClaimedRefund(AssetIdOf<T>, T::AccountId, BalanceOf<T>),
@@ -199,7 +199,7 @@ pub mod pallet {
         AllMigrated(ParaId),
         /// Partially contributions migrated
         /// [para_id, non_migrated_count]
-        PartiallyMigrated(ParaId, u32),
+        PartiallyMigrated(ParaId, VaultId),
     }
 
     #[pallet::error]
@@ -470,7 +470,7 @@ pub mod pallet {
                     ChildStorageKind::Flying,
                 )?;
 
-                Self::do_contribute(&who, crowdloan, amount, referral_code)?;
+                Self::do_contribute(&who, crowdloan, vault.id, amount, referral_code)?;
             } else {
                 Self::do_update_contribution(
                     &who,
@@ -603,7 +603,7 @@ pub mod pallet {
             );
 
             Self::try_mutate_vault(crowdloan, VaultPhase::Closed, |vault| {
-                Self::do_withdraw(crowdloan, vault.contributed, VaultPhase::Failed)?;
+                Self::do_withdraw(crowdloan, vault.id, vault.contributed, VaultPhase::Failed)?;
                 Ok(())
             })
         }
@@ -668,7 +668,7 @@ pub mod pallet {
             );
 
             Self::try_mutate_vault(crowdloan, VaultPhase::Succeeded, |vault| {
-                Self::do_withdraw(crowdloan, vault.contributed, VaultPhase::Expired)?;
+                Self::do_withdraw(crowdloan, vault.id, vault.contributed, VaultPhase::Expired)?;
                 Ok(())
             })
         }
@@ -708,7 +708,7 @@ pub mod pallet {
                     ChildStorageKind::Pending,
                     ChildStorageKind::Flying,
                 )?;
-                Self::do_contribute(&who, crowdloan, amount, referral_code)?;
+                Self::do_contribute(&who, crowdloan, vault.id, amount, referral_code)?;
                 migrated_count += 1;
             }
 
@@ -768,7 +768,7 @@ pub mod pallet {
             Self::vrfs().iter().any(|&c| c == crowdloan)
         }
 
-        fn next_index(crowdloan: ParaId) -> u32 {
+        fn next_index(crowdloan: ParaId) -> VaultId {
             Self::current_index(crowdloan)
                 .and_then(|idx| idx.checked_add(1u32))
                 .unwrap_or(0)
@@ -1111,6 +1111,7 @@ pub mod pallet {
         fn do_contribute(
             who: &AccountIdOf<T>,
             crowdloan: ParaId,
+            vault_id: VaultId,
             amount: BalanceOf<T>,
             referral_code: Vec<u8>,
         ) -> Result<(), DispatchError> {
@@ -1135,6 +1136,7 @@ pub mod pallet {
 
             Self::deposit_event(Event::<T>::VaultDoContributing(
                 crowdloan,
+                vault_id,
                 who.clone(),
                 amount,
                 referral_code,
@@ -1146,6 +1148,7 @@ pub mod pallet {
         #[require_transactional]
         fn do_withdraw(
             crowdloan: ParaId,
+            vault_id: VaultId,
             amount: BalanceOf<T>,
             target_phase: VaultPhase,
         ) -> Result<(), DispatchError> {
@@ -1175,6 +1178,7 @@ pub mod pallet {
 
             Self::deposit_event(Event::<T>::VaultDoWithdrawing(
                 crowdloan,
+                vault_id,
                 amount,
                 target_phase,
             ));
