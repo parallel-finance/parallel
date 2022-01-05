@@ -468,7 +468,6 @@ pub mod pallet {
                     Some(referral_code.clone()),
                     ArithmeticKind::Addition,
                     ChildStorageKind::Flying,
-                    ChildStorageKind::Flying,
                 )?;
 
                 Self::do_contribute(&who, crowdloan, amount, referral_code)?;
@@ -479,7 +478,6 @@ pub mod pallet {
                     amount,
                     Some(referral_code.clone()),
                     ArithmeticKind::Addition,
-                    ChildStorageKind::Pending,
                     ChildStorageKind::Pending,
                 )?;
             }
@@ -807,18 +805,15 @@ pub mod pallet {
             amount: BalanceOf<T>,
             new_referral_code: Option<Vec<u8>>,
             arithmetic_kind: ArithmeticKind,
-            src_child_storage_kind: ChildStorageKind,
-            dst_child_storage_kind: ChildStorageKind,
-        ) -> DispatchResult {
+            child_storage_kind: ChildStorageKind,
+        ) -> Result<Vec<u8>, DispatchError> {
             use ArithmeticKind::*;
             use ChildStorageKind::*;
 
-            let (_, old_referral_code) =
-                Self::contribution_get(vault.trie_index, who, src_child_storage_kind);
-            let (contribution, _) =
-                Self::contribution_get(vault.trie_index, who, dst_child_storage_kind);
+            let (contribution, old_referral_code) =
+                Self::contribution_get(vault.trie_index, who, child_storage_kind);
             let referral_code = new_referral_code.unwrap_or(old_referral_code);
-            let new_contribution = match (dst_child_storage_kind, arithmetic_kind) {
+            let new_contribution = match (child_storage_kind, arithmetic_kind) {
                 (Pending, Addition) => {
                     vault.pending = vault
                         .pending
@@ -875,17 +870,18 @@ pub mod pallet {
                 }
             };
             if new_contribution.is_zero() {
-                Self::contribution_kill(vault.trie_index, who, dst_child_storage_kind);
+                Self::contribution_kill(vault.trie_index, who, child_storage_kind);
             } else {
                 Self::contribution_put(
                     vault.trie_index,
                     who,
                     &new_contribution,
                     &referral_code,
-                    dst_child_storage_kind,
+                    child_storage_kind,
                 );
             }
-            Ok(())
+
+            Ok(referral_code)
         }
 
         #[require_transactional]
@@ -896,26 +892,23 @@ pub mod pallet {
             src_child_storage_kind: ChildStorageKind,
             dst_child_storage_kind: ChildStorageKind,
         ) -> DispatchResult {
-            Self::do_update_contribution(
-                who,
-                vault,
-                amount,
-                None,
-                ArithmeticKind::Addition,
-                src_child_storage_kind,
-                dst_child_storage_kind,
-            )?;
-
-            Self::do_update_contribution(
+            let referral_code = Self::do_update_contribution(
                 who,
                 vault,
                 amount,
                 None,
                 ArithmeticKind::Subtraction,
                 src_child_storage_kind,
-                src_child_storage_kind,
             )?;
 
+            Self::do_update_contribution(
+                who,
+                vault,
+                amount,
+                Some(referral_code),
+                ArithmeticKind::Addition,
+                dst_child_storage_kind,
+            )?;
             Ok(())
         }
 
@@ -991,7 +984,6 @@ pub mod pallet {
                         None,
                         ArithmeticKind::Subtraction,
                         previous_storage_kind,
-                        ChildStorageKind::Flying,
                     )?;
                     Vaults::<T>::insert(crowdloan, vault.id, vault);
                 }
