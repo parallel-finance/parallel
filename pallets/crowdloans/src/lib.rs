@@ -684,6 +684,8 @@ pub mod pallet {
                 vault.phase == VaultPhase::Pending || vault.phase == VaultPhase::Contributing,
                 Error::<T>::IncorrectVaultPhase
             );
+            ensure!(!Self::has_vrfs(), Error::<T>::VrfDelayInProgress);
+
             let contributions =
                 Self::contribution_iterator(vault.trie_index, ChildStorageKind::Pending);
             // TODO: remove 2nd read
