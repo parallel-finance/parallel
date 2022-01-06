@@ -198,8 +198,8 @@ pub mod pallet {
         /// [para_id, vault_id]
         AllMigrated(ParaId, VaultId),
         /// Partially contributions migrated
-        /// [para_id, vault_id, non_migrated_count]
-        PartiallyMigrated(ParaId, VaultId, u32),
+        /// [para_id, vault_id]
+        PartiallyMigrated(ParaId, VaultId),
     }
 
     #[pallet::error]
@@ -745,12 +745,6 @@ pub mod pallet {
 
             let contributions =
                 Self::contribution_iterator(vault.trie_index, ChildStorageKind::Pending);
-            // TODO: remove 2nd read
-            let count: u32 =
-                Self::contribution_iterator(vault.trie_index, ChildStorageKind::Pending)
-                    .count()
-                    .try_into()
-                    .map_err(|_| ArithmeticError::Overflow)?;
             let mut migrated_count = 0u32;
             let mut all_migrated = true;
 
@@ -790,7 +784,6 @@ pub mod pallet {
                 Self::deposit_event(Event::<T>::PartiallyMigrated(
                     crowdloan,
                     (lease_start, lease_end),
-                    count - migrated_count,
                 ));
             }
 
