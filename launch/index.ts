@@ -133,10 +133,28 @@ async function para() {
     call.push(...balances.map(([account, amount]) => api.tx.assets.mint(assetId, account, amount)))
   }
 
-  for (const { paraId, image, chain, ctokenId, cap, duration, pending } of config.crowdloans) {
+  for (const {
+    paraId,
+    image,
+    chain,
+    ctokenId,
+    leaseStart,
+    leaseEnd,
+    cap,
+    duration,
+    pending
+  } of config.crowdloans) {
     call.push(
       api.tx.sudo.sudo(
-        api.tx.crowdloans.createVault(paraId, ctokenId, 'XCM', cap, height + duration)
+        api.tx.crowdloans.createVault(
+          paraId,
+          ctokenId,
+          leaseStart,
+          leaseEnd,
+          'XCM',
+          cap,
+          height + duration
+        )
       )
     )
     if (!pending) {
@@ -209,11 +227,9 @@ async function relay() {
       )
     )
   )
-  if (chain.includes('Kusama')) {
-    call.push(
-      downwardTransfer(api, config.paraId, createAddress(XcmFeesPalletId), '1000000000000000')
-    )
-  }
+  call.push(
+    downwardTransfer(api, config.paraId, createAddress(XcmFeesPalletId), '1000000000000000')
+  )
 
   await api.tx.utility.batchAll(call).signAndSend(signer, { nonce: await nextIndex(api, signer) })
 }
