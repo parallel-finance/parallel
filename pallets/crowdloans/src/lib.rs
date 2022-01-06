@@ -165,7 +165,7 @@ pub mod pallet {
             TrieIndex,
         ),
         /// Existing vault was updated
-        /// [para_id, vault_id, cap, end_block, contribution_strategy]
+        /// [para_id, vault_id, contribution_strategy, cap, end_block]
         VaultUpdated(
             ParaId,
             VaultId,
@@ -195,11 +195,11 @@ pub mod pallet {
         /// [multi_location, query_id, res]
         NotificationReceived(Box<MultiLocation>, QueryId, Option<(u32, XcmError)>),
         /// All contributions migrated
-        /// [para_id]
-        AllMigrated(ParaId),
+        /// [para_id, vault_id]
+        AllMigrated(ParaId, VaultId),
         /// Partially contributions migrated
-        /// [para_id, non_migrated_count]
-        PartiallyMigrated(ParaId, u32),
+        /// [para_id, vault_id, non_migrated_count]
+        PartiallyMigrated(ParaId, VaultId, u32),
     }
 
     #[pallet::error]
@@ -777,20 +777,19 @@ pub mod pallet {
                 migrated_count += 1;
             }
 
-            Vaults::<T>::insert(
-                (
-                    &crowdloan,
-                    &vault.lease_start.clone(),
-                    &vault.lease_end.clone(),
-                ),
-                vault,
-            );
+            let Vault {
+                lease_start,
+                lease_end,
+                ..
+            } = vault;
+            Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
 
             if all_migrated {
-                Self::deposit_event(Event::<T>::AllMigrated(crowdloan));
+                Self::deposit_event(Event::<T>::AllMigrated(crowdloan, (lease_start, lease_end)));
             } else {
                 Self::deposit_event(Event::<T>::PartiallyMigrated(
                     crowdloan,
+                    (lease_start, lease_end),
                     count - migrated_count,
                 ));
             }

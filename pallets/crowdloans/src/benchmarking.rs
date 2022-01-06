@@ -340,7 +340,7 @@ benchmarks! {
         crowdloan
     )
     verify {
-        assert_last_event::<T>(Event::AllMigrated(crowdloan).into())
+        assert_last_event::<T>(Event::AllMigrated(crowdloan, (LEASE_START, LEASE_END)).into())
     }
 
     notification_received {
