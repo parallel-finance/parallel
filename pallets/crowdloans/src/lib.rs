@@ -308,6 +308,11 @@ pub mod pallet {
                 ensure!(c == ctoken, Error::<T>::InvalidCToken);
             }
 
+            ensure!(
+                !Vaults::<T>::contains_key((&crowdloan, &lease_start, &lease_end)),
+                Error::<T>::CrowdloanNotEnded
+            );
+
             // origin shouldn't be able to create a new vault if the previous one is not finished
             if let Some(vault) = Self::current_vault(crowdloan) {
                 if vault.phase != VaultPhase::Failed && vault.phase != VaultPhase::Expired {
