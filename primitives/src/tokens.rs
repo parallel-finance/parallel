@@ -38,14 +38,6 @@ pub const PKUSD: CurrencyId = 2103;
 
 pub const PXKSM: CurrencyId = 3000;
 pub const PXDOT: CurrencyId = 3001;
-pub const PCKSM_KSX: CurrencyId = 3100;
-pub const PCKSM_SKU: CurrencyId = 3101;
-pub const PCKSM_SUB: CurrencyId = 3102;
-
-// Crowdloans Derivative
-pub const CKSM_KSX: CurrencyId = 4000;
-pub const CKSM_SKU: CurrencyId = 4001;
-pub const CKSM_SUB: CurrencyId = 4002;
 
 // Token Registration Information
 // +───────────+──────────────+────────────────────+
@@ -66,12 +58,6 @@ pub const CKSM_SUB: CurrencyId = 4002;
 // | Heiko     | PUSDT        | N/A                |
 // | Heiko     | PXKSM        | N/A                |
 // | Heiko     | PXDOT        | N/A                |
-// | Heiko     | PCKSM_KSX    | N/A                |
-// | Heiko     | PCKSM_SKU    | N/A                |
-// | Heiko     | PCKSM_SUB    | N/A                |
-// | Heiko     | CKSM_KSX     | N/A                |
-// | Heiko     | CKSM_SKU     | N/A                |
-// | Heiko     | CKSM_SUB     | N/A                |
 // | Parallel  | HKO          | N/A                |
 // | Parallel  | PARA         | Native             |
 // | Parallel  | KSM          | N/A                |

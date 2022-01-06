@@ -84,7 +84,9 @@ pub type ChainId = u8;
 
 pub const SECONDS_PER_YEAR: Timestamp = 365 * 24 * 60 * 60;
 
-pub type VaultId = u32;
+pub type LeasePeriod = BlockNumber;
+
+pub type VaultId = (LeasePeriod, LeasePeriod);
 
 pub type TrieIndex = u32;
 

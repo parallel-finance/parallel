@@ -19,7 +19,7 @@ use super::{AccountIdOf, AssetIdOf, BalanceOf, Config};
 use codec::{Decode, Encode};
 
 use frame_system::pallet_prelude::BlockNumberFor;
-use primitives::{ParaId, TrieIndex, VaultId};
+use primitives::{LeasePeriod, ParaId, TrieIndex};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, RuntimeDebug};
 use sp_std::vec::Vec;
@@ -49,8 +49,6 @@ pub enum VaultPhase {
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 #[scale_info(skip_type_params(T))]
 pub struct Vault<T: Config> {
-    /// Vault ID
-    pub id: VaultId,
     /// Asset used to represent the shares of currency
     /// to be claimed back later on
     pub ctoken: AssetIdOf<T>,
@@ -70,12 +68,17 @@ pub struct Vault<T: Config> {
     pub end_block: BlockNumberFor<T>,
     /// child storage trie index where we store all contributions
     pub trie_index: TrieIndex,
+    /// lease start period index
+    pub lease_start: LeasePeriod,
+    /// lease end period index
+    pub lease_end: LeasePeriod,
 }
 
 /// init default vault with ctoken and currency override
 impl<T: Config> Vault<T> {
     pub fn new(
-        id: VaultId,
+        lease_start: LeasePeriod,
+        lease_end: LeasePeriod,
         ctoken: AssetIdOf<T>,
         contribution_strategy: ContributionStrategy,
         cap: BalanceOf<T>,
@@ -83,7 +86,8 @@ impl<T: Config> Vault<T> {
         trie_index: TrieIndex,
     ) -> Self {
         Self {
-            id,
+            lease_start,
+            lease_end,
             ctoken,
             phase: VaultPhase::Pending,
             contributed: Zero::zero(),

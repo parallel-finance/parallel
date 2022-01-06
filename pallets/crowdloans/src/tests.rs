@@ -16,7 +16,8 @@ use sp_runtime::{
 };
 use xcm_simulator::TestExt;
 
-pub const VAULT_ID: u32 = 0;
+pub const LEASE_START: u32 = 0;
+pub const LEASE_END: u32 = 7;
 
 #[test]
 fn create_new_vault_should_work() {
@@ -31,7 +32,7 @@ fn create_new_vault_should_work() {
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(crowdloan)),
+            Id(Crowdloans::vault_account_id(crowdloan)),
             true,
             One::one(),
         ));
@@ -40,16 +41,18 @@ fn create_new_vault_should_work() {
             frame_system::RawOrigin::Root.into(), // origin
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
             end_block                             // end_block
         ));
 
-        let just_created_vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
+        let just_created_vault =
+            Crowdloans::vaults((&crowdloan, &LEASE_START, &LEASE_END)).unwrap();
         assert_eq!(
             just_created_vault,
             Vault {
-                id: VAULT_ID,
                 ctoken,
                 phase: VaultPhase::Pending,
                 contributed: Zero::zero(),
@@ -58,14 +61,16 @@ fn create_new_vault_should_work() {
                 contribution_strategy,
                 cap,
                 end_block,
-                trie_index: Zero::zero()
+                trie_index: Zero::zero(),
+                lease_start: LEASE_START,
+                lease_end: LEASE_END
             }
         );
     });
 }
 
 #[test]
-fn create_new_vault_should_not_work_if_vault_is_already_created() {
+fn create_new_vault_should_not_work_if_ctoken_is_different() {
     new_test_ext().execute_with(|| {
         let crowdloan = ParaId::from(1337u32);
         let ctoken = 10;
@@ -88,16 +93,30 @@ fn create_new_vault_should_not_work_if_vault_is_already_created() {
         )
         .unwrap();
 
+        assert_ok!(Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
+            ContributionStrategy::XCM,            // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
+        ));
+
+        // cDOT-0-7 has been created, but now for the same lease we are using a different ctoken
         assert_noop!(
             Crowdloans::create_vault(
                 frame_system::RawOrigin::Root.into(), // origin
                 crowdloan,                            // crowdloan
-                ctoken,                               // ctoken
+                ctoken + 1,                           // ctoken
+                LEASE_START,                          // lease_start
+                LEASE_END,                            // lease_end
                 ContributionStrategy::XCM,            // contribution_strategy
                 cap,                                  // cap
                 end_block                             // end_block
             ),
-            Error::<Test>::CTokenAlreadyTaken
+            Error::<Test>::InvalidCToken
         );
     });
 }
@@ -117,7 +136,7 @@ fn open_should_work() {
         (Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(crowdloan)),
+            Id(Crowdloans::vault_account_id(crowdloan)),
             true,
             One::one(),
         ))
@@ -127,6 +146,8 @@ fn open_should_work() {
             frame_system::RawOrigin::Root.into(), // origin
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
             end_block,                            // end_block
@@ -180,7 +201,7 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(crowdloan)),
+            Id(Crowdloans::vault_account_id(crowdloan)),
             true,
             One::one(),
         ));
@@ -189,6 +210,8 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
             frame_system::RawOrigin::Root.into(), // origin
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
             end_block                             // end_block
@@ -199,11 +222,13 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
                 frame_system::RawOrigin::Root.into(), // origin
                 crowdloan,                            // crowdloan
                 ctoken,                               // ctoken
+                LEASE_START,                          // lease_start
+                LEASE_END,                            // lease_end
                 contribution_strategy,                // contribution_strategy
                 cap,                                  // cap
                 end_block                             // end_block
             ),
-            Error::<Test>::CTokenAlreadyTaken
+            Error::<Test>::CrowdloanNotEnded
         );
     });
 }
@@ -222,7 +247,7 @@ fn set_vrfs_should_work() {
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(ParaId::from(crowdloan))),
+            Id(Crowdloans::vault_account_id(ParaId::from(crowdloan))),
             true,
             One::one(),
         ));
@@ -232,6 +257,20 @@ fn set_vrfs_should_work() {
             frame_system::RawOrigin::Root.into(), // origin
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
+            contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
+        ));
+
+        // create a sibling vault to contribute to
+        assert_ok!(Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan + 1,                        // crowdloan
+            ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
             end_block                             // end_block
@@ -258,6 +297,13 @@ fn set_vrfs_should_work() {
             ),
             Error::<Test>::VrfDelayInProgress
         );
+
+        assert_ok!(Crowdloans::contribute(
+            Origin::signed(ALICE), // origin
+            crowdloan + 1,         // crowdloan
+            amount,                // amount
+            Vec::new()
+        ),);
     })
 }
 
@@ -275,7 +321,7 @@ fn contribute_should_work() {
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(ParaId::from(crowdloan))),
+            Id(Crowdloans::vault_account_id(ParaId::from(crowdloan))),
             true,
             One::one(),
         ));
@@ -285,6 +331,8 @@ fn contribute_should_work() {
             frame_system::RawOrigin::Root.into(), // origin
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
             end_block                             // end_block
@@ -305,7 +353,7 @@ fn contribute_should_work() {
         ));
 
         // check that we're in the right phase
-        let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
+        let vault = Crowdloans::vaults((&crowdloan, &LEASE_START, &LEASE_END)).unwrap();
         assert_eq!(vault.phase, VaultPhase::Contributing);
 
         Crowdloans::notification_received(
@@ -340,7 +388,7 @@ fn contribute_should_fail_insufficent_funds() {
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(ParaId::from(crowdloan))),
+            Id(Crowdloans::vault_account_id(ParaId::from(crowdloan))),
             true,
             One::one(),
         ));
@@ -350,6 +398,8 @@ fn contribute_should_fail_insufficent_funds() {
             frame_system::RawOrigin::Root.into(), // origin
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
             end_block                             // end_block
@@ -382,6 +432,8 @@ fn close_should_work() {
             frame_system::RawOrigin::Root.into(), // origin
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
             end_block                             // end_block
@@ -400,7 +452,7 @@ fn close_should_work() {
         ));
 
         // check that we're in the right phase
-        let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
+        let vault = Crowdloans::vaults((&crowdloan, &LEASE_START, &LEASE_END)).unwrap();
         assert_eq!(vault.phase, VaultPhase::Closed)
     });
 }
@@ -419,6 +471,8 @@ fn reopen_should_work() {
             frame_system::RawOrigin::Root.into(), // origin
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
             end_block                             // end_block
@@ -443,7 +497,7 @@ fn reopen_should_work() {
         ));
 
         // check that we're in the right phase
-        let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
+        let vault = Crowdloans::vaults((&crowdloan, &LEASE_START, &LEASE_END)).unwrap();
         assert_eq!(vault.phase, VaultPhase::Contributing)
     });
 }
@@ -462,6 +516,8 @@ fn auction_failed_should_work() {
             frame_system::RawOrigin::Root.into(), // origin
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
             end_block                             // end_block
@@ -493,7 +549,7 @@ fn auction_failed_should_work() {
         .unwrap();
 
         // check that we're in the right phase
-        let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
+        let vault = Crowdloans::vaults((&crowdloan, &LEASE_START, &LEASE_END)).unwrap();
         assert_eq!(vault.phase, VaultPhase::Failed)
     });
 }
@@ -522,6 +578,8 @@ fn claim_refund_should_work() {
             frame_system::RawOrigin::Root.into(), // origin
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
             end_block                             // end_block
@@ -571,7 +629,9 @@ fn claim_refund_should_work() {
         assert_noop!(
             Crowdloans::claim_refund(
                 Origin::signed(ALICE), // origin
-                ctoken,                // ctoken
+                crowdloan,             // ctoken
+                LEASE_START,           // lease_start
+                LEASE_END,             // lease_end
                 Zero::zero()           // amount
             ),
             Error::<Test>::InvalidParams
@@ -580,12 +640,14 @@ fn claim_refund_should_work() {
         // do claim
         assert_ok!(Crowdloans::claim_refund(
             Origin::signed(ALICE), // origin
-            ctoken,                // ctoken
+            crowdloan,             // ctoken
+            LEASE_START,           // lease_start
+            LEASE_END,             // lease_end
             amount                 // amount
         ));
 
         // check that we're in the right phase
-        let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
+        let vault = Crowdloans::vaults((&crowdloan, &LEASE_START, &LEASE_END)).unwrap();
         // vault should be in a state we allow
         assert!(
             vault.phase == VaultPhase::Failed || vault.phase == VaultPhase::Expired,
@@ -608,6 +670,8 @@ fn slot_expired_should_work() {
             frame_system::RawOrigin::Root.into(), // origin
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
             end_block                             // end_block
@@ -644,7 +708,7 @@ fn slot_expired_should_work() {
         .unwrap();
 
         // check that we're in the right phase
-        let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
+        let vault = Crowdloans::vaults((&crowdloan, &LEASE_START, &LEASE_END)).unwrap();
         assert_eq!(vault.phase, VaultPhase::Expired)
     });
 }
@@ -663,6 +727,8 @@ fn suceed_should_work() {
             frame_system::RawOrigin::Root.into(), // origin
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
             end_block                             // end_block
@@ -687,7 +753,7 @@ fn suceed_should_work() {
         ));
 
         // check that we're in the right phase
-        let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
+        let vault = Crowdloans::vaults((&crowdloan, &LEASE_START, &LEASE_END)).unwrap();
         assert_eq!(vault.phase, VaultPhase::Succeeded)
     });
 }
@@ -749,6 +815,8 @@ fn xcm_contribute_should_work() {
             frame_system::RawOrigin::Root.into(), // origin
             crowdloan,                            // crowdloan
             ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
             end_block                             // end_block
@@ -769,7 +837,7 @@ fn xcm_contribute_should_work() {
         ));
 
         // check that we're in the right phase
-        let vault = Crowdloans::vaults(crowdloan, VAULT_ID).unwrap();
+        let vault = Crowdloans::vaults((&crowdloan, &LEASE_START, &LEASE_END)).unwrap();
         assert_eq!(vault.phase, VaultPhase::Contributing);
     });
     Relay::execute_with(|| {
