@@ -490,7 +490,7 @@ pub mod pallet {
             T::Assets::transfer(
                 T::RelayCurrency::get(),
                 &who,
-                &Self::vault_account_id(crowdloan),
+                &Self::account_id(),
                 amount,
                 true,
             )?;
@@ -710,7 +710,7 @@ pub mod pallet {
                     Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
                     T::Assets::transfer(
                         T::RelayCurrency::get(),
-                        &Self::vault_account_id(crowdloan),
+                        &Self::account_id(),
                         &who,
                         amount,
                         false,
@@ -725,7 +725,7 @@ pub mod pallet {
                     T::Assets::burn_from(ctoken, &who, amount)?;
                     T::Assets::transfer(
                         T::RelayCurrency::get(),
-                        &Self::vault_account_id(crowdloan),
+                        &Self::account_id(),
                         &who,
                         amount,
                         false,
@@ -856,8 +856,8 @@ pub mod pallet {
 
     impl<T: Config> Pallet<T> {
         /// Crowdloans vault account
-        pub fn vault_account_id(crowdloan: ParaId) -> T::AccountId {
-            T::PalletId::get().into_sub_account(crowdloan)
+        pub fn account_id() -> T::AccountId {
+            T::PalletId::get().into_account()
         }
 
         /// Parachain's sovereign account on relaychain
@@ -1024,17 +1024,14 @@ pub mod pallet {
             match request {
                 XcmRequest::Contribute {
                     crowdloan,
+                    vault_id: (lease_start, lease_end),
                     who,
                     amount,
                     referral_code,
                 } if executed => {
-                    let mut vault =
-                        Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
-                    T::Assets::burn_from(
-                        T::RelayCurrency::get(),
-                        &Self::vault_account_id(crowdloan),
-                        amount,
-                    )?;
+                    let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+                        .ok_or(Error::<T>::VaultDoesNotExist)?;
+                    T::Assets::burn_from(T::RelayCurrency::get(), &Self::account_id(), amount)?;
                     Self::do_migrate_contribution(
                         &who,
                         &mut vault,
@@ -1042,11 +1039,6 @@ pub mod pallet {
                         ChildStorageKind::Flying,
                         ChildStorageKind::Contributed,
                     )?;
-                    let Vault {
-                        lease_start,
-                        lease_end,
-                        ..
-                    } = vault;
                     Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
 
                     Self::deposit_event(Event::<T>::VaultContributed(
@@ -1059,16 +1051,16 @@ pub mod pallet {
                 }
                 XcmRequest::Contribute {
                     crowdloan,
+                    vault_id: (lease_start, lease_end),
                     who,
                     amount,
                     ..
                 } if !executed => {
-                    let mut vault =
-                        Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
-                    //FIXME: Figure out if contribute failed, does the money still stay on parachain?
+                    let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+                        .ok_or(Error::<T>::VaultDoesNotExist)?;
                     T::Assets::transfer(
                         T::RelayCurrency::get(),
-                        &Self::vault_account_id(crowdloan),
+                        &Self::account_id(),
                         &who,
                         amount,
                         true,
@@ -1082,55 +1074,25 @@ pub mod pallet {
                         ArithmeticKind::Subtraction,
                         ChildStorageKind::Flying,
                     )?;
-                    Vaults::<T>::insert(
-                        (
-                            &crowdloan,
-                            &vault.lease_start.clone(),
-                            &vault.lease_end.clone(),
-                        ),
-                        vault,
-                    );
+                    Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
                 }
                 XcmRequest::Withdraw {
                     crowdloan,
+                    vault_id: (lease_start, lease_end),
                     amount,
                     target_phase,
                 } if executed => {
-                    let mut vault =
-                        Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
-                    T::Assets::mint_into(
-                        T::RelayCurrency::get(),
-                        &Self::vault_account_id(crowdloan),
-                        amount,
-                    )?;
-                    let Vault {
-                        lease_start,
-                        lease_end,
-                        phase: pre_phase,
-                        ..
-                    } = vault;
-                    vault.phase = target_phase;
+                    let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+                        .ok_or(Error::<T>::VaultDoesNotExist)?;
+                    T::Assets::mint_into(T::RelayCurrency::get(), &Self::account_id(), amount)?;
+                    let pre_phase = sp_std::mem::replace(&mut vault.phase, target_phase);
                     Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
-
-                    match target_phase {
-                        VaultPhase::Failed => {
-                            Self::deposit_event(Event::<T>::VaultPhaseChanged(
-                                crowdloan,
-                                (lease_start, lease_end),
-                                pre_phase,
-                                VaultPhase::Failed,
-                            ));
-                        }
-                        VaultPhase::Expired => {
-                            Self::deposit_event(Event::<T>::VaultPhaseChanged(
-                                crowdloan,
-                                (lease_start, lease_end),
-                                pre_phase,
-                                VaultPhase::Expired,
-                            ));
-                        }
-                        _ => { /* do nothing */ }
-                    }
+                    Self::deposit_event(Event::<T>::VaultPhaseChanged(
+                        crowdloan,
+                        (lease_start, lease_end),
+                        pre_phase,
+                        target_phase,
+                    ));
                 }
                 _ => {}
             }
@@ -1242,6 +1204,7 @@ pub mod pallet {
                 query_id,
                 XcmRequest::Contribute {
                     crowdloan,
+                    vault_id,
                     who: who.clone(),
                     amount,
                     referral_code: referral_code.clone(),
@@ -1285,6 +1248,7 @@ pub mod pallet {
                 query_id,
                 XcmRequest::Withdraw {
                     crowdloan,
+                    vault_id,
                     amount,
                     target_phase,
                 },

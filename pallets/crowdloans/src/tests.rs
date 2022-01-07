@@ -32,7 +32,7 @@ fn create_new_vault_should_work() {
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            Id(Crowdloans::vault_account_id(crowdloan)),
+            Id(Crowdloans::account_id()),
             true,
             One::one(),
         ));
@@ -80,13 +80,13 @@ fn create_new_vault_should_not_work_if_ctoken_is_different() {
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(crowdloan)),
+            Id(Crowdloans::account_id()),
             true,
             One::one(),
         ));
 
         Assets::mint(
-            Origin::signed(Crowdloans::vault_account_id(crowdloan)),
+            Origin::signed(Crowdloans::account_id()),
             ctoken,
             Id(ALICE),
             dot(100f64),
@@ -136,7 +136,7 @@ fn open_should_work() {
         (Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            Id(Crowdloans::vault_account_id(crowdloan)),
+            Id(Crowdloans::account_id()),
             true,
             One::one(),
         ))
@@ -201,7 +201,7 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            Id(Crowdloans::vault_account_id(crowdloan)),
+            Id(Crowdloans::account_id()),
             true,
             One::one(),
         ));
@@ -247,7 +247,7 @@ fn set_vrfs_should_work() {
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            Id(Crowdloans::vault_account_id(ParaId::from(crowdloan))),
+            Id(Crowdloans::account_id()),
             true,
             One::one(),
         ));
@@ -321,7 +321,7 @@ fn contribute_should_work() {
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            Id(Crowdloans::vault_account_id(ParaId::from(crowdloan))),
+            Id(Crowdloans::account_id()),
             true,
             One::one(),
         ));
@@ -388,7 +388,7 @@ fn contribute_should_fail_insufficent_funds() {
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            Id(Crowdloans::vault_account_id(ParaId::from(crowdloan))),
+            Id(Crowdloans::account_id()),
             true,
             One::one(),
         ));
@@ -568,7 +568,7 @@ fn claim_failed_should_work() {
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            Id(Crowdloans::vault_account_id(ParaId::from(crowdloan))),
+            Id(Crowdloans::account_id()),
             true,
             One::one(),
         ));
@@ -661,7 +661,7 @@ fn claim_succeed_and_expired_should_work() {
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            Id(Crowdloans::vault_account_id(ParaId::from(crowdloan))),
+            Id(Crowdloans::account_id()),
             true,
             One::one(),
         ));
@@ -911,7 +911,7 @@ fn xcm_contribute_should_work() {
         assert_ok!(Assets::force_create(
             RawOrigin::Root.into(),
             ctoken.unique_saturated_into(),
-            sp_runtime::MultiAddress::Id(Crowdloans::vault_account_id(ParaId::from(crowdloan))),
+            Id(Crowdloans::account_id()),
             true,
             One::one(),
         ));

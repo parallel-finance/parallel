@@ -19,7 +19,7 @@ use super::{AccountIdOf, AssetIdOf, BalanceOf, Config};
 use codec::{Decode, Encode};
 
 use frame_system::pallet_prelude::BlockNumberFor;
-use primitives::{LeasePeriod, ParaId, TrieIndex};
+use primitives::{LeasePeriod, ParaId, TrieIndex, VaultId};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, RuntimeDebug};
 use sp_std::vec::Vec;
@@ -111,12 +111,14 @@ pub enum ContributionStrategy {
 pub enum XcmRequest<T: Config> {
     Contribute {
         crowdloan: ParaId,
+        vault_id: VaultId,
         who: AccountIdOf<T>,
         amount: BalanceOf<T>,
         referral_code: Vec<u8>,
     },
     Withdraw {
         crowdloan: ParaId,
+        vault_id: VaultId,
         amount: BalanceOf<T>,
         target_phase: VaultPhase,
     },
