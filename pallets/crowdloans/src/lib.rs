@@ -185,8 +185,8 @@ pub mod pallet {
         /// Vault successfully contributed
         /// [para_id, vault_id, contributor, amount, referral_code]
         VaultContributed(ParaId, VaultId, T::AccountId, BalanceOf<T>, Vec<u8>),
-        /// A user claimed refund from vault
-        /// [para_id, vault_id, ctoken_id, account, amount, referral_code, phase]
+        /// A user claimed refund or cDOT from vault
+        /// [para_id, vault_id, ctoken_id, account, amount, phase]
         VaultClaimed(
             ParaId,
             VaultId,
@@ -693,6 +693,8 @@ pub mod pallet {
                         &who,
                         ChildStorageKind::Contributed,
                     );
+                    ensure!(!amount.is_zero(), Error::<T>::InsufficientBalance);
+
                     Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
                     T::Assets::mint_into(ctoken, &who, amount)?;
                     amount
@@ -703,6 +705,8 @@ pub mod pallet {
                         &who,
                         ChildStorageKind::Contributed,
                     );
+                    ensure!(!amount.is_zero(), Error::<T>::InsufficientBalance);
+                    
                     Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
                     T::Assets::transfer(
                         T::RelayCurrency::get(),
@@ -716,9 +720,9 @@ pub mod pallet {
                 VaultPhase::Expired => {
                     let ctoken_amount = T::Assets::reducible_balance(ctoken, &who, false);
                     let amount = refund_amount.unwrap_or(ctoken_amount).min(ctoken_amount);
-
+                    ensure!(!amount.is_zero(), Error::<T>::InsufficientBalance);
+                    
                     T::Assets::burn_from(ctoken, &who, amount)?;
-
                     T::Assets::transfer(
                         T::RelayCurrency::get(),
                         &Self::vault_account_id(crowdloan),
