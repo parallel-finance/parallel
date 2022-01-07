@@ -488,8 +488,8 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     ext.execute_with(|| {
         Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
         Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
-        Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), dot(100f64)).unwrap();
+        Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), dot(100f64)).unwrap();
         Assets::mint(
             Origin::signed(ALICE),
             DOT,
@@ -566,8 +566,8 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         System::set_block_number(1);
         Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
         Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100_000 * DOT_DECIMAL).unwrap();
-        Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), dot(100_000f64)).unwrap();
+        Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), dot(100f64)).unwrap();
         Assets::mint(
             Origin::signed(ALICE),
             DOT,
@@ -589,8 +589,8 @@ pub fn relay_ext() -> sp_io::TestExternalities {
 
     pallet_balances::GenesisConfig::<Runtime> {
         balances: vec![
-            (ALICE, 100_000 * DOT_DECIMAL),
-            (para_a_id().into_account(), 1_000_000 * DOT_DECIMAL),
+            (ALICE, dot(100_000f64)),
+            (para_a_id().into_account(), dot(1_000_000f64)),
         ],
     }
     .assimilate_storage(&mut t)

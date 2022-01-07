@@ -185,9 +185,16 @@ pub mod pallet {
         /// Vault successfully contributed
         /// [para_id, vault_id, contributor, amount, referral_code]
         VaultContributed(ParaId, VaultId, T::AccountId, BalanceOf<T>, Vec<u8>),
-        /// A user claimed refund from vault
-        /// [para_id, vault_id, ctoken_id, account, amount]
-        VaultClaimedRefund(ParaId, VaultId, AssetIdOf<T>, T::AccountId, BalanceOf<T>),
+        /// A user claimed refund or cDOT from vault
+        /// [para_id, vault_id, ctoken_id, account, amount, phase]
+        VaultClaimed(
+            ParaId,
+            VaultId,
+            AssetIdOf<T>,
+            T::AccountId,
+            BalanceOf<T>,
+            VaultPhase,
+        ),
         /// Vrfs updated
         /// [vrf_data]
         VrfsUpdated(BoundedVec<ParaId, T::MaxVrfs>),
@@ -657,57 +664,86 @@ pub mod pallet {
 
         /// If a `crowdloan` failed or expired, claim back your share of the assets you
         /// contributed
-        #[pallet::weight(<T as Config>::WeightInfo::claim_refund())]
+        #[pallet::weight(<T as Config>::WeightInfo::claim())]
         #[transactional]
-        pub fn claim_refund(
+        pub fn claim(
             origin: OriginFor<T>,
             crowdloan: ParaId,
             lease_start: LeasePeriod,
             lease_end: LeasePeriod,
-            #[pallet::compact] amount: BalanceOf<T>,
+            refund_amount: Option<BalanceOf<T>>,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
-            ensure!(!amount.is_zero(), Error::<T>::InvalidParams);
-
             let ctoken = Self::ctokens_registry((&lease_start, &lease_end))
                 .ok_or(Error::<T>::CTokenDoesNotExist)?;
-
             let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
                 .ok_or(Error::<T>::VaultDoesNotExist)?;
 
-            ensure!(
-                vault.phase == VaultPhase::Failed || vault.phase == VaultPhase::Expired,
-                Error::<T>::IncorrectVaultPhase
-            );
-
-            let ctoken_amount = T::Assets::reducible_balance(vault.ctoken, &who, false);
-            ensure!(ctoken_amount >= amount, Error::<T>::InsufficientBalance);
-
             log::trace!(
-                target: "crowdloans::claim_refund",
+                target: "crowdloans::claim",
                 "pre-toggle. ctoken: {:?}",
                 ctoken,
             );
 
-            T::Assets::burn_from(vault.ctoken, &who, amount)?;
+            let amount = match vault.phase {
+                VaultPhase::Succeeded => {
+                    let (amount, _) = Self::contribution_get(
+                        vault.trie_index,
+                        &who,
+                        ChildStorageKind::Contributed,
+                    );
+                    ensure!(!amount.is_zero(), Error::<T>::InsufficientBalance);
 
-            T::Assets::transfer(
-                T::RelayCurrency::get(),
-                &Self::vault_account_id(crowdloan),
-                &who,
-                amount,
-                false,
-            )?;
+                    Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
+                    T::Assets::mint_into(ctoken, &who, amount)?;
+                    amount
+                }
+                VaultPhase::Failed => {
+                    let (amount, _) = Self::contribution_get(
+                        vault.trie_index,
+                        &who,
+                        ChildStorageKind::Contributed,
+                    );
+                    ensure!(!amount.is_zero(), Error::<T>::InsufficientBalance);
 
-            Self::deposit_event(Event::<T>::VaultClaimedRefund(
+                    Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
+                    T::Assets::transfer(
+                        T::RelayCurrency::get(),
+                        &Self::vault_account_id(crowdloan),
+                        &who,
+                        amount,
+                        false,
+                    )?;
+                    amount
+                }
+                VaultPhase::Expired => {
+                    let ctoken_amount = T::Assets::reducible_balance(ctoken, &who, false);
+                    let amount = refund_amount.unwrap_or(ctoken_amount).min(ctoken_amount);
+                    ensure!(!amount.is_zero(), Error::<T>::InsufficientBalance);
+
+                    T::Assets::burn_from(ctoken, &who, amount)?;
+                    T::Assets::transfer(
+                        T::RelayCurrency::get(),
+                        &Self::vault_account_id(crowdloan),
+                        &who,
+                        amount,
+                        false,
+                    )?;
+                    amount
+                }
+                _ => {
+                    return Err(DispatchError::from(Error::<T>::IncorrectVaultPhase));
+                }
+            };
+            Self::deposit_event(Event::<T>::VaultClaimed(
                 crowdloan,
                 (vault.lease_start, vault.lease_end),
                 ctoken,
                 who,
                 amount,
+                vault.phase,
             ));
-
             Ok(())
         }
 
@@ -994,7 +1030,6 @@ pub mod pallet {
                 } if executed => {
                     let mut vault =
                         Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
-                    T::Assets::mint_into(vault.ctoken, &who, amount)?;
                     T::Assets::burn_from(
                         T::RelayCurrency::get(),
                         &Self::vault_account_id(crowdloan),
@@ -1030,6 +1065,7 @@ pub mod pallet {
                 } if !executed => {
                     let mut vault =
                         Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
+                    //FIXME: Figure out if contribute failed, does the money still stay on parachain?
                     T::Assets::transfer(
                         T::RelayCurrency::get(),
                         &Self::vault_account_id(crowdloan),

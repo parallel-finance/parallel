@@ -274,7 +274,7 @@ benchmarks! {
         assert_last_event::<T>(Event::VaultDoWithdrawing(crowdloan, (LEASE_START, LEASE_END), 0, VaultPhase::Failed).into())
     }
 
-    claim_refund {
+    claim {
         let ctoken = 15;
         let caller: T::AccountId = whitelisted_caller();
         let crowdloan = ParaId::from(1341u32);
@@ -300,10 +300,10 @@ benchmarks! {
         crowdloan,
         LEASE_START,
         LEASE_END,
-        1_000
+        None
     )
     verify {
-        assert_last_event::<T>(Event::VaultClaimedRefund(crowdloan, (LEASE_START, LEASE_END), ctoken, caller, 1_000).into())
+        assert_last_event::<T>(Event::VaultClaimed(crowdloan, (LEASE_START, LEASE_END), ctoken, caller, CONTRIBUTE_AMOUNT, VaultPhase::Failed).into())
     }
 
     slot_expired {
