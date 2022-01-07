@@ -9,7 +9,7 @@ use frame_support::{
 };
 use frame_system::RawOrigin;
 use polkadot_parachain::primitives::{HeadData, ValidationCode};
-use primitives::{BlockNumber, ParaId};
+use primitives::{tokens::DOT, BlockNumber, ParaId};
 use sp_runtime::{
     traits::{One, UniqueSaturatedInto, Zero},
     MultiAddress::Id,
@@ -364,13 +364,13 @@ fn contribute_should_work() {
         .unwrap();
 
         // check if ctoken minted to user
-        let ctoken_balance = Assets::balance(vault.ctoken, ALICE);
+        // let ctoken_balance = Assets::balance(vault.ctoken, ALICE);
 
         let (contributed, referral_code) =
             Crowdloans::contribution_get(vault.trie_index, &ALICE, ChildStorageKind::Contributed);
         assert!(referral_code == vec![12, 34]);
         assert!(contributed == amount);
-        assert_eq!(ctoken_balance, amount);
+        // assert_eq!(ctoken_balance, amount);
     });
 }
 
@@ -555,7 +555,100 @@ fn auction_failed_should_work() {
 }
 
 #[test]
-fn claim_refund_should_work() {
+fn claim_failed_should_work() {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337u32);
+        let ctoken = 10u32;
+        let amount = 1_000u128;
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
+        let contribution_strategy = ContributionStrategy::XCM;
+
+        // create the ctoken asset
+        assert_ok!(Assets::force_create(
+            RawOrigin::Root.into(),
+            ctoken.unique_saturated_into(),
+            Id(Crowdloans::vault_account_id(ParaId::from(crowdloan))),
+            true,
+            One::one(),
+        ));
+
+        // create a vault to contribute to
+        assert_ok!(Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
+            contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
+        ));
+
+        // do open
+        assert_ok!(Crowdloans::open(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
+        // do contribute
+        assert_ok!(Crowdloans::contribute(
+            Origin::signed(ALICE), // origin
+            crowdloan,             // crowdloan
+            amount,                // amount
+            Vec::new()
+        ));
+
+        assert_eq!(Assets::balance(DOT, ALICE), dot(100f64) - amount);
+
+        Crowdloans::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
+        )
+        .unwrap();
+
+        // do close
+        assert_ok!(Crowdloans::close(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
+        // set to failed
+        assert_ok!(Crowdloans::auction_failed(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
+        Crowdloans::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            1,
+            Response::ExecutionResult(None),
+        )
+        .unwrap();
+
+        // do claim
+        assert_ok!(Crowdloans::claim(
+            Origin::signed(ALICE), // origin
+            crowdloan,             // ctoken
+            LEASE_START,           // lease_start
+            LEASE_END,             // lease_end
+            None                   // amount
+        ));
+        assert_eq!(Assets::balance(DOT, ALICE), dot(100f64));
+
+        // check that we're in the right phase
+        let vault = Crowdloans::vaults((&crowdloan, &LEASE_START, &LEASE_END)).unwrap();
+        // vault should be in a state we allow
+        assert!(
+            vault.phase == VaultPhase::Failed || vault.phase == VaultPhase::Expired,
+            "Vault in incorrect state"
+        );
+    });
+}
+
+#[test]
+fn claim_succeed_and_expired_should_work() {
     new_test_ext().execute_with(|| {
         let crowdloan = ParaId::from(1337u32);
         let ctoken = 10u32;
@@ -612,8 +705,33 @@ fn claim_refund_should_work() {
             crowdloan,                            // crowdloan
         ));
 
-        // set to failed
-        assert_ok!(Crowdloans::auction_failed(
+        //////////////////////////////////
+        // set to succeed
+        assert_ok!(Crowdloans::auction_succeeded(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
+        // do claim succeed
+        assert_ok!(Crowdloans::claim(
+            Origin::signed(ALICE), // origin
+            crowdloan,             // ctoken
+            LEASE_START,           // lease_start
+            LEASE_END,             // lease_end
+            None                   // amount
+        ));
+        assert_eq!(Assets::balance(ctoken, ALICE), amount);
+        assert_eq!(Assets::balance(DOT, ALICE), dot(100f64) - amount);
+
+        let vault = Crowdloans::vaults((&crowdloan, &LEASE_START, &LEASE_END)).unwrap();
+        assert!(
+            vault.phase == VaultPhase::Succeeded,
+            "Vault in incorrect state"
+        );
+
+        //////////////////////////////////
+        // set to expired
+        assert_ok!(Crowdloans::slot_expired(
             frame_system::RawOrigin::Root.into(), // origin
             crowdloan,                            // crowdloan
         ));
@@ -625,32 +743,20 @@ fn claim_refund_should_work() {
         )
         .unwrap();
 
-        // check error code while amount is 0
-        assert_noop!(
-            Crowdloans::claim_refund(
-                Origin::signed(ALICE), // origin
-                crowdloan,             // ctoken
-                LEASE_START,           // lease_start
-                LEASE_END,             // lease_end
-                Zero::zero()           // amount
-            ),
-            Error::<Test>::InvalidParams
-        );
-
-        // do claim
-        assert_ok!(Crowdloans::claim_refund(
+        // do claim expired
+        assert_ok!(Crowdloans::claim(
             Origin::signed(ALICE), // origin
             crowdloan,             // ctoken
             LEASE_START,           // lease_start
             LEASE_END,             // lease_end
-            amount                 // amount
+            Some(amount)           // amount
         ));
+        assert_eq!(Assets::balance(ctoken, ALICE), 0u128);
+        assert_eq!(Assets::balance(DOT, ALICE), dot(100f64));
 
-        // check that we're in the right phase
         let vault = Crowdloans::vaults((&crowdloan, &LEASE_START, &LEASE_END)).unwrap();
-        // vault should be in a state we allow
         assert!(
-            vault.phase == VaultPhase::Failed || vault.phase == VaultPhase::Expired,
+            vault.phase == VaultPhase::Expired,
             "Vault in incorrect state"
         );
     });
