@@ -706,7 +706,7 @@ pub mod pallet {
                         ChildStorageKind::Contributed,
                     );
                     ensure!(!amount.is_zero(), Error::<T>::InsufficientBalance);
-                    
+
                     Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
                     T::Assets::transfer(
                         T::RelayCurrency::get(),
@@ -721,7 +721,7 @@ pub mod pallet {
                     let ctoken_amount = T::Assets::reducible_balance(ctoken, &who, false);
                     let amount = refund_amount.unwrap_or(ctoken_amount).min(ctoken_amount);
                     ensure!(!amount.is_zero(), Error::<T>::InsufficientBalance);
-                    
+
                     T::Assets::burn_from(ctoken, &who, amount)?;
                     T::Assets::transfer(
                         T::RelayCurrency::get(),
