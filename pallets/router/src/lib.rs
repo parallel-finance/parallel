@@ -114,7 +114,7 @@ pub mod pallet {
     pub enum Event<T: Config<I>, I: 'static = ()> {
         /// Event emitted when swap is successful
         /// [sender, amount_in, route, amount_out]
-        TradedSuccessfully(T::AccountId, BalanceOf<T, I>, Route<T, I>, BalanceOf<T, I>),
+        Traded(T::AccountId, BalanceOf<T, I>, Route<T, I>, BalanceOf<T, I>),
     }
 
     #[pallet::hooks]
@@ -188,12 +188,7 @@ pub mod pallet {
                 Error::<T, I>::UnexpectedSlippage
             );
 
-            Self::deposit_event(Event::TradedSuccessfully(
-                trader,
-                original_amount_in,
-                route,
-                amount_out,
-            ));
+            Self::deposit_event(Event::Traded(trader, original_amount_in, route, amount_out));
 
             Ok(().into())
         }
