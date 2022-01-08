@@ -166,7 +166,7 @@ benchmarks! {
         crowdloan
     )
     verify {
-        assert_last_event::<T>(Event::VaultPhaseChanged(
+        assert_last_event::<T>(Event::VaultPhaseUpdated(
             crowdloan,
             (LEASE_START, LEASE_END),
             VaultPhase::Pending,
@@ -187,7 +187,7 @@ benchmarks! {
         crowdloan
     )
     verify {
-        assert_last_event::<T>(Event::VaultPhaseChanged(
+        assert_last_event::<T>(Event::VaultPhaseUpdated(
             crowdloan,
             (LEASE_START, LEASE_END),
             VaultPhase::Contributing,
@@ -225,7 +225,7 @@ benchmarks! {
         crowdloan
     )
     verify {
-        assert_last_event::<T>(Event::VaultPhaseChanged(
+        assert_last_event::<T>(Event::VaultPhaseUpdated(
             crowdloan,
             (LEASE_START, LEASE_END),
             VaultPhase::Closed,
@@ -247,7 +247,7 @@ benchmarks! {
         crowdloan
     )
     verify {
-        assert_last_event::<T>(Event::VaultPhaseChanged(
+        assert_last_event::<T>(Event::VaultPhaseUpdated(
             crowdloan,
             (LEASE_START, LEASE_END),
             VaultPhase::Closed,
@@ -289,6 +289,32 @@ benchmarks! {
             Response::ExecutionResult(None),
         ));
         assert_ok!(Crowdloans::<T>::close(SystemOrigin::Root.into(), crowdloan));
+        assert_ok!(Crowdloans::<T>::auction_succeeded(SystemOrigin::Root.into(), crowdloan));
+    }: _(
+        SystemOrigin::Signed(caller.clone()),
+        crowdloan,
+        LEASE_START,
+        LEASE_END
+    )
+    verify {
+        assert_last_event::<T>(Event::VaultClaimed(crowdloan, (LEASE_START, LEASE_END), ctoken, caller, CONTRIBUTE_AMOUNT, VaultPhase::Succeeded).into())
+    }
+
+    withdraw {
+        let ctoken = 15;
+        let caller: T::AccountId = whitelisted_caller();
+        let crowdloan = ParaId::from(1341u32);
+
+        initial_set_up::<T>(caller.clone(), ctoken);
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, LEASE_START, LEASE_END, ContributionStrategy::XCM, LARGE_CAP, END_BLOCK.into()));
+        assert_ok!(Crowdloans::<T>::open(SystemOrigin::Root.into(), crowdloan));
+        assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller.clone()).into(), crowdloan, CONTRIBUTE_AMOUNT, Vec::new()));
+        assert_ok!(Crowdloans::<T>::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
+        ));
+        assert_ok!(Crowdloans::<T>::close(SystemOrigin::Root.into(), crowdloan));
         assert_ok!(Crowdloans::<T>::auction_failed(SystemOrigin::Root.into(), crowdloan));
         assert_ok!(Crowdloans::<T>::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
@@ -299,11 +325,44 @@ benchmarks! {
         SystemOrigin::Signed(caller.clone()),
         crowdloan,
         LEASE_START,
-        LEASE_END,
-        None
+        LEASE_END
     )
     verify {
-        assert_last_event::<T>(Event::VaultClaimed(crowdloan, (LEASE_START, LEASE_END), ctoken, caller, CONTRIBUTE_AMOUNT, VaultPhase::Failed).into())
+        assert_last_event::<T>(Event::VaultWithdrew(crowdloan, (LEASE_START, LEASE_END), caller, CONTRIBUTE_AMOUNT, VaultPhase::Failed).into())
+    }
+
+    redeem {
+        let ctoken = 15;
+        let caller: T::AccountId = whitelisted_caller();
+        let crowdloan = ParaId::from(1341u32);
+
+        initial_set_up::<T>(caller.clone(), ctoken);
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, LEASE_START, LEASE_END, ContributionStrategy::XCM, LARGE_CAP, END_BLOCK.into()));
+        assert_ok!(Crowdloans::<T>::open(SystemOrigin::Root.into(), crowdloan));
+        assert_ok!(Crowdloans::<T>::contribute(SystemOrigin::Signed(caller.clone()).into(), crowdloan, CONTRIBUTE_AMOUNT, Vec::new()));
+        assert_ok!(Crowdloans::<T>::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
+        ));
+        assert_ok!(Crowdloans::<T>::close(SystemOrigin::Root.into(), crowdloan));
+        assert_ok!(Crowdloans::<T>::auction_succeeded(SystemOrigin::Root.into(), crowdloan));
+        assert_ok!(Crowdloans::<T>::slot_expired(SystemOrigin::Root.into(), crowdloan));
+        assert_ok!(Crowdloans::<T>::claim(SystemOrigin::Signed(caller.clone()).into(), crowdloan, LEASE_START, LEASE_END));
+        assert_ok!(Crowdloans::<T>::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            1,
+            Response::ExecutionResult(None),
+        ));
+    }: _(
+        SystemOrigin::Signed(caller.clone()),
+        crowdloan,
+        LEASE_START,
+        LEASE_END,
+        CONTRIBUTE_AMOUNT
+    )
+    verify {
+        assert_last_event::<T>(Event::VaultRedeemed(crowdloan, (LEASE_START, LEASE_END), ctoken, caller, CONTRIBUTE_AMOUNT, VaultPhase::Expired).into())
     }
 
     slot_expired {

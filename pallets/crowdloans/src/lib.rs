@@ -175,7 +175,7 @@ pub mod pallet {
         ),
         /// Vault was opened
         /// [para_id, vault_id, pre_phase, now_phase]
-        VaultPhaseChanged(ParaId, VaultId, VaultPhase, VaultPhase),
+        VaultPhaseUpdated(ParaId, VaultId, VaultPhase, VaultPhase),
         /// Vault is trying to do contributing
         /// [para_id, vault_id, contributor, amount, referral_code]
         VaultDoContributing(ParaId, VaultId, T::AccountId, BalanceOf<T>, Vec<u8>),
@@ -185,9 +185,22 @@ pub mod pallet {
         /// Vault successfully contributed
         /// [para_id, vault_id, contributor, amount, referral_code]
         VaultContributed(ParaId, VaultId, T::AccountId, BalanceOf<T>, Vec<u8>),
-        /// A user claimed refund or cDOT from vault
+        /// A user claimed CToken from vault
         /// [para_id, vault_id, ctoken_id, account, amount, phase]
         VaultClaimed(
+            ParaId,
+            VaultId,
+            AssetIdOf<T>,
+            T::AccountId,
+            BalanceOf<T>,
+            VaultPhase,
+        ),
+        /// A user withdrew contributed assets from vault
+        /// [para_id, vault_id, account, amount, phase]
+        VaultWithdrew(ParaId, VaultId, T::AccountId, BalanceOf<T>, VaultPhase),
+        /// A user redeemed contributed assets using CToken
+        /// [para_id, vault_id, ctoken_id, account, amount, phase]
+        VaultRedeemed(
             ParaId,
             VaultId,
             AssetIdOf<T>,
@@ -217,16 +230,22 @@ pub mod pallet {
         CrowdloanAlreadyExists,
         /// Contribution is not enough
         InsufficientContribution,
+        /// There are no contributions stored in contributed childstorage
+        NoContributions,
         /// Balance is not enough
         InsufficientBalance,
+        /// Last lease period must be greater than first lease period.
+        LastPeriodBeforeFirstPeriod,
         /// CToken does not exist
         CTokenDoesNotExist,
+        /// Vault already exists
+        VaultAlreadyExists,
         /// Vault does not exist
         VaultDoesNotExist,
         /// CToken for provided (leaseStart, leaseEnd) is different with what has been created previously
         InvalidCToken,
-        /// Crowdloan for provided ParaId not ended
-        CrowdloanNotEnded,
+        /// Vault for provided ParaId not ended
+        VaultNotEnded,
         /// No contributions allowed during the VRF delay
         VrfDelayInProgress,
         /// Attempted contribution violates contribution cap
@@ -260,7 +279,7 @@ pub mod pallet {
         StorageValue<_, BoundedVec<ParaId, <T as Config>::MaxVrfs>, ValueQuery>;
 
     #[pallet::storage]
-    #[pallet::getter(fn ctokens_registry)]
+    #[pallet::getter(fn ctoken_of)]
     pub type CTokensRegistry<T: Config> = StorageNMap<
         _,
         (
@@ -272,8 +291,8 @@ pub mod pallet {
     >;
 
     #[pallet::storage]
-    #[pallet::getter(fn ongoing_crowdloans)]
-    pub type OngoingCrowdloans<T: Config> =
+    #[pallet::getter(fn current_lease)]
+    pub type LeasesRegistry<T: Config> =
         StorageMap<_, Blake2_128Concat, ParaId, (LeasePeriod, LeasePeriod), OptionQuery>;
 
     #[pallet::storage]
@@ -288,10 +307,10 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// Create a new vault via a governance decision
         ///
+        /// - `crowdloan`: parachain id of the crowdloan, should be consistent with relaychain
         /// - `ctoken`: ctoken is used for the vault, should be unique
         /// - `lease_start`: lease start index
         /// - `lease_end`: lease end index
-        /// - `crowdloan`: parachain id of the crowdloan, should be consistent with relaychain
         /// - `contribution_strategy`: currently, only XCM strategy is supported.
         /// - `cap`: the capacity limit for the vault
         /// - `end_block`: the crowdloan end block for the vault
@@ -311,19 +330,24 @@ pub mod pallet {
 
             ensure!(!cap.is_zero(), Error::<T>::ZeroCap);
 
-            if let Some(c) = Self::ctokens_registry((&lease_start, &lease_end)) {
+            ensure!(
+                lease_start <= lease_end,
+                Error::<T>::LastPeriodBeforeFirstPeriod
+            );
+
+            if let Some(c) = Self::ctoken_of((&lease_start, &lease_end)) {
                 ensure!(c == ctoken, Error::<T>::InvalidCToken);
             }
 
             ensure!(
                 !Vaults::<T>::contains_key((&crowdloan, &lease_start, &lease_end)),
-                Error::<T>::CrowdloanNotEnded
+                Error::<T>::VaultAlreadyExists
             );
 
             // origin shouldn't be able to create a new vault if the previous one is not finished
             if let Some(vault) = Self::current_vault(crowdloan) {
                 if vault.phase != VaultPhase::Failed && vault.phase != VaultPhase::Expired {
-                    return Err(DispatchError::from(Error::<T>::CrowdloanNotEnded));
+                    return Err(DispatchError::from(Error::<T>::VaultNotEnded));
                 }
             }
 
@@ -357,7 +381,7 @@ pub mod pallet {
             NextTrieIndex::<T>::put(next_trie_index);
             Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), new_vault);
             CTokensRegistry::<T>::insert((&lease_start, &lease_end), ctoken);
-            OngoingCrowdloans::<T>::insert(&crowdloan, (lease_start, lease_end));
+            LeasesRegistry::<T>::insert(&crowdloan, (lease_start, lease_end));
 
             Self::deposit_event(Event::<T>::VaultCreated(
                 crowdloan,
@@ -412,6 +436,7 @@ pub mod pallet {
                 end_block,
                 ..
             } = vault;
+
             Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
 
             Self::deposit_event(Event::<T>::VaultUpdated(
@@ -439,7 +464,7 @@ pub mod pallet {
 
             Self::try_mutate_vault(crowdloan, VaultPhase::Pending, |vault| {
                 vault.phase = VaultPhase::Contributing;
-                Self::deposit_event(Event::<T>::VaultPhaseChanged(
+                Self::deposit_event(Event::<T>::VaultPhaseUpdated(
                     crowdloan,
                     (vault.lease_start, vault.lease_end),
                     VaultPhase::Pending,
@@ -534,7 +559,7 @@ pub mod pallet {
 
             log::trace!(
                 target: "crowdloans::contribute",
-                "who: {:?}, crowdloan: {:?}, amount: {:?}, referral_code: {:?}",
+                "who: {:?}, para_id: {:?}, amount: {:?}, referral_code: {:?}",
                 &who,
                 &crowdloan,
                 &amount,
@@ -580,7 +605,7 @@ pub mod pallet {
 
             Self::try_mutate_vault(crowdloan, VaultPhase::Contributing, |vault| {
                 vault.phase = VaultPhase::Closed;
-                Self::deposit_event(Event::<T>::VaultPhaseChanged(
+                Self::deposit_event(Event::<T>::VaultPhaseUpdated(
                     crowdloan,
                     (vault.lease_start, vault.lease_end),
                     VaultPhase::Contributing,
@@ -604,7 +629,7 @@ pub mod pallet {
 
             Self::try_mutate_vault(crowdloan, VaultPhase::Closed, |vault| {
                 vault.phase = VaultPhase::Contributing;
-                Self::deposit_event(Event::<T>::VaultPhaseChanged(
+                Self::deposit_event(Event::<T>::VaultPhaseUpdated(
                     crowdloan,
                     (vault.lease_start, vault.lease_end),
                     VaultPhase::Closed,
@@ -628,7 +653,7 @@ pub mod pallet {
 
             Self::try_mutate_vault(crowdloan, VaultPhase::Closed, |vault| {
                 vault.phase = VaultPhase::Succeeded;
-                Self::deposit_event(Event::<T>::VaultPhaseChanged(
+                Self::deposit_event(Event::<T>::VaultPhaseUpdated(
                     crowdloan,
                     (vault.lease_start, vault.lease_end),
                     VaultPhase::Closed,
@@ -662,8 +687,8 @@ pub mod pallet {
             })
         }
 
-        /// If a `crowdloan` failed or expired, claim back your share of the assets you
-        /// contributed
+        /// If a `crowdloan` succeeded, claim the liquid derivatives of the
+        /// contributed assets
         #[pallet::weight(<T as Config>::WeightInfo::claim())]
         #[transactional]
         pub fn claim(
@@ -671,71 +696,38 @@ pub mod pallet {
             crowdloan: ParaId,
             lease_start: LeasePeriod,
             lease_end: LeasePeriod,
-            refund_amount: Option<BalanceOf<T>>,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
-            let ctoken = Self::ctokens_registry((&lease_start, &lease_end))
+            let ctoken = Self::ctoken_of((&lease_start, &lease_end))
                 .ok_or(Error::<T>::CTokenDoesNotExist)?;
             let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
                 .ok_or(Error::<T>::VaultDoesNotExist)?;
 
-            log::trace!(
-                target: "crowdloans::claim",
-                "pre-toggle. ctoken: {:?}",
-                ctoken,
+            ensure!(
+                vault.phase == VaultPhase::Succeeded,
+                Error::<T>::IncorrectVaultPhase
             );
 
-            let amount = match vault.phase {
-                VaultPhase::Succeeded => {
-                    let (amount, _) = Self::contribution_get(
-                        vault.trie_index,
-                        &who,
-                        ChildStorageKind::Contributed,
-                    );
-                    ensure!(!amount.is_zero(), Error::<T>::InsufficientBalance);
+            let (amount, _) =
+                Self::contribution_get(vault.trie_index, &who, ChildStorageKind::Contributed);
+            ensure!(!amount.is_zero(), Error::<T>::NoContributions);
 
-                    Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
-                    T::Assets::mint_into(ctoken, &who, amount)?;
-                    amount
-                }
-                VaultPhase::Failed => {
-                    let (amount, _) = Self::contribution_get(
-                        vault.trie_index,
-                        &who,
-                        ChildStorageKind::Contributed,
-                    );
-                    ensure!(!amount.is_zero(), Error::<T>::InsufficientBalance);
+            log::trace!(
+                target: "crowdloans::claim",
+                "who: {:?}, ctoken: {:?}, amount: {:?}, para_id: {:?}, lease_start: {:?}, lease_end: {:?}",
+                &who,
+                &ctoken,
+                &amount,
+                &crowdloan,
+                &lease_start,
+                &lease_end
+            );
 
-                    Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
-                    T::Assets::transfer(
-                        T::RelayCurrency::get(),
-                        &Self::account_id(),
-                        &who,
-                        amount,
-                        false,
-                    )?;
-                    amount
-                }
-                VaultPhase::Expired => {
-                    let ctoken_amount = T::Assets::reducible_balance(ctoken, &who, false);
-                    let amount = refund_amount.unwrap_or(ctoken_amount).min(ctoken_amount);
-                    ensure!(!amount.is_zero(), Error::<T>::InsufficientBalance);
+            T::Assets::mint_into(ctoken, &who, amount)?;
 
-                    T::Assets::burn_from(ctoken, &who, amount)?;
-                    T::Assets::transfer(
-                        T::RelayCurrency::get(),
-                        &Self::account_id(),
-                        &who,
-                        amount,
-                        false,
-                    )?;
-                    amount
-                }
-                _ => {
-                    return Err(DispatchError::from(Error::<T>::IncorrectVaultPhase));
-                }
-            };
+            Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
+
             Self::deposit_event(Event::<T>::VaultClaimed(
                 crowdloan,
                 (vault.lease_start, vault.lease_end),
@@ -744,6 +736,119 @@ pub mod pallet {
                 amount,
                 vault.phase,
             ));
+
+            Ok(())
+        }
+
+        /// If a `crowdloan` failed, withdraw the contributed assets
+        #[pallet::weight(<T as Config>::WeightInfo::withdraw())]
+        #[transactional]
+        pub fn withdraw(
+            origin: OriginFor<T>,
+            crowdloan: ParaId,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+
+            let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+                .ok_or(Error::<T>::VaultDoesNotExist)?;
+
+            ensure!(
+                vault.phase == VaultPhase::Failed,
+                Error::<T>::IncorrectVaultPhase
+            );
+
+            let (amount, _) =
+                Self::contribution_get(vault.trie_index, &who, ChildStorageKind::Contributed);
+            ensure!(!amount.is_zero(), Error::<T>::NoContributions);
+
+            log::trace!(
+                target: "crowdloans::withdraw",
+                "who: {:?}, amount: {:?}, para_id: {:?}, lease_start: {:?}, lease_end: {:?}",
+                &who,
+                &amount,
+                &crowdloan,
+                &lease_start,
+                &lease_end
+            );
+
+            T::Assets::transfer(
+                T::RelayCurrency::get(),
+                &Self::account_id(),
+                &who,
+                amount,
+                false,
+            )?;
+
+            Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
+
+            Self::deposit_event(Event::<T>::VaultWithdrew(
+                crowdloan,
+                (vault.lease_start, vault.lease_end),
+                who,
+                amount,
+                vault.phase,
+            ));
+
+            Ok(())
+        }
+
+        /// If a `crowdloan` expired, redeem the contributed assets
+        /// using ctoken
+        #[pallet::weight(<T as Config>::WeightInfo::redeem())]
+        #[transactional]
+        pub fn redeem(
+            origin: OriginFor<T>,
+            crowdloan: ParaId,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod,
+            #[pallet::compact] amount: BalanceOf<T>,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+
+            let ctoken = Self::ctoken_of((&lease_start, &lease_end))
+                .ok_or(Error::<T>::CTokenDoesNotExist)?;
+            let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+                .ok_or(Error::<T>::VaultDoesNotExist)?;
+
+            ensure!(
+                vault.phase == VaultPhase::Expired,
+                Error::<T>::IncorrectVaultPhase
+            );
+
+            log::trace!(
+                target: "crowdloans::redeem",
+                "who: {:?}, ctoken: {:?}, amount: {:?}, para_id: {:?}, lease_start: {:?}, lease_end: {:?}",
+                &who,
+                &ctoken,
+                &amount,
+                &crowdloan,
+                &lease_start,
+                &lease_end
+            );
+
+            let ctoken_balance = T::Assets::reducible_balance(ctoken, &who, false);
+            ensure!(ctoken_balance >= amount, Error::<T>::InsufficientBalance);
+
+            T::Assets::burn_from(ctoken, &who, amount)?;
+            T::Assets::transfer(
+                T::RelayCurrency::get(),
+                &Self::account_id(),
+                &who,
+                amount,
+                false,
+            )?;
+
+            Self::deposit_event(Event::<T>::VaultRedeemed(
+                crowdloan,
+                (vault.lease_start, vault.lease_end),
+                ctoken,
+                who,
+                amount,
+                vault.phase,
+            ));
+
             Ok(())
         }
 
@@ -874,7 +979,7 @@ pub mod pallet {
         }
 
         pub(crate) fn current_vault(crowdloan: ParaId) -> Option<Vault<T>> {
-            Self::ongoing_crowdloans(crowdloan).and_then(|(lease_start, lease_end)| {
+            Self::current_lease(crowdloan).and_then(|(lease_start, lease_end)| {
                 Self::vaults((&crowdloan, &lease_start, &lease_end))
             })
         }
@@ -1087,7 +1192,7 @@ pub mod pallet {
                     T::Assets::mint_into(T::RelayCurrency::get(), &Self::account_id(), amount)?;
                     let pre_phase = sp_std::mem::replace(&mut vault.phase, target_phase);
                     Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
-                    Self::deposit_event(Event::<T>::VaultPhaseChanged(
+                    Self::deposit_event(Event::<T>::VaultPhaseUpdated(
                         crowdloan,
                         (lease_start, lease_end),
                         pre_phase,

@@ -228,7 +228,7 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
                 cap,                                  // cap
                 end_block                             // end_block
             ),
-            Error::<Test>::CrowdloanNotEnded
+            Error::<Test>::VaultAlreadyExists
         );
     });
 }
@@ -627,13 +627,12 @@ fn claim_failed_should_work() {
         )
         .unwrap();
 
-        // do claim
-        assert_ok!(Crowdloans::claim(
+        // do withdraw
+        assert_ok!(Crowdloans::withdraw(
             Origin::signed(ALICE), // origin
             crowdloan,             // ctoken
             LEASE_START,           // lease_start
             LEASE_END,             // lease_end
-            None                   // amount
         ));
         assert_eq!(Assets::balance(DOT, ALICE), dot(100f64));
 
@@ -718,7 +717,6 @@ fn claim_succeed_and_expired_should_work() {
             crowdloan,             // ctoken
             LEASE_START,           // lease_start
             LEASE_END,             // lease_end
-            None                   // amount
         ));
         assert_eq!(Assets::balance(ctoken, ALICE), amount);
         assert_eq!(Assets::balance(DOT, ALICE), dot(100f64) - amount);
@@ -743,13 +741,13 @@ fn claim_succeed_and_expired_should_work() {
         )
         .unwrap();
 
-        // do claim expired
-        assert_ok!(Crowdloans::claim(
+        // do redeem expired
+        assert_ok!(Crowdloans::redeem(
             Origin::signed(ALICE), // origin
             crowdloan,             // ctoken
             LEASE_START,           // lease_start
             LEASE_END,             // lease_end
-            Some(amount)           // amount
+            amount                 // amount
         ));
         assert_eq!(Assets::balance(ctoken, ALICE), 0u128);
         assert_eq!(Assets::balance(DOT, ALICE), dot(100f64));
