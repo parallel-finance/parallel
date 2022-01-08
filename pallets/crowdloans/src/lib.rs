@@ -730,11 +730,11 @@ pub mod pallet {
 
             Self::deposit_event(Event::<T>::VaultClaimed(
                 crowdloan,
-                (vault.lease_start, vault.lease_end),
+                (lease_start, lease_end),
                 ctoken,
                 who,
                 amount,
-                vault.phase,
+                VaultPhase::Succeeded,
             ));
 
             Ok(())
@@ -751,7 +751,7 @@ pub mod pallet {
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
-            let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+            let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
                 .ok_or(Error::<T>::VaultDoesNotExist)?;
 
             ensure!(
@@ -783,12 +783,19 @@ pub mod pallet {
 
             Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
 
+            vault.contributed = vault
+                .contributed
+                .checked_sub(amount)
+                .ok_or(ArithmeticError::Underflow)?;
+
+            Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
+
             Self::deposit_event(Event::<T>::VaultWithdrew(
                 crowdloan,
-                (vault.lease_start, vault.lease_end),
+                (lease_start, lease_end),
                 who,
                 amount,
-                vault.phase,
+                VaultPhase::Failed,
             ));
 
             Ok(())
@@ -809,7 +816,7 @@ pub mod pallet {
 
             let ctoken = Self::ctoken_of((&lease_start, &lease_end))
                 .ok_or(Error::<T>::CTokenDoesNotExist)?;
-            let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+            let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
                 .ok_or(Error::<T>::VaultDoesNotExist)?;
 
             ensure!(
@@ -840,13 +847,20 @@ pub mod pallet {
                 false,
             )?;
 
+            vault.contributed = vault
+                .contributed
+                .checked_sub(amount)
+                .ok_or(ArithmeticError::Underflow)?;
+
+            Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
+
             Self::deposit_event(Event::<T>::VaultRedeemed(
                 crowdloan,
-                (vault.lease_start, vault.lease_end),
+                (lease_start, lease_end),
                 ctoken,
                 who,
                 amount,
-                vault.phase,
+                VaultPhase::Expired,
             ));
 
             Ok(())
