@@ -63,7 +63,8 @@ pub mod pallet {
 
     use pallet_xcm_helper::XcmHelper;
 
-    use sp_io::trie::blake2_256_verify_proof;
+    use sp_runtime::traits::BlakeTwo256;
+    use sp_trie::StorageProof;
 
     pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
     pub type AssetIdOf<T> =
@@ -890,8 +891,8 @@ pub mod pallet {
             origin: OriginFor<T>,
             crowdloan_id: ParaId,
             proof: Vec<Vec<u8>>, // leafs for proof
-            proof_root: sp_core::H256,
-            proof_amount: [u8; 16], // balance at time
+            proof_key: Vec<u8>,
+            proof_block_hash: sp_core::H256,
         ) -> DispatchResult {
             // 1. check origin (should be signed?)
             let who = ensure_signed(origin)?;
@@ -903,21 +904,30 @@ pub mod pallet {
             let total_issuance = T::Assets::total_issuance(vault.ctoken);
 
             // 4. validate proof and extract useful information
+            let storage_proof_and_blockhash_root =
+                get_storage_root_from_blockhash(proof_block_hash);
 
-            // TODO: can we grab block hash from proof?
-            // TODO: is the root the block hash?
-            let proof_block_hash = get_blockhash_from_proof(proof);
+            // convert trie path into proof
+            let storage_proof = StorageProof::new(proof.to_vec());
 
-            // TODO: can we grab from proof?
-            // TODO: does user need to specify key and value?
-            let proof_key = get_key_from_proof(proof);
+            let local_result = sp_state_machine::read_proof_check::<BlakeTwo256, _>(
+                storage_proof_and_blockhash_root,
+                storage_proof.clone(),
+                [proof_key],
+            )
+            .unwrap();
 
-            // Possible proof check (not sure if this works)
-            let amount = u128::from_le_bytes(proof_amount);
-            let verified = blake2_256_verify_proof(proof_root, &proof, &proof_key, &proof_amount);
+            // flatten bytes into varible for decoding
+            let local_result_as_bytes = local_result.into_iter().collect::<Vec<_>>();
+            let value_bytes = local_result_as_bytes[0].1.clone().unwrap();
 
-            // throw error if proof is not valid
-            ensure!(verified, Error::<T>::InvaildProof);
+            // first 16 bytes are a u128 encoded as le
+            // this represents the balance
+            let mut balance_buffer: [u8; 16] = Default::default();
+            balance_buffer.copy_from_slice(&value_bytes[0..16]);
+
+            // convert to usable balance
+            let asset_account_balance = u128::from_le_bytes(balance_buffer);
 
             // 5. check that proof matches distribution time
 
@@ -934,10 +944,12 @@ pub mod pallet {
 
             // 6. get user proportional share
             /// TODO: should be safe math
-            let share_of_ptokens = amount / total_issuance;
+            let share_of_ptokens = asset_account_balance
+                .checked_div(total_issuance)
+                .ok_or(ArithmeticError::Overflow)?;
 
             // 7. calculate nominal amount of tokens to send user
-            let nominal_amount = share_of_ptokens * distribution.amount;
+            let nominal_amount = share_of_ptokens.saturating_mul(distribution.amount);
 
             // 8. transfer to user
             T::Assets::transfer(
