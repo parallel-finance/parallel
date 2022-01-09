@@ -773,20 +773,14 @@ pub mod pallet {
                 &lease_end
             );
 
-            T::Assets::transfer(
-                T::RelayCurrency::get(),
-                &Self::account_id(),
-                &who,
-                amount,
-                false,
-            )?;
-
             Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
 
             vault.contributed = vault
                 .contributed
                 .checked_sub(amount)
                 .ok_or(ArithmeticError::Underflow)?;
+
+            T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
 
             Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
 
@@ -838,19 +832,13 @@ pub mod pallet {
             let ctoken_balance = T::Assets::reducible_balance(ctoken, &who, false);
             ensure!(ctoken_balance >= amount, Error::<T>::InsufficientBalance);
 
-            T::Assets::burn_from(ctoken, &who, amount)?;
-            T::Assets::transfer(
-                T::RelayCurrency::get(),
-                &Self::account_id(),
-                &who,
-                amount,
-                false,
-            )?;
-
             vault.contributed = vault
                 .contributed
                 .checked_sub(amount)
                 .ok_or(ArithmeticError::Underflow)?;
+
+            T::Assets::burn_from(ctoken, &who, amount)?;
+            T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
 
             Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
 
@@ -1198,12 +1186,11 @@ pub mod pallet {
                 XcmRequest::Withdraw {
                     crowdloan,
                     vault_id: (lease_start, lease_end),
-                    amount,
+                    amount: _,
                     target_phase,
                 } if executed => {
                     let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
                         .ok_or(Error::<T>::VaultDoesNotExist)?;
-                    T::Assets::mint_into(T::RelayCurrency::get(), &Self::account_id(), amount)?;
                     let pre_phase = sp_std::mem::replace(&mut vault.phase, target_phase);
                     Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
                     Self::deposit_event(Event::<T>::VaultPhaseUpdated(
