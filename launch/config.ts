@@ -134,7 +134,7 @@ const config = {
       chain: 'shell',
       ctokenId: 4000,
       cap: '100000000000000',
-      duration: 28800,
+      endBlock: 28800,
       leaseStart: 0,
       leaseEnd: 7,
       pending: false
@@ -146,7 +146,7 @@ const config = {
       chain: 'shell',
       ctokenId: 4000,
       cap: '1000000000000000',
-      duration: 43200,
+      endBlock: 43200,
       leaseStart: 0,
       leaseEnd: 7,
       pending: true
@@ -158,7 +158,7 @@ const config = {
       chain: 'shell',
       ctokenId: 4000,
       cap: '10000000000000000',
-      duration: 202800,
+      endBlock: 202800,
       leaseStart: 0,
       leaseEnd: 7,
       pending: false
