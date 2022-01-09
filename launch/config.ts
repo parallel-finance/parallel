@@ -102,8 +102,8 @@ const config = {
       balances: [['5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf', '100000000000000000000']]
     },
     {
-      name: 'Parallel SherpaX Crowdloans Kusama',
-      symbol: 'CKSM-KSX',
+      name: 'Parallel Crowdloans Kusama - (0 ~ 7)',
+      symbol: 'CKSM-0-7',
       assetId: 4000,
       decimal: 12,
       marketOption: {
@@ -124,54 +124,6 @@ const config = {
         ptokenId: 3100
       },
       balances: []
-    },
-    {
-      name: 'Parallel Sakura Crowdloans Kusama',
-      symbol: 'CKSM-SKU',
-      assetId: 4001,
-      decimal: 12,
-      marketOption: {
-        closeFactor: 50e4,
-        collateralFactor: 50e4,
-        reserveFactor: 15e4,
-        cap: '100000000000000000',
-        liquidateIncentive: '1100000000000000000',
-        rateModel: {
-          jumpModel: {
-            baseRate: '20000000000000000',
-            jumpRate: '100000000000000000',
-            fullRate: '320000000000000000',
-            jumpUtilization: 8e5
-          }
-        },
-        state: 'Pending',
-        ptokenId: 3101
-      },
-      balances: []
-    },
-    {
-      name: 'Parallel Subsocial Crowdloans Kusama',
-      symbol: 'CKSM-SUB',
-      assetId: 4002,
-      decimal: 12,
-      marketOption: {
-        closeFactor: 50e4,
-        collateralFactor: 50e4,
-        reserveFactor: 15e4,
-        cap: '100000000000000000',
-        liquidateIncentive: '1100000000000000000',
-        rateModel: {
-          jumpModel: {
-            baseRate: '20000000000000000',
-            jumpRate: '100000000000000000',
-            fullRate: '320000000000000000',
-            jumpUtilization: 8e5
-          }
-        },
-        state: 'Pending',
-        ptokenId: 3102
-      },
-      balances: []
     }
   ],
   crowdloans: [
@@ -182,7 +134,7 @@ const config = {
       chain: 'shell',
       ctokenId: 4000,
       cap: '100000000000000',
-      duration: 28800,
+      endBlock: 28800,
       leaseStart: 0,
       leaseEnd: 7,
       pending: false
@@ -192,9 +144,9 @@ const config = {
       derivativeIndex: 1,
       image: 'parallelfinance/polkadot-collator:v0.9.13',
       chain: 'shell',
-      ctokenId: 4001,
+      ctokenId: 4000,
       cap: '1000000000000000',
-      duration: 43200,
+      endBlock: 43200,
       leaseStart: 0,
       leaseEnd: 7,
       pending: true
@@ -204,9 +156,9 @@ const config = {
       derivativeIndex: 2,
       image: 'parallelfinance/polkadot-collator:v0.9.13',
       chain: 'shell',
-      ctokenId: 4002,
+      ctokenId: 4000,
       cap: '10000000000000000',
-      duration: 202800,
+      endBlock: 202800,
       leaseStart: 0,
       leaseEnd: 7,
       pending: false

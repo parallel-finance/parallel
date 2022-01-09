@@ -14,8 +14,6 @@ PARA_WS_PORT=9944
 PARA_RPC_PORT=9933
 PARA_P2P_PORT=30333
 
-PARA_ID=2085
-
 PARA_CHAIN="${4:-heiko}"
 RELAY_CHAIN="${5:-kusama}"
 VOLUME="chains"
@@ -25,10 +23,6 @@ NODE_NAME="$3"
 
 if [ $# -lt 3 ]; then
   echo "help: ./collator.sh <NODE_KEY> <KEYSTORE_PATH> <NODE_NAME>" && exit 1
-fi
-
-if [[ "$PARA_CHAIN" == "parallel" ]]; then
-  PARA_ID=2012
 fi
 
 docker container stop $PARA_CHAIN-collator || true
@@ -52,7 +46,6 @@ docker run --restart=always --name $PARA_CHAIN-collator \
     -d /data \
     --chain=$PARA_CHAIN \
     --collator \
-    --parachain-id=$PARA_ID \
     --ws-port=$PARA_WS_PORT \
     --rpc-port=$PARA_RPC_PORT \
     --keystore-path=/app/keystore \

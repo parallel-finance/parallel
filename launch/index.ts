@@ -120,7 +120,6 @@ async function para() {
   const keyring = new Keyring({ type: 'sr25519', ss58Format: 110 })
   const signer = keyring.addFromUri('//Dave')
   const call = []
-  const height = await chainHeight(api)
 
   for (const { name, symbol, assetId, decimal, marketOption, balances } of config.assets) {
     console.log(`Create ${name}(${symbol}) asset, ptokenId is ${marketOption.ptokenId}`)
@@ -133,10 +132,20 @@ async function para() {
     call.push(...balances.map(([account, amount]) => api.tx.assets.mint(assetId, account, amount)))
   }
 
-  for (const { paraId, image, chain, ctokenId, cap, duration, pending } of config.crowdloans) {
+  for (const {
+    paraId,
+    image,
+    chain,
+    ctokenId,
+    leaseStart,
+    leaseEnd,
+    cap,
+    endBlock,
+    pending
+  } of config.crowdloans) {
     call.push(
       api.tx.sudo.sudo(
-        api.tx.crowdloans.createVault(paraId, ctokenId, 'XCM', cap, height + duration)
+        api.tx.crowdloans.createVault(paraId, ctokenId, leaseStart, leaseEnd, 'XCM', cap, endBlock)
       )
     )
     if (!pending) {
@@ -170,7 +179,7 @@ async function relay() {
 
   for (const { paraId, image, derivativeIndex, chain, ctokenId } of config.crowdloans) {
     const state = exec(
-      `docker run --rm ${image} export-genesis-state --chain ${chain} --parachain-id ${paraId}`
+      `docker run --rm ${image} export-genesis-state --chain ${chain}`
     ).stdout.trim()
     const wasm = exec(`docker run --rm ${image} export-genesis-wasm --chain ${chain}`).stdout.trim()
 
@@ -191,8 +200,6 @@ async function relay() {
   console.log('Wait parathread to be onboarded.')
   await sleep(360000)
 
-  const height = await chainHeight(api)
-
   console.log('Start new auction.')
   const call = []
   call.push(api.tx.sudo.sudo(api.tx.auctions.newAuction(config.auctionDuration, config.leaseIndex)))
@@ -202,18 +209,16 @@ async function relay() {
     )
   )
   call.push(
-    ...config.crowdloans.map(({ paraId, derivativeIndex, cap, duration, leaseStart, leaseEnd }) =>
+    ...config.crowdloans.map(({ paraId, derivativeIndex, cap, endBlock, leaseStart, leaseEnd }) =>
       api.tx.utility.asDerivative(
         derivativeIndex,
-        api.tx.crowdloan.create(paraId, cap, leaseStart, leaseEnd, height + duration, null)
+        api.tx.crowdloan.create(paraId, cap, leaseStart, leaseEnd, endBlock, null)
       )
     )
   )
-  if (chain.includes('Kusama')) {
-    call.push(
-      downwardTransfer(api, config.paraId, createAddress(XcmFeesPalletId), '1000000000000000')
-    )
-  }
+  call.push(
+    downwardTransfer(api, config.paraId, createAddress(XcmFeesPalletId), '1000000000000000')
+  )
 
   await api.tx.utility.batchAll(call).signAndSend(signer, { nonce: await nextIndex(api, signer) })
 }

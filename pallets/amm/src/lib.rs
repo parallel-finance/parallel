@@ -127,7 +127,7 @@ pub mod pallet {
         LiquidityRemoved(T::AccountId, AssetIdOf<T, I>, AssetIdOf<T, I>),
         /// Trade using liquidity
         /// [trader, currency_id_in, currency_id_out, rate_out_for_in]
-        Trade(T::AccountId, AssetIdOf<T, I>, AssetIdOf<T, I>, Rate),
+        Traded(T::AccountId, AssetIdOf<T, I>, AssetIdOf<T, I>, Rate),
     }
 
     #[pallet::hooks]
@@ -604,7 +604,7 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T, AssetIdOf<T, I>, BalanceOf<T, 
                 )?;
 
                 // Emit event of trade with rate calculated
-                Self::deposit_event(Event::<T, I>::Trade(
+                Self::deposit_event(Event::<T, I>::Traded(
                     who.clone(),
                     base_asset,
                     quote_asset,

@@ -250,6 +250,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::ValidatorFeedersMembership(_) |
             // AMM
             Call::AMM(_) |
+            Call::AMMRoute(_) |
             // Crowdloans
             Call::Crowdloans(_) |
             // Bridge
@@ -1508,6 +1509,7 @@ impl Contains<Call> for WhiteListFilter {
         )
         // // AMM
         // Call::AMM(_) |
+        // Call::AMMRoute(_) |
         //
         // // Crowdloans
         // Call::Crowdloans(_) |

@@ -49,7 +49,7 @@ Substrate Parachain Template:
 
 ```
 # this command assumes the chain spec is in a directory named polkadot that is a sibling of the working directory
-./target/release/parallel -d local-test --collator --alice --chain heiko-dev --ws-port 9915 --parachain-id 2085 -- --chain ../polkadot/rococo_local.json \
+./target/release/parallel -d local-test --collator --alice --chain heiko-dev --ws-port 9915 -- --chain ../polkadot/rococo_local.json \
         --bootnodes /ip4/127.0.0.1/tcp/50555/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp
 ```
 
@@ -98,7 +98,7 @@ Generate heiko-dev's genesis state & wasm
 ```
 docker run --rm  parity/polkadot:latest build-spec --chain rococo-local --raw --disable-default-bootnode > rococo-local.json
 
-docker run --rm  parallelfinance/parallel:latest export-genesis-state --chain heiko-dev --parachain-id 2085 > ./para-2085-genesis
+docker run --rm  parallelfinance/parallel:latest export-genesis-state --chain heiko-dev > ./para-2085-genesis
 docker run --rm  parallelfinance/parallel:latest export-genesis-wasm --chain heiko-dev > ./para-2085.wasm
 ```
 

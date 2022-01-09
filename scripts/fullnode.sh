@@ -14,8 +14,6 @@ PARA_WS_PORT=9944
 PARA_RPC_PORT=9933
 PARA_P2P_PORT=30333
 
-PARA_ID=2085
-
 PARA_CHAIN="${2:-heiko}"
 RELAY_CHAIN="${3:-kusama}"
 VOLUME="chains"
@@ -23,10 +21,6 @@ NODE_NAME="$1"
 
 if [ $# -lt 1 ]; then
   echo "help: ./fullnode.sh <NODE_NAME>" && exit 1
-fi
-
-if [[ "$PARA_CHAIN" == "parallel" ]]; then
-  PARA_ID=2012
 fi
 
 docker container stop $PARA_CHAIN-fullnode || true
@@ -48,7 +42,6 @@ docker run --restart=always --name $PARA_CHAIN-fullnode \
   parallelfinance/parallel:v1.7.6 \
     -d /data \
     --chain=$PARA_CHAIN \
-    --parachain-id=$PARA_ID \
     --ws-port=$PARA_WS_PORT \
     --rpc-port=$PARA_RPC_PORT \
     --ws-external \
