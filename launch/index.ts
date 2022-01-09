@@ -120,7 +120,6 @@ async function para() {
   const keyring = new Keyring({ type: 'sr25519', ss58Format: 110 })
   const signer = keyring.addFromUri('//Dave')
   const call = []
-  const height = await chainHeight(api)
 
   for (const { name, symbol, assetId, decimal, marketOption, balances } of config.assets) {
     console.log(`Create ${name}(${symbol}) asset, ptokenId is ${marketOption.ptokenId}`)
@@ -141,20 +140,12 @@ async function para() {
     leaseStart,
     leaseEnd,
     cap,
-    duration,
+    endBlock,
     pending
   } of config.crowdloans) {
     call.push(
       api.tx.sudo.sudo(
-        api.tx.crowdloans.createVault(
-          paraId,
-          ctokenId,
-          leaseStart,
-          leaseEnd,
-          'XCM',
-          cap,
-          height + duration
-        )
+        api.tx.crowdloans.createVault(paraId, ctokenId, leaseStart, leaseEnd, 'XCM', cap, endBlock)
       )
     )
     if (!pending) {
@@ -209,8 +200,6 @@ async function relay() {
   console.log('Wait parathread to be onboarded.')
   await sleep(360000)
 
-  const height = await chainHeight(api)
-
   console.log('Start new auction.')
   const call = []
   call.push(api.tx.sudo.sudo(api.tx.auctions.newAuction(config.auctionDuration, config.leaseIndex)))
@@ -220,10 +209,10 @@ async function relay() {
     )
   )
   call.push(
-    ...config.crowdloans.map(({ paraId, derivativeIndex, cap, duration, leaseStart, leaseEnd }) =>
+    ...config.crowdloans.map(({ paraId, derivativeIndex, cap, endBlock, leaseStart, leaseEnd }) =>
       api.tx.utility.asDerivative(
         derivativeIndex,
-        api.tx.crowdloan.create(paraId, cap, leaseStart, leaseEnd, height + duration, null)
+        api.tx.crowdloan.create(paraId, cap, leaseStart, leaseEnd, endBlock, null)
       )
     )
   )
