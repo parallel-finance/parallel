@@ -1569,8 +1569,15 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPallets,
-    (),
+    CrowdloanCreateBatch1Vault,
 >;
+
+pub struct CrowdloanCreateBatch1Vault;
+impl OnRuntimeUpgrade for CrowdloanCreateBatch1Vault {
+    fn on_runtime_upgrade() -> Weight {
+        pallet_crowdloans::migrations::migrate::<Runtime>()
+    }
+}
 
 impl_runtime_apis! {
     impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
