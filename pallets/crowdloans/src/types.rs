@@ -101,6 +101,36 @@ impl<T: Config> Vault<T> {
     }
 }
 
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+#[scale_info(skip_type_params(T))]
+pub struct Distribution<T: Config> {
+    /// Vault ID
+    pub vault_id: ParaId,
+    /// Amount of tokens in this distribution
+    pub amount: BalanceOf<T>,
+    /// Block hash of distribution
+    pub block_hash: Vec<u8>,
+    /// storage hash of distribution
+    pub storage_hash: Vec<u8>,
+}
+
+/// init default vault with ctoken and currency override
+impl<T: Config> Distribution<T> {
+    pub fn new(
+        vault_id: ParaId,
+        block_hash: Vec<u8>,
+        storage_hash: Vec<u8>,
+        amount: BalanceOf<T>,
+    ) -> Self {
+        Self {
+            vault_id,
+            amount,
+            block_hash,
+            storage_hash,
+        }
+    }
+}
+
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum ContributionStrategy {
     XCM = 0,

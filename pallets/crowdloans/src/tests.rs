@@ -1073,6 +1073,186 @@ fn test_storage_verify_staging_proof() {
         balance_buffer.copy_from_slice(&value_bytes[0..16]);
         let asset_account_balance = u128::from_le_bytes(balance_buffer);
 
+        // check that we resolve the expected token balance
         assert_eq!(asset_account_balance, 1_234_000_000);
     })
+}
+
+#[test]
+fn create_new_distribution_should_work() {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337u32);
+        let ctoken = 10;
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
+        let contribution_strategy = ContributionStrategy::XCM;
+
+        // create the ctoken asset
+        assert_ok!(Assets::force_create(
+            RawOrigin::Root.into(),
+            ctoken.unique_saturated_into(),
+            Id(Crowdloans::account_id()),
+            true,
+            One::one(),
+        ));
+
+        assert_ok!(Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
+            contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
+        ));
+
+        let remote_root =
+            hex::decode("e37b7ea2f68c948435b5515758710d5408b72d9f12ed439202b7e389592cf042")
+                .unwrap();
+        let remote_storage_root =
+            hex::decode("9e20dfb089ee946963579c513896e7185ce5c4957c598a87f46fcf2de6630b0c")
+                .unwrap();
+
+        // create a new distribution
+        assert_ok!(Crowdloans::create_distribution(
+            RawOrigin::Root.into(),
+            crowdloan,                    // crowdloan to distribute tokens for
+            remote_root.to_vec(),         // block hash of token snapshot
+            remote_storage_root.to_vec(), // storage root of token snashot
+            100,                          // amount of distribution
+        ));
+
+        let just_created_distribution =
+            Crowdloans::distributions((crowdloan, remote_root.to_vec())).unwrap();
+
+        assert_eq!(
+            just_created_distribution,
+            Distribution {
+                vault_id: crowdloan,
+                amount: 100,
+                block_hash: remote_root,
+                storage_hash: remote_storage_root
+            }
+        );
+    });
+}
+
+#[test]
+fn claim_ptoken_share_should_work() {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337u32);
+        let ctoken = 102;
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
+        let contribution_strategy = ContributionStrategy::XCM;
+        let amount = dot(2f64);
+
+        // create the ctoken asset
+        assert_ok!(Assets::force_create(
+            RawOrigin::Root.into(),
+            ctoken.unique_saturated_into(),
+            Id(Crowdloans::account_id()),
+            true,
+            One::one(),
+        ));
+
+        assert_ok!(Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
+            contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
+        ));
+
+        // do open
+        assert_ok!(Crowdloans::open(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
+        // do contribute
+        assert_ok!(Crowdloans::contribute(
+            Origin::signed(ALICE), // origin
+            crowdloan,             // crowdloan
+            amount,                // amount
+            vec![12, 34],
+        ));
+
+        Crowdloans::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
+        )
+        .unwrap();
+
+        // do close
+        assert_ok!(Crowdloans::close(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
+        //////////////////////////////////
+        // set to succeed
+        assert_ok!(Crowdloans::auction_succeeded(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
+        // do claim succeed
+        assert_ok!(Crowdloans::claim(
+            Origin::signed(ALICE), // origin
+            crowdloan,             // ctoken
+            LEASE_START,           // lease_start
+            LEASE_END,             // lease_end
+        ));
+        assert_eq!(Assets::balance(ctoken, ALICE), amount);
+
+        let remote_root =
+            hex::decode("e37b7ea2f68c948435b5515758710d5408b72d9f12ed439202b7e389592cf042")
+                .unwrap();
+        let remote_storage_root =
+            hex::decode("9e20dfb089ee946963579c513896e7185ce5c4957c598a87f46fcf2de6630b0c")
+                .unwrap();
+
+        // create a new distribution
+        assert_ok!(Crowdloans::create_distribution(
+            RawOrigin::Root.into(),
+            crowdloan,                    // crowdloan to distribute tokens for
+            remote_root.to_vec(),         // block hash of token snapshot
+            remote_storage_root.to_vec(), // storage root of token snashot
+            3_000_000_000_000,            // amount of distribution
+        ));
+
+
+
+        // 
+        let proof = [
+            hex::decode("80ffff8071c9f4a81da3724bd57947b66b622d1917588c24a363c9a0f1ff24d52957ae85809571105693d0655b50673dea6410008036bee265884cedb05983b0cd37d21cf78041206fb4f64615efdab2c19d9be85d19f43c6724634421f0066372388eb5eec580c870bdb91a347ffc3328d7fdb2a7cc8f7b6b833015102dec6aa6cbae10849d3b80421db6bc1c3fe6339ee9745e929138d1278b913fd4da4a65b194f0e73a89f5d6804a82837c1c46d11bea7eac9778de2787cbd0ac0613f7f73d09414dc8d0e22cfe804cbd3e582d6190e5f7e5010472ab1fafd3551e45042151cf10e6ab9656ce6c8a804b0195f31fc9506949b3b6ac472c785c482ad0ab1d08c5d038e6b5cc4d08e88080a92359c2d00fe1f7db043cf43d7981698cecbb616b3b3f53553ed80343a6596a807c4e9d8e70475f5ceea71644a799571644fa8c9c230135975a3dcf718db75a1f80d2bcbcc776ea608d5c181368ff2c64f6b4de78b9cecb090d862be7c47363922380acf2bbc2cb73dd2a56832f80ef5bf6867caa108cdea8191f1e768a1017bea9f380fb13b0500cab8daa90872e0c46af695ec0d43c872589327d454be5be9a2f69b88085ba31b59e40c53c4a00a0c0fbe984b967dbe21550d448db14547f644946cfeb8042d09f96bc264d850e15fd4d1f190ec25a39132aaf63ee003045323d2a80e4d580052404801076ed7511cf073f4e22279874fb4eeeb999864ce4719a38660162ca").unwrap(),
+            hex::decode("80200280d550b43b862e04f0ee3ad3ee25cca4c31ae444e56668a984c2768d9132a22e768037b00c95cf699b5a922f8e83ba6d4efd88cd22a2f7e9d85dba193ecfcae9c043").unwrap(),
+            hex::decode("800069805f0f307b29ac2f9ab9f01a601691d8f9e305d9b20b55074ede416347de1247bc80a301178471ef1983a10e430f4d2eb2d0ed005da2ad3029971fd33743979038e380b037bcf1a7fb96b07c43af32e1db919449e9f878905df294147f9a85b7cd4d7b8004a6f474c9573b238c3a724ec00c103cff86f2df6810cdfdd5a6a09d85d2119c").unwrap(),
+            hex::decode("9e9d880ec681799c0cf30e8886371da9110280c7fbc75bc4fe1ada38b53c5103a534bd4fde99d6ae8246b2a874e9a250d614c48080ac1cf083a9e877c7da52069c477f5b132c1c76f7a48b44d519301cacad4ba280bcf03ade535c14bd0c4f8686b7186d1db18b39ffe996d318701080ab2caee522").unwrap(),
+            hex::decode("9e2a59d51ab9e48a8c8cc418ff9708d21028505f0e7b9012096b41c4eb3aaf947f6ea429080000806dab79fec997f7ce468149838d183a9309cc8d41e9476e29662870554c4a93b48054f012bfa6a591cde79b914ac91a4e790a6eea962a6f70d72294fcb427754288").unwrap(),
+            hex::decode("a700f701b9051ba8de3db0172b733bc759660000001021801d7f766ec9b1ce8830fbfa51458c2e1fbc1cfcc304b0f28582a3c2270a1ea2c18075b386c108347a574db0c83c4f077b7fc5a0d8786ba147bfc877acb4865fcecb803e6bca0d9d83e6a226896fddf5ce87285c61665957bc7901f4d245e08b4bbef9").unwrap(),
+            hex::decode("7f200f9aea1afa791265fae359272badc1cf8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a484880588d490000000000000000000000000001").unwrap(),
+          ];
+
+        // specify the key to verify
+        let proof_key = hex::decode("682a59d51ab9e48a8c8cc418ff9708d2b99d880ec681799c0cf30e8886371da990f701b9051ba8de3db0172b733bc759660000004f9aea1afa791265fae359272badc1cf8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48").unwrap();
+
+        // create a new distribution
+        assert_ok!(Crowdloans::claim_ptoken_share(
+            Origin::signed(ALICE),
+            crowdloan,
+            proof.to_vec(),
+            proof_key,
+            sp_core::hash::H256::from_slice(&remote_root),
+        ));
+
+
+        assert_eq!(0, 1);
+    });
 }

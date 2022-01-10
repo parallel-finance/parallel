@@ -263,6 +263,8 @@ pub mod pallet {
         InvalidParams,
         /// Invalid proof input
         InvaildProof,
+        /// Distribution does not exist
+        DistributionDoesNotExist,
     }
 
     #[pallet::storage]
@@ -307,6 +309,18 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn xcm_request)]
     pub type XcmRequests<T> = StorageMap<_, Blake2_128Concat, QueryId, XcmRequest<T>, OptionQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn distributions)]
+    pub type Distributions<T: Config> = StorageNMap<
+        _,
+        (
+            NMapKey<Blake2_128Concat, ParaId>,
+            NMapKey<Blake2_128Concat, Vec<u8>>,
+        ),
+        Distribution<T>,
+        OptionQuery,
+    >;
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
@@ -883,6 +897,31 @@ pub mod pallet {
             })
         }
 
+        /// Create a new record of token distribution
+        #[pallet::weight(<T as Config>::WeightInfo::open())]
+        #[transactional]
+        pub fn create_distribution(
+            origin: OriginFor<T>,
+            crowdloan_id: ParaId,
+            block_hash: Vec<u8>,
+            storage_root: Vec<u8>,
+            amount: BalanceOf<T>,
+        ) -> DispatchResult {
+            // the origin that can create vaults can create distributions
+            T::CreateVaultOrigin::ensure_origin(origin)?;
+
+            let new_distribution = Distribution::new(
+                crowdloan_id,
+                block_hash.to_vec(),
+                storage_root.to_vec(),
+                amount,
+            );
+
+            Distributions::<T>::insert((&crowdloan_id, block_hash.to_vec()), new_distribution);
+
+            Ok(())
+        }
+
         /// Allow user to claim proportional share of project tokens from distribution
         /// based on storage proof at a specific block height
         #[pallet::weight(<T as Config>::WeightInfo::open())]
@@ -897,25 +936,34 @@ pub mod pallet {
             // 1. check origin (should be signed?)
             let who = ensure_signed(origin)?;
 
+            log::trace!(
+                target: "crowdloans::claim_ptoken_share",
+                "crowdloan_id: {:?}, proof_block_hash: {:?}",
+                &crowdloan_id,
+                &proof_block_hash,
+            );
+
             // 2. fetch crowdloan information
             let vault = Self::current_vault(crowdloan_id).ok_or(Error::<T>::VaultDoesNotExist)?;
 
             // 3. get derived token total issuance
             let total_issuance = T::Assets::total_issuance(vault.ctoken);
 
-            // 4. validate proof and extract useful information
-            let storage_proof_and_blockhash_root =
-                get_storage_root_from_blockhash(proof_block_hash);
+            // // 4. validate proof and extract useful information
+            let distribution = Self::distributions((crowdloan_id, proof_block_hash.encode()))
+                .ok_or(Error::<T>::DistributionDoesNotExist)?;
 
-            // convert trie path into proof
+            let storage_proof_and_blockhash_root = distribution.storage_hash;
+
+            // // convert trie path into proof
             let storage_proof = StorageProof::new(proof.to_vec());
 
             let local_result = sp_state_machine::read_proof_check::<BlakeTwo256, _>(
-                storage_proof_and_blockhash_root,
+                sp_core::hash::H256::from_slice(&storage_proof_and_blockhash_root),
                 storage_proof.clone(),
                 [proof_key],
             )
-            .unwrap();
+            .unwrap(); // _or(Error::<T>::InvaildProof)?;
 
             // flatten bytes into varible for decoding
             let local_result_as_bytes = local_result.into_iter().collect::<Vec<_>>();
@@ -931,34 +979,35 @@ pub mod pallet {
 
             // 5. check that proof matches distribution time
 
-            // TODO: we need to distribute for distribution at specfic height
-            let distribution =
-                get_vault_distribution_for_project_at_height(crowdloan_id, proof_block_hash);
-
             // throw error if incorrect blockhash
-            // TODO: this should be thrown by getter above
             ensure!(
-                proof_block_hash == distribution.block_hash,
+                proof_block_hash == sp_core::hash::H256::from_slice(&distribution.block_hash),
                 Error::<T>::InvaildProof
             );
 
             // 6. get user proportional share
-            /// TODO: should be safe math
-            let share_of_ptokens = asset_account_balance
-                .checked_div(total_issuance)
-                .ok_or(ArithmeticError::Overflow)?;
+            let share_of_ptokens =
+                sp_runtime::Perbill::from_rational(asset_account_balance, total_issuance);
 
             // 7. calculate nominal amount of tokens to send user
-            let nominal_amount = share_of_ptokens.saturating_mul(distribution.amount);
+            // this will round down the to the hundredth
+            let nominal_amount =
+                (share_of_ptokens * distribution.amount).checked_div(1_000_000_000);
 
-            // 8. transfer to user
-            T::Assets::transfer(
-                vault.ctoken,
-                &Self::vault_account_id(crowdloan_id),
-                &who,
-                nominal_amount,
-                false,
-            )?;
+            // TODO remove print statements
+            // println!("asset_account_balance\t{:#?}", asset_account_balance);
+            // println!("total_issuance\t{:#?}", total_issuance);
+            // println!("total_issuance\t{:#?}", share_of_ptokens);
+            // println!("nominal_amount\t{:#?}", nominal_amount);
+
+            // // 8. transfer to user
+            // T::Assets::transfer(
+            //     vault.ctoken,
+            //     &Self::vault_account_id(crowdloan_id),
+            //     &who,
+            //     nominal_amount,
+            //     false,
+            // )?;
 
             // 9. we may need to burn ctokens?
 
