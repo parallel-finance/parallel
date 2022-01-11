@@ -1317,7 +1317,7 @@ impl pallet_amm::Config for Runtime {
     type Assets = CurrencyAdapter;
     type PalletId = AMMPalletId;
     type AMMWeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
-    type CreatePoolOrigin = EnsureRoot<AccountId>;
+    type CreatePoolOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type LpFee = DefaultLpFee;
     type ProtocolFee = DefaultProtocolFee;
     type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
