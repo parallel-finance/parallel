@@ -18,6 +18,7 @@ use super::*;
 use frame_support::traits::Get;
 use primitives::ParaId;
 use sp_runtime::traits::Zero;
+use sp_std::{vec, vec::Vec};
 use types::*;
 /// Add vaults for batch 1 winning projects
 pub fn migrate<T: Config>() -> frame_support::weights::Weight {
