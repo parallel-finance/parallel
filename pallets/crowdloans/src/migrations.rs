@@ -15,41 +15,22 @@
 //! # Add vaults for batch 1 winning projects
 
 use super::*;
+use frame_support::traits::Get;
+use primitives::ParaId;
+use sp_runtime::traits::Zero;
+use types::*;
 /// Add vaults for batch 1 winning projects
 pub fn migrate<T: Config>() -> frame_support::weights::Weight {
-    // if StorageVersion::<T>::get() == crate::Releases::V7_0_0 {
-    // 	crate::log!(info, "migrating staking to Releases::V8_0_0");
-
-    // 	let migrated = T::SortedListProvider::unsafe_regenerate(
-    // 		Nominators::<T>::iter().map(|(id, _)| id),
-    // 		Pallet::<T>::weight_of_fn(),
-    // 	);
-    // 	debug_assert_eq!(T::SortedListProvider::sanity_check(), Ok(()));
-
-    // 	StorageVersion::<T>::put(crate::Releases::V8_0_0);
-    // 	crate::log!(
-    // 		info,
-    // 		"👜 completed staking migration to Releases::V8_0_0 with {} voters migrated",
-    // 		migrated,
-    // 	);
-
-    // 	T::BlockWeights::get().max_block
-    // } else {
-    // 	T::DbWeight::get().reads(1)
-    // }
-    //TODO: https://github.com/parallel-finance/parallel/issues/1086#issuecomment-1004561593
-    // Only works for polkadot network
-
-    // paraId, ctoken, raised,cap,end_block,trie_index,lease_start,lease_end
+    // paraId, ctoken, raised, cap, end_block, trie_index, lease_start, lease_end
     // FIXME: contributed is not the raised
-    let batch = vec![
+    let batch: Vec<(u32, u32, u128, u128, u32, u32, u32, u32)> = vec![
         // Acala
         (
             2000,
             4000,
-            "325,159,802,323,576,263",
-            "500_000_000_000_000_000",
-            "8179200",
+            325_159_802_323_576_263,
+            500_000_000_000_000_000,
+            8179200,
             0,
             6,
             13,
@@ -58,9 +39,9 @@ pub fn migrate<T: Config>() -> frame_support::weights::Weight {
         (
             2002,
             4000,
-            "97,524,874,268,038,525",
-            "500,000,000,000,000,000",
-            "8,179,200",
+            97_524_874_268_038_525,
+            500_000_000_000_000_000,
+            8179200,
             1,
             6,
             13,
@@ -69,9 +50,9 @@ pub fn migrate<T: Config>() -> frame_support::weights::Weight {
         (
             2004,
             4000,
-            "357,599,313,927,924,796",
-            "1,000,000,000,000,000,000",
-            "8,179,199",
+            357_599_313_927_924_796,
+            1_000_000_000_000_000_000,
+            8179199,
             2,
             6,
             13,
@@ -80,9 +61,9 @@ pub fn migrate<T: Config>() -> frame_support::weights::Weight {
         (
             2006,
             4000,
-            "103,335,520,433,166,970",
-            "350,000,010,000,000,000",
-            "8,179,200",
+            103_335_520_433_166_970,
+            350_000_010_000_000_000,
+            8179200,
             3,
             6,
             13,
@@ -91,9 +72,9 @@ pub fn migrate<T: Config>() -> frame_support::weights::Weight {
         (
             2012,
             4000,
-            "107,515,186,195,417,478",
-            "400,000,000,000,000,000",
-            "8,179,200",
+            107_515_186_195_417_478,
+            400_000_000_000_000_000,
+            8179200,
             4,
             6,
             13,
@@ -102,13 +83,36 @@ pub fn migrate<T: Config>() -> frame_support::weights::Weight {
         (
             2021,
             4001,
-            "76,953,774,505,455,550",
-            "500,000,000,000,000,000",
-            "9,388,800",
+            76_953_774_505_455_550,
+            500_000_000_000_000_000,
+            9388800,
             5,
             7,
             14,
         ),
     ];
-    0
+    let length = batch.len() as u64;
+    for (para_id, ctoken, raised, cap, end_block, trie_index, lease_start, lease_end) in
+        batch.into_iter()
+    {
+        let vault = Vault::<T> {
+            ctoken,
+            phase: VaultPhase::Succeeded,
+            contributed: raised,
+            pending: Zero::zero(),
+            flying: Zero::zero(),
+            contribution_strategy: ContributionStrategy::XCM,
+            cap,
+            end_block: end_block.into(),
+            trie_index,
+            lease_start,
+            lease_end,
+        };
+
+        Vaults::<T>::insert((&ParaId::from(para_id), &lease_start, &lease_end), vault);
+        CTokensRegistry::<T>::insert((&lease_start, &lease_end), ctoken);
+        LeasesRegistry::<T>::insert(&ParaId::from(para_id), (lease_start, lease_end));
+    }
+    NextTrieIndex::<T>::put(6);
+    <T as frame_system::Config>::DbWeight::get().writes(length * 3 + 1u64)
 }
