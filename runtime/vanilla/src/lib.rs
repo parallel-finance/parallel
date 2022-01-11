@@ -495,6 +495,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type MinStakeAmount = MinStakeAmount;
     type MinUnstakeAmount = MinUnstakeAmount;
     type XCM = XcmHelper;
+    type PalletsOrigin = OriginCaller;
 }
 
 parameter_types! {
@@ -1403,6 +1404,7 @@ impl pallet_crowdloans::Config for Runtime {
     type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
     type XCM = XcmHelper;
     type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Runtime>;
+    type PalletsOrigin = OriginCaller;
 }
 
 parameter_types! {
@@ -1420,6 +1422,7 @@ impl pallet_xcm_helper::Config for Runtime {
     type NotifyTimeout = NotifyTimeout;
     type BlockNumberProvider = frame_system::Pallet<Runtime>;
     type WeightInfo = pallet_xcm_helper::weights::SubstrateWeight<Runtime>;
+    type PalletsOrigin = OriginCaller;
 }
 parameter_types! {
     pub const MaxLengthRoute: u8 = 10;

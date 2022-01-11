@@ -133,8 +133,17 @@ pub mod pallet {
         /// Weight information
         type WeightInfo: WeightInfo;
 
+        /// Overarching type of all pallets origins.
+        type PalletsOrigin: From<frame_system::RawOrigin<Self::AccountId>>;
+
         /// To expose XCM helper functions
-        type XCM: XcmHelper<Self, BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
+        type XCM: XcmHelper<
+            Self,
+            BalanceOf<Self>,
+            AssetIdOf<Self>,
+            Self::AccountId,
+            <Self as Config>::PalletsOrigin,
+        >;
     }
 
     #[pallet::event]

@@ -29,6 +29,7 @@ mod tests;
 pub mod weights;
 pub use pallet::*;
 
+use codec::Codec;
 use frame_support::{
     dispatch::{DispatchResult, GetDispatchInfo},
     pallet_prelude::*,
@@ -60,6 +61,13 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_xcm::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
+        /// The caller origin, overarching type of all pallets origins.
+        type PalletsOrigin: From<frame_system::RawOrigin<Self::AccountId>>
+            + Codec
+            + Clone
+            + Eq
+            + TypeInfo;
 
         /// Assets for deposit/withdraw assets to/from crowdloan account
         type Assets: Transfer<AccountIdOf<Self>, AssetId = CurrencyId, Balance = Balance>
@@ -160,7 +168,7 @@ pub mod pallet {
     }
 }
 
-pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
+pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId, Origin> {
     fn get_xcm_fees() -> Balance;
 
     fn add_xcm_fees(relay_currency: AssetId, payer: &AccountId, amount: Balance) -> DispatchResult;
@@ -187,6 +195,7 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
         amount: Balance,
         who: &AccountId,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        origin: Origin,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_bond(
@@ -266,7 +275,9 @@ impl<T: Config> Pallet<T> {
     }
 }
 
-impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pallet<T> {
+impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>, T::PalletsOrigin>
+    for Pallet<T>
+{
     fn get_xcm_fees() -> BalanceOf<T> {
         Self::xcm_fees()
     }
@@ -353,6 +364,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         amount: BalanceOf<T>,
         _who: &AccountIdOf<T>,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
+        _origin: T::PalletsOrigin,
     ) -> Result<QueryId, DispatchError> {
         Ok(switch_relay!({
             let call = RelaychainCall::<T>::Crowdloans(CrowdloansCall::Contribute(
@@ -362,7 +374,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                     signature: None,
                 },
             ));
-
             let mut msg = Self::ump_transact(
                 call.encode().into(),
                 Self::xcm_weight().contribute_weight,

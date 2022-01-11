@@ -412,6 +412,7 @@ impl crate::Config for Test {
     type WeightInfo = ();
     type XCM = XcmHelper;
     type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Test>;
+    type PalletsOrigin = OriginCaller;
 }
 
 parameter_types! {
@@ -429,6 +430,7 @@ impl pallet_xcm_helper::Config for Test {
     type NotifyTimeout = NotifyTimeout;
     type BlockNumberProvider = frame_system::Pallet<Test>;
     type WeightInfo = ();
+    type PalletsOrigin = OriginCaller;
 }
 
 parameter_types! {

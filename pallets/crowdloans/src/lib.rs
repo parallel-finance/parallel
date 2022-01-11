@@ -36,6 +36,7 @@ pub use pallet::*;
 pub mod pallet {
     use crate::{types::*, weights::WeightInfo};
 
+    use codec::Codec;
     use frame_support::{
         dispatch::DispatchResult,
         log,
@@ -44,7 +45,7 @@ pub mod pallet {
         storage::{child, ChildTriePrefixIterator},
         traits::{
             fungibles::{Inspect, Mutate, Transfer},
-            Get,
+            Get, IsType, OriginTrait,
         },
         transactional, Blake2_128Concat, BoundedVec, PalletId,
     };
@@ -82,7 +83,9 @@ pub mod pallet {
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
 
-        type Origin: IsType<<Self as frame_system::Config>::Origin>
+        type Origin: OriginTrait<PalletsOrigin = <Self as Config>::PalletsOrigin>
+            + From<<Self as Config>::PalletsOrigin>
+            + IsType<<Self as frame_system::Config>::Origin>
             + Into<Result<pallet_xcm::Origin, <Self as Config>::Origin>>;
 
         type Call: IsType<<Self as pallet_xcm::Config>::Call> + From<Call<Self>>;
@@ -145,8 +148,21 @@ pub mod pallet {
         /// The relay's BlockNumber provider
         type RelayChainBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
 
+        /// Overarching type of all pallets origins.
+        type PalletsOrigin: From<frame_system::RawOrigin<Self::AccountId>>
+            + Codec
+            + Clone
+            + Eq
+            + TypeInfo;
+
         /// To expose XCM helper functions
-        type XCM: XcmHelper<Self, BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
+        type XCM: XcmHelper<
+            Self,
+            BalanceOf<Self>,
+            AssetIdOf<Self>,
+            Self::AccountId,
+            <Self as Config>::PalletsOrigin,
+        >;
     }
 
     #[pallet::event]
@@ -484,7 +500,8 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
             referral_code: Vec<u8>,
         ) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
+            let who = ensure_signed(origin.clone())?;
+            let origin = <T as Config>::Origin::from(origin);
 
             let mut vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
 
@@ -536,6 +553,7 @@ pub mod pallet {
                     (vault.lease_start, vault.lease_end),
                     amount,
                     referral_code.clone(),
+                    origin.caller().clone(),
                 )?;
             } else {
                 Self::do_update_contribution(
@@ -882,8 +900,9 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::migrate_pending())]
         #[transactional]
         pub fn migrate_pending(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
-            T::MigrateOrigin::ensure_origin(origin)?;
+            T::MigrateOrigin::ensure_origin(origin.clone())?;
 
+            let origin = <T as Config>::Origin::from(origin);
             let mut vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
             ensure!(
                 vault.phase == VaultPhase::Pending || vault.phase == VaultPhase::Contributing,
@@ -915,6 +934,7 @@ pub mod pallet {
                     (vault.lease_start, vault.lease_end),
                     amount,
                     referral_code,
+                    origin.caller().clone(),
                 )?;
                 migrated_count += 1;
             }
@@ -1296,6 +1316,7 @@ pub mod pallet {
             vault_id: VaultId,
             amount: BalanceOf<T>,
             referral_code: Vec<u8>,
+            origin: T::PalletsOrigin,
         ) -> Result<(), DispatchError> {
             let query_id = T::XCM::do_contribute(
                 crowdloan,
@@ -1304,6 +1325,7 @@ pub mod pallet {
                 amount,
                 who,
                 Self::notify_placeholder(),
+                origin,
             )?;
 
             XcmRequests::<T>::insert(
