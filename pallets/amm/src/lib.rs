@@ -33,6 +33,7 @@ use codec::{Decode, Encode};
 use frame_support::{
     dispatch::DispatchResult,
     pallet_prelude::*,
+    require_transactional,
     traits::{
         fungibles::{Inspect, Mutate, Transfer},
         Get, Hooks, IsType,
@@ -63,10 +64,7 @@ pub mod pallet {
     use super::*;
 
     #[pallet::config]
-    pub trait Config<I: 'static = ()>:
-        frame_system::Config
-        + pallet_assets::Config<AssetId = AssetIdOf<Self, I>, Balance = BalanceOf<Self, I>>
-    {
+    pub trait Config<I: 'static = ()>: frame_system::Config {
         type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Currency type for deposit/withdraw assets to/from amm
@@ -206,18 +204,14 @@ pub mod pallet {
                 base_asset,
                 quote_asset,
                 |pool_liquidity_amount| -> DispatchResultWithPostInfo {
-                    ensure!(
-                        pool_liquidity_amount.is_some(),
-                        Error::<T, I>::PoolDoesNotExist
-                    );
-
                     let mut liquidity_amount =
-                        pool_liquidity_amount.expect("we did an is_some check before; qed");
+                        pool_liquidity_amount.ok_or(Error::<T, I>::PoolDoesNotExist)?;
+
                     let optimal_quote_amount = Self::quote(
                         base_amount,
                         liquidity_amount.base_amount,
                         liquidity_amount.quote_amount,
-                    );
+                    )?;
 
                     let (ideal_base_amount, ideal_quote_amount): (
                         BalanceOf<T, I>,
@@ -229,7 +223,7 @@ pub mod pallet {
                             quote_amount,
                             liquidity_amount.quote_amount,
                             liquidity_amount.base_amount,
-                        );
+                        )?;
                         (optimal_base_amount, quote_amount)
                     };
 
@@ -296,6 +290,7 @@ pub mod pallet {
                         base_amount,
                         quote_amount,
                     )?;
+
                     Ok(().into())
                 },
             )
@@ -323,6 +318,7 @@ pub mod pallet {
                     let mut liquidity_amount = pool_liquidity_amount
                         .take()
                         .ok_or(Error::<T, I>::PoolDoesNotExist)?;
+
                     let total_ownership = T::Assets::total_issuance(liquidity_amount.pool_assets);
                     ensure!(
                         total_ownership >= ownership_to_remove,
@@ -364,6 +360,7 @@ pub mod pallet {
                             Ok(())
                         },
                     )?;
+
                     T::Assets::burn_from(liquidity_amount.pool_assets, &who, ownership_to_remove)?;
                     T::Assets::transfer(base_asset, &Self::account_id(), &who, base_amount, false)?;
                     T::Assets::transfer(
@@ -434,6 +431,7 @@ pub mod pallet {
                 base_amount,
                 quote_amount,
             )?;
+
             Ok(().into())
         }
     }
@@ -459,12 +457,14 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         amount: BalanceOf<T, I>,
         base_pool: BalanceOf<T, I>,
         quote_pool: BalanceOf<T, I>,
-    ) -> BalanceOf<T, I> {
-        (amount.saturating_mul(quote_pool))
+    ) -> sp_std::result::Result<BalanceOf<T, I>, DispatchError> {
+        Ok(amount
+            .saturating_mul(quote_pool)
             .checked_div(base_pool)
-            .expect("cannot overflow with positive divisor; qed")
+            .ok_or(ArithmeticError::Underflow)?)
     }
 
+    #[require_transactional]
     fn mint_transfer_liquidity(
         who: T::AccountId,
         ownership: BalanceOf<T, I>,
