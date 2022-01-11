@@ -995,3 +995,102 @@ fn kill_contribution_should_work() {
         }))
     })
 }
+
+#[test]
+fn dissolve_vault_wrong_state_should_not_work() {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337u32);
+        let ctoken = 10;
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
+        let contribution_strategy = ContributionStrategy::XCM;
+
+        // create a vault to contribute to
+        assert_ok!(Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
+            contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
+        ));
+
+        // do open
+        assert_ok!(Crowdloans::open(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
+        // do close
+        assert_noop!(
+            Crowdloans::dissolve_vault(
+                frame_system::RawOrigin::Root.into(), // origin
+                crowdloan,                            // crowdloan
+                LEASE_START,
+                LEASE_END
+            ),
+            Error::<Test>::IncorrectVaultPhase
+        );
+    })
+}
+
+#[test]
+fn dissolve_vault_should_work() {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337u32);
+        let ctoken = 10;
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
+        let contribution_strategy = ContributionStrategy::XCM;
+
+        // create a vault to contribute to
+        assert_ok!(Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
+            contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
+        ));
+
+        // do open
+        assert_ok!(Crowdloans::open(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
+        // do close
+        assert_ok!(Crowdloans::close(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        ));
+
+        // ctoken of the crowdloan should match above
+        // we can be sure the vault exists
+        assert_eq!(
+            Crowdloans::vaults((&crowdloan, &LEASE_START, &LEASE_END))
+                .unwrap()
+                .ctoken,
+            ctoken
+        );
+
+        // do dissolve
+        // should work because no contributions were added and the vault is closed
+        assert_ok!(Crowdloans::dissolve_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            LEASE_START,
+            LEASE_END
+        ));
+
+        // vault does not exist anymore
+        assert_eq!(
+            Crowdloans::vaults((&crowdloan, &LEASE_START, &LEASE_END)),
+            None
+        );
+    })
+}

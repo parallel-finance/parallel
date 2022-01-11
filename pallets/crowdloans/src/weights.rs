@@ -62,6 +62,8 @@ pub trait WeightInfo {
     fn slot_expired() -> Weight;
     fn migrate_pending() -> Weight;
     fn notification_received() -> Weight;
+    fn refund() -> Weight;
+    fn dissolve_vault() -> Weight;
 }
 
 /// Weights for pallet_crowdloans using the Substrate node and recommended hardware.
@@ -142,6 +144,16 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().reads(10 as Weight))
             .saturating_add(T::DbWeight::get().writes(9 as Weight))
     }
+    fn refund() -> Weight {
+        (227_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(10 as Weight))
+            .saturating_add(T::DbWeight::get().writes(9 as Weight))
+    }
+    fn dissolve_vault() -> Weight {
+        (227_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(10 as Weight))
+            .saturating_add(T::DbWeight::get().writes(9 as Weight))
+    }
 }
 
 // For backwards compatibility and tests
@@ -217,6 +229,16 @@ impl WeightInfo for () {
             .saturating_add(RocksDbWeight::get().writes(10 as Weight))
     }
     fn notification_received() -> Weight {
+        (227_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(10 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(9 as Weight))
+    }
+    fn refund() -> Weight {
+        (227_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(10 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(9 as Weight))
+    }
+    fn dissolve_vault() -> Weight {
         (227_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(10 as Weight))
             .saturating_add(RocksDbWeight::get().writes(9 as Weight))
