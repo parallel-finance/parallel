@@ -1342,8 +1342,8 @@ impl orml_vesting::Config for Runtime {
 
 parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
-    pub const DefaultLpFee: Perbill = Perbill::from_perthousand(3);         // 0.3%
-    pub const DefaultProtocolFee: Perbill = Perbill::from_perthousand(2);   // 0.2%
+    pub DefaultLpFee: Perbill = Perbill::from_rational(25u32, 10000u32);        // 0.25%
+    pub DefaultProtocolFee: Perbill = Perbill::from_rational(5u32, 10000u32);   // 0.05%
     pub DefaultProtocolFeeReceiver: AccountId = TreasuryPalletId::get().into_account();
 }
 

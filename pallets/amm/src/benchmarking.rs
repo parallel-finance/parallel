@@ -8,12 +8,12 @@ use crate::Pallet as AMM;
 use frame_benchmarking::{
     benchmarks_instance_pallet, impl_benchmark_test_suite, whitelisted_caller,
 };
-use frame_support::assert_ok;
-use frame_support::dispatch::UnfilteredDispatchable;
-use frame_support::traits::EnsureOrigin;
+use frame_support::{assert_ok, dispatch::UnfilteredDispatchable, traits::EnsureOrigin};
 use frame_system::{self, RawOrigin as SystemOrigin};
-use primitives::tokens::*;
-use primitives::{tokens, CurrencyId};
+use primitives::{
+    tokens::{self, *},
+    CurrencyId,
+};
 use sp_runtime::traits::StaticLookup;
 use sp_std::prelude::*;
 
@@ -26,10 +26,12 @@ fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::
     frame_system::Pallet::<T>::assert_last_event(generic_event.into());
 }
 
-fn initial_set_up<T: Config<I>, I: 'static>(caller: T::AccountId)
-where
-    <T::Assets as Inspect<T::AccountId>>::Balance: From<u128>,
-{
+fn initial_set_up<
+    T: Config<I> + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>,
+    I: 'static,
+>(
+    caller: T::AccountId,
+) {
     let account_id = T::Lookup::unlookup(caller.clone());
 
     pallet_assets::Pallet::<T>::force_create(
@@ -65,10 +67,7 @@ where
 
 benchmarks_instance_pallet! {
     where_clause {
-        where
-            <T::Assets as Inspect<T::AccountId>>::Balance: From<u128>,
-            <T::Assets as Inspect<T::AccountId>>::AssetId: From<u32>,
-
+        where T: pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>
     }
 
     add_liquidity {
@@ -79,8 +78,12 @@ benchmarks_instance_pallet! {
         assert_ok!(AMM::<T, I>::create_pool(T::CreatePoolOrigin::successful_origin(),
             (BASE_ASSET, QUOTE_ASSET), (base_amount, quote_amount),
             caller.clone(), ASSET_ID));
-    }: _(SystemOrigin::Signed(caller.clone()), (BASE_ASSET, QUOTE_ASSET),
-        (base_amount, quote_amount), (5u128, 5u128))
+    }: _(
+        SystemOrigin::Signed(caller.clone()),
+        (BASE_ASSET, QUOTE_ASSET),
+        (base_amount, quote_amount),
+        (5u128, 5u128)
+    )
     verify {
         assert_last_event::<T, I>(Event::LiquidityAdded(caller, BASE_ASSET, QUOTE_ASSET).into());
     }
@@ -93,12 +96,16 @@ benchmarks_instance_pallet! {
         assert_ok!(AMM::<T, I>::create_pool(T::CreatePoolOrigin::successful_origin(),
             (BASE_ASSET, QUOTE_ASSET), (base_amount, quote_amount),
             caller.clone(), ASSET_ID));
-    }: _(SystemOrigin::Signed(caller.clone()), (BASE_ASSET, QUOTE_ASSET), 300_000u128)
+    }: _(
+        SystemOrigin::Signed(caller.clone()),
+        (BASE_ASSET, QUOTE_ASSET),
+        300_000u128
+    )
     verify {
         assert_last_event::<T, I>(Event::LiquidityRemoved(caller, BASE_ASSET, QUOTE_ASSET).into());
     }
 
-  create_pool {
+    create_pool {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T, I>(caller.clone());
         let base_amount = 100_000u128;
@@ -110,7 +117,9 @@ benchmarks_instance_pallet! {
             lptoken_receiver: caller.clone(),
             asset_id: ASSET_ID
         };
-    }: { call.dispatch_bypass_filter(origin)? }
+    }: {
+        call.dispatch_bypass_filter(origin)?
+    }
     verify {
         assert_last_event::<T, I>(Event::LiquidityAdded(caller, BASE_ASSET, QUOTE_ASSET).into());
     }
