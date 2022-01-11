@@ -1552,7 +1552,7 @@ construct_runtime!(
 
         // Others
         // Bridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 90,
-        EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Event<T>} = 91,
+        EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Storage, Event<T>} = 91,
         // LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 92,
         XcmHelper: pallet_xcm_helper::{Pallet, Call, Storage, Event<T>} = 93,
     }
