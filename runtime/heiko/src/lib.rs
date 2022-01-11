@@ -1323,7 +1323,7 @@ impl pallet_amm::Config for Runtime {
     type Event = Event;
     type Assets = CurrencyAdapter;
     type PalletId = AMMPalletId;
-    type CreatePoolOrigin = EnsureRoot<AccountId>;
+    type CreatePoolOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AMMWeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
     type LpFee = DefaultLpFee;
     type ProtocolFee = DefaultProtocolFee;
