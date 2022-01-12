@@ -35,9 +35,8 @@ pub const PKSM: CurrencyId = 2100;
 pub const PDOT: CurrencyId = 2101;
 pub const PUSDT: CurrencyId = 2102;
 pub const PKUSD: CurrencyId = 2103;
-
-pub const PXKSM: CurrencyId = 3000;
-pub const PXDOT: CurrencyId = 3001;
+pub const PXKSM: CurrencyId = 2200;
+pub const PXDOT: CurrencyId = 2201;
 
 // Token Registration Information
 // +───────────+──────────────+────────────────────+
