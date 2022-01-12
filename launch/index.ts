@@ -13,7 +13,6 @@ const EMPTY_U8A_32 = new Uint8Array(32)
 const BN_EIGHTEEN = new BN(18)
 const GiftPalletId = 'par/gift'
 const XcmFeesPalletId = 'par/fees'
-const TreasuryPalletId = 'par/trsy'
 
 const createAddress = (id: string) =>
   encodeAddress(u8aConcat(stringToU8a(`modl${id}`), EMPTY_U8A_32).subarray(0, 32))
@@ -154,15 +153,10 @@ async function para() {
     }
   }
 
-  for (const { pool, liquidityAmounts, liquidityProviderToken } of config.pools) {
+  for (const { pool, liquidityAmounts, lptokenReceiver, liquidityProviderToken } of config.pools) {
     call.push(
       api.tx.sudo.sudo(
-        api.tx.amm.createPool(
-          pool,
-          liquidityAmounts,
-          createAddress(TreasuryPalletId),
-          liquidityProviderToken
-        )
+        api.tx.amm.createPool(pool, liquidityAmounts, lptokenReceiver, liquidityProviderToken)
       )
     )
   }

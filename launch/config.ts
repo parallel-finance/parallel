@@ -152,8 +152,9 @@ const config = {
   ],
   pools: [
     {
-      pool: [100, 1000],
-      liquidityAmounts: ['10000000000000000', '10000000000000000'],
+      pool: [102, 0],
+      liquidityAmounts: ['100000000000', '10000000000000000'],
+      lptokenReceiver: '5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf',
       liquidityProviderToken: 5000
     }
   ],

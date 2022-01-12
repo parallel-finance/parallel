@@ -144,10 +144,6 @@ pub mod pallet {
         pub pool_assets: CurrencyId,
     }
 
-    /// The exchange rate from the underlying to the internal collateral
-    #[pallet::storage]
-    pub type ExchangeRate<T, I = ()> = StorageValue<_, Rate, ValueQuery>;
-
     /// Accounts that deposits and withdraw assets in one or more pools
     #[pallet::storage]
     #[pallet::getter(fn liquidity_providers)]
