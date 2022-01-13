@@ -1023,10 +1023,6 @@ pub mod pallet {
                 .checked_add(total_flying_contributions)
                 .and_then(|sum| sum.checked_add(total_pending_contributions))
                 .ok_or(ArithmeticError::Overflow) == Ok(0),
-                // total_completed_contributions
-                //     + total_flying_contributions
-                //     + total_pending_contributions
-                //     == 0,
                 Error::<T>::NotReadyToDissolve
             );
 
