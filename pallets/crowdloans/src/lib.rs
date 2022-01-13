@@ -229,6 +229,12 @@ pub mod pallet {
         /// Vault has been dissolved
         /// [para_id, vault_id]
         VaultDissolved(ParaId, VaultId),
+        /// Partially Refunded
+        /// [para_id, vault_id]
+        AllRefunded(ParaId, VaultId),
+                /// Partially Refunded
+        /// [para_id, vault_id]
+        PartiallyRefunded(ParaId, VaultId),
     }
 
     #[pallet::error]
@@ -971,15 +977,42 @@ pub mod pallet {
             Ok(().into())
         }
 
+        // ********************************************************************************************************
         #[pallet::weight(<T as Config>::WeightInfo::refund())]
         #[transactional]
         pub fn refund(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
+
+            let who = ensure_signed(origin)?;
+
+            let mut vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
+            
             // 1. check phase, should be Closed or Failed
-            // 2. scan pending childstorage, mint RelayCurrency for contributor and kill contribution util reached RemoveKeysLimit.
+            ensure!(
+                vault.phase == VaultPhase::Closed || vault.phase == VaultPhase::Failed,
+                Error::<T>::IncorrectVaultPhase
+            );
+            
+            // 2. scan pending childstorage, 
+            
+            /// mint RelayCurrency for contributor and
+            T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
+
+            ///  kill contribution util reached RemoveKeysLimit.
+
             // 3. if reached limit then return the function
+
             // 4. if no and we already cleaned pending childstorage. Then we scan contributed childstorage and mint RelayCurrency and kill contribution for contributor util reached RemoveKeysLimit.
+
             // If all contributions have been refunded then return AllRefunded event
+            Self::deposit_event(Event::<T>::AllRefunded(
+                crowdloan,
+                (lease_start, lease_end),
+            ));
             // if not then return PartiallyRefunded event
+            Self::deposit_event(Event::<T>::PartiallyRefunded(
+                crowdloan,
+                (lease_start, lease_end),
+            ));
             Ok(())
         }
 
@@ -1017,7 +1050,8 @@ pub mod pallet {
             let total_flying_contributions =
                 Self::contribution_iterator(vault.trie_index, ChildStorageKind::Flying)
                     .fold(0u128, |sum, (_account, (amount, _ref_code))| sum + amount);
-
+            
+            // TODO: fix this 
             ensure!(
                 total_completed_contributions
                 .checked_add(total_flying_contributions)
@@ -1025,9 +1059,10 @@ pub mod pallet {
                 .ok_or(ArithmeticError::Overflow) == Ok(0),
                 Error::<T>::NotReadyToDissolve
             );
+            
 
+            // TODO: fix this 
             ensure!(
-                // vault.contributed + vault.flying + vault.pending == 0,
                 vault.contributed.checked_add(vault.flying)
                 .and_then(|sum| sum.checked_add(vault.pending))
                 .ok_or(ArithmeticError::Overflow) == Ok(0),
