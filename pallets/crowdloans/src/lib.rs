@@ -130,6 +130,9 @@ pub mod pallet {
         /// The origin which can create vault
         type CreateVaultOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
+        /// The origin which can dissolve vault
+        type DissolveVaultOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+
         /// The origin which can update vault
         type UpdateVaultOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
@@ -989,7 +992,7 @@ pub mod pallet {
             lease_end: LeasePeriod,
         ) -> DispatchResult {
             // users who can create vaults can dissolve them
-            T::CreateVaultOrigin::ensure_origin(origin)?;
+            T::DissolveVaultOrigin::ensure_origin(origin)?;
 
             // 1. check phase, should be Closed or Failed or Expired
             let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
@@ -1017,14 +1020,21 @@ pub mod pallet {
 
             ensure!(
                 total_completed_contributions
-                    + total_flying_contributions
-                    + total_pending_contributions
-                    == 0,
+                .checked_add(total_flying_contributions)
+                .and_then(|sum| sum.checked_add(total_pending_contributions))
+                .ok_or(ArithmeticError::Overflow) == Ok(0),
+                // total_completed_contributions
+                //     + total_flying_contributions
+                //     + total_pending_contributions
+                //     == 0,
                 Error::<T>::NotReadyToDissolve
             );
 
             ensure!(
-                vault.contributed + vault.flying + vault.pending == 0,
+                // vault.contributed + vault.flying + vault.pending == 0,
+                vault.contributed.checked_add(vault.flying)
+                .and_then(|sum| sum.checked_add(vault.pending))
+                .ok_or(ArithmeticError::Overflow) == Ok(0),
                 Error::<T>::NotReadyToDissolve
             );
 
