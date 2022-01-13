@@ -187,6 +187,7 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
         amount: Balance,
         who: &AccountId,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
+		pallet_id: PalletId
     ) -> Result<QueryId, DispatchError>;
 
     fn do_bond(
@@ -353,7 +354,10 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         amount: BalanceOf<T>,
         _who: &AccountIdOf<T>,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
+		pallet_id: PalletId
     ) -> Result<QueryId, DispatchError> {
+
+		assert_eq!(PalletId(*b"crwloans").0, pallet_id.0);
         Ok(switch_relay!({
             let call = RelaychainCall::<T>::Crowdloans(CrowdloansCall::Contribute(
                 CrowdloansContributeCall {
