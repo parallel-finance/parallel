@@ -22,14 +22,14 @@ use sp_std::{vec, vec::Vec};
 use types::*;
 /// Add vaults for batch 1 winning projects
 pub fn migrate<T: Config>() -> frame_support::weights::Weight {
-    // paraId, ctoken, raised, cap, end_block, trie_index, lease_start, lease_end
-    // FIXME: contributed is not the raised
+    // paraId, ctoken, contributed, cap, end_block, trie_index, lease_start, lease_end
     let batch: Vec<(u32, u32, u128, u128, u32, u32, u32, u32)> = vec![
         // Acala
+        // 1,441,645.1500372255
         (
             2000,
-            4000,
-            325_159_802_323_576_263,
+            200060013,
+            14_416_451_500_372_255,
             500_000_000_000_000_000,
             8179200,
             0,
@@ -37,10 +37,11 @@ pub fn migrate<T: Config>() -> frame_support::weights::Weight {
             13,
         ),
         // Clover
+        // 3,952,961.0099297280
         (
             2002,
-            4000,
-            97_524_874_268_038_525,
+            200060013,
+            39_529_610_099_297_280,
             500_000_000_000_000_000,
             8179200,
             1,
@@ -48,10 +49,11 @@ pub fn migrate<T: Config>() -> frame_support::weights::Weight {
             13,
         ),
         // Moonbeam
+        // 3,470,561.7504208070
         (
             2004,
-            4000,
-            357_599_313_927_924_796,
+            200060013,
+            34_705_617_504_208_070,
             1_000_000_000_000_000_000,
             8179199,
             2,
@@ -59,10 +61,11 @@ pub fn migrate<T: Config>() -> frame_support::weights::Weight {
             13,
         ),
         // Astar
+        // 1,790,762.0716266251
         (
             2006,
-            4000,
-            103_335_520_433_166_970,
+            200060013,
+            17_907_620_716_266_251,
             350_000_010_000_000_000,
             8179200,
             3,
@@ -72,24 +75,13 @@ pub fn migrate<T: Config>() -> frame_support::weights::Weight {
         // Parallel
         (
             2012,
-            4000,
-            107_515_186_195_417_478,
+            200060013,
+            41_197_386_220_717_022,
             400_000_000_000_000_000,
             8179200,
             4,
             6,
             13,
-        ),
-        // Efinity
-        (
-            2021,
-            4001,
-            76_953_774_505_455_550,
-            500_000_000_000_000_000,
-            9388800,
-            5,
-            7,
-            14,
         ),
     ];
     let length = batch.len() as u64;
@@ -114,6 +106,6 @@ pub fn migrate<T: Config>() -> frame_support::weights::Weight {
         CTokensRegistry::<T>::insert((&lease_start, &lease_end), ctoken);
         LeasesRegistry::<T>::insert(&ParaId::from(para_id), (lease_start, lease_end));
     }
-    NextTrieIndex::<T>::put(6);
+    NextTrieIndex::<T>::put(5);
     <T as frame_system::Config>::DbWeight::get().writes(length * 3 + 1u64)
 }
