@@ -3,6 +3,8 @@ use crate::mock::*;
 use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
 
+const MINIMUM_LIQUIDITY: u128 = 1;
+
 #[test]
 fn create_pool_should_work() {
     new_test_ext().execute_with(|| {
@@ -22,7 +24,12 @@ fn create_pool_should_work() {
             20
         );
         assert_eq!(Assets::total_issuance(SAMPLE_LP_TOKEN), 14);
-        assert_eq!(Assets::balance(SAMPLE_LP_TOKEN, BOB), 14);
+
+        // balance should be amount issued minus MINIMUM_LIQUIDITY
+        assert_eq!(
+            Assets::balance(SAMPLE_LP_TOKEN, BOB),
+            14 - MINIMUM_LIQUIDITY
+        );
     })
 }
 
@@ -227,7 +234,7 @@ fn remove_liquidity_whole_share_should_work() {
         assert_ok!(AMM::remove_liquidity(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            30
+            30 - MINIMUM_LIQUIDITY
         ));
 
         assert_eq!(
@@ -236,7 +243,7 @@ fn remove_liquidity_whole_share_should_work() {
                     .unwrap()
                     .pool_assets
             ),
-            0
+            MINIMUM_LIQUIDITY
         );
     })
 }

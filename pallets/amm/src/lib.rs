@@ -91,6 +91,11 @@ pub mod pallet {
         #[pallet::constant]
         type ProtocolFee: Get<Perbill>;
 
+        /// Minimum amount of liquidty needed to init a new pool
+        /// this amount is burned when the pool is created
+        #[pallet::constant]
+        type MinimumLiquidity: Get<u128>;
+
         /// Who/where to send the protocol fees
         #[pallet::constant]
         type ProtocolFeeReceiver: Get<Self::AccountId>;
@@ -289,6 +294,7 @@ pub mod pallet {
                         quote_asset,
                         base_amount,
                         quote_amount,
+                        false,
                     )?;
 
                     Ok(().into())
@@ -430,6 +436,7 @@ pub mod pallet {
                 quote_asset,
                 base_amount,
                 quote_amount,
+                true,
             )?;
 
             Ok(().into())
@@ -473,8 +480,31 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         quote_asset: AssetIdOf<T, I>,
         base_amount: BalanceOf<T, I>,
         quote_amount: BalanceOf<T, I>,
+        is_inital_deposit: bool,
     ) -> DispatchResult {
-        T::Assets::mint_into(currency_asset, &who, ownership)?;
+        if is_inital_deposit {
+            let ownership_minus_inital_miniumum_deposit = ownership - T::MinimumLiquidity::get();
+            // TODO:
+            // effectivly we want to create and burn tokens on
+            // Ethereum this is commonly done by minint to adresss 0x0000...
+            // we either want to mint and burn or just mint to a similar address
+            T::Assets::mint_into(
+                currency_asset,
+                &Self::account_id(),
+                T::MinimumLiquidity::get(),
+            )?;
+
+            // send remaining tokens to user
+            T::Assets::mint_into(
+                currency_asset,
+                &who,
+                ownership_minus_inital_miniumum_deposit,
+            )?;
+        } else {
+            // if this is not the first mint send tokens to user
+            T::Assets::mint_into(currency_asset, &who, ownership)?;
+        }
+
         T::Assets::transfer(base_asset, &who, &Self::account_id(), base_amount, true)?;
         T::Assets::transfer(quote_asset, &who, &Self::account_id(), quote_amount, true)?;
 

@@ -149,6 +149,7 @@ parameter_types! {
     pub const DefaultLpFee: Perbill = Perbill::from_perthousand(3);         // 0.3%
     pub const DefaultProtocolFee: Perbill = Perbill::from_perthousand(2);   // 0.2%
     pub const DefaultProtocolFeeReceiver: AccountId = AccountId(4_u64);
+    pub const MinimumLiquidity: u128 = 1u128; // TODO: make realistic amount
 }
 
 pub struct AliceCreatePoolOrigin;
@@ -166,6 +167,7 @@ impl pallet_amm::Config for Test {
     type CreatePoolOrigin = EnsureSignedBy<AliceCreatePoolOrigin, AccountId>;
     type LpFee = DefaultLpFee;
     type ProtocolFee = DefaultProtocolFee;
+    type MinimumLiquidity = MinimumLiquidity;
     type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
 }
 
