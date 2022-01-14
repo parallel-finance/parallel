@@ -356,7 +356,7 @@ pub mod pallet {
                 false,
             )?;
 
-            T::XCM::add_xcm_fees(Self::staking_currency()?, &who, fees)?;
+            T::XCM::add_xcm_fees(Self::staking_currency()?, &who, fees, T::PalletId::get())?;
             let liquid_amount = Self::exchange_rate()
                 .reciprocal()
                 .and_then(|r| r.checked_mul_int(amount))
@@ -611,6 +611,7 @@ pub mod pallet {
                 Self::para_account_id(),
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
+                T::PalletId::get(),
             )?;
             Self::deposit_event(Event::<T>::WithdrawingUnbonded(num_slashing_spans));
             Ok(())
@@ -626,6 +627,7 @@ pub mod pallet {
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
+                T::PalletId::get(),
             )?;
             Self::deposit_event(Event::<T>::Nominating(targets));
             Ok(())
@@ -697,6 +699,7 @@ pub mod pallet {
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
+                T::PalletId::get(),
             )?;
             Self::deposit_event(Event::<T>::Bonding(
                 Self::derivative_para_account_id(),
@@ -714,6 +717,7 @@ pub mod pallet {
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
+                T::PalletId::get(),
             )?;
             Self::deposit_event(Event::<T>::BondingExtra(value));
             Ok(())
@@ -726,6 +730,7 @@ pub mod pallet {
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
+                T::PalletId::get(),
             )?;
             Self::deposit_event(Event::<T>::Unbonding(value));
             Ok(())
@@ -738,6 +743,7 @@ pub mod pallet {
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
+                T::PalletId::get(),
             )?;
             Self::deposit_event(Event::<T>::Rebonding(value));
             Ok(())
