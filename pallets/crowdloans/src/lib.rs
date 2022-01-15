@@ -992,27 +992,30 @@ pub mod pallet {
                 Error::<T>::IncorrectVaultPhase
             );
             
-            // 2. scan pending childstorage, 
+            // 2. scan pending childstorage, mint RelayCurrency for contributor and
+            let (amount, _) = Self::contribution_get(vault.trie_index, &who, ChildStorageKind::Pending);
             
-            /// mint RelayCurrency for contributor and
+            ensure!(!amount.is_zero(), Error::<T>::NoContributions);
+
             T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
 
             ///  kill contribution util reached RemoveKeysLimit.
+            Self::contribution_kill(T::RemoveKeysLimit::get(), &who, ChildStorageKind::Contributed);
 
             // 3. if reached limit then return the function
 
             // 4. if no and we already cleaned pending childstorage. Then we scan contributed childstorage and mint RelayCurrency and kill contribution for contributor util reached RemoveKeysLimit.
 
             // If all contributions have been refunded then return AllRefunded event
-            Self::deposit_event(Event::<T>::AllRefunded(
-                crowdloan,
-                (lease_start, lease_end),
-            ));
+            // Self::deposit_event(Event::<T>::AllRefunded(
+            //     crowdloan,
+            //     (lease_start, lease_end),
+            // ));
             // if not then return PartiallyRefunded event
-            Self::deposit_event(Event::<T>::PartiallyRefunded(
-                crowdloan,
-                (lease_start, lease_end),
-            ));
+            // Self::deposit_event(Event::<T>::PartiallyRefunded(
+            //     crowdloan, 
+            //     (lease_start, lease_end),
+            // ));
             Ok(())
         }
 
