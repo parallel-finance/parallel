@@ -1310,6 +1310,7 @@ parameter_types! {
     pub DefaultLpFee: Perbill = Perbill::from_rational(25u32, 10000u32);        // 0.25%
     pub DefaultProtocolFee: Perbill = Perbill::from_rational(5u32, 10000u32);   // 0.05%
     pub DefaultProtocolFeeReceiver: AccountId = TreasuryPalletId::get().into_account();
+    pub const MinimumLiquidity: u128 = 1u128;
 }
 
 impl pallet_amm::Config for Runtime {
@@ -1320,6 +1321,7 @@ impl pallet_amm::Config for Runtime {
     type CreatePoolOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type LpFee = DefaultLpFee;
     type ProtocolFee = DefaultProtocolFee;
+    type MinimumLiquidity = MinimumLiquidity;
     type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
 }
 
