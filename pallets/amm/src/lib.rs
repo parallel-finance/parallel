@@ -484,10 +484,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     ) -> DispatchResult {
         if is_inital_deposit {
             let ownership_minus_inital_miniumum_deposit = ownership - T::MinimumLiquidity::get();
-            // TODO:
-            // effectivly we want to create and burn tokens on
-            // Ethereum this is commonly done by minint to adresss 0x0000...
-            // we either want to mint and burn or just mint to a similar address
+            // lock minimum liquidity forever when liquidity is first added
             T::Assets::mint_into(
                 currency_asset,
                 &Self::account_id(),
