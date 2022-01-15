@@ -627,7 +627,6 @@ pub mod pallet {
                 T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
-                T::PalletId::get(),
             )?;
             Self::deposit_event(Event::<T>::Nominating(targets));
             Ok(())

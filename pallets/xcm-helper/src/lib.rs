@@ -122,6 +122,8 @@ pub mod pallet {
         ZeroXcmWeightMisc,
         /// Xcm fees cannot be zero
         ZeroXcmFees,
+        /// sufficient fund is not available
+        NotSufficientFund,
     }
 
     #[pallet::call]
@@ -183,7 +185,6 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
         relay_currency: AssetId,
         para_account_id: AccountId,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
-        pallet_id: PalletId,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_contribute(
@@ -246,13 +247,16 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
         beneficiary: MultiLocation,
         relay_currency: AssetId,
         index: u16,
-        pallet_id: PalletId,
     ) -> DispatchResult;
 }
 
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> AccountIdOf<T> {
         T::PalletId::get().into_account()
+    }
+
+    pub fn get_account_id(pallet_id: PalletId) -> AccountIdOf<T> {
+        pallet_id.into_account()
     }
 
     pub fn report_outcome_notify(
@@ -288,8 +292,10 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         relay_currency: AssetIdOf<T>,
         payer: &AccountIdOf<T>,
         amount: BalanceOf<T>,
-        _pallet_id: PalletId,
+        pallet_id: PalletId,
     ) -> DispatchResult {
+        let balance = T::Assets::balance(relay_currency, &Self::get_account_id(pallet_id));
+        ensure!(amount < balance, Error::<T>::NotSufficientFund);
         T::Assets::transfer(relay_currency, payer, &Self::account_id(), amount, false)?;
         Ok(())
     }
@@ -330,7 +336,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         relay_currency: AssetIdOf<T>,
         para_account_id: AccountIdOf<T>,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
-        _pallet_id: PalletId,
     ) -> Result<QueryId, DispatchError> {
         Ok(switch_relay!({
             let call =
@@ -368,8 +373,11 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         amount: BalanceOf<T>,
         _who: &AccountIdOf<T>,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
-        _pallet_id: PalletId,
+        pallet_id: PalletId,
     ) -> Result<QueryId, DispatchError> {
+        let balance = T::Assets::balance(relay_currency, &Self::get_account_id(pallet_id));
+        ensure!(amount < balance, Error::<T>::NotSufficientFund);
+
         Ok(switch_relay!({
             let call = RelaychainCall::<T>::Crowdloans(CrowdloansCall::Contribute(
                 CrowdloansContributeCall {
@@ -408,10 +416,12 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         index: u16,
-        _pallet_id: PalletId,
+        pallet_id: PalletId,
     ) -> DispatchResult {
         let controller = stash.clone();
 
+        let balance = T::Assets::balance(relay_currency, &Self::get_account_id(pallet_id));
+        ensure!(value < balance, Error::<T>::NotSufficientFund);
         switch_relay!({
             let call =
                 RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
@@ -458,8 +468,11 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         index: u16,
-        _pallet_id: PalletId,
+        pallet_id: PalletId,
     ) -> DispatchResult {
+        let balance = T::Assets::balance(relay_currency, &Self::get_account_id(pallet_id));
+        ensure!(value < balance, Error::<T>::NotSufficientFund);
+
         switch_relay!({
             let call =
                 RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
@@ -500,8 +513,11 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         index: u16,
-        _pallet_id: PalletId,
+        pallet_id: PalletId,
     ) -> DispatchResult {
+        let balance = T::Assets::balance(relay_currency, &Self::get_account_id(pallet_id));
+        ensure!(value < balance, Error::<T>::NotSufficientFund);
+
         switch_relay!({
             let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
                 UtilityAsDerivativeCall {
@@ -532,8 +548,11 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         index: u16,
-        _pallet_id: PalletId,
+        pallet_id: PalletId,
     ) -> DispatchResult {
+        let balance = T::Assets::balance(relay_currency, &Self::get_account_id(pallet_id));
+        ensure!(value < balance, Error::<T>::NotSufficientFund);
+
         switch_relay!({
             let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
                 UtilityAsDerivativeCall {
@@ -566,8 +585,11 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         para_account_id: AccountIdOf<T>,
         relay_currency: AssetIdOf<T>,
         index: u16,
-        _pallet_id: PalletId,
+        pallet_id: PalletId,
     ) -> DispatchResult {
+        let balance = T::Assets::balance(relay_currency, &Self::get_account_id(pallet_id));
+        ensure!(amount < balance, Error::<T>::NotSufficientFund);
+
         T::Assets::mint_into(relay_currency, &Self::account_id(), amount)?;
 
         switch_relay!({
@@ -616,7 +638,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         index: u16,
-        _pallet_id: PalletId,
     ) -> DispatchResult {
         let targets_source = targets.into_iter().map(T::Lookup::unlookup).collect();
 

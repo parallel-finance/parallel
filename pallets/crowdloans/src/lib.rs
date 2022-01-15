@@ -1349,7 +1349,6 @@ pub mod pallet {
                 T::RelayCurrency::get(),
                 Self::para_account_id(),
                 Self::notify_placeholder(),
-                T::PalletId::get(),
             )?;
 
             XcmRequests::<T>::insert(

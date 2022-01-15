@@ -490,6 +490,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), dot(100f64)).unwrap();
         Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), dot(100f64)).unwrap();
+		Assets::mint(Origin::signed(ALICE), DOT, Id(XcmHelper::get_account_id(PalletId(*b"crwloans"))), dot(100f64)).unwrap();
         Assets::mint(
             Origin::signed(ALICE),
             DOT,
@@ -597,7 +598,11 @@ pub fn relay_ext() -> sp_io::TestExternalities {
     .unwrap();
 
     let mut ext = sp_io::TestExternalities::new(t);
-    ext.execute_with(|| System::set_block_number(1));
+    ext.execute_with(|| {
+		System::set_block_number(1);
+		Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
+		Assets::mint(Origin::signed(ALICE), DOT, Id(XcmHelper::get_account_id(PalletId(*b"crwloans"))), dot(100f64)).unwrap();
+	});
     ext
 }
 
