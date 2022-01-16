@@ -304,6 +304,10 @@ pub mod pallet {
     #[pallet::getter(fn xcm_request)]
     pub type XcmRequests<T> = StorageMap<_, Blake2_128Concat, QueryId, XcmRequest<T>, OptionQuery>;
 
+    /// Storage version of the pallet.
+    #[pallet::storage]
+    pub type StorageVersion<T: Config> = StorageValue<_, Releases, ValueQuery>;
+
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Create a new vault via a governance decision

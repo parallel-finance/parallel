@@ -1575,7 +1575,7 @@ pub type Executive = frame_executive::Executive<
 pub struct CrowdloanCreateBatch1Vault;
 impl OnRuntimeUpgrade for CrowdloanCreateBatch1Vault {
     fn on_runtime_upgrade() -> Weight {
-        pallet_crowdloans::migrations::migrate::<Runtime>()
+        pallet_crowdloans::migrations::v1::migrate::<Runtime>()
     }
 }
 
