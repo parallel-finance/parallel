@@ -138,7 +138,7 @@ pub enum ArithmeticKind {
 }
 
 #[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, TypeInfo)]
-enum Releases {
+pub enum Releases {
     V0_0_0,
     V1_0_0,
 }

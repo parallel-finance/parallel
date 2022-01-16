@@ -17,7 +17,7 @@ use super::*;
 
 pub mod v1 {
     use super::*;
-    use frame_support::traits::Get;
+    use frame_support::{log, traits::Get};
     use primitives::ParaId;
     use sp_runtime::traits::Zero;
     use sp_std::{vec, vec::Vec};
