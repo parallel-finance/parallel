@@ -130,6 +130,9 @@ pub mod pallet {
         /// The origin which can create vault
         type CreateVaultOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
+        /// The origin which can refund
+        type RefundOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+
         /// The origin which can dissolve vault
         type DissolveVaultOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
@@ -231,10 +234,10 @@ pub mod pallet {
         VaultDissolved(ParaId, VaultId),
         /// Partially Refunded
         /// [para_id, vault_id]
-        AllRefunded(ParaId),
+        AllRefunded(ParaId, VaultId),
                 /// Partially Refunded
         /// [para_id, vault_id]
-        PartiallyRefunded(ParaId),
+        PartiallyRefunded(ParaId, VaultId),
     }
 
     #[pallet::error]
@@ -980,12 +983,10 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::refund())]
         #[transactional]
         pub fn refund(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
+            T::RefundOrigin::ensure_origin(origin)?;
 
-            let who = ensure_signed(origin)?;
-            let mut pending_refunded_count = 0u32;
-            let mut contributed_refunded_count = 0u32;
-            let mut all_pending_refunded = false;
-            let mut all_contributed_refunded = false;
+            let mut refund_count = 0u32;
+            let mut refunded = false;
 
             let vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
             
@@ -994,61 +995,36 @@ pub mod pallet {
                 vault.phase == VaultPhase::Closed || vault.phase == VaultPhase::Failed,
                 Error::<T>::IncorrectVaultPhase
             );
-            
-            // 2. scan pending childstorage, mint RelayCurrency for contributor and
-            let (amount, _) = Self::contribution_get(
-                vault.trie_index, &who, ChildStorageKind::Pending
-            );
-            
-            ensure!(!amount.is_zero(), Error::<T>::NoContributions);
 
-            let pending_contributions = Self::contribution_iterator(
-                vault.trie_index, ChildStorageKind::Pending
-            );
-            for (who, (amount, _referral_code)) in pending_contributions {
-                if pending_refunded_count >= T::RemoveKeysLimit::get() {
-                    all_pending_refunded = true;
-                    return Ok(());
-                }
-                pending_refunded_count = pending_refunded_count + 1;
-
-                // Mint relay currency
-                T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
-                Self::contribution_kill(
-                    T::RemoveKeysLimit::get(), &who, ChildStorageKind::Contributed
+            for child_storage_kind in ChildStorageKind {
+                let contribution = Self::contribution_iterator(
+                    vault.trie_index, child_storage_kind
                 );
-            }
 
-            //  kill contribution util reached RemoveKeysLimit.
-            Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Pending);
+                for (who, (amount, _referral_code)) in contribution {
+                    if refund_count >= T::RemoveKeysLimit::get() {
+                        refunded = true;
+                        return Ok(());
+                    }
+                    refund_count += 1;
 
-            let contributed_contributions = Self::contribution_iterator(
-                vault.trie_index, ChildStorageKind::Contributed
-            );
-
-            for (who, (amount, _referral_code)) in contributed_contributions {
-                if contributed_refunded_count >= T::RemoveKeysLimit::get() {
-                    all_contributed_refunded = true;
-                    return Ok(());
+                    // Mint relay currency
+                    T::Assets::mint_into(vault.trie_index, &who, amount)?;
+                    Self::contribution_kill(vault.trie_index, &who, child_storage_kind);
                 }
-                contributed_refunded_count = contributed_refunded_count + 1;
-
-                // Mint relay currency
-                T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
-                Self::contribution_kill(
-                    T::RemoveKeysLimit::get(), &who, ChildStorageKind::Contributed
-                );
             }
 
             // If all contributions have been refunded then return AllRefunded event
             // if not then return PartiallyRefunded event
-            if all_pending_refunded && all_contributed_refunded {
+            if refunded {
                 Self::deposit_event(Event::<T>::AllRefunded(
-                    crowdloan
+                    crowdloan,
+                    (vault.lease_start, vault.lease_end)
                 ));
             } else {
                 Self::deposit_event(Event::<T>::PartiallyRefunded(
                     crowdloan,
+                    (vault.lease_start, vault.lease_end)
                 ));
             }
 
@@ -1077,7 +1053,8 @@ pub mod pallet {
                 Error::<T>::IncorrectVaultPhase
             );
 
-            // 2. check flying, pending, contributed childstorage, should have 0 contributions and `vault.contributed + vault.flying + vault.pending == 0` otherwise return back `NotReadyToDissolve`
+            // 2. check flying, pending, contributed childstorage,
+            // should have 0 contributions and `vault.contributed + vault.flying + vault.pending == 0` otherwise return back `NotReadyToDissolve`
             let total_completed_contributions =
                 Self::contribution_iterator(vault.trie_index, ChildStorageKind::Contributed)
                     .fold(0u128, |sum, (_account, (amount, _ref_code))| sum + amount);
