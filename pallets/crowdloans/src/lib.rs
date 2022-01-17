@@ -997,7 +997,7 @@ pub mod pallet {
             );
 
             // TODO: Fix iterate an enum or may be convert it to iterator
-            for child_storage_kind in ChildStorageKind {
+            for child_storage_kind in [ChildStorageKind::Contributed, ChildStorageKind::Flying , ChildStorageKind::Pending] {
                 let contribution = Self::contribution_iterator(
                     vault.trie_index, child_storage_kind
                 );
