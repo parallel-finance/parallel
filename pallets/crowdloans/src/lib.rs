@@ -231,10 +231,10 @@ pub mod pallet {
         VaultDissolved(ParaId, VaultId),
         /// Partially Refunded
         /// [para_id, vault_id]
-        AllRefunded(ParaId, VaultId),
+        AllRefunded(ParaId),
                 /// Partially Refunded
         /// [para_id, vault_id]
-        PartiallyRefunded(ParaId, VaultId),
+        PartiallyRefunded(ParaId),
     }
 
     #[pallet::error]
@@ -977,14 +977,17 @@ pub mod pallet {
             Ok(().into())
         }
 
-        // ********************************************************************************************************
         #[pallet::weight(<T as Config>::WeightInfo::refund())]
         #[transactional]
         pub fn refund(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
 
             let who = ensure_signed(origin)?;
+            let mut pending_refunded_count = 0u32;
+            let mut contributed_refunded_count = 0u32;
+            let mut all_pending_refunded = false;
+            let mut all_contributed_refunded = false;
 
-            let mut vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
+            let vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
             
             // 1. check phase, should be Closed or Failed
             ensure!(
@@ -993,29 +996,62 @@ pub mod pallet {
             );
             
             // 2. scan pending childstorage, mint RelayCurrency for contributor and
-            let (amount, _) = Self::contribution_get(vault.trie_index, &who, ChildStorageKind::Pending);
+            let (amount, _) = Self::contribution_get(
+                vault.trie_index, &who, ChildStorageKind::Pending
+            );
             
             ensure!(!amount.is_zero(), Error::<T>::NoContributions);
 
-            T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
+            let pending_contributions = Self::contribution_iterator(
+                vault.trie_index, ChildStorageKind::Pending
+            );
+            for (who, (amount, _referral_code)) in pending_contributions {
+                if pending_refunded_count >= T::RemoveKeysLimit::get() {
+                    all_pending_refunded = true;
+                    return Ok(());
+                }
+                pending_refunded_count = pending_refunded_count + 1;
 
-            ///  kill contribution util reached RemoveKeysLimit.
-            Self::contribution_kill(T::RemoveKeysLimit::get(), &who, ChildStorageKind::Contributed);
+                // Mint relay currency
+                T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
+                Self::contribution_kill(
+                    T::RemoveKeysLimit::get(), &who, ChildStorageKind::Contributed
+                );
+            }
 
-            // 3. if reached limit then return the function
+            //  kill contribution util reached RemoveKeysLimit.
+            Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Pending);
 
-            // 4. if no and we already cleaned pending childstorage. Then we scan contributed childstorage and mint RelayCurrency and kill contribution for contributor util reached RemoveKeysLimit.
+            let contributed_contributions = Self::contribution_iterator(
+                vault.trie_index, ChildStorageKind::Contributed
+            );
+
+            for (who, (amount, _referral_code)) in contributed_contributions {
+                if contributed_refunded_count >= T::RemoveKeysLimit::get() {
+                    all_contributed_refunded = true;
+                    return Ok(());
+                }
+                contributed_refunded_count = contributed_refunded_count + 1;
+
+                // Mint relay currency
+                T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
+                Self::contribution_kill(
+                    T::RemoveKeysLimit::get(), &who, ChildStorageKind::Contributed
+                );
+            }
 
             // If all contributions have been refunded then return AllRefunded event
-            // Self::deposit_event(Event::<T>::AllRefunded(
-            //     crowdloan,
-            //     (lease_start, lease_end),
-            // ));
             // if not then return PartiallyRefunded event
-            // Self::deposit_event(Event::<T>::PartiallyRefunded(
-            //     crowdloan, 
-            //     (lease_start, lease_end),
-            // ));
+            if all_pending_refunded && all_contributed_refunded {
+                Self::deposit_event(Event::<T>::AllRefunded(
+                    crowdloan
+                ));
+            } else {
+                Self::deposit_event(Event::<T>::PartiallyRefunded(
+                    crowdloan,
+                ));
+            }
+
             Ok(())
         }
 
