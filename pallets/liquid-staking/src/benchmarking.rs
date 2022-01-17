@@ -55,6 +55,15 @@ fn initial_set_up<
         1,
     )
     .ok();
+
+    pallet_assets::Pallet::<T>::mint(
+        SystemOrigin::Signed(caller.clone()).into(),
+        T::StakingCurrency::get(),
+        T::Lookup::unlookup(LiquidStaking::<T>::account_id()),
+        INITIAL_AMOUNT,
+    )
+    .ok();
+
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),
         KSM,
@@ -165,6 +174,7 @@ benchmarks! {
         LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice.clone()).into(), UNSTAKE_AMOUNT).unwrap();
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
         LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice).into(), UNSTAKE_AMOUNT).unwrap();
+
     }: _(SystemOrigin::Root, 0u128,  UNBONDING_AMOUNT)
     verify {
         assert_last_event::<T>(Event::<T>::Settlement(2 * STAKED_AMOUNT - 2 * UNSTAKE_AMOUNT, 0u128, 0u128).into());
