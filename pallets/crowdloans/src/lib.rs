@@ -1089,22 +1089,19 @@ pub mod pallet {
             let total_flying_contributions =
                 Self::contribution_iterator(vault.trie_index, ChildStorageKind::Flying)
                     .fold(0u128, |sum, (_account, (amount, _ref_code))| sum + amount);
-            
-            // TODO: fix this 
+
             ensure!(
                 total_completed_contributions
                 .checked_add(total_flying_contributions)
                 .and_then(|sum| sum.checked_add(total_pending_contributions))
-                .ok_or(ArithmeticError::Overflow) == Ok(0),
+                .ok_or(ArithmeticError::Overflow)? == 0,
                 Error::<T>::NotReadyToDissolve
             );
-            
 
-            // TODO: fix this 
             ensure!(
                 vault.contributed.checked_add(vault.flying)
                 .and_then(|sum| sum.checked_add(vault.pending))
-                .ok_or(ArithmeticError::Overflow) == Ok(0),
+                .ok_or(ArithmeticError::Overflow)? == 0,
                 Error::<T>::NotReadyToDissolve
             );
 
