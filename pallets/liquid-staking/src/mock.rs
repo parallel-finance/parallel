@@ -596,6 +596,13 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         )
         .unwrap();
         Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), 10000 * KSM_DECIMAL).unwrap();
+        Assets::mint(
+            Origin::signed(ALICE),
+            KSM,
+            Id(XcmHelper::get_account_id(PalletId(*b"par/lqsk"))),
+            10000 * KSM_DECIMAL,
+        )
+        .unwrap();
 
         LiquidStaking::update_staking_pool_capacity(Origin::signed(BOB), ksm(10000f64)).unwrap();
         XcmHelper::update_xcm_fees(Origin::signed(BOB), ksm(10f64)).unwrap();
