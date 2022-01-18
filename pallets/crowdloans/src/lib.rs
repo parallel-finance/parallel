@@ -1061,19 +1061,9 @@ pub mod pallet {
                 Error::<T>::IncorrectVaultPhase
             );
 
-            let total_contributed = Self::get_contributions(&mut vault, ChildStorageKind::Contributed);
-            let total_pending = Self::get_contributions(&mut vault, ChildStorageKind::Pending);
-            let total_flying = Self::get_contributions(&mut vault, ChildStorageKind::Flying);
+            let has_contributed = Self::has_childstorage(&mut vault);
 
-            // TODO: ensure has sum
-            ensure!(
-                total_contributed
-                    .checked_add(total_flying)
-                    .and_then(|sum| sum.checked_add(total_pending))
-                    .ok_or(ArithmeticError::Overflow)?
-                    == 0,
-                Error::<T>::NotReadyToDissolve
-            );
+            ensure!(!has_contributed, Error::<T>::NotReadyToDissolve);
 
             ensure!(
                 vault
@@ -1510,10 +1500,19 @@ pub mod pallet {
             Ok(())
         }
 
-        // Returns contributions for ChildStorageKinds
-        fn get_contributions(vault: &mut Vault<T>, kind: ChildStorageKind) -> u128 {
-            Self::contribution_iterator(vault.trie_index, kind)
-                .fold(0u128, |sum, (_account, (amount, _ref_code))| sum + amount)
+        // Returns bool value for all contributions
+        fn has_childstorage(vault: &mut Vault<T>) -> bool {
+            let mut count = 0;
+            for storage_kind in [
+                ChildStorageKind::Contributed,
+                ChildStorageKind::Flying,
+                ChildStorageKind::Pending
+            ] {
+                count = count + Self::contribution_iterator(vault.trie_index, storage_kind)
+                    .fold(0u128, |sum, (_account, (amount, _ref_code))| sum + amount);
+            }
+
+            count != 0
         }
     }
 }
