@@ -996,11 +996,13 @@ pub mod pallet {
                 Error::<T>::IncorrectVaultPhase
             );
 
-            // TODO: Fix iterate an enum or may be convert it to iterator
-            for child_storage_kind in [ChildStorageKind::Contributed, ChildStorageKind::Flying , ChildStorageKind::Pending] {
-                let contribution = Self::contribution_iterator(
-                    vault.trie_index, child_storage_kind
-                );
+            for child_storage_kind in [
+                ChildStorageKind::Contributed,
+                ChildStorageKind::Flying,
+                ChildStorageKind::Pending
+            ] {
+                let contribution =
+                    Self::contribution_iterator(vault.trie_index, child_storage_kind);
 
                 for (who, (amount, _referral_code)) in contribution {
                     if refund_count >= T::RemoveKeysLimit::get() {
