@@ -986,7 +986,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             crowdloan: ParaId,
             lease_start: LeasePeriod,
-            lease_end: LeasePeriod
+            lease_end: LeasePeriod,
         ) -> DispatchResult {
             T::RefundOrigin::ensure_origin(origin)?;
 
@@ -994,6 +994,7 @@ pub mod pallet {
             let mut all_refunded = false;
 
             let vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
+            
             
             // 1. check phase, should be Closed or Failed
             ensure!(
@@ -1004,7 +1005,7 @@ pub mod pallet {
             for child_storage_kind in [
                 ChildStorageKind::Contributed,
                 ChildStorageKind::Flying,
-                ChildStorageKind::Pending
+                ChildStorageKind::Pending,
             ] {
                 let contribution =
                     Self::contribution_iterator(vault.trie_index, child_storage_kind);
@@ -1025,10 +1026,7 @@ pub mod pallet {
             // If all contributions have been refunded then return AllRefunded event
             // if not then return PartiallyRefunded event
             if all_refunded {
-                Self::deposit_event(Event::<T>::AllRefunded(
-                    crowdloan,
-                    (lease_start, lease_end),
-                ));
+                Self::deposit_event(Event::<T>::AllRefunded(crowdloan, (lease_start, lease_end)));
             } else {
                 Self::deposit_event(Event::<T>::PartiallyRefunded(
                     crowdloan,
@@ -1506,10 +1504,11 @@ pub mod pallet {
             for storage_kind in [
                 ChildStorageKind::Contributed,
                 ChildStorageKind::Flying,
-                ChildStorageKind::Pending
+                ChildStorageKind::Pending,
             ] {
-                count = count + Self::contribution_iterator(vault.trie_index, storage_kind)
-                    .fold(0u128, |sum, (_account, (amount, _ref_code))| sum + amount);
+                count = count
+                    + Self::contribution_iterator(vault.trie_index, storage_kind)
+                        .fold(0u128, |sum, (_account, (amount, _ref_code))| sum + amount);
             }
 
             count != 0
