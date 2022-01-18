@@ -982,11 +982,16 @@ pub mod pallet {
 
         #[pallet::weight(<T as Config>::WeightInfo::refund())]
         #[transactional]
-        pub fn refund(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
+        pub fn refund(
+            origin: OriginFor<T>,
+            crowdloan: ParaId,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod
+        ) -> DispatchResult {
             T::RefundOrigin::ensure_origin(origin)?;
 
             let mut refund_count = 0u32;
-            let mut refunded = false;
+            let mut all_refunded = false;
 
             let vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
             
@@ -1006,7 +1011,7 @@ pub mod pallet {
 
                 for (who, (amount, _referral_code)) in contribution {
                     if refund_count >= T::RemoveKeysLimit::get() {
-                        refunded = true;
+                        all_refunded = true;
                         return Ok(());
                     }
                     refund_count += 1;
@@ -1019,15 +1024,15 @@ pub mod pallet {
 
             // If all contributions have been refunded then return AllRefunded event
             // if not then return PartiallyRefunded event
-            if refunded {
+            if all_refunded {
                 Self::deposit_event(Event::<T>::AllRefunded(
                     crowdloan,
-                    (vault.lease_start, vault.lease_end),
+                    (lease_start, lease_end),
                 ));
             } else {
                 Self::deposit_event(Event::<T>::PartiallyRefunded(
                     crowdloan,
-                    (vault.lease_start, vault.lease_end),
+                    (lease_start, lease_end),
                 ));
             }
 
@@ -1060,6 +1065,7 @@ pub mod pallet {
             let total_pending = Self::get_contributions(&mut vault, ChildStorageKind::Pending);
             let total_flying = Self::get_contributions(&mut vault, ChildStorageKind::Flying);
 
+            // TODO: ensure has sum
             ensure!(
                 total_contributed
                     .checked_add(total_flying)
@@ -1072,8 +1078,7 @@ pub mod pallet {
             ensure!(
                 vault
                     .contributed
-                    .checked_add(vault.flying)
-                    .and_then(|sum| sum.checked_add(vault.pending))
+                    .checked_add(Self::total_contribution(&mut vault, 0)?)
                     .ok_or(ArithmeticError::Overflow)?
                     == 0,
                 Error::<T>::NotReadyToDissolve
