@@ -314,7 +314,7 @@ pub mod pallet {
                 quote_asset,
                 |pool_liquidity_amount| -> DispatchResult {
                     let mut liquidity_amount = pool_liquidity_amount
-                        .take()
+                        .as_mut()
                         .ok_or(Error::<T, I>::PoolDoesNotExist)?;
 
                     let total_ownership = T::Assets::total_issuance(liquidity_amount.pool_assets);
@@ -337,6 +337,7 @@ pub mod pallet {
                         .base_amount
                         .checked_sub(base_amount)
                         .ok_or(ArithmeticError::Underflow)?;
+
                     liquidity_amount.quote_amount = liquidity_amount
                         .quote_amount
                         .checked_sub(quote_amount)
@@ -345,7 +346,7 @@ pub mod pallet {
                     LiquidityProviders::<T, I>::try_mutate(
                         (&who, &base_asset, &quote_asset),
                         |pool_liquidity_amount| -> DispatchResult {
-                            if let Some(liquidity_amount) = pool_liquidity_amount {
+                            if let Some(liquidity_amount) = pool_liquidity_amount.as_mut() {
                                 liquidity_amount.base_amount = liquidity_amount
                                     .base_amount
                                     .checked_sub(base_amount)
@@ -505,7 +506,7 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T, AssetIdOf<T, I>, BalanceOf<T, 
             |pool_liquidity_amount| -> Result<BalanceOf<T, I>, DispatchError> {
                 // 1. If the pool we want to trade does not exist in the current instance, error
                 let mut liquidity_amount = pool_liquidity_amount
-                    .take()
+                    .as_mut()
                     .ok_or(Error::<T, I>::PoolDoesNotExist)?;
 
                 // supply_in == liquidity_amount.base_amount unless inverted
@@ -578,7 +579,6 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T, AssetIdOf<T, I>, BalanceOf<T, 
                         .checked_sub(amount_out)
                         .ok_or(ArithmeticError::Underflow)?;
                 }
-                *pool_liquidity_amount = Some(liquidity_amount);
 
                 // 6. Wire amount_in of the input token (identified by pair.0) from who to PalletId
                 T::Assets::transfer(
