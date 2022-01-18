@@ -980,6 +980,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        /// Refund contributions
         #[pallet::weight(<T as Config>::WeightInfo::refund())]
         #[transactional]
         pub fn refund(
@@ -994,7 +995,6 @@ pub mod pallet {
             let mut all_refunded = false;
 
             let vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
-            
             
             // 1. check phase, should be Closed or Failed
             ensure!(
