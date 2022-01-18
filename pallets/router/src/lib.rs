@@ -99,8 +99,6 @@ pub mod pallet {
         EmptyRoute,
         /// User hasn't enough tokens for transaction
         InsufficientBalance,
-        /// The expiry is smaller than current block number
-        TooSmallExpiry,
         /// Exceed the max length of routes we allow
         ExceedMaxLengthRoute,
         /// Input duplicated route
@@ -128,7 +126,6 @@ pub mod pallet {
         /// - `route`: the route user inputs
         /// - `amount_in`: the amount of trading assets
         /// - `min_amount_out`:
-        /// - `expiry`:
         #[pallet::weight(T::AMMRouterWeightInfo::trade())]
         #[transactional]
         pub fn trade(
@@ -136,7 +133,6 @@ pub mod pallet {
             route: Route<T, I>,
             #[pallet::compact] mut amount_in: BalanceOf<T, I>,
             #[pallet::compact] min_amount_out: BalanceOf<T, I>,
-            #[pallet::compact] expiry: BlockNumberFor<T>,
         ) -> DispatchResultWithPostInfo {
             let trader = ensure_signed(origin)?;
 
@@ -158,10 +154,6 @@ pub mod pallet {
                 amount_in > Zero::zero() && min_amount_out >= Zero::zero(),
                 Error::<T, I>::ZeroBalance
             );
-
-            // Ensure user iput a valid block number.
-            let current_block_num = <frame_system::Pallet<T>>::block_number();
-            ensure!(expiry > current_block_num, Error::<T, I>::TooSmallExpiry);
 
             // Ensure the trader has enough tokens for transaction.
             let (from_currency_id, _) = route[0];

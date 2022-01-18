@@ -104,7 +104,7 @@ benchmarks_instance_pallet! {
         let min_amount_out = 980u128;
         let expiry = u32::MAX;
         let routes: BoundedVec<_, <T as Config<I>>::MaxLengthRoute> = Route::<T, I>::try_from(alloc::vec![(DOT, XDOT)]).unwrap();
-    }: trade(SystemOrigin::Signed(caller.clone()), routes.clone(), amount_in, min_amount_out, expiry.into())
+    }: trade(SystemOrigin::Signed(caller.clone()), routes.clone(), amount_in, min_amount_out)
 
     verify {
         let amount_out: BalanceOf<T, I> = <T as crate::Config<I>>::Assets::balance(XDOT, &caller);
