@@ -313,9 +313,8 @@ pub mod pallet {
                 base_asset,
                 quote_asset,
                 |pool_liquidity_amount| -> DispatchResult {
-                    let mut liquidity_amount = pool_liquidity_amount
-                        .take()
-                        .ok_or(Error::<T, I>::PoolDoesNotExist)?;
+                    let mut liquidity_amount =
+                        pool_liquidity_amount.ok_or(Error::<T, I>::PoolDoesNotExist)?;
 
                     let total_ownership = T::Assets::total_issuance(liquidity_amount.pool_assets);
                     ensure!(
@@ -337,11 +336,13 @@ pub mod pallet {
                         .base_amount
                         .checked_sub(base_amount)
                         .ok_or(ArithmeticError::Underflow)?;
+
                     liquidity_amount.quote_amount = liquidity_amount
                         .quote_amount
                         .checked_sub(quote_amount)
                         .ok_or(ArithmeticError::Underflow)?;
 
+                    *pool_liquidity_amount = Some(liquidity_amount);
                     LiquidityProviders::<T, I>::try_mutate(
                         (&who, &base_asset, &quote_asset),
                         |pool_liquidity_amount| -> DispatchResult {
@@ -354,6 +355,7 @@ pub mod pallet {
                                     .quote_amount
                                     .checked_sub(quote_amount)
                                     .ok_or(ArithmeticError::Underflow)?;
+                                *pool_liquidity_amount = Some(*liquidity_amount);
                             }
                             Ok(())
                         },
@@ -504,9 +506,8 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T, AssetIdOf<T, I>, BalanceOf<T, 
             &quote_asset,
             |pool_liquidity_amount| -> Result<BalanceOf<T, I>, DispatchError> {
                 // 1. If the pool we want to trade does not exist in the current instance, error
-                let mut liquidity_amount = pool_liquidity_amount
-                    .take()
-                    .ok_or(Error::<T, I>::PoolDoesNotExist)?;
+                let mut liquidity_amount =
+                    pool_liquidity_amount.ok_or(Error::<T, I>::PoolDoesNotExist)?;
 
                 // supply_in == liquidity_amount.base_amount unless inverted
                 let (supply_in, supply_out) = if is_inverted {

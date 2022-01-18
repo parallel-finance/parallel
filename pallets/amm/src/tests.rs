@@ -256,11 +256,19 @@ fn remove_liquidity_only_portion_should_work() {
             SAMPLE_LP_TOKEN,
         );
 
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 90);
+
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 10);
+
         assert_ok!(AMM::remove_liquidity(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
             15
         ));
+
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 45);
+
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 5);
 
         assert_eq!(
             <Test as Config>::Assets::total_issuance(
