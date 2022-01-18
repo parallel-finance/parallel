@@ -378,6 +378,9 @@ pub type CreateVaultOrigin =
 pub type DissolveVaultOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
+pub type RefundOrigin =
+    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+
 pub type UpdateVaultOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
@@ -410,6 +413,7 @@ impl crate::Config for Test {
     type MigrateOrigin = EnsureRoot<AccountId>;
     type CreateVaultOrigin = CreateVaultOrigin;
     type DissolveVaultOrigin = DissolveVaultOrigin;
+    type RefundOrigin = RefundOrigin;
     type UpdateVaultOrigin = UpdateVaultOrigin;
     type VrfOrigin = VrfOrigin;
     type OpenCloseOrigin = OpenCloseOrigin;
