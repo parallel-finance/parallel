@@ -235,7 +235,7 @@ pub mod pallet {
         /// Partially Refunded
         /// [para_id, vault_id]
         AllRefunded(ParaId, VaultId),
-                /// Partially Refunded
+        /// Partially Refunded
         /// [para_id, vault_id]
         PartiallyRefunded(ParaId, VaultId),
     }
@@ -1020,12 +1020,12 @@ pub mod pallet {
             if refunded {
                 Self::deposit_event(Event::<T>::AllRefunded(
                     crowdloan,
-                    (vault.lease_start, vault.lease_end)
+                    (vault.lease_start, vault.lease_end),
                 ));
             } else {
                 Self::deposit_event(Event::<T>::PartiallyRefunded(
                     crowdloan,
-                    (vault.lease_start, vault.lease_end)
+                    (vault.lease_start, vault.lease_end),
                 ));
             }
 
@@ -1044,7 +1044,7 @@ pub mod pallet {
             T::DissolveVaultOrigin::ensure_origin(origin)?;
 
             // 1. check phase, should be Closed or Failed or Expired
-            let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+            let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
                 .ok_or(Error::<T>::VaultDoesNotExist)?;
 
             ensure!(
@@ -1054,32 +1054,26 @@ pub mod pallet {
                 Error::<T>::IncorrectVaultPhase
             );
 
-            // 2. check flying, pending, contributed childstorage,
-            // should have 0 contributions and `vault.contributed + vault.flying + vault.pending == 0` otherwise return back `NotReadyToDissolve`
-            let total_completed_contributions =
-                Self::contribution_iterator(vault.trie_index, ChildStorageKind::Contributed)
-                    .fold(0u128, |sum, (_account, (amount, _ref_code))| sum + amount);
-
-            let total_pending_contributions =
-                Self::contribution_iterator(vault.trie_index, ChildStorageKind::Pending)
-                    .fold(0u128, |sum, (_account, (amount, _ref_code))| sum + amount);
-
-            let total_flying_contributions =
-                Self::contribution_iterator(vault.trie_index, ChildStorageKind::Flying)
-                    .fold(0u128, |sum, (_account, (amount, _ref_code))| sum + amount);
+            let total_contributed = Self::get_contributions(&mut vault, ChildStorageKind::Contributed);
+            let total_pending = Self::get_contributions(&mut vault, ChildStorageKind::Pending);
+            let total_flying = Self::get_contributions(&mut vault, ChildStorageKind::Flying);
 
             ensure!(
-                total_completed_contributions
-                .checked_add(total_flying_contributions)
-                .and_then(|sum| sum.checked_add(total_pending_contributions))
-                .ok_or(ArithmeticError::Overflow)? == 0,
+                total_contributed
+                    .checked_add(total_flying)
+                    .and_then(|sum| sum.checked_add(total_pending))
+                    .ok_or(ArithmeticError::Overflow)?
+                    == 0,
                 Error::<T>::NotReadyToDissolve
             );
 
             ensure!(
-                vault.contributed.checked_add(vault.flying)
-                .and_then(|sum| sum.checked_add(vault.pending))
-                .ok_or(ArithmeticError::Overflow)? == 0,
+                vault
+                    .contributed
+                    .checked_add(vault.flying)
+                    .and_then(|sum| sum.checked_add(vault.pending))
+                    .ok_or(ArithmeticError::Overflow)?
+                    == 0,
                 Error::<T>::NotReadyToDissolve
             );
 
@@ -1507,6 +1501,12 @@ pub mod pallet {
                 target_phase,
             ));
             Ok(())
+        }
+
+        // Returns contributions for ChildStorageKinds
+        fn get_contributions(vault: &mut Vault<T>, kind: ChildStorageKind) -> u128 {
+            Self::contribution_iterator(vault.trie_index, kind)
+                .fold(0u128, |sum, (_account, (amount, _ref_code))| sum + amount)
         }
     }
 }
