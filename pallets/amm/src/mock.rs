@@ -149,7 +149,7 @@ parameter_types! {
     pub const DefaultLpFee: Perbill = Perbill::from_perthousand(3);         // 0.3%
     pub const DefaultProtocolFee: Perbill = Perbill::from_perthousand(2);   // 0.2%
     pub const DefaultProtocolFeeReceiver: AccountId = AccountId(4_u64);
-    pub const MinimumLiquidity: u128 = 1u128; // TODO: make realistic amount
+    pub const MinimumLiquidity: u128 = 1_000u128;
 }
 
 pub struct AliceCreatePoolOrigin;

@@ -92,7 +92,14 @@ pub mod pallet {
         type ProtocolFee: Get<Perbill>;
 
         /// Minimum amount of liquidty needed to init a new pool
-        /// this amount is burned when the pool is created
+        /// this amount is burned when the pool is created.
+        ///
+        /// It's important that we include this value in order to
+        /// prevent attacks where a bad actor will create and
+        /// remove pools with malious intentions. By requiring
+        /// a `MinimumLiquidity`, a pool cannot be removed since
+        /// a small amount of tokens are locked forever when liquidity
+        /// is first added.
         #[pallet::constant]
         type MinimumLiquidity: Get<u128>;
 
@@ -294,7 +301,6 @@ pub mod pallet {
                         quote_asset,
                         base_amount,
                         quote_amount,
-                        false,
                     )?;
 
                     Ok(().into())
@@ -436,7 +442,6 @@ pub mod pallet {
                 quote_asset,
                 base_amount,
                 quote_amount,
-                true,
             )?;
 
             Ok(().into())
@@ -480,10 +485,13 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         quote_asset: AssetIdOf<T, I>,
         base_amount: BalanceOf<T, I>,
         quote_amount: BalanceOf<T, I>,
-        is_inital_deposit: bool,
     ) -> DispatchResult {
-        if is_inital_deposit {
-            let ownership_minus_inital_miniumum_deposit = ownership - T::MinimumLiquidity::get();
+        // check if any tokens have been issued
+        if T::Assets::total_issuance(currency_asset) == 0 {
+            let ownership_minus_inital_miniumum_deposit = ownership
+                .checked_sub(T::MinimumLiquidity::get())
+                .ok_or(ArithmeticError::Underflow)?;
+
             // lock minimum liquidity forever when liquidity is first added
             T::Assets::mint_into(
                 currency_asset,
