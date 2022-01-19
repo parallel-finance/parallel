@@ -73,8 +73,8 @@ benchmarks_instance_pallet! {
     add_liquidity {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T, I>(caller.clone());
-        let base_amount = 100_000u128;
-        let quote_amount = 200_000u128;
+        let base_amount = Reserve::from_inner(100_000u128);
+        let quote_amount = Reserve::from_inner(200_000u128);
         assert_ok!(AMM::<T, I>::create_pool(T::CreatePoolOrigin::successful_origin(),
             (BASE_ASSET, QUOTE_ASSET), (base_amount, quote_amount),
             caller.clone(), ASSET_ID));
@@ -82,7 +82,7 @@ benchmarks_instance_pallet! {
         SystemOrigin::Signed(caller.clone()),
         (BASE_ASSET, QUOTE_ASSET),
         (base_amount, quote_amount),
-        (5u128, 5u128)
+        (Reserve::from_inner(5u128), Reserve::from_inner(5u128))
     )
     verify {
         assert_last_event::<T, I>(Event::LiquidityAdded(caller, BASE_ASSET, QUOTE_ASSET).into());
@@ -91,15 +91,15 @@ benchmarks_instance_pallet! {
     remove_liquidity {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T, I>(caller.clone());
-        let base_amount = 100_000u128;
-        let quote_amount = 900_000u128;
+        let base_amount = Reserve::from_inner(100_000u128);
+        let quote_amount = Reserve::from_inner(900_000u128);
         assert_ok!(AMM::<T, I>::create_pool(T::CreatePoolOrigin::successful_origin(),
             (BASE_ASSET, QUOTE_ASSET), (base_amount, quote_amount),
             caller.clone(), ASSET_ID));
     }: _(
         SystemOrigin::Signed(caller.clone()),
         (BASE_ASSET, QUOTE_ASSET),
-        300_000u128
+        Reserve::from_inner(300_000u128)
     )
     verify {
         assert_last_event::<T, I>(Event::LiquidityRemoved(caller, BASE_ASSET, QUOTE_ASSET).into());
@@ -108,8 +108,8 @@ benchmarks_instance_pallet! {
     create_pool {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T, I>(caller.clone());
-        let base_amount = 100_000u128;
-        let quote_amount = 200_000u128;
+        let base_amount = Reserve::from_inner(100_000u128);
+        let quote_amount = Reserve::from_inner(200_000u128);
         let origin = T::CreatePoolOrigin::successful_origin();
         let call = Call::<T, I>::create_pool {
             pool: (BASE_ASSET, QUOTE_ASSET),
@@ -125,4 +125,4 @@ benchmarks_instance_pallet! {
     }
 }
 
-impl_benchmark_test_suite!(AMM, crate::mock::new_test_ext(), crate::mock::Test,);
+impl_benchmark_test_suite!(AMM, crate::mock::new_test_ext(), crate::mock::Test);

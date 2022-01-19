@@ -45,13 +45,16 @@ use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{
-    traits::{AccountIdConversion, CheckedDiv, IntegerSquareRoot, One, Zero},
-    ArithmeticError, DispatchError, FixedU128, Perbill, SaturatedConversion,
+    traits::{
+        AccountIdConversion, CheckedAdd, CheckedDiv, CheckedSub, IntegerSquareRoot, One,
+        Saturating, Zero,
+    },
+    ArithmeticError, DispatchError, FixedPointNumber, Perbill, SaturatedConversion,
 };
 
 pub use pallet::*;
 
-use primitives::{Balance, CurrencyId, Rate};
+use primitives::{Balance, CurrencyId, Rate, Reserve};
 pub use weights::WeightInfo;
 
 pub type AssetIdOf<T, I = ()> =
@@ -62,6 +65,7 @@ pub type BalanceOf<T, I = ()> =
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
+    use primitives::Reserve;
 
     #[pallet::config]
     pub trait Config<I: 'static = ()>: frame_system::Config {
@@ -138,9 +142,9 @@ pub mod pallet {
         Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, TypeInfo,
     )]
     #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-    pub struct PoolLiquidityAmount<CurrencyId, Balance> {
-        pub base_amount: Balance,
-        pub quote_amount: Balance,
+    pub struct PoolLiquidityAmount<CurrencyId> {
+        pub base_amount: Reserve,
+        pub quote_amount: Reserve,
         pub pool_assets: CurrencyId,
     }
 
@@ -153,7 +157,7 @@ pub mod pallet {
         AssetIdOf<T, I>,
         Blake2_128Concat,
         AssetIdOf<T, I>,
-        PoolLiquidityAmount<AssetIdOf<T, I>, BalanceOf<T, I>>,
+        PoolLiquidityAmount<AssetIdOf<T, I>>,
         OptionQuery,
     >;
 
@@ -169,8 +173,8 @@ pub mod pallet {
         pub fn add_liquidity(
             origin: OriginFor<T>,
             pool: (AssetIdOf<T, I>, AssetIdOf<T, I>),
-            liquidity_amounts: (BalanceOf<T, I>, BalanceOf<T, I>),
-            minimum_amounts: (BalanceOf<T, I>, BalanceOf<T, I>),
+            liquidity_amounts: (Reserve, Reserve),
+            minimum_amounts: (Reserve, Reserve),
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             let (is_inverted, base_asset, quote_asset) = Self::get_upper_currency(pool.0, pool.1);
@@ -194,26 +198,23 @@ pub mod pallet {
                         liquidity_amount.quote_amount,
                     )?;
 
-                    let (ideal_base_amount, ideal_quote_amount): (
-                        BalanceOf<T, I>,
-                        BalanceOf<T, I>,
-                    ) = if optimal_quote_amount <= quote_amount {
-                        (base_amount, optimal_quote_amount)
-                    } else {
-                        let optimal_base_amount = Self::quote(
-                            quote_amount,
-                            liquidity_amount.quote_amount,
-                            liquidity_amount.base_amount,
-                        )?;
-                        (optimal_base_amount, quote_amount)
-                    };
+                    let (ideal_base_amount, ideal_quote_amount): (Reserve, Reserve) =
+                        if optimal_quote_amount <= quote_amount {
+                            (base_amount, optimal_quote_amount)
+                        } else {
+                            let optimal_base_amount = Self::quote(
+                                quote_amount,
+                                liquidity_amount.quote_amount,
+                                liquidity_amount.base_amount,
+                            )?;
+                            (optimal_base_amount, quote_amount)
+                        };
 
                     let (minimum_base_amount, minimum_quote_amount) = if is_inverted {
                         (minimum_amounts.1, minimum_amounts.0)
                     } else {
                         (minimum_amounts.0, minimum_amounts.1)
                     };
-
                     ensure!(
                         ideal_base_amount >= minimum_base_amount
                             && ideal_quote_amount >= minimum_quote_amount
@@ -223,32 +224,34 @@ pub mod pallet {
                     );
 
                     let (base_amount, quote_amount) = (ideal_base_amount, ideal_quote_amount);
-                    let total_ownership = T::Assets::total_issuance(liquidity_amount.pool_assets);
+                    let total_ownership = Reserve::from_inner(T::Assets::total_issuance(
+                        liquidity_amount.pool_assets,
+                    ));
                     let ownership = sp_std::cmp::min(
                         base_amount
                             .saturating_mul(total_ownership)
-                            .checked_div(liquidity_amount.base_amount)
+                            .checked_div(&liquidity_amount.base_amount)
                             .ok_or(ArithmeticError::Overflow)?,
                         quote_amount
                             .saturating_mul(total_ownership)
-                            .checked_div(liquidity_amount.quote_amount)
+                            .checked_div(&liquidity_amount.quote_amount)
                             .ok_or(ArithmeticError::Overflow)?,
                     );
 
                     liquidity_amount.base_amount = liquidity_amount
                         .base_amount
-                        .checked_add(base_amount)
+                        .checked_add(&base_amount)
                         .ok_or(ArithmeticError::Overflow)?;
                     liquidity_amount.quote_amount = liquidity_amount
                         .quote_amount
-                        .checked_add(quote_amount)
+                        .checked_add(&quote_amount)
                         .ok_or(ArithmeticError::Overflow)?;
 
                     *pool_liquidity_amount = Some(liquidity_amount);
 
                     Self::mint_transfer_liquidity(
                         who,
-                        ownership,
+                        ownership.into_inner(),
                         liquidity_amount.pool_assets,
                         base_asset,
                         quote_asset,
@@ -270,7 +273,7 @@ pub mod pallet {
         pub fn remove_liquidity(
             origin: OriginFor<T>,
             pool: (AssetIdOf<T, I>, AssetIdOf<T, I>),
-            ownership_to_remove: BalanceOf<T, I>,
+            ownership_to_remove: Reserve,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
@@ -284,7 +287,9 @@ pub mod pallet {
                         .as_mut()
                         .ok_or(Error::<T, I>::PoolDoesNotExist)?;
 
-                    let total_ownership = T::Assets::total_issuance(liquidity_amount.pool_assets);
+                    let total_ownership = Reserve::from_inner(T::Assets::total_issuance(
+                        liquidity_amount.pool_assets,
+                    ));
                     ensure!(
                         total_ownership >= ownership_to_remove,
                         Error::<T, I>::MoreLiquidity
@@ -292,31 +297,41 @@ pub mod pallet {
 
                     let base_amount = ownership_to_remove
                         .saturating_mul(liquidity_amount.base_amount)
-                        .checked_div(total_ownership)
+                        .checked_div(&total_ownership)
                         .ok_or(ArithmeticError::Underflow)?;
 
                     let quote_amount = ownership_to_remove
                         .saturating_mul(liquidity_amount.quote_amount)
-                        .checked_div(total_ownership)
+                        .checked_div(&total_ownership)
                         .ok_or(ArithmeticError::Underflow)?;
 
                     liquidity_amount.base_amount = liquidity_amount
                         .base_amount
-                        .checked_sub(base_amount)
+                        .checked_sub(&base_amount)
                         .ok_or(ArithmeticError::Underflow)?;
 
                     liquidity_amount.quote_amount = liquidity_amount
                         .quote_amount
-                        .checked_sub(quote_amount)
+                        .checked_sub(&quote_amount)
                         .ok_or(ArithmeticError::Underflow)?;
 
-                    T::Assets::burn_from(liquidity_amount.pool_assets, &who, ownership_to_remove)?;
-                    T::Assets::transfer(base_asset, &Self::account_id(), &who, base_amount, false)?;
+                    T::Assets::burn_from(
+                        liquidity_amount.pool_assets,
+                        &who,
+                        ownership_to_remove.into_inner(),
+                    )?;
+                    T::Assets::transfer(
+                        base_asset,
+                        &Self::account_id(),
+                        &who,
+                        base_amount.into_inner(),
+                        false,
+                    )?;
                     T::Assets::transfer(
                         quote_asset,
                         &Self::account_id(),
                         &who,
-                        quote_amount,
+                        quote_amount.into_inner(),
                         false,
                     )?;
 
@@ -341,7 +356,7 @@ pub mod pallet {
         pub fn create_pool(
             origin: OriginFor<T>,
             pool: (AssetIdOf<T, I>, AssetIdOf<T, I>),
-            liquidity_amounts: (BalanceOf<T, I>, BalanceOf<T, I>),
+            liquidity_amounts: (Reserve, Reserve),
             lptoken_receiver: T::AccountId,
             asset_id: AssetIdOf<T, I>,
         ) -> DispatchResultWithPostInfo {
@@ -359,7 +374,10 @@ pub mod pallet {
                 (liquidity_amounts.0, liquidity_amounts.1)
             };
 
-            let ownership = base_amount.saturating_mul(quote_amount).integer_sqrt();
+            let ownership = base_amount
+                .into_inner()
+                .saturating_mul(quote_amount.into_inner())
+                .integer_sqrt();
             let amm_pool = PoolLiquidityAmount {
                 base_amount,
                 quote_amount,
@@ -399,13 +417,13 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     }
 
     pub fn quote(
-        amount: BalanceOf<T, I>,
-        base_pool: BalanceOf<T, I>,
-        quote_pool: BalanceOf<T, I>,
-    ) -> sp_std::result::Result<BalanceOf<T, I>, DispatchError> {
+        amount: Reserve,
+        base_pool: Reserve,
+        quote_pool: Reserve,
+    ) -> sp_std::result::Result<Reserve, DispatchError> {
         Ok(amount
             .saturating_mul(quote_pool)
-            .checked_div(base_pool)
+            .checked_div(&base_pool)
             .ok_or(ArithmeticError::Underflow)?)
     }
 
@@ -416,12 +434,24 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         currency_asset: AssetIdOf<T, I>,
         base_asset: AssetIdOf<T, I>,
         quote_asset: AssetIdOf<T, I>,
-        base_amount: BalanceOf<T, I>,
-        quote_amount: BalanceOf<T, I>,
+        base_amount: Reserve,
+        quote_amount: Reserve,
     ) -> DispatchResult {
         T::Assets::mint_into(currency_asset, &who, ownership)?;
-        T::Assets::transfer(base_asset, &who, &Self::account_id(), base_amount, true)?;
-        T::Assets::transfer(quote_asset, &who, &Self::account_id(), quote_amount, true)?;
+        T::Assets::transfer(
+            base_asset,
+            &who,
+            &Self::account_id(),
+            base_amount.into_inner(),
+            true,
+        )?;
+        T::Assets::transfer(
+            quote_asset,
+            &who,
+            &Self::account_id(),
+            quote_amount.into_inner(),
+            true,
+        )?;
 
         Self::deposit_event(Event::<T, I>::LiquidityAdded(who, base_asset, quote_asset));
 
@@ -486,13 +516,14 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T, AssetIdOf<T, I>, BalanceOf<T, 
 
                 // 3. Given the input amount amount_in left after fees, compute amount_out
                 // let amount_out = amount_in * supply_out / (supply_in + amount_in)
-                let amount_out = amount_in_after_all_fees
+                let amount_out = Reserve::from_inner(amount_in_after_all_fees)
                     .saturating_mul(supply_out)
                     .checked_div(
-                        supply_in
-                            .checked_add(amount_in_after_all_fees)
+                        &supply_in
+                            .checked_add(&Reserve::from_inner(amount_in_after_all_fees))
                             .ok_or(ArithmeticError::Overflow)?,
                     )
+                    .map(|r| r.into_inner())
                     .ok_or(ArithmeticError::Underflow)?;
 
                 // 4. If `amount_out` is lower than `min_amount_out`, error
@@ -507,22 +538,22 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T, AssetIdOf<T, I>, BalanceOf<T, 
                 if is_inverted {
                     liquidity_amount.quote_amount = liquidity_amount
                         .quote_amount
-                        .checked_add(amount_without_protocol_fees)
+                        .checked_add(&Reserve::from_inner(amount_without_protocol_fees))
                         .ok_or(ArithmeticError::Overflow)?;
 
                     liquidity_amount.base_amount = liquidity_amount
                         .base_amount
-                        .checked_sub(amount_out)
+                        .checked_sub(&Reserve::from_inner(amount_out))
                         .ok_or(ArithmeticError::Underflow)?;
                 } else {
                     liquidity_amount.base_amount = liquidity_amount
                         .base_amount
-                        .checked_add(amount_without_protocol_fees)
+                        .checked_add(&Reserve::from_inner(amount_without_protocol_fees))
                         .ok_or(ArithmeticError::Overflow)?;
 
                     liquidity_amount.quote_amount = liquidity_amount
                         .quote_amount
-                        .checked_sub(amount_out)
+                        .checked_sub(&Reserve::from_inner(amount_out))
                         .ok_or(ArithmeticError::Underflow)?;
                 }
 
@@ -552,8 +583,8 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T, AssetIdOf<T, I>, BalanceOf<T, 
                     who.clone(),
                     base_asset,
                     quote_asset,
-                    FixedU128::from_inner(amount_out.saturated_into())
-                        .checked_div(&FixedU128::from_inner(amount_in.saturated_into()))
+                    Reserve::from_inner(amount_out.saturated_into())
+                        .checked_div(&Reserve::from_inner(amount_in.saturated_into()))
                         .ok_or(ArithmeticError::Underflow)?,
                 ));
 
