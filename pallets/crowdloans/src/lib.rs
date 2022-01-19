@@ -994,7 +994,8 @@ pub mod pallet {
             let mut refund_count = 0u32;
             let mut all_refunded = false;
 
-            let vault = Self::vaults((&crowdloan, &lease_start, &lease_end)).ok_or(Error::<T>::VaultDoesNotExist)?;
+            let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+                .ok_or(Error::<T>::VaultDoesNotExist)?;
             
             ensure!(
                 vault.phase == VaultPhase::Closed || vault.phase == VaultPhase::Failed,
@@ -1494,7 +1495,7 @@ pub mod pallet {
             Ok(())
         }
 
-        // Returns bool value for all contributions
+        // Return true if has any childstorage has contribution. 
         fn has_childstorage(vault: &Vault<T>) -> bool {
             let mut count = 0;
             for storage_kind in [
@@ -1503,8 +1504,7 @@ pub mod pallet {
                 ChildStorageKind::Pending,
             ] {
                 count = count
-                    + Self::contribution_iterator(vault.trie_index, storage_kind)
-                        .fold(0u128, |sum, (_account, (amount, _ref_code))| sum + amount);
+                    + Self::contribution_iterator(vault.trie_index, storage_kind).count();
             }
 
             !count.is_zero() 
