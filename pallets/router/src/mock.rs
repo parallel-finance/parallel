@@ -217,7 +217,3 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
     ext
 }
-
-pub(crate) fn run_to_block(n: u64) {
-    System::set_block_number(n);
-}
