@@ -996,6 +996,7 @@ pub mod pallet {
 
             let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
                 .ok_or(Error::<T>::VaultDoesNotExist)?;
+
             ensure!(
                 vault.phase == VaultPhase::Closed || vault.phase == VaultPhase::Failed,
                 Error::<T>::IncorrectVaultPhase
@@ -1494,7 +1495,7 @@ pub mod pallet {
             Ok(())
         }
 
-        // Return true if has any childstorage has contribution. 
+        // Return true if has any childstorage has contribution.
         fn has_childstorage(vault: &Vault<T>) -> bool {
             let mut count = 0;
             for storage_kind in [
@@ -1506,7 +1507,7 @@ pub mod pallet {
                     + Self::contribution_iterator(vault.trie_index, storage_kind).count();
             }
 
-            !count.is_zero() 
+            !count.is_zero()
         }
     }
 }

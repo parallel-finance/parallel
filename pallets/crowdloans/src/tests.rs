@@ -1107,7 +1107,7 @@ fn refund_should_fail_without_vault() {
                 crowdloan,                            // crowdloan
                 LEASE_START,                          // lease_start
                 LEASE_END,                            // lease_end
-            ), 
+            ),
             Error::<Test>::VaultDoesNotExist,
         );
     })
