@@ -144,21 +144,6 @@ pub mod pallet {
         pub pool_assets: CurrencyId,
     }
 
-    /// Accounts that deposits and withdraw assets in one or more pools
-    #[pallet::storage]
-    #[pallet::getter(fn liquidity_providers)]
-    pub type LiquidityProviders<T: Config<I>, I: 'static = ()> = StorageNMap<
-        _,
-        (
-            NMapKey<Blake2_128Concat, T::AccountId>,
-            NMapKey<Blake2_128Concat, AssetIdOf<T, I>>,
-            NMapKey<Blake2_128Concat, AssetIdOf<T, I>>,
-        ),
-        PoolLiquidityAmount<AssetIdOf<T, I>, BalanceOf<T, I>>,
-        OptionQuery,
-        GetDefault,
-    >;
-
     /// A bag of liquidity composed by two different assets
     #[pallet::storage]
     #[pallet::getter(fn pools)]
@@ -261,24 +246,6 @@ pub mod pallet {
 
                     *pool_liquidity_amount = Some(liquidity_amount);
 
-                    LiquidityProviders::<T, I>::try_mutate(
-                        (&who, &base_asset, &quote_asset),
-                        |pool_liquidity_amount| -> DispatchResult {
-                            if let Some(liquidity_amount) = pool_liquidity_amount {
-                                liquidity_amount.base_amount = liquidity_amount
-                                    .base_amount
-                                    .checked_add(base_amount)
-                                    .ok_or(ArithmeticError::Overflow)?;
-                                liquidity_amount.quote_amount = liquidity_amount
-                                    .quote_amount
-                                    .checked_add(quote_amount)
-                                    .ok_or(ArithmeticError::Overflow)?;
-                                *pool_liquidity_amount = Some(*liquidity_amount);
-                            }
-                            Ok(())
-                        },
-                    )?;
-
                     Self::mint_transfer_liquidity(
                         who,
                         ownership,
@@ -343,23 +310,6 @@ pub mod pallet {
                         .checked_sub(quote_amount)
                         .ok_or(ArithmeticError::Underflow)?;
 
-                    LiquidityProviders::<T, I>::try_mutate(
-                        (&who, &base_asset, &quote_asset),
-                        |pool_liquidity_amount| -> DispatchResult {
-                            if let Some(liquidity_amount) = pool_liquidity_amount.as_mut() {
-                                liquidity_amount.base_amount = liquidity_amount
-                                    .base_amount
-                                    .checked_sub(base_amount)
-                                    .ok_or(ArithmeticError::Underflow)?;
-                                liquidity_amount.quote_amount = liquidity_amount
-                                    .quote_amount
-                                    .checked_sub(quote_amount)
-                                    .ok_or(ArithmeticError::Underflow)?;
-                            }
-                            Ok(())
-                        },
-                    )?;
-
                     T::Assets::burn_from(liquidity_amount.pool_assets, &who, ownership_to_remove)?;
                     T::Assets::transfer(base_asset, &Self::account_id(), &who, base_amount, false)?;
                     T::Assets::transfer(
@@ -416,10 +366,6 @@ pub mod pallet {
                 pool_assets: asset_id,
             };
             Pools::<T, I>::insert(&base_asset, &quote_asset, amm_pool);
-            LiquidityProviders::<T, I>::insert(
-                (&lptoken_receiver, &base_asset, &quote_asset),
-                amm_pool,
-            );
 
             Self::mint_transfer_liquidity(
                 lptoken_receiver.clone(),
