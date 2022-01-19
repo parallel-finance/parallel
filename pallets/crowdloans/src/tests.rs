@@ -3,7 +3,7 @@ use crate::mock::*;
 
 use codec::Encode;
 use frame_support::{
-    assert_noop, assert_ok, assert_err,
+    assert_err, assert_noop, assert_ok,
     storage::child,
     traits::{Hooks, OneSessionHandler},
 };
@@ -1096,11 +1096,11 @@ fn dissolve_vault_should_work() {
 }
 
 #[test]
-fn refund_should_work() {
+fn refund_should_fail_without_vault() {
     new_test_ext().execute_with(|| {
         let crowdloan = ParaId::from(1337u32);
 
-        // Execution of refund without vaults
+        // Execution of refund without valid vaults.
         assert_err!(
             Crowdloans::refund(
                 frame_system::RawOrigin::Root.into(), // origin
@@ -1109,6 +1109,88 @@ fn refund_should_work() {
                 LEASE_END,                            // lease_end
             ), 
             Error::<Test>::VaultDoesNotExist,
+        );
+    })
+}
+
+#[test]
+fn refund_should_fail_when_vault_phase_is_pending() {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337u32);
+        let ctoken = 10;
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
+        let contribution_strategy = ContributionStrategy::XCM;
+
+        // Create a vault and try refund.
+        Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
+            contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
+        )
+        .ok();
+
+        // Execution of refund when vault phase is pending.
+        assert_err!(
+            Crowdloans::refund(
+                frame_system::RawOrigin::Root.into(), // origin
+                crowdloan,                            // crowdloan
+                LEASE_START,                          // lease_start
+                LEASE_END,                            // lease_end
+            ),
+            Error::<Test>::IncorrectVaultPhase,
+        );
+    })
+}
+
+#[test]
+fn refund_should_work_when_vault_phase_is_closed() {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337u32);
+        let ctoken = 10;
+        let cap = 1_000_000_000_000;
+        let end_block = BlockNumber::from(1_000_000_000u32);
+        let contribution_strategy = ContributionStrategy::XCM;
+
+        // Create a vault and try refund
+        Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
+            contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
+        )
+        .ok();
+
+        // Open Vault
+        Crowdloans::open(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        )
+        .ok();
+        
+        // Close Vault
+        Crowdloans::close(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+        )
+        .ok();
+
+        assert_ok!(
+            Crowdloans::refund(
+                frame_system::RawOrigin::Root.into(), // origin
+                crowdloan,                            // crowdloan
+                LEASE_START,                          // lease_start
+                LEASE_END,                            // lease_end
+            )
         );
     })
 }

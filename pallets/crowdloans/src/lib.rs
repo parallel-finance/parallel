@@ -996,7 +996,6 @@ pub mod pallet {
 
             let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
                 .ok_or(Error::<T>::VaultDoesNotExist)?;
-            
             ensure!(
                 vault.phase == VaultPhase::Closed || vault.phase == VaultPhase::Failed,
                 Error::<T>::IncorrectVaultPhase

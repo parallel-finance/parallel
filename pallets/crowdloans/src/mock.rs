@@ -278,7 +278,7 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 parameter_types! {
     pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
     pub const BaseXcmWeight: Weight = 100_000_000;
-     pub const MaxInstructions: u32 = 100;
+    pub const MaxInstructions: u32 = 100;
 }
 
 impl orml_xtokens::Config for Test {
