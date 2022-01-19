@@ -994,9 +994,8 @@ pub mod pallet {
             let mut refund_count = 0u32;
             let mut all_refunded = false;
 
-            let vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
+            let vault = Self::vaults((&crowdloan, &lease_start, &lease_end)).ok_or(Error::<T>::VaultDoesNotExist)?;
             
-            // 1. check phase, should be Closed or Failed
             ensure!(
                 vault.phase == VaultPhase::Closed || vault.phase == VaultPhase::Failed,
                 Error::<T>::IncorrectVaultPhase
@@ -1037,6 +1036,7 @@ pub mod pallet {
             Ok(())
         }
 
+        /// Dissolves a wallet
         #[pallet::weight(<T as Config>::WeightInfo::dissolve_vault())]
         #[transactional]
         pub fn dissolve_vault(
@@ -1048,7 +1048,6 @@ pub mod pallet {
             // users who can create vaults can dissolve them
             T::DissolveVaultOrigin::ensure_origin(origin)?;
 
-            // 1. check phase, should be Closed or Failed or Expired
             let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
                 .ok_or(Error::<T>::VaultDoesNotExist)?;
 
@@ -1059,28 +1058,25 @@ pub mod pallet {
                 Error::<T>::IncorrectVaultPhase
             );
 
-            let has_contributed = Self::has_childstorage(&mut vault);
+            let has_childstorage = Self::has_childstorage(&mut vault);
 
-            ensure!(!has_contributed, Error::<T>::NotReadyToDissolve);
+            ensure!(!has_childstorage, Error::<T>::NotReadyToDissolve);
 
             ensure!(
                 vault
                     .contributed
                     .checked_add(Self::total_contribution(&mut vault, 0)?)
                     .ok_or(ArithmeticError::Overflow)?
-                    == 0,
+                    .is_zero(),
                 Error::<T>::NotReadyToDissolve
             );
 
-            // 3. remove vault from vaults
             Vaults::<T>::remove((&crowdloan, &lease_start, &lease_end));
 
-            // 4. check if LeasesRegistry's (leaseStart, leaseEnd) == (leaseStart, leaseEnd) if yes then the vault is the current vault. we should remove `(leaseStart, leaseEnd)` from LeasesRegistry
             if (lease_start, lease_end) == (lease_start, lease_end) {
                 LeasesRegistry::<T>::remove(&crowdloan);
             }
 
-            // 5. deposit VaultDissolved event
             Self::deposit_event(Event::<T>::VaultDissolved(
                 crowdloan,
                 (lease_start, lease_end),
@@ -1499,7 +1495,7 @@ pub mod pallet {
         }
 
         // Returns bool value for all contributions
-        fn has_childstorage(vault: &mut Vault<T>) -> bool {
+        fn has_childstorage(vault: &Vault<T>) -> bool {
             let mut count = 0;
             for storage_kind in [
                 ChildStorageKind::Contributed,
@@ -1511,7 +1507,7 @@ pub mod pallet {
                         .fold(0u128, |sum, (_account, (amount, _ref_code))| sum + amount);
             }
 
-            count != 0
+            !count.is_zero() 
         }
     }
 }

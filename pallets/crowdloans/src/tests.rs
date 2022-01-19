@@ -1094,3 +1094,22 @@ fn dissolve_vault_should_work() {
         );
     })
 }
+
+#[test]
+fn refund_should_work() {
+    new_test_ext().execute_with(|| {
+        let crowdloan = ParaId::from(1337u32);
+
+        // create a vault to contribute to
+        assert_ok!(Crowdloans::create_vault(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            ctoken,                               // ctoken
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
+            contribution_strategy,                // contribution_strategy
+            cap,                                  // cap
+            end_block                             // end_block
+        ));
+    })
+}
