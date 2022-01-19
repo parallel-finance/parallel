@@ -256,7 +256,7 @@ pub mod pallet {
 
         /// Register the specified chain_id
         ///
-        /// Only registered chains are allowed to cross-chain
+        /// Only registered chains are allowed to do cross-chain
         ///
         /// - `chain_id`: should be unique.
         #[pallet::weight(T::WeightInfo::register_chain())]
@@ -264,7 +264,7 @@ pub mod pallet {
         pub fn register_chain(origin: OriginFor<T>, chain_id: ChainId) -> DispatchResult {
             Self::ensure_admin(origin)?;
 
-            // Registered chain_id cannot be this chain_id or a existed chain_id
+            // Registered chain_id cannot be pallet's chain_id or a existed chain_id
             ensure!(
                 chain_id != T::ChainId::get() && !Self::chain_registered(chain_id),
                 Error::<T>::ChainIdAlreadyRegistered
@@ -433,7 +433,8 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
         fn on_initialize(block_number: T::BlockNumber) -> u64 {
-            let expired = ProposalVotes::<T>::iter().filter(|x| (*x).2.is_expired(block_number));
+            let expired =
+                ProposalVotes::<T>::iter().filter(|x| (*x).2.can_be_cleaned_up(block_number));
             expired.for_each(|x| {
                 let chain_id = x.0;
                 let chain_nonce = x.1;
