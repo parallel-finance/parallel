@@ -1328,6 +1328,7 @@ parameter_types! {
     pub const MinContribution: Balance = 50_000_000_000;
     pub const MaxVrfs: u32 = 10;
     pub const MigrateKeysLimit: u32 = 10;
+    pub const RemoveKeysLimit: u32 = 1000;
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
 }
 
@@ -1358,9 +1359,12 @@ impl pallet_crowdloans::Config for Runtime {
     type MinContribution = MinContribution;
     type MaxVrfs = MaxVrfs;
     type MigrateKeysLimit = MigrateKeysLimit;
+    type RemoveKeysLimit = RemoveKeysLimit;
     type MigrateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type VrfOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type DissolveVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type RefundOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type OpenCloseOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;

@@ -278,7 +278,7 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 parameter_types! {
     pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
     pub const BaseXcmWeight: Weight = 100_000_000;
-     pub const MaxInstructions: u32 = 100;
+    pub const MaxInstructions: u32 = 100;
 }
 
 impl orml_xtokens::Config for Test {
@@ -367,11 +367,18 @@ parameter_types! {
     pub const MaxVrfs: u32 = 10;
     pub const MinContribution: Balance = 0;
     pub const MigrateKeysLimit: u32 = 10;
+    pub const RemoveKeysLimit: u32 = 1000;
     pub SelfParaId: ParaId = para_a_id();
     pub RefundLocation: AccountId = para_a_id().into_account();
 }
 
 pub type CreateVaultOrigin =
+    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+
+pub type DissolveVaultOrigin =
+    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+
+pub type RefundOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
 pub type UpdateVaultOrigin =
@@ -402,8 +409,11 @@ impl crate::Config for Test {
     type MinContribution = MinContribution;
     type MaxVrfs = MaxVrfs;
     type MigrateKeysLimit = MigrateKeysLimit;
+    type RemoveKeysLimit = RemoveKeysLimit;
     type MigrateOrigin = EnsureRoot<AccountId>;
     type CreateVaultOrigin = CreateVaultOrigin;
+    type DissolveVaultOrigin = DissolveVaultOrigin;
+    type RefundOrigin = RefundOrigin;
     type UpdateVaultOrigin = UpdateVaultOrigin;
     type VrfOrigin = VrfOrigin;
     type OpenCloseOrigin = OpenCloseOrigin;
