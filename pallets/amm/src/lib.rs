@@ -76,6 +76,9 @@ pub mod pallet {
         #[pallet::constant]
         type PalletId: Get<PalletId>;
 
+        #[pallet::constant]
+        type LockAccountId: Get<Self::AccountId>;
+
         /// Weight information for extrinsics in this pallet.
         type AMMWeightInfo: WeightInfo;
 
@@ -454,6 +457,10 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         T::PalletId::get().into_account()
     }
 
+    pub fn lock_account_id() -> T::AccountId {
+        T::LockAccountId::get()
+    }
+
     pub fn get_upper_currency(
         curr_a: AssetIdOf<T, I>,
         curr_b: AssetIdOf<T, I>,
@@ -487,7 +494,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         quote_amount: BalanceOf<T, I>,
     ) -> DispatchResult {
         // check if any tokens have been issued
-        if T::Assets::total_issuance(currency_asset) == 0 {
+        if T::Assets::total_issuance(currency_asset).is_zero() {
             let ownership_minus_inital_miniumum_deposit = ownership
                 .checked_sub(T::MinimumLiquidity::get())
                 .ok_or(ArithmeticError::Underflow)?;
@@ -495,7 +502,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             // lock minimum liquidity forever when liquidity is first added
             T::Assets::mint_into(
                 currency_asset,
-                &Self::account_id(),
+                &Self::lock_account_id(),
                 T::MinimumLiquidity::get(),
             )?;
 
