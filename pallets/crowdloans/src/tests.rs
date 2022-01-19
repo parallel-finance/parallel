@@ -1131,7 +1131,7 @@ fn refund_should_fail_when_vault_phase_is_pending() {
             LEASE_END,                            // lease_end
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
-            end_block                             // end_block
+            end_block,                            // end_block
         )
         .ok();
 
@@ -1166,7 +1166,7 @@ fn refund_should_work_when_vault_phase_is_closed() {
             LEASE_END,                            // lease_end
             contribution_strategy,                // contribution_strategy
             cap,                                  // cap
-            end_block                             // end_block
+            end_block,                            // end_block
         )
         .ok();
 
@@ -1176,7 +1176,7 @@ fn refund_should_work_when_vault_phase_is_closed() {
             crowdloan,                            // crowdloan
         )
         .ok();
-        
+
         // Close Vault
         Crowdloans::close(
             frame_system::RawOrigin::Root.into(), // origin
@@ -1184,13 +1184,11 @@ fn refund_should_work_when_vault_phase_is_closed() {
         )
         .ok();
 
-        assert_ok!(
-            Crowdloans::refund(
-                frame_system::RawOrigin::Root.into(), // origin
-                crowdloan,                            // crowdloan
-                LEASE_START,                          // lease_start
-                LEASE_END,                            // lease_end
-            )
-        );
+        assert_ok!(Crowdloans::refund(
+            frame_system::RawOrigin::Root.into(), // origin
+            crowdloan,                            // crowdloan
+            LEASE_START,                          // lease_start
+            LEASE_END,                            // lease_end
+        ));
     })
 }

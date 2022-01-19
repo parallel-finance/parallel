@@ -528,7 +528,10 @@ pub mod pallet {
             ensure!(!Self::in_vrf(crowdloan), Error::<T>::VrfDelayInProgress);
 
             ensure!(
-                Self::total_contribution(&vault, amount)? <= vault.cap,
+                Self::total_contribution(&vault)?
+                    .checked_add(amount)
+                    .ok_or(ArithmeticError::Overflow)?
+                    <= vault.cap,
                 Error::<T>::ExceededCap
             );
 
@@ -800,6 +803,8 @@ pub mod pallet {
                 .checked_sub(amount)
                 .ok_or(ArithmeticError::Underflow)?;
 
+            // SovereignAccount on relaychain must have
+            // withdrawn the contribution
             T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
 
             Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
@@ -858,6 +863,8 @@ pub mod pallet {
                 .ok_or(ArithmeticError::Underflow)?;
 
             T::Assets::burn_from(ctoken, &who, amount)?;
+            // SovereignAccount on relaychain must have
+            // withdrawn the contribution
             T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
 
             Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
@@ -944,6 +951,7 @@ pub mod pallet {
                 lease_end,
                 ..
             } = vault;
+
             Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
 
             if all_migrated {
@@ -989,10 +997,11 @@ pub mod pallet {
             lease_start: LeasePeriod,
             lease_end: LeasePeriod,
         ) -> DispatchResult {
+            use ChildStorageKind::*;
             T::RefundOrigin::ensure_origin(origin)?;
 
             let mut refund_count = 0u32;
-            let mut all_refunded = false;
+            let mut all_refunded = true;
 
             let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
                 .ok_or(Error::<T>::VaultDoesNotExist)?;
@@ -1002,29 +1011,35 @@ pub mod pallet {
                 Error::<T>::IncorrectVaultPhase
             );
 
-            for child_storage_kind in [
-                ChildStorageKind::Contributed,
-                ChildStorageKind::Flying,
-                ChildStorageKind::Pending,
-            ] {
-                let contribution =
-                    Self::contribution_iterator(vault.trie_index, child_storage_kind);
-
-                for (who, (amount, _referral_code)) in contribution {
+            'outer: for kind in [Contributed, Flying, Pending] {
+                for (who, (amount, _referral_code)) in
+                    Self::contribution_iterator(vault.trie_index, kind)
+                {
                     if refund_count >= T::RemoveKeysLimit::get() {
-                        all_refunded = true;
-                        return Ok(());
+                        all_refunded = false;
+                        break 'outer;
                     }
+
                     refund_count += 1;
 
-                    // Mint relay currency
-                    T::Assets::mint_into(vault.trie_index, &who, amount)?;
-                    Self::contribution_kill(vault.trie_index, &who, child_storage_kind);
+                    if kind == Contributed {
+                        // SovereignAccount on relaychain must have
+                        // withdrawn the contribution
+                        T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
+                    } else {
+                        T::Assets::transfer(
+                            T::RelayCurrency::get(),
+                            &Self::account_id(),
+                            &who,
+                            amount,
+                            true,
+                        )?;
+                    }
+
+                    Self::contribution_kill(vault.trie_index, &who, kind);
                 }
             }
 
-            // If all contributions have been refunded then return AllRefunded event
-            // if not then return PartiallyRefunded event
             if all_refunded {
                 Self::deposit_event(Event::<T>::AllRefunded(crowdloan, (lease_start, lease_end)));
             } else {
@@ -1037,7 +1052,7 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Dissolves a wallet
+        /// Dissolve vault
         #[pallet::weight(<T as Config>::WeightInfo::dissolve_vault())]
         #[transactional]
         pub fn dissolve_vault(
@@ -1046,7 +1061,6 @@ pub mod pallet {
             lease_start: LeasePeriod,
             lease_end: LeasePeriod,
         ) -> DispatchResult {
-            // users who can create vaults can dissolve them
             T::DissolveVaultOrigin::ensure_origin(origin)?;
 
             let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
@@ -1059,23 +1073,20 @@ pub mod pallet {
                 Error::<T>::IncorrectVaultPhase
             );
 
-            let has_childstorage = Self::has_childstorage(&mut vault);
-
+            let has_childstorage = Self::has_childstorage(&vault);
             ensure!(!has_childstorage, Error::<T>::NotReadyToDissolve);
 
             ensure!(
-                vault
-                    .contributed
-                    .checked_add(Self::total_contribution(&mut vault, 0)?)
-                    .ok_or(ArithmeticError::Overflow)?
-                    .is_zero(),
+                Self::total_contribution(&mut vault)?.is_zero(),
                 Error::<T>::NotReadyToDissolve
             );
 
             Vaults::<T>::remove((&crowdloan, &lease_start, &lease_end));
 
-            if (lease_start, lease_end) == (lease_start, lease_end) {
-                LeasesRegistry::<T>::remove(&crowdloan);
+            if let Some(vault_id) = LeasesRegistry::<T>::get(&crowdloan) {
+                if vault_id == (lease_start, lease_end) {
+                    LeasesRegistry::<T>::remove(&crowdloan);
+                }
             }
 
             Self::deposit_event(Event::<T>::VaultDissolved(
@@ -1112,15 +1123,11 @@ pub mod pallet {
             })
         }
 
-        fn total_contribution(
-            vault: &Vault<T>,
-            amount: BalanceOf<T>,
-        ) -> Result<BalanceOf<T>, ArithmeticError> {
+        fn total_contribution(vault: &Vault<T>) -> Result<BalanceOf<T>, ArithmeticError> {
             vault
                 .contributed
                 .checked_add(vault.flying)
                 .and_then(|sum| sum.checked_add(vault.pending))
-                .and_then(|sum| sum.checked_add(amount))
                 .ok_or(ArithmeticError::Overflow)
         }
 
@@ -1495,19 +1502,14 @@ pub mod pallet {
             Ok(())
         }
 
-        // Return true if has any childstorage has contribution.
+        // Return true if any childstorage has contribution.
         fn has_childstorage(vault: &Vault<T>) -> bool {
-            let mut count = 0;
-            for storage_kind in [
-                ChildStorageKind::Contributed,
-                ChildStorageKind::Flying,
-                ChildStorageKind::Pending,
-            ] {
-                count = count
-                    + Self::contribution_iterator(vault.trie_index, storage_kind).count();
-            }
-
-            !count.is_zero()
+            use ChildStorageKind::*;
+            [Contributed, Flying, Pending].iter().any(|&kind| {
+                !Self::contribution_iterator(vault.trie_index, kind)
+                    .count()
+                    .is_zero()
+            })
         }
     }
 }
