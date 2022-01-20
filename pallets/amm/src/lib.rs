@@ -76,6 +76,9 @@ pub mod pallet {
         #[pallet::constant]
         type PalletId: Get<PalletId>;
 
+        #[pallet::constant]
+        type LockAccountId: Get<Self::AccountId>;
+
         /// Weight information for extrinsics in this pallet.
         type AMMWeightInfo: WeightInfo;
 
@@ -90,6 +93,18 @@ pub mod pallet {
         /// How much the protocol is taking out of each trade.
         #[pallet::constant]
         type ProtocolFee: Get<Perbill>;
+
+        /// Minimum amount of liquidty needed to init a new pool
+        /// this amount is burned when the pool is created.
+        ///
+        /// It's important that we include this value in order to
+        /// prevent attacks where a bad actor will create and
+        /// remove pools with malious intentions. By requiring
+        /// a `MinimumLiquidity`, a pool cannot be removed since
+        /// a small amount of tokens are locked forever when liquidity
+        /// is first added.
+        #[pallet::constant]
+        type MinimumLiquidity: Get<u128>;
 
         /// Who/where to send the protocol fees
         #[pallet::constant]
@@ -387,6 +402,10 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         T::PalletId::get().into_account()
     }
 
+    pub fn lock_account_id() -> T::AccountId {
+        T::LockAccountId::get()
+    }
+
     pub fn get_upper_currency(
         curr_a: AssetIdOf<T, I>,
         curr_b: AssetIdOf<T, I>,
@@ -419,7 +438,30 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         base_amount: BalanceOf<T, I>,
         quote_amount: BalanceOf<T, I>,
     ) -> DispatchResult {
-        T::Assets::mint_into(currency_asset, &who, ownership)?;
+        // check if any tokens have been issued
+        if T::Assets::total_issuance(currency_asset).is_zero() {
+            let ownership_minus_inital_miniumum_deposit = ownership
+                .checked_sub(T::MinimumLiquidity::get())
+                .ok_or(ArithmeticError::Underflow)?;
+
+            // lock minimum liquidity forever when liquidity is first added
+            T::Assets::mint_into(
+                currency_asset,
+                &Self::lock_account_id(),
+                T::MinimumLiquidity::get(),
+            )?;
+
+            // send remaining tokens to user
+            T::Assets::mint_into(
+                currency_asset,
+                &who,
+                ownership_minus_inital_miniumum_deposit,
+            )?;
+        } else {
+            // if this is not the first mint send tokens to user
+            T::Assets::mint_into(currency_asset, &who, ownership)?;
+        }
+
         T::Assets::transfer(base_asset, &who, &Self::account_id(), base_amount, true)?;
         T::Assets::transfer(quote_asset, &who, &Self::account_id(), quote_amount, true)?;
 

@@ -3,20 +3,23 @@ use crate::mock::*;
 use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
 
+const MINIMUM_LIQUIDITY: u128 = 1_000;
+
 #[test]
 fn create_pool_should_work() {
     new_test_ext().execute_with(|| {
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            (10, 20),
+            (1_000, 2_000),
             BOB,
             SAMPLE_LP_TOKEN,
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 20);
-        assert_eq!(Assets::total_issuance(SAMPLE_LP_TOKEN), 14);
-        assert_eq!(Assets::balance(SAMPLE_LP_TOKEN, BOB), 14);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 2_000);
+        assert_eq!(Assets::total_issuance(SAMPLE_LP_TOKEN), 1_414);
+        // should be issuance minus the min liq locked
+        assert_eq!(Assets::balance(SAMPLE_LP_TOKEN, BOB), 414);
     })
 }
 
@@ -26,18 +29,18 @@ fn add_liquidity_should_work() {
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            (10, 20),
+            (1_000, 2_000),
             ALICE,
             SAMPLE_LP_TOKEN,
         ));
         assert_ok!(AMM::add_liquidity(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            (10, 20),
+            (1_000, 2_000),
             (5, 5),
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 40);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 4_000);
     })
 }
 
@@ -47,7 +50,7 @@ fn add_more_liquidity_should_work() {
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            (10, 20),
+            (1_000, 2_000),
             ALICE,
             SAMPLE_LP_TOKEN
         ));
@@ -55,14 +58,12 @@ fn add_more_liquidity_should_work() {
         assert_ok!(AMM::add_liquidity(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            (30, 40),
+            (3_000, 4_000),
             (5, 5),
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 60);
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 60);
-
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 30);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 6_000);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 3_000);
     })
 }
 
@@ -72,7 +73,7 @@ fn add_more_liquidity_should_not_work_if_minimum_base_amount_is_higher() {
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            (10, 20),
+            (1_000, 2_000),
             ALICE,
             SAMPLE_LP_TOKEN
         ));
@@ -81,8 +82,8 @@ fn add_more_liquidity_should_not_work_if_minimum_base_amount_is_higher() {
             AMM::add_liquidity(
                 RawOrigin::Signed(ALICE).into(),
                 (DOT, XDOT),
-                (30, 40),
-                (55, 5)
+                (3_000, 4_000),
+                (5_500, 5_00)
             ),
             Error::<Test>::NotAIdealPriceRatio
         );
@@ -95,7 +96,7 @@ fn add_more_liquidity_with_low_balance_should_not_work() {
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            (10, 20),
+            (1_000, 2_000),
             ALICE,
             SAMPLE_LP_TOKEN
         ));
@@ -103,7 +104,7 @@ fn add_more_liquidity_with_low_balance_should_not_work() {
         assert_ok!(AMM::add_liquidity(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            (30, 40),
+            (3_000, 4_000),
             (1, 1),
         ));
 
@@ -125,7 +126,7 @@ fn add_liquidity_by_another_user_should_work() {
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            (10, 20),
+            (1_000, 2_000),
             ALICE,
             SAMPLE_LP_TOKEN
         ));
@@ -133,18 +134,18 @@ fn add_liquidity_by_another_user_should_work() {
         assert_ok!(AMM::add_liquidity(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            (30, 40),
+            (3_000, 4_000),
             (5, 5),
         ));
 
         assert_ok!(AMM::add_liquidity(
             RawOrigin::Signed(BOB).into(),
             (DOT, XDOT),
-            (5, 10),
+            (500, 1_000),
             (5, 5),
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 70);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 7_000);
     })
 }
 
@@ -154,7 +155,7 @@ fn cannot_create_pool_twice() {
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            (10, 20),
+            (1_000, 2_000),
             ALICE,
             SAMPLE_LP_TOKEN
         ));
@@ -163,7 +164,7 @@ fn cannot_create_pool_twice() {
             AMM::create_pool(
                 RawOrigin::Signed(ALICE).into(),
                 (DOT, XDOT),
-                (10, 20),
+                (1_000, 2_000),
                 ALICE,
                 SAMPLE_LP_TOKEN
             ),
@@ -182,14 +183,15 @@ fn remove_liquidity_whole_share_should_work() {
         let _ = AMM::create_pool(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            (10, 90),
+            (1_000, 9_000),
             ALICE,
             SAMPLE_LP_TOKEN,
         );
+
         assert_ok!(AMM::remove_liquidity(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            30
+            3_000 - MINIMUM_LIQUIDITY
         ));
     })
 }
@@ -204,24 +206,22 @@ fn remove_liquidity_only_portion_should_work() {
         let _ = AMM::create_pool(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            (10, 90),
+            (1_000, 9_000),
             ALICE,
             SAMPLE_LP_TOKEN,
         );
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 90);
-
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 10);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 9_000);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 1_000);
 
         assert_ok!(AMM::remove_liquidity(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            15
+            1_500
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 45);
-
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 5);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 4_500);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 500);
     })
 }
 
@@ -231,21 +231,21 @@ fn remove_liquidity_user_more_liquidity_should_work() {
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            (10, 25),
+            (1_000, 2_500),
             ALICE,
             SAMPLE_LP_TOKEN
         ));
         assert_ok!(AMM::add_liquidity(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            (15, 30),
+            (1_500, 3_000),
             (5, 5),
         ));
 
         assert_ok!(AMM::remove_liquidity(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            15
+            1_500
         ));
     })
 }
@@ -270,13 +270,13 @@ fn remove_liquidity_with_more_liquidity_should_not_work() {
         let _ = AMM::create_pool(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            (10, 90),
+            (1_000, 9_000),
             ALICE,
             SAMPLE_LP_TOKEN,
         );
 
         assert_noop!(
-            AMM::remove_liquidity(RawOrigin::Signed(ALICE).into(), (DOT, XDOT), 300),
+            AMM::remove_liquidity(RawOrigin::Signed(ALICE).into(), (DOT, XDOT), 3_0000),
             Error::<Test>::MoreLiquidity
         );
     })
@@ -427,7 +427,7 @@ fn trade_should_not_work_if_amount_in_is_zero() {
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            (100, 100),
+            (1_000, 1_000),
             ALICE,
             SAMPLE_LP_TOKEN
         ));
