@@ -86,7 +86,7 @@ benchmarks_instance_pallet! {
         (5u128, 5u128)
     )
     verify {
-        assert_last_event::<T, I>(Event::LiquidityAdded(caller, BASE_ASSET, QUOTE_ASSET).into());
+        assert_last_event::<T, I>(Event::LiquidityAdded(caller, BASE_ASSET, base_amount, QUOTE_ASSET, quote_amount).into());
     }
 
     remove_liquidity {
@@ -103,7 +103,7 @@ benchmarks_instance_pallet! {
         300_000u128 - MINIMUM_LIQUIDITY
     )
     verify {
-        assert_last_event::<T, I>(Event::LiquidityRemoved(caller, BASE_ASSET, QUOTE_ASSET).into());
+        assert_last_event::<T, I>(Event::LiquidityRemoved(caller, BASE_ASSET, base_amount, QUOTE_ASSET, quote_amount).into());
     }
 
     create_pool {
@@ -122,7 +122,7 @@ benchmarks_instance_pallet! {
         call.dispatch_bypass_filter(origin)?
     }
     verify {
-        assert_last_event::<T, I>(Event::LiquidityAdded(caller, BASE_ASSET, QUOTE_ASSET).into());
+        assert_last_event::<T, I>(Event::LiquidityAdded(caller, BASE_ASSET, base_amount, QUOTE_ASSET, quote_amount).into());
     }
 }
 
