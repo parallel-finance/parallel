@@ -19,6 +19,8 @@ use core::convert::TryFrom;
 use frame_support::{assert_noop, assert_ok};
 use mock::*;
 use primitives::CurrencyId;
+use sp_runtime::FixedPointNumber;
+use primitives::Reserve;
 
 #[test]
 fn too_many_or_too_less_routes_should_not_work() {
@@ -69,39 +71,39 @@ fn trade_should_work() {
         assert_ok!(DefaultAMM::create_pool(
             Origin::signed(ALICE),
             (DOT, XDOT),
-            (100_000_000, 100_000_000),
+            (Reserve::from_inner(100_000_000_00), Reserve::from_inner(100_000_000_00)),
             DAVE,
             10
         ));
 
         // check that pool was funded correctly
         assert_eq!(
-            DefaultAMM::pools(XDOT, DOT).unwrap().base_amount,
-            100_000_000
+            DefaultAMM::pools(XDOT, DOT).unwrap().base_amount.into_inner(),
+			100_000_000_00
         ); // XDOT
         assert_eq!(
-            DefaultAMM::pools(XDOT, DOT).unwrap().quote_amount,
-            100_000_000
+            DefaultAMM::pools(XDOT, DOT).unwrap().quote_amount.into_inner(),
+			100_000_000_00
         ); // DOT
 
         // calculate amount out
         let routes = Route::<Runtime, ()>::try_from(vec![(DOT, XDOT)])
             .expect("Failed to create route list.");
-        assert_ok!(AMMRoute::trade(Origin::signed(ALICE), routes, 1_000, 980));
+        assert_ok!(AMMRoute::trade(Origin::signed(ALICE), routes, 100_000_000_0, 98_000_000));
 
         // Check Alice should get 994
-        assert_eq!(Assets::balance(tokens::XDOT, &ALICE), 10_000 + 994);
+        assert_eq!(Assets::balance(tokens::XDOT, &ALICE), 100818553888);
 
         // pools values should be updated - we should have less XDOT
         assert_eq!(
-            DefaultAMM::pools(XDOT, DOT).unwrap().base_amount,
-            99_999_006
+            DefaultAMM::pools(XDOT, DOT).unwrap().base_amount.into_inner(),
+			9181446112
         );
 
         // pools values should be updated - we should have more DOT in the pool
         assert_eq!(
-            DefaultAMM::pools(XDOT, DOT).unwrap().quote_amount,
-            100_000_998
+            DefaultAMM::pools(XDOT, DOT).unwrap().quote_amount.into_inner(),
+			10998000000
         );
     })
 }
@@ -113,27 +115,27 @@ fn trade_should_not_work_if_amount_less_than_min_amount_out() {
         assert_ok!(DefaultAMM::create_pool(
             Origin::signed(ALICE),
             (DOT, XDOT),
-            (100_000_000, 100_000_000),
+            (Reserve::from_inner(100_000_000_00), Reserve::from_inner(100_000_000_00)),
             DAVE,
             10
         ));
 
         // check that pool was funded correctly
         assert_eq!(
-            DefaultAMM::pools(XDOT, DOT).unwrap().base_amount,
-            100_000_000
+            DefaultAMM::pools(XDOT, DOT).unwrap().base_amount.into_inner(),
+			100_000_000_00
         ); // XDOT
         assert_eq!(
-            DefaultAMM::pools(XDOT, DOT).unwrap().quote_amount,
-            100_000_000
+            DefaultAMM::pools(XDOT, DOT).unwrap().quote_amount.into_inner(),
+			100_000_000_00
         ); // DOT
 
         // calculate amount out
-        let min_amount_out = 995;
+        let min_amount_out = 99_500_000_0;
         let routes = Route::<Runtime, ()>::try_from(vec![(DOT, XDOT)])
             .expect("Failed to create route list.");
         assert_noop!(
-            AMMRoute::trade(Origin::signed(ALICE), routes, 1_000, min_amount_out),
+            AMMRoute::trade(Origin::signed(ALICE), routes, 100_000_000_0, min_amount_out),
             Error::<Runtime>::UnexpectedSlippage
         );
     })
@@ -146,7 +148,7 @@ fn trade_should_work_more_than_one_route() {
         assert_ok!(DefaultAMM::create_pool(
             Origin::signed(ALICE),
             (DOT, XDOT),
-            (100_000_000, 100_000_000),
+            (Reserve::from_inner(100_000_000_00), Reserve::from_inner(100_000_000_00)),
             DAVE,
             10
         ));
@@ -155,7 +157,7 @@ fn trade_should_work_more_than_one_route() {
         assert_ok!(DefaultAMM::create_pool(
             Origin::signed(ALICE),
             (XDOT, KSM),
-            (100_000_000, 100_000_000),
+            (Reserve::from_inner(100_000_000_00), Reserve::from_inner(100_000_000_00)),
             DAVE,
             11
         ));
@@ -164,7 +166,7 @@ fn trade_should_work_more_than_one_route() {
         assert_ok!(DefaultAMM::create_pool(
             Origin::signed(ALICE),
             (USDT, KSM),
-            (100_000_000, 100_000_000),
+            (Reserve::from_inner(100_000_000_00), Reserve::from_inner(100_000_000_00)),
             DAVE,
             12
         ));
@@ -172,71 +174,71 @@ fn trade_should_work_more_than_one_route() {
         // CHECK POOLS
         // check that pool was funded correctly
         assert_eq!(
-            DefaultAMM::pools(XDOT, DOT).unwrap().base_amount,
-            100_000_000
+            DefaultAMM::pools(XDOT, DOT).unwrap().base_amount.into_inner(),
+			100_000_000_00
         ); // XDOT
         assert_eq!(
-            DefaultAMM::pools(XDOT, DOT).unwrap().quote_amount,
-            100_000_000
+            DefaultAMM::pools(XDOT, DOT).unwrap().quote_amount.into_inner(),
+			100_000_000_00
         ); // DOT
 
         // check that pool was funded correctly
         assert_eq!(
-            DefaultAMM::pools(XDOT, KSM).unwrap().base_amount,
-            100_000_000
+            DefaultAMM::pools(XDOT, KSM).unwrap().base_amount.into_inner(),
+			100_000_000_00
         ); // KSM
         assert_eq!(
-            DefaultAMM::pools(XDOT, KSM).unwrap().quote_amount,
-            100_000_000
+            DefaultAMM::pools(XDOT, KSM).unwrap().quote_amount.into_inner(),
+			100_000_000_00
         ); // XDOT
 
         // check that pool was funded correctly
         assert_eq!(
-            DefaultAMM::pools(USDT, KSM).unwrap().base_amount,
-            100_000_000
+            DefaultAMM::pools(USDT, KSM).unwrap().base_amount.into_inner(),
+			100_000_000_00
         ); // KSM
 
         assert_eq!(
-            DefaultAMM::pools(USDT, KSM).unwrap().quote_amount,
-            100_000_000
+            DefaultAMM::pools(USDT, KSM).unwrap().quote_amount.into_inner(),
+			100_000_000_00
         ); // USDT
 
         // DO TRADE
         // calculate amount out
         let routes = Route::<Runtime, ()>::try_from(vec![(DOT, XDOT), (XDOT, KSM), (KSM, USDT)])
             .expect("Failed to create route list.");
-        assert_ok!(AMMRoute::trade(Origin::signed(ALICE), routes, 1_000, 980));
+        assert_ok!(AMMRoute::trade(Origin::signed(ALICE), routes, 100_000_000_0, 98_000_000));
 
         // CHECK TRADER
         // Alice should have no XDOT (it was only a temp transfer)
-        assert_eq!(Assets::balance(tokens::XDOT, &ALICE), 10_000);
+        assert_eq!(Assets::balance(tokens::XDOT, &ALICE), 100_000_000_000);
 
         // Alice should have no KSM (it was only a temp transfer)
-        assert_eq!(Assets::balance(tokens::KSM, &ALICE), 10_000);
+        assert_eq!(Assets::balance(tokens::KSM, &ALICE), 100_000_000_000);
 
         // Alice should now have some USDT!
-        assert_eq!(Assets::balance(tokens::USDT, &ALICE), 986);
+        assert_eq!(Assets::balance(tokens::USDT, &ALICE), 652008796);
 
         // Alice should now have less DOT
-        assert_eq!(Assets::balance(tokens::DOT, &ALICE), 9000);
+        assert_eq!(Assets::balance(tokens::DOT, &ALICE), 99000000000);
 
         // CHECK POOLS
         // pools should have less XDOT by 994
         assert_eq!(
-            DefaultAMM::pools(XDOT, DOT).unwrap().base_amount,
-            99_999_006
+            DefaultAMM::pools(XDOT, DOT).unwrap().base_amount.into_inner(),
+			9181446112
         );
 
         // pool should have less KSM by 990
         assert_eq!(
-            DefaultAMM::pools(XDOT, KSM).unwrap().quote_amount,
-            99_999_010
+            DefaultAMM::pools(XDOT, KSM).unwrap().quote_amount.into_inner(),
+			9260249780
         );
 
         // pool should have less USDT by 986
         assert_eq!(
-            DefaultAMM::pools(USDT, KSM).unwrap().base_amount,
-            99_999_014
+            DefaultAMM::pools(USDT, KSM).unwrap().base_amount.into_inner(),
+			9347991204
         );
     })
 }
