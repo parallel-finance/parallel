@@ -3,23 +3,25 @@ use crate::mock::*;
 use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
 
+const MINIMUM_LIQUIDITY: u128 = 10_000_000_000;
+
 #[test]
 fn create_pool_should_work() {
     new_test_ext().execute_with(|| {
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            (Reserve::from_inner(10), Reserve::from_inner(20)),
+            (Reserve::from_inner(1_000), Reserve::from_inner(2_000)),
             BOB,
             SAMPLE_LP_TOKEN,
         ));
 
         assert_eq!(
             AMM::pools(XDOT, DOT).unwrap().base_amount,
-            Reserve::from_inner(20)
+            Reserve::from_inner(2_000)
         );
-        assert_eq!(Assets::total_issuance(SAMPLE_LP_TOKEN), 14);
-        assert_eq!(Assets::balance(SAMPLE_LP_TOKEN, BOB), 14);
+        assert_eq!(Assets::total_issuance(SAMPLE_LP_TOKEN), 1_414);
+        assert_eq!(Assets::balance(SAMPLE_LP_TOKEN, BOB), 414);
     })
 }
 
@@ -270,10 +272,11 @@ fn remove_liquidity_whole_share_should_work() {
             ALICE,
             SAMPLE_LP_TOKEN,
         );
+
         assert_ok!(AMM::remove_liquidity(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            Reserve::from_inner(30_000_000_000)
+            Reserve::from_inner(30_000_000_000) - Reserve::from_inner(MINIMUM_LIQUIDITY)
         ));
     })
 }
@@ -597,7 +600,7 @@ fn trade_should_not_work_if_amount_in_is_zero() {
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
-            (Reserve::from_inner(100), Reserve::from_inner(100)),
+            (Reserve::from_inner(1_000), Reserve::from_inner(1_000)),
             ALICE,
             SAMPLE_LP_TOKEN
         ));

@@ -968,7 +968,7 @@ parameter_types! {
       pub const MinimumCount: u32 = 1;
       pub const ExpiresIn: Moment = 1000 * 60 * 60; // 60 mins
       pub const MaxHasDispatchedSize: u32 = 100;
-      pub RootOperator: AccountId = AccountId::from([1u8; 32]);
+      pub OneAccount: AccountId = AccountId::from([1u8; 32]);
 }
 
 type ParallelDataProvider = orml_oracle::Instance1;
@@ -980,7 +980,7 @@ impl orml_oracle::Config<ParallelDataProvider> for Runtime {
     type Time = Timestamp;
     type OracleKey = CurrencyId;
     type OracleValue = Price;
-    type RootOperatorAccountId = RootOperator;
+    type RootOperatorAccountId = OneAccount;
     type MaxHasDispatchedSize = MaxHasDispatchedSize;
     type WeightInfo = ();
     type Members = OracleMembership;
@@ -1310,16 +1310,19 @@ parameter_types! {
     pub DefaultLpFee: Perbill = Perbill::from_rational(25u32, 10000u32);        // 0.25%
     pub DefaultProtocolFee: Perbill = Perbill::from_rational(5u32, 10000u32);   // 0.05%
     pub DefaultProtocolFeeReceiver: AccountId = TreasuryPalletId::get().into_account();
+    pub const MinimumLiquidity: u128 = 1_000u128;
 }
 
 impl pallet_amm::Config for Runtime {
     type Event = Event;
     type Assets = CurrencyAdapter;
     type PalletId = AMMPalletId;
+    type LockAccountId = OneAccount;
     type AMMWeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
     type CreatePoolOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type LpFee = DefaultLpFee;
     type ProtocolFee = DefaultProtocolFee;
+    type MinimumLiquidity = MinimumLiquidity;
     type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
 }
 
@@ -1328,6 +1331,7 @@ parameter_types! {
     pub const MinContribution: Balance = 50_000_000_000;
     pub const MaxVrfs: u32 = 10;
     pub const MigrateKeysLimit: u32 = 10;
+    pub const RemoveKeysLimit: u32 = 1000;
     pub RefundLocation: AccountId = Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), u16::MAX);
 }
 
@@ -1358,9 +1362,12 @@ impl pallet_crowdloans::Config for Runtime {
     type MinContribution = MinContribution;
     type MaxVrfs = MaxVrfs;
     type MigrateKeysLimit = MigrateKeysLimit;
+    type RemoveKeysLimit = RemoveKeysLimit;
     type MigrateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type VrfOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type CreateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type DissolveVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type RefundOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type OpenCloseOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type AuctionFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;

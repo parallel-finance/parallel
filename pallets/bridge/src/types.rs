@@ -53,6 +53,11 @@ impl<T: PartialEq, E: PartialOrd + Default> Proposal<T, E> {
         self.status != ProposalStatus::Initiated
     }
 
+    /// Returns true if the proposal can be removed from storage, otherwise false
+    pub fn can_be_cleaned_up(&self, now: E) -> bool {
+        self.is_complete() && self.is_expired(now)
+    }
+
     /// Returns true if `who` has voted for or against the proposal
     pub fn has_voted(&self, who: &T) -> bool {
         self.votes_for.contains(who) || self.votes_against.contains(who)

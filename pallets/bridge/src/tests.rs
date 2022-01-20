@@ -174,6 +174,7 @@ fn set_bridge_token_fee_works() {
         // actual amount is 9 HKO
         // fee is 1 HKO
         assert_events(vec![mock::Event::Bridge(Event::TeleportBurned(
+            EVE,
             ETH,
             1,
             EHKO,
@@ -206,6 +207,7 @@ fn set_bridge_token_fee_works() {
         // actual amount is 9 EUSDT
         // fee is 1 EUSDT
         assert_events(vec![mock::Event::Bridge(Event::TeleportBurned(
+            EVE,
             ETH,
             2,
             EUSDT,
@@ -236,6 +238,7 @@ fn teleport_external_currency_works() {
         );
 
         assert_events(vec![mock::Event::Bridge(Event::TeleportBurned(
+            EVE,
             ETH,
             1,
             EUSDT,

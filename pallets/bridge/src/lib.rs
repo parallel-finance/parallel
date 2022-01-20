@@ -104,8 +104,6 @@ pub mod pallet {
     /// Error for the Bridge Pallet
     #[pallet::error]
     pub enum Error<T> {
-        /// Vote threshold not set
-        VoteThresholdNotSet,
         /// The new threshold is invalid
         InvalidVoteThreshold,
         /// Origin has no permission to operate on the bridge
@@ -145,8 +143,8 @@ pub mod pallet {
         ChainRemoved(ChainId),
 
         /// New bridge_token_id has been registered
-        /// [asset_id, bridge_token_id]
-        BridgeTokenRegistered(AssetIdOf<T>, CurrencyId),
+        /// [asset_id, bridge_token_id, external, fee]
+        BridgeTokenRegistered(AssetIdOf<T>, CurrencyId, bool, BalanceOf<T>),
 
         /// The bridge_token_id has been unregistered
         /// [asset_id, bridge_token_id]
@@ -157,8 +155,9 @@ pub mod pallet {
         BridgeTokenFeeChanged(CurrencyId, BalanceOf<T>),
 
         /// Event emitted when bridge token is destoryed by teleportation
-        /// [dest_id, chain_nonce, bridge_token_id, receiver, amount, fee]
+        /// [ori_address, dest_id, chain_nonce, bridge_token_id, dst_address, amount, fee]
         TeleportBurned(
+            T::AccountId,
             ChainId,
             ChainNonce,
             CurrencyId,
@@ -167,13 +166,24 @@ pub mod pallet {
             BalanceOf<T>,
         ),
 
+        /// Event emitted when a proposal is initialized by materialization
+        /// [voter, src_id, src_nonce, bridge_token_id, dst_address, amount]
+        MaterializeInitialized(
+            T::AccountId,
+            ChainId,
+            ChainNonce,
+            CurrencyId,
+            T::AccountId,
+            BalanceOf<T>,
+        ),
+
         /// Event emitted when bridge token is issued by materialization
-        /// [src_id, chain_nonce, bridge_token_id, receiver, amount]
+        /// [src_id, chain_nonce, bridge_token_id, dst_address, amount]
         MaterializeMinted(ChainId, ChainNonce, CurrencyId, T::AccountId, BalanceOf<T>),
 
-        /// Event emitted when a proposal is initialized by materialization
-        /// [src_id, src_nonce, voter, bridge_token_id, to, amount]
-        MaterializeInitialized(
+        /// Vote for a proposal
+        /// [src_id, src_nonce, voter, bridge_token_id, dst_address, amount]
+        MaterializeVoteFor(
             ChainId,
             ChainNonce,
             T::AccountId,
@@ -182,13 +192,16 @@ pub mod pallet {
             BalanceOf<T>,
         ),
 
-        /// Vote for a proposal
-        /// [src_id, src_nonce, voter]
-        VoteFor(ChainId, ChainNonce, T::AccountId),
-
         /// Vote against a proposal
-        /// [src_id, src_nonce, voter]
-        VoteAgainst(ChainId, ChainNonce, T::AccountId),
+        /// [src_id, src_nonce, voter, bridge_token_id, dst_address, amount]
+        MaterializeVoteAgainst(
+            ChainId,
+            ChainNonce,
+            T::AccountId,
+            CurrencyId,
+            T::AccountId,
+            BalanceOf<T>,
+        ),
 
         /// Proposal was approved successfully
         /// [src_id, src_nonce]
@@ -256,7 +269,7 @@ pub mod pallet {
 
         /// Register the specified chain_id
         ///
-        /// Only registered chains are allowed to cross-chain
+        /// Only registered chains are allowed to do cross-chain
         ///
         /// - `chain_id`: should be unique.
         #[pallet::weight(T::WeightInfo::register_chain())]
@@ -264,7 +277,7 @@ pub mod pallet {
         pub fn register_chain(origin: OriginFor<T>, chain_id: ChainId) -> DispatchResult {
             Self::ensure_admin(origin)?;
 
-            // Registered chain_id cannot be this chain_id or a existed chain_id
+            // Registered chain_id cannot be pallet's chain_id or a existed chain_id
             ensure!(
                 chain_id != T::ChainId::get() && !Self::chain_registered(chain_id),
                 Error::<T>::ChainIdAlreadyRegistered
@@ -316,7 +329,12 @@ pub mod pallet {
             BridgeTokens::<T>::insert(asset_id, bridge_token.clone());
             AssetIds::<T>::insert(bridge_token.id, asset_id);
 
-            Self::deposit_event(Event::BridgeTokenRegistered(asset_id, bridge_token.id));
+            Self::deposit_event(Event::BridgeTokenRegistered(
+                asset_id,
+                bridge_token.id,
+                bridge_token.external,
+                bridge_token.fee,
+            ));
             Ok(().into())
         }
 
@@ -391,7 +409,7 @@ pub mod pallet {
                 T::Assets::transfer(asset_id, &who, &Self::account_id(), amount, false)?;
             }
 
-            Self::teleport_internal(dest_id, bridge_token_id, to, actual_amount, fee)
+            Self::teleport_internal(who, dest_id, bridge_token_id, to, actual_amount, fee)
         }
 
         /// Materialize the bridge token to specified recipient in this chain
@@ -433,7 +451,8 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
         fn on_initialize(block_number: T::BlockNumber) -> u64 {
-            let expired = ProposalVotes::<T>::iter().filter(|x| (*x).2.is_expired(block_number));
+            let expired =
+                ProposalVotes::<T>::iter().filter(|x| (*x).2.can_be_cleaned_up(block_number));
             expired.for_each(|x| {
                 let chain_id = x.0;
                 let chain_nonce = x.1;
@@ -511,19 +530,21 @@ impl<T: Config> Pallet<T> {
     /// Initiates a transfer of the bridge token
     #[require_transactional]
     fn teleport_internal(
+        ori_address: T::AccountId,
         dest_id: ChainId,
         bridge_token_id: CurrencyId,
-        to: TeleAccount,
+        dst_address: TeleAccount,
         amount: BalanceOf<T>,
         fee: BalanceOf<T>,
     ) -> DispatchResult {
         let nonce = Self::bump_nonce(dest_id);
 
         Self::deposit_event(Event::TeleportBurned(
+            ori_address,
             dest_id,
             nonce,
             bridge_token_id,
-            to,
+            dst_address,
             amount,
             fee,
         ));
@@ -548,10 +569,11 @@ impl<T: Config> Pallet<T> {
                     to,
                     amount,
                 } = call.clone();
+
                 Self::deposit_event(Event::<T>::MaterializeInitialized(
+                    who.clone(),
                     src_id,
                     src_nonce,
-                    who.clone(),
                     bridge_token_id,
                     to,
                     amount,
@@ -568,12 +590,31 @@ impl<T: Config> Pallet<T> {
         ensure!(!proposal.is_expired(now), Error::<T>::ProposalExpired);
         ensure!(!proposal.has_voted(&who), Error::<T>::MemberAlreadyVoted);
 
+        let MaterializeCall {
+            bridge_token_id,
+            to,
+            amount,
+        } = call.clone();
         if favour {
             proposal.votes_for.push(who.clone());
-            Self::deposit_event(Event::<T>::VoteFor(src_id, src_nonce, who));
+            Self::deposit_event(Event::<T>::MaterializeVoteFor(
+                src_id,
+                src_nonce,
+                who,
+                bridge_token_id,
+                to,
+                amount,
+            ));
         } else {
             proposal.votes_against.push(who.clone());
-            Self::deposit_event(Event::VoteAgainst(src_id, src_nonce, who));
+            Self::deposit_event(Event::MaterializeVoteAgainst(
+                src_id,
+                src_nonce,
+                who,
+                bridge_token_id,
+                to,
+                amount,
+            ));
         }
 
         ProposalVotes::<T>::insert(src_id, (src_nonce, call), proposal.clone());
