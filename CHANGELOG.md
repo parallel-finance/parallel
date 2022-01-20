@@ -1,5 +1,107 @@
 # CHANGE LOG
 
+## 2022.1.20
+
+- introduce MinimumLiquidity into AMM pallet (#1179)
+
+## 2022.1.12
+
+- add initial AMM pools into launch scripts (#1171)
+
+## 2022.1.8
+
+- split crowdloans' claim api into claim, withdraw and redeem (#1148)
+
+## 2022.1.6
+
+- switch from cDOT-project to cDOT-lease (#1138)
+
+## 2021.12.31
+
+- introduce ChildStorageKind (#1104)
+- add flying childstorage to crowdloans pallet (#1107)
+
+## 2021.12.23
+
+- bump polkadot to v0.9.13 (#1079)
+
+## 2021.12.20
+
+- add Succeeded vault phase (#1060)
+
+## 2021.12.16
+
+- add cap_limit, end_block and update_vault call (#1039)
+
+## 2021.12.8
+
+- refactor crowdloans pallet using xcm-helper (#954)
+- support early contribution (#980)
+
+## 2021.12.7
+
+- refactor liquid staking pallet using xcm-helper (#1038)
+
+## 2021.12.1
+
+- add storage item to disable contributions in vrf period (#966)
+- support refunding extra xcm fees to another account (#967)
+
+## 2021.11.29
+
+- finalize emergency-shutdown pallet (#913)
+- add MinContribution config (#941)
+- cleanup crowdloans pallet (#940)
+
+## 2021.11.26
+
+- add reopen call for crowdloans pallet (#933)
+
+## 2021.11.23
+
+- disable state-cache (#910)
+
+## 2021.11.22
+
+- use parachain system as HKO vesting block provider (#908)
+
+## 2021.11.24
+
+- finalize bridge pallet (#871)
+
+## 2021.11.20
+
+- support HKO crosschain transfer to/from karura (#904)
+
+## 2021.11.19
+
+- add unit tests for crowdloans pallet (#893)
+
+## 2021.11.18
+
+- add LAUNCH.md doc (#893)
+
+## 2021.11.12
+
+- add crowdloans to launch script (#880, #882)
+
+## 2021.11.11
+
+- add xcm to crowdloans pallet (#869)
+
+## 2021.11.5
+
+- fix default para id (#861, #860, #866)
+
+## 2021.11.4
+
+- add wasm execution flags to parachain-launch (#859)
+- update launch config to use polkadot-v0.9.12 (#855)
+
+## 2021.11.3
+
+- add polkadot support for collator/fullnode script (#854)
+
 ## 2021.11.1
 
 - fix the inconsistent liquidity calculation (#839)
@@ -27,7 +129,7 @@
 ## 2021.10.25
 
 - adapt create-volume script for polkadot-v0.9.11 (#811)
-- make sure enough cash when user borrow (#809) 
+- make sure enough cash when user borrow (#809)
 - enable proxy for parallel, vanilla (#810)
 - set safe xcm version to 2 (#808)
 - enable governance (#807)
@@ -49,13 +151,13 @@
 ## 2021.10.22
 
 - bump parallel-js to v1.4.2 (#786)
-- Slash from insurance (#784) 
+- Slash from insurance (#784)
 - use kusama_runtime for testing & add host configuration (#785)
 
 ## 2021.10.21
 
 - Disable direct XCM execution (#772)
-- Impl ptoken in money market (#694) 
+- Impl ptoken in money market (#694)
 - export polkadot-xcm storage & config (#767)
 - update launch & parachain-launch version (#766)
 - allow version subscription between relaychain & parachain (#764)
@@ -69,7 +171,7 @@
 
 - bump polkadot to v0.9.11 (#693)
 - add vanilla-live chainspec (#753)
-- add insurance call (#751) 
+- add insurance call (#751)
 
 ## 2021.10.18
 
