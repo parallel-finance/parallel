@@ -133,14 +133,33 @@ pub mod pallet {
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config<I>, I: 'static = ()> {
         /// Add liquidity into pool
-        /// [sender, currency_id, currency_id]
-        LiquidityAdded(T::AccountId, AssetIdOf<T, I>, AssetIdOf<T, I>),
+        /// [sender, currency_id, amount, currency_id, amount]
+        LiquidityAdded(
+            T::AccountId,
+            AssetIdOf<T, I>,
+            BalanceOf<T, I>,
+            AssetIdOf<T, I>,
+            BalanceOf<T, I>,
+        ),
         /// Remove liquidity from pool
-        /// [sender, currency_id, currency_id]
-        LiquidityRemoved(T::AccountId, AssetIdOf<T, I>, AssetIdOf<T, I>),
+        /// [sender, currency_id, amount, currency_id, amount]
+        LiquidityRemoved(
+            T::AccountId,
+            AssetIdOf<T, I>,
+            BalanceOf<T, I>,
+            AssetIdOf<T, I>,
+            BalanceOf<T, I>,
+        ),
         /// Trade using liquidity
-        /// [trader, currency_id_in, currency_id_out, rate_out_for_in]
-        Traded(T::AccountId, AssetIdOf<T, I>, AssetIdOf<T, I>, Rate),
+        /// [trader, currency_id_in, amount, currency_id_out, amount, rate_out_for_in]
+        Traded(
+            T::AccountId,
+            AssetIdOf<T, I>,
+            BalanceOf<T, I>,
+            AssetIdOf<T, I>,
+            BalanceOf<T, I>,
+            Rate,
+        ),
     }
 
     #[pallet::hooks]
@@ -338,7 +357,9 @@ pub mod pallet {
                     Self::deposit_event(Event::<T, I>::LiquidityRemoved(
                         who,
                         base_asset,
+                        base_amount,
                         quote_asset,
+                        quote_amount,
                     ));
 
                     Ok(())
@@ -465,7 +486,13 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         T::Assets::transfer(base_asset, &who, &Self::account_id(), base_amount, true)?;
         T::Assets::transfer(quote_asset, &who, &Self::account_id(), quote_amount, true)?;
 
-        Self::deposit_event(Event::<T, I>::LiquidityAdded(who, base_asset, quote_asset));
+        Self::deposit_event(Event::<T, I>::LiquidityAdded(
+            who,
+            base_asset,
+            base_amount,
+            quote_asset,
+            quote_amount,
+        ));
 
         Ok(())
     }
@@ -593,7 +620,9 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T, AssetIdOf<T, I>, BalanceOf<T, 
                 Self::deposit_event(Event::<T, I>::Traded(
                     who.clone(),
                     base_asset,
+                    liquidity_amount.base_amount,
                     quote_asset,
+                    liquidity_amount.quote_amount,
                     FixedU128::from_inner(amount_out.saturated_into())
                         .checked_div(&FixedU128::from_inner(amount_in.saturated_into()))
                         .ok_or(ArithmeticError::Underflow)?,
