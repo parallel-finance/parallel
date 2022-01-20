@@ -16,9 +16,10 @@ fn create_pool_should_work() {
             SAMPLE_LP_TOKEN,
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 20);
-        assert_eq!(Assets::total_issuance(SAMPLE_LP_TOKEN), 14);
-        assert_eq!(Assets::balance(SAMPLE_LP_TOKEN, BOB), 14);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 2_000);
+        assert_eq!(Assets::total_issuance(SAMPLE_LP_TOKEN), 1_414);
+        // should be issuance minus the min liq locked
+        assert_eq!(Assets::balance(SAMPLE_LP_TOKEN, BOB), 414);
     })
 }
 
@@ -39,7 +40,7 @@ fn add_liquidity_should_work() {
             (5, 5),
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 40);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 4_000);
     })
 }
 
@@ -61,8 +62,7 @@ fn add_more_liquidity_should_work() {
             (5, 5),
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 60);
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 60);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 6_000);
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 3_000);
     })
 }
@@ -211,8 +211,8 @@ fn remove_liquidity_only_portion_should_work() {
             SAMPLE_LP_TOKEN,
         );
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 90);
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 10);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 9_000);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 1_000);
 
         assert_ok!(AMM::remove_liquidity(
             RawOrigin::Signed(ALICE).into(),
@@ -220,8 +220,8 @@ fn remove_liquidity_only_portion_should_work() {
             1_500
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 45);
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 5);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 4_500);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 500);
     })
 }
 

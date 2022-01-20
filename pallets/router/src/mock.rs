@@ -119,7 +119,7 @@ parameter_types! {
     pub const DefaultProtocolFee: Perbill = Perbill::from_perthousand(2);   // 0.2%
     pub const DefaultProtocolFeeReceiver: AccountId = CHARLIE;
     pub const MinimumLiquidity: u128 = 1_000u128;
-    pub const LockAccountId: AccountId = AccountId(1_u64);
+    pub const LockAccountId: AccountId = ALICE;
 }
 
 pub struct AliceCreatePoolOrigin;
