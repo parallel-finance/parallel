@@ -1346,14 +1346,13 @@ parameter_types! {
     pub DefaultProtocolFee: Perbill = Perbill::from_rational(5u32, 10000u32);   // 0.05%
     pub DefaultProtocolFeeReceiver: AccountId = TreasuryPalletId::get().into_account();
     pub const MinimumLiquidity: u128 = 1_000u128;
-    pub const LockAccountId: AccountId = AccountId(1_u64);
 }
 
 impl pallet_amm::Config for Runtime {
     type Event = Event;
     type Assets = CurrencyAdapter;
     type PalletId = AMMPalletId;
-    type LockAccountId = LockAccountId;
+    type LockAccountId = RootOperator;
     type AMMWeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
     type CreatePoolOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type LpFee = DefaultLpFee;
