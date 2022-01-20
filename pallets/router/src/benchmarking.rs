@@ -22,9 +22,9 @@ use frame_support::{
     BoundedVec,
 };
 use frame_system::{self, RawOrigin as SystemOrigin};
+use primitives::Reserve;
 use primitives::{tokens, Balance, CurrencyId};
 use sp_runtime::traits::{One, StaticLookup};
-use primitives::Reserve;
 
 const DOT: CurrencyId = tokens::DOT;
 const XDOT: CurrencyId = tokens::XDOT;
@@ -79,7 +79,10 @@ fn initial_set_up<
     assert_ok!(pallet_amm::Pallet::<T>::create_pool(
         T::CreatePoolOrigin::successful_origin(),
         (DOT, XDOT),
-        (Reserve::from_inner(10_000_000_000), Reserve::from_inner(10_000_000_000)),
+        (
+            Reserve::from_inner(10_000_000_000),
+            Reserve::from_inner(10_000_000_000)
+        ),
         pool_creator.clone(),
         ASSET_ID
     ));
@@ -87,8 +90,14 @@ fn initial_set_up<
     assert_ok!(pallet_amm::Pallet::<T>::add_liquidity(
         SystemOrigin::Signed(pool_creator).into(),
         (DOT, XDOT),
-        (Reserve::from_inner(10_000_000_000), Reserve::from_inner(10_000_000_000)),
-        (Reserve::from_inner(99_999_00u128), Reserve::from_inner(99_999_00u128))
+        (
+            Reserve::from_inner(10_000_000_000),
+            Reserve::from_inner(10_000_000_000)
+        ),
+        (
+            Reserve::from_inner(9_999_900_u128),
+            Reserve::from_inner(9_999_900_u128)
+        )
     ));
 }
 
@@ -100,7 +109,7 @@ benchmarks_instance_pallet! {
     trade {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T, I>(caller.clone());
-        let amount_in = 100_000_000_0;
+        let amount_in = 1_000_000_000;
         let original_amount_in = amount_in;
         let min_amount_out = 98_000_000;
         let expiry = u32::MAX;
