@@ -153,6 +153,14 @@ async function para() {
     }
   }
 
+  for (const { pool, liquidityAmounts, lptokenReceiver, liquidityProviderToken } of config.pools) {
+    call.push(
+      api.tx.sudo.sudo(
+        api.tx.amm.createPool(pool, liquidityAmounts, lptokenReceiver, liquidityProviderToken)
+      )
+    )
+  }
+
   call.push(
     api.tx.sudo.sudo(api.tx.liquidStaking.updateStakingPoolCapacity('10000000000000000')),
     api.tx.sudo.sudo(api.tx.xcmHelper.updateXcmFees('50000000000')),

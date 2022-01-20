@@ -16,20 +16,9 @@ fn create_pool_should_work() {
             SAMPLE_LP_TOKEN,
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 2_000);
-        assert_eq!(
-            AMM::liquidity_providers((BOB, XDOT, DOT))
-                .unwrap()
-                .base_amount,
-            2_000
-        );
-        assert_eq!(Assets::total_issuance(SAMPLE_LP_TOKEN), 1_414);
-
-        // balance should be amount issued minus MINIMUM_LIQUIDITY
-        assert_eq!(
-            Assets::balance(SAMPLE_LP_TOKEN, BOB),
-            1_414 - MINIMUM_LIQUIDITY
-        );
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 20);
+        assert_eq!(Assets::total_issuance(SAMPLE_LP_TOKEN), 14);
+        assert_eq!(Assets::balance(SAMPLE_LP_TOKEN, BOB), 14);
     })
 }
 
@@ -50,14 +39,7 @@ fn add_liquidity_should_work() {
             (5, 5),
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 4_000);
-
-        assert_eq!(
-            AMM::liquidity_providers((ALICE, XDOT, DOT))
-                .unwrap()
-                .base_amount,
-            4_000
-        );
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 40);
     })
 }
 
@@ -79,24 +61,8 @@ fn add_more_liquidity_should_work() {
             (5, 5),
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 6_000);
-
-        assert_eq!(
-            AMM::liquidity_providers((ALICE, XDOT, DOT))
-                .unwrap()
-                .base_amount,
-            6_000
-        );
-
-        assert_eq!(
-            AMM::liquidity_providers((ALICE, XDOT, DOT))
-                .unwrap()
-                .quote_amount,
-            3_000
-        );
-
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 6_000);
-
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 60);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 60);
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 3_000);
     })
 }
@@ -222,29 +188,11 @@ fn remove_liquidity_whole_share_should_work() {
             SAMPLE_LP_TOKEN,
         );
 
-        assert_eq!(
-            <Test as Config>::Assets::total_issuance(
-                AMM::liquidity_providers((ALICE, XDOT, DOT))
-                    .unwrap()
-                    .pool_assets
-            ),
-            3_000
-        );
-
         assert_ok!(AMM::remove_liquidity(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
             3_000 - MINIMUM_LIQUIDITY
         ));
-
-        assert_eq!(
-            <Test as Config>::Assets::total_issuance(
-                AMM::liquidity_providers((ALICE, XDOT, DOT))
-                    .unwrap()
-                    .pool_assets
-            ),
-            MINIMUM_LIQUIDITY
-        );
     })
 }
 
@@ -263,20 +211,17 @@ fn remove_liquidity_only_portion_should_work() {
             SAMPLE_LP_TOKEN,
         );
 
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 90);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 10);
+
         assert_ok!(AMM::remove_liquidity(
             RawOrigin::Signed(ALICE).into(),
             (DOT, XDOT),
             1_500
         ));
 
-        assert_eq!(
-            <Test as Config>::Assets::total_issuance(
-                AMM::liquidity_providers((ALICE, XDOT, DOT))
-                    .unwrap()
-                    .pool_assets
-            ),
-            1_500
-        );
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 45);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 5);
     })
 }
 
@@ -302,15 +247,6 @@ fn remove_liquidity_user_more_liquidity_should_work() {
             (DOT, XDOT),
             1_500
         ));
-
-        assert_eq!(
-            <Test as Config>::Assets::total_issuance(
-                AMM::liquidity_providers((ALICE, XDOT, DOT))
-                    .unwrap()
-                    .pool_assets
-            ),
-            1_978
-        );
     })
 }
 

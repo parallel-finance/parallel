@@ -121,9 +121,41 @@ const config = {
           }
         },
         state: 'Pending',
-        ptokenId: 3100
+        ptokenId: 2300
       },
       balances: []
+    },
+    {
+      name: 'Parallel LPT 1',
+      symbol: 'LPT-1',
+      assetId: 5000,
+      decimal: 12,
+      marketOption: {
+        closeFactor: 50e4,
+        collateralFactor: 50e4,
+        reserveFactor: 15e4,
+        cap: '100000000000000000',
+        liquidateIncentive: '1100000000000000000',
+        rateModel: {
+          jumpModel: {
+            baseRate: '20000000000000000',
+            jumpRate: '100000000000000000',
+            fullRate: '320000000000000000',
+            jumpUtilization: 8e5
+          }
+        },
+        state: 'Pending',
+        ptokenId: 2301
+      },
+      balances: []
+    }
+  ],
+  pools: [
+    {
+      pool: [102, 0],
+      liquidityAmounts: ['100000000000', '10000000000000000'],
+      lptokenReceiver: '5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf',
+      liquidityProviderToken: 5000
     }
   ],
   crowdloans: [

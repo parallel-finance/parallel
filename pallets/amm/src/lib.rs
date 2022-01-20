@@ -38,7 +38,7 @@ use frame_support::{
         fungibles::{Inspect, Mutate, Transfer},
         Get, Hooks, IsType,
     },
-    transactional, Blake2_128Concat, PalletId, Twox64Concat,
+    transactional, Blake2_128Concat, PalletId,
 };
 use frame_system::{ensure_signed, pallet_prelude::OriginFor};
 use scale_info::TypeInfo;
@@ -159,33 +159,14 @@ pub mod pallet {
         pub pool_assets: CurrencyId,
     }
 
-    /// The exchange rate from the underlying to the internal collateral
-    #[pallet::storage]
-    pub type ExchangeRate<T, I = ()> = StorageValue<_, Rate, ValueQuery>;
-
-    /// Accounts that deposits and withdraw assets in one or more pools
-    #[pallet::storage]
-    #[pallet::getter(fn liquidity_providers)]
-    pub type LiquidityProviders<T: Config<I>, I: 'static = ()> = StorageNMap<
-        _,
-        (
-            NMapKey<Blake2_128Concat, T::AccountId>,
-            NMapKey<Blake2_128Concat, AssetIdOf<T, I>>,
-            NMapKey<Blake2_128Concat, AssetIdOf<T, I>>,
-        ),
-        PoolLiquidityAmount<AssetIdOf<T, I>, BalanceOf<T, I>>,
-        OptionQuery,
-        GetDefault,
-    >;
-
     /// A bag of liquidity composed by two different assets
     #[pallet::storage]
     #[pallet::getter(fn pools)]
     pub type Pools<T: Config<I>, I: 'static = ()> = StorageDoubleMap<
         _,
-        Twox64Concat,
+        Blake2_128Concat,
         AssetIdOf<T, I>,
-        Twox64Concat,
+        Blake2_128Concat,
         AssetIdOf<T, I>,
         PoolLiquidityAmount<AssetIdOf<T, I>, BalanceOf<T, I>>,
         OptionQuery,
@@ -259,10 +240,12 @@ pub mod pallet {
                     let (base_amount, quote_amount) = (ideal_base_amount, ideal_quote_amount);
                     let total_ownership = T::Assets::total_issuance(liquidity_amount.pool_assets);
                     let ownership = sp_std::cmp::min(
-                        (base_amount.saturating_mul(total_ownership))
+                        base_amount
+                            .saturating_mul(total_ownership)
                             .checked_div(liquidity_amount.base_amount)
                             .ok_or(ArithmeticError::Overflow)?,
-                        (quote_amount.saturating_mul(total_ownership))
+                        quote_amount
+                            .saturating_mul(total_ownership)
                             .checked_div(liquidity_amount.quote_amount)
                             .ok_or(ArithmeticError::Overflow)?,
                     );
@@ -277,24 +260,6 @@ pub mod pallet {
                         .ok_or(ArithmeticError::Overflow)?;
 
                     *pool_liquidity_amount = Some(liquidity_amount);
-
-                    LiquidityProviders::<T, I>::try_mutate(
-                        (&who, &base_asset, &quote_asset),
-                        |pool_liquidity_amount| -> DispatchResult {
-                            if let Some(liquidity_amount) = pool_liquidity_amount {
-                                liquidity_amount.base_amount = liquidity_amount
-                                    .base_amount
-                                    .checked_add(base_amount)
-                                    .ok_or(ArithmeticError::Overflow)?;
-                                liquidity_amount.quote_amount = liquidity_amount
-                                    .quote_amount
-                                    .checked_add(quote_amount)
-                                    .ok_or(ArithmeticError::Overflow)?;
-                                *pool_liquidity_amount = Some(*liquidity_amount);
-                            }
-                            Ok(())
-                        },
-                    )?;
 
                     Self::mint_transfer_liquidity(
                         who,
@@ -331,7 +296,7 @@ pub mod pallet {
                 quote_asset,
                 |pool_liquidity_amount| -> DispatchResult {
                     let mut liquidity_amount = pool_liquidity_amount
-                        .take()
+                        .as_mut()
                         .ok_or(Error::<T, I>::PoolDoesNotExist)?;
 
                     let total_ownership = T::Assets::total_issuance(liquidity_amount.pool_assets);
@@ -340,41 +305,25 @@ pub mod pallet {
                         Error::<T, I>::MoreLiquidity
                     );
 
-                    let base_amount = (ownership_to_remove
-                        .saturating_mul(liquidity_amount.base_amount))
-                    .checked_div(total_ownership)
-                    .ok_or(ArithmeticError::Underflow)?;
+                    let base_amount = ownership_to_remove
+                        .saturating_mul(liquidity_amount.base_amount)
+                        .checked_div(total_ownership)
+                        .ok_or(ArithmeticError::Underflow)?;
 
-                    let quote_amount = (ownership_to_remove
-                        .saturating_mul(liquidity_amount.quote_amount))
-                    .checked_div(total_ownership)
-                    .ok_or(ArithmeticError::Underflow)?;
+                    let quote_amount = ownership_to_remove
+                        .saturating_mul(liquidity_amount.quote_amount)
+                        .checked_div(total_ownership)
+                        .ok_or(ArithmeticError::Underflow)?;
 
                     liquidity_amount.base_amount = liquidity_amount
                         .base_amount
                         .checked_sub(base_amount)
                         .ok_or(ArithmeticError::Underflow)?;
+
                     liquidity_amount.quote_amount = liquidity_amount
                         .quote_amount
                         .checked_sub(quote_amount)
                         .ok_or(ArithmeticError::Underflow)?;
-
-                    LiquidityProviders::<T, I>::try_mutate(
-                        (&who, &base_asset, &quote_asset),
-                        |pool_liquidity_amount| -> DispatchResult {
-                            if let Some(liquidity_amount) = pool_liquidity_amount {
-                                liquidity_amount.base_amount = liquidity_amount
-                                    .base_amount
-                                    .checked_sub(base_amount)
-                                    .ok_or(ArithmeticError::Underflow)?;
-                                liquidity_amount.quote_amount = liquidity_amount
-                                    .quote_amount
-                                    .checked_sub(quote_amount)
-                                    .ok_or(ArithmeticError::Underflow)?;
-                            }
-                            Ok(())
-                        },
-                    )?;
 
                     T::Assets::burn_from(liquidity_amount.pool_assets, &who, ownership_to_remove)?;
                     T::Assets::transfer(base_asset, &Self::account_id(), &who, base_amount, false)?;
@@ -432,10 +381,6 @@ pub mod pallet {
                 pool_assets: asset_id,
             };
             Pools::<T, I>::insert(&base_asset, &quote_asset, amm_pool);
-            LiquidityProviders::<T, I>::insert(
-                (&lptoken_receiver, &base_asset, &quote_asset),
-                amm_pool,
-            );
 
             Self::mint_transfer_liquidity(
                 lptoken_receiver.clone(),
@@ -549,7 +494,7 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T, AssetIdOf<T, I>, BalanceOf<T, 
             |pool_liquidity_amount| -> Result<BalanceOf<T, I>, DispatchError> {
                 // 1. If the pool we want to trade does not exist in the current instance, error
                 let mut liquidity_amount = pool_liquidity_amount
-                    .take()
+                    .as_mut()
                     .ok_or(Error::<T, I>::PoolDoesNotExist)?;
 
                 // supply_in == liquidity_amount.base_amount unless inverted
@@ -622,7 +567,6 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T, AssetIdOf<T, I>, BalanceOf<T, 
                         .checked_sub(amount_out)
                         .ok_or(ArithmeticError::Underflow)?;
                 }
-                *pool_liquidity_amount = Some(liquidity_amount);
 
                 // 6. Wire amount_in of the input token (identified by pair.0) from who to PalletId
                 T::Assets::transfer(

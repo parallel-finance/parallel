@@ -118,6 +118,9 @@ pub mod pallet {
         #[pallet::constant]
         type MigrateKeysLimit: Get<u32>;
 
+        #[pallet::constant]
+        type RemoveKeysLimit: Get<u32>; // default it to 1000
+
         /// The origin which can migrate pending contribution
         type MigrateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
@@ -126,6 +129,12 @@ pub mod pallet {
 
         /// The origin which can create vault
         type CreateVaultOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+
+        /// The origin which can refund
+        type RefundOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+
+        /// The origin which can dissolve vault
+        type DissolveVaultOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The origin which can update vault
         type UpdateVaultOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
@@ -220,6 +229,15 @@ pub mod pallet {
         /// Partially contributions migrated
         /// [para_id, vault_id]
         PartiallyMigrated(ParaId, VaultId),
+        /// Vault has been dissolved
+        /// [para_id, vault_id]
+        VaultDissolved(ParaId, VaultId),
+        /// Partially Refunded
+        /// [para_id, vault_id]
+        AllRefunded(ParaId, VaultId),
+        /// Partially Refunded
+        /// [para_id, vault_id]
+        PartiallyRefunded(ParaId, VaultId),
     }
 
     #[pallet::error]
@@ -258,6 +276,8 @@ pub mod pallet {
         ZeroCap,
         /// Invalid params input
         InvalidParams,
+        /// Vault is not ready to be dissolved
+        NotReadyToDissolve,
     }
 
     #[pallet::storage]
@@ -508,7 +528,10 @@ pub mod pallet {
             ensure!(!Self::in_vrf(crowdloan), Error::<T>::VrfDelayInProgress);
 
             ensure!(
-                Self::total_contribution(&vault, amount)? <= vault.cap,
+                Self::total_contribution(&vault)?
+                    .checked_add(amount)
+                    .ok_or(ArithmeticError::Overflow)?
+                    <= vault.cap,
                 Error::<T>::ExceededCap
             );
 
@@ -780,6 +803,8 @@ pub mod pallet {
                 .checked_sub(amount)
                 .ok_or(ArithmeticError::Underflow)?;
 
+            // SovereignAccount on relaychain must have
+            // withdrawn the contribution
             T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
 
             Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
@@ -838,6 +863,8 @@ pub mod pallet {
                 .ok_or(ArithmeticError::Underflow)?;
 
             T::Assets::burn_from(ctoken, &who, amount)?;
+            // SovereignAccount on relaychain must have
+            // withdrawn the contribution
             T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
 
             Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
@@ -924,6 +951,7 @@ pub mod pallet {
                 lease_end,
                 ..
             } = vault;
+
             Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
 
             if all_migrated {
@@ -959,6 +987,115 @@ pub mod pallet {
             }
             Ok(().into())
         }
+
+        /// Refund contributions
+        #[pallet::weight(<T as Config>::WeightInfo::refund())]
+        #[transactional]
+        pub fn refund(
+            origin: OriginFor<T>,
+            crowdloan: ParaId,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod,
+        ) -> DispatchResult {
+            use ChildStorageKind::*;
+            T::RefundOrigin::ensure_origin(origin)?;
+
+            let mut refund_count = 0u32;
+            let mut all_refunded = true;
+
+            let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+                .ok_or(Error::<T>::VaultDoesNotExist)?;
+
+            ensure!(
+                vault.phase == VaultPhase::Closed || vault.phase == VaultPhase::Failed,
+                Error::<T>::IncorrectVaultPhase
+            );
+
+            'outer: for kind in [Contributed, Flying, Pending] {
+                for (who, (amount, _referral_code)) in
+                    Self::contribution_iterator(vault.trie_index, kind)
+                {
+                    if refund_count >= T::RemoveKeysLimit::get() {
+                        all_refunded = false;
+                        break 'outer;
+                    }
+
+                    refund_count += 1;
+
+                    if kind == Contributed {
+                        // SovereignAccount on relaychain must have
+                        // withdrawn the contribution
+                        T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
+                    } else {
+                        T::Assets::transfer(
+                            T::RelayCurrency::get(),
+                            &Self::account_id(),
+                            &who,
+                            amount,
+                            true,
+                        )?;
+                    }
+
+                    Self::contribution_kill(vault.trie_index, &who, kind);
+                }
+            }
+
+            if all_refunded {
+                Self::deposit_event(Event::<T>::AllRefunded(crowdloan, (lease_start, lease_end)));
+            } else {
+                Self::deposit_event(Event::<T>::PartiallyRefunded(
+                    crowdloan,
+                    (lease_start, lease_end),
+                ));
+            }
+
+            Ok(())
+        }
+
+        /// Dissolve vault
+        #[pallet::weight(<T as Config>::WeightInfo::dissolve_vault())]
+        #[transactional]
+        pub fn dissolve_vault(
+            origin: OriginFor<T>,
+            crowdloan: ParaId,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod,
+        ) -> DispatchResult {
+            T::DissolveVaultOrigin::ensure_origin(origin)?;
+
+            let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+                .ok_or(Error::<T>::VaultDoesNotExist)?;
+
+            ensure!(
+                vault.phase == VaultPhase::Closed
+                    || vault.phase == VaultPhase::Failed
+                    || vault.phase == VaultPhase::Expired,
+                Error::<T>::IncorrectVaultPhase
+            );
+
+            let has_childstorage = Self::has_childstorage(&vault);
+            ensure!(!has_childstorage, Error::<T>::NotReadyToDissolve);
+
+            ensure!(
+                Self::total_contribution(&mut vault)?.is_zero(),
+                Error::<T>::NotReadyToDissolve
+            );
+
+            Vaults::<T>::remove((&crowdloan, &lease_start, &lease_end));
+
+            if let Some(vault_id) = LeasesRegistry::<T>::get(&crowdloan) {
+                if vault_id == (lease_start, lease_end) {
+                    LeasesRegistry::<T>::remove(&crowdloan);
+                }
+            }
+
+            Self::deposit_event(Event::<T>::VaultDissolved(
+                crowdloan,
+                (lease_start, lease_end),
+            ));
+
+            Ok(())
+        }
     }
 
     impl<T: Config> Pallet<T> {
@@ -986,15 +1123,11 @@ pub mod pallet {
             })
         }
 
-        fn total_contribution(
-            vault: &Vault<T>,
-            amount: BalanceOf<T>,
-        ) -> Result<BalanceOf<T>, ArithmeticError> {
+        fn total_contribution(vault: &Vault<T>) -> Result<BalanceOf<T>, ArithmeticError> {
             vault
                 .contributed
                 .checked_add(vault.flying)
                 .and_then(|sum| sum.checked_add(vault.pending))
-                .and_then(|sum| sum.checked_add(amount))
                 .ok_or(ArithmeticError::Overflow)
         }
 
@@ -1367,6 +1500,16 @@ pub mod pallet {
                 target_phase,
             ));
             Ok(())
+        }
+
+        // Return true if any childstorage has contribution.
+        fn has_childstorage(vault: &Vault<T>) -> bool {
+            use ChildStorageKind::*;
+            [Contributed, Flying, Pending].iter().any(|&kind| {
+                !Self::contribution_iterator(vault.trie_index, kind)
+                    .count()
+                    .is_zero()
+            })
         }
     }
 }
