@@ -40,7 +40,6 @@ pub const PXKSM: CurrencyId = 3000;
 pub const PXDOT: CurrencyId = 3001;
 
 // Crowdloan Derivative
-pub const CKSM_6_13: CurrencyId = 100060013;
 pub const CDOT_6_13: CurrencyId = 200060013;
 
 // Token Registration Information
