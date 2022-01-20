@@ -357,9 +357,9 @@ pub mod pallet {
                     Self::deposit_event(Event::<T, I>::LiquidityRemoved(
                         who,
                         base_asset,
-                        base_amount,
+                        liquidity_amount.base_amount,
                         quote_asset,
-                        quote_amount,
+                        liquidity_amount.quote_amount,
                     ));
 
                     Ok(())
