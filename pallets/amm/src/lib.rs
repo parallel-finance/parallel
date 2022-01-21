@@ -261,6 +261,17 @@ pub mod pallet {
 
                     *pool_liquidity_amount = Some(liquidity_amount);
 
+                    let protocol_fees =
+                        Self::get_protocol_fee(base_asset, quote_asset, base_amount, quote_amount)?;
+
+                    T::Assets::transfer(
+                        liquidity_amount.pool_assets,
+                        &who,
+                        &T::ProtocolFeeReceiver::get(),
+                        protocol_fees,
+                        true,
+                    )?;
+
                     Self::mint_transfer_liquidity(
                         who,
                         ownership,
@@ -324,6 +335,16 @@ pub mod pallet {
                         .quote_amount
                         .checked_sub(quote_amount)
                         .ok_or(ArithmeticError::Underflow)?;
+
+                    let protocol_fees =
+                        Self::get_protocol_fee(base_asset, quote_asset, base_amount, quote_amount)?;
+                    T::Assets::transfer(
+                        liquidity_amount.pool_assets,
+                        &who,
+                        &T::ProtocolFeeReceiver::get(),
+                        protocol_fees,
+                        true,
+                    )?;
 
                     T::Assets::burn_from(liquidity_amount.pool_assets, &who, ownership_to_remove)?;
                     T::Assets::transfer(base_asset, &Self::account_id(), &who, base_amount, false)?;
@@ -563,15 +584,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         // 7. Wire amount_out of the output token (identified by pair.1) to who from PalletId
         T::Assets::transfer(output_token, &Self::account_id(), who, amount_out, true)?;
 
-        // // 8. Wire protocol fees as needed (input token)
-        // T::Assets::transfer(
-        //     input_token,
-        //     who,
-        //     &T::ProtocolFeeReceiver::get(),
-        //     protocol_fees,
-        //     true,
-        // )?;
-
         // Emit event of trade with rate calculated
         Self::deposit_event(Event::<T, I>::Traded(
             who.clone(),
@@ -660,6 +672,44 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(amount_in
             .checked_add(One::one())
             .ok_or(ArithmeticError::Overflow)?)
+    }
+
+    pub fn get_protocol_fee(
+        base_asset: AssetIdOf<T, I>,
+        quote_asset: AssetIdOf<T, I>,
+        base_amount: BalanceOf<T, I>,
+        quote_amount: BalanceOf<T, I>,
+    ) -> sp_std::result::Result<BalanceOf<T, I>, DispatchError> {
+        let pool =
+            Pools::<T, I>::get(&base_asset, &quote_asset).ok_or(Error::<T, I>::PoolDoesNotExist)?;
+        let root_k = base_amount.saturating_mul(quote_amount).integer_sqrt();
+        let root_k_last = pool
+            .base_amount
+            .saturating_mul(pool.quote_amount)
+            .integer_sqrt();
+
+        if root_k > root_k_last {
+            let total_supply: BalanceOf<T, I> = T::Assets::total_issuance(pool.pool_assets);
+
+            let numerator = total_supply.saturating_mul(
+                root_k
+                    .checked_sub(root_k_last)
+                    .ok_or(ArithmeticError::Underflow)?,
+            );
+
+            let denominator = root_k
+                .saturating_mul(5)
+                .checked_add(root_k_last)
+                .ok_or(ArithmeticError::Overflow)?;
+
+            let liquidity = numerator
+                .checked_div(denominator)
+                .ok_or(ArithmeticError::Underflow)?;
+
+            Ok(liquidity)
+        } else {
+            Ok(Zero::zero())
+        }
     }
 }
 
