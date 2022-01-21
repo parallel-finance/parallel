@@ -497,7 +497,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     fn _update(
         base_amount: Balance,
         quote_amount: Balance,
-        // reserve0: Balance, reserve1: Balance
         liquidity_amount: &mut PoolLiquidityAmount<AssetIdOf<T, I>, BalanceOf<T, I>>,
     ) -> DispatchResult {
         // set values
@@ -555,8 +554,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         base_asset: AssetIdOf<T, I>,
         quote_asset: AssetIdOf<T, I>,
         who: &T::AccountId,
-        // protocol_fees: Balance,
-        // amount_without_protocol_fees: Balance,
         amount_in: Balance,
         amount_out: Balance,
     ) -> DispatchResult {
@@ -715,11 +712,6 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T, AssetIdOf<T, I>, BalanceOf<T, 
                     amount_out >= minimum_amount_out && amount_in > Zero::zero(),
                     Error::<T, I>::InsufficientAmountOut
                 );
-
-                println!("Trading {} -> {}", input_token, output_token);
-                println!("Inverted {}", is_inverted);
-                println!("In {}", amount_in);
-                println!("Out {}\n", amount_out);
 
                 Self::update(liquidity_amount, amount_in, amount_out, is_inverted)?;
 
