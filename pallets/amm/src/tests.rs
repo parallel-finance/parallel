@@ -283,7 +283,7 @@ fn remove_liquidity_with_more_liquidity_should_not_work() {
 }
 
 #[test]
-fn trade_should_work() {
+fn trade_should_work_base_to_quote() {
     new_test_ext().execute_with(|| {
         use primitives::AMM as _;
 
@@ -298,6 +298,9 @@ fn trade_should_work() {
             SAMPLE_LP_TOKEN,
         ));
 
+        // XDOT is base_asset 1001
+        // DOT is quote_asset 101
+
         // check that pool was funded correctly
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 100_000_000); // XDOT
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_000_000); // DOT
@@ -306,13 +309,88 @@ fn trade_should_work() {
         let amount_out = AMM::trade(&trader, (DOT, XDOT), 1_000, 980);
 
         // amount out should be 994
-        assert_eq!(amount_out.unwrap(), 994);
+        assert_eq!(amount_out.unwrap(), 996);
 
-        // // pools values should be updated - we should have less XDOT
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 99_999_006);
+        // pools values should be updated - we should have less XDOT
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 99_999_004);
 
-        // // pools values should be updated - we should have more DOT in the pool
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_000_998);
+        // pools values should be updated - we should have more DOT in the pool
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_001_000);
+    })
+}
+
+#[test]
+fn trade_should_work_base_to_quote_flipped_currencies_on_pool_creation() {
+    new_test_ext().execute_with(|| {
+        use primitives::AMM as _;
+
+        let trader = EVE;
+
+        // create pool and add liquidity
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
+            (XDOT, DOT),
+            (100_000_000, 100_000_000),
+            CHARLIE,
+            SAMPLE_LP_TOKEN,
+        ));
+
+        // XDOT is base_asset 1001
+        // DOT is quote_asset 101
+
+        // check that pool was funded correctly
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 100_000_000); // XDOT
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_000_000); // DOT
+
+        // calculate amount out
+        let amount_out = AMM::trade(&trader, (DOT, XDOT), 1_000, 980);
+
+        // amount out should be 994
+        assert_eq!(amount_out.unwrap(), 996);
+
+        // pools values should be updated - we should have less XDOT
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 99_999_004);
+
+        // pools values should be updated - we should have more DOT in the pool
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_001_000);
+    })
+}
+
+#[test]
+fn trade_should_work_quote_to_base() {
+    new_test_ext().execute_with(|| {
+        use primitives::AMM as _;
+
+        let trader = EVE;
+
+        // create pool and add liquidity
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
+            (DOT, XDOT),
+            (100_000_000, 100_000_000),
+            CHARLIE,
+            SAMPLE_LP_TOKEN,
+        ));
+
+        // XDOT is base_asset 1001
+        // DOT is quote_asset 101
+
+        // check that pool was funded correctly
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 100_000_000); // XDOT
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_000_000); // DOT
+
+        // calculate amount out
+        // trade base for quote
+        let amount_out = AMM::trade(&trader, (DOT, XDOT), 1_000, 980);
+
+        // amount out should be 996
+        assert_eq!(amount_out.unwrap(), 996);
+
+        // we should have more DOT in the pool since were trading it for DOT
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_001_000);
+
+        // we should have less XDOT since we traded it for XDOT
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 99_999_004);
     })
 }
 
@@ -379,13 +457,13 @@ fn trade_should_work_flipped_currencies() {
         // total = 2
 
         // amount out should be 986
-        assert_eq!(amount_out.unwrap(), 986);
+        assert_eq!(amount_out.unwrap(), 989);
 
         // pools values should be updated - we should have less DOT in the pool
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 99_014);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 99_011);
 
         // pools values should be updated - we should have more XDOT
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 50_499);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 50_500);
     })
 }
 
@@ -452,5 +530,59 @@ fn trade_should_not_work_if_pool_does_not_exist() {
             AMM::trade(&trader, (DOT, XDOT), 10, 10),
             Error::<Test>::PoolDoesNotExist
         );
+    })
+}
+
+#[test]
+fn amount_out_should_work() {
+    new_test_ext().execute_with(|| {
+        let amount_in = 1_000;
+        let supply_in = 100_000_000;
+        let supply_out = 100_000_000;
+        let fee_perbill = Perbill::from_perthousand(3);
+
+        let amount_out =
+            AMM::get_amount_out(amount_in, supply_in, supply_out, fee_perbill).unwrap();
+
+        // actual value == 996.9900600091017
+        // TODO: assumes we round down to int
+        assert_eq!(amount_out, 996);
+    })
+}
+
+#[test]
+fn amount_in_should_work() {
+    new_test_ext().execute_with(|| {
+        let amount_out = 1_000;
+        let supply_in = 100_000_000;
+        let supply_out = 100_000_000;
+        let fee_perbill = Perbill::from_perthousand(3);
+
+        let amount_in =
+            AMM::_get_amount_in(amount_out, supply_in, supply_out, fee_perbill).unwrap();
+
+        // actual value == 1004.0190572718165
+        // TODO: assumes we round down to int
+        assert_eq!(amount_in, 1004);
+    })
+}
+
+#[test]
+fn amount_out_and_in_should_work() {
+    new_test_ext().execute_with(|| {
+        let amount_out = 1_000;
+        let supply_in = 100_000_000;
+        let supply_out = 100_000_000;
+        let fee_perbill = Perbill::from_perthousand(3);
+
+        let amount_in =
+            AMM::_get_amount_in(amount_out, supply_in, supply_out, fee_perbill).unwrap();
+
+        assert_eq!(amount_in, 1004);
+
+        let amount_out =
+            AMM::get_amount_out(amount_in, supply_in, supply_out, fee_perbill).unwrap();
+
+        assert_eq!(amount_out, 1000);
     })
 }

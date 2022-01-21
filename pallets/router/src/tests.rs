@@ -90,18 +90,18 @@ fn trade_should_work() {
         assert_ok!(AMMRoute::trade(Origin::signed(ALICE), routes, 1_000, 980));
 
         // Check Alice should get 994
-        assert_eq!(Assets::balance(tokens::XDOT, &ALICE), 10_000 + 994);
+        assert_eq!(Assets::balance(tokens::XDOT, &ALICE), 10_000 + 996);
 
-        // pools values should be updated - we should have less XDOT
+        // we should have less XDOT in the pool
         assert_eq!(
             DefaultAMM::pools(XDOT, DOT).unwrap().base_amount,
-            99_999_006
+            99_999_004
         );
 
-        // pools values should be updated - we should have more DOT in the pool
+        // we should have more DOT
         assert_eq!(
             DefaultAMM::pools(XDOT, DOT).unwrap().quote_amount,
-            100_000_998
+            100_001_000
         );
     })
 }
@@ -129,7 +129,7 @@ fn trade_should_not_work_if_amount_less_than_min_amount_out() {
         ); // DOT
 
         // calculate amount out
-        let min_amount_out = 995;
+        let min_amount_out = 999;
         let routes = Route::<Runtime, ()>::try_from(vec![(DOT, XDOT)])
             .expect("Failed to create route list.");
         assert_noop!(
@@ -201,6 +201,9 @@ fn trade_should_work_more_than_one_route() {
             100_000_000
         ); // USDT
 
+        // Alice should have no USDT
+        assert_eq!(Assets::balance(tokens::USDT, &ALICE), 0);
+
         // DO TRADE
         // calculate amount out
         let routes = Route::<Runtime, ()>::try_from(vec![(DOT, XDOT), (XDOT, KSM), (KSM, USDT)])
@@ -215,28 +218,51 @@ fn trade_should_work_more_than_one_route() {
         assert_eq!(Assets::balance(tokens::KSM, &ALICE), 10_000);
 
         // Alice should now have some USDT!
-        assert_eq!(Assets::balance(tokens::USDT, &ALICE), 986);
+        assert_eq!(Assets::balance(tokens::USDT, &ALICE), 991);
 
         // Alice should now have less DOT
         assert_eq!(Assets::balance(tokens::DOT, &ALICE), 9000);
 
-        // CHECK POOLS
-        // pools should have less XDOT by 994
+        ////// First Route
+
+        // we should have less XDOT since we traded for DOT
         assert_eq!(
             DefaultAMM::pools(XDOT, DOT).unwrap().base_amount,
-            99_999_006
+            99_999_004
         );
 
-        // pool should have less KSM by 990
+        // we should have more DOT in the pool since the trader sent DOT
+        assert_eq!(
+            DefaultAMM::pools(XDOT, DOT).unwrap().quote_amount,
+            100_001_000
+        );
+
+        ////// Second Route
+
+        // we should have more XDOT since were trading it for KSM
+        assert_eq!(
+            DefaultAMM::pools(XDOT, KSM).unwrap().base_amount,
+            100_000_996
+        );
+
+        // we should have less KSM
         assert_eq!(
             DefaultAMM::pools(XDOT, KSM).unwrap().quote_amount,
-            99_999_010
+            99_999_007
         );
 
-        // pool should have less USDT by 986
+        ////// Third Route
+
+        // we should have less USDT since its the token the trader is recieving
         assert_eq!(
             DefaultAMM::pools(USDT, KSM).unwrap().base_amount,
-            99_999_014
+            99_999_009
+        );
+
+        // we should have more KSM since were trading it for USDT
+        assert_eq!(
+            DefaultAMM::pools(USDT, KSM).unwrap().quote_amount,
+            100_000_993
         );
     })
 }

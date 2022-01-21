@@ -469,6 +469,201 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
         Ok(())
     }
+
+    #[require_transactional]
+    fn burn_transfer_liquidity(
+        who: T::AccountId,
+        ownership: BalanceOf<T, I>,
+        currency_asset: AssetIdOf<T, I>,
+        base_asset: AssetIdOf<T, I>,
+        quote_asset: AssetIdOf<T, I>,
+        base_amount: BalanceOf<T, I>,
+        quote_amount: BalanceOf<T, I>,
+    ) -> DispatchResult {
+        T::Assets::burn_from(currency_asset, &who, ownership)?;
+        T::Assets::transfer(base_asset, &Self::account_id(), &who, base_amount, false)?;
+        T::Assets::transfer(quote_asset, &Self::account_id(), &who, quote_amount, false)?;
+
+        Self::deposit_event(Event::<T, I>::LiquidityRemoved(
+            who,
+            base_asset,
+            quote_asset,
+        ));
+
+        Ok(())
+    }
+
+    // update reserves and, on the first call per block, price accumulators
+    fn _update(
+        base_amount: Balance,
+        quote_amount: Balance,
+        // reserve0: Balance, reserve1: Balance
+        liquidity_amount: &mut PoolLiquidityAmount<AssetIdOf<T, I>, BalanceOf<T, I>>,
+    ) -> DispatchResult {
+        // set values
+        liquidity_amount.base_amount = base_amount;
+        liquidity_amount.quote_amount = quote_amount;
+
+        // TODO:
+        // update future pool variables
+
+        Ok(())
+    }
+
+    // update pool reserves
+    fn update(
+        liquidity_amount: &mut PoolLiquidityAmount<AssetIdOf<T, I>, BalanceOf<T, I>>,
+        amount_in: Balance,
+        amount_out: Balance,
+        is_inverted: bool,
+    ) -> DispatchResult {
+        // 5. Update the `Pools` storage to track the `base_amount` and `quote_amount`
+        // variables (increase and decrease by `amount_in` and `amount_out`)
+        // increase liquidity_amount.base_amount by amount_in, unless inverted
+        if is_inverted {
+            let base_amount = liquidity_amount
+                .base_amount
+                .checked_sub(amount_out)
+                .ok_or(ArithmeticError::Underflow)?;
+
+            let quote_amount = liquidity_amount
+                .quote_amount
+                .checked_add(amount_in)
+                .ok_or(ArithmeticError::Overflow)?;
+
+            Self::_update(base_amount, quote_amount, liquidity_amount)?;
+        } else {
+            let base_amount = liquidity_amount
+                .base_amount
+                .checked_add(amount_in)
+                .ok_or(ArithmeticError::Overflow)?;
+
+            let quote_amount = liquidity_amount
+                .quote_amount
+                .checked_sub(amount_out)
+                .ok_or(ArithmeticError::Underflow)?;
+
+            Self::_update(base_amount, quote_amount, liquidity_amount)?;
+        }
+
+        Ok(())
+    }
+
+    fn transfer_between_user_and_pallet(
+        input_token: AssetIdOf<T, I>,
+        output_token: AssetIdOf<T, I>,
+        base_asset: AssetIdOf<T, I>,
+        quote_asset: AssetIdOf<T, I>,
+        who: &T::AccountId,
+        // protocol_fees: Balance,
+        // amount_without_protocol_fees: Balance,
+        amount_in: Balance,
+        amount_out: Balance,
+    ) -> DispatchResult {
+        // 6. Wire amount_in of the input token (identified by pair.0) from who to PalletId
+        T::Assets::transfer(input_token, who, &Self::account_id(), amount_in, true)?;
+
+        // 7. Wire amount_out of the output token (identified by pair.1) to who from PalletId
+        T::Assets::transfer(output_token, &Self::account_id(), who, amount_out, true)?;
+
+        // // 8. Wire protocol fees as needed (input token)
+        // T::Assets::transfer(
+        //     input_token,
+        //     who,
+        //     &T::ProtocolFeeReceiver::get(),
+        //     protocol_fees,
+        //     true,
+        // )?;
+
+        // Emit event of trade with rate calculated
+        Self::deposit_event(Event::<T, I>::Traded(
+            who.clone(),
+            base_asset,
+            quote_asset,
+            FixedU128::from_inner(amount_out.saturated_into())
+                .checked_div(&FixedU128::from_inner(amount_in.saturated_into()))
+                .ok_or(ArithmeticError::Underflow)?,
+        ));
+
+        Ok(())
+    }
+
+    // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
+    fn get_amount_out(
+        amount_in: Balance,
+        reserve_in: Balance,
+        reserve_out: Balance,
+        fee_percent: Perbill,
+    ) -> Result<BalanceOf<T, I>, DispatchError> {
+        ensure!(
+            amount_in > Zero::zero(),
+            Error::<T, I>::InsufficientAmountIn
+        );
+        ensure!(
+            reserve_in > Zero::zero() && reserve_out > Zero::zero(),
+            Error::<T, I>::InsufficientAmountIn
+        );
+
+        let fee_amount = fee_percent.mul_floor(amount_in);
+
+        let scaler = 1_000u128;
+        let numerator_scalar = scaler
+            .checked_sub(fee_amount)
+            .ok_or(ArithmeticError::Underflow)?;
+
+        let amount_in_with_fee = amount_in.saturating_mul(numerator_scalar);
+        let numerator = amount_in_with_fee.saturating_mul(reserve_out);
+
+        let denominator = reserve_in
+            .saturating_mul(scaler)
+            .checked_add(amount_in_with_fee)
+            .ok_or(ArithmeticError::Overflow)?;
+
+        let amount_out = numerator
+            .checked_div(denominator)
+            .ok_or(ArithmeticError::Underflow)?;
+
+        Ok(amount_out)
+    }
+
+    // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
+    fn _get_amount_in(
+        amount_out: Balance,
+        reserve_in: Balance,
+        reserve_out: Balance,
+        fee_percent: Perbill,
+    ) -> Result<BalanceOf<T, I>, DispatchError> {
+        ensure!(
+            amount_out > Zero::zero(),
+            Error::<T, I>::InsufficientAmountOut
+        );
+        ensure!(
+            reserve_in > Zero::zero() && reserve_out > Zero::zero(),
+            Error::<T, I>::InsufficientAmountIn
+        );
+
+        let fee_amount = fee_percent.mul_floor(amount_out);
+
+        let scaler = 1_000u128;
+        let denominator_scalar = scaler
+            .checked_sub(fee_amount)
+            .ok_or(ArithmeticError::Underflow)?;
+
+        let numerator = reserve_in.saturating_mul(amount_out).saturating_mul(scaler);
+
+        let denominator = reserve_out
+            .checked_sub(amount_out)
+            .ok_or(ArithmeticError::Underflow)?
+            .saturating_mul(denominator_scalar);
+
+        let amount_in = numerator
+            .checked_div(denominator)
+            .ok_or(ArithmeticError::Underflow)?;
+
+        Ok(amount_in
+            .checked_add(One::one())
+            .ok_or(ArithmeticError::Overflow)?)
+    }
 }
 
 impl<T: Config<I>, I: 'static> primitives::AMM<T, AssetIdOf<T, I>, BalanceOf<T, I>>
@@ -493,7 +688,7 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T, AssetIdOf<T, I>, BalanceOf<T, 
             &quote_asset,
             |pool_liquidity_amount| -> Result<BalanceOf<T, I>, DispatchError> {
                 // 1. If the pool we want to trade does not exist in the current instance, error
-                let mut liquidity_amount = pool_liquidity_amount
+                let liquidity_amount = pool_liquidity_amount
                     .as_mut()
                     .ok_or(Error::<T, I>::PoolDoesNotExist)?;
 
@@ -511,93 +706,32 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T, AssetIdOf<T, I>, BalanceOf<T, 
                     Error::<T, I>::InsufficientAmountIn
                 );
 
-                // 2. Compute all fees to be taken out, see @Fees
-                // we round down for trader convenience
-                let lp_fees = T::LpFee::get().mul_floor(amount_in);
-                let protocol_fees = T::ProtocolFee::get().mul_floor(amount_in);
+                let amount_out =
+                    Self::get_amount_out(amount_in, supply_in, supply_out, T::LpFee::get())?;
 
-                // subtract protocol fees from amount_in
-                let amount_without_protocol_fees = amount_in
-                    .checked_sub(protocol_fees)
-                    .ok_or(ArithmeticError::Underflow)?;
-
-                // subtract lp fees from amount_in minus protocol fees
-                let amount_in_after_all_fees = amount_without_protocol_fees
-                    .checked_sub(lp_fees)
-                    .ok_or(ArithmeticError::Underflow)?;
-
-                // 3. Given the input amount amount_in left after fees, compute amount_out
-                // let amount_out = amount_in * supply_out / (supply_in + amount_in)
-                let amount_out = amount_in_after_all_fees
-                    .saturating_mul(supply_out)
-                    .checked_div(
-                        supply_in
-                            .checked_add(amount_in_after_all_fees)
-                            .ok_or(ArithmeticError::Overflow)?,
-                    )
-                    .ok_or(ArithmeticError::Underflow)?;
-
+                // TODO: we should only do this check if we are calculating a minimum amount out
                 // 4. If `amount_out` is lower than `min_amount_out`, error
                 ensure!(
                     amount_out >= minimum_amount_out && amount_in > Zero::zero(),
                     Error::<T, I>::InsufficientAmountOut
                 );
 
-                // 5. Update the `Pools` storage to track the `base_amount` and `quote_amount`
-                // variables (increase and decrease by `amount_in` and `amount_out`)
-                // increase liquidity_amount.base_amount by amount_in, unless inverted
-                if is_inverted {
-                    liquidity_amount.quote_amount = liquidity_amount
-                        .quote_amount
-                        .checked_add(amount_without_protocol_fees)
-                        .ok_or(ArithmeticError::Overflow)?;
+                println!("Trading {} -> {}", input_token, output_token);
+                println!("Inverted {}", is_inverted);
+                println!("In {}", amount_in);
+                println!("Out {}\n", amount_out);
 
-                    liquidity_amount.base_amount = liquidity_amount
-                        .base_amount
-                        .checked_sub(amount_out)
-                        .ok_or(ArithmeticError::Underflow)?;
-                } else {
-                    liquidity_amount.base_amount = liquidity_amount
-                        .base_amount
-                        .checked_add(amount_without_protocol_fees)
-                        .ok_or(ArithmeticError::Overflow)?;
+                Self::update(liquidity_amount, amount_in, amount_out, is_inverted)?;
 
-                    liquidity_amount.quote_amount = liquidity_amount
-                        .quote_amount
-                        .checked_sub(amount_out)
-                        .ok_or(ArithmeticError::Underflow)?;
-                }
-
-                // 6. Wire amount_in of the input token (identified by pair.0) from who to PalletId
-                T::Assets::transfer(
+                Self::transfer_between_user_and_pallet(
                     input_token,
-                    who,
-                    &Self::account_id(),
-                    amount_without_protocol_fees,
-                    true,
-                )?;
-
-                // 7. Wire amount_out of the output token (identified by pair.1) to who from PalletId
-                T::Assets::transfer(output_token, &Self::account_id(), who, amount_out, true)?;
-
-                // 8. Wire protocol fees as needed (input token)
-                T::Assets::transfer(
-                    input_token,
-                    who,
-                    &T::ProtocolFeeReceiver::get(),
-                    protocol_fees,
-                    true,
-                )?;
-
-                // Emit event of trade with rate calculated
-                Self::deposit_event(Event::<T, I>::Traded(
-                    who.clone(),
+                    output_token,
                     base_asset,
                     quote_asset,
-                    FixedU128::from_inner(amount_out.saturated_into())
-                        .checked_div(&FixedU128::from_inner(amount_in.saturated_into()))
-                        .ok_or(ArithmeticError::Underflow)?,
-                ));
+                    who,
+                    amount_in,
+                    amount_out,
+                )?;
 
                 // Return amount out for router pallet
                 Ok(amount_out)
