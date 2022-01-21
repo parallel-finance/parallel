@@ -94,16 +94,33 @@ benchmarks_instance_pallet! {
         initial_set_up::<T, I>(caller.clone());
         let base_amount = 100_000u128;
         let quote_amount = 900_000u128;
+
         assert_ok!(AMM::<T, I>::create_pool(T::CreatePoolOrigin::successful_origin(),
             (BASE_ASSET, QUOTE_ASSET), (base_amount, quote_amount),
             caller.clone(), ASSET_ID));
+
+        let total_ownership = T::Assets::total_issuance(ASSET_ID);
+
+        let ownership_to_remove = 300_000u128 - MINIMUM_LIQUIDITY;
+
+        // get expected value by doing the same calculations inside of the `remove_liquidity` function
+        let expected_base_amount = ownership_to_remove
+            .saturating_mul(base_amount)
+            .checked_div(total_ownership)
+            .unwrap();
+
+        let expected_quote_amount = ownership_to_remove
+            .saturating_mul(quote_amount)
+            .checked_div(total_ownership)
+            .unwrap();
+
     }: _(
         SystemOrigin::Signed(caller.clone()),
         (BASE_ASSET, QUOTE_ASSET),
-        300_000u128 - MINIMUM_LIQUIDITY
+        ownership_to_remove
     )
     verify {
-        assert_last_event::<T, I>(Event::LiquidityRemoved(caller, BASE_ASSET, base_amount, QUOTE_ASSET, quote_amount).into());
+        assert_last_event::<T, I>(Event::LiquidityRemoved(caller, BASE_ASSET, expected_base_amount, QUOTE_ASSET, expected_quote_amount).into());
     }
 
     create_pool {
