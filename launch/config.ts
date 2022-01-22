@@ -4,6 +4,7 @@ const config = {
   auctionDuration: 201600,
   leaseIndex: 0,
   paraId: 2085,
+  relayAsset: 100,
   assets: [
     {
       name: 'Kusama',
@@ -27,7 +28,10 @@ const config = {
         state: 'Pending',
         ptokenId: 2100
       },
-      balances: []
+      balances: [
+        ['5EYCAe5iie3JmgLB4rm1NHQtyYGiaYYBEB1jt7p35dXjQWJ8', '1000000000000000'],
+        ['5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf', '100000000000000000']
+      ]
     },
     {
       name: 'Parallel Staking Kusama',
@@ -126,8 +130,8 @@ const config = {
       balances: []
     },
     {
-      name: 'Parallel LPT 1',
-      symbol: 'LPT-1',
+      name: 'Parallel LP-USDT/HKO',
+      symbol: 'LP-USDT/HKO',
       assetId: 5000,
       decimal: 12,
       marketOption: {
@@ -148,6 +152,54 @@ const config = {
         ptokenId: 2301
       },
       balances: []
+    },
+    {
+      name: 'Parallel LP-KSM/USDT',
+      symbol: 'LP-KSM/USDT',
+      assetId: 5001,
+      decimal: 12,
+      marketOption: {
+        closeFactor: 50e4,
+        collateralFactor: 50e4,
+        reserveFactor: 15e4,
+        cap: '100000000000000000',
+        liquidateIncentive: '1100000000000000000',
+        rateModel: {
+          jumpModel: {
+            baseRate: '20000000000000000',
+            jumpRate: '100000000000000000',
+            fullRate: '320000000000000000',
+            jumpUtilization: 8e5
+          }
+        },
+        state: 'Pending',
+        ptokenId: 2302
+      },
+      balances: []
+    },
+    {
+      name: 'Parallel LP-KSM/HKO',
+      symbol: 'LP-KSM/HKO',
+      assetId: 5002,
+      decimal: 12,
+      marketOption: {
+        closeFactor: 50e4,
+        collateralFactor: 50e4,
+        reserveFactor: 15e4,
+        cap: '100000000000000000',
+        liquidateIncentive: '1100000000000000000',
+        rateModel: {
+          jumpModel: {
+            baseRate: '20000000000000000',
+            jumpRate: '100000000000000000',
+            fullRate: '320000000000000000',
+            jumpUtilization: 8e5
+          }
+        },
+        state: 'Pending',
+        ptokenId: 2303
+      },
+      balances: []
     }
   ],
   pools: [
@@ -156,6 +208,18 @@ const config = {
       liquidityAmounts: ['100000000000', '10000000000000000'],
       lptokenReceiver: '5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf',
       liquidityProviderToken: 5000
+    },
+    {
+      pool: [102, 100],
+      liquidityAmounts: ['15000000000000', '50000000000000000'],
+      lptokenReceiver: '5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf',
+      liquidityProviderToken: 5001
+    },
+    {
+      pool: [100, 0],
+      liquidityAmounts: ['10000000000000000', '30000000000000000000'],
+      lptokenReceiver: '5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf',
+      liquidityProviderToken: 5002
     }
   ],
   crowdloans: [
