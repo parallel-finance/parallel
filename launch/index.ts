@@ -12,7 +12,6 @@ import { ApiPromise, Keyring, WsProvider } from '@polkadot/api'
 const EMPTY_U8A_32 = new Uint8Array(32)
 const BN_EIGHTEEN = new BN(18)
 const GiftPalletId = 'par/gift'
-const XcmFeesPalletId = 'par/fees'
 
 const createAddress = (id: string) =>
   encodeAddress(u8aConcat(stringToU8a(`modl${id}`), EMPTY_U8A_32).subarray(0, 32))
@@ -224,14 +223,19 @@ async function relay() {
       )
     )
   )
-  call.push(
-    downwardTransfer(api, config.paraId, createAddress(XcmFeesPalletId), '1000000000000000')
-  )
+
+  let relayAsset = config.assets.find(a => a.assetId === config.relayAsset)
+  if (relayAsset && relayAsset.balances.length) {
+    for (const [account, balance] of relayAsset.balances) {
+      call.push(downwardTransfer(api, config.paraId, account, balance))
+    }
+  }
 
   await api.tx.utility.batchAll(call).signAndSend(signer, { nonce: await nextIndex(api, signer) })
 }
 
-Promise.all([relay(), para()])
+relay()
+  .then(para)
   .then(() => process.exit(0))
   .catch(err => {
     console.error(err)
