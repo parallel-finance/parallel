@@ -172,16 +172,16 @@ pub mod pallet {
         pub fn add_liquidity(
             origin: OriginFor<T>,
             pair: (AssetIdOf<T, I>, AssetIdOf<T, I>),
-            liquidity_amounts: (BalanceOf<T, I>, BalanceOf<T, I>),
+            desired_amounts: (BalanceOf<T, I>, BalanceOf<T, I>),
             minimum_amounts: (BalanceOf<T, I>, BalanceOf<T, I>),
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             let (is_inverted, base_asset, quote_asset) = Self::sort_assets(pair)?;
 
             let (base_amount, quote_amount) = if is_inverted {
-                (liquidity_amounts.1, liquidity_amounts.0)
+                (desired_amounts.1, desired_amounts.0)
             } else {
-                (liquidity_amounts.0, liquidity_amounts.1)
+                (desired_amounts.0, desired_amounts.1)
             };
 
             let (minimum_base_amount, minimum_quote_amount) = if is_inverted {
@@ -197,19 +197,7 @@ pub mod pallet {
                     let mut pool = pool.as_mut().ok_or(Error::<T, I>::PoolDoesNotExist)?;
 
                     let (ideal_base_amount, ideal_quote_amount) =
-                        if pool.base_amount.is_zero() && pool.quote_amount.is_zero() {
-                            (base_amount, quote_amount)
-                        } else {
-                            let optimal_quote_amount =
-                                Self::quote(base_amount, pool.base_amount, pool.quote_amount)?;
-                            if optimal_quote_amount <= quote_amount {
-                                (base_amount, optimal_quote_amount)
-                            } else {
-                                let optimal_base_amount =
-                                    Self::quote(quote_amount, pool.quote_amount, pool.base_amount)?;
-                                (optimal_base_amount, quote_amount)
-                            }
-                        };
+                        Self::get_ideal_amounts(pool, desired_amounts)?;
 
                     ensure!(
                         ideal_base_amount <= base_amount && ideal_quote_amount <= quote_amount,
@@ -352,7 +340,7 @@ pub mod pallet {
         /// Create of a new pool, governance only
         ///
         /// - `pool`: Currency pool, in which liquidity will be added
-        /// - `pools`: Liquidity amounts to be added in pool
+        /// - `liquidity_amounts`: Liquidity amounts to be added in pool
         /// - `lptoken_receiver`: Allocate any liquidity tokens to lptoken_receiver
         #[pallet::weight(T::AMMWeightInfo::create_pool())]
         #[transactional]
@@ -432,6 +420,25 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             Ok((true, curr_b, curr_a))
         } else {
             Err(Error::<T, I>::IdenticalAssets.into())
+        }
+    }
+
+    fn get_ideal_amounts(
+        pool: &Pool<AssetIdOf<T, I>, BalanceOf<T, I>>,
+        (base_amount, quote_amount): (BalanceOf<T, I>, BalanceOf<T, I>),
+    ) -> Result<(BalanceOf<T, I>, BalanceOf<T, I>), DispatchError> {
+        if pool.base_amount.is_zero() && pool.quote_amount.is_zero() {
+            Ok((base_amount, quote_amount))
+        } else {
+            let optimal_quote_amount =
+                Self::quote(base_amount, pool.base_amount, pool.quote_amount)?;
+            if optimal_quote_amount <= quote_amount {
+                Ok((base_amount, optimal_quote_amount))
+            } else {
+                let optimal_base_amount =
+                    Self::quote(quote_amount, pool.quote_amount, pool.base_amount)?;
+                Ok((optimal_base_amount, quote_amount))
+            }
         }
     }
 
