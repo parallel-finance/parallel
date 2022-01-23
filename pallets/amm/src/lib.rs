@@ -245,7 +245,7 @@ pub mod pallet {
 
         /// Allow users to remove liquidity from a given pool
         ///
-        /// - `pool`: Currency pool, in which liquidity will be removed
+        /// - `pair`: Currency pool, in which liquidity will be removed
         /// - `liquidity`: liquidity to be removed from user's liquidity
         #[pallet::weight(T::AMMWeightInfo::remove_liquidity())]
         #[transactional]
@@ -259,33 +259,9 @@ pub mod pallet {
             let (_, base_asset, quote_asset) = Self::sort_assets(pair)?;
 
             Pools::<T, I>::try_mutate(base_asset, quote_asset, |pool| -> DispatchResult {
-                let mut pool = pool.as_mut().ok_or(Error::<T, I>::PoolDoesNotExist)?;
-                let total_supply = T::Assets::total_issuance(pool.lp_token_id);
-
-                ensure!(
-                    T::Assets::reducible_balance(pool.lp_token_id, &who, false) >= liquidity,
-                    Error::<T, I>::InsufficientLiquidity
-                );
-
-                let base_amount = liquidity
-                    .checked_mul(pool.base_amount)
-                    .and_then(|r| r.checked_div(total_supply))
-                    .ok_or(ArithmeticError::Underflow)?;
-
-                let quote_amount = liquidity
-                    .checked_mul(pool.quote_amount)
-                    .and_then(|r| r.checked_div(total_supply))
-                    .ok_or(ArithmeticError::Underflow)?;
-
-                pool.base_amount = pool
-                    .base_amount
-                    .checked_sub(base_amount)
-                    .ok_or(ArithmeticError::Underflow)?;
-
-                pool.quote_amount = pool
-                    .quote_amount
-                    .checked_sub(quote_amount)
-                    .ok_or(ArithmeticError::Underflow)?;
+                let pool = pool.as_mut().ok_or(Error::<T, I>::PoolDoesNotExist)?;
+                let (base_amount, quote_amount) =
+                    Self::do_remove_liquidity(&who, liquidity, pool, (base_asset, quote_asset))?;
 
                 let protocol_fees =
                     Self::get_protocol_fee(base_asset, quote_asset, base_amount, quote_amount)?;
@@ -296,10 +272,6 @@ pub mod pallet {
                     protocol_fees,
                     true,
                 )?;
-
-                T::Assets::burn_from(pool.lp_token_id, &who, liquidity)?;
-                T::Assets::transfer(base_asset, &Self::account_id(), &who, base_amount, false)?;
-                T::Assets::transfer(quote_asset, &Self::account_id(), &who, quote_amount, false)?;
 
                 Self::deposit_event(Event::<T, I>::LiquidityRemoved(
                     who,
@@ -477,26 +449,39 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     }
 
     #[require_transactional]
-    fn burn_transfer_liquidity(
-        who: T::AccountId,
+    fn do_remove_liquidity(
+        who: &T::AccountId,
         liquidity: BalanceOf<T, I>,
-        currency_asset: AssetIdOf<T, I>,
-        base_asset: AssetIdOf<T, I>,
-        quote_asset: AssetIdOf<T, I>,
-        base_amount: BalanceOf<T, I>,
-        quote_amount: BalanceOf<T, I>,
-    ) -> DispatchResult {
-        T::Assets::burn_from(currency_asset, &who, liquidity)?;
+        pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>>,
+        (base_asset, quote_asset): (AssetIdOf<T, I>, AssetIdOf<T, I>),
+    ) -> Result<(BalanceOf<T, I>, BalanceOf<T, I>), DispatchError> {
+        let total_supply = T::Assets::total_issuance(pool.lp_token_id);
+
+        let base_amount = liquidity
+            .checked_mul(pool.base_amount)
+            .and_then(|r| r.checked_div(total_supply))
+            .ok_or(ArithmeticError::Underflow)?;
+
+        let quote_amount = liquidity
+            .checked_mul(pool.quote_amount)
+            .and_then(|r| r.checked_div(total_supply))
+            .ok_or(ArithmeticError::Underflow)?;
+
+        pool.base_amount = pool
+            .base_amount
+            .checked_sub(base_amount)
+            .ok_or(ArithmeticError::Underflow)?;
+
+        pool.quote_amount = pool
+            .quote_amount
+            .checked_sub(quote_amount)
+            .ok_or(ArithmeticError::Underflow)?;
+
+        T::Assets::burn_from(pool.lp_token_id, &who, liquidity)?;
         T::Assets::transfer(base_asset, &Self::account_id(), &who, base_amount, false)?;
         T::Assets::transfer(quote_asset, &Self::account_id(), &who, quote_amount, false)?;
 
-        Self::deposit_event(Event::<T, I>::LiquidityRemoved(
-            who,
-            base_asset,
-            quote_asset,
-        ));
-
-        Ok(())
+        Ok((base_amount, quote_amount))
     }
 
     // update reserves and, on the first call per block, price accumulators
