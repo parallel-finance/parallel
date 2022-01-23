@@ -85,7 +85,7 @@ fn add_more_liquidity_should_not_work_if_minimum_base_amount_is_higher() {
                 (3_000, 4_000),
                 (5_500, 5_00)
             ),
-            Error::<Test>::NotAIdealPriceRatio
+            Error::<Test>::NotAnIdealPrice
         );
     })
 }
@@ -277,7 +277,7 @@ fn remove_liquidity_with_more_liquidity_should_not_work() {
 
         assert_noop!(
             AMM::remove_liquidity(RawOrigin::Signed(ALICE).into(), (DOT, XDOT), 3_0000),
-            Error::<Test>::MoreLiquidity
+            Error::<Test>::InsufficientLiquidity
         );
     })
 }

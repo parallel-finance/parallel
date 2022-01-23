@@ -113,7 +113,7 @@ benchmarks_instance_pallet! {
         let quote_amount = 200_000u128;
         let origin = T::CreatePoolOrigin::successful_origin();
         let call = Call::<T, I>::create_pool {
-            pool: (BASE_ASSET, QUOTE_ASSET),
+            pair: (BASE_ASSET, QUOTE_ASSET),
             liquidity_amounts: (base_amount, quote_amount),
             lptoken_receiver: caller.clone(),
             asset_id: ASSET_ID
