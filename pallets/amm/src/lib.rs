@@ -312,11 +312,7 @@ pub mod pallet {
                 (liquidity_amounts.0, liquidity_amounts.1)
             };
 
-            let mut pool = Pool {
-                base_amount: 0,
-                quote_amount: 0,
-                lp_token_id,
-            };
+            let mut pool = Pool::new(lp_token_id);
 
             Pools::<T, I>::insert(&base_asset, &quote_asset, pool);
 
@@ -374,7 +370,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         pool: &Pool<AssetIdOf<T, I>, BalanceOf<T, I>>,
         (base_amount, quote_amount): (BalanceOf<T, I>, BalanceOf<T, I>),
     ) -> Result<(BalanceOf<T, I>, BalanceOf<T, I>), DispatchError> {
-        if pool.base_amount.is_zero() && pool.quote_amount.is_zero() {
+        if pool.is_empty() {
             return Ok((base_amount, quote_amount));
         }
 
