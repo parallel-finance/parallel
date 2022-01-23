@@ -116,7 +116,7 @@ benchmarks_instance_pallet! {
             pair: (BASE_ASSET, QUOTE_ASSET),
             liquidity_amounts: (base_amount, quote_amount),
             lptoken_receiver: caller.clone(),
-            asset_id: ASSET_ID
+            lp_token_id: ASSET_ID
         };
     }: {
         call.dispatch_bypass_filter(origin)?

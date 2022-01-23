@@ -194,7 +194,7 @@ pub mod pallet {
                 base_asset,
                 quote_asset,
                 |pool| -> DispatchResultWithPostInfo {
-                    let mut pool = pool.as_mut().ok_or(Error::<T, I>::PoolDoesNotExist)?;
+                    let pool = pool.as_mut().ok_or(Error::<T, I>::PoolDoesNotExist)?;
 
                     let (ideal_base_amount, ideal_quote_amount) =
                         Self::get_ideal_amounts(pool, desired_amounts)?;
@@ -210,34 +210,12 @@ pub mod pallet {
                         Error::<T, I>::NotAnIdealPrice
                     );
 
-                    let total_supply = T::Assets::total_issuance(pool.lp_token_id);
-                    let liquidity = if total_supply.is_zero() {
-                        ideal_base_amount
-                            .checked_mul(ideal_quote_amount)
-                            .map(|r| r.integer_sqrt())
-                            .and_then(|r| r.checked_sub(T::MinimumLiquidity::get()))
-                            .ok_or(ArithmeticError::Underflow)?
-                    } else {
-                        min(
-                            ideal_base_amount
-                                .checked_mul(total_supply)
-                                .and_then(|r| r.checked_div(pool.base_amount))
-                                .ok_or(ArithmeticError::Overflow)?,
-                            ideal_quote_amount
-                                .checked_mul(total_supply)
-                                .and_then(|r| r.checked_div(pool.quote_amount))
-                                .ok_or(ArithmeticError::Overflow)?,
-                        )
-                    };
-
-                    pool.base_amount = pool
-                        .base_amount
-                        .checked_add(ideal_base_amount)
-                        .ok_or(ArithmeticError::Overflow)?;
-                    pool.quote_amount = pool
-                        .quote_amount
-                        .checked_add(ideal_quote_amount)
-                        .ok_or(ArithmeticError::Overflow)?;
+                    Self::do_add_liquidity(
+                        &who,
+                        pool,
+                        (ideal_base_amount, ideal_quote_amount),
+                        (base_asset, quote_asset),
+                    )?;
 
                     let protocol_fees = Self::get_protocol_fee(
                         base_asset,
@@ -254,15 +232,11 @@ pub mod pallet {
                         true,
                     )?;
 
-                    Self::mint_transfer_liquidity(
+                    Self::deposit_event(Event::<T, I>::LiquidityAdded(
                         who,
-                        liquidity,
-                        pool.lp_token_id,
                         base_asset,
                         quote_asset,
-                        ideal_base_amount,
-                        ideal_quote_amount,
-                    )?;
+                    ));
 
                     Ok(().into())
                 },
@@ -342,6 +316,7 @@ pub mod pallet {
         /// - `pool`: Currency pool, in which liquidity will be added
         /// - `liquidity_amounts`: Liquidity amounts to be added in pool
         /// - `lptoken_receiver`: Allocate any liquidity tokens to lptoken_receiver
+        /// - `lp_token_id`: Liquidity pool share representive token
         #[pallet::weight(T::AMMWeightInfo::create_pool())]
         #[transactional]
         pub fn create_pool(
@@ -349,7 +324,7 @@ pub mod pallet {
             pair: (AssetIdOf<T, I>, AssetIdOf<T, I>),
             liquidity_amounts: (BalanceOf<T, I>, BalanceOf<T, I>),
             lptoken_receiver: T::AccountId,
-            asset_id: AssetIdOf<T, I>,
+            lp_token_id: AssetIdOf<T, I>,
         ) -> DispatchResultWithPostInfo {
             T::CreatePoolOrigin::ensure_origin(origin)?;
 
@@ -365,26 +340,26 @@ pub mod pallet {
                 (liquidity_amounts.0, liquidity_amounts.1)
             };
 
-            let liquidity = base_amount
-                .checked_mul(quote_amount)
-                .map(|r| r.integer_sqrt())
-                .ok_or(ArithmeticError::Overflow)?;
-            let amm_pool = Pool {
-                base_amount,
-                quote_amount,
-                lp_token_id: asset_id,
+            let mut pool = Pool {
+                base_amount: 0,
+                quote_amount: 0,
+                lp_token_id,
             };
-            Pools::<T, I>::insert(&base_asset, &quote_asset, amm_pool);
 
-            Self::mint_transfer_liquidity(
-                lptoken_receiver.clone(),
-                liquidity,
-                asset_id,
+            Pools::<T, I>::insert(&base_asset, &quote_asset, pool);
+
+            Self::do_add_liquidity(
+                &lptoken_receiver,
+                &mut pool,
+                (base_amount, quote_amount),
+                (base_asset, quote_asset),
+            )?;
+
+            Self::deposit_event(Event::<T, I>::LiquidityAdded(
+                lptoken_receiver,
                 base_asset,
                 quote_asset,
-                base_amount,
-                quote_amount,
-            )?;
+            ));
 
             Ok(().into())
         }
@@ -428,58 +403,75 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         (base_amount, quote_amount): (BalanceOf<T, I>, BalanceOf<T, I>),
     ) -> Result<(BalanceOf<T, I>, BalanceOf<T, I>), DispatchError> {
         if pool.base_amount.is_zero() && pool.quote_amount.is_zero() {
-            Ok((base_amount, quote_amount))
+            return Ok((base_amount, quote_amount));
+        }
+
+        let ideal_quote_amount = Self::quote(base_amount, pool.base_amount, pool.quote_amount)?;
+        if ideal_quote_amount <= quote_amount {
+            Ok((base_amount, ideal_quote_amount))
         } else {
-            let optimal_quote_amount =
-                Self::quote(base_amount, pool.base_amount, pool.quote_amount)?;
-            if optimal_quote_amount <= quote_amount {
-                Ok((base_amount, optimal_quote_amount))
-            } else {
-                let optimal_base_amount =
-                    Self::quote(quote_amount, pool.quote_amount, pool.base_amount)?;
-                Ok((optimal_base_amount, quote_amount))
-            }
+            let ideal_base_amount = Self::quote(quote_amount, pool.quote_amount, pool.base_amount)?;
+            Ok((ideal_base_amount, quote_amount))
         }
     }
 
     #[require_transactional]
-    fn mint_transfer_liquidity(
-        who: T::AccountId,
-        liquidity: BalanceOf<T, I>,
-        currency_asset: AssetIdOf<T, I>,
-        base_asset: AssetIdOf<T, I>,
-        quote_asset: AssetIdOf<T, I>,
-        base_amount: BalanceOf<T, I>,
-        quote_amount: BalanceOf<T, I>,
-    ) -> DispatchResult {
-        // check if any tokens have been issued
-        if T::Assets::total_issuance(currency_asset).is_zero() {
-            let liquidity_minus_inital_miniumum_deposit = liquidity
-                .checked_sub(T::MinimumLiquidity::get())
-                .ok_or(ArithmeticError::Underflow)?;
-
-            // lock minimum liquidity forever when liquidity is first added
+    fn do_add_liquidity(
+        who: &T::AccountId,
+        pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>>,
+        (ideal_base_amount, ideal_quote_amount): (BalanceOf<T, I>, BalanceOf<T, I>),
+        (base_asset, quote_asset): (AssetIdOf<T, I>, AssetIdOf<T, I>),
+    ) -> Result<(), DispatchError> {
+        let total_supply = T::Assets::total_issuance(pool.lp_token_id);
+        let liquidity = if total_supply.is_zero() {
             T::Assets::mint_into(
-                currency_asset,
+                pool.lp_token_id,
                 &Self::lock_account_id(),
                 T::MinimumLiquidity::get(),
             )?;
 
-            // send remaining tokens to user
-            T::Assets::mint_into(
-                currency_asset,
-                &who,
-                liquidity_minus_inital_miniumum_deposit,
-            )?;
+            ideal_base_amount
+                .checked_mul(ideal_quote_amount)
+                .map(|r| r.integer_sqrt())
+                .and_then(|r| r.checked_sub(T::MinimumLiquidity::get()))
+                .ok_or(ArithmeticError::Underflow)?
         } else {
-            // if this is not the first mint send tokens to user
-            T::Assets::mint_into(currency_asset, &who, liquidity)?;
-        }
+            min(
+                ideal_base_amount
+                    .checked_mul(total_supply)
+                    .and_then(|r| r.checked_div(pool.base_amount))
+                    .ok_or(ArithmeticError::Overflow)?,
+                ideal_quote_amount
+                    .checked_mul(total_supply)
+                    .and_then(|r| r.checked_div(pool.quote_amount))
+                    .ok_or(ArithmeticError::Overflow)?,
+            )
+        };
 
-        T::Assets::transfer(base_asset, &who, &Self::account_id(), base_amount, true)?;
-        T::Assets::transfer(quote_asset, &who, &Self::account_id(), quote_amount, true)?;
+        T::Assets::mint_into(pool.lp_token_id, &who, liquidity)?;
 
-        Self::deposit_event(Event::<T, I>::LiquidityAdded(who, base_asset, quote_asset));
+        pool.base_amount = pool
+            .base_amount
+            .checked_add(ideal_base_amount)
+            .ok_or(ArithmeticError::Overflow)?;
+        pool.quote_amount = pool
+            .quote_amount
+            .checked_add(ideal_quote_amount)
+            .ok_or(ArithmeticError::Overflow)?;
+        T::Assets::transfer(
+            base_asset,
+            &who,
+            &Self::account_id(),
+            ideal_base_amount,
+            true,
+        )?;
+        T::Assets::transfer(
+            quote_asset,
+            &who,
+            &Self::account_id(),
+            ideal_quote_amount,
+            true,
+        )?;
 
         Ok(())
     }
