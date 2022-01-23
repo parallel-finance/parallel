@@ -210,7 +210,7 @@ pub mod pallet {
                         Error::<T, I>::NotAnIdealPrice
                     );
 
-                    let total_supply = T::Assets::total_issuance(pool.pool_assets);
+                    let total_supply = T::Assets::total_issuance(pool.lp_token_id);
                     let liquidity = if total_supply.is_zero() {
                         ideal_base_amount
                             .checked_mul(ideal_quote_amount)
@@ -247,7 +247,7 @@ pub mod pallet {
                     )?;
 
                     T::Assets::transfer(
-                        pool.pool_assets,
+                        pool.lp_token_id,
                         &who,
                         &T::ProtocolFeeReceiver::get(),
                         protocol_fees,
@@ -257,7 +257,7 @@ pub mod pallet {
                     Self::mint_transfer_liquidity(
                         who,
                         liquidity,
-                        pool.pool_assets,
+                        pool.lp_token_id,
                         base_asset,
                         quote_asset,
                         ideal_base_amount,
@@ -286,10 +286,10 @@ pub mod pallet {
 
             Pools::<T, I>::try_mutate(base_asset, quote_asset, |pool| -> DispatchResult {
                 let mut pool = pool.as_mut().ok_or(Error::<T, I>::PoolDoesNotExist)?;
-                let total_supply = T::Assets::total_issuance(pool.pool_assets);
+                let total_supply = T::Assets::total_issuance(pool.lp_token_id);
 
                 ensure!(
-                    T::Assets::reducible_balance(pool.pool_assets, &who, false) >= liquidity,
+                    T::Assets::reducible_balance(pool.lp_token_id, &who, false) >= liquidity,
                     Error::<T, I>::InsufficientLiquidity
                 );
 
@@ -316,14 +316,14 @@ pub mod pallet {
                 let protocol_fees =
                     Self::get_protocol_fee(base_asset, quote_asset, base_amount, quote_amount)?;
                 T::Assets::transfer(
-                    pool.pool_assets,
+                    pool.lp_token_id,
                     &who,
                     &T::ProtocolFeeReceiver::get(),
                     protocol_fees,
                     true,
                 )?;
 
-                T::Assets::burn_from(pool.pool_assets, &who, liquidity)?;
+                T::Assets::burn_from(pool.lp_token_id, &who, liquidity)?;
                 T::Assets::transfer(base_asset, &Self::account_id(), &who, base_amount, false)?;
                 T::Assets::transfer(quote_asset, &Self::account_id(), &who, quote_amount, false)?;
 
@@ -372,7 +372,7 @@ pub mod pallet {
             let amm_pool = Pool {
                 base_amount,
                 quote_amount,
-                pool_assets: asset_id,
+                lp_token_id: asset_id,
             };
             Pools::<T, I>::insert(&base_asset, &quote_asset, amm_pool);
 
@@ -693,7 +693,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .ok_or(ArithmeticError::Overflow)?;
 
         if root_k > root_k_last {
-            let total_supply: BalanceOf<T, I> = T::Assets::total_issuance(pool.pool_assets);
+            let total_supply: BalanceOf<T, I> = T::Assets::total_issuance(pool.lp_token_id);
 
             let numerator = root_k
                 .checked_sub(root_k_last)

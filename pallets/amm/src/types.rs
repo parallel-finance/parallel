@@ -7,5 +7,5 @@ use sp_runtime::RuntimeDebug;
 pub struct Pool<CurrencyId, Balance> {
     pub base_amount: Balance,
     pub quote_amount: Balance,
-    pub pool_assets: CurrencyId,
+    pub lp_token_id: CurrencyId,
 }
