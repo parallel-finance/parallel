@@ -384,7 +384,7 @@ pub mod pallet {
 
             let ownership = base_amount
                 .checked_mul(quote_amount)
-                .and_then(|r| Some(r.integer_sqrt()))
+                .map(|r| r.integer_sqrt())
                 .ok_or(ArithmeticError::Overflow)?;
             let amm_pool = Pool {
                 base_amount,
@@ -680,12 +680,12 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             Pools::<T, I>::get(&base_asset, &quote_asset).ok_or(Error::<T, I>::PoolDoesNotExist)?;
         let root_k = base_amount
             .checked_mul(quote_amount)
-            .and_then(|r| Some(r.integer_sqrt()))
+            .map(|r| r.integer_sqrt())
             .ok_or(ArithmeticError::Overflow)?;
         let root_k_last = pool
             .base_amount
             .checked_mul(pool.quote_amount)
-            .and_then(|r| Some(r.integer_sqrt()))
+            .map(|r| r.integer_sqrt())
             .ok_or(ArithmeticError::Overflow)?;
 
         if root_k > root_k_last {
