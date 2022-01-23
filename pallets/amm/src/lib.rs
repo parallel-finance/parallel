@@ -200,46 +200,62 @@ pub mod pallet {
                         .as_mut()
                         .ok_or(Error::<T, I>::PoolDoesNotExist)?;
 
-                    let optimal_quote_amount = Self::quote(
-                        base_amount,
-                        liquidity_amount.base_amount,
-                        liquidity_amount.quote_amount,
-                    )?;
-
                     let (ideal_base_amount, ideal_quote_amount): (
                         BalanceOf<T, I>,
                         BalanceOf<T, I>,
-                    ) = if optimal_quote_amount <= quote_amount {
-                        (base_amount, optimal_quote_amount)
+                    ) = if liquidity_amount.base_amount.is_zero()
+                        && liquidity_amount.quote_amount.is_zero()
+                    {
+                        (base_amount, quote_amount)
                     } else {
-                        let optimal_base_amount = Self::quote(
-                            quote_amount,
-                            liquidity_amount.quote_amount,
+                        let optimal_quote_amount = Self::quote(
+                            base_amount,
                             liquidity_amount.base_amount,
+                            liquidity_amount.quote_amount,
                         )?;
-                        (optimal_base_amount, quote_amount)
+                        if optimal_quote_amount <= quote_amount {
+                            (base_amount, optimal_quote_amount)
+                        } else {
+                            let optimal_base_amount = Self::quote(
+                                quote_amount,
+                                liquidity_amount.quote_amount,
+                                liquidity_amount.base_amount,
+                            )?;
+                            (optimal_base_amount, quote_amount)
+                        }
                     };
 
                     ensure!(
+                        ideal_base_amount <= base_amount && ideal_quote_amount <= quote_amount,
+                        Error::<T, I>::InsufficientAmountIn
+                    );
+
+                    ensure!(
                         ideal_base_amount >= minimum_base_amount
-                            && ideal_quote_amount >= minimum_quote_amount
-                            && ideal_base_amount <= base_amount
-                            && ideal_quote_amount <= quote_amount,
+                            && ideal_quote_amount >= minimum_quote_amount,
                         Error::<T, I>::NotAIdealPriceRatio
                     );
 
                     let (base_amount, quote_amount) = (ideal_base_amount, ideal_quote_amount);
-                    let total_ownership = T::Assets::total_issuance(liquidity_amount.pool_assets);
-                    let ownership = min(
-                        base_amount
-                            .checked_mul(total_ownership)
-                            .and_then(|r| r.checked_div(liquidity_amount.base_amount))
-                            .ok_or(ArithmeticError::Overflow)?,
-                        quote_amount
-                            .checked_mul(total_ownership)
-                            .and_then(|r| r.checked_div(liquidity_amount.quote_amount))
-                            .ok_or(ArithmeticError::Overflow)?,
-                    );
+                    let total_supply = T::Assets::total_issuance(liquidity_amount.pool_assets);
+                    let ownership = if total_supply.is_zero() {
+                        ideal_base_amount
+                            .checked_mul(ideal_quote_amount)
+                            .map(|r| r.integer_sqrt())
+                            .and_then(|r| r.checked_sub(T::MinimumLiquidity::get()))
+                            .ok_or(ArithmeticError::Underflow)?
+                    } else {
+                        min(
+                            ideal_base_amount
+                                .checked_mul(total_supply)
+                                .and_then(|r| r.checked_div(liquidity_amount.base_amount))
+                                .ok_or(ArithmeticError::Overflow)?,
+                            ideal_quote_amount
+                                .checked_mul(total_supply)
+                                .and_then(|r| r.checked_div(liquidity_amount.quote_amount))
+                                .ok_or(ArithmeticError::Overflow)?,
+                        )
+                    };
 
                     liquidity_amount.base_amount = liquidity_amount
                         .base_amount
