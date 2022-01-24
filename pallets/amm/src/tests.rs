@@ -2,6 +2,7 @@ use super::*;
 use crate::mock::*;
 use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
+use primitives::AMM as _;
 
 const MINIMUM_LIQUIDITY: u128 = 1_000;
 
@@ -285,8 +286,6 @@ fn remove_liquidity_with_more_liquidity_should_not_work() {
 #[test]
 fn trade_should_work_base_to_quote() {
     new_test_ext().execute_with(|| {
-        use primitives::AMM as _;
-
         let trader = EVE;
 
         // create pool and add liquidity
@@ -322,8 +321,6 @@ fn trade_should_work_base_to_quote() {
 #[test]
 fn trade_should_work_base_to_quote_flipped_currencies_on_pool_creation() {
     new_test_ext().execute_with(|| {
-        use primitives::AMM as _;
-
         let trader = EVE;
 
         // create pool and add liquidity
@@ -359,8 +356,6 @@ fn trade_should_work_base_to_quote_flipped_currencies_on_pool_creation() {
 #[test]
 fn trade_should_work_quote_to_base() {
     new_test_ext().execute_with(|| {
-        use primitives::AMM as _;
-
         let trader = EVE;
 
         // create pool and add liquidity
@@ -397,8 +392,6 @@ fn trade_should_work_quote_to_base() {
 #[test]
 fn trade_should_not_work_if_insufficient_amount_in() {
     new_test_ext().execute_with(|| {
-        use primitives::AMM as _;
-
         let trader = EVE;
 
         assert_ok!(AMM::create_pool(
@@ -432,8 +425,6 @@ fn trade_should_not_work_if_insufficient_amount_in() {
 #[test]
 fn trade_should_work_flipped_currencies() {
     new_test_ext().execute_with(|| {
-        use primitives::AMM as _;
-
         let trader = EVE;
 
         // create pool and add liquidity
@@ -470,8 +461,6 @@ fn trade_should_work_flipped_currencies() {
 #[test]
 fn trade_should_not_work_if_amount_less_than_miniumum() {
     new_test_ext().execute_with(|| {
-        use primitives::AMM as _;
-
         let trader = EVE;
 
         // create pool and add liquidity
@@ -497,8 +486,6 @@ fn trade_should_not_work_if_amount_less_than_miniumum() {
 #[test]
 fn trade_should_not_work_if_amount_in_is_zero() {
     new_test_ext().execute_with(|| {
-        use primitives::AMM as _;
-
         let trader = EVE;
 
         // create pool and add liquidity
@@ -521,8 +508,6 @@ fn trade_should_not_work_if_amount_in_is_zero() {
 #[test]
 fn trade_should_not_work_if_pool_does_not_exist() {
     new_test_ext().execute_with(|| {
-        use primitives::AMM as _;
-
         let trader = EVE;
 
         // try to trade in pool with no liquidity
