@@ -214,7 +214,7 @@ pub mod pallet {
                     let pool = pool.as_mut().ok_or(Error::<T, I>::PoolDoesNotExist)?;
 
                     let (ideal_base_amount, ideal_quote_amount) =
-                        Self::get_ideal_amounts(pool, desired_amounts)?;
+                        Self::get_ideal_amounts(pool, (base_amount, quote_amount))?;
 
                     ensure!(
                         ideal_base_amount <= base_amount && ideal_quote_amount <= quote_amount,
