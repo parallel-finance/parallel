@@ -541,7 +541,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .checked_mul(pool.base_amount)
             .and_then(|r| r.checked_div(total_supply))
             .ok_or(ArithmeticError::Underflow)?;
-
         let quote_amount = liquidity
             .checked_mul(pool.quote_amount)
             .and_then(|r| r.checked_div(total_supply))
@@ -550,12 +549,12 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         pool.base_amount = pool
             .base_amount
             .checked_sub(base_amount)
-            .ok_or(ArithmeticError::Underflow)?;
+            .ok_or(Error::<T, I>::InsufficientLiquidity)?;
 
         pool.quote_amount = pool
             .quote_amount
             .checked_sub(quote_amount)
-            .ok_or(ArithmeticError::Underflow)?;
+            .ok_or(Error::<T, I>::InsufficientLiquidity)?;
 
         T::Assets::burn_from(pool.lp_token_id, &who, liquidity)?;
         T::Assets::transfer(base_asset, &Self::account_id(), &who, base_amount, false)?;
