@@ -34,7 +34,7 @@ use frame_support::{
     pallet_prelude::*,
     traits::{
         fungibles::{Inspect, Mutate, Transfer},
-        Get, Hooks, IsType,
+        Get, IsType,
     },
     transactional, Blake2_128Concat, PalletId,
 };
@@ -119,9 +119,6 @@ pub mod pallet {
         AssetsWithdrew(T::AccountId, AssetIdOf<T, I>),
     }
 
-    #[pallet::hooks]
-    impl<T: Config<I>, I: 'static> Hooks<T::BlockNumber> for Pallet<T, I> {}
-
     #[pallet::pallet]
     pub struct Pallet<T, I = ()>(_);
 
@@ -137,7 +134,7 @@ pub mod pallet {
         /// Which assets we use to send rewards
         rewards: BoundedTokens,
         /// Which asset we use to represent shares of the pool
-        shares: AssetId,
+        asset_id: AssetId,
     }
 
     /// Each pool is associated to a unique AssetId (not be mixed with the reward asset)
@@ -167,7 +164,7 @@ pub mod pallet {
             start: T::BlockNumber,
             end: T::BlockNumber,
             rewards: BoundedVec<(BalanceOf<T, I>, AssetIdOf<T, I>), T::MaxRewardTokens>,
-            shares: AssetIdOf<T, I>,
+            asset_id: AssetIdOf<T, I>,
         ) -> DispatchResultWithPostInfo {
             T::CreateOrigin::ensure_origin(origin)?;
 
@@ -179,7 +176,7 @@ pub mod pallet {
             );
 
             ensure!(
-                T::Assets::total_issuance(shares) == Zero::zero(),
+                T::Assets::total_issuance(asset_id).is_zero(),
                 Error::<T, I>::NotANewlyCreatedAsset
             );
 
@@ -193,16 +190,23 @@ pub mod pallet {
 
             let asset_pool_account = Self::pool_account_id(asset);
 
-            for (b, r) in rewards.clone() {
-                let balance = Self::block_to_balance(end.saturating_sub(start)).saturating_mul(b);
-                T::Assets::transfer(r, &stash, &asset_pool_account, balance, true)?;
+            for (per_block, reward_token) in rewards.clone() {
+                let total_rewards =
+                    Self::block_to_balance(end.saturating_sub(start)).saturating_mul(per_block);
+                T::Assets::transfer(
+                    reward_token,
+                    &stash,
+                    &asset_pool_account,
+                    total_rewards,
+                    true,
+                )?;
             }
 
             let pool = Pool {
                 start,
                 end,
                 rewards,
-                shares,
+                asset_id,
             };
 
             Pools::<T, I>::insert(&asset, pool);
@@ -235,7 +239,7 @@ pub mod pallet {
 
                 T::Assets::transfer(asset, &who, &asset_pool_account, amount, true)?;
 
-                T::Assets::mint_into(pool.shares, &who, amount)?;
+                T::Assets::mint_into(pool.asset_id, &who, amount)?;
 
                 Self::deposit_event(Event::<T, I>::AssetsDeposited(who, asset));
                 Ok(())
@@ -257,24 +261,30 @@ pub mod pallet {
 
             Pools::<T, I>::try_mutate(asset, |liquidity_pool| -> DispatchResultWithPostInfo {
                 let pool = liquidity_pool
-                    .take()
+                    .as_mut()
                     .ok_or(Error::<T, I>::PoolDoesNotExist)?;
 
-                for (b, r) in pool.rewards.clone() {
+                for (per_block, reward_token) in pool.rewards.clone() {
                     let duration: T::BlockNumber =
                         <frame_system::Pallet<T>>::block_number().saturating_sub(pool.start);
-                    let amount_to_reward = (amount
-                        .checked_div(T::Assets::total_issuance(pool.shares))
-                        .ok_or(ArithmeticError::Overflow)?)
-                    .saturating_mul(Self::block_to_balance(duration).saturating_mul(b));
+                    let percent = amount
+                        .checked_div(T::Assets::total_issuance(pool.asset_id))
+                        .ok_or(ArithmeticError::Overflow)?;
+                    let total_rewards = percent
+                        .saturating_mul(Self::block_to_balance(duration).saturating_mul(per_block));
 
-                    T::Assets::transfer(r, &asset_pool_account, &who, amount_to_reward, true)?;
+                    T::Assets::transfer(
+                        reward_token,
+                        &asset_pool_account,
+                        &who,
+                        total_rewards,
+                        true,
+                    )?;
                 }
 
                 T::Assets::transfer(asset, &asset_pool_account, &who, amount, true)?;
-                T::Assets::burn_from(pool.shares, &who, amount)?;
+                T::Assets::burn_from(pool.asset_id, &who, amount)?;
 
-                *liquidity_pool = Some(pool);
                 Self::deposit_event(Event::<T, I>::AssetsWithdrew(who, asset));
                 Ok(().into())
             })

@@ -75,7 +75,7 @@ benchmarks_instance_pallet! {
             start: T::BlockNumber::from(3u32),
             end: T::BlockNumber::from(5u32),
             rewards: vec![(1, ASSET); 1000].try_into().unwrap(),
-            shares: ASSET_ID
+            asset_id: ASSET_ID
         };
     }: { call.dispatch_bypass_filter(origin)? }
     verify {
