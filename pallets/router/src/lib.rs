@@ -37,14 +37,11 @@ pub mod pallet {
         pallet_prelude::DispatchResultWithPostInfo,
         traits::{
             fungibles::{Inspect, Mutate, Transfer},
-            Get, Hooks, IsType,
+            Get, IsType,
         },
         transactional, BoundedVec, PalletId,
     };
-    use frame_system::{
-        ensure_signed,
-        pallet_prelude::{BlockNumberFor, OriginFor},
-    };
+    use frame_system::{ensure_signed, pallet_prelude::OriginFor};
     use primitives::{Balance, CurrencyId, AMM};
     use sp_runtime::traits::{One, Zero};
 
@@ -69,7 +66,7 @@ pub mod pallet {
 
         /// Router pallet id
         #[pallet::constant]
-        type RouterPalletId: Get<PalletId>;
+        type PalletId: Get<PalletId>;
 
         /// Specify all the AMMs we are routing between
         type AMM: AMM<Self, AssetIdOf<Self, I>, BalanceOf<Self, I>>;
@@ -114,9 +111,6 @@ pub mod pallet {
         /// [sender, amount_in, route, amount_out]
         Traded(T::AccountId, BalanceOf<T, I>, Route<T, I>, BalanceOf<T, I>),
     }
-
-    #[pallet::hooks]
-    impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {}
 
     #[pallet::call]
     impl<T: Config<I>, I: 'static> Pallet<T, I> {

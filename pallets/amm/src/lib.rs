@@ -324,6 +324,8 @@ pub mod pallet {
                 lptoken_receiver,
                 base_asset,
                 quote_asset,
+                base_amount,
+                quote_amount,
             ));
 
             Ok(().into())

@@ -159,7 +159,7 @@ parameter_types! {
 
 impl Config for Runtime {
     type Event = Event;
-    type RouterPalletId = RouterPalletId;
+    type PalletId = RouterPalletId;
     type AMM = DefaultAMM;
     type AMMRouterWeightInfo = ();
     type MaxLengthRoute = MaxLengthRoute;
