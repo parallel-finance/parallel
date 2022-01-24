@@ -596,12 +596,11 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     #[require_transactional]
     fn do_trade(
         who: &T::AccountId,
-        pair: (AssetIdOf<T, I>, AssetIdOf<T, I>),
+        (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),
         amount_in: BalanceOf<T, I>,
         minimum_amount_out: BalanceOf<T, I>,
     ) -> Result<BalanceOf<T, I>, DispatchError> {
-        let (is_inverted, base_asset, quote_asset) = Self::sort_assets(pair)?;
-        let (input_token, output_token) = pair;
+        let (is_inverted, base_asset, quote_asset) = Self::sort_assets((asset_in, asset_out))?;
 
         Pools::<T, I>::try_mutate(
             &base_asset,
@@ -616,33 +615,24 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 };
 
                 ensure!(
-                    amount_in >= T::LpFee::get().saturating_reciprocal_mul(One::one())
-                        && amount_in >= T::ProtocolFee::get().saturating_reciprocal_mul(One::one()),
+                    amount_in >= T::LpFee::get().saturating_reciprocal_mul(One::one()),
                     Error::<T, I>::InsufficientAmountIn
                 );
+                ensure!(!supply_out.is_zero(), Error::<T, I>::InsufficientAmountOut);
 
-                // ensure!(
-                //     amount_in > Zero::zero(),
-                //     Error::<T, I>::InsufficientAmountIn
-                // );
-                // ensure!(
-                //     reserve_in > Zero::zero() && reserve_out > Zero::zero(),
-                //     Error::<T, I>::InsufficientAmountIn
-                // );
                 let amount_out = Self::get_amount_out(amount_in, supply_in, supply_out)?;
 
-                // TODO: we should only do this check if we are calculating a minimum amount out
                 ensure!(
-                    amount_out >= minimum_amount_out && amount_in > Zero::zero(),
-                    Error::<T, I>::InsufficientAmountOut
+                    amount_out >= minimum_amount_out,
+                    Error::<T, I>::NotAnIdealPrice
                 );
 
                 Self::update(pool, amount_in, amount_out, is_inverted)?;
 
-                T::Assets::transfer(input_token, who, &Self::account_id(), amount_in, true)?;
-                T::Assets::transfer(output_token, &Self::account_id(), who, amount_out, true)?;
+                T::Assets::transfer(asset_in, who, &Self::account_id(), amount_in, true)?;
+                T::Assets::transfer(asset_out, &Self::account_id(), who, amount_out, false)?;
 
-                Self::deposit_event(Event::<T, I>::Traded(who.clone(), base_asset, quote_asset));
+                Self::deposit_event(Event::<T, I>::Traded(who.clone(), asset_in, asset_out));
 
                 Ok(amount_out)
             },
