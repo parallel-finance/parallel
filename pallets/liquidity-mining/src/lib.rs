@@ -113,10 +113,10 @@ pub mod pallet {
         PoolAdded(AssetIdOf<T, I>),
         /// Deposited Assets in pool
         /// [sender, asset_id]
-        DepositedAssets(T::AccountId, AssetIdOf<T, I>),
+        AssetsDeposited(T::AccountId, AssetIdOf<T, I>),
         /// Withdrew Assets from pool
         /// [sender, asset_id]
-        WithdrewAssets(T::AccountId, AssetIdOf<T, I>),
+        AssetsWithdrew(T::AccountId, AssetIdOf<T, I>),
     }
 
     #[pallet::hooks]
@@ -216,7 +216,7 @@ pub mod pallet {
         pub fn deposit(
             origin: OriginFor<T>,
             asset: AssetIdOf<T, I>,
-            amount: BalanceOf<T, I>,
+            #[pallet::compact] amount: BalanceOf<T, I>,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
             ensure!(amount != Zero::zero(), Error::<T, I>::NotAValidAmount);
@@ -224,7 +224,7 @@ pub mod pallet {
             let asset_pool_account = Self::pool_account_id(asset);
             Pools::<T, I>::try_mutate(asset, |liquidity_pool| -> DispatchResult {
                 let pool = liquidity_pool
-                    .take()
+                    .as_mut()
                     .ok_or(Error::<T, I>::PoolDoesNotExist)?;
 
                 let current_block_number = <frame_system::Pallet<T>>::block_number();
@@ -237,9 +237,7 @@ pub mod pallet {
 
                 T::Assets::mint_into(pool.shares, &who, amount)?;
 
-                *liquidity_pool = Some(pool);
-
-                Self::deposit_event(Event::<T, I>::DepositedAssets(who, asset));
+                Self::deposit_event(Event::<T, I>::AssetsDeposited(who, asset));
                 Ok(())
             })
         }
@@ -250,7 +248,7 @@ pub mod pallet {
         pub fn withdraw(
             origin: OriginFor<T>,
             asset: AssetIdOf<T, I>,
-            amount: BalanceOf<T, I>,
+            #[pallet::compact] amount: BalanceOf<T, I>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             ensure!(amount != Zero::zero(), Error::<T, I>::NotAValidAmount);
@@ -277,7 +275,7 @@ pub mod pallet {
                 T::Assets::burn_from(pool.shares, &who, amount)?;
 
                 *liquidity_pool = Some(pool);
-                Self::deposit_event(Event::<T, I>::WithdrewAssets(who, asset));
+                Self::deposit_event(Event::<T, I>::AssetsWithdrew(who, asset));
                 Ok(().into())
             })
         }

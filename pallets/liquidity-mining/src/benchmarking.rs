@@ -91,7 +91,7 @@ benchmarks_instance_pallet! {
             T::BlockNumber::zero(),T::BlockNumber::from(15u32), vec![(1, ASSET); 1000].try_into().unwrap(),ASSET_ID));
     }: _(SystemOrigin::Signed(caller.clone()), ASSET, amount)
     verify {
-        assert_last_event::<T, I>(Event::DepositedAssets(caller, ASSET).into());
+        assert_last_event::<T, I>(Event::AssetsDeposited(caller, ASSET).into());
     }
 
     withdraw {
@@ -105,7 +105,7 @@ benchmarks_instance_pallet! {
         assert_ok!(LM::<T, I>::deposit(SystemOrigin::Signed(caller.clone()).into(), ASSET, amount));
     }: _(SystemOrigin::Signed(caller.clone()), ASSET, amount)
     verify {
-        assert_last_event::<T, I>(Event::WithdrewAssets(caller, ASSET).into());
+        assert_last_event::<T, I>(Event::AssetsWithdrew(caller, ASSET).into());
     }
 
 }
