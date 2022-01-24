@@ -1,9 +1,9 @@
 use codec::{Decode, Encode};
 
+use frame_support::traits::tokens::Balance as BalanceT;
 use scale_info::TypeInfo;
 use sp_runtime::{
-    traits::{AtLeast32BitUnsigned, Zero},
-    ArithmeticError, DispatchError, FixedPointNumber, FixedPointOperand, RuntimeDebug,
+    traits::Zero, ArithmeticError, DispatchError, FixedPointNumber, FixedPointOperand, RuntimeDebug,
 };
 use sp_std::cmp::Ordering;
 
@@ -18,7 +18,7 @@ pub enum StakingSettlementKind {
 
 /// The matching pool's total stake & unstake amount in one era
 #[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct MatchingLedger<Balance> {
+pub struct MatchingLedger<Balance: BalanceT> {
     /// The total stake amount in one era
     pub total_stake_amount: Balance,
     /// The total unstake amount in one era
@@ -26,7 +26,7 @@ pub struct MatchingLedger<Balance> {
     pub total_unstake_amount: Balance,
 }
 
-impl<Balance: AtLeast32BitUnsigned + FixedPointOperand + Copy + Clone> MatchingLedger<Balance> {
+impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
     /// Matching requests in current period.
     ///
     /// `unbonding_amount` is the total amount of the unbonding asset in relaychain.

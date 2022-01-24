@@ -35,7 +35,7 @@ fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::
 }
 
 fn initial_set_up<
-    T: Config<I> + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>,
+    T: Config<I> + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance> + pallet_amm::Config,
     I: 'static,
 >(
     caller: T::AccountId,
@@ -94,7 +94,7 @@ fn initial_set_up<
 benchmarks_instance_pallet! {
     where_clause {
         where
-            T: pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>
+            T: pallet_assets::Config<AssetId = CurrencyId, Balance = Balance> + pallet_amm::Config
     }
     trade {
         let caller: T::AccountId = whitelisted_caller();

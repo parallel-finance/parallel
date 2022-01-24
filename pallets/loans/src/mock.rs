@@ -17,12 +17,13 @@ use super::*;
 use frame_support::{construct_runtime, parameter_types, traits::Everything, PalletId};
 use frame_system::EnsureRoot;
 use orml_traits::{DataProvider, DataProviderExtended};
-pub use primitives::tokens::{DOT, HKO, KSM, PDOT, PHKO, PKSM, PUSDT, USDT, XDOT, XKSM};
 use primitives::*;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 use sp_std::vec::Vec;
 use std::{cell::RefCell, collections::HashMap};
+
+pub use primitives::tokens::{DOT, HKO, KSM, PDOT, PHKO, PKSM, PUSDT, USDT, XDOT, XKSM};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
