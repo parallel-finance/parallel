@@ -542,9 +542,9 @@ fn amount_out_should_work() {
 
         let amount_out = AMM::get_amount_out(amount_in, supply_in, supply_out).unwrap();
 
-        // actual value == 997.9900600091017
+        // actual value == 996.9900600091017
         // TODO: assumes we round down to int
-        assert_eq!(amount_out, 997);
+        assert_eq!(amount_out, 996);
     })
 }
 

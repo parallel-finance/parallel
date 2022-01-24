@@ -407,10 +407,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         reserve_in: BalanceOf<T, I>,
         reserve_out: BalanceOf<T, I>,
     ) -> Result<BalanceOf<T, I>, DispatchError> {
-        let lp_fees = T::LpFee::get().mul_floor(amount_in);
-        let protocol_fees = T::ProtocolFee::get().mul_floor(amount_in);
-        let fees = lp_fees
-            .checked_add(protocol_fees)
+        let fees = T::LpFee::get()
+            .checked_add(&T::ProtocolFee::get())
+            .map(|r| r.mul_floor(amount_in))
             .ok_or(ArithmeticError::Overflow)?;
 
         let amount_in = amount_in
