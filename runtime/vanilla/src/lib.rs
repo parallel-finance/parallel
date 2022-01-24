@@ -1392,8 +1392,6 @@ impl pallet_crowdloans::Config for Runtime {
     type SelfParaId = ParachainInfo;
     type Assets = Assets;
     type RelayCurrency = RelayCurrency;
-    type AccountIdToMultiLocation = AccountIdToMultiLocation;
-    type RefundLocation = RefundLocation;
     type MinContribution = MinContribution;
     type MaxVrfs = MaxVrfs;
     type MigrateKeysLimit = MigrateKeysLimit;
@@ -1425,6 +1423,8 @@ impl pallet_xcm_helper::Config for Runtime {
     type RelayNetwork = RelayNetwork;
     type PalletId = XcmHelperPalletId;
     type NotifyTimeout = NotifyTimeout;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type RefundLocation = RefundLocation;
     type BlockNumberProvider = frame_system::Pallet<Runtime>;
     type WeightInfo = pallet_xcm_helper::weights::SubstrateWeight<Runtime>;
 }

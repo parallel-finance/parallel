@@ -55,7 +55,7 @@ pub mod pallet {
     use pallet_xcm::ensure_response;
     use primitives::{Balance, CurrencyId, LeasePeriod, ParaId, TrieIndex, VaultId};
     use sp_runtime::{
-        traits::{AccountIdConversion, BlockNumberProvider, Convert, Hash, Zero},
+        traits::{AccountIdConversion, BlockNumberProvider, Hash, Zero},
         ArithmeticError, DispatchError,
     };
     use sp_std::{boxed::Box, convert::TryInto, vec::Vec};
@@ -98,13 +98,6 @@ pub mod pallet {
         /// Pallet account for collecting contributions
         #[pallet::constant]
         type PalletId: Get<PalletId>;
-
-        /// Convert `T::AccountId` to `MultiLocation`.
-        type AccountIdToMultiLocation: Convert<Self::AccountId, MultiLocation>;
-
-        /// Account on relaychain for receiving refunded fees
-        #[pallet::constant]
-        type RefundLocation: Get<Self::AccountId>;
 
         /// Minimum contribute amount
         #[pallet::constant]
@@ -1432,7 +1425,6 @@ pub mod pallet {
         ) -> Result<(), DispatchError> {
             let query_id = T::XCM::do_contribute(
                 crowdloan,
-                T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
                 T::RelayCurrency::get(),
                 amount,
                 who,
@@ -1477,7 +1469,6 @@ pub mod pallet {
 
             let query_id = T::XCM::do_withdraw(
                 crowdloan,
-                T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
                 T::RelayCurrency::get(),
                 Self::para_account_id(),
                 Self::notify_placeholder(),

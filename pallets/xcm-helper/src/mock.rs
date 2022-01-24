@@ -318,12 +318,12 @@ parameter_types! {
     pub const MinContribution: Balance = 0;
     pub const MigrateKeysLimit: u32 = 10;
     pub SelfParaId: ParaId = para_a_id();
-    pub RefundLocation: AccountId = para_a_id().into_account();
 }
 
 parameter_types! {
     pub const XcmHelperPalletId: PalletId = PalletId(*b"par/fees");
     pub const NotifyTimeout: BlockNumber = 100;
+    pub RefundLocation: AccountId = para_a_id().into_account();
 }
 
 impl crate::Config for Test {
@@ -334,6 +334,8 @@ impl crate::Config for Test {
     type PalletId = XcmHelperPalletId;
     type RelayNetwork = RelayNetwork;
     type NotifyTimeout = NotifyTimeout;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type RefundLocation = RefundLocation;
     type BlockNumberProvider = frame_system::Pallet<Test>;
     type WeightInfo = ();
 }
