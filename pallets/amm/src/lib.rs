@@ -44,16 +44,14 @@ use frame_support::{
 use frame_system::{ensure_signed, pallet_prelude::OriginFor};
 
 use sp_runtime::{
-    traits::{
-        AccountIdConversion, CheckedAdd, CheckedDiv, CheckedSub, IntegerSquareRoot, One, Zero,
-    },
-    ArithmeticError, DispatchError, FixedU128, Perbill, SaturatedConversion,
+    traits::{AccountIdConversion, CheckedAdd, CheckedSub, IntegerSquareRoot, One, Zero},
+    ArithmeticError, DispatchError, Perbill,
 };
 use sp_std::{cmp::min, ops::Div, result::Result};
 
 pub use pallet::*;
 
-use primitives::{Balance, CurrencyId, Rate};
+use primitives::{Balance, CurrencyId};
 use types::Pool;
 pub use weights::WeightInfo;
 
@@ -142,8 +140,8 @@ pub mod pallet {
         /// [sender, currency_id, currency_id]
         LiquidityRemoved(T::AccountId, AssetIdOf<T, I>, AssetIdOf<T, I>),
         /// Trade using liquidity
-        /// [trader, currency_id_in, currency_id_out, rate_out_for_in]
-        Traded(T::AccountId, AssetIdOf<T, I>, AssetIdOf<T, I>, Rate),
+        /// [trader, currency_id_in, currency_id_out]
+        Traded(T::AccountId, AssetIdOf<T, I>, AssetIdOf<T, I>),
     }
 
     #[pallet::pallet]
@@ -595,6 +593,62 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(protocol_fees)
     }
 
+    #[require_transactional]
+    fn do_trade(
+        who: &T::AccountId,
+        pair: (AssetIdOf<T, I>, AssetIdOf<T, I>),
+        amount_in: BalanceOf<T, I>,
+        minimum_amount_out: BalanceOf<T, I>,
+    ) -> Result<BalanceOf<T, I>, DispatchError> {
+        let (is_inverted, base_asset, quote_asset) = Self::sort_assets(pair)?;
+        let (input_token, output_token) = pair;
+
+        Pools::<T, I>::try_mutate(
+            &base_asset,
+            &quote_asset,
+            |pool| -> Result<BalanceOf<T, I>, DispatchError> {
+                let pool = pool.as_mut().ok_or(Error::<T, I>::PoolDoesNotExist)?;
+
+                let (supply_in, supply_out) = if is_inverted {
+                    (pool.quote_amount, pool.base_amount)
+                } else {
+                    (pool.base_amount, pool.quote_amount)
+                };
+
+                ensure!(
+                    amount_in >= T::LpFee::get().saturating_reciprocal_mul(One::one())
+                        && amount_in >= T::ProtocolFee::get().saturating_reciprocal_mul(One::one()),
+                    Error::<T, I>::InsufficientAmountIn
+                );
+
+                // ensure!(
+                //     amount_in > Zero::zero(),
+                //     Error::<T, I>::InsufficientAmountIn
+                // );
+                // ensure!(
+                //     reserve_in > Zero::zero() && reserve_out > Zero::zero(),
+                //     Error::<T, I>::InsufficientAmountIn
+                // );
+                let amount_out = Self::get_amount_out(amount_in, supply_in, supply_out)?;
+
+                // TODO: we should only do this check if we are calculating a minimum amount out
+                ensure!(
+                    amount_out >= minimum_amount_out && amount_in > Zero::zero(),
+                    Error::<T, I>::InsufficientAmountOut
+                );
+
+                Self::update(pool, amount_in, amount_out, is_inverted)?;
+
+                T::Assets::transfer(input_token, who, &Self::account_id(), amount_in, true)?;
+                T::Assets::transfer(output_token, &Self::account_id(), who, amount_out, true)?;
+
+                Self::deposit_event(Event::<T, I>::Traded(who.clone(), base_asset, quote_asset));
+
+                Ok(amount_out)
+            },
+        )
+    }
+
     // update reserves and, on the first call per block, price accumulators
     fn _update(
         base_amount: BalanceOf<T, I>,
@@ -659,74 +713,7 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T, AssetIdOf<T, I>, BalanceOf<T, 
         pair: (AssetIdOf<T, I>, AssetIdOf<T, I>),
         amount_in: BalanceOf<T, I>,
         minimum_amount_out: BalanceOf<T, I>,
-    ) -> Result<BalanceOf<T, I>, sp_runtime::DispatchError> {
-        // expand variables
-
-        // Sort pair to interact with the correct pool.
-        let (is_inverted, base_asset, quote_asset) = Self::sort_assets(pair)?;
-        let (input_token, output_token) = pair;
-
-        // If the pool exists, update pool base_amount and quote_amount by trade amounts
-        Pools::<T, I>::try_mutate(
-            &base_asset,
-            &quote_asset,
-            |pool| -> Result<BalanceOf<T, I>, DispatchError> {
-                // 1. If the pool we want to trade does not exist in the current instance, error
-                let pool = pool.as_mut().ok_or(Error::<T, I>::PoolDoesNotExist)?;
-
-                // supply_in == pool.base_amount unless inverted
-                let (supply_in, supply_out) = if is_inverted {
-                    (pool.quote_amount, pool.base_amount)
-                } else {
-                    (pool.base_amount, pool.quote_amount)
-                };
-
-                // amount must incur at least 1 in lp fees
-                ensure!(
-                    amount_in >= T::LpFee::get().saturating_reciprocal_mul(One::one())
-                        && amount_in >= T::ProtocolFee::get().saturating_reciprocal_mul(One::one()),
-                    Error::<T, I>::InsufficientAmountIn
-                );
-
-                // ensure!(
-                //     amount_in > Zero::zero(),
-                //     Error::<T, I>::InsufficientAmountIn
-                // );
-                // ensure!(
-                //     reserve_in > Zero::zero() && reserve_out > Zero::zero(),
-                //     Error::<T, I>::InsufficientAmountIn
-                // );
-                //
-                let amount_out = Self::get_amount_out(amount_in, supply_in, supply_out)?;
-
-                // TODO: we should only do this check if we are calculating a minimum amount out
-                // 4. If `amount_out` is lower than `min_amount_out`, error
-                ensure!(
-                    amount_out >= minimum_amount_out && amount_in > Zero::zero(),
-                    Error::<T, I>::InsufficientAmountOut
-                );
-
-                Self::update(pool, amount_in, amount_out, is_inverted)?;
-
-                // 6. Wire amount_in of the input token (identified by pair.0) from who to PalletId
-                T::Assets::transfer(input_token, who, &Self::account_id(), amount_in, true)?;
-
-                // 7. Wire amount_out of the output token (identified by pair.1) to who from PalletId
-                T::Assets::transfer(output_token, &Self::account_id(), who, amount_out, true)?;
-
-                // Emit event of trade with rate calculated
-                Self::deposit_event(Event::<T, I>::Traded(
-                    who.clone(),
-                    base_asset,
-                    quote_asset,
-                    FixedU128::from_inner(amount_out.saturated_into())
-                        .checked_div(&FixedU128::from_inner(amount_in.saturated_into()))
-                        .ok_or(ArithmeticError::Underflow)?,
-                ));
-
-                // Return amount out for router pallet
-                Ok(amount_out)
-            },
-        ) // return output of try_mutate as `trade` output
+    ) -> Result<BalanceOf<T, I>, DispatchError> {
+        Self::do_trade(who, pair, amount_in, minimum_amount_out)
     }
 }
