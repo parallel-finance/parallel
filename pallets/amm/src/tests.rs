@@ -442,16 +442,12 @@ fn trade_should_work_flipped_currencies() {
 
         // calculate amount out
         let amount_out = AMM::trade(&trader, (XDOT, DOT), 500, 800);
-        // fees
-        // lp = 1.5 (rounded to 1)
-        // protocol = 1
-        // total = 2
+        // fees = 1.5 (rounded to 1)
 
-        // amount out should be 986
-        assert_eq!(amount_out.unwrap(), 989);
+        assert_eq!(amount_out.unwrap(), 988);
 
         // pools values should be updated - we should have less DOT in the pool
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 99_011);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 99_012);
 
         // pools values should be updated - we should have more XDOT
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 50_500);
@@ -478,7 +474,7 @@ fn trade_should_not_work_if_amount_less_than_miniumum() {
         // amount out is less than minimum_amount_out
         assert_noop!(
             AMM::trade(&trader, (DOT, XDOT), 1_000, 1_000),
-            Error::<Test>::InsufficientAmountOut
+            Error::<Test>::NotAnIdealPrice
         );
     })
 }

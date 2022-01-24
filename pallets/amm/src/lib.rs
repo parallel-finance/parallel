@@ -613,7 +613,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(protocol_fees)
     }
 
-    #[require_transactional]
     fn do_trade(
         who: &T::AccountId,
         (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),
