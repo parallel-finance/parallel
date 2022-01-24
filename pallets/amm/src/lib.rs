@@ -357,12 +357,14 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         (curr_a, curr_b): (AssetIdOf<T, I>, AssetIdOf<T, I>),
     ) -> Result<(bool, AssetIdOf<T, I>, AssetIdOf<T, I>), DispatchError> {
         if curr_a > curr_b {
-            Ok((false, curr_a, curr_b))
-        } else if curr_a < curr_b {
-            Ok((true, curr_b, curr_a))
-        } else {
-            Err(Error::<T, I>::IdenticalAssets.into())
+            return Ok((false, curr_a, curr_b));
         }
+
+        if curr_a < curr_b {
+            return Ok((true, curr_b, curr_a));
+        }
+
+        Err(Error::<T, I>::IdenticalAssets.into())
     }
 
     fn get_ideal_amounts(
@@ -500,7 +502,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             )
         };
 
-        T::Assets::mint_into(pool.lp_token_id, &who, liquidity)?;
+        T::Assets::mint_into(pool.lp_token_id, who, liquidity)?;
 
         pool.base_amount = pool
             .base_amount
@@ -512,14 +514,14 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .ok_or(ArithmeticError::Overflow)?;
         T::Assets::transfer(
             base_asset,
-            &who,
+            who,
             &Self::account_id(),
             ideal_base_amount,
             true,
         )?;
         T::Assets::transfer(
             quote_asset,
-            &who,
+            who,
             &Self::account_id(),
             ideal_quote_amount,
             true,
@@ -556,9 +558,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .checked_sub(quote_amount)
             .ok_or(Error::<T, I>::InsufficientLiquidity)?;
 
-        T::Assets::burn_from(pool.lp_token_id, &who, liquidity)?;
-        T::Assets::transfer(base_asset, &Self::account_id(), &who, base_amount, false)?;
-        T::Assets::transfer(quote_asset, &Self::account_id(), &who, quote_amount, false)?;
+        T::Assets::burn_from(pool.lp_token_id, who, liquidity)?;
+        T::Assets::transfer(base_asset, &Self::account_id(), who, base_amount, false)?;
+        T::Assets::transfer(quote_asset, &Self::account_id(), who, quote_amount, false)?;
 
         Ok((base_amount, quote_amount))
     }
