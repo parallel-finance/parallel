@@ -207,6 +207,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::System(_) |
             Call::Timestamp(_) |
             Call::Balances(_) |
+            Call::Assets(pallet_assets::Call::mint { .. }) |
             // Governance
             Call::Sudo(_) |
             Call::Democracy(_) |
@@ -1431,7 +1432,7 @@ impl pallet_currency_adapter::Config for Runtime {
 //     type Assets = CurrencyAdapter;
 //     type PalletId = LMPalletId;
 //     type MaxRewardTokens = MaxRewardTokens;
-//     type CreateOrigin = EnsureRoot<AccountId>;
+//     type CreateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
 //     type WeightInfo = pallet_liquidity_mining::weights::SubstrateWeight<Runtime>;
 // }
 
@@ -1444,6 +1445,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::System(_) |
             Call::Timestamp(_) |
             Call::Balances(_) |
+            Call::Assets(pallet_assets::Call::mint { .. }) |
             // Governance
             Call::Sudo(_) |
             Call::Democracy(_) |

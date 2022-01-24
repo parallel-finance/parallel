@@ -1458,7 +1458,7 @@ impl pallet_liquidity_mining::Config for Runtime {
     type Assets = CurrencyAdapter;
     type PalletId = LMPalletId;
     type MaxRewardTokens = MaxRewardTokens;
-    type CreateOrigin = EnsureRoot<AccountId>;
+    type CreateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_liquidity_mining::weights::SubstrateWeight<Runtime>;
 }
 

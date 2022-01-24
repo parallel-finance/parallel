@@ -202,9 +202,10 @@ impl Contains<Call> for BaseCallFilter {
     fn contains(call: &Call) -> bool {
         matches!(
             call,
-            // System
+            // System, Currencies
             Call::System(_) |
             Call::Timestamp(_) |
+            Call::Assets(pallet_assets::Call::mint { .. }) |
             // Governance
             Call::Sudo(_) |
             Call::Democracy(_) |
@@ -1424,8 +1425,8 @@ impl pallet_currency_adapter::Config for Runtime {
 //     type Assets = CurrencyAdapter;
 //     type PalletId = LMPalletId;
 //     type MaxRewardTokens = MaxRewardTokens;
-//     type CreateOrigin = EnsureRoot<AccountId>;
-// 	type WeightInfo = pallet_liquidity_mining::weights::SubstrateWeight<Runtime>;
+//     type CreateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+//     type WeightInfo = pallet_liquidity_mining::weights::SubstrateWeight<Runtime>;
 // }
 
 pub struct WhiteListFilter;
@@ -1433,9 +1434,10 @@ impl Contains<Call> for WhiteListFilter {
     fn contains(call: &Call) -> bool {
         matches!(
             call,
-            // System
+            // System, Currencies
             Call::System(_) |
             Call::Timestamp(_) |
+            Call::Assets(pallet_assets::Call::mint { .. }) |
             // Governance
             Call::Sudo(_) |
             Call::Democracy(_) |
