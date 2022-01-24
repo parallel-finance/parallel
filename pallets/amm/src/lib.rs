@@ -44,10 +44,10 @@ use frame_support::{
 use frame_system::{ensure_signed, pallet_prelude::OriginFor};
 
 use sp_runtime::{
-    traits::{AccountIdConversion, CheckedDiv, IntegerSquareRoot, One, Zero},
+    traits::{AccountIdConversion, CheckedAdd, CheckedDiv, IntegerSquareRoot, One, Zero},
     ArithmeticError, DispatchError, FixedU128, Perbill, SaturatedConversion,
 };
-use sp_std::{cmp::min, result::Result};
+use sp_std::{cmp::min, ops::Div, result::Result};
 
 pub use pallet::*;
 
@@ -217,20 +217,7 @@ pub mod pallet {
                         (base_asset, quote_asset),
                     )?;
 
-                    let protocol_fees = Self::get_protocol_fee(
-                        base_asset,
-                        quote_asset,
-                        ideal_base_amount,
-                        ideal_quote_amount,
-                    )?;
-
-                    T::Assets::transfer(
-                        pool.lp_token_id,
-                        &who,
-                        &T::ProtocolFeeReceiver::get(),
-                        protocol_fees,
-                        true,
-                    )?;
+                    Self::do_mint_protocol_fee(pool)?;
 
                     Self::deposit_event(Event::<T, I>::LiquidityAdded(
                         who,
@@ -260,18 +247,8 @@ pub mod pallet {
 
             Pools::<T, I>::try_mutate(base_asset, quote_asset, |pool| -> DispatchResult {
                 let pool = pool.as_mut().ok_or(Error::<T, I>::PoolDoesNotExist)?;
-                let (base_amount, quote_amount) =
-                    Self::do_remove_liquidity(&who, liquidity, pool, (base_asset, quote_asset))?;
-
-                let protocol_fees =
-                    Self::get_protocol_fee(base_asset, quote_asset, base_amount, quote_amount)?;
-                T::Assets::transfer(
-                    pool.lp_token_id,
-                    &who,
-                    &T::ProtocolFeeReceiver::get(),
-                    protocol_fees,
-                    true,
-                )?;
+                Self::do_remove_liquidity(&who, pool, liquidity, (base_asset, quote_asset))?;
+                Self::do_mint_protocol_fee(pool)?;
 
                 Self::deposit_event(Event::<T, I>::LiquidityRemoved(
                     who,
@@ -383,6 +360,18 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         }
     }
 
+    fn protocol_fee_on() -> bool {
+        !T::ProtocolFee::get().is_zero()
+    }
+
+    fn get_protocol_fee_reciprocal_proportion() -> Result<BalanceOf<T, I>, DispatchError> {
+        Ok(T::ProtocolFee::get()
+            .checked_add(&T::LpFee::get())
+            .map(|r| T::ProtocolFee::get().div(r))
+            .map(|r| r.saturating_reciprocal_mul::<BalanceOf<T, I>>(One::one()))
+            .ok_or(ArithmeticError::Underflow)?)
+    }
+
     #[require_transactional]
     fn do_add_liquidity(
         who: &T::AccountId,
@@ -447,8 +436,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     #[require_transactional]
     fn do_remove_liquidity(
         who: &T::AccountId,
-        liquidity: BalanceOf<T, I>,
         pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>>,
+        liquidity: BalanceOf<T, I>,
         (base_asset, quote_asset): (AssetIdOf<T, I>, AssetIdOf<T, I>),
     ) -> Result<(BalanceOf<T, I>, BalanceOf<T, I>), DispatchError> {
         let total_supply = T::Assets::total_issuance(pool.lp_token_id);
@@ -478,6 +467,56 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         T::Assets::transfer(quote_asset, &Self::account_id(), &who, quote_amount, false)?;
 
         Ok((base_amount, quote_amount))
+    }
+
+    #[require_transactional]
+    pub fn do_mint_protocol_fee(
+        pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>>,
+    ) -> Result<BalanceOf<T, I>, DispatchError> {
+        // TODO: If we turn off protocol_fee later in runtime upgrade
+        // this will reset root_k_last to zero which may not be good
+        if !Self::protocol_fee_on() || pool.root_k_last.is_zero() {
+            if !pool.root_k_last.is_zero() {
+                pool.root_k_last = Zero::zero();
+            }
+            return Ok(Zero::zero());
+        }
+
+        let root_k = pool
+            .base_amount
+            .checked_mul(pool.quote_amount)
+            .map(|r| r.integer_sqrt())
+            .ok_or(ArithmeticError::Overflow)?;
+
+        if root_k <= pool.root_k_last {
+            return Ok(Zero::zero());
+        }
+
+        let total_supply = T::Assets::total_issuance(pool.lp_token_id);
+
+        let numerator = root_k
+            .checked_sub(pool.root_k_last)
+            .and_then(|r| r.checked_mul(total_supply))
+            .ok_or(ArithmeticError::Overflow)?;
+
+        let denominator = root_k
+            .checked_mul(Self::get_protocol_fee_reciprocal_proportion()?)
+            .and_then(|r| r.checked_add(pool.root_k_last))
+            .ok_or(ArithmeticError::Overflow)?;
+
+        let protocol_fees = numerator
+            .checked_div(denominator)
+            .ok_or(ArithmeticError::Underflow)?;
+
+        T::Assets::mint_into(
+            pool.lp_token_id,
+            &T::ProtocolFeeReceiver::get(),
+            protocol_fees,
+        )?;
+
+        pool.root_k_last = root_k;
+
+        Ok(protocol_fees)
     }
 
     // update reserves and, on the first call per block, price accumulators
@@ -645,47 +684,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(amount_in
             .checked_add(One::one())
             .ok_or(ArithmeticError::Overflow)?)
-    }
-
-    pub fn get_protocol_fee(
-        base_asset: AssetIdOf<T, I>,
-        quote_asset: AssetIdOf<T, I>,
-        base_amount: BalanceOf<T, I>,
-        quote_amount: BalanceOf<T, I>,
-    ) -> Result<BalanceOf<T, I>, DispatchError> {
-        let pool =
-            Pools::<T, I>::get(&base_asset, &quote_asset).ok_or(Error::<T, I>::PoolDoesNotExist)?;
-        let root_k = base_amount
-            .checked_mul(quote_amount)
-            .map(|r| r.integer_sqrt())
-            .ok_or(ArithmeticError::Overflow)?;
-        let root_k_last = pool
-            .base_amount
-            .checked_mul(pool.quote_amount)
-            .map(|r| r.integer_sqrt())
-            .ok_or(ArithmeticError::Overflow)?;
-
-        if root_k > root_k_last {
-            let total_supply: BalanceOf<T, I> = T::Assets::total_issuance(pool.lp_token_id);
-
-            let numerator = root_k
-                .checked_sub(root_k_last)
-                .and_then(|r| r.checked_mul(total_supply))
-                .ok_or(ArithmeticError::Underflow)?;
-
-            let denominator = root_k
-                .checked_mul(5)
-                .and_then(|r| r.checked_add(root_k_last))
-                .ok_or(ArithmeticError::Overflow)?;
-
-            let liquidity = numerator
-                .checked_div(denominator)
-                .ok_or(ArithmeticError::Underflow)?;
-
-            Ok(liquidity)
-        } else {
-            Ok(Zero::zero())
-        }
     }
 }
 
