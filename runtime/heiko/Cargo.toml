@@ -94,7 +94,7 @@ pallet-currency-adapter   = { path = '../../pallets/currency-adapter', default-f
 pallet-emergency-shutdown = { path = '../../pallets/emergency-shutdown', default-features = false }
 pallet-liquid-staking     = { path = '../../pallets/liquid-staking', default-features = false }
 pallet-liquidation        = { path = '../../pallets/liquidation', default-features = false }
-# pallet-liquidity-mining      = { path = '../../pallets/liquidity-mining', default-features = false }
+pallet-liquidity-mining      = { path = '../../pallets/liquidity-mining', default-features = false }
 pallet-loans                 = { path = '../../pallets/loans', default-features = false }
 pallet-loans-rpc-runtime-api = { path = '../../pallets/loans/rpc/runtime-api', default-features = false }
 pallet-nominee-election      = { path = '../../pallets/nominee-election', default-features = false }
@@ -132,6 +132,7 @@ runtime-benchmarks = [
   'pallet-amm/runtime-benchmarks',
   'pallet-router/runtime-benchmarks',
   'pallet-xcm-helper/runtime-benchmarks',
+  'pallet-liquidity-mining/runtime-benchmarks',
 ]
 std                = [
   'codec/std',
@@ -206,6 +207,7 @@ std                = [
   'pallet-router/std',
   'pallet-emergency-shutdown/std',
   'pallet-xcm-helper/std',
+  'pallet-liquidity-mining/std',
 ]
 try-runtime        = [
   'frame-support/try-runtime',
