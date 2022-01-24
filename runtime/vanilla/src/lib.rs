@@ -1435,7 +1435,7 @@ parameter_types! {
 
 impl pallet_router::Config for Runtime {
     type Event = Event;
-    type RouterPalletId = RouterPalletId;
+    type PalletId = RouterPalletId;
     type AMM = AMM;
     type AMMRouterWeightInfo = pallet_router::weights::SubstrateWeight<Runtime>;
     type MaxLengthRoute = MaxLengthRoute;
@@ -1458,7 +1458,7 @@ impl pallet_liquidity_mining::Config for Runtime {
     type Assets = CurrencyAdapter;
     type PalletId = LMPalletId;
     type MaxRewardTokens = MaxRewardTokens;
-    type CreateOrigin = EnsureRoot<AccountId>;
+    type CreateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_liquidity_mining::weights::SubstrateWeight<Runtime>;
 }
 
