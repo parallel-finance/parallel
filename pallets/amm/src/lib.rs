@@ -521,8 +521,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
     // update reserves and, on the first call per block, price accumulators
     fn _update(
-        base_amount: Balance,
-        quote_amount: Balance,
+        base_amount: BalanceOf<T, I>,
+        quote_amount: BalanceOf<T, I>,
         pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>>,
     ) -> DispatchResult {
         // set values
@@ -538,8 +538,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     // update pool reserves
     fn update(
         pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>>,
-        amount_in: Balance,
-        amount_out: Balance,
+        amount_in: BalanceOf<T, I>,
+        amount_out: BalanceOf<T, I>,
         is_inverted: bool,
     ) -> DispatchResult {
         // 5. Update the `Pools` storage to track the `base_amount` and `quote_amount`
@@ -580,8 +580,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         base_asset: AssetIdOf<T, I>,
         quote_asset: AssetIdOf<T, I>,
         who: &T::AccountId,
-        amount_in: Balance,
-        amount_out: Balance,
+        amount_in: BalanceOf<T, I>,
+        amount_out: BalanceOf<T, I>,
     ) -> DispatchResult {
         // 6. Wire amount_in of the input token (identified by pair.0) from who to PalletId
         T::Assets::transfer(input_token, who, &Self::account_id(), amount_in, true)?;
@@ -604,9 +604,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
     // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
     fn get_amount_out(
-        amount_in: Balance,
-        reserve_in: Balance,
-        reserve_out: Balance,
+        amount_in: BalanceOf<T, I>,
+        reserve_in: BalanceOf<T, I>,
+        reserve_out: BalanceOf<T, I>,
         fee_percent: Perbill,
     ) -> Result<BalanceOf<T, I>, DispatchError> {
         ensure!(
@@ -646,9 +646,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
     // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
     fn _get_amount_in(
-        amount_out: Balance,
-        reserve_in: Balance,
-        reserve_out: Balance,
+        amount_out: BalanceOf<T, I>,
+        reserve_in: BalanceOf<T, I>,
+        reserve_out: BalanceOf<T, I>,
         fee_percent: Perbill,
     ) -> Result<BalanceOf<T, I>, DispatchError> {
         ensure!(
