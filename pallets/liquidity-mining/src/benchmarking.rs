@@ -26,10 +26,12 @@ fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::
     frame_system::Pallet::<T>::assert_last_event(generic_event.into());
 }
 
-fn initial_set_up<T: Config<I>, I: 'static>(caller: T::AccountId)
-where
-    <T::Assets as Inspect<T::AccountId>>::Balance: From<u128>,
-{
+fn initial_set_up<
+    T: Config<I> + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>,
+    I: 'static,
+>(
+    caller: T::AccountId,
+) {
     let account_id = T::Lookup::unlookup(caller.clone());
 
     pallet_assets::Pallet::<T>::force_create(
@@ -64,6 +66,11 @@ where
 }
 
 benchmarks_instance_pallet! {
+    where_clause {
+        where
+            T: pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>
+    }
+
     create {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T, I>(caller.clone());

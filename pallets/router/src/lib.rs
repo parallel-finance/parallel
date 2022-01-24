@@ -55,6 +55,7 @@ pub mod pallet {
         <T as Config<I>>::MaxLengthRoute,
     >;
 
+    pub(crate) type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
     pub(crate) type AssetIdOf<T, I = ()> =
         <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
     pub(crate) type BalanceOf<T, I = ()> =
@@ -69,7 +70,7 @@ pub mod pallet {
         type PalletId: Get<PalletId>;
 
         /// Specify all the AMMs we are routing between
-        type AMM: AMM<Self, AssetIdOf<Self, I>, BalanceOf<Self, I>>;
+        type AMM: AMM<AccountIdOf<Self>, AssetIdOf<Self, I>, BalanceOf<Self, I>>;
 
         /// Weight information for extrinsics in this pallet.
         type AMMRouterWeightInfo: WeightInfo;

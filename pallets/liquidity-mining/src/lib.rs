@@ -62,10 +62,7 @@ pub mod pallet {
     use super::*;
 
     #[pallet::config]
-    pub trait Config<I: 'static = ()>:
-        frame_system::Config
-        + pallet_assets::Config<AssetId = AssetIdOf<Self, I>, Balance = BalanceOf<Self, I>>
-    {
+    pub trait Config<I: 'static = ()>: frame_system::Config {
         type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Currency type for deposit/withdraw assets to/from plm
@@ -299,7 +296,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         T::AccountId::decode(&mut &entropy[..]).unwrap_or_default()
     }
 
-    fn block_to_balance(input: T::BlockNumber) -> T::Balance {
-        input.saturated_into::<u128>()
+    fn block_to_balance(duration: T::BlockNumber) -> BalanceOf<T, I> {
+        duration.saturated_into()
     }
 }
