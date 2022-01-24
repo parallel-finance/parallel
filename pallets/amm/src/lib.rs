@@ -44,7 +44,9 @@ use frame_support::{
 use frame_system::{ensure_signed, pallet_prelude::OriginFor};
 
 use sp_runtime::{
-    traits::{AccountIdConversion, CheckedAdd, CheckedDiv, IntegerSquareRoot, One, Zero},
+    traits::{
+        AccountIdConversion, CheckedAdd, CheckedDiv, CheckedSub, IntegerSquareRoot, One, Zero,
+    },
     ArithmeticError, DispatchError, FixedU128, Perbill, SaturatedConversion,
 };
 use sp_std::{cmp::min, ops::Div, result::Result};
@@ -380,22 +382,11 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     //
     // amountOut = amountIn * reserveOut / (reserveIn + amountIn)
     // amountIn  = amountIn * (1 - fee_percent)
-    //
-    // amountOut = amountIn * (1 - fee_percent) * reserveOut / (reserveIn + amountIn * (1 - fee_percent))
     fn get_amount_out(
         amount_in: BalanceOf<T, I>,
         reserve_in: BalanceOf<T, I>,
         reserve_out: BalanceOf<T, I>,
     ) -> Result<BalanceOf<T, I>, DispatchError> {
-        ensure!(
-            amount_in > Zero::zero(),
-            Error::<T, I>::InsufficientAmountIn
-        );
-        ensure!(
-            reserve_in > Zero::zero() && reserve_out > Zero::zero(),
-            Error::<T, I>::InsufficientAmountIn
-        );
-
         let lp_fees = T::LpFee::get().mul_floor(amount_in);
         let protocol_fees = T::ProtocolFee::get().mul_floor(amount_in);
         let fees = lp_fees
@@ -418,6 +409,43 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .ok_or(ArithmeticError::Underflow)?;
 
         Ok(amount_out)
+    }
+
+    // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
+    //
+    // amountOut = amountIn * reserveOut / reserveIn + amountIn
+    // amountOut * reserveIn + amountOut * amountIn  = amountIn * reserveOut
+    // amountOut * reserveIn = amountIn * (reserveOut - amountOut)
+    //
+    // amountIn = amountOut * reserveIn / (reserveOut - amountOut)
+    // amountIn = amountIn / (1 - fee_percent)
+    #[allow(dead_code)]
+    fn get_amount_in(
+        amount_out: BalanceOf<T, I>,
+        reserve_in: BalanceOf<T, I>,
+        reserve_out: BalanceOf<T, I>,
+    ) -> Result<BalanceOf<T, I>, DispatchError> {
+        let numerator = reserve_in
+            .checked_mul(amount_out)
+            .ok_or(ArithmeticError::Overflow)?;
+
+        let denominator = reserve_out
+            .checked_sub(amount_out)
+            .ok_or(ArithmeticError::Underflow)?;
+
+        let amount_in = numerator
+            .checked_div(denominator)
+            .ok_or(ArithmeticError::Underflow)?;
+
+        let fee_percent = T::LpFee::get()
+            .checked_add(&T::ProtocolFee::get())
+            .and_then(|r| Perbill::from_percent(100).checked_sub(&r))
+            .ok_or(ArithmeticError::Underflow)?;
+
+        Ok(fee_percent
+            .saturating_reciprocal_mul(amount_in)
+            .checked_add(One::one())
+            .ok_or(ArithmeticError::Overflow)?)
     }
 
     #[require_transactional]
@@ -621,76 +649,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
         Ok(())
     }
-
-    fn transfer_between_user_and_pallet(
-        input_token: AssetIdOf<T, I>,
-        output_token: AssetIdOf<T, I>,
-        base_asset: AssetIdOf<T, I>,
-        quote_asset: AssetIdOf<T, I>,
-        who: &T::AccountId,
-        amount_in: BalanceOf<T, I>,
-        amount_out: BalanceOf<T, I>,
-    ) -> DispatchResult {
-        // 6. Wire amount_in of the input token (identified by pair.0) from who to PalletId
-        T::Assets::transfer(input_token, who, &Self::account_id(), amount_in, true)?;
-
-        // 7. Wire amount_out of the output token (identified by pair.1) to who from PalletId
-        T::Assets::transfer(output_token, &Self::account_id(), who, amount_out, true)?;
-
-        // Emit event of trade with rate calculated
-        Self::deposit_event(Event::<T, I>::Traded(
-            who.clone(),
-            base_asset,
-            quote_asset,
-            FixedU128::from_inner(amount_out.saturated_into())
-                .checked_div(&FixedU128::from_inner(amount_in.saturated_into()))
-                .ok_or(ArithmeticError::Underflow)?,
-        ));
-
-        Ok(())
-    }
-
-    // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
-    fn _get_amount_in(
-        amount_out: BalanceOf<T, I>,
-        reserve_in: BalanceOf<T, I>,
-        reserve_out: BalanceOf<T, I>,
-        fee_percent: Perbill,
-    ) -> Result<BalanceOf<T, I>, DispatchError> {
-        ensure!(
-            amount_out > Zero::zero(),
-            Error::<T, I>::InsufficientAmountOut
-        );
-        ensure!(
-            reserve_in > Zero::zero() && reserve_out > Zero::zero(),
-            Error::<T, I>::InsufficientAmountIn
-        );
-
-        let fee_amount = fee_percent.mul_floor(amount_out);
-
-        let scaler = 1_000u128;
-        let denominator_scalar = scaler
-            .checked_sub(fee_amount)
-            .ok_or(ArithmeticError::Underflow)?;
-
-        let numerator = reserve_in
-            .checked_mul(amount_out)
-            .and_then(|r| r.checked_mul(scaler))
-            .ok_or(ArithmeticError::Overflow)?;
-
-        let denominator = reserve_out
-            .checked_sub(amount_out)
-            .and_then(|r| r.checked_mul(denominator_scalar))
-            .ok_or(ArithmeticError::Underflow)?;
-
-        let amount_in = numerator
-            .checked_div(denominator)
-            .ok_or(ArithmeticError::Underflow)?;
-
-        Ok(amount_in
-            .checked_add(One::one())
-            .ok_or(ArithmeticError::Overflow)?)
-    }
 }
 
 impl<T: Config<I>, I: 'static> primitives::AMM<T, AssetIdOf<T, I>, BalanceOf<T, I>>
@@ -730,6 +688,15 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T, AssetIdOf<T, I>, BalanceOf<T, 
                     Error::<T, I>::InsufficientAmountIn
                 );
 
+                // ensure!(
+                //     amount_in > Zero::zero(),
+                //     Error::<T, I>::InsufficientAmountIn
+                // );
+                // ensure!(
+                //     reserve_in > Zero::zero() && reserve_out > Zero::zero(),
+                //     Error::<T, I>::InsufficientAmountIn
+                // );
+                //
                 let amount_out = Self::get_amount_out(amount_in, supply_in, supply_out)?;
 
                 // TODO: we should only do this check if we are calculating a minimum amount out
@@ -741,15 +708,21 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T, AssetIdOf<T, I>, BalanceOf<T, 
 
                 Self::update(pool, amount_in, amount_out, is_inverted)?;
 
-                Self::transfer_between_user_and_pallet(
-                    input_token,
-                    output_token,
+                // 6. Wire amount_in of the input token (identified by pair.0) from who to PalletId
+                T::Assets::transfer(input_token, who, &Self::account_id(), amount_in, true)?;
+
+                // 7. Wire amount_out of the output token (identified by pair.1) to who from PalletId
+                T::Assets::transfer(output_token, &Self::account_id(), who, amount_out, true)?;
+
+                // Emit event of trade with rate calculated
+                Self::deposit_event(Event::<T, I>::Traded(
+                    who.clone(),
                     base_asset,
                     quote_asset,
-                    who,
-                    amount_in,
-                    amount_out,
-                )?;
+                    FixedU128::from_inner(amount_out.saturated_into())
+                        .checked_div(&FixedU128::from_inner(amount_in.saturated_into()))
+                        .ok_or(ArithmeticError::Underflow)?,
+                ));
 
                 // Return amount out for router pallet
                 Ok(amount_out)

@@ -554,10 +554,8 @@ fn amount_in_should_work() {
         let amount_out = 1_000;
         let supply_in = 100_000_000;
         let supply_out = 100_000_000;
-        let fee_perbill = Perbill::from_perthousand(3);
 
-        let amount_in =
-            AMM::_get_amount_in(amount_out, supply_in, supply_out, fee_perbill).unwrap();
+        let amount_in = AMM::get_amount_in(amount_out, supply_in, supply_out).unwrap();
 
         // actual value == 1004.0190572718165
         // TODO: assumes we round down to int
@@ -571,10 +569,8 @@ fn amount_out_and_in_should_work() {
         let amount_out = 1_000;
         let supply_in = 100_000_000;
         let supply_out = 100_000_000;
-        let fee_perbill = Perbill::from_perthousand(3);
 
-        let amount_in =
-            AMM::_get_amount_in(amount_out, supply_in, supply_out, fee_perbill).unwrap();
+        let amount_in = AMM::get_amount_in(amount_out, supply_in, supply_out).unwrap();
 
         assert_eq!(amount_in, 1004);
 
