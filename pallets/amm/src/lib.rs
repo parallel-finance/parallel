@@ -409,12 +409,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     ) -> Result<BalanceOf<T, I>, DispatchError> {
         let lp_fees = T::LpFee::get().mul_floor(amount_in);
         let protocol_fees = T::ProtocolFee::get().mul_floor(amount_in);
-        dbg!(lp_fees, protocol_fees);
         let fees = lp_fees
             .checked_add(protocol_fees)
             .ok_or(ArithmeticError::Overflow)?;
-
-        dbg!(fees);
 
         let amount_in = amount_in
             .checked_sub(fees)
