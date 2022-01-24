@@ -383,7 +383,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         base_pool: BalanceOf<T, I>,
         quote_pool: BalanceOf<T, I>,
     ) -> Result<BalanceOf<T, I>, DispatchError> {
-
         log::trace!(
             target: "crowdloans::quote",
             "base_amount: {:?}, base_pool: {:?}, quote_pool: {:?}",
@@ -422,7 +421,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         pool: &Pool<AssetIdOf<T, I>, BalanceOf<T, I>>,
         (base_amount, quote_amount): (BalanceOf<T, I>, BalanceOf<T, I>),
     ) -> Result<(BalanceOf<T, I>, BalanceOf<T, I>), DispatchError> {
-
         log::trace!(
             target: "crowdloans::get_ideal_amounts",
             "pair: {:?}",
