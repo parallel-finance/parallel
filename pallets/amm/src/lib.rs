@@ -134,14 +134,31 @@ pub mod pallet {
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config<I>, I: 'static = ()> {
         /// Add liquidity into pool
-        /// [sender, currency_id, currency_id]
-        LiquidityAdded(T::AccountId, AssetIdOf<T, I>, AssetIdOf<T, I>),
+        /// [sender, base_currency_id, quote_currency_id, base_amount, quote_amount]
+        LiquidityAdded(
+            T::AccountId,
+            AssetIdOf<T, I>,
+            AssetIdOf<T, I>,
+            BalanceOf<T, I>,
+            BalanceOf<T, I>,
+        ),
         /// Remove liquidity from pool
-        /// [sender, currency_id, currency_id]
-        LiquidityRemoved(T::AccountId, AssetIdOf<T, I>, AssetIdOf<T, I>),
+        /// [sender, base_currency_id, quote_currency_id, liquidity]
+        LiquidityRemoved(
+            T::AccountId,
+            AssetIdOf<T, I>,
+            AssetIdOf<T, I>,
+            BalanceOf<T, I>,
+        ),
         /// Trade using liquidity
-        /// [trader, currency_id_in, currency_id_out]
-        Traded(T::AccountId, AssetIdOf<T, I>, AssetIdOf<T, I>),
+        /// [trader, currency_id_in, currency_id_out, amount_in, amount_out]
+        Traded(
+            T::AccountId,
+            AssetIdOf<T, I>,
+            AssetIdOf<T, I>,
+            BalanceOf<T, I>,
+            BalanceOf<T, I>,
+        ),
     }
 
     #[pallet::pallet]
@@ -223,6 +240,8 @@ pub mod pallet {
                         who,
                         base_asset,
                         quote_asset,
+                        ideal_base_amount,
+                        ideal_quote_amount,
                     ));
 
                     Ok(().into())
@@ -254,6 +273,7 @@ pub mod pallet {
                     who,
                     base_asset,
                     quote_asset,
+                    liquidity,
                 ));
 
                 Ok(())
@@ -647,7 +667,13 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 T::Assets::transfer(asset_in, who, &Self::account_id(), amount_in, true)?;
                 T::Assets::transfer(asset_out, &Self::account_id(), who, amount_out, false)?;
 
-                Self::deposit_event(Event::<T, I>::Traded(who.clone(), asset_in, asset_out));
+                Self::deposit_event(Event::<T, I>::Traded(
+                    who.clone(),
+                    asset_in,
+                    asset_out,
+                    amount_in,
+                    amount_out,
+                ));
 
                 Ok(amount_out)
             },
