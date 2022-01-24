@@ -58,7 +58,7 @@ use sp_version::RuntimeVersion;
 
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureOneOf, EnsureRoot, EnsureSigned,
+    EnsureOneOf, EnsureRoot,
 };
 use orml_xcm_support::{IsNativeConcrete, MultiNativeAsset};
 use polkadot_parachain::primitives::Sibling;
@@ -87,8 +87,6 @@ pub use impls::DealWithFees;
 
 pub use pallet_liquid_staking;
 // pub use pallet_liquidation;
-use currency::*;
-use fee::*;
 pub use pallet_amm;
 pub use pallet_bridge;
 // pub use pallet_liquidity_mining;
@@ -96,6 +94,9 @@ pub use pallet_loans;
 pub use pallet_multisig;
 pub use pallet_nominee_election;
 pub use pallet_prices;
+
+use currency::*;
+use fee::*;
 use time::*;
 
 pub use frame_support::{
@@ -110,6 +111,7 @@ pub use frame_support::{
 use pallet_xcm::XcmPassthrough;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
+
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
 /// of data like extrinsics, allowing for them to continue syncing the network through upgrades
@@ -202,9 +204,10 @@ impl Contains<Call> for BaseCallFilter {
     fn contains(call: &Call) -> bool {
         matches!(
             call,
-            // System
+            // System, Currencies
             Call::System(_) |
             Call::Timestamp(_) |
+            Call::Assets(pallet_assets::Call::mint { .. }) |
             // Governance
             Call::Sudo(_) |
             Call::Democracy(_) |
@@ -221,6 +224,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::Utility(_) |
             Call::Multisig(_) |
             Call::Proxy(_) |
+            Call::EmergencyShutdown(_) |
             // 3rd Party
             Call::Vesting(_) |
             // Membership
@@ -334,14 +338,14 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
             DOT => Some(MultiLocation::parent()),
             XDOT => Some(MultiLocation::new(
                 1,
-                Junctions::X2(
+                X2(
                     Parachain(ParachainInfo::parachain_id().into()),
                     GeneralKey(b"xDOT".to_vec()),
                 ),
             )),
             PARA => Some(MultiLocation::new(
                 1,
-                Junctions::X2(
+                X2(
                     Parachain(ParachainInfo::parachain_id().into()),
                     GeneralKey(b"PARA".to_vec()),
                 ),
@@ -472,11 +476,11 @@ impl pallet_liquid_staking::Config for Runtime {
     type WeightInfo = ();
     type SelfParaId = ParachainInfo;
     type Assets = Assets;
-    type StakingCurrency = StakingCurrency;
-    type LiquidCurrency = LiquidCurrency;
     type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type DerivativeIndex = DerivativeIndex;
+    type StakingCurrency = StakingCurrency;
+    type LiquidCurrency = LiquidCurrency;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;
     type MinStakeAmount = MinStakeAmount;
@@ -776,6 +780,7 @@ pub type XcmRouter = (
 
 impl pallet_xcm::Config for Runtime {
     const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
+
     type Origin = Origin;
     type Call = Call;
     type Event = Event;
@@ -1299,7 +1304,7 @@ impl orml_vesting::Config for Runtime {
     type Event = Event;
     type Currency = Balances;
     type MinVestedTransfer = MinVestedTransfer;
-    type VestedTransferOrigin = EnsureSigned<AccountId>;
+    type VestedTransferOrigin = frame_system::EnsureSigned<AccountId>;
     type WeightInfo = ();
     type MaxVestingSchedules = MaxVestingSchedules;
     type BlockNumberProvider = frame_system::Pallet<Runtime>;
@@ -1318,8 +1323,8 @@ impl pallet_amm::Config for Runtime {
     type Assets = CurrencyAdapter;
     type PalletId = AMMPalletId;
     type LockAccountId = OneAccount;
-    type AMMWeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
     type CreatePoolOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type AMMWeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
     type LpFee = DefaultLpFee;
     type ProtocolFee = DefaultProtocolFee;
     type MinimumLiquidity = MinimumLiquidity;
@@ -1424,8 +1429,8 @@ impl pallet_currency_adapter::Config for Runtime {
 //     type Assets = CurrencyAdapter;
 //     type PalletId = LMPalletId;
 //     type MaxRewardTokens = MaxRewardTokens;
-//     type CreateOrigin = EnsureRoot<AccountId>;
-// 	type WeightInfo = pallet_liquidity_mining::weights::SubstrateWeight<Runtime>;
+//     type CreateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+//     type WeightInfo = pallet_liquidity_mining::weights::SubstrateWeight<Runtime>;
 // }
 
 pub struct WhiteListFilter;
@@ -1433,9 +1438,10 @@ impl Contains<Call> for WhiteListFilter {
     fn contains(call: &Call) -> bool {
         matches!(
             call,
-            // System
+            // System, Currencies
             Call::System(_) |
             Call::Timestamp(_) |
+            Call::Assets(pallet_assets::Call::mint { .. }) |
             // Governance
             Call::Sudo(_) |
             Call::Democracy(_) |
@@ -1452,6 +1458,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::Utility(_) |
             Call::Multisig(_) |
             Call::Proxy(_) |
+            Call::EmergencyShutdown(_) |
             // 3rd Party
             Call::Vesting(_) |
             // Membership

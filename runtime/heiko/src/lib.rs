@@ -32,6 +32,7 @@ use frame_support::{
     },
     PalletId,
 };
+
 use orml_traits::{DataProvider, DataProviderExtended};
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use sp_api::impl_runtime_apis;
@@ -88,7 +89,9 @@ pub use impls::DealWithFees;
 
 pub use pallet_liquid_staking;
 // pub use pallet_liquidation;
+pub use pallet_amm;
 pub use pallet_bridge;
+// pub use pallet_liquidity_mining;
 pub use pallet_loans;
 pub use pallet_multisig;
 pub use pallet_nominee_election;
@@ -207,6 +210,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::System(_) |
             Call::Timestamp(_) |
             Call::Balances(_) |
+            Call::Assets(pallet_assets::Call::mint { .. }) |
             // Governance
             Call::Sudo(_) |
             Call::Democracy(_) |
@@ -382,7 +386,7 @@ impl Convert<MultiAsset, Option<CurrencyId>> for CurrencyIdConvert {
     fn convert(a: MultiAsset) -> Option<CurrencyId> {
         if let MultiAsset {
             id: AssetId::Concrete(id),
-            fun: Fungibility::Fungible(_amount),
+            fun: _,
         } = a
         {
             Self::convert(id)
@@ -405,7 +409,8 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 
 parameter_types! {
     pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
-    pub BaseXcmWeight: Weight = 150_000_000;
+    pub const BaseXcmWeight: Weight = 150_000_000;
+    pub const MaxInstructions: u32 = 100;
 }
 
 impl orml_xtokens::Config for Runtime {
@@ -776,10 +781,6 @@ pub type XcmRouter = (
     XcmpQueue,
 );
 
-parameter_types! {
-    pub const MaxInstructions: u32 = 100;
-}
-
 impl pallet_xcm::Config for Runtime {
     const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
 
@@ -841,7 +842,7 @@ parameter_types! {
     pub RelayCurrency: CurrencyId = KSM;
     pub HeikoNetwork: NetworkId = NetworkId::Named("heiko".into());
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
-    pub Ancestry: MultiLocation =  MultiLocation::new(0, X1(Parachain(ParachainInfo::parachain_id().into())));
+    pub Ancestry: MultiLocation = MultiLocation::new(0, X1(Parachain(ParachainInfo::parachain_id().into())));
 }
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
@@ -918,6 +919,10 @@ pub type XcmOriginToTransactDispatchOrigin = (
     XcmPassthrough<Origin>,
 );
 
+parameter_types! {
+    pub KsmPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), ksm_per_second());
+}
+
 match_type! {
     pub type ParentOrSiblings: impl Contains<MultiLocation> = {
         MultiLocation { parents: 1, interior: Here } |
@@ -945,10 +950,6 @@ impl TakeRevenue for ToTreasury {
             }
         }
     }
-}
-
-parameter_types! {
-    pub KsmPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), ksm_per_second());
 }
 
 pub struct XcmConfig;
@@ -1431,7 +1432,7 @@ impl pallet_currency_adapter::Config for Runtime {
 //     type Assets = CurrencyAdapter;
 //     type PalletId = LMPalletId;
 //     type MaxRewardTokens = MaxRewardTokens;
-//     type CreateOrigin = EnsureRoot<AccountId>;
+//     type CreateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
 //     type WeightInfo = pallet_liquidity_mining::weights::SubstrateWeight<Runtime>;
 // }
 
@@ -1440,10 +1441,11 @@ impl Contains<Call> for WhiteListFilter {
     fn contains(call: &Call) -> bool {
         matches!(
             call,
-            // System
+            // System, Currencies
             Call::System(_) |
             Call::Timestamp(_) |
             Call::Balances(_) |
+            Call::Assets(pallet_assets::Call::mint { .. }) |
             // Governance
             Call::Sudo(_) |
             Call::Democracy(_) |
@@ -1820,6 +1822,7 @@ impl_runtime_apis! {
             let weight = Executive::try_runtime_upgrade().unwrap();
             (weight, RuntimeBlockWeights::get().max_block)
         }
+
         fn execute_block_no_check(block: Block) -> Weight {
             Executive::execute_block_no_check(block)
         }
