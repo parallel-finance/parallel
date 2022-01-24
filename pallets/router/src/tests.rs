@@ -90,12 +90,12 @@ fn trade_should_work() {
         assert_ok!(AMMRoute::trade(Origin::signed(ALICE), routes, 1_000, 980));
 
         // Check Alice should get 994
-        assert_eq!(Assets::balance(tokens::XDOT, &ALICE), 10_000 + 996);
+        assert_eq!(Assets::balance(tokens::XDOT, &ALICE), 10_000 + 994);
 
         // we should have less XDOT in the pool
         assert_eq!(
             DefaultAMM::pools(XDOT, DOT).unwrap().base_amount,
-            99_999_004
+            99_999_006
         );
 
         // we should have more DOT
@@ -218,7 +218,7 @@ fn trade_should_work_more_than_one_route() {
         assert_eq!(Assets::balance(tokens::KSM, &ALICE), 10_000);
 
         // Alice should now have some USDT!
-        assert_eq!(Assets::balance(tokens::USDT, &ALICE), 991);
+        assert_eq!(Assets::balance(tokens::USDT, &ALICE), 984);
 
         // Alice should now have less DOT
         assert_eq!(Assets::balance(tokens::DOT, &ALICE), 9000);
@@ -228,7 +228,7 @@ fn trade_should_work_more_than_one_route() {
         // we should have less XDOT since we traded for DOT
         assert_eq!(
             DefaultAMM::pools(XDOT, DOT).unwrap().base_amount,
-            99_999_004
+            99_999_006
         );
 
         // we should have more DOT in the pool since the trader sent DOT
@@ -242,13 +242,13 @@ fn trade_should_work_more_than_one_route() {
         // we should have more XDOT since were trading it for KSM
         assert_eq!(
             DefaultAMM::pools(XDOT, KSM).unwrap().base_amount,
-            100_000_996
+            100_000_994
         );
 
         // we should have less KSM
         assert_eq!(
             DefaultAMM::pools(XDOT, KSM).unwrap().quote_amount,
-            99_999_007
+            99_999_011
         );
 
         ////// Third Route
@@ -256,13 +256,13 @@ fn trade_should_work_more_than_one_route() {
         // we should have less USDT since its the token the trader is recieving
         assert_eq!(
             DefaultAMM::pools(USDT, KSM).unwrap().base_amount,
-            99_999_009
+            99_999_016
         );
 
         // we should have more KSM since were trading it for USDT
         assert_eq!(
             DefaultAMM::pools(USDT, KSM).unwrap().quote_amount,
-            100_000_993
+            100_000_989
         );
     })
 }

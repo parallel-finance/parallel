@@ -109,7 +109,7 @@ benchmarks_instance_pallet! {
     verify {
         let amount_out: BalanceOf<T, I> = <T as crate::Config<I>>::Assets::balance(XDOT, &caller);
 
-        assert_eq!(amount_out, 996u128);
+        assert_eq!(amount_out, 994u128);
         assert_last_event::<T, I>(Event::Traded(caller, original_amount_in, routes, amount_out).into());
     }
 }
