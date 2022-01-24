@@ -55,6 +55,7 @@ use primitives::{Balance, CurrencyId};
 use types::Pool;
 pub use weights::WeightInfo;
 
+pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 pub type AssetIdOf<T, I = ()> =
     <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
 pub type BalanceOf<T, I = ()> =
@@ -682,11 +683,11 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     }
 }
 
-impl<T: Config<I>, I: 'static> primitives::AMM<T, AssetIdOf<T, I>, BalanceOf<T, I>>
+impl<T: Config<I>, I: 'static> primitives::AMM<AccountIdOf<T>, AssetIdOf<T, I>, BalanceOf<T, I>>
     for Pallet<T, I>
 {
     fn trade(
-        who: &T::AccountId,
+        who: &AccountIdOf<T>,
         pair: (AssetIdOf<T, I>, AssetIdOf<T, I>),
         amount_in: BalanceOf<T, I>,
         minimum_amount_out: BalanceOf<T, I>,
