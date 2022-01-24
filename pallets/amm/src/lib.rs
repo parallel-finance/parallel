@@ -372,6 +372,54 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .ok_or(ArithmeticError::Underflow)?)
     }
 
+    // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
+    //
+    // reserveIn * reserveOut = (reserveIn + amountIn) * (reserveOut - amountOut)
+    // reserveIn * reserveOut = reserveIn * reserveOut + amountIn * reserveOut - (reserveIn + amountIn) * amountOut
+    // amountIn * reserveOut = (reserveIn + amountIn) * amountOut
+    //
+    // amountOut = amountIn * reserveOut / (reserveIn + amountIn)
+    // amountIn  = amountIn * (1 - fee_percent)
+    //
+    // amountOut = amountIn * (1 - fee_percent) * reserveOut / (reserveIn + amountIn * (1 - fee_percent))
+    fn get_amount_out(
+        amount_in: BalanceOf<T, I>,
+        reserve_in: BalanceOf<T, I>,
+        reserve_out: BalanceOf<T, I>,
+    ) -> Result<BalanceOf<T, I>, DispatchError> {
+        ensure!(
+            amount_in > Zero::zero(),
+            Error::<T, I>::InsufficientAmountIn
+        );
+        ensure!(
+            reserve_in > Zero::zero() && reserve_out > Zero::zero(),
+            Error::<T, I>::InsufficientAmountIn
+        );
+
+        let lp_fees = T::LpFee::get().mul_floor(amount_in);
+        let protocol_fees = T::ProtocolFee::get().mul_floor(amount_in);
+        let fees = lp_fees
+            .checked_add(protocol_fees)
+            .ok_or(ArithmeticError::Overflow)?;
+
+        let amount_in = amount_in
+            .checked_sub(fees)
+            .ok_or(ArithmeticError::Underflow)?;
+        let numerator = amount_in
+            .checked_sub(reserve_out)
+            .ok_or(ArithmeticError::Overflow)?;
+
+        let denominator = reserve_in
+            .checked_add(amount_in)
+            .ok_or(ArithmeticError::Overflow)?;
+
+        let amount_out = numerator
+            .checked_div(denominator)
+            .ok_or(ArithmeticError::Underflow)?;
+
+        Ok(amount_out)
+    }
+
     #[require_transactional]
     fn do_add_liquidity(
         who: &T::AccountId,
@@ -602,48 +650,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(())
     }
 
-    // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
-    fn get_amount_out(
-        amount_in: BalanceOf<T, I>,
-        reserve_in: BalanceOf<T, I>,
-        reserve_out: BalanceOf<T, I>,
-        fee_percent: Perbill,
-    ) -> Result<BalanceOf<T, I>, DispatchError> {
-        ensure!(
-            amount_in > Zero::zero(),
-            Error::<T, I>::InsufficientAmountIn
-        );
-        ensure!(
-            reserve_in > Zero::zero() && reserve_out > Zero::zero(),
-            Error::<T, I>::InsufficientAmountIn
-        );
-
-        let fee_amount = fee_percent.mul_floor(amount_in);
-
-        let scaler = 1_000u128;
-        let numerator_scalar = scaler
-            .checked_sub(fee_amount)
-            .ok_or(ArithmeticError::Underflow)?;
-
-        let amount_in_with_fee = amount_in
-            .checked_mul(numerator_scalar)
-            .ok_or(ArithmeticError::Overflow)?;
-        let numerator = amount_in_with_fee
-            .checked_mul(reserve_out)
-            .ok_or(ArithmeticError::Overflow)?;
-
-        let denominator = reserve_in
-            .checked_mul(scaler)
-            .and_then(|r| r.checked_add(amount_in_with_fee))
-            .ok_or(ArithmeticError::Overflow)?;
-
-        let amount_out = numerator
-            .checked_div(denominator)
-            .ok_or(ArithmeticError::Underflow)?;
-
-        Ok(amount_out)
-    }
-
     // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
     fn _get_amount_in(
         amount_out: BalanceOf<T, I>,
@@ -724,8 +730,7 @@ impl<T: Config<I>, I: 'static> primitives::AMM<T, AssetIdOf<T, I>, BalanceOf<T, 
                     Error::<T, I>::InsufficientAmountIn
                 );
 
-                let amount_out =
-                    Self::get_amount_out(amount_in, supply_in, supply_out, T::LpFee::get())?;
+                let amount_out = Self::get_amount_out(amount_in, supply_in, supply_out)?;
 
                 // TODO: we should only do this check if we are calculating a minimum amount out
                 // 4. If `amount_out` is lower than `min_amount_out`, error
