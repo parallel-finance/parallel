@@ -311,14 +311,14 @@ pub mod pallet {
 
             let mut pool = Pool::new(lp_token_id);
 
-            Pools::<T, I>::insert(&base_asset, &quote_asset, pool);
-
             Self::do_add_liquidity(
                 &lptoken_receiver,
                 &mut pool,
                 (base_amount, quote_amount),
                 (base_asset, quote_asset),
             )?;
+
+            Pools::<T, I>::insert(&base_asset, &quote_asset, pool);
 
             Self::deposit_event(Event::<T, I>::LiquidityAdded(
                 lptoken_receiver,
