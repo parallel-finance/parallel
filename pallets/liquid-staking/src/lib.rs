@@ -607,7 +607,6 @@ pub mod pallet {
             T::XCM::do_withdraw_unbonded(
                 num_slashing_spans,
                 amount,
-                T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::para_account_id(),
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
@@ -623,7 +622,6 @@ pub mod pallet {
             T::RelayOrigin::ensure_origin(origin)?;
             T::XCM::do_nominate(
                 targets.clone(),
-                T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
             )?;
@@ -694,7 +692,6 @@ pub mod pallet {
                 value,
                 payee.clone(),
                 Self::derivative_para_account_id(),
-                T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
             )?;
@@ -711,7 +708,6 @@ pub mod pallet {
             T::XCM::do_bond_extra(
                 value,
                 Self::derivative_para_account_id(),
-                T::AccountIdToMultiLocation::convert(Self::para_account_id()),
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
             )?;
@@ -721,24 +717,14 @@ pub mod pallet {
 
         #[require_transactional]
         fn do_unbond(value: BalanceOf<T>) -> DispatchResult {
-            T::XCM::do_unbond(
-                value,
-                T::AccountIdToMultiLocation::convert(Self::para_account_id()),
-                Self::staking_currency()?,
-                T::DerivativeIndex::get(),
-            )?;
+            T::XCM::do_unbond(value, Self::staking_currency()?, T::DerivativeIndex::get())?;
             Self::deposit_event(Event::<T>::Unbonding(value));
             Ok(())
         }
 
         #[require_transactional]
         fn do_rebond(value: BalanceOf<T>) -> DispatchResult {
-            T::XCM::do_rebond(
-                value,
-                T::AccountIdToMultiLocation::convert(Self::para_account_id()),
-                Self::staking_currency()?,
-                T::DerivativeIndex::get(),
-            )?;
+            T::XCM::do_rebond(value, Self::staking_currency()?, T::DerivativeIndex::get())?;
             Self::deposit_event(Event::<T>::Rebonding(value));
             Ok(())
         }

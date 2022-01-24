@@ -404,8 +404,6 @@ impl crate::Config for Test {
     type SelfParaId = SelfParaId;
     type Assets = Assets;
     type RelayCurrency = RelayCurrency;
-    type AccountIdToMultiLocation = AccountIdToMultiLocation;
-    type RefundLocation = RefundLocation;
     type MinContribution = MinContribution;
     type MaxVrfs = MaxVrfs;
     type MigrateKeysLimit = MigrateKeysLimit;
@@ -437,6 +435,8 @@ impl pallet_xcm_helper::Config for Test {
     type PalletId = XcmHelperPalletId;
     type RelayNetwork = RelayNetwork;
     type NotifyTimeout = NotifyTimeout;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type RefundLocation = RefundLocation;
     type BlockNumberProvider = frame_system::Pallet<Test>;
     type WeightInfo = ();
 }

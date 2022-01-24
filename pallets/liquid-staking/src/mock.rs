@@ -332,6 +332,7 @@ impl pallet_utility::Config for Test {
 parameter_types! {
     pub const XcmHelperPalletId: PalletId = PalletId(*b"par/fees");
     pub const NotifyTimeout: BlockNumber = 100;
+    pub RefundLocation: AccountId = para_a_id().into_account();
 }
 
 impl pallet_xcm_helper::Config for Test {
@@ -342,6 +343,8 @@ impl pallet_xcm_helper::Config for Test {
     type PalletId = XcmHelperPalletId;
     type RelayNetwork = RelayNetwork;
     type NotifyTimeout = NotifyTimeout;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type RefundLocation = RefundLocation;
     type BlockNumberProvider = frame_system::Pallet<Test>;
     type WeightInfo = ();
 }
@@ -454,8 +457,8 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
             false,
         )
         .unwrap();
-        Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), 100 * KSM_DECIMAL).unwrap();
-        Assets::mint(Origin::signed(ALICE), XKSM, Id(ALICE), 100 * KSM_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), ksm(100f64)).unwrap();
+        Assets::mint(Origin::signed(ALICE), XKSM, Id(ALICE), ksm(100f64)).unwrap();
         Assets::mint(Origin::signed(ALICE), KSM, Id(BOB), ksm(20000f64)).unwrap();
 
         LiquidStaking::update_staking_pool_capacity(Origin::signed(BOB), ksm(10000f64)).unwrap();
@@ -595,7 +598,7 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
             false,
         )
         .unwrap();
-        Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), 10000 * KSM_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), ksm(10000f64)).unwrap();
 
         LiquidStaking::update_staking_pool_capacity(Origin::signed(BOB), ksm(10000f64)).unwrap();
         XcmHelper::update_xcm_fees(Origin::signed(BOB), ksm(10f64)).unwrap();
@@ -612,8 +615,8 @@ pub fn relay_ext() -> sp_io::TestExternalities {
 
     pallet_balances::GenesisConfig::<Runtime> {
         balances: vec![
-            (ALICE, 100 * KSM_DECIMAL),
-            (para_a_id().into_account(), 1_000_000 * KSM_DECIMAL),
+            (ALICE, ksm(100f64)),
+            (para_a_id().into_account(), ksm(1_000_000f64)),
         ],
     }
     .assimilate_storage(&mut t)
