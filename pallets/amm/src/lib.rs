@@ -627,7 +627,22 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                     Error::<T, I>::NotAnIdealPrice
                 );
 
-                Self::update(pool, amount_in, amount_out, is_inverted)?;
+                let (new_supply_in, new_supply_out) = (
+                    supply_in
+                        .checked_add(amount_in)
+                        .ok_or(ArithmeticError::Overflow)?,
+                    supply_out
+                        .checked_sub(amount_out)
+                        .ok_or(ArithmeticError::Underflow)?,
+                );
+
+                if is_inverted {
+                    pool.quote_amount = new_supply_in;
+                    pool.base_amount = new_supply_out;
+                } else {
+                    pool.base_amount = new_supply_in;
+                    pool.quote_amount = new_supply_out;
+                }
 
                 T::Assets::transfer(asset_in, who, &Self::account_id(), amount_in, true)?;
                 T::Assets::transfer(asset_out, &Self::account_id(), who, amount_out, false)?;
@@ -637,61 +652,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 Ok(amount_out)
             },
         )
-    }
-
-    // update reserves and, on the first call per block, price accumulators
-    fn _update(
-        base_amount: BalanceOf<T, I>,
-        quote_amount: BalanceOf<T, I>,
-        pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>>,
-    ) -> DispatchResult {
-        // set values
-        pool.base_amount = base_amount;
-        pool.quote_amount = quote_amount;
-
-        // TODO:
-        // update future pool variables
-
-        Ok(())
-    }
-
-    // update pool reserves
-    fn update(
-        pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>>,
-        amount_in: BalanceOf<T, I>,
-        amount_out: BalanceOf<T, I>,
-        is_inverted: bool,
-    ) -> DispatchResult {
-        // 5. Update the `Pools` storage to track the `base_amount` and `quote_amount`
-        // variables (increase and decrease by `amount_in` and `amount_out`)
-        // increase pool.base_amount by amount_in, unless inverted
-        if is_inverted {
-            let base_amount = pool
-                .base_amount
-                .checked_sub(amount_out)
-                .ok_or(ArithmeticError::Underflow)?;
-
-            let quote_amount = pool
-                .quote_amount
-                .checked_add(amount_in)
-                .ok_or(ArithmeticError::Overflow)?;
-
-            Self::_update(base_amount, quote_amount, pool)?;
-        } else {
-            let base_amount = pool
-                .base_amount
-                .checked_add(amount_in)
-                .ok_or(ArithmeticError::Overflow)?;
-
-            let quote_amount = pool
-                .quote_amount
-                .checked_sub(amount_out)
-                .ok_or(ArithmeticError::Underflow)?;
-
-            Self::_update(base_amount, quote_amount, pool)?;
-        }
-
-        Ok(())
     }
 }
 
