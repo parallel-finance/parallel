@@ -58,12 +58,8 @@ pub mod pallet {
         ensure_signed,
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
-    use sp_runtime::{
-        traits::{AccountIdConversion, Convert},
-        ArithmeticError, FixedPointNumber,
-    };
+    use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber};
     use sp_std::vec::Vec;
-    use xcm::latest::prelude::*;
 
     use primitives::{ump::*, Balance, CurrencyId, ParaId, Rate, Ratio};
 
@@ -106,9 +102,6 @@ pub mod pallet {
         /// Account derivative index
         #[pallet::constant]
         type DerivativeIndex: Get<u16>;
-
-        /// Convert `T::AccountId` to `MultiLocation`.
-        type AccountIdToMultiLocation: Convert<Self::AccountId, MultiLocation>;
 
         /// Staking currency
         #[pallet::constant]
@@ -340,7 +333,7 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
 
             ensure!(
-                amount > T::MinStakeAmount::get(),
+                amount >= T::MinStakeAmount::get(),
                 Error::<T>::StakeAmountTooSmall
             );
 
@@ -389,7 +382,7 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
 
             ensure!(
-                liquid_amount > T::MinUnstakeAmount::get(),
+                liquid_amount >= T::MinUnstakeAmount::get(),
                 Error::<T>::UnstakeAmountTooSmall
             );
 

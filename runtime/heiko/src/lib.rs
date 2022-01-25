@@ -467,8 +467,8 @@ parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const DerivativeIndex: u16 = 0;
     pub const UnstakeQueueCapacity: u32 = 1000;
-    pub const MinStakeAmount: Balance = 1_000_000_000_000;
-    pub const MinUnstakeAmount: Balance = 500_000_000_000;
+    pub const MinStakeAmount: Balance = 1_000_000_000_000; // 1KSM
+    pub const MinUnstakeAmount: Balance = 500_000_000_000; // 0.5KSM
     pub const StakingCurrency: CurrencyId = KSM;
     pub const LiquidCurrency: CurrencyId = XKSM;
 }
@@ -484,7 +484,6 @@ impl pallet_liquid_staking::Config for Runtime {
     type DerivativeIndex = DerivativeIndex;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;
     type MinStakeAmount = MinStakeAmount;
     type MinUnstakeAmount = MinUnstakeAmount;
@@ -870,8 +869,9 @@ impl Convert<Balance, Balance> for GiftConvert {
             return Zero::zero();
         }
 
+        // 0.1KSM
         if amount >= 10_u128.pow((decimal - 1).into()) {
-            return DOLLARS / 40;
+            return DOLLARS / 40; // 0.025HKO
         }
 
         Zero::zero()
