@@ -33,6 +33,7 @@ pub mod weights;
 
 use frame_support::{
     dispatch::DispatchResult,
+    log,
     pallet_prelude::*,
     require_transactional,
     traits::{
@@ -237,6 +238,18 @@ pub mod pallet {
 
                     Self::do_mint_protocol_fee(pool)?;
 
+                    log::trace!(
+                        target: "amm::add_liquidity",
+                        "who: {:?}, base_asset: {:?}, quote_asset: {:?}, ideal_amounts: {:?},\
+                        desired_amounts: {:?}, minimum_amounts: {:?}",
+                        &who,
+                        &base_asset,
+                        &quote_asset,
+                        &(ideal_base_amount, ideal_quote_amount),
+                        &desired_amounts,
+                        &minimum_amounts
+                    );
+
                     Self::deposit_event(Event::<T, I>::LiquidityAdded(
                         who,
                         base_asset,
@@ -269,6 +282,15 @@ pub mod pallet {
                 let pool = pool.as_mut().ok_or(Error::<T, I>::PoolDoesNotExist)?;
                 Self::do_remove_liquidity(&who, pool, liquidity, (base_asset, quote_asset))?;
                 Self::do_mint_protocol_fee(pool)?;
+
+                log::trace!(
+                    target: "amm::remove_liquidity",
+                    "who: {:?}, base_asset: {:?}, quote_asset: {:?}, liquidity: {:?}",
+                    &who,
+                    &base_asset,
+                    &quote_asset,
+                    &liquidity
+                );
 
                 Self::deposit_event(Event::<T, I>::LiquidityRemoved(
                     who,
@@ -321,6 +343,18 @@ pub mod pallet {
 
             Pools::<T, I>::insert(&base_asset, &quote_asset, pool);
 
+            log::trace!(
+                target: "amm::create_pool",
+                "lptoken_receiver: {:?}, base_asset: {:?}, quote_asset: {:?}, base_amount: {:?}, quote_amount: {:?},\
+                 liquidity_amounts: {:?}",
+                &lptoken_receiver,
+                &base_asset,
+                &quote_asset,
+                &base_amount,
+                &quote_amount,
+                &liquidity_amounts
+            );
+
             Self::deposit_event(Event::<T, I>::LiquidityAdded(
                 lptoken_receiver,
                 base_asset,
@@ -348,6 +382,14 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         base_pool: BalanceOf<T, I>,
         quote_pool: BalanceOf<T, I>,
     ) -> Result<BalanceOf<T, I>, DispatchError> {
+        log::trace!(
+            target: "amm::quote",
+            "base_amount: {:?}, base_pool: {:?}, quote_pool: {:?}",
+            &base_amount,
+            &base_pool,
+            &quote_pool
+        );
+
         Ok(base_amount
             .checked_mul(quote_pool)
             .and_then(|r| r.checked_div(base_pool))
@@ -365,6 +407,12 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             return Ok((true, curr_b, curr_a));
         }
 
+        log::trace!(
+            target: "amm::sort_assets",
+            "pair: {:?}",
+            &(curr_a, curr_b)
+        );
+
         Err(Error::<T, I>::IdenticalAssets.into())
     }
 
@@ -372,6 +420,12 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         pool: &Pool<AssetIdOf<T, I>, BalanceOf<T, I>>,
         (base_amount, quote_amount): (BalanceOf<T, I>, BalanceOf<T, I>),
     ) -> Result<(BalanceOf<T, I>, BalanceOf<T, I>), DispatchError> {
+        log::trace!(
+            target: "amm::get_ideal_amounts",
+            "pair: {:?}",
+            &(base_amount, quote_amount)
+        );
+
         if pool.is_empty() {
             return Ok((base_amount, quote_amount));
         }
@@ -430,6 +484,19 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .checked_div(denominator)
             .ok_or(ArithmeticError::Underflow)?;
 
+        log::trace!(
+            target: "amm::get_amount_out",
+            "amount_in: {:?}, reserve_in: {:?}, reserve_out: {:?}, fees: {:?}, numerator: {:?}, denominator: {:?},\
+             amount_out: {:?}",
+            &amount_in,
+            &reserve_in,
+            &reserve_out,
+            &fees,
+            &numerator,
+            &denominator,
+            &amount_out
+        );
+
         Ok(amount_out)
     }
 
@@ -463,6 +530,17 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .checked_add(&T::ProtocolFee::get())
             .and_then(|r| Perbill::from_percent(100).checked_sub(&r))
             .ok_or(ArithmeticError::Underflow)?;
+
+        log::trace!(
+            target: "amm::get_amount_in",
+            "amount_out: {:?}, reserve_in: {:?}, reserve_out: {:?}, numerator: {:?}, denominator: {:?}, amount_in: {:?}",
+            &amount_out,
+            &reserve_in,
+            &reserve_out,
+            &numerator,
+            &denominator,
+            &amount_in
+        );
 
         Ok(fee_percent
             .saturating_reciprocal_mul(amount_in)
@@ -528,6 +606,19 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             true,
         )?;
 
+        log::trace!(
+            target: "amm::do_add_liquidity",
+            "who: {:?}, total_supply: {:?}, liquidity: {:?}, base_asset: {:?}, quote_asset: {:?}, ideal_base_amount: {:?},\
+             ideal_quote_amount: {:?}",
+            &who,
+            &total_supply,
+            &liquidity,
+            &base_asset,
+            &quote_asset,
+            &ideal_base_amount,
+            &ideal_quote_amount
+        );
+
         Ok(())
     }
 
@@ -562,6 +653,17 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         T::Assets::burn_from(pool.lp_token_id, who, liquidity)?;
         T::Assets::transfer(base_asset, &Self::account_id(), who, base_amount, false)?;
         T::Assets::transfer(quote_asset, &Self::account_id(), who, quote_amount, false)?;
+
+        log::trace!(
+            target: "amm::do_remove_liquidity",
+            "who: {:?}, liquidity: {:?}, base_asset: {:?}, quote_asset: {:?}, base_amount: {:?}, quote_amount: {:?}",
+            &who,
+            &liquidity,
+            &base_asset,
+            &quote_asset,
+            &base_amount,
+            &quote_amount
+        );
 
         Ok((base_amount, quote_amount))
     }
@@ -612,6 +714,16 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         )?;
 
         pool.root_k_last = root_k;
+
+        log::trace!(
+            target: "amm::do_mint_protocol_fee",
+            "root_k: {:?}, total_supply: {:?}, numerator: {:?}, denominator: {:?}, protocol_fees: {:?}",
+            &root_k,
+            &total_supply,
+            &numerator,
+            &denominator,
+            &protocol_fees
+        );
 
         Ok(protocol_fees)
     }
@@ -668,6 +780,17 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
                 T::Assets::transfer(asset_in, who, &Self::account_id(), amount_in, true)?;
                 T::Assets::transfer(asset_out, &Self::account_id(), who, amount_out, false)?;
+
+                log::trace!(
+                    target: "amm::do_trade",
+                    "who: {:?}, asset_in: {:?}, asset_out: {:?}, amount_in: {:?}, amount_out: {:?}, minimum_amount_out: {:?}",
+                    &who,
+                    &asset_in,
+                    &asset_out,
+                    &amount_in,
+                    &amount_out,
+                    &minimum_amount_out
+                );
 
                 Self::deposit_event(Event::<T, I>::Traded(
                     who.clone(),

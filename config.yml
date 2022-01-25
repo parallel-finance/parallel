@@ -45,10 +45,7 @@ parachains:
       - --force-authoring
       - --wasm-execution=compiled
       - --execution=wasm
-      - -lxcm=trace
-      - -lloans=trace
-      - -lliquidstaking=trace
-      - -lcrowdloans=trace
+      - -l'xcm=trace,loans=trace,liquidstaking=trace,crowdloans=trace,amm=trace'
       - --state-cache-size=0
     relaychainFlags:
       - --wasm-execution=compiled
