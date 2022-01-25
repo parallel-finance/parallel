@@ -3,7 +3,7 @@ use crate as pallet_amm;
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{parameter_types, traits::Everything, traits::SortedMembers, PalletId};
 use frame_system::{self as system, EnsureRoot};
-use primitives::{tokens, Balance, CurrencyId};
+use primitives::{tokens, Balance, CurrencyId, Ratio};
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -11,7 +11,7 @@ use sp_core::H256;
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
-    Perbill, RuntimeDebug,
+    RuntimeDebug,
 };
 use system::EnsureSignedBy;
 
@@ -146,8 +146,8 @@ impl pallet_assets::Config for Test {
 
 parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
-    pub DefaultLpFee: Perbill = Perbill::from_rational(25u32, 10000u32);        // 0.25%
-    pub DefaultProtocolFee: Perbill = Perbill::from_rational(5u32, 10000u32);   // 0.05%
+    pub DefaultLpFee: Ratio = Ratio::from_rational(25u32, 10000u32);        // 0.25%
+    pub DefaultProtocolFee: Ratio = Ratio::from_rational(5u32, 10000u32);   // 0.05%
     pub const DefaultProtocolFeeReceiver: AccountId = AccountId(4_u64);
     pub const MinimumLiquidity: u128 = 1_000u128;
     pub const LockAccountId: AccountId = AccountId(1_u64);
