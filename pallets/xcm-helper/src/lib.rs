@@ -129,6 +129,8 @@ pub mod pallet {
         ZeroXcmWeightMisc,
         /// Xcm fees cannot be zero
         ZeroXcmFees,
+        /// Insufficient xcm fees
+        InsufficientXcmFees,
     }
 
     #[pallet::call]
@@ -279,7 +281,8 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
     ) -> Result<Xcm<()>, DispatchError> {
         let fees = Self::xcm_fees();
         let asset: MultiAsset = (MultiLocation::here(), fees).into();
-        T::Assets::burn_from(relay_currency, &Self::account_id(), fees)?;
+        T::Assets::burn_from(relay_currency, &Self::account_id(), fees)
+            .map_err(|_| Error::<T>::InsufficientXcmFees)?;
 
         Ok(Xcm(vec![
             WithdrawAsset(MultiAssets::from(asset.clone())),
