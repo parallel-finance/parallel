@@ -245,7 +245,7 @@ pub mod pallet {
                         &who,
                         &base_asset,
                         &quote_asset,
-                        &(ideal_base_amount, &ideal_quote_amount),
+                        &(ideal_base_amount, ideal_quote_amount),
                         &desired_amounts,
                         &minimum_amounts
                     );
