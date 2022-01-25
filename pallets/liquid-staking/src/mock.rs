@@ -313,15 +313,6 @@ pub type RelayOrigin =
 pub type UpdateOrigin =
     EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
 
-parameter_types! {
-    pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const DerivativeIndex: u16 = 0;
-    pub const UnstakeQueueCapacity: u32 = 1000;
-    pub SelfParaId: ParaId = para_a_id();
-    pub const MinStakeAmount: Balance = 0;
-    pub const MinUnstakeAmount: Balance = 0;
-}
-
 impl pallet_utility::Config for Test {
     type Event = Event;
     type Call = Call;
@@ -350,8 +341,15 @@ impl pallet_xcm_helper::Config for Test {
 }
 
 parameter_types! {
+    pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
+    pub const DerivativeIndex: u16 = 0;
+    pub const UnstakeQueueCapacity: u32 = 1000;
+    pub SelfParaId: ParaId = para_a_id();
+    pub const MinStakeAmount: Balance = 0;
+    pub const MinUnstakeAmount: Balance = 0;
     pub const StakingCurrency: CurrencyId = KSM;
     pub const LiquidCurrency: CurrencyId = XKSM;
+    pub const XcmFees: Balance = 0;
 }
 
 impl crate::Config for Test {
@@ -363,6 +361,7 @@ impl crate::Config for Test {
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
     type DerivativeIndex = DerivativeIndex;
+    type XcmFees = XcmFees;
     type Assets = Assets;
     type RelayOrigin = RelayOrigin;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;

@@ -473,10 +473,11 @@ parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const DerivativeIndex: u16 = 0;
     pub const UnstakeQueueCapacity: u32 = 1000;
-    pub const MinStakeAmount: Balance = 1_000_000_000_000; // 1KSM
-    pub const MinUnstakeAmount: Balance = 500_000_000_000; // 0.5KSM
+    pub const MinStakeAmount: Balance = 100_000_000_000; // 0.1KSM
+    pub const MinUnstakeAmount: Balance = 50_000_000_000; // 0.05KSM
     pub const StakingCurrency: CurrencyId = KSM;
     pub const LiquidCurrency: CurrencyId = XKSM;
+    pub const XcmFees: Balance = 5_000_000_000; // 0.005KSM
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -490,6 +491,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
     type DerivativeIndex = DerivativeIndex;
+    type XcmFees = XcmFees;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;
     type MinStakeAmount = MinStakeAmount;
     type MinUnstakeAmount = MinUnstakeAmount;

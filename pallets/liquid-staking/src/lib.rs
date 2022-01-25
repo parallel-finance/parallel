@@ -103,6 +103,10 @@ pub mod pallet {
         #[pallet::constant]
         type DerivativeIndex: Get<u16>;
 
+        /// Xcm fees
+        #[pallet::constant]
+        type XcmFees: Get<BalanceOf<Self>>;
+
         /// Staking currency
         #[pallet::constant]
         type StakingCurrency: Get<AssetIdOf<Self>>;
@@ -197,6 +201,10 @@ pub mod pallet {
     #[pallet::getter(fn reserve_factor)]
     pub type ReserveFactor<T: Config> = StorageValue<_, Ratio, ValueQuery>;
 
+    #[pallet::storage]
+    #[pallet::getter(fn total_reserves)]
+    pub type TotalReserves<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
     /// Store total stake amount and unstake amount in each era,
     /// And will update when stake/unstake occurred.
     #[pallet::storage]
@@ -284,7 +292,8 @@ pub mod pallet {
                 // InsurancePool should not be embazzled.
                 let free_balance =
                     T::Assets::reducible_balance(staking_currency, &account_id, false)
-                        .saturating_sub(Self::insurance_pool());
+                        .saturating_sub(Self::insurance_pool())
+                        .saturating_sub(Self::total_reserves());
 
                 log::trace!(
                     target: "liquidstaking::on_idle",
@@ -338,8 +347,11 @@ pub mod pallet {
             );
 
             // calculate staking fee and add it to insurance pool
-            let fees = Self::reserve_factor().mul_floor(amount);
-            let amount = amount.checked_sub(fees).ok_or(ArithmeticError::Underflow)?;
+            let reserves = Self::reserve_factor().mul_floor(amount);
+            let xcm_fees = T::XcmFees::get();
+            let amount = amount
+                .checked_sub(xcm_fees)
+                .ok_or(ArithmeticError::Underflow)?;
 
             T::Assets::transfer(
                 Self::staking_currency()?,
@@ -348,8 +360,11 @@ pub mod pallet {
                 amount,
                 false,
             )?;
+            T::XCM::add_xcm_fees(Self::staking_currency()?, &who, xcm_fees)?;
 
-            T::XCM::add_xcm_fees(Self::staking_currency()?, &who, fees)?;
+            let amount = amount
+                .checked_sub(reserves)
+                .ok_or(ArithmeticError::Underflow)?;
             let liquid_amount = Self::exchange_rate()
                 .reciprocal()
                 .and_then(|r| r.checked_mul_int(amount))
@@ -361,6 +376,10 @@ pub mod pallet {
                     .total_stake_amount
                     .checked_add(amount)
                     .ok_or(ArithmeticError::Overflow)?;
+                Ok(())
+            })?;
+            TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
+                *b = b.checked_add(reserves).ok_or(ArithmeticError::Overflow)?;
                 Ok(())
             })?;
 
