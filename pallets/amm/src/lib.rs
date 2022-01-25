@@ -240,13 +240,12 @@ pub mod pallet {
 
                     log::trace!(
                         target: "amm::add_liquidity",
-                        "who: {:?}, base_asset: {:?}, quote_asset: {:?}, ideal_base_amount: {:?}, ideal_quote_amount: {:?},\
+                        "who: {:?}, base_asset: {:?}, quote_asset: {:?}, ideal_amounts: {:?},\
                         desired_amounts: {:?}, minimum_amounts: {:?}",
                         &who,
                         &base_asset,
                         &quote_asset,
-                        &ideal_base_amount,
-                        &ideal_quote_amount,
+                        &(ideal_base_amount, &ideal_quote_amount),
                         &desired_amounts,
                         &minimum_amounts
                     );
