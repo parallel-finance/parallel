@@ -344,7 +344,7 @@ pub mod pallet {
             Pools::<T, I>::insert(&base_asset, &quote_asset, pool);
 
             log::trace!(
-                target: "crowdloans::create_pool",
+                target: "amm::create_pool",
                 "lptoken_receiver: {:?}, base_asset: {:?}, quote_asset: {:?}, base_amount: {:?}, quote_amount: {:?},\
                  liquidity_amounts: {:?}",
                 &lptoken_receiver,
@@ -383,7 +383,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         quote_pool: BalanceOf<T, I>,
     ) -> Result<BalanceOf<T, I>, DispatchError> {
         log::trace!(
-            target: "crowdloans::quote",
+            target: "amm::quote",
             "base_amount: {:?}, base_pool: {:?}, quote_pool: {:?}",
             &base_amount,
             &base_pool,
@@ -408,7 +408,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         }
 
         log::trace!(
-            target: "crowdloans::sort_assets",
+            target: "amm::sort_assets",
             "pair: {:?}",
             &(curr_a, curr_b)
         );
@@ -421,7 +421,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         (base_amount, quote_amount): (BalanceOf<T, I>, BalanceOf<T, I>),
     ) -> Result<(BalanceOf<T, I>, BalanceOf<T, I>), DispatchError> {
         log::trace!(
-            target: "crowdloans::get_ideal_amounts",
+            target: "amm::get_ideal_amounts",
             "pair: {:?}",
             &(base_amount, quote_amount)
         );
@@ -485,7 +485,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .ok_or(ArithmeticError::Underflow)?;
 
         log::trace!(
-            target: "crowdloans::get_amount_out",
+            target: "amm::get_amount_out",
             "amount_in: {:?}, reserve_in: {:?}, reserve_out: {:?}, fees: {:?}, numerator: {:?}, denominator: {:?},\
              amount_out: {:?}",
             &amount_in,
@@ -532,7 +532,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .ok_or(ArithmeticError::Underflow)?;
 
         log::trace!(
-            target: "crowdloans::get_amount_in",
+            target: "amm::get_amount_in",
             "amount_out: {:?}, reserve_in: {:?}, reserve_out: {:?}, numerator: {:?}, denominator: {:?}, amount_in: {:?}",
             &amount_out,
             &reserve_in,
@@ -607,7 +607,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         )?;
 
         log::trace!(
-            target: "crowdloans::do_add_liquidity",
+            target: "amm::do_add_liquidity",
             "who: {:?}, total_supply: {:?}, liquidity: {:?}, base_asset: {:?}, quote_asset: {:?}, ideal_base_amount: {:?},\
              ideal_quote_amount: {:?}",
             &who,
@@ -655,7 +655,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         T::Assets::transfer(quote_asset, &Self::account_id(), who, quote_amount, false)?;
 
         log::trace!(
-            target: "crowdloans::do_remove_liquidity",
+            target: "amm::do_remove_liquidity",
             "who: {:?}, liquidity: {:?}, base_asset: {:?}, quote_asset: {:?}, base_amount: {:?}, quote_amount: {:?}",
             &who,
             &liquidity,
@@ -716,7 +716,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         pool.root_k_last = root_k;
 
         log::trace!(
-            target: "crowdloans::do_mint_protocol_fee",
+            target: "amm::do_mint_protocol_fee",
             "root_k: {:?}, total_supply: {:?}, numerator: {:?}, denominator: {:?}, protocol_fees: {:?}",
             &root_k,
             &total_supply,
@@ -782,7 +782,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 T::Assets::transfer(asset_out, &Self::account_id(), who, amount_out, false)?;
 
                 log::trace!(
-                    target: "crowdloans::do_trade",
+                    target: "amm::do_trade",
                     "who: {:?}, asset_in: {:?}, asset_out: {:?}, amount_in: {:?}, amount_out: {:?}, minimum_amount_out: {:?}",
                     &who,
                     &asset_in,
