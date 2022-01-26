@@ -419,6 +419,44 @@ benchmarks! {
     verify {
     }
 
+    refund {
+        let ctoken = 10;
+        let caller: T::AccountId = whitelisted_caller();
+        let crowdloan = ParaId::from(1335u32);
+
+        initial_set_up::<T>(caller, ctoken);
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, LEASE_START, LEASE_END, ContributionStrategy::XCM, LARGE_CAP, END_BLOCK.into()));
+        assert_ok!(Crowdloans::<T>::open(SystemOrigin::Root.into(), crowdloan));
+        assert_ok!(Crowdloans::<T>::close(SystemOrigin::Root.into(), crowdloan));
+    }: _(
+        SystemOrigin::Root,
+        crowdloan,
+        LEASE_START,
+        LEASE_END
+    )
+    verify {
+        assert_last_event::<T>(Event::AllRefunded(crowdloan, (LEASE_START, LEASE_END)).into())
+    }
+
+    dissolve_vault {
+        let ctoken = 10;
+        let caller: T::AccountId = whitelisted_caller();
+        let crowdloan = ParaId::from(1335u32);
+
+        initial_set_up::<T>(caller, ctoken);
+        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, LEASE_START, LEASE_END, ContributionStrategy::XCM, LARGE_CAP, END_BLOCK.into()));
+        assert_ok!(Crowdloans::<T>::open(SystemOrigin::Root.into(), crowdloan));
+        assert_ok!(Crowdloans::<T>::close(SystemOrigin::Root.into(), crowdloan));
+    }: _(
+        SystemOrigin::Root,
+        crowdloan,
+        LEASE_START,
+        LEASE_END
+    )
+    verify {
+        assert_last_event::<T>(Event::VaultDissolved(crowdloan, (LEASE_START, LEASE_END)).into())
+    }
+
 }
 
 impl_benchmark_test_suite!(Crowdloans, crate::mock::new_test_ext(), crate::mock::Test,);
