@@ -1078,7 +1078,7 @@ impl pallet_identity::Config for Runtime {
     type MaxSubAccounts = MaxSubAccounts;
     type MaxAdditionalFields = MaxAdditionalFields;
     type MaxRegistrars = MaxRegistrars;
-    type Slash = Treasury;
+    type Slashed = Treasury;
     type ForceOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type RegistrarOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_identity::weights::SubstrateWeight<Runtime>;
@@ -1534,6 +1534,7 @@ construct_runtime!(
         TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 5,
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 6,
         Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 7,
+        Identity: pallet_identity::{Pallet, Call, Storage, Event<T>} = 8,
 
         // Governance
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,

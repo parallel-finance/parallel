@@ -89,6 +89,7 @@ pub use pallet_liquid_staking;
 // pub use pallet_liquidation;
 pub use pallet_amm;
 pub use pallet_bridge;
+pub use pallet_identity;
 pub use pallet_liquidity_mining;
 pub use pallet_loans;
 pub use pallet_multisig;
@@ -1056,6 +1057,30 @@ impl pallet_multisig::Config for Runtime {
     type WeightInfo = weights::pallet_multisig::WeightInfo<Runtime>;
 }
 
+parameter_types! {
+    pub const BasicDeposit: Balance = deposit(1, 88);
+    pub const FieldDeposit: Balance = deposit(1, 88);
+    pub const SubAccountDeposit: Balance  = deposit(1, 88);
+    pub const MaxSubAccounts: u32 = 100;
+    pub const MaxAdditionalFields: u32 = 100;
+    pub const MaxRegistrars: u32 = 10;
+}
+
+impl pallet_identity::Config for Runtime {
+    type Event = Event;
+    type Currency = Balances;
+    type BasicDeposit = BasicDeposit;
+    type FieldDeposit = FieldDeposit;
+    type SubAccountDeposit = SubAccountDeposit;
+    type MaxSubAccounts = MaxSubAccounts;
+    type MaxAdditionalFields = MaxAdditionalFields;
+    type MaxRegistrars = MaxRegistrars;
+    type Slashed = Treasury;
+    type ForceOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type RegistrarOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type WeightInfo = pallet_identity::weights::SubstrateWeight<Runtime>;
+}
+
 type EnsureRootOrMoreThanHalfGeneralCouncil = EnsureOneOf<
     AccountId,
     EnsureRoot<AccountId>,
@@ -1492,6 +1517,7 @@ construct_runtime!(
         TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 5,
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 6,
         Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 7,
+        Identity: pallet_identity::{Pallet, Call, Storage, Event<T>} = 8,
 
         // Governance
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
