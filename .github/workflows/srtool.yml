@@ -87,6 +87,7 @@ jobs:
           draft: false
           prerelease: false
           name: Parallel ${{ steps.git_tag.outputs.tag }}
+          append_body: true
           body: |
             `${{ matrix.chain }}_runtime-v${{ steps.runtime_version.outputs.version }}.compact.compressed.wasm - ${{ steps.runtime_blake2_256_hash.outputs.hash }}`
         env:
