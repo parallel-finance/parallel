@@ -22,7 +22,6 @@ pub struct MatchingLedger<Balance: BalanceT> {
     /// The total stake amount in one era
     pub total_stake_amount: Balance,
     /// The total unstake amount in one era
-    /// **NOTE** will be calculated by: exchangeRate * xToken amount
     pub total_unstake_amount: Balance,
 }
 

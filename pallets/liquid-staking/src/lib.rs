@@ -141,8 +141,6 @@ pub mod pallet {
         Staked(T::AccountId, BalanceOf<T>),
         /// The derivative get unstaked successfully
         Unstaked(T::AccountId, BalanceOf<T>, BalanceOf<T>),
-        /// Rewards/Slashes has been recorded.
-        StakingSettlementRecorded(StakingSettlementKind, BalanceOf<T>),
         /// Request to perform bond/rebond/unbond on relay chain
         ///
         /// Send `(bond_amount, rebond_amount, unbond_amount)` as args.
@@ -221,14 +219,6 @@ pub mod pallet {
         BoundedVec<(T::AccountId, BalanceOf<T>), T::UnstakeQueueCapacity>,
         ValueQuery,
     >;
-
-    /// Liquid currency asset id
-    #[pallet::storage]
-    pub type LiquidCurrency<T: Config> = StorageValue<_, AssetIdOf<T>, OptionQuery>;
-
-    /// Staking currency asset id
-    #[pallet::storage]
-    pub type StakingCurrency<T: Config> = StorageValue<_, AssetIdOf<T>, OptionQuery>;
 
     /// Staking pool capacity
     #[pallet::storage]
@@ -474,8 +464,7 @@ pub mod pallet {
 
         /// Payout slashed amount.
         ///
-        /// Clear `TotalSlashed`, subtract `InsurancePool`, and bond corresponding amount in relay
-        /// chain.
+        /// Subtract `InsurancePool`, and bond corresponding amount on relay chain.
         #[pallet::weight(<T as Config>::WeightInfo::payout_slashed())]
         #[transactional]
         pub fn payout_slashed(
@@ -502,18 +491,15 @@ pub mod pallet {
         #[transactional]
         pub fn settlement(
             origin: OriginFor<T>,
-            #[pallet::compact] bonded_amount: BalanceOf<T>,
+            #[pallet::compact] bonding_amount: BalanceOf<T>,
             #[pallet::compact] unbonding_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
 
-            let bond_extra = !bonded_amount.is_zero();
-
-            // Update exchange rate
             let matching_pool = MatchingPool::<T>::get();
             let old_exchange_rate = Self::exchange_rate();
             let exchange_rate = Rate::checked_from_rational(
-                bonded_amount
+                bonding_amount
                     .checked_add(matching_pool.total_stake_amount)
                     .ok_or(ArithmeticError::Overflow)?,
                 T::Assets::total_issuance(Self::liquid_currency()?)
@@ -521,6 +507,8 @@ pub mod pallet {
                     .ok_or(ArithmeticError::Overflow)?,
             )
             .ok_or(Error::<T>::InvalidExchangeRate)?;
+            // Slashes should be handled seperately offchain by using indexer
+            // to record slashed event and total slashed amount
             if exchange_rate > old_exchange_rate {
                 ExchangeRate::<T>::put(exchange_rate);
                 Self::deposit_event(Event::<T>::ExchangeRateUpdated(exchange_rate));
@@ -528,26 +516,16 @@ pub mod pallet {
 
             let (bond_amount, rebond_amount, unbond_amount) =
                 MatchingPool::<T>::take().matching::<Self>(unbonding_amount)?;
-            let staking_currency = Self::staking_currency()?;
-            let account_id = Self::account_id();
-
-            if !bond_amount.is_zero() {
-                T::Assets::burn_from(staking_currency, &account_id, bond_amount)?;
-
-                if !bond_extra {
-                    Self::do_bond(bond_amount, RewardDestination::Staked)?;
-                } else {
-                    Self::do_bond_extra(bond_amount)?;
-                }
+            if bonding_amount.is_zero() {
+                // TODO: bonding_amount is zero doesn't mean that we didn't run bond once
+                // to create stash account
+                Self::do_bond(bond_amount, RewardDestination::Staked)?;
+            } else {
+                Self::do_bond_extra(bond_amount)?;
             }
 
-            if !unbond_amount.is_zero() {
-                Self::do_unbond(unbond_amount)?;
-            }
-
-            if !rebond_amount.is_zero() {
-                Self::do_rebond(rebond_amount)?;
-            }
+            Self::do_unbond(unbond_amount)?;
+            Self::do_rebond(rebond_amount)?;
 
             Self::deposit_event(Event::<T>::Settlement(
                 bond_amount,
@@ -700,11 +678,17 @@ pub mod pallet {
 
         #[require_transactional]
         fn do_bond(value: BalanceOf<T>, payee: RewardDestination<T::AccountId>) -> DispatchResult {
+            if value.is_zero() {
+                return Ok(());
+            }
+
+            let staking_currency = Self::staking_currency()?;
+            T::Assets::burn_from(staking_currency, &Self::account_id(), value)?;
             T::XCM::do_bond(
                 value,
                 payee.clone(),
                 Self::derivative_para_account_id(),
-                Self::staking_currency()?,
+                staking_currency,
                 T::DerivativeIndex::get(),
             )?;
             Self::deposit_event(Event::<T>::Bonding(
@@ -712,32 +696,50 @@ pub mod pallet {
                 value,
                 payee,
             ));
+
             Ok(())
         }
 
         #[require_transactional]
         fn do_bond_extra(value: BalanceOf<T>) -> DispatchResult {
+            if value.is_zero() {
+                return Ok(());
+            }
+
+            let staking_currency = Self::staking_currency()?;
+            T::Assets::burn_from(staking_currency, &Self::account_id(), value)?;
             T::XCM::do_bond_extra(
                 value,
                 Self::derivative_para_account_id(),
-                Self::staking_currency()?,
+                staking_currency,
                 T::DerivativeIndex::get(),
             )?;
             Self::deposit_event(Event::<T>::BondingExtra(value));
+
             Ok(())
         }
 
         #[require_transactional]
         fn do_unbond(value: BalanceOf<T>) -> DispatchResult {
+            if value.is_zero() {
+                return Ok(());
+            }
+
             T::XCM::do_unbond(value, Self::staking_currency()?, T::DerivativeIndex::get())?;
             Self::deposit_event(Event::<T>::Unbonding(value));
+
             Ok(())
         }
 
         #[require_transactional]
         fn do_rebond(value: BalanceOf<T>) -> DispatchResult {
+            if value.is_zero() {
+                return Ok(());
+            }
+
             T::XCM::do_rebond(value, Self::staking_currency()?, T::DerivativeIndex::get())?;
             Self::deposit_event(Event::<T>::Rebonding(value));
+
             Ok(())
         }
 
