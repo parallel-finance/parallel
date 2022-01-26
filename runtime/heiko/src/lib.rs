@@ -91,6 +91,7 @@ pub use pallet_liquid_staking;
 // pub use pallet_liquidation;
 pub use pallet_amm;
 pub use pallet_bridge;
+pub use pallet_identity;
 pub use pallet_liquidity_mining;
 pub use pallet_loans;
 pub use pallet_multisig;
@@ -1057,6 +1058,30 @@ impl pallet_multisig::Config for Runtime {
     type DepositFactor = DepositFactor;
     type MaxSignatories = MaxSignatories;
     type WeightInfo = weights::pallet_multisig::WeightInfo<Runtime>;
+}
+
+parameter_types! {
+    pub const BasicDeposit: Balance = deposit(1, 88);
+    pub const FieldDeposit: Balance = deposit(1, 88);
+    pub const SubAccountDeposit: Balance  = deposit(1, 88);
+    pub const MaxSubAccounts: u32 = 100;
+    pub const MaxAdditionalFields: u32 = 100;
+    pub const MaxRegistrars: u32 = 10;
+}
+
+impl pallet_identity::Config for Runtime {
+    type Event = Event;
+    type Currency = Balances;
+    type BasicDeposit = BasicDeposit;
+    type FieldDeposit = FieldDeposit;
+    type SubAccountDeposit = SubAccountDeposit;
+    type MaxSubAccounts = MaxSubAccounts;
+    type MaxAdditionalFields = MaxAdditionalFields;
+    type MaxRegistrars = MaxRegistrars;
+    type Slash = Treasury;
+    type ForceOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type RegistrarOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type WeightInfo = pallet_identity::weights::SubstrateWeight<Runtime>;
 }
 
 type EnsureRootOrMoreThanHalfGeneralCouncil = EnsureOneOf<
