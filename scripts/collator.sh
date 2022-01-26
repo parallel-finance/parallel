@@ -20,6 +20,8 @@ VOLUME="chains"
 NODE_KEY="$1"
 KEYSTORE_PATH="$2"
 NODE_NAME="$3"
+DOCKER_IMAGE="parallelfinance/parallel:v1.7.7"
+BASE_PATH="/data"
 
 if [ $# -lt 3 ]; then
   echo "help: ./collator.sh <NODE_KEY> <KEYSTORE_PATH> <NODE_NAME>" && exit 1
@@ -40,10 +42,10 @@ docker run --restart=always --name $PARA_CHAIN-collator \
   -p $RELAY_WS_PORT:$RELAY_WS_PORT \
   -p $RELAY_RPC_PORT:$RELAY_RPC_PORT \
   -p $RELAY_P2P_PORT:$RELAY_P2P_PORT \
-  -v "$VOLUME:/data" \
+  -v "$VOLUME:$BASE_PATH" \
   -v "$(realpath $KEYSTORE_PATH):/app/keystore" \
-  parallelfinance/parallel:v1.7.7 \
-    -d /data \
+  $DOCKER_IMAGE \
+    -d $BASE_PATH \
     --chain=$PARA_CHAIN \
     --collator \
     --ws-port=$PARA_WS_PORT \
