@@ -69,10 +69,10 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         id: runtime_version
         run: echo ::set-output name=version::$(cat runtime/${{ matrix.chain }}/src/lib.rs | grep spec_version | tr -d ', ' | cut -d':' -f2)
-      - name: Get Compressed Runtime Proposal Hash
+      - name: Get Compressed Runtime Blake2-256 Hash
         if: startsWith(github.ref, 'refs/tags/')
-        id: runtime_proposal_hash
-        run: echo ::set-output name=hash::$(cat ${{ matrix.chain }}-info_compressed.json | jq '.proposal_hash' -r)
+        id: runtime_blake2_256_hash
+        run: echo ::set-output name=hash::$(cat ${{ matrix.chain }}-info_compressed.json | jq '.blake2_256' -r)
       - name: Get GIT Tag
         if: startsWith(github.ref, 'refs/tags/')
         id: git_tag
@@ -87,8 +87,9 @@ jobs:
           draft: false
           prerelease: false
           name: Parallel ${{ steps.git_tag.outputs.tag }}
+          append_body: true
           body: |
-            `${{ matrix.chain }}_runtime-v${{ steps.runtime_version.outputs.version }}.compact.compressed.wasm - ${{ steps.runtime_proposal_hash.outputs.hash }}`
+            `${{ matrix.chain }}_runtime-v${{ steps.runtime_version.outputs.version }}.compact.compressed.wasm - ${{ steps.runtime_blake2_256_hash.outputs.hash }}`
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
