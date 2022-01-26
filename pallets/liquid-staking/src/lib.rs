@@ -516,7 +516,7 @@ pub mod pallet {
 
             let (bond_amount, rebond_amount, unbond_amount) =
                 MatchingPool::<T>::take().matching::<Self>(unbonding_amount)?;
-            if !bonding_amount.is_zero() {
+            if bonding_amount.is_zero() {
                 // TODO: bonding_amount is zero doesn't mean that we didn't run bond once
                 // to create stash account
                 Self::do_bond(bond_amount, RewardDestination::Staked)?;
@@ -702,7 +702,7 @@ pub mod pallet {
 
         #[require_transactional]
         fn do_bond_extra(value: BalanceOf<T>) -> DispatchResult {
-            if !value.is_zero() {
+            if value.is_zero() {
                 return Ok(());
             }
 
@@ -721,7 +721,7 @@ pub mod pallet {
 
         #[require_transactional]
         fn do_unbond(value: BalanceOf<T>) -> DispatchResult {
-            if !value.is_zero() {
+            if value.is_zero() {
                 return Ok(());
             }
 
@@ -733,7 +733,7 @@ pub mod pallet {
 
         #[require_transactional]
         fn do_rebond(value: BalanceOf<T>) -> DispatchResult {
-            if !value.is_zero() {
+            if value.is_zero() {
                 return Ok(());
             }
 
