@@ -17,6 +17,7 @@ use system::EnsureSignedBy;
 
 pub const DOT: CurrencyId = tokens::DOT;
 pub const XDOT: CurrencyId = tokens::XDOT;
+pub const KSM: CurrencyId = tokens::KSM;
 pub const SAMPLE_LP_TOKEN: CurrencyId = 42;
 
 pub const ALICE: AccountId = AccountId(1);
@@ -151,6 +152,7 @@ parameter_types! {
     pub const DefaultProtocolFeeReceiver: AccountId = AccountId(4_u64);
     pub const MinimumLiquidity: u128 = 1_000u128;
     pub const LockAccountId: AccountId = AccountId(1_u64);
+    pub const MaxLengthRoute: u8 = 10;
 }
 
 pub struct AliceCreatePoolOrigin;
@@ -171,6 +173,7 @@ impl pallet_amm::Config for Test {
     type ProtocolFee = DefaultProtocolFee;
     type MinimumLiquidity = MinimumLiquidity;
     type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
+    type MaxLengthRoute = MaxLengthRoute;
 }
 
 parameter_types! {

@@ -530,6 +530,37 @@ fn amount_out_should_work() {
 }
 
 #[test]
+fn amount_outs_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
+            (DOT, XDOT),
+            (1_000, 2_000),
+            BOB,
+            SAMPLE_LP_TOKEN,
+        ));
+
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
+            (KSM, DOT),
+            (10_000, 10_000),
+            BOB,
+            SAMPLE_LP_TOKEN,
+        ));
+
+        let path = Path::<Test, ()>::try_from(vec![DOT, XDOT, KSM]).unwrap();
+
+        let amount_in = 1_000;
+
+        let amounts_out = AMM::get_amounts_out(amount_in, path).unwrap();
+
+        println!("{:?}", amounts_out);
+
+        assert_eq!(0, 996);
+    })
+}
+
+#[test]
 fn amount_in_should_work() {
     new_test_ext().execute_with(|| {
         let amount_out = 1_000;

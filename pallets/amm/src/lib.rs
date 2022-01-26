@@ -66,6 +66,10 @@ pub type BalanceOf<T, I = ()> =
 pub mod pallet {
     use super::*;
 
+    pub type Path<T, I> = BoundedVec<AssetIdOf<T, I>, <T as Config<I>>::MaxLengthRoute>;
+
+    pub type Amounts<T, I> = sp_std::vec::Vec<BalanceOf<T, I>>;
+
     #[pallet::config]
     pub trait Config<I: 'static = ()>: frame_system::Config {
         type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
@@ -112,6 +116,10 @@ pub mod pallet {
         /// Who/where to send the protocol fees
         #[pallet::constant]
         type ProtocolFeeReceiver: Get<Self::AccountId>;
+
+        /// How many routes we support at most
+        #[pallet::constant]
+        type MaxLengthRoute: Get<u32>;
     }
 
     #[pallet::error]
@@ -450,6 +458,48 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .map(|r| r.saturating_reciprocal_mul::<BalanceOf<T, I>>(One::one()))
             .ok_or(ArithmeticError::Underflow)?)
     }
+
+    fn get_amounts_out(
+        amount_in: BalanceOf<T, I>,
+        path: Path<T, I>,
+    ) -> Result<Amounts<T, I>, DispatchError> {
+        let mut amounts_out: Amounts<T, I> = Vec::new();
+        amounts_out.resize(path.len(), 0u128);
+
+        amounts_out[0] = amount_in;
+        for i in 0..(path.len() - 1) {
+            let (reserve_in, reserve_out) = Self::get_reserves(path[i], path[i + 1])?;
+            let amount_out = Self::get_amount_out(amounts_out[i], reserve_in, reserve_out)?;
+            amounts_out[i + 1] = amount_out;
+        }
+
+        Ok(amounts_out)
+    }
+
+    fn get_reserves(
+        asset_in: AssetIdOf<T, I>,
+        asset_out: AssetIdOf<T, I>,
+    ) -> Result<(BalanceOf<T, I>, BalanceOf<T, I>), DispatchError> {
+        let (is_inverted, base_asset, quote_asset) = Self::sort_assets((asset_in, asset_out))?;
+
+        let pool = Pools::<T, I>::try_get(base_asset, quote_asset)
+            .map_err(|_err| Error::<T, I>::PoolDoesNotExist)?;
+
+        if is_inverted {
+            return Ok((pool.quote_amount, pool.base_amount));
+        }
+        {
+            return Ok((pool.base_amount, pool.quote_amount));
+        }
+    }
+
+    // fn get_amounts_in(
+    //     amount_in: BalanceOf<T, I>,
+    //     route: Path<T, I>,
+    // ) -> Result<BalanceOf<T, I>, DispatchError> {
+
+    //     Ok(())
+    // }
 
     // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
     //
