@@ -468,6 +468,7 @@ parameter_types! {
     pub const MinUnstakeAmount: Balance = 5_000_000_000; // 0.5DOT
     pub const StakingCurrency: CurrencyId = DOT;
     pub const LiquidCurrency: CurrencyId = XDOT;
+    pub const XcmFees: Balance = 500_000_000; // 0.05DOT
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -479,6 +480,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type DerivativeIndex = DerivativeIndex;
+    type XcmFees = XcmFees;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
     type UnstakeQueueCapacity = UnstakeQueueCapacity;
@@ -1312,8 +1314,8 @@ impl orml_vesting::Config for Runtime {
 
 parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
-    pub DefaultLpFee: Perbill = Perbill::from_rational(25u32, 10000u32);        // 0.25%
-    pub DefaultProtocolFee: Perbill = Perbill::from_rational(5u32, 10000u32);   // 0.05%
+    pub DefaultLpFee: Ratio = Ratio::from_rational(25u32, 10000u32);        // 0.25%
+    pub DefaultProtocolFee: Ratio = Ratio::from_rational(5u32, 10000u32);   // 0.05%
     pub DefaultProtocolFeeReceiver: AccountId = TreasuryPalletId::get().into_account();
     pub const MinimumLiquidity: u128 = 1_000u128;
 }

@@ -46,13 +46,13 @@ use frame_system::{ensure_signed, pallet_prelude::OriginFor};
 
 use sp_runtime::{
     traits::{AccountIdConversion, CheckedAdd, CheckedSub, IntegerSquareRoot, One, Zero},
-    ArithmeticError, DispatchError, Perbill,
+    ArithmeticError, DispatchError,
 };
 use sp_std::{cmp::min, ops::Div, result::Result};
 
 pub use pallet::*;
 
-use primitives::{Balance, CurrencyId};
+use primitives::{Balance, CurrencyId, Ratio};
 use types::Pool;
 pub use weights::WeightInfo;
 
@@ -91,11 +91,11 @@ pub mod pallet {
         /// Defines the fees taken out of each trade and sent back to the AMM pool,
         /// typically 0.3%.
         #[pallet::constant]
-        type LpFee: Get<Perbill>;
+        type LpFee: Get<Ratio>;
 
         /// How much the protocol is taking out of each trade.
         #[pallet::constant]
-        type ProtocolFee: Get<Perbill>;
+        type ProtocolFee: Get<Ratio>;
 
         /// Minimum amount of liquidty needed to init a new pool
         /// this amount is burned when the pool is created.
@@ -528,7 +528,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
         let fee_percent = T::LpFee::get()
             .checked_add(&T::ProtocolFee::get())
-            .and_then(|r| Perbill::from_percent(100).checked_sub(&r))
+            .and_then(|r| Ratio::from_percent(100).checked_sub(&r))
             .ok_or(ArithmeticError::Underflow)?;
 
         log::trace!(
