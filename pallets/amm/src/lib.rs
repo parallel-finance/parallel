@@ -476,6 +476,24 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(amounts_out)
     }
 
+    fn get_amounts_in(
+        amount_out: BalanceOf<T, I>,
+        path: Path<T, I>,
+    ) -> Result<Amounts<T, I>, DispatchError> {
+        let mut amounts_in: Amounts<T, I> = Vec::new();
+        amounts_in.resize(path.len(), 0u128);
+        let amount_len = amounts_in.len();
+
+        amounts_in[amount_len - 1] = amount_out;
+        for i in (0..(path.len() - 1)).rev() {
+            let (reserve_in, reserve_out) = Self::get_reserves(path[i - 1], path[i])?;
+            let amount_in = Self::get_amount_in(amounts_in[i], reserve_in, reserve_out)?;
+            amounts_in[i - 1] = amount_in;
+        }
+
+        Ok(amounts_in)
+    }
+
     fn get_reserves(
         asset_in: AssetIdOf<T, I>,
         asset_out: AssetIdOf<T, I>,
@@ -486,20 +504,11 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .map_err(|_err| Error::<T, I>::PoolDoesNotExist)?;
 
         if is_inverted {
-            return Ok((pool.quote_amount, pool.base_amount));
-        }
-        {
-            return Ok((pool.base_amount, pool.quote_amount));
+            Ok((pool.quote_amount, pool.base_amount))
+        } else {
+            Ok((pool.base_amount, pool.quote_amount))
         }
     }
-
-    // fn get_amounts_in(
-    //     amount_in: BalanceOf<T, I>,
-    //     route: Path<T, I>,
-    // ) -> Result<BalanceOf<T, I>, DispatchError> {
-
-    //     Ok(())
-    // }
 
     // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
     //
@@ -619,6 +628,15 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 .and_then(|r| r.checked_sub(T::MinimumLiquidity::get()))
                 .ok_or(ArithmeticError::Underflow)?
         } else {
+            pool.base_amount = pool
+                .base_amount
+                .checked_add(ideal_base_amount)
+                .ok_or(ArithmeticError::Overflow)?;
+            pool.quote_amount = pool
+                .quote_amount
+                .checked_add(ideal_quote_amount)
+                .ok_or(ArithmeticError::Overflow)?;
+
             min(
                 ideal_base_amount
                     .checked_mul(total_supply)
@@ -633,14 +651,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
         T::Assets::mint_into(pool.lp_token_id, who, liquidity)?;
 
-        pool.base_amount = pool
-            .base_amount
-            .checked_add(ideal_base_amount)
-            .ok_or(ArithmeticError::Overflow)?;
-        pool.quote_amount = pool
-            .quote_amount
-            .checked_add(ideal_quote_amount)
-            .ok_or(ArithmeticError::Overflow)?;
         T::Assets::transfer(
             base_asset,
             who,
