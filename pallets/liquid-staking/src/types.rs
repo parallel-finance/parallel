@@ -9,13 +9,6 @@ use sp_std::cmp::Ordering;
 
 use primitives::ExchangeRateProvider;
 
-/// Category of staking settlement at the end of era.
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, TypeInfo)]
-pub enum StakingSettlementKind {
-    Reward,
-    Slash,
-}
-
 /// The matching pool's total stake & unstake amount in one era
 #[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct MatchingLedger<Balance: BalanceT> {

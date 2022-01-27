@@ -161,7 +161,7 @@ async function para() {
   }
 
   call.push(
-    api.tx.sudo.sudo(api.tx.liquidStaking.updateStakingPoolCapacity('10000000000000000')),
+    api.tx.sudo.sudo(api.tx.liquidStaking.updateMarketCap('10000000000000000')),
     api.tx.sudo.sudo(api.tx.xcmHelper.updateXcmFees('50000000000')),
     api.tx.balances.transfer(createAddress(GiftPalletId), '1000000000000000')
   )

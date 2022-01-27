@@ -343,10 +343,10 @@ impl pallet_xcm_helper::Config for Test {
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const DerivativeIndex: u16 = 0;
-    pub const UnstakeQueueCapacity: u32 = 1000;
+    pub const UnstakeQueueCap: u32 = 1000;
     pub SelfParaId: ParaId = para_a_id();
-    pub const MinStakeAmount: Balance = 0;
-    pub const MinUnstakeAmount: Balance = 0;
+    pub const MinStake: Balance = 0;
+    pub const MinUnstake: Balance = 0;
     pub const StakingCurrency: CurrencyId = KSM;
     pub const LiquidCurrency: CurrencyId = XKSM;
     pub const XcmFees: Balance = 0;
@@ -364,9 +364,9 @@ impl crate::Config for Test {
     type XcmFees = XcmFees;
     type Assets = Assets;
     type RelayOrigin = RelayOrigin;
-    type UnstakeQueueCapacity = UnstakeQueueCapacity;
-    type MinStakeAmount = MinStakeAmount;
-    type MinUnstakeAmount = MinUnstakeAmount;
+    type UnstakeQueueCap = UnstakeQueueCap;
+    type MinStake = MinStake;
+    type MinUnstake = MinUnstake;
     type XCM = XcmHelper;
 }
 
@@ -459,7 +459,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         Assets::mint(Origin::signed(ALICE), XKSM, Id(ALICE), ksm(100f64)).unwrap();
         Assets::mint(Origin::signed(ALICE), KSM, Id(BOB), ksm(20000f64)).unwrap();
 
-        LiquidStaking::update_staking_pool_capacity(Origin::signed(BOB), ksm(10000f64)).unwrap();
+        LiquidStaking::update_market_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
         Assets::mint(
             Origin::signed(ALICE),
             KSM,
@@ -613,7 +613,7 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         )
         .unwrap();
 
-        LiquidStaking::update_staking_pool_capacity(Origin::signed(BOB), ksm(10000f64)).unwrap();
+        LiquidStaking::update_market_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
         XcmHelper::update_xcm_fees(Origin::signed(BOB), ksm(10f64)).unwrap();
     });
 

@@ -293,7 +293,7 @@ fn update_market_should_not_work_if_with_invalid_params() {
                 Rate::from_inner(Rate::DIV / 100 * 90),
                 Zero::zero()
             ),
-            Error::<Test>::ZeroCap
+            Error::<Test>::InvalidCap
         );
     })
 }

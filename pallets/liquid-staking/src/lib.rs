@@ -115,17 +115,17 @@ pub mod pallet {
         #[pallet::constant]
         type LiquidCurrency: Get<AssetIdOf<Self>>;
 
-        /// Unstake queue capacity
+        /// Unstake queue's capacity
         #[pallet::constant]
-        type UnstakeQueueCapacity: Get<u32>;
+        type UnstakeQueueCap: Get<u32>;
 
         /// Minimum stake amount
         #[pallet::constant]
-        type MinStakeAmount: Get<BalanceOf<Self>>;
+        type MinStake: Get<BalanceOf<Self>>;
 
         /// Minimum unstake amount
         #[pallet::constant]
-        type MinUnstakeAmount: Get<BalanceOf<Self>>;
+        type MinUnstake: Get<BalanceOf<Self>>;
 
         /// Weight information
         type WeightInfo: WeightInfo;
@@ -157,15 +157,15 @@ pub mod pallet {
         WithdrawingUnbonded(u32),
         /// Sent staking.nominate call to relaychain
         Nominating(Vec<T::AccountId>),
-        /// Capacity of staking pool was set to new value
-        StakingPoolCapacityUpdated(BalanceOf<T>),
-        /// InsurancePool's reserve_factor updated
+        /// Liquid currency's market cap was updated
+        MarketCapUpdated(BalanceOf<T>),
+        /// InsurancePool's reserve_factor was updated
         ReserveFactorUpdated(Ratio),
-        /// Add asset to insurance pool
+        /// Insurances were added
         InsurancesAdded(T::AccountId, BalanceOf<T>),
         /// Slash was paid by insurance pool
         SlashPaid(BalanceOf<T>),
-        /// Exchange rate was set to new value
+        /// Exchange rate was updated
         ExchangeRateUpdated(Rate),
     }
 
@@ -173,18 +173,20 @@ pub mod pallet {
     pub enum Error<T> {
         /// Exchange rate is invalid.
         InvalidExchangeRate,
-        /// Stake amount is too small
-        StakeAmountTooSmall,
-        /// Unstake amount is too small
-        UnstakeAmountTooSmall,
-        /// Liquid currency hasn't been set
-        LiquidCurrencyNotReady,
-        /// Staking currency hasn't been set
-        StakingCurrencyNotReady,
+        /// The stake was below the minimum, `MinStake`.
+        StakeTooSmall,
+        /// The unstake was below the minimum, `MinUnstake`.
+        UnstakeTooSmall,
+        /// Invalid liquid currency
+        InvalidLiquidCurrency,
+        /// Invalid staking currency
+        InvalidStakingCurrency,
         /// Exceeded unstake queue's capacity
-        ExceededUnstakeQueueCapacity,
-        /// The cap cannot be zero
-        ZeroCap,
+        UnstakeQueueCapExceeded,
+        /// Exceeded liquid currency's market cap
+        CapExceeded,
+        /// Invalid market cap
+        InvalidCap,
         /// The factor should be bigger than 0% and smaller than 100%
         InvalidFactor,
     }
@@ -214,16 +216,13 @@ pub mod pallet {
     /// Insert a new record while user can't be paid instantly in unstaking operation.
     #[pallet::storage]
     #[pallet::getter(fn unstake_queue)]
-    pub type UnstakeQueue<T: Config> = StorageValue<
-        _,
-        BoundedVec<(T::AccountId, BalanceOf<T>), T::UnstakeQueueCapacity>,
-        ValueQuery,
-    >;
+    pub type UnstakeQueue<T: Config> =
+        StorageValue<_, BoundedVec<(T::AccountId, BalanceOf<T>), T::UnstakeQueueCap>, ValueQuery>;
 
-    /// Staking pool capacity
+    /// Liquid currency's market cap
     #[pallet::storage]
-    #[pallet::getter(fn staking_pool_capacity)]
-    pub type StakingPoolCapacity<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+    #[pallet::getter(fn market_cap)]
+    pub type MarketCap<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     /// Total amount of charged assets to be used as xcm fees.
     #[pallet::storage]
@@ -331,18 +330,14 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
-            ensure!(
-                amount >= T::MinStakeAmount::get(),
-                Error::<T>::StakeAmountTooSmall
-            );
+            ensure!(amount >= T::MinStake::get(), Error::<T>::StakeTooSmall);
 
-            // calculate staking fee and add it to insurance pool
             let reserves = Self::reserve_factor().mul_floor(amount);
+
             let xcm_fees = T::XcmFees::get();
             let amount = amount
                 .checked_sub(xcm_fees)
                 .ok_or(ArithmeticError::Underflow)?;
-
             T::Assets::transfer(
                 Self::staking_currency()?,
                 &who,
@@ -359,7 +354,15 @@ pub mod pallet {
                 .reciprocal()
                 .and_then(|r| r.checked_mul_int(amount))
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
-            T::Assets::mint_into(Self::liquid_currency()?, &who, liquid_amount)?;
+            let liquid_currency = Self::liquid_currency()?;
+            ensure!(
+                T::Assets::total_issuance(liquid_currency)
+                    .checked_add(liquid_amount)
+                    .ok_or(ArithmeticError::Overflow)?
+                    <= Self::market_cap(),
+                Error::<T>::CapExceeded
+            );
+            T::Assets::mint_into(liquid_currency, &who, liquid_amount)?;
 
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
                 p.total_stake_amount = p
@@ -391,8 +394,8 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
 
             ensure!(
-                liquid_amount >= T::MinUnstakeAmount::get(),
-                Error::<T>::UnstakeAmountTooSmall
+                liquid_amount >= T::MinUnstake::get(),
+                Error::<T>::UnstakeTooSmall
             );
 
             let exchange_rate = ExchangeRate::<T>::get();
@@ -445,20 +448,20 @@ pub mod pallet {
             Ok(().into())
         }
 
-        /// Update staking's market cap
-        /// stake will be blocked if passed the cap
-        #[pallet::weight(<T as Config>::WeightInfo::update_staking_pool_capacity())]
+        /// Update liquid currency's market cap
+        /// stake will be blocked if passed liquid currency's market cap
+        #[pallet::weight(<T as Config>::WeightInfo::update_market_cap())]
         #[transactional]
-        pub fn update_staking_pool_capacity(
+        pub fn update_market_cap(
             origin: OriginFor<T>,
             #[pallet::compact] cap: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
 
-            ensure!(!cap.is_zero(), Error::<T>::ZeroCap);
+            ensure!(!cap.is_zero(), Error::<T>::InvalidCap);
 
-            StakingPoolCapacity::<T>::mutate(|v| *v = cap);
-            Self::deposit_event(Event::<T>::StakingPoolCapacityUpdated(cap));
+            MarketCap::<T>::mutate(|v| *v = cap);
+            Self::deposit_event(Event::<T>::MarketCapUpdated(cap));
             Ok(().into())
         }
 
@@ -496,7 +499,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
 
-            let matching_pool = MatchingPool::<T>::get();
+            let matching_pool = Self::matching_pool();
             let old_exchange_rate = Self::exchange_rate();
             let exchange_rate = Rate::checked_from_rational(
                 bonding_amount
@@ -541,11 +544,11 @@ pub mod pallet {
         #[transactional]
         pub fn bond(
             origin: OriginFor<T>,
-            #[pallet::compact] value: BalanceOf<T>,
+            #[pallet::compact] amount: BalanceOf<T>,
             payee: RewardDestination<T::AccountId>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-            Self::do_bond(value, payee)?;
+            Self::do_bond(amount, payee)?;
             Ok(())
         }
 
@@ -554,10 +557,10 @@ pub mod pallet {
         #[transactional]
         pub fn bond_extra(
             origin: OriginFor<T>,
-            #[pallet::compact] value: BalanceOf<T>,
+            #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-            Self::do_bond_extra(value)?;
+            Self::do_bond_extra(amount)?;
             Ok(())
         }
 
@@ -566,10 +569,10 @@ pub mod pallet {
         #[transactional]
         pub fn unbond(
             origin: OriginFor<T>,
-            #[pallet::compact] value: BalanceOf<T>,
+            #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-            Self::do_unbond(value)?;
+            Self::do_unbond(amount)?;
             Ok(())
         }
 
@@ -578,10 +581,10 @@ pub mod pallet {
         #[transactional]
         pub fn rebond(
             origin: OriginFor<T>,
-            #[pallet::compact] value: BalanceOf<T>,
+            #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-            Self::do_rebond(value)?;
+            Self::do_rebond(amount)?;
             Ok(())
         }
 
@@ -658,14 +661,14 @@ pub mod pallet {
         /// Get staking currency or return back an error
         pub fn staking_currency() -> Result<AssetIdOf<T>, DispatchError> {
             Self::get_staking_currency()
-                .ok_or(Error::<T>::StakingCurrencyNotReady)
+                .ok_or(Error::<T>::InvalidStakingCurrency)
                 .map_err(Into::into)
         }
 
         /// Get liquid currency or return back an error
         pub fn liquid_currency() -> Result<AssetIdOf<T>, DispatchError> {
             Self::get_liquid_currency()
-                .ok_or(Error::<T>::LiquidCurrencyNotReady)
+                .ok_or(Error::<T>::InvalidLiquidCurrency)
                 .map_err(Into::into)
         }
 
@@ -677,68 +680,65 @@ pub mod pallet {
         }
 
         #[require_transactional]
-        fn do_bond(value: BalanceOf<T>, payee: RewardDestination<T::AccountId>) -> DispatchResult {
-            if value.is_zero() {
+        fn do_bond(amount: BalanceOf<T>, payee: RewardDestination<T::AccountId>) -> DispatchResult {
+            if amount.is_zero() {
                 return Ok(());
             }
 
             let staking_currency = Self::staking_currency()?;
-            T::Assets::burn_from(staking_currency, &Self::account_id(), value)?;
+            let derivative_account_id = Self::derivative_para_account_id();
+            T::Assets::burn_from(staking_currency, &Self::account_id(), amount)?;
             T::XCM::do_bond(
-                value,
+                amount,
                 payee.clone(),
-                Self::derivative_para_account_id(),
+                derivative_account_id.clone(),
                 staking_currency,
                 T::DerivativeIndex::get(),
             )?;
-            Self::deposit_event(Event::<T>::Bonding(
-                Self::derivative_para_account_id(),
-                value,
-                payee,
-            ));
+            Self::deposit_event(Event::<T>::Bonding(derivative_account_id, amount, payee));
 
             Ok(())
         }
 
         #[require_transactional]
-        fn do_bond_extra(value: BalanceOf<T>) -> DispatchResult {
-            if value.is_zero() {
+        fn do_bond_extra(amount: BalanceOf<T>) -> DispatchResult {
+            if amount.is_zero() {
                 return Ok(());
             }
 
             let staking_currency = Self::staking_currency()?;
-            T::Assets::burn_from(staking_currency, &Self::account_id(), value)?;
+            T::Assets::burn_from(staking_currency, &Self::account_id(), amount)?;
             T::XCM::do_bond_extra(
-                value,
+                amount,
                 Self::derivative_para_account_id(),
                 staking_currency,
                 T::DerivativeIndex::get(),
             )?;
-            Self::deposit_event(Event::<T>::BondingExtra(value));
+            Self::deposit_event(Event::<T>::BondingExtra(amount));
 
             Ok(())
         }
 
         #[require_transactional]
-        fn do_unbond(value: BalanceOf<T>) -> DispatchResult {
-            if value.is_zero() {
+        fn do_unbond(amount: BalanceOf<T>) -> DispatchResult {
+            if amount.is_zero() {
                 return Ok(());
             }
 
-            T::XCM::do_unbond(value, Self::staking_currency()?, T::DerivativeIndex::get())?;
-            Self::deposit_event(Event::<T>::Unbonding(value));
+            T::XCM::do_unbond(amount, Self::staking_currency()?, T::DerivativeIndex::get())?;
+            Self::deposit_event(Event::<T>::Unbonding(amount));
 
             Ok(())
         }
 
         #[require_transactional]
-        fn do_rebond(value: BalanceOf<T>) -> DispatchResult {
-            if value.is_zero() {
+        fn do_rebond(amount: BalanceOf<T>) -> DispatchResult {
+            if amount.is_zero() {
                 return Ok(());
             }
 
-            T::XCM::do_rebond(value, Self::staking_currency()?, T::DerivativeIndex::get())?;
-            Self::deposit_event(Event::<T>::Rebonding(value));
+            T::XCM::do_rebond(amount, Self::staking_currency()?, T::DerivativeIndex::get())?;
+            Self::deposit_event(Event::<T>::Rebonding(amount));
 
             Ok(())
         }
@@ -747,7 +747,7 @@ pub mod pallet {
         fn push_unstake_task(who: &T::AccountId, amount: BalanceOf<T>) -> DispatchResult {
             UnstakeQueue::<T>::try_mutate(|q| -> DispatchResult {
                 q.try_push((who.clone(), amount))
-                    .map_err(|_| Error::<T>::ExceededUnstakeQueueCapacity)?;
+                    .map_err(|_| Error::<T>::UnstakeQueueCapExceeded)?;
                 Ok(())
             })
         }

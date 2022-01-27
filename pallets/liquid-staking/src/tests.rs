@@ -342,11 +342,11 @@ fn test_add_insurances_work() {
 }
 
 #[test]
-fn update_staking_pool_capacity_should_not_work_if_with_invalid_param() {
+fn update_market_cap_should_not_work_if_with_invalid_param() {
     new_test_ext().execute_with(|| {
         assert_noop!(
-            LiquidStaking::update_staking_pool_capacity(Origin::root(), Zero::zero()),
-            Error::<Test>::ZeroCap
+            LiquidStaking::update_market_cap(Origin::root(), Zero::zero()),
+            Error::<Test>::InvalidCap
         );
     })
 }
