@@ -161,8 +161,6 @@ pub mod pallet {
         MarketCapUpdated(BalanceOf<T>),
         /// InsurancePool's reserve_factor was updated
         ReserveFactorUpdated(Ratio),
-        /// Insurances were added
-        InsurancesAdded(T::AccountId, BalanceOf<T>),
         /// Slash was paid by insurance pool
         SlashPaid(BalanceOf<T>),
         /// Exchange rate was updated
@@ -224,11 +222,6 @@ pub mod pallet {
     #[pallet::getter(fn market_cap)]
     pub type MarketCap<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
-    /// Total amount of charged assets to be used as xcm fees.
-    #[pallet::storage]
-    #[pallet::getter(fn insurance_pool)]
-    pub type InsurancePool<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
-
     #[derive(Default)]
     #[pallet::genesis_config]
     pub struct GenesisConfig {
@@ -281,7 +274,6 @@ pub mod pallet {
                 // InsurancePool should not be embazzled.
                 let free_balance =
                     T::Assets::reducible_balance(staking_currency, &account_id, false)
-                        .saturating_sub(Self::insurance_pool())
                         .saturating_sub(Self::total_reserves());
 
                 log::trace!(
@@ -465,25 +457,6 @@ pub mod pallet {
             Ok(().into())
         }
 
-        /// Payout slashed amount.
-        ///
-        /// Subtract `InsurancePool`, and bond corresponding amount on relay chain.
-        #[pallet::weight(<T as Config>::WeightInfo::payout_slashed())]
-        #[transactional]
-        pub fn payout_slashed(
-            origin: OriginFor<T>,
-            #[pallet::compact] amount: BalanceOf<T>,
-        ) -> DispatchResultWithPostInfo {
-            T::RelayOrigin::ensure_origin(origin)?;
-            InsurancePool::<T>::try_mutate(|v| -> DispatchResult {
-                *v = v.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
-                Ok(())
-            })?;
-            Self::do_bond_extra(amount)?;
-            Self::deposit_event(Event::<T>::SlashPaid(amount));
-            Ok(().into())
-        }
-
         /// Do settlement for matching pool.
         ///
         /// The extrinsic does two things:
@@ -619,30 +592,6 @@ pub mod pallet {
                 T::DerivativeIndex::get(),
             )?;
             Self::deposit_event(Event::<T>::Nominating(targets));
-            Ok(())
-        }
-
-        /// Anyone can transfer asset to the insurance pool
-        #[pallet::weight(<T as Config>::WeightInfo::add_insurances())]
-        #[transactional]
-        pub fn add_insurances(
-            origin: OriginFor<T>,
-            #[pallet::compact] amount: BalanceOf<T>,
-        ) -> DispatchResult {
-            let who = ensure_signed(origin)?;
-
-            T::Assets::transfer(
-                Self::staking_currency()?,
-                &who,
-                &Self::account_id(),
-                amount,
-                false,
-            )?;
-            InsurancePool::<T>::try_mutate(|b| -> DispatchResult {
-                *b = b.checked_add(amount).ok_or(ArithmeticError::Overflow)?;
-                Ok(())
-            })?;
-            Self::deposit_event(Event::<T>::InsurancesAdded(who, amount));
             Ok(())
         }
     }
