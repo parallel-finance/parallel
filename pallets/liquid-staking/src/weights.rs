@@ -58,7 +58,7 @@ pub trait WeightInfo {
 	fn rebond() -> Weight;
 	fn withdraw_unbonded() -> Weight;
 	fn update_reserve_factor() -> Weight;
-	fn update_staking_pool_capacity() -> Weight;
+	fn update_market_cap() -> Weight;
 	fn add_insurances() -> Weight;
 	fn payout_slashed() -> Weight;
 	fn on_idle() -> Weight;
@@ -117,7 +117,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
-	fn update_staking_pool_capacity() -> Weight {
+	fn update_market_cap() -> Weight {
 		(24_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
@@ -191,7 +191,7 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
 	}
-	fn update_staking_pool_capacity() -> Weight {
+	fn update_market_cap() -> Weight {
 		(24_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))

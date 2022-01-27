@@ -22,9 +22,9 @@ use frame_support::{
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
+use sp_runtime::{testing::Header, traits::IdentityLookup};
 
-pub use primitives::{tokens, Amount, Balance, CurrencyId, AMM};
+pub use primitives::{tokens, Amount, Balance, CurrencyId, Ratio, AMM};
 
 pub type AccountId = u128;
 pub type BlockNumber = u64;
@@ -115,8 +115,8 @@ impl pallet_assets::Config for Runtime {
 // AMM instance initialization
 parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
-    pub const DefaultLpFee: Perbill = Perbill::from_perthousand(3);         // 0.3%
-    pub const DefaultProtocolFee: Perbill = Perbill::from_perthousand(2);   // 0.2%
+    pub const DefaultLpFee: Ratio = Ratio::from_perthousand(3);         // 0.3%
+    pub const DefaultProtocolFee: Ratio = Ratio::from_perthousand(2);   // 0.2%
     pub const DefaultProtocolFeeReceiver: AccountId = CHARLIE;
     pub const MinimumLiquidity: u128 = 1_000u128;
     pub const LockAccountId: AccountId = ALICE;

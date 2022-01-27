@@ -260,13 +260,13 @@ pub mod pallet {
         /// No contributions allowed during the VRF delay
         VrfDelayInProgress,
         /// Attempted contribution violates contribution cap
-        ExceededCap,
+        CapExceeded,
         /// Current relay block is greater than vault end block
         ExceededEndBlock,
         /// Exceeded maximum vrfs
-        ExceededMaxVrfs,
+        MaxVrfsExceeded,
         /// Capacity cannot be zero value
-        ZeroCap,
+        InvalidCap,
         /// Invalid params input
         InvalidParams,
         /// Vault is not ready to be dissolved
@@ -341,7 +341,7 @@ pub mod pallet {
         ) -> DispatchResult {
             T::CreateVaultOrigin::ensure_origin(origin)?;
 
-            ensure!(!cap.is_zero(), Error::<T>::ZeroCap);
+            ensure!(!cap.is_zero(), Error::<T>::InvalidCap);
 
             ensure!(
                 lease_start <= lease_end,
@@ -425,7 +425,7 @@ pub mod pallet {
             let mut vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
 
             if let Some(cap) = cap {
-                ensure!(!cap.is_zero(), Error::<T>::ZeroCap);
+                ensure!(!cap.is_zero(), Error::<T>::InvalidCap);
                 vault.cap = cap;
             }
 
@@ -525,7 +525,7 @@ pub mod pallet {
                     .checked_add(amount)
                     .ok_or(ArithmeticError::Overflow)?
                     <= vault.cap,
-                Error::<T>::ExceededCap
+                Error::<T>::CapExceeded
             );
 
             T::Assets::transfer(
@@ -598,7 +598,7 @@ pub mod pallet {
             );
 
             Vrfs::<T>::try_mutate(|b| -> Result<(), DispatchError> {
-                *b = vrfs.try_into().map_err(|_| Error::<T>::ExceededMaxVrfs)?;
+                *b = vrfs.try_into().map_err(|_| Error::<T>::MaxVrfsExceeded)?;
                 Ok(())
             })?;
 

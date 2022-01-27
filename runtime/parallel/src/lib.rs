@@ -89,6 +89,7 @@ pub use pallet_liquid_staking;
 // pub use pallet_liquidation;
 pub use pallet_amm;
 pub use pallet_bridge;
+pub use pallet_identity;
 pub use pallet_liquidity_mining;
 pub use pallet_loans;
 pub use pallet_multisig;
@@ -138,10 +139,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("parallel"),
     impl_name: create_runtime_str!("parallel"),
     authoring_version: 1,
-    spec_version: 176,
-    impl_version: 21,
+    spec_version: 177,
+    impl_version: 22,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 5,
+    transaction_version: 6,
 };
 
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
@@ -224,6 +225,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::Utility(_) |
             Call::Multisig(_) |
             Call::Proxy(_) |
+            Call::Identity(_) |
             Call::EmergencyShutdown(_) |
             // 3rd Party
             Call::Vesting(_) |
@@ -463,11 +465,12 @@ impl pallet_loans::Config for Runtime {
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const DerivativeIndex: u16 = 0;
-    pub const UnstakeQueueCapacity: u32 = 1000;
-    pub const MinStakeAmount: Balance = 10_000_000_000; // 1DOT
-    pub const MinUnstakeAmount: Balance = 5_000_000_000; // 0.5DOT
+    pub const UnstakeQueueCap: u32 = 1000;
+    pub const MinStake: Balance = 10_000_000_000; // 1DOT
+    pub const MinUnstake: Balance = 5_000_000_000; // 0.5DOT
     pub const StakingCurrency: CurrencyId = DOT;
     pub const LiquidCurrency: CurrencyId = XDOT;
+    pub const XcmFees: Balance = 500_000_000; // 0.05DOT
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -479,11 +482,12 @@ impl pallet_liquid_staking::Config for Runtime {
     type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type DerivativeIndex = DerivativeIndex;
+    type XcmFees = XcmFees;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type UnstakeQueueCapacity = UnstakeQueueCapacity;
-    type MinStakeAmount = MinStakeAmount;
-    type MinUnstakeAmount = MinUnstakeAmount;
+    type UnstakeQueueCap = UnstakeQueueCap;
+    type MinStake = MinStake;
+    type MinUnstake = MinUnstake;
     type XCM = XcmHelper;
 }
 
@@ -1054,6 +1058,30 @@ impl pallet_multisig::Config for Runtime {
     type WeightInfo = weights::pallet_multisig::WeightInfo<Runtime>;
 }
 
+parameter_types! {
+    pub const BasicDeposit: Balance = deposit(1, 258);
+    pub const FieldDeposit: Balance = deposit(1, 66);
+    pub const SubAccountDeposit: Balance  = deposit(1, 53);
+    pub const MaxSubAccounts: u32 = 100;
+    pub const MaxAdditionalFields: u32 = 100;
+    pub const MaxRegistrars: u32 = 20;
+}
+
+impl pallet_identity::Config for Runtime {
+    type Event = Event;
+    type Currency = Balances;
+    type BasicDeposit = BasicDeposit;
+    type FieldDeposit = FieldDeposit;
+    type SubAccountDeposit = SubAccountDeposit;
+    type MaxSubAccounts = MaxSubAccounts;
+    type MaxAdditionalFields = MaxAdditionalFields;
+    type MaxRegistrars = MaxRegistrars;
+    type Slashed = Treasury;
+    type ForceOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type RegistrarOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type WeightInfo = pallet_identity::weights::SubstrateWeight<Runtime>;
+}
+
 type EnsureRootOrMoreThanHalfGeneralCouncil = EnsureOneOf<
     AccountId,
     EnsureRoot<AccountId>,
@@ -1312,8 +1340,8 @@ impl orml_vesting::Config for Runtime {
 
 parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
-    pub DefaultLpFee: Perbill = Perbill::from_rational(25u32, 10000u32);        // 0.25%
-    pub DefaultProtocolFee: Perbill = Perbill::from_rational(5u32, 10000u32);   // 0.05%
+    pub DefaultLpFee: Ratio = Ratio::from_rational(25u32, 10000u32);        // 0.25%
+    pub DefaultProtocolFee: Ratio = Ratio::from_rational(5u32, 10000u32);   // 0.05%
     pub DefaultProtocolFeeReceiver: AccountId = TreasuryPalletId::get().into_account();
     pub const MinimumLiquidity: u128 = 1_000u128;
 }
@@ -1459,6 +1487,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::Utility(_) |
             Call::Multisig(_) |
             Call::Proxy(_) |
+            Call::Identity(_) |
             Call::EmergencyShutdown(_) |
             // 3rd Party
             Call::Vesting(_) |
@@ -1491,6 +1520,7 @@ construct_runtime!(
         TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 5,
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>} = 6,
         Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 7,
+        Identity: pallet_identity::{Pallet, Call, Storage, Event<T>} = 8,
 
         // Governance
         Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,

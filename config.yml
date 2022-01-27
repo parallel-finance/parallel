@@ -16,12 +16,13 @@ relaychain:
           recipient: 2085
           maxCapacity: 8
           maxMessageSize: 102400
+  env:
+    RUST_LOG: xcm=trace
   flags:
     - --rpc-methods=unsafe
     - --no-beefy
     - --wasm-execution=compiled
     - --execution=wasm
-    - -lxcm=trace
     - --state-cache-size=0
   nodes:
     - name: alice
@@ -45,13 +46,14 @@ parachains:
       - --force-authoring
       - --wasm-execution=compiled
       - --execution=wasm
-      - -l'xcm=trace,loans=trace,liquidstaking=trace,crowdloans=trace,amm=trace'
       - --state-cache-size=0
     relaychainFlags:
       - --wasm-execution=compiled
       - --execution=wasm
       - --no-beefy
       - --state-cache-size=0
+    env:
+      RUST_LOG: xcm=trace,loans=trace,liquidstaking=trace,crowdloans=trace,amm=trace
     nodes:
       - flags:
           - --alice

@@ -100,6 +100,7 @@ fn test_settlement_should_work() {
             );
             assert_ok!(LiquidStaking::settlement(
                 Origin::signed(ALICE),
+                false,
                 ksm(0f64),
                 unbonding_amount,
             ));
@@ -333,20 +334,11 @@ fn test_transfer_bond() {
 }
 
 #[test]
-fn test_add_insurances_work() {
-    new_test_ext().execute_with(|| {
-        assert_eq!(InsurancePool::<Test>::get(), 0);
-        assert_ok!(LiquidStaking::add_insurances(Origin::signed(BOB), 123));
-        assert_eq!(InsurancePool::<Test>::get(), 123);
-    })
-}
-
-#[test]
-fn update_staking_pool_capacity_should_not_work_if_with_invalid_param() {
+fn update_market_cap_should_not_work_if_with_invalid_param() {
     new_test_ext().execute_with(|| {
         assert_noop!(
-            LiquidStaking::update_staking_pool_capacity(Origin::root(), Zero::zero()),
-            Error::<Test>::ZeroCap
+            LiquidStaking::update_market_cap(Origin::root(), Zero::zero()),
+            Error::<Test>::InvalidCap
         );
     })
 }
