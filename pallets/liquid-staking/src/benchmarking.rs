@@ -22,18 +22,16 @@ const SEED: u32 = 0;
 const MARKET_CAP: u128 = 10000000000000000u128;
 const XCM_FEES: u128 = 50000000000u128;
 const RESERVE_FACTOR: Ratio = Ratio::from_perthousand(5);
-const INITIAL_INSURANCE: u128 = 1000000000000u128;
+const INITIAL_XCM_FEES: u128 = 1000000000000u128;
 const INITIAL_AMOUNT: u128 = 1000000000000000u128;
 
 const STAKE_AMOUNT: u128 = 20000000000000u128;
 const STAKED_AMOUNT: u128 = 19900000000000u128; // 20000000000000 * (1 - 5/1000)
 const UNSTAKE_AMOUNT: u128 = 10000000000000u128;
-const SLASHES: u128 = 1000000000u128;
 const BOND_AMOUNT: u128 = 10000000000000u128;
 const UNBOND_AMOUNT: u128 = 5000000000000u128;
 const REBOND_AMOUNT: u128 = 5000000000000u128;
 const WITHDRAW_AMOUNT: u128 = 5000000000000u128;
-const INSURANCE_AMOUNT: u128 = 5000000000000u128;
 const UNBONDING_AMOUNT: u128 = 0u128;
 const REMAINING_WEIGHT: Weight = 100000000000u64;
 
@@ -45,7 +43,6 @@ fn initial_set_up<
     caller: T::AccountId,
 ) {
     let account_id = T::Lookup::unlookup(caller.clone());
-    let staking_pool_account = LiquidStaking::<T>::account_id();
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
@@ -86,18 +83,11 @@ fn initial_set_up<
 
     <T as pallet_xcm_helper::Config>::Assets::mint_into(
         KSM,
-        &staking_pool_account,
-        INITIAL_INSURANCE,
-    )
-    .unwrap();
-    <T as pallet_xcm_helper::Config>::Assets::mint_into(
-        KSM,
         &pallet_xcm_helper::Pallet::<T>::account_id(),
-        INITIAL_INSURANCE,
+        INITIAL_XCM_FEES,
     )
     .unwrap();
     ExchangeRate::<T>::mutate(|b| *b = Rate::one());
-    InsurancePool::<T>::mutate(|b| *b = INITIAL_INSURANCE);
 }
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
@@ -210,22 +200,6 @@ benchmarks! {
     update_market_cap {
     }: _(SystemOrigin::Root, MARKET_CAP)
     verify {
-    }
-
-    add_insurances {
-        let alice: T::AccountId = account("Sample", 100, SEED);
-        initial_set_up::<T>(alice.clone());
-    }: _(SystemOrigin::Signed(alice.clone()), INSURANCE_AMOUNT)
-    verify {
-        assert_eq!(InsurancePool::<T>::get(), INSURANCE_AMOUNT + INITIAL_INSURANCE);
-    }
-
-    payout_slashed {
-        let alice: T::AccountId = account("Sample", 100, SEED);
-        initial_set_up::<T>(alice);
-    }: _(SystemOrigin::Root, SLASHES)
-    verify {
-        assert_eq!(InsurancePool::<T>::get(), INITIAL_INSURANCE - SLASHES);
     }
 
     on_idle {
