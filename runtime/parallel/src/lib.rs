@@ -225,6 +225,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::Utility(_) |
             Call::Multisig(_) |
             Call::Proxy(_) |
+            Call::Identity(_) |
             Call::EmergencyShutdown(_) |
             // 3rd Party
             Call::Vesting(_) |
@@ -1058,12 +1059,12 @@ impl pallet_multisig::Config for Runtime {
 }
 
 parameter_types! {
-    pub const BasicDeposit: Balance = deposit(1, 88);
-    pub const FieldDeposit: Balance = deposit(1, 88);
-    pub const SubAccountDeposit: Balance  = deposit(1, 88);
+    pub const BasicDeposit: Balance = deposit(1, 258);
+    pub const FieldDeposit: Balance = deposit(1, 66);
+    pub const SubAccountDeposit: Balance  = deposit(1, 53);
     pub const MaxSubAccounts: u32 = 100;
     pub const MaxAdditionalFields: u32 = 100;
-    pub const MaxRegistrars: u32 = 10;
+    pub const MaxRegistrars: u32 = 20;
 }
 
 impl pallet_identity::Config for Runtime {
@@ -1485,6 +1486,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::Utility(_) |
             Call::Multisig(_) |
             Call::Proxy(_) |
+            Call::Identity(_) |
             Call::EmergencyShutdown(_) |
             // 3rd Party
             Call::Vesting(_) |
