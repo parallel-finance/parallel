@@ -463,9 +463,9 @@ impl pallet_loans::Config for Runtime {
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const DerivativeIndex: u16 = 0;
-    pub const UnstakeQueueCapacity: u32 = 1000;
-    pub const MinStakeAmount: Balance = 10_000_000_000; // 1DOT
-    pub const MinUnstakeAmount: Balance = 5_000_000_000; // 0.5DOT
+    pub const UnstakeQueueCap: u32 = 1000;
+    pub const MinStake: Balance = 10_000_000_000; // 1DOT
+    pub const MinUnstake: Balance = 5_000_000_000; // 0.5DOT
     pub const StakingCurrency: CurrencyId = DOT;
     pub const LiquidCurrency: CurrencyId = XDOT;
     pub const XcmFees: Balance = 500_000_000; // 0.05DOT
@@ -483,9 +483,9 @@ impl pallet_liquid_staking::Config for Runtime {
     type XcmFees = XcmFees;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type UnstakeQueueCapacity = UnstakeQueueCapacity;
-    type MinStakeAmount = MinStakeAmount;
-    type MinUnstakeAmount = MinUnstakeAmount;
+    type UnstakeQueueCap = UnstakeQueueCap;
+    type MinStake = MinStake;
+    type MinUnstake = MinUnstake;
     type XCM = XcmHelper;
 }
 
