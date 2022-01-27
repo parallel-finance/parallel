@@ -467,6 +467,7 @@ pub mod pallet {
         #[transactional]
         pub fn settlement(
             origin: OriginFor<T>,
+            has_bonded: bool,
             #[pallet::compact] bonding_amount: BalanceOf<T>,
             #[pallet::compact] unbonding_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
@@ -483,18 +484,14 @@ pub mod pallet {
                     .ok_or(ArithmeticError::Overflow)?,
             )
             .ok_or(Error::<T>::InvalidExchangeRate)?;
-            // Slashes should be handled seperately offchain by using indexer
-            // to record slashed event and total slashed amount
-            if exchange_rate > old_exchange_rate {
+            if exchange_rate != old_exchange_rate {
                 ExchangeRate::<T>::put(exchange_rate);
                 Self::deposit_event(Event::<T>::ExchangeRateUpdated(exchange_rate));
             }
 
             let (bond_amount, rebond_amount, unbond_amount) =
                 MatchingPool::<T>::take().matching::<Self>(unbonding_amount)?;
-            if bonding_amount.is_zero() {
-                // TODO: bonding_amount is zero doesn't mean that we didn't run bond once
-                // to create stash account
+            if !has_bonded {
                 Self::do_bond(bond_amount, RewardDestination::Staked)?;
             } else {
                 Self::do_bond_extra(bond_amount)?;
