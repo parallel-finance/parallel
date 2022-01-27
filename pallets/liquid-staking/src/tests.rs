@@ -100,6 +100,7 @@ fn test_settlement_should_work() {
             );
             assert_ok!(LiquidStaking::settlement(
                 Origin::signed(ALICE),
+                false,
                 ksm(0f64),
                 unbonding_amount,
             ));
