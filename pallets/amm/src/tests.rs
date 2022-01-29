@@ -552,7 +552,7 @@ fn amounts_out_should_work() {
 
         let amount_in = 1_000;
 
-        let amounts_out = AMM::_get_amounts_out(amount_in, path).unwrap();
+        let amounts_out = AMM::get_amounts_out(amount_in, path).unwrap();
 
         assert_eq!(amounts_out, [1000, 332, 249]);
     })
@@ -581,7 +581,7 @@ fn amounts_in_should_work() {
 
         let amount_out = 1_000;
 
-        let amounts_in = AMM::_get_amounts_in(amount_out, path).unwrap();
+        let amounts_in = AMM::get_amounts_in(amount_out, path).unwrap();
 
         assert_eq!(amounts_in, [1, 0, 1000]);
     })

@@ -88,13 +88,13 @@ orml-xcm-support            = { git = 'https://github.com/open-web3-stack/open-r
 orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 
 # Parallel dependencies
-pallet-amm                = { path = '../../pallets/amm', default-features = false }
-pallet-bridge             = { path = '../../pallets/bridge', default-features = false }
-pallet-crowdloans         = { path = '../../pallets/crowdloans', default-features = false }
-pallet-currency-adapter   = { path = '../../pallets/currency-adapter', default-features = false }
-pallet-emergency-shutdown = { path = '../../pallets/emergency-shutdown', default-features = false }
-pallet-liquid-staking     = { path = '../../pallets/liquid-staking', default-features = false }
-pallet-liquidation        = { path = '../../pallets/liquidation', default-features = false }
+pallet-amm                   = { path = '../../pallets/amm', default-features = false }
+pallet-bridge                = { path = '../../pallets/bridge', default-features = false }
+pallet-crowdloans            = { path = '../../pallets/crowdloans', default-features = false }
+pallet-currency-adapter      = { path = '../../pallets/currency-adapter', default-features = false }
+pallet-emergency-shutdown    = { path = '../../pallets/emergency-shutdown', default-features = false }
+pallet-liquid-staking        = { path = '../../pallets/liquid-staking', default-features = false }
+pallet-liquidation           = { path = '../../pallets/liquidation', default-features = false }
 pallet-liquidity-mining      = { path = '../../pallets/liquidity-mining', default-features = false }
 pallet-loans                 = { path = '../../pallets/loans', default-features = false }
 pallet-loans-rpc-runtime-api = { path = '../../pallets/loans/rpc/runtime-api', default-features = false }
@@ -228,7 +228,7 @@ try-runtime        = [
   'pallet-collective/try-runtime',
   'pallet-membership/try-runtime',
   'pallet-democracy/try-runtime',
-  'pallet-identity/std',
+  'pallet-identity/try-runtime',
   'pallet-scheduler/try-runtime',
   'polkadot-runtime-common/try-runtime',
   'pallet-session/try-runtime',

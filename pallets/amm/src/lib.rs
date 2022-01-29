@@ -459,7 +459,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .ok_or(ArithmeticError::Underflow)?)
     }
 
-    fn _get_amounts_out(
+    #[allow(dead_code)]
+    fn get_amounts_out(
         amount_in: BalanceOf<T, I>,
         path: Path<T, I>,
     ) -> Result<Amounts<T, I>, DispatchError> {
@@ -468,7 +469,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
         amounts_out[0] = amount_in;
         for i in 0..(path.len() - 1) {
-            let (reserve_in, reserve_out) = Self::_get_reserves(path[i], path[i + 1])?;
+            let (reserve_in, reserve_out) = Self::get_reserves(path[i], path[i + 1])?;
             let amount_out = Self::get_amount_out(amounts_out[i], reserve_in, reserve_out)?;
             amounts_out[i + 1] = amount_out;
         }
@@ -476,7 +477,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(amounts_out)
     }
 
-    fn _get_amounts_in(
+    #[allow(dead_code)]
+    fn get_amounts_in(
         amount_out: BalanceOf<T, I>,
         path: Path<T, I>,
     ) -> Result<Amounts<T, I>, DispatchError> {
@@ -486,7 +488,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
         amounts_in[amount_len - 1] = amount_out;
         for i in (1..(path.len() - 1)).rev() {
-            let (reserve_in, reserve_out) = Self::_get_reserves(path[i - 1], path[i])?;
+            let (reserve_in, reserve_out) = Self::get_reserves(path[i - 1], path[i])?;
             let amount_in = Self::get_amount_in(amounts_in[i], reserve_in, reserve_out)?;
             amounts_in[i - 1] = amount_in;
         }
@@ -494,7 +496,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(amounts_in)
     }
 
-    fn _get_reserves(
+    #[allow(dead_code)]
+    fn get_reserves(
         asset_in: AssetIdOf<T, I>,
         asset_out: AssetIdOf<T, I>,
     ) -> Result<(BalanceOf<T, I>, BalanceOf<T, I>), DispatchError> {
