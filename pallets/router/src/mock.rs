@@ -120,6 +120,7 @@ parameter_types! {
     pub const DefaultProtocolFeeReceiver: AccountId = CHARLIE;
     pub const MinimumLiquidity: u128 = 1_000u128;
     pub const LockAccountId: AccountId = ALICE;
+
 }
 
 pub struct AliceCreatePoolOrigin;
@@ -140,6 +141,7 @@ impl pallet_amm::Config for Runtime {
     type ProtocolFee = DefaultProtocolFee;
     type MinimumLiquidity = MinimumLiquidity;
     type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
+    type MaxLengthRoute = MaxLengthRoute;
 }
 
 parameter_types! {

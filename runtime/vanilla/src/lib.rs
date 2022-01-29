@@ -90,10 +90,8 @@ pub use pallet_liquid_staking;
 pub use pallet_amm;
 pub use pallet_bridge;
 pub use pallet_crowdloans;
-pub use pallet_identity;
 pub use pallet_liquidity_mining;
 pub use pallet_loans;
-pub use pallet_multisig;
 pub use pallet_nominee_election;
 pub use pallet_prices;
 
@@ -1387,6 +1385,7 @@ impl pallet_amm::Config for Runtime {
     type ProtocolFee = DefaultProtocolFee;
     type MinimumLiquidity = MinimumLiquidity;
     type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
+    type MaxLengthRoute = MaxLengthRoute;
 }
 
 parameter_types! {

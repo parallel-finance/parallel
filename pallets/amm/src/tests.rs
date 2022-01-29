@@ -530,6 +530,64 @@ fn amount_out_should_work() {
 }
 
 #[test]
+fn amounts_out_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
+            (DOT, XDOT),
+            (1_000, 2_000),
+            BOB,
+            SAMPLE_LP_TOKEN,
+        ));
+
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
+            (KSM, DOT),
+            (1_000, 1_000),
+            BOB,
+            SAMPLE_LP_TOKEN,
+        ));
+
+        let path = Path::<Test, ()>::try_from(vec![XDOT, DOT, KSM]).unwrap();
+
+        let amount_in = 1_000;
+
+        let amounts_out = AMM::get_amounts_out(amount_in, path).unwrap();
+
+        assert_eq!(amounts_out, [1000, 332, 249]);
+    })
+}
+
+#[test]
+fn amounts_in_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
+            (DOT, XDOT),
+            (1_000, 2_000),
+            BOB,
+            SAMPLE_LP_TOKEN,
+        ));
+
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
+            (KSM, DOT),
+            (1_000, 1_000),
+            BOB,
+            SAMPLE_LP_TOKEN,
+        ));
+
+        let path = Path::<Test, ()>::try_from(vec![XDOT, DOT, KSM]).unwrap();
+
+        let amount_out = 1_000;
+
+        let amounts_in = AMM::get_amounts_in(amount_out, path).unwrap();
+
+        assert_eq!(amounts_in, [1, 0, 1000]);
+    })
+}
+
+#[test]
 fn amount_in_should_work() {
     new_test_ext().execute_with(|| {
         let amount_out = 1_000;
