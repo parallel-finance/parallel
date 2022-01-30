@@ -28,7 +28,7 @@ use frame_support::{
     match_type,
     traits::{
         fungibles::{InspectMetadata, Mutate},
-        Contains, EqualPrivilegeOnly, Everything, Nothing,
+        Contains, EqualPrivilegeOnly, Everything, Nothing, OnRuntimeUpgrade,
     },
     PalletId,
 };
@@ -1612,8 +1612,15 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPallets,
-    (),
+    CrowdloanCreateBatch1Vault,
 >;
+
+pub struct CrowdloanCreateBatch1Vault;
+impl OnRuntimeUpgrade for CrowdloanCreateBatch1Vault {
+    fn on_runtime_upgrade() -> Weight {
+        pallet_crowdloans::migrations::v1::migrate::<Runtime>()
+    }
+}
 
 impl_runtime_apis! {
     impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
