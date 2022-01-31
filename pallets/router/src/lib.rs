@@ -101,8 +101,14 @@ pub mod pallet {
         ExceedMaxLengthRoute,
         /// Input duplicated route
         DuplicatedRoute,
-        /// We received less coins than the minimum amount specified
-        UnexpectedSlippage,
+
+        // /// We received less coins than the minimum amount specified
+        // UnexpectedSlippage,
+        ///
+        ///
+        MaximumAmountInViolated,
+        ///
+        MinimumAmountOutViolated,
     }
 
     #[pallet::event]
@@ -110,39 +116,74 @@ pub mod pallet {
     pub enum Event<T: Config<I>, I: 'static = ()> {
         /// Event emitted when swap is successful
         /// [sender, amount_in, route, amount_out]
-        Traded(T::AccountId, BalanceOf<T, I>, Route<T, I>, BalanceOf<T, I>),
+        Traded(
+            T::AccountId,
+            BalanceOf<T, I>,
+            Vec<AssetIdOf<T, I>>,
+            BalanceOf<T, I>,
+        ),
     }
 
     #[pallet::call]
     impl<T: Config<I>, I: 'static> Pallet<T, I> {
+        // fn sanity_checks(
+        //     origin: OriginFor<T>,
+        //     route: Vec<AssetIdOf<T, I>>,
+        // ) -> Result<(), DispatchError> {
+        //     // Ensure the length of routes should be >= 1 at least.
+        //     ensure!(!route.is_empty(), Error::<T, I>::EmptyRoute);
+
+        //     // Ensure user do not input too many routes.
+        //     ensure!(
+        //         route.len() <= T::MaxLengthRoute::get() as usize,
+        //         Error::<T, I>::ExceedMaxLengthRoute
+        //     );
+
+        //     // check for duplicates with O(n^2) complexity
+        //     // only good for short routes and we have a cap checked above
+        //     let contains_duplicate = (1..route.len()).any(|i| route[i..].contains(&route[i - 1]));
+
+        //     // Ensure user doesn't input duplicated routes (a cycle in the graph)
+        //     ensure!(!contains_duplicate, Error::<T, I>::DuplicatedRoute);
+
+        //     Ok(())
+        // }
+
         /// According specified route order to execute which pool or AMM instance.
         ///
         /// - `origin`: the trader.
         /// - `route`: the route user inputs
         /// - `amount_in`: the amount of trading assets
         /// - `min_amount_out`:
-        #[pallet::weight(T::AMMRouterWeightInfo::trade())]
+
+        // given amount is fixed, the output token amount is not known in advance
+        #[pallet::weight(T::AMMRouterWeightInfo::swap_exact_tokens_for_tokens())]
         #[transactional]
-        pub fn trade(
+        pub fn swap_exact_tokens_for_tokens(
             origin: OriginFor<T>,
-            route: Route<T, I>,
-            #[pallet::compact] mut amount_in: BalanceOf<T, I>,
+            route: Vec<AssetIdOf<T, I>>,
+            #[pallet::compact] amount_in: BalanceOf<T, I>,
             #[pallet::compact] min_amount_out: BalanceOf<T, I>,
         ) -> DispatchResultWithPostInfo {
             let trader = ensure_signed(origin)?;
 
+            // Self::sanity_checks(origin, route)?;
+
             // Ensure the length of routes should be >= 1 at least.
             ensure!(!route.is_empty(), Error::<T, I>::EmptyRoute);
+
             // Ensure user do not input too many routes.
             ensure!(
                 route.len() <= T::MaxLengthRoute::get() as usize,
                 Error::<T, I>::ExceedMaxLengthRoute
             );
 
-            // Ensure user doesn't input duplicated routes
-            let mut _routes = route.clone().into_inner();
-            _routes.dedup();
-            ensure!(_routes.eq(&*route), Error::<T, I>::DuplicatedRoute);
+            // check for duplicates with O(n^2) complexity
+            // only good for short routes and we have a cap checked above
+            let contains_duplicate = (1..route.len()).any(|i| route[i..].contains(&route[i - 1]));
+
+            // Ensure user doesn't input duplicated routes (a cycle in the graph)
+            ensure!(!contains_duplicate, Error::<T, I>::DuplicatedRoute);
 
             // Ensure balances user input is bigger than zero.
             ensure!(
@@ -151,31 +192,108 @@ pub mod pallet {
             );
 
             // Ensure the trader has enough tokens for transaction.
-            let (from_currency_id, _) = route[0];
+            let from_currency_id = route[0];
             ensure!(
                 <T as Config<I>>::Assets::balance(from_currency_id, &trader) > amount_in,
                 Error::<T, I>::InsufficientBalance
             );
 
-            let original_amount_in = amount_in;
-            let mut amount_out: BalanceOf<T, I> = Zero::zero();
-            for sub_route in route.iter() {
-                let (from_currency_id, to_currency_id) = sub_route;
-                amount_out = T::AMM::trade(
-                    &trader,
-                    (*from_currency_id, *to_currency_id),
-                    amount_in,
-                    One::one(),
-                )?;
-                amount_in = amount_out;
-            }
+            let amounts = T::AMM::get_amounts_out(amount_in, route.clone())?;
 
+            // make sure the required amount in does not violate our input
             ensure!(
-                amount_out >= min_amount_out,
-                Error::<T, I>::UnexpectedSlippage
+                amounts[amounts.len() - 1] > min_amount_out,
+                Error::<T, I>::MinimumAmountOutViolated
             );
 
-            Self::deposit_event(Event::Traded(trader, original_amount_in, route, amount_out));
+            for i in 0..(route.len() - 1) {
+                let next_index = i + 1;
+
+                println!("{} -> {}", route[i], route[next_index]);
+
+                T::AMM::swap(
+                    &trader,
+                    (route[i], route[next_index]),
+                    amounts[i],
+                    min_amount_out, // not used right now...
+                )?;
+            }
+
+            Self::deposit_event(Event::Traded(trader, amount_in, route, min_amount_out));
+
+            Ok(().into())
+        }
+
+        /// According specified route order to execute which pool or AMM instance.
+        ///
+        /// - `origin`: the trader.
+        /// - `route`: the route user inputs
+        /// - `amount_out`: the amount of trading assets
+        /// - `max_amount_in`:
+
+        // the output token amount is fixed, but the input token amount is not known
+        #[pallet::weight(T::AMMRouterWeightInfo::swap_tokens_for_exact_tokens())]
+        #[transactional]
+        pub fn swap_tokens_for_exact_tokens(
+            origin: OriginFor<T>,
+            route: Vec<AssetIdOf<T, I>>,
+            #[pallet::compact] minimum_out: BalanceOf<T, I>,
+            #[pallet::compact] maximum_amount_in: BalanceOf<T, I>,
+        ) -> DispatchResultWithPostInfo {
+            let trader = ensure_signed(origin)?;
+
+            // Ensure the length of routes should be >= 1 at least.
+            ensure!(!route.is_empty(), Error::<T, I>::EmptyRoute);
+
+            // Ensure user do not input too many routes.
+            ensure!(
+                route.len() <= T::MaxLengthRoute::get() as usize,
+                Error::<T, I>::ExceedMaxLengthRoute
+            );
+
+            // check for duplicates with O(n^2) complexity
+            // only good for short routes and we have a cap checked above
+            let contains_duplicate = (1..route.len()).any(|i| route[i..].contains(&route[i - 1]));
+
+            // Ensure user doesn't input duplicated routes (a cycle in the graph)
+            ensure!(!contains_duplicate, Error::<T, I>::DuplicatedRoute);
+
+            // Ensure balances user input is bigger than zero.
+            ensure!(
+                maximum_amount_in > Zero::zero(), // && min_amount_out >= Zero::zero(),
+                Error::<T, I>::ZeroBalance
+            );
+
+            // calculate trading amounts
+            let amounts = T::AMM::get_amounts_in(minimum_out, route.clone())?;
+
+            // we need to check after calc so we know how much is expected to be input
+            // Ensure the trader has enough tokens for transaction.
+            let from_currency_id = route[0];
+            ensure!(
+                <T as Config<I>>::Assets::balance(from_currency_id, &trader) > amounts[0],
+                Error::<T, I>::InsufficientBalance
+            );
+
+            // make sure the required amount in does not violate our input
+            ensure!(
+                maximum_amount_in > amounts[0],
+                Error::<T, I>::MaximumAmountInViolated
+            );
+
+            for i in 0..(route.len() - 1) {
+                let next_index = i + 1;
+                println!("{} -> {}", route[i], route[next_index]);
+
+                T::AMM::swap(
+                    &trader,
+                    (route[i], route[next_index]),
+                    amounts[i],
+                    maximum_amount_in, // not used right now...
+                )?;
+            }
+
+            Self::deposit_event(Event::Traded(trader, minimum_out, route, maximum_amount_in));
 
             Ok(().into())
         }

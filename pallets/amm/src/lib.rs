@@ -66,7 +66,7 @@ pub type BalanceOf<T, I = ()> =
 pub mod pallet {
     use super::*;
 
-    pub type Path<T, I> = BoundedVec<AssetIdOf<T, I>, <T as Config<I>>::MaxLengthRoute>;
+    // pub type Path<T, I> = BoundedVec<AssetIdOf<T, I>, <T as Config<I>>::MaxLengthRoute>;
 
     pub type Amounts<T, I> = sp_std::vec::Vec<BalanceOf<T, I>>;
 
@@ -460,9 +460,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     }
 
     #[allow(dead_code)]
-    fn get_amounts_out(
+    fn do_get_amounts_out(
         amount_in: BalanceOf<T, I>,
-        path: Path<T, I>,
+        path: Vec<AssetIdOf<T, I>>,
     ) -> Result<Amounts<T, I>, DispatchError> {
         let mut amounts_out: Amounts<T, I> = Vec::new();
         amounts_out.resize(path.len(), 0u128);
@@ -478,16 +478,16 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     }
 
     #[allow(dead_code)]
-    fn get_amounts_in(
+    fn do_get_amounts_in(
         amount_out: BalanceOf<T, I>,
-        path: Path<T, I>,
+        path: Vec<AssetIdOf<T, I>>,
     ) -> Result<Amounts<T, I>, DispatchError> {
         let mut amounts_in: Amounts<T, I> = Vec::new();
         amounts_in.resize(path.len(), 0u128);
         let amount_len = amounts_in.len();
 
         amounts_in[amount_len - 1] = amount_out;
-        for i in (1..(path.len() - 1)).rev() {
+        for i in (1..(path.len())).rev() {
             let (reserve_in, reserve_out) = Self::get_reserves(path[i - 1], path[i])?;
             let amount_in = Self::get_amount_in(amounts_in[i], reserve_in, reserve_out)?;
             amounts_in[i - 1] = amount_in;
@@ -795,7 +795,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         who: &T::AccountId,
         (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),
         amount_in: BalanceOf<T, I>,
-        minimum_amount_out: BalanceOf<T, I>,
+        // amount_out: BalanceOf<T, I>,
     ) -> Result<BalanceOf<T, I>, DispatchError> {
         let (is_inverted, base_asset, quote_asset) = Self::sort_assets((asset_in, asset_out))?;
 
@@ -819,11 +819,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
                 let amount_out = Self::get_amount_out(amount_in, supply_in, supply_out)?;
 
-                ensure!(
-                    amount_out >= minimum_amount_out,
-                    Error::<T, I>::NotAnIdealPrice
-                );
-
                 let (new_supply_in, new_supply_out) = (
                     supply_in
                         .checked_add(amount_in)
@@ -846,13 +841,12 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
                 log::trace!(
                     target: "amm::do_trade",
-                    "who: {:?}, asset_in: {:?}, asset_out: {:?}, amount_in: {:?}, amount_out: {:?}, minimum_amount_out: {:?}",
+                    "who: {:?}, asset_in: {:?}, asset_out: {:?}, amount_in: {:?}, amount_out: {:?}",
                     &who,
                     &asset_in,
                     &asset_out,
                     &amount_in,
                     &amount_out,
-                    &minimum_amount_out
                 );
 
                 Self::deposit_event(Event::<T, I>::Traded(
@@ -872,12 +866,27 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 impl<T: Config<I>, I: 'static> primitives::AMM<AccountIdOf<T>, AssetIdOf<T, I>, BalanceOf<T, I>>
     for Pallet<T, I>
 {
-    fn trade(
+    fn get_amounts_out(
+        amount_in: BalanceOf<T, I>,
+        path: Vec<AssetIdOf<T, I>>,
+    ) -> Result<Vec<BalanceOf<T, I>>, DispatchError> {
+        Ok(Self::do_get_amounts_out(amount_in, path)?)
+    }
+
+    fn get_amounts_in(
+        amount_out: BalanceOf<T, I>,
+        path: Vec<AssetIdOf<T, I>>,
+    ) -> Result<Vec<BalanceOf<T, I>>, DispatchError> {
+        Ok(Self::do_get_amounts_in(amount_out, path)?)
+    }
+
+    fn swap(
         who: &AccountIdOf<T>,
         pair: (AssetIdOf<T, I>, AssetIdOf<T, I>),
-        amount_in: BalanceOf<T, I>,
-        minimum_amount_out: BalanceOf<T, I>,
-    ) -> Result<BalanceOf<T, I>, DispatchError> {
-        Self::do_trade(who, pair, amount_in, minimum_amount_out)
+        amount_0_out: BalanceOf<T, I>,
+        amount_1_out: BalanceOf<T, I>,
+    ) -> Result<(), DispatchError> {
+        Self::do_trade(who, pair, amount_0_out)?;
+        Ok(())
     }
 }

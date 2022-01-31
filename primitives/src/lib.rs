@@ -129,14 +129,26 @@ pub trait LiquidStakingCurrenciesProvider<CurrencyId> {
 }
 
 pub trait AMM<AccountId, CurrencyId, Balance> {
+    fn get_amounts_out(
+        amount_in: Balance,
+        path: Vec<CurrencyId>,
+    ) -> Result<Vec<Balance>, DispatchError>;
+
+    fn get_amounts_in(
+        amount_out: Balance,
+        path: Vec<CurrencyId>,
+    ) -> Result<Vec<Balance>, DispatchError>;
+
     /// Handles a "trade" on the AMM side for "who".
     /// This will move the `amount_in` funds to the AMM PalletId,
     /// trade `pair.0` to `pair.1` and return a result with the amount
     /// of currency that was sent back to the user.
-    fn trade(
+
+    // this function should swap using the pool
+    fn swap(
         who: &AccountId,
         pair: (CurrencyId, CurrencyId),
-        amount_in: Balance,
-        minimum_amount_out: Balance,
-    ) -> Result<Balance, DispatchError>;
+        amount_0_out: Balance,
+        amount_1_out: Balance,
+    ) -> Result<(), DispatchError>;
 }
