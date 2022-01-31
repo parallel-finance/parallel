@@ -34,7 +34,8 @@ pub mod pallet {
     use crate::weights::WeightInfo;
     use frame_support::{
         ensure,
-        pallet_prelude::DispatchResultWithPostInfo,
+        pallet_prelude::{DispatchResult, DispatchResultWithPostInfo},
+        require_transactional,
         traits::{
             fungibles::{Inspect, Mutate, Transfer},
             Get, IsType,
@@ -101,13 +102,9 @@ pub mod pallet {
         ExceedMaxLengthRoute,
         /// Input duplicated route
         DuplicatedRoute,
-
-        // /// We received less coins than the minimum amount specified
-        // UnexpectedSlippage,
-        ///
-        ///
+        /// A more specific UnexpectedSlippage when trading exact amount out
         MaximumAmountInViolated,
-        ///
+        /// A more specific UnexpectedSlippage when trading exact amount in
         MinimumAmountOutViolated,
     }
 
@@ -124,31 +121,31 @@ pub mod pallet {
         ),
     }
 
+    impl<T: Config<I>, I: 'static> Pallet<T, I> {
+        #[require_transactional]
+        pub fn route_checks(route: &Vec<AssetIdOf<T, I>>) -> DispatchResult {
+            // Ensure the length of routes should be >= 1 at least.
+            ensure!(!route.is_empty(), Error::<T, I>::EmptyRoute);
+
+            // Ensure user do not input too many routes.
+            ensure!(
+                route.len() <= T::MaxLengthRoute::get() as usize,
+                Error::<T, I>::ExceedMaxLengthRoute
+            );
+
+            // check for duplicates with O(n^2) complexity
+            // only good for short routes and we have a cap checked above
+            let contains_duplicate = (1..route.len()).any(|i| route[i..].contains(&route[i - 1]));
+
+            // Ensure user doesn't input duplicated routes (a cycle in the graph)
+            ensure!(!contains_duplicate, Error::<T, I>::DuplicatedRoute);
+
+            Ok(())
+        }
+    }
+
     #[pallet::call]
     impl<T: Config<I>, I: 'static> Pallet<T, I> {
-        // fn sanity_checks(
-        //     origin: OriginFor<T>,
-        //     route: Vec<AssetIdOf<T, I>>,
-        // ) -> Result<(), DispatchError> {
-        //     // Ensure the length of routes should be >= 1 at least.
-        //     ensure!(!route.is_empty(), Error::<T, I>::EmptyRoute);
-
-        //     // Ensure user do not input too many routes.
-        //     ensure!(
-        //         route.len() <= T::MaxLengthRoute::get() as usize,
-        //         Error::<T, I>::ExceedMaxLengthRoute
-        //     );
-
-        //     // check for duplicates with O(n^2) complexity
-        //     // only good for short routes and we have a cap checked above
-        //     let contains_duplicate = (1..route.len()).any(|i| route[i..].contains(&route[i - 1]));
-
-        //     // Ensure user doesn't input duplicated routes (a cycle in the graph)
-        //     ensure!(!contains_duplicate, Error::<T, I>::DuplicatedRoute);
-
-        //     Ok(())
-        // }
-
         /// According specified route order to execute which pool or AMM instance.
         ///
         /// - `origin`: the trader.
@@ -167,23 +164,8 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let trader = ensure_signed(origin)?;
 
-            // Self::sanity_checks(origin, route)?;
-
-            // Ensure the length of routes should be >= 1 at least.
-            ensure!(!route.is_empty(), Error::<T, I>::EmptyRoute);
-
-            // Ensure user do not input too many routes.
-            ensure!(
-                route.len() <= T::MaxLengthRoute::get() as usize,
-                Error::<T, I>::ExceedMaxLengthRoute
-            );
-
-            // check for duplicates with O(n^2) complexity
-            // only good for short routes and we have a cap checked above
-            let contains_duplicate = (1..route.len()).any(|i| route[i..].contains(&route[i - 1]));
-
-            // Ensure user doesn't input duplicated routes (a cycle in the graph)
-            ensure!(!contains_duplicate, Error::<T, I>::DuplicatedRoute);
+            // do all checks on routes
+            Self::route_checks(&route)?;
 
             // Ensure balances user input is bigger than zero.
             ensure!(
@@ -242,21 +224,8 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let trader = ensure_signed(origin)?;
 
-            // Ensure the length of routes should be >= 1 at least.
-            ensure!(!route.is_empty(), Error::<T, I>::EmptyRoute);
-
-            // Ensure user do not input too many routes.
-            ensure!(
-                route.len() <= T::MaxLengthRoute::get() as usize,
-                Error::<T, I>::ExceedMaxLengthRoute
-            );
-
-            // check for duplicates with O(n^2) complexity
-            // only good for short routes and we have a cap checked above
-            let contains_duplicate = (1..route.len()).any(|i| route[i..].contains(&route[i - 1]));
-
-            // Ensure user doesn't input duplicated routes (a cycle in the graph)
-            ensure!(!contains_duplicate, Error::<T, I>::DuplicatedRoute);
+            // do all checks on routes
+            Self::route_checks(&route)?;
 
             // Ensure balances user input is bigger than zero.
             ensure!(
