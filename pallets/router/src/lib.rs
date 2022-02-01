@@ -44,7 +44,8 @@ pub mod pallet {
     };
     use frame_system::{ensure_signed, pallet_prelude::OriginFor};
     use primitives::{Balance, CurrencyId, AMM};
-    use sp_runtime::traits::{One, Zero};
+    use sp_runtime::traits::Zero;
+    use sp_std::vec::Vec;
 
     pub type Route<T, I> = BoundedVec<
         (
@@ -122,8 +123,9 @@ pub mod pallet {
     }
 
     impl<T: Config<I>, I: 'static> Pallet<T, I> {
+        /// Check that routes are unique and that the length > 0 and < MaxLengthRoute
         #[require_transactional]
-        pub fn route_checks(route: &Vec<AssetIdOf<T, I>>) -> DispatchResult {
+        pub fn route_checks(route: &[AssetIdOf<T, I>]) -> DispatchResult {
             // Ensure the length of routes should be >= 1 at least.
             ensure!(!route.is_empty(), Error::<T, I>::EmptyRoute);
 
@@ -146,14 +148,12 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config<I>, I: 'static> Pallet<T, I> {
-        /// According specified route order to execute which pool or AMM instance.
+        /// Given input amount is fixed, the output token amount is not known in advance.
         ///
         /// - `origin`: the trader.
         /// - `route`: the route user inputs
         /// - `amount_in`: the amount of trading assets
-        /// - `min_amount_out`:
-
-        // given amount is fixed, the output token amount is not known in advance
+        /// - `min_amount_out`: the minimum a trader is willing to recieve
         #[pallet::weight(T::AMMRouterWeightInfo::swap_exact_tokens_for_tokens())]
         #[transactional]
         pub fn swap_exact_tokens_for_tokens(
@@ -190,37 +190,32 @@ pub mod pallet {
 
             for i in 0..(route.len() - 1) {
                 let next_index = i + 1;
-
-                println!("{} -> {}", route[i], route[next_index]);
-
-                T::AMM::swap(
-                    &trader,
-                    (route[i], route[next_index]),
-                    amounts[i],
-                    min_amount_out, // not used right now...
-                )?;
+                T::AMM::swap(&trader, (route[i], route[next_index]), amounts[i])?;
             }
 
-            Self::deposit_event(Event::Traded(trader, amount_in, route, min_amount_out));
+            Self::deposit_event(Event::Traded(
+                trader,
+                amounts[0],
+                route,
+                amounts[amounts.len() - 1],
+            ));
 
             Ok(().into())
         }
 
-        /// According specified route order to execute which pool or AMM instance.
+        /// Given the output token amount is fixed, the input token amount is not known.
         ///
         /// - `origin`: the trader.
         /// - `route`: the route user inputs
         /// - `amount_out`: the amount of trading assets
-        /// - `max_amount_in`:
-
-        // the output token amount is fixed, but the input token amount is not known
+        /// - `max_amount_in`: the maximum a trader is willing to input
         #[pallet::weight(T::AMMRouterWeightInfo::swap_tokens_for_exact_tokens())]
         #[transactional]
         pub fn swap_tokens_for_exact_tokens(
             origin: OriginFor<T>,
             route: Vec<AssetIdOf<T, I>>,
-            #[pallet::compact] minimum_out: BalanceOf<T, I>,
-            #[pallet::compact] maximum_amount_in: BalanceOf<T, I>,
+            #[pallet::compact] amount_out: BalanceOf<T, I>,
+            #[pallet::compact] max_amount_in: BalanceOf<T, I>,
         ) -> DispatchResultWithPostInfo {
             let trader = ensure_signed(origin)?;
 
@@ -229,12 +224,12 @@ pub mod pallet {
 
             // Ensure balances user input is bigger than zero.
             ensure!(
-                maximum_amount_in > Zero::zero(), // && min_amount_out >= Zero::zero(),
+                max_amount_in > Zero::zero() && max_amount_in >= Zero::zero(),
                 Error::<T, I>::ZeroBalance
             );
 
             // calculate trading amounts
-            let amounts = T::AMM::get_amounts_in(minimum_out, route.clone())?;
+            let amounts = T::AMM::get_amounts_in(amount_out, route.clone())?;
 
             // we need to check after calc so we know how much is expected to be input
             // Ensure the trader has enough tokens for transaction.
@@ -246,23 +241,21 @@ pub mod pallet {
 
             // make sure the required amount in does not violate our input
             ensure!(
-                maximum_amount_in > amounts[0],
+                max_amount_in > amounts[0],
                 Error::<T, I>::MaximumAmountInViolated
             );
 
             for i in 0..(route.len() - 1) {
                 let next_index = i + 1;
-                println!("{} -> {}", route[i], route[next_index]);
-
-                T::AMM::swap(
-                    &trader,
-                    (route[i], route[next_index]),
-                    amounts[i],
-                    maximum_amount_in, // not used right now...
-                )?;
+                T::AMM::swap(&trader, (route[i], route[next_index]), amounts[i])?;
             }
 
-            Self::deposit_event(Event::Traded(trader, minimum_out, route, maximum_amount_in));
+            Self::deposit_event(Event::Traded(
+                trader,
+                amounts[0],
+                route,
+                amounts[amounts.len() - 1],
+            ));
 
             Ok(().into())
         }

@@ -304,8 +304,6 @@ fn swap_should_work_base_to_quote() {
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 100_000_000); // XDOT
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_000_000); // DOT
 
-        // let path = Path::<Test, ()>::try_from(vec![DOT, XDOT]).unwrap();
-        // let path = primitives::Path::from(vec![DOT, XDOT]).unwrap();
         let path = vec![DOT, XDOT];
 
         let amount_in = 1_000;
@@ -316,12 +314,7 @@ fn swap_should_work_base_to_quote() {
         assert_eq!(Assets::balance(DOT, trader), 1_000_000_000);
         assert_eq!(Assets::balance(XDOT, trader), 1_000_000_000);
 
-        assert_ok!(AMM::swap(
-            &trader,
-            (DOT, XDOT),
-            amounts_out[0],
-            amounts_out[1]
-        ));
+        assert_ok!(AMM::swap(&trader, (DOT, XDOT), amounts_out[0]));
 
         assert_eq!(
             Assets::balance(DOT, trader),
@@ -362,18 +355,11 @@ fn swap_should_work_different_ratio_base_to_quote() {
 
         let amounts_out = AMM::get_amounts_out(amount_in, path).unwrap();
 
-        println!("{:?}", amounts_out);
-
         // check balances before swap
         assert_eq!(Assets::balance(DOT, trader), 1_000_000_000);
         assert_eq!(Assets::balance(XDOT, trader), 1_000_000_000);
 
-        assert_ok!(AMM::swap(
-            &trader,
-            (DOT, XDOT),
-            amounts_out[0],
-            amounts_out[1]
-        ));
+        assert_ok!(AMM::swap(&trader, (DOT, XDOT), amounts_out[0],));
 
         assert_eq!(
             Assets::balance(DOT, trader),
@@ -418,12 +404,7 @@ fn swap_should_work_quote_to_base() {
         assert_eq!(Assets::balance(DOT, trader), 1_000_000_000);
         assert_eq!(Assets::balance(XDOT, trader), 1_000_000_000);
 
-        assert_ok!(AMM::swap(
-            &trader,
-            (DOT, XDOT),
-            amounts_out[0],
-            amounts_out[1]
-        ));
+        assert_ok!(AMM::swap(&trader, (DOT, XDOT), amounts_out[0],));
 
         assert_eq!(
             Assets::balance(DOT, trader),
@@ -459,7 +440,7 @@ fn trade_should_work_base_to_quote_flipped_currencies_on_pool_creation() {
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_000_000); // DOT
 
         // calculate amount out
-        assert_ok!(AMM::swap(&trader, (DOT, XDOT), 1_000, 980));
+        assert_ok!(AMM::swap(&trader, (DOT, XDOT), 1_000));
 
         assert_eq!(
             Assets::balance(XDOT, trader),
@@ -497,7 +478,7 @@ fn trade_should_work_quote_to_base() {
 
         // calculate amount out
         // trade base for quote
-        assert_ok!(AMM::swap(&trader, (DOT, XDOT), 1_000, 980));
+        assert_ok!(AMM::swap(&trader, (DOT, XDOT), 1_000));
 
         assert_eq!(
             Assets::balance(XDOT, trader),
@@ -539,7 +520,7 @@ fn trade_should_not_work_if_insufficient_amount_in() {
 
         // amount out is less than minimum_amount_out
         assert_noop!(
-            AMM::swap(&trader, (DOT, XDOT), 332, 300),
+            AMM::swap(&trader, (DOT, XDOT), 332),
             Error::<Test>::InsufficientAmountIn
         );
     })
@@ -564,7 +545,7 @@ fn trade_should_work_flipped_currencies() {
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 50_000); // XDOT
 
         // calculate amount out
-        assert_ok!(AMM::swap(&trader, (DOT, XDOT), 500, 800));
+        assert_ok!(AMM::swap(&trader, (DOT, XDOT), 500));
 
         assert_eq!(
             Assets::balance(XDOT, trader),
@@ -595,7 +576,7 @@ fn trade_should_not_work_if_amount_in_is_zero() {
 
         // fail if amount_in is zero
         assert_noop!(
-            AMM::swap(&trader, (DOT, XDOT), 0, 0),
+            AMM::swap(&trader, (DOT, XDOT), 0),
             Error::<Test>::InsufficientAmountIn
         );
     })
@@ -608,7 +589,7 @@ fn trade_should_not_work_if_pool_does_not_exist() {
 
         // try to trade in pool with no liquidity
         assert_noop!(
-            AMM::swap(&trader, (DOT, XDOT), 10, 10),
+            AMM::swap(&trader, (DOT, XDOT), 10),
             Error::<Test>::PoolDoesNotExist
         );
     })
@@ -645,7 +626,7 @@ fn amounts_out_should_work() {
             (KSM, DOT),
             (1_000, 1_000),
             BOB,
-            SAMPLE_LP_TOKEN,
+            SAMPLE_LP_TOKEN_2,
         ));
 
         let path = vec![XDOT, DOT, KSM];
@@ -674,7 +655,7 @@ fn long_route_amounts_in_should_work() {
             (KSM, DOT),
             (10_000, 10_000),
             BOB,
-            SAMPLE_LP_TOKEN,
+            SAMPLE_LP_TOKEN_2,
         ));
 
         let path = vec![XDOT, DOT, KSM];

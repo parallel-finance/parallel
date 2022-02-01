@@ -15,10 +15,8 @@
 //! Unit tests for the router pallet.
 
 use super::*;
-// use core::convert::TryFrom;
 use frame_support::{assert_noop, assert_ok};
 use mock::*;
-// use primitives::CurrencyId;
 
 #[test]
 fn too_many_routes_should_not_work() {
@@ -79,7 +77,7 @@ fn swap_exact_tokens_for_tokens_should_work() {
             (DOT, XDOT),
             (100_000_000, 100_000_000),
             DAVE,
-            10
+            SAMPLE_LP_TOKEN
         ));
 
         let route = vec![DOT, XDOT];
@@ -96,15 +94,9 @@ fn swap_exact_tokens_for_tokens_should_work() {
         )
         .unwrap();
 
-        assert_eq!(
-            Assets::balance(DOT, trader),
-            10_000 - 1_000 //
-        );
+        assert_eq!(Assets::balance(DOT, trader), 10_000 - 1_000);
 
-        assert_eq!(
-            Assets::balance(XDOT, trader),
-            10_000 + 994 //
-        );
+        assert_eq!(Assets::balance(XDOT, trader), 10_000 + 994);
     });
 }
 
@@ -119,7 +111,7 @@ fn swap_tokens_for_exact_tokens_should_work() {
             (DOT, XDOT),
             (100_000_000, 100_000_000),
             DAVE,
-            10
+            SAMPLE_LP_TOKEN
         ));
 
         let route = vec![DOT, XDOT];
@@ -153,7 +145,7 @@ fn pool_as_bridge_swap_tokens_for_exact_tokens_should_work() {
             (USDT, XDOT),
             (40_000_000, 1_000_000),
             DAVE,
-            10
+            SAMPLE_LP_TOKEN
         ));
         // 1 XDOT ~= 40 USDT
 
@@ -163,7 +155,7 @@ fn pool_as_bridge_swap_tokens_for_exact_tokens_should_work() {
             (DOT, XDOT),
             (50_000_000, 50_000_000),
             DAVE,
-            10
+            SAMPLE_LP_TOKEN_2
         ));
         // 1 DOT == 1 XDOT
 
@@ -194,207 +186,222 @@ fn pool_as_bridge_swap_tokens_for_exact_tokens_should_work() {
     });
 }
 
-// #[test]
-// fn trade_should_work() {
-//     new_test_ext().execute_with(|| {
-//         // create pool and add liquidity
-//         assert_ok!(DefaultAMM::create_pool(
-//             Origin::signed(ALICE),
-//             (DOT, XDOT),
-//             (100_000_000, 100_000_000),
-//             DAVE,
-//             10
-//         ));
+#[test]
+fn swap_exact_tokens_for_tokens_should_not_work_if_amount_less_than_min_amount_out() {
+    new_test_ext().execute_with(|| {
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (DOT, XDOT),
+            (100_000_000, 100_000_000),
+            DAVE,
+            SAMPLE_LP_TOKEN
+        ));
 
-//         // check that pool was funded correctly
-//         assert_eq!(
-//             DefaultAMM::pools(XDOT, DOT).unwrap().base_amount,
-//             100_000_000
-//         ); // XDOT
-//         assert_eq!(
-//             DefaultAMM::pools(XDOT, DOT).unwrap().quote_amount,
-//             100_000_000
-//         ); // DOT
+        // check that pool was funded correctly
+        assert_eq!(
+            DefaultAMM::pools(XDOT, DOT).unwrap().base_amount,
+            100_000_000
+        ); // XDOT
 
-//         // calculate amount out
-//         let routes = Route::<Runtime, ()>::try_from(vec![(DOT, XDOT)])
-//             .expect("Failed to create route list.");
-//         assert_ok!(AMMRoute::trade(Origin::signed(ALICE), routes, 1_000, 980));
+        assert_eq!(
+            DefaultAMM::pools(XDOT, DOT).unwrap().quote_amount,
+            100_000_000
+        ); // DOT
 
-//         // Check Alice should get 994
-//         assert_eq!(Assets::balance(tokens::XDOT, &ALICE), 10_000 + 994);
+        // calculate amount out
+        let min_amount_out = 999;
+        let routes = vec![DOT, XDOT];
+        assert_noop!(
+            AMMRoute::swap_exact_tokens_for_tokens(
+                Origin::signed(ALICE),
+                routes,
+                1_000,
+                min_amount_out
+            ),
+            Error::<Runtime>::MinimumAmountOutViolated
+        );
+    })
+}
 
-//         // we should have less XDOT in the pool
-//         assert_eq!(
-//             DefaultAMM::pools(XDOT, DOT).unwrap().base_amount,
-//             99_999_006
-//         );
+#[test]
+fn swap_tokens_for_exact_tokens_should_not_work_if_amount_more_than_max_amount_in() {
+    new_test_ext().execute_with(|| {
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (DOT, XDOT),
+            (100_000_000, 100_000_000),
+            DAVE,
+            SAMPLE_LP_TOKEN
+        ));
 
-//         // we should have more DOT
-//         assert_eq!(
-//             DefaultAMM::pools(XDOT, DOT).unwrap().quote_amount,
-//             100_001_000
-//         );
-//     })
-// }
+        // check that pool was funded correctly
+        assert_eq!(
+            DefaultAMM::pools(XDOT, DOT).unwrap().base_amount,
+            100_000_000
+        ); // XDOT
 
-// #[test]
-// fn trade_should_not_work_if_amount_less_than_min_amount_out() {
-//     new_test_ext().execute_with(|| {
-//         // create pool and add liquidity
-//         assert_ok!(DefaultAMM::create_pool(
-//             Origin::signed(ALICE),
-//             (DOT, XDOT),
-//             (100_000_000, 100_000_000),
-//             DAVE,
-//             10
-//         ));
+        assert_eq!(
+            DefaultAMM::pools(XDOT, DOT).unwrap().quote_amount,
+            100_000_000
+        ); // DOT
 
-//         // check that pool was funded correctly
-//         assert_eq!(
-//             DefaultAMM::pools(XDOT, DOT).unwrap().base_amount,
-//             100_000_000
-//         ); // XDOT
-//         assert_eq!(
-//             DefaultAMM::pools(XDOT, DOT).unwrap().quote_amount,
-//             100_000_000
-//         ); // DOT
+        // calculate amount out
+        let max_amount_in = 999;
+        let routes = vec![DOT, XDOT];
+        assert_noop!(
+            AMMRoute::swap_tokens_for_exact_tokens(
+                Origin::signed(ALICE),
+                routes,
+                1_000,
+                max_amount_in
+            ),
+            Error::<Runtime>::MaximumAmountInViolated
+        );
+    })
+}
 
-//         // calculate amount out
-//         let min_amount_out = 999;
-//         let routes = Route::<Runtime, ()>::try_from(vec![(DOT, XDOT)])
-//             .expect("Failed to create route list.");
-//         assert_noop!(
-//             AMMRoute::trade(Origin::signed(ALICE), routes, 1_000, min_amount_out),
-//             Error::<Runtime>::UnexpectedSlippage
-//         );
-//     })
-// }
+#[test]
+fn trade_should_work_more_than_one_route() {
+    new_test_ext().execute_with(|| {
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (DOT, XDOT),
+            (100_000_000, 100_000_000),
+            DAVE,
+            SAMPLE_LP_TOKEN
+        ));
 
-// #[test]
-// fn trade_should_work_more_than_one_route() {
-//     new_test_ext().execute_with(|| {
-//         // create pool and add liquidity
-//         assert_ok!(DefaultAMM::create_pool(
-//             Origin::signed(ALICE),
-//             (DOT, XDOT),
-//             (100_000_000, 100_000_000),
-//             DAVE,
-//             10
-//         ));
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (XDOT, KSM),
+            (100_000_000, 100_000_000),
+            DAVE,
+            SAMPLE_LP_TOKEN_2
+        ));
 
-//         // create pool and add liquidity
-//         assert_ok!(DefaultAMM::create_pool(
-//             Origin::signed(ALICE),
-//             (XDOT, KSM),
-//             (100_000_000, 100_000_000),
-//             DAVE,
-//             11
-//         ));
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (USDT, KSM),
+            (100_000_000, 100_000_000),
+            DAVE,
+            SAMPLE_LP_TOKEN_3
+        ));
 
-//         // create pool and add liquidity
-//         assert_ok!(DefaultAMM::create_pool(
-//             Origin::signed(ALICE),
-//             (USDT, KSM),
-//             (100_000_000, 100_000_000),
-//             DAVE,
-//             12
-//         ));
+        // CHECK POOLS
+        // check that pool was funded correctly
+        assert_eq!(
+            DefaultAMM::pools(XDOT, DOT).unwrap().base_amount,
+            100_000_000
+        ); // XDOT
+        assert_eq!(
+            DefaultAMM::pools(XDOT, DOT).unwrap().quote_amount,
+            100_000_000
+        ); // DOT
 
-//         // CHECK POOLS
-//         // check that pool was funded correctly
-//         assert_eq!(
-//             DefaultAMM::pools(XDOT, DOT).unwrap().base_amount,
-//             100_000_000
-//         ); // XDOT
-//         assert_eq!(
-//             DefaultAMM::pools(XDOT, DOT).unwrap().quote_amount,
-//             100_000_000
-//         ); // DOT
+        // check that pool was funded correctly
+        assert_eq!(
+            DefaultAMM::pools(XDOT, KSM).unwrap().base_amount,
+            100_000_000
+        ); // KSM
+        assert_eq!(
+            DefaultAMM::pools(XDOT, KSM).unwrap().quote_amount,
+            100_000_000
+        ); // XDOT
 
-//         // check that pool was funded correctly
-//         assert_eq!(
-//             DefaultAMM::pools(XDOT, KSM).unwrap().base_amount,
-//             100_000_000
-//         ); // KSM
-//         assert_eq!(
-//             DefaultAMM::pools(XDOT, KSM).unwrap().quote_amount,
-//             100_000_000
-//         ); // XDOT
+        // check that pool was funded correctly
+        assert_eq!(
+            DefaultAMM::pools(USDT, KSM).unwrap().base_amount,
+            100_000_000
+        ); // KSM
 
-//         // check that pool was funded correctly
-//         assert_eq!(
-//             DefaultAMM::pools(USDT, KSM).unwrap().base_amount,
-//             100_000_000
-//         ); // KSM
+        assert_eq!(
+            DefaultAMM::pools(USDT, KSM).unwrap().quote_amount,
+            100_000_000
+        ); // USDT
 
-//         assert_eq!(
-//             DefaultAMM::pools(USDT, KSM).unwrap().quote_amount,
-//             100_000_000
-//         ); // USDT
+        // Alice should have original amount ofDOT
+        assert_eq!(Assets::balance(tokens::DOT, &ALICE), 10_000);
 
-//         // Alice should have no USDT
-//         assert_eq!(Assets::balance(tokens::USDT, &ALICE), 0);
+        // Alice should have original amount of XDOT
+        assert_eq!(Assets::balance(tokens::XDOT, &ALICE), 10_000);
 
-//         // DO TRADE
-//         // calculate amount out
-//         let routes = Route::<Runtime, ()>::try_from(vec![(DOT, XDOT), (XDOT, KSM), (KSM, USDT)])
-//             .expect("Failed to create route list.");
-//         assert_ok!(AMMRoute::trade(Origin::signed(ALICE), routes, 1_000, 980));
+        // Alice should have original amount of KSM
+        assert_eq!(Assets::balance(tokens::KSM, &ALICE), 10_000);
 
-//         // CHECK TRADER
-//         // Alice should have no XDOT (it was only a temp transfer)
-//         assert_eq!(Assets::balance(tokens::XDOT, &ALICE), 10_000);
+        // Alice should have no USDT
+        assert_eq!(Assets::balance(tokens::USDT, &ALICE), 0);
 
-//         // Alice should have no KSM (it was only a temp transfer)
-//         assert_eq!(Assets::balance(tokens::KSM, &ALICE), 10_000);
+        // DO TRADE
+        // calculate amount out
+        let routes = vec![DOT, XDOT, KSM, USDT];
+        assert_ok!(AMMRoute::swap_exact_tokens_for_tokens(
+            Origin::signed(ALICE),
+            routes,
+            1_000,
+            980
+        ));
 
-//         // Alice should now have some USDT!
-//         assert_eq!(Assets::balance(tokens::USDT, &ALICE), 984);
+        // CHECK TRADER AFTER TRADES
 
-//         // Alice should now have less DOT
-//         assert_eq!(Assets::balance(tokens::DOT, &ALICE), 9_000);
+        // Alice should now have less DOT
+        assert_eq!(Assets::balance(tokens::DOT, &ALICE), 9_000);
 
-//         ////// First Route
+        // Alice should have original amount of XDOT
+        // (temp transfer) were made within swap
+        assert_eq!(Assets::balance(tokens::XDOT, &ALICE), 10_000);
 
-//         // we should have less XDOT since we traded for DOT
-//         assert_eq!(
-//             DefaultAMM::pools(XDOT, DOT).unwrap().base_amount,
-//             99_999_006
-//         );
+        // Alice should have original amount of KSM
+        // (temp transfer) were made within swap
+        assert_eq!(Assets::balance(tokens::KSM, &ALICE), 10_000);
 
-//         // we should have more DOT in the pool since the trader sent DOT
-//         assert_eq!(
-//             DefaultAMM::pools(XDOT, DOT).unwrap().quote_amount,
-//             100_001_000
-//         );
+        // Alice should now have some USDT!
+        assert_eq!(Assets::balance(tokens::USDT, &ALICE), 984);
 
-//         ////// Second Route
+        // First Pool
 
-//         // we should have more XDOT since were trading it for KSM
-//         assert_eq!(
-//             DefaultAMM::pools(XDOT, KSM).unwrap().base_amount,
-//             100_000_994
-//         );
+        // we should have more DOT in the pool since the trader sent DOT
+        assert_eq!(
+            DefaultAMM::pools(XDOT, DOT).unwrap().quote_amount,
+            100_000_000 + 1_000
+        );
 
-//         // we should have less KSM
-//         assert_eq!(
-//             DefaultAMM::pools(XDOT, KSM).unwrap().quote_amount,
-//             99_999_011
-//         );
+        // we should have less XDOT since we traded for DOT
+        assert_eq!(
+            DefaultAMM::pools(XDOT, DOT).unwrap().base_amount,
+            100_000_000 - 994
+        );
 
-//         ////// Third Route
+        // Second Pool
 
-//         // we should have less USDT since its the token the trader is recieving
-//         assert_eq!(
-//             DefaultAMM::pools(USDT, KSM).unwrap().base_amount,
-//             99_999_016
-//         );
+        // we should have more XDOT since were trading it for KSM
+        assert_eq!(
+            DefaultAMM::pools(XDOT, KSM).unwrap().base_amount,
+            100_000_000 + 994
+        );
 
-//         // we should have more KSM since were trading it for USDT
-//         assert_eq!(
-//             DefaultAMM::pools(USDT, KSM).unwrap().quote_amount,
-//             100_000_989
-//         );
-//     })
-// }
+        // we should have less KSM
+        assert_eq!(
+            DefaultAMM::pools(XDOT, KSM).unwrap().quote_amount,
+            100_000_000 - 989
+        );
+
+        // Third Pool
+
+        // we should have more KSM since were trading it for USDT
+        assert_eq!(
+            DefaultAMM::pools(USDT, KSM).unwrap().quote_amount,
+            100_000_000 + 989
+        );
+
+        // we should have less USDT since its the token the trader is recieving
+        assert_eq!(
+            DefaultAMM::pools(USDT, KSM).unwrap().base_amount,
+            100_000_000 - 984
+        );
+    })
+}
