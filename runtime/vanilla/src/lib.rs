@@ -1807,6 +1807,19 @@ impl_runtime_apis! {
         }
     }
 
+    /*
+            fn get_best_route(
+            token_in: CurrencyId,
+            token_out: CurrencyId,
+        ) -> Result<(Vec<CurrencyId>), DispatchError>;
+
+    */
+    impl pallet_router_rpc_runtime_api::RouterApi<Block, AccountId> for Runtime {
+        fn get_best_route(token_in: CurrencyId,token_out: CurrencyId,) -> Result<(Vec<CurrencyId>), DispatchError>{
+            // TODO: Implement
+        }
+    }
+
     #[cfg(feature = "runtime-benchmarks")]
     impl frame_benchmarking::Benchmark<Block> for Runtime {
         fn benchmark_metadata(extra: bool) -> (
