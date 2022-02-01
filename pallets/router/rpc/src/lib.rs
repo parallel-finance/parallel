@@ -26,7 +26,7 @@ use sp_runtime::{generic::BlockId, traits::Block as BlockT};
 
 #[rpc]
 pub trait RouterApi<BlockHash, AccountId> {
-    #[rpc(name = "amm_getSmartRouter")]
+    #[rpc(name = "amm_getBestRoute")]
     fn get_smart_router(
         &self,
         account: AccountId,
@@ -40,7 +40,7 @@ pub struct Router<C, B> {
     _marker: std::marker::PhantomData<B>,
 }
 
-impl<C, B> Loans<C, B> {
+impl<C, B> Router<C, B> {
     /// Create new `Loans` with the given reference to the client.
     pub fn new(client: Arc<C>) -> Self {
         Self {

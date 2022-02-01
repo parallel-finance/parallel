@@ -21,6 +21,10 @@ use sp_runtime::DispatchError;
 sp_api::decl_runtime_apis! {
     pub trait RouterApi<AccountId> where
         AccountId: Codec, {
-        fn get_smart_router(account: AccountId) -> Result<(Liquidity, Shortfall), DispatchError>;
+        fn get_best_route(
+            token_in: CurrencyId,
+            token_out: CurrencyId,
+        ) -> Result<(Vec<CurrencyId>), DispatchError>;
     }
+
 }
