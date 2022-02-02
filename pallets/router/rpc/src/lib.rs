@@ -23,6 +23,7 @@ use primitives::CurrencyId;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
+use sp_std::vec::Vec;
 
 #[rpc]
 pub trait RouterApi<BlockHash, AccountId> {
@@ -82,6 +83,7 @@ where
 
         api.get_best_route(token_in, token_out)
             .map_err(runtime_error_into_rpc_error)?
+            .map_error(other_rpc_error)
     }
 }
 
@@ -90,6 +92,15 @@ fn runtime_error_into_rpc_error(err: impl std::fmt::Debug) -> RpcError {
     RpcError {
         code: ErrorCode::ServerError(Error::RuntimeError.into()),
         message: "Runtime trapped".into(),
+        data: Some(format!("{:?}", err).into()),
+    }
+}
+
+// TODO: Rename this
+fn other_rpc_error(err: impl std::fmt::Debug) -> RpcError {
+    RpcError {
+        code: ErrorCode::ServerError(Error::AccountLiquidityError.into()),
+        message: "Some error message here".into(),
         data: Some(format!("{:?}", err).into()),
     }
 }

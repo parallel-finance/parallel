@@ -248,7 +248,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::GeneralCouncilMembership(_) |
             Call::TechnicalCommitteeMembership(_) |
             // Route
-            Call::Route(_)
+            Call::Router(_)
         )
 
         // // Consensus
@@ -520,10 +520,6 @@ impl pallet_nominee_election::Config for Runtime {
     type WeightInfo = pallet_nominee_election::weights::SubstrateWeight<Runtime>;
     type Members = ValidatorFeedersMembership;
 }
-
-// ***********************************************************
-impl pallet_router::Config for Runtime {}
-// ***********************************************************
 
 // parameter_types! {
 //     pub const LockPeriod: u64 = 20000; // in milli-seconds

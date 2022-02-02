@@ -17,6 +17,7 @@
 use codec::Codec;
 use primitives::CurrencyId;
 use sp_runtime::DispatchError;
+use sp_std::vec::Vec;
 
 sp_api::decl_runtime_apis! {
     pub trait RouterApi<AccountId> where

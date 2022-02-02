@@ -93,6 +93,7 @@ pub use pallet_liquidity_mining;
 pub use pallet_loans;
 pub use pallet_nominee_election;
 pub use pallet_prices;
+pub use pallet_router;
 
 use currency::*;
 use fee::*;
@@ -230,7 +231,7 @@ impl Contains<Call> for BaseCallFilter {
             // Membership
             Call::GeneralCouncilMembership(_) |
             Call::TechnicalCommitteeMembership(_) |
-            Call::Route(_)
+            Call::Router(_)
         )
         // // 3rd Party
         // Call::Oracle(_) |

@@ -45,6 +45,7 @@ pub mod pallet {
     use primitives::{Balance, CurrencyId, AMM};
     use sp_runtime::traits::{One, Zero};
     use sp_runtime::DispatchError;
+    use sp_std::vec::Vec;
 
     pub type Route<T, I> = BoundedVec<
         (
@@ -189,7 +190,7 @@ pub mod pallet {
             token_out: CurrencyId,
         ) -> Result<Vec<CurrencyId>, DispatchError> {
             // TODO: define upper bounds of the Vec<CurrencyId> route pool, are we gonna support 0..USIZE::MAX?
-            let mut tokens = Vec::new();
+            let tokens = Vec::new();
 
             // TODO: Implement functionality here
             log::trace!(
@@ -199,7 +200,7 @@ pub mod pallet {
                 token_out,
             );
 
-            Ok((tokens))
+            Ok(tokens)
         }
     }
 }

@@ -238,7 +238,7 @@ impl Contains<Call> for BaseCallFilter {
             // Loans
             Call::Loans(_) |
             // Route
-            Call::Route(_) |
+            Call::Router(_) |
             // Call::Liquidation(_) |
             Call::Prices(_) |
             // LiquidStaking

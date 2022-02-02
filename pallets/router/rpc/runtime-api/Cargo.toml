@@ -9,6 +9,7 @@ codec      = { package = 'parity-scale-codec', version = '2.3.1', default-featur
 primitives = { package = 'parallel-primitives', path = '../../../../primitives', default-features = false }
 sp-api     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.13', default-features = false }
 sp-runtime = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.13', default-features = false }
+sp-std     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.13', default-features = false }
 
 [features]
 default = ['std']
