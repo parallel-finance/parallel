@@ -248,7 +248,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::GeneralCouncilMembership(_) |
             Call::TechnicalCommitteeMembership(_) |
             // Route
-            Call::Route(_) |
+            Call::Route(_)
         )
 
         // // Consensus

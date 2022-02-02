@@ -15,7 +15,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::Codec;
-use primitives::{Liquidity, Shortfall};
+use primitives::CurrencyId;
 use sp_runtime::DispatchError;
 
 sp_api::decl_runtime_apis! {

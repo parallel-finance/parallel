@@ -5849,6 +5849,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-router-rpc"
+version = "1.7.7"
+dependencies = [
+ "jsonrpc-core",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "pallet-router-rpc-runtime-api",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "serde",
+ "sp-api",
+ "sp-blockchain",
+ "sp-core",
+ "sp-runtime",
+]
+
+[[package]]
 name = "pallet-router-rpc-runtime-api"
 version = "1.7.7"
 dependencies = [
@@ -6220,6 +6237,7 @@ dependencies = [
  "log",
  "orml-oracle-rpc",
  "pallet-loans-rpc",
+ "pallet-router-rpc",
  "pallet-transaction-payment-rpc",
  "pallet-transaction-payment-rpc-runtime-api",
  "parallel-primitives",
@@ -6339,6 +6357,7 @@ dependencies = [
  "pallet-prices",
  "pallet-proxy",
  "pallet-router",
+ "pallet-router-rpc-runtime-api",
  "pallet-scheduler",
  "pallet-session",
  "pallet-sudo",
@@ -11429,6 +11448,7 @@ dependencies = [
  "pallet-prices",
  "pallet-proxy",
  "pallet-router",
+ "pallet-router-rpc-runtime-api",
  "pallet-scheduler",
  "pallet-session",
  "pallet-sudo",

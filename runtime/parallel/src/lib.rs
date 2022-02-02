@@ -229,7 +229,8 @@ impl Contains<Call> for BaseCallFilter {
             Call::Vesting(_) |
             // Membership
             Call::GeneralCouncilMembership(_) |
-            Call::TechnicalCommitteeMembership(_)
+            Call::TechnicalCommitteeMembership(_) |
+            Call::Route(_)
         )
         // // 3rd Party
         // Call::Oracle(_) |
