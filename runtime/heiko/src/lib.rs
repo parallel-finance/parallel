@@ -95,6 +95,7 @@ pub use pallet_liquidity_mining;
 pub use pallet_loans;
 pub use pallet_nominee_election;
 pub use pallet_prices;
+pub use pallet_router;
 
 use currency::*;
 use fee::*;
@@ -245,7 +246,9 @@ impl Contains<Call> for BaseCallFilter {
             // Membership
             Call::OracleMembership(_) |
             Call::GeneralCouncilMembership(_) |
-            Call::TechnicalCommitteeMembership(_)
+            Call::TechnicalCommitteeMembership(_) |
+            // Route
+            Call::Route(_) |
         )
 
         // // Consensus
@@ -322,7 +325,7 @@ impl frame_system::Config for Runtime {
 }
 
 parameter_types! {
-   pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
+    pub TreasuryAccount: AccountId = TreasuryPalletId::get().into_account();
 }
 
 impl orml_xcm::Config for Runtime {
@@ -517,6 +520,10 @@ impl pallet_nominee_election::Config for Runtime {
     type WeightInfo = pallet_nominee_election::weights::SubstrateWeight<Runtime>;
     type Members = ValidatorFeedersMembership;
 }
+
+// ***********************************************************
+impl pallet_router::Config for Runtime {}
+// ***********************************************************
 
 // parameter_types! {
 //     pub const LockPeriod: u64 = 20000; // in milli-seconds
@@ -1765,8 +1772,8 @@ impl_runtime_apis! {
     }
 
     impl pallet_router_rpc_runtime_api::RouterApi<Block, AccountId> for Runtime {
-        fn get_best_route(token_in: CurrencyId,token_out: CurrencyId,) -> Result<(Vec<CurrencyId>), DispatchError>{
-            // TODO: Implement
+        fn get_best_route(token_in: CurrencyId,token_out: CurrencyId,) -> Result<Vec<CurrencyId>, DispatchError> {
+            Router::get_best_route(&token_in, &token_out)
         }
     }
 

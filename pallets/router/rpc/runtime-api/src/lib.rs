@@ -24,7 +24,7 @@ sp_api::decl_runtime_apis! {
         fn get_best_route(
             token_in: CurrencyId,
             token_out: CurrencyId,
-        ) -> Result<(Vec<CurrencyId>), DispatchError>;
+        ) -> Result<Vec<CurrencyId>, DispatchError>;
     }
 
 }

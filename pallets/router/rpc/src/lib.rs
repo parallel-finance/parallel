@@ -14,7 +14,7 @@
 
 use std::sync::Arc;
 
-pub use pallet_router_rpc_runtime_api::RouterApi as RoutrRuntimeApi;
+pub use pallet_router_rpc_runtime_api::RouterApi as RouterRuntimeApi;
 
 use codec::Codec;
 use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
@@ -26,22 +26,22 @@ use sp_runtime::{generic::BlockId, traits::Block as BlockT};
 
 #[rpc]
 pub trait RouterApi<BlockHash, AccountId> {
-    #[rpc(name = "amm_getBestRoute")]
-    fn get_smart_router(
+    #[rpc(name = "router_getBestRoute")]
+    fn get_best_route(
         &self,
-        account: AccountId,
-        at: Option<BlockHash>,
-    ) -> Result<(Liquidity, Shortfall)>;
+        token_in: CurrencyId,
+        token_out: CurrencyId,
+    ) -> Result<Vec<CurrencyId>>;
 }
 
-/// A struct that implements the [`LoansApi`].
+/// A struct that implements the [`RouteApi`].
 pub struct Router<C, B> {
     client: Arc<C>,
     _marker: std::marker::PhantomData<B>,
 }
 
 impl<C, B> Router<C, B> {
-    /// Create new `Loans` with the given reference to the client.
+    /// Create new `Route` with the given reference to the client.
     pub fn new(client: Arc<C>) -> Self {
         Self {
             client,
@@ -52,7 +52,6 @@ impl<C, B> Router<C, B> {
 
 pub enum Error {
     RuntimeError,
-    // TODO: rename
     RouterError,
 }
 
@@ -65,28 +64,24 @@ impl From<Error> for i64 {
     }
 }
 
-impl<C, Block, AccountId> RouterApi<<Block as BlockT>::Hash, AccountId> for Loans<C, Block>
+impl<C, Block, AccountId> RouterApi<<Block as BlockT>::Hash, AccountId> for Router<C, Block>
 where
     Block: BlockT,
     C: Send + Sync + 'static,
     C: ProvideRuntimeApi<Block>,
     C: HeaderBackend<Block>,
-    C::Api: LoansRuntimeApi<Block, AccountId>,
+    C::Api: RouterRuntimeApi<Block, AccountId>,
     AccountId: Codec,
 {
-    fn get_smart_router(
+    fn get_best_route(
         &self,
-        account: AccountId,
-        at: Option<<Block as BlockT>::Hash>,
-    ) -> Result<(Liquidity, Shortfall)> {
+        token_in: CurrencyId,
+        token_out: CurrencyId,
+    ) -> Result<Vec<CurrencyId>> {
         let api = self.client.runtime_api();
-        let at = BlockId::hash(at.unwrap_or(
-            // If the block hash is not supplied assume the best block.
-            self.client.info().best_hash,
-        ));
-        api.get_smart_router(&at, account)
+
+        api.get_best_route(token_in, token_out)
             .map_err(runtime_error_into_rpc_error)?
-            .map_err(account_liquidity_error_into_rpc_error)
     }
 }
 
@@ -95,15 +90,6 @@ fn runtime_error_into_rpc_error(err: impl std::fmt::Debug) -> RpcError {
     RpcError {
         code: ErrorCode::ServerError(Error::RuntimeError.into()),
         message: "Runtime trapped".into(),
-        data: Some(format!("{:?}", err).into()),
-    }
-}
-
-/// Converts an account liquidity error into an RPC error.
-fn account_liquidity_error_into_rpc_error(err: impl std::fmt::Debug) -> RpcError {
-    RpcError {
-        code: ErrorCode::ServerError(Error::AccountLiquidityError.into()),
-        message: "Not able to get account liquidity".into(),
         data: Some(format!("{:?}", err).into()),
     }
 }

@@ -33,7 +33,7 @@ pub mod weights;
 pub mod pallet {
     use crate::weights::WeightInfo;
     use frame_support::{
-        ensure,
+        ensure, log,
         pallet_prelude::DispatchResultWithPostInfo,
         traits::{
             fungibles::{Inspect, Mutate, Transfer},
@@ -44,6 +44,7 @@ pub mod pallet {
     use frame_system::{ensure_signed, pallet_prelude::OriginFor};
     use primitives::{Balance, CurrencyId, AMM};
     use sp_runtime::traits::{One, Zero};
+    use sp_runtime::DispatchError;
 
     pub type Route<T, I> = BoundedVec<
         (
@@ -178,6 +179,27 @@ pub mod pallet {
             Self::deposit_event(Event::Traded(trader, original_amount_in, route, amount_out));
 
             Ok(().into())
+        }
+    }
+
+    // returns the best route
+    impl<T: Config> Pallet<T> {
+        pub fn get_best_route(
+            token_in: CurrencyId,
+            token_out: CurrencyId,
+        ) -> Result<Vec<CurrencyId>, DispatchError> {
+            // TODO: define upper bounds of the Vec<CurrencyId> route pool, are we gonna support 0..USIZE::MAX?
+            let mut tokens = Vec::new();
+
+            // TODO: Implement functionality here
+            log::trace!(
+                target: "router::get_best_route",
+                "token_in: {:?}, token_out: {:?}",
+                token_in,
+                token_out,
+            );
+
+            Ok((tokens))
         }
     }
 }
