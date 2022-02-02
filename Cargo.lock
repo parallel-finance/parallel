@@ -2801,6 +2801,7 @@ dependencies = [
  "pallet-prices",
  "pallet-proxy",
  "pallet-router",
+ "pallet-router-rpc-runtime-api",
  "pallet-scheduler",
  "pallet-session",
  "pallet-sudo",
@@ -5845,6 +5846,16 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-router-rpc-runtime-api"
+version = "1.7.7"
+dependencies = [
+ "parallel-primitives",
+ "parity-scale-codec",
+ "sp-api",
+ "sp-runtime",
 ]
 
 [[package]]

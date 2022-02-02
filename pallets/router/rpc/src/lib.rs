@@ -19,7 +19,7 @@ pub use pallet_router_rpc_runtime_api::RouterApi as RouterRuntimeApi;
 use codec::Codec;
 use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
 use jsonrpc_derive::rpc;
-use primitives::{Liquidity, Shortfall};
+use primitives::CurrencyId;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
