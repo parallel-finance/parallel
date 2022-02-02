@@ -248,7 +248,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::GeneralCouncilMembership(_) |
             Call::TechnicalCommitteeMembership(_) |
             // Route
-            Call::Router(_)
+            Call::AMMRoute(_)
         )
 
         // // Consensus
@@ -1769,7 +1769,7 @@ impl_runtime_apis! {
 
     impl pallet_router_rpc_runtime_api::RouterApi<Block, AccountId> for Runtime {
         fn get_best_route(token_in: CurrencyId,token_out: CurrencyId,) -> Result<Vec<CurrencyId>, DispatchError> {
-            Router::get_best_route(&token_in, &token_out)
+            AMMRoute::get_best_route(token_in, token_out)
         }
     }
 

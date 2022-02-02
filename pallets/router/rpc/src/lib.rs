@@ -30,6 +30,7 @@ pub trait RouterApi<BlockHash, AccountId> {
     #[rpc(name = "router_getBestRoute")]
     fn get_best_route(
         &self,
+        at: Option<BlockHash>,
         token_in: CurrencyId,
         token_out: CurrencyId,
     ) -> Result<Vec<CurrencyId>>;
@@ -76,14 +77,15 @@ where
 {
     fn get_best_route(
         &self,
+        at: Option<<Block as BlockT>::Hash>,
         token_in: CurrencyId,
         token_out: CurrencyId,
     ) -> Result<Vec<CurrencyId>> {
         let api = self.client.runtime_api();
-
-        api.get_best_route(token_in, token_out)
+        let at = BlockId::hash(at.unwrap_or(self.client.info().best_hash));
+        api.get_best_route(&at, token_in, token_out)
             .map_err(runtime_error_into_rpc_error)?
-            .map_error(other_rpc_error)
+            .map_err(other_rpc_error)
     }
 }
 
@@ -99,7 +101,7 @@ fn runtime_error_into_rpc_error(err: impl std::fmt::Debug) -> RpcError {
 // TODO: Rename this
 fn other_rpc_error(err: impl std::fmt::Debug) -> RpcError {
     RpcError {
-        code: ErrorCode::ServerError(Error::AccountLiquidityError.into()),
+        code: ErrorCode::ServerError(Error::RouterError.into()),
         message: "Some error message here".into(),
         data: Some(format!("{:?}", err).into()),
     }

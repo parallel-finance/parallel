@@ -42,7 +42,7 @@ where
     use orml_oracle_rpc::{Oracle, OracleApi};
     use pallet_loans_rpc::{Loans, LoansApi};
     /***** */
-    use pallet_router_rpc::{RouteApi, Router};
+    use pallet_router_rpc::{Router, RouterApi};
     /***** */
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
     use substrate_frame_rpc_system::{FullSystem, SystemApi};
@@ -70,7 +70,7 @@ where
     // `io.extend_with(YourRpcTrait::to_delegate(YourRpcStruct::new(ReferenceToClient, ...)));`
     io.extend_with(OracleApi::to_delegate(Oracle::new(client.clone())));
 
-    io.extend_with(LoansApi::to_delegate(Loans::new(client)));
+    io.extend_with(LoansApi::to_delegate(Loans::new(client.clone())));
 
     io.extend_with(RouterApi::to_delegate(Router::new(client)));
 
