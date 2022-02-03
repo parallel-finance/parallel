@@ -32,18 +32,13 @@ where
     C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
     C::Api: orml_oracle_rpc::OracleRuntimeApi<Block, DataProviderId, CurrencyId, TimeStampedPrice>,
     C::Api: pallet_loans_rpc::LoansRuntimeApi<Block, AccountId>,
-
-    /********************** */
     C::Api: pallet_router_rpc::RouterRuntimeApi<Block, AccountId>,
-    /********************** */
     C::Api: BlockBuilder<Block>,
     P: TransactionPool + 'static,
 {
     use orml_oracle_rpc::{Oracle, OracleApi};
     use pallet_loans_rpc::{Loans, LoansApi};
-    /***** */
     use pallet_router_rpc::{Router, RouterApi};
-    /***** */
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
     use substrate_frame_rpc_system::{FullSystem, SystemApi};
 
