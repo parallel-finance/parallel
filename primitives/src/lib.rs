@@ -128,15 +128,32 @@ pub trait LiquidStakingCurrenciesProvider<CurrencyId> {
     fn get_liquid_currency() -> Option<CurrencyId>;
 }
 
+/// Exported traits from our AMM pallet. These functions are to be used
+/// by the router to enable multi route token swaps
 pub trait AMM<AccountId, CurrencyId, Balance> {
-    /// Handles a "trade" on the AMM side for "who".
+    /// Based on the path specified and the available pool balances
+    /// this will return the amounts outs when trading the specified
+    /// amount in
+    fn get_amounts_out(
+        amount_in: Balance,
+        path: Vec<CurrencyId>,
+    ) -> Result<Vec<Balance>, DispatchError>;
+
+    /// Based on the path specified and the available pool balances
+    /// this will return the amounts in needed to produce the specified
+    /// amount out
+    fn get_amounts_in(
+        amount_out: Balance,
+        path: Vec<CurrencyId>,
+    ) -> Result<Vec<Balance>, DispatchError>;
+
+    /// Handles a "swap" on the AMM side for "who".
     /// This will move the `amount_in` funds to the AMM PalletId,
     /// trade `pair.0` to `pair.1` and return a result with the amount
     /// of currency that was sent back to the user.
-    fn trade(
+    fn swap(
         who: &AccountId,
         pair: (CurrencyId, CurrencyId),
         amount_in: Balance,
-        minimum_amount_out: Balance,
-    ) -> Result<Balance, DispatchError>;
+    ) -> Result<(), DispatchError>;
 }

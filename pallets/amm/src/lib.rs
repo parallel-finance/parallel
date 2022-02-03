@@ -66,8 +66,6 @@ pub type BalanceOf<T, I = ()> =
 pub mod pallet {
     use super::*;
 
-    pub type Path<T, I> = BoundedVec<AssetIdOf<T, I>, <T as Config<I>>::MaxLengthRoute>;
-
     pub type Amounts<T, I> = sp_std::vec::Vec<BalanceOf<T, I>>;
 
     #[pallet::config]
@@ -138,6 +136,8 @@ pub mod pallet {
         InsufficientAmountIn,
         /// Identical assets
         IdenticalAssets,
+        /// LP token has already been minted
+        LpTokenAlreadyExists,
     }
 
     #[pallet::event]
@@ -340,6 +340,13 @@ pub mod pallet {
                 (liquidity_amounts.0, liquidity_amounts.1)
             };
 
+            // check that this is a new asset to avoid using an asset that
+            // already has tokens minted
+            ensure!(
+                T::Assets::total_issuance(lp_token_id).is_zero(),
+                Error::<T, I>::LpTokenAlreadyExists
+            );
+
             let mut pool = Pool::new(lp_token_id);
 
             Self::do_add_liquidity(
@@ -460,9 +467,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     }
 
     #[allow(dead_code)]
-    fn get_amounts_out(
+    fn do_get_amounts_out(
         amount_in: BalanceOf<T, I>,
-        path: Path<T, I>,
+        path: Vec<AssetIdOf<T, I>>,
     ) -> Result<Amounts<T, I>, DispatchError> {
         let mut amounts_out: Amounts<T, I> = Vec::new();
         amounts_out.resize(path.len(), 0u128);
@@ -477,17 +484,16 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(amounts_out)
     }
 
-    #[allow(dead_code)]
-    fn get_amounts_in(
+    fn do_get_amounts_in(
         amount_out: BalanceOf<T, I>,
-        path: Path<T, I>,
+        path: Vec<AssetIdOf<T, I>>,
     ) -> Result<Amounts<T, I>, DispatchError> {
         let mut amounts_in: Amounts<T, I> = Vec::new();
         amounts_in.resize(path.len(), 0u128);
         let amount_len = amounts_in.len();
 
         amounts_in[amount_len - 1] = amount_out;
-        for i in (1..(path.len() - 1)).rev() {
+        for i in (1..(path.len())).rev() {
             let (reserve_in, reserve_out) = Self::get_reserves(path[i - 1], path[i])?;
             let amount_in = Self::get_amount_in(amounts_in[i], reserve_in, reserve_out)?;
             amounts_in[i - 1] = amount_in;
@@ -496,7 +502,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(amounts_in)
     }
 
-    #[allow(dead_code)]
     fn get_reserves(
         asset_in: AssetIdOf<T, I>,
         asset_out: AssetIdOf<T, I>,
@@ -791,11 +796,10 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(protocol_fees)
     }
 
-    fn do_trade(
+    fn do_swap(
         who: &T::AccountId,
         (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),
         amount_in: BalanceOf<T, I>,
-        minimum_amount_out: BalanceOf<T, I>,
     ) -> Result<BalanceOf<T, I>, DispatchError> {
         let (is_inverted, base_asset, quote_asset) = Self::sort_assets((asset_in, asset_out))?;
 
@@ -819,11 +823,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
                 let amount_out = Self::get_amount_out(amount_in, supply_in, supply_out)?;
 
-                ensure!(
-                    amount_out >= minimum_amount_out,
-                    Error::<T, I>::NotAnIdealPrice
-                );
-
                 let (new_supply_in, new_supply_out) = (
                     supply_in
                         .checked_add(amount_in)
@@ -846,13 +845,12 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
                 log::trace!(
                     target: "amm::do_trade",
-                    "who: {:?}, asset_in: {:?}, asset_out: {:?}, amount_in: {:?}, amount_out: {:?}, minimum_amount_out: {:?}",
+                    "who: {:?}, asset_in: {:?}, asset_out: {:?}, amount_in: {:?}, amount_out: {:?}",
                     &who,
                     &asset_in,
                     &asset_out,
                     &amount_in,
                     &amount_out,
-                    &minimum_amount_out
                 );
 
                 Self::deposit_event(Event::<T, I>::Traded(
@@ -872,12 +870,38 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 impl<T: Config<I>, I: 'static> primitives::AMM<AccountIdOf<T>, AssetIdOf<T, I>, BalanceOf<T, I>>
     for Pallet<T, I>
 {
-    fn trade(
+    /// Based on the path specified and the available pool balances
+    /// this will return the amounts outs when trading the specified
+    /// amount in
+    fn get_amounts_out(
+        amount_in: BalanceOf<T, I>,
+        path: Vec<AssetIdOf<T, I>>,
+    ) -> Result<Vec<BalanceOf<T, I>>, DispatchError> {
+        let balances = Self::do_get_amounts_out(amount_in, path)?;
+        Ok(balances)
+    }
+
+    /// Based on the path specified and the available pool balances
+    /// this will return the amounts in needed to produce the specified
+    /// amount out
+    fn get_amounts_in(
+        amount_out: BalanceOf<T, I>,
+        path: Vec<AssetIdOf<T, I>>,
+    ) -> Result<Vec<BalanceOf<T, I>>, DispatchError> {
+        let balances = Self::do_get_amounts_in(amount_out, path)?;
+        Ok(balances)
+    }
+
+    /// Handles a "swap" on the AMM side for "who".
+    /// This will move the `amount_in` funds to the AMM PalletId,
+    /// trade `pair.0` to `pair.1` and return a result with the amount
+    /// of currency that was sent back to the user.
+    fn swap(
         who: &AccountIdOf<T>,
         pair: (AssetIdOf<T, I>, AssetIdOf<T, I>),
         amount_in: BalanceOf<T, I>,
-        minimum_amount_out: BalanceOf<T, I>,
-    ) -> Result<BalanceOf<T, I>, DispatchError> {
-        Self::do_trade(who, pair, amount_in, minimum_amount_out)
+    ) -> Result<(), DispatchError> {
+        Self::do_swap(who, pair, amount_in)?;
+        Ok(())
     }
 }
