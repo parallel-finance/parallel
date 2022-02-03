@@ -269,11 +269,11 @@ pub mod pallet {
             token_out: CurrencyId,
         ) -> Result<Vec<CurrencyId>, DispatchError> {
             // TODO: define upper bounds of the Vec<CurrencyId> route pool, are we gonna support 0..USIZE::MAX?
-            let mut tokens = Vec::new();
+            let tokens = Vec::new();
 
             // TODO: Fake! do thee real implementation
-            tokens.push(HKO);
-            tokens.push(PARA);
+            // tokens.push(HKO);
+            // tokens.push(PARA);
             // TODO: Implement functionality here
             log::trace!(
                 target: "router::get_best_route",
