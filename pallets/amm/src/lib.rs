@@ -621,8 +621,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
         if pool.block_timestamp_last != block_timestamp {
             pool.block_timestamp_last = block_timestamp;
-            let time_elapsed: T::BlockNumber =
-                block_timestamp.saturating_sub(pool.block_timestamp_last);
+            let time_elapsed: BalanceOf<T, I> = block_timestamp
+                .saturating_sub(pool.block_timestamp_last)
+                .saturated_into();
 
             let price0_fraction: BalanceOf<T, I> =
                 FixedU128::saturating_from_rational(pool.quote_amount, pool.base_amount)
@@ -631,19 +632,17 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 FixedU128::saturating_from_rational(pool.base_amount, pool.quote_amount)
                     .into_inner();
 
-            pool.price_0_cumulative_last =
-                pool.price_0_cumulative_last.saturating_add(price0_fraction);
-
-            pool.price_1_cumulative_last =
-                pool.price_1_cumulative_last.saturating_add(price1_fraction);
-
             pool.price_0_cumulative_last = pool
                 .price_0_cumulative_last
-                .saturating_mul(time_elapsed.saturated_into());
+                .checked_add(price0_fraction)
+                .and_then(|r| time_elapsed.checked_mul(r))
+                .ok_or(ArithmeticError::Overflow)?;
 
             pool.price_1_cumulative_last = pool
                 .price_1_cumulative_last
-                .saturating_mul(time_elapsed.saturated_into());
+                .checked_add(price1_fraction)
+                .and_then(|r| time_elapsed.checked_mul(r))
+                .ok_or(ArithmeticError::Overflow)?;
         }
 
         Ok(())
