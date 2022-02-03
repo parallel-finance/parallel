@@ -263,7 +263,7 @@ pub mod pallet {
         /// Attempted contribution violates contribution cap
         CapExceeded,
         /// Current relay block is greater than vault end block
-        ExceededEndBlock,
+        EndBlockExceeded,
         /// Exceeded maximum vrfs
         MaxVrfsExceeded,
         /// Capacity cannot be zero value
@@ -371,7 +371,7 @@ pub mod pallet {
 
             ensure!(
                 T::RelayChainBlockNumberProvider::current_block_number() <= end_block,
-                Error::<T>::ExceededEndBlock
+                Error::<T>::EndBlockExceeded
             );
 
             let trie_index = Self::next_trie_index();
@@ -437,7 +437,7 @@ pub mod pallet {
             if let Some(end_block) = end_block {
                 ensure!(
                     T::RelayChainBlockNumberProvider::current_block_number() <= end_block,
-                    Error::<T>::ExceededEndBlock
+                    Error::<T>::EndBlockExceeded
                 );
                 vault.end_block = end_block;
             }
@@ -510,7 +510,7 @@ pub mod pallet {
 
             ensure!(
                 T::RelayChainBlockNumberProvider::current_block_number() <= vault.end_block,
-                Error::<T>::ExceededEndBlock
+                Error::<T>::EndBlockExceeded
             );
 
             ensure!(

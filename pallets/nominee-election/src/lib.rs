@@ -115,9 +115,6 @@ pub mod pallet {
     #[pallet::pallet]
     pub struct Pallet<T>(PhantomData<T>);
 
-    #[pallet::hooks]
-    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
-
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Set selected validators
