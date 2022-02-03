@@ -625,7 +625,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         let block_timestamp = frame_system::Pallet::<T>::block_number();
 
         if pool.block_timestamp_last != block_timestamp {
-            pool.block_timestamp_last = block_timestamp;
             let time_elapsed: T::BlockNumber =
                 block_timestamp.saturating_sub(pool.block_timestamp_last);
 
@@ -649,6 +648,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             pool.price_1_cumulative_last = pool
                 .price_1_cumulative_last
                 .saturating_mul(time_elapsed.saturated_into());
+
+            // updates timestamp last so `time_elapsed` is correctly calculated
+            pool.block_timestamp_last = block_timestamp;
         }
 
         Ok(())
@@ -878,6 +880,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                     pool.base_amount = new_supply_in;
                     pool.quote_amount = new_supply_out;
                 }
+
+                Self::update_oracle(pool)?;
 
                 T::Assets::transfer(asset_in, who, &Self::account_id(), amount_in, true)?;
                 T::Assets::transfer(asset_out, &Self::account_id(), who, amount_out, false)?;

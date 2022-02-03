@@ -720,3 +720,50 @@ fn amount_out_and_in_should_work() {
         assert_eq!(amount_out, 1000);
     })
 }
+
+#[test]
+fn update_oracle_should_work() {
+    new_test_ext().execute_with(|| {
+        let trader = EVE;
+
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
+            (XDOT, DOT),
+            (100_000, 100_000),
+            BOB,
+            SAMPLE_LP_TOKEN,
+        ));
+
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().block_timestamp_last, 0);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().price_0_cumulative_last, 0);
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().price_1_cumulative_last, 0);
+
+        run_to_block(2);
+
+        assert_ok!(AMM::swap(&trader, (DOT, XDOT), 1_000));
+
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().block_timestamp_last, 2);
+        assert_eq!(
+            AMM::pools(XDOT, DOT).unwrap().price_0_cumulative_last,
+            2_040_136_143_738_700_978
+        );
+        assert_eq!(
+            AMM::pools(XDOT, DOT).unwrap().price_1_cumulative_last,
+            1_960_653_465_346_534_652
+        );
+
+        run_to_block(4);
+
+        assert_ok!(AMM::swap(&trader, (DOT, XDOT), 1_000));
+
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().block_timestamp_last, 4);
+        assert_eq!(
+            AMM::pools(XDOT, DOT).unwrap().price_0_cumulative_last,
+            6_160_928_306_080_914_592
+        );
+        assert_eq!(
+            AMM::pools(XDOT, DOT).unwrap().price_1_cumulative_last,
+            5_843_777_518_928_363_420
+        );
+    })
+}
