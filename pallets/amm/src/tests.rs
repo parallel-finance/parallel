@@ -720,3 +720,20 @@ fn amount_out_and_in_should_work() {
         assert_eq!(amount_out, 1000);
     })
 }
+
+#[test]
+fn list_pools_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),
+            (DOT, XDOT),
+            (10_000_000, 10_000_000),
+            BOB,
+            SAMPLE_LP_TOKEN,
+        ));
+
+        let pools = AMM::get_pools().unwrap();
+
+        assert_eq!(pools, [(XDOT, DOT)]);
+    })
+}

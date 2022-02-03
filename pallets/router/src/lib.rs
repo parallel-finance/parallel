@@ -44,6 +44,7 @@ pub mod pallet {
     };
     use frame_system::{ensure_signed, pallet_prelude::OriginFor};
     use primitives::{Balance, CurrencyId, AMM};
+    use scale_info::prelude::collections::HashMap;
     use sp_runtime::{traits::Zero, DispatchError};
     use sp_std::vec::Vec;
 
@@ -143,6 +144,72 @@ pub mod pallet {
             ensure!(!contains_duplicate, Error::<T, I>::DuplicatedRoute);
 
             Ok(())
+        }
+
+        pub fn get_best_route(
+            // amount_in: BalanceOf<T, I>.
+            amount_in: BalanceOf<T, I>,
+            token_in: AssetIdOf<T, I>,
+            token_out: AssetIdOf<T, I>,
+        ) -> Result<Vec<Vec<CurrencyId>>, DispatchError> {
+            // get all the pool asset pairs from the AMM
+            let pools = T::AMM::get_pools()?;
+
+            let mut map: HashMap<u32, Vec<u32>> = HashMap::new();
+
+            // build a non directed graph from pool asset pairs
+            pools.clone().into_iter().for_each(|(a, b)| {
+                map.entry(a).or_insert(Vec::new()).push(b);
+                map.entry(b).or_insert(Vec::new()).push(a);
+            });
+
+            // do dfs
+            let mut path = Vec::new();
+            let mut paths = Vec::new();
+
+            let mut start = token_in;
+            let mut end = token_out;
+
+            let mut queue: Vec<(u32, u32, Vec<u32>)> = vec![(start, end, path)];
+
+            // inspo https://stackoverflow.com/a/5683519
+            // impl rp https://gist.github.com/rust-play/3271efdcb15c632cf3fc91c04d46447a
+            while !queue.is_empty() {
+                let m = queue.swap_remove(0);
+                start = m.0;
+                end = m.1;
+                path = m.2;
+
+                path.push(start);
+
+                if start == end {
+                    paths.push(path.clone());
+                }
+
+                // cant error because we fetch pools above
+                let adjacents = map.get(&start).unwrap();
+
+                let mut difference = vec![];
+                for i in adjacents {
+                    if !path.contains(i) {
+                        difference.push(i);
+                    }
+                }
+
+                for node in difference {
+                    queue.push((*node, end, path.clone()));
+                }
+            }
+
+            // TODO: Implement functionality here
+            log::trace!(
+                target: "router::get_best_route",
+                "token_in: {:?}, token_out: {:?}",
+                token_in,
+                token_out,
+            );
+
+            Ok(paths)
         }
     }
 
@@ -258,30 +325,6 @@ pub mod pallet {
             ));
 
             Ok(().into())
-        }
-    }
-
-    // returns the best route
-    impl<T: Config> Pallet<T> {
-        pub fn get_best_route(
-            token_in: CurrencyId,
-            token_out: CurrencyId,
-        ) -> Result<Vec<CurrencyId>, DispatchError> {
-            // TODO: define upper bounds of the Vec<CurrencyId> route pool, are we gonna support 0..USIZE::MAX?
-            let tokens = Vec::new();
-
-            // TODO: Fake! do thee real implementation
-            // tokens.push(HKO);
-            // tokens.push(PARA);
-            // TODO: Implement functionality here
-            log::trace!(
-                target: "router::get_best_route",
-                "token_in: {:?}, token_out: {:?}",
-                token_in,
-                token_out,
-            );
-
-            Ok(tokens)
         }
     }
 }

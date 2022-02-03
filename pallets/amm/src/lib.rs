@@ -904,4 +904,8 @@ impl<T: Config<I>, I: 'static> primitives::AMM<AccountIdOf<T>, AssetIdOf<T, I>, 
         Self::do_swap(who, pair, amount_in)?;
         Ok(())
     }
+
+    fn get_pools() -> Result<Vec<(AssetIdOf<T, I>, AssetIdOf<T, I>)>, DispatchError> {
+        Ok(Pools::<T, I>::iter_keys().collect())
+    }
 }
