@@ -43,6 +43,7 @@ pub mod pallet {
         transactional, BoundedVec, PalletId,
     };
     use frame_system::{ensure_signed, pallet_prelude::OriginFor};
+    use primitives::tokens::{HKO, PARA};
     use primitives::{Balance, CurrencyId, AMM};
     use sp_runtime::{traits::Zero, DispatchError};
     use sp_std::vec::Vec;
@@ -268,8 +269,11 @@ pub mod pallet {
             token_out: CurrencyId,
         ) -> Result<Vec<CurrencyId>, DispatchError> {
             // TODO: define upper bounds of the Vec<CurrencyId> route pool, are we gonna support 0..USIZE::MAX?
-            let tokens = Vec::new();
+            let mut tokens = Vec::new();
 
+            // TODO: Fake! do thee real implementation
+            tokens.push(HKO);
+            tokens.push(PARA);
             // TODO: Implement functionality here
             log::trace!(
                 target: "router::get_best_route",
