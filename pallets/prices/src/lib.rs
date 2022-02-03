@@ -89,6 +89,7 @@ pub mod pallet {
         StorageMap<_, Twox64Concat, CurrencyId, Price, OptionQuery>;
 
     #[pallet::pallet]
+    #[pallet::without_storage_info]
     pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::call]

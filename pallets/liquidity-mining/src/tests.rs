@@ -229,15 +229,15 @@ fn withdraw_should_not_work_if_pool_does_not_exist() {
 fn create_pool_account_id_should_work() {
     new_test_ext().execute_with(|| {
         assert_eq!(
-            LiquidityMining::pool_account_id(tokens::DOT),
+            LiquidityMining::pool_account_id(tokens::DOT).unwrap(),
             AccountId(5650623433380315385)
         );
         assert_eq!(
-            LiquidityMining::pool_account_id(tokens::XDOT),
+            LiquidityMining::pool_account_id(tokens::XDOT).unwrap(),
             AccountId(17971758411142122835)
         );
         assert_eq!(
-            LiquidityMining::pool_account_id(tokens::PARA),
+            LiquidityMining::pool_account_id(tokens::PARA).unwrap(),
             AccountId(12297710138430822110)
         );
     })

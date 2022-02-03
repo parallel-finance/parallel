@@ -33,17 +33,18 @@ use frame_support::{
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
-pub use pallet::*;
 use primitives::{Balance, ChainId, CurrencyId};
 use scale_info::prelude::vec::Vec;
 use sp_runtime::{traits::AccountIdConversion, ArithmeticError};
-pub use weights::WeightInfo;
 
 mod benchmarking;
 mod mock;
 mod tests;
 mod types;
 pub mod weights;
+
+pub use pallet::*;
+pub use weights::WeightInfo;
 
 type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
@@ -99,6 +100,7 @@ pub mod pallet {
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
+    #[pallet::without_storage_info]
     pub struct Pallet<T>(PhantomData<T>);
 
     /// Error for the Bridge Pallet
@@ -290,7 +292,7 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Unregister the specified chain_id    
+        /// Unregister the specified chain_id
         #[pallet::weight(T::WeightInfo::unregister_chain())]
         #[transactional]
         pub fn unregister_chain(origin: OriginFor<T>, id: ChainId) -> DispatchResult {
@@ -473,19 +475,17 @@ impl<T: Config> Pallet<T> {
 
     /// Checks if the origin is root or admin members
     fn ensure_admin(origin: T::Origin) -> Result<T::AccountId, Error<T>> {
-        if T::RootOperatorOrigin::ensure_origin(origin.clone()).is_err() {
-            if let Ok(who) = ensure_signed(origin) {
-                ensure!(
-                    T::AdminMembers::contains(&who),
-                    Error::<T>::OriginNoPermission
-                );
+        T::RootOperatorOrigin::ensure_origin(origin.clone())
+            .map_err(|_| Error::<T>::OriginNoPermission)?;
+        if let Ok(who) = ensure_signed(origin) {
+            ensure!(
+                T::AdminMembers::contains(&who),
+                Error::<T>::OriginNoPermission
+            );
 
-                Ok(who)
-            } else {
-                Err(Error::<T>::OriginNoPermission)
-            }
+            Ok(who)
         } else {
-            Ok(Default::default())
+            Err(Error::<T>::OriginNoPermission)
         }
     }
 

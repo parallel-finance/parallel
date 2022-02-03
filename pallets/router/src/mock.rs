@@ -67,6 +67,7 @@ impl frame_system::Config for Runtime {
     type SystemWeightInfo = ();
     type SS58Prefix = ();
     type OnSetCode = ();
+    type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 // pallet-balances configuration
@@ -91,6 +92,7 @@ impl pallet_balances::Config for Runtime {
 parameter_types! {
     pub const AssetDeposit: u64 = 1;
     pub const ApprovalDeposit: u64 = 1;
+    pub const AssetAccountDeposit: u64 = 1;
     pub const StringLimit: u32 = 50;
     pub const MetadataDepositBase: u64 = 1;
     pub const MetadataDepositPerByte: u64 = 1;
@@ -105,6 +107,7 @@ impl pallet_assets::Config for Runtime {
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
     type MetadataDepositPerByte = MetadataDepositPerByte;
+    type AssetAccountDeposit = AssetAccountDeposit;
     type ApprovalDeposit = ApprovalDeposit;
     type StringLimit = StringLimit;
     type Freezer = ();
