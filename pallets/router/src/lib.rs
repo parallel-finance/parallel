@@ -43,7 +43,6 @@ pub mod pallet {
         transactional, BoundedVec, PalletId,
     };
     use frame_system::{ensure_signed, pallet_prelude::OriginFor};
-    use primitives::tokens::{HKO, PARA};
     use primitives::{Balance, CurrencyId, AMM};
     use sp_runtime::{traits::Zero, DispatchError};
     use sp_std::vec::Vec;
