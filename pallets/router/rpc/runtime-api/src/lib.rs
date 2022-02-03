@@ -27,5 +27,4 @@ sp_api::decl_runtime_apis! {
             token_out: CurrencyId,
         ) -> Result<Vec<CurrencyId>, DispatchError>;
     }
-
 }
