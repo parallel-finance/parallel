@@ -36,6 +36,7 @@ pallet-democracy                           = { git = 'https://github.com/parityt
 pallet-identity                            = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', default-features = false }
 pallet-membership                          = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', default-features = false }
 pallet-multisig                            = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', default-features = false }
+pallet-preimage                            = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', default-features = false }
 pallet-proxy                               = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', default-features = false }
 pallet-scheduler                           = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', default-features = false }
 pallet-session                             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', default-features = false }
@@ -194,6 +195,7 @@ std                = [
   'pallet-democracy/std',
   'pallet-identity/std',
   'pallet-scheduler/std',
+  'pallet-preimage/std',
   'polkadot-runtime-common/std',
   'pallet-session/std',
   'pallet-authorship/std',
@@ -230,6 +232,7 @@ try-runtime        = [
   'pallet-democracy/try-runtime',
   'pallet-identity/try-runtime',
   'pallet-scheduler/try-runtime',
+  'pallet-preimage/try-runtime',
   'polkadot-runtime-common/try-runtime',
   'pallet-session/try-runtime',
   'pallet-assets/try-runtime',

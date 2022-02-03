@@ -2,11 +2,11 @@ use frame_support::{
     construct_runtime,
     dispatch::Weight,
     parameter_types, sp_io,
-    traits::{Everything, GenesisBuild, Nothing, SortedMembers},
+    traits::{EnsureOneOf, Everything, GenesisBuild, Nothing, SortedMembers},
     weights::constants::WEIGHT_PER_SECOND,
     PalletId,
 };
-use frame_system::{pallet_prelude::BlockNumberFor, EnsureOneOf, EnsureRoot, EnsureSignedBy};
+use frame_system::{pallet_prelude::BlockNumberFor, EnsureRoot, EnsureSignedBy};
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
@@ -42,7 +42,7 @@ parameter_types! {
 
 impl cumulus_pallet_parachain_system::Config for Test {
     type Event = Event;
-    type OnValidationData = ();
+    type OnSystemEvent = ();
     type SelfParaId = ParachainInfo;
     type DmpMessageHandler = DmpQueue;
     type ReservedDmpWeight = ReservedDmpWeight;
@@ -127,6 +127,7 @@ impl Config for XcmConfig {
 impl cumulus_pallet_xcmp_queue::Config for Test {
     type Event = Event;
     type XcmExecutor = XcmExecutor<XcmConfig>;
+    type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
     type ChannelInfo = ParachainSystem;
     type VersionWrapper = ();
 }
@@ -226,6 +227,7 @@ parameter_types! {
     pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
     pub const BaseXcmWeight: Weight = 100_000_000;
     pub const MaxInstructions: u32 = 100;
+    pub const MaxAssetsForTransfer: usize = 2;
 }
 
 impl orml_xtokens::Config for Test {
@@ -239,6 +241,7 @@ impl orml_xtokens::Config for Test {
     type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
     type BaseXcmWeight = BaseXcmWeight;
     type LocationInverter = LocationInverter<Ancestry>;
+    type MaxAssetsForTransfer = MaxAssetsForTransfer;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
@@ -275,6 +278,7 @@ impl frame_system::Config for Test {
     type SystemWeightInfo = ();
     type SS58Prefix = SS58Prefix;
     type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
+    type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 parameter_types! {
@@ -308,10 +312,8 @@ impl SortedMembers<AccountId> for BobOrigin {
     }
 }
 
-pub type RelayOrigin =
-    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
-pub type UpdateOrigin =
-    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
+pub type RelayOrigin = EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+pub type UpdateOrigin = EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
 
 impl pallet_utility::Config for Test {
     type Event = Event;
@@ -373,6 +375,7 @@ impl crate::Config for Test {
 parameter_types! {
     pub const AssetDeposit: Balance = KSM_DECIMAL;
     pub const ApprovalDeposit: Balance = 0;
+    pub const AssetAccountDeposit: Balance = 0;
     pub const AssetsStringLimit: u32 = 50;
     pub const MetadataDepositBase: Balance = 0;
     pub const MetadataDepositPerByte: Balance = 0;
@@ -387,6 +390,7 @@ impl pallet_assets::Config for Test {
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
     type MetadataDepositPerByte = MetadataDepositPerByte;
+    type AssetAccountDeposit = AssetAccountDeposit;
     type ApprovalDeposit = ApprovalDeposit;
     type StringLimit = AssetsStringLimit;
     type Freezer = ();
@@ -487,7 +491,7 @@ decl_test_parachain! {
 decl_test_relay_chain! {
     pub struct Relay {
         Runtime = kusama_runtime::Runtime,
-        XcmConfig = kusama_runtime::XcmConfig,
+        XcmConfig = kusama_runtime::xcm_config::XcmConfig,
         new_ext = relay_ext(),
     }
 }
@@ -522,7 +526,8 @@ fn default_parachains_host_configuration() -> HostConfiguration<BlockNumberFor<K
         max_upward_message_size: 1048576,
         max_upward_message_num_per_candidate: 5,
         hrmp_max_message_num_per_candidate: 5,
-        validation_upgrade_frequency: 1,
+        minimum_validation_upgrade_delay: 2u32.into(),
+        validation_upgrade_cooldown: 1,
         validation_upgrade_delay: 1,
         max_pov_size: 5242880,
         max_downward_message_size: 1024,
@@ -554,6 +559,8 @@ fn default_parachains_host_configuration() -> HostConfiguration<BlockNumberFor<K
         zeroth_delay_tranche_width: 0,
         needed_approvals: 2,
         relay_vrf_modulo_samples: 2,
+        pvf_checking_enabled: true,
+        pvf_voting_ttl: 3,
         ump_max_individual_weight: 20000000000,
     }
 }
