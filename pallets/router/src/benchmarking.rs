@@ -9,7 +9,6 @@ use crate::pallet::BalanceOf;
 
 #[allow(unused_imports)]
 use crate::Pallet as AMMRoute;
-use core::convert::TryFrom;
 use frame_benchmarking::{
     account, benchmarks_instance_pallet, impl_benchmark_test_suite, whitelisted_caller,
 };
@@ -19,7 +18,6 @@ use frame_support::{
         fungibles::{Inspect, Mutate},
         EnsureOrigin,
     },
-    BoundedVec,
 };
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{tokens, Balance, CurrencyId};
@@ -28,7 +26,7 @@ use sp_runtime::traits::{One, StaticLookup};
 const DOT: CurrencyId = tokens::DOT;
 const XDOT: CurrencyId = tokens::XDOT;
 const INITIAL_AMOUNT: u128 = 1_000_000_000_000_000;
-const ASSET_ID: u32 = 10;
+const ASSET_ID: u32 = 11;
 
 fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::Event) {
     frame_system::Pallet::<T>::assert_last_event(generic_event.into());
@@ -96,21 +94,42 @@ benchmarks_instance_pallet! {
         where
             T: pallet_assets::Config<AssetId = CurrencyId, Balance = Balance> + pallet_amm::Config
     }
-    trade {
+    swap_exact_tokens_for_tokens {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T, I>(caller.clone());
         let amount_in = 1_000u128;
-        let original_amount_in = amount_in;
         let min_amount_out = 980u128;
         let expiry = u32::MAX;
-        let routes: BoundedVec<_, <T as Config<I>>::MaxLengthRoute> = Route::<T, I>::try_from(alloc::vec![(DOT, XDOT)]).unwrap();
-    }: trade(SystemOrigin::Signed(caller.clone()), routes.clone(), amount_in, min_amount_out)
+        let routes: Vec<_> = vec![DOT, XDOT];
+    }: swap_exact_tokens_for_tokens(SystemOrigin::Signed(caller.clone()), routes, amount_in, min_amount_out)
 
     verify {
+        let routes: Vec<_> = vec![DOT, XDOT];
         let amount_out: BalanceOf<T, I> = <T as crate::Config<I>>::Assets::balance(XDOT, &caller);
+        let expected = 994u128;
 
-        assert_eq!(amount_out, 994u128);
-        assert_last_event::<T, I>(Event::Traded(caller, original_amount_in, routes, amount_out).into());
+        assert_eq!(amount_out, expected);
+        assert_last_event::<T, I>(Event::Traded(caller, amount_in, routes, expected).into());
+    }
+
+    swap_tokens_for_exact_tokens {
+        let caller: T::AccountId = whitelisted_caller();
+        initial_set_up::<T, I>(caller.clone());
+        let balance_before_trade: BalanceOf<T, I> = <T as crate::Config<I>>::Assets::balance(DOT, &caller);
+        let amount_out = 980u128;
+        let max_amount_in = 1_000u128;
+        let expiry = u32::MAX;
+        let routes: Vec<_> = vec![DOT, XDOT];
+    }: swap_tokens_for_exact_tokens(SystemOrigin::Signed(caller.clone()), routes, amount_out, max_amount_in)
+
+    verify {
+        let routes: Vec<_> = vec![DOT, XDOT];
+        let balance_after_trade: BalanceOf<T, I> = <T as crate::Config<I>>::Assets::balance(DOT, &caller);
+        let amount_in = balance_before_trade - balance_after_trade;
+        let expected = 986u128;
+
+        assert_eq!(amount_in, expected);
+        assert_last_event::<T, I>(Event::Traded(caller, expected, routes, amount_out).into());
     }
 }
 

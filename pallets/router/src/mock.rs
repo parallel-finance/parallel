@@ -38,7 +38,9 @@ pub const DOT: CurrencyId = tokens::DOT;
 pub const XDOT: CurrencyId = tokens::XDOT;
 pub const USDT: CurrencyId = tokens::USDT;
 pub const KSM: CurrencyId = tokens::KSM;
-
+pub const SAMPLE_LP_TOKEN: CurrencyId = 42;
+pub const SAMPLE_LP_TOKEN_2: CurrencyId = 43;
+pub const SAMPLE_LP_TOKEN_3: CurrencyId = 44;
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
 }
@@ -207,9 +209,9 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         Assets::force_create(Origin::root(), tokens::USDT, ALICE, true, 1).unwrap();
 
         // lp tokens
-        Assets::force_create(Origin::root(), 10, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), 11, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), 12, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), SAMPLE_LP_TOKEN, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), SAMPLE_LP_TOKEN_2, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), SAMPLE_LP_TOKEN_3, ALICE, true, 1).unwrap();
 
         Assets::mint(Origin::signed(ALICE), tokens::DOT, ALICE, 10_000).unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::XDOT, ALICE, 10_000).unwrap();
