@@ -19,7 +19,7 @@ pub use pallet_router_rpc_runtime_api::RouterApi as RouterRuntimeApi;
 use codec::Codec;
 use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
 use jsonrpc_derive::rpc;
-use primitives::CurrencyId;
+use primitives::{Amount, CurrencyId};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::{generic::BlockId, traits::Block as BlockT};
@@ -31,9 +31,10 @@ pub trait RouterApi<BlockHash, AccountId> {
     fn get_best_route(
         &self,
         at: Option<BlockHash>,
+        amount_in: Amount,
         token_in: CurrencyId,
         token_out: CurrencyId,
-    ) -> Result<Vec<CurrencyId>>;
+    ) -> Result<Vec<(Vec<CurrencyId>, Amount)>>;
 }
 
 /// A struct that implements the [`RouteApi`].
@@ -78,12 +79,13 @@ where
     fn get_best_route(
         &self,
         at: Option<<Block as BlockT>::Hash>,
+        amount_in: Amount,
         token_in: CurrencyId,
         token_out: CurrencyId,
-    ) -> Result<Vec<CurrencyId>> {
+    ) -> Result<Vec<(Vec<CurrencyId>, Amount)>> {
         let api = self.client.runtime_api();
         let at = BlockId::hash(at.unwrap_or(self.client.info().best_hash));
-        api.get_best_route(&at, token_in, token_out)
+        api.get_best_route(&at, amount_in, token_in, token_out)
             .map_err(runtime_error_into_rpc_error)?
             .map_err(other_rpc_error)
     }

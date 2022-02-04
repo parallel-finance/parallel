@@ -409,6 +409,8 @@ fn trade_should_work_more_than_one_route() {
 #[test]
 fn get_best_route_should_work() {
     new_test_ext().execute_with(|| {
+        // let input_amount = 10_000;
+        let input_amount = 1_000;
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
             Origin::signed(ALICE),
@@ -436,42 +438,16 @@ fn get_best_route_should_work() {
             SAMPLE_LP_TOKEN_3
         ));
 
-        //
         let routes = AMMRoute::get_best_route(
-            10_000, // input amount
-            DOT,    // input token
-            KSM,    // output token
+            input_amount, // input amount
+            DOT,          // input token
+            KSM,          // output token
         )
         .unwrap();
 
-        /// THIS AND BELOW SHOULD BE MOVED INTO THE `get_best_route`
-        /// function
-        // DOT == 101
-        // KSM == 100
-        let mut highest_amount_so_far = 0;
-
-        // this part gets the output amount of tokens IF
-        // you use the following path
-        // 'if you take this route, the output will be X'
-
-        // we want to return the "best" route
-        // which means it has the highest X amount
-        for route in routes {
-            let amounts = DefaultAMM::get_amounts_out(
-                10_000,
-                /// the input amount
-                route.clone(), // this is one of the ways we can get KSM for DOT
-            )
-            .unwrap();
-            // A -> B -> C
-            // amounts == [1, 2, (5)]
-
-            // println!("Amounts {:?}", amounts);
-            println!("Output amount {}", amounts[amounts.len() - 1]);
-            println!("Path {:?}", route);
-            println!();
-        }
-
-        assert_eq!(0, 1);
+        assert_eq!(
+            routes,
+            vec![(vec![101, 1001, 100], 890), (vec![101, 100], 696)]
+        );
     })
 }

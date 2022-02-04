@@ -46,7 +46,7 @@ pub mod pallet {
     use primitives::{Balance, CurrencyId, AMM};
     use scale_info::prelude::collections::HashMap;
     use sp_runtime::{traits::Zero, DispatchError};
-    use sp_std::vec::Vec;
+    use sp_std::{cmp::Reverse, vec::Vec};
 
     pub type Route<T, I> = BoundedVec<
         (
@@ -147,11 +147,10 @@ pub mod pallet {
         }
 
         pub fn get_best_route(
-            // amount_in: BalanceOf<T, I>.
             amount_in: BalanceOf<T, I>,
             token_in: AssetIdOf<T, I>,
             token_out: AssetIdOf<T, I>,
-        ) -> Result<Vec<Vec<CurrencyId>>, DispatchError> {
+        ) -> Result<Vec<(Vec<AssetIdOf<T, I>>, BalanceOf<T, I>)>, DispatchError> {
             // get all the pool asset pairs from the AMM
             let pools = T::AMM::get_pools()?;
 
@@ -201,15 +200,23 @@ pub mod pallet {
                 }
             }
 
-            // TODO: Implement functionality here
+            let mut output_routes = Vec::new();
+            for route in paths.clone() {
+                let amounts = T::AMM::get_amounts_out(amount_in, route.clone())?;
+                output_routes.push((route, amounts[amounts.len() - 1]));
+            }
+
+            output_routes.sort_by_key(|k| Reverse(k.1));
             log::trace!(
                 target: "router::get_best_route",
-                "token_in: {:?}, token_out: {:?}",
+                "amount in :{:?}, token_in: {:?}, token_out: {:?}, output_routes: {:?}",
+                amount_in,
                 token_in,
                 token_out,
+                output_routes
             );
 
-            Ok(paths)
+            Ok(output_routes)
         }
     }
 
@@ -326,5 +333,18 @@ pub mod pallet {
 
             Ok(().into())
         }
+
+        // #[allow(dead_code)]
+        // pub fn get_output_routes(
+        //     amount_in: BalanceOf<T, I>,
+        //     routes: Vec<(CurrencyId, CurrencyId)>
+        // ) -> Result<Vec<(Vec<AssetIdOf<T, I>>, BalanceOf<T, I>)>, DispatchError> {
+        //     let mut output_routes = Vec::new();
+        //     for r in routes.clone() {
+        //         let amounts = T::AMM::get_amounts_out(amount_in, r.clone())?;
+        //         output_routes.push((route, amounts[amounts.len() - 1]));
+        //     }
+        //     Ok(output_routes)
+        // }
     }
 }
