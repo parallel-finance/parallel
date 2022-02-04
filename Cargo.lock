@@ -6020,11 +6020,11 @@ dependencies = [
  "parallel-primitives",
  "parity-scale-codec",
  "serde",
- "sp-api 4.0.0-dev (git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.13)",
- "sp-blockchain 4.0.0-dev (git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.13)",
- "sp-core 4.0.0-dev",
- "sp-runtime 4.0.0-dev",
- "sp-std 4.0.0-dev",
+ "sp-api 4.0.0-dev (git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.16)",
+ "sp-blockchain 4.0.0-dev (git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.16)",
+ "sp-core 4.1.0-dev",
+ "sp-runtime 4.1.0-dev",
+ "sp-std 4.0.0",
 ]
 
 [[package]]
