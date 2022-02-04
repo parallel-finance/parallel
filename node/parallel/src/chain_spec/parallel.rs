@@ -125,6 +125,7 @@ pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
         vec![],
         TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
         Some("parallel-dev"),
+        None,
         Some(as_properties(NetworkType::Parallel)),
         Extensions {
             relay_chain: "westend-local".into(),
@@ -210,6 +211,7 @@ pub fn parallel_config(_id: ParaId) -> Result<ChainSpec, String> {
     //     ],
     //     TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
     //     Some("parallel"),
+    //     None,
     //     Some(as_properties(network::NetworkType::Parallel)),
     //     Extensions {
     //         relay_chain: "polkadot".into(),

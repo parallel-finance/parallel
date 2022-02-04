@@ -125,6 +125,7 @@ pub fn heiko_dev_config(id: ParaId) -> ChainSpec {
         vec![],
         TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
         Some("heiko-dev"),
+        None,
         Some(as_properties(network::NetworkType::Heiko)),
         Extensions {
             relay_chain: "westend-local".into(),
@@ -201,6 +202,7 @@ pub fn heiko_config(_id: ParaId) -> Result<ChainSpec, String> {
     //     ],
     //     TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
     //     Some("heiko"),
+    //     None,
     //     Some(as_properties(network::NetworkType::Heiko)),
     //     Extensions {
     //         relay_chain: "kusama".into(),

@@ -111,6 +111,7 @@ pub fn vanilla_dev_config(id: ParaId) -> ChainSpec {
         vec![],
         TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
         Some("vanilla-dev"),
+        None,
         Some(as_properties(NetworkType::Heiko)),
         Extensions {
             relay_chain: "westend-local".into(),
@@ -243,6 +244,7 @@ pub fn vanilla_config(_id: ParaId) -> Result<ChainSpec, String> {
     //     ],
     //     TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
     //     Some("vanilla"),
+    //     None,
     //     Some(as_properties(NetworkType::Heiko)),
     //     Extensions {
     //         relay_chain: "westend-local".into(),
