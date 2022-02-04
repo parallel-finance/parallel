@@ -158,8 +158,8 @@ pub mod pallet {
 
             // build a non directed graph from pool asset pairs
             pools.into_iter().for_each(|(a, b)| {
-                map.entry(a).or_insert_with(|| Vec::new()).push(b);
-                map.entry(b).or_insert_with(|| Vec::new()).push(a);
+                map.entry(a).or_insert(Vec::new()).push(b);
+                map.entry(b).or_insert(Vec::new()).push(a);
             });
 
             // do dfs
