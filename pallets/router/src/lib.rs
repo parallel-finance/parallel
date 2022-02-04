@@ -43,8 +43,8 @@ pub mod pallet {
         transactional, BoundedVec, PalletId,
     };
     use frame_system::{ensure_signed, pallet_prelude::OriginFor};
+    use parity_scale_codec::alloc::collections::HashMap;
     use primitives::{Balance, CurrencyId, AMM};
-    use scale_info::prelude::collections::HashMap;
     use sp_runtime::{traits::Zero, DispatchError};
     use sp_std::{cmp::Reverse, vec::Vec};
 
