@@ -227,3 +227,10 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
     ext
 }
+
+/// Progress to the given block, and then finalize the block.
+pub(crate) fn run_to_block(n: BlockNumber) {
+    for b in (System::block_number() + 1)..=n {
+        System::set_block_number(b);
+    }
+}

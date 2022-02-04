@@ -47,12 +47,15 @@ use frame_system::{ensure_signed, pallet_prelude::OriginFor};
 pub use pallet::*;
 use sp_runtime::{
     traits::{AccountIdConversion, CheckedAdd, CheckedSub, IntegerSquareRoot, One, Zero},
-    ArithmeticError, DispatchError,
+    ArithmeticError, DispatchError, FixedU128,
 };
 use sp_std::vec::Vec;
 use sp_std::{cmp::min, ops::Div, result::Result};
 
 use primitives::{Balance, CurrencyId, Ratio};
+use sp_runtime::traits::Saturating;
+use sp_runtime::FixedPointNumber;
+use sp_runtime::SaturatedConversion;
 use types::Pool;
 pub use weights::WeightInfo;
 
@@ -183,7 +186,7 @@ pub mod pallet {
         AssetIdOf<T, I>,
         Blake2_128Concat,
         AssetIdOf<T, I>,
-        Pool<AssetIdOf<T, I>, BalanceOf<T, I>>,
+        Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
         OptionQuery,
     >;
 
@@ -432,7 +435,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     }
 
     fn get_ideal_amounts(
-        pool: &Pool<AssetIdOf<T, I>, BalanceOf<T, I>>,
+        pool: &Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
         (base_amount, quote_amount): (BalanceOf<T, I>, BalanceOf<T, I>),
     ) -> Result<(BalanceOf<T, I>, BalanceOf<T, I>), DispatchError> {
         log::trace!(
@@ -615,10 +618,48 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .ok_or(ArithmeticError::Overflow)?)
     }
 
+    #[allow(dead_code)]
+    fn update_oracle(
+        pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
+    ) -> Result<(), DispatchError> {
+        let block_timestamp = frame_system::Pallet::<T>::block_number();
+
+        if pool.block_timestamp_last != block_timestamp {
+            let time_elapsed: T::BlockNumber =
+                block_timestamp.saturating_sub(pool.block_timestamp_last);
+
+            let price0_fraction: BalanceOf<T, I> =
+                FixedU128::saturating_from_rational(pool.quote_amount, pool.base_amount)
+                    .into_inner();
+            let price1_fraction: BalanceOf<T, I> =
+                FixedU128::saturating_from_rational(pool.base_amount, pool.quote_amount)
+                    .into_inner();
+
+            pool.price_0_cumulative_last =
+                pool.price_0_cumulative_last.saturating_add(price0_fraction);
+
+            pool.price_1_cumulative_last =
+                pool.price_1_cumulative_last.saturating_add(price1_fraction);
+
+            pool.price_0_cumulative_last = pool
+                .price_0_cumulative_last
+                .saturating_mul(time_elapsed.saturated_into());
+
+            pool.price_1_cumulative_last = pool
+                .price_1_cumulative_last
+                .saturating_mul(time_elapsed.saturated_into());
+
+            // updates timestamp last so `time_elapsed` is correctly calculated
+            pool.block_timestamp_last = block_timestamp;
+        }
+
+        Ok(())
+    }
+
     #[require_transactional]
     fn do_add_liquidity(
         who: &T::AccountId,
-        pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>>,
+        pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
         (ideal_base_amount, ideal_quote_amount): (BalanceOf<T, I>, BalanceOf<T, I>),
         (base_asset, quote_asset): (AssetIdOf<T, I>, AssetIdOf<T, I>),
     ) -> Result<(), DispatchError> {
@@ -693,7 +734,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     #[require_transactional]
     fn do_remove_liquidity(
         who: &T::AccountId,
-        pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>>,
+        pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
         liquidity: BalanceOf<T, I>,
         (base_asset, quote_asset): (AssetIdOf<T, I>, AssetIdOf<T, I>),
     ) -> Result<(BalanceOf<T, I>, BalanceOf<T, I>), DispatchError> {
@@ -738,7 +779,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
     #[require_transactional]
     pub fn do_mint_protocol_fee(
-        pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>>,
+        pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
     ) -> Result<BalanceOf<T, I>, DispatchError> {
         // TODO: If we turn off protocol_fee later in runtime upgrade
         // this will reset root_k_last to zero which may not be good
@@ -839,6 +880,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                     pool.base_amount = new_supply_in;
                     pool.quote_amount = new_supply_out;
                 }
+
+                Self::update_oracle(pool)?;
 
                 T::Assets::transfer(asset_in, who, &Self::account_id(), amount_in, true)?;
                 T::Assets::transfer(asset_out, &Self::account_id(), who, amount_out, false)?;
