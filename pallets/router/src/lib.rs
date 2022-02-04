@@ -44,7 +44,7 @@ pub mod pallet {
     };
     use frame_system::{ensure_signed, pallet_prelude::OriginFor};
     use primitives::{Balance, CurrencyId, AMM};
-    use scale_info::prelude::collections::HashMap;
+    use scale_info::prelude::collections::hash_map::HashMap;
     use sp_runtime::{traits::Zero, DispatchError};
     use sp_std::{cmp::Reverse, vec::Vec};
 
