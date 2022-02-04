@@ -44,7 +44,7 @@ pub mod pallet {
     };
     use frame_system::{ensure_signed, pallet_prelude::OriginFor};
     use primitives::{Balance, CurrencyId, AMM};
-    use scale_info::prelude::collections::hash_map::HashMap;
+    use scale_info::prelude::collections::HashMap;
     use sp_runtime::{traits::Zero, DispatchError};
     use sp_std::{cmp::Reverse, vec::Vec};
 
@@ -158,8 +158,8 @@ pub mod pallet {
 
             // build a non directed graph from pool asset pairs
             pools.into_iter().for_each(|(a, b)| {
-                map.entry(a).or_insert(Vec::new()).push(b);
-                map.entry(b).or_insert(Vec::new()).push(a);
+                map.entry(a).or_insert_with(|| Vec::new()).push(b);
+                map.entry(b).or_insert_with(|| Vec::new()).push(a);
             });
 
             // do dfs
