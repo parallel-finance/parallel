@@ -6033,9 +6033,9 @@ version = "1.7.7"
 dependencies = [
  "parallel-primitives",
  "parity-scale-codec",
- "sp-api 4.0.0-dev (git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.13)",
- "sp-runtime 4.0.0-dev",
- "sp-std 4.0.0-dev",
+ "sp-api 4.0.0-dev (git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.16)",
+ "sp-runtime 4.1.0-dev",
+ "sp-std 4.0.0",
 ]
 
 [[package]]

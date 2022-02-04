@@ -30,10 +30,10 @@ pub trait RouterApi<BlockHash, AccountId> {
     #[rpc(name = "router_getBestRoute")]
     fn get_best_route(
         &self,
-        at: Option<BlockHash>,
         amount_in: Balance,
         token_in: CurrencyId,
         token_out: CurrencyId,
+        at: Option<BlockHash>,
     ) -> Result<Vec<(Vec<CurrencyId>, Balance)>>;
 }
 
@@ -78,10 +78,10 @@ where
 {
     fn get_best_route(
         &self,
-        at: Option<<Block as BlockT>::Hash>,
         amount_in: Balance,
         token_in: CurrencyId,
         token_out: CurrencyId,
+        at: Option<<Block as BlockT>::Hash>,
     ) -> Result<Vec<(Vec<CurrencyId>, Balance)>> {
         let api = self.client.runtime_api();
         let at = BlockId::hash(at.unwrap_or(self.client.info().best_hash));
