@@ -145,7 +145,7 @@ fn mint_must_return_err_when_overflows_occur() {
         // Verify token balance first
         assert_noop!(
             Loans::mint(Origin::signed(CHARLIE), DOT, OVERFLOW_DEPOSIT),
-            pallet_assets::Error::<Test>::BalanceLow
+            pallet_assets::Error::<Test>::NoAccount
         );
 
         // Deposit OVERFLOW_DEPOSIT DOT for CHARLIE

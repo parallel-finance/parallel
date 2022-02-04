@@ -1,9 +1,21 @@
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::traits::tokens::Balance as BalanceT;
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, RuntimeDebug};
 
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, TypeInfo)]
+#[derive(
+    Encode,
+    Decode,
+    Eq,
+    PartialEq,
+    Copy,
+    Clone,
+    RuntimeDebug,
+    PartialOrd,
+    Ord,
+    TypeInfo,
+    MaxEncodedLen,
+)]
 #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
 pub struct Pool<CurrencyId, Balance, BlockNumber> {
     pub base_amount: Balance,

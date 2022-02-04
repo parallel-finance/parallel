@@ -33,17 +33,18 @@ use frame_support::{
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
-pub use pallet::*;
 use primitives::{Balance, ChainId, CurrencyId};
 use scale_info::prelude::vec::Vec;
 use sp_runtime::{traits::AccountIdConversion, ArithmeticError};
-pub use weights::WeightInfo;
 
 mod benchmarking;
 mod mock;
 mod tests;
 mod types;
 pub mod weights;
+
+pub use pallet::*;
+pub use weights::WeightInfo;
 
 type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
@@ -80,6 +81,10 @@ pub mod pallet {
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
 
+        /// The root operator account id
+        #[pallet::constant]
+        type RootOperatorAccountId: Get<Self::AccountId>;
+
         /// The identifier for this chain.
         /// This must be unique and must not collide with existing IDs within a set of bridged chains.
         #[pallet::constant]
@@ -99,6 +104,7 @@ pub mod pallet {
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
+    #[pallet::without_storage_info]
     pub struct Pallet<T>(PhantomData<T>);
 
     /// Error for the Bridge Pallet
@@ -290,7 +296,7 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Unregister the specified chain_id    
+        /// Unregister the specified chain_id
         #[pallet::weight(T::WeightInfo::unregister_chain())]
         #[transactional]
         pub fn unregister_chain(origin: OriginFor<T>, id: ChainId) -> DispatchResult {
@@ -485,7 +491,7 @@ impl<T: Config> Pallet<T> {
                 Err(Error::<T>::OriginNoPermission)
             }
         } else {
-            Ok(Default::default())
+            Ok(T::RootOperatorAccountId::get())
         }
     }
 

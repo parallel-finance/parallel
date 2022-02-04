@@ -226,7 +226,7 @@ const config = {
     {
       paraId: 2013,
       derivativeIndex: 0,
-      image: 'parallelfinance/polkadot-collator:v0.9.13',
+      image: 'parallelfinance/polkadot-collator:v0.9.16',
       chain: 'shell',
       ctokenId: 4000,
       cap: '100000000000000',
@@ -238,7 +238,7 @@ const config = {
     {
       paraId: 2016,
       derivativeIndex: 1,
-      image: 'parallelfinance/polkadot-collator:v0.9.13',
+      image: 'parallelfinance/polkadot-collator:v0.9.16',
       chain: 'shell',
       ctokenId: 4000,
       cap: '1000000000000000',
@@ -250,7 +250,7 @@ const config = {
     {
       paraId: 2100,
       derivativeIndex: 2,
-      image: 'parallelfinance/polkadot-collator:v0.9.13',
+      image: 'parallelfinance/polkadot-collator:v0.9.16',
       chain: 'shell',
       ctokenId: 4000,
       cap: '10000000000000000',

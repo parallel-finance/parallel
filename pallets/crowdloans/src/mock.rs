@@ -2,14 +2,15 @@ use frame_support::{
     construct_runtime,
     dispatch::Weight,
     parameter_types, sp_io,
-    traits::{Everything, GenesisBuild, Nothing, SortedMembers},
+    traits::{EnsureOneOf, Everything, GenesisBuild, Nothing, SortedMembers},
     weights::constants::WEIGHT_PER_SECOND,
     PalletId,
 };
-use frame_system::{EnsureOneOf, EnsureRoot, EnsureSignedBy};
+use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
+use polkadot_runtime_parachains::configuration::HostConfiguration;
 use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId};
 use sp_core::H256;
 use sp_runtime::{
@@ -58,7 +59,7 @@ parameter_types! {
 
 impl cumulus_pallet_parachain_system::Config for Test {
     type Event = Event;
-    type OnValidationData = ();
+    type OnSystemEvent = ();
     type SelfParaId = ParachainInfo;
     type DmpMessageHandler = DmpQueue;
     type ReservedDmpWeight = ReservedDmpWeight;
@@ -142,21 +143,24 @@ impl Config for XcmConfig {
 
 type KusamaXcmOriginToCallOrigin = (
     // A `Signed` origin of the sovereign account that the original location controls.
-    SovereignSignedViaLocation<kusama_runtime::SovereignAccountOf, kusama_runtime::Origin>,
+    SovereignSignedViaLocation<
+        kusama_runtime::xcm_config::SovereignAccountOf,
+        kusama_runtime::Origin,
+    >,
     // A child parachain, natively expressed, has the `Parachain` origin.
     ChildParachainAsNative<polkadot_runtime_parachains::origin::Origin, kusama_runtime::Origin>,
     // The AccountId32 location type can be expressed natively as a `Signed` origin.
-    SignedAccountId32AsNative<kusama_runtime::KusamaNetwork, kusama_runtime::Origin>,
+    SignedAccountId32AsNative<kusama_runtime::xcm_config::KusamaNetwork, kusama_runtime::Origin>,
     // A system child parachain, expressed as a Superuser, converts to the `Root` origin.
     ChildSystemParachainAsSuperuser<ParaId, kusama_runtime::Origin>,
 );
 
 pub type KusamaCall = kusama_runtime::Call;
-pub type KusamaLocalAssetTransactor = kusama_runtime::LocalAssetTransactor;
+pub type KusamaLocalAssetTransactor = kusama_runtime::xcm_config::LocalAssetTransactor;
 // pub type KusamaXcmOriginToCallOrigin = kusama_runtime::LocalOriginConverter;
 // pub type KusamaLocationInverter = kusama_runtime::LocationInverter;
-pub type KusamaAncestry = kusama_runtime::Ancestry;
-pub type KusamaBarrier = kusama_runtime::Barrier;
+pub type KusamaAncestry = kusama_runtime::xcm_config::Ancestry;
+pub type KusamaBarrier = kusama_runtime::xcm_config::Barrier;
 pub type KusamaXcmPallet = kusama_runtime::XcmPallet;
 
 pub struct RelayXcmConfig;
@@ -180,6 +184,7 @@ impl Config for RelayXcmConfig {
 impl cumulus_pallet_xcmp_queue::Config for Test {
     type Event = Event;
     type XcmExecutor = XcmExecutor<XcmConfig>;
+    type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
     type ChannelInfo = ParachainSystem;
     type VersionWrapper = ();
 }
@@ -279,6 +284,7 @@ parameter_types! {
     pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
     pub const BaseXcmWeight: Weight = 100_000_000;
     pub const MaxInstructions: u32 = 100;
+    pub const MaxAssetsForTransfer: usize = 2;
 }
 
 impl orml_xtokens::Config for Test {
@@ -292,6 +298,7 @@ impl orml_xtokens::Config for Test {
     type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
     type BaseXcmWeight = BaseXcmWeight;
     type LocationInverter = LocationInverter<Ancestry>;
+    type MaxAssetsForTransfer = MaxAssetsForTransfer;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
@@ -329,6 +336,7 @@ impl frame_system::Config for Test {
     type SystemWeightInfo = ();
     type SS58Prefix = SS58Prefix;
     type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
+    type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 parameter_types! {
@@ -373,28 +381,26 @@ parameter_types! {
 }
 
 pub type CreateVaultOrigin =
-    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+    EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
 pub type DissolveVaultOrigin =
-    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+    EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
-pub type RefundOrigin =
-    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+pub type RefundOrigin = EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
 pub type UpdateVaultOrigin =
-    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+    EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
-pub type VrfOrigin =
-    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+pub type VrfOrigin = EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
 pub type OpenCloseOrigin =
-    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+    EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
 pub type AuctionFailedOrigin =
-    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
+    EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
 
 pub type SlotExpiredOrigin =
-    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
+    EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
 
 impl crate::Config for Test {
     type Event = Event;
@@ -444,6 +450,7 @@ impl pallet_xcm_helper::Config for Test {
 parameter_types! {
     pub const AssetDeposit: Balance = DOT_DECIMAL;
     pub const ApprovalDeposit: Balance = 0;
+    pub const AssetAccountDeposit: Balance= 0;
     pub const AssetsStringLimit: u32 = 50;
     pub const MetadataDepositBase: Balance = 0;
     pub const MetadataDepositPerByte: Balance = 0;
@@ -458,6 +465,7 @@ impl pallet_assets::Config for Test {
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
     type MetadataDepositPerByte = MetadataDepositPerByte;
+    type AssetAccountDeposit = AssetAccountDeposit;
     type ApprovalDeposit = ApprovalDeposit;
     type StringLimit = AssetsStringLimit;
     type Freezer = ();
@@ -602,6 +610,15 @@ pub fn relay_ext() -> sp_io::TestExternalities {
             (ALICE, dot(100_000f64)),
             (para_a_id().into_account(), dot(1_000_000f64)),
         ],
+    }
+    .assimilate_storage(&mut t)
+    .unwrap();
+
+    polkadot_runtime_parachains::configuration::GenesisConfig::<Runtime> {
+        config: HostConfiguration {
+            max_code_size: 1024u32,
+            ..Default::default()
+        },
     }
     .assimilate_storage(&mut t)
     .unwrap();

@@ -1,6 +1,5 @@
 use crate as pallet_emergency_shutdown;
-use frame_support::parameter_types;
-use frame_support::traits::Contains;
+use frame_support::{parameter_types, traits::Contains};
 use frame_system::EnsureRoot;
 use sp_core::H256;
 use sp_runtime::{
@@ -69,6 +68,7 @@ impl frame_system::Config for Test {
     type SystemWeightInfo = ();
     type SS58Prefix = SS58Prefix;
     type OnSetCode = ();
+    type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 impl pallet_emergency_shutdown::Config for Test {

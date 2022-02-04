@@ -413,7 +413,7 @@ fn contribute_should_fail_insufficent_funds() {
                 amount,              // amount
                 Vec::new()
             ),
-            pallet_assets::Error::<Test>::BalanceLow
+            pallet_assets::Error::<Test>::NoAccount
         );
     });
 }
@@ -879,7 +879,7 @@ fn xcm_contribute_should_work() {
             1000,
             parathread_id(),
             HeadData(vec![]),
-            ValidationCode(vec![]),
+            ValidationCode(vec![1, 2, 3]),
         ));
 
         assert_ok!(RelayParas::force_queue_action(

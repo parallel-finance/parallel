@@ -28,7 +28,7 @@ use frame_support::{
     match_type,
     traits::{
         fungibles::{InspectMetadata, Mutate},
-        Contains, EqualPrivilegeOnly, Everything, Nothing, OnRuntimeUpgrade,
+        Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, Nothing, OnRuntimeUpgrade,
     },
     PalletId,
 };
@@ -58,7 +58,7 @@ use sp_version::RuntimeVersion;
 
 use frame_system::{
     limits::{BlockLength, BlockWeights},
-    EnsureOneOf, EnsureRoot,
+    EnsureRoot,
 };
 use orml_xcm_support::{IsNativeConcrete, MultiNativeAsset};
 use polkadot_parachain::primitives::Sibling;
@@ -142,6 +142,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     impl_version: 22,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 6,
+    state_version: 0,
 };
 
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
@@ -215,6 +216,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::TechnicalCommittee(_) |
             Call::Treasury(_) |
             Call::Scheduler(_) |
+            Call::Preimage(_) |
             // Parachain
             Call::ParachainSystem(_) |
             // Consensus
@@ -318,6 +320,7 @@ impl frame_system::Config for Runtime {
     type SS58Prefix = SS58Prefix;
     /// The set code logic.
     type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
+    type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 parameter_types! {
@@ -410,6 +413,7 @@ parameter_types! {
     pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
     pub const BaseXcmWeight: Weight = 150_000_000;
     pub const MaxInstructions: u32 = 100;
+    pub const MaxAssetsForTransfer: usize = 2;
 }
 
 impl orml_xtokens::Config for Runtime {
@@ -423,11 +427,13 @@ impl orml_xtokens::Config for Runtime {
     type Weigher = FixedWeightBounds<BaseXcmWeight, Call, MaxInstructions>;
     type BaseXcmWeight = BaseXcmWeight;
     type LocationInverter = LocationInverter<Ancestry>;
+    type MaxAssetsForTransfer = MaxAssetsForTransfer;
 }
 
 parameter_types! {
     pub const AssetDeposit: Balance = DOLLARS; // 1 UNIT deposit to create asset
     pub const ApprovalDeposit: Balance = EXISTENTIAL_DEPOSIT;
+    pub const AssetAccountDeposit: Balance = DOLLARS;
     pub const AssetsStringLimit: u32 = 50;
     /// Key = 32 bytes, Value = 36 bytes (32+1+1+1+1)
     // https://github.com/paritytech/substrate/blob/069917b/frame/assets/src/lib.rs#L257L271
@@ -444,6 +450,7 @@ impl pallet_assets::Config for Runtime {
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
     type MetadataDepositPerByte = MetadataDepositPerByte;
+    type AssetAccountDeposit = AssetAccountDeposit;
     type ApprovalDeposit = ApprovalDeposit;
     type StringLimit = AssetsStringLimit;
     type Freezer = ();
@@ -808,6 +815,7 @@ impl cumulus_pallet_xcm::Config for Runtime {
 impl cumulus_pallet_xcmp_queue::Config for Runtime {
     type Event = Event;
     type XcmExecutor = XcmExecutor<XcmConfig>;
+    type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
     type ChannelInfo = ParachainSystem;
     type VersionWrapper = PolkadotXcm;
 }
@@ -825,7 +833,7 @@ parameter_types! {
 
 impl cumulus_pallet_parachain_system::Config for Runtime {
     type Event = Event;
-    type OnValidationData = ();
+    type OnSystemEvent = ();
     type SelfParaId = ParachainInfo;
     type DmpMessageHandler = DmpQueue;
     type OutboundXcmpMessageSource = XcmpQueue;
@@ -1083,18 +1091,15 @@ impl pallet_identity::Config for Runtime {
 }
 
 type EnsureRootOrMoreThanHalfGeneralCouncil = EnsureOneOf<
-    AccountId,
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, GeneralCouncilCollective>,
 >;
 type EnsureRootOrAtLeastThreeFifthsGeneralCouncil = EnsureOneOf<
-    AccountId,
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionAtLeast<_3, _5, AccountId, GeneralCouncilCollective>,
 >;
 
 type EnsureAllTechnicalComittee = EnsureOneOf<
-    AccountId,
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, TechnicalCollective>,
 >;
@@ -1108,7 +1113,6 @@ parameter_types! {
     pub const EnactmentPeriod: BlockNumber = 8 * DAYS;
     pub const CooloffPeriod: BlockNumber = 7 * DAYS;
     // One cent: $10,000 / MB
-    pub const PreimageByteDeposit: Balance = 1 * CENTS;
     pub const MaxVotes: u32 = 100;
     pub const MaxProposals: u32 = 100;
 }
@@ -1227,9 +1231,26 @@ impl pallet_membership::Config<TechnicalCommitteeMembershipInstance> for Runtime
 }
 
 parameter_types! {
+    pub const PreimageMaxSize: u32 = 4096 * 1024;
+    pub const PreimageBaseDeposit: Balance = deposit(2, 64);
+    pub const PreimageByteDeposit: Balance = deposit(0, 1);
+}
+
+impl pallet_preimage::Config for Runtime {
+    type WeightInfo = pallet_preimage::weights::SubstrateWeight<Runtime>;
+    type Event = Event;
+    type Currency = Balances;
+    type ManagerOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type MaxSize = PreimageMaxSize;
+    type BaseDeposit = PreimageBaseDeposit;
+    type ByteDeposit = PreimageByteDeposit;
+}
+
+parameter_types! {
     pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) *
         RuntimeBlockWeights::get().max_block;
     pub const MaxScheduledPerBlock: u32 = 50;
+    pub const NoPreimagePostponement: Option<u32> = Some(10);
 }
 
 impl pallet_scheduler::Config for Runtime {
@@ -1242,11 +1263,14 @@ impl pallet_scheduler::Config for Runtime {
     type MaxScheduledPerBlock = MaxScheduledPerBlock;
     type OriginPrivilegeCmp = EqualPrivilegeOnly;
     type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
+    type PreimageProvider = Preimage;
+    type NoPreimagePostponement = NoPreimagePostponement;
 }
 
 parameter_types! {
     pub const ProposalBond: Permill = Permill::from_percent(5);
     pub const ProposalBondMinimum: Balance = 1 * DOLLARS;
+    pub const ProposalBondMaximum: Balance = 5 * DOLLARS;
     pub const SpendPeriod: BlockNumber = 1 * DAYS;
     pub const Burn: Permill = Permill::from_percent(0);
     pub const TreasuryPalletId: PalletId = PalletId(*b"par/trsy");
@@ -1262,6 +1286,7 @@ impl pallet_treasury::Config for Runtime {
     type OnSlash = ();
     type ProposalBond = ProposalBond;
     type ProposalBondMinimum = ProposalBondMinimum;
+    type ProposalBondMaximum = ProposalBondMaximum;
     type SpendPeriod = SpendPeriod;
     type Burn = Burn;
     type BurnDestination = ();
@@ -1529,6 +1554,7 @@ construct_runtime!(
         TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 13,
         Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>} = 14,
         Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 15,
+        Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>} = 16,
 
         // Parachain
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 20,
@@ -1613,7 +1639,7 @@ pub type Executive = frame_executive::Executive<
     Block,
     frame_system::ChainContext<Runtime>,
     Runtime,
-    AllPallets,
+    AllPalletsWithSystem,
     CrowdloanCreateBatch1Vault,
 >;
 
@@ -1745,8 +1771,8 @@ impl_runtime_apis! {
     }
 
     impl cumulus_primitives_core::CollectCollationInfo<Block> for Runtime {
-        fn collect_collation_info() -> cumulus_primitives_core::CollationInfo {
-            ParachainSystem::collect_collation_info()
+        fn collect_collation_info(header: &<Block as BlockT>::Header) -> cumulus_primitives_core::CollationInfo {
+            ParachainSystem::collect_collation_info(header)
         }
     }
 

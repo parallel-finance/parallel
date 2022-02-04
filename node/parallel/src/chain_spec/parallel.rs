@@ -125,6 +125,7 @@ pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
         vec![],
         TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
         Some("parallel-dev"),
+        None,
         Some(as_properties(NetworkType::Parallel)),
         Extensions {
             relay_chain: "westend-local".into(),
@@ -210,6 +211,7 @@ pub fn parallel_config(_id: ParaId) -> Result<ChainSpec, String> {
     //     ],
     //     TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
     //     Some("parallel"),
+    //     None,
     //     Some(as_properties(network::NetworkType::Parallel)),
     //     Extensions {
     //         relay_chain: "polkadot".into(),
@@ -264,7 +266,9 @@ fn parallel_genesis(
         aura: Default::default(),
         aura_ext: Default::default(),
         parachain_system: Default::default(),
-        sudo: SudoConfig { key: root_key },
+        sudo: SudoConfig {
+            key: Some(root_key),
+        },
         parachain_info: ParachainInfoConfig { parachain_id: id },
         liquid_staking: LiquidStakingConfig {
             exchange_rate: Rate::saturating_from_rational(100_u32, 100_u32), // 1

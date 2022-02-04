@@ -29,7 +29,7 @@ mod benchmarking;
 
 pub mod weights;
 
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
     pallet_prelude::*,
     traits::{
@@ -38,9 +38,7 @@ use frame_support::{
     },
     transactional, Blake2_128Concat, PalletId,
 };
-use frame_system::ensure_signed;
-use frame_system::pallet_prelude::OriginFor;
-pub use pallet::*;
+use frame_system::{ensure_signed, pallet_prelude::OriginFor};
 use primitives::{Balance, CurrencyId};
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
@@ -50,6 +48,9 @@ use sp_runtime::{
     traits::{AccountIdConversion, Saturating, StaticLookup, Zero},
     ArithmeticError, SaturatedConversion,
 };
+use sp_std::result::Result;
+
+pub use pallet::*;
 pub use weights::WeightInfo;
 
 pub type AssetIdOf<T, I = ()> =
@@ -100,6 +101,8 @@ pub mod pallet {
         NotAValidAmount,
         /// The end block is smaller than start block
         SmallerThanEndBlock,
+        /// Codec error
+        CodecError,
     }
 
     #[pallet::event]
@@ -120,7 +123,17 @@ pub mod pallet {
     pub struct Pallet<T, I = ()>(_);
 
     #[derive(
-        Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, TypeInfo,
+        Encode,
+        Decode,
+        Eq,
+        PartialEq,
+        Copy,
+        Clone,
+        RuntimeDebug,
+        PartialOrd,
+        Ord,
+        TypeInfo,
+        MaxEncodedLen,
     )]
     #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
     pub struct Pool<BlockNumber, AssetId, BoundedTokens> {
@@ -185,8 +198,7 @@ pub mod pallet {
 
             let stash = T::Lookup::lookup(stash)?;
 
-            let asset_pool_account = Self::pool_account_id(asset);
-
+            let asset_pool_account = Self::pool_account_id(asset)?;
             for (per_block, reward_token) in rewards.clone() {
                 let total_rewards =
                     Self::block_to_balance(end.saturating_sub(start)).saturating_mul(per_block);
@@ -222,7 +234,7 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             ensure!(amount != Zero::zero(), Error::<T, I>::NotAValidAmount);
 
-            let asset_pool_account = Self::pool_account_id(asset);
+            let asset_pool_account = Self::pool_account_id(asset)?;
             Pools::<T, I>::try_mutate(asset, |liquidity_pool| -> DispatchResult {
                 let pool = liquidity_pool
                     .as_mut()
@@ -254,8 +266,7 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             ensure!(amount != Zero::zero(), Error::<T, I>::NotAValidAmount);
 
-            let asset_pool_account = Self::pool_account_id(asset);
-
+            let asset_pool_account = Self::pool_account_id(asset)?;
             Pools::<T, I>::try_mutate(asset, |liquidity_pool| -> DispatchResultWithPostInfo {
                 let pool = liquidity_pool
                     .as_mut()
@@ -290,10 +301,10 @@ pub mod pallet {
 }
 
 impl<T: Config<I>, I: 'static> Pallet<T, I> {
-    pub fn pool_account_id(asset_id: AssetIdOf<T, I>) -> T::AccountId {
+    pub fn pool_account_id(asset_id: AssetIdOf<T, I>) -> Result<T::AccountId, DispatchError> {
         let account_id: T::AccountId = T::PalletId::get().into_account();
         let entropy = (b"modlpy/liquidity", &[account_id], asset_id).using_encoded(blake2_256);
-        T::AccountId::decode(&mut &entropy[..]).unwrap_or_default()
+        Ok(T::AccountId::decode(&mut &entropy[..]).map_err(|_| Error::<T, I>::CodecError)?)
     }
 
     fn block_to_balance(duration: T::BlockNumber) -> BalanceOf<T, I> {

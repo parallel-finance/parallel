@@ -2,14 +2,15 @@ use frame_support::{
     construct_runtime,
     dispatch::Weight,
     parameter_types, sp_io,
-    traits::{Everything, GenesisBuild, Nothing, SortedMembers},
+    traits::{EnsureOneOf, Everything, GenesisBuild, Nothing, SortedMembers},
     weights::constants::WEIGHT_PER_SECOND,
     PalletId,
 };
-use frame_system::{pallet_prelude::BlockNumberFor, EnsureOneOf, EnsureRoot, EnsureSignedBy};
+use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
+
 use polkadot_runtime_parachains::configuration::HostConfiguration;
 use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId, Rate, Ratio};
 use sp_core::H256;
@@ -42,7 +43,7 @@ parameter_types! {
 
 impl cumulus_pallet_parachain_system::Config for Test {
     type Event = Event;
-    type OnValidationData = ();
+    type OnSystemEvent = ();
     type SelfParaId = ParachainInfo;
     type DmpMessageHandler = DmpQueue;
     type ReservedDmpWeight = ReservedDmpWeight;
@@ -127,6 +128,7 @@ impl Config for XcmConfig {
 impl cumulus_pallet_xcmp_queue::Config for Test {
     type Event = Event;
     type XcmExecutor = XcmExecutor<XcmConfig>;
+    type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
     type ChannelInfo = ParachainSystem;
     type VersionWrapper = ();
 }
@@ -226,6 +228,7 @@ parameter_types! {
     pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
     pub const BaseXcmWeight: Weight = 100_000_000;
     pub const MaxInstructions: u32 = 100;
+    pub const MaxAssetsForTransfer: usize = 2;
 }
 
 impl orml_xtokens::Config for Test {
@@ -239,6 +242,7 @@ impl orml_xtokens::Config for Test {
     type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
     type BaseXcmWeight = BaseXcmWeight;
     type LocationInverter = LocationInverter<Ancestry>;
+    type MaxAssetsForTransfer = MaxAssetsForTransfer;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
@@ -275,6 +279,7 @@ impl frame_system::Config for Test {
     type SystemWeightInfo = ();
     type SS58Prefix = SS58Prefix;
     type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
+    type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 parameter_types! {
@@ -308,10 +313,8 @@ impl SortedMembers<AccountId> for BobOrigin {
     }
 }
 
-pub type RelayOrigin =
-    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
-pub type UpdateOrigin =
-    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
+pub type RelayOrigin = EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+pub type UpdateOrigin = EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
 
 impl pallet_utility::Config for Test {
     type Event = Event;
@@ -373,6 +376,7 @@ impl crate::Config for Test {
 parameter_types! {
     pub const AssetDeposit: Balance = KSM_DECIMAL;
     pub const ApprovalDeposit: Balance = 0;
+    pub const AssetAccountDeposit: Balance = 0;
     pub const AssetsStringLimit: u32 = 50;
     pub const MetadataDepositBase: Balance = 0;
     pub const MetadataDepositPerByte: Balance = 0;
@@ -387,6 +391,7 @@ impl pallet_assets::Config for Test {
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
     type MetadataDepositPerByte = MetadataDepositPerByte;
+    type AssetAccountDeposit = AssetAccountDeposit;
     type ApprovalDeposit = ApprovalDeposit;
     type StringLimit = AssetsStringLimit;
     type Freezer = ();
@@ -487,7 +492,7 @@ decl_test_parachain! {
 decl_test_relay_chain! {
     pub struct Relay {
         Runtime = kusama_runtime::Runtime,
-        XcmConfig = kusama_runtime::XcmConfig,
+        XcmConfig = kusama_runtime::xcm_config::XcmConfig,
         new_ext = relay_ext(),
     }
 }
@@ -511,51 +516,6 @@ pub type ParaSystem = frame_system::Pallet<Test>;
 
 pub fn para_a_id() -> ParaId {
     ParaId::from(1)
-}
-
-fn default_parachains_host_configuration() -> HostConfiguration<BlockNumberFor<KusamaRuntime>> {
-    HostConfiguration {
-        max_code_size: 3145728,
-        max_head_data_size: 32768,
-        max_upward_queue_count: 8,
-        max_upward_queue_size: 1048576,
-        max_upward_message_size: 1048576,
-        max_upward_message_num_per_candidate: 5,
-        hrmp_max_message_num_per_candidate: 5,
-        validation_upgrade_frequency: 1,
-        validation_upgrade_delay: 1,
-        max_pov_size: 5242880,
-        max_downward_message_size: 1024,
-        ump_service_total_weight: 100_000_000_000,
-        hrmp_max_parachain_outbound_channels: 4,
-        hrmp_max_parathread_outbound_channels: 4,
-        hrmp_sender_deposit: 0,
-        hrmp_recipient_deposit: 0,
-        hrmp_channel_max_capacity: 8,
-        hrmp_channel_max_total_size: 8192,
-        hrmp_max_parachain_inbound_channels: 4,
-        hrmp_max_parathread_inbound_channels: 4,
-        hrmp_channel_max_message_size: 1048576,
-        code_retention_period: 1200,
-        parathread_cores: 0,
-        parathread_retries: 0,
-        group_rotation_frequency: 20,
-        chain_availability_period: 4,
-        thread_availability_period: 4,
-        scheduling_lookahead: 0,
-        max_validators_per_core: None,
-        max_validators: None,
-        dispute_period: 6,
-        dispute_post_conclusion_acceptance_period: 100,
-        dispute_max_spam_slots: 2,
-        dispute_conclusion_by_time_out_period: 200,
-        no_show_slots: 2,
-        n_delay_tranches: 25,
-        zeroth_delay_tranche_width: 0,
-        needed_approvals: 2,
-        relay_vrf_modulo_samples: 2,
-        ump_max_individual_weight: 20000000000,
-    }
 }
 
 pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
@@ -636,7 +596,10 @@ pub fn relay_ext() -> sp_io::TestExternalities {
     .unwrap();
 
     polkadot_runtime_parachains::configuration::GenesisConfig::<Runtime> {
-        config: default_parachains_host_configuration(),
+        config: HostConfiguration {
+            max_code_size: 1024u32,
+            ..Default::default()
+        },
     }
     .assimilate_storage(&mut t)
     .unwrap();
