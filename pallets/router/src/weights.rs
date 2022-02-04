@@ -47,13 +47,19 @@ use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_router.
 pub trait WeightInfo {
-    fn trade() -> Weight;
+    fn swap_exact_tokens_for_tokens() -> Weight;
+    fn swap_tokens_for_exact_tokens() -> Weight;
 }
 
 /// Weights for pallet_router using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
-    fn trade() -> Weight {
+    fn swap_exact_tokens_for_tokens() -> Weight {
+        (315_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(9 as Weight))
+            .saturating_add(T::DbWeight::get().writes(9 as Weight))
+    }
+    fn swap_tokens_for_exact_tokens() -> Weight {
         (315_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(9 as Weight))
             .saturating_add(T::DbWeight::get().writes(9 as Weight))
@@ -62,7 +68,12 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
-    fn trade() -> Weight {
+    fn swap_exact_tokens_for_tokens() -> Weight {
+        (315_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(9 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(9 as Weight))
+    }
+    fn swap_tokens_for_exact_tokens() -> Weight {
         (315_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(9 as Weight))
             .saturating_add(RocksDbWeight::get().writes(9 as Weight))

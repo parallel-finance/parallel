@@ -34,7 +34,7 @@ check:
 
 .PHONY: check-wasm
 check-wasm:
-	cargo check -p vanilla-runtime -p parallel-runtime -p heiko-runtime
+	cargo check -p vanilla-runtime -p parallel-runtime -p heiko-runtime --features runtime-benchmarks
 
 .PHONY: test
 test:
