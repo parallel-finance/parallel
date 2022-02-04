@@ -153,13 +153,12 @@ pub mod pallet {
             // get all the pool asset pairs from the AMM
             let pools = T::AMM::get_pools()?;
 
-            // let mut map: HashMap<u32, Vec<u32>> = HashMap::new();
             let mut map: BTreeMap<u32, Vec<u32>> = BTreeMap::new();
 
             // build a non directed graph from pool asset pairs
             pools.into_iter().for_each(|(a, b)| {
-                map.entry(a).or_insert(Vec::new()).push(b);
-                map.entry(b).or_insert(Vec::new()).push(a);
+                map.entry(a).or_insert_with(vec![b]);
+                map.entry(b).or_insert_with(vec![a]);
             });
 
             // do dfs
