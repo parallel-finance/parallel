@@ -157,8 +157,8 @@ pub mod pallet {
 
             // build a non directed graph from pool asset pairs
             pools.into_iter().for_each(|(a, b)| {
-                map.entry(a).or_insert(Vec::new()).push(b);
-                map.entry(b).or_insert(Vec::new()).push(a);
+                map.entry(a).or_insert_with(Vec::new).push(b);
+                map.entry(b).or_insert_with(Vec::new).push(a);
             });
 
             // do dfs
@@ -170,8 +170,6 @@ pub mod pallet {
 
             let mut queue: Vec<(u32, u32, Vec<u32>)> = vec![(start, end, path)];
 
-            // ref https://stackoverflow.com/a/5683519
-            // impl rp https://gist.github.com/rust-play/3271efdcb15c632cf3fc91c04d46447a
             while !queue.is_empty() {
                 let m = queue.swap_remove(0);
                 start = m.0;
