@@ -87,7 +87,7 @@ where
         let at = BlockId::hash(at.unwrap_or(self.client.info().best_hash));
         api.get_best_route(&at, amount_in, token_in, token_out)
             .map_err(runtime_error_into_rpc_error)?
-            .map_err(other_rpc_error)
+            .map_err(smart_route_rpc_error)
     }
 }
 
@@ -100,11 +100,10 @@ fn runtime_error_into_rpc_error(err: impl std::fmt::Debug) -> RpcError {
     }
 }
 
-// TODO: Rename this
-fn other_rpc_error(err: impl std::fmt::Debug) -> RpcError {
+fn smart_route_rpc_error(err: impl std::fmt::Debug) -> RpcError {
     RpcError {
         code: ErrorCode::ServerError(Error::RouterError.into()),
-        message: "Some error message here".into(),
+        message: "Smart router error".into(),
         data: Some(format!("{:?}", err).into()),
     }
 }
