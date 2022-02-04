@@ -10,6 +10,7 @@ use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
+use polkadot_runtime_parachains::configuration::HostConfiguration;
 use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId};
 use sp_core::H256;
 use sp_runtime::{
@@ -609,6 +610,15 @@ pub fn relay_ext() -> sp_io::TestExternalities {
             (ALICE, dot(100_000f64)),
             (para_a_id().into_account(), dot(1_000_000f64)),
         ],
+    }
+    .assimilate_storage(&mut t)
+    .unwrap();
+
+    polkadot_runtime_parachains::configuration::GenesisConfig::<Runtime> {
+        config: HostConfiguration {
+            max_code_size: 1024u32,
+            ..Default::default()
+        },
     }
     .assimilate_storage(&mut t)
     .unwrap();
