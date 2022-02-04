@@ -153,12 +153,14 @@ parameter_types! {
     pub const ParallelHeiko: ChainId = 0;
     pub const BridgePalletId: PalletId = PalletId(*b"par/brid");
     pub const ProposalLifetime: BlockNumber = 50;
+    pub const RootOperatorAccountId: AccountId = 7;
 }
 
 impl Config for Test {
     type Event = Event;
     type AdminMembers = BridgeMembership;
 
+    type RootOperatorAccountId = RootOperatorAccountId;
     type RootOperatorOrigin = EnsureRoot<AccountId>;
 
     type ChainId = ParallelHeiko;

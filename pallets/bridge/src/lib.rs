@@ -81,6 +81,10 @@ pub mod pallet {
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
 
+        /// The root operator account id
+        #[pallet::constant]
+        type RootOperatorAccountId: Get<Self::AccountId>;
+
         /// The identifier for this chain.
         /// This must be unique and must not collide with existing IDs within a set of bridged chains.
         #[pallet::constant]
@@ -475,17 +479,19 @@ impl<T: Config> Pallet<T> {
 
     /// Checks if the origin is root or admin members
     fn ensure_admin(origin: T::Origin) -> Result<T::AccountId, Error<T>> {
-        T::RootOperatorOrigin::ensure_origin(origin.clone())
-            .map_err(|_| Error::<T>::OriginNoPermission)?;
-        if let Ok(who) = ensure_signed(origin) {
-            ensure!(
-                T::AdminMembers::contains(&who),
-                Error::<T>::OriginNoPermission
-            );
+        if T::RootOperatorOrigin::ensure_origin(origin.clone()).is_err() {
+            if let Ok(who) = ensure_signed(origin) {
+                ensure!(
+                    T::AdminMembers::contains(&who),
+                    Error::<T>::OriginNoPermission
+                );
 
-            Ok(who)
+                Ok(who)
+            } else {
+                Err(Error::<T>::OriginNoPermission)
+            }
         } else {
-            Err(Error::<T>::OriginNoPermission)
+            Ok(T::RootOperatorAccountId::get())
         }
     }
 
