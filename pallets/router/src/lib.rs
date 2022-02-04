@@ -43,10 +43,9 @@ pub mod pallet {
         transactional, BoundedVec, PalletId,
     };
     use frame_system::{ensure_signed, pallet_prelude::OriginFor};
-    use parity_scale_codec::alloc::collections::HashMap;
     use primitives::{Balance, CurrencyId, AMM};
     use sp_runtime::{traits::Zero, DispatchError};
-    use sp_std::{cmp::Reverse, vec::Vec};
+    use sp_std::{cmp::Reverse, collections::btree_map::BTreeMap, vec::Vec};
 
     pub type Route<T, I> = BoundedVec<
         (
@@ -154,7 +153,8 @@ pub mod pallet {
             // get all the pool asset pairs from the AMM
             let pools = T::AMM::get_pools()?;
 
-            let mut map: HashMap<u32, Vec<u32>> = HashMap::new();
+            // let mut map: HashMap<u32, Vec<u32>> = HashMap::new();
+            let mut map: BTreeMap<u32, Vec<u32>> = BTreeMap::new();
 
             // build a non directed graph from pool asset pairs
             pools.into_iter().for_each(|(a, b)| {
