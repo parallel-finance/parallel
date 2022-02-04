@@ -22,6 +22,7 @@ use frame_support::{
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{tokens, Balance, CurrencyId};
 use sp_runtime::traits::{One, StaticLookup};
+use sp_std::{vec, vec::Vec};
 
 const DOT: CurrencyId = tokens::DOT;
 const XDOT: CurrencyId = tokens::XDOT;
