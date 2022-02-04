@@ -409,7 +409,6 @@ fn trade_should_work_more_than_one_route() {
 #[test]
 fn get_best_route_should_work() {
     new_test_ext().execute_with(|| {
-        // let input_amount = 10_000;
         let input_amount = 1_000;
         // create pool and add liquidity
         assert_ok!(DefaultAMM::create_pool(
