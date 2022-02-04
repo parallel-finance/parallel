@@ -294,7 +294,7 @@ pub enum PolkadotCall<T: Config> {
 }
 
 /// The xcm weight when execute ump call wrapped in xcm message
-#[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, TypeInfo)]
+#[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 pub struct XcmWeightMisc<Weight> {
     /// The weight when execute bond xcm message
     pub bond_weight: Weight,

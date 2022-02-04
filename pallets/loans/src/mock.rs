@@ -73,6 +73,7 @@ impl frame_system::Config for Test {
     type SystemWeightInfo = ();
     type SS58Prefix = SS58Prefix;
     type OnSetCode = ();
+    type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 pub type AccountId = u128;
@@ -216,6 +217,7 @@ impl PriceFeeder for MockPriceFeeder {
 parameter_types! {
     pub const AssetDeposit: u64 = 1;
     pub const ApprovalDeposit: u64 = 1;
+    pub const AssetAccountDeposit: u64 = 1;
     pub const StringLimit: u32 = 50;
     pub const MetadataDepositBase: u64 = 1;
     pub const MetadataDepositPerByte: u64 = 1;
@@ -230,6 +232,7 @@ impl pallet_assets::Config for Test {
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
     type MetadataDepositPerByte = MetadataDepositPerByte;
+    type AssetAccountDeposit = AssetAccountDeposit;
     type ApprovalDeposit = ApprovalDeposit;
     type StringLimit = StringLimit;
     type Freezer = ();

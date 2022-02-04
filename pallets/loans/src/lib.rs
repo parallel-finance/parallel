@@ -321,6 +321,7 @@ pub mod pallet {
         StorageMap<_, Blake2_128Concat, AssetIdOf<T>, AssetIdOf<T>>;
 
     #[pallet::pallet]
+    #[pallet::without_storage_info]
     pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::hooks]

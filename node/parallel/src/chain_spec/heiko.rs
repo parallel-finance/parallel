@@ -125,6 +125,7 @@ pub fn heiko_dev_config(id: ParaId) -> ChainSpec {
         vec![],
         TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
         Some("heiko-dev"),
+        None,
         Some(as_properties(network::NetworkType::Heiko)),
         Extensions {
             relay_chain: "westend-local".into(),
@@ -201,6 +202,7 @@ pub fn heiko_config(_id: ParaId) -> Result<ChainSpec, String> {
     //     ],
     //     TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
     //     Some("heiko"),
+    //     None,
     //     Some(as_properties(network::NetworkType::Heiko)),
     //     Extensions {
     //         relay_chain: "kusama".into(),
@@ -252,7 +254,9 @@ fn heiko_genesis(
         aura: Default::default(),
         aura_ext: Default::default(),
         parachain_system: Default::default(),
-        sudo: SudoConfig { key: root_key },
+        sudo: SudoConfig {
+            key: Some(root_key),
+        },
         parachain_info: ParachainInfoConfig { parachain_id: id },
         liquid_staking: LiquidStakingConfig {
             exchange_rate: Rate::saturating_from_rational(100_u32, 100_u32), // 1
