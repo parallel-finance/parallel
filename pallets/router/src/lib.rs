@@ -157,7 +157,7 @@ pub mod pallet {
             let mut map: HashMap<u32, Vec<u32>> = HashMap::new();
 
             // build a non directed graph from pool asset pairs
-            pools.clone().into_iter().for_each(|(a, b)| {
+            pools.into_iter().for_each(|(a, b)| {
                 map.entry(a).or_insert(Vec::new()).push(b);
                 map.entry(b).or_insert(Vec::new()).push(a);
             });
@@ -171,7 +171,7 @@ pub mod pallet {
 
             let mut queue: Vec<(u32, u32, Vec<u32>)> = vec![(start, end, path)];
 
-            // inspo https://stackoverflow.com/a/5683519
+            // ref https://stackoverflow.com/a/5683519
             // impl rp https://gist.github.com/rust-play/3271efdcb15c632cf3fc91c04d46447a
             while !queue.is_empty() {
                 let m = queue.swap_remove(0);
@@ -200,13 +200,10 @@ pub mod pallet {
                 }
             }
 
-            let mut output_routes = Vec::new();
-            for route in paths.clone() {
-                let amounts = T::AMM::get_amounts_out(amount_in, route.clone())?;
-                output_routes.push((route, amounts[amounts.len() - 1]));
-            }
+            let mut output_routes = Self::get_output_routes(amount_in, paths).unwrap();
 
             output_routes.sort_by_key(|k| Reverse(k.1));
+
             log::trace!(
                 target: "router::get_best_route",
                 "amount in :{:?}, token_in: {:?}, token_out: {:?}, output_routes: {:?}",
@@ -215,6 +212,21 @@ pub mod pallet {
                 token_out,
                 output_routes
             );
+
+            Ok(output_routes)
+        }
+
+        ///  Returns output routes for given amount from all available routes
+        pub fn get_output_routes(
+            amount_in: BalanceOf<T, I>,
+            routes: Vec<Vec<AssetIdOf<T, I>>>,
+        ) -> Result<Vec<(Vec<AssetIdOf<T, I>>, BalanceOf<T, I>)>, DispatchError> {
+            let mut output_routes = Vec::new();
+
+            for route in routes {
+                let amounts = T::AMM::get_amounts_out(amount_in, route.clone())?;
+                output_routes.push((route, amounts[amounts.len() - 1]));
+            }
 
             Ok(output_routes)
         }
@@ -333,18 +345,5 @@ pub mod pallet {
 
             Ok(().into())
         }
-
-        // #[allow(dead_code)]
-        // pub fn get_output_routes(
-        //     amount_in: BalanceOf<T, I>,
-        //     routes: Vec<(CurrencyId, CurrencyId)>
-        // ) -> Result<Vec<(Vec<AssetIdOf<T, I>>, BalanceOf<T, I>)>, DispatchError> {
-        //     let mut output_routes = Vec::new();
-        //     for r in routes.clone() {
-        //         let amounts = T::AMM::get_amounts_out(amount_in, r.clone())?;
-        //         output_routes.push((route, amounts[amounts.len() - 1]));
-        //     }
-        //     Ok(output_routes)
-        // }
     }
 }

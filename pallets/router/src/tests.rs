@@ -451,3 +451,47 @@ fn get_best_route_should_work() {
         );
     })
 }
+
+// #[test]
+// fn input_amount_larger_than_pool_amount() {
+//     new_test_ext().execute_with(|| {
+//         let input_amount = 100_000_000_000;
+//         // create pool and add liquidity
+//         assert_ok!(DefaultAMM::create_pool(
+//             Origin::signed(ALICE),
+//             (DOT, XDOT),
+//             (100_000, 90_000),
+//             DAVE,
+//             SAMPLE_LP_TOKEN
+//         ));
+//
+//         // create pool and add liquidity
+//         assert_ok!(DefaultAMM::create_pool(
+//             Origin::signed(ALICE),
+//             (XDOT, KSM),
+//             (100_000, 100_000),
+//             DAVE,
+//             SAMPLE_LP_TOKEN_2
+//         ));
+//
+//         // create pool and add liquidity
+//         assert_ok!(DefaultAMM::create_pool(
+//             Origin::signed(ALICE),
+//             (DOT, KSM),
+//             (100_000, 70_000),
+//             DAVE,
+//             SAMPLE_LP_TOKEN_3
+//         ));
+//
+//         let routes = AMMRoute::get_best_route(
+//             input_amount, // input amount
+//             DOT,          // input token
+//             KSM,          // output token
+//         ).unwrap();
+//
+//         assert_eq!(
+//             routes,
+//             vec![(vec![101, 1001, 100], 890), (vec![101, 100], 696)]
+//         );
+//     })
+// }
