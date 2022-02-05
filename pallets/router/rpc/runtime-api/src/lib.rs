@@ -26,6 +26,6 @@ sp_api::decl_runtime_apis! {
             amount_in: Balance,
             token_in: CurrencyId,
             token_out: CurrencyId
-        ) -> Result<Vec<(Vec<CurrencyId>, Balance)>, DispatchError>;
+        ) -> Result<(Vec<CurrencyId>, Balance), DispatchError>;
     }
 }
