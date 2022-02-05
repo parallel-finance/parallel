@@ -1783,7 +1783,7 @@ impl_runtime_apis! {
     }
 
     impl pallet_router_rpc_runtime_api::RouterApi<Block, AccountId> for Runtime {
-        fn get_best_route(amount_in: Balance, token_in: CurrencyId, token_out: CurrencyId,) -> Result<Vec<(Vec<CurrencyId>, Balance)>, DispatchError> {
+        fn get_best_route(amount_in: Balance, token_in: CurrencyId, token_out: CurrencyId,) -> Result<(Vec<CurrencyId>, Balance), DispatchError> {
             AMMRoute::get_best_route(amount_in, token_in, token_out)
         }
     }
