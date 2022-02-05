@@ -8,6 +8,6 @@
 
 # Order is important; the last matching pattern takes the most
 # precedence. When someone opens a pull request that only
-# modifies github workflows files, only @workflows-owner and not the global
-# owner(s) will be requested for a review.
+# modifies github workflows files, only @workflows-owner and not 
+# the global owner(s) will be requested for a review.
 .github/workflows  @workflows-owner
