@@ -145,7 +145,9 @@ pub mod pallet {
             Ok(())
         }
 
-        pub fn get_best_route(
+        /// Returns a sorted list of all routes and their output amounts from a
+        /// start token to end token by traversing a graph.
+        pub fn get_all_routes(
             amount_in: BalanceOf<T, I>,
             token_in: AssetIdOf<T, I>,
             token_out: AssetIdOf<T, I>,
@@ -153,15 +155,15 @@ pub mod pallet {
             // get all the pool asset pairs from the AMM
             let pools = T::AMM::get_pools()?;
 
-            let mut map: BTreeMap<u32, Vec<u32>> = BTreeMap::new();
+            let mut graph: BTreeMap<u32, Vec<u32>> = BTreeMap::new();
 
             // build a non directed graph from pool asset pairs
             pools.into_iter().for_each(|(a, b)| {
-                map.entry(a).or_insert_with(Vec::new).push(b);
-                map.entry(b).or_insert_with(Vec::new).push(a);
+                graph.entry(a).or_insert_with(Vec::new).push(b);
+                graph.entry(b).or_insert_with(Vec::new).push(a);
             });
 
-            // do dfs
+            // init mutable variables
             let mut path = Vec::new();
             let mut paths = Vec::new();
 
@@ -170,47 +172,64 @@ pub mod pallet {
 
             let mut queue: Vec<(u32, u32, Vec<u32>)> = Vec::from([(start, end, path)]);
 
+            // iterate until we build all routes
             while !queue.is_empty() {
-                let m = queue.swap_remove(0);
-                start = m.0;
-                end = m.1;
-                path = m.2;
+                // desugared RFC 2909-destructuring-assignment
+                let (_start, _end, _path) = queue.swap_remove(0);
+                start = _start;
+                end = _end;
+                path = _path;
 
                 path.push(start);
 
+                // exit if we reached our target
                 if start == end {
                     paths.push(path.clone());
                 }
 
                 // cant error because we fetch pools above
-                let adjacents = map.get(&start).unwrap();
+                let adjacents = graph.get(&start).unwrap();
 
-                let mut difference = Vec::new();
-                for i in adjacents {
-                    if !path.contains(i) {
-                        difference.push(i);
-                    }
-                }
+                // items that are adjecent but not already in path
+                let difference: Vec<_> = adjacents
+                    .into_iter()
+                    .filter(|item| !path.contains(item))
+                    .collect();
 
                 for node in difference {
                     queue.push((*node, end, path.clone()));
                 }
             }
 
+            // get output amounts for all routes
             let mut output_routes = Self::get_output_routes(amount_in, paths).unwrap();
 
+            // sort values greatest to least
             output_routes.sort_by_key(|k| Reverse(k.1));
+
+            Ok(output_routes)
+        }
+
+        /// Returns the route that results in the largest amount out for amount in
+        pub fn get_best_route(
+            amount_in: BalanceOf<T, I>,
+            token_in: AssetIdOf<T, I>,
+            token_out: AssetIdOf<T, I>,
+        ) -> Result<(Vec<AssetIdOf<T, I>>, BalanceOf<T, I>), DispatchError> {
+            let mut all_routes = Self::get_all_routes(amount_in, token_in, token_out)?;
+            ensure!(!all_routes.is_empty(), Error::<T, I>::ZeroBalance);
+            let best_route = all_routes.remove(0);
 
             log::trace!(
                 target: "router::get_best_route",
-                "amount in :{:?}, token_in: {:?}, token_out: {:?}, output_routes: {:?}",
+                "amount in :{:?}, token_in: {:?}, token_out: {:?}, best_route: {:?}",
                 amount_in,
                 token_in,
                 token_out,
-                output_routes
+                best_route
             );
 
-            Ok(output_routes)
+            Ok(best_route)
         }
 
         ///  Returns output routes for given amount from all available routes
