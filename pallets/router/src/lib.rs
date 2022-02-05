@@ -168,7 +168,7 @@ pub mod pallet {
             let mut start = token_in;
             let mut end = token_out;
 
-            let mut queue: Vec<(u32, u32, Vec<u32>)> = vec![(start, end, path)];
+            let mut queue: Vec<(u32, u32, Vec<u32>)> = Vec::from([(start, end, path)]);
 
             while !queue.is_empty() {
                 let m = queue.swap_remove(0);
@@ -185,7 +185,7 @@ pub mod pallet {
                 // cant error because we fetch pools above
                 let adjacents = map.get(&start).unwrap();
 
-                let mut difference = vec![];
+                let mut difference = Vec::new();
                 for i in adjacents {
                     if !path.contains(i) {
                         difference.push(i);
