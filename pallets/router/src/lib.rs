@@ -192,7 +192,7 @@ pub mod pallet {
 
                 // items that are adjecent but not already in path
                 let difference: Vec<_> = adjacents
-                    .into_iter()
+                    .iter()
                     .filter(|item| !path.contains(item))
                     .collect();
 

@@ -34,7 +34,7 @@ pub trait RouterApi<BlockHash, AccountId> {
         token_in: CurrencyId,
         token_out: CurrencyId,
         at: Option<BlockHash>,
-    ) -> Result<Vec<(Vec<CurrencyId>, Balance)>>;
+    ) -> Result<(Vec<CurrencyId>, Balance)>;
 }
 
 /// A struct that implements the [`RouteApi`].
@@ -82,7 +82,7 @@ where
         token_in: CurrencyId,
         token_out: CurrencyId,
         at: Option<<Block as BlockT>::Hash>,
-    ) -> Result<Vec<(Vec<CurrencyId>, Balance)>> {
+    ) -> Result<(Vec<CurrencyId>, Balance)> {
         let api = self.client.runtime_api();
         let at = BlockId::hash(at.unwrap_or(self.client.info().best_hash));
         api.get_best_route(&at, amount_in, token_in, token_out)
