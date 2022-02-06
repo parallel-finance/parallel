@@ -93,6 +93,7 @@ pub use pallet_liquidity_mining;
 pub use pallet_loans;
 pub use pallet_nominee_election;
 pub use pallet_prices;
+pub use pallet_router;
 
 use currency::*;
 use fee::*;
@@ -231,7 +232,8 @@ impl Contains<Call> for BaseCallFilter {
             Call::Vesting(_) |
             // Membership
             Call::GeneralCouncilMembership(_) |
-            Call::TechnicalCommitteeMembership(_)
+            Call::TechnicalCommitteeMembership(_) |
+            Call::AMMRoute(_)
         )
         // // 3rd Party
         // Call::Oracle(_) |
@@ -1777,6 +1779,12 @@ impl_runtime_apis! {
     impl pallet_loans_rpc_runtime_api::LoansApi<Block, AccountId> for Runtime {
         fn get_account_liquidity(account: AccountId) -> Result<(Liquidity, Shortfall), DispatchError> {
             Loans::get_account_liquidity(&account)
+        }
+    }
+
+    impl pallet_router_rpc_runtime_api::RouterApi<Block, AccountId> for Runtime {
+        fn get_best_route(amount_in: Balance, token_in: CurrencyId, token_out: CurrencyId,) -> Result<(Vec<CurrencyId>, Balance), DispatchError> {
+            AMMRoute::get_best_route(amount_in, token_in, token_out)
         }
     }
 

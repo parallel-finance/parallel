@@ -47,6 +47,7 @@ pub trait RuntimeApiCollection:
     + sp_session::SessionKeys<Block>
     + cumulus_primitives_core::CollectCollationInfo<Block>
     + pallet_loans_rpc::LoansRuntimeApi<Block, AccountId>
+    + pallet_router_rpc::RouterRuntimeApi<Block, AccountId>
 where
     <Self as sp_api::ApiExt<Block>>::StateBackend: sp_api::StateBackend<BlakeTwo256>,
 {
@@ -65,7 +66,8 @@ where
         + sp_offchain::OffchainWorkerApi<Block>
         + sp_session::SessionKeys<Block>
         + cumulus_primitives_core::CollectCollationInfo<Block>
-        + pallet_loans_rpc::LoansRuntimeApi<Block, AccountId>,
+        + pallet_loans_rpc::LoansRuntimeApi<Block, AccountId>
+        + pallet_router_rpc::RouterRuntimeApi<Block, AccountId>,
     <Self as sp_api::ApiExt<Block>>::StateBackend: sp_api::StateBackend<BlakeTwo256>,
 {
 }

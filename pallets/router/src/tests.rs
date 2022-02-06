@@ -405,3 +405,92 @@ fn trade_should_work_more_than_one_route() {
         );
     })
 }
+
+#[test]
+fn get_all_routes_should_work() {
+    new_test_ext().execute_with(|| {
+        let input_amount = 1_000;
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (DOT, XDOT),
+            (100_000_000, 90_000_000),
+            DAVE,
+            SAMPLE_LP_TOKEN
+        ));
+
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (XDOT, KSM),
+            (100_000_000, 100_000_000),
+            DAVE,
+            SAMPLE_LP_TOKEN_2
+        ));
+
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (DOT, KSM),
+            (100_000_000, 70_000_000),
+            DAVE,
+            SAMPLE_LP_TOKEN_3
+        ));
+
+        let routes = AMMRoute::get_all_routes(
+            input_amount, // input amount
+            DOT,          // input token
+            KSM,          // output token
+        )
+        .unwrap();
+
+        // Returns descending order `highest` value first.
+        assert_eq!(
+            routes,
+            vec![(vec![101, 1001, 100], 890), (vec![101, 100], 696)]
+        );
+    })
+}
+
+#[test]
+fn get_best_route_should_work() {
+    new_test_ext().execute_with(|| {
+        let input_amount = 1_000;
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (DOT, XDOT),
+            (100_000_000, 90_000_000),
+            DAVE,
+            SAMPLE_LP_TOKEN
+        ));
+
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (XDOT, KSM),
+            (100_000_000, 100_000_000),
+            DAVE,
+            SAMPLE_LP_TOKEN_2
+        ));
+
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (DOT, KSM),
+            (100_000_000, 70_000_000),
+            DAVE,
+            SAMPLE_LP_TOKEN_3
+        ));
+
+        let best_route = AMMRoute::get_best_route(
+            input_amount, // input amount
+            DOT,          // input token
+            KSM,          // output token
+        )
+        .unwrap();
+
+        // Returns descending order `highest` value first.
+        assert_eq!(best_route, (vec![101, 1001, 100], 890));
+    })
+}

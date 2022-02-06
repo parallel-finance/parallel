@@ -99,6 +99,7 @@ pallet-liquidation           = { path = '../../pallets/liquidation', default-fea
 pallet-liquidity-mining      = { path = '../../pallets/liquidity-mining', default-features = false }
 pallet-loans                 = { path = '../../pallets/loans', default-features = false }
 pallet-loans-rpc-runtime-api = { path = '../../pallets/loans/rpc/runtime-api', default-features = false }
+pallet-router-rpc-runtime-api = { path = '../../pallets/router/rpc/runtime-api', default-features = false }
 pallet-nominee-election      = { path = '../../pallets/nominee-election', default-features = false }
 pallet-prices                = { path = '../../pallets/prices', default-features = false }
 pallet-router                = { path = '../../pallets/router', default-features = false }
@@ -179,6 +180,7 @@ std                = [
   'pallet-bridge/std',
   'pallet-loans/std',
   'pallet-loans-rpc-runtime-api/std',
+  'pallet-router-rpc-runtime-api/std',
   'pallet-nominee-election/std',
   'pallet-liquid-staking/std',
   'pallet-liquidation/std',

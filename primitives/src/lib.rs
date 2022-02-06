@@ -156,4 +156,6 @@ pub trait AMM<AccountId, CurrencyId, Balance> {
         pair: (CurrencyId, CurrencyId),
         amount_in: Balance,
     ) -> Result<(), DispatchError>;
+
+    fn get_pools() -> Result<Vec<(CurrencyId, CurrencyId)>, DispatchError>;
 }
