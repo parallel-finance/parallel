@@ -705,6 +705,19 @@ fn amount_in_should_work() {
 }
 
 #[test]
+fn amount_in_uneven_should_work() {
+    new_test_ext().execute_with(|| {
+        let amount_out = 1_000;
+        let supply_in = 100_000_000;
+        let supply_out = 1_344_312_043;
+
+        let amount_in = AMM::get_amount_in(amount_out, supply_in, supply_out).unwrap();
+
+        assert_eq!(amount_in, 75);
+    })
+}
+
+#[test]
 fn amount_out_and_in_should_work() {
     new_test_ext().execute_with(|| {
         let amount_out = 1_000;

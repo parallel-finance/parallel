@@ -434,6 +434,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Err(Error::<T, I>::IdenticalAssets.into())
     }
 
+    // given a pool, calculate the ideal liquidity amounts as a function of the current
+    // pool reserves ratio
     fn get_ideal_amounts(
         pool: &Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
         (base_amount, quote_amount): (BalanceOf<T, I>, BalanceOf<T, I>),
@@ -469,7 +471,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .ok_or(ArithmeticError::Underflow)?)
     }
 
-    #[allow(dead_code)]
+    // given an input amount and a vector of assets, return a vector of output
+    // amounts
     fn do_get_amounts_out(
         amount_in: BalanceOf<T, I>,
         path: Vec<AssetIdOf<T, I>>,
@@ -487,6 +490,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(amounts_out)
     }
 
+    // given an output amount and a vector of assets, return a vector of required input
+    // amounts to return the expected output amount
     fn do_get_amounts_in(
         amount_out: BalanceOf<T, I>,
         path: Vec<AssetIdOf<T, I>>,
@@ -505,6 +510,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(amounts_in)
     }
 
+    // extract the reserves from a pool after sorting assets
     fn get_reserves(
         asset_in: AssetIdOf<T, I>,
         asset_out: AssetIdOf<T, I>,
@@ -528,7 +534,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     // amountIn * reserveOut = (reserveIn + amountIn) * amountOut
     //
     // amountOut = amountIn * reserveOut / (reserveIn + amountIn)
-    // amountIn  = amountIn * (1 - fee_percent)
+    // amountOut  = amountOut * (1 - fee_percent)
     fn get_amount_out(
         amount_in: BalanceOf<T, I>,
         reserve_in: BalanceOf<T, I>,
@@ -577,8 +583,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     // amountOut * reserveIn = amountIn * (reserveOut - amountOut)
     //
     // amountIn = amountOut * reserveIn / (reserveOut - amountOut)
-    // amountIn = amountIn / (1 - fee_percent)
-    #[allow(dead_code)]
+    // amountIn = (amountIn / (1 - fee_percent)) + 1
     fn get_amount_in(
         amount_out: BalanceOf<T, I>,
         reserve_in: BalanceOf<T, I>,
@@ -618,7 +623,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .ok_or(ArithmeticError::Overflow)?)
     }
 
-    #[allow(dead_code)]
+    // update internal twap price oracle by calculating the number of blocks elapsed
+    // and update the pools cumulative prices
     fn update_oracle(
         pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
     ) -> Result<(), DispatchError> {
@@ -672,6 +678,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .checked_add(ideal_quote_amount)
             .ok_or(ArithmeticError::Overflow)?;
 
+        // lock a small amount of liquidty if the pool is first intitalized
         let liquidity = if total_supply.is_zero() {
             T::Assets::mint_into(
                 pool.lp_token_id,
@@ -947,6 +954,7 @@ impl<T: Config<I>, I: 'static> primitives::AMM<AccountIdOf<T>, AssetIdOf<T, I>, 
         Ok(())
     }
 
+    /// Returns a vector of all of the pools in storage
     fn get_pools() -> Result<Vec<(AssetIdOf<T, I>, AssetIdOf<T, I>)>, DispatchError> {
         Ok(Pools::<T, I>::iter_keys().collect())
     }
