@@ -17,9 +17,9 @@ use sp_runtime::{traits::Zero, RuntimeDebug};
     MaxEncodedLen,
 )]
 #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
-pub struct Pool<CurrencyId, Balance, BlockNumber> {
-    pub base_amount: Balance,
-    pub quote_amount: Balance,
+pub struct Pool<CurrencyId, Balance, BlockNumber, Reserve> {
+    pub base_amount: Reserve,
+    pub quote_amount: Reserve,
     pub root_k_last: Balance,
     pub lp_token_id: CurrencyId,
     pub block_timestamp_last: BlockNumber,
@@ -27,7 +27,7 @@ pub struct Pool<CurrencyId, Balance, BlockNumber> {
     pub price_1_cumulative_last: Balance,
 }
 
-impl<CurrencyId, Balance: BalanceT, BlockNumber: BalanceT> Pool<CurrencyId, Balance, BlockNumber> {
+impl<CurrencyId, Balance: BalanceT, BlockNumber: BalanceT, Reserve: BalanceT> Pool<CurrencyId, Balance, BlockNumber, Reserve> {
     pub fn new(lp_token_id: CurrencyId) -> Self {
         Self {
             base_amount: Zero::zero(),
