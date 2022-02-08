@@ -46,7 +46,10 @@ use frame_system::{ensure_signed, pallet_prelude::OriginFor};
 
 pub use pallet::*;
 use sp_runtime::{
-    traits::{AccountIdConversion, CheckedAdd, CheckedSub, CheckedMul, CheckedDiv, IntegerSquareRoot, One, Zero},
+    traits::{
+        AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, IntegerSquareRoot,
+        One, Zero,
+    },
     ArithmeticError, DispatchError,
 };
 use sp_std::vec::Vec;
@@ -68,9 +71,9 @@ pub type BalanceOf<T, I = ()> =
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-	use primitives::Reserve;
+    use primitives::Reserve;
 
-	pub type Amounts<T, I> = sp_std::vec::Vec<BalanceOf<T, I>>;
+    pub type Amounts<T, I> = sp_std::vec::Vec<BalanceOf<T, I>>;
 
     #[pallet::config]
     pub trait Config<I: 'static = ()>: frame_system::Config {
@@ -153,17 +156,12 @@ pub mod pallet {
             T::AccountId,
             AssetIdOf<T, I>,
             AssetIdOf<T, I>,
-			Reserve,
-			Reserve,
+            Reserve,
+            Reserve,
         ),
         /// Remove liquidity from pool
         /// [sender, base_currency_id, quote_currency_id, liquidity]
-        LiquidityRemoved(
-            T::AccountId,
-            AssetIdOf<T, I>,
-            AssetIdOf<T, I>,
-			Reserve,
-        ),
+        LiquidityRemoved(T::AccountId, AssetIdOf<T, I>, AssetIdOf<T, I>, Reserve),
         /// Trade using liquidity
         /// [trader, currency_id_in, currency_id_out, amount_in, amount_out]
         Traded(
@@ -351,7 +349,7 @@ pub mod pallet {
                 Error::<T, I>::LpTokenAlreadyExists
             );
 
-            let mut pool = Pool::new(lp_token_id);
+            let mut pool = Pool::new(lp_token_id, Reserve::zero(), Reserve::zero());
 
             Self::do_add_liquidity(
                 &lptoken_receiver,
@@ -445,7 +443,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             &(base_amount, quote_amount)
         );
 
-        if pool.is_empty() {
+        if pool.base_amount == Reserve::zero() && pool.quote_amount == Reserve::zero() {
             return Ok((base_amount, quote_amount));
         }
 
@@ -547,7 +545,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .checked_mul(reserve_out.into_inner())
             .ok_or(ArithmeticError::Overflow)?;
 
-        let denominator = reserve_in.into_inner()
+        let denominator = reserve_in
+            .into_inner()
             .checked_add(amount_in)
             .ok_or(ArithmeticError::Overflow)?;
 
@@ -585,11 +584,13 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         reserve_in: Reserve,
         reserve_out: Reserve,
     ) -> Result<BalanceOf<T, I>, DispatchError> {
-        let numerator = reserve_in.into_inner()
+        let numerator = reserve_in
+            .into_inner()
             .checked_mul(amount_out)
             .ok_or(ArithmeticError::Overflow)?;
 
-        let denominator = reserve_out.into_inner()
+        let denominator = reserve_out
+            .into_inner()
             .checked_sub(amount_out)
             .ok_or(ArithmeticError::Underflow)?;
 
@@ -630,10 +631,14 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 .saturating_sub(pool.block_timestamp_last)
                 .saturated_into();
 
-            let price0_fraction: Reserve =
-                Reserve::saturating_from_rational(pool.quote_amount.into_inner(), pool.base_amount.into_inner());
-            let price1_fraction: Reserve =
-				Reserve::saturating_from_rational(pool.base_amount.into_inner(), pool.quote_amount.into_inner());
+            let price0_fraction: Reserve = Reserve::saturating_from_rational(
+                pool.quote_amount.into_inner(),
+                pool.base_amount.into_inner(),
+            );
+            let price1_fraction: Reserve = Reserve::saturating_from_rational(
+                pool.base_amount.into_inner(),
+                pool.quote_amount.into_inner(),
+            );
 
             pool.price_0_cumulative_last = pool
                 .price_0_cumulative_last
@@ -758,8 +763,20 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .ok_or(Error::<T, I>::InsufficientLiquidity)?;
 
         T::Assets::burn_from(pool.lp_token_id, who, liquidity.into_inner())?;
-        T::Assets::transfer(base_asset, &Self::account_id(), who, base_amount.into_inner(), false)?;
-        T::Assets::transfer(quote_asset, &Self::account_id(), who, quote_amount.into_inner(), false)?;
+        T::Assets::transfer(
+            base_asset,
+            &Self::account_id(),
+            who,
+            base_amount.into_inner(),
+            false,
+        )?;
+        T::Assets::transfer(
+            quote_asset,
+            &Self::account_id(),
+            who,
+            quote_amount.into_inner(),
+            false,
+        )?;
 
         log::trace!(
             target: "amm::do_remove_liquidity",
@@ -863,10 +880,12 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 let amount_out = Self::get_amount_out(amount_in, supply_in, supply_out)?;
 
                 let (new_supply_in, new_supply_out) = (
-                    supply_in.into_inner()
+                    supply_in
+                        .into_inner()
                         .checked_add(amount_in)
                         .ok_or(ArithmeticError::Overflow)?,
-                    supply_out.into_inner()
+                    supply_out
+                        .into_inner()
                         .checked_sub(amount_out)
                         .ok_or(ArithmeticError::Underflow)?,
                 );

@@ -27,20 +27,18 @@ pub struct Pool<CurrencyId, Balance, BlockNumber, Reserve> {
     pub price_1_cumulative_last: Balance,
 }
 
-impl<CurrencyId, Balance: BalanceT, BlockNumber: BalanceT, Reserve: BalanceT> Pool<CurrencyId, Balance, BlockNumber, Reserve> {
-    pub fn new(lp_token_id: CurrencyId) -> Self {
+impl<CurrencyId, Balance: BalanceT, BlockNumber: BalanceT, Reserve>
+    Pool<CurrencyId, Balance, BlockNumber, Reserve>
+{
+    pub fn new(lp_token_id: CurrencyId, base_amount: Reserve, quote_amount: Reserve) -> Self {
         Self {
-            base_amount: Zero::zero(),
-            quote_amount: Zero::zero(),
+            base_amount,
+            quote_amount,
             root_k_last: Zero::zero(),
             lp_token_id,
             block_timestamp_last: Zero::zero(),
             price_0_cumulative_last: Zero::zero(),
             price_1_cumulative_last: Zero::zero(),
         }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.base_amount.is_zero() && self.quote_amount.is_zero()
     }
 }
