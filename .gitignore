@@ -32,6 +32,10 @@ dist/
 *.log
 *-local*.json
 
+# resources created for local heiko development
+heiko-dev-para-2085-genesis
+heiko-dev-para-2085.wasm
+
 # chain db
 chains/
 db/

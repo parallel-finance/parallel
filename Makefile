@@ -145,5 +145,65 @@ snapshot:
 try-runtime-upgrade:
 	RUST_LOG=debug cargo run --bin parallel --features try-runtime -- try-runtime --chain $(CHAIN) --wasm-execution=compiled on-runtime-upgrade snap -s snapshot.bin
 
+.PHONY: local-spec
+local-spec:
+	../polkadot/target/release/polkadot build-spec \
+		 --chain rococo-local \
+		 --raw \
+		 --disable-default-bootnode > ../polkadot/rococo_local.json
+
+.PHONY: local-relay-alice
+local-relay-alice:
+	../polkadot/target/release/polkadot \
+		--chain ../polkadot/rococo_local.json \
+		-d ./resources/cumulus_relay0 \
+		--validator \
+		--alice \
+		--port 50555 \
+		--node-key 0000000000000000000000000000000000000000000000000000000000000001
+
+.PHONY: local-relay-bob
+local-relay-bob:
+	../polkadot/target/release/polkadot \
+		--chain ../polkadot/rococo_local.json \
+		-d ./resources/cumulus_relay1 \
+		--validator \
+		--bob \
+		--port 50556 \
+		--bootnodes /ip4/127.0.0.1/tcp/50555/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp
+
+.PHONY: dev-genesis-and-wasm
+dev-genesis-and-wasm:
+	./target/release/parallel export-genesis-state \
+		--chain heiko-dev > ./resources/heiko-dev-para-2085-genesis
+	./target/release/parallel export-genesis-wasm \
+		--chain heiko-dev > ./resources/heiko-dev-para-2085.wasm
+
+.PHONY: start-local
+start-local:
+	./target/release/parallel \
+		-d local-test \
+		--alice \
+		--collator \
+		--force-authoring \
+		--chain heiko-dev \
+		--ws-port 9915 \
+		-- \
+		--execution wasm \
+		--chain ../polkadot/rococo_local.json \
+		--bootnodes /ip4/127.0.0.1/tcp/50555/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp
+
+.PHONY: clear-local-relays
+clear-local-relays:
+	rm -rf ./resources/cumulus_relay*
+
+.PHONY: clear-local-parachain
+clear-local-parachain:
+	rm -rf ./local-test
+
+.PHONY: local-launch
+local-launch:
+	cd launch && yarn local
+
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?' Makefile | cut -d: -f1 | sort
