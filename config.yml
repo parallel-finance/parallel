@@ -29,7 +29,6 @@ relaychain:
     - name: bob
     - name: charlie
     - name: dave
-
 parachains:
   - image: parallelfinance/parallel:latest
     chain:
@@ -61,7 +60,6 @@ parachains:
           - --bob
       - flags:
           - --charlie
-
   - image: parallelfinance/karura:v0.9.16
     chain:
       base: karura-dev
