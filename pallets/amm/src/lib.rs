@@ -25,10 +25,8 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-mod types;
-
 mod benchmarking;
-
+mod types;
 pub mod weights;
 
 use frame_support::{
@@ -43,19 +41,16 @@ use frame_support::{
     transactional, Blake2_128Concat, PalletId,
 };
 use frame_system::{ensure_signed, pallet_prelude::OriginFor};
+use primitives::{Balance, CurrencyId, Ratio};
+use sp_runtime::{
+    traits::{
+        AccountIdConversion, CheckedAdd, CheckedSub, IntegerSquareRoot, One, Saturating, Zero,
+    },
+    ArithmeticError, DispatchError, FixedPointNumber, FixedU128, SaturatedConversion,
+};
+use sp_std::{cmp::min, ops::Div, result::Result, vec::Vec};
 
 pub use pallet::*;
-use sp_runtime::{
-    traits::{AccountIdConversion, CheckedAdd, CheckedSub, IntegerSquareRoot, One, Zero},
-    ArithmeticError, DispatchError, FixedU128,
-};
-use sp_std::vec::Vec;
-use sp_std::{cmp::min, ops::Div, result::Result};
-
-use primitives::{Balance, CurrencyId, Ratio};
-use sp_runtime::traits::Saturating;
-use sp_runtime::FixedPointNumber;
-use sp_runtime::SaturatedConversion;
 use types::Pool;
 pub use weights::WeightInfo;
 
@@ -473,7 +468,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
     // given an input amount and a vector of assets, return a vector of output
     // amounts
-    fn do_get_amounts_out(
+    fn get_amounts_out(
         amount_in: BalanceOf<T, I>,
         path: Vec<AssetIdOf<T, I>>,
     ) -> Result<Amounts<T, I>, DispatchError> {
@@ -492,7 +487,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
     // given an output amount and a vector of assets, return a vector of required input
     // amounts to return the expected output amount
-    fn do_get_amounts_in(
+    fn get_amounts_in(
         amount_out: BalanceOf<T, I>,
         path: Vec<AssetIdOf<T, I>>,
     ) -> Result<Amounts<T, I>, DispatchError> {
@@ -625,7 +620,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
     // update internal twap price oracle by calculating the number of blocks elapsed
     // and update the pools cumulative prices
-    fn update_oracle(
+    fn do_update_oracle(
         pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
     ) -> Result<(), DispatchError> {
         let block_timestamp = frame_system::Pallet::<T>::block_number();
@@ -887,7 +882,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                     pool.quote_amount = new_supply_out;
                 }
 
-                Self::update_oracle(pool)?;
+                Self::do_update_oracle(pool)?;
 
                 T::Assets::transfer(asset_in, who, &Self::account_id(), amount_in, true)?;
                 T::Assets::transfer(asset_out, &Self::account_id(), who, amount_out, false)?;
@@ -926,7 +921,7 @@ impl<T: Config<I>, I: 'static> primitives::AMM<AccountIdOf<T>, AssetIdOf<T, I>, 
         amount_in: BalanceOf<T, I>,
         path: Vec<AssetIdOf<T, I>>,
     ) -> Result<Vec<BalanceOf<T, I>>, DispatchError> {
-        let balances = Self::do_get_amounts_out(amount_in, path)?;
+        let balances = Self::get_amounts_out(amount_in, path)?;
         Ok(balances)
     }
 
@@ -937,7 +932,7 @@ impl<T: Config<I>, I: 'static> primitives::AMM<AccountIdOf<T>, AssetIdOf<T, I>, 
         amount_out: BalanceOf<T, I>,
         path: Vec<AssetIdOf<T, I>>,
     ) -> Result<Vec<BalanceOf<T, I>>, DispatchError> {
-        let balances = Self::do_get_amounts_in(amount_out, path)?;
+        let balances = Self::get_amounts_in(amount_out, path)?;
         Ok(balances)
     }
 
