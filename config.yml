@@ -2,10 +2,6 @@ relaychain:
   image: parallelfinance/polkadot:v0.9.16
   chain: kusama-local
   runtimeGenesisConfig:
-    configuration:
-      config:
-        validation_upgrade_frequency: 1
-        validation_upgrade_delay: 1
     hrmp:
       preopenHrmpChannels:
         - sender: 2085
@@ -20,7 +16,6 @@ relaychain:
     RUST_LOG: xcm=trace
   flags:
     - --rpc-methods=unsafe
-    - --no-beefy
     - --wasm-execution=compiled
     - --execution=wasm
     - --state-cache-size=0
@@ -29,7 +24,6 @@ relaychain:
     - name: bob
     - name: charlie
     - name: dave
-
 parachains:
   - image: parallelfinance/parallel:latest
     chain:
@@ -50,7 +44,6 @@ parachains:
     relaychainFlags:
       - --wasm-execution=compiled
       - --execution=wasm
-      - --no-beefy
       - --state-cache-size=0
     env:
       RUST_LOG: xcm=trace,loans=trace,liquidstaking=trace,crowdloans=trace,amm=trace
@@ -61,7 +54,6 @@ parachains:
           - --bob
       - flags:
           - --charlie
-
   - image: parallelfinance/karura:v0.9.16
     chain:
       base: karura-dev
@@ -81,7 +73,6 @@ parachains:
     relaychainFlags:
       - --wasm-execution=compiled
       - --execution=wasm
-      - --no-beefy
       - --state-cache-size=0
     volumePath: /acala/data
     nodes:

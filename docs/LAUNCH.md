@@ -14,7 +14,7 @@ Parallel uses [parachain-launch](https://github.com/open-web3-stack/parachain-la
 
 ## Getting Started
 
-### Install nodejs, rust, parachain-launch and initialize submodules
+### Install nodejs, rust, parachain-launch, yq and initialize submodules
 
 1. nodejs, parachain-launch
 
@@ -30,7 +30,16 @@ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash 
     && yarn global add @open-web3/parachain-launch
 ```
 
-2. rust
+2. yq
+
+```
+VERSION=v4.2.0
+BINARY=yq_linux_amd64
+sudo wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY} -O /usr/bin/yq &&\
+    sudo chmod +x /usr/bin/yq
+```
+
+3. rust
 
 ```
 RUST_TOOLCHAIN=nightly-2021-11-07
@@ -38,7 +47,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
     sh -s -- -y --default-toolchain ${RUST_TOOLCHAIN} --component rust-src --target wasm32-unknown-unknown
 ```
 
-3. initialize submodules
+4. initialize submodules
 
 ```
 make init
