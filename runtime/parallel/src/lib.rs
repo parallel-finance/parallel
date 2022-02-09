@@ -553,6 +553,7 @@ where
             .saturating_sub(1);
         let tip = 0;
         let extra: SignedExtra = (
+            frame_system::CheckNonZeroSender::<Runtime>::new(),
             frame_system::CheckSpecVersion::<Runtime>::new(),
             frame_system::CheckTxVersion::<Runtime>::new(),
             frame_system::CheckGenesis::<Runtime>::new(),
@@ -1619,6 +1620,7 @@ pub type SignedBlock = generic::SignedBlock<Block>;
 pub type BlockId = generic::BlockId<Block>;
 /// The SignedExtension to the basic transaction logic.
 pub type SignedExtra = (
+    frame_system::CheckNonZeroSender<Runtime>,
     frame_system::CheckSpecVersion<Runtime>,
     frame_system::CheckTxVersion<Runtime>,
     frame_system::CheckGenesis<Runtime>,
@@ -1640,11 +1642,30 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    CrowdloanCreateBatch1Vault,
+    (SchedulerMigrationV3, CrowdloansMigrationV1),
 >;
 
-pub struct CrowdloanCreateBatch1Vault;
-impl OnRuntimeUpgrade for CrowdloanCreateBatch1Vault {
+// Migration for scheduler pallet to move from a plain Call to a CallOrHash.
+pub struct SchedulerMigrationV3;
+
+impl OnRuntimeUpgrade for SchedulerMigrationV3 {
+    fn on_runtime_upgrade() -> frame_support::weights::Weight {
+        Scheduler::migrate_v2_to_v3()
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn pre_upgrade() -> Result<(), &'static str> {
+        Scheduler::pre_migrate_to_v3()
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn post_upgrade() -> Result<(), &'static str> {
+        Scheduler::post_migrate_to_v3()
+    }
+}
+
+pub struct CrowdloansMigrationV1;
+impl OnRuntimeUpgrade for CrowdloansMigrationV1 {
     fn on_runtime_upgrade() -> Weight {
         pallet_crowdloans::migrations::v1::migrate::<Runtime>()
     }
