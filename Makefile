@@ -2,12 +2,13 @@ PARA_ID        							:= 2085
 CHAIN          							:= vanilla-dev
 RUNTIME        							:= vanilla-runtime
 BLOCK_AT       							:= 0x0000000000000000000000000000000000000000000000000000000000000000
-URL            							:= ws://localhost:9947
+URL            							:= ws://localhost:9948
 KEYSTORE_PATH  							:= keystore
 SURI           							:= //Alice
 LAUNCH_CONFIG  							:= config.yml
 DOCKER_TAG     							:= latest
 RELAY_DOCKER_TAG						:= v0.9.16
+ACALA_DOCKER_TAG						:= v0.9.16
 
 .PHONY: init
 init: submodules
@@ -98,6 +99,9 @@ shutdown:
 
 .PHONY: launch
 launch: shutdown
+	yq -i eval '.relaychain.image = "parallelfinance/polkadot:$(RELAY_DOCKER_TAG)"' $(LAUNCH_CONFIG)
+	yq -i eval '.parachains[0].image = "parallelfinance/parallel:$(DOCKER_TAG)"' $(LAUNCH_CONFIG)
+	yq -i eval '.parachains[1].image = "parallelfinance/karura:$(ACALA_DOCKER_TAG)"' $(LAUNCH_CONFIG)
 	docker image pull parallelfinance/polkadot:$(RELAY_DOCKER_TAG)
 	docker image pull parallelfinance/parallel:$(DOCKER_TAG)
 	docker image pull parallelfinance/stake-client:latest
