@@ -34,7 +34,7 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use primitives::{Balance, BridgeId, ChainId, ChainNonce, CurrencyId};
-use scale_info::prelude::vec::*;
+use scale_info::prelude::{vec, vec::Vec};
 use sp_runtime::{traits::AccountIdConversion, ArithmeticError};
 
 mod benchmarking;
