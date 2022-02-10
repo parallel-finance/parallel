@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
-    "start": "ts-node index.ts"
+    "start": "ts-node src/index.ts",
+    "build": "tsc"
   },
   "devDependencies": {
     "@polkadot/types": "^6.3.1",
