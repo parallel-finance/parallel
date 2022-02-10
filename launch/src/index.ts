@@ -128,7 +128,11 @@ async function para() {
       api.tx.sudo.sudo(api.tx.loans.addMarket(assetId, api.createType('Market', marketOption))),
       api.tx.sudo.sudo(api.tx.loans.activateMarket(assetId))
     )
-    call.push(...balances.map(([account, amount]) => api.tx.assets.mint(assetId, account, amount)))
+    if (assetId !== config.relayAsset) {
+      call.push(
+        ...balances.map(([account, amount]) => api.tx.assets.mint(assetId, account, amount))
+      )
+    }
   }
 
   for (const {
@@ -162,6 +166,15 @@ async function para() {
 
   call.push(
     api.tx.sudo.sudo(api.tx.liquidStaking.updateMarketCap('10000000000000000')),
+    api.tx.sudo.sudo(api.tx.liquidStaking.bond('99000000000000', 'Staked')),
+    api.tx.sudo.sudo(
+      api.tx.liquidStaking.nominate([
+        '5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY' // //Alice//stash
+        // '5HpG9w8EBLe5XCrbczpwq5TSXvedjrBGCwqxK1iQ7qUsSWFc', // //Bob//stash
+        // '5Ck5SLSHYac6WFt5UZRSsdJjwmpSZq85fd5TRNAdZQVzEAPT', // //Charlie//stash
+        // '5HKPmK9GYtE1PSLsS1qiYU9xQ9Si1NcEhdeCq9sw5bqu4ns8' // //Dave//stash
+      ])
+    ),
     api.tx.sudo.sudo(api.tx.xcmHelper.updateXcmFees('50000000000')),
     api.tx.balances.transfer(createAddress(GiftPalletId), '1000000000000000')
   )
