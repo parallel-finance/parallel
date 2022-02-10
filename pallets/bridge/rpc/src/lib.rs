@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::Arc;
+use sp_std::sync::Arc;
 
 pub use pallet_bridge_rpc_runtime_api::BridgeApi as BridgeRuntimeApi;
 

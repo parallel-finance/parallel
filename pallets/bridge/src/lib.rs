@@ -297,6 +297,8 @@ pub mod pallet {
 
             // Write a new chain_id into storage
             ChainNonces::<T>::insert(chain_id, 0);
+            let inital_registry: Vec<BridgeId> = vec![];
+            BridgeRegistry::<T>::insert(chain_id, inital_registry);
             Self::deposit_event(Event::ChainRegistered(chain_id));
 
             Ok(())
@@ -313,6 +315,8 @@ pub mod pallet {
 
             // Unregister the chain_id
             ChainNonces::<T>::remove(id);
+            BridgeRegistry::<T>::remove(id);
+
             Self::deposit_event(Event::ChainRemoved(id));
 
             Ok(())
@@ -541,7 +545,7 @@ impl<T: Config> Pallet<T> {
 
     fn merge_overlapping_intervals(mut registry: Vec<BridgeId>) -> Vec<BridgeId> {
         registry.sort_unstable_by(|a, b| a.0.cmp(&b.0));
-        let mut merged: Vec<BridgeId> = scale_info::prelude::vec![];
+        let mut merged: Vec<BridgeId> = vec![];
         for r in registry {
             if merged.is_empty() {
                 merged.push(r);
@@ -557,30 +561,31 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn has_bridged(id: ChainId, nonce: ChainNonce) -> bool {
-        if let Some(registry) = BridgeRegistry::<T>::get(&id) {
+        BridgeRegistry::<T>::get(&id).map_or(false, |registry| {
             registry.iter().any(|&r| (nonce >= r.0 && nonce <= r.1))
-        } else {
-            false
-        }
+        })
     }
 
     /// Records completed bridge transactions
+    #[require_transactional]
     fn update_bridge_registry(id: ChainId, nonce: ChainNonce) {
-        if let Some(mut registry) = BridgeRegistry::<T>::get(&id) {
-            registry.iter_mut().for_each(|x| {
-                match *x {
-                    (nonce_start, _) if nonce_start == (nonce + 1) => x.0 = nonce,
-                    (_, nonce_end) if nonce_end == (nonce - 1) => x.1 = nonce,
-                    _ => (),
-                };
-            });
-            let mut registry = Self::merge_overlapping_intervals(registry);
-            if !registry.iter().any(|&r| (nonce >= r.0 && nonce <= r.1)) {
-                registry.push((nonce, nonce));
-            }
-            registry.sort_unstable_by(|a, b| a.0.cmp(&b.0));
-            BridgeRegistry::<T>::insert(id, registry);
+        if BridgeRegistry::<T>::get(&id).is_none() {
+            return;
         }
+        let mut registry = BridgeRegistry::<T>::get(&id).unwrap_or_default();
+        registry.iter_mut().for_each(|x| {
+            match *x {
+                (nonce_start, _) if nonce_start == (nonce + 1) => x.0 = nonce,
+                (_, nonce_end) if nonce_end == (nonce - 1) => x.1 = nonce,
+                _ => (),
+            };
+        });
+        let mut registry = Self::merge_overlapping_intervals(registry);
+        if !registry.iter().any(|&r| (nonce >= r.0 && nonce <= r.1)) {
+            registry.push((nonce, nonce));
+        }
+        registry.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+        BridgeRegistry::<T>::insert(id, registry);
     }
 
     /// Initiates a transfer of the bridge token

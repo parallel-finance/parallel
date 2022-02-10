@@ -5315,6 +5315,7 @@ dependencies = [
  "sp-blockchain",
  "sp-core",
  "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
