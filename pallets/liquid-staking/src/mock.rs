@@ -375,6 +375,8 @@ parameter_types! {
 
 impl crate::Config for Test {
     type Event = Event;
+    type Origin = Origin;
+    type Call = Call;
     type UpdateOrigin = UpdateOrigin;
     type PalletId = StakingPalletId;
     type SelfParaId = SelfParaId;

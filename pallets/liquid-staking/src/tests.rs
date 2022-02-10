@@ -91,7 +91,7 @@ fn test_settlement_should_work() {
             ),
             (vec![], 0, (0, 0, 0)),
         ];
-
+        let mut i = 0;
         for (stake_ops, unbonding_amount, matching_result) in test_case.into_iter() {
             stake_ops.into_iter().for_each(StakeOp::execute);
             assert_eq!(
@@ -104,6 +104,13 @@ fn test_settlement_should_work() {
                 ksm(0f64),
                 unbonding_amount,
             ));
+            LiquidStaking::notification_received(
+                pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+                i,
+                Response::ExecutionResult(None),
+            )
+            .unwrap();
+            i += 1;
             Pallet::<Test>::on_idle(0, 10000);
         }
     });

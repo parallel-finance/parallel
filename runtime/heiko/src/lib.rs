@@ -488,6 +488,8 @@ parameter_types! {
 
 impl pallet_liquid_staking::Config for Runtime {
     type Event = Event;
+    type Origin = Origin;
+    type Call = Call;
     type PalletId = StakingPalletId;
     type WeightInfo = ();
     type SelfParaId = ParachainInfo;

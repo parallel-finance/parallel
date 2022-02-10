@@ -6,6 +6,7 @@ use crate::Pallet as LiquidStaking;
 
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite};
 use frame_support::{
+    assert_ok,
     traits::{fungibles::Mutate, OnIdle},
     weights::Weight,
 };
@@ -17,6 +18,7 @@ use primitives::{
 };
 use sp_runtime::traits::{One, StaticLookup};
 use sp_std::{prelude::*, vec};
+use xcm::latest::prelude::*;
 
 const SEED: u32 = 0;
 const MARKET_CAP: u128 = 10000000000000000u128;
@@ -97,7 +99,8 @@ fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
 benchmarks! {
     where_clause {
         where
-            T: pallet_assets::Config<AssetId = CurrencyId, Balance = Balance> + pallet_xcm_helper::Config
+            T: pallet_assets::Config<AssetId = CurrencyId, Balance = Balance> + pallet_xcm_helper::Config,
+            <T as frame_system::Config>::Origin: From<pallet_xcm::Origin>
     }
 
     stake {
@@ -105,7 +108,7 @@ benchmarks! {
         initial_set_up::<T>(alice.clone());
     }: _(SystemOrigin::Signed(alice.clone()), STAKE_AMOUNT)
     verify {
-        assert_last_event::<T>(Event::<T>::Staked(alice, STAKED_AMOUNT).into());
+        assert_last_event::<T>(Event::<T>::Staked(alice, STAKED_AMOUNT - T::XcmFees::get()).into());
     }
 
     unstake {
@@ -156,7 +159,8 @@ benchmarks! {
         LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice).into(), UNSTAKE_AMOUNT).unwrap();
     }: _(SystemOrigin::Root, false, 0u128,  UNBONDING_AMOUNT)
     verify {
-        assert_last_event::<T>(Event::<T>::Settlement(2 * STAKED_AMOUNT - 2 * UNSTAKE_AMOUNT, 0u128, 0u128).into());
+        let amount = 2 * STAKED_AMOUNT - 2 * UNSTAKE_AMOUNT - 2 * T::XcmFees::get() ;
+        assert_last_event::<T>(Event::<T>::Settlement(amount, 0u128, 0u128).into());
     }
 
     unbond {
@@ -220,6 +224,19 @@ benchmarks! {
     }
     verify {
         assert_eq!(UnstakeQueue::<T>::get().len(), 1);
+    }
+
+    notification_received {
+        let alice: T::AccountId = account("Sample", 100, SEED);
+        initial_set_up::<T>(alice.clone());
+        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
+        assert_ok!(LiquidStaking::<T>::bond_extra(SystemOrigin::Root.into(), BOND_AMOUNT));
+    }:  _(
+        pallet_xcm::Origin::Response(MultiLocation::parent()),
+        0u64,
+        Response::ExecutionResult(None)
+    )
+    verify {
     }
 }
 

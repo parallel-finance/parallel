@@ -1,13 +1,13 @@
 use codec::{Decode, Encode};
 
+use super::{BalanceOf, Config};
 use frame_support::traits::tokens::Balance as BalanceT;
+use primitives::ExchangeRateProvider;
 use scale_info::TypeInfo;
 use sp_runtime::{
     traits::Zero, ArithmeticError, DispatchError, FixedPointNumber, FixedPointOperand, RuntimeDebug,
 };
-use sp_std::cmp::Ordering;
-
-use primitives::ExchangeRateProvider;
+use sp_std::{cmp::Ordering, vec::Vec};
 
 /// The matching pool's total stake & unstake amount in one era
 #[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
@@ -52,4 +52,28 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
             Ok((amount - unbonding_amount, unbonding_amount, Zero::zero()))
         }
     }
+}
+
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+#[scale_info(skip_type_params(T))]
+pub enum XcmRequest<T: Config> {
+    Bond {
+        amount: BalanceOf<T>,
+    },
+    BondExtra {
+        amount: BalanceOf<T>,
+    },
+    Unbond {
+        amount: BalanceOf<T>,
+    },
+    Rebond {
+        amount: BalanceOf<T>,
+    },
+    WithdrawUnbonded {
+        num_slashing_spans: u32,
+        amount: BalanceOf<T>,
+    },
+    Nominate {
+        targets: Vec<T::AccountId>,
+    },
 }
