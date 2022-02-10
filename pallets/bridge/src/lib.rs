@@ -550,11 +550,10 @@ impl<T: Config> Pallet<T> {
                 };
             });
             registry.sort_unstable();
-            if registry.iter().any(|&r| r.0 == nonce || r.1 == nonce) {
-                BridgeRegistry::<T>::insert(id, registry);
-            } else {
-                BridgeRegistry::<T>::insert(id, [(nonce, nonce)].to_vec());
+            if !registry.iter().any(|&r| r.0 == nonce || r.1 == nonce) {
+                registry.push((nonce, nonce));
             }
+            BridgeRegistry::<T>::insert(id, registry);
         }
     }
 
