@@ -67,7 +67,7 @@ where
     // `io.extend_with(YourRpcTrait::to_delegate(YourRpcStruct::new(ReferenceToClient, ...)));`
     io.extend_with(OracleApi::to_delegate(Oracle::new(client.clone())));
 
-    io.extend_with(BridgeApi::to_delegate(Bridge::new(client.clone())));
+    // io.extend_with(BridgeApi::to_delegate(Bridge::new(client.clone())));
 
     io.extend_with(LoansApi::to_delegate(Loans::new(client.clone())));
 
