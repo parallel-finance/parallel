@@ -31,14 +31,14 @@ where
     C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
     C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
     C::Api: orml_oracle_rpc::OracleRuntimeApi<Block, DataProviderId, CurrencyId, TimeStampedPrice>,
-    C::Api: pallet_bridge_rpc::BridgeRuntimeApi<Block>,
+    // C::Api: pallet_bridge_rpc::BridgeRuntimeApi<Block>,
     C::Api: pallet_loans_rpc::LoansRuntimeApi<Block, AccountId>,
     C::Api: pallet_router_rpc::RouterRuntimeApi<Block, AccountId>,
     C::Api: BlockBuilder<Block>,
     P: TransactionPool + 'static,
 {
     use orml_oracle_rpc::{Oracle, OracleApi};
-    use pallet_bridge_rpc::{Bridge, BridgeApi};
+    // use pallet_bridge_rpc::{Bridge, BridgeApi};
     use pallet_loans_rpc::{Loans, LoansApi};
     use pallet_router_rpc::{Router, RouterApi};
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
@@ -67,7 +67,7 @@ where
     // `io.extend_with(YourRpcTrait::to_delegate(YourRpcStruct::new(ReferenceToClient, ...)));`
     io.extend_with(OracleApi::to_delegate(Oracle::new(client.clone())));
 
-    io.extend_with(BridgeApi::to_delegate(bridge::new(client.clone())));
+    io.extend_with(BridgeApi::to_delegate(Bridge::new(client.clone())));
 
     io.extend_with(LoansApi::to_delegate(Loans::new(client.clone())));
 

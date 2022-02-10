@@ -91,6 +91,7 @@ orml-xtokens                = { git = 'https://github.com/open-web3-stack/open-r
 # Parallel dependencies
 pallet-amm                   = { path = '../../pallets/amm', default-features = false }
 pallet-bridge                = { path = '../../pallets/bridge', default-features = false }
+pallet-bridge-rpc-runtime-api = { path = '../../pallets/bridge/rpc/runtime-api', default-features = false }
 pallet-crowdloans            = { path = '../../pallets/crowdloans', default-features = false }
 pallet-currency-adapter      = { path = '../../pallets/currency-adapter', default-features = false }
 pallet-emergency-shutdown    = { path = '../../pallets/emergency-shutdown', default-features = false }
@@ -177,6 +178,7 @@ std                = [
   'xcm-executor/std',
   'primitives/std',
   'pallet-bridge/std',
+  'pallet-bridge-rpc-runtime-api/std',
   'pallet-loans/std',
   'pallet-loans-rpc-runtime-api/std',
   'pallet-router-rpc-runtime-api/std',

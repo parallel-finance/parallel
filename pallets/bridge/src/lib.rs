@@ -34,7 +34,7 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use primitives::{Balance, BridgeId, ChainId, ChainNonce, CurrencyId};
-use scale_info::prelude::vec::Vec;
+use scale_info::prelude::vec::*;
 use sp_runtime::{traits::AccountIdConversion, ArithmeticError};
 
 mod benchmarking;
@@ -541,7 +541,7 @@ impl<T: Config> Pallet<T> {
 
     fn merge_overlapping_intervals(mut registry: Vec<BridgeId>) -> Vec<BridgeId> {
         registry.sort_unstable_by(|a, b| a.0.cmp(&b.0));
-        let mut merged: Vec<BridgeId> = vec![];
+        let mut merged: Vec<BridgeId> = scale_info::prelude::vec![];
         for r in registry {
             if merged.is_empty() {
                 merged.push(r);
