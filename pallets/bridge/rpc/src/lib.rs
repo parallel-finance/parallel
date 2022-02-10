@@ -25,13 +25,8 @@ use sp_runtime::{generic::BlockId, traits::Block as BlockT};
 
 #[rpc]
 pub trait BridgeApi<BlockHash> {
-    #[rpc(name = "bridge_isFinishedProposal")]
-    fn is_finished_proposal(
-        &self,
-        id: ChainId,
-        nonce: ChainNonce,
-        at: Option<BlockHash>,
-    ) -> Result<bool>;
+    #[rpc(name = "bridge_hasBridged")]
+    fn has_bridged(&self, id: ChainId, nonce: ChainNonce, at: Option<BlockHash>) -> Result<bool>;
 }
 
 /// A struct that implements the [`BridgeApi`].
@@ -70,7 +65,7 @@ where
     C: Send + Sync + 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block>,
     C::Api: BridgeRuntimeApi<Block>,
 {
-    fn is_finished_proposal(
+    fn has_bridged(
         &self,
         chain_id: ChainId,
         chain_nonce: ChainNonce,
@@ -81,7 +76,7 @@ where
             // If the block hash is not supplied assume the best block.
             self.client.info().best_hash,
         ));
-        api.is_finished_proposal(&at, chain_id, chain_nonce)
+        api.has_bridged(&at, chain_id, chain_nonce)
             .map_err(runtime_error_into_rpc_error)?
             .map_err(check_proposal_error_into_rpc_error)
     }

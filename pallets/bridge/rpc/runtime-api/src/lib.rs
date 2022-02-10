@@ -20,7 +20,7 @@ use sp_runtime::DispatchError;
 sp_api::decl_runtime_apis! {
     pub trait BridgeApi
     {
-        fn is_finished_proposal(
+        fn has_bridged(
             chain_id: ChainId,
             chain_nonce: ChainNonce,
         ) -> Result<bool, DispatchError>;

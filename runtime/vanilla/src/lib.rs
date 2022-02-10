@@ -1831,11 +1831,11 @@ impl_runtime_apis! {
     }
 
     impl pallet_bridge_rpc_runtime_api::BridgeApi<Block> for Runtime {
-        fn is_finished_proposal(
+        fn has_bridged(
             chain_id: ChainId,
             chain_nonce: ChainNonce
         ) -> Result<bool, DispatchError> {
-            Ok(Bridge::is_finished_proposal(chain_id, chain_nonce))
+            Ok(Bridge::has_bridged(chain_id, chain_nonce))
         }
     }
 
