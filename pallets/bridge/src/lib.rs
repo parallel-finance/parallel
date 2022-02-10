@@ -33,7 +33,7 @@ use frame_support::{
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
-use primitives::{Balance, ChainId, ChainNonce, CurrencyId};
+use primitives::{Balance, BridgeId, ChainId, ChainNonce, CurrencyId};
 use scale_info::prelude::vec::Vec;
 use sp_runtime::{traits::AccountIdConversion, ArithmeticError};
 
@@ -539,9 +539,26 @@ impl<T: Config> Pallet<T> {
         nonce
     }
 
+    fn merge_overlapping_intervals(mut registry: Vec<BridgeId>) -> Vec<BridgeId> {
+        registry.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+        let mut merged: Vec<BridgeId> = vec![];
+        for r in registry {
+            if merged.is_empty() {
+                merged.push(r);
+            } else if let Some(last_merged) = merged.last_mut() {
+                if r.0 > last_merged.1 {
+                    merged.push(r);
+                } else {
+                    (*last_merged).1 = r.1.max(last_merged.1);
+                }
+            }
+        }
+        merged
+    }
+
     pub fn has_bridged(id: ChainId, nonce: ChainNonce) -> bool {
         if let Some(registry) = BridgeRegistry::<T>::get(&id) {
-            registry.iter().any(|&r| r.0 == nonce || r.1 == nonce)
+            registry.iter().any(|&r| (nonce >= r.0 && nonce <= r.1))
         } else {
             false
         }
@@ -557,10 +574,11 @@ impl<T: Config> Pallet<T> {
                     _ => (),
                 };
             });
-            registry.sort_unstable();
-            if !registry.iter().any(|&r| r.0 == nonce || r.1 == nonce) {
+            let mut registry = Self::merge_overlapping_intervals(registry);
+            if !registry.iter().any(|&r| (nonce >= r.0 && nonce <= r.1)) {
                 registry.push((nonce, nonce));
             }
+            registry.sort_unstable_by(|a, b| a.0.cmp(&b.0));
             BridgeRegistry::<T>::insert(id, registry);
         }
     }
