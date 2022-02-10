@@ -175,7 +175,7 @@ async function para() {
         // '5HKPmK9GYtE1PSLsS1qiYU9xQ9Si1NcEhdeCq9sw5bqu4ns8' // //Dave//stash
       ])
     ),
-    api.tx.sudo.sudo(api.tx.xcmHelper.updateXcmFees('50000000000')),
+    api.tx.sudo.sudo(api.tx.xcmHelper.updateXcmFees('500000000000')),
     api.tx.balances.transfer(createAddress(GiftPalletId), '1000000000000000')
   )
 
