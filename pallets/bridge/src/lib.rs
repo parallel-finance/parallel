@@ -33,7 +33,7 @@ use frame_support::{
     transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
-use primitives::{Balance, ChainId, CurrencyId};
+use primitives::{Balance, ChainId, ChainNonce, CurrencyId};
 use scale_info::prelude::vec::Vec;
 use sp_runtime::{traits::AccountIdConversion, ArithmeticError};
 
@@ -58,11 +58,12 @@ type MaterializeCallOf<T> =
 type ProposalOf<T> =
     Proposal<<T as frame_system::Config>::AccountId, <T as frame_system::Config>::BlockNumber>;
 
-pub type ChainNonce = u64;
 pub type TeleAccount = Vec<u8>;
 
 #[frame_support::pallet]
 pub mod pallet {
+    use primitives::BridgeId;
+
     use super::*;
 
     #[pallet::config]
@@ -229,6 +230,11 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn chain_nonces)]
     pub type ChainNonces<T: Config> = StorageMap<_, Blake2_256, ChainId, ChainNonce, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn bridge_registry)]
+    pub type BridgeRegistry<T: Config> =
+        StorageMap<_, Blake2_128Concat, ChainId, Vec<BridgeId>, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn bridge_tokens)]
@@ -533,6 +539,25 @@ impl<T: Config> Pallet<T> {
         nonce
     }
 
+    /// Records completed bridge transactions
+    fn update_bridge_registry(id: ChainId, nonce: ChainNonce) {
+        if let Some(mut registry) = BridgeRegistry::<T>::get(&id) {
+            registry.iter_mut().for_each(|x| {
+                match *x {
+                    (nonce_start, _) if nonce_start == nonce => x.0 = nonce - 1,
+                    (_, nonce_end) if nonce_end == nonce => x.1 = nonce + 1,
+                    _ => (),
+                };
+            });
+            registry.sort_unstable();
+            if registry.iter().any(|&r| r.0 == nonce || r.1 == nonce) {
+                BridgeRegistry::<T>::insert(id, registry);
+            } else {
+                BridgeRegistry::<T>::insert(id, [(nonce, nonce)].to_vec());
+            }
+        }
+    }
+
     /// Initiates a transfer of the bridge token
     #[require_transactional]
     fn teleport_internal(
@@ -672,6 +697,8 @@ impl<T: Config> Pallet<T> {
             T::Assets::transfer(asset_id, &Self::account_id(), &call.to, call.amount, true)?;
         }
 
+        Self::update_bridge_registry(src_id, src_nonce);
+
         Self::deposit_event(Event::MaterializeMinted(
             src_id,
             src_nonce,
@@ -684,6 +711,7 @@ impl<T: Config> Pallet<T> {
 
     /// Cancels a proposal.
     fn cancel_materialize(src_id: ChainId, src_nonce: ChainNonce) -> DispatchResult {
+        Self::update_bridge_registry(src_id, src_nonce);
         Self::deposit_event(Event::ProposalRejected(src_id, src_nonce));
 
         Ok(())
