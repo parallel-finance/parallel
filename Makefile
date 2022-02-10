@@ -27,7 +27,7 @@ build:
 	cargo build --bin parallel
 
 .PHONY: ci
-ci: check lint check-wasm test
+ci: check lint check-launch check-wasm test
 
 .PHONY: check
 check:
