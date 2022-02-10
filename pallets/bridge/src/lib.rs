@@ -539,6 +539,14 @@ impl<T: Config> Pallet<T> {
         nonce
     }
 
+    pub fn is_finished_proposal(id: ChainId, nonce: ChainNonce) -> bool {
+        if let Some(registry) = BridgeRegistry::<T>::get(&id) {
+            registry.iter().any(|&r| r.0 == nonce || r.1 == nonce)
+        } else {
+            false
+        }
+    }
+
     /// Records completed bridge transactions
     fn update_bridge_registry(id: ChainId, nonce: ChainNonce) {
         if let Some(mut registry) = BridgeRegistry::<T>::get(&id) {

@@ -16,20 +16,21 @@ use std::sync::Arc;
 
 pub use pallet_bridge_rpc_runtime_api::BridgeApi as BridgeRuntimeApi;
 
-use codec::Codec;
 use jsonrpc_core::{Error as RpcError, ErrorCode, Result};
 use jsonrpc_derive::rpc;
 use primitives::{ChainId, ChainNonce};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
+use sp_runtime::{generic::BlockId, traits::Block as BlockT};
 
 #[rpc]
-pub trait BridgeApi{
+pub trait BridgeApi<BlockHash> {
     #[rpc(name = "bridge_isFinishedProposal")]
     fn is_finished_proposal(
         &self,
         id: ChainId,
         nonce: ChainNonce,
+        at: Option<BlockHash>,
     ) -> Result<bool>;
 }
 
@@ -63,19 +64,24 @@ impl From<Error> for i64 {
     }
 }
 
-impl<C> BridgeApi for Bridge<C>
+impl<C, Block> BridgeApi<<Block as BlockT>::Hash> for Bridge<C, Block>
 where
-    C: Send + Sync + 'static,
-    C: ProvideRuntimeApi<Block>,
-    C: HeaderBackend<Block>,
+    Block: BlockT,
+    C: Send + Sync + 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block>,
+    C::Api: BridgeRuntimeApi<Block>,
 {
     fn is_finished_proposal(
         &self,
         chain_id: ChainId,
         chain_nonce: ChainNonce,
+        at: Option<<Block as BlockT>::Hash>,
     ) -> Result<bool> {
         let api = self.client.runtime_api();
-        api.is_finished_proposal(chain_id, chain_nonce)
+        let at = BlockId::hash(at.unwrap_or(
+            // If the block hash is not supplied assume the best block.
+            self.client.info().best_hash,
+        ));
+        api.is_finished_proposal(&at, chain_id, chain_nonce)
             .map_err(runtime_error_into_rpc_error)?
             .map_err(check_proposal_error_into_rpc_error)
     }
