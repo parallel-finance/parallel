@@ -552,8 +552,8 @@ impl<T: Config> Pallet<T> {
         if let Some(mut registry) = BridgeRegistry::<T>::get(&id) {
             registry.iter_mut().for_each(|x| {
                 match *x {
-                    (nonce_start, _) if nonce_start == nonce => x.0 = nonce - 1,
-                    (_, nonce_end) if nonce_end == nonce => x.1 = nonce + 1,
+                    (nonce_start, _) if nonce_start == (nonce + 1) => x.0 = nonce,
+                    (_, nonce_end) if nonce_end == (nonce - 1) => x.1 = nonce,
                     _ => (),
                 };
             });
