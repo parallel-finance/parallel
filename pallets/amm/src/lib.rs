@@ -309,6 +309,13 @@ pub mod pallet {
             })
         }
 
+        #[pallet::weight(T::AMMWeightInfo::create_pool())]
+        #[transactional]
+        pub fn my_fast_docker_build_function(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+            // maybe this will work!?
+            Ok(().into())
+        }
+
         /// Create of a new pool, governance only
         ///
         /// - `pool`: Currency pool, in which liquidity will be added

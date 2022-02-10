@@ -136,6 +136,16 @@ image:
 		-f Dockerfile.release \
 		. --network=host
 
+.PHONY: dev-image
+dev-image:
+	d=$$(date +%s)\
+    ; docker build --build-arg BIN=parallel \
+		-c 512 \
+		-t parallelfinance/parallel:$(DOCKER_TAG) \
+		-f Dockerfile.dev \
+		. --network=host \
+	&& echo "Build took $$(($$(date +%s)-d)) seconds" 
+
 .PHONY: key
 key:
 	docker run --rm parallelfinance/parallel:$(DOCKER_TAG) key generate-node-key
