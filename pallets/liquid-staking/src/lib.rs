@@ -657,7 +657,8 @@ pub mod pallet {
             let account_id = Self::account_id();
             let staking_currency = Self::staking_currency()?;
             let free_balance = T::Assets::reducible_balance(staking_currency, &account_id, false)
-                .saturating_sub(Self::total_reserves());
+                .saturating_sub(Self::total_reserves())
+                .saturating_sub(Self::matching_pool().total_stake_amount);
 
             if free_balance >= *amount {
                 T::Assets::transfer(staking_currency, &account_id, who, *amount, false)?;
