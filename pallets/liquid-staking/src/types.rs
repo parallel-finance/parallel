@@ -21,7 +21,7 @@ pub struct MatchingLedger<Balance: BalanceT> {
 impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
     /// Matching requests in current period.
     ///
-    /// `unbonding_amount` is the total amount of the unbonding asset in relaychain.
+    /// `unbonding_amount` is the total amount of the unbonding asset on the relaychain.
     ///
     /// the returned tri-tuple is formed as `(bond_amount, rebond_amount, unbond_amount)`.
     pub fn matching<T: ExchangeRateProvider>(
@@ -64,6 +64,7 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
                 .and_then(|r| r.checked_mul_int(unbond_amount))
                 .ok_or(ArithmeticError::Overflow)?;
         }
+
         Ok((bond_amount, rebond_amount, unbond_amount))
     }
 }

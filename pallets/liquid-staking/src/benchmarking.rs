@@ -157,7 +157,7 @@ benchmarks! {
         LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice.clone()).into(), UNSTAKE_AMOUNT).unwrap();
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
         LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice).into(), UNSTAKE_AMOUNT).unwrap();
-    }: _(SystemOrigin::Root, false, 0u128,  UNBONDING_AMOUNT)
+    }: _(SystemOrigin::Root, 0u128,  UNBONDING_AMOUNT)
     verify {
         let amount = 2 * STAKED_AMOUNT - 2 * UNSTAKE_AMOUNT - 2 * T::XcmFees::get() ;
         assert_last_event::<T>(Event::<T>::Settlement(amount, 0u128, 0u128).into());
