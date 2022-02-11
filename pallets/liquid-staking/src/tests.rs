@@ -50,7 +50,7 @@ fn unstake_should_work() {
         );
 
         // Check balance is correct
-        assert_eq!(<Test as Config>::Assets::balance(KSM, &ALICE), ksm(96f64));
+        assert_eq!(<Test as Config>::Assets::balance(KSM, &ALICE), ksm(90f64));
         assert_eq!(
             <Test as Config>::Assets::balance(XKSM, &ALICE),
             ksm(103.95f64)

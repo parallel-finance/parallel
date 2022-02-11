@@ -219,7 +219,7 @@ benchmarks! {
         LiquidStaking::<T>::on_idle(0u32.into(), REMAINING_WEIGHT)
     }
     verify {
-        assert_eq!(UnstakeQueue::<T>::get().len(), 0);
+        assert_eq!(UnstakeQueue::<T>::get().len(), 1);
     }
 }
 

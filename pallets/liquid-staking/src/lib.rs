@@ -43,9 +43,10 @@ pub use pallet::*;
 pub mod pallet {
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
-        ensure, log,
+        ensure,
         pallet_prelude::*,
         require_transactional,
+        storage::with_transaction,
         traits::{
             fungibles::{Inspect, InspectMetadata, Mutate, Transfer},
             IsType,
@@ -58,8 +59,11 @@ pub mod pallet {
         ensure_signed,
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
-    use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber};
-    use sp_std::vec::Vec;
+    use sp_runtime::{
+        traits::{AccountIdConversion, BlockNumberProvider, CheckedAdd},
+        ArithmeticError, FixedPointNumber, TransactionOutcome,
+    };
+    use sp_std::{result::Result, vec::Vec};
 
     use primitives::{ump::*, Balance, CurrencyId, ParaId, Rate, Ratio};
 
@@ -130,6 +134,14 @@ pub mod pallet {
 
         /// Weight information
         type WeightInfo: WeightInfo;
+
+        /// Number of blocknumbers that staked funds must remain bonded for.
+        /// BondingDuration * SessionsPerEra * EpochDuration / MILLISECS_PER_BLOCK
+        #[pallet::constant]
+        type BondingDuration: Get<BlockNumberFor<Self>>;
+
+        /// The relay's BlockNumber provider
+        type RelayChainBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
 
         /// To expose XCM helper functions
         type XCM: XcmHelper<Self, BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
@@ -215,8 +227,11 @@ pub mod pallet {
     /// Insert a new record while user can't be paid instantly in unstaking operation.
     #[pallet::storage]
     #[pallet::getter(fn unstake_queue)]
-    pub type UnstakeQueue<T: Config> =
-        StorageValue<_, BoundedVec<(T::AccountId, BalanceOf<T>), T::UnstakeQueueCap>, ValueQuery>;
+    pub type UnstakeQueue<T: Config> = StorageValue<
+        _,
+        BoundedVec<(T::AccountId, BalanceOf<T>, BlockNumberFor<T>), T::UnstakeQueueCap>,
+        ValueQuery,
+    >;
 
     /// Liquid currency's market cap
     #[pallet::storage]
@@ -241,70 +256,15 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         /// Try to pay off over the `UnstakeQueue` while blockchain is on idle.
-        ///
-        /// It breaks when:
-        ///     - Pallet's balance is insufficiant.
-        ///     - Queue is empty.
-        ///     - `remaining_weight` is less than one pop_queue needed.
-        fn on_idle(_n: BlockNumberFor<T>, mut remaining_weight: Weight) -> Weight {
-            // on_idle shouldn't run out of all remaining_weight normally
+        fn on_idle(_n: BlockNumberFor<T>, remaining_weight: Weight) -> Weight {
             let base_weight = <T as Config>::WeightInfo::on_idle();
-            let staking_currency = Self::staking_currency();
-
-            // return if staking_currency haven't been set.
-            if staking_currency.is_err() {
+            if remaining_weight < base_weight {
                 return remaining_weight;
             }
-
-            let staking_currency = staking_currency.expect("It must be ok; qed");
-
-            loop {
-                // check weight is enough
-                if remaining_weight < base_weight {
-                    break;
-                }
-
-                if Self::unstake_queue().is_empty() {
-                    break;
-                }
-
-                // get the front of the queue.
-                let (who, amount) = &Self::unstake_queue()[0];
-                let account_id = Self::account_id();
-
-                // InsurancePool should not be embazzled.
-                let free_balance =
-                    T::Assets::reducible_balance(staking_currency, &account_id, false)
-                        .saturating_sub(Self::total_reserves());
-
-                log::trace!(
-                    target: "liquidstaking::on_idle",
-                    "account: {:?}, unstake_amount: {:?}, remaining_weight: {:?}, pallet_free_balance: {:?}",
-                    who,
-                    amount,
-                    remaining_weight,
-                    free_balance,
-                );
-                if free_balance < *amount {
-                    return remaining_weight;
-                }
-
-                if let Err(err) =
-                    T::Assets::transfer(staking_currency, &account_id, who, *amount, false)
-                {
-                    log::error!(target: "liquidstaking::on_idle", "Transfer failed {:?}", err);
-                    // break if we cannot afford this
-                    break;
-                }
-
-                // substract weight of this action if succeed.
-                remaining_weight -= base_weight;
-
-                // remove unstake request from queue
-                Self::pop_unstake_task()
-            }
-
-            remaining_weight
+            with_transaction(|| match Self::do_pop_front() {
+                Ok(_) => TransactionOutcome::Commit(remaining_weight - base_weight),
+                Err(_) => TransactionOutcome::Rollback(0),
+            })
         }
     }
 
@@ -396,17 +356,10 @@ pub mod pallet {
                 .checked_mul_int(liquid_amount)
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
 
-            if T::Assets::transfer(
-                Self::staking_currency()?,
-                &Self::account_id(),
-                &who,
-                asset_amount,
-                false,
-            )
-            .is_err()
-            {
-                Self::push_unstake_task(&who, asset_amount)?;
-            }
+            let target_blocknumber = T::RelayChainBlockNumberProvider::current_block_number()
+                .checked_add(&T::BondingDuration::get())
+                .ok_or(ArithmeticError::Overflow)?;
+            Self::do_push_back(&who, asset_amount, target_blocknumber)?;
 
             T::Assets::burn_from(Self::liquid_currency()?, &who, liquid_amount)?;
 
@@ -690,18 +643,38 @@ pub mod pallet {
             Ok(())
         }
 
-        #[inline]
-        fn push_unstake_task(who: &T::AccountId, amount: BalanceOf<T>) -> DispatchResult {
+        #[require_transactional]
+        fn do_pop_front() -> Result<(), DispatchError> {
+            let (who, amount, target_blocknumber) = &Self::unstake_queue()[0];
+            if T::RelayChainBlockNumberProvider::current_block_number() < *target_blocknumber {
+                return Ok(());
+            }
+
+            let account_id = Self::account_id();
+            let staking_currency = Self::staking_currency()?;
+            let free_balance = T::Assets::reducible_balance(staking_currency, &account_id, false)
+                .saturating_sub(Self::total_reserves())
+                .saturating_sub(Self::matching_pool().total_stake_amount);
+
+            if free_balance >= *amount {
+                T::Assets::transfer(staking_currency, &account_id, who, *amount, false)?;
+                UnstakeQueue::<T>::mutate(|v| v.remove(0));
+            }
+
+            Ok(())
+        }
+
+        #[require_transactional]
+        fn do_push_back(
+            who: &T::AccountId,
+            amount: BalanceOf<T>,
+            target_blocknumber: BlockNumberFor<T>,
+        ) -> DispatchResult {
             UnstakeQueue::<T>::try_mutate(|q| -> DispatchResult {
-                q.try_push((who.clone(), amount))
+                q.try_push((who.clone(), amount, target_blocknumber))
                     .map_err(|_| Error::<T>::UnstakeQueueCapExceeded)?;
                 Ok(())
             })
-        }
-
-        #[inline]
-        fn pop_unstake_task() {
-            UnstakeQueue::<T>::mutate(|v| v.remove(0));
         }
     }
 }
