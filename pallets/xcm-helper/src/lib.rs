@@ -202,28 +202,45 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
         stash: AccountId,
         relay_currency: AssetId,
         index: u16,
-    ) -> DispatchResult;
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError>;
 
     fn do_bond_extra(
         value: Balance,
         stash: AccountId,
         relay_currency: AssetId,
         index: u16,
-    ) -> DispatchResult;
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError>;
 
-    fn do_unbond(value: Balance, relay_currency: AssetId, index: u16) -> DispatchResult;
+    fn do_unbond(
+        value: Balance,
+        relay_currency: AssetId,
+        index: u16,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError>;
 
-    fn do_rebond(value: Balance, relay_currency: AssetId, index: u16) -> DispatchResult;
+    fn do_rebond(
+        value: Balance,
+        relay_currency: AssetId,
+        index: u16,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError>;
 
     fn do_withdraw_unbonded(
         num_slashing_spans: u32,
-        amount: Balance,
         para_account_id: AccountId,
         staking_currency: AssetId,
         index: u16,
-    ) -> DispatchResult;
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError>;
 
-    fn do_nominate(targets: Vec<AccountId>, relay_currency: AssetId, index: u16) -> DispatchResult;
+    fn do_nominate(
+        targets: Vec<AccountId>,
+        relay_currency: AssetId,
+        index: u16,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError>;
 }
 
 impl<T: Config> Pallet<T> {
@@ -383,10 +400,11 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         stash: AccountIdOf<T>,
         relay_currency: AssetIdOf<T>,
         index: u16,
-    ) -> DispatchResult {
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError> {
         let controller = stash.clone();
 
-        switch_relay!({
+        Ok(switch_relay!({
             let call =
                 RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
                     calls: vec![
@@ -411,19 +429,26 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                     ],
                 })));
 
-            let msg = Self::ump_transact(
+            let mut msg = Self::ump_transact(
                 call.encode().into(),
                 Self::xcm_weight().bond_weight,
                 Self::refund_location(),
                 relay_currency,
             )?;
 
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
+            )?;
+
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
             }
-        });
 
-        Ok(())
+            query_id
+        }))
     }
 
     fn do_bond_extra(
@@ -431,8 +456,9 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         stash: AccountIdOf<T>,
         relay_currency: AssetIdOf<T>,
         index: u16,
-    ) -> DispatchResult {
-        switch_relay!({
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError> {
+        Ok(switch_relay!({
             let call =
                 RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
                     calls: vec![
@@ -453,22 +479,35 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                     ],
                 })));
 
-            let msg = Self::ump_transact(
+            let mut msg = Self::ump_transact(
                 call.encode().into(),
                 Self::xcm_weight().bond_extra_weight,
                 Self::refund_location(),
                 relay_currency,
             )?;
 
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
+            )?;
+
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
             }
-        });
-        Ok(())
+
+            query_id
+        }))
     }
 
-    fn do_unbond(value: BalanceOf<T>, relay_currency: AssetIdOf<T>, index: u16) -> DispatchResult {
-        switch_relay!({
+    fn do_unbond(
+        value: BalanceOf<T>,
+        relay_currency: AssetIdOf<T>,
+        index: u16,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError> {
+        Ok(switch_relay!({
             let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
                 UtilityAsDerivativeCall {
                     index,
@@ -478,23 +517,35 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                 },
             )));
 
-            let msg = Self::ump_transact(
+            let mut msg = Self::ump_transact(
                 call.encode().into(),
                 Self::xcm_weight().unbond_weight,
                 Self::refund_location(),
                 relay_currency,
             )?;
 
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
+            )?;
+
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
             }
-        });
 
-        Ok(())
+            query_id
+        }))
     }
 
-    fn do_rebond(value: BalanceOf<T>, relay_currency: AssetIdOf<T>, index: u16) -> DispatchResult {
-        switch_relay!({
+    fn do_rebond(
+        value: BalanceOf<T>,
+        relay_currency: AssetIdOf<T>,
+        index: u16,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError> {
+        Ok(switch_relay!({
             let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
                 UtilityAsDerivativeCall {
                     index,
@@ -504,31 +555,36 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                 },
             )));
 
-            let msg = Self::ump_transact(
+            let mut msg = Self::ump_transact(
                 call.encode().into(),
                 Self::xcm_weight().rebond_weight,
                 Self::refund_location(),
                 relay_currency,
             )?;
 
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
+            )?;
+
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
             }
-        });
 
-        Ok(())
+            query_id
+        }))
     }
 
     fn do_withdraw_unbonded(
         num_slashing_spans: u32,
-        amount: BalanceOf<T>,
         para_account_id: AccountIdOf<T>,
         relay_currency: AssetIdOf<T>,
         index: u16,
-    ) -> DispatchResult {
-        T::Assets::mint_into(relay_currency, &Self::account_id(), amount)?;
-
-        switch_relay!({
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError> {
+        Ok(switch_relay!({
             let call =
                 RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
                     calls: vec![
@@ -554,29 +610,37 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                     ],
                 })));
 
-            let msg = Self::ump_transact(
+            let mut msg = Self::ump_transact(
                 call.encode().into(),
                 Self::xcm_weight().withdraw_unbonded_weight,
                 Self::refund_location(),
                 relay_currency,
             )?;
 
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
+            )?;
+
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
             }
-        });
 
-        Ok(())
+            query_id
+        }))
     }
 
     fn do_nominate(
         targets: Vec<AccountIdOf<T>>,
         relay_currency: AssetIdOf<T>,
         index: u16,
-    ) -> DispatchResult {
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError> {
         let targets_source = targets.into_iter().map(T::Lookup::unlookup).collect();
 
-        switch_relay!({
+        Ok(switch_relay!({
             let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
                 UtilityAsDerivativeCall {
                     index,
@@ -588,18 +652,25 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                 },
             )));
 
-            let msg = Self::ump_transact(
+            let mut msg = Self::ump_transact(
                 call.encode().into(),
                 Self::xcm_weight().nominate_weight,
                 Self::refund_location(),
                 relay_currency,
             )?;
 
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
+            )?;
+
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
             }
-        });
 
-        Ok(())
+            query_id
+        }))
     }
 }

@@ -34,6 +34,7 @@ pub mod weights;
 extern crate primitives;
 
 use frame_support::traits::{fungibles::InspectMetadata, Get};
+use pallet_xcm::ensure_response;
 use primitives::{ExchangeRateProvider, LiquidStakingCurrenciesProvider, Rate};
 use sp_runtime::traits::Zero;
 
@@ -43,9 +44,10 @@ pub use pallet::*;
 pub mod pallet {
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
-        ensure, log,
+        ensure,
         pallet_prelude::*,
         require_transactional,
+        storage::with_transaction,
         traits::{
             fungibles::{Inspect, InspectMetadata, Mutate, Transfer},
             IsType,
@@ -58,13 +60,17 @@ pub mod pallet {
         ensure_signed,
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
-    use sp_runtime::{traits::AccountIdConversion, ArithmeticError, FixedPointNumber};
-    use sp_std::vec::Vec;
+    use sp_runtime::{
+        traits::{AccountIdConversion, BlockNumberProvider, CheckedAdd},
+        ArithmeticError, FixedPointNumber, TransactionOutcome,
+    };
+    use sp_std::{boxed::Box, result::Result, vec::Vec};
 
     use primitives::{ump::*, Balance, CurrencyId, ParaId, Rate, Ratio};
 
     use super::{types::*, weights::WeightInfo, *};
     use pallet_xcm_helper::XcmHelper;
+    use xcm::latest::prelude::*;
 
     pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
     pub type AssetIdOf<T> =
@@ -80,6 +86,11 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_utility::Config + pallet_xcm::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
+        type Origin: IsType<<Self as frame_system::Config>::Origin>
+            + Into<Result<pallet_xcm::Origin, <Self as Config>::Origin>>;
+
+        type Call: IsType<<Self as pallet_xcm::Config>::Call> + From<Call<Self>>;
 
         /// Assets for deposit/withdraw assets to/from pallet account
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId>
@@ -131,6 +142,14 @@ pub mod pallet {
         /// Weight information
         type WeightInfo: WeightInfo;
 
+        /// Number of blocknumbers that staked funds must remain bonded for.
+        /// BondingDuration * SessionsPerEra * EpochDuration / MILLISECS_PER_BLOCK
+        #[pallet::constant]
+        type BondingDuration: Get<BlockNumberFor<Self>>;
+
+        /// The relay's BlockNumber provider
+        type RelayChainBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
+
         /// To expose XCM helper functions
         type XCM: XcmHelper<Self, BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
     }
@@ -166,6 +185,9 @@ pub mod pallet {
         SlashPaid(BalanceOf<T>),
         /// Exchange rate was updated
         ExchangeRateUpdated(Rate),
+        /// Notification received
+        /// [multi_location, query_id, res]
+        NotificationReceived(Box<MultiLocation>, QueryId, Option<(u32, XcmError)>),
     }
 
     #[pallet::error]
@@ -215,13 +237,20 @@ pub mod pallet {
     /// Insert a new record while user can't be paid instantly in unstaking operation.
     #[pallet::storage]
     #[pallet::getter(fn unstake_queue)]
-    pub type UnstakeQueue<T: Config> =
-        StorageValue<_, BoundedVec<(T::AccountId, BalanceOf<T>), T::UnstakeQueueCap>, ValueQuery>;
+    pub type UnstakeQueue<T: Config> = StorageValue<
+        _,
+        BoundedVec<(T::AccountId, BalanceOf<T>, BlockNumberFor<T>), T::UnstakeQueueCap>,
+        ValueQuery,
+    >;
 
     /// Liquid currency's market cap
     #[pallet::storage]
     #[pallet::getter(fn market_cap)]
     pub type MarketCap<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn xcm_request)]
+    pub type XcmRequests<T> = StorageMap<_, Blake2_128Concat, QueryId, XcmRequest<T>, OptionQuery>;
 
     #[derive(Default)]
     #[pallet::genesis_config]
@@ -241,70 +270,15 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         /// Try to pay off over the `UnstakeQueue` while blockchain is on idle.
-        ///
-        /// It breaks when:
-        ///     - Pallet's balance is insufficiant.
-        ///     - Queue is empty.
-        ///     - `remaining_weight` is less than one pop_queue needed.
-        fn on_idle(_n: BlockNumberFor<T>, mut remaining_weight: Weight) -> Weight {
-            // on_idle shouldn't run out of all remaining_weight normally
+        fn on_idle(_n: BlockNumberFor<T>, remaining_weight: Weight) -> Weight {
             let base_weight = <T as Config>::WeightInfo::on_idle();
-            let staking_currency = Self::staking_currency();
-
-            // return if staking_currency haven't been set.
-            if staking_currency.is_err() {
+            if remaining_weight < base_weight {
                 return remaining_weight;
             }
-
-            let staking_currency = staking_currency.expect("It must be ok; qed");
-
-            loop {
-                // check weight is enough
-                if remaining_weight < base_weight {
-                    break;
-                }
-
-                if Self::unstake_queue().is_empty() {
-                    break;
-                }
-
-                // get the front of the queue.
-                let (who, amount) = &Self::unstake_queue()[0];
-                let account_id = Self::account_id();
-
-                // InsurancePool should not be embazzled.
-                let free_balance =
-                    T::Assets::reducible_balance(staking_currency, &account_id, false)
-                        .saturating_sub(Self::total_reserves());
-
-                log::trace!(
-                    target: "liquidstaking::on_idle",
-                    "account: {:?}, unstake_amount: {:?}, remaining_weight: {:?}, pallet_free_balance: {:?}",
-                    who,
-                    amount,
-                    remaining_weight,
-                    free_balance,
-                );
-                if free_balance < *amount {
-                    return remaining_weight;
-                }
-
-                if let Err(err) =
-                    T::Assets::transfer(staking_currency, &account_id, who, *amount, false)
-                {
-                    log::error!(target: "liquidstaking::on_idle", "Transfer failed {:?}", err);
-                    // break if we cannot afford this
-                    break;
-                }
-
-                // substract weight of this action if succeed.
-                remaining_weight -= base_weight;
-
-                // remove unstake request from queue
-                Self::pop_unstake_task()
-            }
-
-            remaining_weight
+            with_transaction(|| match Self::do_pop_front() {
+                Ok(_) => TransactionOutcome::Commit(remaining_weight - base_weight),
+                Err(_) => TransactionOutcome::Rollback(0),
+            })
         }
     }
 
@@ -396,17 +370,10 @@ pub mod pallet {
                 .checked_mul_int(liquid_amount)
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
 
-            if T::Assets::transfer(
-                Self::staking_currency()?,
-                &Self::account_id(),
-                &who,
-                asset_amount,
-                false,
-            )
-            .is_err()
-            {
-                Self::push_unstake_task(&who, asset_amount)?;
-            }
+            let target_blocknumber = T::RelayChainBlockNumberProvider::current_block_number()
+                .checked_add(&T::BondingDuration::get())
+                .ok_or(ArithmeticError::Overflow)?;
+            Self::do_push_back(&who, asset_amount, target_blocknumber)?;
 
             T::Assets::burn_from(Self::liquid_currency()?, &who, liquid_amount)?;
 
@@ -491,7 +458,8 @@ pub mod pallet {
             }
 
             let (bond_amount, rebond_amount, unbond_amount) =
-                MatchingPool::<T>::take().matching::<Self>(unbonding_amount)?;
+                MatchingPool::<T>::try_mutate(|b| b.matching::<Self>(unbonding_amount))?;
+
             if !has_bonded {
                 Self::do_bond(bond_amount, RewardDestination::Staked)?;
             } else {
@@ -568,13 +536,20 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-            T::XCM::do_withdraw_unbonded(
+            let query_id = T::XCM::do_withdraw_unbonded(
                 num_slashing_spans,
-                amount,
                 Self::para_account_id(),
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
+                Self::notify_placeholder(),
             )?;
+            XcmRequests::<T>::insert(
+                query_id,
+                XcmRequest::WithdrawUnbonded {
+                    num_slashing_spans,
+                    amount,
+                },
+            );
             Self::deposit_event(Event::<T>::WithdrawingUnbonded(num_slashing_spans));
             Ok(())
         }
@@ -584,13 +559,43 @@ pub mod pallet {
         #[transactional]
         pub fn nominate(origin: OriginFor<T>, targets: Vec<T::AccountId>) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-            T::XCM::do_nominate(
+            let query_id = T::XCM::do_nominate(
                 targets.clone(),
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
+                Self::notify_placeholder(),
             )?;
+
+            XcmRequests::<T>::insert(
+                query_id,
+                XcmRequest::Nominate {
+                    targets: targets.clone(),
+                },
+            );
             Self::deposit_event(Event::<T>::Nominating(targets));
             Ok(())
+        }
+
+        #[pallet::weight(<T as Config>::WeightInfo::notification_received())]
+        #[transactional]
+        pub fn notification_received(
+            origin: OriginFor<T>,
+            query_id: QueryId,
+            response: Response,
+        ) -> DispatchResultWithPostInfo {
+            let responder = ensure_response(<T as Config>::Origin::from(origin))?;
+            if let Response::ExecutionResult(res) = response {
+                if let Some(request) = Self::xcm_request(&query_id) {
+                    Self::do_notification_received(query_id, request, res)?;
+                }
+
+                Self::deposit_event(Event::<T>::NotificationReceived(
+                    Box::new(responder),
+                    query_id,
+                    res,
+                ));
+            }
+            Ok(().into())
         }
     }
 
@@ -634,14 +639,17 @@ pub mod pallet {
 
             let staking_currency = Self::staking_currency()?;
             let derivative_account_id = Self::derivative_para_account_id();
-            T::Assets::burn_from(staking_currency, &Self::account_id(), amount)?;
-            T::XCM::do_bond(
+            let query_id = T::XCM::do_bond(
                 amount,
                 payee.clone(),
                 derivative_account_id.clone(),
                 staking_currency,
                 T::DerivativeIndex::get(),
+                Self::notify_placeholder(),
             )?;
+
+            XcmRequests::<T>::insert(query_id, XcmRequest::Bond { amount });
+
             Self::deposit_event(Event::<T>::Bonding(derivative_account_id, amount, payee));
 
             Ok(())
@@ -654,13 +662,15 @@ pub mod pallet {
             }
 
             let staking_currency = Self::staking_currency()?;
-            T::Assets::burn_from(staking_currency, &Self::account_id(), amount)?;
-            T::XCM::do_bond_extra(
+            let query_id = T::XCM::do_bond_extra(
                 amount,
                 Self::derivative_para_account_id(),
                 staking_currency,
                 T::DerivativeIndex::get(),
+                Self::notify_placeholder(),
             )?;
+
+            XcmRequests::<T>::insert(query_id, XcmRequest::BondExtra { amount });
             Self::deposit_event(Event::<T>::BondingExtra(amount));
 
             Ok(())
@@ -672,7 +682,19 @@ pub mod pallet {
                 return Ok(());
             }
 
-            T::XCM::do_unbond(amount, Self::staking_currency()?, T::DerivativeIndex::get())?;
+            let query_id = T::XCM::do_unbond(
+                amount,
+                Self::staking_currency()?,
+                T::DerivativeIndex::get(),
+                Self::notify_placeholder(),
+            )?;
+
+            let liquid_amount = Self::exchange_rate()
+                .reciprocal()
+                .and_then(|r| r.checked_mul_int(amount))
+                .ok_or(Error::<T>::InvalidExchangeRate)?;
+
+            XcmRequests::<T>::insert(query_id, XcmRequest::Unbond { liquid_amount });
             Self::deposit_event(Event::<T>::Unbonding(amount));
 
             Ok(())
@@ -684,24 +706,109 @@ pub mod pallet {
                 return Ok(());
             }
 
-            T::XCM::do_rebond(amount, Self::staking_currency()?, T::DerivativeIndex::get())?;
+            let query_id = T::XCM::do_rebond(
+                amount,
+                Self::staking_currency()?,
+                T::DerivativeIndex::get(),
+                Self::notify_placeholder(),
+            )?;
+            XcmRequests::<T>::insert(query_id, XcmRequest::Rebond { amount });
             Self::deposit_event(Event::<T>::Rebonding(amount));
 
             Ok(())
         }
 
-        #[inline]
-        fn push_unstake_task(who: &T::AccountId, amount: BalanceOf<T>) -> DispatchResult {
+        #[require_transactional]
+        fn do_pop_front() -> Result<(), DispatchError> {
+            let (who, amount, target_blocknumber) = &Self::unstake_queue()[0];
+            if T::RelayChainBlockNumberProvider::current_block_number() < *target_blocknumber {
+                return Ok(());
+            }
+
+            let account_id = Self::account_id();
+            let staking_currency = Self::staking_currency()?;
+            let free_balance = T::Assets::reducible_balance(staking_currency, &account_id, false)
+                .saturating_sub(Self::total_reserves())
+                .saturating_sub(Self::matching_pool().total_stake_amount);
+
+            if free_balance >= *amount {
+                T::Assets::transfer(staking_currency, &account_id, who, *amount, false)?;
+                UnstakeQueue::<T>::mutate(|v| v.remove(0));
+            }
+
+            Ok(())
+        }
+
+        #[require_transactional]
+        fn do_push_back(
+            who: &T::AccountId,
+            amount: BalanceOf<T>,
+            target_blocknumber: BlockNumberFor<T>,
+        ) -> DispatchResult {
             UnstakeQueue::<T>::try_mutate(|q| -> DispatchResult {
-                q.try_push((who.clone(), amount))
+                q.try_push((who.clone(), amount, target_blocknumber))
                     .map_err(|_| Error::<T>::UnstakeQueueCapExceeded)?;
                 Ok(())
             })
         }
 
-        #[inline]
-        fn pop_unstake_task() {
-            UnstakeQueue::<T>::mutate(|v| v.remove(0));
+        #[require_transactional]
+        fn do_notification_received(
+            query_id: QueryId,
+            request: XcmRequest<T>,
+            res: Option<(u32, XcmError)>,
+        ) -> DispatchResult {
+            let executed = res.is_none();
+
+            match request {
+                XcmRequest::Bond { amount, .. } | XcmRequest::BondExtra { amount } if executed => {
+                    MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                        p.total_stake_amount = p
+                            .total_stake_amount
+                            .checked_sub(amount)
+                            .ok_or(ArithmeticError::Underflow)?;
+                        Ok(())
+                    })?;
+                    T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), amount)?;
+                }
+                XcmRequest::Unbond { liquid_amount } if executed => {
+                    MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                        p.total_unstake_amount = p
+                            .total_unstake_amount
+                            .checked_sub(liquid_amount)
+                            .ok_or(ArithmeticError::Underflow)?;
+                        Ok(())
+                    })?;
+                }
+                XcmRequest::Rebond { amount } if executed => {
+                    MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
+                        p.total_stake_amount = p
+                            .total_stake_amount
+                            .checked_sub(amount)
+                            .ok_or(ArithmeticError::Underflow)?;
+                        Ok(())
+                    })?;
+                }
+                XcmRequest::WithdrawUnbonded {
+                    num_slashing_spans: _,
+                    amount,
+                } if executed => {
+                    T::Assets::mint_into(Self::staking_currency()?, &Self::account_id(), amount)?;
+                }
+                _ => {}
+            }
+
+            if executed {
+                XcmRequests::<T>::remove(&query_id);
+            }
+            Ok(())
+        }
+
+        fn notify_placeholder() -> <T as Config>::Call {
+            <T as Config>::Call::from(Call::<T>::notification_received {
+                query_id: Default::default(),
+                response: Default::default(),
+            })
         }
     }
 }
