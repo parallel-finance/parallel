@@ -46,6 +46,7 @@ pub mod pallet {
         ensure,
         pallet_prelude::*,
         require_transactional,
+        storage::with_transaction,
         traits::{
             fungibles::{Inspect, InspectMetadata, Mutate, Transfer},
             IsType,
@@ -60,7 +61,7 @@ pub mod pallet {
     };
     use sp_runtime::{
         traits::{AccountIdConversion, BlockNumberProvider, CheckedAdd},
-        ArithmeticError, FixedPointNumber,
+        ArithmeticError, FixedPointNumber, TransactionOutcome,
     };
     use sp_std::{result::Result, vec::Vec};
 
@@ -255,20 +256,15 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         /// Try to pay off over the `UnstakeQueue` while blockchain is on idle.
-        ///
-        /// It breaks when:
-        ///     - Pallet's balance is insufficiant.
-        ///     - Queue is empty.
-        ///     - `remaining_weight` is less than one pop_queue needed.
-        fn on_idle(_n: BlockNumberFor<T>, mut remaining_weight: Weight) -> Weight {
-            // on_idle shouldn't run out of all remaining_weight normally
+        fn on_idle(_n: BlockNumberFor<T>, remaining_weight: Weight) -> Weight {
             let base_weight = <T as Config>::WeightInfo::on_idle();
             if remaining_weight < base_weight {
                 return remaining_weight;
             }
-
-            Self::do_pop_front();
-            remaining_weight - base_weight
+            with_transaction(|| match Self::do_pop_front() {
+                Ok(_) => TransactionOutcome::Commit(remaining_weight - base_weight),
+                Err(_) => TransactionOutcome::Rollback(0),
+            })
         }
     }
 
