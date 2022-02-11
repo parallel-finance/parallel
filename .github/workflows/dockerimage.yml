@@ -2,12 +2,11 @@ name: Docker Image
 
 on:
   push:
-    branches: [bridge-registry]
+    branches: [master]
     tags:
       - "v*"
       - "staging*"
       - "qa*"
-      - "bridge-v"
 
 jobs:
   dockerimage:
