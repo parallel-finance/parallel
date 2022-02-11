@@ -478,7 +478,7 @@ parameter_types! {
     pub const StakingCurrency: CurrencyId = DOT;
     pub const LiquidCurrency: CurrencyId = XDOT;
     pub const XcmFees: Balance = 500_000_000; // 0.05DOT
-    pub const BondingDuration: BlockNumber = 28 * 6 * 4 * 3600 / 6; // 28 Days
+    pub const BondingDuration: BlockNumber = (28 + 1) * 6 * 4 * 3600 / 6; // 28Days + 1Day
 }
 
 impl pallet_liquid_staking::Config for Runtime {
