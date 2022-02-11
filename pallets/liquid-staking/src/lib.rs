@@ -458,7 +458,10 @@ pub mod pallet {
             }
 
             let (bond_amount, rebond_amount, unbond_amount) =
-                matching_pool.matching::<Self>(unbonding_amount)?;
+                MatchingPool::<T>::take().matching::<Self>(unbonding_amount)?;
+            let ledger = MatchingLedger::new::<Self>(bond_amount, rebond_amount, unbond_amount)?;
+            MatchingPool::<T>::put(ledger);
+
             if !has_bonded {
                 Self::do_bond(bond_amount, RewardDestination::Staked)?;
             } else {
@@ -688,7 +691,12 @@ pub mod pallet {
                 Self::notify_placeholder(),
             )?;
 
-            XcmRequests::<T>::insert(query_id, XcmRequest::Unbond { amount });
+            let liquid_amount = Self::exchange_rate()
+                .reciprocal()
+                .and_then(|r| r.checked_mul_int(amount))
+                .ok_or(Error::<T>::InvalidExchangeRate)?;
+
+            XcmRequests::<T>::insert(query_id, XcmRequest::Unbond { liquid_amount });
             Self::deposit_event(Event::<T>::Unbonding(amount));
 
             Ok(())
@@ -764,11 +772,7 @@ pub mod pallet {
                     })?;
                     T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), amount)?;
                 }
-                XcmRequest::Unbond { amount } if executed => {
-                    let liquid_amount = Self::exchange_rate()
-                        .reciprocal()
-                        .and_then(|r| r.checked_mul_int(amount))
-                        .ok_or(Error::<T>::InvalidExchangeRate)?;
+                XcmRequest::Unbond { liquid_amount } if executed => {
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
                         p.total_unstake_amount = p
                             .total_unstake_amount

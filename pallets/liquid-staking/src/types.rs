@@ -52,26 +52,44 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
             Ok((amount - unbonding_amount, unbonding_amount, Zero::zero()))
         }
     }
+
+    pub fn new<T: ExchangeRateProvider>(
+        bond_amount: Balance,
+        rebond_amount: Balance,
+        unbond_amount: Balance,
+    ) -> Result<Self, DispatchError> {
+        let total_stake_amount = bond_amount
+            .checked_add(&rebond_amount)
+            .ok_or(ArithmeticError::Overflow)?;
+        let total_unstake_amount = T::get_exchange_rate()
+            .reciprocal()
+            .and_then(|r| r.checked_mul_int(unbond_amount))
+            .ok_or(ArithmeticError::Overflow)?;
+        Ok(MatchingLedger {
+            total_stake_amount,
+            total_unstake_amount,
+        })
+    }
 }
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 #[scale_info(skip_type_params(T))]
 pub enum XcmRequest<T: Config> {
     Bond {
-        amount: BalanceOf<T>,
+        amount: BalanceOf<T>, // KSM amount
     },
     BondExtra {
-        amount: BalanceOf<T>,
+        amount: BalanceOf<T>, // KSM amount
     },
     Unbond {
-        amount: BalanceOf<T>,
+        liquid_amount: BalanceOf<T>, // xKSM amount
     },
     Rebond {
-        amount: BalanceOf<T>,
+        amount: BalanceOf<T>, // KSM amount
     },
     WithdrawUnbonded {
         num_slashing_spans: u32,
-        amount: BalanceOf<T>,
+        amount: BalanceOf<T>, // KSM amount
     },
     Nominate {
         targets: Vec<T::AccountId>,
