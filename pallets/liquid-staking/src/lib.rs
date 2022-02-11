@@ -435,32 +435,17 @@ pub mod pallet {
         #[transactional]
         pub fn settlement(
             origin: OriginFor<T>,
-            has_bonded: bool,
             #[pallet::compact] bonding_amount: BalanceOf<T>,
             #[pallet::compact] unbonding_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
 
-            let matching_pool = Self::matching_pool();
+            let old_matching_pool = Self::matching_pool();
             let old_exchange_rate = Self::exchange_rate();
-            let exchange_rate = Rate::checked_from_rational(
-                bonding_amount
-                    .checked_add(matching_pool.total_stake_amount)
-                    .ok_or(ArithmeticError::Overflow)?,
-                T::Assets::total_issuance(Self::liquid_currency()?)
-                    .checked_add(matching_pool.total_unstake_amount)
-                    .ok_or(ArithmeticError::Overflow)?,
-            )
-            .ok_or(Error::<T>::InvalidExchangeRate)?;
-            if exchange_rate != old_exchange_rate {
-                ExchangeRate::<T>::put(exchange_rate);
-                Self::deposit_event(Event::<T>::ExchangeRateUpdated(exchange_rate));
-            }
-
             let (bond_amount, rebond_amount, unbond_amount) =
                 MatchingPool::<T>::try_mutate(|b| b.matching::<Self>(unbonding_amount))?;
 
-            if !has_bonded {
+            if bonding_amount.is_zero() && unbonding_amount.is_zero() {
                 Self::do_bond(bond_amount, RewardDestination::Staked)?;
             } else {
                 Self::do_bond_extra(bond_amount)?;
@@ -468,6 +453,20 @@ pub mod pallet {
 
             Self::do_unbond(unbond_amount)?;
             Self::do_rebond(rebond_amount)?;
+
+            let exchange_rate = Rate::checked_from_rational(
+                bonding_amount
+                    .checked_add(old_matching_pool.total_stake_amount)
+                    .ok_or(ArithmeticError::Overflow)?,
+                T::Assets::total_issuance(Self::liquid_currency()?)
+                    .checked_add(old_matching_pool.total_unstake_amount)
+                    .ok_or(ArithmeticError::Overflow)?,
+            )
+            .ok_or(Error::<T>::InvalidExchangeRate)?;
+            if exchange_rate != old_exchange_rate {
+                ExchangeRate::<T>::put(exchange_rate);
+                Self::deposit_event(Event::<T>::ExchangeRateUpdated(exchange_rate));
+            }
 
             Self::deposit_event(Event::<T>::Settlement(
                 bond_amount,
