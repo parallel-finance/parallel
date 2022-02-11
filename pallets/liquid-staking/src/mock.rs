@@ -15,7 +15,7 @@ use polkadot_runtime_parachains::configuration::HostConfiguration;
 use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId, Rate, Ratio};
 use sp_core::H256;
 use sp_runtime::{
-    testing::Header,
+    generic,
     traits::{
         AccountIdConversion, AccountIdLookup, BlakeTwo256, BlockNumberProvider, Convert, One, Zero,
     },
@@ -249,11 +249,12 @@ impl orml_xtokens::Config for Test {
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
-type BlockNumber = u64;
+type BlockNumber = u32;
+
 pub const KSM_DECIMAL: u128 = 10u128.pow(12);
 
 parameter_types! {
-    pub const BlockHashCount: u64 = 250;
+    pub const BlockHashCount: BlockNumber = 250;
     pub const SS58Prefix: u8 = 42;
 }
 
@@ -270,7 +271,7 @@ impl frame_system::Config for Test {
     type Hashing = BlakeTwo256;
     type AccountId = AccountId;
     type Lookup = AccountIdLookup<AccountId, ()>;
-    type Header = Header;
+    type Header = generic::Header<BlockNumber, BlakeTwo256>;
     type Event = Event;
     type BlockHashCount = BlockHashCount;
     type Version = ();
