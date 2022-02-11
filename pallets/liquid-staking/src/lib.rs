@@ -458,9 +458,7 @@ pub mod pallet {
             }
 
             let (bond_amount, rebond_amount, unbond_amount) =
-                MatchingPool::<T>::take().matching::<Self>(unbonding_amount)?;
-            let ledger = MatchingLedger::new::<Self>(bond_amount, rebond_amount, unbond_amount)?;
-            MatchingPool::<T>::put(ledger);
+                MatchingPool::<T>::try_mutate(|b| b.matching::<Self>(unbonding_amount))?;
 
             if !has_bonded {
                 Self::do_bond(bond_amount, RewardDestination::Staked)?;
@@ -754,6 +752,7 @@ pub mod pallet {
             })
         }
 
+        #[require_transactional]
         fn do_notification_received(
             query_id: QueryId,
             request: XcmRequest<T>,
