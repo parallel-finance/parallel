@@ -158,12 +158,22 @@ pub mod pallet {
             AssetIdOf<T, I>,
             BalanceOf<T, I>,
         ),
+        /// A Pool has been created
+        /// [trader, currency_id_in, currency_id_out, lp_token_id
+        PoolCreated(
+            T::AccountId,
+            AssetIdOf<T, I>,
+            AssetIdOf<T, I>,
+            AssetIdOf<T, I>,
+        ),
         /// Trade using liquidity
-        /// [trader, currency_id_in, currency_id_out, amount_in, amount_out]
+        /// [trader, currency_id_in, currency_id_out, amount_in, amount_out, new_quote_amount, new_base_amount]
         Traded(
             T::AccountId,
             AssetIdOf<T, I>,
             AssetIdOf<T, I>,
+            BalanceOf<T, I>,
+            BalanceOf<T, I>,
             BalanceOf<T, I>,
             BalanceOf<T, I>,
         ),
@@ -346,6 +356,13 @@ pub mod pallet {
             );
 
             let mut pool = Pool::new(lp_token_id);
+
+            Self::deposit_event(Event::<T, I>::PoolCreated(
+                lptoken_receiver.clone(),
+                base_asset,
+                quote_asset,
+                lp_token_id,
+            ));
 
             Self::do_add_liquidity(
                 &lptoken_receiver,
@@ -903,6 +920,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                     asset_out,
                     amount_in,
                     amount_out,
+                    pool.quote_amount,
+                    pool.base_amount,
                 ));
 
                 Ok(amount_out)
