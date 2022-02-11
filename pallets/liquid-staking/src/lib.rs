@@ -43,7 +43,7 @@ pub use pallet::*;
 pub mod pallet {
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
-        ensure, log,
+        ensure,
         pallet_prelude::*,
         require_transactional,
         traits::{
@@ -59,7 +59,7 @@ pub mod pallet {
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
     use sp_runtime::{
-        traits::{AccountIdConversion, BlockNumberProvider},
+        traits::{AccountIdConversion, BlockNumberProvider, CheckedAdd},
         ArithmeticError, FixedPointNumber,
     };
     use sp_std::{result::Result, vec::Vec};
@@ -135,6 +135,7 @@ pub mod pallet {
         type WeightInfo: WeightInfo;
 
         /// Number of blocknumbers that staked funds must remain bonded for.
+        /// BondingDuration * SessionsPerEra * EpochDuration / MILLISECS_PER_BLOCK
         #[pallet::constant]
         type BondingDuration: Get<BlockNumberFor<Self>>;
 
@@ -360,7 +361,7 @@ pub mod pallet {
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
 
             let target_blocknumber = T::RelayChainBlockNumberProvider::current_block_number()
-                .checked_add(T::BondingDuration::get())
+                .checked_add(&T::BondingDuration::get())
                 .ok_or(ArithmeticError::Overflow)?;
             Self::do_push_back(&who, asset_amount, target_blocknumber)?;
 
@@ -649,7 +650,7 @@ pub mod pallet {
         #[require_transactional]
         fn do_pop_front() -> Result<(), DispatchError> {
             let (who, amount, target_blocknumber) = &Self::unstake_queue()[0];
-            if T::RelayChainBlockNumberProvider::current_block_number() < target_blocknumber {
+            if T::RelayChainBlockNumberProvider::current_block_number() < *target_blocknumber {
                 return Ok(());
             }
 
@@ -658,7 +659,7 @@ pub mod pallet {
             let free_balance = T::Assets::reducible_balance(staking_currency, &account_id, false)
                 .saturating_sub(Self::total_reserves());
 
-            if free_balance >= amount {
+            if free_balance >= *amount {
                 T::Assets::transfer(staking_currency, &account_id, who, *amount, false)?;
                 UnstakeQueue::<T>::mutate(|v| v.remove(0));
             }

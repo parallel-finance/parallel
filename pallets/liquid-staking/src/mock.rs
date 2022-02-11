@@ -16,7 +16,9 @@ use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId, Rat
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
-    traits::{AccountIdConversion, AccountIdLookup, BlakeTwo256, Convert, One, Zero},
+    traits::{
+        AccountIdConversion, AccountIdLookup, BlakeTwo256, BlockNumberProvider, Convert, One, Zero,
+    },
     AccountId32,
     MultiAddress::Id,
 };
@@ -343,6 +345,20 @@ impl pallet_xcm_helper::Config for Test {
     type WeightInfo = ();
 }
 
+pub struct RelayChainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
+
+impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
+    for RelayChainBlockNumberProvider<T>
+{
+    type BlockNumber = primitives::BlockNumber;
+
+    fn current_block_number() -> Self::BlockNumber {
+        cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
+            .map(|d| d.relay_parent_number)
+            .unwrap_or_default()
+    }
+}
+
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const DerivativeIndex: u16 = 0;
@@ -353,6 +369,7 @@ parameter_types! {
     pub const StakingCurrency: CurrencyId = KSM;
     pub const LiquidCurrency: CurrencyId = XKSM;
     pub const XcmFees: Balance = 0;
+    pub const BondingDuration: BlockNumber = 0;
 }
 
 impl crate::Config for Test {
@@ -371,6 +388,8 @@ impl crate::Config for Test {
     type MinStake = MinStake;
     type MinUnstake = MinUnstake;
     type XCM = XcmHelper;
+    type BondingDuration = BondingDuration;
+    type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Test>;
 }
 
 parameter_types! {
