@@ -454,18 +454,19 @@ pub mod pallet {
             Self::do_unbond(unbond_amount)?;
             Self::do_rebond(rebond_amount)?;
 
-            let exchange_rate = Rate::checked_from_rational(
+            match Rate::checked_from_rational(
                 bonding_amount
                     .checked_add(old_matching_pool.total_stake_amount)
                     .ok_or(ArithmeticError::Overflow)?,
                 T::Assets::total_issuance(Self::liquid_currency()?)
                     .checked_add(old_matching_pool.total_unstake_amount)
                     .ok_or(ArithmeticError::Overflow)?,
-            )
-            .ok_or(Error::<T>::InvalidExchangeRate)?;
-            if exchange_rate != old_exchange_rate {
-                ExchangeRate::<T>::put(exchange_rate);
-                Self::deposit_event(Event::<T>::ExchangeRateUpdated(exchange_rate));
+            ) {
+                Some(exchange_rate) if exchange_rate != old_exchange_rate => {
+                    ExchangeRate::<T>::put(exchange_rate);
+                    Self::deposit_event(Event::<T>::ExchangeRateUpdated(exchange_rate));
+                }
+                _ => {}
             }
 
             Self::deposit_event(Event::<T>::Settlement(
