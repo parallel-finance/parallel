@@ -719,7 +719,12 @@ pub mod pallet {
 
         #[require_transactional]
         fn do_pop_front() -> Result<(), DispatchError> {
-            let (who, amount, target_blocknumber) = &Self::unstake_queue()[0];
+            let unstake_queue = Self::unstake_queue();
+            if unstake_queue.is_empty() {
+                return Ok(());
+            }
+
+            let (who, amount, target_blocknumber) = &unstake_queue[0];
             if T::RelayChainBlockNumberProvider::current_block_number() < *target_blocknumber {
                 return Ok(());
             }
