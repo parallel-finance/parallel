@@ -120,15 +120,6 @@ async function para() {
   call.push(
     api.tx.sudo.sudo(api.tx.liquidStaking.updateMarketCap('10000000000000000')),
     api.tx.sudo.sudo(api.tx.xcmHelper.updateXcmFees('50000000000')),
-    api.tx.sudo.sudo(api.tx.liquidStaking.bond('100000000000000', 'Staked')),
-    api.tx.sudo.sudo(
-      api.tx.liquidStaking.nominate([
-        '5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY', // //Alice//stash
-        '5HpG9w8EBLe5XCrbczpwq5TSXvedjrBGCwqxK1iQ7qUsSWFc', // //Bob//stash
-        '5Ck5SLSHYac6WFt5UZRSsdJjwmpSZq85fd5TRNAdZQVzEAPT', // //Charlie//stash
-        '5HKPmK9GYtE1PSLsS1qiYU9xQ9Si1NcEhdeCq9sw5bqu4ns8' // //Dave//stash
-      ])
-    ),
     api.tx.balances.transfer(createAddress(GiftPalletId), '1000000000000000')
   )
 
