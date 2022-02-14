@@ -526,12 +526,9 @@ impl<T: Config> Pallet<T> {
 
         Ok(())
     }
-    
+
     fn ensure_amount_valid(amount: BalanceOf<T>) -> DispatchResult {
-        ensure!(
-            amount > 0,
-            Error::<T>::BridgedAmountTooLow
-        );
+        ensure!(amount > 0, Error::<T>::BridgedAmountTooLow);
 
         Ok(())
     }

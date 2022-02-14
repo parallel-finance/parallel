@@ -2,8 +2,8 @@
 
 use super::{mock::*, Event, *};
 use frame_support::{assert_noop, assert_ok};
-use sp_runtime::traits::BadOrigin;
 use primitives::tokens::HKO;
+use sp_runtime::traits::BadOrigin;
 
 #[test]
 fn change_bridge_members_works() {
@@ -33,7 +33,7 @@ fn set_vote_threshold_works() {
             Bridge::set_vote_threshold(Origin::root(), 0),
             Error::<Test>::InvalidVoteThreshold,
         );
-        
+
         // BridgeMembers cannot set threshold
         assert_noop!(
             Bridge::set_vote_threshold(Origin::signed(BOB), 2),
