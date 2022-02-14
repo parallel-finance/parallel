@@ -1,46 +1,24 @@
-# This first stage prepares our dependencies to be built by `cargo-chef`.
-FROM docker.io/paritytech/ci-linux:production as planner
-LABEL description="This is the 1st stage: Here we plan the build dependencies with `cargo-chef`."
-
-WORKDIR /parallel
-RUN cargo install cargo-chef
-COPY . .
-RUN cargo chef prepare --recipe-path recipe.json
-
-# This second stage is where the dependencies actually get built.
-# The reason we split it from the first stage is so that the `COPY . .`
-# step doesn't blow our cache.
-FROM docker.io/paritytech/ci-linux:production as cacher
-LABEL description="This is the 2nd stage: In this stage we build the dependencies."
-
-WORKDIR /parallel
-RUN cargo install cargo-chef
-COPY --from=planner /parallel/recipe.json recipe.json
-RUN cargo chef cook --release --recipe-path recipe.json
-
-# In this third stage we go ahead and build the actual binary we want.
-# This should be fairly quick since the dependencies are being built and
-# cached in the previous stage.
 FROM docker.io/paritytech/ci-linux:production as builder
-LABEL description="This is the 3rd stage: This is the build stage for Parallel. Here we create the binary."
-
-WORKDIR /parallel
-RUN cargo install cargo-chef
-
-COPY . /parallel
-COPY --from=cacher /parallel/target target
-COPY --from=cacher $CARGO_HOME $CARGO_HOME
+LABEL description="This is the build stage for Parallel. Here we create the binary."
 
 ARG PROFILE=release
 ARG BIN=parallel
 
-ENV BIN_PATH=/usr/local/bin/$BIN
+WORKDIR /parallel
 
-RUN cargo build --$PROFILE --bin $BIN --features runtime-benchmarks --features try-runtime
+COPY . /parallel
 
-# In this stage me move the binary into a small image which can be run
+ENV CARGO_HOME /parallel/cargo
+ENV CARGO_TARGET_DIR /parallel/target
+
+RUN --mount=type=cache,target=/root/.cargo \
+    --mount=type=cache,target=/parallel/target \
+    cargo build --$PROFILE --bin $BIN --features runtime-benchmarks --features try-runtime
+
+# ===== SECOND STAGE ======
+
 FROM docker.io/library/ubuntu:20.04
-LABEL description="This is the 4th stage: a very small image where we copy the Parallel binary."
+LABEL description="This is the 2nd stage: a very small image where we copy the Parallel binary."
 
 ARG PROFILE=release
 ARG BIN=parallel
