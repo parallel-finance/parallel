@@ -1,13 +1,13 @@
 use codec::{Decode, Encode};
 
 use super::{BalanceOf, Config};
-use frame_support::traits::tokens::Balance as BalanceT;
-use primitives::ExchangeRateProvider;
+use frame_support::{dispatch::DispatchResult, traits::tokens::Balance as BalanceT};
+use primitives::{ArithmeticKind, ExchangeRateProvider};
 use scale_info::TypeInfo;
 use sp_runtime::{
     traits::Zero, ArithmeticError, DispatchError, FixedPointNumber, FixedPointOperand, RuntimeDebug,
 };
-use sp_std::{cmp::Ordering, vec::Vec};
+use sp_std::{cmp::Ordering, result::Result, vec::Vec};
 
 /// The matching pool's total stake & unstake amount in one era
 #[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
@@ -66,6 +66,50 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         }
 
         Ok((bond_amount, rebond_amount, unbond_amount))
+    }
+
+    pub fn update_total_stake_amount(
+        &mut self,
+        amount: Balance,
+        kind: ArithmeticKind,
+    ) -> DispatchResult {
+        match kind {
+            ArithmeticKind::Addition => {
+                self.total_stake_amount = self
+                    .total_stake_amount
+                    .checked_add(&amount)
+                    .ok_or(ArithmeticError::Overflow)?;
+            }
+            ArithmeticKind::Subtraction => {
+                self.total_stake_amount = self
+                    .total_stake_amount
+                    .checked_sub(&amount)
+                    .ok_or(ArithmeticError::Underflow)?;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn update_total_unstake_amount(
+        &mut self,
+        amount: Balance,
+        kind: ArithmeticKind,
+    ) -> DispatchResult {
+        match kind {
+            ArithmeticKind::Addition => {
+                self.total_unstake_amount = self
+                    .total_unstake_amount
+                    .checked_add(&amount)
+                    .ok_or(ArithmeticError::Overflow)?;
+            }
+            ArithmeticKind::Subtraction => {
+                self.total_unstake_amount = self
+                    .total_unstake_amount
+                    .checked_sub(&amount)
+                    .ok_or(ArithmeticError::Underflow)?;
+            }
+        }
+        Ok(())
     }
 }
 

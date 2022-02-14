@@ -66,7 +66,7 @@ pub mod pallet {
     };
     use sp_std::{boxed::Box, result::Result, vec::Vec};
 
-    use primitives::{ump::*, Balance, CurrencyId, ParaId, Rate, Ratio};
+    use primitives::{ump::*, ArithmeticKind, Balance, CurrencyId, ParaId, Rate, Ratio};
 
     use super::{types::*, weights::WeightInfo, *};
     use pallet_xcm_helper::XcmHelper;
@@ -332,11 +332,7 @@ pub mod pallet {
             T::Assets::mint_into(liquid_currency, &who, liquid_amount)?;
 
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                p.total_stake_amount = p
-                    .total_stake_amount
-                    .checked_add(amount)
-                    .ok_or(ArithmeticError::Overflow)?;
-                Ok(())
+                p.update_total_stake_amount(amount, ArithmeticKind::Addition)
             })?;
             TotalReserves::<T>::try_mutate(|b| -> DispatchResult {
                 *b = b.checked_add(reserves).ok_or(ArithmeticError::Overflow)?;
@@ -378,11 +374,7 @@ pub mod pallet {
             T::Assets::burn_from(Self::liquid_currency()?, &who, liquid_amount)?;
 
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                p.total_unstake_amount = p
-                    .total_unstake_amount
-                    .checked_add(liquid_amount)
-                    .ok_or(ArithmeticError::Overflow)?;
-                Ok(())
+                p.update_total_unstake_amount(liquid_amount, ArithmeticKind::Addition)
             })?;
 
             Self::deposit_event(Event::<T>::Unstaked(who, liquid_amount, asset_amount));
@@ -565,7 +557,6 @@ pub mod pallet {
                 T::DerivativeIndex::get(),
                 Self::notify_placeholder(),
             )?;
-
             XcmRequests::<T>::insert(
                 query_id,
                 XcmRequest::Nominate {
@@ -671,6 +662,7 @@ pub mod pallet {
             )?;
 
             XcmRequests::<T>::insert(query_id, XcmRequest::BondExtra { amount });
+
             Self::deposit_event(Event::<T>::BondingExtra(amount));
 
             Ok(())
@@ -695,6 +687,7 @@ pub mod pallet {
                 .ok_or(Error::<T>::InvalidExchangeRate)?;
 
             XcmRequests::<T>::insert(query_id, XcmRequest::Unbond { liquid_amount });
+
             Self::deposit_event(Event::<T>::Unbonding(amount));
 
             Ok(())
@@ -705,7 +698,6 @@ pub mod pallet {
             if amount.is_zero() {
                 return Ok(());
             }
-
             let query_id = T::XCM::do_rebond(
                 amount,
                 Self::staking_currency()?,
@@ -714,7 +706,6 @@ pub mod pallet {
             )?;
             XcmRequests::<T>::insert(query_id, XcmRequest::Rebond { amount });
             Self::deposit_event(Event::<T>::Rebonding(amount));
-
             Ok(())
         }
 
@@ -768,30 +759,18 @@ pub mod pallet {
             match request {
                 XcmRequest::Bond { amount, .. } | XcmRequest::BondExtra { amount } if executed => {
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        p.total_stake_amount = p
-                            .total_stake_amount
-                            .checked_sub(amount)
-                            .ok_or(ArithmeticError::Underflow)?;
-                        Ok(())
+                        p.update_total_stake_amount(amount, ArithmeticKind::Subtraction)
                     })?;
                     T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), amount)?;
                 }
                 XcmRequest::Unbond { liquid_amount } if executed => {
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        p.total_unstake_amount = p
-                            .total_unstake_amount
-                            .checked_sub(liquid_amount)
-                            .ok_or(ArithmeticError::Underflow)?;
-                        Ok(())
+                        p.update_total_unstake_amount(liquid_amount, ArithmeticKind::Subtraction)
                     })?;
                 }
                 XcmRequest::Rebond { amount } if executed => {
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        p.total_stake_amount = p
-                            .total_stake_amount
-                            .checked_sub(amount)
-                            .ok_or(ArithmeticError::Underflow)?;
-                        Ok(())
+                        p.update_total_stake_amount(amount, ArithmeticKind::Subtraction)
                     })?;
                 }
                 XcmRequest::WithdrawUnbonded {
