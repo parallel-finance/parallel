@@ -159,3 +159,9 @@ pub trait AMM<AccountId, CurrencyId, Balance> {
 
     fn get_pools() -> Result<Vec<(CurrencyId, CurrencyId)>, DispatchError>;
 }
+
+#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug)]
+pub enum ArithmeticKind {
+    Addition,
+    Subtraction,
+}
