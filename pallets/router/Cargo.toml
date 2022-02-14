@@ -17,7 +17,7 @@ parity-scale-codec = { version = '2.3.1', default-features = false, features = [
 primitives         = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 scale-info         = { version = '1.0', default-features = false, features = ['derive'] }
 sp-runtime         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', default-features = false }
-sp-std             = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.16', default-features = false }
+sp-std             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', default-features = false }
 
 [dev-dependencies]
 pallet-balances         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }

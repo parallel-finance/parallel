@@ -3,6 +3,7 @@
 use super::{mock::*, Event, *};
 use frame_support::{assert_noop, assert_ok};
 use primitives::tokens::HKO;
+use sp_runtime::traits::BadOrigin;
 
 #[test]
 fn change_bridge_members_works() {
@@ -16,15 +17,10 @@ fn change_bridge_members_works() {
         assert_eq!(Bridge::get_members_count(), 2);
 
         // Current members: [CHARLIE , DAVE]
-        assert_ok!(Bridge::set_vote_threshold(Origin::signed(CHARLIE), 2,));
-        assert_ok!(Bridge::set_vote_threshold(Origin::signed(DAVE), 2,));
+        assert_ok!(Bridge::set_vote_threshold(Origin::root(), 2,));
         assert_noop!(
-            Bridge::set_vote_threshold(Origin::signed(ALICE), 3),
-            Error::<Test>::OriginNoPermission,
-        );
-        assert_noop!(
-            Bridge::set_vote_threshold(Origin::signed(BOB), 3),
-            Error::<Test>::OriginNoPermission,
+            Bridge::set_vote_threshold(Origin::root(), 3),
+            Error::<Test>::InvalidVoteThreshold,
         );
     });
 }
@@ -32,25 +28,24 @@ fn change_bridge_members_works() {
 #[test]
 fn set_vote_threshold_works() {
     new_test_ext().execute_with(|| {
-        // General Account cannot set threshold
-        assert_noop!(
-            Bridge::set_vote_threshold(Origin::signed(FERDIE), 3),
-            Error::<Test>::OriginNoPermission,
-        );
-
-        // RootOrigin can set threshold
+        // Threshold cannot be zero
         assert_noop!(
             Bridge::set_vote_threshold(Origin::root(), 0),
             Error::<Test>::InvalidVoteThreshold,
         );
 
-        // BridgeMembers can set threshold
+        // BridgeMembers cannot set threshold
+        assert_noop!(
+            Bridge::set_vote_threshold(Origin::signed(BOB), 2),
+            BadOrigin,
+        );
+
+        // OperateOrigin can set threshold
         // [ALICE, BOB, CHARLIE]
-        assert_ok!(Bridge::set_vote_threshold(Origin::signed(ALICE), 3,));
-        assert_ok!(Bridge::set_vote_threshold(Origin::signed(BOB), 3,));
+        assert_ok!(Bridge::set_vote_threshold(Origin::root(), 3,));
         // When the count of members is 3, the threshold should be less than or equal to 3
         assert_noop!(
-            Bridge::set_vote_threshold(Origin::signed(CHARLIE), 4),
+            Bridge::set_vote_threshold(Origin::root(), 4),
             Error::<Test>::InvalidVoteThreshold,
         );
     });
@@ -60,23 +55,23 @@ fn set_vote_threshold_works() {
 fn register_unregister_works() {
     new_test_ext().execute_with(|| {
         assert_noop!(
-            Bridge::register_chain(Origin::signed(ALICE), ETH),
+            Bridge::register_chain(Origin::root(), ETH),
             Error::<Test>::ChainIdAlreadyRegistered,
         );
 
         // Register a new chain_id succeed
-        Bridge::register_chain(Origin::signed(ALICE), BNB).unwrap();
+        Bridge::register_chain(Origin::root(), BNB).unwrap();
         assert_noop!(
-            Bridge::register_chain(Origin::signed(ALICE), BNB),
+            Bridge::register_chain(Origin::root(), BNB),
             Error::<Test>::ChainIdAlreadyRegistered,
         );
         // Teleport succeed when the chain is registered
         Bridge::teleport(Origin::signed(EVE), BNB, EHKO, "TELE".into(), dollar(10)).unwrap();
 
         // Unregister a exist chain_id succeed
-        Bridge::unregister_chain(Origin::signed(ALICE), ETH).unwrap();
+        Bridge::unregister_chain(Origin::root(), ETH).unwrap();
         assert_noop!(
-            Bridge::unregister_chain(Origin::signed(ALICE), ETH),
+            Bridge::unregister_chain(Origin::root(), ETH),
             Error::<Test>::ChainIdNotRegistered,
         );
         // Teleport fails when the chain is not registered
@@ -124,7 +119,7 @@ fn materialize_works() {
         // Adjust threshold with 2
         // Vote_for:    [ALICE, CHARLIE]
         // Vote_against [BOB]
-        assert_ok!(Bridge::set_vote_threshold(Origin::signed(ALICE), 2));
+        assert_ok!(Bridge::set_vote_threshold(Origin::root(), 2));
         Bridge::materialize(Origin::signed(ALICE), ETH, 1, EHKO, EVE, dollar(10), true).unwrap();
         assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(60));
         Bridge::materialize(Origin::signed(BOB), ETH, 1, EHKO, EVE, dollar(10), false).unwrap();
@@ -154,8 +149,8 @@ fn materialize_works() {
 fn set_bridge_token_fee_works() {
     new_test_ext().execute_with(|| {
         // Case 1: Bridge toke is HKO
-        // Set HKO fee equal to 1 HKO
-        Bridge::set_bridge_token_fee(Origin::signed(ALICE), EHKO, dollar(1)).unwrap();
+        // Set HKO fee equal to 2 HKO
+        Bridge::set_bridge_token_fee(Origin::root(), EHKO, dollar(1)).unwrap();
 
         // Initial balance of EVE is 100 HKO
         assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(100));
@@ -184,7 +179,7 @@ fn set_bridge_token_fee_works() {
 
         // Case 2: Bridge toke is EUSDT
         // Set EUSDT fee equal to 1 EUSDT
-        Bridge::set_bridge_token_fee(Origin::signed(ALICE), EUSDT, dollar(1)).unwrap();
+        Bridge::set_bridge_token_fee(Origin::root(), EUSDT, dollar(1)).unwrap();
 
         // EVE has 10 USDT initialized
         Assets::mint(Origin::signed(ALICE), USDT, EVE, dollar(10)).unwrap();
@@ -221,7 +216,7 @@ fn set_bridge_token_fee_works() {
 fn teleport_external_currency_works() {
     new_test_ext().execute_with(|| {
         // Set EUSDT fee equal to 1 USDT
-        Bridge::set_bridge_token_fee(Origin::signed(ALICE), EUSDT, dollar(1)).unwrap();
+        Bridge::set_bridge_token_fee(Origin::root(), EUSDT, dollar(1)).unwrap();
 
         // EVE has 100 USDT initialized
         Assets::mint(Origin::signed(ALICE), USDT, EVE, dollar(100)).unwrap();
@@ -282,4 +277,28 @@ fn materialize_external_currency_works() {
             dollar(0)
         );
     })
+}
+#[test]
+fn test_merge_overlapping_intervals() {
+    // status 0: (1,1), (3,4), (6,6)
+    // status 1: push 2 => (1,2), (2,4), (6,6)
+    assert_eq!(
+        Bridge::merge_overlapping_intervals(vec![(1, 2), (2, 4), (6, 6)]),
+        vec![(1, 4), (6, 6)],
+    );
+    // status 2: push 5 => (1,5), (5,6)
+    assert_eq!(
+        Bridge::merge_overlapping_intervals(vec![(1, 5), (5, 6)]),
+        vec![(1, 6)],
+    );
+
+    assert_eq!(
+        Bridge::merge_overlapping_intervals(vec![(2, 5), (3, 6)]),
+        vec![(2, 6)],
+    );
+
+    assert_eq!(
+        Bridge::merge_overlapping_intervals(vec![(1, 1), (3, 3), (5, 7)]),
+        vec![(1, 1), (3, 3), (5, 7)],
+    );
 }

@@ -24,6 +24,7 @@
 
 use crate::types::{BridgeToken, MaterializeCall, Proposal, ProposalStatus};
 use frame_support::{
+    log,
     pallet_prelude::*,
     require_transactional,
     traits::{
@@ -32,10 +33,10 @@ use frame_support::{
     },
     transactional, PalletId,
 };
-use frame_system::pallet_prelude::*;
-use primitives::{Balance, ChainId, CurrencyId};
-use scale_info::prelude::vec::Vec;
-use sp_runtime::{traits::AccountIdConversion, ArithmeticError};
+use frame_system::{ensure_signed_or_root, pallet_prelude::*};
+use primitives::{Balance, BridgeId, ChainId, ChainNonce, CurrencyId};
+use scale_info::prelude::{vec, vec::Vec};
+use sp_runtime::traits::AccountIdConversion;
 
 mod benchmarking;
 mod mock;
@@ -58,11 +59,12 @@ type MaterializeCallOf<T> =
 type ProposalOf<T> =
     Proposal<<T as frame_system::Config>::AccountId, <T as frame_system::Config>::BlockNumber>;
 
-pub type ChainNonce = u64;
 pub type TeleAccount = Vec<u8>;
 
 #[frame_support::pallet]
 pub mod pallet {
+    use primitives::BridgeId;
+
     use super::*;
 
     #[pallet::config]
@@ -72,18 +74,21 @@ pub mod pallet {
         /// Admin members has permission to manage the pallet
         type AdminMembers: SortedMembers<Self::AccountId>;
 
-        /// Root origin that can be used to bypass admin permissions
-        /// This will be removed later
-        type RootOperatorOrigin: EnsureOrigin<Self::Origin>;
+        /// The origin which can update bridge configurations
+        /// register or unregister the chains
+        /// register or unregister the bridge
+        /// set bridge token fee.
+        /// Root can always do this.
+        type OperateOrigin: EnsureOrigin<Self::Origin>;
+
+        /// The root operator account id
+        #[pallet::constant]
+        type RootOperatorAccountId: Get<Self::AccountId>;
 
         /// Assets for teleport/materialize assets to/from bridge pallet
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
-
-        /// The root operator account id
-        #[pallet::constant]
-        type RootOperatorAccountId: Get<Self::AccountId>;
 
         /// The identifier for this chain.
         /// This must be unique and must not collide with existing IDs within a set of bridged chains.
@@ -124,6 +129,8 @@ pub mod pallet {
         BridgeTokenNotRegistered,
         /// The AdminMember already vote for the proposal
         MemberAlreadyVoted,
+        /// The bridged amount is too low
+        BridgedAmountTooLow,
         /// No proposal was found
         ProposalDoesNotExist,
         /// Proposal has been finished
@@ -231,6 +238,11 @@ pub mod pallet {
     pub type ChainNonces<T: Config> = StorageMap<_, Blake2_256, ChainId, ChainNonce, ValueQuery>;
 
     #[pallet::storage]
+    #[pallet::getter(fn bridge_registry)]
+    pub type BridgeRegistry<T: Config> =
+        StorageMap<_, Blake2_128Concat, ChainId, Vec<BridgeId>, OptionQuery>;
+
+    #[pallet::storage]
     #[pallet::getter(fn bridge_tokens)]
     pub type BridgeTokens<T: Config> =
         StorageMap<_, Twox64Concat, AssetIdOf<T>, BridgeToken, ValueQuery>;
@@ -259,7 +271,7 @@ pub mod pallet {
         #[pallet::weight(T::WeightInfo::set_vote_threshold())]
         #[transactional]
         pub fn set_vote_threshold(origin: OriginFor<T>, threshold: u32) -> DispatchResult {
-            Self::ensure_admin(origin)?;
+            T::OperateOrigin::ensure_origin(origin)?;
 
             ensure!(
                 threshold > 0 && threshold <= Self::get_members_count(),
@@ -281,7 +293,7 @@ pub mod pallet {
         #[pallet::weight(T::WeightInfo::register_chain())]
         #[transactional]
         pub fn register_chain(origin: OriginFor<T>, chain_id: ChainId) -> DispatchResult {
-            Self::ensure_admin(origin)?;
+            T::OperateOrigin::ensure_origin(origin)?;
 
             // Registered chain_id cannot be pallet's chain_id or a existed chain_id
             ensure!(
@@ -291,6 +303,8 @@ pub mod pallet {
 
             // Write a new chain_id into storage
             ChainNonces::<T>::insert(chain_id, 0);
+            let inital_registry: Vec<BridgeId> = vec![];
+            BridgeRegistry::<T>::insert(chain_id, inital_registry);
             Self::deposit_event(Event::ChainRegistered(chain_id));
 
             Ok(())
@@ -300,13 +314,15 @@ pub mod pallet {
         #[pallet::weight(T::WeightInfo::unregister_chain())]
         #[transactional]
         pub fn unregister_chain(origin: OriginFor<T>, id: ChainId) -> DispatchResult {
-            Self::ensure_admin(origin)?;
+            T::OperateOrigin::ensure_origin(origin)?;
 
             // Unregistered chain_id should be existed
             Self::ensure_chain_registered(id)?;
 
             // Unregister the chain_id
             ChainNonces::<T>::remove(id);
+            BridgeRegistry::<T>::remove(id);
+
             Self::deposit_event(Event::ChainRemoved(id));
 
             Ok(())
@@ -324,7 +340,7 @@ pub mod pallet {
             asset_id: AssetIdOf<T>,
             bridge_token: BridgeToken,
         ) -> DispatchResultWithPostInfo {
-            Self::ensure_admin(origin)?;
+            T::OperateOrigin::ensure_origin(origin)?;
 
             ensure!(
                 !BridgeTokens::<T>::contains_key(asset_id)
@@ -351,7 +367,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             bridge_token_id: CurrencyId,
         ) -> DispatchResultWithPostInfo {
-            Self::ensure_admin(origin)?;
+            T::OperateOrigin::ensure_origin(origin)?;
             Self::ensure_bridge_token_registered(bridge_token_id)?;
 
             let asset_id = AssetIds::<T>::get(bridge_token_id);
@@ -370,7 +386,7 @@ pub mod pallet {
             bridge_token_id: CurrencyId,
             new_fee: BalanceOf<T>,
         ) -> DispatchResult {
-            Self::ensure_admin(origin)?;
+            T::OperateOrigin::ensure_origin(origin)?;
             Self::ensure_bridge_token_registered(bridge_token_id)?;
 
             let asset_id = AssetIds::<T>::get(bridge_token_id);
@@ -404,10 +420,13 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             Self::ensure_chain_registered(dest_id)?;
             Self::ensure_bridge_token_registered(bridge_token_id)?;
+            Self::ensure_amount_valid(amount)?;
 
             let asset_id = AssetIds::<T>::get(bridge_token_id);
             let BridgeToken { external, fee, .. } = BridgeTokens::<T>::get(asset_id);
-            let actual_amount = amount.checked_sub(fee).ok_or(ArithmeticError::Underflow)?;
+            let actual_amount = amount
+                .checked_sub(fee)
+                .ok_or(Error::<T>::BridgedAmountTooLow)?;
             if external {
                 T::Assets::burn_from(asset_id, &who, amount)?;
                 T::Assets::mint_into(asset_id, &Self::account_id(), fee)?;
@@ -442,7 +461,9 @@ pub mod pallet {
         ) -> DispatchResult {
             let who = Self::ensure_admin(origin)?;
             Self::ensure_chain_registered(src_id)?;
+            Self::ensure_chain_nonce_valid(src_id, src_nonce)?;
             Self::ensure_bridge_token_registered(bridge_token_id)?;
+            Self::ensure_amount_valid(amount)?;
 
             let call = MaterializeCall {
                 bridge_token_id,
@@ -477,22 +498,22 @@ impl<T: Config> Pallet<T> {
         T::PalletId::get().into_account()
     }
 
-    /// Checks if the origin is root or admin members
+    /// Checks if the origin is operateOrigin or admin members
     fn ensure_admin(origin: T::Origin) -> Result<T::AccountId, Error<T>> {
-        if T::RootOperatorOrigin::ensure_origin(origin.clone()).is_err() {
-            if let Ok(who) = ensure_signed(origin) {
-                ensure!(
-                    T::AdminMembers::contains(&who),
-                    Error::<T>::OriginNoPermission
-                );
-
-                Ok(who)
-            } else {
-                Err(Error::<T>::OriginNoPermission)
-            }
-        } else {
-            Ok(T::RootOperatorAccountId::get())
+        let who = match ensure_signed_or_root(origin.clone())
+            .map_err(|_| Error::<T>::OriginNoPermission)?
+        {
+            Some(account_id) => account_id,
+            None => T::RootOperatorAccountId::get(),
+        };
+        if T::OperateOrigin::ensure_origin(origin).is_err() {
+            ensure!(
+                T::AdminMembers::contains(&who),
+                Error::<T>::OriginNoPermission
+            );
         }
+
+        Ok(who)
     }
 
     /// Checks if a chain is registered
@@ -502,6 +523,21 @@ impl<T: Config> Pallet<T> {
 
     fn ensure_chain_registered(id: ChainId) -> DispatchResult {
         ensure!(Self::chain_registered(id), Error::<T>::ChainIdNotRegistered);
+
+        Ok(())
+    }
+
+    fn ensure_chain_nonce_valid(id: ChainId, nonce: ChainNonce) -> DispatchResult {
+        ensure!(
+            !Self::has_bridged(id, nonce),
+            Error::<T>::ProposalAlreadyComplete
+        );
+
+        Ok(())
+    }
+
+    fn ensure_amount_valid(amount: BalanceOf<T>) -> DispatchResult {
+        ensure!(amount > 0, Error::<T>::BridgedAmountTooLow);
 
         Ok(())
     }
@@ -533,6 +569,51 @@ impl<T: Config> Pallet<T> {
         nonce
     }
 
+    fn merge_overlapping_intervals(mut registry: Vec<BridgeId>) -> Vec<BridgeId> {
+        registry.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+        let mut merged: Vec<BridgeId> = vec![];
+        for r in registry {
+            if merged.is_empty() {
+                merged.push(r);
+            } else if let Some(last_merged) = merged.last_mut() {
+                if r.0 > last_merged.1 {
+                    merged.push(r);
+                } else {
+                    (*last_merged).1 = r.1.max(last_merged.1);
+                }
+            }
+        }
+        merged
+    }
+
+    pub fn has_bridged(id: ChainId, nonce: ChainNonce) -> bool {
+        BridgeRegistry::<T>::get(&id).map_or(false, |registry| {
+            registry.iter().any(|&r| (nonce >= r.0 && nonce <= r.1))
+        })
+    }
+
+    /// Records completed bridge transactions
+    #[require_transactional]
+    fn update_bridge_registry(id: ChainId, nonce: ChainNonce) {
+        if BridgeRegistry::<T>::get(&id).is_none() {
+            return;
+        }
+        let mut registry = BridgeRegistry::<T>::get(&id).unwrap_or_default();
+        registry.iter_mut().for_each(|x| {
+            match *x {
+                (nonce_start, _) if nonce_start == (nonce + 1) => x.0 = nonce,
+                (_, nonce_end) if nonce_end == (nonce - 1) => x.1 = nonce,
+                _ => (),
+            };
+        });
+        let mut registry = Self::merge_overlapping_intervals(registry);
+        if !registry.iter().any(|&r| (nonce >= r.0 && nonce <= r.1)) {
+            registry.push((nonce, nonce));
+        }
+        registry.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+        BridgeRegistry::<T>::insert(id, registry);
+    }
+
     /// Initiates a transfer of the bridge token
     #[require_transactional]
     fn teleport_internal(
@@ -544,6 +625,19 @@ impl<T: Config> Pallet<T> {
         fee: BalanceOf<T>,
     ) -> DispatchResult {
         let nonce = Self::bump_nonce(dest_id);
+
+        log::trace!(
+            target: "bridge::teleport_internal",
+            "ori_address: {:?}, dest_id {:?}, nonce {:?},
+                bridge_token_id: {:?}, dst_address {:?}, amount: {:?}, fee: {:?}",
+            ori_address,
+            dest_id,
+            nonce,
+            bridge_token_id,
+            dst_address,
+            amount,
+            fee,
+        );
 
         Self::deposit_event(Event::TeleportBurned(
             ori_address,
@@ -672,6 +766,8 @@ impl<T: Config> Pallet<T> {
             T::Assets::transfer(asset_id, &Self::account_id(), &call.to, call.amount, true)?;
         }
 
+        Self::update_bridge_registry(src_id, src_nonce);
+
         Self::deposit_event(Event::MaterializeMinted(
             src_id,
             src_nonce,
@@ -684,6 +780,7 @@ impl<T: Config> Pallet<T> {
 
     /// Cancels a proposal.
     fn cancel_materialize(src_id: ChainId, src_nonce: ChainNonce) -> DispatchResult {
+        Self::update_bridge_registry(src_id, src_nonce);
         Self::deposit_event(Event::ProposalRejected(src_id, src_nonce));
 
         Ok(())

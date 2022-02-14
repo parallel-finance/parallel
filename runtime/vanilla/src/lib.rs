@@ -1380,7 +1380,7 @@ impl pallet_bridge::Config for Runtime {
     type Event = Event;
     type AdminMembers = BridgeMembership;
     type RootOperatorAccountId = OneAccount;
-    type RootOperatorOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type OperateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type ChainId = ParallelHeiko;
     type PalletId = BridgePalletId;
     type Assets = CurrencyAdapter;

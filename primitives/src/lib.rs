@@ -81,7 +81,11 @@ pub type Timestamp = u64;
 
 pub type CurrencyId = u32;
 
-pub type ChainId = u8;
+pub type ChainId = u32;
+
+pub type ChainNonce = u64;
+
+pub type BridgeId = (ChainNonce, ChainNonce);
 
 pub const SECONDS_PER_YEAR: Timestamp = 365 * 24 * 60 * 60;
 
