@@ -1039,6 +1039,8 @@ pub mod pallet {
                 }
             }
 
+            Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
+
             if all_refunded {
                 Self::deposit_event(Event::<T>::AllRefunded(crowdloan, (lease_start, lease_end)));
             } else {
