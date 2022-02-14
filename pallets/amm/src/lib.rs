@@ -142,41 +142,46 @@ pub mod pallet {
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config<I>, I: 'static = ()> {
         /// Add liquidity into pool
-        /// [sender, base_currency_id, quote_currency_id, base_amount, quote_amount]
-        LiquidityAdded(
-            T::AccountId,
-            AssetIdOf<T, I>,
-            AssetIdOf<T, I>,
-            BalanceOf<T, I>,
-            BalanceOf<T, I>,
-        ),
+        LiquidityAdded {
+            sender: T::AccountId,
+            base_currency_id: AssetIdOf<T, I>,
+            quote_currency_id: AssetIdOf<T, I>,
+            base_amount_added: BalanceOf<T, I>,
+            quote_amount_added: BalanceOf<T, I>,
+            lp_token_id: AssetIdOf<T, I>,
+            new_base_amount: BalanceOf<T, I>,
+            new_quote_amount: BalanceOf<T, I>,
+        },
         /// Remove liquidity from pool
-        /// [sender, base_currency_id, quote_currency_id, liquidity]
-        LiquidityRemoved(
-            T::AccountId,
-            AssetIdOf<T, I>,
-            AssetIdOf<T, I>,
-            BalanceOf<T, I>,
-        ),
+        LiquidityRemoved {
+            sender: T::AccountId,
+            base_currency_id: AssetIdOf<T, I>,
+            quote_currency_id: AssetIdOf<T, I>,
+            liquidity: BalanceOf<T, I>,
+            base_amount_removed: BalanceOf<T, I>,
+            quote_amount_removed: BalanceOf<T, I>,
+            lp_token_id: AssetIdOf<T, I>,
+            new_base_amount: BalanceOf<T, I>,
+            new_quote_amount: BalanceOf<T, I>,
+        },
         /// A Pool has been created
-        /// [trader, currency_id_in, currency_id_out, lp_token_id
-        PoolCreated(
-            T::AccountId,
-            AssetIdOf<T, I>,
-            AssetIdOf<T, I>,
-            AssetIdOf<T, I>,
-        ),
+        PoolCreated {
+            trader: T::AccountId,
+            currency_id_in: AssetIdOf<T, I>,
+            currency_id_out: AssetIdOf<T, I>,
+            lp_token_id: AssetIdOf<T, I>,
+        },
         /// Trade using liquidity
-        /// [trader, currency_id_in, currency_id_out, amount_in, amount_out, new_quote_amount, new_base_amount]
-        Traded(
-            T::AccountId,
-            AssetIdOf<T, I>,
-            AssetIdOf<T, I>,
-            BalanceOf<T, I>,
-            BalanceOf<T, I>,
-            BalanceOf<T, I>,
-            BalanceOf<T, I>,
-        ),
+        Traded {
+            trader: T::AccountId,
+            currency_id_in: AssetIdOf<T, I>,
+            currency_id_out: AssetIdOf<T, I>,
+            amount_in: BalanceOf<T, I>,
+            amount_out: BalanceOf<T, I>,
+            lp_token_id: AssetIdOf<T, I>,
+            new_quote_amount: BalanceOf<T, I>,
+            new_base_amount: BalanceOf<T, I>,
+        },
     }
 
     #[pallet::pallet]
@@ -266,13 +271,16 @@ pub mod pallet {
                         &minimum_amounts
                     );
 
-                    Self::deposit_event(Event::<T, I>::LiquidityAdded(
-                        who,
-                        base_asset,
-                        quote_asset,
-                        ideal_base_amount,
-                        ideal_quote_amount,
-                    ));
+                    Self::deposit_event(Event::<T, I>::LiquidityAdded {
+                        sender: who,
+                        base_currency_id: base_asset,
+                        quote_currency_id: quote_asset,
+                        base_amount_added: ideal_base_amount,
+                        quote_amount_added: ideal_quote_amount,
+                        lp_token_id: pool.lp_token_id,
+                        new_base_amount: pool.base_amount,
+                        new_quote_amount: pool.quote_amount,
+                    });
 
                     Ok(().into())
                 },
@@ -296,6 +304,9 @@ pub mod pallet {
 
             Pools::<T, I>::try_mutate(base_asset, quote_asset, |pool| -> DispatchResult {
                 let pool = pool.as_mut().ok_or(Error::<T, I>::PoolDoesNotExist)?;
+
+                let (base_amount_removed, quote_amount_removed) =
+                    Self::calculate_reserves_to_remove(pool, liquidity)?;
                 Self::do_remove_liquidity(&who, pool, liquidity, (base_asset, quote_asset))?;
                 Self::do_mint_protocol_fee(pool)?;
 
@@ -308,12 +319,17 @@ pub mod pallet {
                     &liquidity
                 );
 
-                Self::deposit_event(Event::<T, I>::LiquidityRemoved(
-                    who,
-                    base_asset,
-                    quote_asset,
+                Self::deposit_event(Event::<T, I>::LiquidityRemoved {
+                    sender: who,
+                    base_currency_id: base_asset,
+                    quote_currency_id: quote_asset,
                     liquidity,
-                ));
+                    base_amount_removed,
+                    quote_amount_removed,
+                    lp_token_id: pool.lp_token_id,
+                    new_base_amount: pool.base_amount,
+                    new_quote_amount: pool.quote_amount,
+                });
 
                 Ok(())
             })
@@ -357,12 +373,12 @@ pub mod pallet {
 
             let mut pool = Pool::new(lp_token_id);
 
-            Self::deposit_event(Event::<T, I>::PoolCreated(
-                lptoken_receiver.clone(),
-                base_asset,
-                quote_asset,
+            Self::deposit_event(Event::<T, I>::PoolCreated {
+                trader: lptoken_receiver.clone(),
+                currency_id_in: base_asset,
+                currency_id_out: quote_asset,
                 lp_token_id,
-            ));
+            });
 
             Self::do_add_liquidity(
                 &lptoken_receiver,
@@ -385,13 +401,16 @@ pub mod pallet {
                 &liquidity_amounts
             );
 
-            Self::deposit_event(Event::<T, I>::LiquidityAdded(
-                lptoken_receiver,
-                base_asset,
-                quote_asset,
-                base_amount,
-                quote_amount,
-            ));
+            Self::deposit_event(Event::<T, I>::LiquidityAdded {
+                sender: lptoken_receiver,
+                base_currency_id: base_asset,
+                quote_currency_id: quote_asset,
+                base_amount_added: base_amount,
+                quote_amount_added: quote_amount,
+                lp_token_id: pool.lp_token_id,
+                new_base_amount: pool.base_amount,
+                new_quote_amount: pool.quote_amount,
+            });
 
             Ok(().into())
         }
@@ -749,12 +768,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(())
     }
 
-    #[require_transactional]
-    fn do_remove_liquidity(
-        who: &T::AccountId,
+    fn calculate_reserves_to_remove(
         pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
         liquidity: BalanceOf<T, I>,
-        (base_asset, quote_asset): (AssetIdOf<T, I>, AssetIdOf<T, I>),
     ) -> Result<(BalanceOf<T, I>, BalanceOf<T, I>), DispatchError> {
         let total_supply = T::Assets::total_issuance(pool.lp_token_id);
 
@@ -766,6 +782,18 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .checked_mul(pool.quote_amount)
             .and_then(|r| r.checked_div(total_supply))
             .ok_or(ArithmeticError::Underflow)?;
+
+        Ok((base_amount, quote_amount))
+    }
+
+    #[require_transactional]
+    fn do_remove_liquidity(
+        who: &T::AccountId,
+        pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
+        liquidity: BalanceOf<T, I>,
+        (base_asset, quote_asset): (AssetIdOf<T, I>, AssetIdOf<T, I>),
+    ) -> Result<(BalanceOf<T, I>, BalanceOf<T, I>), DispatchError> {
+        let (base_amount, quote_amount) = Self::calculate_reserves_to_remove(pool, liquidity)?;
 
         pool.base_amount = pool
             .base_amount
@@ -914,15 +942,16 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                     &amount_out,
                 );
 
-                Self::deposit_event(Event::<T, I>::Traded(
-                    who.clone(),
-                    asset_in,
-                    asset_out,
+                Self::deposit_event(Event::<T, I>::Traded {
+                    trader: who.clone(),
+                    currency_id_in: asset_in,
+                    currency_id_out: asset_out,
                     amount_in,
                     amount_out,
-                    pool.quote_amount,
-                    pool.base_amount,
-                ));
+                    lp_token_id: pool.lp_token_id,
+                    new_quote_amount: pool.quote_amount,
+                    new_base_amount: pool.base_amount,
+                });
 
                 Ok(amount_out)
             },
