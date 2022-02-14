@@ -33,7 +33,7 @@ use frame_support::{
     },
     transactional, PalletId,
 };
-use frame_system::pallet_prelude::*;
+use frame_system::{ensure_signed_or_root, pallet_prelude::*};
 use primitives::{Balance, BridgeId, ChainId, ChainNonce, CurrencyId};
 use scale_info::prelude::{vec, vec::Vec};
 use sp_runtime::traits::AccountIdConversion;
@@ -80,6 +80,10 @@ pub mod pallet {
         /// set bridge token fee.
         /// Root can always do this.
         type OperateOrigin: EnsureOrigin<Self::Origin>;
+
+        /// The root operator account id
+        #[pallet::constant]
+        type RootOperatorAccountId: Get<Self::AccountId>;
 
         /// Assets for teleport/materialize assets to/from bridge pallet
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
@@ -496,7 +500,12 @@ impl<T: Config> Pallet<T> {
 
     /// Checks if the origin is operateOrigin or admin members
     fn ensure_admin(origin: T::Origin) -> Result<T::AccountId, Error<T>> {
-        let who = ensure_signed(origin.clone()).map_err(|_| Error::<T>::OriginNoPermission)?;
+        let who = match ensure_signed_or_root(origin.clone())
+            .map_err(|_| Error::<T>::OriginNoPermission)?
+        {
+            Some(account_id) => account_id,
+            None => T::RootOperatorAccountId::get(),
+        };
         if T::OperateOrigin::ensure_origin(origin).is_err() {
             ensure!(
                 T::AdminMembers::contains(&who),
