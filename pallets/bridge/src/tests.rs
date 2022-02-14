@@ -278,3 +278,17 @@ fn materialize_external_currency_works() {
         );
     })
 }
+#[test]
+fn test_merge_overlapping_intervals(){
+    // status 0: (1,1), (3,4), (6,6)
+    // status 1: push 2 => (1,2), (2,4), (6,6)
+    assert_eq!(
+        Bridge::merge_overlapping_intervals(vec![(1,2),(2,4),(6,6)]),
+        vec![(1,4), (6,6)],
+    );
+    // status 2: push 5 => (1,5), (5,6)
+    assert_eq!(
+        Bridge::merge_overlapping_intervals(vec![(1,5), (5,6)]),
+        vec![(1,6)],
+    );
+}
