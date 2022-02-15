@@ -432,6 +432,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
 
+            let old_matching_ledger = Self::matching_pool();
             let (bond_amount, rebond_amount, unbond_amount) =
                 MatchingPool::<T>::try_mutate(|b| b.matching::<Self>(unbonding_amount))?;
 
@@ -444,7 +445,7 @@ pub mod pallet {
             Self::do_unbond(unbond_amount)?;
             Self::do_rebond(rebond_amount)?;
 
-            Self::do_update_exchange_rate(bonding_amount)?;
+            Self::do_update_exchange_rate(bonding_amount, old_matching_ledger)?;
 
             Self::deposit_event(Event::<T>::Settlement(
                 bond_amount,
@@ -772,18 +773,19 @@ pub mod pallet {
         }
 
         #[require_transactional]
-        fn do_update_exchange_rate(bonding_amount: BalanceOf<T>) -> DispatchResult {
-            let old_exchange_rate = Self::exchange_rate();
-            let matching_pool = Self::matching_pool();
+        fn do_update_exchange_rate(
+            bonding_amount: BalanceOf<T>,
+            old_matching_ledger: MatchingLedger<BalanceOf<T>>,
+        ) -> DispatchResult {
             match Rate::checked_from_rational(
                 bonding_amount
-                    .checked_add(matching_pool.total_stake_amount)
+                    .checked_add(old_matching_ledger.total_stake_amount)
                     .ok_or(ArithmeticError::Overflow)?,
                 T::Assets::total_issuance(Self::liquid_currency()?)
-                    .checked_add(matching_pool.total_unstake_amount)
+                    .checked_add(old_matching_ledger.total_unstake_amount)
                     .ok_or(ArithmeticError::Overflow)?,
             ) {
-                Some(exchange_rate) if exchange_rate != old_exchange_rate => {
+                Some(exchange_rate) if exchange_rate != Self::exchange_rate() => {
                     ExchangeRate::<T>::put(exchange_rate);
                     Self::deposit_event(Event::<T>::ExchangeRateUpdated(exchange_rate));
                 }
