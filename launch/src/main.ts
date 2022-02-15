@@ -1,7 +1,7 @@
 import fs from 'fs'
 import shell from 'shelljs'
 import dotenv from 'dotenv'
-import config from './config'
+import config from './config.json'
 import { blake2AsU8a } from '@polkadot/util-crypto'
 import { stringToU8a, bnToU8a, BN, u8aConcat, u8aToHex } from '@polkadot/util'
 import { decodeAddress, encodeAddress } from '@polkadot/keyring'
