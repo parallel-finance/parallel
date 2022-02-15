@@ -175,6 +175,7 @@ fn deposit_should_not_work_if_not_a_valid_duration() {
 fn deposit_should_fail_if_no_liquidity_present_for_the_account() {
     new_test_ext().execute_with(|| {
         let (start_block, end_block) = (3, 100);
+        // Liquidity mining created for Alice not for Bob
         assert_ok!(LiquidityMining::create(
             RawOrigin::Signed(ALICE).into(),          // Origin
             DOT,                                      // AssetId
