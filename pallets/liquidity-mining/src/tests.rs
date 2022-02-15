@@ -12,13 +12,13 @@ fn create_pool_should_work() {
 
         assert_eq!(Assets::balance(DOT, BOB), initial_balance);
         assert_ok!(LiquidityMining::create(
-            RawOrigin::Signed(ALICE).into(),
-            DOT,
-            BOB,
-            0,
-            3,
-            vec![(1, DOT); 1000].try_into().unwrap(),
-            SAMPLE_LP_TOKEN,
+            RawOrigin::Signed(ALICE).into(),          // Origin
+            DOT,                                      // AssetId
+            BOB,                                      // Account
+            0,                                        // Start Block Number
+            3,                                        // End Block Number
+            vec![(1, DOT); 1000].try_into().unwrap(), // Rewards
+            SAMPLE_LP_TOKEN,                          // AssetId
         ));
 
         assert!(Pools::<Test>::contains_key(DOT));
@@ -31,24 +31,24 @@ fn create_pool_should_work() {
 fn create_pool_should_not_work_if_pool_already_exists() {
     new_test_ext().execute_with(|| {
         assert_ok!(LiquidityMining::create(
-            RawOrigin::Signed(ALICE).into(),
-            DOT,
-            BOB,
-            0,
-            3,
-            vec![(1, DOT); 1000].try_into().unwrap(),
-            SAMPLE_LP_TOKEN,
+            RawOrigin::Signed(ALICE).into(),          // Origin
+            DOT,                                      // AssetId
+            BOB,                                      // Account
+            0,                                        // Start Block Number
+            3,                                        // End Block Number
+            vec![(1, DOT); 1000].try_into().unwrap(), // Rewards
+            SAMPLE_LP_TOKEN,                          // AssetId
         ));
 
         assert_noop!(
             LiquidityMining::create(
-                RawOrigin::Signed(ALICE).into(),
-                DOT,
-                BOB,
-                0,
-                3,
-                vec![(1, DOT); 1000].try_into().unwrap(),
-                SAMPLE_LP_TOKEN,
+                RawOrigin::Signed(ALICE).into(),          // Origin
+                DOT,                                      // AssetId
+                BOB,                                      // Account
+                0,                                        // Start Block Number
+                3,                                        // End Block Number
+                vec![(1, DOT); 1000].try_into().unwrap(), // Rewards
+                SAMPLE_LP_TOKEN,                          // AssetId
             ),
             Error::<Test>::PoolAlreadyExists
         );
@@ -60,13 +60,13 @@ fn create_pool_should_not_work_if_not_a_newly_asset() {
     new_test_ext().execute_with(|| {
         assert_noop!(
             LiquidityMining::create(
-                RawOrigin::Signed(ALICE).into(),
-                DOT,
-                BOB,
-                0,
-                3,
-                vec![(1, DOT); 1000].try_into().unwrap(),
-                DOT,
+                RawOrigin::Signed(ALICE).into(),          // Origin
+                DOT,                                      // AssetId
+                BOB,                                      // Account
+                0,                                        // Start Block Number
+                3,                                        // End Block Number
+                vec![(1, DOT); 1000].try_into().unwrap(), // Rewards
+                DOT,                                      // AssetId
             ),
             Error::<Test>::NotANewlyCreatedAsset
         );
@@ -80,13 +80,13 @@ fn create_pool_should_not_work_if_endblock_smaller_than_startblock() {
 
         assert_noop!(
             LiquidityMining::create(
-                RawOrigin::Signed(ALICE).into(),
-                DOT,
-                BOB,
-                start_block,
-                end_block,
-                vec![(1, DOT); 1000].try_into().unwrap(),
-                DOT,
+                RawOrigin::Signed(ALICE).into(),          // Origin
+                DOT,                                      // AssetId
+                BOB,                                      // Account Id
+                start_block,                              // Start Block Number
+                end_block,                                // End Block Number
+                vec![(1, DOT); 1000].try_into().unwrap(), // Rewards
+                DOT,                                      // AssetId
             ),
             Error::<Test>::SmallerThanEndBlock
         );
@@ -100,21 +100,21 @@ fn deposit_should_work() {
 
         assert_eq!(Assets::balance(DOT, BOB), initial_balance);
         assert_ok!(LiquidityMining::create(
-            RawOrigin::Signed(ALICE).into(),
-            DOT,
-            BOB,
-            0,
-            3,
-            vec![(1, DOT); 1000].try_into().unwrap(),
-            SAMPLE_LP_TOKEN,
+            RawOrigin::Signed(ALICE).into(),          // Origin
+            DOT,                                      // AssetId
+            BOB,                                      // Account Id
+            0,                                        // Start Block Number
+            3,                                        // End Block Number
+            vec![(1, DOT); 1000].try_into().unwrap(), // Rewards
+            SAMPLE_LP_TOKEN,                          // AssetId
         ));
 
         assert_eq!(Assets::balance(DOT, BOB), initial_balance - 3000);
 
         assert_ok!(LiquidityMining::deposit(
-            RawOrigin::Signed(BOB).into(),
-            DOT,
-            1000
+            RawOrigin::Signed(BOB).into(), // Origin
+            DOT,                           // AssetId
+            1000                           // Amount
         ));
 
         assert_eq!(Assets::balance(DOT, BOB), initial_balance - 3000 - 1000);
@@ -146,13 +146,13 @@ fn deposit_should_not_work_if_not_a_valid_duration() {
     new_test_ext().execute_with(|| {
         let (start_block, end_block) = (3, 100);
         assert_ok!(LiquidityMining::create(
-            RawOrigin::Signed(ALICE).into(),
-            DOT,
-            BOB,
-            start_block,
-            end_block,
-            vec![(1, DOT); 1000].try_into().unwrap(),
-            SAMPLE_LP_TOKEN,
+            RawOrigin::Signed(ALICE).into(),          // Origin
+            DOT,                                      // AssetId
+            BOB,                                      // AccountId
+            start_block,                              // Start Block Number
+            end_block,                                // End Block Number
+            vec![(1, DOT); 1000].try_into().unwrap(), // Rewards
+            SAMPLE_LP_TOKEN,                          // AssetId
         ));
 
         // current block number is smaller than pool.start
@@ -167,6 +167,59 @@ fn deposit_should_not_work_if_not_a_valid_duration() {
         assert_noop!(
             LiquidityMining::deposit(RawOrigin::Signed(BOB).into(), DOT, 1000),
             Error::<Test>::NotAValidDuration
+        );
+    })
+}
+
+#[test]
+fn deposit_should_fail_if_no_liquidity_present_for_the_account() {
+    new_test_ext().execute_with(|| {
+        let (start_block, end_block) = (3, 100);
+        assert_ok!(LiquidityMining::create(
+            RawOrigin::Signed(ALICE).into(),          // Origin
+            DOT,                                      // AssetId
+            ALICE,                                    // AccountId
+            start_block,                              // Start Block Number
+            end_block,                                // End Block Number
+            vec![(1, DOT); 1000].try_into().unwrap(), // Rewards
+            SAMPLE_LP_TOKEN,                          // AssetId
+        ));
+
+        // TODO: Not Sure if this is the correct event since it does not caused by the duration error
+        assert_noop!(
+            LiquidityMining::deposit(RawOrigin::Signed(BOB).into(), DOT, 1000),
+            Error::<Test>::NotAValidDuration
+        );
+    })
+}
+
+#[test]
+fn withdraw_should_not_work_if_no_liquidity() {
+    new_test_ext().execute_with(|| {
+        let initial_balance = Assets::balance(DOT, BOB);
+
+        assert_eq!(Assets::balance(DOT, BOB), initial_balance);
+        assert_ok!(LiquidityMining::create(
+            RawOrigin::Signed(ALICE).into(),
+            DOT,
+            BOB,
+            0,
+            3,
+            vec![(1, DOT); 1000].try_into().unwrap(),
+            SAMPLE_LP_TOKEN,
+        ));
+
+        assert_eq!(Assets::balance(DOT, BOB), initial_balance - 3000);
+
+        assert_ok!(LiquidityMining::deposit(
+            RawOrigin::Signed(BOB).into(),
+            DOT,
+            1000
+        ));
+
+        assert_noop!(
+            LiquidityMining::withdraw(RawOrigin::Signed(ALICE).into(), DOT, 1000),
+            Error::<Test>::NoAccount
         );
     })
 }

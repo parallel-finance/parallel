@@ -93,6 +93,8 @@ pub mod pallet {
         PoolDoesNotExist,
         /// Pool associacted with asset already exists
         PoolAlreadyExists,
+        /// No Account Presents
+        NoAccount,
         /// Not a newly created asset
         NotANewlyCreatedAsset,
         /// Not a valid duration
@@ -291,6 +293,12 @@ pub mod pallet {
                 }
 
                 T::Assets::transfer(asset, &asset_pool_account, &who, amount, true)?;
+
+                // TODO: This check wont prevent the panic from test -> withdraw_should_not_work_if_no_liquidity
+                ensure!(
+                    frame_system::Pallet::<T>::account_exists(&who),
+                    Error::<T, I>::NoAccount
+                );
                 T::Assets::burn_from(pool.asset_id, &who, amount)?;
 
                 Self::deposit_event(Event::<T, I>::AssetsWithdrew(who, asset));
