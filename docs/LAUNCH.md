@@ -42,7 +42,7 @@ sudo wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}
 3. rust
 
 ```
-RUST_TOOLCHAIN=nightly-2021-11-07
+RUST_TOOLCHAIN=nightly-2021-11-16
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
     sh -s -- -y --default-toolchain ${RUST_TOOLCHAIN} --component rust-src --target wasm32-unknown-unknown
 ```
