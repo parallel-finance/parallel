@@ -127,6 +127,11 @@ pub trait ExchangeRateProvider {
     fn get_exchange_rate() -> Rate;
 }
 
+pub trait LiquidStakingConvert<Balance> {
+    fn staking_to_liquid(amount: Balance) -> Option<Balance>;
+    fn liquid_to_staking(liquid_amount: Balance) -> Option<Balance>;
+}
+
 pub trait LiquidStakingCurrenciesProvider<CurrencyId> {
     fn get_staking_currency() -> Option<CurrencyId>;
     fn get_liquid_currency() -> Option<CurrencyId>;

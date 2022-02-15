@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # Pure Liquidity Mining (PLM)
+//! # Pure Farming (FAR)
 //!
-//! pallet-liquidity-mining is in charge of creating a governance-controlled incentivization program for our different products.
+//! pallet-farming is in charge of creating a governance-controlled incentivization program for our different products.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
