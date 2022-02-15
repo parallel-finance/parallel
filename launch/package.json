@@ -1,7 +1,7 @@
 {
   "name": "launch",
   "version": "1.0.0",
-  "main": "src/index.ts",
+  "main": "src/main.ts",
   "resolutions": {
     "@polkadot/util": "8.3.3",
     "@polkadot/keyring": "8.3.3",
@@ -9,7 +9,7 @@
     "@polkadot/wasm-crypto": "4.5.1"
   },
   "scripts": {
-    "start": "ts-node src/index.ts",
+    "start": "ts-node src/main.ts",
     "build": "tsc"
   },
   "devDependencies": {
