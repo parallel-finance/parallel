@@ -33,20 +33,19 @@ pub mod weights;
 pub mod pallet {
     use crate::weights::WeightInfo;
     use frame_support::{
-        ensure,
-        pallet_prelude::DispatchResultWithPostInfo,
+        ensure, log,
+        pallet_prelude::{DispatchResult, DispatchResultWithPostInfo},
+        require_transactional,
         traits::{
             fungibles::{Inspect, Mutate, Transfer},
-            Get, Hooks, IsType,
+            Get, IsType,
         },
         transactional, BoundedVec, PalletId,
     };
-    use frame_system::{
-        ensure_signed,
-        pallet_prelude::{BlockNumberFor, OriginFor},
-    };
+    use frame_system::{ensure_signed, pallet_prelude::OriginFor};
     use primitives::{Balance, CurrencyId, AMM};
-    use sp_runtime::traits::{One, Zero};
+    use sp_runtime::{traits::Zero, DispatchError};
+    use sp_std::{cmp::Reverse, collections::btree_map::BTreeMap, vec::Vec};
 
     pub type Route<T, I> = BoundedVec<
         (
@@ -58,21 +57,22 @@ pub mod pallet {
         <T as Config<I>>::MaxLengthRoute,
     >;
 
+    pub(crate) type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
     pub(crate) type AssetIdOf<T, I = ()> =
         <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
     pub(crate) type BalanceOf<T, I = ()> =
         <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 
     #[pallet::config]
-    pub trait Config<I: 'static = ()>: frame_system::Config + pallet_amm::Config {
+    pub trait Config<I: 'static = ()>: frame_system::Config {
         type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Router pallet id
         #[pallet::constant]
-        type RouterPalletId: Get<PalletId>;
+        type PalletId: Get<PalletId>;
 
         /// Specify all the AMMs we are routing between
-        type AMM: AMM<Self, AssetIdOf<Self, I>, BalanceOf<Self, I>>;
+        type AMM: AMM<AccountIdOf<Self>, AssetIdOf<Self, I>, BalanceOf<Self, I>>;
 
         /// Weight information for extrinsics in this pallet.
         type AMMRouterWeightInfo: WeightInfo;
@@ -99,14 +99,14 @@ pub mod pallet {
         EmptyRoute,
         /// User hasn't enough tokens for transaction
         InsufficientBalance,
-        /// The expiry is smaller than current block number
-        TooSmallExpiry,
         /// Exceed the max length of routes we allow
         ExceedMaxLengthRoute,
         /// Input duplicated route
         DuplicatedRoute,
-        /// We received less coins than the minimum amount specified
-        UnexpectedSlippage,
+        /// A more specific UnexpectedSlippage when trading exact amount out
+        MaximumAmountInViolated,
+        /// A more specific UnexpectedSlippage when trading exact amount in
+        MinimumAmountOutViolated,
     }
 
     #[pallet::event]
@@ -114,44 +114,160 @@ pub mod pallet {
     pub enum Event<T: Config<I>, I: 'static = ()> {
         /// Event emitted when swap is successful
         /// [sender, amount_in, route, amount_out]
-        Traded(T::AccountId, BalanceOf<T, I>, Route<T, I>, BalanceOf<T, I>),
+        Traded(
+            T::AccountId,
+            BalanceOf<T, I>,
+            Vec<AssetIdOf<T, I>>,
+            BalanceOf<T, I>,
+        ),
     }
 
-    #[pallet::hooks]
-    impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {}
-
-    #[pallet::call]
     impl<T: Config<I>, I: 'static> Pallet<T, I> {
-        /// According specified route order to execute which pool or AMM instance.
-        ///
-        /// - `origin`: the trader.
-        /// - `route`: the route user inputs
-        /// - `amount_in`: the amount of trading assets
-        /// - `min_amount_out`:
-        /// - `expiry`:
-        #[pallet::weight(T::AMMRouterWeightInfo::trade())]
-        #[transactional]
-        pub fn trade(
-            origin: OriginFor<T>,
-            route: Route<T, I>,
-            #[pallet::compact] mut amount_in: BalanceOf<T, I>,
-            #[pallet::compact] min_amount_out: BalanceOf<T, I>,
-            #[pallet::compact] expiry: BlockNumberFor<T>,
-        ) -> DispatchResultWithPostInfo {
-            let trader = ensure_signed(origin)?;
-
+        /// Check that routes are unique and that the length > 0 and < MaxLengthRoute
+        #[require_transactional]
+        pub fn route_checks(route: &[AssetIdOf<T, I>]) -> DispatchResult {
             // Ensure the length of routes should be >= 1 at least.
             ensure!(!route.is_empty(), Error::<T, I>::EmptyRoute);
+
             // Ensure user do not input too many routes.
             ensure!(
                 route.len() <= T::MaxLengthRoute::get() as usize,
                 Error::<T, I>::ExceedMaxLengthRoute
             );
 
-            // Ensure user doesn't input duplicated routes
-            let mut _routes = route.clone().into_inner();
-            _routes.dedup();
-            ensure!(_routes.eq(&*route), Error::<T, I>::DuplicatedRoute);
+            // check for duplicates with O(n^2) complexity
+            // only good for short routes and we have a cap checked above
+            let contains_duplicate = (1..route.len()).any(|i| route[i..].contains(&route[i - 1]));
+
+            // Ensure user doesn't input duplicated routes (a cycle in the graph)
+            ensure!(!contains_duplicate, Error::<T, I>::DuplicatedRoute);
+
+            Ok(())
+        }
+
+        /// Returns a sorted list of all routes and their output amounts from a
+        /// start token to end token by traversing a graph.
+        pub fn get_all_routes(
+            amount_in: BalanceOf<T, I>,
+            token_in: AssetIdOf<T, I>,
+            token_out: AssetIdOf<T, I>,
+        ) -> Result<Vec<(Vec<AssetIdOf<T, I>>, BalanceOf<T, I>)>, DispatchError> {
+            // get all the pool asset pairs from the AMM
+            let pools = T::AMM::get_pools()?;
+
+            let mut graph: BTreeMap<u32, Vec<u32>> = BTreeMap::new();
+
+            // build a non directed graph from pool asset pairs
+            pools.into_iter().for_each(|(a, b)| {
+                graph.entry(a).or_insert_with(Vec::new).push(b);
+                graph.entry(b).or_insert_with(Vec::new).push(a);
+            });
+
+            // init mutable variables
+            let mut path = Vec::new();
+            let mut paths = Vec::new();
+
+            let mut start = token_in;
+            let mut end = token_out;
+
+            let mut queue: Vec<(u32, u32, Vec<u32>)> = Vec::from([(start, end, path)]);
+
+            // iterate until we build all routes
+            while !queue.is_empty() {
+                // desugared RFC 2909-destructuring-assignment
+                let (_start, _end, _path) = queue.swap_remove(0);
+                start = _start;
+                end = _end;
+                path = _path;
+
+                path.push(start);
+
+                // exit if we reached our target
+                if start == end {
+                    paths.push(path.clone());
+                }
+
+                // cant error because we fetch pools above
+                let adjacents = graph.get(&start).unwrap();
+
+                // items that are adjecent but not already in path
+                let difference: Vec<_> = adjacents
+                    .iter()
+                    .filter(|item| !path.contains(item))
+                    .collect();
+
+                for node in difference {
+                    queue.push((*node, end, path.clone()));
+                }
+            }
+
+            // get output amounts for all routes
+            let mut output_routes = Self::get_output_routes(amount_in, paths).unwrap();
+
+            // sort values greatest to least
+            output_routes.sort_by_key(|k| Reverse(k.1));
+
+            Ok(output_routes)
+        }
+
+        /// Returns the route that results in the largest amount out for amount in
+        pub fn get_best_route(
+            amount_in: BalanceOf<T, I>,
+            token_in: AssetIdOf<T, I>,
+            token_out: AssetIdOf<T, I>,
+        ) -> Result<(Vec<AssetIdOf<T, I>>, BalanceOf<T, I>), DispatchError> {
+            let mut all_routes = Self::get_all_routes(amount_in, token_in, token_out)?;
+            ensure!(!all_routes.is_empty(), Error::<T, I>::ZeroBalance);
+            let best_route = all_routes.remove(0);
+
+            log::trace!(
+                target: "router::get_best_route",
+                "amount in :{:?}, token_in: {:?}, token_out: {:?}, best_route: {:?}",
+                amount_in,
+                token_in,
+                token_out,
+                best_route
+            );
+
+            Ok(best_route)
+        }
+
+        ///  Returns output routes for given amount from all available routes
+        pub fn get_output_routes(
+            amount_in: BalanceOf<T, I>,
+            routes: Vec<Vec<AssetIdOf<T, I>>>,
+        ) -> Result<Vec<(Vec<AssetIdOf<T, I>>, BalanceOf<T, I>)>, DispatchError> {
+            let mut output_routes = Vec::new();
+
+            for route in routes {
+                let amounts = T::AMM::get_amounts_out(amount_in, route.clone())?;
+                output_routes.push((route, amounts[amounts.len() - 1]));
+            }
+
+            Ok(output_routes)
+        }
+    }
+
+    #[pallet::call]
+    impl<T: Config<I>, I: 'static> Pallet<T, I> {
+        /// Given input amount is fixed, the output token amount is not known in advance.
+        ///
+        /// - `origin`: the trader.
+        /// - `route`: the route user inputs
+        /// - `amount_in`: the amount of trading assets
+        /// - `min_amount_out`: the minimum a trader is willing to recieve
+        #[pallet::weight(T::AMMRouterWeightInfo::swap_exact_tokens_for_tokens())]
+        #[transactional]
+        pub fn swap_exact_tokens_for_tokens(
+            origin: OriginFor<T>,
+            route: Vec<AssetIdOf<T, I>>,
+            #[pallet::compact] amount_in: BalanceOf<T, I>,
+            #[pallet::compact] min_amount_out: BalanceOf<T, I>,
+        ) -> DispatchResultWithPostInfo {
+            let trader = ensure_signed(origin)?;
+
+            // do all checks on routes
+            Self::route_checks(&route)?;
 
             // Ensure balances user input is bigger than zero.
             ensure!(
@@ -159,36 +275,89 @@ pub mod pallet {
                 Error::<T, I>::ZeroBalance
             );
 
-            // Ensure user iput a valid block number.
-            let current_block_num = <frame_system::Pallet<T>>::block_number();
-            ensure!(expiry > current_block_num, Error::<T, I>::TooSmallExpiry);
-
             // Ensure the trader has enough tokens for transaction.
-            let (from_currency_id, _) = route[0];
+            let from_currency_id = route[0];
             ensure!(
                 <T as Config<I>>::Assets::balance(from_currency_id, &trader) > amount_in,
                 Error::<T, I>::InsufficientBalance
             );
 
-            let original_amount_in = amount_in;
-            let mut amount_out: BalanceOf<T, I> = Zero::zero();
-            for sub_route in route.iter() {
-                let (from_currency_id, to_currency_id) = sub_route;
-                amount_out = T::AMM::trade(
-                    &trader,
-                    (*from_currency_id, *to_currency_id),
-                    amount_in,
-                    One::one(),
-                )?;
-                amount_in = amount_out;
-            }
+            let amounts = T::AMM::get_amounts_out(amount_in, route.clone())?;
 
+            // make sure the required amount in does not violate our input
             ensure!(
-                amount_out >= min_amount_out,
-                Error::<T, I>::UnexpectedSlippage
+                amounts[amounts.len() - 1] > min_amount_out,
+                Error::<T, I>::MinimumAmountOutViolated
             );
 
-            Self::deposit_event(Event::Traded(trader, original_amount_in, route, amount_out));
+            for i in 0..(route.len() - 1) {
+                let next_index = i + 1;
+                T::AMM::swap(&trader, (route[i], route[next_index]), amounts[i])?;
+            }
+
+            Self::deposit_event(Event::Traded(
+                trader,
+                amounts[0],
+                route,
+                amounts[amounts.len() - 1],
+            ));
+
+            Ok(().into())
+        }
+
+        /// Given the output token amount is fixed, the input token amount is not known.
+        ///
+        /// - `origin`: the trader.
+        /// - `route`: the route user inputs
+        /// - `amount_out`: the amount of trading assets
+        /// - `max_amount_in`: the maximum a trader is willing to input
+        #[pallet::weight(T::AMMRouterWeightInfo::swap_tokens_for_exact_tokens())]
+        #[transactional]
+        pub fn swap_tokens_for_exact_tokens(
+            origin: OriginFor<T>,
+            route: Vec<AssetIdOf<T, I>>,
+            #[pallet::compact] amount_out: BalanceOf<T, I>,
+            #[pallet::compact] max_amount_in: BalanceOf<T, I>,
+        ) -> DispatchResultWithPostInfo {
+            let trader = ensure_signed(origin)?;
+
+            // do all checks on routes
+            Self::route_checks(&route)?;
+
+            // Ensure balances user input is bigger than zero.
+            ensure!(
+                max_amount_in > Zero::zero() && max_amount_in >= Zero::zero(),
+                Error::<T, I>::ZeroBalance
+            );
+
+            // calculate trading amounts
+            let amounts = T::AMM::get_amounts_in(amount_out, route.clone())?;
+
+            // we need to check after calc so we know how much is expected to be input
+            // Ensure the trader has enough tokens for transaction.
+            let from_currency_id = route[0];
+            ensure!(
+                <T as Config<I>>::Assets::balance(from_currency_id, &trader) > amounts[0],
+                Error::<T, I>::InsufficientBalance
+            );
+
+            // make sure the required amount in does not violate our input
+            ensure!(
+                max_amount_in > amounts[0],
+                Error::<T, I>::MaximumAmountInViolated
+            );
+
+            for i in 0..(route.len() - 1) {
+                let next_index = i + 1;
+                T::AMM::swap(&trader, (route[i], route[next_index]), amounts[i])?;
+            }
+
+            Self::deposit_event(Event::Traded(
+                trader,
+                amounts[0],
+                route,
+                amounts[amounts.len() - 1],
+            ));
 
             Ok(().into())
         }

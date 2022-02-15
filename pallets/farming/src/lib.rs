@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # Pure Liquidity Mining (PLM)
+//! # Pure Farming (FAR)
 //!
-//! pallet-liquidity-mining is in charge of creating a governance-controlled incentivization program for our different products.
+//! pallet-farming is in charge of creating a governance-controlled incentivization program for our different products.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -29,18 +29,16 @@ mod benchmarking;
 
 pub mod weights;
 
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
     pallet_prelude::*,
     traits::{
         fungibles::{Inspect, Mutate, Transfer},
-        Get, Hooks, IsType,
+        Get, IsType,
     },
     transactional, Blake2_128Concat, PalletId,
 };
-use frame_system::ensure_signed;
-use frame_system::pallet_prelude::OriginFor;
-pub use pallet::*;
+use frame_system::{ensure_signed, pallet_prelude::OriginFor};
 use primitives::{Balance, CurrencyId};
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
@@ -50,6 +48,9 @@ use sp_runtime::{
     traits::{AccountIdConversion, Saturating, StaticLookup, Zero},
     ArithmeticError, SaturatedConversion,
 };
+use sp_std::result::Result;
+
+pub use pallet::*;
 pub use weights::WeightInfo;
 
 pub type AssetIdOf<T, I = ()> =
@@ -62,10 +63,7 @@ pub mod pallet {
     use super::*;
 
     #[pallet::config]
-    pub trait Config<I: 'static = ()>:
-        frame_system::Config
-        + pallet_assets::Config<AssetId = AssetIdOf<Self, I>, Balance = BalanceOf<Self, I>>
-    {
+    pub trait Config<I: 'static = ()>: frame_system::Config {
         type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Currency type for deposit/withdraw assets to/from plm
@@ -103,6 +101,8 @@ pub mod pallet {
         NotAValidAmount,
         /// The end block is smaller than start block
         SmallerThanEndBlock,
+        /// Codec error
+        CodecError,
     }
 
     #[pallet::event]
@@ -113,20 +113,27 @@ pub mod pallet {
         PoolAdded(AssetIdOf<T, I>),
         /// Deposited Assets in pool
         /// [sender, asset_id]
-        DepositedAssets(T::AccountId, AssetIdOf<T, I>),
+        AssetsDeposited(T::AccountId, AssetIdOf<T, I>),
         /// Withdrew Assets from pool
         /// [sender, asset_id]
-        WithdrewAssets(T::AccountId, AssetIdOf<T, I>),
+        AssetsWithdrew(T::AccountId, AssetIdOf<T, I>),
     }
-
-    #[pallet::hooks]
-    impl<T: Config<I>, I: 'static> Hooks<T::BlockNumber> for Pallet<T, I> {}
 
     #[pallet::pallet]
     pub struct Pallet<T, I = ()>(_);
 
     #[derive(
-        Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, TypeInfo,
+        Encode,
+        Decode,
+        Eq,
+        PartialEq,
+        Copy,
+        Clone,
+        RuntimeDebug,
+        PartialOrd,
+        Ord,
+        TypeInfo,
+        MaxEncodedLen,
     )]
     #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
     pub struct Pool<BlockNumber, AssetId, BoundedTokens> {
@@ -137,7 +144,7 @@ pub mod pallet {
         /// Which assets we use to send rewards
         rewards: BoundedTokens,
         /// Which asset we use to represent shares of the pool
-        shares: AssetId,
+        asset_id: AssetId,
     }
 
     /// Each pool is associated to a unique AssetId (not be mixed with the reward asset)
@@ -167,7 +174,7 @@ pub mod pallet {
             start: T::BlockNumber,
             end: T::BlockNumber,
             rewards: BoundedVec<(BalanceOf<T, I>, AssetIdOf<T, I>), T::MaxRewardTokens>,
-            shares: AssetIdOf<T, I>,
+            asset_id: AssetIdOf<T, I>,
         ) -> DispatchResultWithPostInfo {
             T::CreateOrigin::ensure_origin(origin)?;
 
@@ -179,7 +186,7 @@ pub mod pallet {
             );
 
             ensure!(
-                T::Assets::total_issuance(shares) == Zero::zero(),
+                T::Assets::total_issuance(asset_id).is_zero(),
                 Error::<T, I>::NotANewlyCreatedAsset
             );
 
@@ -191,18 +198,24 @@ pub mod pallet {
 
             let stash = T::Lookup::lookup(stash)?;
 
-            let asset_pool_account = Self::pool_account_id(asset);
-
-            for (b, r) in rewards.clone() {
-                let balance = Self::block_to_balance(end.saturating_sub(start)).saturating_mul(b);
-                T::Assets::transfer(r, &stash, &asset_pool_account, balance, true)?;
+            let asset_pool_account = Self::pool_account_id(asset)?;
+            for (per_block, reward_token) in rewards.clone() {
+                let total_rewards =
+                    Self::block_to_balance(end.saturating_sub(start)).saturating_mul(per_block);
+                T::Assets::transfer(
+                    reward_token,
+                    &stash,
+                    &asset_pool_account,
+                    total_rewards,
+                    true,
+                )?;
             }
 
             let pool = Pool {
                 start,
                 end,
                 rewards,
-                shares,
+                asset_id,
             };
 
             Pools::<T, I>::insert(&asset, pool);
@@ -216,15 +229,15 @@ pub mod pallet {
         pub fn deposit(
             origin: OriginFor<T>,
             asset: AssetIdOf<T, I>,
-            amount: BalanceOf<T, I>,
+            #[pallet::compact] amount: BalanceOf<T, I>,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
             ensure!(amount != Zero::zero(), Error::<T, I>::NotAValidAmount);
 
-            let asset_pool_account = Self::pool_account_id(asset);
+            let asset_pool_account = Self::pool_account_id(asset)?;
             Pools::<T, I>::try_mutate(asset, |liquidity_pool| -> DispatchResult {
                 let pool = liquidity_pool
-                    .take()
+                    .as_mut()
                     .ok_or(Error::<T, I>::PoolDoesNotExist)?;
 
                 let current_block_number = <frame_system::Pallet<T>>::block_number();
@@ -235,11 +248,9 @@ pub mod pallet {
 
                 T::Assets::transfer(asset, &who, &asset_pool_account, amount, true)?;
 
-                T::Assets::mint_into(pool.shares, &who, amount)?;
+                T::Assets::mint_into(pool.asset_id, &who, amount)?;
 
-                *liquidity_pool = Some(pool);
-
-                Self::deposit_event(Event::<T, I>::DepositedAssets(who, asset));
+                Self::deposit_event(Event::<T, I>::AssetsDeposited(who, asset));
                 Ok(())
             })
         }
@@ -250,34 +261,39 @@ pub mod pallet {
         pub fn withdraw(
             origin: OriginFor<T>,
             asset: AssetIdOf<T, I>,
-            amount: BalanceOf<T, I>,
+            #[pallet::compact] amount: BalanceOf<T, I>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             ensure!(amount != Zero::zero(), Error::<T, I>::NotAValidAmount);
 
-            let asset_pool_account = Self::pool_account_id(asset);
-
+            let asset_pool_account = Self::pool_account_id(asset)?;
             Pools::<T, I>::try_mutate(asset, |liquidity_pool| -> DispatchResultWithPostInfo {
                 let pool = liquidity_pool
-                    .take()
+                    .as_mut()
                     .ok_or(Error::<T, I>::PoolDoesNotExist)?;
 
-                for (b, r) in pool.rewards.clone() {
+                for (per_block, reward_token) in pool.rewards.clone() {
                     let duration: T::BlockNumber =
                         <frame_system::Pallet<T>>::block_number().saturating_sub(pool.start);
-                    let amount_to_reward = (amount
-                        .checked_div(T::Assets::total_issuance(pool.shares))
-                        .ok_or(ArithmeticError::Overflow)?)
-                    .saturating_mul(Self::block_to_balance(duration).saturating_mul(b));
+                    let percent = amount
+                        .checked_div(T::Assets::total_issuance(pool.asset_id))
+                        .ok_or(ArithmeticError::Overflow)?;
+                    let total_rewards = percent
+                        .saturating_mul(Self::block_to_balance(duration).saturating_mul(per_block));
 
-                    T::Assets::transfer(r, &asset_pool_account, &who, amount_to_reward, true)?;
+                    T::Assets::transfer(
+                        reward_token,
+                        &asset_pool_account,
+                        &who,
+                        total_rewards,
+                        true,
+                    )?;
                 }
 
                 T::Assets::transfer(asset, &asset_pool_account, &who, amount, true)?;
-                T::Assets::burn_from(pool.shares, &who, amount)?;
+                T::Assets::burn_from(pool.asset_id, &who, amount)?;
 
-                *liquidity_pool = Some(pool);
-                Self::deposit_event(Event::<T, I>::WithdrewAssets(who, asset));
+                Self::deposit_event(Event::<T, I>::AssetsWithdrew(who, asset));
                 Ok(().into())
             })
         }
@@ -285,13 +301,13 @@ pub mod pallet {
 }
 
 impl<T: Config<I>, I: 'static> Pallet<T, I> {
-    pub fn pool_account_id(asset_id: AssetIdOf<T, I>) -> T::AccountId {
+    pub fn pool_account_id(asset_id: AssetIdOf<T, I>) -> Result<T::AccountId, DispatchError> {
         let account_id: T::AccountId = T::PalletId::get().into_account();
         let entropy = (b"modlpy/liquidity", &[account_id], asset_id).using_encoded(blake2_256);
-        T::AccountId::decode(&mut &entropy[..]).unwrap_or_default()
+        Ok(T::AccountId::decode(&mut &entropy[..]).map_err(|_| Error::<T, I>::CodecError)?)
     }
 
-    fn block_to_balance(input: T::BlockNumber) -> T::Balance {
-        input.saturated_into::<u128>()
+    fn block_to_balance(duration: T::BlockNumber) -> BalanceOf<T, I> {
+        duration.saturated_into()
     }
 }

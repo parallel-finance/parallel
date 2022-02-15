@@ -31,7 +31,7 @@ make help
 
 ### Local Testnet
 
-Polkadot (v0.9.13 branch)
+Polkadot (v0.9.16 branch)
 
 ```
 cargo build --release

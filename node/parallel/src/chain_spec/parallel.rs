@@ -125,6 +125,7 @@ pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
         vec![],
         TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
         Some("parallel-dev"),
+        None,
         Some(as_properties(NetworkType::Parallel)),
         Extensions {
             relay_chain: "westend-local".into(),
@@ -204,9 +205,13 @@ pub fn parallel_config(_id: ParaId) -> Result<ChainSpec, String> {
     //         "/dns/bootnode-2.parallel.fi/tcp/30333/p2p/12D3KooWRmZsTs77aMK5WR3VwqWPeQVnm8JgEKcX8EykcCBnibFu".parse().unwrap(),
     //         "/dns/bootnode-3.parallel.fi/tcp/30333/p2p/12D3KooWDcN56Jwh96c4od3zc9RMSQciBASNd1vgiVfTZbCxxUKE".parse().unwrap(),
     //         "/dns/bootnode-4.parallel.fi/tcp/30333/p2p/12D3KooWKh8KPixgUcxuhweCxnd8DpXGhigi4izLLf5g88KtDBs9".parse().unwrap(),
+    //         "/dns/bootnode-5.parallel.fi/tcp/30333/p2p/12D3KooWGxnMnE1AFriohESDGQnpYBzbxBpRDf3MFNu8yuobJBbF".parse().unwrap(),
+    //         "/dns/bootnode-6.parallel.fi/tcp/30333/p2p/12D3KooWDXwaaUm6LBAkDbM4mZDQ6HooWA99rm7a6fWiLq5hHwBA".parse().unwrap(),
+    //         "/dns/bootnode-7.parallel.fi/tcp/30333/p2p/12D3KooWKefwJNzBJzXxdL8wP59k5zfZZ5SBv5NUWeEyYcwugtK9".parse().unwrap()
     //     ],
     //     TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
     //     Some("parallel"),
+    //     None,
     //     Some(as_properties(network::NetworkType::Parallel)),
     //     Extensions {
     //         relay_chain: "polkadot".into(),
@@ -261,7 +266,9 @@ fn parallel_genesis(
         aura: Default::default(),
         aura_ext: Default::default(),
         parachain_system: Default::default(),
-        sudo: SudoConfig { key: root_key },
+        sudo: SudoConfig {
+            key: Some(root_key),
+        },
         parachain_info: ParachainInfoConfig { parachain_id: id },
         liquid_staking: LiquidStakingConfig {
             exchange_rate: Rate::saturating_from_rational(100_u32, 100_u32), // 1

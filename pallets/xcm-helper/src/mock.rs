@@ -58,7 +58,7 @@ parameter_types! {
 
 impl cumulus_pallet_parachain_system::Config for Test {
     type Event = Event;
-    type OnValidationData = ();
+    type OnSystemEvent = ();
     type SelfParaId = ParachainInfo;
     type DmpMessageHandler = DmpQueue;
     type ReservedDmpWeight = ReservedDmpWeight;
@@ -143,6 +143,7 @@ impl Config for XcmConfig {
 impl cumulus_pallet_xcmp_queue::Config for Test {
     type Event = Event;
     type XcmExecutor = XcmExecutor<XcmConfig>;
+    type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
     type ChannelInfo = ParachainSystem;
     type VersionWrapper = ();
 }
@@ -279,6 +280,7 @@ impl frame_system::Config for Test {
     type SystemWeightInfo = ();
     type SS58Prefix = SS58Prefix;
     type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
+    type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 parameter_types! {
@@ -318,12 +320,12 @@ parameter_types! {
     pub const MinContribution: Balance = 0;
     pub const MigrateKeysLimit: u32 = 10;
     pub SelfParaId: ParaId = para_a_id();
-    pub RefundLocation: AccountId = para_a_id().into_account();
 }
 
 parameter_types! {
     pub const XcmHelperPalletId: PalletId = PalletId(*b"par/fees");
     pub const NotifyTimeout: BlockNumber = 100;
+    pub RefundLocation: AccountId = para_a_id().into_account();
 }
 
 impl crate::Config for Test {
@@ -334,6 +336,8 @@ impl crate::Config for Test {
     type PalletId = XcmHelperPalletId;
     type RelayNetwork = RelayNetwork;
     type NotifyTimeout = NotifyTimeout;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type RefundLocation = RefundLocation;
     type BlockNumberProvider = frame_system::Pallet<Test>;
     type WeightInfo = ();
 }
@@ -341,6 +345,7 @@ impl crate::Config for Test {
 parameter_types! {
     pub const AssetDeposit: Balance = DOT_DECIMAL;
     pub const ApprovalDeposit: Balance = 0;
+    pub const AssetAccountDeposit: Balance = 0;
     pub const AssetsStringLimit: u32 = 50;
     pub const MetadataDepositBase: Balance = 0;
     pub const MetadataDepositPerByte: Balance = 0;
@@ -355,6 +360,7 @@ impl pallet_assets::Config for Test {
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
     type MetadataDepositPerByte = MetadataDepositPerByte;
+    type AssetAccountDeposit = AssetAccountDeposit;
     type ApprovalDeposit = ApprovalDeposit;
     type StringLimit = AssetsStringLimit;
     type Freezer = ();
@@ -421,7 +427,7 @@ decl_test_parachain! {
 decl_test_relay_chain! {
     pub struct Relay {
         Runtime = kusama_runtime::Runtime,
-        XcmConfig = kusama_runtime::XcmConfig,
+        XcmConfig = kusama_runtime::xcm_config::XcmConfig,
         new_ext = relay_ext(),
     }
 }

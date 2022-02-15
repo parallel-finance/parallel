@@ -2,6 +2,7 @@ use crate::InterestRateModel;
 use frame_support::pallet_prelude::*;
 use primitives::{CurrencyId, Rate, Ratio};
 use scale_info::TypeInfo;
+
 /// Container for borrow balance information
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, Default, TypeInfo)]
 pub struct BorrowSnapshot<Balance> {

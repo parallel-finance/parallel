@@ -156,7 +156,7 @@ pub mod pallet {
         /// The factor should be bigger than 0% and smaller than 100%
         InvalidFactor,
         /// The cap cannot be zero
-        ZeroCap,
+        InvalidCap,
         /// Payer cannot be signer
         PayerIsSigner,
     }
@@ -321,6 +321,7 @@ pub mod pallet {
         StorageMap<_, Blake2_128Concat, AssetIdOf<T>, AssetIdOf<T>>;
 
     #[pallet::pallet]
+    #[pallet::without_storage_info]
     pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::hooks]
@@ -417,7 +418,7 @@ pub mod pallet {
                 market.reserve_factor > Ratio::zero() && market.reserve_factor < Ratio::one(),
                 Error::<T>::InvalidFactor,
             );
-            ensure!(market.cap > Zero::zero(), Error::<T>::ZeroCap,);
+            ensure!(market.cap > Zero::zero(), Error::<T>::InvalidCap,);
 
             // Ensures a given `ptoken_id` not exists on the `Market` and `UnderlyingAssetId`.
             Self::ensure_ptoken(market.ptoken_id)?;
@@ -508,7 +509,7 @@ pub mod pallet {
                 reserve_factor > Ratio::zero() && reserve_factor < Ratio::one(),
                 Error::<T>::InvalidFactor
             );
-            ensure!(cap > Zero::zero(), Error::<T>::ZeroCap);
+            ensure!(cap > Zero::zero(), Error::<T>::InvalidCap);
 
             let market = Self::mutate_market(asset_id, |stored_market| {
                 *stored_market = Market {

@@ -22,9 +22,9 @@ use frame_support::{
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
+use sp_runtime::{testing::Header, traits::IdentityLookup};
 
-pub use primitives::{tokens, Amount, Balance, CurrencyId, AMM};
+pub use primitives::{tokens, Amount, Balance, CurrencyId, Ratio, AMM};
 
 pub type AccountId = u128;
 pub type BlockNumber = u64;
@@ -38,7 +38,9 @@ pub const DOT: CurrencyId = tokens::DOT;
 pub const XDOT: CurrencyId = tokens::XDOT;
 pub const USDT: CurrencyId = tokens::USDT;
 pub const KSM: CurrencyId = tokens::KSM;
-
+pub const SAMPLE_LP_TOKEN: CurrencyId = 42;
+pub const SAMPLE_LP_TOKEN_2: CurrencyId = 43;
+pub const SAMPLE_LP_TOKEN_3: CurrencyId = 44;
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
 }
@@ -67,6 +69,7 @@ impl frame_system::Config for Runtime {
     type SystemWeightInfo = ();
     type SS58Prefix = ();
     type OnSetCode = ();
+    type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 // pallet-balances configuration
@@ -91,6 +94,7 @@ impl pallet_balances::Config for Runtime {
 parameter_types! {
     pub const AssetDeposit: u64 = 1;
     pub const ApprovalDeposit: u64 = 1;
+    pub const AssetAccountDeposit: u64 = 1;
     pub const StringLimit: u32 = 50;
     pub const MetadataDepositBase: u64 = 1;
     pub const MetadataDepositPerByte: u64 = 1;
@@ -105,6 +109,7 @@ impl pallet_assets::Config for Runtime {
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
     type MetadataDepositPerByte = MetadataDepositPerByte;
+    type AssetAccountDeposit = AssetAccountDeposit;
     type ApprovalDeposit = ApprovalDeposit;
     type StringLimit = StringLimit;
     type Freezer = ();
@@ -115,9 +120,12 @@ impl pallet_assets::Config for Runtime {
 // AMM instance initialization
 parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
-    pub const DefaultLpFee: Perbill = Perbill::from_perthousand(3);         // 0.3%
-    pub const DefaultProtocolFee: Perbill = Perbill::from_perthousand(2);   // 0.2%
+    pub const DefaultLpFee: Ratio = Ratio::from_perthousand(3);         // 0.3%
+    pub const DefaultProtocolFee: Ratio = Ratio::from_perthousand(2);   // 0.2%
     pub const DefaultProtocolFeeReceiver: AccountId = CHARLIE;
+    pub const MinimumLiquidity: u128 = 1_000u128;
+    pub const LockAccountId: AccountId = ALICE;
+
 }
 
 pub struct AliceCreatePoolOrigin;
@@ -131,11 +139,14 @@ impl pallet_amm::Config for Runtime {
     type Event = Event;
     type Assets = CurrencyAdapter;
     type PalletId = AMMPalletId;
+    type LockAccountId = LockAccountId;
     type AMMWeightInfo = ();
     type CreatePoolOrigin = EnsureSignedBy<AliceCreatePoolOrigin, AccountId>;
     type LpFee = DefaultLpFee;
     type ProtocolFee = DefaultProtocolFee;
+    type MinimumLiquidity = MinimumLiquidity;
     type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
+    type MaxLengthRoute = MaxLengthRoute;
 }
 
 parameter_types! {
@@ -155,7 +166,7 @@ parameter_types! {
 
 impl Config for Runtime {
     type Event = Event;
-    type RouterPalletId = RouterPalletId;
+    type PalletId = RouterPalletId;
     type AMM = DefaultAMM;
     type AMMRouterWeightInfo = ();
     type MaxLengthRoute = MaxLengthRoute;
@@ -201,9 +212,9 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         Assets::force_create(Origin::root(), tokens::USDT, ALICE, true, 1).unwrap();
 
         // lp tokens
-        Assets::force_create(Origin::root(), 10, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), 11, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), 12, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), SAMPLE_LP_TOKEN, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), SAMPLE_LP_TOKEN_2, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), SAMPLE_LP_TOKEN_3, ALICE, true, 1).unwrap();
 
         Assets::mint(Origin::signed(ALICE), tokens::DOT, ALICE, 10_000).unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::XDOT, ALICE, 10_000).unwrap();
@@ -216,8 +227,4 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     });
 
     ext
-}
-
-pub(crate) fn run_to_block(n: u64) {
-    System::set_block_number(n);
 }

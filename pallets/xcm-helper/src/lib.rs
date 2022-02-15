@@ -38,7 +38,7 @@ use frame_support::{
 use frame_system::pallet_prelude::BlockNumberFor;
 
 use primitives::{switch_relay, ump::*, Balance, CurrencyId, ParaId};
-use sp_runtime::traits::{AccountIdConversion, BlockNumberProvider, StaticLookup};
+use sp_runtime::traits::{AccountIdConversion, BlockNumberProvider, Convert, StaticLookup};
 use sp_std::{boxed::Box, vec, vec::Vec};
 use xcm::{latest::prelude::*, DoubleEncoded};
 use xcm_executor::traits::InvertLocation;
@@ -55,7 +55,7 @@ pub mod pallet {
     use frame_system::pallet_prelude::{BlockNumberFor, OriginFor};
 
     use super::*;
-    use sp_runtime::traits::Zero;
+    use sp_runtime::traits::{Convert, Zero};
 
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_xcm::Config {
@@ -76,6 +76,13 @@ pub mod pallet {
         /// Pallet account for collecting xcm fees
         #[pallet::constant]
         type PalletId: Get<PalletId>;
+
+        /// Account on relaychain for receiving refunded fees
+        #[pallet::constant]
+        type RefundLocation: Get<Self::AccountId>;
+
+        /// Convert `T::AccountId` to `MultiLocation`.
+        type AccountIdToMultiLocation: Convert<Self::AccountId, MultiLocation>;
 
         /// Notify call timeout
         #[pallet::constant]
@@ -122,6 +129,8 @@ pub mod pallet {
         ZeroXcmWeightMisc,
         /// Xcm fees cannot be zero
         ZeroXcmFees,
+        /// Insufficient xcm fees
+        InsufficientXcmFees,
         /// sufficient fund is not available
         NotSufficientFund,
     }
@@ -181,7 +190,6 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
 
     fn do_withdraw(
         para_id: ParaId,
-        beneficiary: MultiLocation,
         relay_currency: AssetId,
         para_account_id: AccountId,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
@@ -189,7 +197,6 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
 
     fn do_contribute(
         para_id: ParaId,
-        beneficiary: MultiLocation,
         relay_currency: AssetId,
         amount: Balance,
         who: &AccountId,
@@ -201,58 +208,60 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
         value: Balance,
         payee: RewardDestination<AccountId>,
         stash: AccountId,
-        beneficiary: MultiLocation,
         relay_currency: AssetId,
         index: u16,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
         pallet_id: PalletId,
-    ) -> DispatchResult;
+    ) -> Result<QueryId, DispatchError>;
 
     fn do_bond_extra(
         value: Balance,
         stash: AccountId,
-        beneficiary: MultiLocation,
         relay_currency: AssetId,
         index: u16,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
         pallet_id: PalletId,
-    ) -> DispatchResult;
+    ) -> Result<QueryId, DispatchError>;
 
     fn do_unbond(
         value: Balance,
-        beneficiary: MultiLocation,
         relay_currency: AssetId,
         index: u16,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
         pallet_id: PalletId,
-    ) -> DispatchResult;
+    ) -> Result<QueryId, DispatchError>;
 
     fn do_rebond(
         value: Balance,
-        beneficiary: MultiLocation,
         relay_currency: AssetId,
         index: u16,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
         pallet_id: PalletId,
-    ) -> DispatchResult;
+    ) -> Result<QueryId, DispatchError>;
 
     fn do_withdraw_unbonded(
         num_slashing_spans: u32,
-        amount: Balance,
-        beneficiary: MultiLocation,
         para_account_id: AccountId,
         staking_currency: AssetId,
         index: u16,
-        pallet_id: PalletId,
-    ) -> DispatchResult;
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError>;
 
     fn do_nominate(
         targets: Vec<AccountId>,
-        beneficiary: MultiLocation,
         relay_currency: AssetId,
         index: u16,
-    ) -> DispatchResult;
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError>;
 }
 
 impl<T: Config> Pallet<T> {
     pub fn account_id() -> AccountIdOf<T> {
         T::PalletId::get().into_account()
+    }
+
+    pub fn refund_location() -> MultiLocation {
+        T::AccountIdToMultiLocation::convert(T::RefundLocation::get())
     }
 
     pub fn get_account_id(pallet_id: PalletId) -> AccountIdOf<T> {
@@ -308,7 +317,8 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
     ) -> Result<Xcm<()>, DispatchError> {
         let fees = Self::xcm_fees();
         let asset: MultiAsset = (MultiLocation::here(), fees).into();
-        T::Assets::burn_from(relay_currency, &Self::account_id(), fees)?;
+        T::Assets::burn_from(relay_currency, &Self::account_id(), fees)
+            .map_err(|_| Error::<T>::InsufficientXcmFees)?;
 
         Ok(Xcm(vec![
             WithdrawAsset(MultiAssets::from(asset.clone())),
@@ -332,7 +342,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
 
     fn do_withdraw(
         para_id: ParaId,
-        beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         para_account_id: AccountIdOf<T>,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
@@ -347,7 +356,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
             let mut msg = Self::ump_transact(
                 call.encode().into(),
                 Self::xcm_weight().withdraw_weight,
-                beneficiary,
+                Self::refund_location(),
                 relay_currency,
             )?;
 
@@ -368,7 +377,6 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
 
     fn do_contribute(
         para_id: ParaId,
-        beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         amount: BalanceOf<T>,
         _who: &AccountIdOf<T>,
@@ -390,7 +398,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
             let mut msg = Self::ump_transact(
                 call.encode().into(),
                 Self::xcm_weight().contribute_weight,
-                beneficiary,
+                Self::refund_location(),
                 relay_currency,
             )?;
 
@@ -413,16 +421,16 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         value: BalanceOf<T>,
         payee: RewardDestination<AccountIdOf<T>>,
         stash: AccountIdOf<T>,
-        beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         index: u16,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
         pallet_id: PalletId,
-    ) -> DispatchResult {
+    ) -> Result<QueryId, DispatchError> {
         let controller = stash.clone();
 
         let balance = T::Assets::balance(relay_currency, &Self::get_account_id(pallet_id));
         ensure!(value < balance, Error::<T>::NotSufficientFund);
-        switch_relay!({
+        Ok(switch_relay!({
             let call =
                 RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
                     calls: vec![
@@ -447,33 +455,40 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                     ],
                 })));
 
-            let msg = Self::ump_transact(
+            let mut msg = Self::ump_transact(
                 call.encode().into(),
                 Self::xcm_weight().bond_weight,
-                beneficiary,
+                Self::refund_location(),
                 relay_currency,
+            )?;
+
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
             )?;
 
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
             }
-        });
 
-        Ok(())
+            query_id
+        }))
     }
 
     fn do_bond_extra(
         value: BalanceOf<T>,
         stash: AccountIdOf<T>,
-        beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         index: u16,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
         pallet_id: PalletId,
-    ) -> DispatchResult {
+    ) -> Result<QueryId, DispatchError> {
         let balance = T::Assets::balance(relay_currency, &Self::get_account_id(pallet_id));
         ensure!(value < balance, Error::<T>::NotSufficientFund);
 
-        switch_relay!({
+        Ok(switch_relay!({
             let call =
                 RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
                     calls: vec![
@@ -494,31 +509,39 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                     ],
                 })));
 
-            let msg = Self::ump_transact(
+            let mut msg = Self::ump_transact(
                 call.encode().into(),
                 Self::xcm_weight().bond_extra_weight,
-                beneficiary,
+                Self::refund_location(),
                 relay_currency,
+            )?;
+
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
             )?;
 
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
             }
-        });
-        Ok(())
+
+            query_id
+        }))
     }
 
     fn do_unbond(
         value: BalanceOf<T>,
-        beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         index: u16,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
         pallet_id: PalletId,
-    ) -> DispatchResult {
+    ) -> Result<QueryId, DispatchError> {
         let balance = T::Assets::balance(relay_currency, &Self::get_account_id(pallet_id));
         ensure!(value < balance, Error::<T>::NotSufficientFund);
 
-        switch_relay!({
+        Ok(switch_relay!({
             let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
                 UtilityAsDerivativeCall {
                     index,
@@ -528,32 +551,39 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                 },
             )));
 
-            let msg = Self::ump_transact(
+            let mut msg = Self::ump_transact(
                 call.encode().into(),
                 Self::xcm_weight().unbond_weight,
-                beneficiary,
+                Self::refund_location(),
                 relay_currency,
+            )?;
+
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
             )?;
 
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
             }
-        });
 
-        Ok(())
+            query_id
+        }))
     }
 
     fn do_rebond(
         value: BalanceOf<T>,
-        beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         index: u16,
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
         pallet_id: PalletId,
-    ) -> DispatchResult {
+    ) -> Result<QueryId, DispatchError> {
         let balance = T::Assets::balance(relay_currency, &Self::get_account_id(pallet_id));
         ensure!(value < balance, Error::<T>::NotSufficientFund);
 
-        switch_relay!({
+        Ok(switch_relay!({
             let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
                 UtilityAsDerivativeCall {
                     index,
@@ -563,36 +593,36 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                 },
             )));
 
-            let msg = Self::ump_transact(
+            let mut msg = Self::ump_transact(
                 call.encode().into(),
                 Self::xcm_weight().rebond_weight,
-                beneficiary,
+                Self::refund_location(),
                 relay_currency,
+            )?;
+
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
             )?;
 
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
             }
-        });
 
-        Ok(())
+            query_id
+        }))
     }
 
     fn do_withdraw_unbonded(
         num_slashing_spans: u32,
-        amount: BalanceOf<T>,
-        beneficiary: MultiLocation,
         para_account_id: AccountIdOf<T>,
         relay_currency: AssetIdOf<T>,
         index: u16,
-        pallet_id: PalletId,
-    ) -> DispatchResult {
-        let balance = T::Assets::balance(relay_currency, &Self::get_account_id(pallet_id));
-        ensure!(amount < balance, Error::<T>::NotSufficientFund);
-
-        T::Assets::mint_into(relay_currency, &Self::account_id(), amount)?;
-
-        switch_relay!({
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError> {
+        Ok(switch_relay!({
             let call =
                 RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
                     calls: vec![
@@ -618,30 +648,37 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                     ],
                 })));
 
-            let msg = Self::ump_transact(
+            let mut msg = Self::ump_transact(
                 call.encode().into(),
                 Self::xcm_weight().withdraw_unbonded_weight,
-                beneficiary,
+                Self::refund_location(),
                 relay_currency,
+            )?;
+
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
             )?;
 
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
             }
-        });
 
-        Ok(())
+            query_id
+        }))
     }
 
     fn do_nominate(
         targets: Vec<AccountIdOf<T>>,
-        beneficiary: MultiLocation,
         relay_currency: AssetIdOf<T>,
         index: u16,
-    ) -> DispatchResult {
+        notify: impl Into<<T as pallet_xcm::Config>::Call>,
+    ) -> Result<QueryId, DispatchError> {
         let targets_source = targets.into_iter().map(T::Lookup::unlookup).collect();
 
-        switch_relay!({
+        Ok(switch_relay!({
             let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
                 UtilityAsDerivativeCall {
                     index,
@@ -653,18 +690,25 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
                 },
             )));
 
-            let msg = Self::ump_transact(
+            let mut msg = Self::ump_transact(
                 call.encode().into(),
                 Self::xcm_weight().nominate_weight,
-                beneficiary,
+                Self::refund_location(),
                 relay_currency,
+            )?;
+
+            let query_id = Self::report_outcome_notify(
+                &mut msg,
+                MultiLocation::parent(),
+                notify,
+                T::NotifyTimeout::get(),
             )?;
 
             if let Err(_err) = T::XcmSender::send_xcm(MultiLocation::parent(), msg) {
                 return Err(Error::<T>::SendXcmError.into());
             }
-        });
 
-        Ok(())
+            query_id
+        }))
     }
 }

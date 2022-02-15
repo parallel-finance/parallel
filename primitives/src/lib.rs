@@ -20,6 +20,7 @@ pub mod tokens;
 pub mod ump;
 
 use codec::{Decode, Encode};
+use frame_support::pallet_prelude::*;
 use sp_runtime::{
     traits::{IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
@@ -80,7 +81,11 @@ pub type Timestamp = u64;
 
 pub type CurrencyId = u32;
 
-pub type ChainId = u8;
+pub type ChainId = u32;
+
+pub type ChainNonce = u64;
+
+pub type BridgeId = (ChainNonce, ChainNonce);
 
 pub const SECONDS_PER_YEAR: Timestamp = 365 * 24 * 60 * 60;
 
@@ -127,15 +132,40 @@ pub trait LiquidStakingCurrenciesProvider<CurrencyId> {
     fn get_liquid_currency() -> Option<CurrencyId>;
 }
 
-pub trait AMM<T: frame_system::Config, CurrencyId, Balance> {
-    /// Handles a "trade" on the AMM side for "who".
+/// Exported traits from our AMM pallet. These functions are to be used
+/// by the router to enable multi route token swaps
+pub trait AMM<AccountId, CurrencyId, Balance> {
+    /// Based on the path specified and the available pool balances
+    /// this will return the amounts outs when trading the specified
+    /// amount in
+    fn get_amounts_out(
+        amount_in: Balance,
+        path: Vec<CurrencyId>,
+    ) -> Result<Vec<Balance>, DispatchError>;
+
+    /// Based on the path specified and the available pool balances
+    /// this will return the amounts in needed to produce the specified
+    /// amount out
+    fn get_amounts_in(
+        amount_out: Balance,
+        path: Vec<CurrencyId>,
+    ) -> Result<Vec<Balance>, DispatchError>;
+
+    /// Handles a "swap" on the AMM side for "who".
     /// This will move the `amount_in` funds to the AMM PalletId,
     /// trade `pair.0` to `pair.1` and return a result with the amount
     /// of currency that was sent back to the user.
-    fn trade(
-        who: &T::AccountId,
+    fn swap(
+        who: &AccountId,
         pair: (CurrencyId, CurrencyId),
         amount_in: Balance,
-        minimum_amount_out: Balance,
-    ) -> Result<Balance, frame_support::pallet_prelude::DispatchError>;
+    ) -> Result<(), DispatchError>;
+
+    fn get_pools() -> Result<Vec<(CurrencyId, CurrencyId)>, DispatchError>;
+}
+
+#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug)]
+pub enum ArithmeticKind {
+    Addition,
+    Subtraction,
 }

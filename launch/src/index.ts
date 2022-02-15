@@ -12,12 +12,16 @@ import { ApiPromise, Keyring, WsProvider } from '@polkadot/api'
 const EMPTY_U8A_32 = new Uint8Array(32)
 const BN_EIGHTEEN = new BN(18)
 const GiftPalletId = 'par/gift'
-const XcmFeesPalletId = 'par/fees'
+
+dotenv.config()
 
 const createAddress = (id: string) =>
   encodeAddress(u8aConcat(stringToU8a(`modl${id}`), EMPTY_U8A_32).subarray(0, 32))
 
-dotenv.config()
+export const sovereignAccountOf = (paraId: number): string =>
+  encodeAddress(
+    u8aConcat(stringToU8a('para'), bnToU8a(paraId, 32, true), EMPTY_U8A_32).subarray(0, 32)
+  )
 
 function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -44,50 +48,6 @@ async function chainHeight(api: ApiPromise) {
 
 async function nextIndex(api: ApiPromise, signer: KeyringPair) {
   return await api.rpc.system.accountNextIndex(signer.address)
-}
-
-function downwardTransfer(api: ApiPromise, paraId: number, account: string, amount: string) {
-  return api.tx.xcmPallet.reserveTransferAssets(
-    api.createType('XcmVersionedMultiLocation', {
-      V1: api.createType('MultiLocationV1', {
-        parents: 0,
-        interior: api.createType('JunctionsV1', {
-          X1: api.createType('JunctionV1', {
-            Parachain: api.createType('Compact<u32>', paraId)
-          })
-        })
-      })
-    }),
-    api.createType('XcmVersionedMultiLocation', {
-      V1: api.createType('MultiLocationV1', {
-        parents: 0,
-        interior: api.createType('JunctionsV1', {
-          X1: api.createType('JunctionV1', {
-            AccountId32: {
-              network: api.createType('NetworkId', 'Any'),
-              id: account
-            }
-          })
-        })
-      })
-    }),
-    api.createType('XcmVersionedMultiAssets', {
-      V1: [
-        api.createType(' XcmV1MultiAsset', {
-          id: api.createType('XcmAssetId', {
-            Concrete: api.createType('MultiLocationV1', {
-              parents: 0,
-              interior: api.createType('JunctionsV1', 'Here')
-            })
-          }),
-          fun: api.createType('FungibilityV1', {
-            Fungible: amount
-          })
-        })
-      ]
-    }),
-    0
-  )
 }
 
 function subAccountId(signer: KeyringPair, index: number) {
@@ -162,7 +122,7 @@ async function para() {
   }
 
   call.push(
-    api.tx.sudo.sudo(api.tx.liquidStaking.updateStakingPoolCapacity('10000000000000000')),
+    api.tx.sudo.sudo(api.tx.liquidStaking.updateMarketCap('10000000000000000')),
     api.tx.sudo.sudo(api.tx.xcmHelper.updateXcmFees('50000000000')),
     api.tx.balances.transfer(createAddress(GiftPalletId), '1000000000000000')
   )
@@ -224,14 +184,21 @@ async function relay() {
       )
     )
   )
-  call.push(
-    downwardTransfer(api, config.paraId, createAddress(XcmFeesPalletId), '1000000000000000')
-  )
+
+  let relayAsset = config.assets.find(a => a.assetId === config.relayAsset)
+  if (relayAsset && relayAsset.balances.length) {
+    call.push(
+      ...relayAsset.balances.map(([account, balance]) =>
+        api.tx.balances.transfer(sovereignAccountOf(config.paraId), balance)
+      )
+    )
+  }
 
   await api.tx.utility.batchAll(call).signAndSend(signer, { nonce: await nextIndex(api, signer) })
 }
 
-Promise.all([relay(), para()])
+relay()
+  .then(para)
   .then(() => process.exit(0))
   .catch(err => {
     console.error(err)

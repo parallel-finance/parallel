@@ -50,7 +50,7 @@ fn unstake_should_work() {
         );
 
         // Check balance is correct
-        assert_eq!(<Test as Config>::Assets::balance(KSM, &ALICE), ksm(96f64));
+        assert_eq!(<Test as Config>::Assets::balance(KSM, &ALICE), ksm(90f64));
         assert_eq!(
             <Test as Config>::Assets::balance(XKSM, &ALICE),
             ksm(103.95f64)
@@ -91,8 +91,8 @@ fn test_settlement_should_work() {
             ),
             (vec![], 0, (0, 0, 0)),
         ];
-
-        for (stake_ops, unbonding_amount, matching_result) in test_case.into_iter() {
+        for (i, (stake_ops, unbonding_amount, matching_result)) in test_case.into_iter().enumerate()
+        {
             stake_ops.into_iter().for_each(StakeOp::execute);
             assert_eq!(
                 LiquidStaking::matching_pool().matching::<LiquidStaking>(unbonding_amount),
@@ -103,6 +103,12 @@ fn test_settlement_should_work() {
                 ksm(0f64),
                 unbonding_amount,
             ));
+            LiquidStaking::notification_received(
+                pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+                i.try_into().unwrap(),
+                Response::ExecutionResult(None),
+            )
+            .unwrap();
             Pallet::<Test>::on_idle(0, 10000);
         }
     });
@@ -333,20 +339,11 @@ fn test_transfer_bond() {
 }
 
 #[test]
-fn test_add_insurances_work() {
-    new_test_ext().execute_with(|| {
-        assert_eq!(InsurancePool::<Test>::get(), 0);
-        assert_ok!(LiquidStaking::add_insurances(Origin::signed(BOB), 123));
-        assert_eq!(InsurancePool::<Test>::get(), 123);
-    })
-}
-
-#[test]
-fn update_staking_pool_capacity_should_not_work_if_with_invalid_param() {
+fn update_market_cap_should_not_work_if_with_invalid_param() {
     new_test_ext().execute_with(|| {
         assert_noop!(
-            LiquidStaking::update_staking_pool_capacity(Origin::root(), Zero::zero()),
-            Error::<Test>::ZeroCap
+            LiquidStaking::update_market_cap(Origin::root(), Zero::zero()),
+            Error::<Test>::InvalidCap
         );
     })
 }

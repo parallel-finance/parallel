@@ -2,12 +2,13 @@ PARA_ID        							:= 2085
 CHAIN          							:= vanilla-dev
 RUNTIME        							:= vanilla-runtime
 BLOCK_AT       							:= 0x0000000000000000000000000000000000000000000000000000000000000000
-URL            							:= ws://localhost:9947
+URL            							:= ws://localhost:9948
 KEYSTORE_PATH  							:= keystore
 SURI           							:= //Alice
 LAUNCH_CONFIG  							:= config.yml
 DOCKER_TAG     							:= latest
-RELAY_DOCKER_TAG						:= v0.9.13
+RELAY_DOCKER_TAG						:= v0.9.16
+ACALA_DOCKER_TAG						:= v0.9.16
 
 .PHONY: init
 init: submodules
@@ -26,7 +27,7 @@ build:
 	cargo build --bin parallel
 
 .PHONY: ci
-ci: check lint check-wasm test
+ci: check lint check-launch check-wasm test
 
 .PHONY: check
 check:
@@ -34,7 +35,11 @@ check:
 
 .PHONY: check-wasm
 check-wasm:
-	cargo check -p vanilla-runtime -p parallel-runtime -p heiko-runtime
+	cargo check -p vanilla-runtime -p parallel-runtime -p heiko-runtime --features runtime-benchmarks
+
+.PHONY: check-launch
+check-launch:
+	cd launch && yarn && yarn build
 
 .PHONY: test
 test:
@@ -98,6 +103,9 @@ shutdown:
 
 .PHONY: launch
 launch: shutdown
+	yq -i eval '.relaychain.image = "parallelfinance/polkadot:$(RELAY_DOCKER_TAG)"' $(LAUNCH_CONFIG)
+	yq -i eval '.parachains[0].image = "parallelfinance/parallel:$(DOCKER_TAG)"' $(LAUNCH_CONFIG)
+	yq -i eval '.parachains[1].image = "parallelfinance/karura:$(ACALA_DOCKER_TAG)"' $(LAUNCH_CONFIG)
 	docker image pull parallelfinance/polkadot:$(RELAY_DOCKER_TAG)
 	docker image pull parallelfinance/parallel:$(DOCKER_TAG)
 	docker image pull parallelfinance/stake-client:latest
@@ -105,7 +113,7 @@ launch: shutdown
 	docker image pull parallelfinance/nominate-client:latest
 	docker image pull parallelfinance/oracle-client:latest
 	docker image pull parallelfinance/parallel-dapp:latest
-	DOCKER_CLIENT_TIMEOUT=120 COMPOSE_HTTP_TIMEOUT=120 parachain-launch generate $(LAUNCH_CONFIG) && (cp -r keystore* output || true) && cp docker-compose.override.yml output && cd output && docker-compose up -d --build
+	DOCKER_CLIENT_TIMEOUT=180 COMPOSE_HTTP_TIMEOUT=180 parachain-launch generate $(LAUNCH_CONFIG) && (cp -r keystore* output || true) && cp docker-compose.override.yml output && cd output && docker-compose up -d --build
 	cd launch && yarn start
 
 .PHONY: logs

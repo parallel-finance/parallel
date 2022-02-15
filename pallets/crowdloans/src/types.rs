@@ -131,8 +131,14 @@ pub enum ChildStorageKind {
     Contributed,
 }
 
-#[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug)]
-pub enum ArithmeticKind {
-    Addition,
-    Subtraction,
+#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+pub enum Releases {
+    V0_0_0,
+    V1_0_0,
+}
+
+impl Default for Releases {
+    fn default() -> Self {
+        Releases::V0_0_0
+    }
 }

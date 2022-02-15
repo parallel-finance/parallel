@@ -53,5 +53,6 @@ Click the following guides for more details:
 
 We would like to thank the following projects.
 
-- [Compound](https://compound.finance/)
+- [Compound](https://compound.finance)
 - [ORML](https://github.com/open-web3-stack/open-runtime-module-library)
+- [Uniswap](https://uniswap.org)

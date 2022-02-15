@@ -2,20 +2,23 @@ use frame_support::{
     construct_runtime,
     dispatch::Weight,
     parameter_types, sp_io,
-    traits::{Everything, GenesisBuild, Nothing, SortedMembers},
+    traits::{EnsureOneOf, Everything, GenesisBuild, Nothing, SortedMembers},
     weights::constants::WEIGHT_PER_SECOND,
     PalletId,
 };
-use frame_system::{pallet_prelude::BlockNumberFor, EnsureOneOf, EnsureRoot, EnsureSignedBy};
+use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
+
 use polkadot_runtime_parachains::configuration::HostConfiguration;
 use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId, Rate, Ratio};
 use sp_core::H256;
 use sp_runtime::{
-    testing::Header,
-    traits::{AccountIdConversion, AccountIdLookup, BlakeTwo256, Convert, One, Zero},
+    generic,
+    traits::{
+        AccountIdConversion, AccountIdLookup, BlakeTwo256, BlockNumberProvider, Convert, One, Zero,
+    },
     AccountId32,
     MultiAddress::Id,
 };
@@ -42,7 +45,7 @@ parameter_types! {
 
 impl cumulus_pallet_parachain_system::Config for Test {
     type Event = Event;
-    type OnValidationData = ();
+    type OnSystemEvent = ();
     type SelfParaId = ParachainInfo;
     type DmpMessageHandler = DmpQueue;
     type ReservedDmpWeight = ReservedDmpWeight;
@@ -127,6 +130,7 @@ impl Config for XcmConfig {
 impl cumulus_pallet_xcmp_queue::Config for Test {
     type Event = Event;
     type XcmExecutor = XcmExecutor<XcmConfig>;
+    type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
     type ChannelInfo = ParachainSystem;
     type VersionWrapper = ();
 }
@@ -226,6 +230,7 @@ parameter_types! {
     pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
     pub const BaseXcmWeight: Weight = 100_000_000;
     pub const MaxInstructions: u32 = 100;
+    pub const MaxAssetsForTransfer: usize = 2;
 }
 
 impl orml_xtokens::Config for Test {
@@ -239,15 +244,17 @@ impl orml_xtokens::Config for Test {
     type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
     type BaseXcmWeight = BaseXcmWeight;
     type LocationInverter = LocationInverter<Ancestry>;
+    type MaxAssetsForTransfer = MaxAssetsForTransfer;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
-type BlockNumber = u64;
+type BlockNumber = u32;
+
 pub const KSM_DECIMAL: u128 = 10u128.pow(12);
 
 parameter_types! {
-    pub const BlockHashCount: u64 = 250;
+    pub const BlockHashCount: BlockNumber = 250;
     pub const SS58Prefix: u8 = 42;
 }
 
@@ -264,7 +271,7 @@ impl frame_system::Config for Test {
     type Hashing = BlakeTwo256;
     type AccountId = AccountId;
     type Lookup = AccountIdLookup<AccountId, ()>;
-    type Header = Header;
+    type Header = generic::Header<BlockNumber, BlakeTwo256>;
     type Event = Event;
     type BlockHashCount = BlockHashCount;
     type Version = ();
@@ -275,6 +282,7 @@ impl frame_system::Config for Test {
     type SystemWeightInfo = ();
     type SS58Prefix = SS58Prefix;
     type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
+    type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 parameter_types! {
@@ -308,19 +316,8 @@ impl SortedMembers<AccountId> for BobOrigin {
     }
 }
 
-pub type RelayOrigin =
-    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
-pub type UpdateOrigin =
-    EnsureOneOf<AccountId, EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
-
-parameter_types! {
-    pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
-    pub const DerivativeIndex: u16 = 0;
-    pub const UnstakeQueueCapacity: u32 = 1000;
-    pub SelfParaId: ParaId = para_a_id();
-    pub const MinStakeAmount: Balance = 0;
-    pub const MinUnstakeAmount: Balance = 0;
-}
+pub type RelayOrigin = EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
+pub type UpdateOrigin = EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
 
 impl pallet_utility::Config for Test {
     type Event = Event;
@@ -332,6 +329,7 @@ impl pallet_utility::Config for Test {
 parameter_types! {
     pub const XcmHelperPalletId: PalletId = PalletId(*b"par/fees");
     pub const NotifyTimeout: BlockNumber = 100;
+    pub RefundLocation: AccountId = para_a_id().into_account();
 }
 
 impl pallet_xcm_helper::Config for Test {
@@ -342,17 +340,43 @@ impl pallet_xcm_helper::Config for Test {
     type PalletId = XcmHelperPalletId;
     type RelayNetwork = RelayNetwork;
     type NotifyTimeout = NotifyTimeout;
+    type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type RefundLocation = RefundLocation;
     type BlockNumberProvider = frame_system::Pallet<Test>;
     type WeightInfo = ();
 }
 
+pub struct RelayChainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
+
+impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
+    for RelayChainBlockNumberProvider<T>
+{
+    type BlockNumber = primitives::BlockNumber;
+
+    fn current_block_number() -> Self::BlockNumber {
+        cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
+            .map(|d| d.relay_parent_number)
+            .unwrap_or_default()
+    }
+}
+
 parameter_types! {
+    pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
+    pub const DerivativeIndex: u16 = 0;
+    pub const UnstakeQueueCap: u32 = 1000;
+    pub SelfParaId: ParaId = para_a_id();
+    pub const MinStake: Balance = 0;
+    pub const MinUnstake: Balance = 0;
     pub const StakingCurrency: CurrencyId = KSM;
     pub const LiquidCurrency: CurrencyId = XKSM;
+    pub const XcmFees: Balance = 0;
+    pub const BondingDuration: BlockNumber = 0;
 }
 
 impl crate::Config for Test {
     type Event = Event;
+    type Origin = Origin;
+    type Call = Call;
     type UpdateOrigin = UpdateOrigin;
     type PalletId = StakingPalletId;
     type SelfParaId = SelfParaId;
@@ -360,18 +384,21 @@ impl crate::Config for Test {
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
     type DerivativeIndex = DerivativeIndex;
-    type AccountIdToMultiLocation = AccountIdToMultiLocation;
+    type XcmFees = XcmFees;
     type Assets = Assets;
     type RelayOrigin = RelayOrigin;
-    type UnstakeQueueCapacity = UnstakeQueueCapacity;
-    type MinStakeAmount = MinStakeAmount;
-    type MinUnstakeAmount = MinUnstakeAmount;
+    type UnstakeQueueCap = UnstakeQueueCap;
+    type MinStake = MinStake;
+    type MinUnstake = MinUnstake;
     type XCM = XcmHelper;
+    type BondingDuration = BondingDuration;
+    type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Test>;
 }
 
 parameter_types! {
     pub const AssetDeposit: Balance = KSM_DECIMAL;
     pub const ApprovalDeposit: Balance = 0;
+    pub const AssetAccountDeposit: Balance = 0;
     pub const AssetsStringLimit: u32 = 50;
     pub const MetadataDepositBase: Balance = 0;
     pub const MetadataDepositPerByte: Balance = 0;
@@ -386,6 +413,7 @@ impl pallet_assets::Config for Test {
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
     type MetadataDepositPerByte = MetadataDepositPerByte;
+    type AssetAccountDeposit = AssetAccountDeposit;
     type ApprovalDeposit = ApprovalDeposit;
     type StringLimit = AssetsStringLimit;
     type Freezer = ();
@@ -454,11 +482,19 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
             false,
         )
         .unwrap();
-        Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), 100 * KSM_DECIMAL).unwrap();
-        Assets::mint(Origin::signed(ALICE), XKSM, Id(ALICE), 100 * KSM_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), ksm(100f64)).unwrap();
+        Assets::mint(Origin::signed(ALICE), XKSM, Id(ALICE), ksm(100f64)).unwrap();
         Assets::mint(Origin::signed(ALICE), KSM, Id(BOB), ksm(20000f64)).unwrap();
 
-        LiquidStaking::update_staking_pool_capacity(Origin::signed(BOB), ksm(10000f64)).unwrap();
+        LiquidStaking::update_market_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
+        Assets::mint(
+            Origin::signed(ALICE),
+            KSM,
+            Id(XcmHelper::account_id()),
+            ksm(30f64),
+        )
+        .unwrap();
+
         XcmHelper::update_xcm_fees(Origin::signed(BOB), ksm(10f64)).unwrap();
     });
 
@@ -478,7 +514,7 @@ decl_test_parachain! {
 decl_test_relay_chain! {
     pub struct Relay {
         Runtime = kusama_runtime::Runtime,
-        XcmConfig = kusama_runtime::XcmConfig,
+        XcmConfig = kusama_runtime::xcm_config::XcmConfig,
         new_ext = relay_ext(),
     }
 }
@@ -502,51 +538,6 @@ pub type ParaSystem = frame_system::Pallet<Test>;
 
 pub fn para_a_id() -> ParaId {
     ParaId::from(1)
-}
-
-fn default_parachains_host_configuration() -> HostConfiguration<BlockNumberFor<KusamaRuntime>> {
-    HostConfiguration {
-        max_code_size: 3145728,
-        max_head_data_size: 32768,
-        max_upward_queue_count: 8,
-        max_upward_queue_size: 1048576,
-        max_upward_message_size: 1048576,
-        max_upward_message_num_per_candidate: 5,
-        hrmp_max_message_num_per_candidate: 5,
-        validation_upgrade_frequency: 1,
-        validation_upgrade_delay: 1,
-        max_pov_size: 5242880,
-        max_downward_message_size: 1024,
-        ump_service_total_weight: 100_000_000_000,
-        hrmp_max_parachain_outbound_channels: 4,
-        hrmp_max_parathread_outbound_channels: 4,
-        hrmp_sender_deposit: 0,
-        hrmp_recipient_deposit: 0,
-        hrmp_channel_max_capacity: 8,
-        hrmp_channel_max_total_size: 8192,
-        hrmp_max_parachain_inbound_channels: 4,
-        hrmp_max_parathread_inbound_channels: 4,
-        hrmp_channel_max_message_size: 1048576,
-        code_retention_period: 1200,
-        parathread_cores: 0,
-        parathread_retries: 0,
-        group_rotation_frequency: 20,
-        chain_availability_period: 4,
-        thread_availability_period: 4,
-        scheduling_lookahead: 0,
-        max_validators_per_core: None,
-        max_validators: None,
-        dispute_period: 6,
-        dispute_post_conclusion_acceptance_period: 100,
-        dispute_max_spam_slots: 2,
-        dispute_conclusion_by_time_out_period: 200,
-        no_show_slots: 2,
-        n_delay_tranches: 25,
-        zeroth_delay_tranche_width: 0,
-        needed_approvals: 2,
-        relay_vrf_modulo_samples: 2,
-        ump_max_individual_weight: 20000000000,
-    }
 }
 
 pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
@@ -595,16 +586,16 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
             false,
         )
         .unwrap();
-        Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), 10000 * KSM_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), ksm(10000f64)).unwrap();
         Assets::mint(
             Origin::signed(ALICE),
             KSM,
-            Id(XcmHelper::get_account_id(PalletId(*b"par/lqsk"))),
-            10000 * KSM_DECIMAL,
+            Id(XcmHelper::account_id()),
+            ksm(30f64),
         )
         .unwrap();
 
-        LiquidStaking::update_staking_pool_capacity(Origin::signed(BOB), ksm(10000f64)).unwrap();
+        LiquidStaking::update_market_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
         XcmHelper::update_xcm_fees(Origin::signed(BOB), ksm(10f64)).unwrap();
     });
 
@@ -619,15 +610,18 @@ pub fn relay_ext() -> sp_io::TestExternalities {
 
     pallet_balances::GenesisConfig::<Runtime> {
         balances: vec![
-            (ALICE, 100 * KSM_DECIMAL),
-            (para_a_id().into_account(), 1_000_000 * KSM_DECIMAL),
+            (ALICE, ksm(100f64)),
+            (para_a_id().into_account(), ksm(1_000_000f64)),
         ],
     }
     .assimilate_storage(&mut t)
     .unwrap();
 
     polkadot_runtime_parachains::configuration::GenesisConfig::<Runtime> {
-        config: default_parachains_host_configuration(),
+        config: HostConfiguration {
+            max_code_size: 1024u32,
+            ..Default::default()
+        },
     }
     .assimilate_storage(&mut t)
     .unwrap();

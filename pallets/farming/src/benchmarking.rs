@@ -1,4 +1,4 @@
-//! Liquidity Mining pallet benchmarking.
+//! Farming pallet benchmarking.
 
 #![cfg(feature = "runtime-benchmarks")]
 use super::*;
@@ -26,10 +26,12 @@ fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::
     frame_system::Pallet::<T>::assert_last_event(generic_event.into());
 }
 
-fn initial_set_up<T: Config<I>, I: 'static>(caller: T::AccountId)
-where
-    <T::Assets as Inspect<T::AccountId>>::Balance: From<u128>,
-{
+fn initial_set_up<
+    T: Config<I> + pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>,
+    I: 'static,
+>(
+    caller: T::AccountId,
+) {
     let account_id = T::Lookup::unlookup(caller.clone());
 
     pallet_assets::Pallet::<T>::force_create(
@@ -64,6 +66,11 @@ where
 }
 
 benchmarks_instance_pallet! {
+    where_clause {
+        where
+            T: pallet_assets::Config<AssetId = CurrencyId, Balance = Balance>
+    }
+
     create {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T, I>(caller.clone());
@@ -75,7 +82,7 @@ benchmarks_instance_pallet! {
             start: T::BlockNumber::from(3u32),
             end: T::BlockNumber::from(5u32),
             rewards: vec![(1, ASSET); 1000].try_into().unwrap(),
-            shares: ASSET_ID
+            asset_id: ASSET_ID
         };
     }: { call.dispatch_bypass_filter(origin)? }
     verify {
@@ -91,7 +98,7 @@ benchmarks_instance_pallet! {
             T::BlockNumber::zero(),T::BlockNumber::from(15u32), vec![(1, ASSET); 1000].try_into().unwrap(),ASSET_ID));
     }: _(SystemOrigin::Signed(caller.clone()), ASSET, amount)
     verify {
-        assert_last_event::<T, I>(Event::DepositedAssets(caller, ASSET).into());
+        assert_last_event::<T, I>(Event::AssetsDeposited(caller, ASSET).into());
     }
 
     withdraw {
@@ -105,7 +112,7 @@ benchmarks_instance_pallet! {
         assert_ok!(LM::<T, I>::deposit(SystemOrigin::Signed(caller.clone()).into(), ASSET, amount));
     }: _(SystemOrigin::Signed(caller.clone()), ASSET, amount)
     verify {
-        assert_last_event::<T, I>(Event::WithdrewAssets(caller, ASSET).into());
+        assert_last_event::<T, I>(Event::AssetsWithdrew(caller, ASSET).into());
     }
 
 }

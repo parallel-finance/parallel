@@ -1,4 +1,4 @@
-use crate as pallet_liquidity_mining;
+use crate as pallet_farming;
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{parameter_types, traits::Everything, traits::SortedMembers, PalletId};
@@ -65,7 +65,7 @@ frame_support::construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
-        LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>},
+        Farming: pallet_farming::{Pallet, Call, Storage, Event<T>},
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
         CurrencyAdapter: pallet_currency_adapter::{Pallet, Call},
     }
@@ -100,6 +100,7 @@ impl system::Config for Test {
     type SystemWeightInfo = ();
     type SS58Prefix = SS58Prefix;
     type OnSetCode = ();
+    type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 parameter_types! {
@@ -122,6 +123,7 @@ impl pallet_balances::Config for Test {
 parameter_types! {
     pub const AssetDeposit: u64 = 1;
     pub const ApprovalDeposit: u64 = 1;
+    pub const AssetAccountDeposit: u64 = 1;
     pub const StringLimit: u32 = 50;
     pub const MetadataDepositBase: u64 = 1;
     pub const MetadataDepositPerByte: u64 = 1;
@@ -136,6 +138,7 @@ impl pallet_assets::Config for Test {
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
     type MetadataDepositPerByte = MetadataDepositPerByte;
+    type AssetAccountDeposit = AssetAccountDeposit;
     type ApprovalDeposit = ApprovalDeposit;
     type StringLimit = StringLimit;
     type Freezer = ();
@@ -155,7 +158,7 @@ impl SortedMembers<AccountId> for AliceCreatePoolOrigin {
     }
 }
 
-impl pallet_liquidity_mining::Config for Test {
+impl pallet_farming::Config for Test {
     type Event = Event;
     type Assets = CurrencyAdapter;
     type PalletId = LMPalletId;

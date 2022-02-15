@@ -17,12 +17,13 @@ use super::*;
 use frame_support::{construct_runtime, parameter_types, traits::Everything, PalletId};
 use frame_system::EnsureRoot;
 use orml_traits::{DataProvider, DataProviderExtended};
-pub use primitives::tokens::{DOT, HKO, KSM, PDOT, PHKO, PKSM, PUSDT, USDT, XDOT, XKSM};
 use primitives::*;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 use sp_std::vec::Vec;
 use std::{cell::RefCell, collections::HashMap};
+
+pub use primitives::tokens::{DOT, HKO, KSM, PDOT, PHKO, PKSM, PUSDT, USDT, XDOT, XKSM};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -72,6 +73,7 @@ impl frame_system::Config for Test {
     type SystemWeightInfo = ();
     type SS58Prefix = SS58Prefix;
     type OnSetCode = ();
+    type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 pub type AccountId = u128;
@@ -215,6 +217,7 @@ impl PriceFeeder for MockPriceFeeder {
 parameter_types! {
     pub const AssetDeposit: u64 = 1;
     pub const ApprovalDeposit: u64 = 1;
+    pub const AssetAccountDeposit: u64 = 1;
     pub const StringLimit: u32 = 50;
     pub const MetadataDepositBase: u64 = 1;
     pub const MetadataDepositPerByte: u64 = 1;
@@ -229,6 +232,7 @@ impl pallet_assets::Config for Test {
     type AssetDeposit = AssetDeposit;
     type MetadataDepositBase = MetadataDepositBase;
     type MetadataDepositPerByte = MetadataDepositPerByte;
+    type AssetAccountDeposit = AssetAccountDeposit;
     type ApprovalDeposit = ApprovalDeposit;
     type StringLimit = StringLimit;
     type Freezer = ();

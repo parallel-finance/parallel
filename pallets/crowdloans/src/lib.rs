@@ -27,6 +27,7 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+pub mod migrations;
 pub mod types;
 pub mod weights;
 
@@ -53,9 +54,11 @@ pub mod pallet {
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
     use pallet_xcm::ensure_response;
-    use primitives::{Balance, CurrencyId, LeasePeriod, ParaId, TrieIndex, VaultId};
+    use primitives::{
+        ArithmeticKind, Balance, CurrencyId, LeasePeriod, ParaId, TrieIndex, VaultId,
+    };
     use sp_runtime::{
-        traits::{AccountIdConversion, BlockNumberProvider, Convert, Hash, Zero},
+        traits::{AccountIdConversion, BlockNumberProvider, Hash, Zero},
         ArithmeticError, DispatchError,
     };
     use sp_std::{boxed::Box, convert::TryInto, vec::Vec};
@@ -71,6 +74,7 @@ pub mod pallet {
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
+    #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
     #[pallet::config]
@@ -99,13 +103,6 @@ pub mod pallet {
         #[pallet::constant]
         type PalletId: Get<PalletId>;
 
-        /// Convert `T::AccountId` to `MultiLocation`.
-        type AccountIdToMultiLocation: Convert<Self::AccountId, MultiLocation>;
-
-        /// Account on relaychain for receiving refunded fees
-        #[pallet::constant]
-        type RefundLocation: Get<Self::AccountId>;
-
         /// Minimum contribute amount
         #[pallet::constant]
         type MinContribution: Get<BalanceOf<Self>>;
@@ -118,6 +115,9 @@ pub mod pallet {
         #[pallet::constant]
         type MigrateKeysLimit: Get<u32>;
 
+        #[pallet::constant]
+        type RemoveKeysLimit: Get<u32>; // default it to 1000
+
         /// The origin which can migrate pending contribution
         type MigrateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
@@ -126,6 +126,12 @@ pub mod pallet {
 
         /// The origin which can create vault
         type CreateVaultOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+
+        /// The origin which can refund
+        type RefundOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+
+        /// The origin which can dissolve vault
+        type DissolveVaultOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The origin which can update vault
         type UpdateVaultOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
@@ -220,6 +226,15 @@ pub mod pallet {
         /// Partially contributions migrated
         /// [para_id, vault_id]
         PartiallyMigrated(ParaId, VaultId),
+        /// Vault has been dissolved
+        /// [para_id, vault_id]
+        VaultDissolved(ParaId, VaultId),
+        /// Partially Refunded
+        /// [para_id, vault_id]
+        AllRefunded(ParaId, VaultId),
+        /// Partially Refunded
+        /// [para_id, vault_id]
+        PartiallyRefunded(ParaId, VaultId),
     }
 
     #[pallet::error]
@@ -249,15 +264,17 @@ pub mod pallet {
         /// No contributions allowed during the VRF delay
         VrfDelayInProgress,
         /// Attempted contribution violates contribution cap
-        ExceededCap,
+        CapExceeded,
         /// Current relay block is greater than vault end block
-        ExceededEndBlock,
+        EndBlockExceeded,
         /// Exceeded maximum vrfs
-        ExceededMaxVrfs,
+        MaxVrfsExceeded,
         /// Capacity cannot be zero value
-        ZeroCap,
+        InvalidCap,
         /// Invalid params input
         InvalidParams,
+        /// Vault is not ready to be dissolved
+        NotReadyToDissolve,
     }
 
     #[pallet::storage]
@@ -303,6 +320,10 @@ pub mod pallet {
     #[pallet::getter(fn xcm_request)]
     pub type XcmRequests<T> = StorageMap<_, Blake2_128Concat, QueryId, XcmRequest<T>, OptionQuery>;
 
+    /// Storage version of the pallet.
+    #[pallet::storage]
+    pub type StorageVersion<T: Config> = StorageValue<_, Releases, ValueQuery>;
+
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Create a new vault via a governance decision
@@ -328,7 +349,7 @@ pub mod pallet {
         ) -> DispatchResult {
             T::CreateVaultOrigin::ensure_origin(origin)?;
 
-            ensure!(!cap.is_zero(), Error::<T>::ZeroCap);
+            ensure!(!cap.is_zero(), Error::<T>::InvalidCap);
 
             ensure!(
                 lease_start <= lease_end,
@@ -353,7 +374,7 @@ pub mod pallet {
 
             ensure!(
                 T::RelayChainBlockNumberProvider::current_block_number() <= end_block,
-                Error::<T>::ExceededEndBlock
+                Error::<T>::EndBlockExceeded
             );
 
             let trie_index = Self::next_trie_index();
@@ -412,14 +433,14 @@ pub mod pallet {
             let mut vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
 
             if let Some(cap) = cap {
-                ensure!(!cap.is_zero(), Error::<T>::ZeroCap);
+                ensure!(!cap.is_zero(), Error::<T>::InvalidCap);
                 vault.cap = cap;
             }
 
             if let Some(end_block) = end_block {
                 ensure!(
                     T::RelayChainBlockNumberProvider::current_block_number() <= end_block,
-                    Error::<T>::ExceededEndBlock
+                    Error::<T>::EndBlockExceeded
                 );
                 vault.end_block = end_block;
             }
@@ -492,7 +513,7 @@ pub mod pallet {
 
             ensure!(
                 T::RelayChainBlockNumberProvider::current_block_number() <= vault.end_block,
-                Error::<T>::ExceededEndBlock
+                Error::<T>::EndBlockExceeded
             );
 
             ensure!(
@@ -508,8 +529,11 @@ pub mod pallet {
             ensure!(!Self::in_vrf(crowdloan), Error::<T>::VrfDelayInProgress);
 
             ensure!(
-                Self::total_contribution(&vault, amount)? <= vault.cap,
-                Error::<T>::ExceededCap
+                Self::total_contribution(&vault)?
+                    .checked_add(amount)
+                    .ok_or(ArithmeticError::Overflow)?
+                    <= vault.cap,
+                Error::<T>::CapExceeded
             );
 
             T::Assets::transfer(
@@ -582,7 +606,7 @@ pub mod pallet {
             );
 
             Vrfs::<T>::try_mutate(|b| -> Result<(), DispatchError> {
-                *b = vrfs.try_into().map_err(|_| Error::<T>::ExceededMaxVrfs)?;
+                *b = vrfs.try_into().map_err(|_| Error::<T>::MaxVrfsExceeded)?;
                 Ok(())
             })?;
 
@@ -780,6 +804,8 @@ pub mod pallet {
                 .checked_sub(amount)
                 .ok_or(ArithmeticError::Underflow)?;
 
+            // SovereignAccount on relaychain must have
+            // withdrawn the contribution
             T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
 
             Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
@@ -838,6 +864,8 @@ pub mod pallet {
                 .ok_or(ArithmeticError::Underflow)?;
 
             T::Assets::burn_from(ctoken, &who, amount)?;
+            // SovereignAccount on relaychain must have
+            // withdrawn the contribution
             T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
 
             Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
@@ -924,6 +952,7 @@ pub mod pallet {
                 lease_end,
                 ..
             } = vault;
+
             Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
 
             if all_migrated {
@@ -959,6 +988,117 @@ pub mod pallet {
             }
             Ok(().into())
         }
+
+        /// Refund contributions
+        #[pallet::weight(<T as Config>::WeightInfo::refund())]
+        #[transactional]
+        pub fn refund(
+            origin: OriginFor<T>,
+            crowdloan: ParaId,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod,
+        ) -> DispatchResult {
+            use ChildStorageKind::*;
+            T::RefundOrigin::ensure_origin(origin)?;
+
+            let mut refund_count = 0u32;
+            let mut all_refunded = true;
+
+            let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+                .ok_or(Error::<T>::VaultDoesNotExist)?;
+
+            ensure!(
+                vault.phase == VaultPhase::Closed || vault.phase == VaultPhase::Failed,
+                Error::<T>::IncorrectVaultPhase
+            );
+
+            'outer: for kind in [Contributed, Flying, Pending] {
+                for (who, (amount, _referral_code)) in
+                    Self::contribution_iterator(vault.trie_index, kind)
+                {
+                    if refund_count >= T::RemoveKeysLimit::get() {
+                        all_refunded = false;
+                        break 'outer;
+                    }
+
+                    refund_count += 1;
+
+                    if kind == Contributed {
+                        // SovereignAccount on relaychain must have
+                        // withdrawn the contribution
+                        T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
+                    } else {
+                        T::Assets::transfer(
+                            T::RelayCurrency::get(),
+                            &Self::account_id(),
+                            &who,
+                            amount,
+                            true,
+                        )?;
+                    }
+
+                    Self::contribution_kill(vault.trie_index, &who, kind);
+                }
+            }
+
+            Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
+
+            if all_refunded {
+                Self::deposit_event(Event::<T>::AllRefunded(crowdloan, (lease_start, lease_end)));
+            } else {
+                Self::deposit_event(Event::<T>::PartiallyRefunded(
+                    crowdloan,
+                    (lease_start, lease_end),
+                ));
+            }
+
+            Ok(())
+        }
+
+        /// Dissolve vault
+        #[pallet::weight(<T as Config>::WeightInfo::dissolve_vault())]
+        #[transactional]
+        pub fn dissolve_vault(
+            origin: OriginFor<T>,
+            crowdloan: ParaId,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod,
+        ) -> DispatchResult {
+            T::DissolveVaultOrigin::ensure_origin(origin)?;
+
+            let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+                .ok_or(Error::<T>::VaultDoesNotExist)?;
+
+            ensure!(
+                vault.phase == VaultPhase::Closed
+                    || vault.phase == VaultPhase::Failed
+                    || vault.phase == VaultPhase::Expired,
+                Error::<T>::IncorrectVaultPhase
+            );
+
+            let has_childstorage = Self::has_childstorage(&vault);
+            ensure!(!has_childstorage, Error::<T>::NotReadyToDissolve);
+
+            ensure!(
+                Self::total_contribution(&mut vault)?.is_zero(),
+                Error::<T>::NotReadyToDissolve
+            );
+
+            Vaults::<T>::remove((&crowdloan, &lease_start, &lease_end));
+
+            if let Some(vault_id) = LeasesRegistry::<T>::get(&crowdloan) {
+                if vault_id == (lease_start, lease_end) {
+                    LeasesRegistry::<T>::remove(&crowdloan);
+                }
+            }
+
+            Self::deposit_event(Event::<T>::VaultDissolved(
+                crowdloan,
+                (lease_start, lease_end),
+            ));
+
+            Ok(())
+        }
     }
 
     impl<T: Config> Pallet<T> {
@@ -986,15 +1126,11 @@ pub mod pallet {
             })
         }
 
-        fn total_contribution(
-            vault: &Vault<T>,
-            amount: BalanceOf<T>,
-        ) -> Result<BalanceOf<T>, ArithmeticError> {
+        fn total_contribution(vault: &Vault<T>) -> Result<BalanceOf<T>, ArithmeticError> {
             vault
                 .contributed
                 .checked_add(vault.flying)
                 .and_then(|sum| sum.checked_add(vault.pending))
-                .and_then(|sum| sum.checked_add(amount))
                 .ok_or(ArithmeticError::Overflow)
         }
 
@@ -1299,7 +1435,6 @@ pub mod pallet {
         ) -> Result<(), DispatchError> {
             let query_id = T::XCM::do_contribute(
                 crowdloan,
-                T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
                 T::RelayCurrency::get(),
                 amount,
                 who,
@@ -1345,7 +1480,6 @@ pub mod pallet {
 
             let query_id = T::XCM::do_withdraw(
                 crowdloan,
-                T::AccountIdToMultiLocation::convert(T::RefundLocation::get()),
                 T::RelayCurrency::get(),
                 Self::para_account_id(),
                 Self::notify_placeholder(),
@@ -1368,6 +1502,16 @@ pub mod pallet {
                 target_phase,
             ));
             Ok(())
+        }
+
+        // Return true if any childstorage has contribution.
+        fn has_childstorage(vault: &Vault<T>) -> bool {
+            use ChildStorageKind::*;
+            [Contributed, Flying, Pending].iter().any(|&kind| {
+                !Self::contribution_iterator(vault.trie_index, kind)
+                    .count()
+                    .is_zero()
+            })
         }
     }
 }
