@@ -90,7 +90,7 @@ pub use pallet_liquid_staking;
 pub use pallet_amm;
 pub use pallet_bridge;
 pub use pallet_crowdloans;
-pub use pallet_liquidity_mining;
+pub use pallet_farming;
 pub use pallet_loans;
 pub use pallet_nominee_election;
 pub use pallet_prices;
@@ -257,8 +257,8 @@ impl Contains<Call> for BaseCallFilter {
             Call::Crowdloans(_) |
             // Bridge
             Call::Bridge(_) |
-            // Liquidity Mining
-            Call::LiquidityMining(_)
+            // Farming
+            Call::Farming(_)
         )
     }
 }
@@ -1512,13 +1512,13 @@ parameter_types! {
     pub const MaxRewardTokens: u32 = 1000;
 }
 
-impl pallet_liquidity_mining::Config for Runtime {
+impl pallet_farming::Config for Runtime {
     type Event = Event;
     type Assets = CurrencyAdapter;
     type PalletId = LMPalletId;
     type MaxRewardTokens = MaxRewardTokens;
     type CreateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type WeightInfo = pallet_liquidity_mining::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = pallet_farming::weights::SubstrateWeight<Runtime>;
 }
 
 pub struct WhiteListFilter;
@@ -1584,8 +1584,8 @@ impl Contains<Call> for WhiteListFilter {
         // // Bridge
         // Call::Bridge(_) |
         //
-        // // Liquidity Mining
-        // Call::LiquidityMining(_)
+        // // Farming
+        // Call::Farming(_)
     }
 }
 
@@ -1667,7 +1667,7 @@ construct_runtime!(
         // Others
         Bridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 90,
         EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Storage, Event<T>} = 91,
-        LiquidityMining: pallet_liquidity_mining::{Pallet, Call, Storage, Event<T>} = 92,
+        Farming: pallet_farming::{Pallet, Call, Storage, Event<T>} = 92,
         XcmHelper: pallet_xcm_helper::{Pallet, Call, Storage, Event<T>} = 93,
     }
 );
@@ -1874,7 +1874,7 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_amm, AMM);
             list_benchmark!(list, extra, pallet_liquid_staking, LiquidStaking);
             list_benchmark!(list, extra, pallet_router, AMMRoute);
-            list_benchmark!(list, extra, pallet_liquidity_mining, LiquidityMining);
+            list_benchmark!(list, extra, pallet_farming, Farming);
             list_benchmark!(list, extra, pallet_crowdloans, Crowdloans);
             list_benchmark!(list, extra, pallet_xcm_helper, XcmHelper);
 
@@ -1920,7 +1920,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_amm, AMM);
             add_benchmark!(params, batches, pallet_liquid_staking, LiquidStaking);
             add_benchmark!(params, batches, pallet_router, AMMRoute);
-            add_benchmark!(params, batches, pallet_liquidity_mining, LiquidityMining);
+            add_benchmark!(params, batches, pallet_farming, Farming);
             add_benchmark!(params, batches, pallet_crowdloans, Crowdloans);
             add_benchmark!(params, batches, pallet_xcm_helper, XcmHelper);
 

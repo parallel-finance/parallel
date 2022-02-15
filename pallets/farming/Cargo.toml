@@ -1,7 +1,7 @@
 [package]
 authors = ['Parallel Team']
 edition = '2021'
-name    = 'pallet-liquidity-mining'
+name    = 'pallet-farming'
 version = '1.7.7'
 
 [package.metadata.docs.rs]

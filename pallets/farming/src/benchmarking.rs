@@ -1,4 +1,4 @@
-//! Liquidity Mining pallet benchmarking.
+//! Farming pallet benchmarking.
 
 #![cfg(feature = "runtime-benchmarks")]
 use super::*;

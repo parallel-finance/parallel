@@ -2840,10 +2840,10 @@ dependencies = [
  "pallet-currency-adapter",
  "pallet-democracy",
  "pallet-emergency-shutdown",
+ "pallet-farming",
  "pallet-identity",
  "pallet-liquid-staking",
  "pallet-liquidation",
- "pallet-liquidity-mining",
  "pallet-loans",
  "pallet-loans-rpc-runtime-api",
  "pallet-membership",
@@ -5462,6 +5462,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-farming"
+version = "1.7.7"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-currency-adapter",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-gilt"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.16#4aeb95f7f38fcd519e2628f32f79044a8fef99d5"
@@ -5608,26 +5628,6 @@ dependencies = [
  "sp-core",
  "sp-io",
  "sp-keystore",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "pallet-liquidity-mining"
-version = "1.7.7"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "pallet-assets",
- "pallet-balances",
- "pallet-currency-adapter",
- "parallel-primitives",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core",
- "sp-io",
  "sp-runtime",
  "sp-std",
 ]
@@ -6419,10 +6419,10 @@ dependencies = [
  "pallet-currency-adapter",
  "pallet-democracy",
  "pallet-emergency-shutdown",
+ "pallet-farming",
  "pallet-identity",
  "pallet-liquid-staking",
  "pallet-liquidation",
- "pallet-liquidity-mining",
  "pallet-loans",
  "pallet-loans-rpc-runtime-api",
  "pallet-membership",
@@ -11613,10 +11613,10 @@ dependencies = [
  "pallet-currency-adapter",
  "pallet-democracy",
  "pallet-emergency-shutdown",
+ "pallet-farming",
  "pallet-identity",
  "pallet-liquid-staking",
  "pallet-liquidation",
- "pallet-liquidity-mining",
  "pallet-loans",
  "pallet-loans-rpc-runtime-api",
  "pallet-membership",
