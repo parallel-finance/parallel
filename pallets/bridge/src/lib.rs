@@ -607,7 +607,7 @@ impl<T: Config> Pallet<T> {
         if BridgeRegistry::<T>::get(&id).is_none() {
             return;
         }
-        let mut registry = BridgeRegistry::<T>::get(&id).unwrap_or_default();
+        let mut registry = BridgeRegistry::<T>::get(&id).unwrap();
         registry.iter_mut().for_each(|x| {
             match *x {
                 (nonce_start, _) if nonce_start == (nonce + 1) => x.0 = nonce,
