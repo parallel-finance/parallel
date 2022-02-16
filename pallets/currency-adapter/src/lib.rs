@@ -22,8 +22,11 @@
 
 pub use pallet::*;
 
+use frame_support::traits::LockableCurrency;
+use frame_support::traits::{LockIdentifier, WithdrawReasons};
 use frame_support::{
     dispatch::DispatchResult,
+    pallet_prelude::*,
     traits::{
         tokens::{
             fungible::{Inspect, Mutate, Transfer},
@@ -44,6 +47,7 @@ type BalanceOf<T> =
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
+    use frame_support::traits::LockableCurrency;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -53,7 +57,8 @@ pub mod pallet {
 
         type Balances: Inspect<Self::AccountId, Balance = Balance>
             + Mutate<Self::AccountId, Balance = Balance>
-            + Transfer<Self::AccountId, Balance = Balance>;
+            + Transfer<Self::AccountId, Balance = Balance>
+            + LockableCurrency<Self::AccountId, Balance = Balance, Moment = Self::BlockNumber>;
 
         #[pallet::constant]
         type GetNativeCurrencyId: Get<AssetIdOf<Self>>;
@@ -62,8 +67,44 @@ pub mod pallet {
     #[pallet::pallet]
     pub struct Pallet<T>(_);
 
+    #[pallet::error]
+    pub enum Error<T> {
+        /// Not a native token
+        NotANativeToken,
+    }
+
     #[pallet::call]
     impl<T: Config> Pallet<T> {}
+}
+
+impl<T: Config> Pallet<T> {
+    pub fn force_set_lock(
+        asset: AssetIdOf<T>,
+        id: LockIdentifier,
+        who: T::AccountId,
+        amount: BalanceOf<T>,
+        reasons: WithdrawReasons,
+    ) -> DispatchResult {
+        ensure!(
+            asset == T::GetNativeCurrencyId::get(),
+            Error::<T>::NotANativeToken
+        );
+        T::Balances::set_lock(id, &who, amount, reasons);
+        Ok(())
+    }
+
+    pub fn force_remove_lock(
+        asset: AssetIdOf<T>,
+        id: LockIdentifier,
+        who: T::AccountId,
+    ) -> DispatchResult {
+        ensure!(
+            asset == T::GetNativeCurrencyId::get(),
+            Error::<T>::NotANativeToken
+        );
+        T::Balances::remove_lock(id, &who);
+        Ok(())
+    }
 }
 
 impl<T: Config> Inspects<T::AccountId> for Pallet<T> {
