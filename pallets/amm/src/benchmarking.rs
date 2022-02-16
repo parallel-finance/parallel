@@ -86,16 +86,16 @@ benchmarks_instance_pallet! {
         (5u128, 5u128)
     )
     verify {
-        assert_last_event::<T, I>(Event::<T, I>::LiquidityAdded {
-            sender: caller,
-            base_currency_id: BASE_ASSET,
-            quote_currency_id: QUOTE_ASSET,
-            base_amount_added: base_amount,
-            quote_amount_added: quote_amount,
-            lp_token_id: ASSET_ID,
-            new_base_amount: base_amount * 2,
-            new_quote_amount: quote_amount * 2,
-        }.into());
+        assert_last_event::<T, I>(Event::<T, I>::LiquidityAdded(
+            caller,
+            BASE_ASSET,
+            QUOTE_ASSET,
+            base_amount,
+            quote_amount,
+            ASSET_ID,
+            base_amount * 2,
+            quote_amount * 2,
+        ).into());
     }
 
     remove_liquidity {
@@ -112,17 +112,17 @@ benchmarks_instance_pallet! {
         300_000u128 - MINIMUM_LIQUIDITY
     )
     verify {
-        assert_last_event::<T, I>(Event::<T, I>::LiquidityRemoved {
-            sender: caller,
-            base_currency_id: BASE_ASSET,
-            quote_currency_id: QUOTE_ASSET,
-            liquidity: 300_000u128 - MINIMUM_LIQUIDITY,
-            base_amount_removed: 99666,
-            quote_amount_removed: 897000,
-            lp_token_id: ASSET_ID,
-            new_base_amount: 334,
-            new_quote_amount: 3000,
-        }.into());
+        assert_last_event::<T, I>(Event::<T, I>::LiquidityRemoved(
+            caller,
+            BASE_ASSET,
+            QUOTE_ASSET,
+            300_000u128 - MINIMUM_LIQUIDITY,
+            99666,
+            897000,
+            ASSET_ID,
+            334,
+            3000,
+        ).into());
     }
 
     create_pool {
@@ -141,16 +141,16 @@ benchmarks_instance_pallet! {
         call.dispatch_bypass_filter(origin)?
     }
     verify {
-        assert_last_event::<T, I>(Event::<T, I>::LiquidityAdded {
-            sender: caller,
-            base_currency_id: BASE_ASSET,
-            quote_currency_id: QUOTE_ASSET,
-            base_amount_added: base_amount,
-            quote_amount_added: quote_amount,
-            lp_token_id: ASSET_ID,
-            new_base_amount: base_amount,
-            new_quote_amount: quote_amount,
-        }.into());
+        assert_last_event::<T, I>(Event::<T, I>::LiquidityAdded(
+            caller,
+            BASE_ASSET,
+            QUOTE_ASSET,
+            base_amount,
+            quote_amount,
+            ASSET_ID,
+            base_amount,
+            quote_amount,
+        ).into());
     }
 }
 
