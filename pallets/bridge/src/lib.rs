@@ -34,7 +34,7 @@ use frame_support::{
     transactional, PalletId,
 };
 use frame_system::{ensure_signed_or_root, pallet_prelude::*};
-use primitives::{Balance, BridgeId, ChainId, ChainNonce, CurrencyId};
+use primitives::{Balance, BridgeId, ChainId, ChainNonce, CurrencyId, Ratio};
 use scale_info::prelude::{vec, vec::Vec};
 use sp_runtime::traits::AccountIdConversion;
 
@@ -102,6 +102,10 @@ pub mod pallet {
         /// Each proposal can live up to [ProposalLifetime] blocks
         #[pallet::constant]
         type ProposalLifetime: Get<Self::BlockNumber>;
+
+        /// The threshold percentage of relayers required to approve a proposal
+        #[pallet::constant]
+        type ThresholdPercentage: Get<u32>;
 
         /// Information on runtime weights.
         type WeightInfo: WeightInfo;
@@ -272,11 +276,7 @@ pub mod pallet {
         #[transactional]
         pub fn set_vote_threshold(origin: OriginFor<T>, threshold: u32) -> DispatchResult {
             T::OperateOrigin::ensure_origin(origin)?;
-
-            ensure!(
-                threshold > 0 && threshold <= Self::get_members_count(),
-                Error::<T>::InvalidVoteThreshold
-            );
+            Self::ensure_valid_threshold(threshold, Self::get_members_count())?;
 
             // Set a new voting threshold
             VoteThreshold::<T>::put(threshold);
@@ -543,13 +543,9 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Checks if a bridge_token_id is registered
-    fn bridge_token_registered(bridge_token_id: CurrencyId) -> bool {
-        AssetIds::<T>::contains_key(bridge_token_id)
-    }
-
     fn ensure_bridge_token_registered(bridge_token_id: CurrencyId) -> DispatchResult {
         ensure!(
-            Self::bridge_token_registered(bridge_token_id),
+            AssetIds::<T>::contains_key(bridge_token_id),
             Error::<T>::BridgeTokenNotRegistered
         );
 
@@ -559,6 +555,19 @@ impl<T: Config> Pallet<T> {
     /// Get the count of members in the `AdminMembers`.
     pub fn get_members_count() -> u32 {
         T::AdminMembers::count() as u32
+    }
+
+    /// Check if the threshold is satisfied
+    pub fn ensure_valid_threshold(threshold: u32, total: u32) -> DispatchResult {
+        ensure!(
+            Ratio::from_rational(threshold, total)
+                >= Ratio::from_percent(T::ThresholdPercentage::get())
+                && threshold > 0
+                && threshold <= total,
+            Error::<T>::InvalidVoteThreshold
+        );
+
+        Ok(())
     }
 
     /// Increments the chain nonce for the specified chain_id
@@ -598,7 +607,7 @@ impl<T: Config> Pallet<T> {
         if BridgeRegistry::<T>::get(&id).is_none() {
             return;
         }
-        let mut registry = BridgeRegistry::<T>::get(&id).unwrap_or_default();
+        let mut registry = BridgeRegistry::<T>::get(&id).unwrap();
         registry.iter_mut().for_each(|x| {
             match *x {
                 (nonce_start, _) if nonce_start == (nonce + 1) => x.0 = nonce,

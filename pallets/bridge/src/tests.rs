@@ -52,6 +52,30 @@ fn set_vote_threshold_works() {
 }
 
 #[test]
+fn test_valid_threshold() {
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            Bridge::ensure_valid_threshold(0, 1),
+            Error::<Test>::InvalidVoteThreshold,
+        );
+        assert_ok!(Bridge::ensure_valid_threshold(1, 1));
+        assert_ok!(Bridge::ensure_valid_threshold(1, 2));
+        assert_ok!(Bridge::ensure_valid_threshold(2, 2));
+        assert_ok!(Bridge::ensure_valid_threshold(2, 3));
+        assert_noop!(
+            Bridge::ensure_valid_threshold(4, 3),
+            Error::<Test>::InvalidVoteThreshold,
+        );
+        assert_noop!(
+            Bridge::ensure_valid_threshold(4, 10),
+            Error::<Test>::InvalidVoteThreshold,
+        );
+        assert_ok!(Bridge::ensure_valid_threshold(5, 10));
+        assert_ok!(Bridge::ensure_valid_threshold(10, 10));
+    })
+}
+
+#[test]
 fn register_unregister_works() {
     new_test_ext().execute_with(|| {
         assert_noop!(

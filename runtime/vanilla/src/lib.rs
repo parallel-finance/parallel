@@ -1374,6 +1374,7 @@ parameter_types! {
     pub const BridgePalletId: PalletId = PalletId(*b"par/brid");
     // Set a short lifetime for development
     pub const ProposalLifetime: BlockNumber = 200;
+    pub const ThresholdPercentage: u32 = 50;
 }
 
 impl pallet_bridge::Config for Runtime {
@@ -1385,6 +1386,7 @@ impl pallet_bridge::Config for Runtime {
     type PalletId = BridgePalletId;
     type Assets = CurrencyAdapter;
     type ProposalLifetime = ProposalLifetime;
+    type ThresholdPercentage = ThresholdPercentage;
     type WeightInfo = pallet_bridge::weights::SubstrateWeight<Runtime>;
 }
 
