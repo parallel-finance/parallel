@@ -24,13 +24,14 @@ pub use pallet::*;
 
 use frame_support::{
     dispatch::DispatchResult,
+    pallet_prelude::*,
     traits::{
         tokens::{
             fungible::{Inspect, Mutate, Transfer},
             fungibles::{Inspect as Inspects, Mutate as Mutates, Transfer as Transfers},
             DepositConsequence, WithdrawConsequence,
         },
-        Get,
+        Get, LockIdentifier, WithdrawReasons,
     },
 };
 use primitives::{Balance, CurrencyId};
@@ -44,6 +45,8 @@ type BalanceOf<T> =
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
+    use frame_support::traits::LockableCurrency;
+    use frame_system::{ensure_root, pallet_prelude::OriginFor};
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -53,7 +56,8 @@ pub mod pallet {
 
         type Balances: Inspect<Self::AccountId, Balance = Balance>
             + Mutate<Self::AccountId, Balance = Balance>
-            + Transfer<Self::AccountId, Balance = Balance>;
+            + Transfer<Self::AccountId, Balance = Balance>
+            + LockableCurrency<Self::AccountId, Balance = Balance, Moment = Self::BlockNumber>;
 
         #[pallet::constant]
         type GetNativeCurrencyId: Get<AssetIdOf<Self>>;
@@ -62,8 +66,47 @@ pub mod pallet {
     #[pallet::pallet]
     pub struct Pallet<T>(_);
 
+    #[pallet::error]
+    pub enum Error<T> {
+        /// Not a native token
+        NotANativeToken,
+    }
+
     #[pallet::call]
-    impl<T: Config> Pallet<T> {}
+    impl<T: Config> Pallet<T> {
+        #[pallet::weight(10_000)]
+        pub fn force_set_lock(
+            origin: OriginFor<T>,
+            asset: AssetIdOf<T>,
+            id: LockIdentifier,
+            who: T::AccountId,
+            #[pallet::compact] amount: BalanceOf<T>,
+        ) -> DispatchResult {
+            ensure_root(origin)?;
+            ensure!(
+                asset == T::GetNativeCurrencyId::get(),
+                Error::<T>::NotANativeToken
+            );
+            T::Balances::set_lock(id, &who, amount, WithdrawReasons::all());
+            Ok(())
+        }
+
+        #[pallet::weight(10_000)]
+        pub fn force_remove_lock(
+            origin: OriginFor<T>,
+            asset: AssetIdOf<T>,
+            id: LockIdentifier,
+            who: T::AccountId,
+        ) -> DispatchResult {
+            ensure_root(origin)?;
+            ensure!(
+                asset == T::GetNativeCurrencyId::get(),
+                Error::<T>::NotANativeToken
+            );
+            T::Balances::remove_lock(id, &who);
+            Ok(())
+        }
+    }
 }
 
 impl<T: Config> Inspects<T::AccountId> for Pallet<T> {

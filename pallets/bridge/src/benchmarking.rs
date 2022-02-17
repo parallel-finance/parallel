@@ -52,9 +52,9 @@ benchmarks! {
 
     set_vote_threshold {
         let caller: T::AccountId = whitelisted_caller();
-    }: _(SystemOrigin::Root, 1)
+    }: _(SystemOrigin::Root, 2)
     verify {
-        assert_last_event::<T>(Event::VoteThresholdChanged(1).into())
+        assert_last_event::<T>(Event::VoteThresholdChanged(2).into())
     }
 
     register_chain {

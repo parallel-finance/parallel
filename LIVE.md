@@ -1,6 +1,6 @@
 ## Heiko
 
-- `node`: parallelfinance/parallel:v1.7.6-rc4
+- `node`: parallelfinance/parallel:v1.7.7-rc0
 - `runtime`: 176
 - `branch`: https://github.com/parallel-finance/parallel/tree/v1.7.6-rc4
 - `polkadot`: v0.9.13
@@ -10,7 +10,7 @@
 
 ## Parallel
 
-- `node`: parallelfinance/parallel:v1.7.6-rc4
+- `node`: parallelfinance/parallel:v1.7.7-rc0
 - `runtime`: 176
 - `branch`: https://github.com/parallel-finance/parallel/tree/v1.7.6-rc4
 - `polkadot`: v0.9.13

@@ -154,6 +154,7 @@ parameter_types! {
     pub const BridgePalletId: PalletId = PalletId(*b"par/brid");
     pub const ProposalLifetime: BlockNumber = 50;
     pub const RootOperatorAccountId: AccountId = 7;
+    pub const ThresholdPercentage: u32 = 50;
 }
 
 impl Config for Test {
@@ -169,6 +170,7 @@ impl Config for Test {
     type Assets = CurrencyAdapter;
 
     type ProposalLifetime = ProposalLifetime;
+    type ThresholdPercentage = ThresholdPercentage;
 
     type WeightInfo = ();
 }

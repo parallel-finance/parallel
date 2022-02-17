@@ -142,24 +142,32 @@ pub mod pallet {
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config<I>, I: 'static = ()> {
         /// Add liquidity into pool
-        /// [sender, base_currency_id, quote_currency_id, base_amount, quote_amount]
+        /// [sender, base_currency_id, quote_currency_id, base_amount_added, quote_amount_added, lp_token_id, new_base_amount, new_quote_amount]
         LiquidityAdded(
             T::AccountId,
             AssetIdOf<T, I>,
             AssetIdOf<T, I>,
             BalanceOf<T, I>,
             BalanceOf<T, I>,
+            AssetIdOf<T, I>,
+            BalanceOf<T, I>,
+            BalanceOf<T, I>,
         ),
         /// Remove liquidity from pool
-        /// [sender, base_currency_id, quote_currency_id, liquidity]
+        /// [sender, base_currency_id, quote_currency_id, liquidity, base_amount_removed, quote_amount_removed, lp_token_id, new_base_amount, new_quote_amount]
         LiquidityRemoved(
             T::AccountId,
             AssetIdOf<T, I>,
             AssetIdOf<T, I>,
             BalanceOf<T, I>,
+            BalanceOf<T, I>,
+            BalanceOf<T, I>,
+            AssetIdOf<T, I>,
+            BalanceOf<T, I>,
+            BalanceOf<T, I>,
         ),
         /// A Pool has been created
-        /// [trader, currency_id_in, currency_id_out, lp_token_id
+        /// [trader, currency_id_in, currency_id_out, lp_token_id]
         PoolCreated(
             T::AccountId,
             AssetIdOf<T, I>,
@@ -167,13 +175,14 @@ pub mod pallet {
             AssetIdOf<T, I>,
         ),
         /// Trade using liquidity
-        /// [trader, currency_id_in, currency_id_out, amount_in, amount_out, new_quote_amount, new_base_amount]
+        /// [trader, currency_id_in, currency_id_out, amount_in, amount_out, lp_token_id, new_quote_amount, new_base_amount]
         Traded(
             T::AccountId,
             AssetIdOf<T, I>,
             AssetIdOf<T, I>,
             BalanceOf<T, I>,
             BalanceOf<T, I>,
+            AssetIdOf<T, I>,
             BalanceOf<T, I>,
             BalanceOf<T, I>,
         ),
@@ -272,6 +281,9 @@ pub mod pallet {
                         quote_asset,
                         ideal_base_amount,
                         ideal_quote_amount,
+                        pool.lp_token_id,
+                        pool.base_amount,
+                        pool.quote_amount,
                     ));
 
                     Ok(().into())
@@ -296,6 +308,9 @@ pub mod pallet {
 
             Pools::<T, I>::try_mutate(base_asset, quote_asset, |pool| -> DispatchResult {
                 let pool = pool.as_mut().ok_or(Error::<T, I>::PoolDoesNotExist)?;
+
+                let (base_amount_removed, quote_amount_removed) =
+                    Self::calculate_reserves_to_remove(pool, liquidity)?;
                 Self::do_remove_liquidity(&who, pool, liquidity, (base_asset, quote_asset))?;
                 Self::do_mint_protocol_fee(pool)?;
 
@@ -313,6 +328,11 @@ pub mod pallet {
                     base_asset,
                     quote_asset,
                     liquidity,
+                    base_amount_removed,
+                    quote_amount_removed,
+                    pool.lp_token_id,
+                    pool.base_amount,
+                    pool.quote_amount,
                 ));
 
                 Ok(())
@@ -391,6 +411,9 @@ pub mod pallet {
                 quote_asset,
                 base_amount,
                 quote_amount,
+                pool.lp_token_id,
+                pool.base_amount,
+                pool.quote_amount,
             ));
 
             Ok(().into())
@@ -749,12 +772,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(())
     }
 
-    #[require_transactional]
-    fn do_remove_liquidity(
-        who: &T::AccountId,
+    fn calculate_reserves_to_remove(
         pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
         liquidity: BalanceOf<T, I>,
-        (base_asset, quote_asset): (AssetIdOf<T, I>, AssetIdOf<T, I>),
     ) -> Result<(BalanceOf<T, I>, BalanceOf<T, I>), DispatchError> {
         let total_supply = T::Assets::total_issuance(pool.lp_token_id);
 
@@ -766,6 +786,18 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .checked_mul(pool.quote_amount)
             .and_then(|r| r.checked_div(total_supply))
             .ok_or(ArithmeticError::Underflow)?;
+
+        Ok((base_amount, quote_amount))
+    }
+
+    #[require_transactional]
+    fn do_remove_liquidity(
+        who: &T::AccountId,
+        pool: &mut Pool<AssetIdOf<T, I>, BalanceOf<T, I>, T::BlockNumber>,
+        liquidity: BalanceOf<T, I>,
+        (base_asset, quote_asset): (AssetIdOf<T, I>, AssetIdOf<T, I>),
+    ) -> Result<(BalanceOf<T, I>, BalanceOf<T, I>), DispatchError> {
+        let (base_amount, quote_amount) = Self::calculate_reserves_to_remove(pool, liquidity)?;
 
         pool.base_amount = pool
             .base_amount
@@ -920,6 +952,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                     asset_out,
                     amount_in,
                     amount_out,
+                    pool.lp_token_id,
                     pool.quote_amount,
                     pool.base_amount,
                 ));
