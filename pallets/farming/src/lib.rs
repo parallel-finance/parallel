@@ -29,7 +29,7 @@ mod benchmarking;
 
 pub mod weights;
 
-use codec::{Decode, Encode, MaxEncodedLen};
+use frame_support::traits::tokens::Balance as TokenBalance;
 use frame_support::{
     pallet_prelude::*,
     traits::{
@@ -41,11 +41,9 @@ use frame_support::{
 use frame_system::{ensure_signed, pallet_prelude::OriginFor};
 use primitives::{Balance, CurrencyId};
 use scale_info::TypeInfo;
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
 use sp_io::hashing::blake2_256;
 use sp_runtime::{
-    traits::{AccountIdConversion, Saturating, StaticLookup, Zero},
+    traits::{AccountIdConversion, Saturating, UniqueSaturatedInto, Zero},
     ArithmeticError, SaturatedConversion,
 };
 use sp_std::result::Result;
@@ -53,18 +51,19 @@ use sp_std::result::Result;
 pub use pallet::*;
 pub use weights::WeightInfo;
 
-pub type AssetIdOf<T, I = ()> =
-    <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
-pub type BalanceOf<T, I = ()> =
-    <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
+type AssetIdOf<T> =
+    <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
+
+type BalanceOf<T> =
+    <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
 
     #[pallet::config]
-    pub trait Config<I: 'static = ()>: frame_system::Config {
-        type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
+    pub trait Config: frame_system::Config {
+        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         /// Currency type for deposit/withdraw assets to/from plm
         /// module
@@ -88,7 +87,7 @@ pub mod pallet {
     }
 
     #[pallet::error]
-    pub enum Error<T, I = ()> {
+    pub enum Error<T> {
         /// Pool does not exist
         PoolDoesNotExist,
         /// Pool associacted with asset already exists
@@ -101,213 +100,338 @@ pub mod pallet {
         NotAValidAmount,
         /// The end block is smaller than start block
         SmallerThanEndBlock,
+        /// Pool reward rule info does not exist
+        PoolRewardRuleDoesNotExist,
+        /// User reward info does not exist
+        UserRewardDoesNotExist,
         /// Codec error
         CodecError,
     }
 
     #[pallet::event]
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
-    pub enum Event<T: Config<I>, I: 'static = ()> {
+    pub enum Event<T: Config> {
         /// Add new pool
         /// [asset_id]
-        PoolAdded(AssetIdOf<T, I>),
+        PoolAdded(AssetIdOf<T>),
         /// Deposited Assets in pool
         /// [sender, asset_id]
-        AssetsDeposited(T::AccountId, AssetIdOf<T, I>),
+        AssetsDeposited(T::AccountId, AssetIdOf<T>),
         /// Withdrew Assets from pool
         /// [sender, asset_id]
-        AssetsWithdrew(T::AccountId, AssetIdOf<T, I>),
+        AssetsWithdrew(T::AccountId, AssetIdOf<T>),
     }
 
     #[pallet::pallet]
-    pub struct Pallet<T, I = ()>(_);
+    #[pallet::generate_store(pub(super) trait Store)]
+    #[pallet::without_storage_info]
+    pub struct Pallet<T>(_);
 
-    #[derive(
-        Encode,
-        Decode,
-        Eq,
-        PartialEq,
-        Copy,
-        Clone,
-        RuntimeDebug,
-        PartialOrd,
-        Ord,
-        TypeInfo,
-        MaxEncodedLen,
-    )]
-    #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-    pub struct Pool<BlockNumber, AssetId, BoundedTokens> {
-        /// When the liquidity program starts
-        start: BlockNumber,
-        /// When the liquidity program stops
-        end: BlockNumber,
+    #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+    pub struct Pool<AssetId, BoundedTokens> {
         /// Which assets we use to send rewards
-        rewards: BoundedTokens,
+        pub reward_tokens: BoundedTokens,
         /// Which asset we use to represent shares of the pool
-        asset_id: AssetId,
+        pub asset_id: AssetId,
     }
 
     /// Each pool is associated to a unique AssetId (not be mixed with the reward asset)
     #[pallet::storage]
     #[pallet::getter(fn pools)]
-    pub type Pools<T: Config<I>, I: 'static = ()> = StorageMap<
+    pub type Pools<T: Config> = StorageMap<
         _,
         Blake2_128Concat,
-        AssetIdOf<T, I>,
-        Pool<
-            T::BlockNumber,
-            AssetIdOf<T, I>,
-            BoundedVec<(BalanceOf<T, I>, AssetIdOf<T, I>), T::MaxRewardTokens>,
-        >,
+        AssetIdOf<T>,
+        Pool<AssetIdOf<T>, BoundedVec<AssetIdOf<T>, T::MaxRewardTokens>>,
+        OptionQuery,
+    >;
+
+    #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+    pub struct PoolRewardInfo<BlockNumber, BalanceOf> {
+        /// When the liquidity program starts
+        pub start: BlockNumber,
+        /// When the liquidity program stops
+        pub end: BlockNumber,
+        pub last_update_block: BlockNumber,
+        pub reward_rate: BalanceOf,
+        pub reward_per_share_stored: BalanceOf,
+    }
+
+    impl<
+            BlockNumber: Copy + PartialOrd + Saturating + UniqueSaturatedInto<u128>,
+            BalanceOf: TokenBalance,
+        > PoolRewardInfo<BlockNumber, BalanceOf>
+    {
+        pub fn last_reward_block_applicable(
+            &self,
+            current_block_number: BlockNumber,
+        ) -> BlockNumber {
+            if current_block_number > self.end {
+                self.end
+            } else {
+                current_block_number
+            }
+        }
+
+        pub fn reward_per_share(
+            &self,
+            total_issue: BalanceOf,
+            current_block_number: BlockNumber,
+        ) -> Result<BalanceOf, ArithmeticError> {
+            return if total_issue.is_zero() {
+                Ok(self.reward_per_share_stored)
+            } else {
+                let last_reward_block = self.last_reward_block_applicable(current_block_number);
+                let block_diff = Self::block_to_balance(
+                    last_reward_block.saturating_sub(self.last_update_block),
+                );
+                let reward_per_share_add = block_diff
+                    .checked_mul(&self.reward_rate)
+                    .ok_or(ArithmeticError::Overflow)?
+                    .checked_div(&total_issue)
+                    .ok_or(ArithmeticError::Overflow)?;
+
+                let ret = self
+                    .reward_per_share_stored
+                    .checked_add(&reward_per_share_add)
+                    .ok_or(ArithmeticError::Overflow)?;
+                Ok(ret)
+            };
+        }
+
+        pub fn update_reward_per_share(
+            &mut self,
+            total_issue: BalanceOf,
+            current_block_number: BlockNumber,
+        ) -> Result<(), ArithmeticError> {
+            let reward_per_share_stored =
+                self.reward_per_share(total_issue, current_block_number)?;
+            if reward_per_share_stored > self.reward_per_share_stored {
+                self.reward_per_share_stored = reward_per_share_stored;
+            }
+
+            let last_reward_block_applicable =
+                self.last_reward_block_applicable(current_block_number);
+            if last_reward_block_applicable > self.last_update_block {
+                self.last_update_block = last_reward_block_applicable;
+            }
+
+            Ok(())
+        }
+
+        fn block_to_balance(duration: BlockNumber) -> BalanceOf {
+            BalanceOf::saturated_from(duration.saturated_into())
+        }
+    }
+
+    /// Each pool is associated to a unique AssetId (not be mixed with the reward asset)
+    #[pallet::storage]
+    #[pallet::getter(fn pool_reward_info)]
+    pub type PoolsRewards<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        AssetIdOf<T>,
+        Blake2_128Concat,
+        AssetIdOf<T>,
+        PoolRewardInfo<T::BlockNumber, BalanceOf<T>>,
+        OptionQuery,
+    >;
+
+    #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+    pub struct RewardInfo<BalanceOf> {
+        pub reward_amount: BalanceOf,
+        pub reward_per_share_paid: BalanceOf,
+    }
+
+    /// Each pool is associated to a unique AssetId (not be mixed with the reward asset)
+    #[pallet::storage]
+    #[pallet::getter(fn user_reward_info)]
+    pub type UserRewardInfo<T: Config> = StorageNMap<
+        _,
+        (
+            NMapKey<Blake2_128Concat, T::AccountId>,
+            NMapKey<Blake2_128Concat, AssetIdOf<T>>,
+            NMapKey<Blake2_128Concat, AssetIdOf<T>>,
+        ),
+        RewardInfo<BalanceOf<T>>,
         OptionQuery,
     >;
 
     #[pallet::call]
-    impl<T: Config<I>, I: 'static> Pallet<T, I> {
+    impl<T: Config> Pallet<T> {
         /// Create new pool, associated with a unique asset id
-        #[pallet::weight(<T as Config<I>>::WeightInfo::create())]
+        #[pallet::weight(T::WeightInfo::create())]
         #[transactional]
         pub fn create(
             origin: OriginFor<T>,
-            asset: AssetIdOf<T, I>,
-            stash: <T::Lookup as StaticLookup>::Source,
-            start: T::BlockNumber,
-            end: T::BlockNumber,
-            rewards: BoundedVec<(BalanceOf<T, I>, AssetIdOf<T, I>), T::MaxRewardTokens>,
-            asset_id: AssetIdOf<T, I>,
+            asset: AssetIdOf<T>,
+            reward_tokens: BoundedVec<AssetIdOf<T>, T::MaxRewardTokens>,
+            asset_id: AssetIdOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::CreateOrigin::ensure_origin(origin)?;
 
-            ensure!(end > start, Error::<T, I>::SmallerThanEndBlock);
-
             ensure!(
-                !Pools::<T, I>::contains_key(&asset),
-                Error::<T, I>::PoolAlreadyExists
+                !Pools::<T>::contains_key(&asset),
+                Error::<T>::PoolAlreadyExists
             );
 
             ensure!(
                 T::Assets::total_issuance(asset_id).is_zero(),
-                Error::<T, I>::NotANewlyCreatedAsset
+                Error::<T>::NotANewlyCreatedAsset
             );
-
-            let current_block_number = <frame_system::Pallet<T>>::block_number();
-            ensure!(
-                start >= current_block_number,
-                Error::<T, I>::NotAValidDuration
-            );
-
-            let stash = T::Lookup::lookup(stash)?;
-
-            let asset_pool_account = Self::pool_account_id(asset)?;
-            for (per_block, reward_token) in rewards.clone() {
-                let total_rewards =
-                    Self::block_to_balance(end.saturating_sub(start)).saturating_mul(per_block);
-                T::Assets::transfer(
-                    reward_token,
-                    &stash,
-                    &asset_pool_account,
-                    total_rewards,
-                    true,
-                )?;
-            }
 
             let pool = Pool {
-                start,
-                end,
-                rewards,
+                reward_tokens,
                 asset_id,
             };
 
-            Pools::<T, I>::insert(&asset, pool);
-            Self::deposit_event(Event::<T, I>::PoolAdded(asset));
+            Pools::<T>::insert(&asset, pool);
+            Self::deposit_event(Event::<T>::PoolAdded(asset));
             Ok(().into())
         }
 
         /// Depositing Assets in a Pool
-        #[pallet::weight(<T as Config<I>>::WeightInfo::deposit())]
+        #[pallet::weight(T::WeightInfo::deposit())]
         #[transactional]
         pub fn deposit(
             origin: OriginFor<T>,
-            asset: AssetIdOf<T, I>,
-            #[pallet::compact] amount: BalanceOf<T, I>,
+            asset: AssetIdOf<T>,
+            amount: BalanceOf<T>,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
-            ensure!(amount != Zero::zero(), Error::<T, I>::NotAValidAmount);
+            ensure!(amount != Zero::zero(), Error::<T>::NotAValidAmount);
 
             let asset_pool_account = Self::pool_account_id(asset)?;
-            Pools::<T, I>::try_mutate(asset, |liquidity_pool| -> DispatchResult {
+            Pools::<T>::try_mutate(asset, |liquidity_pool| -> DispatchResult {
                 let pool = liquidity_pool
                     .as_mut()
-                    .ok_or(Error::<T, I>::PoolDoesNotExist)?;
+                    .ok_or(Error::<T>::PoolDoesNotExist)?;
 
-                let current_block_number = <frame_system::Pallet<T>>::block_number();
-                ensure!(
-                    current_block_number >= pool.start && current_block_number <= pool.end,
-                    Error::<T, I>::NotAValidDuration
-                );
+                Self::update_all_reward_for_user(who.clone(), asset)?;
 
                 T::Assets::transfer(asset, &who, &asset_pool_account, amount, true)?;
 
                 T::Assets::mint_into(pool.asset_id, &who, amount)?;
 
-                Self::deposit_event(Event::<T, I>::AssetsDeposited(who, asset));
+                Self::deposit_event(Event::<T>::AssetsDeposited(who, asset));
                 Ok(())
             })
         }
 
         /// Claiming Rewards or Withdrawing Assets from a Pool
-        #[pallet::weight(<T as Config<I>>::WeightInfo::withdraw())]
+        #[pallet::weight(T::WeightInfo::withdraw())]
         #[transactional]
         pub fn withdraw(
             origin: OriginFor<T>,
-            asset: AssetIdOf<T, I>,
-            #[pallet::compact] amount: BalanceOf<T, I>,
+            asset: AssetIdOf<T>,
+            amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            ensure!(amount != Zero::zero(), Error::<T, I>::NotAValidAmount);
+            ensure!(amount != Zero::zero(), Error::<T>::NotAValidAmount);
 
             let asset_pool_account = Self::pool_account_id(asset)?;
-            Pools::<T, I>::try_mutate(asset, |liquidity_pool| -> DispatchResultWithPostInfo {
+            Pools::<T>::try_mutate(asset, |liquidity_pool| -> DispatchResultWithPostInfo {
                 let pool = liquidity_pool
                     .as_mut()
-                    .ok_or(Error::<T, I>::PoolDoesNotExist)?;
+                    .ok_or(Error::<T>::PoolDoesNotExist)?;
 
-                for (per_block, reward_token) in pool.rewards.clone() {
-                    let duration: T::BlockNumber =
-                        <frame_system::Pallet<T>>::block_number().saturating_sub(pool.start);
-                    let percent = amount
-                        .checked_div(T::Assets::total_issuance(pool.asset_id))
-                        .ok_or(ArithmeticError::Overflow)?;
-                    let total_rewards = percent
-                        .saturating_mul(Self::block_to_balance(duration).saturating_mul(per_block));
-
-                    T::Assets::transfer(
-                        reward_token,
-                        &asset_pool_account,
-                        &who,
-                        total_rewards,
-                        true,
-                    )?;
-                }
+                Self::update_all_reward_for_user(who.clone(), asset)?;
 
                 T::Assets::transfer(asset, &asset_pool_account, &who, amount, true)?;
                 T::Assets::burn_from(pool.asset_id, &who, amount)?;
 
-                Self::deposit_event(Event::<T, I>::AssetsWithdrew(who, asset));
+                Self::deposit_event(Event::<T>::AssetsWithdrew(who, asset));
                 Ok(().into())
             })
         }
     }
 }
 
-impl<T: Config<I>, I: 'static> Pallet<T, I> {
-    pub fn pool_account_id(asset_id: AssetIdOf<T, I>) -> Result<T::AccountId, DispatchError> {
-        let account_id: T::AccountId = T::PalletId::get().into_account();
-        let entropy = (b"modlpy/liquidity", &[account_id], asset_id).using_encoded(blake2_256);
-        Ok(T::AccountId::decode(&mut &entropy[..]).map_err(|_| Error::<T, I>::CodecError)?)
+impl<T: Config> Pallet<T> {
+    fn reward_earned_internal(
+        balance: BalanceOf<T>,
+        total_issue: BalanceOf<T>,
+        pool_reward_info: &PoolRewardInfo<T::BlockNumber, BalanceOf<T>>,
+        user_reward_info: &RewardInfo<BalanceOf<T>>,
+    ) -> Result<BalanceOf<T>, ArithmeticError> {
+        let current_block_number = <frame_system::Pallet<T>>::block_number();
+
+        let diff = pool_reward_info
+            .reward_per_share(total_issue, current_block_number)?
+            .checked_sub(user_reward_info.reward_per_share_paid)
+            .ok_or(ArithmeticError::Overflow)?;
+
+        let ret = balance
+            .checked_mul(diff)
+            .ok_or(ArithmeticError::Overflow)?
+            .checked_add(user_reward_info.reward_amount)
+            .ok_or(ArithmeticError::Overflow)?;
+
+        return Ok(ret);
     }
 
-    fn block_to_balance(duration: T::BlockNumber) -> BalanceOf<T, I> {
-        duration.saturated_into()
+    // pub fn reward_earned(who: T::AccountId, asset: AssetIdOf<T>, reward_asset:AssetIdOf<T>) -> DispatchResult {
+    //     let user_balance = T::Assets::balance(who);
+    //
+    // }
+
+    fn update_reward_for_user(
+        who: Option<T::AccountId>,
+        asset: AssetIdOf<T>,
+        reward_asset: AssetIdOf<T>,
+    ) -> Result<(), ArithmeticError> {
+        let current_block_number = <frame_system::Pallet<T>>::block_number();
+        let total_issue = T::Assets::total_issuance(asset);
+
+        //1, update pool reward info
+        PoolsRewards::<T>::mutate(
+            asset,
+            reward_asset,
+            |pool_reward_info| -> Result<(), ArithmeticError> {
+                if let Some(pool_reward_info) = pool_reward_info {
+                    pool_reward_info.update_reward_per_share(total_issue, current_block_number)?;
+
+                    //2, update user reward info
+                    if let Some(who) = who {
+                        let user_balance = T::Assets::balance(asset, &who);
+                        UserRewardInfo::<T>::mutate(
+                            (who, asset, reward_asset),
+                            |user_reward_info| -> Result<(), ArithmeticError> {
+                                if let Some(user_reward_info) = user_reward_info {
+                                    let earned = Self::reward_earned_internal(
+                                        user_balance,
+                                        total_issue,
+                                        pool_reward_info,
+                                        user_reward_info,
+                                    )?;
+                                    user_reward_info.reward_amount = earned;
+                                    user_reward_info.reward_per_share_paid =
+                                        pool_reward_info.reward_per_share_stored;
+                                }
+                                Ok(())
+                            },
+                        )?;
+                    }
+                }
+                Ok(())
+            },
+        )?;
+        Ok(())
+    }
+
+    fn update_all_reward_for_user(who: T::AccountId, asset: AssetIdOf<T>) -> DispatchResult {
+        let pool = Pools::<T>::try_get(asset).map_err(|_err| Error::<T>::PoolDoesNotExist)?;
+
+        for reward_token in pool.reward_tokens.clone() {
+            Self::update_reward_for_user(Some(who.clone()), asset, reward_token.clone())?;
+        }
+
+        Ok(())
+    }
+
+    pub fn pool_account_id(asset_id: AssetIdOf<T>) -> Result<T::AccountId, DispatchError> {
+        let account_id: T::AccountId = T::PalletId::get().into_account();
+        let entropy = (b"modlpy/liquidity", &[account_id], asset_id).using_encoded(blake2_256);
+        Ok(T::AccountId::decode(&mut &entropy[..]).map_err(|_| Error::<T>::CodecError)?)
     }
 }
