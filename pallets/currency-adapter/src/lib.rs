@@ -22,7 +22,6 @@
 
 pub use pallet::*;
 
-use frame_support::traits::{LockIdentifier, WithdrawReasons};
 use frame_support::{
     dispatch::DispatchResult,
     pallet_prelude::*,
@@ -32,7 +31,7 @@ use frame_support::{
             fungibles::{Inspect as Inspects, Mutate as Mutates, Transfer as Transfers},
             DepositConsequence, WithdrawConsequence,
         },
-        Get,
+        Get, LockIdentifier, WithdrawReasons,
     },
 };
 use primitives::{Balance, CurrencyId};
@@ -47,8 +46,7 @@ type BalanceOf<T> =
 pub mod pallet {
     use super::*;
     use frame_support::traits::LockableCurrency;
-    use frame_system::ensure_root;
-    use frame_system::pallet_prelude::OriginFor;
+    use frame_system::{ensure_root, pallet_prelude::OriginFor};
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -82,15 +80,14 @@ pub mod pallet {
             asset: AssetIdOf<T>,
             id: LockIdentifier,
             who: T::AccountId,
-            amount: BalanceOf<T>,
-            reasons: WithdrawReasons,
+            #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
             ensure_root(origin)?;
             ensure!(
                 asset == T::GetNativeCurrencyId::get(),
                 Error::<T>::NotANativeToken
             );
-            T::Balances::set_lock(id, &who, amount, reasons);
+            T::Balances::set_lock(id, &who, amount, WithdrawReasons::all());
             Ok(())
         }
 
