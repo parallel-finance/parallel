@@ -2,7 +2,7 @@ use codec::{Decode, Encode};
 
 use super::{BalanceOf, Config};
 use frame_support::{dispatch::DispatchResult, traits::tokens::Balance as BalanceT};
-use primitives::{ArithmeticKind, LiquidStakingConvert};
+use primitives::ArithmeticKind;
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, ArithmeticError, DispatchError, FixedPointOperand, RuntimeDebug};
 use sp_std::{cmp::Ordering, result::Result, vec::Vec};
@@ -22,26 +22,23 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
     /// `unbonding_amount` is the total amount of the unbonding asset on the relaychain.
     ///
     /// the returned tri-tuple is formed as `(bond_amount, rebond_amount, unbond_amount)`.
-    pub fn matching<T: LiquidStakingConvert<Balance>>(
+    pub fn matching(
         &mut self,
         unbonding_amount: Balance,
     ) -> Result<(Balance, Balance, Balance), DispatchError> {
         use Ordering::*;
 
-        let unstake_asset_amout =
-            T::liquid_to_staking(self.total_unstake_amount).ok_or(ArithmeticError::Overflow)?;
-
         let (bond_amount, rebond_amount, unbond_amount) = if matches!(
-            self.total_stake_amount.cmp(&unstake_asset_amout),
+            self.total_stake_amount.cmp(&self.total_unstake_amount),
             Less | Equal
         ) {
             (
                 Zero::zero(),
                 Zero::zero(),
-                unstake_asset_amout - self.total_stake_amount,
+                self.total_unstake_amount - self.total_stake_amount,
             )
         } else {
-            let amount = self.total_stake_amount - unstake_asset_amout;
+            let amount = self.total_stake_amount - self.total_unstake_amount;
             if amount < unbonding_amount {
                 (Zero::zero(), amount, Zero::zero())
             } else {
@@ -52,12 +49,7 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         self.total_stake_amount = bond_amount
             .checked_add(&rebond_amount)
             .ok_or(ArithmeticError::Overflow)?;
-        if unbond_amount.is_zero() {
-            self.total_unstake_amount = Zero::zero();
-        } else {
-            self.total_unstake_amount =
-                T::staking_to_liquid(unbond_amount).ok_or(ArithmeticError::Overflow)?;
-        }
+        self.total_unstake_amount = unbond_amount;
 
         Ok((bond_amount, rebond_amount, unbond_amount))
     }
@@ -117,7 +109,7 @@ pub enum XcmRequest<T: Config> {
         amount: BalanceOf<T>,
     },
     Unbond {
-        liquid_amount: BalanceOf<T>,
+        amount: BalanceOf<T>,
     },
     Rebond {
         amount: BalanceOf<T>,
