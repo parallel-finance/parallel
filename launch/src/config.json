@@ -310,9 +310,9 @@
   ],
   "bridge": {
     "members": [
-      "hJKzPoi3MQnSLvbShxeDmzbtHncrMXe5zwS3Wa36P6kXeNpcv",
-      "hJJREXdsDH4SSmaxCXiFqFFyKgmqU56gfSbuBWfxi2mcQbfvj",
-      "hJJTtbp1Fc4L5QCMs4VrAEvRcWuWr4QZWsPAX3gFpKAnvtxsV"
+      "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+      "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y"
     ],
     "chainIds": [1],
     "bridgeTokens": [
