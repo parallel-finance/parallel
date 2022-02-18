@@ -570,11 +570,6 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    /// Get the percentage of members required in the `VoteThreshold`.
-    pub fn get_threshold_percentage() -> u32 {
-        T::ThresholdPercentage::get()
-    }
-
     pub fn change_vote_threshold() -> DispatchResult {
         let new_threshold =
             Ratio::from_percent(T::ThresholdPercentage::get()).mul_ceil(Self::get_members_count());
