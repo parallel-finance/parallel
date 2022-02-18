@@ -107,6 +107,8 @@ pub mod pallet {
         MaximumAmountInViolated,
         /// A more specific UnexpectedSlippage when trading exact amount in
         MinimumAmountOutViolated,
+        /// Pair doesn't exists
+        PairDoesNotExists,
     }
 
     #[pallet::event]
@@ -188,6 +190,7 @@ pub mod pallet {
                 }
 
                 // cant error because we fetch pools above
+                ensure!(graph.contains_key(&start), Error::<T, I>::PairDoesNotExists);
                 let adjacents = graph.get(&start).unwrap();
 
                 // items that are adjecent but not already in path
