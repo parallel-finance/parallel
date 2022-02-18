@@ -363,21 +363,21 @@ pub mod pallet {
                 Error::<T>::UnstakeTooSmall
             );
 
-            let asset_amount =
+            let staking_amount =
                 Self::liquid_to_staking(liquid_amount).ok_or(Error::<T>::InvalidExchangeRate)?;
 
             let target_blocknumber = T::RelayChainBlockNumberProvider::current_block_number()
                 .checked_add(&T::BondingDuration::get())
                 .ok_or(ArithmeticError::Overflow)?;
-            Self::do_push_back(&who, asset_amount, target_blocknumber)?;
+            Self::do_push_back(&who, staking_amount, target_blocknumber)?;
 
             T::Assets::burn_from(Self::liquid_currency()?, &who, liquid_amount)?;
 
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                p.update_total_unstake_amount(liquid_amount, ArithmeticKind::Addition)
+                p.update_total_unstake_amount(staking_amount, ArithmeticKind::Addition)
             })?;
 
-            Self::deposit_event(Event::<T>::Unstaked(who, liquid_amount, asset_amount));
+            Self::deposit_event(Event::<T>::Unstaked(who, liquid_amount, staking_amount));
             Ok(().into())
         }
 
@@ -434,7 +434,7 @@ pub mod pallet {
 
             let old_matching_ledger = Self::matching_pool();
             let (bond_amount, rebond_amount, unbond_amount) =
-                MatchingPool::<T>::try_mutate(|b| b.matching::<Self>(unbonding_amount))?;
+                MatchingPool::<T>::try_mutate(|b| b.matching(unbonding_amount))?;
 
             if bonding_amount.is_zero() && unbonding_amount.is_zero() {
                 Self::do_bond(bond_amount, RewardDestination::Staked)?;
@@ -667,10 +667,7 @@ pub mod pallet {
                 Self::notify_placeholder(),
             )?;
 
-            let liquid_amount =
-                Self::staking_to_liquid(amount).ok_or(Error::<T>::InvalidExchangeRate)?;
-
-            XcmRequests::<T>::insert(query_id, XcmRequest::Unbond { liquid_amount });
+            XcmRequests::<T>::insert(query_id, XcmRequest::Unbond { amount });
 
             Self::deposit_event(Event::<T>::Unbonding(amount));
 
@@ -682,14 +679,18 @@ pub mod pallet {
             if amount.is_zero() {
                 return Ok(());
             }
+
             let query_id = T::XCM::do_rebond(
                 amount,
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
                 Self::notify_placeholder(),
             )?;
+
             XcmRequests::<T>::insert(query_id, XcmRequest::Rebond { amount });
+
             Self::deposit_event(Event::<T>::Rebonding(amount));
+
             Ok(())
         }
 
@@ -739,25 +740,26 @@ pub mod pallet {
             res: Option<(u32, XcmError)>,
         ) -> DispatchResult {
             let executed = res.is_none();
+            use XcmRequest::*;
 
             match request {
-                XcmRequest::Bond { amount, .. } | XcmRequest::BondExtra { amount } if executed => {
+                Bond { amount, .. } | BondExtra { amount } if executed => {
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
                         p.update_total_stake_amount(amount, ArithmeticKind::Subtraction)
                     })?;
                     T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), amount)?;
                 }
-                XcmRequest::Unbond { liquid_amount } if executed => {
+                Unbond { amount } if executed => {
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        p.update_total_unstake_amount(liquid_amount, ArithmeticKind::Subtraction)
+                        p.update_total_unstake_amount(amount, ArithmeticKind::Subtraction)
                     })?;
                 }
-                XcmRequest::Rebond { amount } if executed => {
+                Rebond { amount } if executed => {
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
                         p.update_total_stake_amount(amount, ArithmeticKind::Subtraction)
                     })?;
                 }
-                XcmRequest::WithdrawUnbonded {
+                WithdrawUnbonded {
                     num_slashing_spans: _,
                     amount,
                 } if executed => {
@@ -769,6 +771,7 @@ pub mod pallet {
             if executed {
                 XcmRequests::<T>::remove(&query_id);
             }
+
             Ok(())
         }
 
@@ -780,10 +783,9 @@ pub mod pallet {
             match Rate::checked_from_rational(
                 bonding_amount
                     .checked_add(old_matching_ledger.total_stake_amount)
+                    .and_then(|r| r.checked_sub(old_matching_ledger.total_unstake_amount))
                     .ok_or(ArithmeticError::Overflow)?,
-                T::Assets::total_issuance(Self::liquid_currency()?)
-                    .checked_add(old_matching_ledger.total_unstake_amount)
-                    .ok_or(ArithmeticError::Overflow)?,
+                T::Assets::total_issuance(Self::liquid_currency()?),
             ) {
                 Some(exchange_rate) if exchange_rate != Self::exchange_rate() => {
                     ExchangeRate::<T>::put(exchange_rate);

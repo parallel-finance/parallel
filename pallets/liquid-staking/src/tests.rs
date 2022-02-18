@@ -77,30 +77,33 @@ fn test_settlement_should_work() {
     use StakeOp::*;
     TestNet::reset();
     ParaA::execute_with(|| {
-        let test_case: Vec<(Vec<StakeOp>, Balance, (Balance, Balance, Balance))> = vec![
+        let test_case: Vec<(Vec<StakeOp>, Balance, Balance, (Balance, Balance, Balance))> = vec![
             (
                 vec![Stake(ksm(5000f64)), Unstake(ksm(1000f64))],
+                0,
                 0,
                 (ksm(3975f64), 0, 0),
             ),
             // Calculate right here.
             (
                 vec![Unstake(ksm(10f64)), Unstake(ksm(5f64)), Stake(ksm(10f64))],
+                ksm(3975f64),
                 0,
                 (0, 0, ksm(5.05f64)),
             ),
-            (vec![], 0, (0, 0, 0)),
+            // (vec![], 0, (0, 0, 0)),
         ];
-        for (i, (stake_ops, unbonding_amount, matching_result)) in test_case.into_iter().enumerate()
+        for (i, (stake_ops, bonding_amount, unbonding_amount, matching_result)) in
+            test_case.into_iter().enumerate()
         {
             stake_ops.into_iter().for_each(StakeOp::execute);
             assert_eq!(
-                LiquidStaking::matching_pool().matching::<LiquidStaking>(unbonding_amount),
+                LiquidStaking::matching_pool().matching(unbonding_amount),
                 Ok(matching_result)
             );
             assert_ok!(LiquidStaking::settlement(
                 Origin::signed(ALICE),
-                ksm(0f64),
+                bonding_amount,
                 unbonding_amount,
             ));
             LiquidStaking::notification_received(
