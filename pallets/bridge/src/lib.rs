@@ -29,7 +29,7 @@ use frame_support::{
     require_transactional,
     traits::{
         tokens::fungibles::{Inspect, Mutate, Transfer},
-        ChangeMembers, Get, SortedMembers,
+        Get, SortedMembers,
     },
     transactional, PalletId,
 };
@@ -570,6 +570,23 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    /// Get the percentage of members required in the `VoteThreshold`.
+    pub fn get_threshold_percentage() -> u32 {
+        T::ThresholdPercentage::get()
+    }
+
+    pub fn change_vote_threshold() -> DispatchResult {
+        let new_threshold =
+            Ratio::from_percent(T::ThresholdPercentage::get()).mul_ceil(Self::get_members_count());
+        Self::ensure_valid_threshold(new_threshold, Self::get_members_count())?;
+
+        // Set a new vote threshold
+        VoteThreshold::<T>::put(new_threshold);
+        Self::deposit_event(Event::VoteThresholdChanged(new_threshold));
+
+        Ok(())
+    }
+
     /// Increments the chain nonce for the specified chain_id
     fn bump_nonce(id: ChainId) -> ChainNonce {
         let nonce = Self::chain_nonces(id) + 1;
@@ -803,19 +820,5 @@ impl<T: Config> Pallet<T> {
         Self::deposit_event(Event::ProposalRejected(src_id, src_nonce));
 
         Ok(())
-    }
-}
-
-impl<T: Config> ChangeMembers<T::AccountId> for Pallet<T> {
-    fn change_members_sorted(
-        _incoming: &[T::AccountId],
-        _outgoing: &[T::AccountId],
-        _new: &[T::AccountId],
-    ) {
-        // nothing
-    }
-
-    fn set_prime(_prime: Option<T::AccountId>) {
-        // nothing
     }
 }

@@ -1,7 +1,10 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{parameter_types, traits::Everything};
+use frame_support::{
+    parameter_types,
+    traits::{ChangeMembers, Everything},
+};
 use frame_system::{self as system, EnsureRoot};
 use primitives::tokens::HKO;
 
@@ -135,6 +138,19 @@ parameter_types! {
     pub const BridgeMaxMembers: u32 = 100;
 }
 
+pub struct ChangeBridgeMembers;
+impl ChangeMembers<AccountId> for ChangeBridgeMembers {
+    fn change_members_sorted(_incoming: &[AccountId], _outgoing: &[AccountId], _new: &[AccountId]) {
+        if let Err(e) = Bridge::change_vote_threshold() {
+            log::error!(
+                target: "bridge::change_members_sorted",
+                "Failed to set vote threshold: {:?}",
+                e,
+            );
+        };
+    }
+}
+
 type BridgeMembershipInstance = pallet_membership::Instance1;
 impl pallet_membership::Config<BridgeMembershipInstance> for Test {
     type Event = Event;
@@ -144,7 +160,7 @@ impl pallet_membership::Config<BridgeMembershipInstance> for Test {
     type ResetOrigin = EnsureRootOrigin;
     type PrimeOrigin = EnsureRootOrigin;
     type MembershipInitialized = ();
-    type MembershipChanged = ();
+    type MembershipChanged = ChangeBridgeMembers;
     type MaxMembers = BridgeMaxMembers;
     type WeightInfo = ();
 }
