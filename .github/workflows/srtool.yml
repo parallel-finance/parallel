@@ -79,7 +79,7 @@ jobs:
         run: echo ::set-output name=tag::${GITHUB_REF/refs\/tags\//}
       - name: Release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@master
         with:
           files: |
             ${{ matrix.chain }}-info_compressed.json
