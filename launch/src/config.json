@@ -314,10 +314,7 @@
       "hJJREXdsDH4SSmaxCXiFqFFyKgmqU56gfSbuBWfxi2mcQbfvj",
       "hJJTtbp1Fc4L5QCMs4VrAEvRcWuWr4QZWsPAX3gFpKAnvtxsV"
     ],
-    "threshold": 2,
-    "chainIds": [
-      1
-    ],
+    "chainIds": [1],
     "bridgeTokens": [
       {
         "assetId": 0,
