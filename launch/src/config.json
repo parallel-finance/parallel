@@ -310,9 +310,9 @@
   ],
   "bridge": {
     "members": [
-      "//Alice",
-      "//Bob",
-      "//Charlie"
+      "hJKzPoi3MQnSLvbShxeDmzbtHncrMXe5zwS3Wa36P6kXeNpcv",
+      "hJJREXdsDH4SSmaxCXiFqFFyKgmqU56gfSbuBWfxi2mcQbfvj",
+      "hJJTtbp1Fc4L5QCMs4VrAEvRcWuWr4QZWsPAX3gFpKAnvtxsV"
     ],
     "threshold": 2,
     "chainIds": [
