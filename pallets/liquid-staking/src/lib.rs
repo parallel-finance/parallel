@@ -679,14 +679,18 @@ pub mod pallet {
             if amount.is_zero() {
                 return Ok(());
             }
+
             let query_id = T::XCM::do_rebond(
                 amount,
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
                 Self::notify_placeholder(),
             )?;
+
             XcmRequests::<T>::insert(query_id, XcmRequest::Rebond { amount });
+
             Self::deposit_event(Event::<T>::Rebonding(amount));
+
             Ok(())
         }
 
@@ -736,25 +740,26 @@ pub mod pallet {
             res: Option<(u32, XcmError)>,
         ) -> DispatchResult {
             let executed = res.is_none();
+            use XcmRequest::*;
 
             match request {
-                XcmRequest::Bond { amount, .. } | XcmRequest::BondExtra { amount } if executed => {
+                Bond { amount, .. } | BondExtra { amount } if executed => {
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
                         p.update_total_stake_amount(amount, ArithmeticKind::Subtraction)
                     })?;
                     T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), amount)?;
                 }
-                XcmRequest::Unbond { amount } if executed => {
+                Unbond { amount } if executed => {
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
                         p.update_total_unstake_amount(amount, ArithmeticKind::Subtraction)
                     })?;
                 }
-                XcmRequest::Rebond { amount } if executed => {
+                Rebond { amount } if executed => {
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
                         p.update_total_stake_amount(amount, ArithmeticKind::Subtraction)
                     })?;
                 }
-                XcmRequest::WithdrawUnbonded {
+                WithdrawUnbonded {
                     num_slashing_spans: _,
                     amount,
                 } if executed => {
@@ -766,6 +771,7 @@ pub mod pallet {
             if executed {
                 XcmRequests::<T>::remove(&query_id);
             }
+
             Ok(())
         }
 
