@@ -775,11 +775,11 @@ pub mod pallet {
             old_matching_ledger: MatchingLedger<BalanceOf<T>>,
         ) -> DispatchResult {
             match Rate::checked_from_rational(
-                dbg!(bonding_amount
+                bonding_amount
                     .checked_add(old_matching_ledger.total_stake_amount)
                     .and_then(|r| r.checked_sub(old_matching_ledger.total_unstake_amount))
-                    .ok_or(ArithmeticError::Overflow)?),
-                dbg!(T::Assets::total_issuance(Self::liquid_currency()?)),
+                    .ok_or(ArithmeticError::Overflow)?,
+                T::Assets::total_issuance(Self::liquid_currency()?),
             ) {
                 Some(exchange_rate) if exchange_rate != Self::exchange_rate() => {
                     ExchangeRate::<T>::put(exchange_rate);
