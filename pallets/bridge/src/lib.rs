@@ -777,6 +777,16 @@ impl<T: Config> Pallet<T> {
 
         Self::update_bridge_registry(src_id, src_nonce);
 
+        log::trace!(
+            target: "bridge::execute_materialize",
+            "src_id: {:?}, nonce {:?}, bridge_token_id: {:?}, to {:?}, amount: {:?}",
+            src_id,
+            src_nonce,
+            call.bridge_token_id,
+            call.to,
+            call.amount,
+        );
+
         Self::deposit_event(Event::MaterializeMinted(
             src_id,
             src_nonce,

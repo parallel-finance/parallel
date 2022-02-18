@@ -20,7 +20,7 @@
     "typescript": "^4.4.3"
   },
   "dependencies": {
-    "@parallel-finance/api": "^1.5.1",
+    "@parallel-finance/api": "^1.5.2",
     "@polkadot/api": "^7.8.2-2",
     "@polkadot/keyring": "^8.4.2-1",
     "@polkadot/rpc-core": "^7.8.2-2",

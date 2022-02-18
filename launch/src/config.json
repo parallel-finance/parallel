@@ -106,6 +106,54 @@
       "balances": [["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000000"]]
     },
     {
+      "name": "Ethereum USDT",
+      "symbol": "EUSDT",
+      "assetId": 201,
+      "decimal": 6,
+      "marketOption": {
+        "closeFactor": 50e4,
+        "collateralFactor": 50e4,
+        "reserveFactor": 15e4,
+        "cap": "100000000000000000",
+        "liquidateIncentive": "1100000000000000000",
+        "rateModel": {
+          "jumpModel": {
+            "baseRate": "20000000000000000",
+            "jumpRate": "100000000000000000",
+            "fullRate": "320000000000000000",
+            "jumpUtilization": 8e5
+          }
+        },
+        "state": "Pending",
+        "ptokenId": 2301
+      },
+      "balances": [["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000000"]]
+    },
+    {
+      "name": "Ethereum USDC",
+      "symbol": "EUSDC",
+      "assetId": 202,
+      "decimal": 6,
+      "marketOption": {
+        "closeFactor": 50e4,
+        "collateralFactor": 50e4,
+        "reserveFactor": 15e4,
+        "cap": "100000000000000000",
+        "liquidateIncentive": "1100000000000000000",
+        "rateModel": {
+          "jumpModel": {
+            "baseRate": "20000000000000000",
+            "jumpRate": "100000000000000000",
+            "fullRate": "320000000000000000",
+            "jumpUtilization": 8e5
+          }
+        },
+        "state": "Pending",
+        "ptokenId": 2302
+      },
+      "balances": [["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000000"]]
+    },
+    {
       "name": "Parallel Crowdloans Kusama - (0 ~ 7)",
       "symbol": "CKSM-0-7",
       "assetId": 4000,
@@ -259,5 +307,36 @@
       "leaseEnd": 7,
       "pending": false
     }
-  ]
+  ],
+  "bridge": {
+    "members": [
+      "//Alice",
+      "//Bob",
+      "//Charlie"
+    ],
+    "threshold": 2,
+    "chainIds": [
+      1
+    ],
+    "bridgeTokens": [
+      {
+        "assetId": 0,
+        "bridgeTokenId": 0,
+        "external": false,
+        "fee": 1000000000000
+      },
+      {
+        "assetId": 201,
+        "bridgeTokenId": 1,
+        "external": true,
+        "fee": 300000000
+      },
+      {
+        "assetId": 202,
+        "bridgeTokenId": 2,
+        "external": true,
+        "fee": 300000000
+      }
+    ]
+  }
 }
