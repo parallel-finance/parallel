@@ -41,8 +41,8 @@ pub const PUSDT: CurrencyId = 2102;
 pub const PKUSD: CurrencyId = 2103;
 pub const PXKSM: CurrencyId = 2200;
 pub const PXDOT: CurrencyId = 2201;
-pub const PEUSDT: CurrencyId = 2301;
-pub const PEUSDC: CurrencyId = 2302;
+pub const PEUSDT: CurrencyId = 2501;
+pub const PEUSDC: CurrencyId = 2502;
 
 // Crowdloan Derivative
 pub const CDOT_6_13: CurrencyId = 200060013;

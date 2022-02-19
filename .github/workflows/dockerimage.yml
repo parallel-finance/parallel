@@ -2,8 +2,8 @@ name: Docker Image
 
 on:
   push:
-      branches: [add-bridge-config]
-      tags:
+    branches: [master]
+    tags:
       - "v*"
       - "staging*"
       - "qa*"

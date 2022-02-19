@@ -125,7 +125,7 @@
           }
         },
         "state": "Pending",
-        "ptokenId": 2301
+        "ptokenId": 2501
       },
       "balances": [["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000000"]]
     },
@@ -149,7 +149,7 @@
           }
         },
         "state": "Pending",
-        "ptokenId": 2302
+        "ptokenId": 2502
       },
       "balances": [["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000000"]]
     },
