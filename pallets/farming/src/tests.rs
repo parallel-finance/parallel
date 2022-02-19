@@ -213,7 +213,7 @@ fn withdraw_should_not_work_if_no_liquidity() {
 
         assert_noop!(
             Farming::withdraw(RawOrigin::Signed(ALICE).into(), DOT, 1000),
-            Error::<Test>::NoAccount
+            Error::<Test>::NoFunds
         );
     })
 }

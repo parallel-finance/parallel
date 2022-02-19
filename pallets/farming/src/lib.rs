@@ -34,6 +34,7 @@ use frame_support::{
     pallet_prelude::*,
     traits::{
         fungibles::{Inspect, Mutate, Transfer},
+        tokens::WithdrawConsequence,
         Get, IsType,
     },
     transactional, Blake2_128Concat, PalletId,
@@ -94,7 +95,7 @@ pub mod pallet {
         /// Pool associacted with asset already exists
         PoolAlreadyExists,
         /// No Account Presents
-        NoAccount,
+        NoFunds,
         /// Not a newly created asset
         NotANewlyCreatedAsset,
         /// Not a valid duration
@@ -294,11 +295,15 @@ pub mod pallet {
 
                 T::Assets::transfer(asset, &asset_pool_account, &who, amount, true)?;
 
-                // TODO: This check wont prevent the panic from test -> withdraw_should_not_work_if_no_liquidity
+                // Cannot burn from non existing account pools, mitigates the Panic with an event
                 ensure!(
-                    frame_system::Pallet::<T>::account_exists(&who),
-                    Error::<T, I>::NoAccount
+                    !matches!(
+                        T::Assets::can_withdraw(pool.asset_id, &who, amount),
+                        WithdrawConsequence::NoFunds
+                    ),
+                    Error::<T, I>::NoFunds
                 );
+
                 T::Assets::burn_from(pool.asset_id, &who, amount)?;
 
                 Self::deposit_event(Event::<T, I>::AssetsWithdrew(who, asset));
