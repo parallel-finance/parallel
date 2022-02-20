@@ -209,6 +209,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::System(_) |
             Call::Timestamp(_) |
             Call::Assets(pallet_assets::Call::mint { .. }) |
+            Call::Assets(pallet_assets::Call::transfer { .. }) |
             // Governance
             Call::Sudo(_) |
             Call::Democracy(_) |
@@ -1507,6 +1508,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::System(_) |
             Call::Timestamp(_) |
             Call::Assets(pallet_assets::Call::mint { .. }) |
+            Call::Assets(pallet_assets::Call::transfer { .. }) |
             // Governance
             Call::Sudo(_) |
             Call::Democracy(_) |

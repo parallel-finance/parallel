@@ -272,7 +272,7 @@ fn parallel_genesis(
         parachain_info: ParachainInfoConfig { parachain_id: id },
         liquid_staking: LiquidStakingConfig {
             exchange_rate: Rate::saturating_from_rational(100_u32, 100_u32), // 1
-            reserve_factor: Ratio::from_perthousand(5),
+            reserve_factor: Zero::zero(),
         },
         democracy: DemocracyConfig::default(),
         general_council: GeneralCouncilConfig::default(),
