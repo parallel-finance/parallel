@@ -10,18 +10,27 @@ fn change_bridge_members_works() {
     new_test_ext().execute_with(|| {
         // Get members count works
         assert_eq!(Bridge::get_members_count(), 3);
+        assert_eq!(Bridge::vote_threshold(), 2);
 
         // After remove and swap, members count should be 2
         BridgeMembership::remove_member(Origin::root(), ALICE).unwrap();
         BridgeMembership::swap_member(Origin::root(), BOB, DAVE).unwrap();
         assert_eq!(Bridge::get_members_count(), 2);
+        assert_eq!(Bridge::vote_threshold(), 1);
 
         // Current members: [CHARLIE , DAVE]
+        // The threshold is set dynamically, but can also be set by admin
         assert_ok!(Bridge::set_vote_threshold(Origin::root(), 2,));
+        assert_eq!(Bridge::vote_threshold(), 2);
         assert_noop!(
             Bridge::set_vote_threshold(Origin::root(), 3),
             Error::<Test>::InvalidVoteThreshold,
         );
+
+        BridgeMembership::add_member(Origin::root(), ALICE).unwrap();
+        BridgeMembership::add_member(Origin::root(), BOB).unwrap();
+        BridgeMembership::add_member(Origin::root(), EVE).unwrap();
+        assert_eq!(Bridge::vote_threshold(), 3);
     });
 }
 
@@ -125,9 +134,10 @@ fn teleport_works() {
 fn materialize_works() {
     new_test_ext().execute_with(|| {
         // EVE has 50 HKO left, and then requests for materializing 20 EHKO
-        // Default vote threshold is 1
+        // Current vote threshold is 2
         Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(50)).unwrap();
         Bridge::materialize(Origin::signed(ALICE), ETH, 0, EHKO, EVE, dollar(10), true).unwrap();
+        Bridge::materialize(Origin::signed(BOB), ETH, 0, EHKO, EVE, dollar(10), true).unwrap();
         assert_eq!(
             <Test as Config>::Assets::balance(HKO, &Bridge::account_id()),
             dollar(40)
@@ -277,8 +287,9 @@ fn materialize_external_currency_works() {
         );
 
         // EVE has 0 USDT, and then requests for materializing 10 USDT
-        // Default vote threshold is 1
+        // Current vote threshold is 2
         Bridge::materialize(Origin::signed(ALICE), ETH, 1, EUSDT, EVE, dollar(10), true).unwrap();
+        Bridge::materialize(Origin::signed(BOB), ETH, 1, EUSDT, EVE, dollar(10), true).unwrap();
         assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), dollar(10));
 
         assert_events(vec![mock::Event::Bridge(Event::MaterializeMinted(

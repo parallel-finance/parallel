@@ -29,7 +29,7 @@ use frame_support::{
     require_transactional,
     traits::{
         tokens::fungibles::{Inspect, Mutate, Transfer},
-        ChangeMembers, Get, SortedMembers,
+        Get, SortedMembers,
     },
     transactional, PalletId,
 };
@@ -570,6 +570,18 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    pub fn change_vote_threshold() -> DispatchResult {
+        let new_threshold =
+            Ratio::from_percent(T::ThresholdPercentage::get()).mul_ceil(Self::get_members_count());
+        Self::ensure_valid_threshold(new_threshold, Self::get_members_count())?;
+
+        // Set a new vote threshold
+        VoteThreshold::<T>::put(new_threshold);
+        Self::deposit_event(Event::VoteThresholdChanged(new_threshold));
+
+        Ok(())
+    }
+
     /// Increments the chain nonce for the specified chain_id
     fn bump_nonce(id: ChainId) -> ChainNonce {
         let nonce = Self::chain_nonces(id) + 1;
@@ -777,6 +789,16 @@ impl<T: Config> Pallet<T> {
 
         Self::update_bridge_registry(src_id, src_nonce);
 
+        log::trace!(
+            target: "bridge::execute_materialize",
+            "src_id: {:?}, nonce {:?}, bridge_token_id: {:?}, to {:?}, amount: {:?}",
+            src_id,
+            src_nonce,
+            call.bridge_token_id,
+            call.to,
+            call.amount,
+        );
+
         Self::deposit_event(Event::MaterializeMinted(
             src_id,
             src_nonce,
@@ -793,19 +815,5 @@ impl<T: Config> Pallet<T> {
         Self::deposit_event(Event::ProposalRejected(src_id, src_nonce));
 
         Ok(())
-    }
-}
-
-impl<T: Config> ChangeMembers<T::AccountId> for Pallet<T> {
-    fn change_members_sorted(
-        _incoming: &[T::AccountId],
-        _outgoing: &[T::AccountId],
-        _new: &[T::AccountId],
-    ) {
-        // nothing
-    }
-
-    fn set_prime(_prime: Option<T::AccountId>) {
-        // nothing
     }
 }

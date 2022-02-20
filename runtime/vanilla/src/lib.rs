@@ -30,7 +30,8 @@ use frame_support::{
     log, match_type,
     traits::{
         fungibles::{InspectMetadata, Mutate},
-        Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, InstanceFilter, Nothing,
+        ChangeMembers, Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, InstanceFilter,
+        Nothing,
     },
     PalletId,
 };
@@ -1350,6 +1351,25 @@ parameter_types! {
     pub const BridgeMaxMembers: u32 = 100;
 }
 
+pub struct ChangeBridgeMembers;
+impl ChangeMembers<AccountId> for ChangeBridgeMembers {
+    fn change_members_sorted(_incoming: &[AccountId], _outgoing: &[AccountId], new: &[AccountId]) {
+        if let Err(e) = Bridge::change_vote_threshold() {
+            log::error!(
+                target: "bridge::change_members_sorted",
+                "Failed to set vote threshold: {:?}",
+                e,
+            );
+        } else {
+            log::info!(
+                target: "bridge::change_members_sorted",
+                "Succeeded to set votde threshold, total members: {:?}",
+                new.len(),
+            );
+        };
+    }
+}
+
 type BridgeMembershipInstance = pallet_membership::Instance6;
 impl pallet_membership::Config<BridgeMembershipInstance> for Runtime {
     type Event = Event;
@@ -1359,7 +1379,7 @@ impl pallet_membership::Config<BridgeMembershipInstance> for Runtime {
     type ResetOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type PrimeOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type MembershipInitialized = ();
-    type MembershipChanged = ();
+    type MembershipChanged = ChangeBridgeMembers;
     type MaxMembers = BridgeMaxMembers;
     type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
 }

@@ -24,6 +24,10 @@ pub const DOT: CurrencyId = 101;
 pub const USDT: CurrencyId = 102;
 pub const KUSD: CurrencyId = 103;
 
+// Ethereum ecosystem
+pub const EUSDT: CurrencyId = 201;
+pub const EUSDC: CurrencyId = 202;
+
 // Liquid Staking Derivative
 pub const XKSM: CurrencyId = 1000;
 pub const XDOT: CurrencyId = 1001;
@@ -37,6 +41,8 @@ pub const PUSDT: CurrencyId = 2102;
 pub const PKUSD: CurrencyId = 2103;
 pub const PXKSM: CurrencyId = 2200;
 pub const PXDOT: CurrencyId = 2201;
+pub const PEUSDT: CurrencyId = 2501;
+pub const PEUSDC: CurrencyId = 2502;
 
 // Crowdloan Derivative
 pub const CDOT_6_13: CurrencyId = 200060013;
