@@ -126,10 +126,10 @@ async function para() {
   members.forEach(member => call.push(api.tx.sudo.sudo(api.tx.bridgeMembership.addMember(member))))
   chainIds.forEach(chainId => call.push(api.tx.sudo.sudo(api.tx.bridge.registerChain(chainId))))
   bridgeTokens.map(
-    ({ assetId, bridgeTokenId, external, fee }) =>
+    ({ assetId, id, external, fee }) =>
       call.push(api.tx.sudo.sudo(api.tx.bridge.registerBridgeToken(
         assetId,
-        { bridgeTokenId, external, fee },
+        { id, external, fee },
       )))
   )
 

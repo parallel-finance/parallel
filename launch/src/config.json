@@ -318,19 +318,19 @@
     "bridgeTokens": [
       {
         "assetId": 0,
-        "bridgeTokenId": 0,
+        "id": 0,
         "external": false,
         "fee": 1000000000000
       },
       {
         "assetId": 201,
-        "bridgeTokenId": 1,
+        "id": 1,
         "external": true,
         "fee": 300000000
       },
       {
         "assetId": 202,
-        "bridgeTokenId": 2,
+        "id": 2,
         "external": true,
         "fee": 300000000
       }
