@@ -1353,12 +1353,18 @@ parameter_types! {
 
 pub struct ChangeBridgeMembers;
 impl ChangeMembers<AccountId> for ChangeBridgeMembers {
-    fn change_members_sorted(_incoming: &[AccountId], _outgoing: &[AccountId], _new: &[AccountId]) {
+    fn change_members_sorted(_incoming: &[AccountId], _outgoing: &[AccountId], new: &[AccountId]) {
         if let Err(e) = Bridge::change_vote_threshold() {
             log::error!(
                 target: "bridge::change_members_sorted",
                 "Failed to set vote threshold: {:?}",
                 e,
+            );
+        } else {
+            log::info!(
+                target: "bridge::change_members_sorted",
+                "Succeeded to set votde threshold, total members: {:?}",
+                new.len(),
             );
         };
     }
