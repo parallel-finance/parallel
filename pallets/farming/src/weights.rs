@@ -50,6 +50,10 @@ pub trait WeightInfo {
     fn create() -> Weight;
     fn deposit() -> Weight;
     fn withdraw() -> Weight;
+    fn withdraw_from_lock_pool() -> Weight;
+    fn get_all_reward() -> Weight;
+    fn get_reward() -> Weight;
+    fn dispatch_reward() -> Weight;
 }
 
 /// Weights for pallet_farming using the Substrate node and recommended hardware.
@@ -70,6 +74,26 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().reads(6 as Weight))
             .saturating_add(T::DbWeight::get().writes(6 as Weight))
     }
+    fn withdraw_from_lock_pool() -> Weight {
+        (47_556_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(6 as Weight))
+            .saturating_add(T::DbWeight::get().writes(6 as Weight))
+    }
+    fn get_all_reward() -> Weight {
+        (47_556_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(6 as Weight))
+            .saturating_add(T::DbWeight::get().writes(6 as Weight))
+    }
+    fn get_reward() -> Weight {
+        (47_556_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(6 as Weight))
+            .saturating_add(T::DbWeight::get().writes(6 as Weight))
+    }
+    fn dispatch_reward() -> Weight {
+        (47_556_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(6 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(6 as Weight))
+    }
 }
 
 // For backwards compatibility and tests
@@ -85,6 +109,26 @@ impl WeightInfo for () {
             .saturating_add(RocksDbWeight::get().writes(6 as Weight))
     }
     fn withdraw() -> Weight {
+        (47_556_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(6 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(6 as Weight))
+    }
+    fn withdraw_from_lock_pool() -> Weight {
+        (47_556_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(6 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(6 as Weight))
+    }
+    fn get_all_reward() -> Weight {
+        (47_556_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(6 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(6 as Weight))
+    }
+    fn get_reward() -> Weight {
+        (47_556_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(6 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(6 as Weight))
+    }
+    fn dispatch_reward() -> Weight {
         (47_556_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(6 as Weight))
             .saturating_add(RocksDbWeight::get().writes(6 as Weight))

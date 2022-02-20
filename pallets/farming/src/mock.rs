@@ -149,6 +149,8 @@ impl pallet_assets::Config for Test {
 parameter_types! {
     pub const LMPalletId: PalletId = PalletId(*b"par/lqmp");
     pub const MaxRewardTokens: u32 = 1000;
+    pub const MaxUserLockItemsCount: u32 = 10;
+    pub const LockPoolMaxDuration: u32 = 50400;
 }
 
 pub struct AliceCreatePoolOrigin;
