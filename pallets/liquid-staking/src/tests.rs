@@ -1,6 +1,6 @@
 use crate::{mock::*, types::MatchingLedger, *};
 
-use frame_support::{assert_noop, assert_ok, traits::Hooks};
+use frame_support::{assert_noop, assert_ok};
 
 use primitives::{
     tokens::{KSM, XKSM},
@@ -112,7 +112,6 @@ fn test_settlement_should_work() {
                 Response::ExecutionResult(None),
             )
             .unwrap();
-            Pallet::<Test>::on_idle(0, 10000);
         }
     });
 }
