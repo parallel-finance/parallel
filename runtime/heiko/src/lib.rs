@@ -478,13 +478,13 @@ impl pallet_loans::Config for Runtime {
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const DerivativeIndex: u16 = 0;
-    pub const UnstakeQueueCap: u32 = 1000;
+    pub const EraLength: BlockNumber = 6 * 1 * 3600 / 6; // 6HOURS
     pub const MinStake: Balance = 100_000_000_000; // 0.1KSM
     pub const MinUnstake: Balance = 50_000_000_000; // 0.05KSM
     pub const StakingCurrency: CurrencyId = KSM;
     pub const LiquidCurrency: CurrencyId = XKSM;
     pub const XcmFees: Balance = 5_000_000_000; // 0.005KSM
-    pub const BondingDuration: BlockNumber = (28 + 1) * 6 * 1 * 3600 / 6; // 7Days + 6HOURS
+    pub const BondingDuration: u32 = 28; // 7Days
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -501,7 +501,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type XcmFees = XcmFees;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
-    type UnstakeQueueCap = UnstakeQueueCap;
+    type EraLength = EraLength;
     type MinStake = MinStake;
     type MinUnstake = MinUnstake;
     type XCM = XcmHelper;

@@ -363,7 +363,7 @@ impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const DerivativeIndex: u16 = 0;
-    pub const UnstakeQueueCap: u32 = 1000;
+    pub const EraLength: u32 = 0;
     pub SelfParaId: ParaId = para_a_id();
     pub const MinStake: Balance = 0;
     pub const MinUnstake: Balance = 0;
@@ -387,7 +387,7 @@ impl crate::Config for Test {
     type XcmFees = XcmFees;
     type Assets = Assets;
     type RelayOrigin = RelayOrigin;
-    type UnstakeQueueCap = UnstakeQueueCap;
+    type EraLength = EraLength;
     type MinStake = MinStake;
     type MinUnstake = MinUnstake;
     type XCM = XcmHelper;

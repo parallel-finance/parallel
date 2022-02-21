@@ -49,22 +49,19 @@ pub mod pallet {
         ensure,
         pallet_prelude::*,
         require_transactional,
-        storage::with_transaction,
         traits::{
             fungibles::{Inspect, InspectMetadata, Mutate, Transfer},
             IsType,
         },
-        transactional,
-        weights::Weight,
-        BoundedVec, PalletId,
+        transactional, PalletId,
     };
     use frame_system::{
         ensure_signed,
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
     use sp_runtime::{
-        traits::{AccountIdConversion, BlockNumberProvider, CheckedAdd},
-        ArithmeticError, FixedPointNumber, TransactionOutcome,
+        traits::{AccountIdConversion, BlockNumberProvider, StaticLookup},
+        ArithmeticError, FixedPointNumber,
     };
     use sp_std::{boxed::Box, result::Result, vec::Vec};
 
@@ -81,6 +78,7 @@ pub mod pallet {
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
     pub type BalanceOf<T> =
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
+    pub type Index = u32;
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
@@ -131,10 +129,6 @@ pub mod pallet {
         #[pallet::constant]
         type LiquidCurrency: Get<AssetIdOf<Self>>;
 
-        /// Unstake queue's capacity
-        #[pallet::constant]
-        type UnstakeQueueCap: Get<u32>;
-
         /// Minimum stake amount
         #[pallet::constant]
         type MinStake: Get<BalanceOf<Self>>;
@@ -146,10 +140,14 @@ pub mod pallet {
         /// Weight information
         type WeightInfo: WeightInfo;
 
-        /// Number of blocknumbers that staked funds must remain bonded for.
-        /// BondingDuration * SessionsPerEra * EpochDuration / MILLISECS_PER_BLOCK
+        /// Number of eras that assets unlocking.
         #[pallet::constant]
-        type BondingDuration: Get<BlockNumberFor<Self>>;
+        type BondingDuration: Get<u32>;
+
+        /// Number of blocknumbers that each period contains.
+        /// SessionsPerEra * EpochDuration / MILLISECS_PER_BLOCK
+        #[pallet::constant]
+        type EraLength: Get<BlockNumberFor<Self>>;
 
         /// The relay's BlockNumber provider
         type RelayChainBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
@@ -192,6 +190,8 @@ pub mod pallet {
         /// Notification received
         /// [multi_location, query_id, res]
         NotificationReceived(Box<MultiLocation>, QueryId, Option<(u32, XcmError)>),
+        /// Claim for amount
+        ClaimFor(T::AccountId, BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -206,14 +206,16 @@ pub mod pallet {
         InvalidLiquidCurrency,
         /// Invalid staking currency
         InvalidStakingCurrency,
-        /// Exceeded unstake queue's capacity
-        UnstakeQueueCapExceeded,
         /// Exceeded liquid currency's market cap
         CapExceeded,
         /// Invalid market cap
         InvalidCap,
         /// The factor should be bigger than 0% and smaller than 100%
         InvalidFactor,
+        /// Call settlement too early
+        SettlementTooEarly,
+        /// Claim for too early
+        ClaimForTooEarly,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -236,17 +238,6 @@ pub mod pallet {
     #[pallet::getter(fn matching_pool)]
     pub type MatchingPool<T: Config> = StorageValue<_, MatchingLedger<BalanceOf<T>>, ValueQuery>;
 
-    /// Manage which we should pay off to.
-    ///
-    /// Insert a new record while user can't be paid instantly in unstaking operation.
-    #[pallet::storage]
-    #[pallet::getter(fn unstake_queue)]
-    pub type UnstakeQueue<T: Config> = StorageValue<
-        _,
-        BoundedVec<(T::AccountId, BalanceOf<T>, BlockNumberFor<T>), T::UnstakeQueueCap>,
-        ValueQuery,
-    >;
-
     /// Liquid currency's market cap
     #[pallet::storage]
     #[pallet::getter(fn market_cap)]
@@ -255,6 +246,26 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn xcm_request)]
     pub type XcmRequests<T> = StorageMap<_, Blake2_128Concat, QueryId, XcmRequest<T>, OptionQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn unbond_index)]
+    pub type UnbondIndex<T: Config> = StorageValue<_, Index, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn last_settlement_time)]
+    pub type LastSettlementTime<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn pending_unstake)]
+    pub type PendingUnstake<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        Index,
+        Blake2_128Concat,
+        T::AccountId,
+        BalanceOf<T>,
+        ValueQuery,
+    >;
 
     #[derive(Default)]
     #[pallet::genesis_config]
@@ -268,21 +279,6 @@ pub mod pallet {
         fn build(&self) {
             ExchangeRate::<T>::put(self.exchange_rate);
             ReserveFactor::<T>::put(self.reserve_factor);
-        }
-    }
-
-    #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-        /// Try to pay off over the `UnstakeQueue` while blockchain is on idle.
-        fn on_idle(_n: BlockNumberFor<T>, remaining_weight: Weight) -> Weight {
-            let base_weight = <T as Config>::WeightInfo::on_idle();
-            if remaining_weight < base_weight {
-                return remaining_weight;
-            }
-            with_transaction(|| match Self::do_pop_front() {
-                Ok(_) => TransactionOutcome::Commit(remaining_weight - base_weight),
-                Err(_) => TransactionOutcome::Rollback(0),
-            })
         }
     }
 
@@ -366,10 +362,16 @@ pub mod pallet {
             let staking_amount =
                 Self::liquid_to_staking(liquid_amount).ok_or(Error::<T>::InvalidExchangeRate)?;
 
-            let target_blocknumber = T::RelayChainBlockNumberProvider::current_block_number()
-                .checked_add(&T::BondingDuration::get())
-                .ok_or(ArithmeticError::Overflow)?;
-            Self::do_push_back(&who, staking_amount, target_blocknumber)?;
+            PendingUnstake::<T>::try_mutate(
+                Self::unbond_index(),
+                &who,
+                |unstake_amount| -> DispatchResult {
+                    *unstake_amount = unstake_amount
+                        .checked_add(staking_amount)
+                        .ok_or(ArithmeticError::Overflow)?;
+                    Ok(())
+                },
+            )?;
 
             T::Assets::burn_from(Self::liquid_currency()?, &who, liquid_amount)?;
 
@@ -431,6 +433,14 @@ pub mod pallet {
             #[pallet::compact] unbonding_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::RelayOrigin::ensure_origin(origin)?;
+
+            let relaychain_blocknumber = T::RelayChainBlockNumberProvider::current_block_number();
+            ensure!(
+                relaychain_blocknumber - Self::last_settlement_time() >= T::EraLength::get(),
+                Error::<T>::SettlementTooEarly
+            );
+            UnbondIndex::<T>::mutate(|v| *v += 1);
+            LastSettlementTime::<T>::put(relaychain_blocknumber);
 
             let old_matching_ledger = Self::matching_pool();
             let (bond_amount, rebond_amount, unbond_amount) =
@@ -574,6 +584,39 @@ pub mod pallet {
             }
             Ok(().into())
         }
+
+        #[pallet::weight(10_000)]
+        #[transactional]
+        pub fn claim_for(
+            origin: OriginFor<T>,
+            unbond_index: Index,
+            dest: <T::Lookup as StaticLookup>::Source,
+        ) -> DispatchResultWithPostInfo {
+            let _ = ensure_signed(origin)?;
+            let who = T::Lookup::lookup(dest)?;
+            ensure!(
+                Self::unbond_index() - unbond_index > T::BondingDuration::get(),
+                Error::<T>::ClaimForTooEarly
+            );
+            PendingUnstake::<T>::try_mutate(
+                unbond_index,
+                &who,
+                |unstake_amount| -> DispatchResult {
+                    let transfer = *unstake_amount;
+                    *unstake_amount = Zero::zero();
+                    T::Assets::transfer(
+                        Self::staking_currency()?,
+                        &Self::account_id(),
+                        &who,
+                        transfer,
+                        false,
+                    )?;
+                    Self::deposit_event(Event::<T>::ClaimFor(who.clone(), transfer));
+                    Ok(())
+                },
+            )?;
+            Ok(().into())
+        }
     }
 
     impl<T: Config> Pallet<T> {
@@ -692,45 +735,6 @@ pub mod pallet {
             Self::deposit_event(Event::<T>::Rebonding(amount));
 
             Ok(())
-        }
-
-        #[require_transactional]
-        fn do_pop_front() -> Result<(), DispatchError> {
-            let unstake_queue = Self::unstake_queue();
-            if unstake_queue.is_empty() {
-                return Ok(());
-            }
-
-            let (who, amount, target_blocknumber) = &unstake_queue[0];
-            if T::RelayChainBlockNumberProvider::current_block_number() < *target_blocknumber {
-                return Ok(());
-            }
-
-            let account_id = Self::account_id();
-            let staking_currency = Self::staking_currency()?;
-            let free_balance = T::Assets::reducible_balance(staking_currency, &account_id, false)
-                .saturating_sub(Self::total_reserves())
-                .saturating_sub(Self::matching_pool().total_stake_amount);
-
-            if free_balance >= *amount {
-                T::Assets::transfer(staking_currency, &account_id, who, *amount, false)?;
-                UnstakeQueue::<T>::mutate(|v| v.remove(0));
-            }
-
-            Ok(())
-        }
-
-        #[require_transactional]
-        fn do_push_back(
-            who: &T::AccountId,
-            amount: BalanceOf<T>,
-            target_blocknumber: BlockNumberFor<T>,
-        ) -> DispatchResult {
-            UnstakeQueue::<T>::try_mutate(|q| -> DispatchResult {
-                q.try_push((who.clone(), amount, target_blocknumber))
-                    .map_err(|_| Error::<T>::UnstakeQueueCapExceeded)?;
-                Ok(())
-            })
         }
 
         #[require_transactional]

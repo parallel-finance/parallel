@@ -112,7 +112,6 @@ fn test_settlement_should_work() {
                 Response::ExecutionResult(None),
             )
             .unwrap();
-            Pallet::<Test>::on_idle(0, 10000);
         }
     });
 }
