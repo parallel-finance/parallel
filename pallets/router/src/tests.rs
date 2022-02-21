@@ -496,7 +496,7 @@ fn get_best_route_should_work() {
 }
 
 #[test]
-fn get_route_for_token_with_no_balance() {
+fn get_route_for_tokens_not_in_graph_should_not_work() {
     new_test_ext().execute_with(|| {
         let input_amount = 1_000;
         // create pool and add liquidity
@@ -530,31 +530,69 @@ fn get_route_for_token_with_no_balance() {
             AMMRoute::get_best_route(
                 input_amount, // input amount
                 XDOT,         // input token
-                USDT,         // output token
+                USDT,         // output token (not in any pool)
             ),
-            Error::<Runtime>::ZeroBalance
+            Error::<Runtime>::TokenDoesNotExists
         );
     })
 }
 
 #[test]
-fn get_routes_for_non_existing_pair() {
+fn get_route_for_tokens_not_possible_should_not_work() {
     new_test_ext().execute_with(|| {
         let input_amount = 1_000;
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (DOT, XDOT),
+            (100_000_000, 90_000_000),
+            DAVE,
+            SAMPLE_LP_TOKEN
+        ));
+
+        // create pool and add liquidity
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (KSM, USDT),
+            (100_000_000, 70_000_000),
+            DAVE,
+            SAMPLE_LP_TOKEN_3
+        ));
 
         assert_noop!(
             AMMRoute::get_best_route(
-                input_amount,      // input amount
-                SAMPLE_LP_TOKEN,   // input token
-                SAMPLE_LP_TOKEN_2, // output token
+                input_amount, // input amount
+                XDOT,         // input token
+                USDT,         // output token
             ),
-            Error::<Runtime>::PairDoesNotExists
+            Error::<Runtime>::NoPossibleRoute
         );
     })
 }
 
 #[test]
-fn get_best_route_same_tokens() {
+fn get_routes_for_non_existing_pair_should_not_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(DefaultAMM::create_pool(
+            Origin::signed(ALICE),
+            (DOT, KSM),
+            (100_000_000, 70_000_000),
+            DAVE,
+            SAMPLE_LP_TOKEN_3
+        ));
+        assert_noop!(
+            AMMRoute::get_best_route(
+                10000, // input amount
+                USDT,  // input token
+                XDOT,  // output token
+            ),
+            Error::<Runtime>::TokenDoesNotExists
+        );
+    });
+}
+
+#[test]
+fn get_best_route_same_tokens_should_work() {
     new_test_ext().execute_with(|| {
         let input_amount = 1_000;
         // create pool and add liquidity
