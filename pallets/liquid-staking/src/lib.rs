@@ -193,7 +193,7 @@ pub mod pallet {
         /// Notification received
         /// [multi_location, query_id, res]
         NotificationReceived(Box<MultiLocation>, QueryId, Option<(u32, XcmError)>),
-        /// Claim for amount
+        /// Claim user's unbonded staking assets
         /// [unbond_index, account_id, amount]
         ClaimedFor(UnbondIndex, T::AccountId, BalanceOf<T>),
     }
@@ -218,7 +218,7 @@ pub mod pallet {
         InvalidFactor,
         /// Settlement locked
         SettlementLocked,
-        /// Nothing to clain yet
+        /// Nothing to claim yet
         NothingToClaim,
     }
 
@@ -247,18 +247,25 @@ pub mod pallet {
     #[pallet::getter(fn market_cap)]
     pub type MarketCap<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
+    /// Flying & failed xcm requests
     #[pallet::storage]
     #[pallet::getter(fn xcm_request)]
     pub type XcmRequests<T> = StorageMap<_, Blake2_128Concat, QueryId, XcmRequest<T>, OptionQuery>;
 
+    /// Current unbond index
+    /// Users can come to claim their unbonded staking assets back once this value arrived
+    /// at certain height decided by `BondingDuration` and `EraLength`
     #[pallet::storage]
     #[pallet::getter(fn current_unbond_index)]
     pub type CurrentUnbondIndex<T: Config> = StorageValue<_, UnbondIndex, ValueQuery>;
 
+    /// Last settlement time
+    /// Settlement must be executed once and only once in every relaychain era
     #[pallet::storage]
     #[pallet::getter(fn last_settlement_time)]
     pub type LastSettlementTime<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
 
+    /// Pending unstake requests
     #[pallet::storage]
     #[pallet::getter(fn pending_unstake)]
     pub type PendingUnstake<T: Config> = StorageDoubleMap<
