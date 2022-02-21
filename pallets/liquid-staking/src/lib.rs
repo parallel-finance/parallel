@@ -66,7 +66,7 @@ pub mod pallet {
         traits::{AccountIdConversion, BlockNumberProvider, StaticLookup},
         ArithmeticError, FixedPointNumber,
     };
-    use sp_std::{boxed::Box, result::Result, vec::Vec};
+    use sp_std::{boxed::Box, mem::replace, result::Result, vec::Vec};
 
     use primitives::{
         ump::*, ArithmeticKind, Balance, CurrencyId, LiquidStakingConvert, ParaId, Rate, Ratio,
@@ -365,7 +365,7 @@ pub mod pallet {
                 Error::<T>::UnstakeTooSmall
             );
 
-            let staking_amount =
+            let amount =
                 Self::liquid_to_staking(liquid_amount).ok_or(Error::<T>::InvalidExchangeRate)?;
 
             PendingUnstake::<T>::try_mutate(
@@ -373,7 +373,7 @@ pub mod pallet {
                 &who,
                 |unstake_amount| -> DispatchResult {
                     *unstake_amount = unstake_amount
-                        .checked_add(staking_amount)
+                        .checked_add(amount)
                         .ok_or(ArithmeticError::Overflow)?;
                     Ok(())
                 },
@@ -382,10 +382,10 @@ pub mod pallet {
             T::Assets::burn_from(Self::liquid_currency()?, &who, liquid_amount)?;
 
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                p.update_total_unstake_amount(staking_amount, ArithmeticKind::Addition)
+                p.update_total_unstake_amount(amount, ArithmeticKind::Addition)
             })?;
 
-            Self::deposit_event(Event::<T>::Unstaked(who, liquid_amount, staking_amount));
+            Self::deposit_event(Event::<T>::Unstaked(who, liquid_amount, amount));
             Ok(().into())
         }
 
@@ -610,27 +610,21 @@ pub mod pallet {
                 Error::<T>::NothingToClaim
             );
 
-            PendingUnstake::<T>::try_mutate(
-                unbond_index,
-                &who,
-                |unstake_amount| -> DispatchResult {
-                    let transfer = *unstake_amount;
-                    *unstake_amount = Zero::zero();
-                    T::Assets::transfer(
-                        Self::staking_currency()?,
-                        &Self::account_id(),
-                        &who,
-                        transfer,
-                        false,
-                    )?;
-                    Self::deposit_event(Event::<T>::ClaimedFor(
-                        unbond_index,
-                        who.clone(),
-                        transfer,
-                    ));
-                    Ok(())
-                },
-            )?;
+            PendingUnstake::<T>::try_mutate_exists(unbond_index, &who, |d| -> DispatchResult {
+                let amount = replace(d, None).unwrap_or_default();
+                if amount.is_zero() {
+                    return Err(Error::<T>::NothingToClaim.into());
+                }
+                T::Assets::transfer(
+                    Self::staking_currency()?,
+                    &Self::account_id(),
+                    &who,
+                    amount,
+                    false,
+                )?;
+                Self::deposit_event(Event::<T>::ClaimedFor(unbond_index, who.clone(), amount));
+                Ok(())
+            })?;
             Ok(().into())
         }
     }
