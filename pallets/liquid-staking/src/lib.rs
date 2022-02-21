@@ -66,7 +66,7 @@ pub mod pallet {
         traits::{AccountIdConversion, BlockNumberProvider, StaticLookup},
         ArithmeticError, FixedPointNumber,
     };
-    use sp_std::{boxed::Box, mem::replace, result::Result, vec::Vec};
+    use sp_std::{boxed::Box, result::Result, vec::Vec};
 
     use primitives::{
         ump::*, ArithmeticKind, Balance, CurrencyId, LiquidStakingConvert, ParaId, Rate, Ratio,
@@ -611,7 +611,7 @@ pub mod pallet {
             );
 
             PendingUnstake::<T>::try_mutate_exists(unbond_index, &who, |d| -> DispatchResult {
-                let amount = replace(d, None).unwrap_or_default();
+                let amount = d.take().unwrap_or_default();
                 if amount.is_zero() {
                     return Err(Error::<T>::NothingToClaim.into());
                 }
