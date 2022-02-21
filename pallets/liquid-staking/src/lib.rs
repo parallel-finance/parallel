@@ -447,7 +447,6 @@ pub mod pallet {
                 Error::<T>::SettlementLocked
             );
 
-            let old_matching_ledger = Self::matching_pool();
             let (bond_amount, rebond_amount, unbond_amount) =
                 MatchingPool::<T>::try_mutate(|b| b.matching(unbonding_amount))?;
 
@@ -460,7 +459,7 @@ pub mod pallet {
             Self::do_unbond(unbond_amount)?;
             Self::do_rebond(rebond_amount)?;
 
-            Self::do_update_exchange_rate(bonding_amount, old_matching_ledger)?;
+            Self::do_update_exchange_rate(bonding_amount)?;
 
             CurrentUnbondIndex::<T>::mutate(|v| *v += 1);
             LastSettlementTime::<T>::put(relaychain_blocknumber);
@@ -604,11 +603,13 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let _ = ensure_signed(origin)?;
             let who = T::Lookup::lookup(dest)?;
+
             ensure!(
                 Self::current_unbond_index().saturating_sub(unbond_index)
                     >= T::BondingDuration::get(),
                 Error::<T>::NothingToClaim
             );
+
             PendingUnstake::<T>::try_mutate(
                 unbond_index,
                 &who,
@@ -796,14 +797,12 @@ pub mod pallet {
         }
 
         #[require_transactional]
-        fn do_update_exchange_rate(
-            bonding_amount: BalanceOf<T>,
-            old_matching_ledger: MatchingLedger<BalanceOf<T>>,
-        ) -> DispatchResult {
+        fn do_update_exchange_rate(bonding_amount: BalanceOf<T>) -> DispatchResult {
+            let matching_ledger = Self::matching_pool();
             match Rate::checked_from_rational(
                 bonding_amount
-                    .checked_add(old_matching_ledger.total_stake_amount)
-                    .and_then(|r| r.checked_sub(old_matching_ledger.total_unstake_amount))
+                    .checked_add(matching_ledger.total_stake_amount)
+                    .and_then(|r| r.checked_sub(matching_ledger.total_unstake_amount))
                     .ok_or(ArithmeticError::Overflow)?,
                 T::Assets::total_issuance(Self::liquid_currency()?),
             ) {
