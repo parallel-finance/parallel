@@ -38,7 +38,10 @@ use pallet_xcm::ensure_response;
 use primitives::{
     ExchangeRateProvider, LiquidStakingConvert, LiquidStakingCurrenciesProvider, Rate,
 };
-use sp_runtime::{traits::Zero, FixedPointNumber, FixedPointOperand};
+use sp_runtime::{
+    traits::{Saturating, Zero},
+    FixedPointNumber, FixedPointOperand,
+};
 
 pub use pallet::*;
 
@@ -78,7 +81,7 @@ pub mod pallet {
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
     pub type BalanceOf<T> =
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
-    pub type Index = u32;
+    pub type UnbondIndex = u32;
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
@@ -191,7 +194,8 @@ pub mod pallet {
         /// [multi_location, query_id, res]
         NotificationReceived(Box<MultiLocation>, QueryId, Option<(u32, XcmError)>),
         /// Claim for amount
-        ClaimFor(T::AccountId, BalanceOf<T>),
+        /// [unbond_index, account_id, amount]
+        ClaimedFor(UnbondIndex, T::AccountId, BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -212,10 +216,10 @@ pub mod pallet {
         InvalidCap,
         /// The factor should be bigger than 0% and smaller than 100%
         InvalidFactor,
-        /// Call settlement too early
-        SettlementTooEarly,
-        /// Claim for too early
-        ClaimForTooEarly,
+        /// Settlement locked
+        SettlementLocked,
+        /// Nothing to clain yet
+        NothingToClaim,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -248,8 +252,8 @@ pub mod pallet {
     pub type XcmRequests<T> = StorageMap<_, Blake2_128Concat, QueryId, XcmRequest<T>, OptionQuery>;
 
     #[pallet::storage]
-    #[pallet::getter(fn unbond_index)]
-    pub type UnbondIndex<T: Config> = StorageValue<_, Index, ValueQuery>;
+    #[pallet::getter(fn current_unbond_index)]
+    pub type CurrentUnbondIndex<T: Config> = StorageValue<_, UnbondIndex, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn last_settlement_time)]
@@ -260,7 +264,7 @@ pub mod pallet {
     pub type PendingUnstake<T: Config> = StorageDoubleMap<
         _,
         Blake2_128Concat,
-        Index,
+        UnbondIndex,
         Blake2_128Concat,
         T::AccountId,
         BalanceOf<T>,
@@ -363,7 +367,7 @@ pub mod pallet {
                 Self::liquid_to_staking(liquid_amount).ok_or(Error::<T>::InvalidExchangeRate)?;
 
             PendingUnstake::<T>::try_mutate(
-                Self::unbond_index(),
+                Self::current_unbond_index(),
                 &who,
                 |unstake_amount| -> DispatchResult {
                     *unstake_amount = unstake_amount
@@ -436,11 +440,10 @@ pub mod pallet {
 
             let relaychain_blocknumber = T::RelayChainBlockNumberProvider::current_block_number();
             ensure!(
-                relaychain_blocknumber - Self::last_settlement_time() >= T::EraLength::get(),
-                Error::<T>::SettlementTooEarly
+                relaychain_blocknumber.saturating_sub(Self::last_settlement_time())
+                    >= T::EraLength::get(),
+                Error::<T>::SettlementLocked
             );
-            UnbondIndex::<T>::mutate(|v| *v += 1);
-            LastSettlementTime::<T>::put(relaychain_blocknumber);
 
             let old_matching_ledger = Self::matching_pool();
             let (bond_amount, rebond_amount, unbond_amount) =
@@ -456,6 +459,9 @@ pub mod pallet {
             Self::do_rebond(rebond_amount)?;
 
             Self::do_update_exchange_rate(bonding_amount, old_matching_ledger)?;
+
+            CurrentUnbondIndex::<T>::mutate(|v| *v += 1);
+            LastSettlementTime::<T>::put(relaychain_blocknumber);
 
             Self::deposit_event(Event::<T>::Settlement(
                 bond_amount,
@@ -563,6 +569,7 @@ pub mod pallet {
             Ok(())
         }
 
+        /// Internal call which is expected to be triggered only by xcm instruction
         #[pallet::weight(<T as Config>::WeightInfo::notification_received())]
         #[transactional]
         pub fn notification_received(
@@ -585,18 +592,20 @@ pub mod pallet {
             Ok(().into())
         }
 
+        /// Claim assets back when unbond_index arrived at certain height
         #[pallet::weight(10_000)]
         #[transactional]
         pub fn claim_for(
             origin: OriginFor<T>,
-            unbond_index: Index,
+            unbond_index: UnbondIndex,
             dest: <T::Lookup as StaticLookup>::Source,
         ) -> DispatchResultWithPostInfo {
             let _ = ensure_signed(origin)?;
             let who = T::Lookup::lookup(dest)?;
             ensure!(
-                Self::unbond_index() - unbond_index > T::BondingDuration::get(),
-                Error::<T>::ClaimForTooEarly
+                Self::current_unbond_index().saturating_sub(unbond_index)
+                    >= T::BondingDuration::get(),
+                Error::<T>::NothingToClaim
             );
             PendingUnstake::<T>::try_mutate(
                 unbond_index,
@@ -611,7 +620,11 @@ pub mod pallet {
                         transfer,
                         false,
                     )?;
-                    Self::deposit_event(Event::<T>::ClaimFor(who.clone(), transfer));
+                    Self::deposit_event(Event::<T>::ClaimedFor(
+                        unbond_index,
+                        who.clone(),
+                        transfer,
+                    ));
                     Ok(())
                 },
             )?;

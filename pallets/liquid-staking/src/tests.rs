@@ -1,6 +1,6 @@
 use crate::{mock::*, types::MatchingLedger, *};
 
-use frame_support::{assert_noop, assert_ok, traits::Hooks};
+use frame_support::{assert_noop, assert_ok};
 
 use primitives::{
     tokens::{KSM, XKSM},
