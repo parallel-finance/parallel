@@ -66,7 +66,7 @@ pub mod pallet {
         traits::{AccountIdConversion, BlockNumberProvider, StaticLookup},
         ArithmeticError, FixedPointNumber,
     };
-    use sp_std::{boxed::Box, mem::replace, result::Result, vec::Vec};
+    use sp_std::{boxed::Box, result::Result, vec::Vec};
 
     use primitives::{
         ump::*, ArithmeticKind, Balance, CurrencyId, LiquidStakingConvert, ParaId, Rate, Ratio,
@@ -323,12 +323,7 @@ pub mod pallet {
                 amount,
                 false,
             )?;
-            T::XCM::add_xcm_fees(
-                Self::staking_currency()?,
-                &who,
-                xcm_fees,
-                T::PalletId::get(),
-            )?;
+            T::XCM::add_xcm_fees(Self::staking_currency()?, &who, xcm_fees)?;
 
             let amount = amount
                 .checked_sub(reserves)
@@ -616,7 +611,7 @@ pub mod pallet {
             );
 
             PendingUnstake::<T>::try_mutate_exists(unbond_index, &who, |d| -> DispatchResult {
-                let amount = replace(d, None).unwrap_or_default();
+                let amount = d.take().unwrap_or_default();
                 if amount.is_zero() {
                     return Err(Error::<T>::NothingToClaim.into());
                 }
@@ -681,7 +676,6 @@ pub mod pallet {
                 staking_currency,
                 T::DerivativeIndex::get(),
                 Self::notify_placeholder(),
-                T::PalletId::get(),
             )?;
 
             XcmRequests::<T>::insert(query_id, XcmRequest::Bond { amount });
@@ -704,7 +698,6 @@ pub mod pallet {
                 staking_currency,
                 T::DerivativeIndex::get(),
                 Self::notify_placeholder(),
-                T::PalletId::get(),
             )?;
 
             XcmRequests::<T>::insert(query_id, XcmRequest::BondExtra { amount });
@@ -725,7 +718,6 @@ pub mod pallet {
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
                 Self::notify_placeholder(),
-                T::PalletId::get(),
             )?;
 
             XcmRequests::<T>::insert(query_id, XcmRequest::Unbond { amount });
@@ -746,7 +738,6 @@ pub mod pallet {
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
                 Self::notify_placeholder(),
-                T::PalletId::get(),
             )?;
 
             XcmRequests::<T>::insert(query_id, XcmRequest::Rebond { amount });

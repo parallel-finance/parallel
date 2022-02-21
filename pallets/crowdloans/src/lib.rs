@@ -1439,7 +1439,6 @@ pub mod pallet {
                 amount,
                 who,
                 Self::notify_placeholder(),
-                T::PalletId::get(),
             )?;
 
             XcmRequests::<T>::insert(
