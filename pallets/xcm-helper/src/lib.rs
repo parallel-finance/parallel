@@ -131,8 +131,6 @@ pub mod pallet {
         ZeroXcmFees,
         /// Insufficient xcm fees
         InsufficientXcmFees,
-        /// sufficient fund is not available
-        NotSufficientFund,
     }
 
     #[pallet::call]
@@ -174,12 +172,7 @@ pub mod pallet {
 pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
     fn get_xcm_fees() -> Balance;
 
-    fn add_xcm_fees(
-        relay_currency: AssetId,
-        payer: &AccountId,
-        amount: Balance,
-        pallet_id: PalletId,
-    ) -> DispatchResult;
+    fn add_xcm_fees(relay_currency: AssetId, payer: &AccountId, amount: Balance) -> DispatchResult;
 
     fn ump_transact(
         call: DoubleEncoded<()>,
@@ -201,7 +194,6 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
         amount: Balance,
         who: &AccountId,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
-        pallet_id: PalletId,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_bond(
@@ -211,7 +203,6 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
         relay_currency: AssetId,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
-        pallet_id: PalletId,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_bond_extra(
@@ -220,7 +211,6 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
         relay_currency: AssetId,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
-        pallet_id: PalletId,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_unbond(
@@ -228,7 +218,6 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
         relay_currency: AssetId,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
-        pallet_id: PalletId,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_rebond(
@@ -236,7 +225,6 @@ pub trait XcmHelper<T: pallet_xcm::Config, Balance, AssetId, AccountId> {
         relay_currency: AssetId,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
-        pallet_id: PalletId,
     ) -> Result<QueryId, DispatchError>;
 
     fn do_withdraw_unbonded(
@@ -262,10 +250,6 @@ impl<T: Config> Pallet<T> {
 
     pub fn refund_location() -> MultiLocation {
         T::AccountIdToMultiLocation::convert(T::RefundLocation::get())
-    }
-
-    pub fn get_account_id(pallet_id: PalletId) -> AccountIdOf<T> {
-        pallet_id.into_account()
     }
 
     pub fn report_outcome_notify(
@@ -301,10 +285,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         relay_currency: AssetIdOf<T>,
         payer: &AccountIdOf<T>,
         amount: BalanceOf<T>,
-        pallet_id: PalletId,
     ) -> DispatchResult {
-        let balance = T::Assets::balance(relay_currency, &Self::get_account_id(pallet_id));
-        ensure!(amount < balance, Error::<T>::NotSufficientFund);
         T::Assets::transfer(relay_currency, payer, &Self::account_id(), amount, false)?;
         Ok(())
     }
@@ -381,11 +362,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         amount: BalanceOf<T>,
         _who: &AccountIdOf<T>,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
-        pallet_id: PalletId,
     ) -> Result<QueryId, DispatchError> {
-        let balance = T::Assets::balance(relay_currency, &Self::get_account_id(pallet_id));
-        ensure!(amount < balance, Error::<T>::NotSufficientFund);
-
         Ok(switch_relay!({
             let call = RelaychainCall::<T>::Crowdloans(CrowdloansCall::Contribute(
                 CrowdloansContributeCall {
@@ -424,12 +401,9 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         relay_currency: AssetIdOf<T>,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
-        pallet_id: PalletId,
     ) -> Result<QueryId, DispatchError> {
         let controller = stash.clone();
 
-        let balance = T::Assets::balance(relay_currency, &Self::get_account_id(pallet_id));
-        ensure!(value < balance, Error::<T>::NotSufficientFund);
         Ok(switch_relay!({
             let call =
                 RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
@@ -483,11 +457,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         relay_currency: AssetIdOf<T>,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
-        pallet_id: PalletId,
     ) -> Result<QueryId, DispatchError> {
-        let balance = T::Assets::balance(relay_currency, &Self::get_account_id(pallet_id));
-        ensure!(value < balance, Error::<T>::NotSufficientFund);
-
         Ok(switch_relay!({
             let call =
                 RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
@@ -536,11 +506,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         relay_currency: AssetIdOf<T>,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
-        pallet_id: PalletId,
     ) -> Result<QueryId, DispatchError> {
-        let balance = T::Assets::balance(relay_currency, &Self::get_account_id(pallet_id));
-        ensure!(value < balance, Error::<T>::NotSufficientFund);
-
         Ok(switch_relay!({
             let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
                 UtilityAsDerivativeCall {
@@ -578,11 +544,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         relay_currency: AssetIdOf<T>,
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
-        pallet_id: PalletId,
     ) -> Result<QueryId, DispatchError> {
-        let balance = T::Assets::balance(relay_currency, &Self::get_account_id(pallet_id));
-        ensure!(value < balance, Error::<T>::NotSufficientFund);
-
         Ok(switch_relay!({
             let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
                 UtilityAsDerivativeCall {

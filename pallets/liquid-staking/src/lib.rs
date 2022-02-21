@@ -323,12 +323,7 @@ pub mod pallet {
                 amount,
                 false,
             )?;
-            T::XCM::add_xcm_fees(
-                Self::staking_currency()?,
-                &who,
-                xcm_fees,
-                T::PalletId::get(),
-            )?;
+            T::XCM::add_xcm_fees(Self::staking_currency()?, &who, xcm_fees)?;
 
             let amount = amount
                 .checked_sub(reserves)
@@ -681,7 +676,6 @@ pub mod pallet {
                 staking_currency,
                 T::DerivativeIndex::get(),
                 Self::notify_placeholder(),
-                T::PalletId::get(),
             )?;
 
             XcmRequests::<T>::insert(query_id, XcmRequest::Bond { amount });
@@ -704,7 +698,6 @@ pub mod pallet {
                 staking_currency,
                 T::DerivativeIndex::get(),
                 Self::notify_placeholder(),
-                T::PalletId::get(),
             )?;
 
             XcmRequests::<T>::insert(query_id, XcmRequest::BondExtra { amount });
@@ -725,7 +718,6 @@ pub mod pallet {
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
                 Self::notify_placeholder(),
-                T::PalletId::get(),
             )?;
 
             XcmRequests::<T>::insert(query_id, XcmRequest::Unbond { amount });
@@ -746,7 +738,6 @@ pub mod pallet {
                 Self::staking_currency()?,
                 T::DerivativeIndex::get(),
                 Self::notify_placeholder(),
-                T::PalletId::get(),
             )?;
 
             XcmRequests::<T>::insert(query_id, XcmRequest::Rebond { amount });
