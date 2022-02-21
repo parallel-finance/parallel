@@ -107,6 +107,10 @@ pub mod pallet {
         MaximumAmountInViolated,
         /// A more specific UnexpectedSlippage when trading exact amount in
         MinimumAmountOutViolated,
+        /// Token doesn't exists in all pools
+        TokenDoesNotExists,
+        /// Route between tokens is not possible
+        NoPossibleRoute,
     }
 
     #[pallet::event]
@@ -172,6 +176,13 @@ pub mod pallet {
 
             let mut queue: Vec<(u32, u32, Vec<u32>)> = Vec::from([(start, end, path)]);
 
+            // check that both tokens exist in graph
+            ensure!(
+                graph.contains_key(&start),
+                Error::<T, I>::TokenDoesNotExists
+            );
+            ensure!(graph.contains_key(&end), Error::<T, I>::TokenDoesNotExists);
+
             // iterate until we build all routes
             while !queue.is_empty() {
                 // desugared RFC 2909-destructuring-assignment
@@ -217,7 +228,7 @@ pub mod pallet {
             token_out: AssetIdOf<T, I>,
         ) -> Result<(Vec<AssetIdOf<T, I>>, BalanceOf<T, I>), DispatchError> {
             let mut all_routes = Self::get_all_routes(amount_in, token_in, token_out)?;
-            ensure!(!all_routes.is_empty(), Error::<T, I>::ZeroBalance);
+            ensure!(!all_routes.is_empty(), Error::<T, I>::NoPossibleRoute);
             let best_route = all_routes.remove(0);
 
             log::trace!(
