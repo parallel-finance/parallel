@@ -331,13 +331,8 @@ pub mod pallet {
             let liquid_amount =
                 Self::staking_to_liquid(amount).ok_or(Error::<T>::InvalidExchangeRate)?;
             let liquid_currency = Self::liquid_currency()?;
-            ensure!(
-                T::Assets::total_issuance(liquid_currency)
-                    .checked_add(liquid_amount)
-                    .ok_or(ArithmeticError::Overflow)?
-                    <= Self::market_cap(),
-                Error::<T>::CapExceeded
-            );
+            Self::ensure_market_cap(liquid_currency, liquid_amount)?;
+
             T::Assets::mint_into(liquid_currency, &who, liquid_amount)?;
 
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
@@ -764,23 +759,24 @@ pub mod pallet {
             res: Option<(u32, XcmError)>,
         ) -> DispatchResult {
             let executed = res.is_none();
+            use ArithmeticKind::*;
             use XcmRequest::*;
 
             match request {
                 Bond { amount, .. } | BondExtra { amount } if executed => {
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        p.update_total_stake_amount(amount, ArithmeticKind::Subtraction)
+                        p.update_total_stake_amount(amount, Subtraction)
                     })?;
                     T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), amount)?;
                 }
                 Unbond { amount } if executed => {
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        p.update_total_unstake_amount(amount, ArithmeticKind::Subtraction)
+                        p.update_total_unstake_amount(amount, Subtraction)
                     })?;
                 }
                 Rebond { amount } if executed => {
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        p.update_total_stake_amount(amount, ArithmeticKind::Subtraction)
+                        p.update_total_stake_amount(amount, Subtraction)
                     })?;
                 }
                 WithdrawUnbonded {
@@ -817,6 +813,17 @@ pub mod pallet {
                 }
                 _ => {}
             }
+            Ok(())
+        }
+
+        fn ensure_market_cap(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
+            ensure!(
+                T::Assets::total_issuance(asset_id)
+                    .checked_add(amount)
+                    .ok_or(ArithmeticError::Overflow)?
+                    <= Self::market_cap(),
+                Error::<T>::CapExceeded
+            );
             Ok(())
         }
 
