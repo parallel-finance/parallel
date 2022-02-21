@@ -25,6 +25,7 @@ pub const ALICE: AccountId = AccountId(1);
 pub const BOB: AccountId = AccountId(2);
 pub const CHARLIE: AccountId = AccountId(3);
 pub const EVE: AccountId = AccountId(4);
+pub const FRANK: AccountId = AccountId(5);
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -201,6 +202,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             (BOB, 100_000_000),
             (CHARLIE, 1000_000_000),
             (EVE, 1000_000_000),
+            (FRANK, 1000_000_000),
         ],
     }
     .assimilate_storage(&mut t)
@@ -218,6 +220,13 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         Assets::mint(Origin::signed(ALICE), tokens::DOT, BOB, 100_000_000).unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::DOT, CHARLIE, 1000_000_000).unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::DOT, EVE, 1000_000_000).unwrap();
+        Assets::mint(
+            Origin::signed(ALICE),
+            tokens::DOT,
+            FRANK,
+            100_000_000_000_000_000_000,
+        )
+        .unwrap();
 
         Assets::mint(Origin::signed(ALICE), tokens::XDOT, ALICE, 100_000_000).unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::XDOT, BOB, 100_000_000).unwrap();
@@ -226,6 +235,13 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
         Assets::mint(Origin::signed(ALICE), tokens::KSM, ALICE, 100_000_000).unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::KSM, BOB, 100_000_000).unwrap();
+        Assets::mint(
+            Origin::signed(ALICE),
+            tokens::KSM,
+            FRANK,
+            100_000_000_000_000_000_000,
+        )
+        .unwrap();
     });
 
     ext

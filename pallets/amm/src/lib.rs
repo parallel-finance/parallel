@@ -677,6 +677,10 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 FixedU128::saturating_from_rational(pool.base_amount, pool.quote_amount)
                     .into_inner();
 
+            println!("\nlast: {:?}", pool.price_0_cumulative_last);
+            println!("frac: {:?}", price0_fraction);
+            println!("elap: {:?}", time_elapsed);
+
             pool.price_0_cumulative_last = pool
                 .price_0_cumulative_last
                 .checked_add(price0_fraction)

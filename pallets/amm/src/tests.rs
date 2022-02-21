@@ -4,6 +4,9 @@ use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
 use primitives::AMM as _;
 
+use sp_runtime::ArithmeticError::Overflow;
+use sp_runtime::DispatchError::Arithmetic;
+
 const MINIMUM_LIQUIDITY: u128 = 1_000;
 
 #[test]
@@ -778,5 +781,59 @@ fn update_oracle_should_work() {
             AMM::pools(XDOT, DOT).unwrap().price_1_cumulative_last,
             5_843_777_518_928_363_420
         );
+    })
+}
+
+#[test]
+fn oracle_is_overflowing() {
+    new_test_ext().execute_with(|| {
+        let trader = FRANK;
+
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),                     // Origin
+            (DOT, KSM), // Currency pool, in which liquidity will be added
+            (9_999_650_729_873_433, 30_001_051_000_000_000_000), // Liquidity amounts to be added in pool
+            FRANK,                                               // LPToken receiver
+            SAMPLE_LP_TOKEN, // Liquidity pool share representative token
+        ));
+
+        assert_eq!(AMM::pools(DOT, KSM).unwrap().block_timestamp_last, 0);
+        assert_eq!(AMM::pools(DOT, KSM).unwrap().price_0_cumulative_last, 0);
+        assert_eq!(AMM::pools(DOT, KSM).unwrap().price_1_cumulative_last, 0);
+
+        let mut big_block = 30_000;
+        run_to_block(big_block);
+
+        for _ in 0..5 {
+            big_block += 1000;
+            run_to_block(big_block);
+            assert_ok!(AMM::swap(&trader, (DOT, KSM), 1000));
+        }
+
+        assert_eq!(
+            AMM::pools(DOT, KSM).unwrap().block_timestamp_last,
+            big_block
+        );
+        assert_eq!(
+            AMM::pools(DOT, KSM).unwrap().price_0_cumulative_last,
+            93_009_509_752_513_950_123_270_013_069_343_530_000
+        );
+        assert_eq!(
+            AMM::pools(DOT, KSM).unwrap().price_1_cumulative_last,
+            10_332_944_078_743_374_448_204_257_288_000
+        );
+
+        // increment a block
+        big_block += 4;
+        run_to_block(big_block);
+
+        //
+
+        assert_noop!(
+            AMM::swap(&trader, (DOT, KSM), 10_000_000_000),
+            Arithmetic(Overflow)
+        );
+
+        assert_eq!(0, 1);
     })
 }
