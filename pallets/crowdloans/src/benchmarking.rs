@@ -9,11 +9,10 @@ use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_call
 use frame_support::{assert_ok, pallet_prelude::*, traits::fungibles::Mutate};
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{Balance, CurrencyId, ParaId};
+use sp_runtime::traits::One;
 use sp_runtime::traits::StaticLookup;
 use sp_std::{convert::TryInto, prelude::*};
 use xcm::latest::prelude::*;
-
-use sp_runtime::traits::One;
 
 const XCM_FEES: u128 = 50000000000u128;
 const CONTRIBUTE_AMOUNT: u128 = 20000000000000u128;
@@ -46,6 +45,14 @@ fn initial_set_up<
         account_id.clone(),
         true,
         One::one(),
+    )
+    .ok();
+
+    pallet_assets::Pallet::<T>::mint(
+        SystemOrigin::Signed(caller.clone()).into(),
+        T::RelayCurrency::get(),
+        T::Lookup::unlookup(Crowdloans::<T>::account_id()),
+        INITIAL_FEES,
     )
     .ok();
 
@@ -160,6 +167,7 @@ benchmarks! {
         let crowdloan = ParaId::from(1336u32);
 
         initial_set_up::<T>(caller, ctoken);
+
         assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, LEASE_START, LEASE_END, ContributionStrategy::XCM, CAP, END_BLOCK.into()));
     }: _(
         SystemOrigin::Root,
