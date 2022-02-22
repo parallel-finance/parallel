@@ -848,7 +848,7 @@ fn oracle_huge_block_should_work() {
         assert_eq!(AMM::pools(DOT, KSM).unwrap().price_0_cumulative_last, 0);
         assert_eq!(AMM::pools(DOT, KSM).unwrap().price_1_cumulative_last, 0);
 
-        let mut big_block = 300_000;
+        let mut big_block = 10_000_000;
         run_to_block(big_block);
 
         for _ in 0..5 {
@@ -863,11 +863,11 @@ fn oracle_huge_block_should_work() {
         );
         assert_eq!(
             AMM::pools(DOT, KSM).unwrap().price_0_cumulative_last,
-            2400167910_693916556218932726
+            31502203827_864919649515113416
         );
         assert_eq!(
             AMM::pools(DOT, KSM).unwrap().price_1_cumulative_last,
-            266_648011228084676096
+            3499_755147367804281224
         );
     })
 }
