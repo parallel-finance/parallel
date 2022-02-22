@@ -847,7 +847,8 @@ fn oracle_huge_block_should_work() {
         assert_eq!(AMM::pools(DOT, KSM).unwrap().price_0_cumulative_last, 0);
         assert_eq!(AMM::pools(DOT, KSM).unwrap().price_1_cumulative_last, 0);
 
-        let mut big_block = 100_000_000;
+        // let mut big_block = 100_000_000;
+        let mut big_block = 10_000_000;
 
         // 100 Million blocks should take ~42.5 years to create at ~12 seconds a block
 
@@ -871,11 +872,13 @@ fn oracle_huge_block_should_work() {
         );
         assert_eq!(
             AMM::pools(DOT, KSM).unwrap().price_0_cumulative_last,
-            301521093780_997938040922975491
+            // 301521093780_997938040922975491
+            31502203827_864919649515113416
         );
         assert_eq!(
             AMM::pools(DOT, KSM).unwrap().price_1_cumulative_last,
-            33497_656410519841854583
+            // 33497_656410519841854583
+            3499_755147367804281224
         );
     })
 }
