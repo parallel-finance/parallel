@@ -1487,6 +1487,8 @@ impl pallet_currency_adapter::Config for Runtime {
 parameter_types! {
     pub const LMPalletId: PalletId = PalletId(*b"par/lqmp");
     pub const MaxRewardTokens: u32 = 1000;
+    pub const MaxUserLockItemsCount: u32 = 100;
+    pub const LockPoolMaxDuration: u32 = 50400;
 }
 
 impl pallet_farming::Config for Runtime {
@@ -1494,8 +1496,10 @@ impl pallet_farming::Config for Runtime {
     type Assets = CurrencyAdapter;
     type PalletId = LMPalletId;
     type MaxRewardTokens = MaxRewardTokens;
-    type CreateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type UpdaterOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_farming::weights::SubstrateWeight<Runtime>;
+    type MaxUserLockItemsCount = MaxUserLockItemsCount;
+    type LockPoolMaxDuration = LockPoolMaxDuration;
 }
 
 pub struct WhiteListFilter;
