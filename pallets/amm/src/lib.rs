@@ -670,7 +670,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 .saturating_sub(pool.block_timestamp_last)
                 .saturated_into();
 
-            // compute by multipling the numerator with the time elpased
+            // compute by multiplying the numerator with the time elapsed
             let price0_fraction = FixedU128::saturating_from_rational(
                 time_elapsed
                     .checked_mul(pool.quote_amount)
@@ -719,7 +719,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .checked_add(ideal_quote_amount)
             .ok_or(ArithmeticError::Overflow)?;
 
-        // lock a small amount of liquidty if the pool is first intitalized
+        // lock a small amount of liquidity if the pool is first initialized
         let liquidity = if total_supply.is_zero() {
             T::Assets::mint_into(
                 pool.lp_token_id,
