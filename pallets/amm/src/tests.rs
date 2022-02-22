@@ -4,9 +4,6 @@ use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
 use primitives::AMM as _;
 
-use sp_runtime::ArithmeticError::Overflow;
-use sp_runtime::DispatchError::Arithmetic;
-
 const MINIMUM_LIQUIDITY: u128 = 1_000;
 
 #[test]
@@ -761,11 +758,11 @@ fn update_oracle_should_work() {
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().block_timestamp_last, 2);
         assert_eq!(
             AMM::pools(XDOT, DOT).unwrap().price_0_cumulative_last,
-            2_040_136_143_738_700_978
+            2_040136143738700978
         );
         assert_eq!(
             AMM::pools(XDOT, DOT).unwrap().price_1_cumulative_last,
-            1_960_653_465_346_534_652
+            1_960653465346534653
         );
 
         run_to_block(4);
@@ -775,17 +772,17 @@ fn update_oracle_should_work() {
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().block_timestamp_last, 4);
         assert_eq!(
             AMM::pools(XDOT, DOT).unwrap().price_0_cumulative_last,
-            6_160_928_306_080_914_592
+            4_120792162342213614
         );
         assert_eq!(
             AMM::pools(XDOT, DOT).unwrap().price_1_cumulative_last,
-            5_843_777_518_928_363_420
+            3_883124053581828770
         );
     })
 }
 
 #[test]
-fn oracle_is_overflowing() {
+fn oracle_big_block_no_overflow() {
     new_test_ext().execute_with(|| {
         let trader = FRANK;
 
@@ -816,24 +813,61 @@ fn oracle_is_overflowing() {
         );
         assert_eq!(
             AMM::pools(DOT, KSM).unwrap().price_0_cumulative_last,
-            93_009_509_752_513_950_123_270_013_069_343_530_000
+            105007346_092879071079611686
         );
         assert_eq!(
             AMM::pools(DOT, KSM).unwrap().price_1_cumulative_last,
-            10_332_944_078_743_374_448_204_257_288_000
+            11_665850491226458031
         );
 
         // increment a block
         big_block += 4;
         run_to_block(big_block);
 
-        //
+        // this would swap used to overflow
+        assert_ok!(AMM::swap(&trader, (DOT, KSM), 10_000_000_000));
+    })
+}
 
-        assert_noop!(
-            AMM::swap(&trader, (DOT, KSM), 10_000_000_000),
-            Arithmetic(Overflow)
+#[test]
+fn oracle_huge_block_should_work() {
+    // we may want to omit this test because it take >3 seconds
+    // when incrementing so many blocks
+    new_test_ext().execute_with(|| {
+        let trader = FRANK;
+
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),                     // Origin
+            (DOT, KSM), // Currency pool, in which liquidity will be added
+            (9_999_650_729_873_433, 30_001_051_000_000_000_000), // Liquidity amounts to be added in pool
+            FRANK,                                               // LPToken receiver
+            SAMPLE_LP_TOKEN, // Liquidity pool share representative token
+        ));
+
+        assert_eq!(AMM::pools(DOT, KSM).unwrap().block_timestamp_last, 0);
+        assert_eq!(AMM::pools(DOT, KSM).unwrap().price_0_cumulative_last, 0);
+        assert_eq!(AMM::pools(DOT, KSM).unwrap().price_1_cumulative_last, 0);
+
+        let mut big_block = 300_000;
+        run_to_block(big_block);
+
+        for _ in 0..5 {
+            big_block += 100_000;
+            run_to_block(big_block);
+            assert_ok!(AMM::swap(&trader, (DOT, KSM), 1000));
+        }
+
+        assert_eq!(
+            AMM::pools(DOT, KSM).unwrap().block_timestamp_last,
+            big_block
         );
-
-        assert_eq!(0, 1);
+        assert_eq!(
+            AMM::pools(DOT, KSM).unwrap().price_0_cumulative_last,
+            2400167910_693916556218932726
+        );
+        assert_eq!(
+            AMM::pools(DOT, KSM).unwrap().price_1_cumulative_last,
+            266_648011228084676096
+        );
     })
 }

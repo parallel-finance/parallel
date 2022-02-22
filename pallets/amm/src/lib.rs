@@ -670,28 +670,30 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 .saturating_sub(pool.block_timestamp_last)
                 .saturated_into();
 
-            let price0_fraction: BalanceOf<T, I> =
-                FixedU128::saturating_from_rational(pool.quote_amount, pool.base_amount)
-                    .into_inner();
-            let price1_fraction: BalanceOf<T, I> =
-                FixedU128::saturating_from_rational(pool.base_amount, pool.quote_amount)
-                    .into_inner();
+            // compute by multipling the numerator with the time elpased
+            let price0_fraction = FixedU128::saturating_from_rational(
+                time_elapsed
+                    .checked_mul(pool.quote_amount)
+                    .ok_or(ArithmeticError::Overflow)?,
+                pool.base_amount,
+            );
+            let price1_fraction = FixedU128::saturating_from_rational(
+                time_elapsed
+                    .checked_mul(pool.base_amount)
+                    .ok_or(ArithmeticError::Overflow)?,
+                pool.quote_amount,
+            );
 
-            println!("\nlast: {:?}", pool.price_0_cumulative_last);
-            println!("frac: {:?}", price0_fraction);
-            println!("elap: {:?}", time_elapsed);
+            // convert stored u128 into FixedU128 before add
+            pool.price_0_cumulative_last = FixedU128::from_inner(pool.price_0_cumulative_last)
+                .checked_add(&price0_fraction)
+                .ok_or(ArithmeticError::Overflow)?
+                .into_inner();
 
-            pool.price_0_cumulative_last = pool
-                .price_0_cumulative_last
-                .checked_add(price0_fraction)
-                .and_then(|r| time_elapsed.checked_mul(r))
-                .ok_or(ArithmeticError::Overflow)?;
-
-            pool.price_1_cumulative_last = pool
-                .price_1_cumulative_last
-                .checked_add(price1_fraction)
-                .and_then(|r| time_elapsed.checked_mul(r))
-                .ok_or(ArithmeticError::Overflow)?;
+            pool.price_1_cumulative_last = FixedU128::from_inner(pool.price_1_cumulative_last)
+                .checked_add(&price1_fraction)
+                .ok_or(ArithmeticError::Overflow)?
+                .into_inner();
 
             // updates timestamp last so `time_elapsed` is correctly calculated
             pool.block_timestamp_last = block_timestamp;
