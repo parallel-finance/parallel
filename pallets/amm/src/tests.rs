@@ -959,3 +959,21 @@ fn do_add_liquidity_should_work() {
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 4_000);
     })
 }
+#[test]
+fn do_add_liquidity_large_amounts() {
+    /*
+    Panics -> Balance Low
+    */
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (
+                1_000_000_000_000_000_000_000, // Either base amount or quote amount
+                2_000_000_000_000_000_000_000
+            ), // Liquidity amounts to be added in pool
+            ALICE,                           // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        ));
+    })
+}

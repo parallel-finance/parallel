@@ -727,6 +727,20 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 T::MinimumLiquidity::get(),
             )?;
 
+            /*
+            *---------------------------------------------------------------------------------------
+            ideal_base_amount(x)    | ideal_quote_amount        | mul(y)            | sqrt(z) | sub(a)
+            2000                    |  1000                     | 2000000           | 1414    | 414
+            2000000000000000000000  |  1000000000000000000000   | None              | None    | None
+            ----------------------------------------------------------------------------------------
+            */
+
+            let min_lq = T::MinimumLiquidity::get();
+            let x = ideal_base_amount; //
+            let y = x.checked_mul(ideal_quote_amount);
+            let z = y.map(|r| r.integer_sqrt());
+            let a = z.and_then(|r| r.checked_sub(T::MinimumLiquidity::get()));
+
             ideal_base_amount
                 .checked_mul(ideal_quote_amount)
                 .map(|r| r.integer_sqrt())
