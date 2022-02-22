@@ -42,6 +42,7 @@ use frame_support::{
 };
 use frame_system::{ensure_signed, pallet_prelude::OriginFor};
 use primitives::{Balance, CurrencyId, Ratio};
+use sp_arithmetic::Perbill;
 use sp_runtime::{
     traits::{
         AccountIdConversion, CheckedAdd, CheckedSub, IntegerSquareRoot, One, Saturating, Zero,
@@ -677,19 +678,65 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 FixedU128::saturating_from_rational(pool.base_amount, pool.quote_amount)
                     .into_inner();
 
-            println!("\nlast: {:?}", pool.price_0_cumulative_last);
-            println!("frac: {:?}", price0_fraction);
+            // ********************************************************
+            // TODO:: Remove this after fix
+            println!("\npool price 0 last: {:?}", pool.price_0_cumulative_last);
+            println!("pool price 1 last: {:?}", pool.price_1_cumulative_last);
+            println!("quote: {:?}", pool.quote_amount);
+            println!("base: {:?}", pool.base_amount);
+            println!("price0_fraction: {:?}", price0_fraction);
+            println!("price1_fraction: {:?}", price1_fraction);
             println!("elap: {:?}", time_elapsed);
+
+            // TODO:: This is not helpful
+            // let x = Perbill::from_rational(
+            //     pool.quote_amount % pool.base_amount,   1_000_000_000u128);
+
+            //
+            // let  y = Perbill::from_rational(
+            //     pool.base_amount % pool.quote_amount,  1_000_000_000u128);
+
+            // ********************************************************
+
+            // TODO:: Workaround
+            // >>> x = 30001050999997008791 // pool.quote_amount
+            // >>> y = 9999650729874433 // pool.base_amount
+            // >>> p = x / y
+            // >>> print(p)
+            // 3000.2098883681447   // <- actual
+            // >>> k = 3000209888368144648793    // <- FixedU128::saturating_from_rational
+            // >>> l = k / p
+            // >>> print(l)
+            // 1e+18  // 1,000,000,000,000,000,000
+
+            let alpha = price0_fraction
+                .checked_div(1_000_000_000_000_000_000u128)
+                .unwrap();
+            let beta = price1_fraction
+                .checked_div(1_000_000_000_000_000_000u128)
+                .unwrap();
+
+            // pool.price_0_cumulative_last = pool
+            //     .price_0_cumulative_last
+            //     .checked_add(price0_fraction)
+            //     .and_then(|r| time_elapsed.checked_mul(r))
+            //     .ok_or(ArithmeticError::Overflow)?;
+            //
+            // pool.price_1_cumulative_last = pool
+            //     .price_1_cumulative_last
+            //     .checked_add(price1_fraction)
+            //     .and_then(|r| time_elapsed.checked_mul(r))
+            //     .ok_or(ArithmeticError::Overflow)?;
 
             pool.price_0_cumulative_last = pool
                 .price_0_cumulative_last
-                .checked_add(price0_fraction)
+                .checked_add(alpha)
                 .and_then(|r| time_elapsed.checked_mul(r))
                 .ok_or(ArithmeticError::Overflow)?;
 
             pool.price_1_cumulative_last = pool
                 .price_1_cumulative_last
-                .checked_add(price1_fraction)
+                .checked_add(beta)
                 .and_then(|r| time_elapsed.checked_mul(r))
                 .ok_or(ArithmeticError::Overflow)?;
 

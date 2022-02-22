@@ -837,3 +837,43 @@ fn oracle_is_overflowing() {
         assert_eq!(0, 1);
     })
 }
+
+#[test]
+fn investigate() {
+    new_test_ext().execute_with(|| {
+        let trader = FRANK;
+
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),                     // Origin
+            (DOT, KSM), // Currency pool, in which liquidity will be added
+            (9_999_650_729_873_433, 30_001_051_000_000_000_000), // Liquidity amounts to be added in pool
+            FRANK,                                               // LPToken receiver
+            SAMPLE_LP_TOKEN, // Liquidity pool share representative token
+        ));
+
+        let mut big_block = 30_000;
+        run_to_block(big_block);
+
+        for _ in 0..5 {
+            big_block += 1000;
+            run_to_block(big_block);
+            assert_ok!(AMM::swap(&trader, (DOT, KSM), 1000));
+        }
+
+        // increment a block
+        big_block += 10000;
+        run_to_block(big_block);
+
+        assert_ok!(AMM::swap(&trader, (DOT, KSM), 10_000_000_000));
+
+        // increment a block
+        big_block += 10000000;
+        run_to_block(big_block);
+
+        //
+        assert_noop!(
+            AMM::swap(&trader, (DOT, KSM), 10_000_000_000),
+            Arithmetic(Overflow)
+        );
+    })
+}
