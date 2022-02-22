@@ -718,6 +718,21 @@ fn amount_in_uneven_should_work() {
 }
 
 #[test]
+fn supply_out_should_larger_than_amount_out() {
+    // Test case for Panic when amount_out >= supply_out
+    new_test_ext().execute_with(|| {
+        let amount_out = 100_00;
+        let supply_in = 100_000;
+        let supply_out = 100_00;
+
+        assert_noop!(
+            AMM::get_amount_in(amount_out, supply_in, supply_out),
+            Error::<Test>::InsufficientSupplyOut
+        );
+    })
+}
+
+#[test]
 fn amount_out_and_in_should_work() {
     new_test_ext().execute_with(|| {
         let amount_out = 1_000;
