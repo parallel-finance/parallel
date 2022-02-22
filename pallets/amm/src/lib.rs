@@ -132,6 +132,8 @@ pub mod pallet {
         InsufficientAmountOut,
         /// Insufficient amount in
         InsufficientAmountIn,
+        /// Insufficient supply out.
+        InsufficientSupplyOut,
         /// Identical assets
         IdenticalAssets,
         /// LP token has already been minted
@@ -624,6 +626,10 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         reserve_in: BalanceOf<T, I>,
         reserve_out: BalanceOf<T, I>,
     ) -> Result<BalanceOf<T, I>, DispatchError> {
+        ensure!(
+            amount_out < reserve_out,
+            Error::<T, I>::InsufficientSupplyOut
+        );
         let numerator = reserve_in
             .checked_mul(amount_out)
             .ok_or(ArithmeticError::Overflow)?;
