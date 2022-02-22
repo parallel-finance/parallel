@@ -475,7 +475,7 @@ parameter_types! {
     pub const DerivativeIndex: u16 = 0;
     pub const EraLength: BlockNumber = 6 * 4 * 3600 / 6;
     pub const MinStake: Balance = 10_000_000_000; // 1DOT
-    pub const MinUnstake: Balance = 5_000_000_000; // 0.5DOT
+    pub const MinUnstake: Balance = 5_000_000_000; // 0.5xDOT
     pub const StakingCurrency: CurrencyId = DOT;
     pub const LiquidCurrency: CurrencyId = XDOT;
     pub const XcmFees: Balance = 500_000_000; // 0.05DOT

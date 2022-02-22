@@ -482,7 +482,7 @@ parameter_types! {
     pub const DerivativeIndex: u16 = 0;
     pub const EraLength: BlockNumber = 1 * 3 * 60 / 6;
     pub const MinStake: Balance = 100_000_000_000; // 0.1KSM
-    pub const MinUnstake: Balance = 50_000_000_000; // 0.05KSM
+    pub const MinUnstake: Balance = 50_000_000_000; // 0.05xKSM
     pub const StakingCurrency: CurrencyId = KSM;
     pub const LiquidCurrency: CurrencyId = XKSM;
     pub const XcmFees: Balance = 5_000_000_000; // 0.005KSM

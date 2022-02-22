@@ -370,7 +370,7 @@ parameter_types! {
     pub const StakingCurrency: CurrencyId = KSM;
     pub const LiquidCurrency: CurrencyId = XKSM;
     pub const XcmFees: Balance = 0;
-    pub const BondingDuration: u32 = 3;
+    pub const BondingDuration: UnbondIndex = 3;
 }
 
 impl crate::Config for Test {

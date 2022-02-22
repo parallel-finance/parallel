@@ -143,9 +143,9 @@ pub mod pallet {
         /// Weight information
         type WeightInfo: WeightInfo;
 
-        /// Number of eras that assets unlocking.
+        /// Number of unbond indexes for unlocking.
         #[pallet::constant]
-        type BondingDuration: Get<u32>;
+        type BondingDuration: Get<UnbondIndex>;
 
         /// Number of blocknumbers that each period contains.
         /// SessionsPerEra * EpochDuration / MILLISECS_PER_BLOCK
