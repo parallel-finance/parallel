@@ -5,11 +5,7 @@ use super::*;
 use crate::Pallet as LiquidStaking;
 
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite};
-use frame_support::{
-    assert_ok,
-    traits::{fungibles::Mutate, OnIdle},
-    weights::Weight,
-};
+use frame_support::{assert_ok, traits::fungibles::Mutate};
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{
     tokens::{KSM, XKSM},
@@ -35,7 +31,6 @@ const UNBOND_AMOUNT: u128 = 5000000000000u128;
 const REBOND_AMOUNT: u128 = 5000000000000u128;
 const WITHDRAW_AMOUNT: u128 = 5000000000000u128;
 const UNBONDING_AMOUNT: u128 = 0u128;
-const REMAINING_WEIGHT: Weight = 100000000000u64;
 
 fn initial_set_up<
     T: Config
@@ -108,7 +103,9 @@ benchmarks! {
         initial_set_up::<T>(alice.clone());
     }: _(SystemOrigin::Signed(alice.clone()), STAKE_AMOUNT)
     verify {
-        assert_last_event::<T>(Event::<T>::Staked(alice, STAKED_AMOUNT - T::XcmFees::get()).into());
+        let xcm_fee = T::XcmFees::get();
+        let reserve = ReserveFactor::<T>::get().mul_floor(STAKE_AMOUNT);
+        assert_last_event::<T>(Event::<T>::Staked(alice, STAKE_AMOUNT - xcm_fee - reserve).into());
     }
 
     unstake {
@@ -206,26 +203,6 @@ benchmarks! {
     verify {
     }
 
-    on_idle {
-        let alice: T::AccountId = account("Sample", 100, SEED);
-        let bob: T::AccountId = account("Sample", 101, SEED);
-        let charlie: T::AccountId = account("Sample", 102, SEED);
-        initial_set_up::<T>(alice.clone());
-        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
-        <T as pallet_xcm_helper::Config>::Assets::mint_into(XKSM, &bob, STAKED_AMOUNT).unwrap();
-        <T as pallet_xcm_helper::Config>::Assets::mint_into(XKSM, &charlie, STAKED_AMOUNT).unwrap();
-        LiquidStaking::<T>::unstake(SystemOrigin::Signed(bob).into(), STAKED_AMOUNT).unwrap();
-        LiquidStaking::<T>::unstake(SystemOrigin::Signed(charlie).into(), STAKED_AMOUNT).unwrap();
-
-        // Simulate withdraw_unbonded
-        <T as pallet_xcm_helper::Config>::Assets::mint_into(KSM, &LiquidStaking::<T>::account_id(), 10 * STAKED_AMOUNT).unwrap();
-    }: {
-        LiquidStaking::<T>::on_idle(0u32.into(), REMAINING_WEIGHT)
-    }
-    verify {
-        // assert_eq!(UnstakeQueue::<T>::get().len(), 1);
-    }
-
     notification_received {
         let alice: T::AccountId = account("Sample", 100, SEED);
         initial_set_up::<T>(alice.clone());
@@ -237,6 +214,18 @@ benchmarks! {
         Response::ExecutionResult(None)
     )
     verify {
+    }
+
+    claim_for {
+        let alice: T::AccountId = account("Sample", 100, SEED);
+        let account_id = T::Lookup::unlookup(alice.clone());
+        initial_set_up::<T>(alice.clone());
+        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
+        LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice.clone()).into(), UNSTAKE_AMOUNT).unwrap();
+        CurrentUnbondIndex::<T>::put(28);
+    }: _(SystemOrigin::Signed(alice.clone()), 0u32, account_id)
+    verify {
+        assert_last_event::<T>(Event::<T>::ClaimedFor(0u32, alice, UNSTAKE_AMOUNT).into());
     }
 }
 

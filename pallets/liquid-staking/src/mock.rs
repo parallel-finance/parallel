@@ -363,14 +363,14 @@ impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const DerivativeIndex: u16 = 0;
-    pub const EraLength: u32 = 0;
+    pub const EraLength: BlockNumber = 0;
     pub SelfParaId: ParaId = para_a_id();
     pub const MinStake: Balance = 0;
     pub const MinUnstake: Balance = 0;
     pub const StakingCurrency: CurrencyId = KSM;
     pub const LiquidCurrency: CurrencyId = XKSM;
     pub const XcmFees: Balance = 0;
-    pub const BondingDuration: BlockNumber = 0;
+    pub const BondingDuration: u32 = 3;
 }
 
 impl crate::Config for Test {

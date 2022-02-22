@@ -594,7 +594,7 @@ pub mod pallet {
         }
 
         /// Claim assets back when unbond_index arrived at certain height
-        #[pallet::weight(10_000)]
+        #[pallet::weight(<T as Config>::WeightInfo::claim_for())]
         #[transactional]
         pub fn claim_for(
             origin: OriginFor<T>,

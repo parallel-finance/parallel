@@ -8,6 +8,7 @@ use primitives::{
     Balance, Rate, Ratio,
 };
 use sp_runtime::traits::{One, Zero};
+use sp_runtime::MultiAddress::Id;
 use xcm_simulator::TestExt;
 
 #[test]
@@ -360,6 +361,33 @@ fn update_reserve_factor_should_not_work_if_with_invalid_param() {
         assert_noop!(
             LiquidStaking::update_reserve_factor(Origin::root(), Ratio::one()),
             Error::<Test>::InvalidFactor
+        );
+    })
+}
+
+#[test]
+fn claim_for_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(10f64)));
+        assert_eq!(<Test as Config>::Assets::balance(KSM, &ALICE), ksm(90f64));
+
+        let unstake_amount = ksm(6f64);
+        assert_ok!(LiquidStaking::unstake(
+            Origin::signed(ALICE),
+            unstake_amount
+        ));
+        assert_eq!(PendingUnstake::<Test>::get(0, ALICE), unstake_amount);
+
+        assert_noop!(
+            LiquidStaking::claim_for(Origin::signed(BOB), 0, Id(ALICE)),
+            Error::<Test>::NothingToClaim
+        );
+
+        CurrentUnbondIndex::<Test>::put(3);
+        assert_ok!(LiquidStaking::claim_for(Origin::signed(BOB), 0, Id(ALICE)));
+        assert_eq!(
+            <Test as Config>::Assets::balance(KSM, &ALICE),
+            ksm(90f64) + unstake_amount
         );
     })
 }
