@@ -882,3 +882,80 @@ fn oracle_huge_block_should_work() {
         );
     })
 }
+
+#[test]
+fn create_pool_large_amount_should_work() {
+    /*
+    Panics -> Underflow
+    ```
+    fn do_add_liquidity
+    ideal_base_amount
+        .checked_mul(ideal_quote_amount)
+        .map(|r| r.integer_sqrt())
+        .and_then(|r| r.checked_sub(T::MinimumLiquidity::get()))
+        .ok_or(ArithmeticError::Underflow)?
+    ```
+    */
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),                            // Origin
+            (DOT, XDOT), // Currency pool, in which liquidity will be added
+            (1_000_000_000_000_000_000, 2_000_000_000_000_000_000_000), // Liquidity amounts to be added in pool
+            BOB,                                                        // LPToken receiver
+            SAMPLE_LP_TOKEN, // Liquidity pool share representative token
+        ));
+
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 2_000);
+        assert_eq!(Assets::total_issuance(SAMPLE_LP_TOKEN), 1_414);
+        // should be issuance minus the min liq locked
+        assert_eq!(Assets::balance(SAMPLE_LP_TOKEN, BOB), 414);
+    })
+}
+
+#[test]
+fn add_large_liquidity_should_work() {
+    /*
+    Panics -> Balance Low
+    */
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (1_000, 2_000),                  // Liquidity amounts to be added in pool
+            ALICE,                           // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        ));
+        assert_ok!(AMM::add_liquidity(
+            RawOrigin::Signed(ALICE).into(),                            // Origin
+            (DOT, XDOT), // Currency pool, in which liquidity will be added
+            (1_000_000_000_000_000_000, 2_000_000_000_000_000_000_000), // Liquidity amounts to be added in pool
+            (5, 5), // specifying its worst case ratio when pool already
+        ));
+
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 4_000);
+    })
+}
+
+#[test]
+fn do_add_liquidity_should_work() {
+    /*
+    Panics -> Balance Low
+    */
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (1_000, 2_000),                  // Liquidity amounts to be added in pool
+            ALICE,                           // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        ));
+        assert_ok!(AMM::add_liquidity(
+            RawOrigin::Signed(ALICE).into(),                            // Origin
+            (DOT, XDOT), // Currency pool, in which liquidity will be added
+            (1_000_000_000_000_000_000, 2_000_000_000_000_000_000_000), // Liquidity amounts to be added in pool
+            (5, 5), // specifying its worst case ratio when pool already
+        ));
+
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 4_000);
+    })
+}
