@@ -831,8 +831,7 @@ fn oracle_big_block_no_overflow() {
 
 #[test]
 fn oracle_huge_block_should_work() {
-    // we may want to omit this test because it take >3 seconds
-    // when incrementing so many blocks
+    // we may want to omit this test because it take >5 minutes to run
     new_test_ext().execute_with(|| {
         let trader = FRANK;
 
@@ -848,7 +847,16 @@ fn oracle_huge_block_should_work() {
         assert_eq!(AMM::pools(DOT, KSM).unwrap().price_0_cumulative_last, 0);
         assert_eq!(AMM::pools(DOT, KSM).unwrap().price_1_cumulative_last, 0);
 
-        let mut big_block = 10_000_000;
+        let mut big_block = 100_000_000;
+
+        // 100 Million blocks should take ~42.5 years to create at ~12 seconds a block
+
+        // Calculations
+        // avg_block_time = (1645493658865 - 1639798590500) / (424950 - 1)
+        // avg_block_time == 13401.769071112063 == 13.4 seconds per block
+        // total_time = (avg_block_time * 100_000_000) / (1000 * 60 * 60 * 24 * 365)
+        // total_time == 42.496730945941344
+
         run_to_block(big_block);
 
         for _ in 0..5 {
@@ -863,11 +871,11 @@ fn oracle_huge_block_should_work() {
         );
         assert_eq!(
             AMM::pools(DOT, KSM).unwrap().price_0_cumulative_last,
-            31502203827_864919649515113416
+            301521093780_997938040922975491
         );
         assert_eq!(
             AMM::pools(DOT, KSM).unwrap().price_1_cumulative_last,
-            3499_755147367804281224
+            33497_656410519841854583
         );
     })
 }
