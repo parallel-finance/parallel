@@ -38,6 +38,8 @@ pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
 pub use kusama_runtime;
 
+use super::UnbondIndex;
+
 parameter_types! {
     pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND / 4;
     pub const ReservedDmpWeight: Weight = WEIGHT_PER_SECOND / 4;
