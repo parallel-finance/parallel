@@ -49,7 +49,7 @@ pub use pallet::*;
 pub mod pallet {
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
-        ensure,
+        ensure, log,
         pallet_prelude::*,
         require_transactional,
         traits::{
@@ -335,6 +335,12 @@ pub mod pallet {
 
             T::Assets::mint_into(liquid_currency, &who, liquid_amount)?;
 
+            log::trace!(
+                target: "Liquid Staking::stake",
+                "liquid_currency: {:?}",
+                &liquid_currency,
+            );
+
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
                 p.update_total_stake_amount(amount, ArithmeticKind::Addition)
             })?;
@@ -381,6 +387,12 @@ pub mod pallet {
 
             T::Assets::burn_from(Self::liquid_currency()?, &who, liquid_amount)?;
 
+            log::trace!(
+                target: "Liquid Staking::unstake",
+                "liquid_currency: {:?}",
+                &Self::liquid_currency()?,
+            );
+
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
                 p.update_total_unstake_amount(amount, ArithmeticKind::Addition)
             })?;
@@ -403,6 +415,12 @@ pub mod pallet {
                 Error::<T>::InvalidFactor,
             );
 
+            log::trace!(
+                target: "Liquid Staking::update_reserve_factor",
+                 "liquid_currency: {:?}",
+                &Self::liquid_currency()?,
+            );
+
             ReserveFactor::<T>::mutate(|v| *v = reserve_factor);
             Self::deposit_event(Event::<T>::ReserveFactorUpdated(reserve_factor));
             Ok(().into())
@@ -420,6 +438,11 @@ pub mod pallet {
 
             ensure!(!cap.is_zero(), Error::<T>::InvalidCap);
 
+            log::trace!(
+                target: "Liquid Staking::update_market_cap",
+                "cap: {:?}",
+                &cap,
+            );
             MarketCap::<T>::mutate(|v| *v = cap);
             Self::deposit_event(Event::<T>::MarketCapUpdated(cap));
             Ok(().into())
@@ -461,6 +484,15 @@ pub mod pallet {
 
             Self::do_update_exchange_rate(bonding_amount)?;
 
+            log::trace!(
+                target: "Liquid Staking::settlement",
+                "bond_amount: {:?}, unbond_amount: {:?}, rebond_amount: {:?}, bonding_amount: {:?}, unbonding_amount: {:?}",
+                &bond_amount,
+                &unbond_amount,
+                &rebond_amount,
+                &bonding_amount,
+                &unbonding_amount
+            );
             CurrentUnbondIndex::<T>::mutate(|v| *v += 1);
             LastSettlementTime::<T>::put(relaychain_blocknumber);
 
@@ -482,6 +514,11 @@ pub mod pallet {
             payee: RewardDestination<T::AccountId>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
+            log::trace!(
+                target: "Liquid Staking::bond",
+                "amount: {:?}",
+                &amount,
+            );
             Self::do_bond(amount, payee)?;
             Ok(())
         }
@@ -494,6 +531,11 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
+            log::trace!(
+                target: "Liquid Staking::bond_extra",
+                "amount: {:?}",
+                &amount,
+            );
             Self::do_bond_extra(amount)?;
             Ok(())
         }
@@ -506,6 +548,11 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
+            log::trace!(
+                target: "Liquid Staking::unbond",
+                "amount: {:?}",
+                &amount,
+            );
             Self::do_unbond(amount)?;
             Ok(())
         }
@@ -518,6 +565,11 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
+            log::trace!(
+                target: "Liquid Staking::rebond",
+                "amount: {:?}",
+                &amount,
+            );
             Self::do_rebond(amount)?;
             Ok(())
         }
@@ -538,6 +590,13 @@ pub mod pallet {
                 T::DerivativeIndex::get(),
                 Self::notify_placeholder(),
             )?;
+
+            log::trace!(
+                target: "Liquid Staking::withdraw_unbonded",
+                "num_slashing_spans: {:?}",
+                &num_slashing_spans,
+            );
+
             XcmRequests::<T>::insert(
                 query_id,
                 XcmRequest::WithdrawUnbonded {
@@ -560,6 +619,13 @@ pub mod pallet {
                 T::DerivativeIndex::get(),
                 Self::notify_placeholder(),
             )?;
+
+            log::trace!(
+                target: "Liquid Staking::nominate",
+                "targets: {:?}",
+                &targets,
+            );
+
             XcmRequests::<T>::insert(
                 query_id,
                 XcmRequest::Nominate {
@@ -583,6 +649,12 @@ pub mod pallet {
                 if let Some(request) = Self::xcm_request(&query_id) {
                     Self::do_notification_received(query_id, request, res)?;
                 }
+
+                log::trace!(
+                    target: "Liquid Staking::notification_received",
+                    "query_id: {:?}",
+                    &query_id,
+                );
 
                 Self::deposit_event(Event::<T>::NotificationReceived(
                     Box::new(responder),
@@ -622,6 +694,12 @@ pub mod pallet {
                     amount,
                     false,
                 )?;
+
+                log::trace!(
+                    target: "Liquid Staking::claim_for",
+                    "unbond_index: {:?}",
+                    &unbond_index,
+                );
                 Self::deposit_event(Event::<T>::ClaimedFor(unbond_index, who.clone(), amount));
                 Ok(())
             })?;
