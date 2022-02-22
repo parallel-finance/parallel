@@ -2,7 +2,7 @@
 #![cfg(feature = "runtime-benchmarks")]
 use super::*;
 
-use crate::Pallet as LiquidStaking;
+use crate::{LastSettlementTime, Pallet as LiquidStaking};
 
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite};
 use frame_support::{assert_ok, traits::fungibles::Mutate};
@@ -156,6 +156,7 @@ benchmarks! {
         LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice).into(), UNSTAKE_AMOUNT).unwrap();
     }: _(SystemOrigin::Root, 0u128,  UNBONDING_AMOUNT)
     verify {
+        LastSettlementTime::<T>::kill();
         let amount = 2 * STAKED_AMOUNT - 2 * UNSTAKE_AMOUNT - 2 * T::XcmFees::get() ;
         assert_last_event::<T>(Event::<T>::Settlement(amount, 0u128, 0u128).into());
     }
