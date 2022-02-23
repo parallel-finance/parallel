@@ -829,9 +829,10 @@ fn oracle_big_block_no_overflow() {
     })
 }
 
+// ignore this test because it take >5 minutes to run
+#[ignore]
 #[test]
 fn oracle_huge_block_should_work() {
-    // we may want to omit this test because it take >5 minutes to run
     new_test_ext().execute_with(|| {
         let trader = FRANK;
 
@@ -880,5 +881,92 @@ fn oracle_huge_block_should_work() {
             // 33497_656410519841854583
             3499_755147367804281224
         );
+    })
+}
+
+#[test]
+fn stable_swap_amount_out_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (1_000_000, 1_000_000),          // Liquidity amounts to be added in pool
+            BOB,                             // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        ));
+
+        let y = AMM::get_y(10_000.0, (DOT, XDOT)).unwrap();
+        // println!("{:?}", y);
+
+        let dy = 1_000_000.0 - y;
+        // println!("{:?}", dy);
+
+        assert_eq!(dy, 9998.837230932666);
+    })
+}
+
+#[test]
+fn small_stable_swap_amount_out_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (1_000_000, 1_000_000),          // Liquidity amounts to be added in pool
+            BOB,                             // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        ));
+
+        let amount_in = 10.0;
+        let y = AMM::get_y(amount_in, (DOT, XDOT)).unwrap();
+
+        let dy = 1_000_000.0 - y;
+        let ex_ratio = dy / amount_in;
+
+        assert_eq!(ex_ratio, 0.9999998837010935);
+        assert_eq!(dy, 9.999998837010935);
+    })
+}
+
+#[test]
+fn large_stable_swap_amount_out_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (1_000_000, 1_000_000),          // Liquidity amounts to be added in pool
+            BOB,                             // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        ));
+
+        let amount_in = 999_999.0;
+        let y = AMM::get_y(amount_in, (DOT, XDOT)).unwrap();
+
+        let dy = 1_000_000.0 - y;
+        let ex_ratio = dy / amount_in;
+
+        assert_eq!(ex_ratio, 0.9289610549560947);
+        assert_eq!(dy, 928960.1259950397);
+    })
+}
+
+#[test]
+fn unbalanced_stable_swap_amount_out_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (10_000, 1_000_000),             // Liquidity amounts to be added in pool
+            BOB,                             // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        ));
+
+        let amount_in = 50.0;
+        let y = AMM::get_y(amount_in, (DOT, XDOT)).unwrap();
+
+        let dy = 1_000_000.0 - y;
+        let ex_ratio = dy / amount_in;
+
+        // assert_eq!(ex_ratio, 171.9043934493605);
+        assert_eq!(dy, 57128.56644846045);
     })
 }

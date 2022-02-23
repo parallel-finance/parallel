@@ -611,6 +611,107 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(amount_out)
     }
 
+    // https://miguelmota.com/blog/understanding-stableswap-curve/
+    // https://github.com/curvefi/curve-contract/blob/master/contracts/pool-templates/base/SwapTemplateBase.vy
+    // https://github.com/parallel-finance/amm-formula/blob/master/src/formula.rs
+    // https://curve.fi/files/stableswap-paper.pdf
+    #[allow(dead_code)]
+    fn get_d(
+        (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),
+    ) -> Result<f64, DispatchError> {
+        let (x, y) = Self::get_reserves(asset_in, asset_out)?;
+
+        // total reserves (only two pools)
+        let s = (x + y) as f64;
+
+        // constants
+        // number of tokens
+        let n_t = 2.0;
+        let __a = 85 as f64;
+        let a_precision = 100 as f64;
+        let a = (__a * a_precision) as f64;
+
+        let mut prev_d: f64;
+        // let mut prevD = 0 as f64;
+        let mut d = s;
+        let n_a = a * 2.0;
+
+        // 10 is a max number of loops
+        // should throw error if does not converge
+        for _ in 0..10 {
+            let mut dp = d;
+
+            // repeat twice instead of a loop since we only
+            // support two pools
+            dp = (dp * d) / (x as f64 * n_t);
+            dp = (dp * d) / (y as f64 * n_t);
+
+            prev_d = d;
+
+            d = ((((n_a * s) / a_precision) + (dp * n_t)) * d)
+                / ((((n_a - a_precision) * d) / a_precision) + ((n_t + 1.0) * dp));
+
+            if (d - prev_d).abs() < 1.0 {
+                break;
+            }
+        }
+        // throw new Error('D does not converge')
+        Ok(d)
+    }
+
+    #[allow(dead_code)]
+    fn get_y(
+        mut x: f64,
+        (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),
+    ) -> Result<f64, DispatchError> {
+        let (resx, resy) = Self::get_reserves(asset_in, asset_out)?;
+
+        x += resx as f64;
+
+        let d = Self::get_d((asset_in, asset_out))?;
+
+        let mut c = d as f64;
+        let mut s = 0.0;
+
+        // constants
+        let n_t = 2.0;
+        let __a = 85 as f64;
+        let a_precision = 100 as f64;
+        let a = (__a * a_precision) as f64;
+
+        let n_a = n_t * a;
+
+        let _x = 0 as f64;
+
+        s += x;
+
+        // repeat twice instead of a loop since we only
+        // support two pools
+        // this also assume swap X -> Y
+        c = (c * d) / (x as f64 * n_t);
+        c = (c * d) / (resy as f64 * n_t);
+
+        c = ((c * d) * a_precision) / (n_a * n_t);
+
+        let b = s + ((d * a_precision) / n_a);
+
+        let mut y_prev: f64;
+        let mut y = d;
+
+        // 10 is a max number of loops
+        // should throw error if does not converge
+        for _ in 0..10 {
+            y_prev = y;
+            y = ((y * y) + c) / (((y * 2.0) + b) - d);
+            if (y - y_prev).abs() < 1.0 {
+                break;
+            }
+        }
+
+        Ok(y)
+        // throw new Error('Approximation did not converge')
+    }
+
     // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
     //
     // amountOut = amountIn * reserveOut / reserveIn + amountIn
