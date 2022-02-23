@@ -393,8 +393,10 @@ pub mod pallet {
 
             log::trace!(
                 target: "liquidStaking::unstake",
-                "liquid_amount: {:?}",
+                "liquid_amount: {:?},\
+                exchange_rate: {:?}",
                 &liquid_amount,
+                &amount
             );
 
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
