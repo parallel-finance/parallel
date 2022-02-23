@@ -110,6 +110,7 @@ launch: shutdown
 	yq -i eval '.paraId = $(PARA_ID)' $(LAUNCH_CONFIG_JSON)
 	docker image pull parallelfinance/polkadot:$(RELAY_DOCKER_TAG)
 	docker image pull parallelfinance/parallel:$(DOCKER_TAG)
+	docker image pull parallelfinance/karura:$(ACALA_DOCKER_TAG)
 	docker image pull parallelfinance/stake-client:latest
 	docker image pull parallelfinance/liquidation-client:latest
 	docker image pull parallelfinance/nominate-client:latest
