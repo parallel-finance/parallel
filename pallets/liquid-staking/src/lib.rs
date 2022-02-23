@@ -337,11 +337,9 @@ pub mod pallet {
 
             log::trace!(
                 target: "liquidStaking::stake",
-                "liquid_amount: {:?},
-				stake_amount: {:?},
-                reserves: {:?}",
-                &liquid_amount,
+                "stake_amount: {:?}, liquid_amount: {:?}, reserved: {:?}",
                 &amount,
+                &liquid_amount,
                 &reserves
             );
 
@@ -393,10 +391,9 @@ pub mod pallet {
 
             log::trace!(
                 target: "liquidStaking::unstake",
-                "liquid_amount: {:?},
-                exchange_rate: {:?}",
+                "unstake_amount: {:?}, liquid_amount: {:?}",
+                &amount,
                 &liquid_amount,
-                &amount
             );
 
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
@@ -492,13 +489,19 @@ pub mod pallet {
 
             log::trace!(
                 target: "liquidStaking::settlement",
-                "bonding_amount: {:?}, unbonding_amount: {:?}, bond_amount: {:?}, unbond_amount: {:?}, rebond_amount: {:?}",
+                "bonding_amount: {:?}, unbonding_amount: {:?}",
                 &bonding_amount,
                 &unbonding_amount,
-                &bond_amount,
-                &unbond_amount,
-                &rebond_amount,
             );
+
+            log::trace!(
+                target: "liquidStaking::settlement",
+                "bond_amount: {:?}, rebond_amount: {:?}, unbond_amount: {:?}",
+                &bond_amount,
+                &rebond_amount,
+                &unbond_amount,
+            );
+
             CurrentUnbondIndex::<T>::mutate(|v| *v += 1);
             LastSettlementTime::<T>::put(relaychain_blocknumber);
 
@@ -651,16 +654,16 @@ pub mod pallet {
             response: Response,
         ) -> DispatchResultWithPostInfo {
             let responder = ensure_response(<T as Config>::Origin::from(origin))?;
+            log::trace!(
+                target: "liquidStaking::notification_received",
+                "query_id: {:?}, response: {:?}",
+                &query_id,
+                &response
+            );
             if let Response::ExecutionResult(res) = response {
                 if let Some(request) = Self::xcm_request(&query_id) {
                     Self::do_notification_received(query_id, request, res)?;
                 }
-
-                log::trace!(
-                    target: "liquidStaking::notification_received",
-                    "query_id: {:?}",
-                    &query_id,
-                );
 
                 Self::deposit_event(Event::<T>::NotificationReceived(
                     Box::new(responder),
@@ -703,10 +706,10 @@ pub mod pallet {
 
                 log::trace!(
                     target: "liquidStaking::claim_for",
-                    "unbond_index: {:?},
-                    beneficiary: {:?}",
+                    "unbond_index: {:?}, beneficiary: {:?}, amount: {:?}",
                     &unbond_index,
                     &who,
+                    amount
                 );
 
                 Self::deposit_event(Event::<T>::ClaimedFor(unbond_index, who.clone(), amount));
