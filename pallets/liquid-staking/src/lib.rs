@@ -337,10 +337,12 @@ pub mod pallet {
 
             log::trace!(
                 target: "liquidStaking::stake",
-                "liquid_currency: {:?},
-                liquid_amount: {:?}",
-                &Self::liquid_currency()?,
+                "liquid_amount: {:?},
+				stake_amount: {:?},
+                reserves: {:?}",
                 &liquid_amount,
+                &amount,
+                &reserves
             );
 
             MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
@@ -391,9 +393,7 @@ pub mod pallet {
 
             log::trace!(
                 target: "liquidStaking::unstake",
-                "liquid_currency: {:?},
-                liquid_amount: {:?}",
-                &Self::liquid_currency()?,
+                "liquid_amount: {:?}",
                 &liquid_amount,
             );
 
@@ -421,8 +421,8 @@ pub mod pallet {
 
             log::trace!(
                 target: "liquidStaking::update_reserve_factor",
-                 "liquid_currency: {:?}",
-                &Self::liquid_currency()?,
+                 "reserve_factor: {:?}",
+                &reserve_factor,
             );
 
             ReserveFactor::<T>::mutate(|v| *v = reserve_factor);
@@ -490,12 +490,12 @@ pub mod pallet {
 
             log::trace!(
                 target: "liquidStaking::settlement",
-                "bond_amount: {:?}, unbond_amount: {:?}, rebond_amount: {:?}, bonding_amount: {:?}, unbonding_amount: {:?}",
+                "bonding_amount: {:?}, unbonding_amount: {:?}, bond_amount: {:?}, unbond_amount: {:?}, rebond_amount: {:?}",
+                &bonding_amount,
+                &unbonding_amount,
                 &bond_amount,
                 &unbond_amount,
                 &rebond_amount,
-                &bonding_amount,
-                &unbonding_amount
             );
             CurrentUnbondIndex::<T>::mutate(|v| *v += 1);
             LastSettlementTime::<T>::put(relaychain_blocknumber);
@@ -702,7 +702,7 @@ pub mod pallet {
                 log::trace!(
                     target: "liquidStaking::claim_for",
                     "unbond_index: {:?},
-                    destination: {:?}",
+                    beneficiary: {:?}",
                     &unbond_index,
                     &who,
                 );
