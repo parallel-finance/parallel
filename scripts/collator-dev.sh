@@ -18,10 +18,10 @@ PARA_CHAIN="${3:-vanilla-dev.json}"
 RELAY_CHAIN="${4:-kusama-local.json}"
 VOLUME="chains"
 NODE_NAME="$1"
-COLLATOR_NAME="${2:alice}"
-DOCKER_IMAGE="parallelfinance/parallel:v1.7.7-rc3"
+COLLATOR_NAME="${2:-alice}"
+DOCKER_IMAGE="parallelfinance/parallel:v1.7.7"
 BASE_PATH="/data"
-RELAY_BOOTNODES="/ip4/47.243.180.213/tcp/30333/p2p/12D3KooWJ4vJuyCZr1XzuS8g3d4hMmMv5GFynWGNGNh8i3Jvg338"
+RELAY_BOOTNODES="/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWDEyCAUKviazJuXdWcAAVEf7nSm9BvPXyK6odp5PetCfV"
 
 if [ $# -lt 1 ]; then
   echo "help: ./collator-dev.sh <NODE_NAME>" && exit 1
@@ -77,4 +77,4 @@ docker run --restart=always --name $NODE_NAME \
     --name="${NODE_NAME}_Embedded_Relay" \
     --bootnodes $RELAY_BOOTNODES
 
-
+docker logs -f $NODE_NAME
