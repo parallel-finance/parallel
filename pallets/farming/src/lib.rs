@@ -31,7 +31,7 @@ pub mod weights;
 use frame_support::{
     pallet_prelude::*,
     traits::{
-        fungibles::{Inspect, Mutate, Transfer},
+        fungibles::{Inspect, InspectMetadata, Mutate, Transfer},
         Get, IsType,
     },
     transactional, Blake2_128Concat, PalletId,
@@ -40,7 +40,7 @@ use frame_system::{ensure_signed, pallet_prelude::OriginFor};
 use primitives::{Balance, CurrencyId};
 use sp_io::hashing::blake2_256;
 use sp_runtime::{
-    traits::{AccountIdConversion, CheckedAdd, CheckedSub, Saturating, Zero},
+    traits::{AccountIdConversion, CheckedAdd, CheckedSub, Saturating, StaticLookup, Zero},
     ArithmeticError, SaturatedConversion,
 };
 use sp_std::result::Result;
@@ -67,7 +67,8 @@ pub mod pallet {
         /// module
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
-            + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
+            + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
+            + InspectMetadata<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
 
         /// Defines the pallet's pallet id from which we can define each pool's account id
         #[pallet::constant]
@@ -429,7 +430,7 @@ pub mod pallet {
 
             Self::update_reward(Some(who.clone()), asset, reward_asset)?;
 
-            let asset_pool_account = Self::pool_account_id(asset)?;
+            let asset_pool_account = Self::pool_account_id(reward_asset)?;
             UsersInfo::<T>::mutate(
                 (&asset, &reward_asset, &who),
                 |user_info| -> DispatchResult {
@@ -446,7 +447,7 @@ pub mod pallet {
 
                         Self::deposit_event(Event::<T>::RewardPaid(
                             who.clone(),
-                            reward_asset,
+                            asset,
                             reward_asset,
                             reward_amount,
                         ));
@@ -464,10 +465,11 @@ pub mod pallet {
             origin: OriginFor<T>,
             asset: AssetIdOf<T>,
             reward_asset: AssetIdOf<T>,
+            payer: <T::Lookup as StaticLookup>::Source,
             amount: BalanceOf<T>,
             duration: T::BlockNumber,
         ) -> DispatchResult {
-            let who = ensure_signed(origin)?;
+            T::UpdaterOrigin::ensure_origin(origin)?;
             ensure!(
                 PoolsInfo::<T>::contains_key(&asset, &reward_asset),
                 Error::<T>::PoolDoesNotExist
@@ -508,8 +510,9 @@ pub mod pallet {
                 pool_info.period_finish = new_period_finish;
                 pool_info.reward_rate = reward_rate;
 
-                let asset_pool_account = Self::pool_account_id(asset)?;
-                T::Assets::transfer(reward_asset, &who, &asset_pool_account, amount, true)?;
+                let asset_pool_account = Self::pool_account_id(reward_asset)?;
+                let payer = T::Lookup::lookup(payer)?;
+                T::Assets::transfer(reward_asset, &payer, &asset_pool_account, amount, true)?;
 
                 Self::deposit_event(Event::<T>::RewardAdded(asset, reward_asset, amount));
                 Ok(())
@@ -529,7 +532,8 @@ impl<T: Config> Pallet<T> {
         //1, update pool reward info
         PoolsInfo::<T>::mutate(asset, reward_asset, |pool_info| -> DispatchResult {
             let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
-            pool_info.update_reward_per_share(current_block_number)?;
+            let asset_decimal = <T::Assets as InspectMetadata<T::AccountId>>::decimals(&asset);
+            pool_info.update_reward_per_share(current_block_number, asset_decimal)?;
 
             //2, update user reward info
             if let Some(who) = who {
@@ -537,7 +541,7 @@ impl<T: Config> Pallet<T> {
                     (&asset, &reward_asset, &who),
                     |user_info| -> DispatchResult {
                         let diff = pool_info
-                            .reward_per_share(current_block_number)?
+                            .reward_per_share(current_block_number, asset_decimal)?
                             .checked_sub(user_info.reward_per_share_paid)
                             .ok_or(ArithmeticError::Overflow)?;
 
