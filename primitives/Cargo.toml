@@ -38,6 +38,7 @@ std     = [
   'xcm/std',
   'scale-info/std',
   'cumulus-primitives-core/std',
+  'num-bigint/std',
 ]
 
 [lib]

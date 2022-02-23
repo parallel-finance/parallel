@@ -62,6 +62,9 @@ pub type Moment = u64;
 /// Balance of an account.
 pub type Balance = u128;
 
+/// BigBalance
+pub type BigBalance = BigUint;
+
 /// Signed version of Balance
 pub type Amount = i128;
 
@@ -102,6 +105,7 @@ pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 
 pub use cumulus_primitives_core::ParaId;
+use sp_runtime::biguint::BigUint;
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -173,4 +177,31 @@ pub trait AMM<AccountId, CurrencyId, Balance> {
 pub enum ArithmeticKind {
     Addition,
     Subtraction,
+}
+
+pub struct BigUBalance(BigUint);
+
+impl BigUBalance {
+    pub fn from_uint(u: Uint) -> Self {
+        BigUBalance(BigU::from(u))
+    }
+    // pub fn to_uint() -> Self{
+    //
+    // }
+
+    // pub fn divide() -> Self{
+    //
+    // }
+
+    // pub fn add() -> Self{
+    //
+    // }
+
+    // pub fn mul() -> Self{
+    //
+    // }
+
+    // pub fn sub() -> Self{
+    //
+    // }
 }

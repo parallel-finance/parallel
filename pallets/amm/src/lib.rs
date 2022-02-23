@@ -41,7 +41,7 @@ use frame_support::{
     transactional, Blake2_128Concat, PalletId,
 };
 use frame_system::{ensure_signed, pallet_prelude::OriginFor};
-use primitives::{Balance, CurrencyId, Ratio};
+use primitives::{Balance, BigUBalance, CurrencyId, Ratio};
 use sp_runtime::{
     traits::{
         AccountIdConversion, CheckedAdd, CheckedSub, IntegerSquareRoot, One, Saturating, Zero,
@@ -57,8 +57,11 @@ pub use weights::WeightInfo;
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 pub type AssetIdOf<T, I = ()> =
     <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
+// pub type BalanceOf<T, I = ()> =
+//     <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
+
 pub type BalanceOf<T, I = ()> =
-    <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
+    <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::BigUBalance;
 
 #[frame_support::pallet]
 pub mod pallet {
