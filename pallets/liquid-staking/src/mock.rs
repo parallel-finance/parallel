@@ -38,6 +38,8 @@ pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
 pub use kusama_runtime;
 
+use super::UnbondIndex;
+
 parameter_types! {
     pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND / 4;
     pub const ReservedDmpWeight: Weight = WEIGHT_PER_SECOND / 4;
@@ -363,14 +365,14 @@ impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const DerivativeIndex: u16 = 0;
-    pub const EraLength: u32 = 0;
+    pub const EraLength: BlockNumber = 0;
     pub SelfParaId: ParaId = para_a_id();
     pub const MinStake: Balance = 0;
     pub const MinUnstake: Balance = 0;
     pub const StakingCurrency: CurrencyId = KSM;
     pub const LiquidCurrency: CurrencyId = XKSM;
     pub const XcmFees: Balance = 0;
-    pub const BondingDuration: BlockNumber = 0;
+    pub const BondingDuration: UnbondIndex = 3;
 }
 
 impl crate::Config for Test {
