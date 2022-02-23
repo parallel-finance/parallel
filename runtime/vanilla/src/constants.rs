@@ -96,7 +96,8 @@ pub mod fee {
 pub mod paras {
 
     pub mod karura {
-
         pub const ID: u32 = 2000;
+        pub const KAR_KEY: &[u8] = &[0, 128];
+        pub const KUSD_KEY: &[u8] = &[0, 129];
     }
 }
