@@ -47,7 +47,7 @@ use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::HEIKO_PREFIX,
-    tokens::{HKO, KSM, KUSD, XKSM},
+    tokens::{HKO, KAR, KSM, KUSD, XKSM},
     Index, *,
 };
 use sp_api::impl_runtime_apis;
@@ -355,9 +355,19 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                     GeneralKey(b"HKO".to_vec()),
                 ),
             )),
+            KAR => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(paras::karura::ID),
+                    GeneralKey(paras::karura::KAR_KEY.to_vec()),
+                ),
+            )),
             KUSD => Some(MultiLocation::new(
                 1,
-                X2(Parachain(paras::karura::ID), GeneralKey(b"KUSD".to_vec())),
+                X2(
+                    Parachain(paras::karura::ID),
+                    GeneralKey(paras::karura::KUSD_KEY.to_vec()),
+                ),
             )),
             _ => None,
         }
@@ -386,7 +396,11 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
-            } if id == paras::karura::ID && key == b"KUSD".to_vec() => Some(KUSD),
+            } if id == paras::karura::ID && key == paras::karura::KUSD_KEY.to_vec() => Some(KUSD),
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), GeneralKey(key)),
+            } if id == paras::karura::ID && key == paras::karura::KAR_KEY.to_vec() => Some(KAR),
             _ => None,
         }
     }
@@ -958,6 +972,13 @@ parameter_types! {
         ).into(),
         ksm_per_second() * 400
     );
+    pub KarPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(paras::karura::ID), GeneralKey(b"KUSD".to_vec())),
+        ).into(),
+        ksm_per_second() * 50
+    );
 }
 
 match_type! {
@@ -993,6 +1014,7 @@ pub type Trader = (
     FixedRateOfFungible<KsmPerSecond, ToTreasury>,
     FixedRateOfFungible<HkoPerSecond, ToTreasury>,
     FixedRateOfFungible<KusdPerSecond, ToTreasury>,
+    FixedRateOfFungible<KarPerSecond, ToTreasury>,
 );
 
 pub struct XcmConfig;
