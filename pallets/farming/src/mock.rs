@@ -160,6 +160,16 @@ impl SortedMembers<AccountId> for AliceCreatePoolOrigin {
     }
 }
 
+pub struct Decimal;
+impl DecimalProvider<CurrencyId> for Decimal {
+    fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
+        match *asset_id {
+            DOT => Some(12),
+            _ => Some(10),
+        }
+    }
+}
+
 impl pallet_farming::Config for Test {
     type Event = Event;
     type Assets = CurrencyAdapter;
@@ -167,6 +177,7 @@ impl pallet_farming::Config for Test {
     type MaxRewardTokens = MaxRewardTokens;
     type CreateOrigin = EnsureSignedBy<AliceCreatePoolOrigin, AccountId>;
     type WeightInfo = ();
+    type Decimal = Decimal;
 }
 
 parameter_types! {

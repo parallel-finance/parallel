@@ -1489,13 +1489,14 @@ parameter_types! {
 
 impl pallet_farming::Config for Runtime {
     type Event = Event;
-    type Assets = Assets;
+    type Assets = CurrencyAdapter;
     type PalletId = LMPalletId;
     type MaxRewardTokens = MaxRewardTokens;
     type UpdaterOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_farming::weights::SubstrateWeight<Runtime>;
     type MaxUserLockItemsCount = MaxUserLockItemsCount;
     type LockPoolMaxDuration = LockPoolMaxDuration;
+    type Decimal = Decimal;
 }
 
 pub struct WhiteListFilter;

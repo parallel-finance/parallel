@@ -31,13 +31,13 @@ pub mod weights;
 use frame_support::{
     pallet_prelude::*,
     traits::{
-        fungibles::{Inspect, InspectMetadata, Mutate, Transfer},
+        fungibles::{Inspect, Mutate, Transfer},
         Get, IsType,
     },
     transactional, Blake2_128Concat, PalletId,
 };
 use frame_system::{ensure_signed, pallet_prelude::OriginFor};
-use primitives::{Balance, CurrencyId};
+use primitives::{Balance, CurrencyId, DecimalProvider};
 use sp_io::hashing::blake2_256;
 use sp_runtime::{
     traits::{AccountIdConversion, CheckedAdd, CheckedSub, Saturating, StaticLookup, Zero},
@@ -67,8 +67,7 @@ pub mod pallet {
         /// module
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
-            + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
-            + InspectMetadata<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
+            + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
 
         /// Defines the pallet's pallet id from which we can define each pool's account id
         #[pallet::constant]
@@ -76,6 +75,9 @@ pub mod pallet {
 
         /// Weight information for extrinsics in this pallet.
         type WeightInfo: WeightInfo;
+
+        /// Decimal provider.
+        type Decimal: DecimalProvider<CurrencyId>;
 
         /// The origin which can create new pools and add reward.
         type UpdaterOrigin: EnsureOrigin<Self::Origin>;
@@ -129,6 +131,8 @@ pub mod pallet {
         RewardDurationError,
         /// old reward rule is still valid
         RewardRuleStillValid,
+        /// Asset decimal error
+        AssetDecimalError,
     }
 
     #[pallet::event]
@@ -532,7 +536,8 @@ impl<T: Config> Pallet<T> {
         //1, update pool reward info
         PoolsInfo::<T>::mutate(asset, reward_asset, |pool_info| -> DispatchResult {
             let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
-            let asset_decimal = <T::Assets as InspectMetadata<T::AccountId>>::decimals(&asset);
+            let asset_decimal =
+                T::Decimal::get_decimal(&asset).ok_or(Error::<T>::AssetDecimalError)?;
             let decimal_pow = BalanceOf::<T>::try_from(10_u128.pow(asset_decimal as u32))
                 .ok()
                 .ok_or(ArithmeticError::Overflow)?;

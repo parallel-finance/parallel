@@ -15,8 +15,8 @@ use primitives::{
 use sp_runtime::traits::{One, StaticLookup};
 use sp_std::prelude::*;
 
-const ASSET: CurrencyId = XDOT;
-const REWARD_ASSET: CurrencyId = DOT;
+const ASSET: CurrencyId = HKO;
+const REWARD_ASSET: CurrencyId = HKO;
 const ISSUE_AMOUNT: u128 = 4_000_000_000_000_000;
 const STAKING_AMOUNT: u128 = 2_000_000_000_000_000;
 const REWARD_AMOUNT: u128 = 2_000_000_000_000_000;
