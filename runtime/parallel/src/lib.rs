@@ -1489,7 +1489,7 @@ parameter_types! {
 
 impl pallet_farming::Config for Runtime {
     type Event = Event;
-    type Assets = CurrencyAdapter;
+    type Assets = Assets;
     type PalletId = LMPalletId;
     type MaxRewardTokens = MaxRewardTokens;
     type UpdaterOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;

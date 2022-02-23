@@ -52,21 +52,21 @@ pub trait WeightInfo {	fn create() -> Weight;	fn set_pool_status() -> Weight;	fn
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	fn create() -> Weight {
 		(13_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(1 as Weight))			.saturating_add(T::DbWeight::get().writes(1 as Weight))	}	fn set_pool_status() -> Weight {
-		(5_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(1 as Weight))			.saturating_add(T::DbWeight::get().writes(1 as Weight))	}	fn set_pool_lock_duration() -> Weight {
-		(5_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(1 as Weight))			.saturating_add(T::DbWeight::get().writes(1 as Weight))	}	fn deposit() -> Weight {
-		(55_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(6 as Weight))			.saturating_add(T::DbWeight::get().writes(6 as Weight))	}	fn withdraw() -> Weight {
-		(25_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(2 as Weight))			.saturating_add(T::DbWeight::get().writes(2 as Weight))	}	fn withdraw_from_lock_pool() -> Weight {
+		(4_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(1 as Weight))			.saturating_add(T::DbWeight::get().writes(1 as Weight))	}	fn set_pool_lock_duration() -> Weight {
+		(4_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(1 as Weight))			.saturating_add(T::DbWeight::get().writes(1 as Weight))	}	fn deposit() -> Weight {
+		(56_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(7 as Weight))			.saturating_add(T::DbWeight::get().writes(6 as Weight))	}	fn withdraw() -> Weight {
+		(28_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(3 as Weight))			.saturating_add(T::DbWeight::get().writes(2 as Weight))	}	fn withdraw_from_lock_pool() -> Weight {
 		(43_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(5 as Weight))			.saturating_add(T::DbWeight::get().writes(4 as Weight))	}	fn get_reward() -> Weight {
-		(15_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(2 as Weight))			.saturating_add(T::DbWeight::get().writes(2 as Weight))	}	fn dispatch_reward() -> Weight {
-		(47_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(5 as Weight))			.saturating_add(T::DbWeight::get().writes(5 as Weight))	}}
+		(17_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(3 as Weight))			.saturating_add(T::DbWeight::get().writes(2 as Weight))	}	fn dispatch_reward() -> Weight {
+		(50_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(6 as Weight))			.saturating_add(T::DbWeight::get().writes(5 as Weight))	}}
 
 // For backwards compatibility and tests
 impl WeightInfo for () {	fn create() -> Weight {
 		(13_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(1 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn set_pool_status() -> Weight {
-		(5_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(1 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn set_pool_lock_duration() -> Weight {
-		(5_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(1 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn deposit() -> Weight {
-		(55_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(6 as Weight))			.saturating_add(RocksDbWeight::get().writes(6 as Weight))	}	fn withdraw() -> Weight {
-		(25_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(2 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}	fn withdraw_from_lock_pool() -> Weight {
+		(4_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(1 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn set_pool_lock_duration() -> Weight {
+		(4_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(1 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn deposit() -> Weight {
+		(56_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(7 as Weight))			.saturating_add(RocksDbWeight::get().writes(6 as Weight))	}	fn withdraw() -> Weight {
+		(28_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}	fn withdraw_from_lock_pool() -> Weight {
 		(43_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(5 as Weight))			.saturating_add(RocksDbWeight::get().writes(4 as Weight))	}	fn get_reward() -> Weight {
-		(15_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(2 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}	fn dispatch_reward() -> Weight {
-		(47_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(5 as Weight))			.saturating_add(RocksDbWeight::get().writes(5 as Weight))	}}
+		(17_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}	fn dispatch_reward() -> Weight {
+		(50_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(6 as Weight))			.saturating_add(RocksDbWeight::get().writes(5 as Weight))	}}

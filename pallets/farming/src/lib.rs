@@ -533,7 +533,10 @@ impl<T: Config> Pallet<T> {
         PoolsInfo::<T>::mutate(asset, reward_asset, |pool_info| -> DispatchResult {
             let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
             let asset_decimal = <T::Assets as InspectMetadata<T::AccountId>>::decimals(&asset);
-            pool_info.update_reward_per_share(current_block_number, asset_decimal)?;
+            let decimal_pow = BalanceOf::<T>::try_from(10_u128.pow(asset_decimal as u32))
+                .ok()
+                .ok_or(ArithmeticError::Overflow)?;
+            pool_info.update_reward_per_share(current_block_number, decimal_pow)?;
 
             //2, update user reward info
             if let Some(who) = who {
@@ -541,7 +544,7 @@ impl<T: Config> Pallet<T> {
                     (&asset, &reward_asset, &who),
                     |user_info| -> DispatchResult {
                         let diff = pool_info
-                            .reward_per_share(current_block_number, asset_decimal)?
+                            .reward_per_share(current_block_number, decimal_pow)?
                             .checked_sub(user_info.reward_per_share_paid)
                             .ok_or(ArithmeticError::Overflow)?;
 

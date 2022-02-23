@@ -61,7 +61,7 @@ impl<
     pub fn reward_per_share(
         &self,
         current_block_number: BlockNumber,
-        asset_decimals: u8,
+        asset_decimal_pow: BalanceOf,
     ) -> Result<BalanceOf, ArithmeticError> {
         return if self.total_supply.is_zero() {
             Ok(self.reward_per_share_stored)
@@ -72,7 +72,7 @@ impl<
             let reward_per_share_add = block_diff
                 .checked_mul(&self.reward_rate)
                 .ok_or(ArithmeticError::Overflow)?
-                .checked_mul(&BalanceOf::try_from(10_u64.pow(asset_decimals as u32)))
+                .checked_mul(&asset_decimal_pow)
                 .ok_or(ArithmeticError::Overflow)?
                 .checked_div(&self.total_supply)
                 .ok_or(ArithmeticError::Overflow)?;
@@ -90,10 +90,10 @@ impl<
     pub fn update_reward_per_share(
         &mut self,
         current_block_number: BlockNumber,
-        asset_decimals: u8,
+        asset_decimal_pow: BalanceOf,
     ) -> Result<(), ArithmeticError> {
         self.reward_per_share_stored =
-            self.reward_per_share(current_block_number, asset_decimals)?;
+            self.reward_per_share(current_block_number, asset_decimal_pow)?;
         self.last_update_block = self.last_reward_block_applicable(current_block_number);
 
         Ok(())
