@@ -552,6 +552,8 @@ impl<T: Config> Pallet<T> {
                             .reward_balance
                             .checked_mul(diff)
                             .ok_or(ArithmeticError::Overflow)?
+                            .checked_div(decimal_pow)
+                            .ok_or(ArithmeticError::Overflow)?
                             .checked_add(user_info.reward_amount)
                             .ok_or(ArithmeticError::Overflow)?;
 
