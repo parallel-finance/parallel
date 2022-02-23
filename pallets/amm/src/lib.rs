@@ -636,9 +636,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         let mut d = s;
         let n_a = a * 2.0;
 
-        // 10 is a max number of loops
+        // 255 is a max number of loops
         // should throw error if does not converge
-        for _ in 0..10 {
+        for _ in 0..255 {
             let mut dp = d;
 
             // repeat twice instead of a loop since we only
@@ -664,7 +664,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         mut x: f64,
         (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),
     ) -> Result<f64, DispatchError> {
-        let (resx, resy) = Self::get_reserves(asset_in, asset_out)?;
+        let (resx, _resy) = Self::get_reserves(asset_in, asset_out)?;
 
         x += resx as f64;
 
@@ -684,13 +684,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         let _x = 0 as f64;
 
         s += x;
-
-        // repeat twice instead of a loop since we only
-        // support two pools
-        // this also assume swap X -> Y
         c = (c * d) / (x as f64 * n_t);
-        c = (c * d) / (resy as f64 * n_t);
-
         c = ((c * d) * a_precision) / (n_a * n_t);
 
         let b = s + ((d * a_precision) / n_a);
@@ -698,9 +692,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         let mut y_prev: f64;
         let mut y = d;
 
-        // 10 is a max number of loops
+        // 255 is a max number of loops
         // should throw error if does not converge
-        for _ in 0..10 {
+        for _ in 0..255 {
             y_prev = y;
             y = ((y * y) + c) / (((y * 2.0) + b) - d);
             if (y - y_prev).abs() < 1.0 {

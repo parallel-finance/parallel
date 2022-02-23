@@ -960,13 +960,57 @@ fn unbalanced_stable_swap_amount_out_should_work() {
             SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
         ));
 
-        let amount_in = 50.0;
+        let amount_in = 500.0;
         let y = AMM::get_y(amount_in, (DOT, XDOT)).unwrap();
 
         let dy = 1_000_000.0 - y;
         let ex_ratio = dy / amount_in;
 
-        // assert_eq!(ex_ratio, 171.9043934493605);
-        assert_eq!(dy, 57128.56644846045);
+        assert_eq!(ex_ratio, 10.333014499817741);
+        assert_eq!(dy, 5166.507249908871);
+    })
+}
+
+#[test]
+fn unbalanced_small_stable_swap_amount_out_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (10_000, 1_000_000),             // Liquidity amounts to be added in pool
+            BOB,                             // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        ));
+
+        let amount_in = 162.0;
+        let y = AMM::get_y(amount_in, (DOT, XDOT)).unwrap();
+
+        let dy = 1_000_000.0 - y;
+        let ex_ratio = dy / amount_in;
+
+        assert_eq!(ex_ratio, 10.616718051234335);
+        assert_eq!(dy, 1719.9083242999623);
+    })
+}
+
+#[test]
+fn close_unbalanced_small_stable_swap_amount_out_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (900_000, 1_000_000),            // Liquidity amounts to be added in pool
+            BOB,                             // LPToken receiver
+            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+        ));
+
+        let amount_in = 10_000.0;
+        let y = AMM::get_y(amount_in, (DOT, XDOT)).unwrap();
+
+        let dy = 1_000_000.0 - y;
+        let ex_ratio = dy / amount_in;
+
+        assert_eq!(ex_ratio, 1.0011070580483181);
+        assert_eq!(dy, 10011.070580483181);
     })
 }
