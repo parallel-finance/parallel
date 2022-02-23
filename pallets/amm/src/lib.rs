@@ -41,7 +41,7 @@ use frame_support::{
     transactional, Blake2_128Concat, PalletId,
 };
 use frame_system::{ensure_signed, pallet_prelude::OriginFor};
-use primitives::{Balance, BigUBalance, CurrencyId, Ratio};
+use primitives::{Balance, CurrencyId, Ratio};
 use sp_runtime::{
     traits::{
         AccountIdConversion, CheckedAdd, CheckedSub, IntegerSquareRoot, One, Saturating, Zero,
@@ -53,6 +53,11 @@ use sp_std::{cmp::min, ops::Div, result::Result, vec::Vec};
 pub use pallet::*;
 use types::Pool;
 pub use weights::WeightInfo;
+
+// *********************************************
+use num_bigint::ToBigInt;
+use num_traits::cast::ToPrimitive;
+// **********************************************
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 pub type AssetIdOf<T, I = ()> =
@@ -702,6 +707,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(())
     }
 
+    // ********************************************************************************************
     #[require_transactional]
     fn do_add_liquidity(
         who: &T::AccountId,
@@ -729,23 +735,45 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
             /* TODO: Remove this table before final PR and the below
             *---------------------------------------------------------------------------------------
-            ideal_base_amount(x)    | ideal_quote_amount        | mul(y)            | sqrt(z) | sub(a)
-            2000                    |  1000                     | 2000000           | 1414    | 414
-            2000000000000000000000  |  1000000000000000000000   | None              | None    | None
+            ideal_base_amount(x)    | ideal_quote_amount        | mul(y)            | sqrt(z)                   | sub(a)
+            2000                    |  1000                     | 2000000           | 1414                      | 414
+            2000000000000000000000  |  1000000000000000000000   | None              | 1414213562373095047801    | None
             ----------------------------------------------------------------------------------------
             */
 
-            let min_lq = T::MinimumLiquidity::get();
-            let x = ideal_base_amount; //
-            let y = x.checked_mul(ideal_quote_amount);
-            let z = y.map(|r| r.integer_sqrt());
-            let a = z.and_then(|r| r.checked_sub(T::MinimumLiquidity::get()));
+            // let min_lq = T::MinimumLiquidity::get();
+            // // let x = ideal_base_amount; //
+            // let x = ideal_base_amount.to_bigint().unwrap();
+            // let y = x.checked_mul(&ideal_quote_amount.to_bigint().unwrap());
+            // let z = y.map(|r| r.sqrt());
+            // let a = z.and_then(|r| r.checked_sub(&T::MinimumLiquidity::get().to_bigint().unwrap()));
+            // let j = a.unwrap().to_u128();
+
+            let mut big_ideal_base_amount = ideal_base_amount.to_bigint().unwrap();
 
             ideal_base_amount
-                .checked_mul(ideal_quote_amount) // overflow occurs here returns None
-                .map(|r| r.integer_sqrt())
-                .and_then(|r| r.checked_sub(T::MinimumLiquidity::get()))
+                .to_bigint()
+                .unwrap()
+                .checked_mul(&ideal_quote_amount.to_bigint().unwrap())
+                .map(|r| r.sqrt())
+                .and_then(|r| r.checked_sub(&T::MinimumLiquidity::get().to_bigint().unwrap()))
+                .unwrap()
+                .to_u128()
                 .ok_or(ArithmeticError::Underflow)?
+
+            // big_ideal_base_amount
+            //     .checked_mul(&ideal_quote_amount.to_bigint().unwrap()) // overflow occurs here returns None
+            //     .map(|r| r.sqrt())
+            //     .and_then(|r| r.checked_sub(&T::MinimumLiquidity::get().to_bigint().unwrap())).unwrap().to_u128()
+            //     .ok_or(ArithmeticError::Underflow)?;
+
+            // let a = big_ideal_base_amount.un.to_u128();
+
+            // ideal_base_amount
+            //     .checked_mul(ideal_quote_amount) // overflow occurs here returns None
+            //     .map(|r| r.integer_sqrt())
+            //     .and_then(|r| r.checked_sub(T::MinimumLiquidity::get()))
+            //     .ok_or(ArithmeticError::Underflow)?
         } else {
             min(
                 ideal_base_amount

@@ -179,29 +179,29 @@ pub enum ArithmeticKind {
     Subtraction,
 }
 
-pub struct BigUBalance(BigUint);
+// pub struct BigUBalance(BigUint);
 
-impl BigUBalance {
-    pub fn from_uint(u: u128) -> Self {
-        BigUBalance(BigUint::from(u))
-    }
-    // pub fn to_uint() -> Self{
-    //
-    // }
-
-    // pub fn divide() -> Self{
-    //
-    // }
-
-    // pub fn add() -> Self{
-    //
-    // }
-
-    // pub fn mul() -> Self{
-    //
-    // }
-
-    // pub fn sub() -> Self{
-    //
-    // }
-}
+// impl BigUBalance {
+//     pub fn from_u128(u: u128) -> Self {
+//         BigUBalance(BigUint::from(u).unwrap())
+//     }
+//     // pub fn to_uint() -> Self{
+//     //
+//     // }
+//
+//     // pub fn divide() -> Self{
+//     //
+//     // }
+//
+//     // pub fn add() -> Self{
+//     //
+//     // }
+//
+//     // pub fn mul() -> Self{
+//     //
+//     // }
+//
+//     // pub fn sub() -> Self{
+//     //
+//     // }
+// }
