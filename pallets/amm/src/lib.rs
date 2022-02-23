@@ -57,11 +57,8 @@ pub use weights::WeightInfo;
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 pub type AssetIdOf<T, I = ()> =
     <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
-// pub type BalanceOf<T, I = ()> =
-//     <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
-
 pub type BalanceOf<T, I = ()> =
-    <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::BigUBalance;
+    <<T as Config<I>>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
 
 #[frame_support::pallet]
 pub mod pallet {
