@@ -395,6 +395,7 @@ impl crate::Config for Test {
     type XCM = XcmHelper;
     type BondingDuration = BondingDuration;
     type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Test>;
+    type Members = BobOrigin;
 }
 
 parameter_types! {

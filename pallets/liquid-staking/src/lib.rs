@@ -49,12 +49,14 @@ pub use pallet::*;
 pub mod pallet {
     use frame_support::{
         dispatch::{DispatchResult, DispatchResultWithPostInfo},
-        ensure, log,
+        ensure,
+        error::BadOrigin,
+        log,
         pallet_prelude::*,
         require_transactional,
         traits::{
             fungibles::{Inspect, InspectMetadata, Mutate, Transfer},
-            IsType,
+            IsType, SortedMembers,
         },
         transactional, PalletId,
     };
@@ -107,6 +109,9 @@ pub mod pallet {
 
         /// The origin which can update liquid currency, staking currency and other parameters
         type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+
+        /// Approved accouts which can call `withdraw_unbonded` and `settlement`
+        type Members: SortedMembers<Self::AccountId>;
 
         /// The pallet id of liquid staking, keeps all the staking assets
         #[pallet::constant]
@@ -186,8 +191,6 @@ pub mod pallet {
         MarketCapUpdated(BalanceOf<T>),
         /// InsurancePool's reserve_factor was updated
         ReserveFactorUpdated(Ratio),
-        /// Slash was paid by insurance pool
-        SlashPaid(BalanceOf<T>),
         /// Exchange rate was updated
         ExchangeRateUpdated(Rate),
         /// Notification received
@@ -464,7 +467,12 @@ pub mod pallet {
             #[pallet::compact] bonding_amount: BalanceOf<T>,
             #[pallet::compact] unbonding_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
-            T::RelayOrigin::ensure_origin(origin)?;
+            T::RelayOrigin::ensure_origin(origin.clone())
+                .map(|_| ())
+                .or_else(|_| match ensure_signed(origin) {
+                    Ok(who) if T::Members::contains(&who) => Ok(()),
+                    _ => Err(BadOrigin),
+                })?;
 
             let relaychain_blocknumber = T::RelayChainBlockNumberProvider::current_block_number();
             ensure!(
@@ -489,14 +497,9 @@ pub mod pallet {
 
             log::trace!(
                 target: "liquidStaking::settlement",
-                "bonding_amount: {:?}, unbonding_amount: {:?}",
+                "bonding_amount: {:?}, unbonding_amount: {:?}, bond_amount: {:?}, rebond_amount: {:?}, unbond_amount: {:?}",
                 &bonding_amount,
                 &unbonding_amount,
-            );
-
-            log::trace!(
-                target: "liquidStaking::settlement",
-                "bond_amount: {:?}, rebond_amount: {:?}, unbond_amount: {:?}",
                 &bond_amount,
                 &rebond_amount,
                 &unbond_amount,
@@ -523,11 +526,6 @@ pub mod pallet {
             payee: RewardDestination<T::AccountId>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-            log::trace!(
-                target: "liquidStaking::bond",
-                "amount: {:?}",
-                &amount,
-            );
             Self::do_bond(amount, payee)?;
             Ok(())
         }
@@ -540,11 +538,6 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-            log::trace!(
-                target: "liquidStaking::bond_extra",
-                "amount: {:?}",
-                &amount,
-            );
             Self::do_bond_extra(amount)?;
             Ok(())
         }
@@ -557,11 +550,6 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-            log::trace!(
-                target: "liquidStaking::unbond",
-                "amount: {:?}",
-                &amount,
-            );
             Self::do_unbond(amount)?;
             Ok(())
         }
@@ -574,11 +562,6 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
             T::RelayOrigin::ensure_origin(origin)?;
-            log::trace!(
-                target: "liquidStaking::rebond",
-                "amount: {:?}",
-                &amount,
-            );
             Self::do_rebond(amount)?;
             Ok(())
         }
@@ -591,7 +574,12 @@ pub mod pallet {
             num_slashing_spans: u32,
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
-            T::RelayOrigin::ensure_origin(origin)?;
+            T::RelayOrigin::ensure_origin(origin.clone())
+                .map(|_| ())
+                .or_else(|_| match ensure_signed(origin) {
+                    Ok(who) if T::Members::contains(&who) => Ok(()),
+                    _ => Err(BadOrigin),
+                })?;
             let query_id = T::XCM::do_withdraw_unbonded(
                 num_slashing_spans,
                 Self::para_account_id(),
@@ -757,6 +745,12 @@ pub mod pallet {
                 return Ok(());
             }
 
+            log::trace!(
+                target: "liquidStaking::bond",
+                "amount: {:?}",
+                &amount,
+            );
+
             let staking_currency = Self::staking_currency()?;
             let derivative_account_id = Self::derivative_para_account_id();
             let query_id = T::XCM::do_bond(
@@ -781,6 +775,12 @@ pub mod pallet {
                 return Ok(());
             }
 
+            log::trace!(
+                target: "liquidStaking::bond_extra",
+                "amount: {:?}",
+                &amount,
+            );
+
             let staking_currency = Self::staking_currency()?;
             let query_id = T::XCM::do_bond_extra(
                 amount,
@@ -803,6 +803,12 @@ pub mod pallet {
                 return Ok(());
             }
 
+            log::trace!(
+                target: "liquidStaking::unbond",
+                "amount: {:?}",
+                &amount,
+            );
+
             let query_id = T::XCM::do_unbond(
                 amount,
                 Self::staking_currency()?,
@@ -822,6 +828,12 @@ pub mod pallet {
             if amount.is_zero() {
                 return Ok(());
             }
+
+            log::trace!(
+                target: "liquidStaking::rebond",
+                "amount: {:?}",
+                &amount,
+            );
 
             let query_id = T::XCM::do_rebond(
                 amount,
@@ -883,18 +895,17 @@ pub mod pallet {
         #[require_transactional]
         fn do_update_exchange_rate(bonding_amount: BalanceOf<T>) -> DispatchResult {
             let matching_ledger = Self::matching_pool();
-            match Rate::checked_from_rational(
+            let new_exchange_rate = Rate::checked_from_rational(
                 bonding_amount
                     .checked_add(matching_ledger.total_stake_amount)
                     .and_then(|r| r.checked_sub(matching_ledger.total_unstake_amount))
                     .ok_or(ArithmeticError::Overflow)?,
                 T::Assets::total_issuance(Self::liquid_currency()?),
-            ) {
-                Some(exchange_rate) if exchange_rate != Self::exchange_rate() => {
-                    ExchangeRate::<T>::put(exchange_rate);
-                    Self::deposit_event(Event::<T>::ExchangeRateUpdated(exchange_rate));
-                }
-                _ => {}
+            )
+            .ok_or(Error::<T>::InvalidExchangeRate)?;
+            if new_exchange_rate != Self::exchange_rate() {
+                ExchangeRate::<T>::put(new_exchange_rate);
+                Self::deposit_event(Event::<T>::ExchangeRateUpdated(new_exchange_rate));
             }
             Ok(())
         }
