@@ -727,7 +727,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 T::MinimumLiquidity::get(),
             )?;
 
-            /*
+            /* TODO: Remove this table before final PR and the below
             *---------------------------------------------------------------------------------------
             ideal_base_amount(x)    | ideal_quote_amount        | mul(y)            | sqrt(z) | sub(a)
             2000                    |  1000                     | 2000000           | 1414    | 414
@@ -742,7 +742,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             let a = z.and_then(|r| r.checked_sub(T::MinimumLiquidity::get()));
 
             ideal_base_amount
-                .checked_mul(ideal_quote_amount)
+                .checked_mul(ideal_quote_amount) // overflow occurs here returns None
                 .map(|r| r.integer_sqrt())
                 .and_then(|r| r.checked_sub(T::MinimumLiquidity::get()))
                 .ok_or(ArithmeticError::Underflow)?
