@@ -60,7 +60,6 @@ parachains:
       collators:
         - alice
         - bob
-        - charlie
       sudo: dave
     id: 2000
     parachain: true
@@ -80,5 +79,25 @@ parachains:
           - --alice
       - flags:
           - --bob
+  - image: parallelfinance/polkadot-collator:v0.9.16
+    chain:
+      base: statemine-dev
+      collators:
+        - charlie
+      sudo: dave
+    id: 1000
+    parachain: true
+    flags:
+      - --rpc-methods=unsafe
+      - --force-authoring
+      - --wasm-execution=compiled
+      - --execution=wasm
+      - --state-cache-size=0
+    relaychainFlags:
+      - --wasm-execution=compiled
+      - --execution=wasm
+      - --state-cache-size=0
+    volumePath: /data
+    nodes:
       - flags:
           - --charlie

@@ -115,7 +115,11 @@ launch: shutdown
 	docker image pull parallelfinance/nominate-client:latest
 	docker image pull parallelfinance/oracle-client:latest
 	docker image pull parallelfinance/parallel-dapp:latest
-	DOCKER_CLIENT_TIMEOUT=180 COMPOSE_HTTP_TIMEOUT=180 parachain-launch generate $(LAUNCH_CONFIG_YAML) && (cp -r keystore* output || true) && cp docker-compose.override.yml output && cd output && docker-compose up -d --build
+	parachain-launch generate $(LAUNCH_CONFIG_YAML) \
+		&& (cp -r keystore* output || true) \
+		&& cp docker-compose.override.yml output \
+		&& cd output \
+		&& DOCKER_CLIENT_TIMEOUT=180 COMPOSE_HTTP_TIMEOUT=180 docker-compose up -d --build
 	cd launch && yarn start
 
 .PHONY: logs
