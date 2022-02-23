@@ -80,7 +80,7 @@ pub mod pallet {
         type Decimal: DecimalProvider<CurrencyId>;
 
         /// The origin which can create new pools and add reward.
-        type UpdaterOrigin: EnsureOrigin<Self::Origin>;
+        type UpdateOrigin: EnsureOrigin<Self::Origin>;
 
         /// Specifies how many reward tokens can be manipulated by a pool
         #[pallet::constant]
@@ -204,7 +204,7 @@ pub mod pallet {
             reward_asset: AssetIdOf<T>,
             lock_duration: T::BlockNumber,
         ) -> DispatchResultWithPostInfo {
-            T::UpdaterOrigin::ensure_origin(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
 
             ensure!(
                 !PoolsInfo::<T>::contains_key(&asset, &reward_asset),
@@ -233,7 +233,7 @@ pub mod pallet {
             reward_asset: AssetIdOf<T>,
             is_active: bool,
         ) -> DispatchResult {
-            T::UpdaterOrigin::ensure_origin(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
 
             PoolsInfo::<T>::mutate(asset, reward_asset, |pool_info| -> DispatchResult {
                 let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
@@ -257,7 +257,7 @@ pub mod pallet {
             reward_asset: AssetIdOf<T>,
             lock_duration: T::BlockNumber,
         ) -> DispatchResult {
-            T::UpdaterOrigin::ensure_origin(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
 
             PoolsInfo::<T>::mutate(asset, reward_asset, |pool_info| -> DispatchResult {
                 let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
@@ -473,7 +473,7 @@ pub mod pallet {
             amount: BalanceOf<T>,
             duration: T::BlockNumber,
         ) -> DispatchResult {
-            T::UpdaterOrigin::ensure_origin(origin)?;
+            T::UpdateOrigin::ensure_origin(origin)?;
             ensure!(
                 PoolsInfo::<T>::contains_key(&asset, &reward_asset),
                 Error::<T>::PoolDoesNotExist

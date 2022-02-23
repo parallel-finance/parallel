@@ -1541,7 +1541,7 @@ impl pallet_farming::Config for Runtime {
     type Assets = CurrencyAdapter;
     type PalletId = LMPalletId;
     type MaxRewardTokens = MaxRewardTokens;
-    type UpdaterOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_farming::weights::SubstrateWeight<Runtime>;
     type MaxUserLockItemsCount = MaxUserLockItemsCount;
     type LockPoolMaxDuration = LockPoolMaxDuration;

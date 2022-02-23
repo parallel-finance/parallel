@@ -67,7 +67,7 @@ benchmarks! {
 
     set_pool_status {
         assert_ok!(Farming::<T>::create(
-            T::UpdaterOrigin::successful_origin(),
+            T::UpdateOrigin::successful_origin(),
             ASSET,
             REWARD_ASSET,
             T::BlockNumber::from(10u32)),
@@ -76,7 +76,7 @@ benchmarks! {
 
     set_pool_lock_duration {
         assert_ok!(Farming::<T>::create(
-            T::UpdaterOrigin::successful_origin(),
+            T::UpdateOrigin::successful_origin(),
             ASSET,
             REWARD_ASSET,
             T::BlockNumber::from(10u32)),
@@ -87,7 +87,7 @@ benchmarks! {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T>(caller.clone());
         assert_ok!(Farming::<T>::create(
-            T::UpdaterOrigin::successful_origin(),
+            T::UpdateOrigin::successful_origin(),
             ASSET,
             REWARD_ASSET,
             T::BlockNumber::from(10u32)),
@@ -101,7 +101,7 @@ benchmarks! {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T>(caller.clone());
         assert_ok!(Farming::<T>::create(
-            T::UpdaterOrigin::successful_origin(),
+            T::UpdateOrigin::successful_origin(),
             ASSET,
             REWARD_ASSET,
             T::BlockNumber::from(10u32)),
@@ -117,7 +117,7 @@ benchmarks! {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T>(caller.clone());
         assert_ok!(Farming::<T>::create(
-            T::UpdaterOrigin::successful_origin(),
+            T::UpdateOrigin::successful_origin(),
             ASSET,
             REWARD_ASSET,
             T::BlockNumber::from(10u32)),
@@ -125,7 +125,7 @@ benchmarks! {
 
         assert_ok!(Farming::<T>::deposit(SystemOrigin::Signed(caller.clone()).into(), ASSET, REWARD_ASSET, STAKING_AMOUNT));
         assert_ok!(Farming::<T>::withdraw(SystemOrigin::Signed(caller.clone()).into(), ASSET, REWARD_ASSET, WITHDRAW_AMOUNT));
-        assert_ok!(Farming::<T>::set_pool_lock_duration(T::UpdaterOrigin::successful_origin(), ASSET, REWARD_ASSET, T::BlockNumber::from(0u32)));
+        assert_ok!(Farming::<T>::set_pool_lock_duration(T::UpdateOrigin::successful_origin(), ASSET, REWARD_ASSET, T::BlockNumber::from(0u32)));
     }: _(SystemOrigin::Signed(caller.clone()), ASSET, REWARD_ASSET)
     verify {
         assert_last_event::<T>(Event::AssetsWithdrewFromLockPool(caller, ASSET, REWARD_ASSET, WITHDRAW_AMOUNT).into());
@@ -136,13 +136,13 @@ benchmarks! {
         let payer = T::Lookup::unlookup(caller.clone());
         initial_set_up::<T>(caller.clone());
         assert_ok!(Farming::<T>::create(
-            T::UpdaterOrigin::successful_origin(),
+            T::UpdateOrigin::successful_origin(),
             ASSET,
             REWARD_ASSET,
             T::BlockNumber::from(10u32)),
         );
         assert_ok!(Farming::<T>::dispatch_reward(
-            T::UpdaterOrigin::successful_origin(),
+            T::UpdateOrigin::successful_origin(),
             ASSET,
             REWARD_ASSET,
             payer,
@@ -163,7 +163,7 @@ benchmarks! {
         let payer = T::Lookup::unlookup(caller.clone());
         initial_set_up::<T>(caller.clone());
         assert_ok!(Farming::<T>::create(
-            T::UpdaterOrigin::successful_origin(),
+            T::UpdateOrigin::successful_origin(),
             ASSET,
             REWARD_ASSET,
             T::BlockNumber::from(10u32)),

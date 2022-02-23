@@ -3,6 +3,7 @@ use crate as pallet_farming;
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{parameter_types, traits::Everything, traits::SortedMembers, PalletId};
 use frame_system::{self as system, EnsureRoot};
+use primitives::DecimalProvider;
 use primitives::{tokens, Balance, CurrencyId};
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
@@ -171,12 +172,14 @@ impl DecimalProvider<CurrencyId> for Decimal {
 }
 
 impl pallet_farming::Config for Test {
+    type UpdateOrigin = EnsureSignedBy<AliceCreatePoolOrigin, AccountId>;
+    type WeightInfo = ();
     type Event = Event;
     type Assets = CurrencyAdapter;
     type PalletId = LMPalletId;
     type MaxRewardTokens = MaxRewardTokens;
-    type CreateOrigin = EnsureSignedBy<AliceCreatePoolOrigin, AccountId>;
-    type WeightInfo = ();
+    type MaxUserLockItemsCount = MaxUserLockItemsCount;
+    type LockPoolMaxDuration = LockPoolMaxDuration;
     type Decimal = Decimal;
 }
 
