@@ -467,12 +467,7 @@ pub mod pallet {
             #[pallet::compact] bonding_amount: BalanceOf<T>,
             #[pallet::compact] unbonding_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
-            T::RelayOrigin::ensure_origin(origin.clone())
-                .map(|_| ())
-                .or_else(|_| match ensure_signed(origin) {
-                    Ok(who) if T::Members::contains(&who) => Ok(()),
-                    _ => Err(BadOrigin),
-                })?;
+            Self::ensure_origin(origin)?;
 
             let relaychain_blocknumber = T::RelayChainBlockNumberProvider::current_block_number();
             ensure!(
@@ -574,12 +569,8 @@ pub mod pallet {
             num_slashing_spans: u32,
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
-            T::RelayOrigin::ensure_origin(origin.clone())
-                .map(|_| ())
-                .or_else(|_| match ensure_signed(origin) {
-                    Ok(who) if T::Members::contains(&who) => Ok(()),
-                    _ => Err(BadOrigin),
-                })?;
+            Self::ensure_origin(origin)?;
+
             let query_id = T::XCM::do_withdraw_unbonded(
                 num_slashing_spans,
                 Self::para_account_id(),
@@ -609,12 +600,8 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::nominate())]
         #[transactional]
         pub fn nominate(origin: OriginFor<T>, targets: Vec<T::AccountId>) -> DispatchResult {
-            T::RelayOrigin::ensure_origin(origin.clone())
-                .map(|_| ())
-                .or_else(|_| match ensure_signed(origin) {
-                    Ok(who) if T::Members::contains(&who) => Ok(()),
-                    _ => Err(BadOrigin),
-                })?;
+            Self::ensure_origin(origin)?;
+
             let query_id = T::XCM::do_nominate(
                 targets.clone(),
                 Self::staking_currency()?,
@@ -675,7 +662,7 @@ pub mod pallet {
             unbond_index: UnbondIndex,
             dest: <T::Lookup as StaticLookup>::Source,
         ) -> DispatchResultWithPostInfo {
-            let _ = ensure_signed(origin)?;
+            Self::ensure_origin(origin)?;
             let who = T::Lookup::lookup(dest)?;
 
             ensure!(
@@ -912,6 +899,16 @@ pub mod pallet {
                 ExchangeRate::<T>::put(new_exchange_rate);
                 Self::deposit_event(Event::<T>::ExchangeRateUpdated(new_exchange_rate));
             }
+            Ok(())
+        }
+
+        fn ensure_origin(origin: OriginFor<T>) -> DispatchResult {
+            T::RelayOrigin::ensure_origin(origin.clone())
+                .map(|_| ())
+                .or_else(|_| match ensure_signed(origin) {
+                    Ok(who) if T::Members::contains(&who) => Ok(()),
+                    _ => Err(BadOrigin),
+                })?;
             Ok(())
         }
 
