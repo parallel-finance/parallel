@@ -5036,7 +5036,6 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "num-bigint 0.3.3",
  "num-traits",
  "pallet-assets",
  "pallet-balances",

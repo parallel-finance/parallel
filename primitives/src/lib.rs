@@ -21,7 +21,6 @@ pub mod ump;
 
 use codec::{Decode, Encode};
 use frame_support::pallet_prelude::*;
-// use sp_runtime::biguint::BigUint;
 use sp_runtime::{
     traits::{IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
