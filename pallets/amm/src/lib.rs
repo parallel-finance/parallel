@@ -41,11 +41,9 @@ use frame_support::{
     transactional, Blake2_128Concat, PalletId,
 };
 use frame_system::{ensure_signed, pallet_prelude::OriginFor};
-use primitives::{Balance, CurrencyId, Ratio};
+use primitives::{Balance, ConvertToBigUint, CurrencyId, Ratio};
 use sp_runtime::{
-    traits::{
-        AccountIdConversion, CheckedAdd, CheckedSub, IntegerSquareRoot, One, Saturating, Zero,
-    },
+    traits::{AccountIdConversion, CheckedAdd, CheckedSub, One, Saturating, Zero},
     ArithmeticError, DispatchError, FixedPointNumber, FixedU128, SaturatedConversion,
 };
 use sp_std::{cmp::min, ops::Div, result::Result, vec::Vec};
@@ -54,8 +52,8 @@ pub use pallet::*;
 use types::Pool;
 pub use weights::WeightInfo;
 
-use num_bigint::ToBigInt;
 use num_traits::cast::ToPrimitive;
+use num_traits::{CheckedDiv, CheckedMul};
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 pub type AssetIdOf<T, I = ()> =
@@ -676,13 +674,19 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             // compute by multiplying the numerator with the time elapsed
             let price0_fraction = FixedU128::saturating_from_rational(
                 time_elapsed
-                    .checked_mul(pool.quote_amount)
+                    .get_big_uint()
+                    .checked_mul(&pool.quote_amount.get_big_uint())
+                    .unwrap()
+                    .to_u128()
                     .ok_or(ArithmeticError::Overflow)?,
                 pool.base_amount,
             );
             let price1_fraction = FixedU128::saturating_from_rational(
                 time_elapsed
-                    .checked_mul(pool.base_amount)
+                    .get_big_uint()
+                    .checked_mul(&pool.base_amount.get_big_uint())
+                    .unwrap()
+                    .to_u128()
                     .ok_or(ArithmeticError::Overflow)?,
                 pool.quote_amount,
             );
@@ -705,7 +709,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(())
     }
 
-    // ********************************************************************************************
     #[require_transactional]
     fn do_add_liquidity(
         who: &T::AccountId,
@@ -740,37 +743,35 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             */
 
             ideal_base_amount
-                .to_bigint()
-                .unwrap()
-                .checked_mul(&ideal_quote_amount.to_bigint().unwrap())
+                .get_big_uint()
+                .checked_mul(&ideal_quote_amount.get_big_uint())
                 .map(|r| r.sqrt())
-                .and_then(|r| r.checked_sub(&T::MinimumLiquidity::get().to_bigint().unwrap()))
+                .and_then(|r| r.checked_sub(&T::MinimumLiquidity::get().get_big_uint()))
                 .unwrap()
                 .to_u128()
                 .ok_or(ArithmeticError::Underflow)?
         } else {
             min(
                 ideal_base_amount
-                    .to_bigint()
-                    .unwrap()
-                    .checked_mul(&total_supply.to_bigint().unwrap())
-                    .and_then(|r| r.checked_div(&pool.base_amount.to_bigint().unwrap()))
+                    .get_big_uint()
+                    .checked_mul(&total_supply.get_big_uint())
+                    .and_then(|r| r.checked_div(&pool.base_amount.get_big_uint()))
                     .unwrap()
                     .to_u128()
-                    .ok_or(ArithmeticError::Overflow)?,
+                    .ok_or(ArithmeticError::Underflow)?,
                 ideal_quote_amount
-                    .to_bigint()
-                    .unwrap()
-                    .checked_mul(&total_supply.to_bigint().unwrap())
-                    .and_then(|r| r.checked_div(&pool.quote_amount.to_bigint().unwrap()))
+                    .get_big_uint()
+                    .checked_mul(&total_supply.get_big_uint())
+                    .and_then(|r| r.checked_div(&pool.quote_amount.get_big_uint()))
                     .unwrap()
                     .to_u128()
-                    .ok_or(ArithmeticError::Overflow)?,
+                    .ok_or(ArithmeticError::Underflow)?,
             )
         };
 
         T::Assets::mint_into(pool.lp_token_id, who, liquidity)?;
 
+        // TODO: Large amounts fail in Transfer
         T::Assets::transfer(
             base_asset,
             who,
@@ -807,14 +808,19 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         liquidity: BalanceOf<T, I>,
     ) -> Result<(BalanceOf<T, I>, BalanceOf<T, I>), DispatchError> {
         let total_supply = T::Assets::total_issuance(pool.lp_token_id);
-
         let base_amount = liquidity
-            .checked_mul(pool.base_amount)
-            .and_then(|r| r.checked_div(total_supply))
+            .get_big_uint()
+            .checked_mul(&pool.base_amount.get_big_uint())
+            .and_then(|r| r.checked_div(&total_supply.get_big_uint()))
+            .unwrap()
+            .to_u128()
             .ok_or(ArithmeticError::Underflow)?;
         let quote_amount = liquidity
-            .checked_mul(pool.quote_amount)
-            .and_then(|r| r.checked_div(total_supply))
+            .get_big_uint()
+            .checked_mul(&pool.quote_amount.get_big_uint())
+            .and_then(|r| r.checked_div(&total_supply.get_big_uint()))
+            .unwrap()
+            .to_u128()
             .ok_or(ArithmeticError::Underflow)?;
 
         Ok((base_amount, quote_amount))
@@ -872,8 +878,11 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
         let root_k = pool
             .base_amount
-            .checked_mul(pool.quote_amount)
-            .map(|r| r.integer_sqrt())
+            .get_big_uint()
+            .checked_mul(&pool.quote_amount.get_big_uint())
+            .map(|r| r.sqrt())
+            .unwrap()
+            .to_u128()
             .ok_or(ArithmeticError::Overflow)?;
 
         if root_k <= pool.root_k_last {
@@ -883,13 +892,19 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         let total_supply = T::Assets::total_issuance(pool.lp_token_id);
 
         let numerator = root_k
-            .checked_sub(pool.root_k_last)
-            .and_then(|r| r.checked_mul(total_supply))
+            .get_big_uint()
+            .checked_sub(&pool.root_k_last.get_big_uint())
+            .and_then(|r| r.checked_mul(&total_supply.get_big_uint()))
+            .unwrap()
+            .to_u128()
             .ok_or(ArithmeticError::Overflow)?;
 
         let denominator = root_k
-            .checked_mul(Self::get_protocol_fee_reciprocal_proportion()?)
-            .and_then(|r| r.checked_add(pool.root_k_last))
+            .get_big_uint()
+            .checked_mul(&Self::get_protocol_fee_reciprocal_proportion()?.get_big_uint())
+            .and_then(|r| r.checked_add(&pool.root_k_last.get_big_uint()))
+            .unwrap()
+            .to_u128()
             .ok_or(ArithmeticError::Overflow)?;
 
         let protocol_fees = numerator

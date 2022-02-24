@@ -21,7 +21,7 @@ pub mod ump;
 
 use codec::{Decode, Encode};
 use frame_support::pallet_prelude::*;
-use sp_runtime::biguint::BigUint;
+// use sp_runtime::biguint::BigUint;
 use sp_runtime::{
     traits::{IdentifyAccount, Verify},
     FixedU128, MultiSignature, Permill, RuntimeDebug,
@@ -106,6 +106,7 @@ pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 
 pub use cumulus_primitives_core::ParaId;
+use num_bigint::{BigUint, ToBigUint};
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -179,35 +180,22 @@ pub enum ArithmeticKind {
     Subtraction,
 }
 
-pub struct BigUBalance(BigUint);
+pub trait ConvertToBigUint {
+    fn get_big_uint(&self) -> BigUint;
+}
 
-impl BigUBalance {
-    pub fn from_u128(u: u128) -> Self {
-        BigUBalance(BigUint::from(u))
+pub trait ConvertToU128 {
+    fn get_u128(&self) -> u128;
+}
+
+impl ConvertToU128 for BigUint {
+    fn get_u128(&self) -> u128 {
+        u128::try_from(self).unwrap()
     }
 }
 
-// impl BigUBalance {
-//     pub fn from_u128(u: u128) -> Self {
-//         BigUBalance(BigUint::from(u).unwrap())
-//     }
-//     // pub fn to_uint() -> Self{
-//     //
-//     // }
-//
-//     // pub fn divide() -> Self{
-//     //
-//     // }
-//
-//     // pub fn add() -> Self{
-//     //
-//     // }
-//
-//     // pub fn mul() -> Self{
-//     //
-//     // }
-//
-//     // pub fn sub() -> Self{
-//     //
-//     // }
-// }
+impl ConvertToBigUint for u128 {
+    fn get_big_uint(&self) -> BigUint {
+        self.to_biguint().unwrap()
+    }
+}

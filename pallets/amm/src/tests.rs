@@ -886,15 +886,7 @@ fn oracle_huge_block_should_work() {
 #[test]
 fn create_pool_large_amount_should_work() {
     /*
-    Panics -> Underflow
-    ```
-    fn do_add_liquidity
-    ideal_base_amount
-        .checked_mul(ideal_quote_amount)
-        .map(|r| r.integer_sqrt())
-        .and_then(|r| r.checked_sub(T::MinimumLiquidity::get()))
-        .ok_or(ArithmeticError::Underflow)?
-    ```
+    Fails in T:Assets:transfer
     */
     new_test_ext().execute_with(|| {
         assert_ok!(AMM::create_pool(
@@ -915,7 +907,7 @@ fn create_pool_large_amount_should_work() {
 #[test]
 fn add_large_liquidity_should_work() {
     /*
-    Panics -> Balance Low
+    Fails in T:Assets:transfer
     */
     new_test_ext().execute_with(|| {
         assert_ok!(AMM::create_pool(
@@ -939,7 +931,7 @@ fn add_large_liquidity_should_work() {
 #[test]
 fn do_add_liquidity_should_work() {
     /*
-    Panics -> Balance Low
+    Fails in T:Assets:transfer
     */
     new_test_ext().execute_with(|| {
         assert_ok!(AMM::create_pool(
@@ -962,7 +954,7 @@ fn do_add_liquidity_should_work() {
 #[test]
 fn do_add_liquidity_large_amounts() {
     /*
-    Panics -> Balance Low
+    Fails in T:Assets:transfer
     */
     new_test_ext().execute_with(|| {
         assert_ok!(AMM::create_pool(
