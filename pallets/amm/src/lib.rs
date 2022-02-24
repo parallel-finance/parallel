@@ -618,23 +618,26 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     #[allow(dead_code)]
     fn get_d(
         (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),
-    ) -> Result<f64, DispatchError> {
+    ) -> Result<u128, DispatchError> {
         let (x, y) = Self::get_reserves(asset_in, asset_out)?;
 
         // total reserves (only two pools)
-        let s = (x + y) as f64;
+        let s = x.checked_add(y).ok_or(ArithmeticError::Overflow)?;
 
         // constants
         // number of tokens
-        let n_t = 2.0;
-        let __a = 85 as f64;
-        let a_precision = 100 as f64;
-        let a = (__a * a_precision) as f64;
+        let n_t = 2;
+        let __a: u128 = 85;
+        let a_precision: u128 = 100;
 
-        let mut prev_d: f64;
-        // let mut prevD = 0 as f64;
+        let a: u128 = __a
+            .checked_mul(a_precision)
+            .ok_or(ArithmeticError::Overflow)?;
+
+        let mut prev_d: u128;
+
         let mut d = s;
-        let n_a = a * 2.0;
+        let n_a = a.checked_mul(2u128).ok_or(ArithmeticError::Overflow)?;
 
         // 255 is a max number of loops
         // should throw error if does not converge
@@ -643,15 +646,65 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
             // repeat twice instead of a loop since we only
             // support two pools
-            dp = (dp * d) / (x as f64 * n_t);
-            dp = (dp * d) / (y as f64 * n_t);
+
+            // dp = (dp * d) / (x * n_t);
+            dp = dp
+                .checked_mul(d)
+                .ok_or(ArithmeticError::Overflow)?
+                .checked_div(x.checked_mul(n_t).ok_or(ArithmeticError::Overflow)?)
+                .ok_or(ArithmeticError::Underflow)?;
+
+            // dp = (dp * d) / (y * n_t);
+            dp = dp
+                .checked_mul(d)
+                .ok_or(ArithmeticError::Overflow)?
+                .checked_div(y.checked_mul(n_t).ok_or(ArithmeticError::Overflow)?)
+                .ok_or(ArithmeticError::Underflow)?;
 
             prev_d = d;
 
-            d = ((((n_a * s) / a_precision) + (dp * n_t)) * d)
-                / ((((n_a - a_precision) * d) / a_precision) + ((n_t + 1.0) * dp));
+            // d = ((((n_a * s) / a_precision) + (dp * n_t)) * d)
+            //     / ((((n_a - a_precision) * d) / a_precision) + ((n_t + 1) * dp));
+            let k = dp.checked_mul(n_t).ok_or(ArithmeticError::Overflow)?;
 
-            if (d - prev_d).abs() < 1.0 {
+            let m = n_a
+                .checked_mul(s)
+                .ok_or(ArithmeticError::Overflow)?
+                .checked_div(a_precision)
+                .ok_or(ArithmeticError::Underflow)?
+                .checked_add(k)
+                .ok_or(ArithmeticError::Overflow)?;
+
+            let n = n_a
+                .checked_sub(a_precision)
+                .ok_or(ArithmeticError::Underflow)?
+                .checked_mul(d)
+                .ok_or(ArithmeticError::Overflow)?;
+
+            let u = n
+                .checked_div(a_precision)
+                .ok_or(ArithmeticError::Underflow)?;
+
+            let l = n_t
+                .checked_add(1u128)
+                .ok_or(ArithmeticError::Overflow)?
+                .checked_mul(dp)
+                .ok_or(ArithmeticError::Overflow)?;
+
+            let _denom = u.checked_add(l).ok_or(ArithmeticError::Overflow)?;
+
+            d = m
+                .checked_mul(d)
+                .ok_or(ArithmeticError::Overflow)?
+                .checked_div(_denom)
+                .ok_or(ArithmeticError::Underflow)?;
+
+            // check if difference is less than 1
+            if d > prev_d {
+                if d - prev_d < 1 {
+                    break;
+                }
+            } else if prev_d - d < 1 {
                 break;
             }
         }
@@ -668,7 +721,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
         x += resx as f64;
 
-        let d = Self::get_d((asset_in, asset_out))?;
+        let d = Self::get_d((asset_in, asset_out))? as f64;
 
         let mut c = d as f64;
         let mut s = 0.0;
