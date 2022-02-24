@@ -513,6 +513,7 @@ pub mod pallet {
                 pool_info.duration = duration;
                 pool_info.period_finish = new_period_finish;
                 pool_info.reward_rate = reward_rate;
+                pool_info.last_update_block = current_block_number;
 
                 let asset_pool_account = Self::pool_account_id(reward_asset)?;
                 let payer = T::Lookup::lookup(payer)?;
