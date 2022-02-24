@@ -54,10 +54,8 @@ pub use pallet::*;
 use types::Pool;
 pub use weights::WeightInfo;
 
-// *********************************************
 use num_bigint::ToBigInt;
 use num_traits::cast::ToPrimitive;
-// **********************************************
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 pub type AssetIdOf<T, I = ()> =
@@ -737,19 +735,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             *---------------------------------------------------------------------------------------
             ideal_base_amount(x)    | ideal_quote_amount        | mul(y)            | sqrt(z)                   | sub(a)
             2000                    |  1000                     | 2000000           | 1414                      | 414
-            2000000000000000000000  |  1000000000000000000000   | None              | 1414213562373095047801    | None
+            2000000000000000000000  |  1000000000000000000000   |                   | 1414213562373095047801    |
             ----------------------------------------------------------------------------------------
             */
-
-            // let min_lq = T::MinimumLiquidity::get();
-            // // let x = ideal_base_amount; //
-            // let x = ideal_base_amount.to_bigint().unwrap();
-            // let y = x.checked_mul(&ideal_quote_amount.to_bigint().unwrap());
-            // let z = y.map(|r| r.sqrt());
-            // let a = z.and_then(|r| r.checked_sub(&T::MinimumLiquidity::get().to_bigint().unwrap()));
-            // let j = a.unwrap().to_u128();
-
-            let mut big_ideal_base_amount = ideal_base_amount.to_bigint().unwrap();
 
             ideal_base_amount
                 .to_bigint()
@@ -760,29 +748,23 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 .unwrap()
                 .to_u128()
                 .ok_or(ArithmeticError::Underflow)?
-
-            // big_ideal_base_amount
-            //     .checked_mul(&ideal_quote_amount.to_bigint().unwrap()) // overflow occurs here returns None
-            //     .map(|r| r.sqrt())
-            //     .and_then(|r| r.checked_sub(&T::MinimumLiquidity::get().to_bigint().unwrap())).unwrap().to_u128()
-            //     .ok_or(ArithmeticError::Underflow)?;
-
-            // let a = big_ideal_base_amount.un.to_u128();
-
-            // ideal_base_amount
-            //     .checked_mul(ideal_quote_amount) // overflow occurs here returns None
-            //     .map(|r| r.integer_sqrt())
-            //     .and_then(|r| r.checked_sub(T::MinimumLiquidity::get()))
-            //     .ok_or(ArithmeticError::Underflow)?
         } else {
             min(
                 ideal_base_amount
-                    .checked_mul(total_supply)
-                    .and_then(|r| r.checked_div(pool.base_amount))
+                    .to_bigint()
+                    .unwrap()
+                    .checked_mul(&total_supply.to_bigint().unwrap())
+                    .and_then(|r| r.checked_div(&pool.base_amount.to_bigint().unwrap()))
+                    .unwrap()
+                    .to_u128()
                     .ok_or(ArithmeticError::Overflow)?,
                 ideal_quote_amount
-                    .checked_mul(total_supply)
-                    .and_then(|r| r.checked_div(pool.quote_amount))
+                    .to_bigint()
+                    .unwrap()
+                    .checked_mul(&total_supply.to_bigint().unwrap())
+                    .and_then(|r| r.checked_div(&pool.quote_amount.to_bigint().unwrap()))
+                    .unwrap()
+                    .to_u128()
                     .ok_or(ArithmeticError::Overflow)?,
             )
         };

@@ -179,7 +179,13 @@ pub enum ArithmeticKind {
     Subtraction,
 }
 
-// pub struct BigUBalance(BigUint);
+pub struct BigUBalance(BigUint);
+
+impl BigUBalance {
+    pub fn from_u128(u: u128) -> Self {
+        BigUBalance(BigUint::from(u))
+    }
+}
 
 // impl BigUBalance {
 //     pub fn from_u128(u: u128) -> Self {
