@@ -105,9 +105,9 @@ impl<
 }
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct UserInfo<BalanceOf, BoundedBalance> {
+pub struct UserPosition<BalanceOf, BoundedBalance> {
     /// User balance in reward pool
-    pub reward_balance: BalanceOf,
+    pub deposit_balance: BalanceOf,
     /// User lock balance item.
     pub lock_balance_items: BoundedBalance,
     /// User pending reward amount
@@ -116,10 +116,12 @@ pub struct UserInfo<BalanceOf, BoundedBalance> {
     pub reward_per_share_paid: BalanceOf,
 }
 
-impl<BalanceOf: Default, BoundedBalance: Default> Default for UserInfo<BalanceOf, BoundedBalance> {
+impl<BalanceOf: Default, BoundedBalance: Default> Default
+    for UserPosition<BalanceOf, BoundedBalance>
+{
     fn default() -> Self {
         Self {
-            reward_balance: BalanceOf::default(),
+            deposit_balance: BalanceOf::default(),
             lock_balance_items: BoundedBalance::default(),
             reward_amount: BalanceOf::default(),
             reward_per_share_paid: BalanceOf::default(),
