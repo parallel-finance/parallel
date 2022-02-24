@@ -1599,7 +1599,9 @@ impl Contains<Call> for WhiteListFilter {
             Call::TechnicalCommitteeMembership(_) |
             Call::OracleMembership(_) |
             Call::BridgeMembership(_) |
-            Call::ValidatorFeedersMembership(_)
+            Call::ValidatorFeedersMembership(_) |
+            // Farming
+            Call::Farming(_)
         )
         // // AMM
         // Call::AMM(_) |
@@ -1611,8 +1613,6 @@ impl Contains<Call> for WhiteListFilter {
         // // Bridge
         // Call::Bridge(_) |
         //
-        // // Farming
-        // Call::Farming(_)
     }
 }
 
