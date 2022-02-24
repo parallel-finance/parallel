@@ -223,7 +223,7 @@ benchmarks! {
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
         LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice.clone()).into(), UNSTAKE_AMOUNT).unwrap();
         CurrentUnbondIndex::<T>::put(28);
-    }: _(SystemOrigin::Signed(alice.clone()), 0u32, account_id)
+    }: _(SystemOrigin::Root, 0u32, account_id)
     verify {
         assert_last_event::<T>(Event::<T>::ClaimedFor(0u32, alice, UNSTAKE_AMOUNT).into());
     }
