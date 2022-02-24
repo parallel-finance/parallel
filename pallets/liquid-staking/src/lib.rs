@@ -467,12 +467,13 @@ pub mod pallet {
             #[pallet::compact] bonding_amount: BalanceOf<T>,
             #[pallet::compact] unbonding_amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
-            T::RelayOrigin::ensure_origin(origin.clone())
-                .map(|_| ())
-                .or_else(|_| match ensure_signed(origin) {
+            T::RelayOrigin::ensure_origin(origin.clone()).map_or_else(
+                |_| Ok(()),
+                |_| match ensure_signed(origin) {
                     Ok(who) if T::Members::contains(&who) => Ok(()),
                     _ => Err(BadOrigin),
-                })?;
+                },
+            )?;
 
             let relaychain_blocknumber = T::RelayChainBlockNumberProvider::current_block_number();
             ensure!(
@@ -574,12 +575,13 @@ pub mod pallet {
             num_slashing_spans: u32,
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
-            T::RelayOrigin::ensure_origin(origin.clone())
-                .map(|_| ())
-                .or_else(|_| match ensure_signed(origin) {
+            T::RelayOrigin::ensure_origin(origin.clone()).map_or_else(
+                |_| Ok(()),
+                |_| match ensure_signed(origin) {
                     Ok(who) if T::Members::contains(&who) => Ok(()),
                     _ => Err(BadOrigin),
-                })?;
+                },
+            )?;
             let query_id = T::XCM::do_withdraw_unbonded(
                 num_slashing_spans,
                 Self::para_account_id(),
@@ -609,7 +611,13 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::nominate())]
         #[transactional]
         pub fn nominate(origin: OriginFor<T>, targets: Vec<T::AccountId>) -> DispatchResult {
-            T::RelayOrigin::ensure_origin(origin)?;
+            T::RelayOrigin::ensure_origin(origin.clone()).map_or_else(
+                |_| Ok(()),
+                |_| match ensure_signed(origin) {
+                    Ok(who) if T::Members::contains(&who) => Ok(()),
+                    _ => Err(BadOrigin),
+                },
+            )?;
             let query_id = T::XCM::do_nominate(
                 targets.clone(),
                 Self::staking_currency()?,
