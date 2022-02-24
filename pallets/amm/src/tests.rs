@@ -844,56 +844,56 @@ fn oracle_big_block_no_overflow() {
     })
 }
 
-#[test]
-fn oracle_huge_block_should_work() {
-    // we may want to omit this test because it take >5 minutes to run
-    new_test_ext().execute_with(|| {
-        let trader = FRANK;
-
-        assert_ok!(AMM::create_pool(
-            RawOrigin::Signed(ALICE).into(),                     // Origin
-            (DOT, KSM), // Currency pool, in which liquidity will be added
-            (9_999_650_729_873_433, 30_001_051_000_000_000_000), // Liquidity amounts to be added in pool
-            FRANK,                                               // LPToken receiver
-            SAMPLE_LP_TOKEN, // Liquidity pool share representative token
-        ));
-
-        assert_eq!(AMM::pools(DOT, KSM).unwrap().block_timestamp_last, 0);
-        assert_eq!(AMM::pools(DOT, KSM).unwrap().price_0_cumulative_last, 0);
-        assert_eq!(AMM::pools(DOT, KSM).unwrap().price_1_cumulative_last, 0);
-
-        // let mut big_block = 100_000_000;
-        let mut big_block = 10_000_000;
-
-        // 100 Million blocks should take ~42.5 years to create at ~12 seconds a block
-
-        // Calculations
-        // avg_block_time = (1645493658865 - 1639798590500) / (424950 - 1)
-        // avg_block_time == 13401.769071112063 == 13.4 seconds per block
-        // total_time = (avg_block_time * 100_000_000) / (1000 * 60 * 60 * 24 * 365)
-        // total_time == 42.496730945941344
-
-        run_to_block(big_block);
-
-        for _ in 0..5 {
-            big_block += 100_000;
-            run_to_block(big_block);
-            assert_ok!(AMM::swap(&trader, (DOT, KSM), 1000));
-        }
-
-        assert_eq!(
-            AMM::pools(DOT, KSM).unwrap().block_timestamp_last,
-            big_block
-        );
-        assert_eq!(
-            AMM::pools(DOT, KSM).unwrap().price_0_cumulative_last,
-            // 301521093780_997938040922975491
-            31502203827_864919649515113416
-        );
-        assert_eq!(
-            AMM::pools(DOT, KSM).unwrap().price_1_cumulative_last,
-            // 33497_656410519841854583
-            3499_755147367804281224
-        );
-    })
-}
+// #[test]
+// fn oracle_huge_block_should_work() {
+//     // we may want to omit this test because it take >5 minutes to run
+//     new_test_ext().execute_with(|| {
+//         let trader = FRANK;
+//
+//         assert_ok!(AMM::create_pool(
+//             RawOrigin::Signed(ALICE).into(),                     // Origin
+//             (DOT, KSM), // Currency pool, in which liquidity will be added
+//             (9_999_650_729_873_433, 30_001_051_000_000_000_000), // Liquidity amounts to be added in pool
+//             FRANK,                                               // LPToken receiver
+//             SAMPLE_LP_TOKEN, // Liquidity pool share representative token
+//         ));
+//
+//         assert_eq!(AMM::pools(DOT, KSM).unwrap().block_timestamp_last, 0);
+//         assert_eq!(AMM::pools(DOT, KSM).unwrap().price_0_cumulative_last, 0);
+//         assert_eq!(AMM::pools(DOT, KSM).unwrap().price_1_cumulative_last, 0);
+//
+//         // let mut big_block = 100_000_000;
+//         let mut big_block = 10_000_000;
+//
+//         // 100 Million blocks should take ~42.5 years to create at ~12 seconds a block
+//
+//         // Calculations
+//         // avg_block_time = (1645493658865 - 1639798590500) / (424950 - 1)
+//         // avg_block_time == 13401.769071112063 == 13.4 seconds per block
+//         // total_time = (avg_block_time * 100_000_000) / (1000 * 60 * 60 * 24 * 365)
+//         // total_time == 42.496730945941344
+//
+//         run_to_block(big_block);
+//
+//         for _ in 0..5 {
+//             big_block += 100_000;
+//             run_to_block(big_block);
+//             assert_ok!(AMM::swap(&trader, (DOT, KSM), 1000));
+//         }
+//
+//         assert_eq!(
+//             AMM::pools(DOT, KSM).unwrap().block_timestamp_last,
+//             big_block
+//         );
+//         assert_eq!(
+//             AMM::pools(DOT, KSM).unwrap().price_0_cumulative_last,
+//             // 301521093780_997938040922975491
+//             31502203827_864919649515113416
+//         );
+//         assert_eq!(
+//             AMM::pools(DOT, KSM).unwrap().price_1_cumulative_last,
+//             // 33497_656410519841854583
+//             3499_755147367804281224
+//         );
+//     })
+// }
