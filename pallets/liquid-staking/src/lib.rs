@@ -887,12 +887,16 @@ pub mod pallet {
         #[require_transactional]
         fn do_update_exchange_rate(bonding_amount: BalanceOf<T>) -> DispatchResult {
             let matching_ledger = Self::matching_pool();
+            let total_issuance = T::Assets::total_issuance(Self::liquid_currency()?);
+            if total_issuance.is_zero() {
+                return Ok(());
+            }
             let new_exchange_rate = Rate::checked_from_rational(
                 bonding_amount
                     .checked_add(matching_ledger.total_stake_amount)
                     .and_then(|r| r.checked_sub(matching_ledger.total_unstake_amount))
                     .ok_or(ArithmeticError::Overflow)?,
-                T::Assets::total_issuance(Self::liquid_currency()?),
+                total_issuance,
             )
             .ok_or(Error::<T>::InvalidExchangeRate)?;
             if new_exchange_rate != Self::exchange_rate() {
