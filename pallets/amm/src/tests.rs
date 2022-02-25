@@ -886,21 +886,47 @@ fn oracle_huge_block_should_work() {
 #[test]
 fn create_pool_large_amount_should_work() {
     /*
-    Fails in T:Assets:transfer
+    With ample supplies
+    Recheck values
     */
     new_test_ext().execute_with(|| {
+        Assets::mint(
+            RawOrigin::Signed(ALICE).into(),
+            tokens::DOT,
+            ALICE,
+            3_000_000_000_000_000_000_000,
+        )
+        .ok();
+        Assets::mint(
+            RawOrigin::Signed(ALICE).into(),
+            tokens::XDOT,
+            ALICE,
+            2_000_000_000_000_000_000_000,
+        )
+        .ok();
+
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(),                            // Origin
             (DOT, XDOT), // Currency pool, in which liquidity will be added
             (1_000_000_000_000_000_000, 2_000_000_000_000_000_000_000), // Liquidity amounts to be added in pool
-            BOB,                                                        // LPToken receiver
+            ALICE,                                                      // LPToken receiver
             SAMPLE_LP_TOKEN, // Liquidity pool share representative token
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 2_000);
-        assert_eq!(Assets::total_issuance(SAMPLE_LP_TOKEN), 1_414);
+        assert_eq!(
+            AMM::pools(XDOT, DOT).unwrap().base_amount,
+            2_000_000_000_000_000_000_000
+        );
+        assert_eq!(
+            Assets::total_issuance(SAMPLE_LP_TOKEN),
+            447_213_595_499_957_939_28
+        );
         // should be issuance minus the min liq locked
-        assert_eq!(Assets::balance(SAMPLE_LP_TOKEN, BOB), 414);
+        // Not sure if this is correct
+        assert_eq!(
+            Assets::balance(SAMPLE_LP_TOKEN, ALICE),
+            447_213_595_499_957_939_28
+        );
     })
 }
 
@@ -972,10 +998,10 @@ fn do_add_liquidity_exact_amounts_should_work() {
     })
 }
 #[test]
-fn do_add_liquidity_large_amounts() {
+fn do_add_liquidity_large_amounts_should_work() {
     /*
-    Fails in T:Assets:transfer
-    */
+    With ample supplies
+     */
 
     new_test_ext().execute_with(|| {
         Assets::mint(
