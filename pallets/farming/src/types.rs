@@ -63,7 +63,7 @@ impl<
         current_block_number: BlockNumber,
         asset_decimal_pow: BalanceOf,
     ) -> Result<BalanceOf, ArithmeticError> {
-        return if self.total_supply.is_zero() {
+        if self.total_supply.is_zero() {
             Ok(self.reward_per_share_stored)
         } else {
             let last_reward_block = self.last_reward_block_applicable(current_block_number);
@@ -82,7 +82,7 @@ impl<
                 .checked_add(&reward_per_share_add)
                 .ok_or(ArithmeticError::Overflow)?;
             Ok(ret)
-        };
+        }
     }
 
     /// Update reward amount for one share of staking token and updating block.

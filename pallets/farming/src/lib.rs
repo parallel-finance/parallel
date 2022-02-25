@@ -216,8 +216,10 @@ pub mod pallet {
                 Error::<T>::ExcessMaxLockDuration
             );
 
-            let mut pool = PoolInfo::default();
-            pool.lock_duration = lock_duration;
+            let pool = PoolInfo {
+                lock_duration,
+                ..Default::default()
+            };
 
             Pools::<T>::insert(&asset, &reward_asset, pool);
             Self::deposit_event(Event::<T>::PoolAdded(asset, reward_asset));
@@ -281,7 +283,7 @@ pub mod pallet {
                 Pools::<T>::contains_key(&asset, &reward_asset),
                 Error::<T>::PoolDoesNotExist
             );
-            ensure!(amount != Zero::zero(), Error::<T>::NotAValidAmount);
+            ensure!(!amount.is_zero(), Error::<T>::NotAValidAmount);
 
             Self::update_reward(Some(who.clone()), asset, reward_asset)?;
 
@@ -333,7 +335,7 @@ pub mod pallet {
                 Pools::<T>::contains_key(&asset, &reward_asset),
                 Error::<T>::PoolDoesNotExist
             );
-            ensure!(amount != Zero::zero(), Error::<T>::NotAValidAmount);
+            ensure!(!amount.is_zero(), Error::<T>::NotAValidAmount);
 
             Self::update_reward(Some(who.clone()), asset, reward_asset)?;
 
@@ -392,17 +394,13 @@ pub mod pallet {
                     user_info.lock_balance_items.iter().for_each(|item| {
                         let unlock_block = item.1.saturating_add(pool_info.lock_duration);
                         if current_block_number >= unlock_block {
-                            total_amount = total_amount + item.0;
+                            total_amount += item.0;
                         }
                     });
 
                     user_info.lock_balance_items.retain(|item| {
                         let unlock_block = item.1.saturating_add(pool_info.lock_duration);
-                        if current_block_number < unlock_block {
-                            true
-                        } else {
-                            false
-                        }
+                        current_block_number < unlock_block
                     });
 
                     if total_amount > 0 {
@@ -478,7 +476,7 @@ pub mod pallet {
                 Pools::<T>::contains_key(&asset, &reward_asset),
                 Error::<T>::PoolDoesNotExist
             );
-            ensure!(duration != Zero::zero(), Error::<T>::NotAValidDuration);
+            ensure!(!duration.is_zero(), Error::<T>::NotAValidDuration);
 
             Self::update_reward(None, asset, reward_asset)?;
 
@@ -539,7 +537,7 @@ impl<T: Config> Pallet<T> {
             let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
             let asset_decimal =
                 T::Decimal::get_decimal(&asset).ok_or(Error::<T>::AssetDecimalError)?;
-            let decimal_pow = BalanceOf::<T>::try_from(10_u128.pow(asset_decimal as u32))
+            let decimal_pow = BalanceOf::<T>::try_from(10_u32.pow(asset_decimal.into()))
                 .ok()
                 .ok_or(ArithmeticError::Overflow)?;
             pool_info.update_reward_per_share(current_block_number, decimal_pow)?;

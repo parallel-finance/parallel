@@ -44,7 +44,7 @@ fn initial_set_up<T: Config + pallet_assets::Config<AssetId = CurrencyId, Balanc
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
         tokens::DOT,
-        account_id.clone(),
+        account_id,
         true,
         One::one(),
     )
@@ -161,7 +161,7 @@ benchmarks! {
     dispatch_reward {
         let caller: T::AccountId = whitelisted_caller();
         let payer = T::Lookup::unlookup(caller.clone());
-        initial_set_up::<T>(caller.clone());
+        initial_set_up::<T>(caller);
         assert_ok!(Farming::<T>::create(
             T::UpdateOrigin::successful_origin(),
             ASSET,
