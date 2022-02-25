@@ -931,7 +931,56 @@ fn create_pool_large_amount_should_work() {
 }
 
 #[test]
-fn add_large_liquidity_should_work() {
+fn create_pool_large_amount_from_an_account_without_sufficient_amount_of_tokens_should_not_panic() {
+    /*
+    With ample supplies
+    Recheck values
+    */
+    new_test_ext().execute_with(|| {
+        Assets::mint(
+            RawOrigin::Signed(ALICE).into(),
+            tokens::DOT,
+            ALICE,
+            3_000_000_000_000_000_000_000,
+        )
+        .ok();
+        Assets::mint(
+            RawOrigin::Signed(ALICE).into(),
+            tokens::XDOT,
+            ALICE,
+            2_000_000_000_000_000_000_000,
+        )
+        .ok();
+
+        // Creating for BOB
+        // This Panics!
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),                            // Origin
+            (DOT, XDOT), // Currency pool, in which liquidity will be added
+            (1_000_000_000_000_000_000, 2_000_000_000_000_000_000_000), // Liquidity amounts to be added in pool
+            BOB,                                                        // LPToken receiver
+            SAMPLE_LP_TOKEN, // Liquidity pool share representative token
+        ));
+
+        assert_eq!(
+            AMM::pools(XDOT, DOT).unwrap().base_amount,
+            2_000_000_000_000_000_000_000
+        );
+        assert_eq!(
+            Assets::total_issuance(SAMPLE_LP_TOKEN),
+            447_213_595_499_957_939_28
+        );
+        // should be issuance minus the min liq locked
+        // Not sure if this is correct
+        assert_eq!(
+            Assets::balance(SAMPLE_LP_TOKEN, ALICE),
+            447_213_595_499_957_939_28
+        );
+    })
+}
+
+#[test]
+fn add_large_liquidity_with_less_supplies_should_not_panic() {
     /*
     Fails in T:Assets:transfer
     */
@@ -967,7 +1016,7 @@ fn do_add_liquidity_exact_amounts_should_work() {
             RawOrigin::Signed(ALICE).into(),
             tokens::DOT,
             ALICE,
-            999999999999900000000,
+            999_999_999_999_900_000_000,
         )
         .ok();
 
@@ -976,7 +1025,7 @@ fn do_add_liquidity_exact_amounts_should_work() {
             RawOrigin::Signed(ALICE).into(),
             tokens::XDOT,
             ALICE,
-            1999999999999900000000,
+            199_999_999_999_990_000_000_0,
         )
         .ok();
 
