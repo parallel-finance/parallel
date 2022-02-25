@@ -71,10 +71,8 @@ impl<
                 Self::block_to_balance(last_reward_block.saturating_sub(self.last_update_block));
             let reward_per_share_add = block_diff
                 .checked_mul(&self.reward_rate)
-                .ok_or(ArithmeticError::Overflow)?
-                .checked_mul(&asset_decimal_pow)
-                .ok_or(ArithmeticError::Overflow)?
-                .checked_div(&self.total_supply)
+                .and_then(|r| r.checked_mul(&asset_decimal_pow))
+                .and_then(|r| r.checked_div(&self.total_supply))
                 .ok_or(ArithmeticError::Overflow)?;
 
             let ret = self

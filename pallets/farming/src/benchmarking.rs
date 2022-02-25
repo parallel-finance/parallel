@@ -128,7 +128,7 @@ benchmarks! {
         assert_ok!(Farming::<T>::set_pool_lock_duration(T::UpdateOrigin::successful_origin(), ASSET, REWARD_ASSET, T::BlockNumber::from(0u32)));
     }: _(SystemOrigin::Signed(caller.clone()), ASSET, REWARD_ASSET)
     verify {
-        assert_last_event::<T>(Event::AssetsWithdrewFromLockPool(caller, ASSET, REWARD_ASSET, WITHDRAW_AMOUNT).into());
+        assert_last_event::<T>(Event::AssetsRedeem(caller, ASSET, REWARD_ASSET, WITHDRAW_AMOUNT).into());
     }
 
     claim {

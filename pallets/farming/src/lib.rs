@@ -105,30 +105,16 @@ pub mod pallet {
         PoolIsNotActive,
         /// Pool is already in desire status
         PoolNewActiveStatusWrong,
-        /// User info not existed for pool
-        UserNotExistedForPool,
         /// Not a valid duration
         NotAValidDuration,
         /// Not a valid amount
         NotAValidAmount,
-        /// The end block is smaller than start block
-        SmallerThanEndBlock,
-        /// Reward rule does not exist for specified asset.
-        RewardRuleDoesNotExistForSpecifiedAsset,
-        /// Pool reward rule info does not exist
-        PoolRewardRuleDoesNotExist,
-        /// User reward info does not exist
-        UserRewardDoesNotExist,
-        /// User lock info does not exist
-        UserLockInfoDoesNotExist,
         /// Codec error
         CodecError,
         /// Excess max lock duration for lock pool
         ExcessMaxLockDuration,
         /// Excess max user lock item count
         ExcessMaxUserLockItemsCount,
-        /// start or end block number for reward rule is wrong
-        RewardDurationError,
         /// old reward rule is still valid
         RewardRuleStillValid,
         /// Asset decimal error
@@ -147,9 +133,9 @@ pub mod pallet {
         /// Withdrew Assets from pool
         /// [sender, asset_id, asset_id]
         AssetsWithdrew(T::AccountId, AssetIdOf<T>, AssetIdOf<T>, BalanceOf<T>),
-        /// Withdrew Assets from lock pool
+        /// Redeem Assets from lock pool
         /// [sender, asset_id, asset_id]
-        AssetsWithdrewFromLockPool(T::AccountId, AssetIdOf<T>, AssetIdOf<T>, BalanceOf<T>),
+        AssetsRedeem(T::AccountId, AssetIdOf<T>, AssetIdOf<T>, BalanceOf<T>),
         /// Reward Paid for user
         /// [sender, asset_id, asset_id, amount]
         RewardPaid(T::AccountId, AssetIdOf<T>, AssetIdOf<T>, BalanceOf<T>),
@@ -195,7 +181,7 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Create new pool, associated with a unique asset id
+        /// Create new pool, associated with asset id and reward asset id.
         #[pallet::weight(T::WeightInfo::create())]
         #[transactional]
         pub fn create(
@@ -226,7 +212,7 @@ pub mod pallet {
             Ok(().into())
         }
 
-        /// set pool active status
+        /// Set pool active status
         #[pallet::weight(T::WeightInfo::set_pool_status())]
         #[transactional]
         pub fn set_pool_status(
@@ -250,7 +236,7 @@ pub mod pallet {
             })
         }
 
-        /// set pool active status
+        /// Set pool lock duration
         #[pallet::weight(T::WeightInfo::set_pool_lock_duration())]
         #[transactional]
         pub fn set_pool_lock_duration(
@@ -269,7 +255,7 @@ pub mod pallet {
             })
         }
 
-        /// Depositing Assets in a Pool
+        /// Depositing Assets to reward Pool
         #[pallet::weight(T::WeightInfo::deposit())]
         #[transactional]
         pub fn deposit(
@@ -321,7 +307,7 @@ pub mod pallet {
             })
         }
 
-        /// Claiming Rewards or Withdrawing Assets from a Pool
+        /// Withdrawing Assets from reward Pool
         #[pallet::weight(T::WeightInfo::withdraw())]
         #[transactional]
         pub fn withdraw(
@@ -374,7 +360,7 @@ pub mod pallet {
             })
         }
 
-        /// Withdrawing Assets from a lock Pool
+        /// Redeem Assets from a lock Pool
         #[pallet::weight(T::WeightInfo::redeem())]
         #[transactional]
         pub fn redeem(
@@ -391,12 +377,14 @@ pub mod pallet {
                 (&asset, &reward_asset, &who),
                 |user_info| -> DispatchResult {
                     let mut total_amount: BalanceOf<T> = 0;
-                    user_info.lock_balance_items.iter().for_each(|item| {
+                    for item in user_info.lock_balance_items.iter() {
                         let unlock_block = item.1.saturating_add(pool_info.lock_duration);
                         if current_block_number >= unlock_block {
-                            total_amount += item.0;
+                            total_amount = total_amount
+                                .checked_add(item.0)
+                                .ok_or(ArithmeticError::Overflow)?;
                         }
-                    });
+                    }
 
                     user_info.lock_balance_items.retain(|item| {
                         let unlock_block = item.1.saturating_add(pool_info.lock_duration);
@@ -406,21 +394,21 @@ pub mod pallet {
                     if total_amount > 0 {
                         let asset_pool_account = Self::pool_account_id(asset)?;
                         T::Assets::transfer(asset, &asset_pool_account, &who, total_amount, true)?;
-                    }
 
-                    Self::deposit_event(Event::<T>::AssetsWithdrewFromLockPool(
-                        who.clone(),
-                        asset,
-                        reward_asset,
-                        total_amount,
-                    ));
+                        Self::deposit_event(Event::<T>::AssetsRedeem(
+                            who.clone(),
+                            asset,
+                            reward_asset,
+                            total_amount,
+                        ));
+                    }
 
                     Ok(())
                 },
             )
         }
 
-        /// get specified reward token from pool
+        /// Claim reward token from pool
         #[pallet::weight(T::WeightInfo::claim())]
         #[transactional]
         pub fn claim(
@@ -460,7 +448,7 @@ pub mod pallet {
             )
         }
 
-        /// dispatch reward token with specified amount and duration
+        /// Dispatch reward token with specified amount and duration
         #[pallet::weight(T::WeightInfo::dispatch_reward())]
         #[transactional]
         pub fn dispatch_reward(
@@ -537,7 +525,7 @@ impl<T: Config> Pallet<T> {
             let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
             let asset_decimal =
                 T::Decimal::get_decimal(&asset).ok_or(Error::<T>::AssetDecimalError)?;
-            let decimal_pow = BalanceOf::<T>::try_from(10_u32.pow(asset_decimal.into()))
+            let decimal_pow = BalanceOf::<T>::try_from(10_u64.pow(asset_decimal.into()))
                 .ok()
                 .ok_or(ArithmeticError::Overflow)?;
             pool_info.update_reward_per_share(current_block_number, decimal_pow)?;
@@ -555,10 +543,8 @@ impl<T: Config> Pallet<T> {
                         let earned = user_info
                             .deposit_balance
                             .checked_mul(diff)
-                            .ok_or(ArithmeticError::Overflow)?
-                            .checked_div(decimal_pow)
-                            .ok_or(ArithmeticError::Overflow)?
-                            .checked_add(user_info.reward_amount)
+                            .and_then(|r| r.checked_div(decimal_pow))
+                            .and_then(|r| r.checked_add(user_info.reward_amount))
                             .ok_or(ArithmeticError::Overflow)?;
 
                         user_info.reward_amount = earned;

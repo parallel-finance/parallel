@@ -1,7 +1,7 @@
 use crate as pallet_farming;
 
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::{parameter_types, traits::Everything, traits::SortedMembers, PalletId};
+use frame_support::{parameter_types, traits::Everything, PalletId};
 use frame_system::{self as system, EnsureRoot};
 use primitives::DecimalProvider;
 use primitives::{tokens, Balance, CurrencyId};
@@ -14,7 +14,6 @@ use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup},
     RuntimeDebug,
 };
-use system::EnsureSignedBy;
 
 pub const DOT: CurrencyId = tokens::DOT;
 pub const SAMPLE_LP_TOKEN: CurrencyId = 42;
@@ -154,13 +153,6 @@ parameter_types! {
     pub const LockPoolMaxDuration: u32 = 50400;
 }
 
-pub struct AliceCreatePoolOrigin;
-impl SortedMembers<AccountId> for AliceCreatePoolOrigin {
-    fn sorted_members() -> Vec<AccountId> {
-        vec![ALICE]
-    }
-}
-
 pub struct Decimal;
 impl DecimalProvider<CurrencyId> for Decimal {
     fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
@@ -172,7 +164,7 @@ impl DecimalProvider<CurrencyId> for Decimal {
 }
 
 impl pallet_farming::Config for Test {
-    type UpdateOrigin = EnsureSignedBy<AliceCreatePoolOrigin, AccountId>;
+    type UpdateOrigin = EnsureRoot<AccountId>;
     type WeightInfo = ();
     type Event = Event;
     type Assets = CurrencyAdapter;
