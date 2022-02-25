@@ -67,7 +67,7 @@ ord_parameter_types! {
     pub const One: AccountId = 1;
     pub const Two: AccountId = 2;
     pub const MaxValidators: u32 = 1;
-    pub const ValidatorFeedersMembershipMaxMembers: u32 = 3;
+    pub const LiquidStakingAgentsMembershipMaxMembers: u32 = 3;
 }
 
 pub struct Six;

@@ -1,60 +1,31 @@
 use crate as pallet_farming;
 
-use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::{parameter_types, traits::Everything, traits::SortedMembers, PalletId};
+// use codec::{Decode, Encode, MaxEncodedLen};
+use frame_support::{parameter_types, traits::Everything, PalletId};
 use frame_system::{self as system, EnsureRoot};
+use primitives::DecimalProvider;
 use primitives::{tokens, Balance, CurrencyId};
-use scale_info::TypeInfo;
+// use scale_info::TypeInfo;
 #[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
+// use serde::{Deserialize, Serialize};
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
-    RuntimeDebug,
 };
-use system::EnsureSignedBy;
 
 pub const DOT: CurrencyId = tokens::DOT;
 pub const SAMPLE_LP_TOKEN: CurrencyId = 42;
 
-pub const ALICE: AccountId = AccountId(1);
-pub const BOB: AccountId = AccountId(2);
-pub const CHARLIE: AccountId = AccountId(3);
-pub const EVE: AccountId = AccountId(4);
+pub type AccountId = u128;
+
+pub const ALICE: AccountId = 1;
+pub const BOB: AccountId = 2;
+pub const CHARLIE: AccountId = 3;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 type BlockNumber = u64;
-
-#[derive(
-    Encode,
-    Decode,
-    Default,
-    Eq,
-    PartialEq,
-    Copy,
-    Clone,
-    RuntimeDebug,
-    PartialOrd,
-    Ord,
-    MaxEncodedLen,
-    TypeInfo,
-)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
-pub struct AccountId(pub u64);
-
-impl sp_std::fmt::Display for AccountId {
-    fn fmt(&self, f: &mut sp_std::fmt::Formatter<'_>) -> sp_std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<u64> for AccountId {
-    fn from(account_id: u64) -> Self {
-        Self(account_id)
-    }
-}
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -147,24 +118,32 @@ impl pallet_assets::Config for Test {
 }
 
 parameter_types! {
-    pub const LMPalletId: PalletId = PalletId(*b"par/lqmp");
+    pub const FarmingPalletId: PalletId = PalletId(*b"par/farm");
     pub const MaxRewardTokens: u32 = 1000;
+    pub const MaxUserLockItemsCount: u32 = 100;
+    pub const LockPoolMaxDuration: u32 = 50400;
 }
 
-pub struct AliceCreatePoolOrigin;
-impl SortedMembers<AccountId> for AliceCreatePoolOrigin {
-    fn sorted_members() -> Vec<AccountId> {
-        vec![ALICE]
+pub struct Decimal;
+impl DecimalProvider<CurrencyId> for Decimal {
+    fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
+        match *asset_id {
+            DOT => Some(12),
+            _ => Some(10),
+        }
     }
 }
 
 impl pallet_farming::Config for Test {
+    type UpdateOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = ();
     type Event = Event;
     type Assets = CurrencyAdapter;
-    type PalletId = LMPalletId;
+    type PalletId = FarmingPalletId;
     type MaxRewardTokens = MaxRewardTokens;
-    type CreateOrigin = EnsureSignedBy<AliceCreatePoolOrigin, AccountId>;
-    type WeightInfo = ();
+    type MaxUserLockItemsCount = MaxUserLockItemsCount;
+    type LockPoolMaxDuration = LockPoolMaxDuration;
+    type Decimal = Decimal;
 }
 
 parameter_types! {
@@ -187,7 +166,6 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             (ALICE, 100_000_000),
             (BOB, 100_000_000),
             (CHARLIE, 1000_000_000),
-            (EVE, 1000_000_000),
         ],
     }
     .assimilate_storage(&mut t)
@@ -202,12 +180,10 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         Assets::mint(Origin::signed(ALICE), tokens::DOT, ALICE, 100_000_000).unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::DOT, BOB, 100_000_000).unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::DOT, CHARLIE, 1000_000_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::DOT, EVE, 1000_000_000).unwrap();
 
         Assets::mint(Origin::signed(ALICE), tokens::XDOT, ALICE, 100_000_000).unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::XDOT, BOB, 100_000_000).unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::XDOT, CHARLIE, 1000_000_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::XDOT, EVE, 1000_000_000).unwrap();
     });
 
     ext

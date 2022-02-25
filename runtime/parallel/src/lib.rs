@@ -260,7 +260,7 @@ impl Contains<Call> for BaseCallFilter {
         // Call::NomineeElection(_) |
 
         // // Membership
-        // Call::ValidatorFeedersMembership(_) |
+        // Call::LiquidStakingAgentsMembership(_) |
         // Call::OracleMembership(_)
     }
 }
@@ -475,7 +475,7 @@ parameter_types! {
     pub const DerivativeIndex: u16 = 0;
     pub const EraLength: BlockNumber = 6 * 4 * 3600 / 6;
     pub const MinStake: Balance = 10_000_000_000; // 1DOT
-    pub const MinUnstake: Balance = 5_000_000_000; // 0.5DOT
+    pub const MinUnstake: Balance = 5_000_000_000; // 0.5xDOT
     pub const StakingCurrency: CurrencyId = DOT;
     pub const LiquidCurrency: CurrencyId = XDOT;
     pub const XcmFees: Balance = 500_000_000; // 0.05DOT
@@ -502,15 +502,16 @@ impl pallet_liquid_staking::Config for Runtime {
     type XCM = XcmHelper;
     type BondingDuration = BondingDuration;
     type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Runtime>;
+    type Members = LiquidStakingAgentsMembership;
 }
 
 parameter_types! {
     pub const MaxValidators: u32 = 16;
-    pub const ValidatorFeedersMembershipMaxMembers: u32 = 3;
+    pub const LiquidStakingAgentsMembershipMaxMembers: u32 = 3;
 }
 
-type ValidatorFeedersMembershipInstance = pallet_membership::Instance5;
-impl pallet_membership::Config<ValidatorFeedersMembershipInstance> for Runtime {
+type LiquidStakingAgentsMembershipInstance = pallet_membership::Instance5;
+impl pallet_membership::Config<LiquidStakingAgentsMembershipInstance> for Runtime {
     type Event = Event;
     type AddOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type RemoveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
@@ -519,7 +520,7 @@ impl pallet_membership::Config<ValidatorFeedersMembershipInstance> for Runtime {
     type PrimeOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type MembershipInitialized = ();
     type MembershipChanged = ();
-    type MaxMembers = ValidatorFeedersMembershipMaxMembers;
+    type MaxMembers = LiquidStakingAgentsMembershipMaxMembers;
     type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
 }
 
@@ -527,7 +528,7 @@ impl pallet_nominee_election::Config for Runtime {
     type Event = Event;
     type MaxValidators = MaxValidators;
     type WeightInfo = pallet_nominee_election::weights::SubstrateWeight<Runtime>;
-    type Members = ValidatorFeedersMembership;
+    type Members = LiquidStakingAgentsMembership;
 }
 
 // parameter_types! {
@@ -1481,17 +1482,22 @@ impl pallet_currency_adapter::Config for Runtime {
 }
 
 parameter_types! {
-    pub const LMPalletId: PalletId = PalletId(*b"par/lqmp");
+    pub const FarmingPalletId: PalletId = PalletId(*b"par/farm");
     pub const MaxRewardTokens: u32 = 1000;
+    pub const MaxUserLockItemsCount: u32 = 100;
+    pub const LockPoolMaxDuration: u32 = 50400;
 }
 
 impl pallet_farming::Config for Runtime {
     type Event = Event;
     type Assets = CurrencyAdapter;
-    type PalletId = LMPalletId;
+    type PalletId = FarmingPalletId;
     type MaxRewardTokens = MaxRewardTokens;
-    type CreateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_farming::weights::SubstrateWeight<Runtime>;
+    type MaxUserLockItemsCount = MaxUserLockItemsCount;
+    type LockPoolMaxDuration = LockPoolMaxDuration;
+    type Decimal = Decimal;
 }
 
 pub struct WhiteListFilter;
@@ -1599,7 +1605,7 @@ construct_runtime!(
         GeneralCouncilMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 70,
         TechnicalCommitteeMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>} = 71,
         OracleMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
-        ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,
+        LiquidStakingAgentsMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,
         // BridgeMembership: pallet_membership::<Instance6>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74,
 
         // AMM

@@ -20,6 +20,7 @@ use heiko_runtime::{
     GeneralCouncilConfig,
     GeneralCouncilMembershipConfig,
     GenesisConfig,
+    LiquidStakingAgentsMembershipConfig,
     LiquidStakingConfig,
     OracleMembershipConfig,
     ParachainInfoConfig,
@@ -28,7 +29,6 @@ use heiko_runtime::{
     SudoConfig,
     SystemConfig,
     TechnicalCommitteeMembershipConfig,
-    ValidatorFeedersMembershipConfig,
     VestingConfig,
     WASM_BINARY,
     // BridgeMembershipConfig
@@ -67,7 +67,7 @@ pub fn heiko_dev_config(id: ParaId) -> ChainSpec {
             ];
             let oracle_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Ferdie")];
             // let bridge_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Alice")];
-            let validator_feeders = vec![get_account_id_from_seed::<sr25519::Public>("Eve")];
+            let liquid_staking_agents = vec![get_account_id_from_seed::<sr25519::Public>("Eve")];
             let initial_allocation: Vec<(AccountId, Balance)> = accumulate(
                 vec![
                     // Faucet accounts
@@ -116,7 +116,7 @@ pub fn heiko_dev_config(id: ParaId) -> ChainSpec {
                 oracle_accounts,
                 // bridge_accounts,
                 initial_allocation,
-                validator_feeders,
+                liquid_staking_agents,
                 council,
                 technical_committee,
                 id,
@@ -170,7 +170,7 @@ pub fn heiko_config(_id: ParaId) -> Result<ChainSpec, String> {
     //             ),
     //         ];
     //         let oracle_accounts = vec![];
-    //         let validator_feeders = vec![];
+    //         let liquid_staking_agents = vec![];
     //         let initial_allocation: Vec<(AccountId, Balance)> = serde_json::from_str(include_str!(
     //             "../../../../resources/heiko-allocation-HKO.json"
     //         ))
@@ -184,7 +184,7 @@ pub fn heiko_config(_id: ParaId) -> Result<ChainSpec, String> {
     //             invulnerables,
     //             oracle_accounts,
     //             initial_allocation,
-    //             validator_feeders,
+    //             liquid_staking_agents,
     //             council,
     //             technical_committee,
     //             id,
@@ -217,7 +217,7 @@ fn heiko_genesis(
     oracle_accounts: Vec<AccountId>,
     // bridge_accounts: Vec<AccountId>,
     initial_allocation: Vec<(AccountId, Balance)>,
-    validator_feeders: Vec<AccountId>,
+    liquid_staking_agents: Vec<AccountId>,
     council: Vec<AccountId>,
     technical_committee: Vec<AccountId>,
     id: ParaId,
@@ -282,8 +282,8 @@ fn heiko_genesis(
         //     members: bridge_accounts,
         //     phantom: Default::default(),
         // },
-        validator_feeders_membership: ValidatorFeedersMembershipConfig {
-            members: validator_feeders,
+        liquid_staking_agents_membership: LiquidStakingAgentsMembershipConfig {
+            members: liquid_staking_agents,
             phantom: Default::default(),
         },
         vesting: VestingConfig {
