@@ -373,9 +373,9 @@ pub mod pallet {
         }
 
         /// Withdrawing Assets from a lock Pool
-        #[pallet::weight(T::WeightInfo::withdraw_from_lock_pool())]
+        #[pallet::weight(T::WeightInfo::redeem())]
         #[transactional]
-        pub fn withdraw_from_lock_pool(
+        pub fn redeem(
             origin: OriginFor<T>,
             asset: AssetIdOf<T>,
             reward_asset: AssetIdOf<T>,
@@ -423,9 +423,9 @@ pub mod pallet {
         }
 
         /// get specified reward token from pool
-        #[pallet::weight(T::WeightInfo::get_reward())]
+        #[pallet::weight(T::WeightInfo::claim())]
         #[transactional]
-        pub fn get_reward(
+        pub fn claim(
             origin: OriginFor<T>,
             asset: AssetIdOf<T>,
             reward_asset: AssetIdOf<T>,

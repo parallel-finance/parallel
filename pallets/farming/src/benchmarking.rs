@@ -113,7 +113,7 @@ benchmarks! {
         assert_last_event::<T>(Event::AssetsWithdrew(caller, ASSET, REWARD_ASSET, WITHDRAW_AMOUNT).into());
     }
 
-    withdraw_from_lock_pool {
+    redeem {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T>(caller.clone());
         assert_ok!(Farming::<T>::create(
@@ -131,7 +131,7 @@ benchmarks! {
         assert_last_event::<T>(Event::AssetsWithdrewFromLockPool(caller, ASSET, REWARD_ASSET, WITHDRAW_AMOUNT).into());
     }
 
-    get_reward {
+    claim {
         let caller: T::AccountId = whitelisted_caller();
         let payer = T::Lookup::unlookup(caller.clone());
         initial_set_up::<T>(caller.clone());
