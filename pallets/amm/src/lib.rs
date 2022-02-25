@@ -36,6 +36,7 @@ use frame_support::{
     require_transactional,
     traits::{
         fungibles::{Inspect, Mutate, Transfer},
+        tokens::WithdrawConsequence,
         Get, IsType,
     },
     transactional, Blake2_128Concat, PalletId,
@@ -127,6 +128,8 @@ pub mod pallet {
         InsufficientLiquidity,
         /// Not an ideal price ratio
         NotAnIdealPrice,
+        /// Not enough funds to make a transfer
+        NoFunds,
         /// Pool does not exist
         PoolAlreadyExists,
         /// Insufficient amount out
@@ -740,12 +743,12 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 T::MinimumLiquidity::get(),
             )?;
 
-            /* TODO: Remove this table before final PR and the below
-            *---------------------------------------------------------------------------------------
-            ideal_base_amount(x)    | ideal_quote_amount        | mul(y)            | sqrt(z)                   | sub(a)
-            2000                    |  1000                     | 2000000           | 1414                      | 414
-            2000000000000000000000  |  1000000000000000000000   |                   | 1414213562373095047801    |
-            ----------------------------------------------------------------------------------------
+            /*
+            *----------------------------------------------------------------------------
+            ideal_base_amount(x)    | ideal_quote_amount        | sqrt(z)
+            2000                    |  1000                     | 1414
+            2000000000000000000000  |  1000000000000000000000   | 1414213562373095047801
+            -----------------------------------------------------------------------------
             */
 
             ideal_base_amount
@@ -777,10 +780,23 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
         T::Assets::mint_into(pool.lp_token_id, who, liquidity)?;
 
-        // TODO: Large amounts fail in Transfer
-        // not supporting `ideal_quote_amount.get_big_uint()` -> Error
-        // ideal_base_amount.get_big_uint(),
-        // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `u128`, found struct `num_bigint::biguint::BigUint`
+        ensure!(
+            !matches!(
+                T::Assets::can_withdraw(base_asset, who, ideal_base_amount),
+                WithdrawConsequence::NoFunds
+            ),
+            Error::<T, I>::NoFunds
+        );
+
+        ensure!(
+            !matches!(
+                T::Assets::can_withdraw(quote_asset, who, ideal_quote_amount),
+                WithdrawConsequence::NoFunds
+            ),
+            Error::<T, I>::NoFunds
+        );
+
+        // TODO: Large amounts fail in Transfer due to a precision loss
         // TODO: Represent values in U256 or U512 and check for precision loss?
         T::Assets::transfer(
             base_asset,
