@@ -1,4 +1,8 @@
-use crate::{mock::*, types::MatchingLedger, *};
+use crate::{
+    mock::*,
+    types::{MatchingLedger, StakingLedger},
+    *,
+};
 
 use frame_support::{assert_noop, assert_ok};
 
@@ -235,7 +239,7 @@ fn test_transact_withdraw_unbonded_work() {
     });
 
     ParaA::execute_with(|| {
-        assert_ok!(LiquidStaking::withdraw_unbonded(Origin::signed(BOB), 0, 0));
+        assert_ok!(LiquidStaking::withdraw_unbonded(Origin::signed(BOB), 0));
     });
 
     Relay::execute_with(|| {
@@ -380,6 +384,17 @@ fn claim_for_should_work() {
         );
 
         CurrentUnbondIndex::<Test>::put(3);
+
+        assert_noop!(
+            LiquidStaking::claim_for(Origin::signed(BOB), 0, Id(ALICE)),
+            Error::<Test>::InsufficientAsset
+        );
+
+        Ledger::<Test>::put(StakingLedger {
+            withdrawable: unstake_amount,
+            unlocking: vec![],
+        });
+
         assert_ok!(LiquidStaking::claim_for(Origin::signed(BOB), 0, Id(ALICE)));
         assert_eq!(
             <Test as Config>::Assets::balance(KSM, &ALICE),

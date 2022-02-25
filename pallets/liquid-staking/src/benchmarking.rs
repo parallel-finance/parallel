@@ -2,6 +2,7 @@
 #![cfg(feature = "runtime-benchmarks")]
 use super::*;
 
+use crate::types::StakingLedger;
 use crate::Pallet as LiquidStaking;
 
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite};
@@ -29,7 +30,6 @@ const UNSTAKE_AMOUNT: u128 = 10000000000000u128;
 const BOND_AMOUNT: u128 = 10000000000000u128;
 const UNBOND_AMOUNT: u128 = 5000000000000u128;
 const REBOND_AMOUNT: u128 = 5000000000000u128;
-const WITHDRAW_AMOUNT: u128 = 5000000000000u128;
 const UNBONDING_AMOUNT: u128 = 0u128;
 
 fn initial_set_up<
@@ -187,7 +187,7 @@ benchmarks! {
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
         LiquidStaking::<T>::bond(SystemOrigin::Root.into(), BOND_AMOUNT, RewardDestination::Staked).unwrap();
         LiquidStaking::<T>::unbond(SystemOrigin::Root.into(), UNBOND_AMOUNT).unwrap();
-    }: _(SystemOrigin::Root, 0, WITHDRAW_AMOUNT)
+    }: _(SystemOrigin::Root, 0)
     verify {
         assert_last_event::<T>(Event::<T>::WithdrawingUnbonded(0).into());
     }
@@ -214,6 +214,7 @@ benchmarks! {
         Response::ExecutionResult(None)
     )
     verify {
+        assert_last_event::<T>(Event::<T>::NotificationReceived(Box::new(MultiLocation::parent()),0u64, None).into());
     }
 
     claim_for {
@@ -223,6 +224,10 @@ benchmarks! {
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
         LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice.clone()).into(), UNSTAKE_AMOUNT).unwrap();
         CurrentUnbondIndex::<T>::put(28);
+        Ledger::<T>::put(StakingLedger {
+            withdrawable: UNSTAKE_AMOUNT,
+            unlocking: vec![],
+        });
     }: _(SystemOrigin::Root, 0u32, account_id)
     verify {
         assert_last_event::<T>(Event::<T>::ClaimedFor(0u32, alice, UNSTAKE_AMOUNT).into());

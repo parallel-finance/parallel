@@ -1,6 +1,6 @@
 use codec::{Decode, Encode};
 
-use super::{BalanceOf, Config};
+use super::{BalanceOf, Config, UnbondIndex};
 use frame_support::{dispatch::DispatchResult, traits::tokens::Balance as BalanceT};
 use primitives::ArithmeticKind;
 use scale_info::TypeInfo;
@@ -97,23 +97,64 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 #[scale_info(skip_type_params(T))]
 pub enum XcmRequest<T: Config> {
-    Bond {
-        amount: BalanceOf<T>,
-    },
-    BondExtra {
-        amount: BalanceOf<T>,
-    },
-    Unbond {
-        amount: BalanceOf<T>,
-    },
-    Rebond {
-        amount: BalanceOf<T>,
-    },
-    WithdrawUnbonded {
-        num_slashing_spans: u32,
-        amount: BalanceOf<T>,
-    },
-    Nominate {
-        targets: Vec<T::AccountId>,
-    },
+    Bond { amount: BalanceOf<T> },
+    BondExtra { amount: BalanceOf<T> },
+    Unbond { amount: BalanceOf<T> },
+    Rebond { amount: BalanceOf<T> },
+    WithdrawUnbonded { num_slashing_spans: u32 },
+    Nominate { targets: Vec<T::AccountId> },
+}
+
+/// The ledger of withdrawable and unlocking amount
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo, Default)]
+#[scale_info(skip_type_params(T))]
+pub struct StakingLedger<T: Config> {
+    /// withdrawable amount on parachain
+    #[codec(compact)]
+    pub withdrawable: BalanceOf<T>,
+    /// unlocking list on relaychain
+    pub unlocking: Vec<UnlockChunk<T>>,
+}
+
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+#[scale_info(skip_type_params(T))]
+pub struct UnlockChunk<T: Config> {
+    /// Unlocked amount.
+    #[codec(compact)]
+    pub amount: BalanceOf<T>,
+    /// Unlocked index.
+    #[codec(compact)]
+    pub index: UnbondIndex,
+}
+
+impl<T: Config> StakingLedger<T> {
+    /// New ledger
+    pub fn new() -> Self {
+        Self {
+            withdrawable: Zero::zero(),
+            unlocking: vec![],
+        }
+    }
+
+    /// Remove expired unlocking and calculate its amount to withdrawable
+    pub fn consolidate_unlocked(self, current_index: UnbondIndex) -> Self {
+        let mut withdrawable_amount: BalanceOf<T> = Zero::zero();
+        let unlocking = self
+            .unlocking
+            .into_iter()
+            .filter(|chunk| {
+                if chunk.index > current_index {
+                    true
+                } else {
+                    withdrawable_amount = withdrawable_amount.saturating_add(chunk.amount);
+                    false
+                }
+            })
+            .collect::<Vec<UnlockChunk<T>>>();
+
+        Self {
+            withdrawable: self.withdrawable.saturating_add(withdrawable_amount),
+            unlocking,
+        }
+    }
 }

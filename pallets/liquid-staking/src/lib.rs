@@ -223,6 +223,12 @@ pub mod pallet {
         SettlementLocked,
         /// Nothing to claim yet
         NothingToClaim,
+        /// Insufficient Asset
+        InsufficientAsset,
+        /// Failed add chunk to unlocking list
+        FailedAddUnlockingChunk,
+        /// Nothing to withdraw yet
+        NothingToWithdraw,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -280,6 +286,11 @@ pub mod pallet {
         BalanceOf<T>,
         ValueQuery,
     >;
+
+    /// Ledger info include withdrawable amount and unlocking list
+    #[pallet::storage]
+    #[pallet::getter(fn ledger)]
+    pub type Ledger<T> = StorageValue<_, StakingLedger<T>, OptionQuery>;
 
     #[derive(Default)]
     #[pallet::genesis_config]
@@ -476,6 +487,15 @@ pub mod pallet {
                 Error::<T>::SettlementLocked
             );
 
+            let matching_ledger = Self::matching_pool();
+            let withdrawable =
+                if matching_ledger.total_stake_amount < matching_ledger.total_unstake_amount {
+                    matching_ledger.total_stake_amount
+                } else {
+                    matching_ledger.total_unstake_amount
+                };
+            Self::saturating_add_withdrawable(withdrawable);
+
             let (bond_amount, rebond_amount, unbond_amount) =
                 Self::matching_pool().matching(unbonding_amount)?;
 
@@ -564,11 +584,7 @@ pub mod pallet {
         /// Withdraw unbonded on relaychain via xcm.transact
         #[pallet::weight(<T as Config>::WeightInfo::withdraw_unbonded())]
         #[transactional]
-        pub fn withdraw_unbonded(
-            origin: OriginFor<T>,
-            num_slashing_spans: u32,
-            #[pallet::compact] amount: BalanceOf<T>,
-        ) -> DispatchResult {
+        pub fn withdraw_unbonded(origin: OriginFor<T>, num_slashing_spans: u32) -> DispatchResult {
             Self::ensure_origin(origin)?;
 
             let query_id = T::XCM::do_withdraw_unbonded(
@@ -587,10 +603,7 @@ pub mod pallet {
 
             XcmRequests::<T>::insert(
                 query_id,
-                XcmRequest::WithdrawUnbonded {
-                    num_slashing_spans,
-                    amount,
-                },
+                XcmRequest::WithdrawUnbonded { num_slashing_spans },
             );
             Self::deposit_event(Event::<T>::WithdrawingUnbonded(num_slashing_spans));
             Ok(())
@@ -670,12 +683,13 @@ pub mod pallet {
                     >= T::BondingDuration::get(),
                 Error::<T>::NothingToClaim
             );
-
             PendingUnstake::<T>::try_mutate_exists(unbond_index, &who, |d| -> DispatchResult {
                 let amount = d.take().unwrap_or_default();
                 if amount.is_zero() {
                     return Err(Error::<T>::NothingToClaim.into());
                 }
+
+                Self::checked_sub_withdrawable(amount)?;
                 T::Assets::transfer(
                     Self::staking_currency()?,
                     &Self::account_id(),
@@ -795,6 +809,8 @@ pub mod pallet {
                 return Ok(());
             }
 
+            Self::push_to_unlocking(amount);
+
             log::trace!(
                 target: "liquidStaking::unbond",
                 "amount: {:?}",
@@ -870,8 +886,8 @@ pub mod pallet {
                 }
                 WithdrawUnbonded {
                     num_slashing_spans: _,
-                    amount,
                 } if executed => {
+                    let amount = Self::update_ledger()?;
                     T::Assets::mint_into(Self::staking_currency()?, &Self::account_id(), amount)?;
                 }
                 _ => {}
@@ -904,6 +920,64 @@ pub mod pallet {
                 Self::deposit_event(Event::<T>::ExchangeRateUpdated(new_exchange_rate));
             }
             Ok(())
+        }
+
+        #[require_transactional]
+        fn checked_sub_withdrawable(amount: BalanceOf<T>) -> DispatchResult {
+            Ledger::<T>::try_mutate(|option_ledger| -> DispatchResult {
+                option_ledger
+                    .as_mut()
+                    .and_then(|ledger| {
+                        ledger.withdrawable = ledger.withdrawable.checked_sub(amount)?;
+                        Some(())
+                    })
+                    .ok_or(Error::<T>::InsufficientAsset)
+                    .map_err(Into::into)
+            })
+        }
+
+        #[require_transactional]
+        fn saturating_add_withdrawable(amount: BalanceOf<T>) {
+            let mut new_ledger = StakingLedger::new();
+            if let Some(mut ledger) = Self::ledger() {
+                ledger.withdrawable = ledger.withdrawable.saturating_add(amount);
+                new_ledger = ledger;
+            } else {
+                new_ledger.withdrawable = new_ledger.withdrawable.saturating_add(amount);
+            }
+            Ledger::<T>::put(new_ledger);
+        }
+
+        fn push_to_unlocking(amount: BalanceOf<T>) {
+            let mut new_ledger = StakingLedger::new();
+            let chunk = UnlockChunk {
+                amount,
+                index: Self::current_unbond_index(),
+            };
+
+            if let Some(mut ledger) = Self::ledger() {
+                ledger.unlocking.push(chunk);
+                new_ledger = ledger;
+            } else {
+                new_ledger.unlocking.push(chunk);
+            }
+            Ledger::<T>::put(new_ledger);
+        }
+
+        fn update_ledger() -> Result<BalanceOf<T>, DispatchError> {
+            Self::ledger()
+                .and_then(|ledger| {
+                    let old_withdrawable = ledger.withdrawable;
+                    let new_ledger = ledger.consolidate_unlocked(Self::current_unbond_index());
+                    let mint_amount = new_ledger.withdrawable.saturating_sub(old_withdrawable);
+                    if mint_amount.is_zero() {
+                        return None;
+                    }
+                    Ledger::<T>::put(new_ledger);
+                    Some(mint_amount)
+                })
+                .ok_or(Error::<T>::NothingToWithdraw)
+                .map_err(Into::into)
         }
 
         fn ensure_origin(origin: OriginFor<T>) -> DispatchResult {
