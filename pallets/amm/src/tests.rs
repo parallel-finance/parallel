@@ -2,7 +2,7 @@ use super::*;
 use crate::mock::*;
 use frame_support::{assert_noop, assert_ok};
 use frame_system::RawOrigin;
-use primitives::AMM as _;
+use primitives::{tokens, AMM as _};
 
 const MINIMUM_LIQUIDITY: u128 = 1_000;
 
@@ -929,13 +929,31 @@ fn add_large_liquidity_should_work() {
 }
 
 #[test]
-fn do_add_liquidity_should_work() {
+fn do_add_liquidity_exact_amounts_should_work() {
     /*
     substrate->frame->assets->src->functions.rs
     ensure!(f.best_effort || actual >= amount, Error::<T, I>::BalanceLow);   // Fails here
     replica of `add_liquidity_should_work` with larger values
     */
     new_test_ext().execute_with(|| {
+        // Already deposit 100000000
+        Assets::mint(
+            RawOrigin::Signed(ALICE).into(),
+            tokens::DOT,
+            ALICE,
+            999999999999900000000,
+        )
+        .ok();
+
+        // Already deposit 100000000
+        Assets::mint(
+            RawOrigin::Signed(ALICE).into(),
+            tokens::XDOT,
+            ALICE,
+            1999999999999900000000,
+        )
+        .ok();
+
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(),                            // Origin
             (DOT, XDOT), // Currency pool, in which liquidity will be added
@@ -958,7 +976,23 @@ fn do_add_liquidity_large_amounts() {
     /*
     Fails in T:Assets:transfer
     */
+
     new_test_ext().execute_with(|| {
+        Assets::mint(
+            RawOrigin::Signed(ALICE).into(),
+            tokens::DOT,
+            ALICE,
+            3_000_000_000_000_000_000_000,
+        )
+        .ok();
+        Assets::mint(
+            RawOrigin::Signed(ALICE).into(),
+            tokens::XDOT,
+            ALICE,
+            2_000_000_000_000_000_000_000,
+        )
+        .ok();
+
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
             (DOT, XDOT),                     // Currency pool, in which liquidity will be added
