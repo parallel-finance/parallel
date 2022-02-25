@@ -775,6 +775,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         // not supporting `ideal_quote_amount.get_big_uint()` -> Error
         // ideal_base_amount.get_big_uint(),
         // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `u128`, found struct `num_bigint::biguint::BigUint`
+        // TODO: Represent values in U256 or U512 and check for precision loss?
         T::Assets::transfer(
             base_asset,
             who,
