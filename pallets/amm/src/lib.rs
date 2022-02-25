@@ -772,6 +772,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         T::Assets::mint_into(pool.lp_token_id, who, liquidity)?;
 
         // TODO: Large amounts fail in Transfer
+        // not supporting `ideal_quote_amount.get_big_uint()` -> Error
+        // ideal_base_amount.get_big_uint(),
+        // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `u128`, found struct `num_bigint::biguint::BigUint`
         T::Assets::transfer(
             base_asset,
             who,
