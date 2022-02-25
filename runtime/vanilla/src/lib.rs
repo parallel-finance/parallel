@@ -47,7 +47,7 @@ use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::HEIKO_PREFIX,
-    tokens::{HKO, KSM, KUSD, XKSM},
+    tokens::{HKO, KAR, KSM, KUSD, XKSM},
     Index, *,
 };
 use sp_api::impl_runtime_apis;
@@ -250,7 +250,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::TechnicalCommitteeMembership(_) |
             Call::OracleMembership(_) |
             Call::BridgeMembership(_) |
-            Call::ValidatorFeedersMembership(_) |
+            Call::LiquidStakingAgentsMembership(_) |
             // AMM
             Call::AMM(_) |
             Call::AMMRoute(_) |
@@ -355,9 +355,19 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                     GeneralKey(b"HKO".to_vec()),
                 ),
             )),
+            KAR => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(paras::karura::ID),
+                    GeneralKey(paras::karura::KAR_KEY.to_vec()),
+                ),
+            )),
             KUSD => Some(MultiLocation::new(
                 1,
-                X2(Parachain(paras::karura::ID), GeneralKey(b"KUSD".to_vec())),
+                X2(
+                    Parachain(paras::karura::ID),
+                    GeneralKey(paras::karura::KUSD_KEY.to_vec()),
+                ),
             )),
             _ => None,
         }
@@ -386,7 +396,11 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
-            } if id == paras::karura::ID && key == b"KUSD".to_vec() => Some(KUSD),
+            } if id == paras::karura::ID && key == paras::karura::KUSD_KEY.to_vec() => Some(KUSD),
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), GeneralKey(key)),
+            } if id == paras::karura::ID && key == paras::karura::KAR_KEY.to_vec() => Some(KAR),
             _ => None,
         }
     }
@@ -482,7 +496,7 @@ parameter_types! {
     pub const DerivativeIndex: u16 = 0;
     pub const EraLength: BlockNumber = 1 * 3 * 60 / 6;
     pub const MinStake: Balance = 100_000_000_000; // 0.1KSM
-    pub const MinUnstake: Balance = 50_000_000_000; // 0.05KSM
+    pub const MinUnstake: Balance = 50_000_000_000; // 0.05xKSM
     pub const StakingCurrency: CurrencyId = KSM;
     pub const LiquidCurrency: CurrencyId = XKSM;
     pub const XcmFees: Balance = 5_000_000_000; // 0.005KSM
@@ -509,15 +523,16 @@ impl pallet_liquid_staking::Config for Runtime {
     type XCM = XcmHelper;
     type BondingDuration = BondingDuration;
     type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Runtime>;
+    type Members = LiquidStakingAgentsMembership;
 }
 
 parameter_types! {
     pub const MaxValidators: u32 = 16;
-    pub const ValidatorFeedersMembershipMaxMembers: u32 = 3;
+    pub const LiquidStakingAgentsMembershipMaxMembers: u32 = 3;
 }
 
-type ValidatorFeedersMembershipInstance = pallet_membership::Instance5;
-impl pallet_membership::Config<ValidatorFeedersMembershipInstance> for Runtime {
+type LiquidStakingAgentsMembershipInstance = pallet_membership::Instance5;
+impl pallet_membership::Config<LiquidStakingAgentsMembershipInstance> for Runtime {
     type Event = Event;
     type AddOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type RemoveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
@@ -526,7 +541,7 @@ impl pallet_membership::Config<ValidatorFeedersMembershipInstance> for Runtime {
     type PrimeOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type MembershipInitialized = ();
     type MembershipChanged = ();
-    type MaxMembers = ValidatorFeedersMembershipMaxMembers;
+    type MaxMembers = LiquidStakingAgentsMembershipMaxMembers;
     type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
 }
 
@@ -534,7 +549,7 @@ impl pallet_nominee_election::Config for Runtime {
     type Event = Event;
     type MaxValidators = MaxValidators;
     type WeightInfo = pallet_nominee_election::weights::SubstrateWeight<Runtime>;
-    type Members = ValidatorFeedersMembership;
+    type Members = LiquidStakingAgentsMembership;
 }
 
 // parameter_types! {
@@ -958,6 +973,13 @@ parameter_types! {
         ).into(),
         ksm_per_second() * 400
     );
+    pub KarPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(paras::karura::ID), GeneralKey(b"KUSD".to_vec())),
+        ).into(),
+        ksm_per_second() * 50
+    );
 }
 
 match_type! {
@@ -993,6 +1015,7 @@ pub type Trader = (
     FixedRateOfFungible<KsmPerSecond, ToTreasury>,
     FixedRateOfFungible<HkoPerSecond, ToTreasury>,
     FixedRateOfFungible<KusdPerSecond, ToTreasury>,
+    FixedRateOfFungible<KarPerSecond, ToTreasury>,
 );
 
 pub struct XcmConfig;
@@ -1599,7 +1622,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::TechnicalCommitteeMembership(_) |
             Call::OracleMembership(_) |
             Call::BridgeMembership(_) |
-            Call::ValidatorFeedersMembership(_) |
+            Call::LiquidStakingAgentsMembership(_)
             // Farming
             Call::Farming(_)
         )
@@ -1683,7 +1706,7 @@ construct_runtime!(
         GeneralCouncilMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 70,
         TechnicalCommitteeMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>} = 71,
         OracleMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
-        ValidatorFeedersMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,
+        LiquidStakingAgentsMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,
         BridgeMembership: pallet_membership::<Instance6>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74,
 
         // AMM

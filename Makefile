@@ -114,12 +114,17 @@ launch: shutdown
 	yq -i eval '.paraId = $(PARA_ID)' $(LAUNCH_CONFIG_JSON)
 	docker image pull parallelfinance/polkadot:$(RELAY_DOCKER_TAG)
 	docker image pull parallelfinance/parallel:$(DOCKER_TAG)
+	docker image pull parallelfinance/karura:$(ACALA_DOCKER_TAG)
 	docker image pull parallelfinance/stake-client:latest
 	docker image pull parallelfinance/liquidation-client:latest
 	docker image pull parallelfinance/nominate-client:latest
 	docker image pull parallelfinance/oracle-client:latest
 	docker image pull parallelfinance/parallel-dapp:latest
-	DOCKER_CLIENT_TIMEOUT=180 COMPOSE_HTTP_TIMEOUT=180 parachain-launch generate $(LAUNCH_CONFIG_YAML) && (cp -r keystore* output || true) && cp docker-compose.override.yml output && cd output && docker-compose up -d --build
+	parachain-launch generate $(LAUNCH_CONFIG_YAML) \
+		&& (cp -r keystore* output || true) \
+		&& cp docker-compose.override.yml output \
+		&& cd output \
+		&& DOCKER_CLIENT_TIMEOUT=180 COMPOSE_HTTP_TIMEOUT=180 docker-compose up -d --build
 	cd launch && yarn start
 
 .PHONY: logs

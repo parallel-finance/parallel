@@ -23,6 +23,11 @@ pub const KSM: CurrencyId = 100;
 pub const DOT: CurrencyId = 101;
 pub const USDT: CurrencyId = 102;
 pub const KUSD: CurrencyId = 103;
+pub const AUSD: CurrencyId = 104;
+pub const LC_KSM: CurrencyId = 105;
+pub const LC_DOT: CurrencyId = 106;
+pub const KAR: CurrencyId = 107;
+pub const ACA: CurrencyId = 108;
 
 // Ethereum ecosystem
 pub const EUSDT: CurrencyId = 201;
@@ -45,6 +50,7 @@ pub const PEUSDT: CurrencyId = 2501;
 pub const PEUSDC: CurrencyId = 2502;
 
 // Crowdloan Derivative
+pub const CKSM_15_22: CurrencyId = 100150022;
 pub const CDOT_6_13: CurrencyId = 200060013;
 
 // Token Registration Information

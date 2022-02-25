@@ -21,9 +21,9 @@ use sp_runtime::{traits::Zero, FixedPointNumber};
 use vanilla_runtime::{
     opaque::SessionKeys, BalancesConfig, BridgeMembershipConfig, CollatorSelectionConfig,
     DemocracyConfig, GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
-    LiquidStakingConfig, OracleMembershipConfig, ParachainInfoConfig, PolkadotXcmConfig,
-    SessionConfig, SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig,
-    ValidatorFeedersMembershipConfig, VestingConfig, WASM_BINARY,
+    LiquidStakingAgentsMembershipConfig, LiquidStakingConfig, OracleMembershipConfig,
+    ParachainInfoConfig, PolkadotXcmConfig, SessionConfig, SudoConfig, SystemConfig,
+    TechnicalCommitteeMembershipConfig, VestingConfig, WASM_BINARY,
 };
 
 // use hex_literal::hex;
@@ -53,7 +53,7 @@ pub fn vanilla_dev_config(id: ParaId) -> ChainSpec {
             ];
             let oracle_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Ferdie")];
             let bridge_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Alice")];
-            let validator_feeders = vec![get_account_id_from_seed::<sr25519::Public>("Eve")];
+            let liquid_staking_agents = vec![get_account_id_from_seed::<sr25519::Public>("Eve")];
             let initial_allocation: Vec<(AccountId, Balance)> = accumulate(
                 vec![
                     // Faucet accounts
@@ -102,7 +102,7 @@ pub fn vanilla_dev_config(id: ParaId) -> ChainSpec {
                 oracle_accounts,
                 bridge_accounts,
                 initial_allocation,
-                validator_feeders,
+                liquid_staking_agents,
                 council,
                 technical_committee,
                 id,
@@ -151,7 +151,7 @@ pub fn vanilla_config(_id: ParaId) -> Result<ChainSpec, String> {
     //             .parse()
     //             .unwrap()];
     //         // 5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf//validator_feeder1
-    //         let validator_feeders = vec!["5CwJrAMQdQsihzGBeSWik8GTZuCcogKo1AkXuaoFBQbmnHjJ"
+    //         let liquid_staking_agents = vec!["5CwJrAMQdQsihzGBeSWik8GTZuCcogKo1AkXuaoFBQbmnHjJ"
     //             .parse()
     //             .unwrap()];
     //         let initial_allocation = accumulate(
@@ -232,7 +232,7 @@ pub fn vanilla_config(_id: ParaId) -> Result<ChainSpec, String> {
     //             invulnerables,
     //             oracle_accounts,
     //             initial_allocation,
-    //             validator_feeders,
+    //             liquid_staking_agents,
     //             council,
     //             technical_committee,
     //             id,
@@ -259,7 +259,7 @@ fn vanilla_genesis(
     oracle_accounts: Vec<AccountId>,
     bridge_accounts: Vec<AccountId>,
     initial_allocation: Vec<(AccountId, Balance)>,
-    validator_feeders: Vec<AccountId>,
+    liquid_staking_agents: Vec<AccountId>,
     council: Vec<AccountId>,
     technical_committee: Vec<AccountId>,
     id: ParaId,
@@ -327,8 +327,8 @@ fn vanilla_genesis(
             members: bridge_accounts,
             phantom: Default::default(),
         },
-        validator_feeders_membership: ValidatorFeedersMembershipConfig {
-            members: validator_feeders,
+        liquid_staking_agents_membership: LiquidStakingAgentsMembershipConfig {
+            members: liquid_staking_agents,
             phantom: Default::default(),
         },
         vesting: VestingConfig {

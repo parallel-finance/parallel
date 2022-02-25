@@ -58,8 +58,8 @@ pub trait WeightInfo {
     fn withdraw_unbonded() -> Weight;
     fn update_reserve_factor() -> Weight;
     fn update_market_cap() -> Weight;
-    fn on_idle() -> Weight;
-	fn notification_received() -> Weight;
+    fn notification_received() -> Weight;
+    fn claim_for() -> Weight;
 }
 
 /// Weights for pallet_liquid_staking using the Substrate node and recommended hardware.
@@ -120,16 +120,14 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().reads(1 as Weight))
             .saturating_add(T::DbWeight::get().writes(1 as Weight))
     }
-    fn on_idle() -> Weight {
+    fn notification_received() -> Weight {
         (122_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(7 as Weight))
             .saturating_add(T::DbWeight::get().writes(5 as Weight))
     }
-	fn notification_received() -> Weight {
-		(122_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(7 as Weight))
-			.saturating_add(T::DbWeight::get().writes(5 as Weight))
-	}
+    fn claim_for() -> Weight {
+        (84_862_000 as Weight).saturating_add(T::DbWeight::get().reads(6 as Weight))
+    }
 }
 
 // For backwards compatibility and tests
@@ -189,14 +187,12 @@ impl WeightInfo for () {
             .saturating_add(RocksDbWeight::get().reads(1 as Weight))
             .saturating_add(RocksDbWeight::get().writes(1 as Weight))
     }
-    fn on_idle() -> Weight {
+    fn notification_received() -> Weight {
         (122_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(7 as Weight))
             .saturating_add(RocksDbWeight::get().writes(5 as Weight))
     }
-	fn notification_received() -> Weight {
-		(122_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(7 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(5 as Weight))
-	}
+    fn claim_for() -> Weight {
+        (84_862_000 as Weight).saturating_add(RocksDbWeight::get().reads(6 as Weight))
+    }
 }
