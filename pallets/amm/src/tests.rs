@@ -933,7 +933,8 @@ fn create_pool_large_amount_should_work() {
 #[test]
 fn create_pool_large_amount_from_an_account_without_sufficient_amount_of_tokens_should_not_panic() {
     /*
-    With ample supplies
+    With ample supplies for Alice and less for Bob :'(
+    `create_pool` with Large amount panic for Bob
     Recheck values
     */
     new_test_ext().execute_with(|| {
