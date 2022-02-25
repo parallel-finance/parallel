@@ -1622,7 +1622,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::TechnicalCommitteeMembership(_) |
             Call::OracleMembership(_) |
             Call::BridgeMembership(_) |
-            Call::LiquidStakingAgentsMembership(_)
+            Call::LiquidStakingAgentsMembership(_) |
             // Farming
             Call::Farming(_)
         )
