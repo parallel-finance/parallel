@@ -216,7 +216,15 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         Assets::force_create(Origin::root(), SAMPLE_LP_TOKEN, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), SAMPLE_LP_TOKEN_2, ALICE, true, 1).unwrap();
 
-        Assets::mint(Origin::signed(ALICE), tokens::DOT, ALICE, 100_000_000).unwrap();
+        // Assets::mint(Origin::signed(ALICE), tokens::DOT, ALICE, 100_000_000).unwrap();
+        Assets::mint(
+            Origin::signed(ALICE),
+            tokens::DOT,
+            ALICE,
+            1_000_000_000_000_000_000,
+        )
+        .unwrap();
+
         Assets::mint(Origin::signed(ALICE), tokens::DOT, BOB, 100_000_000).unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::DOT, CHARLIE, 1000_000_000).unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::DOT, EVE, 1000_000_000).unwrap();
@@ -228,7 +236,15 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         )
         .unwrap();
 
-        Assets::mint(Origin::signed(ALICE), tokens::XDOT, ALICE, 100_000_000).unwrap();
+        // Assets::mint(Origin::signed(ALICE), tokens::XDOT, ALICE, 100_000_000).unwrap();
+        // Assets::mint(Origin::signed(ALICE), tokens::XDOT, ALICE, 3_000_000_000_000_000_000_000).unwrap();
+        Assets::mint(
+            Origin::signed(ALICE),
+            tokens::XDOT,
+            ALICE,
+            2_000_000_000_000_000_000_000,
+        )
+        .unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::XDOT, BOB, 100_000_000).unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::XDOT, CHARLIE, 1000_000_000).unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::XDOT, EVE, 1000_000_000).unwrap();

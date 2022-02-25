@@ -931,15 +931,17 @@ fn add_large_liquidity_should_work() {
 #[test]
 fn do_add_liquidity_should_work() {
     /*
-    Fails in T:Assets:transfer
+    substrate->frame->assets->src->functions.rs
+    ensure!(f.best_effort || actual >= amount, Error::<T, I>::BalanceLow);   // Fails here
+    replica of `add_liquidity_should_work` with larger values
     */
     new_test_ext().execute_with(|| {
         assert_ok!(AMM::create_pool(
-            RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
-            (1_000, 2_000),                  // Liquidity amounts to be added in pool
-            ALICE,                           // LPToken receiver
-            SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
+            RawOrigin::Signed(ALICE).into(),                            // Origin
+            (DOT, XDOT), // Currency pool, in which liquidity will be added
+            (1_000_000_000_000_000_000, 2_000_000_000_000_000_000_000), // Liquidity amounts to be added in pool
+            ALICE,                                                      // LPToken receiver
+            SAMPLE_LP_TOKEN, // Liquidity pool share representative token
         ));
         assert_ok!(AMM::add_liquidity(
             RawOrigin::Signed(ALICE).into(),                            // Origin
