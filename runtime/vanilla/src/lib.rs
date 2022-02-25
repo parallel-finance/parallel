@@ -1553,17 +1553,22 @@ impl pallet_currency_adapter::Config for Runtime {
 }
 
 parameter_types! {
-    pub const LMPalletId: PalletId = PalletId(*b"par/lqmp");
+    pub const FarmingPalletId: PalletId = PalletId(*b"par/farm");
     pub const MaxRewardTokens: u32 = 1000;
+    pub const MaxUserLockItemsCount: u32 = 100;
+    pub const LockPoolMaxDuration: u32 = 50400;
 }
 
 impl pallet_farming::Config for Runtime {
     type Event = Event;
     type Assets = CurrencyAdapter;
-    type PalletId = LMPalletId;
+    type PalletId = FarmingPalletId;
     type MaxRewardTokens = MaxRewardTokens;
-    type CreateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_farming::weights::SubstrateWeight<Runtime>;
+    type MaxUserLockItemsCount = MaxUserLockItemsCount;
+    type LockPoolMaxDuration = LockPoolMaxDuration;
+    type Decimal = Decimal;
 }
 
 pub struct WhiteListFilter;
@@ -1617,7 +1622,9 @@ impl Contains<Call> for WhiteListFilter {
             Call::TechnicalCommitteeMembership(_) |
             Call::OracleMembership(_) |
             Call::BridgeMembership(_) |
-            Call::LiquidStakingAgentsMembership(_)
+            Call::LiquidStakingAgentsMembership(_) |
+            // Farming
+            Call::Farming(_)
         )
         // // AMM
         // Call::AMM(_) |
@@ -1629,8 +1636,6 @@ impl Contains<Call> for WhiteListFilter {
         // // Bridge
         // Call::Bridge(_) |
         //
-        // // Farming
-        // Call::Farming(_)
     }
 }
 
