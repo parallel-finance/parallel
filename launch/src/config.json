@@ -11,7 +11,86 @@
       "symbol": "KSM",
       "assetId": 100,
       "decimal": 12,
-      "marketOption": {
+      "balances": [
+        ["5EYCAe5iie3JmgLB4rm1NHQtyYGiaYYBEB1jt7p35dXjQWJ8", "1000000000000000"],
+        ["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000"]
+      ]
+    },
+    {
+      "name": "Parallel Staking Kusama",
+      "symbol": "XKSM",
+      "assetId": 1000,
+      "decimal": 12,
+      "balances": []
+    },
+    {
+      "name": "Karura Dollar",
+      "symbol": "KUSD",
+      "assetId": 103,
+      "decimal": 12,
+      "balances": []
+    },
+    {
+      "name": "Karura",
+      "symbol": "KAR",
+      "assetId": 107,
+      "decimal": 12,
+      "balances": []
+    },
+    {
+      "name": "Tether Dollar",
+      "symbol": "USDT",
+      "assetId": 102,
+      "decimal": 6,
+      "balances": [["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000000"]]
+    },
+    {
+      "name": "Ethereum USDT",
+      "symbol": "EUSDT",
+      "assetId": 201,
+      "decimal": 6,
+      "balances": [["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000000"]]
+    },
+    {
+      "name": "Ethereum USDC",
+      "symbol": "EUSDC",
+      "assetId": 202,
+      "decimal": 6,
+      "balances": [["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000000"]]
+    },
+    {
+      "name": "Parallel Crowdloans Kusama - (0 ~ 7)",
+      "symbol": "CKSM-0-7",
+      "assetId": 4000,
+      "decimal": 12,
+      "balances": []
+    },
+    {
+      "name": "Parallel LP-USDT/HKO",
+      "symbol": "LP-USDT/HKO",
+      "assetId": 5000,
+      "decimal": 12,
+      "balances": []
+    },
+    {
+      "name": "Parallel LP-KSM/USDT",
+      "symbol": "LP-KSM/USDT",
+      "assetId": 5001,
+      "decimal": 12,
+      "balances": []
+    },
+    {
+      "name": "Parallel LP-KSM/HKO",
+      "symbol": "LP-KSM/HKO",
+      "assetId": 5002,
+      "decimal": 12,
+      "balances": []
+    }
+  ],
+  "markets": [
+    {
+      "assetId": 100,
+      "marketConfig": {
         "closeFactor": 50e4,
         "collateralFactor": 50e4,
         "reserveFactor": 15e4,
@@ -27,18 +106,11 @@
         },
         "state": "Pending",
         "ptokenId": 2100
-      },
-      "balances": [
-        ["5EYCAe5iie3JmgLB4rm1NHQtyYGiaYYBEB1jt7p35dXjQWJ8", "1000000000000000"],
-        ["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000"]
-      ]
+      }
     },
     {
-      "name": "Parallel Staking Kusama",
-      "symbol": "XKSM",
       "assetId": 1000,
-      "decimal": 12,
-      "marketOption": {
+      "marketConfig": {
         "closeFactor": 50e4,
         "collateralFactor": 50e4,
         "reserveFactor": 15e4,
@@ -54,15 +126,11 @@
         },
         "state": "Pending",
         "ptokenId": 3000
-      },
-      "balances": []
+      }
     },
     {
-      "name": "Karura Dollar",
-      "symbol": "KUSD",
       "assetId": 103,
-      "decimal": 12,
-      "marketOption": {
+      "marketConfig": {
         "closeFactor": 50e4,
         "collateralFactor": 50e4,
         "reserveFactor": 15e4,
@@ -78,15 +146,11 @@
         },
         "state": "Pending",
         "ptokenId": 2103
-      },
-      "balances": []
+      }
     },
     {
-      "name": "Karura",
-      "symbol": "KAR",
       "assetId": 107,
-      "decimal": 12,
-      "marketOption": {
+      "marketConfig": {
         "closeFactor": 50e4,
         "collateralFactor": 50e4,
         "reserveFactor": 15e4,
@@ -102,15 +166,11 @@
         },
         "state": "Pending",
         "ptokenId": 2104
-      },
-      "balances": []
+      }
     },
     {
-      "name": "Tether Dollar",
-      "symbol": "USDT",
       "assetId": 102,
-      "decimal": 6,
-      "marketOption": {
+      "marketConfig": {
         "closeFactor": 50e4,
         "collateralFactor": 50e4,
         "reserveFactor": 15e4,
@@ -126,15 +186,11 @@
         },
         "state": "Pending",
         "ptokenId": 2102
-      },
-      "balances": [["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000000"]]
+      }
     },
     {
-      "name": "Ethereum USDT",
-      "symbol": "EUSDT",
       "assetId": 201,
-      "decimal": 6,
-      "marketOption": {
+      "marketConfig": {
         "closeFactor": 50e4,
         "collateralFactor": 50e4,
         "reserveFactor": 15e4,
@@ -150,15 +206,11 @@
         },
         "state": "Pending",
         "ptokenId": 2501
-      },
-      "balances": [["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000000"]]
+      }
     },
     {
-      "name": "Ethereum USDC",
-      "symbol": "EUSDC",
       "assetId": 202,
-      "decimal": 6,
-      "marketOption": {
+      "marketConfig": {
         "closeFactor": 50e4,
         "collateralFactor": 50e4,
         "reserveFactor": 15e4,
@@ -174,15 +226,11 @@
         },
         "state": "Pending",
         "ptokenId": 2502
-      },
-      "balances": [["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000000"]]
+      }
     },
     {
-      "name": "Parallel Crowdloans Kusama - (0 ~ 7)",
-      "symbol": "CKSM-0-7",
       "assetId": 4000,
-      "decimal": 12,
-      "marketOption": {
+      "marketConfig": {
         "closeFactor": 50e4,
         "collateralFactor": 50e4,
         "reserveFactor": 15e4,
@@ -198,15 +246,11 @@
         },
         "state": "Pending",
         "ptokenId": 2300
-      },
-      "balances": []
+      }
     },
     {
-      "name": "Parallel LP-USDT/HKO",
-      "symbol": "LP-USDT/HKO",
       "assetId": 5000,
-      "decimal": 12,
-      "marketOption": {
+      "marketConfig": {
         "closeFactor": 50e4,
         "collateralFactor": 50e4,
         "reserveFactor": 15e4,
@@ -222,15 +266,11 @@
         },
         "state": "Pending",
         "ptokenId": 2301
-      },
-      "balances": []
+      }
     },
     {
-      "name": "Parallel LP-KSM/USDT",
-      "symbol": "LP-KSM/USDT",
       "assetId": 5001,
-      "decimal": 12,
-      "marketOption": {
+      "marketConfig": {
         "closeFactor": 50e4,
         "collateralFactor": 50e4,
         "reserveFactor": 15e4,
@@ -246,15 +286,11 @@
         },
         "state": "Pending",
         "ptokenId": 2302
-      },
-      "balances": []
+      }
     },
     {
-      "name": "Parallel LP-KSM/HKO",
-      "symbol": "LP-KSM/HKO",
       "assetId": 5002,
-      "decimal": 12,
-      "marketOption": {
+      "marketConfig": {
         "closeFactor": 50e4,
         "collateralFactor": 50e4,
         "reserveFactor": 15e4,
@@ -270,8 +306,7 @@
         },
         "state": "Pending",
         "ptokenId": 2303
-      },
-      "balances": []
+      }
     }
   ],
   "pools": [

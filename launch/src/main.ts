@@ -82,15 +82,21 @@ async function para() {
   const signer = keyring.addFromUri('//Dave')
   const call = []
 
-  for (const { name, symbol, assetId, decimal, marketOption, balances } of config.assets) {
-    console.log(`Create ${name}(${symbol}) asset, ptokenId is ${marketOption.ptokenId}`)
+  for (const { name, symbol, assetId, decimal, balances } of config.assets) {
+    console.log(`Create ${name}(${symbol}) asset`)
     call.push(
       api.tx.sudo.sudo(api.tx.assets.forceCreate(assetId, signer.address, true, 1)),
-      api.tx.sudo.sudo(api.tx.assets.forceSetMetadata(assetId, name, symbol, decimal, false)),
-      api.tx.sudo.sudo(api.tx.loans.addMarket(assetId, api.createType('Market', marketOption))),
-      api.tx.sudo.sudo(api.tx.loans.activateMarket(assetId))
+      api.tx.sudo.sudo(api.tx.assets.forceSetMetadata(assetId, name, symbol, decimal, false))
     )
     call.push(...balances.map(([account, amount]) => api.tx.assets.mint(assetId, account, amount)))
+  }
+
+  for (const { assetId, marketConfig } of config.markets) {
+    console.log(`Create market for asset ${assetId}, ptokenId is ${marketConfig.ptokenId}`)
+    call.push(
+      api.tx.sudo.sudo(api.tx.loans.addMarket(assetId, api.createType('Market', marketConfig))),
+      api.tx.sudo.sudo(api.tx.loans.activateMarket(assetId))
+    )
   }
 
   for (const {
@@ -125,12 +131,8 @@ async function para() {
   const { members, chainIds, bridgeTokens } = config.bridge
   members.forEach(member => call.push(api.tx.sudo.sudo(api.tx.bridgeMembership.addMember(member))))
   chainIds.forEach(chainId => call.push(api.tx.sudo.sudo(api.tx.bridge.registerChain(chainId))))
-  bridgeTokens.map(
-    ({ assetId, id, external, fee }) =>
-      call.push(api.tx.sudo.sudo(api.tx.bridge.registerBridgeToken(
-        assetId,
-        { id, external, fee },
-      )))
+  bridgeTokens.map(({ assetId, id, external, fee }) =>
+    call.push(api.tx.sudo.sudo(api.tx.bridge.registerBridgeToken(assetId, { id, external, fee })))
   )
 
   call.push(
