@@ -376,11 +376,19 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 Some(XDOT)
             }
             MultiLocation {
+                parents: 0,
+                interior: X1(GeneralKey(key)),
+            } if key == b"xDOT".to_vec() => Some(XDOT),
+            MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
             } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"PARA".to_vec() => {
                 Some(PARA)
             }
+            MultiLocation {
+                parents: 0,
+                interior: X1(GeneralKey(key)),
+            } if key == b"PARA".to_vec() => Some(PARA),
             _ => None,
         }
     }

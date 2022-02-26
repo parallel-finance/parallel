@@ -388,11 +388,19 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 Some(XKSM)
             }
             MultiLocation {
+                parents: 0,
+                interior: X1(GeneralKey(key)),
+            } if key == b"xKSM".to_vec() => Some(XKSM),
+            MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
             } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"HKO".to_vec() => {
                 Some(HKO)
             }
+            MultiLocation {
+                parents: 0,
+                interior: X1(GeneralKey(key)),
+            } if key == b"HKO".to_vec() => Some(HKO),
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
@@ -959,7 +967,28 @@ pub type XcmOriginToTransactDispatchOrigin = (
 
 parameter_types! {
     pub KsmPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), ksm_per_second());
+    pub XKSMPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(b"xKSM".to_vec())),
+        ).into(),
+        ksm_per_second()
+    );
+    pub XKSMPerSecondOfCanonicalLocation: (AssetId, u128) = (
+        MultiLocation::new(
+            0,
+            X1(GeneralKey(b"xKSM".to_vec())),
+        ).into(),
+        ksm_per_second()
+    );
     pub HkoPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(b"HKO".to_vec())),
+        ).into(),
+        ksm_per_second() * 30
+    );
+    pub HkoPerSecondOfCanonicalLocation: (AssetId, u128) = (
         MultiLocation::new(
             0,
             X1(GeneralKey(b"HKO".to_vec())),
@@ -1013,7 +1042,10 @@ impl TakeRevenue for ToTreasury {
 
 pub type Trader = (
     FixedRateOfFungible<KsmPerSecond, ToTreasury>,
+    FixedRateOfFungible<XKSMPerSecond, ToTreasury>,
+    FixedRateOfFungible<XKSMPerSecondOfCanonicalLocation, ToTreasury>,
     FixedRateOfFungible<HkoPerSecond, ToTreasury>,
+    FixedRateOfFungible<HkoPerSecondOfCanonicalLocation, ToTreasury>,
     FixedRateOfFungible<KusdPerSecond, ToTreasury>,
     FixedRateOfFungible<KarPerSecond, ToTreasury>,
 );
