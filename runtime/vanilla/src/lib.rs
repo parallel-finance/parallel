@@ -957,22 +957,22 @@ parameter_types! {
     pub KsmPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), ksm_per_second());
     pub HkoPerSecond: (AssetId, u128) = (
         MultiLocation::new(
-            1,
-            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(b"HKO".to_vec())),
+            0,
+            X1(GeneralKey(b"HKO".to_vec())),
         ).into(),
         ksm_per_second() * 30
     );
     pub KusdPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(paras::karura::ID), GeneralKey(b"KUSD".to_vec())),
+            X2(Parachain(paras::karura::ID), GeneralKey(paras::karura::KUSD_KEY.to_vec())),
         ).into(),
         ksm_per_second() * 400
     );
     pub KarPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(paras::karura::ID), GeneralKey(b"KUSD".to_vec())),
+            X2(Parachain(paras::karura::ID), GeneralKey(paras::karura::KAR_KEY.to_vec())),
         ).into(),
         ksm_per_second() * 50
     );
