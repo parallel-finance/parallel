@@ -208,6 +208,7 @@ impl Contains<Call> for BaseCallFilter {
             // System, Currencies
             Call::System(_) |
             Call::Timestamp(_) |
+            Call::Balances(_) |
             Call::Assets(pallet_assets::Call::mint { .. }) |
             Call::Assets(pallet_assets::Call::transfer { .. }) |
             // Governance
@@ -1508,6 +1509,7 @@ impl Contains<Call> for WhiteListFilter {
             // System, Currencies
             Call::System(_) |
             Call::Timestamp(_) |
+            Call::Balances(_) |
             Call::Assets(pallet_assets::Call::mint { .. }) |
             Call::Assets(pallet_assets::Call::transfer { .. }) |
             // Governance
