@@ -46,11 +46,6 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
             }
         };
 
-        self.total_stake_amount = bond_amount
-            .checked_add(&rebond_amount)
-            .ok_or(ArithmeticError::Overflow)?;
-        self.total_unstake_amount = unbond_amount;
-
         Ok((bond_amount, rebond_amount, unbond_amount))
     }
 
