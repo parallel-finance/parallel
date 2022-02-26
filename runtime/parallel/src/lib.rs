@@ -343,20 +343,8 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
             DOT => Some(MultiLocation::parent()),
-            XDOT => Some(MultiLocation::new(
-                1,
-                X2(
-                    Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(b"xDOT".to_vec()),
-                ),
-            )),
-            PARA => Some(MultiLocation::new(
-                1,
-                X2(
-                    Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(b"PARA".to_vec()),
-                ),
-            )),
+            XDOT => Some(MultiLocation::new(0, X1(GeneralKey(b"xDOT".to_vec())))),
+            PARA => Some(MultiLocation::new(0, X1(GeneralKey(b"PARA".to_vec())))),
             _ => None,
         }
     }
@@ -370,17 +358,13 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 interior: Here,
             } => Some(DOT),
             MultiLocation {
-                parents: 1,
-                interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xDOT".to_vec() => {
-                Some(XDOT)
-            }
+                parents: 0,
+                interior: X1(GeneralKey(key)),
+            } if key == b"xDOT".to_vec() => Some(XDOT),
             MultiLocation {
-                parents: 1,
-                interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"PARA".to_vec() => {
-                Some(PARA)
-            }
+                parents: 0,
+                interior: X1(GeneralKey(key)),
+            } if key == b"PARA".to_vec() => Some(PARA),
             _ => None,
         }
     }

@@ -341,20 +341,8 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
             KSM => Some(MultiLocation::parent()),
-            XKSM => Some(MultiLocation::new(
-                1,
-                X2(
-                    Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(b"xKSM".to_vec()),
-                ),
-            )),
-            HKO => Some(MultiLocation::new(
-                1,
-                X2(
-                    Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(b"HKO".to_vec()),
-                ),
-            )),
+            XKSM => Some(MultiLocation::new(0, X1(GeneralKey(b"xKSM".to_vec())))),
+            HKO => Some(MultiLocation::new(0, X1(GeneralKey(b"HKO".to_vec())))),
             KAR => Some(MultiLocation::new(
                 1,
                 X2(
@@ -382,17 +370,13 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 interior: Here,
             } => Some(KSM),
             MultiLocation {
-                parents: 1,
-                interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xKSM".to_vec() => {
-                Some(XKSM)
-            }
+                parents: 0,
+                interior: X1(GeneralKey(key)),
+            } if key == b"xKSM".to_vec() => Some(XKSM),
             MultiLocation {
-                parents: 1,
-                interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"HKO".to_vec() => {
-                Some(HKO)
-            }
+                parents: 0,
+                interior: X1(GeneralKey(key)),
+            } if key == b"HKO".to_vec() => Some(HKO),
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
