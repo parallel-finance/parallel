@@ -9,7 +9,7 @@ LAUNCH_CONFIG_YAML	  							:= config.yml
 LAUNCH_CONFIG_JSON	           			:= launch/src/config.json
 DOCKER_TAG     											:= latest
 RELAY_DOCKER_TAG										:= v0.9.16
-ACALA_DOCKER_TAG										:= v0.9.16
+ACALA_DOCKER_TAG										:= 14bd3bf4
 
 .PHONY: init
 init: submodules
@@ -102,7 +102,11 @@ resources:
 
 .PHONY: shutdown
 shutdown:
-	docker-compose -f output/docker-compose.yml -f output/docker-compose.override.yml down --remove-orphans > /dev/null 2>&1 || true
+	docker-compose \
+		-f output/docker-compose.yml \
+		-f output/docker-compose.override.yml \
+		down \
+		--remove-orphans > /dev/null 2>&1 || true
 	rm -fr output || true
 	docker volume prune -f
 
@@ -110,11 +114,11 @@ shutdown:
 launch: shutdown
 	yq -i eval '.relaychain.image = "parallelfinance/polkadot:$(RELAY_DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.parachains[0].image = "parallelfinance/parallel:$(DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
-	yq -i eval '.parachains[1].image = "parallelfinance/karura:$(ACALA_DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
+	yq -i eval '.parachains[1].image = "acala/karura-node:$(ACALA_DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.paraId = $(PARA_ID)' $(LAUNCH_CONFIG_JSON)
 	docker image pull parallelfinance/polkadot:$(RELAY_DOCKER_TAG)
 	docker image pull parallelfinance/parallel:$(DOCKER_TAG)
-	docker image pull parallelfinance/karura:$(ACALA_DOCKER_TAG)
+	docker image pull acala/karura-node:$(ACALA_DOCKER_TAG)
 	docker image pull parallelfinance/stake-client:latest
 	docker image pull parallelfinance/liquidation-client:latest
 	docker image pull parallelfinance/nominate-client:latest
