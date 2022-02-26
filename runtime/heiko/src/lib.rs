@@ -67,7 +67,7 @@ use polkadot_parachain::primitives::Sibling;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::HEIKO_PREFIX,
-    tokens::{HKO, KAR, KSM, KUSD, XKSM},
+    tokens::{HKO, KAR, KSM, KUSD, LKSM, XKSM},
     Index, *,
 };
 use scale_info::TypeInfo;
@@ -375,6 +375,13 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                     GeneralKey(paras::karura::KUSD_KEY.to_vec()),
                 ),
             )),
+            LKSM => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(paras::karura::ID),
+                    GeneralKey(paras::karura::LKSM_KEY.to_vec()),
+                ),
+            )),
             _ => None,
         }
     }
@@ -415,6 +422,10 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
             } if id == paras::karura::ID && key == paras::karura::KAR_KEY.to_vec() => Some(KAR),
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), GeneralKey(key)),
+            } if id == paras::karura::ID && key == paras::karura::LKSM_KEY.to_vec() => Some(LKSM),
             _ => None,
         }
     }
@@ -1015,6 +1026,13 @@ parameter_types! {
         ).into(),
         ksm_per_second() * 50
     );
+    pub LKSMPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(paras::karura::ID), GeneralKey(paras::karura::LKSM_KEY.to_vec())),
+        ).into(),
+        ksm_per_second()
+    );
 }
 
 match_type! {
@@ -1054,6 +1072,7 @@ pub type Trader = (
     FixedRateOfFungible<HkoPerSecondOfCanonicalLocation, ToTreasury>,
     FixedRateOfFungible<KusdPerSecond, ToTreasury>,
     FixedRateOfFungible<KarPerSecond, ToTreasury>,
+    FixedRateOfFungible<LKSMPerSecond, ToTreasury>,
 );
 
 pub struct XcmConfig;

@@ -28,6 +28,8 @@ pub const LC_KSM: CurrencyId = 105;
 pub const LC_DOT: CurrencyId = 106;
 pub const KAR: CurrencyId = 107;
 pub const ACA: CurrencyId = 108;
+pub const LKSM: CurrencyId = 109;
+pub const LDOT: CurrencyId = 110;
 
 // Ethereum ecosystem
 pub const EUSDT: CurrencyId = 201;
