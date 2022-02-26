@@ -382,13 +382,17 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 interior: Here,
             } => Some(KSM),
             MultiLocation {
-                parents: 0,
-                interior: X1(GeneralKey(key)),
-            } if key == b"xKSM".to_vec() => Some(XKSM),
+                parents: 1,
+                interior: X2(Parachain(id), GeneralKey(key)),
+            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xKSM".to_vec() => {
+                Some(XKSM)
+            }
             MultiLocation {
-                parents: 0,
-                interior: X1(GeneralKey(key)),
-            } if key == b"HKO".to_vec() => Some(HKO),
+                parents: 1,
+                interior: X2(Parachain(id), GeneralKey(key)),
+            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"HKO".to_vec() => {
+                Some(HKO)
+            }
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
