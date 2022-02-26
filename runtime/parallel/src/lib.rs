@@ -343,8 +343,20 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
             DOT => Some(MultiLocation::parent()),
-            XDOT => Some(MultiLocation::new(0, X1(GeneralKey(b"xDOT".to_vec())))),
-            PARA => Some(MultiLocation::new(0, X1(GeneralKey(b"PARA".to_vec())))),
+            XDOT => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(ParachainInfo::parachain_id().into()),
+                    GeneralKey(b"xDOT".to_vec()),
+                ),
+            )),
+            PARA => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(ParachainInfo::parachain_id().into()),
+                    GeneralKey(b"PARA".to_vec()),
+                ),
+            )),
             _ => None,
         }
     }
