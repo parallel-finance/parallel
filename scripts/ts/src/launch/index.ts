@@ -11,10 +11,11 @@ import {
   subAccountId,
   exec
 } from '../utils'
+import { ActionParameters } from '@caporal/core'
 
 const GiftPalletId = 'par/gift'
 
-async function para() {
+async function para({ logger }: ActionParameters) {
   const api = await ApiPromise.create(
     options({
       types: {
@@ -24,7 +25,7 @@ async function para() {
     })
   )
 
-  console.log('Wait for parachain to produce blocks')
+  logger.info('Wait for parachain to produce blocks')
   do await sleep(1000)
   while (!(await chainHeight(api)))
 
@@ -33,7 +34,7 @@ async function para() {
   const call = []
 
   for (const { name, symbol, assetId, decimal, balances } of config.assets) {
-    console.log(`Create ${name}(${symbol}) asset`)
+    logger.info(`Create ${name}(${symbol}) asset`)
     call.push(
       api.tx.sudo.sudo(api.tx.assets.forceCreate(assetId, signer.address, true, 1)),
       api.tx.sudo.sudo(api.tx.assets.forceSetMetadata(assetId, name, symbol, decimal, false))
@@ -42,7 +43,7 @@ async function para() {
   }
 
   for (const { assetId, marketConfig } of config.markets) {
-    console.log(`Create market for asset ${assetId}, ptokenId is ${marketConfig.ptokenId}`)
+    logger.info(`Create market for asset ${assetId}, ptokenId is ${marketConfig.ptokenId}`)
     call.push(
       api.tx.sudo.sudo(api.tx.loans.addMarket(assetId, api.createType('Market', marketConfig))),
       api.tx.sudo.sudo(api.tx.loans.activateMarket(assetId))
@@ -89,16 +90,16 @@ async function para() {
     api.tx.balances.transfer(createAddress(GiftPalletId), config.gift)
   )
 
-  console.log('Submit parachain batches.')
+  logger.info('Submit parachain batches.')
   await api.tx.utility.batchAll(call).signAndSend(signer, { nonce: await nextNonce(api, signer) })
 }
 
-async function relay() {
+async function relay({ logger }: ActionParameters) {
   const api = await ApiPromise.create({
     provider: new WsProvider('ws://localhost:9944')
   })
 
-  console.log('Wait for relaychain to produce blocks')
+  logger.info('Wait for relaychain to produce blocks')
   do await sleep(1000)
   while (!(await chainHeight(api)))
 
@@ -111,7 +112,7 @@ async function relay() {
     ).stdout.trim()
     const wasm = exec(`docker run --rm ${image} export-genesis-wasm --chain ${chain}`).stdout.trim()
 
-    console.log(`Registering parathread: ${paraId}.`)
+    logger.info(`Registering parathread: ${paraId}.`)
     await api.tx.sudo
       .sudo(
         api.tx.registrar.forceRegister(
@@ -125,10 +126,10 @@ async function relay() {
       .signAndSend(signer, { nonce: await nextNonce(api, signer) })
   }
 
-  console.log('Wait parathread to be onboarded.')
+  logger.info('Wait parathread to be onboarded.')
   await sleep(360000)
 
-  console.log('Start new auction.')
+  logger.info('Start new auction.')
   const call = []
   call.push(api.tx.sudo.sudo(api.tx.auctions.newAuction(config.auctionDuration, config.leaseIndex)))
   call.push(
@@ -157,12 +158,12 @@ async function relay() {
   await api.tx.utility.batchAll(call).signAndSend(signer, { nonce: await nextNonce(api, signer) })
 }
 
-export default async function run(): Promise<void> {
-  await relay()
-    .then(para)
+export default async function run({ logger }): Promise<void> {
+  await relay(logger)
+    .then(() => para(logger))
     .then(() => process.exit(0))
     .catch(err => {
-      console.error(err)
+      logger.error(err)
       process.exit(1)
     })
 }
