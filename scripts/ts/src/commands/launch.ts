@@ -165,7 +165,7 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
       .then(() => para(actionParameters))
       .then(() => process.exit(0))
       .catch(err => {
-        logger.error(err)
+        logger.error(err.message)
         process.exit(1)
       })
   })

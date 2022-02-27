@@ -38,7 +38,7 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
         .signAndSend(signer, { nonce: await nextNonce(api, signer) })
         .then(() => process.exit(0))
         .catch(err => {
-          logger.error(err)
+          logger.error(err.message)
           process.exit(1)
         })
     })
