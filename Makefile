@@ -6,7 +6,7 @@ URL            											:= ws://localhost:9948
 KEYSTORE_PATH  											:= keystore
 SURI           											:= //Alice
 LAUNCH_CONFIG_YAML	  							:= config.yml
-LAUNCH_CONFIG_JSON	           			:= launch/src/config.json
+LAUNCH_CONFIG_JSON	           			:= scripts/ts/src/launch/config.json
 DOCKER_TAG     											:= latest
 RELAY_DOCKER_TAG										:= v0.9.16
 ACALA_DOCKER_TAG										:= 14bd3bf4
@@ -16,7 +16,7 @@ init: submodules
 	git config advice.ignoredHook false
 	git config core.hooksPath .githooks
 	rustup target add wasm32-unknown-unknown
-	cd launch && yarn
+	cd scripts/ts && yarn
 
 .PHONY: submodules
 submodules:
@@ -40,7 +40,7 @@ check-wasm:
 
 .PHONY: check-launch
 check-launch:
-	cd launch && yarn && yarn build
+	cd scripts/ts && yarn && yarn build
 
 .PHONY: test
 test:
@@ -129,7 +129,7 @@ launch: shutdown
 		&& cp docker-compose.override.yml output \
 		&& cd output \
 		&& DOCKER_CLIENT_TIMEOUT=180 COMPOSE_HTTP_TIMEOUT=180 docker-compose up -d --build
-	cd launch && yarn start
+	cd scripts/ts && yarn start launch
 
 .PHONY: logs
 logs:

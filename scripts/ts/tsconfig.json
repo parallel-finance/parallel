@@ -12,8 +12,7 @@
     "baseUrl": ".",
     "paths": {
       "*": ["node_modules/*", "src/types/*"],
-      "@/*": ["./src/*"],
-      "@polkadot/types/lookup": ["@parallel-finance/types/src/interfaces/types-lookup.ts"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src/**/*"]

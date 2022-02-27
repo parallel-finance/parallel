@@ -54,7 +54,7 @@ make init
 
 ### Create .env file with relaychain sudo key
 
-Saying relaychain sudo key is `//Alice`, we need to put the following content in `launch/.env` file
+Saying relaychain sudo key is `//Alice`, we need to put the following content in `scripts/ts/.env` file
 
 **NOTE**: Pls contact parallel team member to have relaychain's sudo key
 

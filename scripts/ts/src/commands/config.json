@@ -1,10 +1,12 @@
 {
-  "liquidAsset": 1000,
-  "stakingAsset": 100,
   "auctionDuration": 201600,
   "leaseIndex": 0,
   "paraId": 2085,
   "relayAsset": 100,
+  "gift": "1000000000000000",
+  "xcmFees": "50000000000",
+  "liquidMarketCap": "10000000000000000",
+  "deposit": "100000000000000",
   "assets": [
     {
       "name": "Kusama",
