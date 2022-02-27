@@ -32,13 +32,13 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
                 interior: 'Here'
               }
             },
-            createXcm(encoded, sovereignAccountOf(source.valueOf() as number))
+            createXcm(encoded, sovereignAccountOf(target.valueOf() as number))
           )
         )
         .signAndSend(signer, { nonce: await nextNonce(api, signer) })
         .then(() => process.exit(0))
         .catch(err => {
-          logger.error(err)
+          logger.error(err.message)
           process.exit(1)
         })
     })

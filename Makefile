@@ -6,7 +6,7 @@ URL            											:= ws://localhost:9948
 KEYSTORE_PATH  											:= keystore
 SURI           											:= //Alice
 LAUNCH_CONFIG_YAML	  							:= config.yml
-LAUNCH_CONFIG_JSON	           			:= scripts/ts/src/launch/config.json
+LAUNCH_CONFIG_JSON	           			:= scripts/ts/src/commands/config.json
 DOCKER_TAG     											:= latest
 RELAY_DOCKER_TAG										:= v0.9.16
 ACALA_DOCKER_TAG										:= 14bd3bf4
@@ -86,6 +86,7 @@ bench-amm-router:
 lint:
 	SKIP_WASM_BUILD= cargo fmt --all -- --check
 	SKIP_WASM_BUILD= cargo clippy --workspace --features runtime-benchmarks --exclude parallel -- -D dead_code -A clippy::derivable_impls -A clippy::explicit_counter_loop -A clippy::unnecessary_cast -A clippy::unnecessary_mut_passed -A clippy::too_many_arguments -A clippy::type_complexity -A clippy::identity_op -D warnings
+	cd scripts/ts && yarn format -c && yarn lint
 
 .PHONY: fix
 fix:
