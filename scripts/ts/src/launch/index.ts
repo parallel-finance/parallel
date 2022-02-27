@@ -1,68 +1,18 @@
-import fs from 'fs'
-import shell from 'shelljs'
-import dotenv from 'dotenv'
 import config from './config.json'
-import { blake2AsU8a } from '@polkadot/util-crypto'
-import { stringToU8a, bnToU8a, BN, u8aConcat, u8aToHex } from '@polkadot/util'
-import { decodeAddress, encodeAddress } from '@polkadot/keyring'
 import '@polkadot/api-augment'
 import { options } from '@parallel-finance/api'
-import { KeyringPair } from '@polkadot/keyring/types'
 import { ApiPromise, Keyring, WsProvider } from '@polkadot/api'
+import {
+  chainHeight,
+  createAddress,
+  nextNonce,
+  sleep,
+  sovereignAccountOf,
+  subAccountId,
+  exec
+} from '../utils'
 
-const EMPTY_U8A_32 = new Uint8Array(32)
-const BN_EIGHTEEN = new BN(18)
 const GiftPalletId = 'par/gift'
-
-dotenv.config()
-
-const createAddress = (id: string) =>
-  encodeAddress(u8aConcat(stringToU8a(`modl${id}`), EMPTY_U8A_32).subarray(0, 32))
-
-export const sovereignAccountOf = (paraId: number): string =>
-  encodeAddress(
-    u8aConcat(stringToU8a('para'), bnToU8a(paraId, 32, true), EMPTY_U8A_32).subarray(0, 32)
-  )
-
-function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
-
-function exec(cmd: string) {
-  console.log(`$ ${cmd}`)
-  const res = shell.exec(cmd, { silent: true })
-  if (res.code !== 0) {
-    console.error('Error: Command failed with code', res.code)
-    console.log(res)
-  }
-  return res
-}
-
-async function chainHeight(api: ApiPromise) {
-  const {
-    block: {
-      header: { number: height }
-    }
-  } = await api.rpc.chain.getBlock()
-  return height.toNumber()
-}
-
-async function nextIndex(api: ApiPromise, signer: KeyringPair) {
-  return await api.rpc.system.accountNextIndex(signer.address)
-}
-
-function subAccountId(signer: KeyringPair, index: number) {
-  let seedBytes = stringToU8a('modlpy/utilisuba')
-  let whoBytes = decodeAddress(signer.address)
-  let indexBytes = bnToU8a(index, 16).reverse()
-  let combinedBytes = new Uint8Array(seedBytes.length + whoBytes.length + indexBytes.length)
-  combinedBytes.set(seedBytes)
-  combinedBytes.set(whoBytes, seedBytes.length)
-  combinedBytes.set(indexBytes, seedBytes.length + whoBytes.length)
-
-  let entropy = blake2AsU8a(combinedBytes, 256)
-  return encodeAddress(entropy)
-}
 
 async function para() {
   const api = await ApiPromise.create(
@@ -101,8 +51,6 @@ async function para() {
 
   for (const {
     paraId,
-    image,
-    chain,
     ctokenId,
     leaseStart,
     leaseEnd,
@@ -136,21 +84,19 @@ async function para() {
   )
 
   call.push(
-    api.tx.sudo.sudo(api.tx.liquidStaking.updateMarketCap('10000000000000000')),
-    api.tx.sudo.sudo(api.tx.xcmHelper.updateXcmFees('50000000000')),
-    api.tx.balances.transfer(createAddress(GiftPalletId), '1000000000000000')
+    api.tx.sudo.sudo(api.tx.liquidStaking.updateMarketCap(config.liquidMarketCap)),
+    api.tx.sudo.sudo(api.tx.xcmHelper.updateXcmFees(config.xcmFees)),
+    api.tx.balances.transfer(createAddress(GiftPalletId), config.gift)
   )
 
   console.log('Submit parachain batches.')
-  const nonce = await api.rpc.system.accountNextIndex(signer.address)
-  await api.tx.utility.batchAll(call).signAndSend(signer, { nonce })
+  await api.tx.utility.batchAll(call).signAndSend(signer, { nonce: await nextNonce(api, signer) })
 }
 
 async function relay() {
   const api = await ApiPromise.create({
     provider: new WsProvider('ws://localhost:9944')
   })
-  const chain = await api.rpc.system.chain().then(c => c.toString())
 
   console.log('Wait for relaychain to produce blocks')
   do await sleep(1000)
@@ -159,7 +105,7 @@ async function relay() {
   const keyring = new Keyring({ type: 'sr25519', ss58Format: 2 })
   const signer = keyring.addFromUri(`${process.env.RELAY_CHAIN_SUDO_KEY || ''}`)
 
-  for (const { paraId, image, derivativeIndex, chain, ctokenId } of config.crowdloans) {
+  for (const { paraId, image, derivativeIndex, chain } of config.crowdloans) {
     const state = exec(
       `docker run --rm ${image} export-genesis-state --chain ${chain}`
     ).stdout.trim()
@@ -176,7 +122,7 @@ async function relay() {
           wasm
         )
       )
-      .signAndSend(signer, { nonce: await nextIndex(api, signer) })
+      .signAndSend(signer, { nonce: await nextNonce(api, signer) })
   }
 
   console.log('Wait parathread to be onboarded.')
@@ -187,7 +133,7 @@ async function relay() {
   call.push(api.tx.sudo.sudo(api.tx.auctions.newAuction(config.auctionDuration, config.leaseIndex)))
   call.push(
     ...config.crowdloans.map(({ derivativeIndex }) =>
-      api.tx.balances.transfer(subAccountId(signer, derivativeIndex), '100000000000000')
+      api.tx.balances.transfer(subAccountId(signer, derivativeIndex), config.deposit)
     )
   )
   call.push(
@@ -199,22 +145,24 @@ async function relay() {
     )
   )
 
-  let relayAsset = config.assets.find(a => a.assetId === config.relayAsset)
+  const relayAsset = config.assets.find(a => a.assetId === config.relayAsset)
   if (relayAsset && relayAsset.balances.length) {
     call.push(
-      ...relayAsset.balances.map(([account, balance]) =>
+      ...relayAsset.balances.map(([, balance]) =>
         api.tx.balances.transfer(sovereignAccountOf(config.paraId), balance)
       )
     )
   }
 
-  await api.tx.utility.batchAll(call).signAndSend(signer, { nonce: await nextIndex(api, signer) })
+  await api.tx.utility.batchAll(call).signAndSend(signer, { nonce: await nextNonce(api, signer) })
 }
 
-relay()
-  .then(para)
-  .then(() => process.exit(0))
-  .catch(err => {
-    console.error(err)
-    process.exit(1)
-  })
+export default async function run(): Promise<void> {
+  await relay()
+    .then(para)
+    .then(() => process.exit(0))
+    .catch(err => {
+      console.error(err)
+      process.exit(1)
+    })
+}
