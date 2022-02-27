@@ -11,7 +11,7 @@ import {
   subAccountId,
   exec
 } from '../utils'
-import { ActionParameters } from '@caporal/core'
+import { ActionParameters, Command, CreateCommandParameters } from '@caporal/core'
 
 const GiftPalletId = 'par/gift'
 
@@ -158,12 +158,15 @@ async function relay({ logger }: ActionParameters) {
   await api.tx.utility.batchAll(call).signAndSend(signer, { nonce: await nextNonce(api, signer) })
 }
 
-export default async function run({ logger }): Promise<void> {
-  await relay(logger)
-    .then(() => para(logger))
-    .then(() => process.exit(0))
-    .catch(err => {
-      logger.error(err)
-      process.exit(1)
-    })
+export default function ({ createCommand }: CreateCommandParameters): Command {
+  return createCommand('run chain initialization scripts').action(actionParameters => {
+    const { logger } = actionParameters
+    relay(actionParameters)
+      .then(() => para(actionParameters))
+      .then(() => process.exit(0))
+      .catch(err => {
+        logger.error(err)
+        process.exit(1)
+      })
+  })
 }

@@ -1,11 +1,12 @@
 import '@polkadot/api-augment'
-import { ApiPromise } from '@polkadot/api'
+import { ApiPromise, WsProvider } from '@polkadot/api'
 import shell from 'shelljs'
 import { blake2AsU8a } from '@polkadot/util-crypto'
 import { stringToU8a, bnToU8a, u8aConcat } from '@polkadot/util'
 import { decodeAddress, encodeAddress } from '@polkadot/keyring'
 import { KeyringPair } from '@polkadot/keyring/types'
 import { Index } from '@polkadot/types/interfaces'
+import { options } from '@parallel-finance/api'
 
 const EMPTY_U8A_32 = new Uint8Array(32)
 
@@ -53,4 +54,81 @@ export const subAccountId = (signer: KeyringPair, index: number): string => {
 
 export const nextNonce = async (api: ApiPromise, signer: KeyringPair): Promise<Index> => {
   return await api.rpc.system.accountNextIndex(signer.address)
+}
+
+export const createXcm = (encoded: string, sovereignAccount: string) => {
+  return {
+    V2: [
+      {
+        WithdrawAsset: [
+          {
+            id: {
+              Concrete: {
+                parents: 0,
+                interior: 'Here'
+              }
+            },
+            fun: {
+              Fungible: '1000000000000'
+            }
+          }
+        ]
+      },
+      {
+        BuyExecution: {
+          fees: {
+            id: {
+              Concrete: {
+                parents: 0,
+                interior: 'Here'
+              }
+            },
+            fun: {
+              Fungible: '1000000000000'
+            }
+          },
+          weightLimit: 'Unlimited'
+        }
+      },
+      {
+        Transact: {
+          originType: 'Native',
+          requireWeightAtMost: '1000000000',
+          call: {
+            encoded
+          }
+        }
+      },
+      {
+        DepositAsset: {
+          assets: {
+            Wild: 'All'
+          },
+          maxAssets: 1,
+          beneficiary: {
+            parents: 0,
+            interior: {
+              X1: {
+                AccountId32: {
+                  network: 'Any',
+                  id: sovereignAccount
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}
+
+export const getApi = async (endpoint: string): Promise<ApiPromise> => {
+  return ApiPromise.create(
+    options({
+      types: {
+        'Compact<TAssetBalance>': 'Compact<Balance>'
+      },
+      provider: new WsProvider(endpoint)
+    })
+  )
 }
