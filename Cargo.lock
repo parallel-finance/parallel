@@ -2852,6 +2852,7 @@ dependencies = [
  "pallet-preimage",
  "pallet-prices",
  "pallet-proxy",
+ "pallet-registrar",
  "pallet-router",
  "pallet-router-rpc-runtime-api",
  "pallet-scheduler",
@@ -5899,6 +5900,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-registrar"
+version = "1.7.7"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "xcm",
+]
+
+[[package]]
 name = "pallet-router"
 version = "1.7.7"
 dependencies = [
@@ -6431,6 +6448,7 @@ dependencies = [
  "pallet-preimage",
  "pallet-prices",
  "pallet-proxy",
+ "pallet-registrar",
  "pallet-router",
  "pallet-router-rpc-runtime-api",
  "pallet-scheduler",
@@ -11625,6 +11643,7 @@ dependencies = [
  "pallet-preimage",
  "pallet-prices",
  "pallet-proxy",
+ "pallet-registrar",
  "pallet-router",
  "pallet-router-rpc-runtime-api",
  "pallet-scheduler",

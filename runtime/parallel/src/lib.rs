@@ -1538,6 +1538,12 @@ impl pallet_emergency_shutdown::Config for Runtime {
     type ShutdownOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
 }
 
+impl pallet_registrar::Config for Runtime {
+    type Event = Event;
+    type RegisterOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -1613,6 +1619,9 @@ construct_runtime!(
         EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Storage, Event<T>} = 91,
         Farming: pallet_farming::{Pallet, Call, Storage, Event<T>} = 92,
         XcmHelper: pallet_xcm_helper::{Pallet, Call, Storage, Event<T>} = 93,
+
+        // Asset Registry
+        Registrar: pallet_registrar::{Pallet, Call, Storage, Event<T>} = 94,
     }
 );
 
