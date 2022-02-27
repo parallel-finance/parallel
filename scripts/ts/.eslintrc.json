@@ -9,7 +9,7 @@
     "prettier"
   ],
   "rules": {
-    "no-console": "error",
+    "no-console": "off",
     "prettier/prettier": 2,
     "ban-ts-comment": "off"
   }

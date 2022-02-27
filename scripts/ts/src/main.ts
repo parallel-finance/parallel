@@ -6,6 +6,6 @@ import path from 'path'
 
 dotenv.config()
 
-program.bin('scripts').discover(path.join(__dirname, 'commands'))
+program.bin('parallel-helper').discover(path.join(__dirname, 'commands'))
 
 program.run()
