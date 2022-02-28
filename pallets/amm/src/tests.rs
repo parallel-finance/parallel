@@ -25,6 +25,38 @@ fn create_pool_should_work() {
 }
 
 #[test]
+fn double_liquidity_correct_liq_ratio_should_work() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),              // Origin
+            (DOT, KSM), // Currency pool, in which liquidity will be added
+            (15_000_000_000_000, 50_000_000_000_000_000), // Liquidity amounts to be added in pool
+            FRANK,      // LPToken receiver
+            SAMPLE_LP_TOKEN, // Liquidity pool share representative token
+        ));
+
+        // total liquidity after pool created
+        let total_liquidity_tokens = Assets::total_issuance(SAMPLE_LP_TOKEN);
+
+        assert_ok!(AMM::add_liquidity(
+            RawOrigin::Signed(FRANK).into(),              // Origin
+            (DOT, KSM), // Currency pool, in which liquidity will be added
+            (15_000_000_000_000, 50_000_000_000_000_000), // Liquidity amounts to be added in pool
+            (15_000_000_000_000, 50_000_000_000_000_000), // specifying its worst case ratio when pool already
+        ));
+
+        let total_liquidity_tokens_after_double = Assets::total_issuance(SAMPLE_LP_TOKEN);
+        let liquidity_recieved = total_liquidity_tokens_after_double - total_liquidity_tokens;
+
+        // recieved liquidity should be half of total liquidity
+        assert_eq!(
+            liquidity_recieved as f64 / total_liquidity_tokens_after_double as f64,
+            0.5
+        );
+    })
+}
+
+#[test]
 fn add_liquidity_should_work() {
     new_test_ext().execute_with(|| {
         assert_ok!(AMM::create_pool(
