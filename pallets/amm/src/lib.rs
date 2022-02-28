@@ -716,14 +716,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         (base_asset, quote_asset): (AssetIdOf<T, I>, AssetIdOf<T, I>),
     ) -> Result<(), DispatchError> {
         let total_supply = T::Assets::total_issuance(pool.lp_token_id);
-        pool.base_amount = pool
-            .base_amount
-            .checked_add(ideal_base_amount)
-            .ok_or(ArithmeticError::Overflow)?;
-        pool.quote_amount = pool
-            .quote_amount
-            .checked_add(ideal_quote_amount)
-            .ok_or(ArithmeticError::Overflow)?;
 
         // lock a small amount of liquidity if the pool is first initialized
         let liquidity = if total_supply.is_zero() {
@@ -750,6 +742,16 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                     .ok_or(ArithmeticError::Overflow)?,
             )
         };
+
+        // update reserves after liquidity calculation
+        pool.base_amount = pool
+            .base_amount
+            .checked_add(ideal_base_amount)
+            .ok_or(ArithmeticError::Overflow)?;
+        pool.quote_amount = pool
+            .quote_amount
+            .checked_add(ideal_quote_amount)
+            .ok_or(ArithmeticError::Overflow)?;
 
         T::Assets::mint_into(pool.lp_token_id, who, liquidity)?;
 
