@@ -93,9 +93,6 @@ fn add_more_liquidity_should_not_work_if_minimum_base_amount_is_higher() {
 
 #[test]
 fn add_more_liquidity_with_low_balance_should_not_work() {
-    // Throws `Err(DispatchErrorWithPostInfo { post_info: PostDispatchInfo {
-    // actual_weight: None, pays_fee: Pays::Yes },
-    // error: Module { index: 3, error: 0, message: Some("BalanceLow") } })`
     new_test_ext().execute_with(|| {
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
