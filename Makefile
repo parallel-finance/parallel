@@ -28,7 +28,7 @@ build:
 	cargo build --bin parallel
 
 .PHONY: ci
-ci: check lint check-launch check-wasm test
+ci: check lint check-helper check-wasm test
 
 .PHONY: check
 check:
@@ -38,8 +38,8 @@ check:
 check-wasm:
 	cargo check -p vanilla-runtime -p parallel-runtime -p heiko-runtime --features runtime-benchmarks
 
-.PHONY: check-launch
-check-launch:
+.PHONY: check-helper
+check-helper:
 	cd scripts/ts && yarn && yarn build
 
 .PHONY: test

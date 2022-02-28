@@ -10,18 +10,25 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
     .argument('<target>', 'paraId of target chain', {
       validator: program.NUMBER
     })
+    .option('-r, --relay-ws [url]', 'The Relaychain API endpoint', {
+      default: 'wss://kusama-rpc.polkadot.io'
+    })
+    .option('-p, --para-ws [url]', 'The Parachain API endpoint', {
+      default: 'ws://127.0.0.1:9948'
+    })
     .action(async actionParameters => {
       const {
         logger,
-        args: { source, target }
+        args: { source, target },
+        options: { relayWs, paraWs }
       } = actionParameters
 
       const encoded = await ApiPromise.create({
-        provider: new WsProvider('ws://localhost:9944')
+        provider: new WsProvider(relayWs.toString())
       })
         .then(api => api.tx.hrmp.hrmpAcceptOpenChannel(source.valueOf() as number).toHex())
         .then(hex => `0x${hex.slice(6)}`)
-      const api = await getApi('ws://localhost:9948')
+      const api = await getApi(paraWs.toString())
       const signer = new Keyring({ type: 'sr25519', ss58Format: 110 }).addFromUri('//Dave')
       await api.tx.sudo
         .sudo(
