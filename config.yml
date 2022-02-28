@@ -54,7 +54,7 @@ parachains:
           - --bob
       - flags:
           - --charlie
-  - image: parallelfinance/karura:v0.9.16
+  - image: acala/karura-node:14bd3bf4
     chain:
       base: karura-dev
       collators:

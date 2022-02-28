@@ -19,13 +19,9 @@ services:
   stake-client:
     image: parallelfinance/stake-client:latest
     command: --relay-ws=ws://relaychain-alice:9944 --para-ws=ws://parachain-2085-0:9944
-    depends_on:
-      - "redis"
     restart: always
 
   liquidation-client:
     image: parallelfinance/liquidation-client:latest
     command: --endpoint ws://parachain-2085-0:9944
     restart: always
-volumes:
-  redis:

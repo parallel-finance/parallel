@@ -5,7 +5,6 @@ Parallel uses [parachain-launch](https://github.com/open-web3-stack/parachain-la
 - `parallel-dapp` : DAPP for money market, staking, crowdloans, cross chain transfer and more
 - `nominate-client` : Liquid staking pallet's validator selection
 - `stake-client` : Liquid staking pallet's rewards/slashes' feeder
-- `redis` : Temporary queue service for stake-client, will be removed soon
 - `oracle-client` : Loans pallet's price feeder
 - `liquidation-client` : Loans pallet's liquidation operator
 - `polkadot` : Relaychain
@@ -55,7 +54,7 @@ make init
 
 ### Create .env file with relaychain sudo key
 
-Saying relaychain sudo key is `//Alice`, we need to put the following content in `launch/.env` file
+Saying relaychain sudo key is `//Alice`, we need to put the following content in `scripts/ts/.env` file
 
 **NOTE**: Pls contact parallel team member to have relaychain's sudo key
 

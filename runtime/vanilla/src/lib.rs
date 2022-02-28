@@ -47,7 +47,7 @@ use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::HEIKO_PREFIX,
-    tokens::{HKO, KAR, KSM, KUSD, XKSM},
+    tokens::{HKO, KAR, KSM, KUSD, LKSM, XKSM},
     Index, *,
 };
 use sp_api::impl_runtime_apis;
@@ -369,6 +369,13 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
                     GeneralKey(paras::karura::KUSD_KEY.to_vec()),
                 ),
             )),
+            LKSM => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(paras::karura::ID),
+                    GeneralKey(paras::karura::LKSM_KEY.to_vec()),
+                ),
+            )),
             _ => None,
         }
     }
@@ -388,11 +395,19 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 Some(XKSM)
             }
             MultiLocation {
+                parents: 0,
+                interior: X1(GeneralKey(key)),
+            } if key == b"xKSM".to_vec() => Some(XKSM),
+            MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
             } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"HKO".to_vec() => {
                 Some(HKO)
             }
+            MultiLocation {
+                parents: 0,
+                interior: X1(GeneralKey(key)),
+            } if key == b"HKO".to_vec() => Some(HKO),
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
@@ -401,6 +416,10 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
             } if id == paras::karura::ID && key == paras::karura::KAR_KEY.to_vec() => Some(KAR),
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), GeneralKey(key)),
+            } if id == paras::karura::ID && key == paras::karura::LKSM_KEY.to_vec() => Some(LKSM),
             _ => None,
         }
     }
@@ -959,6 +978,20 @@ pub type XcmOriginToTransactDispatchOrigin = (
 
 parameter_types! {
     pub KsmPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), ksm_per_second());
+    pub XKSMPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(b"xKSM".to_vec())),
+        ).into(),
+        ksm_per_second()
+    );
+    pub XKSMPerSecondOfCanonicalLocation: (AssetId, u128) = (
+        MultiLocation::new(
+            0,
+            X1(GeneralKey(b"xKSM".to_vec())),
+        ).into(),
+        ksm_per_second()
+    );
     pub HkoPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
@@ -966,19 +999,33 @@ parameter_types! {
         ).into(),
         ksm_per_second() * 30
     );
+    pub HkoPerSecondOfCanonicalLocation: (AssetId, u128) = (
+        MultiLocation::new(
+            0,
+            X1(GeneralKey(b"HKO".to_vec())),
+        ).into(),
+        ksm_per_second() * 30
+    );
     pub KusdPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(paras::karura::ID), GeneralKey(b"KUSD".to_vec())),
+            X2(Parachain(paras::karura::ID), GeneralKey(paras::karura::KUSD_KEY.to_vec())),
         ).into(),
         ksm_per_second() * 400
     );
     pub KarPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(paras::karura::ID), GeneralKey(b"KUSD".to_vec())),
+            X2(Parachain(paras::karura::ID), GeneralKey(paras::karura::KAR_KEY.to_vec())),
         ).into(),
         ksm_per_second() * 50
+    );
+    pub LKSMPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(paras::karura::ID), GeneralKey(paras::karura::LKSM_KEY.to_vec())),
+        ).into(),
+        ksm_per_second()
     );
 }
 
@@ -1013,9 +1060,13 @@ impl TakeRevenue for ToTreasury {
 
 pub type Trader = (
     FixedRateOfFungible<KsmPerSecond, ToTreasury>,
+    FixedRateOfFungible<XKSMPerSecond, ToTreasury>,
+    FixedRateOfFungible<XKSMPerSecondOfCanonicalLocation, ToTreasury>,
     FixedRateOfFungible<HkoPerSecond, ToTreasury>,
+    FixedRateOfFungible<HkoPerSecondOfCanonicalLocation, ToTreasury>,
     FixedRateOfFungible<KusdPerSecond, ToTreasury>,
     FixedRateOfFungible<KarPerSecond, ToTreasury>,
+    FixedRateOfFungible<LKSMPerSecond, ToTreasury>,
 );
 
 pub struct XcmConfig;

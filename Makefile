@@ -6,17 +6,17 @@ URL            											:= ws://localhost:9948
 KEYSTORE_PATH  											:= keystore
 SURI           											:= //Alice
 LAUNCH_CONFIG_YAML	  							:= config.yml
-LAUNCH_CONFIG_JSON	           			:= launch/src/config.json
+LAUNCH_CONFIG_JSON	           			:= scripts/ts/src/commands/config.json
 DOCKER_TAG     											:= latest
 RELAY_DOCKER_TAG										:= v0.9.16
-ACALA_DOCKER_TAG										:= v0.9.16
+ACALA_DOCKER_TAG										:= 14bd3bf4
 
 .PHONY: init
 init: submodules
 	git config advice.ignoredHook false
 	git config core.hooksPath .githooks
 	rustup target add wasm32-unknown-unknown
-	cd launch && yarn
+	cd scripts/ts && yarn
 
 .PHONY: submodules
 submodules:
@@ -40,7 +40,7 @@ check-wasm:
 
 .PHONY: check-launch
 check-launch:
-	cd launch && yarn && yarn build
+	cd scripts/ts && yarn && yarn build
 
 .PHONY: test
 test:
@@ -86,6 +86,7 @@ bench-amm-router:
 lint:
 	SKIP_WASM_BUILD= cargo fmt --all -- --check
 	SKIP_WASM_BUILD= cargo clippy --workspace --features runtime-benchmarks --exclude parallel -- -D dead_code -A clippy::derivable_impls -A clippy::explicit_counter_loop -A clippy::unnecessary_cast -A clippy::unnecessary_mut_passed -A clippy::too_many_arguments -A clippy::type_complexity -A clippy::identity_op -D warnings
+	cd scripts/ts && yarn format -c && yarn lint
 
 .PHONY: fix
 fix:
@@ -102,7 +103,11 @@ resources:
 
 .PHONY: shutdown
 shutdown:
-	docker-compose -f output/docker-compose.yml -f output/docker-compose.override.yml down --remove-orphans > /dev/null 2>&1 || true
+	docker-compose \
+		-f output/docker-compose.yml \
+		-f output/docker-compose.override.yml \
+		down \
+		--remove-orphans > /dev/null 2>&1 || true
 	rm -fr output || true
 	docker volume prune -f
 
@@ -110,11 +115,11 @@ shutdown:
 launch: shutdown
 	yq -i eval '.relaychain.image = "parallelfinance/polkadot:$(RELAY_DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.parachains[0].image = "parallelfinance/parallel:$(DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
-	yq -i eval '.parachains[1].image = "parallelfinance/karura:$(ACALA_DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
+	yq -i eval '.parachains[1].image = "acala/karura-node:$(ACALA_DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.paraId = $(PARA_ID)' $(LAUNCH_CONFIG_JSON)
 	docker image pull parallelfinance/polkadot:$(RELAY_DOCKER_TAG)
 	docker image pull parallelfinance/parallel:$(DOCKER_TAG)
-	docker image pull parallelfinance/karura:$(ACALA_DOCKER_TAG)
+	docker image pull acala/karura-node:$(ACALA_DOCKER_TAG)
 	docker image pull parallelfinance/stake-client:latest
 	docker image pull parallelfinance/liquidation-client:latest
 	docker image pull parallelfinance/nominate-client:latest
@@ -125,7 +130,7 @@ launch: shutdown
 		&& cp docker-compose.override.yml output \
 		&& cd output \
 		&& DOCKER_CLIENT_TIMEOUT=180 COMPOSE_HTTP_TIMEOUT=180 docker-compose up -d --build
-	cd launch && yarn start
+	cd scripts/ts && yarn start launch
 
 .PHONY: logs
 logs:
