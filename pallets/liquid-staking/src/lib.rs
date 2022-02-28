@@ -488,16 +488,15 @@ pub mod pallet {
             );
 
             let matching_ledger = Self::matching_pool();
-            let withdrawable =
-                if matching_ledger.total_stake_amount < matching_ledger.total_unstake_amount {
-                    matching_ledger.total_stake_amount
-                } else {
-                    matching_ledger.total_unstake_amount
-                };
-            Self::saturating_add_withdrawable(withdrawable);
-
             let (bond_amount, rebond_amount, unbond_amount) =
                 Self::matching_pool().matching(unbonding_amount)?;
+
+            let withdrawable = matching_ledger
+                .total_stake_amount
+                .saturating_sub(bond_amount);
+            if !withdrawable.is_zero() {
+                Self::saturating_add_withdrawable(withdrawable);
+            }
 
             if bonding_amount.is_zero() && unbonding_amount.is_zero() {
                 Self::do_bond(bond_amount, RewardDestination::Staked)?;
