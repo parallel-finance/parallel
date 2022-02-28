@@ -36,7 +36,6 @@ use frame_support::{
     require_transactional,
     traits::{
         fungibles::{Inspect, Mutate, Transfer},
-        tokens::WithdrawConsequence,
         Get, IsType,
     },
     transactional, Blake2_128Concat, PalletId,
@@ -128,8 +127,6 @@ pub mod pallet {
         InsufficientLiquidity,
         /// Not an ideal price ratio
         NotAnIdealPrice,
-        /// Not enough funds to make a transfer
-        NoFunds,
         /// Pool does not exist
         PoolAlreadyExists,
         /// Insufficient amount out
@@ -779,22 +776,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         };
 
         T::Assets::mint_into(pool.lp_token_id, who, liquidity)?;
-
-        ensure!(
-            !matches!(
-                T::Assets::can_withdraw(base_asset, who, ideal_base_amount),
-                WithdrawConsequence::NoFunds
-            ),
-            Error::<T, I>::NoFunds
-        );
-
-        ensure!(
-            !matches!(
-                T::Assets::can_withdraw(quote_asset, who, ideal_quote_amount),
-                WithdrawConsequence::NoFunds
-            ),
-            Error::<T, I>::NoFunds
-        );
 
         T::Assets::transfer(
             base_asset,

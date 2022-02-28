@@ -62,9 +62,6 @@ pub type Moment = u64;
 /// Balance of an account.
 pub type Balance = u128;
 
-/// BigBalance
-pub type BigBalance = BigUint;
-
 /// Signed version of Balance
 pub type Amount = i128;
 
