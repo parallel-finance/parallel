@@ -15,13 +15,13 @@ import { ActionParameters, Command, CreateCommandParameters } from '@caporal/cor
 
 const GiftPalletId = 'par/gift'
 
-async function para({ logger }: ActionParameters) {
+async function para({ logger, options: { paraWs } }: ActionParameters) {
   const api = await ApiPromise.create(
     options({
       types: {
         'Compact<TAssetBalance>': 'Compact<Balance>'
       },
-      provider: new WsProvider('ws://localhost:9948')
+      provider: new WsProvider(paraWs.toString())
     })
   )
 
@@ -94,9 +94,9 @@ async function para({ logger }: ActionParameters) {
   await api.tx.utility.batchAll(call).signAndSend(signer, { nonce: await nextNonce(api, signer) })
 }
 
-async function relay({ logger }: ActionParameters) {
+async function relay({ logger, options: { relayWs } }: ActionParameters) {
   const api = await ApiPromise.create({
-    provider: new WsProvider('ws://localhost:9944')
+    provider: new WsProvider(relayWs.toString())
   })
 
   logger.info('Wait for relaychain to produce blocks')
@@ -159,14 +159,21 @@ async function relay({ logger }: ActionParameters) {
 }
 
 export default function ({ createCommand }: CreateCommandParameters): Command {
-  return createCommand('run chain initialization scripts').action(actionParameters => {
-    const { logger } = actionParameters
-    relay(actionParameters)
-      .then(() => para(actionParameters))
-      .then(() => process.exit(0))
-      .catch(err => {
-        logger.error(err.message)
-        process.exit(1)
-      })
-  })
+  return createCommand('run chain initialization scripts')
+    .option('-r, --relay-ws [url]', 'The Relaychain API endpoint', {
+      default: 'ws://127.0.0.1:9944'
+    })
+    .option('-p, --para-ws [url]', 'The Parachain API endpoint', {
+      default: 'ws://127.0.0.1:9948'
+    })
+    .action(actionParameters => {
+      const { logger } = actionParameters
+      relay(actionParameters)
+        .then(() => para(actionParameters))
+        .then(() => process.exit(0))
+        .catch(err => {
+          logger.error(err.message)
+          process.exit(1)
+        })
+    })
 }
