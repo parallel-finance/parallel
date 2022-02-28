@@ -183,16 +183,6 @@ pub trait ConvertToBigUint {
     fn get_big_uint(&self) -> BigUint;
 }
 
-pub trait ConvertToU128 {
-    fn get_u128(&self) -> u128;
-}
-
-impl ConvertToU128 for BigUint {
-    fn get_u128(&self) -> u128 {
-        u128::try_from(self).unwrap()
-    }
-}
-
 impl ConvertToBigUint for u128 {
     fn get_big_uint(&self) -> BigUint {
         self.to_biguint().unwrap()
