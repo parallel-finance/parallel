@@ -139,6 +139,8 @@ pub mod pallet {
         IdenticalAssets,
         /// LP token has already been minted
         LpTokenAlreadyExists,
+        /// Conversion failure to u128
+        ConversionToU128Failed,
     }
 
     #[pallet::event]
@@ -682,7 +684,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 time_elapsed
                     .get_big_uint()
                     .checked_mul(&pool.quote_amount.get_big_uint())
-                    .unwrap()
+                    .ok_or(Error::<T, I>::ConversionToU128Failed)?
                     .to_u128()
                     .ok_or(ArithmeticError::Overflow)?,
                 pool.base_amount,
@@ -691,7 +693,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 time_elapsed
                     .get_big_uint()
                     .checked_mul(&pool.base_amount.get_big_uint())
-                    .unwrap()
+                    .ok_or(Error::<T, I>::ConversionToU128Failed)?
                     .to_u128()
                     .ok_or(ArithmeticError::Overflow)?,
                 pool.quote_amount,
@@ -742,9 +744,10 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
             /*
             *----------------------------------------------------------------------------
-            ideal_base_amount(x)    | ideal_quote_amount        | sqrt(z)
-            2000                    |  1000                     | 1414
-            2000000000000000000000  |  1000000000000000000000   | 1414213562373095047801
+                        ideal_base_amount(x)    | ideal_quote_amount        | sqrt(z)
+             U128       2000                    |  1000                     | 1414
+             U128(Error)2000000000000000000000  |  1000000000000000000000   | None
+             BigUInt    2000000000000000000000  |  1000000000000000000000   | 1414213562373095047801
             -----------------------------------------------------------------------------
             */
 
@@ -753,7 +756,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 .checked_mul(&ideal_quote_amount.get_big_uint())
                 .map(|r| r.sqrt())
                 .and_then(|r| r.checked_sub(&T::MinimumLiquidity::get().get_big_uint()))
-                .unwrap()
+                .ok_or(Error::<T, I>::ConversionToU128Failed)?
                 .to_u128()
                 .ok_or(ArithmeticError::Underflow)?
         } else {
@@ -762,14 +765,14 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                     .get_big_uint()
                     .checked_mul(&total_supply.get_big_uint())
                     .and_then(|r| r.checked_div(&pool.base_amount.get_big_uint()))
-                    .unwrap()
+                    .ok_or(Error::<T, I>::ConversionToU128Failed)?
                     .to_u128()
                     .ok_or(ArithmeticError::Underflow)?,
                 ideal_quote_amount
                     .get_big_uint()
                     .checked_mul(&total_supply.get_big_uint())
                     .and_then(|r| r.checked_div(&pool.quote_amount.get_big_uint()))
-                    .unwrap()
+                    .ok_or(Error::<T, I>::ConversionToU128Failed)?
                     .to_u128()
                     .ok_or(ArithmeticError::Underflow)?,
             )
@@ -817,14 +820,14 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .get_big_uint()
             .checked_mul(&pool.base_amount.get_big_uint())
             .and_then(|r| r.checked_div(&total_supply.get_big_uint()))
-            .unwrap()
+            .ok_or(Error::<T, I>::ConversionToU128Failed)?
             .to_u128()
             .ok_or(ArithmeticError::Underflow)?;
         let quote_amount = liquidity
             .get_big_uint()
             .checked_mul(&pool.quote_amount.get_big_uint())
             .and_then(|r| r.checked_div(&total_supply.get_big_uint()))
-            .unwrap()
+            .ok_or(Error::<T, I>::ConversionToU128Failed)?
             .to_u128()
             .ok_or(ArithmeticError::Underflow)?;
 
@@ -886,7 +889,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .get_big_uint()
             .checked_mul(&pool.quote_amount.get_big_uint())
             .map(|r| r.sqrt())
-            .unwrap()
+            .ok_or(Error::<T, I>::ConversionToU128Failed)?
             .to_u128()
             .ok_or(ArithmeticError::Overflow)?;
 
@@ -900,7 +903,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .get_big_uint()
             .checked_sub(&pool.root_k_last.get_big_uint())
             .and_then(|r| r.checked_mul(&total_supply.get_big_uint()))
-            .unwrap()
+            .ok_or(Error::<T, I>::ConversionToU128Failed)?
             .to_u128()
             .ok_or(ArithmeticError::Overflow)?;
 
@@ -908,7 +911,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .get_big_uint()
             .checked_mul(&Self::get_protocol_fee_reciprocal_proportion()?.get_big_uint())
             .and_then(|r| r.checked_add(&pool.root_k_last.get_big_uint()))
-            .unwrap()
+            .ok_or(Error::<T, I>::ConversionToU128Failed)?
             .to_u128()
             .ok_or(ArithmeticError::Overflow)?;
 
