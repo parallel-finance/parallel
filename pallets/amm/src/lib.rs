@@ -310,10 +310,8 @@ pub mod pallet {
 
             Pools::<T, I>::try_mutate(base_asset, quote_asset, |pool| -> DispatchResult {
                 let pool = pool.as_mut().ok_or(Error::<T, I>::PoolDoesNotExist)?;
-
                 let (base_amount_removed, quote_amount_removed) =
-                    Self::calculate_reserves_to_remove(pool, liquidity)?;
-                Self::do_remove_liquidity(&who, pool, liquidity, (base_asset, quote_asset))?;
+                    Self::do_remove_liquidity(&who, pool, liquidity, (base_asset, quote_asset))?;
                 Self::do_mint_protocol_fee(pool)?;
 
                 log::trace!(
