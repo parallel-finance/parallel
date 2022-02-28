@@ -796,8 +796,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             Error::<T, I>::NoFunds
         );
 
-        // TODO: Large amounts fail in Transfer due to a precision loss
-        // TODO: Represent values in U256 or U512 and check for precision loss?
         T::Assets::transfer(
             base_asset,
             who,
