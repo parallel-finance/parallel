@@ -929,3 +929,33 @@ fn oracle_big_block_no_overflow() {
 //         );
 //     })
 // }
+
+#[test]
+fn transferring_larger_amounts_than_the_pool_should_not_panic() {
+    // PANIC ! thread 'tests::transferring_larger_amounts_than_the_pool_should_not_panic' panicked at 'Expected Ok(_). Got Err(
+    new_test_ext().execute_with(|| {
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (1_000, 2_000),                  // Liquidity amounts to be added in pool
+            ALICE,                           // LPToken receiver
+            SAMPLE_LP_TOKEN                  // Liquidity pool share representative token
+        ));
+
+        assert_ok!(AMM::add_liquidity(
+            RawOrigin::Signed(ALICE).into(), // Origin
+            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (3_000, 4_000),                  // Liquidity amounts to be added in pool
+            (5, 5),                          // specifying its worst case ratio when pool already
+        ));
+
+        assert_ok!(AMM::add_liquidity(
+            RawOrigin::Signed(BOB).into(), // Origin
+            (DOT, XDOT),                   // Currency pool, in which liquidity will be added
+            (500_000_000, 5_000_000_000),  // Liquidity amounts to be added in pool
+            (5, 5),                        // specifying its worst case ratio when pool already
+        ));
+
+        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 7_000);
+    })
+}
