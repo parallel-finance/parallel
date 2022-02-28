@@ -81,7 +81,7 @@ jobs:
         run: |
           make check
           make check-wasm
-          make check-launch
+          make check-helper
 
       - name: Check Clippy Warnings
         run: |
