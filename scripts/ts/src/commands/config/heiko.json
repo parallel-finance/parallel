@@ -174,7 +174,7 @@
           }
         },
         "state": "Pending",
-        "ptokenId": 2104
+        "ptokenId": 2107
       }
     },
     {
@@ -194,7 +194,7 @@
           }
         },
         "state": "Pending",
-        "ptokenId": 2105
+        "ptokenId": 2109
       }
     },
     {
@@ -214,7 +214,7 @@
           }
         },
         "state": "Pending",
-        "ptokenId": 2501
+        "ptokenId": 2201
       }
     },
     {
@@ -234,7 +234,7 @@
           }
         },
         "state": "Pending",
-        "ptokenId": 2502
+        "ptokenId": 2202
       }
     },
     {
@@ -255,86 +255,6 @@
         },
         "state": "Pending",
         "ptokenId": 3000
-      }
-    },
-    {
-      "assetId": 4000,
-      "marketConfig": {
-        "closeFactor": 50e4,
-        "collateralFactor": 50e4,
-        "reserveFactor": 15e4,
-        "cap": "100000000000000000",
-        "liquidateIncentive": "1100000000000000000",
-        "rateModel": {
-          "jumpModel": {
-            "baseRate": "20000000000000000",
-            "jumpRate": "100000000000000000",
-            "fullRate": "320000000000000000",
-            "jumpUtilization": 8e5
-          }
-        },
-        "state": "Pending",
-        "ptokenId": 2300
-      }
-    },
-    {
-      "assetId": 5000,
-      "marketConfig": {
-        "closeFactor": 50e4,
-        "collateralFactor": 50e4,
-        "reserveFactor": 15e4,
-        "cap": "100000000000000000",
-        "liquidateIncentive": "1100000000000000000",
-        "rateModel": {
-          "jumpModel": {
-            "baseRate": "20000000000000000",
-            "jumpRate": "100000000000000000",
-            "fullRate": "320000000000000000",
-            "jumpUtilization": 8e5
-          }
-        },
-        "state": "Pending",
-        "ptokenId": 2301
-      }
-    },
-    {
-      "assetId": 5001,
-      "marketConfig": {
-        "closeFactor": 50e4,
-        "collateralFactor": 50e4,
-        "reserveFactor": 15e4,
-        "cap": "100000000000000000",
-        "liquidateIncentive": "1100000000000000000",
-        "rateModel": {
-          "jumpModel": {
-            "baseRate": "20000000000000000",
-            "jumpRate": "100000000000000000",
-            "fullRate": "320000000000000000",
-            "jumpUtilization": 8e5
-          }
-        },
-        "state": "Pending",
-        "ptokenId": 2302
-      }
-    },
-    {
-      "assetId": 5002,
-      "marketConfig": {
-        "closeFactor": 50e4,
-        "collateralFactor": 50e4,
-        "reserveFactor": 15e4,
-        "cap": "100000000000000000",
-        "liquidateIncentive": "1100000000000000000",
-        "rateModel": {
-          "jumpModel": {
-            "baseRate": "20000000000000000",
-            "jumpRate": "100000000000000000",
-            "fullRate": "320000000000000000",
-            "jumpUtilization": 8e5
-          }
-        },
-        "state": "Pending",
-        "ptokenId": 2303
       }
     }
   ],

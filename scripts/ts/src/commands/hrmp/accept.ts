@@ -10,10 +10,10 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
     .argument('<target>', 'paraId of target chain', {
       validator: program.NUMBER
     })
-    .option('-r, --relay-ws [url]', 'The Relaychain API endpoint', {
+    .option('-r, --relay-ws [url]', 'the relaychain API endpoint', {
       default: 'wss://kusama-rpc.polkadot.io'
     })
-    .option('-p, --para-ws [url]', 'The Parachain API endpoint', {
+    .option('-p, --para-ws [url]', 'the parachain API endpoint', {
       default: 'ws://127.0.0.1:9948'
     })
     .action(async actionParameters => {
