@@ -55,6 +55,7 @@ pub const PEUSDC: CurrencyId = 2502;
 // Crowdloan Derivative
 pub const CKSM_15_22: CurrencyId = 100150022;
 pub const CDOT_6_13: CurrencyId = 200060013;
+pub const CDOT_7_14: CurrencyId = 200070014;
 
 // Token Registration Information
 // +───────────+──────────────+────────────────────+
