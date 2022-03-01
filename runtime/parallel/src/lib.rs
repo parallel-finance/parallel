@@ -1040,28 +1040,28 @@ parameter_types! {
     pub AusdPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(paras::acala::ID.into()), GeneralKey(paras::acala::AUSD_KEY.to_vec()))
+            X2(Parachain(paras::acala::ID), GeneralKey(paras::acala::AUSD_KEY.to_vec()))
         ).into(),
         dot_per_second() * 30
     );
     pub AcaPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(paras::acala::ID.into()), GeneralKey(paras::acala::ACA_KEY.to_vec()))
+            X2(Parachain(paras::acala::ID), GeneralKey(paras::acala::ACA_KEY.to_vec()))
         ).into(),
         dot_per_second() * 20
     );
     pub LDOTPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(paras::acala::ID.into()), GeneralKey(paras::acala::LDOT_KEY.to_vec()))
+            X2(Parachain(paras::acala::ID), GeneralKey(paras::acala::LDOT_KEY.to_vec()))
         ).into(),
         dot_per_second()
     );
     pub LCDOTPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(paras::acala::ID.into()), GeneralKey(paras::acala::LCDOT_KEY.to_vec()))
+            X2(Parachain(paras::acala::ID), GeneralKey(paras::acala::LCDOT_KEY.to_vec()))
         ).into(),
         dot_per_second()
     );
