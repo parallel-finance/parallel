@@ -1605,7 +1605,6 @@ impl pallet_currency_adapter::Config for Runtime {
 
 parameter_types! {
     pub const FarmingPalletId: PalletId = PalletId(*b"par/farm");
-    pub const MaxRewardTokens: u32 = 1000;
     pub const MaxUserLockItemsCount: u32 = 100;
     pub const LockPoolMaxDuration: u32 = 50400;
 }
@@ -1614,7 +1613,6 @@ impl pallet_farming::Config for Runtime {
     type Event = Event;
     type Assets = CurrencyAdapter;
     type PalletId = FarmingPalletId;
-    type MaxRewardTokens = MaxRewardTokens;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_farming::weights::SubstrateWeight<Runtime>;
     type MaxUserLockItemsCount = MaxUserLockItemsCount;

@@ -82,10 +82,6 @@ pub mod pallet {
         /// The origin which can create new pools and add reward.
         type UpdateOrigin: EnsureOrigin<Self::Origin>;
 
-        /// Specifies how many reward tokens can be manipulated by a pool
-        #[pallet::constant]
-        type MaxRewardTokens: Get<u32>;
-
         /// Specifies max amount lock item for a user
         #[pallet::constant]
         type MaxUserLockItemsCount: Get<u32>;
@@ -107,6 +103,8 @@ pub mod pallet {
         PoolNewActiveStatusWrong,
         /// Not a valid duration
         NotAValidDuration,
+        /// Pool is in a target lock duration status
+        PoolIsInTargetLockDuration,
         /// Not a valid amount
         NotAValidAmount,
         /// Codec error
@@ -247,8 +245,18 @@ pub mod pallet {
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
 
+            ensure!(
+                lock_duration <= T::LockPoolMaxDuration::get(),
+                Error::<T>::ExcessMaxLockDuration
+            );
+
             Pools::<T>::mutate(asset, reward_asset, |pool_info| -> DispatchResult {
                 let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
+
+                ensure!(
+                    pool_info.lock_duration != lock_duration,
+                    Error::<T>::PoolIsInTargetLockDuration
+                );
 
                 pool_info.lock_duration = lock_duration;
                 Ok(())
@@ -418,6 +426,11 @@ pub mod pallet {
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
+            ensure!(
+                Pools::<T>::contains_key(&asset, &reward_asset),
+                Error::<T>::PoolDoesNotExist
+            );
+
             Self::update_reward(Some(who.clone()), asset, reward_asset)?;
 
             let asset_pool_account = Self::pool_account_id(reward_asset)?;
@@ -501,9 +514,11 @@ pub mod pallet {
                 pool_info.reward_rate = reward_rate;
                 pool_info.last_update_block = current_block_number;
 
-                let asset_pool_account = Self::pool_account_id(reward_asset)?;
-                let payer = T::Lookup::lookup(payer)?;
-                T::Assets::transfer(reward_asset, &payer, &asset_pool_account, amount, true)?;
+                if amount > 0 {
+                    let asset_pool_account = Self::pool_account_id(reward_asset)?;
+                    let payer = T::Lookup::lookup(payer)?;
+                    T::Assets::transfer(reward_asset, &payer, &asset_pool_account, amount, true)?;
+                }
 
                 Self::deposit_event(Event::<T>::RewardAdded(asset, reward_asset, amount));
                 Ok(())
