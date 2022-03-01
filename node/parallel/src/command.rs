@@ -202,6 +202,13 @@ macro_rules! switch_runtime {
             use vanilla_runtime::{RuntimeApi, Block};
 
 			$( $code )*
+        } else if $chain_spec.is_kerria() {
+			#[allow(unused_imports)]
+            use crate::service::KerriaExecutor as Executor;
+			#[allow(unused_imports)]
+            use kerria_runtime::{RuntimeApi, Block};
+
+			$( $code )*
         } else {
             unreachable!();
         }

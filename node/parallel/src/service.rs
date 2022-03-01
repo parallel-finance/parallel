@@ -73,6 +73,19 @@ impl sc_executor::NativeExecutionDispatch for VanillaExecutor {
     }
 }
 
+pub struct KerriaExecutor;
+impl sc_executor::NativeExecutionDispatch for KerriaExecutor {
+    type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
+
+    fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
+        kerria_runtime::api::dispatch(method, data)
+    }
+
+    fn native_version() -> sc_executor::NativeVersion {
+        kerria_runtime::native_version()
+    }
+}
+
 pub type FullBackend = sc_service::TFullBackend<Block>;
 pub type FullClient<RuntimeApi, Executor> =
     sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>;

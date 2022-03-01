@@ -90,10 +90,12 @@ cumulus-primitives-parachain-inherent = { git = 'https://github.com/paritytech/c
 cumulus-relay-chain-interface         = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.16' }
 cumulus-relay-chain-local             = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.16' }
 
-polkadot-cli        = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.16' }
-polkadot-parachain  = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.16' }
+polkadot-cli = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.16', features = [
+  'kusama-native',
+] }
+polkadot-parachain = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.16' }
 polkadot-primitives = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.16' }
-polkadot-service    = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.16' }
+polkadot-service = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.16' }
 
 [build-dependencies]
 substrate-build-script-utils = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
