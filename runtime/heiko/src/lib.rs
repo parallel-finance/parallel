@@ -208,7 +208,7 @@ impl Contains<Call> for BaseCallFilter {
     fn contains(call: &Call) -> bool {
         matches!(
             call,
-            // System
+            // System, Currencies
             Call::System(_) |
             Call::Timestamp(_) |
             Call::Balances(_) |
@@ -1646,6 +1646,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::TechnicalCommittee(_) |
             Call::Treasury(_) |
             Call::Scheduler(_) |
+            Call::Preimage(_) |
             // Parachain
             Call::ParachainSystem(_) |
             Call::XcmpQueue(_) |
@@ -1669,8 +1670,6 @@ impl Contains<Call> for WhiteListFilter {
             // Loans
             Call::Loans(_) |
             Call::Prices(_) |
-            // Crowdloans
-            // Call::Crowdloans(_) |
             // Membership
             Call::OracleMembership(_) |
             Call::GeneralCouncilMembership(_) |

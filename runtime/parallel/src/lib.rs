@@ -236,6 +236,7 @@ impl Contains<Call> for BaseCallFilter {
             // Membership
             Call::GeneralCouncilMembership(_) |
             Call::TechnicalCommitteeMembership(_) |
+            // Route
             Call::AMMRoute(_)
         )
         // // 3rd Party
@@ -1679,6 +1680,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::TechnicalCommittee(_) |
             Call::Treasury(_) |
             Call::Scheduler(_) |
+            Call::Preimage(_) |
             // Parachain
             Call::ParachainSystem(_) |
             // Consensus
