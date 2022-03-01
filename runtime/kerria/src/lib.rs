@@ -90,6 +90,7 @@ pub use pallet_liquid_staking;
 // pub use pallet_liquidation;
 pub use pallet_amm;
 pub use pallet_bridge;
+pub use pallet_crowdloans;
 pub use pallet_farming;
 pub use pallet_loans;
 pub use pallet_nominee_election;
@@ -98,8 +99,6 @@ pub use pallet_router;
 
 use currency::*;
 use fee::*;
-use time::*;
-
 pub use frame_support::{
     construct_runtime, log, parameter_types,
     traits::{InstanceFilter, KeyOwnerProofSystem, Randomness},
@@ -112,6 +111,7 @@ pub use frame_support::{
 use pallet_xcm::XcmPassthrough;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
+use time::*;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -421,35 +421,19 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == paras::acala::ID.into()
-                && key == paras::acala::ACA_KEY.to_vec() =>
-            {
-                Some(ACA)
-            }
+            } if id == paras::acala::ID && key == paras::acala::ACA_KEY.to_vec() => Some(ACA),
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == paras::acala::ID.into()
-                && key == paras::acala::AUSD_KEY.to_vec() =>
-            {
-                Some(AUSD)
-            }
+            } if id == paras::acala::ID && key == paras::acala::AUSD_KEY.to_vec() => Some(AUSD),
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == paras::acala::ID.into()
-                && key == paras::acala::LDOT_KEY.to_vec() =>
-            {
-                Some(LDOT)
-            }
+            } if id == paras::acala::ID && key == paras::acala::LDOT_KEY.to_vec() => Some(LDOT),
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == paras::acala::ID.into()
-                && key == paras::acala::LCDOT_KEY.to_vec() =>
-            {
-                Some(LC_DOT)
-            }
+            } if id == paras::acala::ID && key == paras::acala::LCDOT_KEY.to_vec() => Some(LC_DOT),
             _ => None,
         }
     }
@@ -504,8 +488,8 @@ impl orml_xtokens::Config for Runtime {
 parameter_types! {
     pub const AssetDeposit: Balance = DOLLARS; // 1 UNIT deposit to create asset
     pub const ApprovalDeposit: Balance = EXISTENTIAL_DEPOSIT;
-    pub const AssetAccountDeposit: Balance = deposit(1, 16);
     pub const AssetsStringLimit: u32 = 50;
+    pub const AssetAccountDeposit: Balance = deposit(1, 16);
     /// Key = 32 bytes, Value = 36 bytes (32+1+1+1+1)
     // https://github.com/paritytech/substrate/blob/069917b/frame/assets/src/lib.rs#L257L271
     pub const MetadataDepositBase: Balance = deposit(1, 68);
@@ -543,13 +527,13 @@ impl pallet_loans::Config for Runtime {
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const DerivativeIndex: u16 = 0;
-    pub const EraLength: BlockNumber = 6 * 4 * 3600 / 6;
+    pub const EraLength: BlockNumber = 1 * 3 * 60 / 6;
     pub const MinStake: Balance = 10_000_000_000; // 1DOT
     pub const MinUnstake: Balance = 5_000_000_000; // 0.5xDOT
     pub const StakingCurrency: CurrencyId = DOT;
     pub const LiquidCurrency: CurrencyId = XDOT;
     pub const XcmFees: Balance = 500_000_000; // 0.05DOT
-    pub const BondingDuration: u32 = 28; // 28Days
+    pub const BondingDuration: u32 = 3; // 9Minutes
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -692,7 +676,7 @@ impl pallet_authorship::Config for Runtime {
 }
 
 parameter_types! {
-    pub const Period: u32 = 6 * HOURS;
+    pub const Period: u32 = 3 * MINUTES;
     pub const Offset: u32 = 0;
 }
 
@@ -1405,7 +1389,7 @@ impl pallet_scheduler::Config for Runtime {
     type PalletsOrigin = OriginCaller;
     type Call = Call;
     type MaximumWeight = MaximumSchedulerWeight;
-    type ScheduleOrigin = EnsureRoot<AccountId>;
+    type ScheduleOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type MaxScheduledPerBlock = MaxScheduledPerBlock;
     type OriginPrivilegeCmp = EqualPrivilegeOnly;
     type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
@@ -1497,7 +1481,7 @@ impl pallet_membership::Config<BridgeMembershipInstance> for Runtime {
 }
 
 parameter_types! {
-    pub const Parallel: ChainId = 0;
+    pub const ParallelKerria: ChainId = 0;
     pub const BridgePalletId: PalletId = PalletId(*b"par/brid");
     // Set a short lifetime for development
     pub const ProposalLifetime: BlockNumber = 200;
@@ -1509,7 +1493,7 @@ impl pallet_bridge::Config for Runtime {
     type AdminMembers = BridgeMembership;
     type RootOperatorAccountId = OneAccount;
     type OperateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type ChainId = Parallel;
+    type ChainId = ParallelKerria;
     type PalletId = BridgePalletId;
     type Assets = CurrencyAdapter;
     type ProposalLifetime = ProposalLifetime;
@@ -1775,7 +1759,6 @@ construct_runtime!(
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>} = 50,
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>} = 51,
         Crowdloans: pallet_crowdloans::{Pallet, Call, Storage, Event<T>} = 52,
-        // Liquidation: pallet_liquidation::{Pallet, Call} = 53,
 
         // LiquidStaking
         LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config} = 60,
