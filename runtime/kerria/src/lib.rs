@@ -23,33 +23,20 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 mod weights;
 
 use codec::{Decode, Encode, MaxEncodedLen};
-use scale_info::TypeInfo;
-
 use frame_support::{
     dispatch::Weight,
-    log, match_type,
+    match_type,
     traits::{
         fungibles::{InspectMetadata, Mutate},
-        ChangeMembers, Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, InstanceFilter,
-        Nothing,
+        ChangeMembers, Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, Nothing,
+        OnRuntimeUpgrade,
     },
     PalletId,
 };
-use frame_system::{
-    limits::{BlockLength, BlockWeights},
-    EnsureRoot, EnsureSigned,
-};
 
 use orml_traits::{DataProvider, DataProviderExtended};
-use orml_xcm_support::{IsNativeConcrete, MultiNativeAsset};
-use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::SlowAdjustingFeeUpdate;
-use primitives::{
-    currency::MultiCurrencyAdapter,
-    network::HEIKO_PREFIX,
-    tokens::{HKO, KAR, KSM, KUSD, LKSM, XKSM},
-    Index, *,
-};
+use scale_info::TypeInfo;
 use sp_api::impl_runtime_apis;
 use sp_core::{
     u32_trait::{_1, _2, _3, _4, _5},
@@ -69,6 +56,20 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
+
+use frame_system::{
+    limits::{BlockLength, BlockWeights},
+    EnsureRoot,
+};
+use orml_xcm_support::{IsNativeConcrete, MultiNativeAsset};
+use polkadot_parachain::primitives::Sibling;
+use primitives::{
+    currency::MultiCurrencyAdapter,
+    network::PARALLEL_PREFIX,
+    tokens::{ACA, AUSD, DOT, LC_DOT, LDOT, PARA, XDOT},
+    Index, *,
+};
+
 use xcm::latest::prelude::*;
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
@@ -78,7 +79,6 @@ use xcm_builder::{
     SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit,
 };
 use xcm_executor::{Config, XcmExecutor};
-
 pub mod constants;
 pub mod impls;
 // A few exports that help ease life for downstream crates.
@@ -90,17 +90,19 @@ pub use pallet_liquid_staking;
 // pub use pallet_liquidation;
 pub use pallet_amm;
 pub use pallet_bridge;
-pub use pallet_crowdloans;
 pub use pallet_farming;
 pub use pallet_loans;
 pub use pallet_nominee_election;
 pub use pallet_prices;
+pub use pallet_router;
 
 use currency::*;
 use fee::*;
+use time::*;
+
 pub use frame_support::{
-    construct_runtime, parameter_types,
-    traits::{KeyOwnerProofSystem, Randomness},
+    construct_runtime, log, parameter_types,
+    traits::{InstanceFilter, KeyOwnerProofSystem, Randomness},
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
         DispatchClass, IdentityFee,
@@ -108,7 +110,8 @@ pub use frame_support::{
     StorageValue,
 };
 use pallet_xcm::XcmPassthrough;
-use time::*;
+#[cfg(any(feature = "std", test))]
+pub use sp_runtime::BuildStorage;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -133,8 +136,8 @@ pub mod opaque {
 
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-    spec_name: create_runtime_str!("vanilla"),
-    impl_name: create_runtime_str!("vanilla"),
+    spec_name: create_runtime_str!("kerria"),
+    impl_name: create_runtime_str!("kerria"),
     authoring_version: 1,
     spec_version: 177,
     impl_version: 22,
@@ -146,7 +149,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
 pub const PRIMARY_PROBABILITY: (u64, u64) = (1, 4);
 
-pub const NATIVE_ASSET_ID: u32 = HKO;
+pub const NATIVE_ASSET_ID: u32 = PARA;
 
 #[derive(codec::Encode, codec::Decode)]
 pub enum XCMPMessage<XAccountId, XBalance> {
@@ -195,7 +198,7 @@ parameter_types! {
         })
         .avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
         .build_or_panic();
-    pub const SS58Prefix: u8 = HEIKO_PREFIX;
+    pub const SS58Prefix: u8 = PARALLEL_PREFIX;
 }
 
 pub struct BaseCallFilter;
@@ -340,40 +343,47 @@ pub struct CurrencyIdConvert;
 impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
-            KSM => Some(MultiLocation::parent()),
-            XKSM => Some(MultiLocation::new(
+            DOT => Some(MultiLocation::parent()),
+            XDOT => Some(MultiLocation::new(
                 1,
                 X2(
                     Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(b"xKSM".to_vec()),
+                    GeneralKey(b"xDOT".to_vec()),
                 ),
             )),
-            HKO => Some(MultiLocation::new(
+            PARA => Some(MultiLocation::new(
                 1,
                 X2(
                     Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(b"HKO".to_vec()),
+                    GeneralKey(b"PARA".to_vec()),
                 ),
             )),
-            KAR => Some(MultiLocation::new(
+            ACA => Some(MultiLocation::new(
                 1,
                 X2(
-                    Parachain(paras::karura::ID),
-                    GeneralKey(paras::karura::KAR_KEY.to_vec()),
+                    Parachain(paras::acala::ID),
+                    GeneralKey(paras::acala::ACA_KEY.to_vec()),
                 ),
             )),
-            KUSD => Some(MultiLocation::new(
+            AUSD => Some(MultiLocation::new(
                 1,
                 X2(
-                    Parachain(paras::karura::ID),
-                    GeneralKey(paras::karura::KUSD_KEY.to_vec()),
+                    Parachain(paras::acala::ID),
+                    GeneralKey(paras::acala::AUSD_KEY.to_vec()),
                 ),
             )),
-            LKSM => Some(MultiLocation::new(
+            LDOT => Some(MultiLocation::new(
                 1,
                 X2(
-                    Parachain(paras::karura::ID),
-                    GeneralKey(paras::karura::LKSM_KEY.to_vec()),
+                    Parachain(paras::acala::ID),
+                    GeneralKey(paras::acala::LDOT_KEY.to_vec()),
+                ),
+            )),
+            LC_DOT => Some(MultiLocation::new(
+                1,
+                X2(
+                    Parachain(paras::acala::ID),
+                    GeneralKey(paras::acala::LCDOT_KEY.to_vec()),
                 ),
             )),
             _ => None,
@@ -387,39 +397,59 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
             MultiLocation {
                 parents: 1,
                 interior: Here,
-            } => Some(KSM),
+            } => Some(DOT),
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xKSM".to_vec() => {
-                Some(XKSM)
+            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xDOT".to_vec() => {
+                Some(XDOT)
             }
             MultiLocation {
                 parents: 0,
                 interior: X1(GeneralKey(key)),
-            } if key == b"xKSM".to_vec() => Some(XKSM),
+            } if key == b"xDOT".to_vec() => Some(XDOT),
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"HKO".to_vec() => {
-                Some(HKO)
+            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"PARA".to_vec() => {
+                Some(PARA)
             }
             MultiLocation {
                 parents: 0,
                 interior: X1(GeneralKey(key)),
-            } if key == b"HKO".to_vec() => Some(HKO),
+            } if key == b"PARA".to_vec() => Some(PARA),
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
-            } if id == paras::karura::ID && key == paras::karura::KUSD_KEY.to_vec() => Some(KUSD),
+            } if ParaId::from(id) == paras::acala::ID.into()
+                && key == paras::acala::ACA_KEY.to_vec() =>
+            {
+                Some(ACA)
+            }
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
-            } if id == paras::karura::ID && key == paras::karura::KAR_KEY.to_vec() => Some(KAR),
+            } if ParaId::from(id) == paras::acala::ID.into()
+                && key == paras::acala::AUSD_KEY.to_vec() =>
+            {
+                Some(AUSD)
+            }
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
-            } if id == paras::karura::ID && key == paras::karura::LKSM_KEY.to_vec() => Some(LKSM),
+            } if ParaId::from(id) == paras::acala::ID.into()
+                && key == paras::acala::LDOT_KEY.to_vec() =>
+            {
+                Some(LDOT)
+            }
+            MultiLocation {
+                parents: 1,
+                interior: X2(Parachain(id), GeneralKey(key)),
+            } if ParaId::from(id) == paras::acala::ID.into()
+                && key == paras::acala::LCDOT_KEY.to_vec() =>
+            {
+                Some(LC_DOT)
+            }
             _ => None,
         }
     }
@@ -474,8 +504,8 @@ impl orml_xtokens::Config for Runtime {
 parameter_types! {
     pub const AssetDeposit: Balance = DOLLARS; // 1 UNIT deposit to create asset
     pub const ApprovalDeposit: Balance = EXISTENTIAL_DEPOSIT;
-    pub const AssetsStringLimit: u32 = 50;
     pub const AssetAccountDeposit: Balance = deposit(1, 16);
+    pub const AssetsStringLimit: u32 = 50;
     /// Key = 32 bytes, Value = 36 bytes (32+1+1+1+1)
     // https://github.com/paritytech/substrate/blob/069917b/frame/assets/src/lib.rs#L257L271
     pub const MetadataDepositBase: Balance = deposit(1, 68);
@@ -513,13 +543,13 @@ impl pallet_loans::Config for Runtime {
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const DerivativeIndex: u16 = 0;
-    pub const EraLength: BlockNumber = 1 * 3 * 60 / 6;
-    pub const MinStake: Balance = 100_000_000_000; // 0.1KSM
-    pub const MinUnstake: Balance = 50_000_000_000; // 0.05xKSM
-    pub const StakingCurrency: CurrencyId = KSM;
-    pub const LiquidCurrency: CurrencyId = XKSM;
-    pub const XcmFees: Balance = 5_000_000_000; // 0.005KSM
-    pub const BondingDuration: u32 = 3; // 9Minutes
+    pub const EraLength: BlockNumber = 6 * 4 * 3600 / 6;
+    pub const MinStake: Balance = 10_000_000_000; // 1DOT
+    pub const MinUnstake: Balance = 5_000_000_000; // 0.5xDOT
+    pub const StakingCurrency: CurrencyId = DOT;
+    pub const LiquidCurrency: CurrencyId = XDOT;
+    pub const XcmFees: Balance = 500_000_000; // 0.05DOT
+    pub const BondingDuration: u32 = 28; // 28Days
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -527,15 +557,15 @@ impl pallet_liquid_staking::Config for Runtime {
     type Origin = Origin;
     type Call = Call;
     type PalletId = StakingPalletId;
-    type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = ();
     type SelfParaId = ParachainInfo;
     type Assets = Assets;
-    type StakingCurrency = StakingCurrency;
-    type LiquidCurrency = LiquidCurrency;
+    type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type DerivativeIndex = DerivativeIndex;
     type XcmFees = XcmFees;
+    type StakingCurrency = StakingCurrency;
+    type LiquidCurrency = LiquidCurrency;
     type EraLength = EraLength;
     type MinStake = MinStake;
     type MinUnstake = MinUnstake;
@@ -662,7 +692,7 @@ impl pallet_authorship::Config for Runtime {
 }
 
 parameter_types! {
-    pub const Period: u32 = 3 * MINUTES;
+    pub const Period: u32 = 6 * HOURS;
     pub const Offset: u32 = 0;
 }
 
@@ -893,12 +923,12 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 impl parachain_info::Config for Runtime {}
 
 parameter_types! {
-    pub const RelayLocation: MultiLocation = MultiLocation::parent();
-    pub RelayNetwork: NetworkId = NetworkId::Kusama;
-    pub RelayCurrency: CurrencyId = KSM;
-    pub VanillaNetwork: NetworkId = NetworkId::Named("vanilla".into());
+    pub RelayLocation: MultiLocation = MultiLocation::parent();
+    pub const RelayNetwork: NetworkId = NetworkId::Polkadot;
+    pub RelayCurrency: CurrencyId = DOT;
+    pub KerriaNetwork: NetworkId = NetworkId::Named("kerria".into());
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
-    pub Ancestry: MultiLocation =  MultiLocation::new(0, X1(Parachain(ParachainInfo::parachain_id().into())));
+    pub Ancestry: MultiLocation = MultiLocation::new(0, X1(Parachain(ParachainInfo::parachain_id().into())));
 }
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
@@ -921,14 +951,14 @@ parameter_types! {
 pub struct GiftConvert;
 impl Convert<Balance, Balance> for GiftConvert {
     fn convert(amount: Balance) -> Balance {
-        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(&KSM);
+        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(&DOT);
         if decimal.is_zero() {
             return Zero::zero();
         }
 
-        // 0.1KSM
-        if amount >= 10_u128.pow((decimal - 1).into()) {
-            return DOLLARS / 40; // 0.025HKO
+        // 5DOT
+        if amount >= 5 * 10_u128.pow(decimal.into()) {
+            return 125 * DOLLARS / 100; // 1.25PARA
         }
 
         Zero::zero()
@@ -977,55 +1007,62 @@ pub type XcmOriginToTransactDispatchOrigin = (
 );
 
 parameter_types! {
-    pub KsmPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), ksm_per_second());
-    pub XKSMPerSecond: (AssetId, u128) = (
+    pub DotPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), dot_per_second());
+    pub XDOTPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(b"xKSM".to_vec())),
+            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(b"xDOT".to_vec())),
         ).into(),
-        ksm_per_second()
+        dot_per_second()
     );
-    pub XKSMPerSecondOfCanonicalLocation: (AssetId, u128) = (
+    pub XDOTPerSecondOfCanonicalLocation: (AssetId, u128) = (
         MultiLocation::new(
             0,
-            X1(GeneralKey(b"xKSM".to_vec())),
+            X1(GeneralKey(b"xDOT".to_vec())),
         ).into(),
-        ksm_per_second()
+        dot_per_second()
     );
-    pub HkoPerSecond: (AssetId, u128) = (
+    pub ParaPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(b"HKO".to_vec())),
+            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(b"PARA".to_vec())),
         ).into(),
-        ksm_per_second() * 30
+        dot_per_second() * 100
     );
-    pub HkoPerSecondOfCanonicalLocation: (AssetId, u128) = (
+    pub ParaPerSecondOfCanonicalLocation: (AssetId, u128) = (
         MultiLocation::new(
             0,
-            X1(GeneralKey(b"HKO".to_vec())),
+            X1(GeneralKey(b"PARA".to_vec())),
         ).into(),
-        ksm_per_second() * 30
+        dot_per_second() * 100
     );
-    pub KusdPerSecond: (AssetId, u128) = (
+    pub AusdPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(paras::karura::ID), GeneralKey(paras::karura::KUSD_KEY.to_vec())),
+            X2(Parachain(paras::acala::ID.into()), GeneralKey(paras::acala::AUSD_KEY.to_vec()))
         ).into(),
-        ksm_per_second() * 400
+        dot_per_second() * 30
     );
-    pub KarPerSecond: (AssetId, u128) = (
+    pub AcaPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(paras::karura::ID), GeneralKey(paras::karura::KAR_KEY.to_vec())),
+            X2(Parachain(paras::acala::ID.into()), GeneralKey(paras::acala::ACA_KEY.to_vec()))
         ).into(),
-        ksm_per_second() * 50
+        dot_per_second() * 20
     );
-    pub LKSMPerSecond: (AssetId, u128) = (
+    pub LDOTPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(paras::karura::ID), GeneralKey(paras::karura::LKSM_KEY.to_vec())),
+            X2(Parachain(paras::acala::ID.into()), GeneralKey(paras::acala::LDOT_KEY.to_vec()))
         ).into(),
-        ksm_per_second()
+        dot_per_second()
+    );
+    pub LCDOTPerSecond: (AssetId, u128) = (
+        MultiLocation::new(
+            1,
+            X2(Parachain(paras::acala::ID.into()), GeneralKey(paras::acala::LCDOT_KEY.to_vec()))
+        ).into(),
+        dot_per_second()
     );
 }
 
@@ -1059,14 +1096,15 @@ impl TakeRevenue for ToTreasury {
 }
 
 pub type Trader = (
-    FixedRateOfFungible<KsmPerSecond, ToTreasury>,
-    FixedRateOfFungible<XKSMPerSecond, ToTreasury>,
-    FixedRateOfFungible<XKSMPerSecondOfCanonicalLocation, ToTreasury>,
-    FixedRateOfFungible<HkoPerSecond, ToTreasury>,
-    FixedRateOfFungible<HkoPerSecondOfCanonicalLocation, ToTreasury>,
-    FixedRateOfFungible<KusdPerSecond, ToTreasury>,
-    FixedRateOfFungible<KarPerSecond, ToTreasury>,
-    FixedRateOfFungible<LKSMPerSecond, ToTreasury>,
+    FixedRateOfFungible<DotPerSecond, ToTreasury>,
+    FixedRateOfFungible<XDOTPerSecond, ToTreasury>,
+    FixedRateOfFungible<XDOTPerSecondOfCanonicalLocation, ToTreasury>,
+    FixedRateOfFungible<ParaPerSecond, ToTreasury>,
+    FixedRateOfFungible<ParaPerSecondOfCanonicalLocation, ToTreasury>,
+    FixedRateOfFungible<AusdPerSecond, ToTreasury>,
+    FixedRateOfFungible<AcaPerSecond, ToTreasury>,
+    FixedRateOfFungible<LDOTPerSecond, ToTreasury>,
+    FixedRateOfFungible<LCDOTPerSecond, ToTreasury>,
 );
 
 pub struct XcmConfig;
@@ -1367,7 +1405,7 @@ impl pallet_scheduler::Config for Runtime {
     type PalletsOrigin = OriginCaller;
     type Call = Call;
     type MaximumWeight = MaximumSchedulerWeight;
-    type ScheduleOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type ScheduleOrigin = EnsureRoot<AccountId>;
     type MaxScheduledPerBlock = MaxScheduledPerBlock;
     type OriginPrivilegeCmp = EqualPrivilegeOnly;
     type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
@@ -1459,7 +1497,7 @@ impl pallet_membership::Config<BridgeMembershipInstance> for Runtime {
 }
 
 parameter_types! {
-    pub const ParallelHeiko: ChainId = 0;
+    pub const Parallel: ChainId = 0;
     pub const BridgePalletId: PalletId = PalletId(*b"par/brid");
     // Set a short lifetime for development
     pub const ProposalLifetime: BlockNumber = 200;
@@ -1471,7 +1509,7 @@ impl pallet_bridge::Config for Runtime {
     type AdminMembers = BridgeMembership;
     type RootOperatorAccountId = OneAccount;
     type OperateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type ChainId = ParallelHeiko;
+    type ChainId = Parallel;
     type PalletId = BridgePalletId;
     type Assets = CurrencyAdapter;
     type ProposalLifetime = ProposalLifetime;
@@ -1488,7 +1526,7 @@ impl orml_vesting::Config for Runtime {
     type Event = Event;
     type Currency = Balances;
     type MinVestedTransfer = MinVestedTransfer;
-    type VestedTransferOrigin = EnsureSigned<AccountId>;
+    type VestedTransferOrigin = frame_system::EnsureSigned<AccountId>;
     type WeightInfo = ();
     type MaxVestingSchedules = MaxVestingSchedules;
     type BlockNumberProvider = frame_system::Pallet<Runtime>;
@@ -1507,8 +1545,8 @@ impl pallet_amm::Config for Runtime {
     type Assets = CurrencyAdapter;
     type PalletId = AMMPalletId;
     type LockAccountId = OneAccount;
-    type AMMWeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
     type CreatePoolOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type AMMWeightInfo = pallet_amm::weights::SubstrateWeight<Runtime>;
     type LpFee = DefaultLpFee;
     type ProtocolFee = DefaultProtocolFee;
     type MinimumLiquidity = MinimumLiquidity;
@@ -1518,7 +1556,7 @@ impl pallet_amm::Config for Runtime {
 
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
-    pub const MinContribution: Balance = 100_000_000_000;
+    pub const MinContribution: Balance = 50_000_000_000;
     pub const MaxVrfs: u32 = 10;
     pub const MigrateKeysLimit: u32 = 10;
     pub const RemoveKeysLimit: u32 = 1000;
@@ -1583,6 +1621,7 @@ impl pallet_xcm_helper::Config for Runtime {
     type BlockNumberProvider = frame_system::Pallet<Runtime>;
     type WeightInfo = pallet_xcm_helper::weights::SubstrateWeight<Runtime>;
 }
+
 parameter_types! {
     pub const MaxLengthRoute: u8 = 10;
     pub const RouterPalletId: PalletId = PalletId(*b"ammroute");
@@ -1736,6 +1775,7 @@ construct_runtime!(
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>} = 50,
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>} = 51,
         Crowdloans: pallet_crowdloans::{Pallet, Call, Storage, Event<T>} = 52,
+        // Liquidation: pallet_liquidation::{Pallet, Call} = 53,
 
         // LiquidStaking
         LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config} = 60,
@@ -1795,8 +1835,34 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    (),
+    (SchedulerMigrationV3, CrowdloansMigrationV1),
 >;
+
+// Migration for scheduler pallet to move from a plain Call to a CallOrHash.
+pub struct SchedulerMigrationV3;
+
+impl OnRuntimeUpgrade for SchedulerMigrationV3 {
+    fn on_runtime_upgrade() -> frame_support::weights::Weight {
+        Scheduler::migrate_v2_to_v3()
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn pre_upgrade() -> Result<(), &'static str> {
+        Scheduler::pre_migrate_to_v3()
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn post_upgrade() -> Result<(), &'static str> {
+        Scheduler::post_migrate_to_v3()
+    }
+}
+
+pub struct CrowdloansMigrationV1;
+impl OnRuntimeUpgrade for CrowdloansMigrationV1 {
+    fn on_runtime_upgrade() -> Weight {
+        pallet_crowdloans::migrations::v1::migrate::<Runtime>()
+    }
+}
 
 impl_runtime_apis! {
     impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
@@ -1963,9 +2029,9 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_amm, AMM);
             list_benchmark!(list, extra, pallet_liquid_staking, LiquidStaking);
             list_benchmark!(list, extra, pallet_router, AMMRoute);
-            list_benchmark!(list, extra, pallet_farming, Farming);
             list_benchmark!(list, extra, pallet_crowdloans, Crowdloans);
             list_benchmark!(list, extra, pallet_xcm_helper, XcmHelper);
+            list_benchmark!(list, extra, pallet_farming, Farming);
 
             let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -2009,9 +2075,9 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_amm, AMM);
             add_benchmark!(params, batches, pallet_liquid_staking, LiquidStaking);
             add_benchmark!(params, batches, pallet_router, AMMRoute);
-            add_benchmark!(params, batches, pallet_farming, Farming);
             add_benchmark!(params, batches, pallet_crowdloans, Crowdloans);
             add_benchmark!(params, batches, pallet_xcm_helper, XcmHelper);
+            add_benchmark!(params, batches, pallet_farming, Farming);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)

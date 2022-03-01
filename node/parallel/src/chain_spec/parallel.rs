@@ -15,6 +15,7 @@
 use parallel_runtime::{
     opaque::SessionKeys,
     BalancesConfig,
+    BridgeMembershipConfig,
     CollatorSelectionConfig,
     DemocracyConfig,
     GeneralCouncilConfig,
@@ -66,7 +67,7 @@ pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
                 get_authority_keys_from_seed("Charlie"),
             ];
             let oracle_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Ferdie")];
-            // let bridge_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Alice")];
+            let bridge_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Alice")];
             let liquid_staking_agents = vec![get_account_id_from_seed::<sr25519::Public>("Eve")];
             let initial_allocation: Vec<(AccountId, Balance)> = accumulate(
                 vec![
@@ -114,7 +115,7 @@ pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
                 root_key,
                 invulnerables,
                 oracle_accounts,
-                // bridge_accounts,
+                bridge_accounts,
                 initial_allocation,
                 liquid_staking_agents,
                 council,
@@ -224,7 +225,7 @@ fn parallel_genesis(
     root_key: AccountId,
     invulnerables: Vec<(AccountId, AuraId)>,
     oracle_accounts: Vec<AccountId>,
-    // bridge_accounts: Vec<AccountId>,
+    bridge_accounts: Vec<AccountId>,
     initial_allocation: Vec<(AccountId, Balance)>,
     liquid_staking_agents: Vec<AccountId>,
     council: Vec<AccountId>,
@@ -290,10 +291,10 @@ fn parallel_genesis(
             members: oracle_accounts,
             phantom: Default::default(),
         },
-        // bridge_membership: BridgeMembershipConfig {
-        //     members: bridge_accounts,
-        //     phantom: Default::default(),
-        // },
+        bridge_membership: BridgeMembershipConfig {
+            members: bridge_accounts,
+            phantom: Default::default(),
+        },
         liquid_staking_agents_membership: LiquidStakingAgentsMembershipConfig {
             members: liquid_staking_agents,
             phantom: Default::default(),
