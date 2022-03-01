@@ -29,7 +29,9 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
         .then(api => api.tx.hrmp.hrmpInitOpenChannel(target.valueOf() as number, 8, 102400).toHex())
         .then(hex => `0x${hex.slice(6)}`)
       const api = await getApi(paraWs.toString())
-      const signer = new Keyring({ type: 'sr25519', ss58Format: 110 }).addFromUri('//Dave')
+      const signer = new Keyring({ type: 'sr25519' }).addFromUri(
+        `${process.env.PARA_CHAIN_SUDO_KEY || '//Dave'}`
+      )
       await api.tx.sudo
         .sudo(
           api.tx.ormlXcm.sendAsSovereign(

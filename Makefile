@@ -1,15 +1,16 @@
 PARA_ID        											:= 2085
 CHAIN          											:= vanilla-dev
+RELAY_CHAIN                         := kusama-local
 RUNTIME        											:= vanilla-runtime
 BLOCK_AT       											:= 0x0000000000000000000000000000000000000000000000000000000000000000
 URL            											:= ws://localhost:9948
+RELAY_URL            								:= ws://localhost:9944
 KEYSTORE_PATH  											:= keystore
 SURI           											:= //Alice
 LAUNCH_CONFIG_YAML	  							:= config.yml
 LAUNCH_CONFIG_JSON	           			:= scripts/ts/src/commands/config.json
 DOCKER_TAG     											:= latest
 RELAY_DOCKER_TAG										:= v0.9.16
-ACALA_DOCKER_TAG										:= 14bd3bf4
 
 .PHONY: init
 init: submodules
@@ -95,6 +96,7 @@ fix:
 .PHONY: fmt
 fmt:
 	SKIP_WASM_BUILD= cargo fmt --all
+	cd scripts/ts && yarn format
 
 .PHONY: resources
 resources:
@@ -114,12 +116,12 @@ shutdown:
 .PHONY: launch
 launch: shutdown
 	yq -i eval '.relaychain.image = "parallelfinance/polkadot:$(RELAY_DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
+	yq -i eval '.relaychain.chain = "$(RELAY_CHAIN)"' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.parachains[0].image = "parallelfinance/parallel:$(DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
-	yq -i eval '.parachains[1].image = "acala/karura-node:$(ACALA_DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
+	yq -i eval '.parachains[0].chain.base = "$(CHAIN)"' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.paraId = $(PARA_ID)' $(LAUNCH_CONFIG_JSON)
 	docker image pull parallelfinance/polkadot:$(RELAY_DOCKER_TAG)
 	docker image pull parallelfinance/parallel:$(DOCKER_TAG)
-	docker image pull acala/karura-node:$(ACALA_DOCKER_TAG)
 	docker image pull parallelfinance/stake-client:latest
 	docker image pull parallelfinance/liquidation-client:latest
 	docker image pull parallelfinance/nominate-client:latest

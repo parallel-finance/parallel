@@ -29,8 +29,8 @@ async function para({ logger, options: { paraWs } }: ActionParameters) {
   do await sleep(1000)
   while (!(await chainHeight(api)))
 
-  const keyring = new Keyring({ type: 'sr25519', ss58Format: 110 })
-  const signer = keyring.addFromUri('//Dave')
+  const keyring = new Keyring({ type: 'sr25519' })
+  const signer = keyring.addFromUri(`${process.env.PARA_CHAIN_SUDO_KEY || '//Dave'}`)
   const call = []
 
   for (const { name, symbol, assetId, decimal, balances } of config.assets) {
@@ -103,7 +103,7 @@ async function relay({ logger, options: { relayWs } }: ActionParameters) {
   do await sleep(1000)
   while (!(await chainHeight(api)))
 
-  const keyring = new Keyring({ type: 'sr25519', ss58Format: 2 })
+  const keyring = new Keyring({ type: 'sr25519' })
   const signer = keyring.addFromUri(`${process.env.RELAY_CHAIN_SUDO_KEY || ''}`)
 
   for (const { paraId, image, derivativeIndex, chain } of config.crowdloans) {
