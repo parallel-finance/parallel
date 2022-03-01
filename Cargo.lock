@@ -4743,6 +4743,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-bigint"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f6f7833f2cbf2360a6cfd58cd41a53aa7a90bd4c202f5b1c7dd2ed73c57b2c3"
+dependencies = [
+ "autocfg",
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
 name = "num-complex"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4768,7 +4779,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c000134b5dbf44adc5cb772486d335293351644b801551abe8f75c84cfa4aef"
 dependencies = [
  "autocfg",
- "num-bigint",
+ "num-bigint 0.2.6",
  "num-integer",
  "num-traits",
 ]
@@ -5025,6 +5036,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "num-traits",
  "pallet-assets",
  "pallet-balances",
  "pallet-currency-adapter",
@@ -6367,6 +6379,8 @@ dependencies = [
  "cumulus-primitives-core",
  "frame-support",
  "frame-system",
+ "num-bigint 0.3.3",
+ "num-traits",
  "orml-oracle",
  "parity-scale-codec",
  "scale-info",
@@ -8954,7 +8968,7 @@ dependencies = [
  "futures 0.3.19",
  "log",
  "merlin",
- "num-bigint",
+ "num-bigint 0.2.6",
  "num-rational 0.2.4",
  "num-traits",
  "parity-scale-codec",
