@@ -26,9 +26,6 @@ use vanilla_runtime::{
     TechnicalCommitteeMembershipConfig, VestingConfig, WASM_BINARY,
 };
 
-// use hex_literal::hex;
-// use sp_core::crypto::UncheckedInto;
-
 use crate::chain_spec::{
     accumulate, as_properties, get_account_id_from_seed, get_authority_keys_from_seed, Extensions,
     TELEMETRY_URL,
@@ -85,6 +82,7 @@ pub fn vanilla_dev_config(id: ParaId) -> ChainSpec {
                     }
                 }),
             );
+            let vesting_list = vec![];
             let council = vec![
                 get_account_id_from_seed::<sr25519::Public>("Alice"),
                 get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -102,6 +100,7 @@ pub fn vanilla_dev_config(id: ParaId) -> ChainSpec {
                 oracle_accounts,
                 bridge_accounts,
                 initial_allocation,
+                vesting_list,
                 liquid_staking_agents,
                 council,
                 technical_committee,
@@ -114,143 +113,10 @@ pub fn vanilla_dev_config(id: ParaId) -> ChainSpec {
         None,
         Some(as_properties(NetworkType::Heiko)),
         Extensions {
-            relay_chain: "westend-local".into(),
+            relay_chain: "kusama-local".into(),
             para_id: id.into(),
         },
     )
-}
-
-pub fn vanilla_config(_id: ParaId) -> Result<ChainSpec, String> {
-    ChainSpec::from_json_bytes(&include_bytes!("../../../../resources/specs/vanilla.json")[..])
-    // Ok(ChainSpec::from_genesis(
-    //     // Name
-    //     "Vanilla",
-    //     // ID
-    //     "vanilla",
-    //     ChainType::Live,
-    //     move || {
-    //         let root_key = "5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf"
-    //             .parse()
-    //             .unwrap();
-    //         let invulnerables: Vec<(AccountId, AuraId)> = vec![
-    //             (
-    //                 // 5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf//collator1
-    //                 hex!["1a5dd54d1cef45e6140b54f3b83fdbbf41fec82645ad826d4f8cf106c88dd00e"].into(),
-    //                 hex!["1a5dd54d1cef45e6140b54f3b83fdbbf41fec82645ad826d4f8cf106c88dd00e"]
-    //                     .unchecked_into(),
-    //             ),
-    //             (
-    //                 // 5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf//collator2
-    //                 hex!["c6b255117d87f959c4e564888dc4987e0c3c35a60872a7fac4c38d771b39b70c"].into(),
-    //                 hex!["c6b255117d87f959c4e564888dc4987e0c3c35a60872a7fac4c38d771b39b70c"]
-    //                     .unchecked_into(),
-    //             ),
-    //         ];
-    //         // 5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf//oracle1
-    //         let oracle_accounts = vec!["5EUHNqqv9DTieD5582b1MWuVhfztzsCLjcawp6mBDYxL2sb6"
-    //             .parse()
-    //             .unwrap()];
-    //         // 5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf//validator_feeder1
-    //         let liquid_staking_agents = vec!["5CwJrAMQdQsihzGBeSWik8GTZuCcogKo1AkXuaoFBQbmnHjJ"
-    //             .parse()
-    //             .unwrap()];
-    //         let initial_allocation = accumulate(
-    //             vec![
-    //                 // Faucet accounts
-    //                 "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-    //                     .parse()
-    //                     .unwrap(),
-    //                 "5E5BxCjexvzgH9LsYUzMjD6gJaWiKkmadvjsHFPZmrXrK7Rf"
-    //                     .parse()
-    //                     .unwrap(),
-    //                 // Team members accounts
-    //                 "5DhZeTQqotvntGtrg69T2VK9pzUPXHiVyGUTmp5XFTDTT7ME"
-    //                     .parse()
-    //                     .unwrap(),
-    //                 "5GBykvvrUz3vwTttgHzUEPdm7G1FND1reBfddQLdiaCbhoMd"
-    //                     .parse()
-    //                     .unwrap(),
-    //                 "5G9eFoXB95fdwFJK9utBf1AgiLvhPUvzArYR2knzXKrKtZPZ"
-    //                     .parse()
-    //                     .unwrap(),
-    //                 "1Gu7GSgLSPrhc1Wci9wAGP6nvzQfaUCYqbfXxjYjMG9bob6"
-    //                     .parse()
-    //                     .unwrap(),
-    //                 "5G9eFoXB95fdwFJK9utBf1AgiLvhPUvzArYR2knzXKrKtZPZ"
-    //                     .parse()
-    //                     .unwrap(),
-    //                 "5CzR4NFben6n7uk3jZCVCoZbpA9fpdwrJdE1rznQXuFxMkTn"
-    //                     .parse()
-    //                     .unwrap(),
-    //             ]
-    //             .iter()
-    //             .flat_map(|x: &AccountId| {
-    //                 if x == &"5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf"
-    //                     .parse()
-    //                     .unwrap()
-    //                 {
-    //                     vec![(x.clone(), 10_u128.pow(20))]
-    //                 } else {
-    //                     vec![(x.clone(), 10_u128.pow(16))]
-    //                 }
-    //             }),
-    //         );
-    //         let council = vec![
-    //             "5GBykvvrUz3vwTttgHzUEPdm7G1FND1reBfddQLdiaCbhoMd"
-    //                 .parse()
-    //                 .unwrap(),
-    //             "5DhZeTQqotvntGtrg69T2VK9pzUPXHiVyGUTmp5XFTDTT7ME"
-    //                 .parse()
-    //                 .unwrap(),
-    //             "1Gu7GSgLSPrhc1Wci9wAGP6nvzQfaUCYqbfXxjYjMG9bob6"
-    //                 .parse()
-    //                 .unwrap(),
-    //             "5CzR4NFben6n7uk3jZCVCoZbpA9fpdwrJdE1rznQXuFxMkTn"
-    //                 .parse()
-    //                 .unwrap(),
-    //             "5G9eFoXB95fdwFJK9utBf1AgiLvhPUvzArYR2knzXKrKtZPZ"
-    //                 .parse()
-    //                 .unwrap(),
-    //         ];
-    //         let technical_committee = vec![
-    //             "5GBykvvrUz3vwTttgHzUEPdm7G1FND1reBfddQLdiaCbhoMd"
-    //                 .parse()
-    //                 .unwrap(),
-    //             "5DhZeTQqotvntGtrg69T2VK9pzUPXHiVyGUTmp5XFTDTT7ME"
-    //                 .parse()
-    //                 .unwrap(),
-    //             "5G9eFoXB95fdwFJK9utBf1AgiLvhPUvzArYR2knzXKrKtZPZ"
-    //                 .parse()
-    //                 .unwrap(),
-    //             "5CzR4NFben6n7uk3jZCVCoZbpA9fpdwrJdE1rznQXuFxMkTn"
-    //                 .parse()
-    //                 .unwrap(),
-    //         ];
-    //
-    //         vanilla_genesis(
-    //             root_key,
-    //             invulnerables,
-    //             oracle_accounts,
-    //             initial_allocation,
-    //             liquid_staking_agents,
-    //             council,
-    //             technical_committee,
-    //             id,
-    //         )
-    //     },
-    //     vec![
-    //         "/dns/vanilla-bootnode-0.parallel.fi/tcp/30333/p2p/12D3KooWP3xQ2EzF9stuQTNsHw7DPY4CYjdBuABiN7VShfJ6phia".parse().unwrap(),
-    //         "/dns/vanilla-bootnode-1.parallel.fi/tcp/30333/p2p/12D3KooWK984FD65FoNMDS6EMdgmjKKJPKvzwXroPRNjg7eLFSz7".parse().unwrap(),
-    //     ],
-    //     TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
-    //     Some("vanilla"),
-    //     None,
-    //     Some(as_properties(NetworkType::Heiko)),
-    //     Extensions {
-    //         relay_chain: "westend-local".into(),
-    //         para_id: id.into(),
-    //     },
-    // ))
 }
 
 fn vanilla_genesis(
@@ -259,16 +125,12 @@ fn vanilla_genesis(
     oracle_accounts: Vec<AccountId>,
     bridge_accounts: Vec<AccountId>,
     initial_allocation: Vec<(AccountId, Balance)>,
+    vesting_list: Vec<(AccountId, BlockNumber, BlockNumber, u32, Balance)>,
     liquid_staking_agents: Vec<AccountId>,
     council: Vec<AccountId>,
     technical_committee: Vec<AccountId>,
     id: ParaId,
 ) -> GenesisConfig {
-    let vesting_list: Vec<(AccountId, BlockNumber, BlockNumber, u32, Balance)> =
-        serde_json::from_str(include_str!(
-            "../../../../resources/vanilla-vesting-HKO.json"
-        ))
-        .unwrap();
     GenesisConfig {
         system: SystemConfig {
             code: WASM_BINARY

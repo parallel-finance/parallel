@@ -6398,6 +6398,7 @@ dependencies = [
  "heiko-runtime",
  "hex-literal",
  "jsonrpc-core",
+ "kerria-runtime",
  "log",
  "orml-oracle-rpc",
  "pallet-loans-rpc",
