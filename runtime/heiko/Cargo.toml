@@ -137,6 +137,7 @@ runtime-benchmarks = [
   'pallet-router/runtime-benchmarks',
   'pallet-xcm-helper/runtime-benchmarks',
   'pallet-farming/runtime-benchmarks',
+  'pallet-registrar/runtime-benchmarks',
 ]
 std                = [
   'codec/std',
@@ -251,4 +252,5 @@ try-runtime        = [
   'pallet-nominee-election/try-runtime',
   'pallet-prices/try-runtime',
   'pallet-xcm-helper/try-runtime',
+  'pallet-registrar/try-runtime',
 ]

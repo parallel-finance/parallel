@@ -6,6 +6,7 @@ version = '1.7.7'
 
 [dependencies]
 codec              	= { package = 'parity-scale-codec', version = '2.3.1', default-features = false }
+frame-benchmarking 	= { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', default-features = false, optional = true }
 frame-support 		= { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', default-features = false }
 frame-system  		= { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', default-features = false }
 primitives    		= { package = 'parallel-primitives', path = '../../primitives', default-features = false }
@@ -20,8 +21,10 @@ sp-io                           = { git = 'https://github.com/paritytech/substra
 
 [features]
 default     = ['std']
+runtime-benchmarks = ['frame-benchmarking']
 std         = [
   'codec/std',
+  'frame-benchmarking/std',
   'frame-support/std',
   'frame-system/std',
   'scale-info/std',

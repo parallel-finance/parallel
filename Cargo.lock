@@ -5903,6 +5903,7 @@ dependencies = [
 name = "pallet-registrar"
 version = "1.7.7"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "parallel-primitives",

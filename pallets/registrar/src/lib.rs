@@ -24,6 +24,10 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+mod benchmarking;
+
+pub mod weights;
+
 pub use pallet::*;
 
 use frame_support::{dispatch::DispatchResult, pallet_prelude::*, transactional};
@@ -34,6 +38,7 @@ use xcm::{v1::MultiLocation, VersionedMultiLocation};
 
 #[frame_support::pallet]
 pub mod pallet {
+    use crate::weights::WeightInfo;
     use frame_system::pallet_prelude::OriginFor;
 
     use super::*;
@@ -47,6 +52,9 @@ pub mod pallet {
 
         /// The origin which can update asset
         type UpdateOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+
+        /// Weight information
+        type WeightInfo: WeightInfo;
     }
 
     #[pallet::event]
@@ -78,7 +86,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Update xcm fees amount to be used in xcm.Withdraw message
-        #[pallet::weight(10_000)]
+        #[pallet::weight(T::WeightInfo::register_asset())]
         #[transactional]
         pub fn register_asset(
             origin: OriginFor<T>,
