@@ -117,6 +117,7 @@ launch: shutdown
 	yq -i eval '.relaychain.image = "parallelfinance/polkadot:$(RELAY_DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.relaychain.chain = "$(RELAY_CHAIN)"' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.parachains[0].image = "parallelfinance/parallel:$(DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
+	yq -i eval '.parachains[0].id = $(PARA_ID)' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.parachains[0].chain.base = "$(CHAIN)"' $(LAUNCH_CONFIG_YAML)
 	docker image pull parallelfinance/polkadot:$(RELAY_DOCKER_TAG)
 	docker image pull parallelfinance/parallel:$(DOCKER_TAG)
@@ -131,6 +132,10 @@ launch: shutdown
 		&& cd output \
 		&& DOCKER_CLIENT_TIMEOUT=180 COMPOSE_HTTP_TIMEOUT=180 docker-compose up -d --build
 	cd scripts/ts && yarn start launch --network $(CHAIN)
+
+.PHONY: launch-kerria
+launch-kerria:
+	make PARA_ID=2012 CHAIN=kerria-dev RELAY_CHAIN=polkadot-local launch
 
 .PHONY: logs
 logs:

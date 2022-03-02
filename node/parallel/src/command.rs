@@ -78,7 +78,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
                 Box::new(chain_spec::kerria::ChainSpec::from_json_file(path)?)
             } else {
                 return Err(
-                    "chain_spec's filename must start with parallel/heiko/vanilla/kerria".into(),
+                    "chain_spec's filename must start with parallel/heiko/kerria/vanilla".into(),
                 );
             }
         }

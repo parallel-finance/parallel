@@ -6,6 +6,7 @@
   "gift": "1000000000000000",
   "xcmFees": "50000000000",
   "liquidMarketCap": "10000000000000000",
+  "paraDeposit": "0",
   "crowdloanDeposit": "50000000000000",
   "assets": [
     {

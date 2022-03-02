@@ -119,7 +119,7 @@ async function relay({ logger, options: { relayWs, network } }: ActionParameters
       .sudo(
         api.tx.registrar.forceRegister(
           subAccountId(signer, derivativeIndex),
-          config.leaseIndex,
+          config.paraDeposit,
           paraId,
           state,
           wasm
@@ -169,7 +169,7 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
       default: 'ws://127.0.0.1:9948'
     })
     .option('-n, --network [name]', 'the parachain network', {
-      default: 'heiko'
+      default: 'vanilla-dev'
     })
     .action(actionParameters => {
       const { logger } = actionParameters
