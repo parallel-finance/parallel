@@ -10,10 +10,10 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
     .argument('<target>', 'paraId of target chain', {
       validator: program.NUMBER
     })
-    .option('-r, --relay-ws [url]', 'The Relaychain API endpoint', {
+    .option('-r, --relay-ws [url]', 'the relaychain API endpoint', {
       default: 'wss://kusama-rpc.polkadot.io'
     })
-    .option('-p, --para-ws [url]', 'The Parachain API endpoint', {
+    .option('-p, --para-ws [url]', 'the parachain API endpoint', {
       default: 'ws://127.0.0.1:9948'
     })
     .action(async actionParameters => {
@@ -29,7 +29,9 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
         .then(api => api.tx.hrmp.hrmpAcceptOpenChannel(source.valueOf() as number).toHex())
         .then(hex => `0x${hex.slice(6)}`)
       const api = await getApi(paraWs.toString())
-      const signer = new Keyring({ type: 'sr25519', ss58Format: 110 }).addFromUri('//Dave')
+      const signer = new Keyring({ type: 'sr25519' }).addFromUri(
+        `${process.env.PARA_CHAIN_SUDO_KEY || '//Dave'}`
+      )
       await api.tx.sudo
         .sudo(
           api.tx.polkadotXcm.send(

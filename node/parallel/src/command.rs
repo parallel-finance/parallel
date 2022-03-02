@@ -38,28 +38,27 @@ use std::{io::Write, net::SocketAddr};
 const CHAIN_NAME: &str = "Parallel";
 const PARALLEL_PARA_ID: u32 = 2012;
 const HEIKO_PARA_ID: u32 = 2085;
-const VANILLA_PARA_ID: u32 = 2085;
 
 fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
     Ok(match id {
         "heiko-dev" => Box::new(chain_spec::heiko::heiko_dev_config(ParaId::from(
             HEIKO_PARA_ID,
         ))),
-        "" | "heiko" => Box::new(chain_spec::heiko::heiko_config(ParaId::from(
+        "heiko" => Box::new(chain_spec::heiko::heiko_config(ParaId::from(
             HEIKO_PARA_ID,
         ))?),
         "parallel-dev" => Box::new(chain_spec::parallel::parallel_dev_config(ParaId::from(
             PARALLEL_PARA_ID,
         ))),
-        "parallel" => Box::new(chain_spec::parallel::parallel_config(ParaId::from(
+        "" | "parallel" => Box::new(chain_spec::parallel::parallel_config(ParaId::from(
             PARALLEL_PARA_ID,
         ))?),
         "vanilla-dev" => Box::new(chain_spec::vanilla::vanilla_dev_config(ParaId::from(
-            VANILLA_PARA_ID,
+            HEIKO_PARA_ID,
         ))),
-        "vanilla" => Box::new(chain_spec::vanilla::vanilla_config(ParaId::from(
-            VANILLA_PARA_ID,
-        ))?),
+        "kerria-dev" => Box::new(chain_spec::kerria::kerria_dev_config(ParaId::from(
+            PARALLEL_PARA_ID,
+        ))),
         path => {
             let path = std::path::PathBuf::from(path);
             let starts_with = |prefix: &str| {
@@ -75,8 +74,12 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
                 Box::new(chain_spec::heiko::ChainSpec::from_json_file(path)?)
             } else if starts_with("vanilla") {
                 Box::new(chain_spec::vanilla::ChainSpec::from_json_file(path)?)
+            } else if starts_with("kerria") {
+                Box::new(chain_spec::kerria::ChainSpec::from_json_file(path)?)
             } else {
-                return Err("chain_spec's filename must start with parallel/heiko/vanilla".into());
+                return Err(
+                    "chain_spec's filename must start with parallel/heiko/vanilla/kerria".into(),
+                );
             }
         }
     })
@@ -118,6 +121,8 @@ impl SubstrateCli for Cli {
             &heiko_runtime::VERSION
         } else if chain_spec.is_vanilla() {
             &vanilla_runtime::VERSION
+        } else if chain_spec.is_kerria() {
+            &kerria_runtime::VERSION
         } else {
             unreachable!()
         }
@@ -195,6 +200,13 @@ macro_rules! switch_runtime {
             use crate::service::VanillaExecutor as Executor;
 			#[allow(unused_imports)]
             use vanilla_runtime::{RuntimeApi, Block};
+
+			$( $code )*
+        } else if $chain_spec.is_kerria() {
+			#[allow(unused_imports)]
+            use crate::service::KerriaExecutor as Executor;
+			#[allow(unused_imports)]
+            use kerria_runtime::{RuntimeApi, Block};
 
 			$( $code )*
         } else {

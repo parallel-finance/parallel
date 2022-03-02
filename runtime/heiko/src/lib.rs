@@ -28,8 +28,8 @@ use frame_support::{
     match_type,
     traits::{
         fungibles::{InspectMetadata, Mutate},
-        Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, InstanceFilter, Nothing,
-        OnRuntimeUpgrade,
+        ChangeMembers, Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, InstanceFilter,
+        Nothing, OnRuntimeUpgrade,
     },
     PalletId,
 };
@@ -208,7 +208,7 @@ impl Contains<Call> for BaseCallFilter {
     fn contains(call: &Call) -> bool {
         matches!(
             call,
-            // System
+            // System, Currencies
             Call::System(_) |
             Call::Timestamp(_) |
             Call::Balances(_) |
@@ -1372,7 +1372,7 @@ impl pallet_scheduler::Config for Runtime {
     type PalletsOrigin = OriginCaller;
     type Call = Call;
     type MaximumWeight = MaximumSchedulerWeight;
-    type ScheduleOrigin = EnsureRoot<AccountId>;
+    type ScheduleOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type MaxScheduledPerBlock = MaxScheduledPerBlock;
     type OriginPrivilegeCmp = EqualPrivilegeOnly;
     type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
@@ -1426,40 +1426,63 @@ impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
     type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
 }
 
-// parameter_types! {
-//     pub const BridgeMaxMembers: u32 = 100;
-// }
-//
-// type BridgeMembershipInstance = pallet_membership::Instance6;
-// impl pallet_membership::Config<BridgeMembershipInstance> for Runtime {
-//     type Event = Event;
-//     type AddOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-//     type RemoveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-//     type SwapOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-//     type ResetOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-//     type PrimeOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-//     type MembershipInitialized = ();
-//     type MembershipChanged = ();
-//     type MaxMembers = BridgeMaxMembers;
-//     type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
-// }
-//
-// parameter_types! {
-//     pub const ParallelHeiko: ChainId = 0;
-//     pub const BridgePalletId: PalletId = PalletId(*b"par/brid");
-//     pub const ProposalLifetime: BlockNumber = 200;
-// }
-//
-// impl pallet_bridge::Config for Runtime {
-//     type Event = Event;
-//     type AdminMembers = BridgeMembership;
-//     type RootOperatorOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-//     type ChainId = ParallelHeiko;
-//     type PalletId = BridgePalletId;
-//     type Assets = CurrencyAdapter;
-//     type ProposalLifetime = ProposalLifetime;
-//     type WeightInfo = pallet_bridge::weights::SubstrateWeight<Runtime>;
-// }
+parameter_types! {
+    pub const BridgeMaxMembers: u32 = 100;
+}
+
+pub struct ChangeBridgeMembers;
+impl ChangeMembers<AccountId> for ChangeBridgeMembers {
+    fn change_members_sorted(_incoming: &[AccountId], _outgoing: &[AccountId], new: &[AccountId]) {
+        if let Err(e) = Bridge::change_vote_threshold() {
+            log::error!(
+                target: "bridge::change_members_sorted",
+                "Failed to set vote threshold: {:?}",
+                e,
+            );
+        } else {
+            log::info!(
+                target: "bridge::change_members_sorted",
+                "Succeeded to set vote threshold, total members: {:?}",
+                new.len(),
+            );
+        };
+    }
+}
+
+type BridgeMembershipInstance = pallet_membership::Instance6;
+impl pallet_membership::Config<BridgeMembershipInstance> for Runtime {
+    type Event = Event;
+    type AddOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type RemoveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type SwapOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type ResetOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type PrimeOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type MembershipInitialized = ();
+    type MembershipChanged = ChangeBridgeMembers;
+    type MaxMembers = BridgeMaxMembers;
+    type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
+}
+
+parameter_types! {
+    pub const ParallelHeiko: ChainId = 0;
+    pub const BridgePalletId: PalletId = PalletId(*b"par/brid");
+    // Set a short lifetime for development
+    pub const ProposalLifetime: BlockNumber = 200;
+    pub const ThresholdPercentage: u32 = 50;
+}
+
+impl pallet_bridge::Config for Runtime {
+    type Event = Event;
+    type AdminMembers = BridgeMembership;
+    type RootOperatorAccountId = OneAccount;
+    type OperateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type ChainId = ParallelHeiko;
+    type PalletId = BridgePalletId;
+    type Assets = CurrencyAdapter;
+    type ProposalLifetime = ProposalLifetime;
+    type ThresholdPercentage = ThresholdPercentage;
+    type WeightInfo = pallet_bridge::weights::SubstrateWeight<Runtime>;
+}
 
 parameter_types! {
     pub MinVestedTransfer: Balance = 0;
@@ -1623,6 +1646,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::TechnicalCommittee(_) |
             Call::Treasury(_) |
             Call::Scheduler(_) |
+            Call::Preimage(_) |
             // Parachain
             Call::ParachainSystem(_) |
             Call::XcmpQueue(_) |
@@ -1646,8 +1670,6 @@ impl Contains<Call> for WhiteListFilter {
             // Loans
             Call::Loans(_) |
             Call::Prices(_) |
-            // Crowdloans
-            // Call::Crowdloans(_) |
             // Membership
             Call::OracleMembership(_) |
             Call::GeneralCouncilMembership(_) |
@@ -1725,7 +1747,7 @@ construct_runtime!(
         TechnicalCommitteeMembership: pallet_membership::<Instance2>::{Pallet, Call, Storage, Event<T>, Config<T>} = 71,
         OracleMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
         LiquidStakingAgentsMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,
-        // BridgeMembership: pallet_membership::<Instance6>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74,
+        BridgeMembership: pallet_membership::<Instance6>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74,
 
         // AMM
         AMM: pallet_amm::{Pallet, Call, Storage, Event<T>} = 80,
@@ -1733,7 +1755,7 @@ construct_runtime!(
         CurrencyAdapter: pallet_currency_adapter::{Pallet, Call} = 82,
 
         // Others
-        // Bridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 90,
+        Bridge: pallet_bridge::{Pallet, Call, Storage, Event<T>} = 90,
         EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Storage, Event<T>} = 91,
         Farming: pallet_farming::{Pallet, Call, Storage, Event<T>} = 92,
         XcmHelper: pallet_xcm_helper::{Pallet, Call, Storage, Event<T>} = 93,
@@ -1954,7 +1976,7 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_balances, Balances);
             list_benchmark!(list, extra, pallet_membership, TechnicalCommitteeMembership);
             list_benchmark!(list, extra, pallet_multisig, Multisig);
-            // list_benchmark!(list, extra, pallet_bridge, Bridge);
+            list_benchmark!(list, extra, pallet_bridge, Bridge);
             list_benchmark!(list, extra, pallet_loans, Loans);
             list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
             list_benchmark!(list, extra, pallet_timestamp, Timestamp);
@@ -2000,7 +2022,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, frame_system, SystemBench::<Runtime>);
             add_benchmark!(params, batches, pallet_balances, Balances);
             add_benchmark!(params, batches, pallet_timestamp, Timestamp);
-            // add_benchmark!(params, batches, pallet_bridge, Bridge);
+            add_benchmark!(params, batches, pallet_bridge, Bridge);
             add_benchmark!(params, batches, pallet_loans, Loans);
             add_benchmark!(params, batches, pallet_multisig, Multisig);
             add_benchmark!(params, batches, pallet_membership, TechnicalCommitteeMembership);

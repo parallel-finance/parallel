@@ -1,15 +1,15 @@
 PARA_ID        											:= 2085
 CHAIN          											:= vanilla-dev
+RELAY_CHAIN                         := kusama-local
 RUNTIME        											:= vanilla-runtime
 BLOCK_AT       											:= 0x0000000000000000000000000000000000000000000000000000000000000000
 URL            											:= ws://localhost:9948
+RELAY_URL            								:= ws://localhost:9944
 KEYSTORE_PATH  											:= keystore
 SURI           											:= //Alice
 LAUNCH_CONFIG_YAML	  							:= config.yml
-LAUNCH_CONFIG_JSON	           			:= scripts/ts/src/commands/config.json
 DOCKER_TAG     											:= latest
 RELAY_DOCKER_TAG										:= v0.9.16
-ACALA_DOCKER_TAG										:= 14bd3bf4
 
 .PHONY: init
 init: submodules
@@ -36,7 +36,7 @@ check:
 
 .PHONY: check-wasm
 check-wasm:
-	cargo check -p vanilla-runtime -p parallel-runtime -p heiko-runtime --features runtime-benchmarks
+	cargo check -p vanilla-runtime -p kerria-runtime -p parallel-runtime -p heiko-runtime --features runtime-benchmarks
 
 .PHONY: check-helper
 check-helper:
@@ -44,7 +44,7 @@ check-helper:
 
 .PHONY: test
 test:
-	SKIP_WASM_BUILD= cargo test --workspace --features runtime-benchmarks --exclude parallel --exclude parallel-runtime --exclude vanilla-runtime --exclude heiko-runtime --exclude pallet-loans-rpc --exclude pallet-loans-rpc-runtime-api --exclude parallel-primitives -- --nocapture
+	SKIP_WASM_BUILD= cargo test --workspace --features runtime-benchmarks --exclude parallel --exclude parallel-runtime --exclude vanilla-runtime --exclude kerria-runtime --exclude heiko-runtime --exclude pallet-loans-rpc --exclude pallet-loans-rpc-runtime-api --exclude parallel-primitives -- --nocapture
 
 .PHONY: bench
 bench: bench-loans bench-liquid-staking bench-amm bench-amm-router bench-crowdloans bench-bridge bench-xcm-helper bench-farming
@@ -95,6 +95,7 @@ fix:
 .PHONY: fmt
 fmt:
 	SKIP_WASM_BUILD= cargo fmt --all
+	cd scripts/ts && yarn format
 
 .PHONY: resources
 resources:
@@ -114,12 +115,11 @@ shutdown:
 .PHONY: launch
 launch: shutdown
 	yq -i eval '.relaychain.image = "parallelfinance/polkadot:$(RELAY_DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
+	yq -i eval '.relaychain.chain = "$(RELAY_CHAIN)"' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.parachains[0].image = "parallelfinance/parallel:$(DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
-	yq -i eval '.parachains[1].image = "acala/karura-node:$(ACALA_DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
-	yq -i eval '.paraId = $(PARA_ID)' $(LAUNCH_CONFIG_JSON)
+	yq -i eval '.parachains[0].chain.base = "$(CHAIN)"' $(LAUNCH_CONFIG_YAML)
 	docker image pull parallelfinance/polkadot:$(RELAY_DOCKER_TAG)
 	docker image pull parallelfinance/parallel:$(DOCKER_TAG)
-	docker image pull acala/karura-node:$(ACALA_DOCKER_TAG)
 	docker image pull parallelfinance/stake-client:latest
 	docker image pull parallelfinance/liquidation-client:latest
 	docker image pull parallelfinance/nominate-client:latest
@@ -130,7 +130,7 @@ launch: shutdown
 		&& cp docker-compose.override.yml output \
 		&& cd output \
 		&& DOCKER_CLIENT_TIMEOUT=180 COMPOSE_HTTP_TIMEOUT=180 docker-compose up -d --build
-	cd scripts/ts && yarn start launch
+	cd scripts/ts && yarn start launch --network $(CHAIN)
 
 .PHONY: logs
 logs:
@@ -160,6 +160,7 @@ key:
 keystore:
 	cargo run --bin parallel key insert -d . --keystore-path $(KEYSTORE_PATH) --suri "$(SURI)" --key-type aura
 	cargo run --bin parallel key insert -d . --keystore-path $(KEYSTORE_PATH) --suri "$(SURI)" --key-type gran
+	cargo run --bin parallel key insert -d . --keystore-path $(KEYSTORE_PATH) --suri "$(SURI)" --key-type babe
 
 .PHONY: snapshot
 snapshot:

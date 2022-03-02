@@ -12,34 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use heiko_runtime::{
+use kerria_runtime::{
     opaque::SessionKeys, BalancesConfig, BridgeMembershipConfig, CollatorSelectionConfig,
     DemocracyConfig, GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
     LiquidStakingAgentsMembershipConfig, LiquidStakingConfig, OracleMembershipConfig,
     ParachainInfoConfig, PolkadotXcmConfig, SessionConfig, SudoConfig, SystemConfig,
     TechnicalCommitteeMembershipConfig, VestingConfig, WASM_BINARY,
 };
-use primitives::*;
+use primitives::{network::NetworkType, *};
 use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+use sp_core::sr25519;
+use sp_runtime::{traits::Zero, FixedPointNumber};
 
 use crate::chain_spec::{
     accumulate, as_properties, get_account_id_from_seed, get_authority_keys_from_seed, Extensions,
     TELEMETRY_URL,
 };
-use sp_core::sr25519;
-use sp_runtime::{traits::Zero, FixedPointNumber};
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
 
-pub fn heiko_dev_config(id: ParaId) -> ChainSpec {
+pub fn kerria_dev_config(id: ParaId) -> ChainSpec {
     ChainSpec::from_genesis(
         // Name
-        "Parallel Heiko Dev",
+        "Kerria Dev",
         // ID
-        "heiko-dev",
+        "kerria-dev",
         ChainType::Development,
         move || {
             let root_key = get_account_id_from_seed::<sr25519::Public>("Dave");
@@ -94,7 +94,7 @@ pub fn heiko_dev_config(id: ParaId) -> ChainSpec {
                 get_account_id_from_seed::<sr25519::Public>("Ferdie"),
             ];
 
-            heiko_genesis(
+            kerria_genesis(
                 root_key,
                 invulnerables,
                 oracle_accounts,
@@ -109,21 +109,17 @@ pub fn heiko_dev_config(id: ParaId) -> ChainSpec {
         },
         vec![],
         TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
-        Some("heiko-dev"),
+        Some("kerria-dev"),
         None,
-        Some(as_properties(network::NetworkType::Heiko)),
+        Some(as_properties(NetworkType::Heiko)),
         Extensions {
-            relay_chain: "kusama-local".into(),
+            relay_chain: "polkadot-local".into(),
             para_id: id.into(),
         },
     )
 }
 
-pub fn heiko_config(_id: ParaId) -> Result<ChainSpec, String> {
-    ChainSpec::from_json_bytes(&include_bytes!("../../../../resources/specs/heiko.json")[..])
-}
-
-fn heiko_genesis(
+fn kerria_genesis(
     root_key: AccountId,
     invulnerables: Vec<(AccountId, AuraId)>,
     oracle_accounts: Vec<AccountId>,
@@ -170,7 +166,7 @@ fn heiko_genesis(
         },
         parachain_info: ParachainInfoConfig { parachain_id: id },
         liquid_staking: LiquidStakingConfig {
-            exchange_rate: Rate::saturating_from_rational(100_u32, 100_u32), // 1
+            exchange_rate: Rate::saturating_from_rational(100u32, 100u32), // 1
             reserve_factor: Ratio::from_rational(125u32, 1000_000u32),
         },
         democracy: DemocracyConfig::default(),

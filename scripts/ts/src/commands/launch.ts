@@ -1,4 +1,4 @@
-import config from './config.json'
+import getConfig from './config'
 import '@polkadot/api-augment'
 import { options } from '@parallel-finance/api'
 import { ApiPromise, Keyring, WsProvider } from '@polkadot/api'
@@ -15,7 +15,8 @@ import { ActionParameters, Command, CreateCommandParameters } from '@caporal/cor
 
 const GiftPalletId = 'par/gift'
 
-async function para({ logger, options: { paraWs } }: ActionParameters) {
+async function para({ logger, options: { paraWs, network } }: ActionParameters) {
+  const config = getConfig(network.valueOf() as string)
   const api = await ApiPromise.create(
     options({
       types: {
@@ -29,8 +30,8 @@ async function para({ logger, options: { paraWs } }: ActionParameters) {
   do await sleep(1000)
   while (!(await chainHeight(api)))
 
-  const keyring = new Keyring({ type: 'sr25519', ss58Format: 110 })
-  const signer = keyring.addFromUri('//Dave')
+  const keyring = new Keyring({ type: 'sr25519' })
+  const signer = keyring.addFromUri(`${process.env.PARA_CHAIN_SUDO_KEY || '//Dave'}`)
   const call = []
 
   for (const { name, symbol, assetId, decimal, balances } of config.assets) {
@@ -94,7 +95,8 @@ async function para({ logger, options: { paraWs } }: ActionParameters) {
   await api.tx.utility.batchAll(call).signAndSend(signer, { nonce: await nextNonce(api, signer) })
 }
 
-async function relay({ logger, options: { relayWs } }: ActionParameters) {
+async function relay({ logger, options: { relayWs, network } }: ActionParameters) {
+  const config = getConfig(network.valueOf() as string)
   const api = await ApiPromise.create({
     provider: new WsProvider(relayWs.toString())
   })
@@ -103,7 +105,7 @@ async function relay({ logger, options: { relayWs } }: ActionParameters) {
   do await sleep(1000)
   while (!(await chainHeight(api)))
 
-  const keyring = new Keyring({ type: 'sr25519', ss58Format: 2 })
+  const keyring = new Keyring({ type: 'sr25519' })
   const signer = keyring.addFromUri(`${process.env.RELAY_CHAIN_SUDO_KEY || ''}`)
 
   for (const { paraId, image, derivativeIndex, chain } of config.crowdloans) {
@@ -134,7 +136,7 @@ async function relay({ logger, options: { relayWs } }: ActionParameters) {
   call.push(api.tx.sudo.sudo(api.tx.auctions.newAuction(config.auctionDuration, config.leaseIndex)))
   call.push(
     ...config.crowdloans.map(({ derivativeIndex }) =>
-      api.tx.balances.transfer(subAccountId(signer, derivativeIndex), config.deposit)
+      api.tx.balances.transfer(subAccountId(signer, derivativeIndex), config.crowdloanDeposit)
     )
   )
   call.push(
@@ -160,15 +162,18 @@ async function relay({ logger, options: { relayWs } }: ActionParameters) {
 
 export default function ({ createCommand }: CreateCommandParameters): Command {
   return createCommand('run chain initialization scripts')
-    .option('-r, --relay-ws [url]', 'The Relaychain API endpoint', {
+    .option('-r, --relay-ws [url]', 'the relaychain API endpoint', {
       default: 'ws://127.0.0.1:9944'
     })
-    .option('-p, --para-ws [url]', 'The Parachain API endpoint', {
+    .option('-p, --para-ws [url]', 'the parachain API endpoint', {
       default: 'ws://127.0.0.1:9948'
+    })
+    .option('-n, --network [name]', 'the parachain network', {
+      default: 'heiko'
     })
     .action(actionParameters => {
       const { logger } = actionParameters
-      relay(actionParameters)
+      return relay(actionParameters)
         .then(() => para(actionParameters))
         .then(() => process.exit(0))
         .catch(err => {

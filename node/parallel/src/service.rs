@@ -73,6 +73,19 @@ impl sc_executor::NativeExecutionDispatch for VanillaExecutor {
     }
 }
 
+pub struct KerriaExecutor;
+impl sc_executor::NativeExecutionDispatch for KerriaExecutor {
+    type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
+
+    fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
+        kerria_runtime::api::dispatch(method, data)
+    }
+
+    fn native_version() -> sc_executor::NativeVersion {
+        kerria_runtime::native_version()
+    }
+}
+
 pub type FullBackend = sc_service::TFullBackend<Block>;
 pub type FullClient<RuntimeApi, Executor> =
     sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>;
@@ -83,6 +96,8 @@ pub trait IdentifyVariant {
     fn is_heiko(&self) -> bool;
 
     fn is_vanilla(&self) -> bool;
+
+    fn is_kerria(&self) -> bool;
 }
 
 impl IdentifyVariant for Box<dyn sc_service::ChainSpec> {
@@ -96,6 +111,10 @@ impl IdentifyVariant for Box<dyn sc_service::ChainSpec> {
 
     fn is_vanilla(&self) -> bool {
         self.id().starts_with("vanilla")
+    }
+
+    fn is_kerria(&self) -> bool {
+        self.id().starts_with("kerria")
     }
 }
 
