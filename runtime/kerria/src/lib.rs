@@ -1637,7 +1637,6 @@ impl pallet_farming::Config for Runtime {
     type Event = Event;
     type Assets = CurrencyAdapter;
     type PalletId = FarmingPalletId;
-    type MaxRewardTokens = MaxRewardTokens;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_farming::weights::SubstrateWeight<Runtime>;
     type MaxUserLockItemsCount = MaxUserLockItemsCount;
