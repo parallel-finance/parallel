@@ -36,7 +36,7 @@ use frame_support::{
 use frame_system::{ensure_signed_or_root, pallet_prelude::*};
 use primitives::{Balance, BridgeId, ChainId, ChainNonce, CurrencyId, Ratio};
 use scale_info::prelude::{vec, vec::Vec};
-use sp_runtime::traits::AccountIdConversion;
+use sp_runtime::traits::{AccountIdConversion, Convert, Zero};
 
 mod benchmarking;
 mod mock;
@@ -89,6 +89,14 @@ pub mod pallet {
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
+
+        #[pallet::constant]
+        type GiftAccount: Get<Self::AccountId>;
+
+        type GiftConvert: Convert<Balance, Balance>;
+
+        #[pallet::constant]
+        type GetNativeCurrencyId: Get<AssetIdOf<Self>>;
 
         /// The identifier for this chain.
         /// This must be unique and must not collide with existing IDs within a set of bridged chains.
@@ -421,6 +429,7 @@ pub mod pallet {
             Self::ensure_chain_registered(dest_id)?;
             Self::ensure_bridge_token_registered(bridge_token_id)?;
             Self::ensure_amount_valid(amount)?;
+            Self::gift_fee(who.clone(), amount)?;
 
             let asset_id = AssetIds::<T>::get(bridge_token_id);
             let BridgeToken { external, fee, .. } = BridgeTokens::<T>::get(asset_id);
@@ -769,6 +778,7 @@ impl<T: Config> Pallet<T> {
         }
     }
 
+    #[require_transactional]
     fn execute_materialize(
         src_id: ChainId,
         src_nonce: ChainNonce,
@@ -810,9 +820,31 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Cancels a proposal.
+    #[require_transactional]
     fn cancel_materialize(src_id: ChainId, src_nonce: ChainNonce) -> DispatchResult {
         Self::update_bridge_registry(src_id, src_nonce);
         Self::deposit_event(Event::ProposalRejected(src_id, src_nonce));
+
+        Ok(())
+    }
+
+    #[require_transactional]
+    fn gift_fee(who: T::AccountId, amount: BalanceOf<T>) -> DispatchResult {
+        let gift_account = T::GiftAccount::get();
+        let native_currency_id = T::GetNativeCurrencyId::get();
+        let gift_amount = T::GiftConvert::convert(amount);
+        let beneficiary_native_balance =
+            T::Assets::reducible_balance(native_currency_id, &who, true);
+        let reducible_balance =
+            T::Assets::reducible_balance(native_currency_id, &gift_account, false);
+
+        if !gift_amount.is_zero()
+            && reducible_balance >= gift_amount
+            && beneficiary_native_balance < gift_amount
+        {
+            let diff = gift_amount - beneficiary_native_balance;
+            T::Assets::transfer(native_currency_id, &gift_account, &who, diff, false)?;
+        }
 
         Ok(())
     }

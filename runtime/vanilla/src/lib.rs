@@ -1479,6 +1479,9 @@ impl pallet_bridge::Config for Runtime {
     type ChainId = ParallelHeiko;
     type PalletId = BridgePalletId;
     type Assets = CurrencyAdapter;
+    type GiftAccount = GiftAccount;
+    type GiftConvert = GiftConvert;
+    type GetNativeCurrencyId = NativeCurrencyId;
     type ProposalLifetime = ProposalLifetime;
     type ThresholdPercentage = ThresholdPercentage;
     type WeightInfo = pallet_bridge::weights::SubstrateWeight<Runtime>;
