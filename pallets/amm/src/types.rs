@@ -20,7 +20,8 @@ use sp_runtime::{traits::Zero, RuntimeDebug};
 pub struct Pool<CurrencyId, Balance, BlockNumber> {
     pub base_amount: Balance,
     pub quote_amount: Balance,
-    pub root_k_last: Balance,
+    pub base_amount_last: Balance,
+    pub quote_amount_last: Balance,
     pub lp_token_id: CurrencyId,
     pub block_timestamp_last: BlockNumber,
     pub price_0_cumulative_last: Balance,
@@ -32,7 +33,8 @@ impl<CurrencyId, Balance: BalanceT, BlockNumber: BalanceT> Pool<CurrencyId, Bala
         Self {
             base_amount: Zero::zero(),
             quote_amount: Zero::zero(),
-            root_k_last: Zero::zero(),
+            base_amount_last: Zero::zero(),
+            quote_amount_last: Zero::zero(),
             lp_token_id,
             block_timestamp_last: Zero::zero(),
             price_0_cumulative_last: Zero::zero(),
