@@ -6,7 +6,7 @@ use super::*;
 use crate::Pallet as Farming;
 
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
-// use frame_support::{assert_ok, traits::EnsureOrigin};
+use frame_support::{assert_ok, traits::EnsureOrigin};
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{tokens::*, CurrencyId};
 use sp_runtime::traits::{One, StaticLookup};
@@ -15,10 +15,10 @@ use sp_std::prelude::*;
 const ASSET: CurrencyId = HKO;
 const REWARD_ASSET: CurrencyId = HKO;
 const ISSUE_AMOUNT: u128 = 4_000_000_000_000_000;
-// const STAKING_AMOUNT: u128 = 2_000_000_000_000_000;
-// const REWARD_AMOUNT: u128 = 2_000_000_000_000_000;
-// const SHOULD_REWARD_AMOUNT: u128 = 200_000_000_000_000;
-// const WITHDRAW_AMOUNT: u128 = 1_000_000_000_000_000;
+const STAKING_AMOUNT: u128 = 2_000_000_000_000_000;
+const REWARD_AMOUNT: u128 = 2_000_000_000_000_000;
+const SHOULD_REWARD_AMOUNT: u128 = 200_000_000_000_000;
+const WITHDRAW_AMOUNT: u128 = 1_000_000_000_000_000;
 
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
     frame_system::Pallet::<T>::assert_last_event(generic_event.into());
@@ -80,64 +80,63 @@ benchmarks! {
         initial_set_up::<T>(caller);
     }: _(SystemOrigin::Root, ASSET, REWARD_ASSET, T::BlockNumber::from(20u32))
 
-    // deposit {
-    //     let caller: T::AccountId = whitelisted_caller();
-    //     initial_set_up::<T>(caller.clone());
-    //     let alice: T::AccountId = account("Sample", 100, 0);
-    // }: _(SystemOrigin::Signed(alice), ASSET, REWARD_ASSET, STAKING_AMOUNT)
-    // verify {
-    //     assert_last_event::<T>(Event::AssetsDeposited(caller, ASSET, REWARD_ASSET, STAKING_AMOUNT).into());
-    // }
+    deposit {
+        let caller: T::AccountId = whitelisted_caller();
+        initial_set_up::<T>(caller.clone());
+    }: _(SystemOrigin::Signed(caller.clone()), ASSET, REWARD_ASSET, STAKING_AMOUNT)
+    verify {
+        assert_last_event::<T>(Event::AssetsDeposited(caller, ASSET, REWARD_ASSET, STAKING_AMOUNT).into());
+    }
 
-    // withdraw {
-    //     let caller: T::AccountId = whitelisted_caller();
-    //     initial_set_up::<T>(caller.clone());
-    //     assert_ok!(Farming::<T>::deposit(SystemOrigin::Signed(caller.clone()).into(), ASSET, REWARD_ASSET, STAKING_AMOUNT));
-    // }: _(SystemOrigin::Signed(caller.clone()), ASSET, REWARD_ASSET, WITHDRAW_AMOUNT)
-    // verify {
-    //     assert_last_event::<T>(Event::AssetsWithdrew(caller, ASSET, REWARD_ASSET, WITHDRAW_AMOUNT).into());
-    // }
+    withdraw {
+        let caller: T::AccountId = whitelisted_caller();
+        initial_set_up::<T>(caller.clone());
+        assert_ok!(Farming::<T>::deposit(SystemOrigin::Signed(caller.clone()).into(), ASSET, REWARD_ASSET, STAKING_AMOUNT));
+    }: _(SystemOrigin::Signed(caller.clone()), ASSET, REWARD_ASSET, WITHDRAW_AMOUNT)
+    verify {
+        assert_last_event::<T>(Event::AssetsWithdrew(caller, ASSET, REWARD_ASSET, WITHDRAW_AMOUNT).into());
+    }
 
-//     redeem {
-//         let caller: T::AccountId = whitelisted_caller();
-//         initial_set_up::<T>(caller.clone());
-//         assert_ok!(Farming::<T>::deposit(SystemOrigin::Signed(caller.clone()).into(), ASSET, REWARD_ASSET, STAKING_AMOUNT));
-//         assert_ok!(Farming::<T>::withdraw(SystemOrigin::Signed(caller.clone()).into(), ASSET, REWARD_ASSET, WITHDRAW_AMOUNT));
-//         assert_ok!(Farming::<T>::set_pool_lock_duration(T::UpdateOrigin::successful_origin(), ASSET, REWARD_ASSET, T::BlockNumber::from(0u32)));
-//     }: _(SystemOrigin::Signed(caller.clone()), ASSET, REWARD_ASSET)
-//     verify {
-//         assert_last_event::<T>(Event::AssetsWithdrewFromLockPool(caller, ASSET, REWARD_ASSET, WITHDRAW_AMOUNT).into());
-//     }
+    redeem {
+        let caller: T::AccountId = whitelisted_caller();
+        initial_set_up::<T>(caller.clone());
+        assert_ok!(Farming::<T>::deposit(SystemOrigin::Signed(caller.clone()).into(), ASSET, REWARD_ASSET, STAKING_AMOUNT));
+        assert_ok!(Farming::<T>::withdraw(SystemOrigin::Signed(caller.clone()).into(), ASSET, REWARD_ASSET, WITHDRAW_AMOUNT));
+        assert_ok!(Farming::<T>::set_pool_lock_duration(T::UpdateOrigin::successful_origin(), ASSET, REWARD_ASSET, T::BlockNumber::from(0u32)));
+    }: _(SystemOrigin::Signed(caller.clone()), ASSET, REWARD_ASSET)
+    verify {
+        assert_last_event::<T>(Event::AssetsRedeem(caller, ASSET, REWARD_ASSET, WITHDRAW_AMOUNT).into());
+    }
 
-//     claim {
-//         let caller: T::AccountId = whitelisted_caller();
-//         let payer = T::Lookup::unlookup(caller.clone());
-//         initial_set_up::<T>(caller.clone());
-//         assert_ok!(Farming::<T>::dispatch_reward(
-//             T::UpdateOrigin::successful_origin(),
-//             ASSET,
-//             REWARD_ASSET,
-//             payer,
-//             REWARD_AMOUNT,
-//             T::BlockNumber::from(10u32))
-//         );
+    claim {
+        let caller: T::AccountId = whitelisted_caller();
+        let payer = T::Lookup::unlookup(caller.clone());
+        initial_set_up::<T>(caller.clone());
+        assert_ok!(Farming::<T>::dispatch_reward(
+            T::UpdateOrigin::successful_origin(),
+            ASSET,
+            REWARD_ASSET,
+            payer,
+            REWARD_AMOUNT,
+            T::BlockNumber::from(10u32))
+        );
 
-//         assert_ok!(Farming::<T>::deposit(SystemOrigin::Signed(caller.clone()).into(), ASSET, REWARD_ASSET, STAKING_AMOUNT));
-//         let target_height = frame_system::Pallet::<T>::block_number().saturating_add(One::one());
-//         frame_system::Pallet::<T>::set_block_number(target_height);
-//     }: _(SystemOrigin::Signed(caller.clone()), ASSET, REWARD_ASSET)
-//     // verify {
-//     //     assert_last_event::<T>(Event::RewardPaid(caller, ASSET, REWARD_ASSET, SHOULD_REWARD_AMOUNT).into());
-//     // }
+        assert_ok!(Farming::<T>::deposit(SystemOrigin::Signed(caller.clone()).into(), ASSET, REWARD_ASSET, STAKING_AMOUNT));
+        let target_height = frame_system::Pallet::<T>::block_number().saturating_add(One::one());
+        frame_system::Pallet::<T>::set_block_number(target_height);
+    }: _(SystemOrigin::Signed(caller.clone()), ASSET, REWARD_ASSET)
+    verify {
+        assert_last_event::<T>(Event::RewardPaid(caller, ASSET, REWARD_ASSET, SHOULD_REWARD_AMOUNT).into());
+    }
 
-//     dispatch_reward {
-//         let caller: T::AccountId = whitelisted_caller();
-//         let payer = T::Lookup::unlookup(caller.clone());
-//         initial_set_up::<T>(caller);
-//     }: _(SystemOrigin::Root, ASSET, REWARD_ASSET, payer, REWARD_AMOUNT, T::BlockNumber::from(10u32))
-//     verify {
-//         assert_last_event::<T>(Event::RewardAdded(ASSET, REWARD_ASSET, REWARD_AMOUNT).into());
-//     }
+    dispatch_reward {
+        let caller: T::AccountId = whitelisted_caller();
+        let payer = T::Lookup::unlookup(caller.clone());
+        initial_set_up::<T>(caller);
+    }: _(SystemOrigin::Root, ASSET, REWARD_ASSET, payer, REWARD_AMOUNT, T::BlockNumber::from(10u32))
+    verify {
+        assert_last_event::<T>(Event::RewardAdded(ASSET, REWARD_ASSET, REWARD_AMOUNT).into());
+    }
 }
 
 impl_benchmark_test_suite!(Farming, crate::mock::new_test_ext(), crate::mock::Test,);
