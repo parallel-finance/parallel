@@ -118,6 +118,7 @@ fn register_unregister_works() {
 #[test]
 fn gift_fee_works() {
     new_test_ext().execute_with(|| {
+        // A successful case
         assert_eq!(<Test as Config>::Assets::balance(USDT, &DAVE), dollar(0));
         assert_eq!(<Test as Config>::Assets::balance(HKO, &DAVE), dollar(0));
 
@@ -128,6 +129,36 @@ fn gift_fee_works() {
             <Test as Config>::Assets::balance(HKO, &DAVE),
             dollar(25) / 1000
         );
+
+        // A failed case
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &CHARLIE), dollar(0));
+        assert_eq!(<Test as Config>::Assets::balance(HKO, &CHARLIE), dollar(0));
+
+        Bridge::materialize(
+            Origin::signed(ALICE),
+            ETH,
+            1,
+            EUSDT,
+            CHARLIE,
+            299_000_000,
+            true,
+        )
+        .unwrap();
+        Bridge::materialize(
+            Origin::signed(BOB),
+            ETH,
+            1,
+            EUSDT,
+            CHARLIE,
+            299_000_000,
+            true,
+        )
+        .unwrap();
+        assert_eq!(
+            <Test as Config>::Assets::balance(USDT, &CHARLIE),
+            299_000_000
+        );
+        assert_eq!(<Test as Config>::Assets::balance(HKO, &CHARLIE), 0,);
     })
 }
 #[test]

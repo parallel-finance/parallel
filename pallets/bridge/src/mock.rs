@@ -7,7 +7,7 @@ use frame_support::{
 };
 use frame_system::{self as system, EnsureRoot};
 use primitives::{
-    tokens::{EUSDC, EUSDT, HKO, KSM},
+    tokens::{HKO, KSM},
     CurrencyDetail,
 };
 
@@ -189,10 +189,10 @@ impl Convert<CurrencyDetail, Balance> for GiftConvert {
         }
 
         match currency {
-            (EUSDT | EUSDC, amount) => {
+            (USDT, amount) => {
                 // greater than 300 EUSDT/EUSDC
                 if amount >= 300 * 10_u128.pow(decimal.into()) {
-                    return DOLLARS / 40; // 0.025HKO
+                    return 1_000_000_000_000 / 40; // 0.025HKO
                 }
             }
             (_, amount) => {
