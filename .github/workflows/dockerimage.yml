@@ -2,13 +2,11 @@ name: Docker Image
 
 on:
   push:
-    branches: [master]
+    branches: [master, gift-fee]
     tags:
       - "v*"
       - "staging*"
       - "qa*"
-  commit:
-    branched: [gift-fee]
 
 jobs:
   dockerimage:
