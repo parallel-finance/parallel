@@ -118,12 +118,12 @@ fn register_unregister_works() {
 #[test]
 fn gift_fee_works() {
     new_test_ext().execute_with(|| {
-        Assets::mint(Origin::signed(ALICE), USDT, DAVE, dollar(10)).unwrap();
-        assert_eq!(<Test as Config>::Assets::balance(USDT, &DAVE), dollar(10));
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &DAVE), dollar(0));
         assert_eq!(<Test as Config>::Assets::balance(HKO, &DAVE), dollar(0));
 
-        Bridge::teleport(Origin::signed(DAVE), ETH, EUSDT, "TELE".into(), dollar(10)).unwrap();
-
+        Bridge::materialize(Origin::signed(ALICE), ETH, 0, EUSDT, DAVE, dollar(10), true).unwrap();
+        Bridge::materialize(Origin::signed(BOB), ETH, 0, EUSDT, DAVE, dollar(10), true).unwrap();
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &DAVE), dollar(10));
         assert_eq!(
             <Test as Config>::Assets::balance(HKO, &DAVE),
             dollar(25) / 1000

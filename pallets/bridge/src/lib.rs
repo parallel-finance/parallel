@@ -93,7 +93,7 @@ pub mod pallet {
         #[pallet::constant]
         type GiftAccount: Get<Self::AccountId>;
 
-        type GiftConvert: Convert<Balance, Balance>;
+        type GiftConvert: Convert<(CurrencyId, Balance), Balance>;
 
         #[pallet::constant]
         type GetNativeCurrencyId: Get<AssetIdOf<Self>>;
@@ -429,7 +429,6 @@ pub mod pallet {
             Self::ensure_chain_registered(dest_id)?;
             Self::ensure_bridge_token_registered(bridge_token_id)?;
             Self::ensure_amount_valid(amount)?;
-            Self::gift_fee(who.clone(), amount)?;
 
             let asset_id = AssetIds::<T>::get(bridge_token_id);
             let BridgeToken { external, fee, .. } = BridgeTokens::<T>::get(asset_id);
@@ -797,6 +796,7 @@ impl<T: Config> Pallet<T> {
             T::Assets::transfer(asset_id, &Self::account_id(), &call.to, call.amount, true)?;
         }
 
+        Self::gift_fee(call.clone().to, asset_id, call.amount)?;
         Self::update_bridge_registry(src_id, src_nonce);
 
         log::trace!(
@@ -829,10 +829,10 @@ impl<T: Config> Pallet<T> {
     }
 
     #[require_transactional]
-    fn gift_fee(who: T::AccountId, amount: BalanceOf<T>) -> DispatchResult {
+    fn gift_fee(who: T::AccountId, asset_id: CurrencyId, amount: BalanceOf<T>) -> DispatchResult {
         let gift_account = T::GiftAccount::get();
         let native_currency_id = T::GetNativeCurrencyId::get();
-        let gift_amount = T::GiftConvert::convert(amount);
+        let gift_amount = T::GiftConvert::convert((asset_id, amount));
         let beneficiary_native_balance =
             T::Assets::reducible_balance(native_currency_id, &who, true);
         let reducible_balance =

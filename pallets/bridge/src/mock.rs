@@ -6,7 +6,10 @@ use frame_support::{
     traits::{fungibles::InspectMetadata, ChangeMembers, Everything},
 };
 use frame_system::{self as system, EnsureRoot};
-use primitives::tokens::{HKO, KSM};
+use primitives::{
+    tokens::{EUSDC, EUSDT, HKO, KSM},
+    CurrencyDetail,
+};
 
 use crate::{self as bridge, ChainId, Config};
 use sp_core::H256;
@@ -178,16 +181,26 @@ parameter_types! {
 }
 
 pub struct GiftConvert;
-impl Convert<Balance, Balance> for GiftConvert {
-    fn convert(amount: Balance) -> Balance {
-        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(&KSM);
+impl Convert<CurrencyDetail, Balance> for GiftConvert {
+    fn convert(currency: CurrencyDetail) -> Balance {
+        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(&currency.0);
         if decimal.is_zero() {
             return Zero::zero();
         }
 
-        // 0.1KSM
-        if amount >= 10_u128.pow((decimal - 1).into()) {
-            return 1_000_000_000_000 / 40; // 0.025HKO
+        match currency {
+            (EUSDT | EUSDC, amount) => {
+                // greater than 300 EUSDT/EUSDC
+                if amount >= 300 * 10_u128.pow(decimal.into()) {
+                    return DOLLARS / 40; // 0.025HKO
+                }
+            }
+            (_, amount) => {
+                // greater than 0.1 Token
+                if amount >= 10_u128.pow((decimal - 1).into()) {
+                    return 1_000_000_000_000 / 40; // 0.025HKO
+                }
+            }
         }
 
         Zero::zero()

@@ -65,7 +65,7 @@ use polkadot_parachain::primitives::Sibling;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::PARALLEL_PREFIX,
-    tokens::{DOT, PARA, XDOT},
+    tokens::{DOT, EUSDC, EUSDT, PARA, XDOT},
     Index, *,
 };
 
@@ -888,16 +888,26 @@ parameter_types! {
 }
 
 pub struct GiftConvert;
-impl Convert<Balance, Balance> for GiftConvert {
-    fn convert(amount: Balance) -> Balance {
-        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(&DOT);
+impl Convert<CurrencyDetail, Balance> for GiftConvert {
+    fn convert(currency: CurrencyDetail) -> Balance {
+        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(&currency.0);
         if decimal.is_zero() {
             return Zero::zero();
         }
 
-        // 5DOT
-        if amount >= 5 * 10_u128.pow(decimal.into()) {
-            return 125 * DOLLARS / 100; // 1.25PARA
+        match currency {
+            (EUSDT | EUSDC, amount) => {
+                // greater than 300 EUSDT/EUSDC
+                if amount >= 300 * 10_u128.pow(decimal.into()) {
+                    return 125 * DOLLARS / 100; // 1.25PARA
+                }
+            }
+            (_, amount) => {
+                // greater than 5 Token
+                if amount >= 5 * 10_u128.pow(decimal.into()) {
+                    return 125 * DOLLARS / 100; // 1.25PARA
+                }
+            }
         }
 
         Zero::zero()

@@ -67,7 +67,7 @@ use polkadot_parachain::primitives::Sibling;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::HEIKO_PREFIX,
-    tokens::{HKO, KAR, KSM, KUSD, LKSM, XKSM},
+    tokens::{EUSDC, EUSDT, HKO, KAR, KSM, KUSD, LKSM, XKSM},
     Index, *,
 };
 use scale_info::TypeInfo;
@@ -925,16 +925,26 @@ parameter_types! {
 }
 
 pub struct GiftConvert;
-impl Convert<Balance, Balance> for GiftConvert {
-    fn convert(amount: Balance) -> Balance {
-        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(&KSM);
+impl Convert<CurrencyDetail, Balance> for GiftConvert {
+    fn convert(currency: CurrencyDetail) -> Balance {
+        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(&currency.0);
         if decimal.is_zero() {
             return Zero::zero();
         }
 
-        // 0.1KSM
-        if amount >= 10_u128.pow((decimal - 1).into()) {
-            return DOLLARS / 40; // 0.025HKO
+        match currency {
+            (EUSDT | EUSDC, amount) => {
+                // greater than 300 EUSDT/EUSDC
+                if amount >= 300 * 10_u128.pow(decimal.into()) {
+                    return DOLLARS / 40; // 0.025HKO
+                }
+            }
+            (_, amount) => {
+                // greater than 0.1 Token(Native)
+                if amount >= 10_u128.pow((decimal - 1).into()) {
+                    return DOLLARS / 40; // 0.025HKO
+                }
+            }
         }
 
         Zero::zero()

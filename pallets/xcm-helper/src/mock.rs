@@ -10,7 +10,11 @@ use frame_system::EnsureRoot;
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
-use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId};
+use primitives::{
+    currency::{MockGiftConvert, MultiCurrencyAdapter},
+    tokens::*,
+    Balance, ParaId,
+};
 use sp_core::H256;
 use sp_runtime::{
     generic,
@@ -100,13 +104,6 @@ parameter_types! {
     pub GiftAccount: AccountId = PalletId(*b"par/gift").into_account();
 }
 
-pub struct GiftConvert;
-impl Convert<Balance, Balance> for GiftConvert {
-    fn convert(_amount: Balance) -> Balance {
-        return Zero::zero();
-    }
-}
-
 pub type LocalAssetTransactor = MultiCurrencyAdapter<
     Assets,
     IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
@@ -116,7 +113,7 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
     CurrencyIdConvert,
     NativeCurrencyId,
     GiftAccount,
-    GiftConvert,
+    MockGiftConvert,
 >;
 
 pub type XcmRouter = ParachainXcmRouter<ParachainInfo>;
