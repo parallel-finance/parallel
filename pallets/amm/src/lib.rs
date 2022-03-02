@@ -746,6 +746,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             ideal_base_amount
                 .get_big_uint()
                 .checked_mul(&ideal_quote_amount.get_big_uint())
+                // loss of precision due to truncated sqrt
                 .map(|r| r.sqrt())
                 .and_then(|r| r.checked_sub(&T::MinimumLiquidity::get().get_big_uint()))
                 .ok_or(Error::<T, I>::ConversionToU128Failed)?
@@ -918,10 +919,13 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .base_amount
             .get_big_uint()
             .checked_mul(&pool.quote_amount.get_big_uint())
+            // loss of precision due to truncated sqrt
             .map(|r| r.sqrt())
             .ok_or(ArithmeticError::Overflow)?;
 
-        let root_k_last = k_last.sqrt();
+        let root_k_last = k_last
+            // loss of precision due to truncated sqrt
+            .sqrt();
 
         if root_k <= root_k_last {
             return Ok(Zero::zero());
@@ -945,6 +949,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .ok_or(Error::<T, I>::ConversionToU128Failed)?;
 
         let protocol_fees = numerator
+            // loss of precision due to truncated division
             .checked_div(&denominator)
             .ok_or(ArithmeticError::Underflow)?
             .to_u128()
