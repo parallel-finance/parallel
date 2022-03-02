@@ -136,7 +136,7 @@ async function relay({ logger, options: { relayWs, network } }: ActionParameters
   call.push(api.tx.sudo.sudo(api.tx.auctions.newAuction(config.auctionDuration, config.leaseIndex)))
   call.push(
     ...config.crowdloans.map(({ derivativeIndex }) =>
-      api.tx.balances.transfer(subAccountId(signer, derivativeIndex), config.deposit)
+      api.tx.balances.transfer(subAccountId(signer, derivativeIndex), config.crowdloanDeposit)
     )
   )
   call.push(

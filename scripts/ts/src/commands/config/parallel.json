@@ -6,7 +6,7 @@
   "gift": "10000000000000000",
   "xcmFees": "5000000000",
   "liquidMarketCap": "10000000000000000",
-  "deposit": "100000000000000",
+  "crowdloanDeposit": "1000000000000",
   "assets": [
     {
       "name": "Polkadot",
