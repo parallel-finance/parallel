@@ -21,7 +21,7 @@ use sp_core::H256;
 use sp_runtime::{
     generic,
     traits::{
-        AccountIdConversion, AccountIdLookup, BlakeTwo256, BlockNumberProvider, Convert, One, Zero,
+        AccountIdConversion, AccountIdLookup, BlakeTwo256, BlockNumberProvider, Convert, One,
     },
     AccountId32,
     MultiAddress::Id,
