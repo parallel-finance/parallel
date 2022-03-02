@@ -82,10 +82,6 @@ pub mod pallet {
         /// The origin which can create new pools and add reward.
         type UpdateOrigin: EnsureOrigin<Self::Origin>;
 
-        /// Specifies how many reward tokens can be manipulated by a pool
-        #[pallet::constant]
-        type MaxRewardTokens: Get<u32>;
-
         /// Specifies max amount lock item for a user
         #[pallet::constant]
         type MaxUserLockItemsCount: Get<u32>;
@@ -107,6 +103,8 @@ pub mod pallet {
         PoolNewActiveStatusWrong,
         /// Not a valid duration
         NotAValidDuration,
+        /// Pool is in a target lock duration status
+        PoolIsInTargetLockDuration,
         /// Not a valid amount
         NotAValidAmount,
         /// Codec error
@@ -189,7 +187,7 @@ pub mod pallet {
             asset: AssetIdOf<T>,
             reward_asset: AssetIdOf<T>,
             lock_duration: T::BlockNumber,
-        ) -> DispatchResultWithPostInfo {
+        ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
 
             ensure!(
@@ -209,7 +207,7 @@ pub mod pallet {
 
             Pools::<T>::insert(&asset, &reward_asset, pool);
             Self::deposit_event(Event::<T>::PoolAdded(asset, reward_asset));
-            Ok(().into())
+            Ok(())
         }
 
         /// Set pool active status
@@ -247,8 +245,18 @@ pub mod pallet {
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
 
+            ensure!(
+                lock_duration <= T::LockPoolMaxDuration::get(),
+                Error::<T>::ExcessMaxLockDuration
+            );
+
             Pools::<T>::mutate(asset, reward_asset, |pool_info| -> DispatchResult {
                 let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
+
+                ensure!(
+                    pool_info.lock_duration != lock_duration,
+                    Error::<T>::PoolIsInTargetLockDuration
+                );
 
                 pool_info.lock_duration = lock_duration;
                 Ok(())
@@ -418,6 +426,11 @@ pub mod pallet {
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
+            ensure!(
+                Pools::<T>::contains_key(&asset, &reward_asset),
+                Error::<T>::PoolDoesNotExist
+            );
+
             Self::update_reward(Some(who.clone()), asset, reward_asset)?;
 
             let asset_pool_account = Self::pool_account_id(reward_asset)?;
@@ -501,9 +514,11 @@ pub mod pallet {
                 pool_info.reward_rate = reward_rate;
                 pool_info.last_update_block = current_block_number;
 
-                let asset_pool_account = Self::pool_account_id(reward_asset)?;
-                let payer = T::Lookup::lookup(payer)?;
-                T::Assets::transfer(reward_asset, &payer, &asset_pool_account, amount, true)?;
+                if amount > 0 {
+                    let asset_pool_account = Self::pool_account_id(reward_asset)?;
+                    let payer = T::Lookup::lookup(payer)?;
+                    T::Assets::transfer(reward_asset, &payer, &asset_pool_account, amount, true)?;
+                }
 
                 Self::deposit_event(Event::<T>::RewardAdded(asset, reward_asset, amount));
                 Ok(())
@@ -523,12 +538,9 @@ impl<T: Config> Pallet<T> {
         //1, update pool reward info
         Pools::<T>::mutate(asset, reward_asset, |pool_info| -> DispatchResult {
             let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
-            let asset_decimal =
-                T::Decimal::get_decimal(&asset).ok_or(Error::<T>::AssetDecimalError)?;
-            let decimal_pow = BalanceOf::<T>::try_from(10_u64.pow(asset_decimal.into()))
-                .ok()
-                .ok_or(ArithmeticError::Overflow)?;
-            pool_info.update_reward_per_share(current_block_number, decimal_pow)?;
+
+            let amount_per_share = Self::get_asset_amount_per_share(&asset)?;
+            pool_info.update_reward_per_share(current_block_number, amount_per_share)?;
 
             //2, update user reward info
             if let Some(who) = who {
@@ -536,14 +548,14 @@ impl<T: Config> Pallet<T> {
                     (&asset, &reward_asset, &who),
                     |user_info| -> DispatchResult {
                         let diff = pool_info
-                            .reward_per_share(current_block_number, decimal_pow)?
+                            .reward_per_share(current_block_number, amount_per_share)?
                             .checked_sub(user_info.reward_per_share_paid)
                             .ok_or(ArithmeticError::Overflow)?;
 
                         let earned = user_info
                             .deposit_balance
                             .checked_mul(diff)
-                            .and_then(|r| r.checked_div(decimal_pow))
+                            .and_then(|r| r.checked_div(amount_per_share))
                             .and_then(|r| r.checked_add(user_info.reward_amount))
                             .ok_or(ArithmeticError::Overflow)?;
 
@@ -566,5 +578,14 @@ impl<T: Config> Pallet<T> {
 
     fn block_to_balance(duration: T::BlockNumber) -> BalanceOf<T> {
         duration.saturated_into()
+    }
+
+    fn get_asset_amount_per_share(asset_id: &AssetIdOf<T>) -> Result<BalanceOf<T>, DispatchError> {
+        let amount_per_share = T::Decimal::get_decimal(asset_id)
+            .and_then(|asset_decimal| {
+                BalanceOf::<T>::try_from(10_u64.pow(asset_decimal.into())).ok()
+            })
+            .ok_or(Error::<T>::AssetDecimalError)?;
+        Ok(amount_per_share)
     }
 }
