@@ -66,7 +66,7 @@ use polkadot_parachain::primitives::Sibling;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::PARALLEL_PREFIX,
-    tokens::{ACA, AUSD, DOT, LC_DOT, LDOT, PARA, XDOT},
+    tokens::{ACA, AUSD, DOT, EUSDC, EUSDT, LC_DOT, LDOT, PARA, XDOT},
     Index, *,
 };
 
@@ -1505,6 +1505,9 @@ impl pallet_bridge::Config for Runtime {
     type ChainId = ParallelKerria;
     type PalletId = BridgePalletId;
     type Assets = CurrencyAdapter;
+    type GiftAccount = GiftAccount;
+    type GiftConvert = GiftConvert;
+    type NativeCurrencyId = NativeCurrencyId;
     type ProposalLifetime = ProposalLifetime;
     type ThresholdPercentage = ThresholdPercentage;
     type WeightInfo = pallet_bridge::weights::SubstrateWeight<Runtime>;

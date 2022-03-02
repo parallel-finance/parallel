@@ -220,7 +220,7 @@ impl Config for Test {
     type Assets = CurrencyAdapter;
     type GiftAccount = GiftAccount;
     type GiftConvert = GiftConvert;
-    type GetNativeCurrencyId = NativeCurrencyId;
+    type NativeCurrencyId = NativeCurrencyId;
 
     type ProposalLifetime = ProposalLifetime;
     type ThresholdPercentage = ThresholdPercentage;

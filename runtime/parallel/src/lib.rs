@@ -1523,6 +1523,9 @@ impl pallet_bridge::Config for Runtime {
     type ChainId = Parallel;
     type PalletId = BridgePalletId;
     type Assets = CurrencyAdapter;
+    type GiftAccount = GiftAccount;
+    type GiftConvert = GiftConvert;
+    type NativeCurrencyId = NativeCurrencyId;
     type ProposalLifetime = ProposalLifetime;
     type ThresholdPercentage = ThresholdPercentage;
     type WeightInfo = pallet_bridge::weights::SubstrateWeight<Runtime>;

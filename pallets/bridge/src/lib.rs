@@ -96,7 +96,7 @@ pub mod pallet {
         type GiftConvert: Convert<(CurrencyId, Balance), Balance>;
 
         #[pallet::constant]
-        type GetNativeCurrencyId: Get<AssetIdOf<Self>>;
+        type NativeCurrencyId: Get<AssetIdOf<Self>>;
 
         /// The identifier for this chain.
         /// This must be unique and must not collide with existing IDs within a set of bridged chains.
@@ -831,7 +831,7 @@ impl<T: Config> Pallet<T> {
     #[require_transactional]
     fn gift_fee(who: T::AccountId, asset_id: CurrencyId, amount: BalanceOf<T>) -> DispatchResult {
         let gift_account = T::GiftAccount::get();
-        let native_currency_id = T::GetNativeCurrencyId::get();
+        let native_currency_id = T::NativeCurrencyId::get();
         let gift_amount = T::GiftConvert::convert((asset_id, amount));
         let beneficiary_native_balance =
             T::Assets::reducible_balance(native_currency_id, &who, true);
