@@ -3491,6 +3491,96 @@ dependencies = [
 ]
 
 [[package]]
+name = "kerria-runtime"
+version = "1.7.7"
+dependencies = [
+ "cumulus-pallet-aura-ext",
+ "cumulus-pallet-dmp-queue",
+ "cumulus-pallet-parachain-system",
+ "cumulus-pallet-xcm",
+ "cumulus-pallet-xcmp-queue",
+ "cumulus-primitives-core",
+ "cumulus-primitives-timestamp",
+ "cumulus-primitives-utility",
+ "frame-benchmarking",
+ "frame-executive",
+ "frame-support",
+ "frame-system",
+ "frame-system-benchmarking",
+ "frame-system-rpc-runtime-api",
+ "frame-try-runtime",
+ "hex-literal",
+ "orml-oracle",
+ "orml-oracle-rpc-runtime-api",
+ "orml-traits",
+ "orml-vesting",
+ "orml-xcm",
+ "orml-xcm-support",
+ "orml-xtokens",
+ "pallet-amm",
+ "pallet-assets",
+ "pallet-aura",
+ "pallet-authorship",
+ "pallet-balances",
+ "pallet-bridge",
+ "pallet-collator-selection",
+ "pallet-collective",
+ "pallet-crowdloans",
+ "pallet-currency-adapter",
+ "pallet-democracy",
+ "pallet-emergency-shutdown",
+ "pallet-farming",
+ "pallet-identity",
+ "pallet-liquid-staking",
+ "pallet-liquidation",
+ "pallet-loans",
+ "pallet-loans-rpc-runtime-api",
+ "pallet-membership",
+ "pallet-multisig",
+ "pallet-nominee-election",
+ "pallet-preimage",
+ "pallet-prices",
+ "pallet-proxy",
+ "pallet-router",
+ "pallet-router-rpc-runtime-api",
+ "pallet-scheduler",
+ "pallet-session",
+ "pallet-sudo",
+ "pallet-timestamp",
+ "pallet-transaction-payment",
+ "pallet-transaction-payment-rpc-runtime-api",
+ "pallet-treasury",
+ "pallet-utility",
+ "pallet-xcm",
+ "pallet-xcm-helper",
+ "parachain-info",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "polkadot-parachain",
+ "polkadot-runtime-common",
+ "scale-info",
+ "serde",
+ "smallvec",
+ "sp-api",
+ "sp-block-builder",
+ "sp-consensus-aura",
+ "sp-core",
+ "sp-inherents",
+ "sp-io",
+ "sp-offchain",
+ "sp-runtime",
+ "sp-session",
+ "sp-std",
+ "sp-transaction-pool",
+ "sp-version",
+ "static_assertions",
+ "substrate-wasm-builder",
+ "xcm",
+ "xcm-builder",
+ "xcm-executor",
+]
+
+[[package]]
 name = "kusama-runtime"
 version = "0.9.16"
 source = "git+https://github.com/paritytech/polkadot.git?branch=release-v0.9.16#41ab002d7451766324a9f314fee11c9c53314350"
@@ -4743,6 +4833,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-bigint"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f6f7833f2cbf2360a6cfd58cd41a53aa7a90bd4c202f5b1c7dd2ed73c57b2c3"
+dependencies = [
+ "autocfg",
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
 name = "num-complex"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4768,7 +4869,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c000134b5dbf44adc5cb772486d335293351644b801551abe8f75c84cfa4aef"
 dependencies = [
  "autocfg",
- "num-bigint",
+ "num-bigint 0.2.6",
  "num-integer",
  "num-traits",
 ]
@@ -5025,6 +5126,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "num-traits",
  "pallet-assets",
  "pallet-balances",
  "pallet-currency-adapter",
@@ -6308,6 +6410,7 @@ dependencies = [
  "heiko-runtime",
  "hex-literal",
  "jsonrpc-core",
+ "kerria-runtime",
  "log",
  "orml-oracle-rpc",
  "pallet-loans-rpc",
@@ -6367,6 +6470,8 @@ dependencies = [
  "cumulus-primitives-core",
  "frame-support",
  "frame-system",
+ "num-bigint 0.3.3",
+ "num-traits",
  "orml-oracle",
  "parity-scale-codec",
  "scale-info",
@@ -8954,7 +9059,7 @@ dependencies = [
  "futures 0.3.19",
  "log",
  "merlin",
- "num-bigint",
+ "num-bigint 0.2.6",
  "num-rational 0.2.4",
  "num-traits",
  "parity-scale-codec",

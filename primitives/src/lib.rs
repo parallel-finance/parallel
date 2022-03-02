@@ -104,6 +104,7 @@ pub type CurrencyDetail = (CurrencyId, Balance);
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 
 pub use cumulus_primitives_core::ParaId;
+use num_bigint::{BigUint, ToBigUint};
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -175,4 +176,14 @@ pub trait AMM<AccountId, CurrencyId, Balance> {
 pub enum ArithmeticKind {
     Addition,
     Subtraction,
+}
+
+pub trait ConvertToBigUint {
+    fn get_big_uint(&self) -> BigUint;
+}
+
+impl ConvertToBigUint for u128 {
+    fn get_big_uint(&self) -> BigUint {
+        self.to_biguint().unwrap()
+    }
 }

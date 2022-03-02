@@ -46,11 +46,19 @@ pub const PKSM: CurrencyId = 2100;
 pub const PDOT: CurrencyId = 2101;
 pub const PUSDT: CurrencyId = 2102;
 pub const PKUSD: CurrencyId = 2103;
-pub const PKAR: CurrencyId = 2104;
-pub const PXKSM: CurrencyId = 2200;
-pub const PXDOT: CurrencyId = 2201;
-pub const PEUSDT: CurrencyId = 2501;
-pub const PEUSDC: CurrencyId = 2502;
+pub const PAUSD: CurrencyId = 2104;
+pub const PLC_KSM: CurrencyId = 2105;
+pub const PLC_DOT: CurrencyId = 2106;
+pub const PKAR: CurrencyId = 2107;
+pub const PACA: CurrencyId = 2108;
+pub const PLKSM: CurrencyId = 2109;
+pub const PLDOT: CurrencyId = 2110;
+
+pub const PEUSDT: CurrencyId = 2201;
+pub const PEUSDC: CurrencyId = 2202;
+
+pub const PXKSM: CurrencyId = 3000;
+pub const PXDOT: CurrencyId = 3001;
 
 // Crowdloan Derivative
 pub const CKSM_15_22: CurrencyId = 100150022;
@@ -62,33 +70,48 @@ pub const CDOT_7_14: CurrencyId = 200070014;
 // | Network   | Token        | Register in block  |
 // +───────────+──────────────+────────────────────+
 // | Heiko     | HKO          | Native             |
-// | Heiko     | PARA         | N/A                |
 // | Heiko     | KSM          | N/A                |
-// | Heiko     | DOT          | N/A                |
 // | Heiko     | USDT         | N/A                |
 // | Heiko     | KUSD         | N/A                |
+// | Heiko     | EUSDC        | N/A                |
+// | Heiko     | EUSDT        | N/A                |
+// | Heiko     | KAR          | N/A                |
 // | Heiko     | XKSM         | N/A                |
-// | Heiko     | XDOT         | N/A                |
+// | Heiko     | CKSM         | N/A                |
+// | Heiko     | LKSM         | N/A                |
 // | Heiko     | PHKO         | N/A                |
-// | Heiko     | PPARA        | N/A                |
 // | Heiko     | PKSM         | N/A                |
-// | Heiko     | PDOT         | N/A                |
 // | Heiko     | PUSDT        | N/A                |
+// | Heiko     | PKUSD        | N/A                |
+// | Heiko     | PEUSDT       | N/A                |
+// | Heiko     | PEUSDC       | N/A                |
+// | Heiko     | PKAR         | N/A                |
 // | Heiko     | PXKSM        | N/A                |
-// | Heiko     | PXDOT        | N/A                |
-// | Parallel  | HKO          | N/A                |
+// | Heiko     | PLKSM        | N/A                |
+// | Heiko     | PLCKSM       | N/A                |
+// | Heiko     | PCKSM        | N/A                |
 // | Parallel  | PARA         | Native             |
 // | Parallel  | KSM          | N/A                |
 // | Parallel  | DOT          | N/A                |
 // | Parallel  | USDT         | N/A                |
-// | Parallel  | KUSD         | N/A                |
-// | Parallel  | XKSM         | N/A                |
+// | Parallel  | AUSD         | N/A                |
+// | Parallel  | EUSDC        | N/A                |
+// | Parallel  | EUSDT        | N/A                |
+// | Parallel  | ACA          | N/A                |
 // | Parallel  | XDOT         | N/A                |
-// | Parallel  | PHKO         | N/A                |
-// | Parallel  | PPARA        | N/A                |
+// | Parallel  | CDOT         | N/A                |
+// | Parallel  | LDOT         | N/A                |
+// | Parallel  | LCDOT        | N/A                |
+// | Parallel  | PPARA        | Native             |
 // | Parallel  | PKSM         | N/A                |
 // | Parallel  | PDOT         | N/A                |
 // | Parallel  | PUSDT        | N/A                |
-// | Parallel  | PXKSM        | N/A                |
+// | Parallel  | PAUSD        | N/A                |
+// | Parallel  | PEUSDC       | N/A                |
+// | Parallel  | PEUSDT       | N/A                |
+// | Parallel  | PACA         | N/A                |
 // | Parallel  | PXDOT        | N/A                |
+// | Parallel  | PLDOT        | N/A                |
+// | Parallel  | PLCDOT       | N/A                |
+// | Parallel  | PCDOT        | N/A                |
 // +──────────+───────────────+────────────────────+

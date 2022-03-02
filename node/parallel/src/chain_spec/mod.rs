@@ -13,6 +13,7 @@
 // limitations under the License.
 
 pub mod heiko;
+pub mod kerria;
 pub mod parallel;
 pub mod vanilla;
 
