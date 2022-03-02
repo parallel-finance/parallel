@@ -26,6 +26,7 @@ pub const BOB: AccountId = AccountId(2);
 pub const CHARLIE: AccountId = AccountId(3);
 pub const EVE: AccountId = AccountId(4);
 pub const FRANK: AccountId = AccountId(5);
+pub const PROTOCOL_FEE_RECEIVER: AccountId = AccountId(99);
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -154,7 +155,7 @@ parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
     pub DefaultLpFee: Ratio = Ratio::from_rational(25u32, 10000u32);        // 0.25%
     pub DefaultProtocolFee: Ratio = Ratio::from_rational(5u32, 10000u32);   // 0.05%
-    pub const DefaultProtocolFeeReceiver: AccountId = AccountId(4_u64);
+    pub const DefaultProtocolFeeReceiver: AccountId = PROTOCOL_FEE_RECEIVER;
     pub const MinimumLiquidity: u128 = 1_000u128;
     pub const LockAccountId: AccountId = AccountId(1_u64);
     pub const MaxLengthRoute: u8 = 10;
@@ -218,7 +219,13 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
         Assets::mint(Origin::signed(ALICE), tokens::DOT, ALICE, 100_000_000).unwrap();
 
-        Assets::mint(Origin::signed(ALICE), tokens::DOT, BOB, 100_000_000).unwrap();
+        Assets::mint(
+            Origin::signed(ALICE),
+            tokens::DOT,
+            BOB,
+            100_000_000_000_000_000_000,
+        )
+        .unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::DOT, CHARLIE, 1000_000_000).unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::DOT, EVE, 1000_000_000).unwrap();
         Assets::mint(
@@ -230,7 +237,13 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .unwrap();
 
         Assets::mint(Origin::signed(ALICE), tokens::XDOT, ALICE, 100_000_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::XDOT, BOB, 100_000_000).unwrap();
+        Assets::mint(
+            Origin::signed(ALICE),
+            tokens::XDOT,
+            BOB,
+            100_000_000_000_000_000_000,
+        )
+        .unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::XDOT, CHARLIE, 1000_000_000).unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::XDOT, EVE, 1000_000_000).unwrap();
 

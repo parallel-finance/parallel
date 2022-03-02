@@ -1059,6 +1059,7 @@ fn do_add_liquidity_exact_amounts_should_work() {
         assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 4_000);
     })
 }
+
 #[test]
 fn do_add_liquidity_large_amounts_should_work() {
     /*
@@ -1091,5 +1092,76 @@ fn do_add_liquidity_large_amounts_should_work() {
             ALICE,                           // LPToken receiver
             SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
         ));
+    })
+}
+
+#[test]
+fn handling_fees_should_work() {
+    new_test_ext().execute_with(|| {
+        // Pool gets created and BOB should recieve all of the LP tokens (minus the min amount)
+        //
+        assert_ok!(AMM::create_pool(
+            RawOrigin::Signed(ALICE).into(),    // Origin
+            (DOT, XDOT),                        // Currency pool, in which liquidity will be added
+            (100_000_000_000, 100_000_000_000), // Liquidity amounts to be added in pool
+            BOB,                                // LPToken receiver
+            SAMPLE_LP_TOKEN                     // Liquidity pool share representative token
+        ));
+
+        // Another user makes a swap that should generate fees for the LP provider and the protocol
+        assert_ok!(AMM::swap(&FRANK, (DOT, XDOT), 6_000_000));
+
+        // we can check the total balance
+        //
+        // no extra fees should be minted becuase liquidty has not been added or removed
+        //
+        assert_eq!(Assets::total_issuance(SAMPLE_LP_TOKEN), 100_000_000_000);
+
+        // bob should have all of the fees minus the min amount burned/locked
+        assert_eq!(
+            Assets::balance(SAMPLE_LP_TOKEN, BOB),
+            100_000_000_000 - MINIMUM_LIQUIDITY
+        );
+
+        // now we withdraw the fees and at this point we should mint tokens
+        // for the protcol proportional to 1/6 of the total fees generated
+
+        // we know that 18_000 fees should be collected and ~3_000 are for the protocol
+        let total_fees_collected = 6_000_000.0 * 0.003;
+        let fees_to_be_collected_by_protocol = total_fees_collected * (1.0 / 6.0);
+        assert_eq!(fees_to_be_collected_by_protocol, 3000.0);
+
+        // expand the math to calculate exact amout of fees to dilute lp total supply
+        let prop_of_total_fee = 1.0 / 6.0;
+        let scalar = (1.0 / prop_of_total_fee) - 1.0;
+        assert_eq!(scalar, 5.0);
+
+        let total_lp_token_supply = 100_000_000_000.0;
+        let old_root_k = (100_000_000_000f64 * 100_000_000_000f64).sqrt();
+        let new_root_k = (99_994_018_358f64 * 100_006_000_000f64).sqrt();
+        let root_k_growth = new_root_k - old_root_k;
+
+        let numerator = total_lp_token_supply * root_k_growth;
+        let denominator = new_root_k * scalar + old_root_k;
+        let rewards_to_mint = numerator / denominator;
+
+        assert_eq!(old_root_k, 100_000_000_000.0); // 100_000_000_000
+        assert_eq!(new_root_k, 100_000_008_999.55034); // 100_000_008_999
+        assert_eq!(root_k_growth, 8999.550338745117); // 8999
+        assert_eq!(numerator, 899955033874511.8); // 899_900_000_000_000
+        assert_eq!(denominator, 600000044997.7517); // 600_000_044_995
+        assert_eq!(rewards_to_mint, 1499.9249439687692); // 1499
+
+        assert_ok!(AMM::remove_liquidity(
+            RawOrigin::Signed(PROTOCOL_FEE_RECEIVER).into(),
+            (DOT, XDOT),
+            1_499,
+        ));
+
+        // PROTOCOL_FEE_RECEIVER should have slightly less then 3_000 total rewards
+        // split bewteen the two pools - the small difference is due to rounding errors
+        assert_eq!(Assets::balance(DOT, PROTOCOL_FEE_RECEIVER), 1499);
+
+        assert_eq!(Assets::balance(XDOT, PROTOCOL_FEE_RECEIVER), 1498);
     })
 }
