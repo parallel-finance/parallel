@@ -1235,13 +1235,13 @@ type EnsureAllTechnicalComittee = EnsureOneOf<
 >;
 
 parameter_types! {
-    pub const LaunchPeriod: BlockNumber = 7 * DAYS;
-    pub const VotingPeriod: BlockNumber = 7 * DAYS;
-    pub const FastTrackVotingPeriod: BlockNumber = 1 * DAYS;
+    pub const LaunchPeriod: BlockNumber = 1;
+    pub const VotingPeriod: BlockNumber = 1 * MINUTES;
+    pub const FastTrackVotingPeriod: BlockNumber = 1 * MINUTES;
     pub const InstantAllowed: bool = true;
     pub const MinimumDeposit: Balance = 100 * DOLLARS;
-    pub const EnactmentPeriod: BlockNumber = 8 * DAYS;
-    pub const CooloffPeriod: BlockNumber = 7 * DAYS;
+    pub const EnactmentPeriod: BlockNumber = 1;
+    pub const CooloffPeriod: BlockNumber = 1 * MINUTES;
     // One cent: $10,000 / MB
     pub const MaxVotes: u32 = 100;
     pub const MaxProposals: u32 = 100;
@@ -1297,7 +1297,7 @@ impl pallet_democracy::Config for Runtime {
 }
 
 parameter_types! {
-    pub const GeneralCouncilMotionDuration: BlockNumber = 3 * DAYS;
+    pub const GeneralCouncilMotionDuration: BlockNumber = 2 * MINUTES;
     pub const GeneralCouncilMaxProposals: u32 = 100;
     pub const GeneralCouncilMaxMembers: u32 = 100;
 }
@@ -1329,7 +1329,7 @@ impl pallet_membership::Config<GeneralCouncilMembershipInstance> for Runtime {
 }
 
 parameter_types! {
-    pub const TechnicalMotionDuration: BlockNumber = 3 * DAYS;
+    pub const TechnicalMotionDuration: BlockNumber = 2 * MINUTES;
     pub const TechnicalMaxProposals: u32 = 100;
     pub const TechnicalMaxMembers: u32 = 100;
 }
@@ -1401,7 +1401,7 @@ parameter_types! {
     pub const ProposalBond: Permill = Permill::from_percent(5);
     pub const ProposalBondMinimum: Balance = 1 * DOLLARS;
     pub const ProposalBondMaximum: Balance = 5 * DOLLARS;
-    pub const SpendPeriod: BlockNumber = 1 * DAYS;
+    pub const SpendPeriod: BlockNumber = 5 * MINUTES;
     pub const Burn: Permill = Permill::from_percent(0);
     pub const TreasuryPalletId: PalletId = PalletId(*b"par/trsy");
     pub const MaxApprovals: u32 = 100;
