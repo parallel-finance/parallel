@@ -1,17 +1,6 @@
 relaychain:
   image: parallelfinance/polkadot:v0.9.16
   chain: kusama-local
-  runtimeGenesisConfig:
-    hrmp:
-      preopenHrmpChannels:
-        - sender: 2085
-          recipient: 2000
-          maxCapacity: 8
-          maxMessageSize: 102400
-        - sender: 2000
-          recipient: 2085
-          maxCapacity: 8
-          maxMessageSize: 102400
   env:
     RUST_LOG: xcm=trace
   flags:
@@ -52,52 +41,5 @@ parachains:
           - --alice
       - flags:
           - --bob
-      - flags:
-          - --charlie
-  - image: acala/karura-node:14bd3bf4
-    chain:
-      base: karura-dev
-      collators:
-        - alice
-        - bob
-      sudo: dave
-    id: 2000
-    parachain: true
-    flags:
-      - --rpc-methods=unsafe
-      - --force-authoring
-      - --wasm-execution=compiled
-      - --execution=wasm
-      - --state-cache-size=0
-    relaychainFlags:
-      - --wasm-execution=compiled
-      - --execution=wasm
-      - --state-cache-size=0
-    volumePath: /acala/data
-    nodes:
-      - flags:
-          - --alice
-      - flags:
-          - --bob
-  - image: parallelfinance/polkadot-collator:v0.9.16
-    chain:
-      base: statemine-dev
-      collators:
-        - charlie
-      sudo: dave
-    id: 1000
-    parachain: true
-    flags:
-      - --rpc-methods=unsafe
-      - --force-authoring
-      - --wasm-execution=compiled
-      - --execution=wasm
-      - --state-cache-size=0
-    relaychainFlags:
-      - --wasm-execution=compiled
-      - --execution=wasm
-      - --state-cache-size=0
-    volumePath: /data
-    nodes:
       - flags:
           - --charlie

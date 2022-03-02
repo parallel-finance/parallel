@@ -95,6 +95,7 @@ pub use pallet_farming;
 pub use pallet_loans;
 pub use pallet_nominee_election;
 pub use pallet_prices;
+pub use pallet_router;
 
 use currency::*;
 use fee::*;
@@ -898,7 +899,7 @@ parameter_types! {
     pub RelayCurrency: CurrencyId = KSM;
     pub VanillaNetwork: NetworkId = NetworkId::Named("vanilla".into());
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
-    pub Ancestry: MultiLocation =  MultiLocation::new(0, X1(Parachain(ParachainInfo::parachain_id().into())));
+    pub Ancestry: MultiLocation = MultiLocation::new(0, X1(Parachain(ParachainInfo::parachain_id().into())));
 }
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
@@ -1213,13 +1214,13 @@ type EnsureAllTechnicalComittee = EnsureOneOf<
 >;
 
 parameter_types! {
-    pub const LaunchPeriod: BlockNumber = 7 * DAYS;
-    pub const VotingPeriod: BlockNumber = 7 * DAYS;
-    pub const FastTrackVotingPeriod: BlockNumber = 1 * DAYS;
+    pub const LaunchPeriod: BlockNumber = 1;
+    pub const VotingPeriod: BlockNumber = 1 * MINUTES;
+    pub const FastTrackVotingPeriod: BlockNumber = 1 * MINUTES;
     pub const InstantAllowed: bool = true;
     pub const MinimumDeposit: Balance = 100 * DOLLARS;
-    pub const EnactmentPeriod: BlockNumber = 8 * DAYS;
-    pub const CooloffPeriod: BlockNumber = 7 * DAYS;
+    pub const EnactmentPeriod: BlockNumber = 1;
+    pub const CooloffPeriod: BlockNumber = 1 * MINUTES;
     // One cent: $10,000 / MB
     pub const MaxVotes: u32 = 100;
     pub const MaxProposals: u32 = 100;
@@ -1275,7 +1276,7 @@ impl pallet_democracy::Config for Runtime {
 }
 
 parameter_types! {
-    pub const GeneralCouncilMotionDuration: BlockNumber = 3 * DAYS;
+    pub const GeneralCouncilMotionDuration: BlockNumber = 2 * MINUTES;
     pub const GeneralCouncilMaxProposals: u32 = 100;
     pub const GeneralCouncilMaxMembers: u32 = 100;
 }
@@ -1307,7 +1308,7 @@ impl pallet_membership::Config<GeneralCouncilMembershipInstance> for Runtime {
 }
 
 parameter_types! {
-    pub const TechnicalMotionDuration: BlockNumber = 3 * DAYS;
+    pub const TechnicalMotionDuration: BlockNumber = 2 * MINUTES;
     pub const TechnicalMaxProposals: u32 = 100;
     pub const TechnicalMaxMembers: u32 = 100;
 }
@@ -1367,7 +1368,7 @@ impl pallet_scheduler::Config for Runtime {
     type PalletsOrigin = OriginCaller;
     type Call = Call;
     type MaximumWeight = MaximumSchedulerWeight;
-    type ScheduleOrigin = EnsureRoot<AccountId>;
+    type ScheduleOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type MaxScheduledPerBlock = MaxScheduledPerBlock;
     type OriginPrivilegeCmp = EqualPrivilegeOnly;
     type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
@@ -1437,7 +1438,7 @@ impl ChangeMembers<AccountId> for ChangeBridgeMembers {
         } else {
             log::info!(
                 target: "bridge::change_members_sorted",
-                "Succeeded to set votde threshold, total members: {:?}",
+                "Succeeded to set vote threshold, total members: {:?}",
                 new.len(),
             );
         };
@@ -1459,12 +1460,7 @@ impl pallet_membership::Config<BridgeMembershipInstance> for Runtime {
 }
 
 parameter_types! {
-    pub MinVestedTransfer: Balance = 0;
-    pub const MaxVestingSchedules: u32 = 100;
-}
-
-parameter_types! {
-    pub const ParallelHeiko: ChainId = 0;
+    pub const ParallelVanilla: ChainId = 0;
     pub const BridgePalletId: PalletId = PalletId(*b"par/brid");
     // Set a short lifetime for development
     pub const ProposalLifetime: BlockNumber = 200;
@@ -1476,12 +1472,17 @@ impl pallet_bridge::Config for Runtime {
     type AdminMembers = BridgeMembership;
     type RootOperatorAccountId = OneAccount;
     type OperateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type ChainId = ParallelHeiko;
+    type ChainId = ParallelVanilla;
     type PalletId = BridgePalletId;
     type Assets = CurrencyAdapter;
     type ProposalLifetime = ProposalLifetime;
     type ThresholdPercentage = ThresholdPercentage;
     type WeightInfo = pallet_bridge::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+    pub MinVestedTransfer: Balance = 0;
+    pub const MaxVestingSchedules: u32 = 100;
 }
 
 impl orml_vesting::Config for Runtime {
@@ -1583,6 +1584,7 @@ impl pallet_xcm_helper::Config for Runtime {
     type BlockNumberProvider = frame_system::Pallet<Runtime>;
     type WeightInfo = pallet_xcm_helper::weights::SubstrateWeight<Runtime>;
 }
+
 parameter_types! {
     pub const MaxLengthRoute: u8 = 10;
     pub const RouterPalletId: PalletId = PalletId(*b"ammroute");
@@ -1671,20 +1673,8 @@ impl Contains<Call> for WhiteListFilter {
             Call::TechnicalCommitteeMembership(_) |
             Call::OracleMembership(_) |
             Call::BridgeMembership(_) |
-            Call::LiquidStakingAgentsMembership(_) |
-            // Farming
-            Call::Farming(_)
+            Call::LiquidStakingAgentsMembership(_)
         )
-        // // AMM
-        // Call::AMM(_) |
-        // Call::AMMRoute(_) |
-        //
-        // // Crowdloans
-        // Call::Crowdloans(_) |
-        //
-        // // Bridge
-        // Call::Bridge(_) |
-        //
     }
 }
 

@@ -90,6 +90,50 @@ pub mod v1 {
                     6,
                     13,
                 ),
+                // Composable Finance
+                (
+                    2019,
+                    200070014,
+                    13546295460000000,
+                    250_000_000_000_000_000,
+                    9388800,
+                    5,
+                    7,
+                    14,
+                ),
+                // Efinity
+                (
+                    2021,
+                    200070014,
+                    29081813864649582,
+                    500_000_000_000_000_000,
+                    9388800,
+                    6,
+                    7,
+                    14,
+                ),
+                // Centrifuge
+                (
+                    2031,
+                    200070014,
+                    7890821452032861,
+                    200_000_000_000_000_000,
+                    9388800,
+                    7,
+                    7,
+                    14,
+                ),
+                // HydraDX
+                (
+                    2034,
+                    200070014,
+                    9810699325000000,
+                    80_000_000_000_000_000,
+                    9388800,
+                    8,
+                    7,
+                    14,
+                ),
             ];
             let length = batch.len() as u64;
             for (para_id, ctoken, raised, cap, end_block, trie_index, lease_start, lease_end) in
@@ -113,7 +157,7 @@ pub mod v1 {
                 CTokensRegistry::<T>::insert((&lease_start, &lease_end), ctoken);
                 LeasesRegistry::<T>::insert(&ParaId::from(para_id), (lease_start, lease_end));
             }
-            NextTrieIndex::<T>::put(5);
+            NextTrieIndex::<T>::put(9);
             StorageVersion::<T>::put(Releases::V1_0_0);
             log::info!(
                 target: "crowdloans::migrate",

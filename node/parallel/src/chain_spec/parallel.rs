@@ -13,25 +13,11 @@
 // limitations under the License.
 
 use parallel_runtime::{
-    opaque::SessionKeys,
-    BalancesConfig,
-    CollatorSelectionConfig,
-    DemocracyConfig,
-    GeneralCouncilConfig,
-    GeneralCouncilMembershipConfig,
-    GenesisConfig,
-    LiquidStakingAgentsMembershipConfig,
-    LiquidStakingConfig,
-    OracleMembershipConfig,
-    ParachainInfoConfig,
-    PolkadotXcmConfig,
-    SessionConfig,
-    SudoConfig,
-    SystemConfig,
-    TechnicalCommitteeMembershipConfig,
-    VestingConfig,
-    WASM_BINARY,
-    // BridgeMembershipConfig
+    opaque::SessionKeys, BalancesConfig, BridgeMembershipConfig, CollatorSelectionConfig,
+    DemocracyConfig, GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
+    LiquidStakingAgentsMembershipConfig, LiquidStakingConfig, OracleMembershipConfig,
+    ParachainInfoConfig, PolkadotXcmConfig, SessionConfig, SudoConfig, SystemConfig,
+    TechnicalCommitteeMembershipConfig, VestingConfig, WASM_BINARY,
 };
 use primitives::{network::NetworkType, *};
 use sc_service::ChainType;
@@ -39,9 +25,6 @@ use sc_telemetry::TelemetryEndpoints;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::sr25519;
 use sp_runtime::{traits::Zero, FixedPointNumber};
-
-// use hex_literal::hex;
-// use sp_core::crypto::UncheckedInto;
 
 use crate::chain_spec::{
     accumulate, as_properties, get_account_id_from_seed, get_authority_keys_from_seed, Extensions,
@@ -66,7 +49,7 @@ pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
                 get_authority_keys_from_seed("Charlie"),
             ];
             let oracle_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Ferdie")];
-            // let bridge_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Alice")];
+            let bridge_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Alice")];
             let liquid_staking_agents = vec![get_account_id_from_seed::<sr25519::Public>("Eve")];
             let initial_allocation: Vec<(AccountId, Balance)> = accumulate(
                 vec![
@@ -99,6 +82,7 @@ pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
                     }
                 }),
             );
+            let vesting_list = vec![];
             let council = vec![
                 get_account_id_from_seed::<sr25519::Public>("Alice"),
                 get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -114,8 +98,9 @@ pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
                 root_key,
                 invulnerables,
                 oracle_accounts,
-                // bridge_accounts,
+                bridge_accounts,
                 initial_allocation,
+                vesting_list,
                 liquid_staking_agents,
                 council,
                 technical_committee,
@@ -128,7 +113,7 @@ pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
         None,
         Some(as_properties(NetworkType::Parallel)),
         Extensions {
-            relay_chain: "westend-local".into(),
+            relay_chain: "polkadot-local".into(),
             para_id: id.into(),
         },
     )
@@ -136,106 +121,20 @@ pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
 
 pub fn parallel_config(_id: ParaId) -> Result<ChainSpec, String> {
     ChainSpec::from_json_bytes(&include_bytes!("../../../../resources/specs/parallel.json")[..])
-    // Ok(ChainSpec::from_genesis(
-    //     // Name
-    //     "Parallel",
-    //     // ID
-    //     "parallel",
-    //     ChainType::Live,
-    //     move || {
-    //         let root_key: AccountId = "5GpSUyyzqeL55TLDrHLifYcvxshzqQ9c4JaogkEcuVvirE3w"
-    //             .parse()
-    //             .unwrap();
-    //         let invulnerables: Vec<(AccountId, AuraId)> = vec![
-    //             (
-    //                 // 5EA4X7f81kBRVRtVH6qotiQPmdTSw6oqLqNGuRqHxbLyUhAf
-    //                 hex!["5c8e4059d8eeef6e9cd387961c38a0a28a8a713190ca995a0c2e9dd4d926f07e"].into(),
-    //                 hex!["5c8e4059d8eeef6e9cd387961c38a0a28a8a713190ca995a0c2e9dd4d926f07e"]
-    //                     .unchecked_into(),
-    //             ),
-    //             (
-    //                 // 5GNYurfysPCrD8Y1CFd8Lc9CJJRCNPYhJEufeGfLJ3gQe5d5
-    //                 hex!["be8d3d4c7781682236df1e068e1746024c958d12df9f84e025d7e4c3f7126404"].into(),
-    //                 hex!["be8d3d4c7781682236df1e068e1746024c958d12df9f84e025d7e4c3f7126404"]
-    //                     .unchecked_into(),
-    //             ),
-    //             (
-    //                 // 5GzmRkqBrfryUbtwf2n694H9Nm75ubCSPsVQf7zmYDHw6fR5
-    //                 hex!["da2c3477a12743c98e734f14a100fd8aa6885d5d4f9ce32a5ce0f9602500547e"].into(),
-    //                 hex!["da2c3477a12743c98e734f14a100fd8aa6885d5d4f9ce32a5ce0f9602500547e"]
-    //                     .unchecked_into(),
-    //             ),
-    //             (
-    //                 // 5DHu97jdzpTk2anCRc2QRvvZ9d2f2e1SxbATPJsEHfqrAF49
-    //                 hex!["364c685c411c72d90718c71c305a479854bb0d49c439bf51f4ea4f1317d6c969"].into(),
-    //                 hex!["364c685c411c72d90718c71c305a479854bb0d49c439bf51f4ea4f1317d6c969"]
-    //                     .unchecked_into(),
-    //             ),
-    //             (
-    //                 // 5Hp61nKPbaPt3GGxxmMtkfT6t3Tt6K7996RWuCwxbmwmQ7bs
-    //                 hex!["fe434ea4283ee8c49e8aeda990698e3815fc78b0c46529154c7dcba462f7e33a"].into(),
-    //                 hex!["fe434ea4283ee8c49e8aeda990698e3815fc78b0c46529154c7dcba462f7e33a"]
-    //                     .unchecked_into(),
-    //             ),
-    //         ];
-    //         let oracle_accounts = vec![];
-    //         let liquid_staking_agents = vec![];
-    //         let initial_allocation: Vec<(AccountId, Balance)> = serde_json::from_str(include_str!(
-    //             "../../../../resources/parallel-allocation-PARA.json"
-    //         ))
-    //         .unwrap();
-    //         let initial_allocation: Vec<(AccountId, Balance)> = accumulate(initial_allocation);
-    //         let council = vec![];
-    //         let technical_committee = vec![];
-    //
-    //         parallel_genesis(
-    //             root_key,
-    //             invulnerables,
-    //             oracle_accounts,
-    //             initial_allocation,
-    //             liquid_staking_agents,
-    //             council,
-    //             technical_committee,
-    //             id,
-    //         )
-    //     },
-    //     vec![
-    //         "/dns/bootnode-0.parallel.fi/tcp/30333/p2p/12D3KooWQBJuhrsg8ayrFDW2hCcz3bGHx3tVkTeGUXS7e8D3TaEE".parse().unwrap(),
-    //         "/dns/bootnode-1.parallel.fi/tcp/30333/p2p/12D3KooWA3ngBk5UuAvtvANXRJSTjdCT9bz7AcdBqmnR64m3tRWb".parse().unwrap(),
-    //         "/dns/bootnode-2.parallel.fi/tcp/30333/p2p/12D3KooWRmZsTs77aMK5WR3VwqWPeQVnm8JgEKcX8EykcCBnibFu".parse().unwrap(),
-    //         "/dns/bootnode-3.parallel.fi/tcp/30333/p2p/12D3KooWDcN56Jwh96c4od3zc9RMSQciBASNd1vgiVfTZbCxxUKE".parse().unwrap(),
-    //         "/dns/bootnode-4.parallel.fi/tcp/30333/p2p/12D3KooWKh8KPixgUcxuhweCxnd8DpXGhigi4izLLf5g88KtDBs9".parse().unwrap(),
-    //         "/dns/bootnode-5.parallel.fi/tcp/30333/p2p/12D3KooWGxnMnE1AFriohESDGQnpYBzbxBpRDf3MFNu8yuobJBbF".parse().unwrap(),
-    //         "/dns/bootnode-6.parallel.fi/tcp/30333/p2p/12D3KooWDXwaaUm6LBAkDbM4mZDQ6HooWA99rm7a6fWiLq5hHwBA".parse().unwrap(),
-    //         "/dns/bootnode-7.parallel.fi/tcp/30333/p2p/12D3KooWKefwJNzBJzXxdL8wP59k5zfZZ5SBv5NUWeEyYcwugtK9".parse().unwrap()
-    //     ],
-    //     TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
-    //     Some("parallel"),
-    //     None,
-    //     Some(as_properties(network::NetworkType::Parallel)),
-    //     Extensions {
-    //         relay_chain: "polkadot".into(),
-    //         para_id: id.into(),
-    //     },
-    // ))
 }
 
 fn parallel_genesis(
     root_key: AccountId,
     invulnerables: Vec<(AccountId, AuraId)>,
     oracle_accounts: Vec<AccountId>,
-    // bridge_accounts: Vec<AccountId>,
+    bridge_accounts: Vec<AccountId>,
     initial_allocation: Vec<(AccountId, Balance)>,
+    vesting_list: Vec<(AccountId, BlockNumber, BlockNumber, u32, Balance)>,
     liquid_staking_agents: Vec<AccountId>,
     council: Vec<AccountId>,
     technical_committee: Vec<AccountId>,
     id: ParaId,
 ) -> GenesisConfig {
-    let vesting_list: Vec<(AccountId, BlockNumber, BlockNumber, u32, Balance)> =
-        serde_json::from_str(include_str!(
-            "../../../../resources/parallel-vesting-PARA.json"
-        ))
-        .unwrap();
     GenesisConfig {
         system: SystemConfig {
             code: WASM_BINARY
@@ -290,10 +189,10 @@ fn parallel_genesis(
             members: oracle_accounts,
             phantom: Default::default(),
         },
-        // bridge_membership: BridgeMembershipConfig {
-        //     members: bridge_accounts,
-        //     phantom: Default::default(),
-        // },
+        bridge_membership: BridgeMembershipConfig {
+            members: bridge_accounts,
+            phantom: Default::default(),
+        },
         liquid_staking_agents_membership: LiquidStakingAgentsMembershipConfig {
             members: liquid_staking_agents,
             phantom: Default::default(),

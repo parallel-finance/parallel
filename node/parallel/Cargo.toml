@@ -24,26 +24,33 @@ log                    = '0.4.13'
 primitives = { package = 'parallel-primitives', path = '../../primitives' }
 
 heiko-runtime                              = { path = '../../runtime/heiko' }
+kerria-runtime                             = { path = '../../runtime/kerria' }
 pallet-loans-rpc                           = { path = '../../pallets/loans/rpc' }
+pallet-router-rpc                          = { path = '../../pallets/router/rpc' }
 pallet-transaction-payment-rpc             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
 pallet-transaction-payment-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
-pallet-router-rpc                          = { path = '../../pallets/router/rpc' }
 parallel-runtime                           = { path = '../../runtime/parallel' }
 vanilla-runtime                            = { path = '../../runtime/vanilla' }
 
-sc-basic-authorship     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
-sc-chain-spec           = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
-sc-cli                  = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', features = ['wasmtime'] }
-sc-client-api           = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
-sc-consensus            = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
-sc-executor             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', features = ['wasmtime'] }
-sc-keystore             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
-sc-rpc                  = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
-sc-rpc-api              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
-sc-service              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', features = ['wasmtime'] }
-sc-telemetry            = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
-sc-tracing              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
-sc-transaction-pool     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
+sc-basic-authorship = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
+sc-chain-spec = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
+sc-cli = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', features = [
+  'wasmtime',
+] }
+sc-client-api = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
+sc-consensus = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
+sc-executor = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', features = [
+  'wasmtime',
+] }
+sc-keystore = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
+sc-rpc = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
+sc-rpc-api = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
+sc-service = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', features = [
+  'wasmtime',
+] }
+sc-telemetry = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
+sc-tracing = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
+sc-transaction-pool = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
 sc-transaction-pool-api = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
 
 frame-system-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
@@ -95,17 +102,19 @@ substrate-build-script-utils = { git = 'https://github.com/paritytech/substrate.
 name = 'parallel'
 
 [features]
-default            = ['std']
+default = ['std']
 runtime-benchmarks = [
   'parallel-runtime/runtime-benchmarks',
   'heiko-runtime/runtime-benchmarks',
   'vanilla-runtime/runtime-benchmarks',
+  'kerria-runtime/runtime-benchmarks',
   'polkadot-service/runtime-benchmarks',
 ]
-std                = []
-try-runtime        = [
+std = []
+try-runtime = [
   'heiko-runtime/try-runtime',
   'parallel-runtime/try-runtime',
   'vanilla-runtime/try-runtime',
+  'kerria-runtime/try-runtime',
   'try-runtime-cli',
 ]
