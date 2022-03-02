@@ -133,6 +133,10 @@ launch: shutdown
 		&& DOCKER_CLIENT_TIMEOUT=180 COMPOSE_HTTP_TIMEOUT=180 docker-compose up -d --build
 	cd scripts/ts && yarn start launch --network $(CHAIN)
 
+.PHONY: launch-kerria
+launch-kerria:
+	make PARA_ID=2012 CHAIN=kerria-dev RELAY_CHAIN=polkadot-local launch
+
 .PHONY: logs
 logs:
 	docker-compose -f output/docker-compose.yml logs -f

@@ -111,7 +111,7 @@ pub fn kerria_dev_config(id: ParaId) -> ChainSpec {
         TelemetryEndpoints::new(vec![(TELEMETRY_URL.into(), 0)]).ok(),
         Some("kerria-dev"),
         None,
-        Some(as_properties(NetworkType::Heiko)),
+        Some(as_properties(NetworkType::Parallel)),
         Extensions {
             relay_chain: "polkadot-local".into(),
             para_id: id.into(),
