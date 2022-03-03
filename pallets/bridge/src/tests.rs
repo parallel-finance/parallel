@@ -116,7 +116,7 @@ fn register_unregister_works() {
 }
 
 #[test]
-fn gift_fee_works() {
+fn gift_fees_works() {
     new_test_ext().execute_with(|| {
         // A successful case
         assert_eq!(<Test as Config>::Assets::balance(USDT, &DAVE), dollar(0));
@@ -131,34 +131,27 @@ fn gift_fee_works() {
         );
 
         // A failed case
-        assert_eq!(<Test as Config>::Assets::balance(USDT, &CHARLIE), dollar(0));
-        assert_eq!(<Test as Config>::Assets::balance(HKO, &CHARLIE), dollar(0));
+        // If the bridged amount is less than a certain threshold, no gift will be issued
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &BOB), dollar(0));
+        assert_eq!(<Test as Config>::Assets::balance(HKO, &BOB), dollar(0));
 
-        Bridge::materialize(
-            Origin::signed(ALICE),
-            ETH,
-            1,
-            EUSDT,
-            CHARLIE,
-            299_000_000,
-            true,
-        )
-        .unwrap();
-        Bridge::materialize(
-            Origin::signed(BOB),
-            ETH,
-            1,
-            EUSDT,
-            CHARLIE,
-            299_000_000,
-            true,
-        )
-        .unwrap();
+        Bridge::materialize(Origin::signed(ALICE), ETH, 1, EUSDT, BOB, 299_000_000, true).unwrap();
+        Bridge::materialize(Origin::signed(BOB), ETH, 1, EUSDT, BOB, 299_000_000, true).unwrap();
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &BOB), 299_000_000);
+        assert_eq!(<Test as Config>::Assets::balance(HKO, &BOB), 0,);
+
+        // DAVE balance = 0.01 HKO + 1 uint (essential balance)
+        // gift_fees = 0.025 HKO - (0.01 HKO + 1 uint) = 0.015 HKO
+        // final_balance = 0.025 HKO + 1 uint
+        Balances::set_balance(Origin::root(), BOB, dollar(1) / 100 + 1, dollar(0)).unwrap();
+
+        Bridge::materialize(Origin::signed(ALICE), ETH, 2, EUSDT, BOB, dollar(10), true).unwrap();
+        Bridge::materialize(Origin::signed(BOB), ETH, 2, EUSDT, BOB, dollar(10), true).unwrap();
+
         assert_eq!(
-            <Test as Config>::Assets::balance(USDT, &CHARLIE),
-            299_000_000
+            <Test as Config>::Assets::balance(HKO, &BOB),
+            dollar(25) / 1000 + 1,
         );
-        assert_eq!(<Test as Config>::Assets::balance(HKO, &CHARLIE), 0,);
     })
 }
 #[test]

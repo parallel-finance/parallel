@@ -16,6 +16,7 @@ use frame_support::{
     log,
     traits::{
         fungibles::{Inspect, Mutate, Transfer},
+        tokens::BalanceConversion,
         Get,
     },
 };
@@ -89,7 +90,7 @@ impl<
         CurrencyIdConvert: Convert<MultiAsset, Option<MultiCurrency::AssetId>>,
         NativeCurrencyId: Get<MultiCurrency::AssetId>,
         GiftAccount: Get<AccountId>,
-        GiftConvert: Convert<(MultiCurrency::AssetId, Balance), MultiCurrency::Balance>,
+        GiftConvert: BalanceConversion<Balance, MultiCurrency::AssetId, Balance>,
     > TransactAsset
     for MultiCurrencyAdapter<
         MultiCurrency,
@@ -123,7 +124,8 @@ impl<
                     let gift_account = GiftAccount::get();
                     let native_currency_id = NativeCurrencyId::get();
                     let gift_amount =
-                        GiftConvert::convert((native_currency_id, amount.saturated_into()));
+                        GiftConvert::to_asset_balance(amount.saturated_into(), native_currency_id)
+                            .unwrap_or_else(|_| Zero::zero());
                     let beneficiary_native_balance =
                         MultiCurrency::reducible_balance(native_currency_id, &who, true);
                     let reducible_balance =

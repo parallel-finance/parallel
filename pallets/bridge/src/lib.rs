@@ -28,7 +28,10 @@ use frame_support::{
     pallet_prelude::*,
     require_transactional,
     traits::{
-        tokens::fungibles::{Inspect, Mutate, Transfer},
+        tokens::{
+            fungibles::{Inspect, Mutate, Transfer},
+            BalanceConversion,
+        },
         Get, SortedMembers,
     },
     transactional, PalletId,
@@ -36,7 +39,7 @@ use frame_support::{
 use frame_system::{ensure_signed_or_root, pallet_prelude::*};
 use primitives::{Balance, BridgeId, ChainId, ChainNonce, CurrencyId, Ratio};
 use scale_info::prelude::{vec, vec::Vec};
-use sp_runtime::traits::{AccountIdConversion, Convert, Zero};
+use sp_runtime::traits::{AccountIdConversion, Zero};
 
 mod benchmarking;
 mod mock;
@@ -93,7 +96,7 @@ pub mod pallet {
         #[pallet::constant]
         type GiftAccount: Get<Self::AccountId>;
 
-        type GiftConvert: Convert<(CurrencyId, Balance), Balance>;
+        type GiftConvert: BalanceConversion<Balance, CurrencyId, Balance>;
 
         #[pallet::constant]
         type NativeCurrencyId: Get<AssetIdOf<Self>>;
@@ -796,7 +799,7 @@ impl<T: Config> Pallet<T> {
             T::Assets::transfer(asset_id, &Self::account_id(), &call.to, call.amount, true)?;
         }
 
-        Self::gift_fee(call.clone().to, asset_id, call.amount)?;
+        Self::gift_fees(call.clone().to, asset_id, call.amount)?;
         Self::update_bridge_registry(src_id, src_nonce);
 
         log::trace!(
@@ -829,10 +832,11 @@ impl<T: Config> Pallet<T> {
     }
 
     #[require_transactional]
-    fn gift_fee(who: T::AccountId, asset_id: CurrencyId, amount: BalanceOf<T>) -> DispatchResult {
+    fn gift_fees(who: T::AccountId, asset_id: CurrencyId, amount: BalanceOf<T>) -> DispatchResult {
         let gift_account = T::GiftAccount::get();
         let native_currency_id = T::NativeCurrencyId::get();
-        let gift_amount = T::GiftConvert::convert((asset_id, amount));
+        let gift_amount =
+            T::GiftConvert::to_asset_balance(amount, asset_id).unwrap_or_else(|_| Zero::zero());
         let beneficiary_native_balance =
             T::Assets::reducible_balance(native_currency_id, &who, true);
         let reducible_balance =

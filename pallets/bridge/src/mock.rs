@@ -6,10 +6,7 @@ use frame_support::{
     traits::{fungibles::InspectMetadata, ChangeMembers, Everything},
 };
 use frame_system::{self as system, EnsureRoot};
-use primitives::{
-    tokens::{HKO, KSM},
-    CurrencyDetail,
-};
+use primitives::tokens::{HKO, KSM};
 
 use crate::{self as bridge, ChainId, Config};
 use sp_core::H256;
@@ -181,29 +178,31 @@ parameter_types! {
 }
 
 pub struct GiftConvert;
-impl Convert<CurrencyDetail, Balance> for GiftConvert {
-    fn convert(currency: CurrencyDetail) -> Balance {
-        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(&currency.0);
+impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
+    type Error = DispatchError;
+    fn to_asset_balance(balance: Balance, asset_id: CurrencyId) -> Result<Balance, Self::Error> {
+        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(&asset_id);
         if decimal.is_zero() {
-            return Zero::zero();
+            return Ok(Zero::zero());
         }
-
-        match currency {
-            (USDT, amount) => {
+        let default_gift_amount = 1_000_000_000_000 / 40; // 0.025HKO
+        match asset_id {
+            USDT => {
                 // greater than 300 EUSDT/EUSDC
-                if amount >= 300 * 10_u128.pow(decimal.into()) {
-                    return 1_000_000_000_000 / 40; // 0.025HKO
+                if balance >= 300 * 10_u128.pow(decimal.into()) {
+                    return Ok(default_gift_amount);
                 }
             }
-            (_, amount) => {
+            HKO => {
                 // greater than 0.1 Token
-                if amount >= 10_u128.pow((decimal - 1).into()) {
-                    return 1_000_000_000_000 / 40; // 0.025HKO
+                if balance >= 10_u128.pow((decimal - 1).into()) {
+                    return Ok(default_gift_amount);
                 }
             }
+            _ => return Ok(Zero::zero()),
         }
 
-        Zero::zero()
+        Ok(Zero::zero())
     }
 }
 

@@ -2,7 +2,9 @@ use frame_support::{
     construct_runtime,
     dispatch::Weight,
     parameter_types, sp_io,
-    traits::{EnsureOneOf, Everything, GenesisBuild, Nothing, SortedMembers},
+    traits::{
+        tokens::BalanceConversion, EnsureOneOf, Everything, GenesisBuild, Nothing, SortedMembers,
+    },
     weights::constants::WEIGHT_PER_SECOND,
     PalletId,
 };
@@ -12,18 +14,14 @@ use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 
 use polkadot_runtime_parachains::configuration::HostConfiguration;
-use primitives::{
-    currency::{MockGiftConvert, MultiCurrencyAdapter},
-    tokens::*,
-    Balance, ParaId, Rate, Ratio,
-};
+use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId, Rate, Ratio};
 use sp_core::H256;
 use sp_runtime::{
     generic,
     traits::{
-        AccountIdConversion, AccountIdLookup, BlakeTwo256, BlockNumberProvider, Convert, One,
+        AccountIdConversion, AccountIdLookup, BlakeTwo256, BlockNumberProvider, Convert, One, Zero,
     },
-    AccountId32,
+    AccountId32, DispatchError,
     MultiAddress::Id,
 };
 pub use xcm::latest::prelude::*;
@@ -93,6 +91,14 @@ parameter_types! {
     pub GiftAccount: AccountId = PalletId(*b"par/gift").into_account();
 }
 
+pub struct GiftConvert;
+impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
+    type Error = DispatchError;
+    fn to_asset_balance(_balance: Balance, _asset_id: CurrencyId) -> Result<Balance, Self::Error> {
+        Ok(Zero::zero())
+    }
+}
+
 pub type LocalAssetTransactor = MultiCurrencyAdapter<
     Assets,
     IsNativeConcrete<CurrencyId, CurrencyIdConvert>,
@@ -102,7 +108,7 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
     CurrencyIdConvert,
     NativeCurrencyId,
     GiftAccount,
-    MockGiftConvert,
+    GiftConvert,
 >;
 
 pub type XcmRouter = ParachainXcmRouter<ParachainInfo>;

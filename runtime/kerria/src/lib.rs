@@ -28,6 +28,7 @@ use frame_support::{
     match_type,
     traits::{
         fungibles::{InspectMetadata, Mutate},
+        tokens::BalanceConversion,
         ChangeMembers, Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, Nothing,
         OnRuntimeUpgrade,
     },
@@ -933,31 +934,34 @@ parameter_types! {
 }
 
 pub struct GiftConvert;
-impl Convert<CurrencyDetail, Balance> for GiftConvert {
-    fn convert(currency: CurrencyDetail) -> Balance {
-        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(&currency.0);
+impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
+    type Error = DispatchError;
+    fn to_asset_balance(balance: Balance, asset_id: CurrencyId) -> Result<Balance, Self::Error> {
+        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(&asset_id);
         if decimal.is_zero() {
-            return Zero::zero();
+            return Ok(Zero::zero());
         }
-
-        match currency {
-            (EUSDT | EUSDC, amount) => {
-                // greater than 300 EUSDT/EUSDC
-                if amount >= 300 * 10_u128.pow(decimal.into()) {
-                    return 125 * DOLLARS / 100; // 1.25PARA
-                }
-            }
-            (_, amount) => {
+        let default_gift_amount = 125 * DOLLARS / 100; // 1.25PARA
+        match asset_id {
+            NATIVE_ASSET_ID => {
                 // greater than 5 Token
-                if amount >= 5 * 10_u128.pow(decimal.into()) {
-                    return 125 * DOLLARS / 100; // 1.25PARA
+                if balance >= 5 * 10_u128.pow(decimal.into()) {
+                    return Ok(default_gift_amount);
                 }
             }
+            EUSDT | EUSDC => {
+                // greater than 300 EUSDT/EUSDC
+                if balance >= 300 * 10_u128.pow(decimal.into()) {
+                    return Ok(default_gift_amount);
+                }
+            }
+            _ => return Ok(Zero::zero()),
         }
 
-        Zero::zero()
+        Ok(Zero::zero())
     }
 }
+
 /// Means for transacting assets on this chain.
 pub type LocalAssetTransactor = MultiCurrencyAdapter<
     // Use this currency:
