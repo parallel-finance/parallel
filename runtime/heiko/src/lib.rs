@@ -29,7 +29,7 @@ use frame_support::{
     traits::{
         fungibles::{InspectMetadata, Mutate},
         ChangeMembers, Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, InstanceFilter,
-        Nothing, OnRuntimeUpgrade,
+        Nothing,
     },
     PalletId,
 };
@@ -141,10 +141,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("heiko"),
     impl_name: create_runtime_str!("heiko"),
     authoring_version: 1,
-    spec_version: 177,
-    impl_version: 22,
+    spec_version: 178,
+    impl_version: 23,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 6,
+    transaction_version: 7,
     state_version: 0,
 };
 
@@ -1794,27 +1794,8 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    SchedulerMigrationV3,
+    (),
 >;
-
-// Migration for scheduler pallet to move from a plain Call to a CallOrHash.
-pub struct SchedulerMigrationV3;
-
-impl OnRuntimeUpgrade for SchedulerMigrationV3 {
-    fn on_runtime_upgrade() -> frame_support::weights::Weight {
-        Scheduler::migrate_v2_to_v3()
-    }
-
-    #[cfg(feature = "try-runtime")]
-    fn pre_upgrade() -> Result<(), &'static str> {
-        Scheduler::pre_migrate_to_v3()
-    }
-
-    #[cfg(feature = "try-runtime")]
-    fn post_upgrade() -> Result<(), &'static str> {
-        Scheduler::post_migrate_to_v3()
-    }
-}
 
 impl_runtime_apis! {
     impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
