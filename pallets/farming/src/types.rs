@@ -10,19 +10,19 @@ use sp_runtime::{
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct PoolInfo<BlockNumber, BalanceOf> {
     pub is_active: bool,
-    /// total amount of user deposited
+    /// total amount of staking asset user deposited
     pub total_supply: BalanceOf,
-    /// lock duration for lock pool
+    /// lock duration after withdraw from reward pool
     pub lock_duration: BlockNumber,
-    /// reward duration
+    /// current reward duration
     pub duration: BlockNumber,
     /// block number of reward ends
     pub period_finish: BlockNumber,
     /// block number of last reward update
     pub last_update_block: BlockNumber,
-    /// pool reward rate
+    /// pool reward number for one block.
     pub reward_rate: BalanceOf,
-    /// reward index for one share staked token.
+    /// pool reward index for one share staking asset.
     pub reward_per_share_stored: BalanceOf,
 }
 
@@ -47,7 +47,6 @@ impl<
     > PoolInfo<BlockNumber, BalanceOf>
 {
     /// Return valid reward block for current block number.
-    /// Return send if reward ended already.
     pub fn last_reward_block_applicable(&self, current_block_number: BlockNumber) -> BlockNumber {
         if current_block_number > self.period_finish {
             self.period_finish
@@ -56,7 +55,7 @@ impl<
         }
     }
 
-    /// Calculate reward amount for one share of staking token.
+    /// Calculate reward amount for one share of staking asset.
     /// Return ArithmeticError if it encounter an arithmetic error.
     pub fn reward_per_share(
         &self,
@@ -83,7 +82,7 @@ impl<
         }
     }
 
-    /// Update reward amount for one share of staking token and updating block.
+    /// Update reward amount for one share of staking asset and updating block.
     /// Return ArithmeticError if it encounter an arithmetic error.
     pub fn update_reward_per_share(
         &mut self,

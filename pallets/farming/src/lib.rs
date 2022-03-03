@@ -177,7 +177,13 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Create new pool, associated with asset id and reward asset id.
+        /// Create new pool from a privileged origin. Pool can be identified by a pair of asset and reward_asset.
+        ///
+        /// The origin must conform to `UpdateOrigin`.
+        ///
+        /// - `asset`: The identifier of the staking asset.
+        /// - `reward_asset`: The identifier of the reward asset.
+        /// - `lock_duration`: Lock block number after Withdraw.
         #[pallet::weight(T::WeightInfo::create())]
         #[transactional]
         pub fn create(
@@ -209,6 +215,12 @@ pub mod pallet {
         }
 
         /// Set pool active status
+        ///
+        /// The origin must conform to `UpdateOrigin`.
+        ///
+        /// - `asset`: The identifier of the staking asset.
+        /// - `reward_asset`: The identifier of the reward asset.
+        /// - `is_active`: new active status.
         #[pallet::weight(T::WeightInfo::set_pool_status())]
         #[transactional]
         pub fn set_pool_status(
@@ -235,6 +247,12 @@ pub mod pallet {
         }
 
         /// Set pool lock duration
+        ///
+        /// The origin must conform to `UpdateOrigin`.
+        ///
+        /// - `asset`: The identifier of the staking asset.
+        /// - `reward_asset`: The identifier of the reward asset.
+        /// - `lock_duration`: new lock block number after Withdraw.
         #[pallet::weight(T::WeightInfo::set_pool_lock_duration())]
         #[transactional]
         pub fn set_pool_lock_duration(
@@ -269,6 +287,12 @@ pub mod pallet {
         }
 
         /// Depositing Assets to reward Pool
+        ///
+        /// The origin must be Signed and the sender must have sufficient balance of staking asset.
+        ///
+        /// - `asset`: The identifier of the staking asset.
+        /// - `reward_asset`: The identifier of the reward asset.
+        /// - `amount`: the amount of staking asset want to deposit.
         #[pallet::weight(T::WeightInfo::deposit())]
         #[transactional]
         pub fn deposit(
@@ -321,6 +345,12 @@ pub mod pallet {
         }
 
         /// Withdrawing Assets from reward Pool
+        ///
+        /// The origin must be Signed and the sender must have sufficient deposited balance.
+        ///
+        /// - `asset`: The identifier of the staking asset.
+        /// - `reward_asset`: The identifier of the reward asset.
+        /// - `amount`: the amount of staking asset want to withdraw.
         #[pallet::weight(T::WeightInfo::withdraw())]
         #[transactional]
         pub fn withdraw(
@@ -379,7 +409,12 @@ pub mod pallet {
             })
         }
 
-        /// Redeem Assets from a lock Pool
+        /// Redeem unlocked balance of staking asset from Pool
+        ///
+        /// Origin must be Signed.
+        ///
+        /// - `asset`: The identifier of the staking asset.
+        /// - `reward_asset`: The identifier of the reward asset.
         #[pallet::weight(T::WeightInfo::redeem())]
         #[transactional]
         pub fn redeem(
@@ -427,7 +462,12 @@ pub mod pallet {
             )
         }
 
-        /// Claim reward token from pool
+        /// Claim reward asset from pool
+        ///
+        /// Origin must be Signed.
+        ///
+        /// - `asset`: The identifier of the staking asset.
+        /// - `reward_asset`: The identifier of the reward asset.
         #[pallet::weight(T::WeightInfo::claim())]
         #[transactional]
         pub fn claim(
@@ -472,7 +512,15 @@ pub mod pallet {
             )
         }
 
-        /// Dispatch reward token with specified amount and duration
+        /// Dispatch reward asset with specified amount and duration
+        ///
+        /// The origin must conform to `UpdateOrigin`.
+        ///
+        /// - `asset`: The identifier of the staking asset.
+        /// - `reward_asset`: The identifier of the reward asset.
+        /// - `payer`: the payer of reward asset.
+        /// - `amount`: the amount of reward asset to dispatch.
+        /// - `duration`: the number of block this reward will last for.
         #[pallet::weight(T::WeightInfo::dispatch_reward())]
         #[transactional]
         pub fn dispatch_reward(
