@@ -182,6 +182,9 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .unwrap();
 
         Farming::create(Origin::root(), STAKE_TOKEN, REWARD_TOKEN, 100).unwrap();
+        let pool_info = Farming::pools(STAKE_TOKEN, REWARD_TOKEN).unwrap();
+        assert_eq!(pool_info.is_active, false);
+        Farming::set_pool_status(Origin::root(), STAKE_TOKEN, REWARD_TOKEN, true).unwrap();
 
         System::set_block_number(0);
         run_to_block(1);

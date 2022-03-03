@@ -29,7 +29,7 @@ pub struct PoolInfo<BlockNumber, BalanceOf> {
 impl<BlockNumber: Default, BalanceOf: Default> Default for PoolInfo<BlockNumber, BalanceOf> {
     fn default() -> Self {
         Self {
-            is_active: true,
+            is_active: false,
             total_supply: BalanceOf::default(),
             lock_duration: BlockNumber::default(),
             duration: BlockNumber::default(),

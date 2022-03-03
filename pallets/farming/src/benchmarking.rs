@@ -57,6 +57,7 @@ fn initial_set_up<T: Config + pallet_assets::Config<AssetId = CurrencyId, Balanc
         T::BlockNumber::from(10u32),
     )
     .ok();
+    Farming::<T>::set_pool_status(SystemOrigin::Root.into(), ASSET, REWARD_ASSET, true).ok();
 }
 
 benchmarks! {
