@@ -101,6 +101,9 @@ pub mod pallet {
         #[pallet::constant]
         type NativeCurrencyId: Get<AssetIdOf<Self>>;
 
+        #[pallet::constant]
+        type ExistentialDeposit: Get<Balance>;
+
         /// The identifier for this chain.
         /// This must be unique and must not collide with existing IDs within a set of bridged chains.
         #[pallet::constant]
@@ -846,7 +849,7 @@ impl<T: Config> Pallet<T> {
             && reducible_balance >= gift_amount
             && beneficiary_native_balance < gift_amount
         {
-            let diff = gift_amount - beneficiary_native_balance;
+            let diff = T::ExistentialDeposit::get() + gift_amount - beneficiary_native_balance;
             T::Assets::transfer(native_currency_id, &gift_account, &who, diff, false)?;
         }
 

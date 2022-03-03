@@ -127,7 +127,7 @@ fn gift_fees_works() {
         assert_eq!(<Test as Config>::Assets::balance(USDT, &DAVE), dollar(10));
         assert_eq!(
             <Test as Config>::Assets::balance(HKO, &DAVE),
-            dollar(25) / 1000
+            dollar(25) / 1000 + dollar(1) / 100,
         );
 
         // A failed case
@@ -140,17 +140,32 @@ fn gift_fees_works() {
         assert_eq!(<Test as Config>::Assets::balance(USDT, &BOB), 299_000_000);
         assert_eq!(<Test as Config>::Assets::balance(HKO, &BOB), 0,);
 
-        // DAVE balance = 0.01 HKO + 1 uint (essential balance)
-        // gift_fees = 0.025 HKO - (0.01 HKO + 1 uint) = 0.015 HKO
-        // final_balance = 0.025 HKO + 1 uint
-        Balances::set_balance(Origin::root(), BOB, dollar(1) / 100 + 1, dollar(0)).unwrap();
+        // BOB balance = 0.022 HKO
+        // gift_fees = 0.025 HKO - (0.022 HKO - 0.01 HKO) = 0.013 HKO
+        // final_gift = existential_deposit + 0.013 HKO = 0.023 HKO
+        // final_balance = 0.022 HKO + 0.023 HKO = 0.045 HKO
+        Balances::set_balance(Origin::root(), BOB, dollar(22) / 1000, dollar(0)).unwrap();
 
         Bridge::materialize(Origin::signed(ALICE), ETH, 2, EUSDT, BOB, dollar(10), true).unwrap();
         Bridge::materialize(Origin::signed(BOB), ETH, 2, EUSDT, BOB, dollar(10), true).unwrap();
 
         assert_eq!(
             <Test as Config>::Assets::balance(HKO, &BOB),
-            dollar(25) / 1000 + 1,
+            dollar(35) / 1000 + dollar(1) / 100,
+        );
+
+        // BOB balance = 0.035 HKO
+        // gift_fees = 0.025 HKO - (0.035 HKO - 0.01 HKO) = 0 HKO
+        // final_gift = 0 HKO
+        // final_balance = 0.035 HKO
+        Balances::set_balance(Origin::root(), BOB, dollar(35) / 1000, dollar(0)).unwrap();
+
+        Bridge::materialize(Origin::signed(ALICE), ETH, 3, EUSDT, BOB, dollar(10), true).unwrap();
+        Bridge::materialize(Origin::signed(BOB), ETH, 3, EUSDT, BOB, dollar(10), true).unwrap();
+
+        assert_eq!(
+            <Test as Config>::Assets::balance(HKO, &BOB),
+            dollar(35) / 1000,
         );
     })
 }

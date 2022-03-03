@@ -36,6 +36,7 @@ pub struct MultiCurrencyAdapter<
     AccountIdConvert,
     CurrencyIdConvert,
     NativeCurrencyId,
+    ExistentialDeposit,
     GiftAccount,
     GiftConvert,
 >(
@@ -47,6 +48,7 @@ pub struct MultiCurrencyAdapter<
         AccountIdConvert,
         CurrencyIdConvert,
         NativeCurrencyId,
+        ExistentialDeposit,
         GiftAccount,
         GiftConvert,
     )>,

@@ -975,6 +975,7 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
     LocationToAccountId,
     CurrencyIdConvert,
     NativeCurrencyId,
+    ExistentialDeposit,
     GiftAccount,
     GiftConvert,
 >;
@@ -1512,6 +1513,7 @@ impl pallet_bridge::Config for Runtime {
     type GiftAccount = GiftAccount;
     type GiftConvert = GiftConvert;
     type NativeCurrencyId = NativeCurrencyId;
+    type ExistentialDeposit = ExistentialDeposit;
     type ProposalLifetime = ProposalLifetime;
     type ThresholdPercentage = ThresholdPercentage;
     type WeightInfo = pallet_bridge::weights::SubstrateWeight<Runtime>;

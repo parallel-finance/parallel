@@ -111,7 +111,7 @@ impl pallet_assets::Config for Test {
 }
 
 parameter_types! {
-    pub const ExistentialDeposit: Balance = 1;
+    pub const ExistentialDeposit: Balance = 10_000_000_000; // 0.01 HKO
     pub const MaxLocks: u32 = 50;
 }
 
@@ -220,6 +220,7 @@ impl Config for Test {
     type GiftAccount = GiftAccount;
     type GiftConvert = GiftConvert;
     type NativeCurrencyId = NativeCurrencyId;
+    type ExistentialDeposit = ExistentialDeposit;
 
     type ProposalLifetime = ProposalLifetime;
     type ThresholdPercentage = ThresholdPercentage;

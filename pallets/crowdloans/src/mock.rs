@@ -119,6 +119,7 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
     LocationToAccountId,
     CurrencyIdConvert,
     NativeCurrencyId,
+    ExistentialDeposit,
     GiftAccount,
     GiftConvert,
 >;
