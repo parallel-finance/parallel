@@ -477,7 +477,7 @@ pub mod pallet {
             );
 
             let (bond_amount, rebond_amount, unbond_amount) =
-                MatchingPool::<T>::try_mutate(|b| b.matching(unbonding_amount))?;
+                Self::matching_pool().matching(unbonding_amount)?;
 
             if bonding_amount.is_zero() && unbonding_amount.is_zero() {
                 Self::do_bond(bond_amount, RewardDestination::Staked)?;

@@ -23,7 +23,7 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
     ///
     /// the returned tri-tuple is formed as `(bond_amount, rebond_amount, unbond_amount)`.
     pub fn matching(
-        &mut self,
+        &self,
         unbonding_amount: Balance,
     ) -> Result<(Balance, Balance, Balance), DispatchError> {
         use Ordering::*;
