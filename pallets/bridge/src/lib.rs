@@ -802,7 +802,7 @@ impl<T: Config> Pallet<T> {
             T::Assets::transfer(asset_id, &Self::account_id(), &call.to, call.amount, true)?;
         }
 
-        Self::gift_fees(call.clone().to, asset_id, call.amount)?;
+        Self::grant_incentive_bonus(call.clone().to, asset_id, call.amount)?;
         Self::update_bridge_registry(src_id, src_nonce);
 
         log::trace!(
@@ -835,7 +835,11 @@ impl<T: Config> Pallet<T> {
     }
 
     #[require_transactional]
-    fn gift_fees(who: T::AccountId, asset_id: CurrencyId, amount: BalanceOf<T>) -> DispatchResult {
+    fn grant_incentive_bonus(
+        who: T::AccountId,
+        asset_id: CurrencyId,
+        amount: BalanceOf<T>,
+    ) -> DispatchResult {
         let gift_account = T::GiftAccount::get();
         let native_currency_id = T::NativeCurrencyId::get();
         let gift_amount =

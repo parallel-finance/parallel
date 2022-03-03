@@ -928,24 +928,13 @@ impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
         if decimal.is_zero() {
             return Ok(Zero::zero());
         }
-        let default_gift_amount = DOLLARS / 40; // 0.025HKO
-        match asset_id {
-            NATIVE_ASSET_ID => {
-                // greater than 0.1 Token
-                if balance >= 10_u128.pow((decimal - 1).into()) {
-                    return Ok(default_gift_amount);
-                }
-            }
-            EUSDT | EUSDC => {
-                // greater than 300 EUSDT/EUSDC
-                if balance >= 300 * 10_u128.pow(decimal.into()) {
-                    return Ok(default_gift_amount);
-                }
-            }
-            _ => return Ok(Zero::zero()),
-        }
 
-        Ok(Zero::zero())
+        let default_gift_amount = DOLLARS / 40; // 0.025HKO
+        Ok(match asset_id {
+            NATIVE_ASSET_ID if balance >= 10_u128.pow((decimal - 1).into()) => default_gift_amount,
+            EUSDT | EUSDC if balance >= 300 * 10_u128.pow(decimal.into()) => default_gift_amount,
+            _ => Zero::zero(),
+        })
     }
 }
 

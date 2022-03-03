@@ -185,24 +185,13 @@ impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
         if decimal.is_zero() {
             return Ok(Zero::zero());
         }
-        let default_gift_amount = 1_000_000_000_000 / 40; // 0.025HKO
-        match asset_id {
-            USDT => {
-                // greater than 300 EUSDT/EUSDC
-                if balance >= 300 * 10_u128.pow(decimal.into()) {
-                    return Ok(default_gift_amount);
-                }
-            }
-            HKO => {
-                // greater than 0.1 Token
-                if balance >= 10_u128.pow((decimal - 1).into()) {
-                    return Ok(default_gift_amount);
-                }
-            }
-            _ => return Ok(Zero::zero()),
-        }
 
-        Ok(Zero::zero())
+        let default_gift_amount: u128 = 1_000_000_000_000 / 40; // 0.025HKO
+        Ok(match asset_id {
+            USDT if balance >= 300 * 10_u128.pow(decimal.into()) => default_gift_amount,
+            HKO if balance >= 10_u128.pow((decimal - 1).into()) => default_gift_amount,
+            _ => Zero::zero(),
+        })
     }
 }
 
