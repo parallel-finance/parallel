@@ -87,6 +87,7 @@ impl<
         AccountIdConvert: MoreConvert<MultiLocation, AccountId>,
         CurrencyIdConvert: Convert<MultiAsset, Option<MultiCurrency::AssetId>>,
         NativeCurrencyId: Get<MultiCurrency::AssetId>,
+        ExistentialDeposit: Get<Balance>,
         GiftAccount: Get<AccountId>,
         GiftConvert: BalanceConversion<Balance, MultiCurrency::AssetId, Balance>,
     > TransactAsset
@@ -98,6 +99,7 @@ impl<
         AccountIdConvert,
         CurrencyIdConvert,
         NativeCurrencyId,
+        ExistentialDeposit,
         GiftAccount,
         GiftConvert,
     >
@@ -133,7 +135,8 @@ impl<
                         && reducible_balance >= gift_amount
                         && beneficiary_native_balance < gift_amount
                     {
-                        let diff = gift_amount - beneficiary_native_balance;
+                        let diff =
+                            ExistentialDeposit::get() + gift_amount - beneficiary_native_balance;
                         if let Err(e) = MultiCurrency::transfer(
                             native_currency_id,
                             &gift_account,
