@@ -28,8 +28,6 @@ use sp_std::{convert::Into, marker::PhantomData, prelude::*, result};
 use xcm::latest::prelude::*;
 use xcm_executor::traits::{Convert as MoreConvert, MatchesFungible, TransactAsset};
 
-use crate::{Balance, CurrencyDetail};
-
 pub struct MultiCurrencyAdapter<
     MultiCurrency,
     Match,
@@ -180,11 +178,5 @@ impl<
             .map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
 
         Ok(asset.clone().into())
-    }
-}
-pub struct MockGiftConvert;
-impl Convert<CurrencyDetail, Balance> for MockGiftConvert {
-    fn convert(_currency: CurrencyDetail) -> Balance {
-        Zero::zero()
     }
 }
