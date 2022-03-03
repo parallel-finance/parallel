@@ -11,7 +11,7 @@ use sp_runtime::{
 pub struct PoolInfo<BlockNumber, BalanceOf> {
     pub is_active: bool,
     /// total amount of staking asset user deposited
-    pub total_supply: BalanceOf,
+    pub total_deposited: BalanceOf,
     /// lock duration after withdraw from reward pool
     pub lock_duration: BlockNumber,
     /// current reward duration
@@ -30,7 +30,7 @@ impl<BlockNumber: Default, BalanceOf: Default> Default for PoolInfo<BlockNumber,
     fn default() -> Self {
         Self {
             is_active: false,
-            total_supply: BalanceOf::default(),
+            total_deposited: BalanceOf::default(),
             lock_duration: BlockNumber::default(),
             duration: BlockNumber::default(),
             period_finish: BlockNumber::default(),
@@ -62,7 +62,7 @@ impl<
         current_block_number: BlockNumber,
         amount_per_share: BalanceOf,
     ) -> Result<BalanceOf, ArithmeticError> {
-        if self.total_supply.is_zero() {
+        if self.total_deposited.is_zero() {
             Ok(self.reward_per_share_stored)
         } else {
             let last_reward_block = self.last_reward_block_applicable(current_block_number);
@@ -71,7 +71,7 @@ impl<
             let reward_per_share_add = block_diff
                 .checked_mul(&self.reward_rate)
                 .and_then(|r| r.checked_mul(&amount_per_share))
-                .and_then(|r| r.checked_div(&self.total_supply))
+                .and_then(|r| r.checked_div(&self.total_deposited))
                 .ok_or(ArithmeticError::Overflow)?;
 
             let ret = self

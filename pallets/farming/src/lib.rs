@@ -318,15 +318,15 @@ pub mod pallet {
 
                 T::Assets::transfer(asset, &who, &asset_pool_account, amount, true)?;
 
-                pool_info.total_supply = pool_info
-                    .total_supply
+                pool_info.total_deposited = pool_info
+                    .total_deposited
                     .checked_add(amount)
                     .ok_or(ArithmeticError::Overflow)?;
 
                 Positions::<T>::mutate(
                     (&asset, &reward_asset, &who),
-                    |user_info| -> DispatchResult {
-                        user_info.deposit_balance = user_info
+                    |user_position| -> DispatchResult {
+                        user_position.deposit_balance = user_position
                             .deposit_balance
                             .checked_add(amount)
                             .ok_or(ArithmeticError::Overflow)?;
@@ -377,15 +377,15 @@ pub mod pallet {
             let current_block_number = <frame_system::Pallet<T>>::block_number();
             Pools::<T>::mutate(asset, reward_asset, |pool_info| -> DispatchResult {
                 let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
-                pool_info.total_supply = pool_info
-                    .total_supply
+                pool_info.total_deposited = pool_info
+                    .total_deposited
                     .checked_sub(amount)
                     .ok_or(ArithmeticError::Overflow)?;
 
                 Positions::<T>::mutate(
                     (&asset, &reward_asset, &who),
-                    |user_info| -> DispatchResult {
-                        user_info.deposit_balance = user_info
+                    |user_position| -> DispatchResult {
+                        user_position.deposit_balance = user_position
                             .deposit_balance
                             .checked_sub(amount)
                             .ok_or(ArithmeticError::Overflow)?;
@@ -394,7 +394,7 @@ pub mod pallet {
                             let asset_pool_account = Self::pool_account_id(asset)?;
                             T::Assets::transfer(asset, &asset_pool_account, &who, amount, true)?;
                         } else {
-                            user_info
+                            user_position
                                 .lock_balance_items
                                 .try_push((amount, current_block_number))
                                 .map_err(|_| Error::<T>::ExcessMaxUserLockItemsCount)?;
@@ -429,9 +429,9 @@ pub mod pallet {
             let current_block_number = <frame_system::Pallet<T>>::block_number();
             Positions::<T>::mutate(
                 (&asset, &reward_asset, &who),
-                |user_info| -> DispatchResult {
+                |user_position| -> DispatchResult {
                     let mut total_amount: BalanceOf<T> = 0;
-                    for item in user_info.lock_balance_items.iter() {
+                    for item in user_position.lock_balance_items.iter() {
                         let unlock_block = item.1.saturating_add(pool_info.lock_duration);
                         if current_block_number >= unlock_block {
                             total_amount = total_amount
@@ -440,7 +440,7 @@ pub mod pallet {
                         }
                     }
 
-                    user_info.lock_balance_items.retain(|item| {
+                    user_position.lock_balance_items.retain(|item| {
                         let unlock_block = item.1.saturating_add(pool_info.lock_duration);
                         current_block_number < unlock_block
                     });
@@ -487,8 +487,8 @@ pub mod pallet {
             let asset_pool_account = Self::pool_account_id(reward_asset)?;
             Positions::<T>::mutate(
                 (&asset, &reward_asset, &who),
-                |user_info| -> DispatchResult {
-                    let reward_amount = user_info.reward_amount;
+                |user_position| -> DispatchResult {
+                    let reward_amount = user_position.reward_amount;
                     if reward_amount > 0 {
                         T::Assets::transfer(
                             reward_asset,
@@ -497,7 +497,7 @@ pub mod pallet {
                             reward_amount,
                             true,
                         )?;
-                        user_info.reward_amount = 0;
+                        user_position.reward_amount = 0;
 
                         Self::deposit_event(Event::<T>::RewardPaid(
                             who.clone(),
@@ -605,21 +605,21 @@ impl<T: Config> Pallet<T> {
             if let Some(who) = who {
                 Positions::<T>::mutate(
                     (&asset, &reward_asset, &who),
-                    |user_info| -> DispatchResult {
+                    |user_position| -> DispatchResult {
                         let diff = pool_info
                             .reward_per_share(current_block_number, amount_per_share)?
-                            .checked_sub(user_info.reward_per_share_paid)
+                            .checked_sub(user_position.reward_per_share_paid)
                             .ok_or(ArithmeticError::Overflow)?;
 
-                        let earned = user_info
+                        let earned = user_position
                             .deposit_balance
                             .checked_mul(diff)
                             .and_then(|r| r.checked_div(amount_per_share))
-                            .and_then(|r| r.checked_add(user_info.reward_amount))
+                            .and_then(|r| r.checked_add(user_position.reward_amount))
                             .ok_or(ArithmeticError::Overflow)?;
 
-                        user_info.reward_amount = earned;
-                        user_info.reward_per_share_paid = pool_info.reward_per_share_stored;
+                        user_position.reward_amount = earned;
+                        user_position.reward_per_share_paid = pool_info.reward_per_share_stored;
 
                         Ok(())
                     },
