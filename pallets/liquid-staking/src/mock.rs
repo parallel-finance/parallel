@@ -27,7 +27,7 @@ pub use xcm_builder::{
     AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom,
     ChildParachainAsNative, ChildParachainConvertsVia, ChildSystemParachainAsSuperuser,
     CurrencyAdapter as XcmCurrencyAdapter, EnsureXcmOrigin, FixedRateOfFungible, FixedWeightBounds,
-    IsConcrete, LocationInverter, NativeAsset, ParentAsSuperuser, ParentIsDefault,
+    IsConcrete, LocationInverter, NativeAsset, ParentAsSuperuser, ParentIsPreset,
     RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
     SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
@@ -39,6 +39,10 @@ pub type CurrencyId = u32;
 pub use kusama_runtime;
 
 use super::UnbondIndex;
+use core::marker::PhantomData;
+use frame_support::traits::OriginTrait;
+use polkadot_parachain::primitives::IsSystem;
+use xcm_executor::traits::ConvertOrigin;
 
 parameter_types! {
     pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND / 4;
@@ -66,7 +70,7 @@ parameter_types! {
 }
 
 pub type LocationToAccountId = (
-    ParentIsDefault<AccountId>,
+    ParentIsPreset<AccountId>,
     SiblingParachainConvertsVia<Sibling, AccountId>,
     AccountId32Aliases<RelayNetwork, AccountId>,
 );
@@ -129,12 +133,37 @@ impl Config for XcmConfig {
     type AssetClaims = PolkadotXcm;
 }
 
+pub struct SystemParachainAsSuperuser<Origin>(PhantomData<Origin>);
+impl<Origin: OriginTrait> ConvertOrigin<Origin> for SystemParachainAsSuperuser<Origin> {
+    fn convert_origin(
+        origin: impl Into<MultiLocation>,
+        kind: OriginKind,
+    ) -> Result<Origin, MultiLocation> {
+        let origin = origin.into();
+        if kind == OriginKind::Superuser
+            && matches!(
+                origin,
+                MultiLocation {
+                    parents: 1,
+                    interior: X1(Parachain(id)),
+                } if ParaId::from(id).is_system(),
+            )
+        {
+            Ok(Origin::root())
+        } else {
+            Err(origin)
+        }
+    }
+}
+
 impl cumulus_pallet_xcmp_queue::Config for Test {
     type Event = Event;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
     type ChannelInfo = ParachainSystem;
     type VersionWrapper = ();
+    type ControllerOrigin = EnsureRoot<AccountId>;
+    type ControllerOriginConverter = SystemParachainAsSuperuser<Origin>;
 }
 
 impl cumulus_pallet_dmp_queue::Config for Test {

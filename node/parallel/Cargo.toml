@@ -17,7 +17,7 @@ codec                  = { package = 'parity-scale-codec', version = '2.3.1' }
 derive_more            = '0.15.0'
 frame-benchmarking     = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17' }
 frame-benchmarking-cli = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17' }
-hex-literal            = '0.3.3'
+hex-literal            = '0.3.4'
 jsonrpc-core           = '18.0.0'
 log                    = '0.4.13'
 
@@ -58,7 +58,7 @@ try-runtime-cli              = { git = 'https://github.com/paritytech/substrate.
 
 serde      = { version = '1.0.119', features = ['derive'] }
 serde_json = '1.0.64'
-structopt  = '0.3.8'
+clap = { version = "3.1", features = ["derive"] }
 
 orml-oracle-rpc            = { git = 'https://github.com/open-web3-stack/open-runtime-module-library.git', default-features = false }
 substrate-frame-rpc-system = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17' }
