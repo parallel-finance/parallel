@@ -46,13 +46,25 @@ use frame_support::{
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_registrar.
-pub trait WeightInfo {	fn register_asset() -> Weight;}
+pub trait WeightInfo {
+    fn register_asset() -> Weight;
+}
 
 /// Weights for pallet_registrar using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
-impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	fn register_asset() -> Weight {
-		(25_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(1 as Weight))			.saturating_add(T::DbWeight::get().writes(1 as Weight))	}}
+impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
+    fn register_asset() -> Weight {
+        (25_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(1 as Weight))
+            .saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
+}
 
 // For backwards compatibility and tests
-impl WeightInfo for () {	fn register_asset() -> Weight {
-		(25_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(1 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}}
+impl WeightInfo for () {
+    fn register_asset() -> Weight {
+        (25_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(1 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(1 as Weight))
+    }
+}
