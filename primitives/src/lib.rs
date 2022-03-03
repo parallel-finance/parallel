@@ -85,7 +85,7 @@ pub type ChainId = u32;
 
 pub type ChainNonce = u64;
 
-pub type BridgeId = (ChainNonce, ChainNonce);
+pub type BridgeInterval = (ChainNonce, ChainNonce);
 
 pub const SECONDS_PER_YEAR: Timestamp = 365 * 24 * 60 * 60;
 

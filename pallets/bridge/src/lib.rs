@@ -37,7 +37,7 @@ use frame_support::{
     transactional, PalletId,
 };
 use frame_system::{ensure_signed_or_root, pallet_prelude::*};
-use primitives::{Balance, BridgeId, ChainId, ChainNonce, CurrencyId, Ratio};
+use primitives::{Balance, BridgeInterval, ChainId, ChainNonce, CurrencyId, Ratio};
 use scale_info::prelude::{vec, vec::Vec};
 use sp_runtime::traits::{AccountIdConversion, Zero};
 
@@ -66,7 +66,7 @@ pub type TeleAccount = Vec<u8>;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use primitives::BridgeId;
+    use primitives::BridgeInterval;
 
     use super::*;
 
@@ -258,7 +258,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn bridge_registry)]
     pub type BridgeRegistry<T: Config> =
-        StorageMap<_, Blake2_128Concat, ChainId, Vec<BridgeId>, OptionQuery>;
+        StorageMap<_, Blake2_128Concat, ChainId, Vec<BridgeInterval>, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn bridge_tokens)]
@@ -317,7 +317,7 @@ pub mod pallet {
 
             // Write a new chain_id into storage
             ChainNonces::<T>::insert(chain_id, 0);
-            let inital_registry: Vec<BridgeId> = vec![];
+            let inital_registry: Vec<BridgeInterval> = vec![];
             BridgeRegistry::<T>::insert(chain_id, inital_registry);
             Self::deposit_event(Event::ChainRegistered(chain_id));
 
@@ -604,9 +604,9 @@ impl<T: Config> Pallet<T> {
         nonce
     }
 
-    fn merge_overlapping_intervals(mut registry: Vec<BridgeId>) -> Vec<BridgeId> {
+    fn merge_overlapping_intervals(mut registry: Vec<BridgeInterval>) -> Vec<BridgeInterval> {
         registry.sort_unstable_by(|a, b| a.0.cmp(&b.0));
-        let mut merged: Vec<BridgeId> = vec![];
+        let mut merged: Vec<BridgeInterval> = vec![];
         for r in registry {
             if merged.is_empty() {
                 merged.push(r);
