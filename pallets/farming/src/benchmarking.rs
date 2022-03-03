@@ -75,11 +75,17 @@ benchmarks! {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T>(caller);
     }: _(SystemOrigin::Root, ASSET, REWARD_ASSET, false)
+    verify {
+        assert_last_event::<T>(Event::PoolStatusChanged(ASSET, REWARD_ASSET, false).into());
+    }
 
     set_pool_lock_duration {
         let caller: T::AccountId = whitelisted_caller();
         initial_set_up::<T>(caller);
     }: _(SystemOrigin::Root, ASSET, REWARD_ASSET, T::BlockNumber::from(20u32))
+    verify {
+        assert_last_event::<T>(Event::PoolLockDurationChanged(ASSET, REWARD_ASSET, T::BlockNumber::from(20u32)).into());
+    }
 
     deposit {
         let caller: T::AccountId = whitelisted_caller();

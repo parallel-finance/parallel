@@ -58,7 +58,7 @@ fn pool_status_work() {
         // 4, can not set status with current status
         assert_noop!(
             Farming::set_pool_status(Origin::root(), STAKE_TOKEN, REWARD_TOKEN, false,),
-            Error::<Test>::PoolNewActiveStatusWrong,
+            Error::<Test>::PoolInStatus,
         );
     })
 }
@@ -231,7 +231,7 @@ fn pool_withdraw_work() {
                 REWARD_TOKEN,
                 200_000_000,
             ),
-            ArithmeticError::Overflow,
+            Error::<Test>::DepositBalanceLow,
         );
 
         assert_ok!(Farming::withdraw(

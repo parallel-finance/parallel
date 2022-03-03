@@ -100,21 +100,21 @@ pub mod pallet {
         /// Pool is not active
         PoolIsNotActive,
         /// Pool is already in desire status
-        PoolNewActiveStatusWrong,
+        PoolInStatus,
         /// Not a valid duration
         NotAValidDuration,
         /// Pool is in a target lock duration status
         PoolIsInTargetLockDuration,
         /// Not a valid amount
         NotAValidAmount,
+        /// Deposit Balance must be greater than or equal to the withdraw amount
+        DepositBalanceLow,
         /// Codec error
         CodecError,
         /// Excess max lock duration for lock pool
         ExcessMaxLockDuration,
         /// Excess max user lock item count
         ExcessMaxUserLockItemsCount,
-        /// old reward rule is still valid
-        RewardRuleStillValid,
         /// Asset decimal error
         AssetDecimalError,
     }
@@ -123,22 +123,20 @@ pub mod pallet {
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Add new pool
-        /// [asset_id, asset_id]
         PoolAdded(AssetIdOf<T>, AssetIdOf<T>),
+        /// Pool new status was set.
+        PoolStatusChanged(AssetIdOf<T>, AssetIdOf<T>, bool),
+        /// Pool new lock duration was set.
+        PoolLockDurationChanged(AssetIdOf<T>, AssetIdOf<T>, T::BlockNumber),
         /// Deposited Assets in pool
-        /// [sender, asset_id, asset_id]
         AssetsDeposited(T::AccountId, AssetIdOf<T>, AssetIdOf<T>, BalanceOf<T>),
         /// Withdrew Assets from pool
-        /// [sender, asset_id, asset_id]
         AssetsWithdrew(T::AccountId, AssetIdOf<T>, AssetIdOf<T>, BalanceOf<T>),
         /// Redeem Assets from lock pool
-        /// [sender, asset_id, asset_id]
         AssetsRedeem(T::AccountId, AssetIdOf<T>, AssetIdOf<T>, BalanceOf<T>),
         /// Reward Paid for user
-        /// [sender, asset_id, asset_id, amount]
         RewardPaid(T::AccountId, AssetIdOf<T>, AssetIdOf<T>, BalanceOf<T>),
         /// Reward added
-        /// [asset_id, asset_id, amount]
         RewardAdded(AssetIdOf<T>, AssetIdOf<T>, BalanceOf<T>),
     }
 
@@ -224,12 +222,14 @@ pub mod pallet {
             Pools::<T>::mutate(asset, reward_asset, |pool_info| -> DispatchResult {
                 let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
 
-                ensure!(
-                    pool_info.is_active != is_active,
-                    Error::<T>::PoolNewActiveStatusWrong
-                );
+                ensure!(pool_info.is_active != is_active, Error::<T>::PoolInStatus);
 
                 pool_info.is_active = is_active;
+                Self::deposit_event(Event::<T>::PoolStatusChanged(
+                    asset,
+                    reward_asset,
+                    is_active,
+                ));
                 Ok(())
             })
         }
@@ -259,6 +259,11 @@ pub mod pallet {
                 );
 
                 pool_info.lock_duration = lock_duration;
+                Self::deposit_event(Event::<T>::PoolLockDurationChanged(
+                    asset,
+                    reward_asset,
+                    lock_duration,
+                ));
                 Ok(())
             })
         }
@@ -330,6 +335,12 @@ pub mod pallet {
                 Error::<T>::PoolDoesNotExist
             );
             ensure!(!amount.is_zero(), Error::<T>::NotAValidAmount);
+
+            let user_position = Positions::<T>::get((&asset, &reward_asset, &who));
+            ensure!(
+                user_position.deposit_balance >= amount,
+                Error::<T>::DepositBalanceLow
+            );
 
             Self::update_reward(Some(who.clone()), asset, reward_asset)?;
 
