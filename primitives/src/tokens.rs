@@ -60,6 +60,15 @@ pub const PEUSDC: CurrencyId = 2202;
 pub const PXKSM: CurrencyId = 3000;
 pub const PXDOT: CurrencyId = 3001;
 
+// AMM LP Token
+pub const LP_USDT_HKO: CurrencyId = 5000;
+pub const LP_KSM_USDT: CurrencyId = 5001;
+pub const LP_KSM_HKO: CurrencyId = 5002;
+
+pub const LP_USDT_PARA: CurrencyId = 6000;
+pub const LP_DOT_USDT: CurrencyId = 6001;
+pub const LP_DOT_PARA: CurrencyId = 6002;
+
 // Crowdloan Derivative
 pub const CKSM_15_22: CurrencyId = 100150022;
 pub const CDOT_6_13: CurrencyId = 200060013;
