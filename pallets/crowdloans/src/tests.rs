@@ -234,7 +234,7 @@ fn create_new_vault_should_not_work_if_crowdloan_already_exists() {
 }
 
 #[test]
-fn set_vrfs_should_work() {
+fn set_vrf_should_work() {
     new_test_ext().execute_with(|| {
         let crowdloan = ParaId::from(1337u32);
         let ctoken = 10;
@@ -282,9 +282,9 @@ fn set_vrfs_should_work() {
             crowdloan,                            // crowdloan
         ));
 
-        assert_ok!(Crowdloans::set_vrfs(
+        assert_ok!(Crowdloans::set_vrf(
             frame_system::RawOrigin::Root.into(),
-            vec![crowdloan]
+            true
         ));
 
         // do contribute
@@ -298,12 +298,15 @@ fn set_vrfs_should_work() {
             Error::<Test>::VrfDelayInProgress
         );
 
-        assert_ok!(Crowdloans::contribute(
-            Origin::signed(ALICE), // origin
-            crowdloan + 1,         // crowdloan
-            amount,                // amount
-            Vec::new()
-        ),);
+        assert_noop!(
+            Crowdloans::contribute(
+                Origin::signed(ALICE), // origin
+                crowdloan + 1,         // crowdloan
+                amount,                // amount
+                Vec::new()
+            ),
+            Error::<Test>::VrfDelayInProgress
+        );
     })
 }
 
