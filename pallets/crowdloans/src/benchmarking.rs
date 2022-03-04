@@ -10,7 +10,7 @@ use frame_support::{assert_ok, pallet_prelude::*, traits::fungibles::Mutate};
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{Balance, CurrencyId, ParaId};
 use sp_runtime::traits::StaticLookup;
-use sp_std::{convert::TryInto, prelude::*};
+use sp_std::prelude::*;
 use xcm::latest::prelude::*;
 
 use sp_runtime::traits::One;

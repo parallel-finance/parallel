@@ -47,7 +47,7 @@ pub mod pallet {
             fungibles::{Inspect, Mutate, Transfer},
             Get,
         },
-        transactional, Blake2_128Concat, BoundedVec, PalletId,
+        transactional, Blake2_128Concat, PalletId,
     };
     use frame_system::{
         ensure_signed,
@@ -61,7 +61,7 @@ pub mod pallet {
         traits::{AccountIdConversion, BlockNumberProvider, Hash, Zero},
         ArithmeticError, DispatchError,
     };
-    use sp_std::{boxed::Box, convert::TryInto, vec::Vec};
+    use sp_std::{boxed::Box, vec::Vec};
     use xcm::latest::prelude::*;
 
     use pallet_xcm_helper::XcmHelper;
