@@ -60,17 +60,16 @@ impl<
     pub fn reward_per_share(
         &self,
         current_block_number: BlockNumber,
-        amount_per_share: BalanceOf,
     ) -> Result<BalanceOf, ArithmeticError> {
         if self.total_deposited.is_zero() {
             Ok(self.reward_per_share_stored)
         } else {
             let last_reward_block = self.last_reward_block_applicable(current_block_number);
             let block_diff =
-                Self::block_to_balance(last_reward_block.saturating_sub(self.last_update_block));
+                self.block_to_balance(last_reward_block.saturating_sub(self.last_update_block));
             let reward_per_share_add = block_diff
                 .checked_mul(&self.reward_rate)
-                .and_then(|r| r.checked_mul(&amount_per_share))
+                .and_then(|r| r.checked_mul(&self.amount_per_share()))
                 .and_then(|r| r.checked_div(&self.total_deposited))
                 .ok_or(ArithmeticError::Overflow)?;
 
@@ -87,17 +86,19 @@ impl<
     pub fn update_reward_per_share(
         &mut self,
         current_block_number: BlockNumber,
-        amount_per_share: BalanceOf,
     ) -> Result<(), ArithmeticError> {
-        self.reward_per_share_stored =
-            self.reward_per_share(current_block_number, amount_per_share)?;
+        self.reward_per_share_stored = self.reward_per_share(current_block_number)?;
         self.last_update_block = self.last_reward_block_applicable(current_block_number);
 
         Ok(())
     }
 
-    fn block_to_balance(duration: BlockNumber) -> BalanceOf {
+    pub fn block_to_balance(&self, duration: BlockNumber) -> BalanceOf {
         BalanceOf::saturated_from(duration.saturated_into())
+    }
+
+    pub fn amount_per_share(&self) -> BalanceOf {
+        BalanceOf::saturated_from(10_u64.pow(12))
     }
 }
 

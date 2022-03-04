@@ -41,7 +41,7 @@ use primitives::{Balance, CurrencyId, DecimalProvider};
 use sp_io::hashing::blake2_256;
 use sp_runtime::{
     traits::{AccountIdConversion, CheckedAdd, CheckedSub, Saturating, StaticLookup, Zero},
-    ArithmeticError, SaturatedConversion,
+    ArithmeticError,
 };
 use sp_std::result::Result;
 
@@ -115,8 +115,6 @@ pub mod pallet {
         ExcessMaxLockDuration,
         /// Excess max user lock item count
         ExcessMaxUserLockItemsCount,
-        /// Asset decimal error
-        AssetDecimalError,
     }
 
     #[pallet::event]
@@ -543,7 +541,7 @@ pub mod pallet {
             let current_block_number = <frame_system::Pallet<T>>::block_number();
             Pools::<T>::mutate(asset, reward_asset, |pool_info| -> DispatchResult {
                 let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
-                let duration_balance = Self::block_to_balance(duration);
+                let duration_balance = pool_info.block_to_balance(duration);
                 let reward_rate = if current_block_number >= pool_info.period_finish {
                     amount
                         .checked_div(duration_balance)
@@ -553,7 +551,8 @@ pub mod pallet {
                         .period_finish
                         .checked_sub(&current_block_number)
                         .ok_or(ArithmeticError::Overflow)?;
-                    let left_over = Self::block_to_balance(remaining)
+                    let left_over = pool_info
+                        .block_to_balance(remaining)
                         .checked_mul(pool_info.reward_rate)
                         .ok_or(ArithmeticError::Overflow)?;
                     let total = left_over
@@ -598,8 +597,7 @@ impl<T: Config> Pallet<T> {
         Pools::<T>::mutate(asset, reward_asset, |pool_info| -> DispatchResult {
             let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
 
-            let amount_per_share = Self::get_asset_amount_per_share(&asset)?;
-            pool_info.update_reward_per_share(current_block_number, amount_per_share)?;
+            pool_info.update_reward_per_share(current_block_number)?;
 
             //2, update user reward info
             if let Some(who) = who {
@@ -607,14 +605,14 @@ impl<T: Config> Pallet<T> {
                     (&asset, &reward_asset, &who),
                     |user_position| -> DispatchResult {
                         let diff = pool_info
-                            .reward_per_share(current_block_number, amount_per_share)?
+                            .reward_per_share(current_block_number)?
                             .checked_sub(user_position.reward_per_share_paid)
                             .ok_or(ArithmeticError::Overflow)?;
 
                         let earned = user_position
                             .deposit_balance
                             .checked_mul(diff)
-                            .and_then(|r| r.checked_div(amount_per_share))
+                            .and_then(|r| r.checked_div(pool_info.amount_per_share()))
                             .and_then(|r| r.checked_add(user_position.reward_amount))
                             .ok_or(ArithmeticError::Overflow)?;
 
@@ -633,18 +631,5 @@ impl<T: Config> Pallet<T> {
         let account_id: T::AccountId = T::PalletId::get().into_account();
         let entropy = (b"modlpy/liquidity", &[account_id], asset_id).using_encoded(blake2_256);
         Ok(T::AccountId::decode(&mut &entropy[..]).map_err(|_| Error::<T>::CodecError)?)
-    }
-
-    fn block_to_balance(duration: T::BlockNumber) -> BalanceOf<T> {
-        duration.saturated_into()
-    }
-
-    fn get_asset_amount_per_share(asset_id: &AssetIdOf<T>) -> Result<BalanceOf<T>, DispatchError> {
-        let amount_per_share = T::Decimal::get_decimal(asset_id)
-            .and_then(|asset_decimal| {
-                BalanceOf::<T>::try_from(10_u64.pow(asset_decimal.into())).ok()
-            })
-            .ok_or(Error::<T>::AssetDecimalError)?;
-        Ok(amount_per_share)
     }
 }
