@@ -40,7 +40,7 @@ pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
 pub use kusama_runtime;
 
-use super::UnbondIndex;
+use super::EraIndex;
 
 parameter_types! {
     pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND / 4;
@@ -376,7 +376,7 @@ parameter_types! {
     pub const StakingCurrency: CurrencyId = KSM;
     pub const LiquidCurrency: CurrencyId = XKSM;
     pub const XcmFees: Balance = 0;
-    pub const BondingDuration: UnbondIndex = 3;
+    pub const BondingDuration: EraIndex = 3;
 }
 
 impl crate::Config for Test {

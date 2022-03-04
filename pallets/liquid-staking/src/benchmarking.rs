@@ -223,7 +223,7 @@ benchmarks! {
         initial_set_up::<T>(alice.clone());
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
         LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice.clone()).into(), UNSTAKE_AMOUNT).unwrap();
-        CurrentUnbondIndex::<T>::put(28);
+        CurrentEraIndex::<T>::put(28);
         Ledger::<T>::put(StakingLedger {
             withdrawable: UNSTAKE_AMOUNT,
             unlocking: vec![],

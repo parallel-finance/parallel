@@ -383,7 +383,7 @@ fn claim_for_should_work() {
             Error::<Test>::NothingToClaim
         );
 
-        CurrentUnbondIndex::<Test>::put(3);
+        CurrentEraIndex::<Test>::put(3);
 
         assert_noop!(
             LiquidStaking::claim_for(Origin::signed(BOB), 0, Id(ALICE)),
