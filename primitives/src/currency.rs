@@ -16,10 +16,14 @@ use frame_support::{
     log,
     traits::{
         fungibles::{Inspect, Mutate, Transfer},
+        tokens::BalanceConversion,
         Get,
     },
 };
-use sp_runtime::{traits::Convert, SaturatedConversion};
+use sp_runtime::{
+    traits::{Convert, Zero},
+    SaturatedConversion,
+};
 use sp_std::{convert::Into, marker::PhantomData, prelude::*, result};
 use xcm::latest::prelude::*;
 use xcm_executor::traits::{Convert as MoreConvert, MatchesFungible, TransactAsset};
@@ -32,6 +36,7 @@ pub struct MultiCurrencyAdapter<
     AccountIdConvert,
     CurrencyIdConvert,
     NativeCurrencyId,
+    ExistentialDeposit,
     GiftAccount,
     GiftConvert,
 >(
@@ -43,6 +48,7 @@ pub struct MultiCurrencyAdapter<
         AccountIdConvert,
         CurrencyIdConvert,
         NativeCurrencyId,
+        ExistentialDeposit,
         GiftAccount,
         GiftConvert,
     )>,
@@ -83,8 +89,9 @@ impl<
         AccountIdConvert: MoreConvert<MultiLocation, AccountId>,
         CurrencyIdConvert: Convert<MultiAsset, Option<MultiCurrency::AssetId>>,
         NativeCurrencyId: Get<MultiCurrency::AssetId>,
+        ExistentialDeposit: Get<Balance>,
         GiftAccount: Get<AccountId>,
-        GiftConvert: Convert<MultiCurrency::Balance, MultiCurrency::Balance>,
+        GiftConvert: BalanceConversion<Balance, MultiCurrency::AssetId, Balance>,
     > TransactAsset
     for MultiCurrencyAdapter<
         MultiCurrency,
@@ -94,6 +101,7 @@ impl<
         AccountIdConvert,
         CurrencyIdConvert,
         NativeCurrencyId,
+        ExistentialDeposit,
         GiftAccount,
         GiftConvert,
     >
@@ -117,7 +125,9 @@ impl<
                 {
                     let gift_account = GiftAccount::get();
                     let native_currency_id = NativeCurrencyId::get();
-                    let gift_amount = GiftConvert::convert(amount);
+                    let gift_amount =
+                        GiftConvert::to_asset_balance(amount.saturated_into(), native_currency_id)
+                            .unwrap_or_else(|_| Zero::zero());
                     let beneficiary_native_balance =
                         MultiCurrency::reducible_balance(native_currency_id, &who, true);
                     let reducible_balance =
@@ -127,7 +137,8 @@ impl<
                         && reducible_balance >= gift_amount
                         && beneficiary_native_balance < gift_amount
                     {
-                        let diff = gift_amount - beneficiary_native_balance;
+                        let diff =
+                            ExistentialDeposit::get() + gift_amount - beneficiary_native_balance;
                         if let Err(e) = MultiCurrency::transfer(
                             native_currency_id,
                             &gift_account,

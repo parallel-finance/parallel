@@ -116,6 +116,60 @@ fn register_unregister_works() {
 }
 
 #[test]
+fn gift_fees_works() {
+    new_test_ext().execute_with(|| {
+        // A successful case
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &DAVE), dollar(0));
+        assert_eq!(<Test as Config>::Assets::balance(HKO, &DAVE), dollar(0));
+
+        Bridge::materialize(Origin::signed(ALICE), ETH, 0, EUSDT, DAVE, dollar(10), true).unwrap();
+        Bridge::materialize(Origin::signed(BOB), ETH, 0, EUSDT, DAVE, dollar(10), true).unwrap();
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &DAVE), dollar(10));
+        assert_eq!(
+            <Test as Config>::Assets::balance(HKO, &DAVE),
+            dollar(25) / 1000 + dollar(1) / 100,
+        );
+
+        // A failed case
+        // If the bridged amount is less than a certain threshold, no gift will be issued
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &BOB), dollar(0));
+        assert_eq!(<Test as Config>::Assets::balance(HKO, &BOB), dollar(0));
+
+        Bridge::materialize(Origin::signed(ALICE), ETH, 1, EUSDT, BOB, 299_000_000, true).unwrap();
+        Bridge::materialize(Origin::signed(BOB), ETH, 1, EUSDT, BOB, 299_000_000, true).unwrap();
+        assert_eq!(<Test as Config>::Assets::balance(USDT, &BOB), 299_000_000);
+        assert_eq!(<Test as Config>::Assets::balance(HKO, &BOB), 0,);
+
+        // BOB balance = 0.022 HKO
+        // gift_fees = 0.025 HKO - (0.022 HKO - 0.01 HKO) = 0.013 HKO
+        // final_gift = existential_deposit + 0.013 HKO = 0.023 HKO
+        // final_balance = 0.022 HKO + 0.023 HKO = 0.045 HKO
+        Balances::set_balance(Origin::root(), BOB, dollar(22) / 1000, dollar(0)).unwrap();
+
+        Bridge::materialize(Origin::signed(ALICE), ETH, 2, EUSDT, BOB, dollar(10), true).unwrap();
+        Bridge::materialize(Origin::signed(BOB), ETH, 2, EUSDT, BOB, dollar(10), true).unwrap();
+
+        assert_eq!(
+            <Test as Config>::Assets::balance(HKO, &BOB),
+            dollar(35) / 1000 + dollar(1) / 100,
+        );
+
+        // BOB balance = 0.035 HKO
+        // gift_fees = 0.025 HKO - (0.035 HKO - 0.01 HKO) = 0 HKO
+        // final_gift = 0 HKO
+        // final_balance = 0.035 HKO
+        Balances::set_balance(Origin::root(), BOB, dollar(35) / 1000, dollar(0)).unwrap();
+
+        Bridge::materialize(Origin::signed(ALICE), ETH, 3, EUSDT, BOB, dollar(10), true).unwrap();
+        Bridge::materialize(Origin::signed(BOB), ETH, 3, EUSDT, BOB, dollar(10), true).unwrap();
+
+        assert_eq!(
+            <Test as Config>::Assets::balance(HKO, &BOB),
+            dollar(35) / 1000,
+        );
+    })
+}
+#[test]
 fn teleport_works() {
     new_test_ext().execute_with(|| {
         assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(100));

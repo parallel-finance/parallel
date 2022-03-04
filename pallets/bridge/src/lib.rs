@@ -28,15 +28,18 @@ use frame_support::{
     pallet_prelude::*,
     require_transactional,
     traits::{
-        tokens::fungibles::{Inspect, Mutate, Transfer},
+        tokens::{
+            fungibles::{Inspect, Mutate, Transfer},
+            BalanceConversion,
+        },
         Get, SortedMembers,
     },
     transactional, PalletId,
 };
 use frame_system::{ensure_signed_or_root, pallet_prelude::*};
-use primitives::{Balance, BridgeId, ChainId, ChainNonce, CurrencyId, Ratio};
+use primitives::{Balance, BridgeInterval, ChainId, ChainNonce, CurrencyId, Ratio};
 use scale_info::prelude::{vec, vec::Vec};
-use sp_runtime::traits::AccountIdConversion;
+use sp_runtime::traits::{AccountIdConversion, Zero};
 
 mod benchmarking;
 mod mock;
@@ -63,7 +66,7 @@ pub type TeleAccount = Vec<u8>;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use primitives::BridgeId;
+    use primitives::BridgeInterval;
 
     use super::*;
 
@@ -89,6 +92,17 @@ pub mod pallet {
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
+
+        #[pallet::constant]
+        type GiftAccount: Get<Self::AccountId>;
+
+        type GiftConvert: BalanceConversion<Balance, CurrencyId, Balance>;
+
+        #[pallet::constant]
+        type NativeCurrencyId: Get<AssetIdOf<Self>>;
+
+        #[pallet::constant]
+        type ExistentialDeposit: Get<Balance>;
 
         /// The identifier for this chain.
         /// This must be unique and must not collide with existing IDs within a set of bridged chains.
@@ -244,7 +258,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn bridge_registry)]
     pub type BridgeRegistry<T: Config> =
-        StorageMap<_, Blake2_128Concat, ChainId, Vec<BridgeId>, OptionQuery>;
+        StorageMap<_, Blake2_128Concat, ChainId, Vec<BridgeInterval>, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn bridge_tokens)]
@@ -303,7 +317,7 @@ pub mod pallet {
 
             // Write a new chain_id into storage
             ChainNonces::<T>::insert(chain_id, 0);
-            let inital_registry: Vec<BridgeId> = vec![];
+            let inital_registry: Vec<BridgeInterval> = vec![];
             BridgeRegistry::<T>::insert(chain_id, inital_registry);
             Self::deposit_event(Event::ChainRegistered(chain_id));
 
@@ -590,9 +604,9 @@ impl<T: Config> Pallet<T> {
         nonce
     }
 
-    fn merge_overlapping_intervals(mut registry: Vec<BridgeId>) -> Vec<BridgeId> {
+    fn merge_overlapping_intervals(mut registry: Vec<BridgeInterval>) -> Vec<BridgeInterval> {
         registry.sort_unstable_by(|a, b| a.0.cmp(&b.0));
-        let mut merged: Vec<BridgeId> = vec![];
+        let mut merged: Vec<BridgeInterval> = vec![];
         for r in registry {
             if merged.is_empty() {
                 merged.push(r);
@@ -769,6 +783,7 @@ impl<T: Config> Pallet<T> {
         }
     }
 
+    #[require_transactional]
     fn execute_materialize(
         src_id: ChainId,
         src_nonce: ChainNonce,
@@ -787,6 +802,7 @@ impl<T: Config> Pallet<T> {
             T::Assets::transfer(asset_id, &Self::account_id(), &call.to, call.amount, true)?;
         }
 
+        Self::grant_incentive_bonus(call.clone().to, asset_id, call.amount)?;
         Self::update_bridge_registry(src_id, src_nonce);
 
         log::trace!(
@@ -810,9 +826,36 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Cancels a proposal.
+    #[require_transactional]
     fn cancel_materialize(src_id: ChainId, src_nonce: ChainNonce) -> DispatchResult {
         Self::update_bridge_registry(src_id, src_nonce);
         Self::deposit_event(Event::ProposalRejected(src_id, src_nonce));
+
+        Ok(())
+    }
+
+    #[require_transactional]
+    fn grant_incentive_bonus(
+        who: T::AccountId,
+        asset_id: CurrencyId,
+        amount: BalanceOf<T>,
+    ) -> DispatchResult {
+        let gift_account = T::GiftAccount::get();
+        let native_currency_id = T::NativeCurrencyId::get();
+        let gift_amount =
+            T::GiftConvert::to_asset_balance(amount, asset_id).unwrap_or_else(|_| Zero::zero());
+        let beneficiary_native_balance =
+            T::Assets::reducible_balance(native_currency_id, &who, true);
+        let reducible_balance =
+            T::Assets::reducible_balance(native_currency_id, &gift_account, false);
+
+        if !gift_amount.is_zero()
+            && reducible_balance >= gift_amount
+            && beneficiary_native_balance < gift_amount
+        {
+            let diff = T::ExistentialDeposit::get() + gift_amount - beneficiary_native_balance;
+            T::Assets::transfer(native_currency_id, &gift_account, &who, diff, false)?;
+        }
 
         Ok(())
     }

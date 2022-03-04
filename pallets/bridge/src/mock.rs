@@ -3,14 +3,17 @@
 use super::*;
 use frame_support::{
     parameter_types,
-    traits::{ChangeMembers, Everything},
+    traits::{fungibles::InspectMetadata, ChangeMembers, Everything},
 };
 use frame_system::{self as system, EnsureRoot};
-use primitives::tokens::HKO;
+use primitives::tokens::{HKO, KSM};
 
 use crate::{self as bridge, ChainId, Config};
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup};
+use sp_runtime::{
+    testing::Header,
+    traits::{IdentityLookup, Zero},
+};
 
 pub type BlockNumber = u64;
 pub type AccountId = u128;
@@ -108,7 +111,7 @@ impl pallet_assets::Config for Test {
 }
 
 parameter_types! {
-    pub const ExistentialDeposit: Balance = 1;
+    pub const ExistentialDeposit: Balance = 10_000_000_000; // 0.01 HKO
     pub const MaxLocks: u32 = 50;
 }
 
@@ -171,6 +174,25 @@ parameter_types! {
     pub const ProposalLifetime: BlockNumber = 50;
     pub const RootOperatorAccountId: AccountId = 7;
     pub const ThresholdPercentage: u32 = 50;
+    pub GiftAccount: AccountId = PalletId(*b"par/gift").into_account();
+}
+
+pub struct GiftConvert;
+impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
+    type Error = DispatchError;
+    fn to_asset_balance(balance: Balance, asset_id: CurrencyId) -> Result<Balance, Self::Error> {
+        let decimal = <Assets as InspectMetadata<AccountId>>::decimals(&asset_id);
+        if decimal.is_zero() {
+            return Ok(Zero::zero());
+        }
+
+        let default_gift_amount: u128 = 1_000_000_000_000 / 40; // 0.025HKO
+        Ok(match asset_id {
+            USDT if balance >= 300 * 10_u128.pow(decimal.into()) => default_gift_amount,
+            HKO if balance >= 10_u128.pow((decimal - 1).into()) => default_gift_amount,
+            _ => Zero::zero(),
+        })
+    }
 }
 
 impl Config for Test {
@@ -184,6 +206,10 @@ impl Config for Test {
     type PalletId = BridgePalletId;
 
     type Assets = CurrencyAdapter;
+    type GiftAccount = GiftAccount;
+    type GiftConvert = GiftConvert;
+    type NativeCurrencyId = NativeCurrencyId;
+    type ExistentialDeposit = ExistentialDeposit;
 
     type ProposalLifetime = ProposalLifetime;
     type ThresholdPercentage = ThresholdPercentage;
@@ -217,9 +243,35 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
+        Assets::force_create(Origin::root(), KSM, ALICE, true, 1).unwrap();
+        Assets::force_set_metadata(
+            Origin::root(),
+            KSM,
+            b"Kusama".to_vec(),
+            b"KSM".to_vec(),
+            12,
+            false,
+        )
+        .unwrap();
         Assets::force_create(Origin::root(), USDT, ALICE, true, 1).unwrap();
+        Assets::force_set_metadata(
+            Origin::root(),
+            USDT,
+            b"USDT".to_vec(),
+            b"USDT".to_vec(),
+            6,
+            false,
+        )
+        .unwrap();
 
         Balances::set_balance(Origin::root(), EVE, dollar(100), dollar(0)).unwrap();
+        Balances::set_balance(
+            Origin::root(),
+            PalletId(*b"par/gift").into_account(),
+            dollar(1000000),
+            dollar(0),
+        )
+        .unwrap();
 
         BridgeMembership::add_member(Origin::root(), ALICE).unwrap();
         BridgeMembership::add_member(Origin::root(), BOB).unwrap();
