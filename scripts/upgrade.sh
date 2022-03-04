@@ -10,9 +10,13 @@ cd ${PROJECT_ROOT}
 FROM=`grep "^substrate-build-script-utils" ./node/parallel/Cargo.toml | egrep -o "(v[0-9\.]+)"`
 TO=${TO}
 
-cargo_toml_list=$(find . -name "Cargo.toml")
+cargo_toml_list=$(find . -name "Cargo.toml" -not -path "./target/*")
 echo "upgrade substrate from polkadot-${FROM} to polkadot-${TO}"
 for cargo_toml in $cargo_toml_list
 do
-    sed -i "" "s/$FROM/$TO/g" ${cargo_toml}
+    if [ "$(uname)" == "Darwin" ];then  # Mac
+        sed -i "" "s/$FROM/$TO/g" ${cargo_toml}
+    else
+         sed -i "s/$FROM/$TO/g" ${cargo_toml} # Linux
+    fi
 done
