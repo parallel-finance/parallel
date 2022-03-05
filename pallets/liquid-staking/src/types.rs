@@ -8,7 +8,7 @@ use sp_runtime::{
     traits::{AtLeast32BitUnsigned, Saturating, Zero},
     ArithmeticError, DispatchError, FixedPointOperand, RuntimeDebug,
 };
-use sp_std::{cmp::Ordering, result::Result, vec::Vec};
+use sp_std::{cmp::Ordering, result::Result, vec, vec::Vec};
 
 /// The matching pool's total stake & unstake amount in one era
 #[derive(Copy, Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
@@ -72,6 +72,9 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
                     .ok_or(ArithmeticError::Underflow)?;
             }
         }
+        if self.total_stake_amount == self.total_unstake_amount {
+            self.reset();
+        }
         Ok(())
     }
 
@@ -95,19 +98,40 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
                     .ok_or(ArithmeticError::Underflow)?;
             }
         }
+        if self.total_stake_amount == self.total_unstake_amount {
+            self.reset();
+        }
         Ok(())
+    }
+
+    fn reset(&mut self) {
+        self.total_unstake_amount = Zero::zero();
+        self.total_stake_amount = Zero::zero();
     }
 }
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 #[scale_info(skip_type_params(T))]
 pub enum XcmRequest<T: Config> {
-    Bond { amount: BalanceOf<T> },
-    BondExtra { amount: BalanceOf<T> },
-    Unbond { amount: BalanceOf<T> },
-    Rebond { amount: BalanceOf<T> },
-    WithdrawUnbonded { num_slashing_spans: u32 },
-    Nominate { targets: Vec<T::AccountId> },
+    Bond {
+        amount: BalanceOf<T>,
+    },
+    BondExtra {
+        amount: BalanceOf<T>,
+    },
+    Unbond {
+        amount: BalanceOf<T>,
+    },
+    Rebond {
+        amount: BalanceOf<T>,
+    },
+    WithdrawUnbonded {
+        num_slashing_spans: u32,
+        era: EraIndex,
+    },
+    Nominate {
+        targets: Vec<T::AccountId>,
+    },
 }
 
 /// Just a Balance/BlockNumber tuple to encode when a chunk of funds will be unlocked.
@@ -149,7 +173,8 @@ impl<AccountId, Balance: BalanceT + FixedPointOperand> StakingLedger<AccountId, 
             stash,
             total: value,
             active: value,
-            ..Default::default()
+            unlocking: vec![],
+            claimed_rewards: vec![],
         }
     }
 
@@ -157,20 +182,15 @@ impl<AccountId, Balance: BalanceT + FixedPointOperand> StakingLedger<AccountId, 
     /// total by the sum of their balances.
     pub fn consolidate_unlocked(&mut self, current_era: EraIndex) {
         let mut total = self.total;
-        let unlocking = self
-            .unlocking
-            .into_iter()
-            .filter(|chunk| {
-                if chunk.era > current_era {
-                    true
-                } else {
-                    total = total.saturating_sub(chunk.value);
-                    false
-                }
-            })
-            .collect();
+        self.unlocking.retain(|chunk| {
+            if chunk.era > current_era {
+                true
+            } else {
+                total = total.saturating_sub(chunk.value);
+                false
+            }
+        });
         self.total = total;
-        self.unlocking = unlocking;
     }
 
     /// Rebond funds that were scheduled for unlocking.
@@ -206,7 +226,7 @@ impl<AccountId, Balance: BalanceT + FixedPointOperand> StakingLedger<AccountId, 
     /// Schedule a portion of the stash to be unlocked ready for transfer out after the bond
     /// period ends. If this leaves an amount actively bonded less than
     pub fn unbond(&mut self, value: Balance, target_era: EraIndex) {
-        let mut value = value.min(self.active);
+        let value = value.min(self.active);
 
         if let Some(mut chunk) = self
             .unlocking
