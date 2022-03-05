@@ -45,12 +45,13 @@ fn stake_should_work() {
         );
 
         with_transaction(|| {
-            LiquidStaking::do_advance_era(1);
+            LiquidStaking::do_advance_era(1).unwrap();
             LiquidStaking::notification_received(
                 pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
                 0,
                 Response::ExecutionResult(None),
-            );
+            )
+            .unwrap();
             TransactionOutcome::Commit(0)
         });
 
@@ -81,12 +82,13 @@ fn stake_should_work() {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(10f64)));
 
         with_transaction(|| {
-            LiquidStaking::do_advance_era(1);
+            LiquidStaking::do_advance_era(1).unwrap();
             LiquidStaking::notification_received(
                 pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
                 1,
                 Response::ExecutionResult(None),
-            );
+            )
+            .unwrap();
             TransactionOutcome::Commit(0)
         });
 
@@ -133,12 +135,13 @@ fn unstake_should_work() {
         );
 
         with_transaction(|| {
-            LiquidStaking::do_advance_era(1);
+            LiquidStaking::do_advance_era(1).unwrap();
             LiquidStaking::notification_received(
                 pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
                 0,
                 Response::ExecutionResult(None),
-            );
+            )
+            .unwrap();
             TransactionOutcome::Commit(0)
         });
 
@@ -178,12 +181,13 @@ fn unstake_should_work() {
         );
 
         with_transaction(|| {
-            LiquidStaking::do_advance_era(1);
+            LiquidStaking::do_advance_era(1).unwrap();
             LiquidStaking::notification_received(
                 pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
                 1,
                 Response::ExecutionResult(None),
-            );
+            )
+            .unwrap();
             TransactionOutcome::Commit(0)
         });
 
@@ -238,7 +242,7 @@ fn test_matching_should_work() {
             ),
             // (vec![], 0, (0, 0, 0)),
         ];
-        for (i, (stake_ops, bonding_amount, unbonding_amount, matching_result)) in
+        for (i, (stake_ops, _bonding_amount, unbonding_amount, matching_result)) in
             test_case.into_iter().enumerate()
         {
             stake_ops.into_iter().for_each(StakeOp::execute);
@@ -247,12 +251,13 @@ fn test_matching_should_work() {
                 Ok(matching_result)
             );
             with_transaction(|| {
-                LiquidStaking::do_advance_era(1);
+                LiquidStaking::do_advance_era(1).unwrap();
                 LiquidStaking::notification_received(
                     pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
                     i.try_into().unwrap(),
                     Response::ExecutionResult(None),
-                );
+                )
+                .unwrap();
                 TransactionOutcome::Commit(0)
             });
         }
@@ -530,7 +535,19 @@ fn claim_for_should_work() {
             Error::<Test>::NothingToClaim
         );
 
+        with_transaction(|| {
+            LiquidStaking::do_advance_era(1).unwrap();
+            LiquidStaking::notification_received(
+                pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+                0,
+                Response::ExecutionResult(None),
+            )
+            .unwrap();
+            TransactionOutcome::Commit(0)
+        });
+
         CurrentEra::<Test>::put(4);
+        assert_ok!(LiquidStaking::withdraw_unbonded(Origin::signed(BOB), 0));
 
         assert_ok!(LiquidStaking::claim_for(Origin::signed(BOB), Id(ALICE)));
         assert_eq!(

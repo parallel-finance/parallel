@@ -1,11 +1,9 @@
-use cumulus_test_relay_sproof_builder::RelayStateSproofBuilder;
 use frame_support::{
-    assert_ok, construct_runtime,
+    construct_runtime,
     dispatch::Weight,
     parameter_types, sp_io,
     traits::{
-        tokens::BalanceConversion, EnsureOneOf, Everything, GenesisBuild, Hooks, Nothing,
-        SortedMembers,
+        tokens::BalanceConversion, EnsureOneOf, Everything, GenesisBuild, Nothing, SortedMembers,
     },
     weights::constants::WEIGHT_PER_SECOND,
     PalletId,
@@ -38,7 +36,7 @@ pub use xcm_builder::{
     SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
 use xcm_executor::{Config, XcmExecutor};
-use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain, TestExt};
+use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
 
 pub type AccountId = AccountId32;
 pub type CurrencyId = u32;

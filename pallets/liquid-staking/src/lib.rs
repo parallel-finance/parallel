@@ -678,8 +678,8 @@ pub mod pallet {
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
         fn on_initialize(_block_number: T::BlockNumber) -> u64 {
             with_transaction(|| {
+                // TODO: fix weights and clean code
                 let offset = Self::era_offset();
-                dbg!(offset);
                 let _ = Self::do_advance_era(offset);
                 return TransactionOutcome::Commit(0);
             })
