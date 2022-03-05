@@ -52,7 +52,7 @@ pub trait WeightInfo {
     fn bond() -> Weight;
     fn nominate() -> Weight;
     fn bond_extra() -> Weight;
-    fn feed_staking_ledger() -> Weight;
+    fn update_staking_ledger() -> Weight;
     fn unbond() -> Weight;
     fn rebond() -> Weight;
     fn withdraw_unbonded() -> Weight;
@@ -90,7 +90,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().reads(11 as Weight))
             .saturating_add(T::DbWeight::get().writes(4 as Weight))
     }
-    fn feed_staking_ledger() -> Weight {
+    fn update_staking_ledger() -> Weight {
         (190_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(16 as Weight))
             .saturating_add(T::DbWeight::get().writes(6 as Weight))
@@ -157,7 +157,7 @@ impl WeightInfo for () {
             .saturating_add(RocksDbWeight::get().reads(11 as Weight))
             .saturating_add(RocksDbWeight::get().writes(4 as Weight))
     }
-    fn feed_staking_ledger() -> Weight {
+    fn update_staking_ledger() -> Weight {
         (190_000_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(16 as Weight))
             .saturating_add(RocksDbWeight::get().writes(6 as Weight))

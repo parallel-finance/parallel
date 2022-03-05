@@ -171,7 +171,7 @@ pub mod pallet {
         /// The derivative get unstaked successfully
         Unstaked(T::AccountId, BalanceOf<T>, BalanceOf<T>),
         /// Staking ledger feeded
-        StakingLedgerFeeded(StakingLedger<T::AccountId, BalanceOf<T>>),
+        StakingLedgerUpdated(StakingLedger<T::AccountId, BalanceOf<T>>),
         /// Sent staking.bond call to relaychain
         Bonding(T::AccountId, BalanceOf<T>, RewardDestination<T::AccountId>),
         /// Sent staking.bond_extra call to relaychain
@@ -464,9 +464,9 @@ pub mod pallet {
         }
 
         /// feed staking_ledger for updating exchange rate.
-        #[pallet::weight(<T as Config>::WeightInfo::feed_staking_ledger())]
+        #[pallet::weight(<T as Config>::WeightInfo::update_staking_ledger())]
         #[transactional]
-        pub fn feed_staking_ledger(
+        pub fn update_staking_ledger(
             origin: OriginFor<T>,
             derivative_index: DerivativeIndex,
             staking_ledger: StakingLedger<T::AccountId, BalanceOf<T>>,
@@ -478,8 +478,13 @@ pub mod pallet {
                 *ledger = staking_ledger.clone();
                 Ok(())
             })?;
-            Self::deposit_event(Event::<T>::StakingLedgerFeeded(staking_ledger));
 
+            log::trace!(
+                target: "liquidStaking::update_staking_ledger",
+                "staking_ledger: {:?}",
+                &staking_ledger,
+            );
+            Self::deposit_event(Event::<T>::StakingLedgerUpdated(staking_ledger));
             Ok(().into())
         }
 
@@ -553,10 +558,7 @@ pub mod pallet {
 
             XcmRequests::<T>::insert(
                 query_id,
-                XcmRequest::WithdrawUnbonded {
-                    num_slashing_spans,
-                    era: Self::current_era(),
-                },
+                XcmRequest::WithdrawUnbonded { num_slashing_spans },
             );
             Self::deposit_event(Event::<T>::WithdrawingUnbonded(num_slashing_spans));
             Ok(())
@@ -644,6 +646,9 @@ pub mod pallet {
                 });
                 if amount.is_zero() {
                     return Err(Error::<T>::NothingToClaim.into());
+                }
+                if chunks.is_empty() {
+                    *b = None;
                 }
                 T::Assets::transfer(
                     Self::staking_currency()?,
@@ -893,15 +898,15 @@ pub mod pallet {
                 }
                 WithdrawUnbonded {
                     num_slashing_spans: _,
-                    era,
                 } => {
                     Self::do_update_ledger(derivative_index, |ledger| {
                         let total = ledger.total;
-                        ledger.consolidate_unlocked(era);
+                        ledger.consolidate_unlocked(Self::current_era());
+                        let amount = total.saturating_sub(ledger.total);
                         T::Assets::mint_into(
                             Self::staking_currency()?,
                             &Self::account_id(),
-                            total - ledger.total,
+                            amount,
                         )?;
                         Ok(())
                     })?;

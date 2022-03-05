@@ -110,25 +110,12 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 #[scale_info(skip_type_params(T))]
 pub enum XcmRequest<T: Config> {
-    Bond {
-        amount: BalanceOf<T>,
-    },
-    BondExtra {
-        amount: BalanceOf<T>,
-    },
-    Unbond {
-        amount: BalanceOf<T>,
-    },
-    Rebond {
-        amount: BalanceOf<T>,
-    },
-    WithdrawUnbonded {
-        num_slashing_spans: u32,
-        era: EraIndex,
-    },
-    Nominate {
-        targets: Vec<T::AccountId>,
-    },
+    Bond { amount: BalanceOf<T> },
+    BondExtra { amount: BalanceOf<T> },
+    Unbond { amount: BalanceOf<T> },
+    Rebond { amount: BalanceOf<T> },
+    WithdrawUnbonded { num_slashing_spans: u32 },
+    Nominate { targets: Vec<T::AccountId> },
 }
 
 /// Just a Balance/BlockNumber tuple to encode when a chunk of funds will be unlocked.
