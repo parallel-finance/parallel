@@ -92,7 +92,7 @@ fn stake_should_work() {
 
         assert_eq!(
             <Test as Config>::Assets::balance(KSM, &LiquidStaking::account_id()),
-            ksm(1f64)
+            ksm(0.1f64)
         );
 
         assert_eq!(
@@ -218,7 +218,7 @@ impl StakeOp {
 }
 
 #[test]
-fn test_settlement_should_work() {
+fn test_matching_should_work() {
     use StakeOp::*;
     TestNet::reset();
     ParaA::execute_with(|| {
@@ -246,13 +246,15 @@ fn test_settlement_should_work() {
                 LiquidStaking::matching_pool().matching(unbonding_amount),
                 Ok(matching_result)
             );
-            // assert_ok!(LiquidStaking::do_advance_era(1));
-            LiquidStaking::notification_received(
-                pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
-                i.try_into().unwrap(),
-                Response::ExecutionResult(None),
-            )
-            .unwrap();
+            with_transaction(|| {
+                LiquidStaking::do_advance_era(1);
+                LiquidStaking::notification_received(
+                    pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+                    i.try_into().unwrap(),
+                    Response::ExecutionResult(None),
+                );
+                TransactionOutcome::Commit(0)
+            });
         }
     });
 }
