@@ -1,8 +1,8 @@
 use codec::{Decode, Encode, HasCompact};
 
-use super::{BalanceOf, Config, DerivativeIndex, EraIndex};
+use super::{BalanceOf, Config, MAX_UNLOCKING_CHUNKS};
 use frame_support::{dispatch::DispatchResult, traits::tokens::Balance as BalanceT};
-use primitives::ArithmeticKind;
+use primitives::{ArithmeticKind, DerivativeIndex, EraIndex};
 use scale_info::TypeInfo;
 use sp_runtime::{
     traits::{AtLeast32BitUnsigned, Saturating, Zero},
@@ -57,14 +57,15 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         amount: Balance,
         kind: ArithmeticKind,
     ) -> DispatchResult {
+        use ArithmeticKind::*;
         match kind {
-            ArithmeticKind::Addition => {
+            Addition => {
                 self.total_stake_amount = self
                     .total_stake_amount
                     .checked_add(&amount)
                     .ok_or(ArithmeticError::Overflow)?;
             }
-            ArithmeticKind::Subtraction => {
+            Subtraction => {
                 self.total_stake_amount = self
                     .total_stake_amount
                     .checked_sub(&amount)
@@ -79,14 +80,15 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
         amount: Balance,
         kind: ArithmeticKind,
     ) -> DispatchResult {
+        use ArithmeticKind::*;
         match kind {
-            ArithmeticKind::Addition => {
+            Addition => {
                 self.total_unstake_amount = self
                     .total_unstake_amount
                     .checked_add(&amount)
                     .ok_or(ArithmeticError::Overflow)?;
             }
-            ArithmeticKind::Subtraction => {
+            Subtraction => {
                 self.total_unstake_amount = self
                     .total_unstake_amount
                     .checked_sub(&amount)
@@ -100,25 +102,12 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 #[scale_info(skip_type_params(T))]
 pub enum XcmRequest<T: Config> {
-    Bond {
-        amount: BalanceOf<T>,
-    },
-    BondExtra {
-        amount: BalanceOf<T>,
-    },
-    Unbond {
-        amount: BalanceOf<T>,
-    },
-    Rebond {
-        amount: BalanceOf<T>,
-    },
-    WithdrawUnbonded {
-        num_slashing_spans: u32,
-        derivative_index: DerivativeIndex,
-    },
-    Nominate {
-        targets: Vec<T::AccountId>,
-    },
+    Bond { amount: BalanceOf<T> },
+    BondExtra { amount: BalanceOf<T> },
+    Unbond { amount: BalanceOf<T> },
+    Rebond { amount: BalanceOf<T> },
+    WithdrawUnbonded { num_slashing_spans: u32 },
+    Nominate { targets: Vec<T::AccountId> },
 }
 
 /// Just a Balance/BlockNumber tuple to encode when a chunk of funds will be unlocked.
@@ -153,23 +142,20 @@ pub struct StakingLedger<AccountId, Balance: HasCompact> {
     pub claimed_rewards: Vec<EraIndex>,
 }
 
-impl<AccountId, Balance: HasCompact + Copy + Saturating + AtLeast32BitUnsigned + Zero>
-    StakingLedger<AccountId, Balance>
-{
-    /// Initializes the default object using the given `validator`.
-    pub fn default_from(stash: AccountId) -> Self {
+impl<AccountId, Balance: BalanceT + FixedPointOperand> StakingLedger<AccountId, Balance> {
+    /// Initializes the default ledger using the given `Stash` account.
+    pub fn new(stash: AccountId, value: Balance) -> Self {
         Self {
             stash,
-            total: Zero::zero(),
-            active: Zero::zero(),
-            unlocking: vec![],
-            claimed_rewards: vec![],
+            total: value,
+            active: value,
+            ..Default::default()
         }
     }
 
     /// Remove entries from `unlocking` that are sufficiently old and reduce the
     /// total by the sum of their balances.
-    pub fn consolidate_unlocked(self, current_era: EraIndex) -> Self {
+    pub fn consolidate_unlocked(&mut self, current_era: EraIndex) {
         let mut total = self.total;
         let unlocking = self
             .unlocking
@@ -183,20 +169,12 @@ impl<AccountId, Balance: HasCompact + Copy + Saturating + AtLeast32BitUnsigned +
                 }
             })
             .collect();
-
-        Self {
-            stash: self.stash,
-            total,
-            active: self.active,
-            unlocking,
-            claimed_rewards: self.claimed_rewards,
-        }
+        self.total = total;
+        self.unlocking = unlocking;
     }
 
-    /// Re-bond funds that were scheduled for unlocking.
-    ///
-    /// Returns the updated ledger, and the amount actually rebonded.
-    pub fn rebond(mut self, value: Balance) -> (Self, Balance) {
+    /// Rebond funds that were scheduled for unlocking.
+    pub fn rebond(&mut self, value: Balance) {
         let mut unlocking_balance: Balance = Zero::zero();
 
         while let Some(last) = self.unlocking.last_mut() {
@@ -216,30 +194,27 @@ impl<AccountId, Balance: HasCompact + Copy + Saturating + AtLeast32BitUnsigned +
                 break;
             }
         }
-
-        (self, unlocking_balance)
     }
 
-    pub fn bond(mut self, value: Balance) -> Self {
-        self.total = value;
-        self.active = value;
-        self
-    }
-
-    pub fn bond_extra(mut self, value: Balance) -> Self {
+    /// Add some extra amount that have appeared in the stash `free_balance` into the balance up
+    /// for staking.
+    pub fn bond_extra(&mut self, value: Balance) {
         self.total += value;
         self.active += value;
-        self
     }
 
-    pub fn unbond(mut self, value: Balance, target_era: EraIndex) -> Self {
+    /// Schedule a portion of the stash to be unlocked ready for transfer out after the bond
+    /// period ends. If this leaves an amount actively bonded less than
+    pub fn unbond(&mut self, value: Balance, target_era: EraIndex) {
+        let mut value = value.min(self.active);
+
         if let Some(mut chunk) = self
             .unlocking
             .last_mut()
             .filter(|chunk| chunk.era == target_era)
         {
             // To keep the chunk count down, we only keep one chunk per era. Since
-            // `unlocking` is a FiFo queue, if a chunk exists for `era` we know that it will
+            // `unlocking` is a FIFO queue, if a chunk exists for `era` we know that it will
             // be the last one.
             chunk.value = chunk.value.saturating_add(value);
         } else {
@@ -248,38 +223,12 @@ impl<AccountId, Balance: HasCompact + Copy + Saturating + AtLeast32BitUnsigned +
                 era: target_era,
             });
         };
-        self
+
+        // Skipped the minimum balance check because the platform will
+        // bond `MinNominatorBond` to make sure:
+        // 1. No chill call is needed
+        // 2. No minimum balance check
+        self.active -= value;
+        self.total -= value;
     }
 }
-
-// impl<T: Config> StakingLedger<T> {
-//     /// New ledger
-//     pub fn new() -> Self {
-//         Self {
-//             withdrawable: Zero::zero(),
-//             unlocking: vec![],
-//         }
-//     }
-
-//     /// Remove expired unlocking and calculate its amount to withdrawable
-//     pub fn consolidate_unlocked(self, current_era: EraIndex) -> Self {
-//         let mut withdrawable_amount: BalanceOf<T> = Zero::zero();
-//         let unlocking = self
-//             .unlocking
-//             .into_iter()
-//             .filter(|chunk| {
-//                 if chunk.era > current_era {
-//                     true
-//                 } else {
-//                     withdrawable_amount = withdrawable_amount.saturating_add(chunk.value);
-//                     false
-//                 }
-//             })
-//             .collect::<Vec<UnlockChunk<T>>>();
-
-//         Self {
-//             withdrawable: self.withdrawable.saturating_add(withdrawable_amount),
-//             unlocking,
-//         }
-//     }
-// }

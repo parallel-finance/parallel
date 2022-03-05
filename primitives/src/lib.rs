@@ -99,6 +99,10 @@ pub type PriceDetail = (Price, Timestamp);
 
 pub type TimeStampedPrice = orml_oracle::TimestampedValue<Price, Moment>;
 
+pub type EraIndex = u32;
+
+pub type DerivativeIndex = u16;
+
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 
 pub use cumulus_primitives_core::ParaId;
