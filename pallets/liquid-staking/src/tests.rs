@@ -509,17 +509,20 @@ fn claim_for_should_work() {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(10f64)));
         assert_eq!(<Test as Config>::Assets::balance(KSM, &ALICE), ksm(90f64));
 
-        let unstake_amount = ksm(6f64);
-        assert_ok!(LiquidStaking::unstake(
-            Origin::signed(ALICE),
-            unstake_amount
-        ));
+        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(6f64)));
+        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(3.95f64)));
         assert_eq!(
             Unlockings::<Test>::get(ALICE).unwrap(),
-            vec![UnlockChunk {
-                value: unstake_amount,
-                era: 4
-            }]
+            vec![
+                UnlockChunk {
+                    value: ksm(6f64),
+                    era: 4
+                },
+                UnlockChunk {
+                    value: ksm(3.95f64),
+                    era: 4
+                }
+            ]
         );
 
         assert_noop!(
@@ -532,7 +535,9 @@ fn claim_for_should_work() {
         assert_ok!(LiquidStaking::claim_for(Origin::signed(BOB), Id(ALICE)));
         assert_eq!(
             <Test as Config>::Assets::balance(KSM, &ALICE),
-            ksm(90f64) + unstake_amount
+            ksm(90f64) + ksm(9.95f64)
         );
+
+        assert!(Unlockings::<Test>::get(ALICE).is_none());
     })
 }
