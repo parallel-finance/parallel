@@ -37,10 +37,7 @@ use frame_support::traits::{fungibles::InspectMetadata, tokens::Balance as Balan
 use primitives::{
     ExchangeRateProvider, LiquidStakingConvert, LiquidStakingCurrenciesProvider, Rate,
 };
-use sp_runtime::{
-    traits::{Saturating, Zero},
-    FixedPointNumber, FixedPointOperand,
-};
+use sp_runtime::{traits::Zero, FixedPointNumber, FixedPointOperand};
 
 pub use pallet::*;
 
@@ -174,7 +171,7 @@ pub mod pallet {
         /// The derivative get unstaked successfully
         Unstaked(T::AccountId, BalanceOf<T>, BalanceOf<T>),
         /// Staking ledger feeded
-        StakingLedgerFeeded,
+        StakingLedgerFeeded(StakingLedger<T::AccountId, BalanceOf<T>>),
         /// Sent staking.bond call to relaychain
         Bonding(T::AccountId, BalanceOf<T>, RewardDestination<T::AccountId>),
         /// Sent staking.bond_extra call to relaychain
@@ -478,11 +475,10 @@ pub mod pallet {
 
             Self::do_update_exchange_rate(staking_ledger.active)?;
             Self::do_update_ledger(derivative_index, |ledger| {
-                *ledger = staking_ledger;
+                *ledger = staking_ledger.clone();
                 Ok(())
             })?;
-
-            Self::deposit_event(Event::<T>::StakingLedgerFeeded);
+            Self::deposit_event(Event::<T>::StakingLedgerFeeded(staking_ledger));
 
             Ok(().into())
         }
@@ -674,7 +670,7 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-        fn on_initialize(block_number: T::BlockNumber) -> u64 {
+        fn on_initialize(_block_number: T::BlockNumber) -> u64 {
             let offset = Self::era_offset();
             let _ = Self::do_advance_era(offset);
             0
