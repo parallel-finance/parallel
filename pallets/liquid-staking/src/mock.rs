@@ -1,9 +1,11 @@
+use cumulus_test_relay_sproof_builder::RelayStateSproofBuilder;
 use frame_support::{
-    construct_runtime,
+    assert_ok, construct_runtime,
     dispatch::Weight,
     parameter_types, sp_io,
     traits::{
-        tokens::BalanceConversion, EnsureOneOf, Everything, GenesisBuild, Nothing, SortedMembers,
+        tokens::BalanceConversion, EnsureOneOf, Everything, GenesisBuild, Hooks, Nothing,
+        SortedMembers,
     },
     weights::constants::WEIGHT_PER_SECOND,
     PalletId,
@@ -14,7 +16,9 @@ use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 
 use polkadot_runtime_parachains::configuration::HostConfiguration;
-use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId, Rate, Ratio};
+use primitives::{
+    currency::MultiCurrencyAdapter, tokens::*, Balance, EraIndex, ParaId, Rate, Ratio,
+};
 use sp_core::H256;
 use sp_runtime::{
     generic,
@@ -34,13 +38,11 @@ pub use xcm_builder::{
     SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
 use xcm_executor::{Config, XcmExecutor};
-use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
+use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain, TestExt};
 
 pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
 pub use kusama_runtime;
-
-use super::EraIndex;
 
 parameter_types! {
     pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND / 4;
@@ -369,7 +371,7 @@ impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const DerivativeIndex: u16 = 0;
-    pub const EraLength: BlockNumber = 0;
+    pub const EraLength: BlockNumber = 10;
     pub SelfParaId: ParaId = para_a_id();
     pub const MinStake: Balance = 0;
     pub const MinUnstake: Balance = 0;

@@ -50,6 +50,7 @@ pub mod pallet {
         log,
         pallet_prelude::*,
         require_transactional,
+        storage::with_transaction,
         traits::{
             fungibles::{Inspect, InspectMetadata, Mutate, Transfer},
             IsType, SortedMembers,
@@ -63,7 +64,7 @@ pub mod pallet {
     use pallet_xcm::ensure_response;
     use sp_runtime::{
         traits::{AccountIdConversion, BlockNumberProvider, CheckedDiv, CheckedSub, StaticLookup},
-        ArithmeticError, FixedPointNumber,
+        ArithmeticError, FixedPointNumber, TransactionOutcome,
     };
     use sp_std::{boxed::Box, result::Result, vec::Vec};
 
@@ -676,9 +677,12 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
         fn on_initialize(_block_number: T::BlockNumber) -> u64 {
-            let offset = Self::era_offset();
-            let _ = Self::do_advance_era(offset);
-            0
+            with_transaction(|| {
+                let offset = Self::era_offset();
+                dbg!(offset);
+                let _ = Self::do_advance_era(offset);
+                return TransactionOutcome::Commit(0);
+            })
         }
     }
 
@@ -715,6 +719,7 @@ pub mod pallet {
         }
 
         fn era_offset() -> EraIndex {
+            dbg!(T::RelayChainBlockNumberProvider::current_block_number());
             T::RelayChainBlockNumberProvider::current_block_number()
                 .checked_sub(&Self::era_start_block())
                 .and_then(|r| r.checked_div(&T::EraLength::get()))
@@ -789,6 +794,8 @@ pub mod pallet {
             if amount.is_zero() {
                 return Ok(());
             }
+
+            // TODO: limit to MAX_UNLOCKING_CHUNKS
 
             log::trace!(
                 target: "liquidStaking::unbond",
@@ -952,15 +959,18 @@ pub mod pallet {
         }
 
         #[require_transactional]
-        fn do_advance_era(offset: EraIndex) -> DispatchResult {
+        pub(crate) fn do_advance_era(offset: EraIndex) -> DispatchResult {
             if offset.is_zero() {
                 return Ok(());
             }
 
             let derivative_index = T::DerivativeIndex::get();
             let ledger = StakingLedgers::<T>::get(&derivative_index);
-            let (bond_amount, rebond_amount, unbond_amount) = Self::matching_pool()
-                .matching(ledger.map_or(Zero::zero(), |ledger| ledger.total - ledger.active))?;
+            let unbonding_amount = ledger.map_or(Zero::zero(), |ledger| {
+                ledger.total.saturating_sub(ledger.active)
+            });
+            let (bond_amount, rebond_amount, unbond_amount) =
+                Self::matching_pool().matching(unbonding_amount)?;
             if !StakingLedgers::<T>::contains_key(&derivative_index) {
                 Self::do_bond(bond_amount, RewardDestination::Staked)?;
             } else {
@@ -970,7 +980,7 @@ pub mod pallet {
             Self::do_unbond(unbond_amount)?;
             Self::do_rebond(rebond_amount)?;
 
-            CurrentEra::<T>::mutate(|e| *e += offset);
+            CurrentEra::<T>::mutate(|e| *e = e.saturating_add(offset));
             EraStartBlock::<T>::put(T::RelayChainBlockNumberProvider::current_block_number());
 
             log::trace!(

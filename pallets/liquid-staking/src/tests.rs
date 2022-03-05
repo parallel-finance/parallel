@@ -1,18 +1,21 @@
 use crate::{
     mock::*,
-    types::{MatchingLedger, StakingLedger},
+    types::{MatchingLedger, StakingLedger, UnlockChunk},
     *,
 };
 
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{assert_noop, assert_ok, storage::with_transaction};
 
 use primitives::{
     tokens::{KSM, XKSM},
     ump::RewardDestination,
     Balance, Rate, Ratio,
 };
-use sp_runtime::traits::{One, Zero};
-use sp_runtime::MultiAddress::Id;
+use sp_runtime::{
+    traits::{One, Zero},
+    MultiAddress::Id,
+    TransactionOutcome,
+};
 use xcm_simulator::TestExt;
 
 #[test]
@@ -35,6 +38,73 @@ fn stake_should_work() {
             <Test as Config>::Assets::balance(XKSM, &ALICE),
             ksm(109.95f64)
         );
+
+        assert_eq!(
+            <Test as Config>::Assets::balance(KSM, &LiquidStaking::account_id()),
+            ksm(10f64)
+        );
+
+        with_transaction(|| {
+            LiquidStaking::do_advance_era(1);
+            LiquidStaking::notification_received(
+                pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+                0,
+                Response::ExecutionResult(None),
+            );
+            TransactionOutcome::Commit(0)
+        });
+
+        assert_eq!(
+            <Test as Config>::Assets::balance(KSM, &LiquidStaking::account_id()),
+            ksm(0.05f64)
+        );
+
+        assert_eq!(
+            MatchingPool::<Test>::get(),
+            MatchingLedger {
+                total_stake_amount: 0,
+                total_unstake_amount: 0,
+            }
+        );
+
+        assert_eq!(
+            StakingLedgers::<Test>::get(&0).unwrap(),
+            StakingLedger {
+                stash: LiquidStaking::derivative_para_account_id(),
+                total: ksm(9.95f64),
+                active: ksm(9.95f64),
+                unlocking: vec![],
+                claimed_rewards: vec![]
+            }
+        );
+
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(10f64)));
+
+        with_transaction(|| {
+            LiquidStaking::do_advance_era(1);
+            LiquidStaking::notification_received(
+                pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+                1,
+                Response::ExecutionResult(None),
+            );
+            TransactionOutcome::Commit(0)
+        });
+
+        assert_eq!(
+            <Test as Config>::Assets::balance(KSM, &LiquidStaking::account_id()),
+            ksm(1f64)
+        );
+
+        assert_eq!(
+            StakingLedgers::<Test>::get(&0).unwrap(),
+            StakingLedger {
+                stash: LiquidStaking::derivative_para_account_id(),
+                total: ksm(19.9f64),
+                active: ksm(19.9f64),
+                unlocking: vec![],
+                claimed_rewards: vec![]
+            }
+        );
     })
 }
 
@@ -54,11 +124,81 @@ fn unstake_should_work() {
             }
         );
 
-        // Check balance is correct
-        assert_eq!(<Test as Config>::Assets::balance(KSM, &ALICE), ksm(90f64));
         assert_eq!(
-            <Test as Config>::Assets::balance(XKSM, &ALICE),
-            ksm(103.95f64)
+            Unlockings::<Test>::get(ALICE).unwrap(),
+            vec![UnlockChunk {
+                value: ksm(6f64),
+                era: 4
+            }]
+        );
+
+        with_transaction(|| {
+            LiquidStaking::do_advance_era(1);
+            LiquidStaking::notification_received(
+                pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+                0,
+                Response::ExecutionResult(None),
+            );
+            TransactionOutcome::Commit(0)
+        });
+
+        assert_eq!(
+            MatchingPool::<Test>::get(),
+            MatchingLedger {
+                total_stake_amount: 0,
+                total_unstake_amount: 0,
+            }
+        );
+
+        assert_eq!(
+            StakingLedgers::<Test>::get(&0).unwrap(),
+            StakingLedger {
+                stash: LiquidStaking::derivative_para_account_id(),
+                total: ksm(3.95f64),
+                active: ksm(3.95f64),
+                unlocking: vec![],
+                claimed_rewards: vec![]
+            }
+        );
+
+        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(3.95f64)));
+
+        assert_eq!(
+            Unlockings::<Test>::get(ALICE).unwrap(),
+            vec![
+                UnlockChunk {
+                    value: ksm(6f64),
+                    era: 4
+                },
+                UnlockChunk {
+                    value: ksm(3.95f64),
+                    era: 5
+                }
+            ]
+        );
+
+        with_transaction(|| {
+            LiquidStaking::do_advance_era(1);
+            LiquidStaking::notification_received(
+                pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+                1,
+                Response::ExecutionResult(None),
+            );
+            TransactionOutcome::Commit(0)
+        });
+
+        assert_eq!(
+            StakingLedgers::<Test>::get(&0).unwrap(),
+            StakingLedger {
+                stash: LiquidStaking::derivative_para_account_id(),
+                total: 0,
+                active: 0,
+                unlocking: vec![UnlockChunk {
+                    value: ksm(3.95),
+                    era: 5
+                }],
+                claimed_rewards: vec![]
+            }
         );
     })
 }
@@ -106,11 +246,7 @@ fn test_settlement_should_work() {
                 LiquidStaking::matching_pool().matching(unbonding_amount),
                 Ok(matching_result)
             );
-            assert_ok!(LiquidStaking::settlement(
-                Origin::signed(ALICE),
-                bonding_amount,
-                unbonding_amount,
-            ));
+            // assert_ok!(LiquidStaking::do_advance_era(1));
             LiquidStaking::notification_received(
                 pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
                 i.try_into().unwrap(),
@@ -376,26 +512,22 @@ fn claim_for_should_work() {
             Origin::signed(ALICE),
             unstake_amount
         ));
-        assert_eq!(PendingUnstake::<Test>::get(0, ALICE), unstake_amount);
+        assert_eq!(
+            Unlockings::<Test>::get(ALICE).unwrap(),
+            vec![UnlockChunk {
+                value: unstake_amount,
+                era: 4
+            }]
+        );
 
         assert_noop!(
-            LiquidStaking::claim_for(Origin::signed(BOB), 0, Id(ALICE)),
+            LiquidStaking::claim_for(Origin::signed(BOB), Id(ALICE)),
             Error::<Test>::NothingToClaim
         );
 
-        CurrentEraIndex::<Test>::put(3);
+        CurrentEra::<Test>::put(4);
 
-        assert_noop!(
-            LiquidStaking::claim_for(Origin::signed(BOB), 0, Id(ALICE)),
-            Error::<Test>::InsufficientAsset
-        );
-
-        Ledger::<Test>::put(StakingLedger {
-            withdrawable: unstake_amount,
-            unlocking: vec![],
-        });
-
-        assert_ok!(LiquidStaking::claim_for(Origin::signed(BOB), 0, Id(ALICE)));
+        assert_ok!(LiquidStaking::claim_for(Origin::signed(BOB), Id(ALICE)));
         assert_eq!(
             <Test as Config>::Assets::balance(KSM, &ALICE),
             ksm(90f64) + unstake_amount
