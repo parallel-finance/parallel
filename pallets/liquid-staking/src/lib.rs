@@ -709,7 +709,7 @@ pub mod pallet {
 
         // TODO: rename era offset to make it more clear
         fn era_offset() -> EraIndex {
-            dbg!(T::RelayChainBlockNumberProvider::current_block_number());
+            // dbg!(T::RelayChainBlockNumberProvider::current_block_number());
             T::RelayChainBlockNumberProvider::current_block_number()
                 .checked_sub(&Self::era_start_block())
                 .and_then(|r| r.checked_div(&T::EraLength::get()))
