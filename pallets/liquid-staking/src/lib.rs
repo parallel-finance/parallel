@@ -543,25 +543,7 @@ pub mod pallet {
         #[transactional]
         pub fn withdraw_unbonded(origin: OriginFor<T>, num_slashing_spans: u32) -> DispatchResult {
             Self::ensure_origin(origin)?;
-            let query_id = T::XCM::do_withdraw_unbonded(
-                num_slashing_spans,
-                Self::para_account_id(),
-                Self::staking_currency()?,
-                T::DerivativeIndex::get(),
-                Self::notify_placeholder(),
-            )?;
-
-            log::trace!(
-                target: "liquidStaking::withdraw_unbonded",
-                "num_slashing_spans: {:?}",
-                &num_slashing_spans,
-            );
-
-            XcmRequests::<T>::insert(
-                query_id,
-                XcmRequest::WithdrawUnbonded { num_slashing_spans },
-            );
-            Self::deposit_event(Event::<T>::WithdrawingUnbonded(num_slashing_spans));
+            Self::do_withdraw_unbonded(num_slashing_spans)?;
             Ok(())
         }
 
@@ -844,6 +826,30 @@ pub mod pallet {
         }
 
         #[require_transactional]
+        fn do_withdraw_unbonded(num_slashing_spans: u32) -> DispatchResult {
+            let query_id = T::XCM::do_withdraw_unbonded(
+                num_slashing_spans,
+                Self::para_account_id(),
+                Self::staking_currency()?,
+                T::DerivativeIndex::get(),
+                Self::notify_placeholder(),
+            )?;
+
+            log::trace!(
+                target: "liquidStaking::withdraw_unbonded",
+                "num_slashing_spans: {:?}",
+                &num_slashing_spans,
+            );
+
+            XcmRequests::<T>::insert(
+                query_id,
+                XcmRequest::WithdrawUnbonded { num_slashing_spans },
+            );
+            Self::deposit_event(Event::<T>::WithdrawingUnbonded(num_slashing_spans));
+            Ok(())
+        }
+
+        #[require_transactional]
         fn do_notification_received(
             query_id: QueryId,
             request: XcmRequest<T>,
@@ -963,6 +969,9 @@ pub mod pallet {
             if offset.is_zero() {
                 return Ok(());
             }
+
+            // TODO: add num_slashing_spans config
+            Self::do_withdraw_unbonded(0)?;
 
             let derivative_index = T::DerivativeIndex::get();
             let ledger = StakingLedgers::<T>::get(&derivative_index);
