@@ -6,7 +6,7 @@ use crate::types::StakingLedger;
 use crate::Pallet as LiquidStaking;
 
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite};
-use frame_support::{assert_ok, traits::fungibles::Mutate};
+use frame_support::traits::fungibles::Mutate;
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{
     tokens::{KSM, XKSM},

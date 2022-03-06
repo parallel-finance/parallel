@@ -670,7 +670,7 @@ pub mod pallet {
                 // TODO: fix weights and clean code
                 let offset = Self::era_offset();
                 let _ = Self::do_advance_era(offset);
-                return TransactionOutcome::Commit(0);
+                TransactionOutcome::Commit(0)
             })
         }
     }
