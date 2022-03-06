@@ -724,6 +724,31 @@ pub mod pallet {
                 .unwrap_or_else(Zero::zero)
         }
 
+        fn bonding() -> BalanceOf<T> {
+            T::DerivativeIndexList::get()
+                .into_iter()
+                .fold(Zero::zero(), |mut acc, index| {
+                    let ledger = StakingLedgers::<T>::get(&index);
+                    let bonding_amount =
+                        ledger.as_ref().map_or(Zero::zero(), |ledger| ledger.active);
+                    acc = acc.saturating_add(bonding_amount);
+                    acc
+                })
+        }
+
+        fn unbonding() -> BalanceOf<T> {
+            T::DerivativeIndexList::get()
+                .into_iter()
+                .fold(Zero::zero(), |mut acc, index| {
+                    let ledger = StakingLedgers::<T>::get(&index);
+                    let unbonding_amount = ledger.as_ref().map_or(Zero::zero(), |ledger| {
+                        ledger.total.saturating_sub(ledger.active)
+                    });
+                    acc = acc.saturating_add(unbonding_amount);
+                    acc
+                })
+        }
+
         #[require_transactional]
         fn do_bond(
             derivative_index: DerivativeIndex,
@@ -1088,8 +1113,9 @@ pub mod pallet {
         }
 
         #[require_transactional]
-        fn do_update_exchange_rate(bonding_amount: BalanceOf<T>) -> DispatchResult {
+        fn do_update_exchange_rate() -> DispatchResult {
             let matching_ledger = Self::matching_pool();
+            let bonding_amount = Self::bonding();
             let issuance = T::Assets::total_issuance(Self::liquid_currency()?);
             if issuance.is_zero() {
                 return Ok(());
@@ -1131,11 +1157,7 @@ pub mod pallet {
             CurrentEra::<T>::mutate(|e| *e = e.saturating_add(offset));
 
             let derivative_index = T::DerivativeIndex::get();
-            let ledger = StakingLedgers::<T>::get(&derivative_index);
-            let bonding_amount = ledger.as_ref().map_or(Zero::zero(), |ledger| ledger.active);
-            let unbonding_amount = ledger.as_ref().map_or(Zero::zero(), |ledger| {
-                ledger.total.saturating_sub(ledger.active)
-            });
+            let unbonding_amount = Self::unbonding();
 
             if !unbonding_amount.is_zero() {
                 Self::do_withdraw_unbonded(derivative_index, T::NumSlashingSpans::get())?;
@@ -1143,7 +1165,7 @@ pub mod pallet {
 
             let (bond_amount, rebond_amount, unbond_amount) =
                 Self::matching_pool().matching(unbonding_amount)?;
-            if ledger.is_none() {
+            if !StakingLedgers::<T>::contains_key(&derivative_index) {
                 Self::do_bond(derivative_index, bond_amount, RewardDestination::Staked)?;
             } else {
                 Self::do_bond_extra(derivative_index, bond_amount)?;
@@ -1152,7 +1174,7 @@ pub mod pallet {
             Self::do_unbond(derivative_index, unbond_amount)?;
             Self::do_rebond(derivative_index, rebond_amount)?;
 
-            Self::do_update_exchange_rate(bonding_amount)?;
+            Self::do_update_exchange_rate()?;
 
             log::trace!(
                 target: "liquidStaking::do_advance_era",
