@@ -159,7 +159,7 @@
       }
     },
     {
-      "assetId": 107,
+      "assetId": 108,
       "marketConfig": {
         "closeFactor": 50e4,
         "collateralFactor": 50e4,
@@ -175,7 +175,7 @@
           }
         },
         "state": "Pending",
-        "ptokenId": 2104
+        "ptokenId": 2108
       }
     },
     {
@@ -264,19 +264,19 @@
       "pool": [102, 1],
       "liquidityAmounts": ["100000000000", "10000000000000000"],
       "lptokenReceiver": "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf",
-      "liquidityProviderToken": 5000
+      "liquidityProviderToken": 6000
     },
     {
       "pool": [102, 101],
       "liquidityAmounts": ["15000000000000", "50000000000000000"],
       "lptokenReceiver": "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf",
-      "liquidityProviderToken": 5001
+      "liquidityProviderToken": 6001
     },
     {
       "pool": [101, 1],
       "liquidityAmounts": ["10000000000000000", "30000000000000000000"],
       "lptokenReceiver": "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf",
-      "liquidityProviderToken": 5002
+      "liquidityProviderToken": 6002
     }
   ],
   "crowdloans": [
