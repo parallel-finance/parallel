@@ -22,6 +22,7 @@
 // TODO: fix benchmarks
 // TODO: fix unit tests
 // TODO: enrich unit tests and try to find a way run relaychain block to target block
+// TODO: overflow of matchingpool
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -784,7 +785,13 @@ pub mod pallet {
                 return Ok(());
             }
 
-            // TODO: limit to MAX_UNLOCKING_CHUNKS
+            let derivative_index = T::DerivativeIndex::get();
+            let ledger: StakingLedger<T::AccountId, BalanceOf<T>> =
+                Self::staking_ledgers(derivative_index).ok_or(Error::<T>::NotBonded)?;
+            ensure!(
+                ledger.unlocking.len() < MAX_UNLOCKING_CHUNKS,
+                Error::<T>::NoMoreChunks
+            );
 
             log::trace!(
                 target: "liquidStaking::unbond",
@@ -795,7 +802,7 @@ pub mod pallet {
             let query_id = T::XCM::do_unbond(
                 amount,
                 Self::staking_currency()?,
-                T::DerivativeIndex::get(),
+                derivative_index,
                 Self::notify_placeholder(),
             )?;
 
@@ -977,6 +984,8 @@ pub mod pallet {
             if offset.is_zero() {
                 return Ok(());
             }
+            EraStartBlock::<T>::put(T::RelayChainBlockNumberProvider::current_block_number());
+            CurrentEra::<T>::mutate(|e| *e = e.saturating_add(offset));
 
             // TODO: add num_slashing_spans config
             Self::do_withdraw_unbonded(0)?;
@@ -996,9 +1005,6 @@ pub mod pallet {
 
             Self::do_unbond(unbond_amount)?;
             Self::do_rebond(rebond_amount)?;
-
-            CurrentEra::<T>::mutate(|e| *e = e.saturating_add(offset));
-            EraStartBlock::<T>::put(T::RelayChainBlockNumberProvider::current_block_number());
 
             log::trace!(
                 target: "liquidStaking::do_advance_era",
