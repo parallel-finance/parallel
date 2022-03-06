@@ -78,21 +78,21 @@
     {
       "name": "Parallel LP-USDT/PARA",
       "symbol": "LP-USDT/PARA",
-      "assetId": 5000,
+      "assetId": 6000,
       "decimal": 12,
       "balances": []
     },
     {
-      "name": "Parallel LP-PARA/USDT",
-      "symbol": "LP-PARA/USDT",
-      "assetId": 5001,
+      "name": "Parallel LP-DOT/USDT",
+      "symbol": "LP-DOT/USDT",
+      "assetId": 6001,
       "decimal": 12,
       "balances": []
     },
     {
       "name": "Parallel LP-DOT/PARA",
       "symbol": "LP-DOT/PARA",
-      "assetId": 5002,
+      "assetId": 6002,
       "decimal": 12,
       "balances": []
     }
