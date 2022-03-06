@@ -2,7 +2,7 @@ use codec::{Decode, Encode, HasCompact};
 
 use super::{BalanceOf, Config};
 use frame_support::{dispatch::DispatchResult, traits::tokens::Balance as BalanceT};
-use primitives::{ArithmeticKind, EraIndex};
+use primitives::{ArithmeticKind, DerivativeIndex, EraIndex};
 use scale_info::TypeInfo;
 use sp_runtime::{traits::Zero, ArithmeticError, DispatchError, FixedPointOperand, RuntimeDebug};
 use sp_std::{cmp::Ordering, result::Result, vec, vec::Vec};
@@ -110,12 +110,30 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 #[scale_info(skip_type_params(T))]
 pub enum XcmRequest<T: Config> {
-    Bond { amount: BalanceOf<T> },
-    BondExtra { amount: BalanceOf<T> },
-    Unbond { amount: BalanceOf<T> },
-    Rebond { amount: BalanceOf<T> },
-    WithdrawUnbonded { num_slashing_spans: u32 },
-    Nominate { targets: Vec<T::AccountId> },
+    Bond {
+        index: DerivativeIndex,
+        amount: BalanceOf<T>,
+    },
+    BondExtra {
+        index: DerivativeIndex,
+        amount: BalanceOf<T>,
+    },
+    Unbond {
+        index: DerivativeIndex,
+        amount: BalanceOf<T>,
+    },
+    Rebond {
+        index: DerivativeIndex,
+        amount: BalanceOf<T>,
+    },
+    WithdrawUnbonded {
+        index: DerivativeIndex,
+        num_slashing_spans: u32,
+    },
+    Nominate {
+        index: DerivativeIndex,
+        targets: Vec<T::AccountId>,
+    },
 }
 
 /// Just a Balance/BlockNumber tuple to encode when a chunk of funds will be unlocked.

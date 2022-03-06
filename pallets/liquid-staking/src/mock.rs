@@ -378,6 +378,7 @@ parameter_types! {
     pub const XcmFees: Balance = 0;
     pub const BondingDuration: EraIndex = 3;
     pub const NumSlashingSpans: u32 = 0;
+    pub static DerivativeIndexList: Vec<u16> = vec![0];
 }
 
 impl crate::Config for Test {
@@ -391,6 +392,7 @@ impl crate::Config for Test {
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
     type DerivativeIndex = DerivativeIndex;
+    type DerivativeIndexList = DerivativeIndexList;
     type XcmFees = XcmFees;
     type Assets = Assets;
     type RelayOrigin = RelayOrigin;
