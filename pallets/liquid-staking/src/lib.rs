@@ -22,7 +22,6 @@
 // TODO: fix benchmarks
 // TODO: fix unit tests
 // TODO: enrich unit tests and try to find a way run relaychain block to target block
-// TODO: overflow of matchingpool
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -206,6 +205,8 @@ pub mod pallet {
         /// Claim user's unbonded staking assets
         /// [era_index, account_id, amount]
         ClaimedFor(EraIndex, T::AccountId, BalanceOf<T>),
+        /// New era
+        NewEra(EraIndex),
     }
 
     #[pallet::error]
@@ -691,9 +692,7 @@ pub mod pallet {
             pallet_utility::Pallet::<T>::derivative_account_id(para_account, derivative_index)
         }
 
-        // TODO: rename era offset to make it more clear
         fn era_offset() -> EraIndex {
-            // dbg!(T::RelayChainBlockNumberProvider::current_block_number());
             T::RelayChainBlockNumberProvider::current_block_number()
                 .checked_sub(&Self::era_start_block())
                 .and_then(|r| r.checked_div(&T::EraLength::get()))
@@ -1017,10 +1016,11 @@ pub mod pallet {
 
             EraStartBlock::<T>::put(T::RelayChainBlockNumberProvider::current_block_number());
             CurrentEra::<T>::mutate(|e| *e = e.saturating_add(offset));
+            Self::deposit_event(Event::<T>::NewEra(Self::current_era()));
 
             let derivative_index = T::DerivativeIndex::get();
             let ledger = StakingLedgers::<T>::get(&derivative_index);
-            let unbonding_amount = ledger.map_or(Zero::zero(), |ledger| {
+            let unbonding_amount = ledger.as_ref().map_or(Zero::zero(), |ledger| {
                 ledger.total.saturating_sub(ledger.active)
             });
 
@@ -1030,7 +1030,7 @@ pub mod pallet {
 
             let (bond_amount, rebond_amount, unbond_amount) =
                 Self::matching_pool().matching(unbonding_amount)?;
-            if !StakingLedgers::<T>::contains_key(&derivative_index) {
+            if ledger.is_none() {
                 Self::do_bond(bond_amount, RewardDestination::Staked)?;
             } else {
                 Self::do_bond_extra(bond_amount)?;
