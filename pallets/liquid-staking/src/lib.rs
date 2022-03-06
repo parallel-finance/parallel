@@ -206,7 +206,8 @@ pub mod pallet {
         /// [era_index, account_id, amount]
         ClaimedFor(EraIndex, T::AccountId, BalanceOf<T>),
         /// New era
-        NewEra(EraIndex),
+        /// [bond_amount, rebond_amount, unbond_amount]
+        NewEra(EraIndex, BalanceOf<T>, BalanceOf<T>, BalanceOf<T>),
     }
 
     #[pallet::error]
@@ -484,7 +485,6 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             Self::ensure_origin(origin)?;
 
-            Self::do_update_exchange_rate(staking_ledger.active)?;
             Self::do_update_ledger(derivative_index, |ledger| {
                 // TODO: validate staking_ledger using storage proof
                 *ledger = staking_ledger.clone();
@@ -652,10 +652,12 @@ pub mod pallet {
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
         fn on_initialize(_block_number: T::BlockNumber) -> u64 {
             with_transaction(|| {
-                // TODO: fix weights and clean code
-                let offset = Self::era_offset();
-                let _ = Self::do_advance_era(offset);
-                TransactionOutcome::Commit(0)
+                // TODO: fix weights
+                if let Ok(_) = Self::do_advance_era(Self::era_advance_offset()) {
+                    TransactionOutcome::Commit(0)
+                } else {
+                    TransactionOutcome::Rollback(0)
+                }
             })
         }
     }
@@ -692,7 +694,7 @@ pub mod pallet {
             pallet_utility::Pallet::<T>::derivative_account_id(para_account, derivative_index)
         }
 
-        fn era_offset() -> EraIndex {
+        fn era_advance_offset() -> EraIndex {
             T::RelayChainBlockNumberProvider::current_block_number()
                 .checked_sub(&Self::era_start_block())
                 .and_then(|r| r.checked_div(&T::EraLength::get()))
@@ -1016,10 +1018,10 @@ pub mod pallet {
 
             EraStartBlock::<T>::put(T::RelayChainBlockNumberProvider::current_block_number());
             CurrentEra::<T>::mutate(|e| *e = e.saturating_add(offset));
-            Self::deposit_event(Event::<T>::NewEra(Self::current_era()));
 
             let derivative_index = T::DerivativeIndex::get();
             let ledger = StakingLedgers::<T>::get(&derivative_index);
+            let bonding_amount = ledger.as_ref().map_or(Zero::zero(), |ledger| ledger.active);
             let unbonding_amount = ledger.as_ref().map_or(Zero::zero(), |ledger| {
                 ledger.total.saturating_sub(ledger.active)
             });
@@ -1039,6 +1041,8 @@ pub mod pallet {
             Self::do_unbond(unbond_amount)?;
             Self::do_rebond(rebond_amount)?;
 
+            Self::do_update_exchange_rate(bonding_amount)?;
+
             log::trace!(
                 target: "liquidStaking::do_advance_era",
                 "offset: {:?}, bond_amount: {:?}, rebond_amount: {:?}, unbond_amount: {:?}",
@@ -1048,6 +1052,12 @@ pub mod pallet {
                 &unbond_amount,
             );
 
+            Self::deposit_event(Event::<T>::NewEra(
+                Self::current_era(),
+                bond_amount,
+                rebond_amount,
+                unbond_amount,
+            ));
             Ok(())
         }
 
