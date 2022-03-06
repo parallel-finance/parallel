@@ -122,7 +122,7 @@ benchmarks! {
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
     }: _(SystemOrigin::Root, BOND_AMOUNT,  RewardDestination::Staked)
     verify {
-        assert_last_event::<T>(Event::<T>::Bonding(LiquidStaking::<T>::derivative_para_account_id(), BOND_AMOUNT, RewardDestination::Staked).into());
+        assert_last_event::<T>(Event::<T>::Bonding(LiquidStaking::<T>::derivative_sovereign_account_id(), BOND_AMOUNT, RewardDestination::Staked).into());
     }
 
     nominate {
@@ -157,7 +157,7 @@ benchmarks! {
             Response::ExecutionResult(None)
         ).unwrap();
         let staking_ledger = <StakingLedger<T::AccountId, BalanceOf<T>>>::new(
-            LiquidStaking::<T>::derivative_para_account_id(),
+            LiquidStaking::<T>::derivative_sovereign_account_id(),
             0,
         );
     }: _(SystemOrigin::Root, 0u16,  staking_ledger.clone())

@@ -71,7 +71,7 @@ fn stake_should_work() {
         assert_eq!(
             StakingLedgers::<Test>::get(&0).unwrap(),
             StakingLedger {
-                stash: LiquidStaking::derivative_para_account_id(),
+                stash: LiquidStaking::derivative_sovereign_account_id(),
                 total: ksm(9.95f64),
                 active: ksm(9.95f64),
                 unlocking: vec![],
@@ -100,7 +100,7 @@ fn stake_should_work() {
         assert_eq!(
             StakingLedgers::<Test>::get(&0).unwrap(),
             StakingLedger {
-                stash: LiquidStaking::derivative_para_account_id(),
+                stash: LiquidStaking::derivative_sovereign_account_id(),
                 total: ksm(19.9f64),
                 active: ksm(19.9f64),
                 unlocking: vec![],
@@ -156,7 +156,7 @@ fn unstake_should_work() {
         assert_eq!(
             StakingLedgers::<Test>::get(&0).unwrap(),
             StakingLedger {
-                stash: LiquidStaking::derivative_para_account_id(),
+                stash: LiquidStaking::derivative_sovereign_account_id(),
                 total: ksm(3.95f64),
                 active: ksm(3.95f64),
                 unlocking: vec![],
@@ -194,7 +194,7 @@ fn unstake_should_work() {
         assert_eq!(
             StakingLedgers::<Test>::get(&0).unwrap(),
             StakingLedger {
-                stash: LiquidStaking::derivative_para_account_id(),
+                stash: LiquidStaking::derivative_sovereign_account_id(),
                 total: 0,
                 active: 0,
                 unlocking: vec![UnlockChunk {
@@ -278,7 +278,7 @@ fn test_transact_bond_work() {
         ));
 
         ParaSystem::assert_has_event(mock::Event::LiquidStaking(crate::Event::Bonding(
-            LiquidStaking::derivative_para_account_id(),
+            LiquidStaking::derivative_sovereign_account_id(),
             ksm(3f64),
             RewardDestination::Staked,
         )));
@@ -286,10 +286,11 @@ fn test_transact_bond_work() {
 
     Relay::execute_with(|| {
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
-            LiquidStaking::derivative_para_account_id(),
+            LiquidStaking::derivative_sovereign_account_id(),
             ksm(3f64),
         )));
-        let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
+        let ledger =
+            RelayStaking::ledger(LiquidStaking::derivative_sovereign_account_id()).unwrap();
         assert_eq!(ledger.total, ksm(3f64));
     });
 }
@@ -311,7 +312,8 @@ fn test_transact_bond_extra_work() {
     });
 
     Relay::execute_with(|| {
-        let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
+        let ledger =
+            RelayStaking::ledger(LiquidStaking::derivative_sovereign_account_id()).unwrap();
         assert_eq!(ledger.total, ksm(5f64));
     });
 }
@@ -338,14 +340,15 @@ fn test_transact_unbond_work() {
 
     Relay::execute_with(|| {
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
-            LiquidStaking::derivative_para_account_id(),
+            LiquidStaking::derivative_sovereign_account_id(),
             ksm(5f64),
         )));
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded(
-            LiquidStaking::derivative_para_account_id(),
+            LiquidStaking::derivative_sovereign_account_id(),
             ksm(2f64),
         )));
-        let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
+        let ledger =
+            RelayStaking::ledger(LiquidStaking::derivative_sovereign_account_id()).unwrap();
         assert_eq!(ledger.total, ksm(5f64));
         assert_eq!(ledger.active, ksm(3f64));
     });
@@ -372,17 +375,18 @@ fn test_transact_withdraw_unbonded_work() {
     });
 
     Relay::execute_with(|| {
-        let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
+        let ledger =
+            RelayStaking::ledger(LiquidStaking::derivative_sovereign_account_id()).unwrap();
         assert_eq!(ledger.total, ksm(5f64));
         assert_eq!(ledger.active, ksm(3f64));
         assert_eq!(ledger.unlocking.len(), 1);
 
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
-            LiquidStaking::derivative_para_account_id(),
+            LiquidStaking::derivative_sovereign_account_id(),
             ksm(5f64),
         )));
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded(
-            LiquidStaking::derivative_para_account_id(),
+            LiquidStaking::derivative_sovereign_account_id(),
             ksm(2f64),
         )));
 
@@ -396,7 +400,8 @@ fn test_transact_withdraw_unbonded_work() {
     });
 
     Relay::execute_with(|| {
-        let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
+        let ledger =
+            RelayStaking::ledger(LiquidStaking::derivative_sovereign_account_id()).unwrap();
         assert_eq!(ledger.total, ksm(3f64));
         assert_eq!(ledger.active, ksm(3f64));
         assert_eq!(ledger.unlocking.len(), 0);
@@ -426,18 +431,19 @@ fn test_transact_rebond_work() {
 
     Relay::execute_with(|| {
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
-            LiquidStaking::derivative_para_account_id(),
+            LiquidStaking::derivative_sovereign_account_id(),
             ksm(10f64),
         )));
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Unbonded(
-            LiquidStaking::derivative_para_account_id(),
+            LiquidStaking::derivative_sovereign_account_id(),
             ksm(5f64),
         )));
         RelaySystem::assert_has_event(RelayEvent::Staking(RelayStakingEvent::Bonded(
-            LiquidStaking::derivative_para_account_id(),
+            LiquidStaking::derivative_sovereign_account_id(),
             ksm(3f64),
         )));
-        let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
+        let ledger =
+            RelayStaking::ledger(LiquidStaking::derivative_sovereign_account_id()).unwrap();
         assert_eq!(ledger.total, ksm(10f64));
         assert_eq!(ledger.active, ksm(8f64));
     });
@@ -463,10 +469,11 @@ fn test_transact_nominate_work() {
     });
 
     Relay::execute_with(|| {
-        let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
+        let ledger =
+            RelayStaking::ledger(LiquidStaking::derivative_sovereign_account_id()).unwrap();
         assert_eq!(ledger.total, ksm(10f64));
         let nominators =
-            RelayStaking::nominators(LiquidStaking::derivative_para_account_id()).unwrap();
+            RelayStaking::nominators(LiquidStaking::derivative_sovereign_account_id()).unwrap();
         assert_eq!(nominators.targets, vec![ALICE, BOB]);
     });
 }
@@ -486,14 +493,15 @@ fn test_transfer_bond() {
     });
     Relay::execute_with(|| {
         // print_events::<kusama_runtime::Runtime>("Relay");
-        let ledger = RelayStaking::ledger(LiquidStaking::derivative_para_account_id()).unwrap();
+        let ledger =
+            RelayStaking::ledger(LiquidStaking::derivative_sovereign_account_id()).unwrap();
         assert_eq!(ledger.total, xcm_transfer_amount);
         assert_eq!(
-            RelayBalances::free_balance(LiquidStaking::derivative_para_account_id()),
+            RelayBalances::free_balance(LiquidStaking::derivative_sovereign_account_id()),
             xcm_transfer_amount
         );
         assert_eq!(
-            RelayBalances::usable_balance(LiquidStaking::derivative_para_account_id()),
+            RelayBalances::usable_balance(LiquidStaking::derivative_sovereign_account_id()),
             0
         );
     });

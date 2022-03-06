@@ -692,7 +692,7 @@ pub mod pallet {
         }
 
         /// Parachain's sovereign account
-        pub fn para_account_id() -> T::AccountId {
+        pub fn sovereign_account_id() -> T::AccountId {
             T::SelfParaId::get().into_account()
         }
 
@@ -711,8 +711,8 @@ pub mod pallet {
         }
 
         /// Derivative parachain account
-        pub fn derivative_para_account_id(derivative_index: DerivativeIndex) -> T::AccountId {
-            let para_account = Self::para_account_id();
+        pub fn derivative_sovereign_account_id(derivative_index: DerivativeIndex) -> T::AccountId {
+            let para_account = Self::sovereign_account_id();
             pallet_utility::Pallet::<T>::derivative_account_id(para_account, derivative_index)
         }
 
@@ -751,7 +751,7 @@ pub mod pallet {
             );
 
             let staking_currency = Self::staking_currency()?;
-            let derivative_account_id = Self::derivative_para_account_id(derivative_index);
+            let derivative_account_id = Self::derivative_sovereign_account_id(derivative_index);
             let query_id = T::XCM::do_bond(
                 amount,
                 payee.clone(),
@@ -806,7 +806,7 @@ pub mod pallet {
 
             let query_id = T::XCM::do_bond_extra(
                 amount,
-                Self::derivative_para_account_id(derivative_index),
+                Self::derivative_sovereign_account_id(derivative_index),
                 Self::staking_currency()?,
                 derivative_index,
                 Self::notify_placeholder(),
@@ -935,7 +935,7 @@ pub mod pallet {
 
             let query_id = T::XCM::do_withdraw_unbonded(
                 num_slashing_spans,
-                Self::para_account_id(),
+                Self::sovereign_account_id(),
                 Self::staking_currency()?,
                 derivative_index,
                 Self::notify_placeholder(),
@@ -1020,7 +1020,7 @@ pub mod pallet {
                         Error::<T>::AlreadyBonded
                     );
                     let staking_ledger = <StakingLedger<T::AccountId, BalanceOf<T>>>::new(
-                        Self::derivative_para_account_id(derivative_index),
+                        Self::derivative_sovereign_account_id(derivative_index),
                         amount,
                     );
                     StakingLedgers::<T>::insert(derivative_index, staking_ledger);
@@ -1073,13 +1073,11 @@ pub mod pallet {
                 } => {
                     Self::do_update_ledger(derivative_index, |ledger| {
                         let total = ledger.total;
+                        let staking_currency = Self::staking_currency()?;
+                        let account_id = Self::account_id();
                         ledger.consolidate_unlocked(Self::current_era());
                         let amount = total.saturating_sub(ledger.total);
-                        T::Assets::mint_into(
-                            Self::staking_currency()?,
-                            &Self::account_id(),
-                            amount,
-                        )?;
+                        T::Assets::mint_into(staking_currency, &account_id, amount)?;
                         Ok(())
                     })?;
                 }
