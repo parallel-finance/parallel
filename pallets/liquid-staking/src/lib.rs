@@ -18,6 +18,11 @@
 //!
 //! This pallet manages the NPoS operations for relay chain asset.
 
+// TODO: multi-accounts support
+// TODO: fix benchmarks
+// TODO: fix unit tests
+// TODO: enrich unit tests and try to find a way run relaychain block to target block
+
 #![cfg_attr(not(feature = "std"), no_std)]
 
 mod benchmarking;
@@ -476,6 +481,7 @@ pub mod pallet {
 
             Self::do_update_exchange_rate(staking_ledger.active)?;
             Self::do_update_ledger(derivative_index, |ledger| {
+                // TODO: validate staking_ledger using storage proof
                 *ledger = staking_ledger.clone();
                 Ok(())
             })?;
@@ -700,6 +706,7 @@ pub mod pallet {
             pallet_utility::Pallet::<T>::derivative_account_id(para_account, derivative_index)
         }
 
+        // TODO: rename era offset to make it more clear
         fn era_offset() -> EraIndex {
             dbg!(T::RelayChainBlockNumberProvider::current_block_number());
             T::RelayChainBlockNumberProvider::current_block_number()
@@ -912,6 +919,7 @@ pub mod pallet {
                 WithdrawUnbonded {
                     num_slashing_spans: _,
                 } => {
+                    // TODO: we may dont have staking ledger yet
                     Self::do_update_ledger(derivative_index, |ledger| {
                         let total = ledger.total;
                         ledger.consolidate_unlocked(Self::current_era());
