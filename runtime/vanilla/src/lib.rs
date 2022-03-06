@@ -521,7 +521,8 @@ parameter_types! {
     pub const StakingCurrency: CurrencyId = KSM;
     pub const LiquidCurrency: CurrencyId = XKSM;
     pub const XcmFees: Balance = 5_000_000_000; // 0.005KSM
-    pub const BondingDuration: u32 = 3; // 9Minutes
+    pub const BondingDuration: EraIndex = 3; // 9Minutes
+    pub const NumSlashingSpans: u32 = 0;
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -545,6 +546,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type BondingDuration = BondingDuration;
     type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Runtime>;
     type Members = LiquidStakingAgentsMembership;
+    type NumSlashingSpans = NumSlashingSpans;
 }
 
 parameter_types! {

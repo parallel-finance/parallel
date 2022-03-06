@@ -163,6 +163,9 @@ pub mod pallet {
         #[pallet::constant]
         type EraLength: Get<BlockNumberFor<Self>>;
 
+        #[pallet::constant]
+        type NumSlashingSpans: Get<u32>;
+
         /// The relay's BlockNumber provider
         type RelayChainBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
 
@@ -193,7 +196,7 @@ pub mod pallet {
         Nominating(Vec<T::AccountId>),
         /// Liquid currency's market cap was updated
         MarketCapUpdated(BalanceOf<T>),
-        /// InsurancePool's reserve_factor was updated
+        /// Reserve_factor was updated
         ReserveFactorUpdated(Ratio),
         /// Exchange rate was updated
         ExchangeRateUpdated(Rate),
@@ -559,26 +562,7 @@ pub mod pallet {
         #[transactional]
         pub fn nominate(origin: OriginFor<T>, targets: Vec<T::AccountId>) -> DispatchResult {
             Self::ensure_origin(origin)?;
-            let query_id = T::XCM::do_nominate(
-                targets.clone(),
-                Self::staking_currency()?,
-                T::DerivativeIndex::get(),
-                Self::notify_placeholder(),
-            )?;
-
-            log::trace!(
-                target: "liquidStaking::nominate",
-                "targets: {:?}",
-                &targets,
-            );
-
-            XcmRequests::<T>::insert(
-                query_id,
-                XcmRequest::Nominate {
-                    targets: targets.clone(),
-                },
-            );
-            Self::deposit_event(Event::<T>::Nominating(targets));
+            Self::do_nominate(targets)?;
             Ok(())
         }
 
@@ -758,6 +742,11 @@ pub mod pallet {
                 return Ok(());
             }
 
+            ensure!(
+                StakingLedgers::<T>::contains_key(&T::DerivativeIndex::get()),
+                Error::<T>::NotBonded
+            );
+
             log::trace!(
                 target: "liquidStaking::bond_extra",
                 "amount: {:?}",
@@ -819,6 +808,11 @@ pub mod pallet {
                 return Ok(());
             }
 
+            ensure!(
+                StakingLedgers::<T>::contains_key(&T::DerivativeIndex::get()),
+                Error::<T>::NotBonded
+            );
+
             log::trace!(
                 target: "liquidStaking::rebond",
                 "amount: {:?}",
@@ -841,6 +835,17 @@ pub mod pallet {
 
         #[require_transactional]
         fn do_withdraw_unbonded(num_slashing_spans: u32) -> DispatchResult {
+            ensure!(
+                StakingLedgers::<T>::contains_key(&T::DerivativeIndex::get()),
+                Error::<T>::NotBonded
+            );
+
+            log::trace!(
+                target: "liquidStaking::withdraw_unbonded",
+                "num_slashing_spans: {:?}",
+                &num_slashing_spans,
+            );
+
             let query_id = T::XCM::do_withdraw_unbonded(
                 num_slashing_spans,
                 Self::para_account_id(),
@@ -849,17 +854,43 @@ pub mod pallet {
                 Self::notify_placeholder(),
             )?;
 
-            log::trace!(
-                target: "liquidStaking::withdraw_unbonded",
-                "num_slashing_spans: {:?}",
-                &num_slashing_spans,
-            );
-
             XcmRequests::<T>::insert(
                 query_id,
                 XcmRequest::WithdrawUnbonded { num_slashing_spans },
             );
+
             Self::deposit_event(Event::<T>::WithdrawingUnbonded(num_slashing_spans));
+            Ok(())
+        }
+
+        #[require_transactional]
+        fn do_nominate(targets: Vec<T::AccountId>) -> DispatchResult {
+            ensure!(
+                StakingLedgers::<T>::contains_key(&T::DerivativeIndex::get()),
+                Error::<T>::NotBonded
+            );
+
+            log::trace!(
+                target: "liquidStaking::nominate",
+                "targets: {:?}",
+                &targets,
+            );
+
+            let query_id = T::XCM::do_nominate(
+                targets.clone(),
+                Self::staking_currency()?,
+                T::DerivativeIndex::get(),
+                Self::notify_placeholder(),
+            )?;
+
+            XcmRequests::<T>::insert(
+                query_id,
+                XcmRequest::Nominate {
+                    targets: targets.clone(),
+                },
+            );
+
+            Self::deposit_event(Event::<T>::Nominating(targets));
             Ok(())
         }
 
@@ -926,7 +957,6 @@ pub mod pallet {
                 WithdrawUnbonded {
                     num_slashing_spans: _,
                 } => {
-                    // TODO: we may dont have staking ledger yet
                     Self::do_update_ledger(derivative_index, |ledger| {
                         let total = ledger.total;
                         ledger.consolidate_unlocked(Self::current_era());
@@ -984,6 +1014,7 @@ pub mod pallet {
             if offset.is_zero() {
                 return Ok(());
             }
+
             EraStartBlock::<T>::put(T::RelayChainBlockNumberProvider::current_block_number());
             CurrentEra::<T>::mutate(|e| *e = e.saturating_add(offset));
 
@@ -993,9 +1024,8 @@ pub mod pallet {
                 ledger.total.saturating_sub(ledger.active)
             });
 
-            // TODO: add num_slashing_spans config
             if !unbonding_amount.is_zero() {
-                Self::do_withdraw_unbonded(0)?;
+                Self::do_withdraw_unbonded(T::NumSlashingSpans::get())?;
             }
 
             let (bond_amount, rebond_amount, unbond_amount) =

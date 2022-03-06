@@ -377,6 +377,7 @@ parameter_types! {
     pub const LiquidCurrency: CurrencyId = XKSM;
     pub const XcmFees: Balance = 0;
     pub const BondingDuration: EraIndex = 3;
+    pub const NumSlashingSpans: u32 = 0;
 }
 
 impl crate::Config for Test {
@@ -400,6 +401,7 @@ impl crate::Config for Test {
     type BondingDuration = BondingDuration;
     type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Test>;
     type Members = BobOrigin;
+    type NumSlashingSpans = NumSlashingSpans;
 }
 
 parameter_types! {
