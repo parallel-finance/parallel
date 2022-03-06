@@ -724,7 +724,7 @@ pub mod pallet {
                 .unwrap_or_else(Zero::zero)
         }
 
-        fn bonding() -> BalanceOf<T> {
+        fn bonding_amount() -> BalanceOf<T> {
             T::DerivativeIndexList::get()
                 .into_iter()
                 .fold(Zero::zero(), |mut acc, index| {
@@ -736,7 +736,7 @@ pub mod pallet {
                 })
         }
 
-        fn unbonding() -> BalanceOf<T> {
+        fn unbonding_amount() -> BalanceOf<T> {
             T::DerivativeIndexList::get()
                 .into_iter()
                 .fold(Zero::zero(), |mut acc, index| {
@@ -1115,7 +1115,7 @@ pub mod pallet {
         #[require_transactional]
         fn do_update_exchange_rate() -> DispatchResult {
             let matching_ledger = Self::matching_pool();
-            let bonding_amount = Self::bonding();
+            let bonding_amount = Self::bonding_amount();
             let issuance = T::Assets::total_issuance(Self::liquid_currency()?);
             if issuance.is_zero() {
                 return Ok(());
@@ -1157,7 +1157,7 @@ pub mod pallet {
             CurrentEra::<T>::mutate(|e| *e = e.saturating_add(offset));
 
             let derivative_index = T::DerivativeIndex::get();
-            let unbonding_amount = Self::unbonding();
+            let unbonding_amount = Self::unbonding_amount();
 
             if !unbonding_amount.is_zero() {
                 Self::do_withdraw_unbonded(derivative_index, T::NumSlashingSpans::get())?;
