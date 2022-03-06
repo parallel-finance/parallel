@@ -498,7 +498,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
             Origin::signed(ALICE),
             KSM,
             Id(XcmHelper::account_id()),
-            ksm(30f64),
+            ksm(100f64),
         )
         .unwrap();
 

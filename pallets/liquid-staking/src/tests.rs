@@ -328,6 +328,11 @@ fn test_transact_unbond_work() {
             ksm(5f64),
             RewardDestination::Staked
         ));
+        assert_ok!(LiquidStaking::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
+        ));
         assert_ok!(LiquidStaking::unbond(Origin::signed(ALICE), ksm(2f64)));
     });
 
@@ -357,6 +362,11 @@ fn test_transact_withdraw_unbonded_work() {
             Origin::signed(ALICE),
             ksm(5f64),
             RewardDestination::Staked
+        ));
+        assert_ok!(LiquidStaking::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
         ));
         assert_ok!(LiquidStaking::unbond(Origin::signed(ALICE), ksm(2f64)));
     });
@@ -404,6 +414,11 @@ fn test_transact_rebond_work() {
             Origin::signed(ALICE),
             ksm(10f64),
             RewardDestination::Staked
+        ));
+        assert_ok!(LiquidStaking::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
         ));
         assert_ok!(LiquidStaking::unbond(Origin::signed(ALICE), ksm(5f64)));
         assert_ok!(LiquidStaking::rebond(Origin::signed(ALICE), ksm(3f64)));

@@ -987,14 +987,17 @@ pub mod pallet {
             EraStartBlock::<T>::put(T::RelayChainBlockNumberProvider::current_block_number());
             CurrentEra::<T>::mutate(|e| *e = e.saturating_add(offset));
 
-            // TODO: add num_slashing_spans config
-            Self::do_withdraw_unbonded(0)?;
-
             let derivative_index = T::DerivativeIndex::get();
             let ledger = StakingLedgers::<T>::get(&derivative_index);
             let unbonding_amount = ledger.map_or(Zero::zero(), |ledger| {
                 ledger.total.saturating_sub(ledger.active)
             });
+
+            // TODO: add num_slashing_spans config
+            if !unbonding_amount.is_zero() {
+                Self::do_withdraw_unbonded(0)?;
+            }
+
             let (bond_amount, rebond_amount, unbond_amount) =
                 Self::matching_pool().matching(unbonding_amount)?;
             if !StakingLedgers::<T>::contains_key(&derivative_index) {
