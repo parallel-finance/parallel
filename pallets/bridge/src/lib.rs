@@ -253,7 +253,8 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn chain_nonces)]
-    pub type ChainNonces<T: Config> = StorageMap<_, Blake2_256, ChainId, ChainNonce, ValueQuery>;
+    pub type ChainNonces<T: Config> =
+        StorageMap<_, Blake2_128Concat, ChainId, ChainNonce, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn bridge_registry)]
