@@ -502,8 +502,7 @@ pub mod pallet {
             Self::do_update_ledger(derivative_index, |ledger| {
                 // TODO: validate staking_ledger using storage proof
                 ensure!(
-                    ledger.unlocking == staking_ledger.unlocking
-                        && ledger.active == staking_ledger.active,
+                    ledger.unlocking == staking_ledger.unlocking,
                     Error::<T>::InvalidStakingLedger
                 );
                 *ledger = staking_ledger.clone();
