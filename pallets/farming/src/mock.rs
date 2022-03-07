@@ -21,6 +21,7 @@ pub type AccountId = u128;
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const REWARD_TOKEN_PAYER: AccountId = 3;
+pub const CHARLIE: AccountId = 4;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -172,6 +173,13 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
         Assets::mint(Origin::signed(ALICE), STAKE_TOKEN, ALICE, 500_000_000).unwrap();
         Assets::mint(Origin::signed(ALICE), STAKE_TOKEN, BOB, 500_000_000).unwrap();
+        Assets::mint(
+            Origin::signed(ALICE),
+            STAKE_TOKEN,
+            CHARLIE,
+            1_100_000_000_000_000,
+        )
+        .unwrap();
 
         Assets::mint(
             Origin::signed(REWARD_TOKEN_PAYER),
