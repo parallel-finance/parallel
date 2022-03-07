@@ -181,7 +181,7 @@ pub mod pallet {
         /// The derivative get unstaked successfully
         Unstaked(T::AccountId, BalanceOf<T>, BalanceOf<T>),
         /// Staking ledger feeded
-        StakingLedgerUpdated(StakingLedger<T::AccountId, BalanceOf<T>>),
+        StakingLedgerUpdated(DerivativeIndex, StakingLedger<T::AccountId, BalanceOf<T>>),
         /// Sent staking.bond call to relaychain
         Bonding(
             DerivativeIndex,
@@ -209,10 +209,10 @@ pub mod pallet {
         /// [multi_location, query_id, res]
         NotificationReceived(Box<MultiLocation>, QueryId, Option<(u32, XcmError)>),
         /// Claim user's unbonded staking assets
-        /// [era_index, account_id, amount]
-        ClaimedFor(EraIndex, T::AccountId, BalanceOf<T>),
+        /// [account_id, amount]
+        ClaimedFor(T::AccountId, BalanceOf<T>),
         /// New era
-        /// [bond_amount, rebond_amount, unbond_amount]
+        /// [era_index, bond_amount, rebond_amount, unbond_amount]
         NewEra(EraIndex, BalanceOf<T>, BalanceOf<T>, BalanceOf<T>),
     }
 
@@ -501,10 +501,14 @@ pub mod pallet {
 
             log::trace!(
                 target: "liquidStaking::update_staking_ledger",
-                "staking_ledger: {:?}",
+                "index: {:?}, staking_ledger: {:?}",
+                &derivative_index,
                 &staking_ledger,
             );
-            Self::deposit_event(Event::<T>::StakingLedgerUpdated(staking_ledger));
+            Self::deposit_event(Event::<T>::StakingLedgerUpdated(
+                derivative_index,
+                staking_ledger,
+            ));
             Ok(().into())
         }
 
@@ -655,13 +659,13 @@ pub mod pallet {
 
                 log::trace!(
                     target: "liquidStaking::claim_for",
-                    "current era: {:?}, beneficiary: {:?}, amount: {:?}",
+                    "era: {:?}, beneficiary: {:?}, amount: {:?}",
                     &current_era,
                     &who,
                     amount
                 );
 
-                Self::deposit_event(Event::<T>::ClaimedFor(current_era, who.clone(), amount));
+                Self::deposit_event(Event::<T>::ClaimedFor(who.clone(), amount));
                 Ok(())
             })?;
             Ok(().into())

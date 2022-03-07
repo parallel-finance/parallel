@@ -173,7 +173,7 @@ benchmarks! {
         );
     }: _(SystemOrigin::Root, 0u16,  staking_ledger.clone())
     verify {
-        assert_last_event::<T>(Event::<T>::StakingLedgerUpdated(staking_ledger).into());
+        assert_last_event::<T>(Event::<T>::StakingLedgerUpdated(0, staking_ledger).into());
     }
 
     unbond {
@@ -257,7 +257,7 @@ benchmarks! {
         CurrentEra::<T>::put(28);
     }: _(SystemOrigin::Root, account_id)
     verify {
-        assert_last_event::<T>(Event::<T>::ClaimedFor(28u32, alice, UNSTAKE_AMOUNT).into());
+        assert_last_event::<T>(Event::<T>::ClaimedFor(alice, UNSTAKE_AMOUNT).into());
     }
 }
 
