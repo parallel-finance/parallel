@@ -696,7 +696,7 @@ pub mod pallet {
         fn on_initialize(_block_number: T::BlockNumber) -> u64 {
             with_transaction(|| {
                 // TODO: fix weights
-                if let Ok(_) = Self::do_advance_era(Self::era_advance_offset()) {
+                if Self::do_advance_era(Self::era_advance_offset()).is_ok() {
                     TransactionOutcome::Commit(0)
                 } else {
                     TransactionOutcome::Rollback(0)
