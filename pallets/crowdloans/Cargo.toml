@@ -37,8 +37,8 @@ pallet-utility                  = { git = 'https://github.com/paritytech/substra
 parachain-info                  = { git = 'https://github.com/paritytech/cumulus.git', branch = 'polkadot-v0.9.16' }
 polkadot-core-primitives        = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.16' }
 polkadot-parachain              = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.16' }
-polkadot-runtime-parachains     = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.16' }
 polkadot-runtime-common         = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.16' }
+polkadot-runtime-parachains     = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.16' }
 serde                           = { version = '1' }
 sp-core                         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
 sp-io                           = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16' }
