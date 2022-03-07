@@ -730,7 +730,7 @@ pub mod pallet {
                 .map_err(Into::into)
         }
 
-        /// Derivative parachain account
+        /// Derivative of parachain's account
         pub fn derivative_sovereign_account_id(derivative_index: DerivativeIndex) -> T::AccountId {
             let para_account = Self::sovereign_account_id();
             pallet_utility::Pallet::<T>::derivative_account_id(para_account, derivative_index)
@@ -744,29 +744,21 @@ pub mod pallet {
                 .unwrap_or_else(Zero::zero)
         }
 
-        fn bonding_amount() -> BalanceOf<T> {
-            T::DerivativeIndexList::get()
-                .into_iter()
-                .fold(Zero::zero(), |mut acc, index| {
-                    let ledger = StakingLedgers::<T>::get(&index);
-                    let bonding_amount =
-                        ledger.as_ref().map_or(Zero::zero(), |ledger| ledger.active);
-                    acc = acc.saturating_add(bonding_amount);
-                    acc
-                })
+        #[allow(dead_code)]
+        fn bonded_of(index: DerivativeIndex) -> BalanceOf<T> {
+            StakingLedgers::<T>::get(&index).map_or(Zero::zero(), |ledger| ledger.active)
         }
 
-        fn unbonding_amount() -> BalanceOf<T> {
-            T::DerivativeIndexList::get()
-                .into_iter()
-                .fold(Zero::zero(), |mut acc, index| {
-                    let ledger = StakingLedgers::<T>::get(&index);
-                    let unbonding_amount = ledger.as_ref().map_or(Zero::zero(), |ledger| {
-                        ledger.total.saturating_sub(ledger.active)
-                    });
-                    acc = acc.saturating_add(unbonding_amount);
-                    acc
-                })
+        fn unbonding_of(index: DerivativeIndex) -> BalanceOf<T> {
+            StakingLedgers::<T>::get(&index).map_or(Zero::zero(), |ledger| {
+                ledger.total.saturating_sub(ledger.active)
+            })
+        }
+
+        fn get_total_bonded() -> BalanceOf<T> {
+            StakingLedgers::<T>::iter_values().fold(Zero::zero(), |acc, ledger| {
+                acc.saturating_add(ledger.active)
+            })
         }
 
         #[require_transactional]
@@ -998,6 +990,7 @@ pub mod pallet {
                 derivative_index,
                 num_slashing_spans,
             ));
+
             Ok(())
         }
 
@@ -1038,6 +1031,7 @@ pub mod pallet {
             );
 
             Self::deposit_event(Event::<T>::Nominating(derivative_index, targets));
+
             Ok(())
         }
 
@@ -1135,13 +1129,13 @@ pub mod pallet {
         #[require_transactional]
         fn do_update_exchange_rate() -> DispatchResult {
             let matching_ledger = Self::matching_pool();
-            let bonding_amount = Self::bonding_amount();
+            let total_bonded = Self::get_total_bonded();
             let issuance = T::Assets::total_issuance(Self::liquid_currency()?);
             if issuance.is_zero() {
                 return Ok(());
             }
             let new_exchange_rate = Rate::checked_from_rational(
-                bonding_amount
+                total_bonded
                     .checked_add(matching_ledger.total_stake_amount)
                     .and_then(|r| r.checked_sub(matching_ledger.total_unstake_amount))
                     .ok_or(ArithmeticError::Overflow)?,
@@ -1177,8 +1171,7 @@ pub mod pallet {
             CurrentEra::<T>::mutate(|e| *e = e.saturating_add(offset));
 
             let derivative_index = T::DerivativeIndex::get();
-            let unbonding_amount = Self::unbonding_amount();
-
+            let unbonding_amount = Self::unbonding_of(derivative_index);
             if !unbonding_amount.is_zero() {
                 Self::do_withdraw_unbonded(derivative_index, T::NumSlashingSpans::get())?;
             }
@@ -1198,7 +1191,8 @@ pub mod pallet {
 
             log::trace!(
                 target: "liquidStaking::do_advance_era",
-                "offset: {:?}, bond_amount: {:?}, rebond_amount: {:?}, unbond_amount: {:?}",
+                "index: {:?}, offset: {:?}, bond_amount: {:?}, rebond_amount: {:?}, unbond_amount: {:?}",
+                &derivative_index,
                 &offset,
                 &bond_amount,
                 &rebond_amount,
