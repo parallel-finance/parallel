@@ -446,15 +446,14 @@ pub mod pallet {
                     if total_amount > 0 {
                         let asset_pool_account = Self::pool_account_id(asset)?;
                         T::Assets::transfer(asset, &asset_pool_account, &who, total_amount, true)?;
-
-                        Self::deposit_event(Event::<T>::AssetsRedeem(
-                            who.clone(),
-                            asset,
-                            reward_asset,
-                            total_amount,
-                        ));
                     }
 
+                    Self::deposit_event(Event::<T>::AssetsRedeem(
+                        who.clone(),
+                        asset,
+                        reward_asset,
+                        total_amount,
+                    ));
                     Ok(())
                 },
             )
@@ -496,15 +495,14 @@ pub mod pallet {
                             true,
                         )?;
                         user_position.reward_amount = 0;
-
-                        Self::deposit_event(Event::<T>::RewardPaid(
-                            who.clone(),
-                            asset,
-                            reward_asset,
-                            reward_amount,
-                        ));
                     }
 
+                    Self::deposit_event(Event::<T>::RewardPaid(
+                        who.clone(),
+                        asset,
+                        reward_asset,
+                        reward_amount,
+                    ));
                     Ok(())
                 },
             )
