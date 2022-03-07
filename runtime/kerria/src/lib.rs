@@ -536,7 +536,7 @@ parameter_types! {
     pub const XcmFees: Balance = 500_000_000; // 0.05DOT
     pub const BondingDuration: EraIndex = 3; // 9Minutes
     pub const NumSlashingSpans: u32 = 0;
-    pub static DerivativeIndexList: Vec<u16> = vec![0];
+    pub DerivativeIndexList: Vec<u16> = vec![0];
 }
 
 impl pallet_liquid_staking::Config for Runtime {
