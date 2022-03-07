@@ -703,13 +703,21 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-        fn on_initialize(_block_number: T::BlockNumber) -> u64 {
+        fn on_initialize(block_number: T::BlockNumber) -> u64 {
             with_transaction(|| {
                 // TODO: fix weights
-                if Self::do_advance_era(Self::era_advance_offset()).is_ok() {
-                    TransactionOutcome::Commit(0)
-                } else {
+                let offset = Self::offset();
+                if let Err(err) = Self::do_advance_era(offset) {
+                    log::trace!(
+                        target: "liquidStaking::do_advance_era",
+                        "Could not advance era! offset: {:#?}, block_number: {:#?}, err: {:?}",
+                        &offset,
+                        &block_number,
+                        &err
+                    );
                     TransactionOutcome::Rollback(0)
+                } else {
+                    TransactionOutcome::Commit(0)
                 }
             })
         }
@@ -746,7 +754,7 @@ pub mod pallet {
             pallet_utility::Pallet::<T>::derivative_account_id(para_account, derivative_index)
         }
 
-        fn era_advance_offset() -> EraIndex {
+        fn offset() -> EraIndex {
             T::RelayChainBlockNumberProvider::current_block_number()
                 .checked_sub(&Self::era_start_block())
                 .and_then(|r| r.checked_div(&T::EraLength::get()))
@@ -1020,7 +1028,7 @@ pub mod pallet {
 
             log::trace!(
                 target: "liquidStaking::nominate",
-                "index: {:?}, targets: {:?}",
+                "index: {:?}, targets: {:#?}",
                 &derivative_index,
                 &targets,
             );
