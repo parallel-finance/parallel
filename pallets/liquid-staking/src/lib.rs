@@ -685,18 +685,18 @@ pub mod pallet {
         #[transactional]
         pub fn force_set_era_start_block(
             origin: OriginFor<T>,
-            b: BlockNumberFor<T>,
+            block_number: BlockNumberFor<T>,
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
-            EraStartBlock::<T>::put(b);
+            EraStartBlock::<T>::put(block_number);
             Ok(())
         }
 
         #[pallet::weight(10_000)]
         #[transactional]
-        pub fn force_set_current_era(origin: OriginFor<T>, e: EraIndex) -> DispatchResult {
+        pub fn force_set_current_era(origin: OriginFor<T>, era: EraIndex) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
-            CurrentEra::<T>::put(e);
+            CurrentEra::<T>::put(era);
             Ok(())
         }
     }
