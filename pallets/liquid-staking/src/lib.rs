@@ -495,6 +495,10 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             Self::ensure_origin(origin)?;
 
+            if !StakingLedgers::<T>::contains_key(&derivative_index) {
+                return Ok(().into());
+            }
+
             Self::do_update_ledger(derivative_index, |ledger| {
                 // TODO: validate staking_ledger using storage proof
                 ensure!(
