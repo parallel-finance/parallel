@@ -703,21 +703,27 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-        fn on_initialize(block_number: T::BlockNumber) -> u64 {
+        fn on_initialize(block_number: T::BlockNumber) -> frame_support::weights::Weight {
             with_transaction(|| {
                 // TODO: fix weights
-                let offset = Self::offset();
-                if let Err(err) = Self::do_advance_era(offset) {
-                    log::trace!(
-                        target: "liquidStaking::do_advance_era",
-                        "Could not advance era! offset: {:#?}, block_number: {:#?}, err: {:?}",
-                        &offset,
-                        &block_number,
-                        &err
-                    );
-                    TransactionOutcome::Rollback(0)
-                } else {
-                    TransactionOutcome::Commit(0)
+                match Self::do_advance_era(Self::offset()) {
+                    Ok(()) => {
+                        log::trace!(
+                            target: "liquidStaking::on_initialize",
+                            "Current era: {:?}",
+                            &Self::current_era()
+                        );
+                        TransactionOutcome::Commit(0)
+                    }
+                    Err(err) => {
+                        log::trace!(
+                            target: "liquidStaking::on_initialize",
+                            "Could not advance era! block_number: {:#?}, err: {:?}",
+                            &block_number,
+                            &err
+                        );
+                        TransactionOutcome::Rollback(0)
+                    }
                 }
             })
         }
