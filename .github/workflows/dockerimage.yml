@@ -2,7 +2,7 @@ name: Docker Image
 
 on:
   push:
-    branches: [master, bridge-chore]
+    branches: [master]
     tags:
       - "v*"
       - "staging*"
