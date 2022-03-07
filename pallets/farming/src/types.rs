@@ -1,6 +1,9 @@
 use codec::{Decode, Encode};
 use frame_support::traits::tokens::Balance as TokenBalance;
 use frame_support::RuntimeDebug;
+use num_traits::cast::ToPrimitive;
+use num_traits::{CheckedDiv, CheckedMul};
+use primitives::ConvertToBigUint;
 use scale_info::TypeInfo;
 use sp_runtime::{
     traits::{Saturating, UniqueSaturatedInto},
@@ -43,7 +46,7 @@ impl<BlockNumber: Default, BalanceOf: Default> Default for PoolInfo<BlockNumber,
 
 impl<
         BlockNumber: Copy + PartialOrd + Saturating + UniqueSaturatedInto<u128>,
-        BalanceOf: TokenBalance,
+        BalanceOf: ConvertToBigUint + TokenBalance,
     > PoolInfo<BlockNumber, BalanceOf>
 {
     /// Return valid reward block for current block number.
@@ -68,14 +71,16 @@ impl<
             let block_diff =
                 self.block_to_balance(last_reward_block.saturating_sub(self.last_update_block));
             let reward_per_share_add = block_diff
-                .checked_mul(&self.reward_rate)
-                .and_then(|r| r.checked_mul(&self.amount_per_share()))
-                .and_then(|r| r.checked_div(&self.total_deposited))
+                .get_big_uint()
+                .checked_mul(&self.reward_rate.get_big_uint())
+                .and_then(|r| r.checked_mul(&self.amount_per_share().get_big_uint()))
+                .and_then(|r| r.checked_div(&self.total_deposited.get_big_uint()))
+                .and_then(|r| r.to_u128())
                 .ok_or(ArithmeticError::Overflow)?;
 
             let ret = self
                 .reward_per_share_stored
-                .checked_add(&reward_per_share_add)
+                .checked_add(&BalanceOf::saturated_from(reward_per_share_add))
                 .ok_or(ArithmeticError::Overflow)?;
             Ok(ret)
         }

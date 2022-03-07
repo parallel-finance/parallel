@@ -707,3 +707,63 @@ fn edge_case_reward_rate_too_low() {
         );
     })
 }
+
+#[test]
+fn edge_case_reward_token_decimal_too_big() {
+    new_test_ext().execute_with(|| {
+        Farming::create(
+            Origin::root(),
+            BIG_DECIMAL_STAKE_TOKEN,
+            BIG_DECIMAL_REWARD_TOKEN,
+            100,
+        )
+        .unwrap();
+        Farming::set_pool_status(
+            Origin::root(),
+            BIG_DECIMAL_STAKE_TOKEN,
+            BIG_DECIMAL_REWARD_TOKEN,
+            true,
+        )
+        .unwrap();
+
+        assert_ok!(Farming::deposit(
+            RawOrigin::Signed(ALICE).into(),
+            BIG_DECIMAL_STAKE_TOKEN,
+            BIG_DECIMAL_REWARD_TOKEN,
+            10_000_000_000_000_000_000_000_000,
+        ));
+
+        run_to_block(10);
+        assert_ok!(Farming::dispatch_reward(
+            Origin::root(),
+            BIG_DECIMAL_STAKE_TOKEN,
+            BIG_DECIMAL_REWARD_TOKEN,
+            REWARD_TOKEN_PAYER,
+            10_000_000_000_000_000_000_000_000_000_000,
+            10,
+        ));
+
+        // block diff = 5
+        // reward rate = 1e30
+        // amount per share = 1e12
+        // would overflow in function reward_per_share if do not deal calculation with BigUint
+        run_to_block(15);
+        assert_ok!(Farming::dispatch_reward(
+            Origin::root(),
+            BIG_DECIMAL_STAKE_TOKEN,
+            BIG_DECIMAL_REWARD_TOKEN,
+            REWARD_TOKEN_PAYER,
+            0,
+            5,
+        ));
+
+        // deposit_balance = 1e25
+        // reward diff per share = 5e17
+        // would overflow in function update_reward if do not deal calculation with BigUint
+        assert_ok!(Farming::claim(
+            RawOrigin::Signed(ALICE).into(),
+            BIG_DECIMAL_STAKE_TOKEN,
+            BIG_DECIMAL_REWARD_TOKEN,
+        ));
+    })
+}

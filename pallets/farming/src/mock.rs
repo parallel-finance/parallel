@@ -15,6 +15,8 @@ use sp_runtime::{
 pub const EHKO: CurrencyId = 0;
 pub const STAKE_TOKEN: CurrencyId = 1;
 pub const REWARD_TOKEN: CurrencyId = 2;
+pub const BIG_DECIMAL_STAKE_TOKEN: CurrencyId = 3;
+pub const BIG_DECIMAL_REWARD_TOKEN: CurrencyId = 4;
 
 pub type AccountId = u128;
 
@@ -127,6 +129,7 @@ pub struct Decimal;
 impl DecimalProvider<CurrencyId> for Decimal {
     fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
         match *asset_id {
+            BIG_DECIMAL_STAKE_TOKEN | BIG_DECIMAL_REWARD_TOKEN => Some(24),
             EHKO => Some(12),
             STAKE_TOKEN => Some(12),
             _ => Some(10),
@@ -170,6 +173,15 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     ext.execute_with(|| {
         Assets::force_create(Origin::root(), STAKE_TOKEN, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), REWARD_TOKEN, REWARD_TOKEN_PAYER, true, 1).unwrap();
+        Assets::force_create(Origin::root(), BIG_DECIMAL_STAKE_TOKEN, ALICE, true, 1).unwrap();
+        Assets::force_create(
+            Origin::root(),
+            BIG_DECIMAL_REWARD_TOKEN,
+            REWARD_TOKEN_PAYER,
+            true,
+            1,
+        )
+        .unwrap();
 
         Assets::mint(Origin::signed(ALICE), STAKE_TOKEN, ALICE, 500_000_000).unwrap();
         Assets::mint(Origin::signed(ALICE), STAKE_TOKEN, BOB, 500_000_000).unwrap();
@@ -180,12 +192,25 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
             1_100_000_000_000_000,
         )
         .unwrap();
-
         Assets::mint(
             Origin::signed(REWARD_TOKEN_PAYER),
             REWARD_TOKEN,
             REWARD_TOKEN_PAYER,
             3_000_000_000_000_000,
+        )
+        .unwrap();
+        Assets::mint(
+            Origin::signed(ALICE),
+            BIG_DECIMAL_STAKE_TOKEN,
+            ALICE,
+            100_000_000_000_000_000_000_000_000,
+        )
+        .unwrap();
+        Assets::mint(
+            Origin::signed(REWARD_TOKEN_PAYER),
+            BIG_DECIMAL_REWARD_TOKEN,
+            REWARD_TOKEN_PAYER,
+            11_000_000_000_000_000_000_000_000_000_000,
         )
         .unwrap();
 

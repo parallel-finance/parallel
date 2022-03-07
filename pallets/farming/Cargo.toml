@@ -19,6 +19,7 @@ serde              = { version = '1', features = ['derive'], optional = true }
 sp-io              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', default-features = false }
 sp-runtime         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', default-features = false }
 sp-std             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', default-features = false }
+num-traits         = { default-features = false, version = '0.2' }
 
 
 [dev-dependencies]
@@ -40,6 +41,7 @@ std                = [
   'pallet-assets/std',
   'scale-info/std',
   'sp-std/std',
+  'num-traits/std',
 ]
 try-runtime        = ['frame-support/try-runtime']
 
