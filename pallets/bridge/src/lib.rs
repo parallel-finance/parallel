@@ -818,6 +818,7 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    /// Reward some native tokens to users who don't have enough balance
     #[require_transactional]
     fn grant_incentive_bonus(
         who: T::AccountId,
