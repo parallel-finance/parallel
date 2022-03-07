@@ -169,7 +169,7 @@ benchmarks! {
         ).unwrap();
         let staking_ledger = <StakingLedger<T::AccountId, BalanceOf<T>>>::new(
             LiquidStaking::<T>::derivative_sovereign_account_id(0),
-            0,
+            BOND_AMOUNT,
         );
     }: _(SystemOrigin::Root, 0u16,  staking_ledger.clone())
     verify {

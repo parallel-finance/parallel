@@ -230,6 +230,8 @@ pub mod pallet {
         InvalidStakingCurrency,
         /// Invalid derivative index
         InvalidDerivativeIndex,
+        /// Invalid staking ledger
+        InvalidStakingLedger,
         /// Exceeded liquid currency's market cap
         CapExceeded,
         /// Invalid market cap
@@ -483,7 +485,7 @@ pub mod pallet {
             Ok(().into())
         }
 
-        /// feed staking_ledger for updating exchange rate.
+        /// Update staking_ledger for updating exchange rate in next era
         #[pallet::weight(<T as Config>::WeightInfo::update_staking_ledger())]
         #[transactional]
         pub fn update_staking_ledger(
@@ -495,6 +497,11 @@ pub mod pallet {
 
             Self::do_update_ledger(derivative_index, |ledger| {
                 // TODO: validate staking_ledger using storage proof
+                ensure!(
+                    ledger.unlocking == staking_ledger.unlocking
+                        && ledger.active == staking_ledger.active,
+                    Error::<T>::InvalidStakingLedger
+                );
                 *ledger = staking_ledger.clone();
                 Ok(())
             })?;
