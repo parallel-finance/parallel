@@ -1,0 +1,86 @@
+{
+	"relaychain": {
+		"bin": "../polkadot/target/release/polkadot",
+		"chain": "kusama-local",
+		"nodes": [
+			{
+				"name": "alice",
+				"wsPort": 9944,
+				"rpcPort": 9933,
+				"port": 30333
+			},
+			{
+				"name": "bob",
+				"wsPort": 9945,
+				"rpcPort": 9934,
+				"port": 30334
+			},
+			{
+				"name": "charlie",
+				"wsPort": 9946,
+				"rpcPort": 9935,
+				"port": 30335
+			},
+			{
+				"name": "dave",
+				"wsPort": 9947,
+				"rpcPort": 9936,
+				"port": 30336
+			}
+		],
+		"genesis": {
+			"runtime": {
+				"runtime_genesis_config": {
+					"configuration": {
+						"config": {
+							"validation_upgrade_frequency": 10,
+							"validation_upgrade_delay": 10
+						}
+					}
+				}
+			}
+		}
+	},
+	"parachains": [
+		{
+			"bin": "./target/release/parallel",
+			"nodes": [
+				{
+					"wsPort": 9948,
+					"port": 30337,
+					"rpcPort": 9937,
+					"name": "alice",
+					"flags": ["-l", "liquidStaking=trace", "--", "--execution=wasm"]
+				}
+			]
+		},
+		{
+			"bin": "./target/release/parallel",
+			"nodes": [
+				{
+					"wsPort": 9949,
+					"port": 30338,
+					"rpcPort": 9938,
+					"name": "bob",
+					"flags": ["-l", "liquidStaking=trace", "--", "--execution=wasm"]
+				}
+			]
+		},
+		{
+			"bin": "./target/release/parallel",
+			"nodes": [
+				{
+					"wsPort": 9950,
+					"port": 30339,
+					"rpcPort": 9939,
+					"name": "charlie",
+					"flags": ["-l", "liquidStaking=trace", "--", "--execution=wasm"]
+				}
+			]
+		}
+	],
+	"simpleParachains": [],
+	"hrmpChannels": [],
+	"types": {},
+	"finalization": false
+}

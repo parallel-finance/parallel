@@ -137,6 +137,10 @@ launch: shutdown
 launch-kerria:
 	make PARA_ID=2012 CHAIN=kerria-dev RELAY_CHAIN=polkadot-local launch
 
+.PHONY: dev-launch
+dev-launch:
+	polkadot-launch config.json
+
 .PHONY: logs
 logs:
 	docker-compose -f output/docker-compose.yml logs -f
