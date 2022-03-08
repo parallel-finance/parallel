@@ -706,11 +706,21 @@ pub mod pallet {
         fn on_initialize(block_number: T::BlockNumber) -> frame_support::weights::Weight {
             with_transaction(|| {
                 // TODO: fix weights
-                match Self::do_advance_era(Self::offset()) {
+                let relaychain_block_number =
+                    T::RelayChainBlockNumberProvider::current_block_number();
+                let offset = Self::offset(relaychain_block_number);
+                log::trace!(
+                    target: "liquidStaking::on_initialize",
+                    "relaychain_block_number: {:?}, block_number: {:?}, advance_offset: {:?}",
+                    &relaychain_block_number,
+                    &block_number,
+                    &offset
+                );
+                match Self::do_advance_era(offset) {
                     Ok(()) => TransactionOutcome::Commit(0),
                     Err(err) => {
                         log::trace!(
-                            target: "liquidStaking::on_initialize",
+                            target: "liquidStaking::do_advance_era",
                             "Could not advance era! block_number: {:#?}, err: {:?}",
                             &block_number,
                             &err
@@ -753,8 +763,8 @@ pub mod pallet {
             pallet_utility::Pallet::<T>::derivative_account_id(para_account, derivative_index)
         }
 
-        fn offset() -> EraIndex {
-            T::RelayChainBlockNumberProvider::current_block_number()
+        fn offset(relaychain_block_number: BlockNumberFor<T>) -> EraIndex {
+            relaychain_block_number
                 .checked_sub(&Self::era_start_block())
                 .and_then(|r| r.checked_div(&T::EraLength::get()))
                 .and_then(|r| TryInto::<EraIndex>::try_into(r).ok())
