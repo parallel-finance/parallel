@@ -10,7 +10,7 @@ use frame_support::{assert_ok, pallet_prelude::*, traits::fungibles::Mutate};
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::{Balance, CurrencyId, ParaId};
 use sp_runtime::traits::StaticLookup;
-use sp_std::{convert::TryInto, prelude::*};
+use sp_std::prelude::*;
 use xcm::latest::prelude::*;
 
 use sp_runtime::traits::One;
@@ -195,20 +195,13 @@ benchmarks! {
         ).into())
     }
 
-    set_vrfs {
-        let ctoken = 12;
-        let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1338u32);
-
-        initial_set_up::<T>(caller, ctoken);
-        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, LEASE_START, LEASE_END, ContributionStrategy::XCM, CAP, END_BLOCK.into()));
+    set_vrf {
     }: _(
         SystemOrigin::Root,
-        vec![ParaId::from(1336u32), ParaId::from(1337u32)]
+        true
     )
     verify {
-        let vrfs: BoundedVec<ParaId, T::MaxVrfs>  = vec![ParaId::from(1336), ParaId::from(1337)].try_into().unwrap();
-        assert_last_event::<T>(Event::VrfsUpdated(vrfs).into())
+        assert_last_event::<T>(Event::VrfUpdated(true).into())
     }
 
     reopen {

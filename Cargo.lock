@@ -5570,6 +5570,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "num-traits",
  "pallet-assets",
  "pallet-balances",
  "pallet-currency-adapter",

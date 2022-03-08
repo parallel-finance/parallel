@@ -376,7 +376,6 @@ impl SortedMembers<AccountId> for BobOrigin {
 
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
-    pub const MaxVrfs: u32 = 10;
     pub const MinContribution: Balance = 0;
     pub const MigrateKeysLimit: u32 = 10;
     pub const RemoveKeysLimit: u32 = 1000;
@@ -415,7 +414,6 @@ impl crate::Config for Test {
     type Assets = Assets;
     type RelayCurrency = RelayCurrency;
     type MinContribution = MinContribution;
-    type MaxVrfs = MaxVrfs;
     type MigrateKeysLimit = MigrateKeysLimit;
     type RemoveKeysLimit = RemoveKeysLimit;
     type MigrateOrigin = EnsureRoot<AccountId>;

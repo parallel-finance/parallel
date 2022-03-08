@@ -318,7 +318,6 @@ impl SortedMembers<AccountId> for BobOrigin {
 
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
-    pub const MaxVrfs: u32 = 10;
     pub const MinContribution: Balance = 0;
     pub const MigrateKeysLimit: u32 = 10;
     pub SelfParaId: ParaId = para_a_id();

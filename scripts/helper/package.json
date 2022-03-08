@@ -10,7 +10,7 @@
     "lint": "eslint . --ext .ts --fix"
   },
   "devDependencies": {
-    "@polkadot/types": "^7.8.2-2",
+    "@polkadot/types": "^7.9.1",
     "@types/node": "^17.0.21",
     "@types/shelljs": "^0.8.9",
     "@typescript-eslint/eslint-plugin": "5.12.1",
@@ -24,10 +24,10 @@
   },
   "dependencies": {
     "@caporal/core": "^2.0.2",
-    "@parallel-finance/api": "^1.5.2",
-    "@polkadot/api": "^7.8.2-2",
+    "@parallel-finance/api": "^1.5.4",
+    "@polkadot/api": "^7.9.1",
     "@polkadot/keyring": "^8.4.1",
-    "@polkadot/rpc-core": "^7.8.2-2",
+    "@polkadot/rpc-core": "^7.9.1",
     "@polkadot/util": "^8.4.1",
     "@polkadot/util-crypto": "^8.4.1",
     "dotenv": "^16.0.0",
