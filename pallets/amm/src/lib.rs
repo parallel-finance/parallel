@@ -713,44 +713,44 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     }
 
     #[allow(dead_code)]
-    fn get_y(
-        mut x: f64,
+    fn get_alternative_var(
+        autonomous_var: BalanceOf<T, I>,
         (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),
-    ) -> Result<f64, DispatchError> {
-        let (resx, _resy) = Self::get_reserves(asset_in, asset_out)?;
+    ) -> Result<u128, DispatchError> {
+        let (resx, _resy) = Self::get_reserves(asset_in, asset_out).unwrap();
 
-        x += resx as f64;
+        autonomous_var += resx;
 
-        let d = Self::get_d((asset_in, asset_out))? as f64;
+        let d = Self::get_d((asset_in, asset_out)).unwrap();
 
-        let mut c = d as f64;
-        let mut s = 0.0;
+        let mut c = d;
+        let mut s = 0u128;
 
         // constants
-        let n_t = 2.0;
-        let __a = 85 as f64;
-        let a_precision = 100 as f64;
-        let a = (__a * a_precision) as f64;
+        let n_t = 2u128;
+        let __a = 85u128;
+        let a_precision = 100u128;
+        let a = (__a * a_precision);
 
         let n_a = n_t * a;
 
-        let _x = 0 as f64;
+        let _x = 0u128;
 
-        s += x;
-        c = (c * d) / (x as f64 * n_t);
+        s += autonomous_var;
+        c = (c * d) / (autonomous_var * n_t);
         c = ((c * d) * a_precision) / (n_a * n_t);
 
         let b = s + ((d * a_precision) / n_a);
 
-        let mut y_prev: f64;
+        let mut y_prev: u128;
         let mut y = d;
 
         // 255 is a max number of loops
         // should throw error if does not converge
         for _ in 0..255 {
             y_prev = y;
-            y = ((y * y) + c) / (((y * 2.0) + b) - d);
-            if (y - y_prev).abs() < 1.0 {
+            y = ((y * y) + c) / (((y * 2) + b) - d);
+            if (y - y_prev).abs() < 1 {
                 break;
             }
         }
