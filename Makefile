@@ -8,6 +8,7 @@ RELAY_URL            								:= ws://localhost:9944
 KEYSTORE_PATH  											:= keystore
 SURI           											:= //Alice
 LAUNCH_CONFIG_YAML	  							:= config.yml
+LAUNCH_CONFIG_JSON	  							:= config.json
 DOCKER_TAG     											:= latest
 RELAY_DOCKER_TAG										:= v0.9.16
 
@@ -140,7 +141,14 @@ launch-kerria:
 .PHONY: dev-launch
 dev-launch:
 	rm -fr data || true
+	yq -i eval '.relaychain.chain = "$(RELAY_CHAIN)"' $(LAUNCH_CONFIG_JSON)
+	yq -i eval '.parachains[0].id = $(PARA_ID)' $(LAUNCH_CONFIG_JSON)
+	yq -i eval '.parachains[0].chain = "$(CHAIN)"' $(LAUNCH_CONFIG_JSON)
 	polkadot-launch config.json
+
+.PHONY: dev-launch-kerria
+dev-launch-kerria:
+	make PARA_ID=2012 CHAIN=kerria-dev RELAY_CHAIN=polkadot-local dev-launch
 
 .PHONY: logs
 logs:
