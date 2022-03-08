@@ -14,7 +14,9 @@ use pallet_xcm::XcmPassthrough;
 use polkadot_parachain::primitives::Sibling;
 
 use polkadot_runtime_parachains::configuration::HostConfiguration;
-use primitives::{currency::MultiCurrencyAdapter, tokens::*, Balance, ParaId, Rate, Ratio};
+use primitives::{
+    currency::MultiCurrencyAdapter, tokens::*, Balance, EraIndex, ParaId, Rate, Ratio,
+};
 use sp_core::H256;
 use sp_runtime::{
     generic,
@@ -39,8 +41,6 @@ use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chai
 pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
 pub use kusama_runtime;
-
-use super::UnbondIndex;
 
 parameter_types! {
     pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND / 4;
@@ -369,14 +369,16 @@ impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
 parameter_types! {
     pub const StakingPalletId: PalletId = PalletId(*b"par/lqsk");
     pub const DerivativeIndex: u16 = 0;
-    pub const EraLength: BlockNumber = 0;
+    pub const EraLength: BlockNumber = 10;
     pub SelfParaId: ParaId = para_a_id();
     pub const MinStake: Balance = 0;
     pub const MinUnstake: Balance = 0;
     pub const StakingCurrency: CurrencyId = KSM;
     pub const LiquidCurrency: CurrencyId = XKSM;
     pub const XcmFees: Balance = 0;
-    pub const BondingDuration: UnbondIndex = 3;
+    pub const BondingDuration: EraIndex = 3;
+    pub const NumSlashingSpans: u32 = 0;
+    pub static DerivativeIndexList: Vec<u16> = vec![0];
 }
 
 impl crate::Config for Test {
@@ -390,6 +392,7 @@ impl crate::Config for Test {
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
     type DerivativeIndex = DerivativeIndex;
+    type DerivativeIndexList = DerivativeIndexList;
     type XcmFees = XcmFees;
     type Assets = Assets;
     type RelayOrigin = RelayOrigin;
@@ -400,6 +403,7 @@ impl crate::Config for Test {
     type BondingDuration = BondingDuration;
     type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Test>;
     type Members = BobOrigin;
+    type NumSlashingSpans = NumSlashingSpans;
 }
 
 parameter_types! {
@@ -498,7 +502,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
             Origin::signed(ALICE),
             KSM,
             Id(XcmHelper::account_id()),
-            ksm(30f64),
+            ksm(100f64),
         )
         .unwrap();
 

@@ -534,7 +534,9 @@ parameter_types! {
     pub const StakingCurrency: CurrencyId = DOT;
     pub const LiquidCurrency: CurrencyId = XDOT;
     pub const XcmFees: Balance = 500_000_000; // 0.05DOT
-    pub const BondingDuration: u32 = 3; // 9Minutes
+    pub const BondingDuration: EraIndex = 3; // 9Minutes
+    pub const NumSlashingSpans: u32 = 0;
+    pub DerivativeIndexList: Vec<u16> = vec![0];
 }
 
 impl pallet_liquid_staking::Config for Runtime {
@@ -548,6 +550,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type RelayOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type DerivativeIndex = DerivativeIndex;
+    type DerivativeIndexList = DerivativeIndexList;
     type XcmFees = XcmFees;
     type StakingCurrency = StakingCurrency;
     type LiquidCurrency = LiquidCurrency;
@@ -558,6 +561,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type BondingDuration = BondingDuration;
     type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Runtime>;
     type Members = LiquidStakingAgentsMembership;
+    type NumSlashingSpans = NumSlashingSpans;
 }
 
 parameter_types! {

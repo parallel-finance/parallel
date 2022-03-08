@@ -38,6 +38,7 @@ dist/
 chains/
 db/
 local-test/
+data/
 
 # secrets
 **/keystore*
@@ -61,4 +62,4 @@ snapshot.bin
 !**/.yarn/sdks
 !**/.yarn/versions
 
-scripts/ts/.env
+scripts/helper/.env

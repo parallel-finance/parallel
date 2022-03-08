@@ -1,5 +1,5 @@
 {
-  "name": "scripts",
+  "name": "parallel-helper",
   "version": "1.0.0",
   "main": "src/main.ts",
   "bin": "dist/main.js",
