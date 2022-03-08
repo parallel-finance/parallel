@@ -112,6 +112,7 @@ shutdown:
 		down \
 		--remove-orphans > /dev/null 2>&1 || true
 	rm -fr output || true
+	rm -fr data || true
 	docker volume prune -f
 
 .PHONY: launch
@@ -140,11 +141,10 @@ launch-kerria:
 	make PARA_ID=2012 CHAIN=kerria-dev RELAY_CHAIN=polkadot-local launch
 
 .PHONY: dev-launch
-dev-launch:
-	rm -fr data || true
-	yq -i eval '.relaychain.chain = "$(RELAY_CHAIN)"' $(LAUNCH_CONFIG_JSON)
-	yq -i eval '.parachains[0].id = $(PARA_ID)' $(LAUNCH_CONFIG_JSON)
-	yq -i eval '.parachains[0].chain = "$(CHAIN)"' $(LAUNCH_CONFIG_JSON)
+dev-launch: shutdown
+	yq -i eval '.relaychain.chain = "$(RELAY_CHAIN)"'  $(LAUNCH_CONFIG_JSON) -j
+	yq -i eval '.parachains[0].id = $(PARA_ID)' $(LAUNCH_CONFIG_JSON) -j
+	yq -i eval '.parachains[0].chain = "$(CHAIN)"' $(LAUNCH_CONFIG_JSON) -j
 	ts-node scripts/polkadot-launch/src/cli.ts config.json
 
 .PHONY: dev-launch-kerria
