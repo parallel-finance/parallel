@@ -11,7 +11,9 @@
         "basePath": "data/9944",
         "flags": [
           "-l",
-          "xcm=trace"
+          "xcm=trace",
+          "--state-cache-size",
+          "0"
         ]
       },
       {
@@ -22,7 +24,9 @@
         "basePath": "data/9945",
         "flags": [
           "-l",
-          "xcm=trace"
+          "xcm=trace",
+          "--state-cache-size",
+          "0"
         ]
       },
       {
@@ -33,7 +37,9 @@
         "basePath": "data/9946",
         "flags": [
           "-l",
-          "xcm=trace"
+          "xcm=trace",
+          "--state-cache-size",
+          "0"
         ]
       },
       {
@@ -44,7 +50,9 @@
         "basePath": "data/9947",
         "flags": [
           "-l",
-          "xcm=trace"
+          "xcm=trace",
+          "--state-cache-size",
+          "0"
         ]
       }
     ],
@@ -66,8 +74,12 @@
           "flags": [
             "-l",
             "xcm=trace,loans=trace,liquidStaking=trace,crowdloans=trace,amm=trace",
+            "--state-cache-size",
+            "0",
             "--",
-            "--execution=wasm"
+            "--execution=wasm",
+            "--state-cache-size",
+            "0"
           ],
           "basePath": "data/9948"
         },
@@ -79,8 +91,12 @@
           "flags": [
             "-l",
             "xcm=trace,loans=trace,liquidStaking=trace,crowdloans=trace,amm=trace",
+            "--state-cache-size",
+            "0",
             "--",
-            "--execution=wasm"
+            "--execution=wasm",
+            "--state-cache-size",
+            "0"
           ],
           "basePath": "data/9949"
         },
@@ -92,8 +108,12 @@
           "flags": [
             "-l",
             "xcm=trace,loans=trace,liquidStaking=trace,crowdloans=trace,amm=trace",
+            "--state-cache-size",
+            "0",
             "--",
-            "--execution=wasm"
+            "--execution=wasm",
+            "--state-cache-size",
+            "0"
           ],
           "basePath": "data/9950"
         }
