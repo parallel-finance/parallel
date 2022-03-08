@@ -964,7 +964,7 @@ impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
 
         let default_gift_amount = 125 * DOLLARS / 100; // 1.25PARA
         Ok(match asset_id {
-            NATIVE_ASSET_ID if balance >= 5 * 10_u128.pow(decimal.into()) => default_gift_amount,
+            DOT if balance >= 5 * 10_u128.pow(decimal.into()) => default_gift_amount,
             EUSDT | EUSDC if balance >= 300 * 10_u128.pow(decimal.into()) => default_gift_amount,
             _ => Zero::zero(),
         })
