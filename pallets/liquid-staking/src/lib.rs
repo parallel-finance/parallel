@@ -707,14 +707,7 @@ pub mod pallet {
             with_transaction(|| {
                 // TODO: fix weights
                 match Self::do_advance_era(Self::offset()) {
-                    Ok(()) => {
-                        log::trace!(
-                            target: "liquidStaking::on_initialize",
-                            "Current era: {:?}",
-                            &Self::current_era()
-                        );
-                        TransactionOutcome::Commit(0)
-                    }
+                    Ok(()) => TransactionOutcome::Commit(0),
                     Err(err) => {
                         log::trace!(
                             target: "liquidStaking::on_initialize",
