@@ -1,7 +1,7 @@
 {
 	"relaychain": {
 		"bin": "../polkadot/target/release/polkadot",
-		"chain": "kusama-local",
+		"chain": "rococo-local",
 		"nodes": [
 			{
 				"name": "alice",
@@ -37,21 +37,14 @@
 			}
 		],
 		"genesis": {
-			"runtime": {
-				"runtime_genesis_config": {
-					"configuration": {
-						"config": {
-							"validation_upgrade_frequency": 10,
-							"validation_upgrade_delay": 10
-						}
-					}
-				}
-			}
+			"runtime": {}
 		}
 	},
 	"parachains": [
 		{
 			"bin": "./target/release/parallel",
+			"id": 2085,
+			"chain": "vanilla-dev",
 			"nodes": [
 				{
 					"wsPort": 9948,
@@ -59,48 +52,32 @@
 					"rpcPort": 9937,
 					"name": "alice",
 					"flags": [
-						"--chain",
-						"vanilla-dev",
 						"-l",
 						"xcm=trace,loans=trace,liquidStaking=trace,crowdloans=trace,amm=trace",
 						"--",
 						"--execution=wasm"
 					],
 					"basePath": "data/9948"
-				}
-			]
-		},
-		{
-			"bin": "./target/release/parallel",
-			"nodes": [
+				},
 				{
 					"wsPort": 9949,
 					"port": 30338,
 					"rpcPort": 9938,
 					"name": "bob",
 					"flags": [
-						"--chain",
-						"vanilla-dev",
 						"-l",
 						"xcm=trace,loans=trace,liquidStaking=trace,crowdloans=trace,amm=trace",
 						"--",
 						"--execution=wasm"
 					],
 					"basePath": "data/9949"
-				}
-			]
-		},
-		{
-			"bin": "./target/release/parallel",
-			"nodes": [
+				},
 				{
 					"wsPort": 9950,
 					"port": 30339,
 					"rpcPort": 9939,
 					"name": "charlie",
 					"flags": [
-						"--chain",
-						"vanilla-dev",
 						"-l",
 						"xcm=trace,loans=trace,liquidStaking=trace,crowdloans=trace,amm=trace",
 						"--",

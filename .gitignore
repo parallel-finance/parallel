@@ -38,6 +38,7 @@ dist/
 chains/
 db/
 local-test/
+data/
 
 # secrets
 **/keystore*
