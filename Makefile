@@ -17,7 +17,8 @@ init: submodules
 	git config advice.ignoredHook false
 	git config core.hooksPath .githooks
 	rustup target add wasm32-unknown-unknown
-	cd scripts/ts && yarn
+	cd scripts/helper && yarn
+	cd scripts/polkadot-launch && yarn
 
 .PHONY: submodules
 submodules:
@@ -41,7 +42,7 @@ check-wasm:
 
 .PHONY: check-helper
 check-helper:
-	cd scripts/ts && yarn && yarn build
+	cd scripts/helper && yarn && yarn build
 
 .PHONY: test
 test:
@@ -87,7 +88,7 @@ bench-amm-router:
 lint:
 	SKIP_WASM_BUILD= cargo fmt --all -- --check
 	SKIP_WASM_BUILD= cargo clippy --workspace --features runtime-benchmarks --exclude parallel -- -D dead_code -A clippy::derivable_impls -A clippy::explicit_counter_loop -A clippy::unnecessary_cast -A clippy::unnecessary_mut_passed -A clippy::too_many_arguments -A clippy::type_complexity -A clippy::identity_op -D warnings
-	cd scripts/ts && yarn format -c && yarn lint
+	cd scripts/helper && yarn format -c && yarn lint
 
 .PHONY: fix
 fix:
@@ -96,7 +97,7 @@ fix:
 .PHONY: fmt
 fmt:
 	SKIP_WASM_BUILD= cargo fmt --all
-	cd scripts/ts && yarn format
+	cd scripts/helper && yarn format
 
 .PHONY: resources
 resources:
@@ -132,7 +133,7 @@ launch: shutdown
 		&& cp docker-compose.override.yml output \
 		&& cd output \
 		&& DOCKER_CLIENT_TIMEOUT=180 COMPOSE_HTTP_TIMEOUT=180 docker-compose up -d --build
-	cd scripts/ts && yarn start launch --network $(CHAIN)
+	cd scripts/helper && yarn start launch --network $(CHAIN)
 
 .PHONY: launch-kerria
 launch-kerria:
@@ -144,7 +145,7 @@ dev-launch:
 	yq -i eval '.relaychain.chain = "$(RELAY_CHAIN)"' $(LAUNCH_CONFIG_JSON)
 	yq -i eval '.parachains[0].id = $(PARA_ID)' $(LAUNCH_CONFIG_JSON)
 	yq -i eval '.parachains[0].chain = "$(CHAIN)"' $(LAUNCH_CONFIG_JSON)
-	polkadot-launch config.json
+	ts-node scripts/polkadot-launch/src/cli.ts config.json
 
 .PHONY: dev-launch-kerria
 dev-launch-kerria:

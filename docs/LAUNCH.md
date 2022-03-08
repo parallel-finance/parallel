@@ -26,7 +26,7 @@ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash 
     && nvm use $NODE_VERSION \
     && nvm alias default $NODE_VERSION \
     && npm install -g yarn \
-    && yarn global add @open-web3/parachain-launch
+    && yarn global add @open-web3/parachain-launch ts-node
 ```
 
 2. yq
@@ -54,7 +54,7 @@ make init
 
 ### Create .env file with relaychain sudo key
 
-Saying relaychain sudo key is `//Alice`, we need to put the following content in `scripts/ts/.env` file
+Saying relaychain sudo key is `//Alice`, we need to put the following content in `scripts/helper/.env` file
 
 **NOTE**: Pls contact parallel team member to have relaychain's sudo key
 
