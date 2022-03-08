@@ -139,6 +139,7 @@ launch-kerria:
 
 .PHONY: dev-launch
 dev-launch:
+	rm -fr data || true
 	polkadot-launch config.json
 
 .PHONY: logs
