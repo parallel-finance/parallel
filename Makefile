@@ -106,6 +106,8 @@ resources:
 
 .PHONY: shutdown
 shutdown:
+	pkill parallel || true
+	pkill polkadot || true
 	docker-compose \
 		-f output/docker-compose.yml \
 		-f output/docker-compose.override.yml \
