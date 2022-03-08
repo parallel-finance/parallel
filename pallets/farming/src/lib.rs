@@ -37,10 +37,15 @@ use frame_support::{
     transactional, Blake2_128Concat, PalletId,
 };
 use frame_system::{ensure_signed, pallet_prelude::OriginFor};
-use primitives::{Balance, CurrencyId, DecimalProvider};
+use num_traits::cast::ToPrimitive;
+use num_traits::{CheckedDiv, CheckedMul};
+use primitives::{Balance, ConvertToBigUint, CurrencyId, DecimalProvider};
 use sp_io::hashing::blake2_256;
 use sp_runtime::{
-    traits::{AccountIdConversion, CheckedAdd, CheckedSub, Saturating, StaticLookup, Zero},
+    traits::{
+        AccountIdConversion, CheckedAdd, CheckedSub, SaturatedConversion, Saturating, StaticLookup,
+        Zero,
+    },
     ArithmeticError,
 };
 use sp_std::result::Result;
@@ -446,15 +451,14 @@ pub mod pallet {
                     if total_amount > 0 {
                         let asset_pool_account = Self::pool_account_id(asset)?;
                         T::Assets::transfer(asset, &asset_pool_account, &who, total_amount, true)?;
-
-                        Self::deposit_event(Event::<T>::AssetsRedeem(
-                            who.clone(),
-                            asset,
-                            reward_asset,
-                            total_amount,
-                        ));
                     }
 
+                    Self::deposit_event(Event::<T>::AssetsRedeem(
+                        who.clone(),
+                        asset,
+                        reward_asset,
+                        total_amount,
+                    ));
                     Ok(())
                 },
             )
@@ -496,15 +500,14 @@ pub mod pallet {
                             true,
                         )?;
                         user_position.reward_amount = 0;
-
-                        Self::deposit_event(Event::<T>::RewardPaid(
-                            who.clone(),
-                            asset,
-                            reward_asset,
-                            reward_amount,
-                        ));
                     }
 
+                    Self::deposit_event(Event::<T>::RewardPaid(
+                        who.clone(),
+                        asset,
+                        reward_asset,
+                        reward_amount,
+                    ));
                     Ok(())
                 },
             )
@@ -611,12 +614,18 @@ impl<T: Config> Pallet<T> {
 
                         let earned = user_position
                             .deposit_balance
-                            .checked_mul(diff)
-                            .and_then(|r| r.checked_div(pool_info.amount_per_share()))
-                            .and_then(|r| r.checked_add(user_position.reward_amount))
+                            .get_big_uint()
+                            .checked_mul(&diff.get_big_uint())
+                            .and_then(|r| {
+                                r.checked_div(&pool_info.amount_per_share().get_big_uint())
+                            })
+                            .and_then(|r| {
+                                r.checked_add(&user_position.reward_amount.get_big_uint())
+                            })
+                            .and_then(|r| r.to_u128())
                             .ok_or(ArithmeticError::Overflow)?;
 
-                        user_position.reward_amount = earned;
+                        user_position.reward_amount = BalanceOf::<T>::saturated_from(earned);
                         user_position.reward_per_share_paid = pool_info.reward_per_share_stored;
 
                         Ok(())

@@ -654,3 +654,116 @@ fn pool_complicated_scene0_work() {
         ); //1690+0
     })
 }
+
+#[test]
+fn edge_case_reward_rate_too_low() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(Farming::deposit(
+            RawOrigin::Signed(CHARLIE).into(),
+            STAKE_TOKEN,
+            REWARD_TOKEN,
+            1_000_000_000_000_000,
+        ));
+
+        run_to_block(10);
+        assert_ok!(Farming::dispatch_reward(
+            Origin::root(),
+            STAKE_TOKEN,
+            REWARD_TOKEN,
+            REWARD_TOKEN_PAYER,
+            10_000,
+            100,
+        ));
+
+        // pool total deposited amount is 1_000_000_000_000_000, that is 1000 share, while pool reward rate is 100,
+        // which means 0.1 reward token per share per block. if reward update interval less than 10,
+        // reward_per_share_stored cannot be accumulated.
+        run_to_block(19);
+        assert_ok!(Farming::claim(
+            RawOrigin::Signed(CHARLIE).into(),
+            STAKE_TOKEN,
+            REWARD_TOKEN,
+        ));
+        let pool_info = Farming::pools(STAKE_TOKEN, REWARD_TOKEN).unwrap();
+        assert_eq!(pool_info.duration, 100);
+        assert_eq!(pool_info.total_deposited, 1_000_000_000_000_000);
+        assert_eq!(pool_info.reward_rate, 100);
+        assert_eq!(pool_info.reward_per_share_stored, 0);
+
+        assert_eq!(<Test as Config>::Assets::balance(REWARD_TOKEN, &CHARLIE), 0);
+
+        run_to_block(29);
+        assert_ok!(Farming::claim(
+            RawOrigin::Signed(CHARLIE).into(),
+            STAKE_TOKEN,
+            REWARD_TOKEN,
+        ));
+        let pool_info = Farming::pools(STAKE_TOKEN, REWARD_TOKEN).unwrap();
+        assert_eq!(pool_info.reward_per_share_stored, 1);
+
+        assert_eq!(
+            <Test as Config>::Assets::balance(REWARD_TOKEN, &CHARLIE),
+            1_000,
+        );
+    })
+}
+
+#[test]
+fn edge_case_reward_token_decimal_too_big() {
+    new_test_ext().execute_with(|| {
+        Farming::create(
+            Origin::root(),
+            BIG_DECIMAL_STAKE_TOKEN,
+            BIG_DECIMAL_REWARD_TOKEN,
+            100,
+        )
+        .unwrap();
+        Farming::set_pool_status(
+            Origin::root(),
+            BIG_DECIMAL_STAKE_TOKEN,
+            BIG_DECIMAL_REWARD_TOKEN,
+            true,
+        )
+        .unwrap();
+
+        assert_ok!(Farming::deposit(
+            RawOrigin::Signed(ALICE).into(),
+            BIG_DECIMAL_STAKE_TOKEN,
+            BIG_DECIMAL_REWARD_TOKEN,
+            10_000_000_000_000_000_000_000_000,
+        ));
+
+        run_to_block(10);
+        assert_ok!(Farming::dispatch_reward(
+            Origin::root(),
+            BIG_DECIMAL_STAKE_TOKEN,
+            BIG_DECIMAL_REWARD_TOKEN,
+            REWARD_TOKEN_PAYER,
+            10_000_000_000_000_000_000_000_000_000_000,
+            10,
+        ));
+
+        // block diff = 5
+        // reward rate = 1e30
+        // amount per share = 1e12
+        // would overflow in function reward_per_share if do not deal calculation with BigUint
+        run_to_block(15);
+        assert_ok!(Farming::dispatch_reward(
+            Origin::root(),
+            BIG_DECIMAL_STAKE_TOKEN,
+            BIG_DECIMAL_REWARD_TOKEN,
+            REWARD_TOKEN_PAYER,
+            0,
+            5,
+        ));
+
+        // deposit_balance = 1e25
+        // reward diff per share = 5e17
+        // would overflow in function update_reward if do not deal calculation with BigUint
+        assert_ok!(Farming::claim(
+            RawOrigin::Signed(ALICE).into(),
+            BIG_DECIMAL_STAKE_TOKEN,
+            BIG_DECIMAL_REWARD_TOKEN,
+        ));
+    })
+}
