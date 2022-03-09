@@ -1045,9 +1045,8 @@ pub mod pallet {
 
             log::trace!(
                 target: "liquidStaking::nominate",
-                "index: {:?}, targets: {:#?}",
+                "index: {:?}",
                 &derivative_index,
-                &targets,
             );
 
             let query_id = T::XCM::do_nominate(
