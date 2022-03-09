@@ -152,6 +152,7 @@ fn unstake_should_work() {
                 total_unstake_amount: 0,
             }
         );
+
         let derivative_index = <Test as Config>::DerivativeIndex::get();
         assert_eq!(
             StakingLedgers::<Test>::get(&0).unwrap(),
@@ -196,7 +197,7 @@ fn unstake_should_work() {
             StakingLedgers::<Test>::get(&0).unwrap(),
             StakingLedger {
                 stash: LiquidStaking::derivative_sovereign_account_id(derivative_index),
-                total: 0,
+                total: ksm(3.95),
                 active: 0,
                 unlocking: vec![UnlockChunk {
                     value: ksm(3.95),
@@ -609,16 +610,10 @@ fn claim_for_should_work() {
         assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(3.95f64)));
         assert_eq!(
             Unlockings::<Test>::get(ALICE).unwrap(),
-            vec![
-                UnlockChunk {
-                    value: ksm(1f64),
-                    era: 4
-                },
-                UnlockChunk {
-                    value: ksm(3.95f64),
-                    era: 4
-                }
-            ]
+            vec![UnlockChunk {
+                value: ksm(4.95f64),
+                era: 4
+            },]
         );
 
         assert_noop!(

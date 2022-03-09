@@ -409,10 +409,15 @@ pub mod pallet {
                 // TODO: check if we can bond before the next era
                 // so that the one era's delay can be removed
                 let mut chunks = b.take().unwrap_or_default();
-                chunks.push(UnlockChunk {
-                    value: amount,
-                    era: Self::current_era() + T::BondingDuration::get() + 1,
-                });
+                let target_era = Self::current_era() + T::BondingDuration::get() + 1;
+                if let Some(mut chunk) = chunks.last_mut().filter(|chunk| chunk.era == target_era) {
+                    chunk.value = chunk.value.saturating_add(amount);
+                } else {
+                    chunks.push(UnlockChunk {
+                        value: amount,
+                        era: target_era,
+                    });
+                }
                 ensure!(
                     chunks.len() <= MAX_UNLOCKING_CHUNKS,
                     Error::<T>::NoMoreChunks
