@@ -107,7 +107,14 @@ pub mod pallet {
         /// Create a stream
         #[pallet::weight((<T as Config>::WeightInfo::create_stream(), DispatchClass::Operational))]
         #[transactional]
-        pub fn create_stream(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+        pub fn create_stream(
+            origin: OriginFor<T>,
+            recipient: AccountId, 
+            deposit: Amount, 
+            currency: CurrencyId,
+            start_time: Timestamp,
+            stop_time: Timestamp
+        ) -> DispatchResultWithPostInfo {
             T::FeederOrigin::ensure_origin(origin)?;
             Ok(().into())
         }
@@ -115,7 +122,10 @@ pub mod pallet {
         /// Cancel an existing stream
         #[pallet::weight((<T as Config>::WeightInfo::cancel_stream(), DispatchClass::Operational))]
         #[transactional]
-        pub fn cancel_stream(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+        pub fn cancel_stream(
+            origin: OriginFor<T>,
+            stream_id: StreamId
+        ) -> DispatchResultWithPostInfo {
             T::FeederOrigin::ensure_origin(origin)?;
             Ok(().into())
         }
@@ -123,7 +133,11 @@ pub mod pallet {
         /// Withdraw from an existing stream
         #[pallet::weight((<T as Config>::WeightInfo::withdraw_from_stream(), DispatchClass::Operational))]
         #[transactional]
-        pub fn withdraw_from_stream(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+        pub fn withdraw_from_stream(
+            origin: OriginFor<T>,
+            stream_id: StreamId,
+            amount: Amount
+        ) -> DispatchResultWithPostInfo {
             T::FeederOrigin::ensure_origin(origin)?;
             Ok(().into())
         }
