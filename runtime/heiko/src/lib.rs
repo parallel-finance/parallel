@@ -1473,8 +1473,8 @@ impl pallet_membership::Config<BridgeMembershipInstance> for Runtime {
 parameter_types! {
     pub const ParallelHeiko: ChainId = 0;
     pub const BridgePalletId: PalletId = PalletId(*b"par/brid");
-    // Set a short lifetime for development
-    pub const ProposalLifetime: BlockNumber = 200;
+    // About 30 days: 30 * 24 * 60 * 60 / 6 = 2592000 blocks
+    pub const ProposalLifetime: BlockNumber = 2592000;
     pub const ThresholdPercentage: u32 = 50;
 }
 
