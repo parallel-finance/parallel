@@ -1508,8 +1508,8 @@ impl orml_vesting::Config for Runtime {
 
 parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
-    pub DefaultLpFee: Ratio = Ratio::from_rational(30u32, 10000u32);        // 0.30%
-    pub DefaultProtocolFee: Ratio = Ratio::from_rational(0u32, 10000u32);   // 0.00% no fees for launch
+    pub DefaultLpFee: Ratio = Ratio::from_rational(25u32, 10000u32);        // 0.25%
+    pub DefaultProtocolFee: Ratio = Ratio::from_rational(5u32, 10000u32);   // 0.05%
     pub DefaultProtocolFeeReceiver: AccountId = TreasuryPalletId::get().into_account();
     pub const MinimumLiquidity: u128 = 1_000u128;
 }
