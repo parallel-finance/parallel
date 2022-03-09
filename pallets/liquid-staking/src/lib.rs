@@ -18,8 +18,6 @@
 //!
 //! This pallet manages the NPoS operations for relay chain asset.
 
-// TODO: enrich unit tests and try to find a way run relaychain block to target block
-
 #![cfg_attr(not(feature = "std"), no_std)]
 
 mod benchmarking;
