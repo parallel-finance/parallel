@@ -501,7 +501,7 @@ pub mod pallet {
             Self::ensure_origin(origin)?;
 
             if !StakingLedgers::<T>::contains_key(&derivative_index) {
-                return Ok(().into());
+                return Err(Error::<T>::NotBonded.into());
             }
 
             Self::do_update_ledger(derivative_index, |ledger| {

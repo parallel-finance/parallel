@@ -4,7 +4,7 @@ use crate::{
     *,
 };
 
-use frame_support::{assert_noop, assert_ok, storage::with_transaction};
+use frame_support::{assert_noop, assert_ok, storage::with_transaction, traits::Hooks};
 
 use primitives::{
     tokens::{KSM, XKSM},
@@ -621,17 +621,6 @@ fn claim_for_should_work() {
             Error::<Test>::NothingToClaim
         );
 
-        // with_transaction(|| {
-        //     LiquidStaking::do_advance_era(1).unwrap();
-        //     LiquidStaking::notification_received(
-        //         pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
-        //         0,
-        //         Response::ExecutionResult(None),
-        //     )
-        //     .unwrap();
-        //     TransactionOutcome::Commit(0)
-        // });
-
         let derivative_index = <Test as Config>::DerivativeIndex::get();
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
@@ -658,5 +647,112 @@ fn claim_for_should_work() {
         );
 
         assert!(Unlockings::<Test>::get(ALICE).is_none());
+    })
+}
+
+#[test]
+fn test_on_initialize_work() {
+    new_test_ext().execute_with(|| {
+        let derivative_index = <Test as Config>::DerivativeIndex::get();
+        let xcm_fees = XcmFees::get();
+        let reserve_factor = LiquidStaking::reserve_factor();
+
+        // 1.1 stake
+        let bond_amount = ksm(10f64);
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), bond_amount));
+        let total_stake_amount = bond_amount - xcm_fees - reserve_factor.mul_floor(bond_amount);
+
+        // 1.2 on_initialize_bond
+        let total_era_blocknumbers = <Test as Config>::EraLength::get();
+        assert_eq!(total_era_blocknumbers, 10);
+        RelayChainBlockNumberProvider::set(total_era_blocknumbers);
+        LiquidStaking::on_initialize(System::block_number());
+        assert_eq!(EraStartBlock::<Test>::get(), total_era_blocknumbers);
+        assert_eq!(CurrentEra::<Test>::get(), 1);
+        assert_eq!(LiquidStaking::staking_ledgers(derivative_index), None);
+        assert_eq!(
+            LiquidStaking::matching_pool(),
+            MatchingLedger {
+                total_stake_amount,
+                total_unstake_amount: 0,
+            }
+        );
+
+        // 1.3 notification_received bond
+        assert_ok!(LiquidStaking::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
+        ));
+
+        let staking_ledger = <StakingLedger<AccountId, BalanceOf<Test>>>::new(
+            LiquidStaking::derivative_sovereign_account_id(derivative_index),
+            total_stake_amount,
+        );
+        assert_eq!(
+            LiquidStaking::staking_ledgers(derivative_index).unwrap(),
+            staking_ledger
+        );
+
+        assert_eq!(LiquidStaking::matching_pool(), MatchingLedger::default());
+    })
+}
+
+#[test]
+fn test_update_staking_ledger_work() {
+    new_test_ext().execute_with(|| {
+        let derivative_index = <Test as Config>::DerivativeIndex::get();
+        let bond_amount = 100;
+        let bond_extra_amount = 50;
+        let mut staking_ledger = <StakingLedger<AccountId, BalanceOf<Test>>>::new(
+            LiquidStaking::derivative_sovereign_account_id(derivative_index),
+            bond_amount,
+        );
+        assert_noop!(
+            LiquidStaking::update_staking_ledger(
+                Origin::signed(ALICE),
+                derivative_index,
+                staking_ledger.clone()
+            ),
+            Error::<Test>::NotBonded
+        );
+        StakingLedgers::<Test>::insert(derivative_index, staking_ledger.clone());
+        assert_eq!(
+            LiquidStaking::staking_ledgers(derivative_index).unwrap(),
+            staking_ledger.clone()
+        );
+        staking_ledger.bond_extra(bond_extra_amount);
+        assert_ok!(LiquidStaking::update_staking_ledger(
+            Origin::signed(ALICE),
+            derivative_index,
+            staking_ledger.clone()
+        ));
+
+        let new_staking_ledger = <StakingLedger<AccountId, BalanceOf<Test>>>::new(
+            LiquidStaking::derivative_sovereign_account_id(derivative_index),
+            bond_amount + bond_extra_amount,
+        );
+        assert_eq!(
+            LiquidStaking::staking_ledgers(derivative_index).unwrap(),
+            new_staking_ledger
+        );
+    })
+}
+
+#[test]
+fn test_force_set_era_start_block_work() {
+    new_test_ext().execute_with(|| {
+        assert_eq!(EraStartBlock::<Test>::get(), 0);
+        assert_ok!(LiquidStaking::force_set_era_start_block(Origin::root(), 11));
+        assert_eq!(EraStartBlock::<Test>::get(), 11);
+    })
+}
+
+#[test]
+fn test_force_set_current_era_work() {
+    new_test_ext().execute_with(|| {
+        assert_eq!(CurrentEra::<Test>::get(), 0);
+        assert_ok!(LiquidStaking::force_set_current_era(Origin::root(), 12));
+        assert_eq!(CurrentEra::<Test>::get(), 12);
     })
 }
