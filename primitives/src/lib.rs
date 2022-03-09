@@ -105,6 +105,28 @@ pub type DerivativeIndex = u16;
 
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 
+// DAOFi id of a payment stream 
+pub type StreamId = u128;
+
+pub type Stream = (
+    // Remaining Balance
+    Amount,
+    // Deposit
+    Amount,
+    // Rate Per Second
+    Amount,
+    // Recipient
+    AccountId,
+    // Sender
+    AccountId,
+    // Start Time
+    Timestamp,
+    // Stop Time
+    Timestamp,
+    // Currency to send
+    CurrencyId,
+);
+
 pub use cumulus_primitives_core::ParaId;
 use num_bigint::{BigUint, ToBigUint};
 
