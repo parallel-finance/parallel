@@ -501,7 +501,7 @@ pub mod pallet {
             Self::ensure_origin(origin)?;
 
             if !StakingLedgers::<T>::contains_key(&derivative_index) {
-                return Ok(().into());
+                return Err(Error::<T>::NotBonded.into());
             }
 
             Self::do_update_ledger(derivative_index, |ledger| {
@@ -686,7 +686,7 @@ pub mod pallet {
             Ok(().into())
         }
 
-        #[pallet::weight(10_000)]
+        #[pallet::weight(<T as Config>::WeightInfo::force_set_era_start_block())]
         #[transactional]
         pub fn force_set_era_start_block(
             origin: OriginFor<T>,
@@ -697,7 +697,7 @@ pub mod pallet {
             Ok(())
         }
 
-        #[pallet::weight(10_000)]
+        #[pallet::weight(<T as Config>::WeightInfo::force_set_current_era())]
         #[transactional]
         pub fn force_set_current_era(origin: OriginFor<T>, era: EraIndex) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
@@ -709,29 +709,32 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
         fn on_initialize(block_number: T::BlockNumber) -> frame_support::weights::Weight {
-            with_transaction(|| {
-                // TODO: fix weights
-                let relaychain_block_number =
-                    T::RelayChainBlockNumberProvider::current_block_number();
-                let offset = Self::offset(relaychain_block_number);
-                log::trace!(
-                    target: "liquidStaking::on_initialize",
-                    "relaychain_block_number: {:?}, block_number: {:?}, advance_offset: {:?}",
-                    &relaychain_block_number,
-                    &block_number,
-                    &offset
-                );
-                match Self::do_advance_era(offset) {
-                    Ok(()) => TransactionOutcome::Commit(0),
-                    Err(err) => {
-                        log::trace!(
-                            target: "liquidStaking::do_advance_era",
-                            "Could not advance era! block_number: {:#?}, err: {:?}",
-                            &block_number,
-                            &err
-                        );
-                        TransactionOutcome::Rollback(0)
-                    }
+            let relaychain_block_number = T::RelayChainBlockNumberProvider::current_block_number();
+            let offset = Self::offset(relaychain_block_number);
+            log::trace!(
+                target: "liquidStaking::on_initialize",
+                "relaychain_block_number: {:?}, block_number: {:?}, advance_offset: {:?}",
+                &relaychain_block_number,
+                &block_number,
+                &offset
+            );
+            if offset.is_zero() {
+                return <T as Config>::WeightInfo::on_initialize();
+            }
+            with_transaction(|| match Self::do_advance_era(offset) {
+                Ok(()) => TransactionOutcome::Commit(
+                    <T as Config>::WeightInfo::on_initialize_with_advance_era(),
+                ),
+                Err(err) => {
+                    log::error!(
+                        target: "liquidStaking::do_advance_era",
+                        "Could not advance era! block_number: {:#?}, err: {:?}",
+                        &block_number,
+                        &err
+                    );
+                    TransactionOutcome::Rollback(
+                        <T as Config>::WeightInfo::on_initialize_with_advance_era(),
+                    )
                 }
             })
         }
@@ -1195,10 +1198,6 @@ pub mod pallet {
 
         #[require_transactional]
         pub(crate) fn do_advance_era(offset: EraIndex) -> DispatchResult {
-            if offset.is_zero() {
-                return Ok(());
-            }
-
             EraStartBlock::<T>::put(T::RelayChainBlockNumberProvider::current_block_number());
             CurrentEra::<T>::mutate(|e| *e = e.saturating_add(offset));
 
