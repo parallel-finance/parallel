@@ -5142,6 +5142,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-asset-manager"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "xcm",
+]
+
+[[package]]
 name = "pallet-assets"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.16#4aeb95f7f38fcd519e2628f32f79044a8fef99d5"
@@ -6474,6 +6494,7 @@ dependencies = [
  "cumulus-primitives-core",
  "frame-support",
  "frame-system",
+ "log",
  "num-bigint 0.3.3",
  "num-traits",
  "orml-oracle",
@@ -6486,6 +6507,7 @@ dependencies = [
  "sp-runtime",
  "sp-std",
  "xcm",
+ "xcm-builder",
  "xcm-executor",
 ]
 
