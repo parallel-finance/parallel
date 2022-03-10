@@ -40,13 +40,13 @@ use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use sp_api::impl_runtime_apis;
 use sp_core::{
     u32_trait::{_1, _2, _3, _4, _5},
-    OpaqueMetadata,
+    OpaqueMetadata, H256,
 };
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{
         self, AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT,
-        BlockNumberProvider, Convert, Zero,
+        BlockNumberProvider, Convert, Hash as THash, Zero,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Permill, RuntimeDebug,
@@ -75,12 +75,13 @@ use scale_info::TypeInfo;
 use xcm::latest::prelude::*;
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
-    AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedRateOfFungible, FixedWeightBounds,
-    LocationInverter, ParentAsSuperuser, ParentIsDefault, RelayChainAsNative,
-    SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-    SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit,
+    AllowTopLevelPaidExecutionFrom, ConvertedConcreteAssetId, EnsureXcmOrigin, FixedRateOfFungible,
+    FixedWeightBounds, FungiblesAdapter, LocationInverter, ParentAsSuperuser, ParentIsDefault,
+    RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
+    SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue,
+    TakeWeightCredit,
 };
-use xcm_executor::{Config, XcmExecutor};
+use xcm_executor::{traits::JustTry, Config, XcmExecutor};
 
 pub mod constants;
 pub mod impls;
@@ -115,6 +116,9 @@ pub use frame_support::{
 use pallet_xcm::XcmPassthrough;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
+
+use frame_support::{pallet_prelude::DispatchResult, transactional};
+use primitives::xcm_unit::{AsAssetType, FirstAssetTrader};
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -460,6 +464,27 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
     }
 }
 
+// How to convert from CurrencyId to MultiLocation
+pub struct CurrencyIdtoMultiLocation<LegacyAssetConverter, ForeignAssetConverter>(
+    sp_std::marker::PhantomData<(LegacyAssetConverter, ForeignAssetConverter)>,
+);
+impl<LegacyAssetConverter, ForeignAssetConverter>
+    sp_runtime::traits::Convert<CurrencyId, Option<MultiLocation>>
+    for CurrencyIdtoMultiLocation<LegacyAssetConverter, ForeignAssetConverter>
+where
+    LegacyAssetConverter: Convert<CurrencyId, Option<MultiLocation>>,
+    ForeignAssetConverter: xcm_executor::traits::Convert<MultiLocation, CurrencyId>,
+{
+    fn convert(currency_id: CurrencyId) -> Option<MultiLocation> {
+        let mut multi_location = LegacyAssetConverter::convert(currency_id);
+        multi_location = match multi_location {
+            Some(_) => multi_location,
+            None => ForeignAssetConverter::reverse_ref(&currency_id).ok(),
+        };
+        multi_location
+    }
+}
+
 parameter_types! {
     pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
     pub const BaseXcmWeight: Weight = 150_000_000;
@@ -471,7 +496,10 @@ impl orml_xtokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type CurrencyId = CurrencyId;
-    type CurrencyIdConvert = CurrencyIdConvert;
+    type CurrencyIdConvert = CurrencyIdtoMultiLocation<
+        CurrencyIdConvert,
+        AsAssetType<CurrencyId, AssetType, AssetManager>,
+    >;
     type AccountIdToMultiLocation = AccountIdToMultiLocation;
     type SelfLocation = SelfLocation;
     type XcmExecutor = XcmExecutor<XcmConfig>;
@@ -927,6 +955,97 @@ pub type LocationToAccountId = (
     AccountId32Aliases<RelayNetwork, AccountId>,
 );
 
+// Our AssetType. For now we only handle Xcm Assets
+#[derive(Clone, Eq, Debug, PartialEq, Ord, PartialOrd, Encode, Decode, TypeInfo)]
+pub enum AssetType {
+    Xcm(MultiLocation),
+}
+
+impl Default for AssetType {
+    fn default() -> Self {
+        Self::Xcm(MultiLocation::here())
+    }
+}
+
+impl From<MultiLocation> for AssetType {
+    fn from(location: MultiLocation) -> Self {
+        Self::Xcm(location)
+    }
+}
+
+impl From<AssetType> for Option<MultiLocation> {
+    fn from(asset: AssetType) -> Option<MultiLocation> {
+        match asset {
+            AssetType::Xcm(location) => Some(location),
+        }
+    }
+}
+
+// Implementation on how to retrieve the AssetId from an AssetType
+// We simply hash the AssetType and take the lowest 32 bits
+impl From<AssetType> for CurrencyId {
+    fn from(asset: AssetType) -> CurrencyId {
+        match asset {
+            AssetType::Xcm(id) => {
+                let mut result: [u8; 4] = [0u8; 4];
+                let hash: H256 = id.using_encoded(<Runtime as frame_system::Config>::Hashing::hash);
+                result.copy_from_slice(&hash.as_fixed_bytes()[0..4]);
+                u32::from_le_bytes(result)
+            }
+        }
+    }
+}
+
+// We instruct how to register the Assets
+// In this case, we tell it to Create an Asset in pallet-assets
+pub struct AssetRegistrar;
+
+impl pallet_asset_manager::AssetRegistrar<Runtime> for AssetRegistrar {
+    #[transactional]
+    fn create_asset(
+        asset: CurrencyId,
+        min_balance: Balance,
+        metadata: AssetRegistrarMetadata,
+        is_sufficient: bool,
+    ) -> DispatchResult {
+        Assets::force_create(
+            Origin::root(),
+            asset,
+            sp_runtime::MultiAddress::Id(AssetManager::account_id()),
+            is_sufficient,
+            min_balance,
+        )?;
+
+        Assets::force_set_metadata(
+            Origin::root(),
+            asset,
+            metadata.name,
+            metadata.symbol,
+            metadata.decimals,
+            metadata.is_frozen,
+        )
+    }
+}
+
+#[derive(Clone, Default, Eq, Debug, PartialEq, Ord, PartialOrd, Encode, Decode, TypeInfo)]
+pub struct AssetRegistrarMetadata {
+    pub name: Vec<u8>,
+    pub symbol: Vec<u8>,
+    pub decimals: u8,
+    pub is_frozen: bool,
+}
+
+impl pallet_asset_manager::Config for Runtime {
+    type Event = Event;
+    type Balance = Balance;
+    type AssetId = CurrencyId;
+    type AssetRegistrarMetadata = AssetRegistrarMetadata;
+    type AssetType = AssetType;
+    type AssetRegistrar = AssetRegistrar;
+    type AssetModifierOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = pallet_asset_manager::weights::SubstrateWeight<Runtime>;
+}
+
 parameter_types! {
     pub const NativeCurrencyId: CurrencyId = NATIVE_ASSET_ID;
     pub GiftAccount: AccountId = PalletId(*b"par/gift").into_account();
@@ -967,6 +1086,32 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
     GiftAccount,
     GiftConvert,
 >;
+
+// The non-reserve fungible transactor type
+// It will use pallet-assets, and the Id will be matched against AsAssetType
+pub type FungiblesTransactor = FungiblesAdapter<
+    // Use this fungibles implementation:
+    Assets,
+    // Use this currency when it is a fungible asset matching the given location or name:
+    (
+        ConvertedConcreteAssetId<
+            CurrencyId,
+            Balance,
+            AsAssetType<CurrencyId, AssetType, AssetManager>,
+            JustTry,
+        >,
+    ),
+    // Do a simple punn to convert an AccountId20 MultiLocation into a native chain account ID:
+    LocationToAccountId,
+    // Our chain's account ID type (we can't get away without mentioning it explicitly):
+    AccountId,
+    // We dont allow teleports.
+    Nothing,
+    // We dont track any teleports
+    (),
+>;
+
+pub type AssetTransactors = (LocalAssetTransactor, FungiblesTransactor);
 
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
 /// ready for dispatching a transaction with Xcm's `Transact`. There is an `OriginKind` which can
@@ -1022,6 +1167,7 @@ parameter_types! {
         ).into(),
         ksm_per_second() * 30
     );
+     //move these from Acala to AssetTrader later
     pub KusdPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
@@ -1074,15 +1220,39 @@ impl TakeRevenue for ToTreasury {
     }
 }
 
+parameter_types! {
+    /// Xcm fees will go to the treasury account
+    pub XcmFeesAccount: AccountId = Treasury::account_id();
+}
+
+/// This is the struct that will handle the revenue from xcm fees
+/// We do not burn anything because we want to mimic exactly what
+/// the sovereign account has
+pub type XcmFeesToAccount = primitives::xcm_unit::XcmFeesToAccount<
+    Assets,
+    (
+        ConvertedConcreteAssetId<
+            CurrencyId,
+            Balance,
+            AsAssetType<CurrencyId, AssetType, AssetManager>,
+            JustTry,
+        >,
+    ),
+    AccountId,
+    XcmFeesAccount,
+>;
+
 pub type Trader = (
     FixedRateOfFungible<KsmPerSecond, ToTreasury>,
     FixedRateOfFungible<XKSMPerSecond, ToTreasury>,
     FixedRateOfFungible<XKSMPerSecondOfCanonicalLocation, ToTreasury>,
     FixedRateOfFungible<HkoPerSecond, ToTreasury>,
     FixedRateOfFungible<HkoPerSecondOfCanonicalLocation, ToTreasury>,
+    //move these from Acala to AssetTrader later
     FixedRateOfFungible<KusdPerSecond, ToTreasury>,
     FixedRateOfFungible<KarPerSecond, ToTreasury>,
     FixedRateOfFungible<LKSMPerSecond, ToTreasury>,
+    FirstAssetTrader<AssetType, AssetManager, XcmFeesToAccount>,
 );
 
 pub struct XcmConfig;
@@ -1743,6 +1913,8 @@ construct_runtime!(
         OrmlXcm: orml_xcm::{Pallet, Call, Event<T>} = 45,
         Vesting: orml_vesting::{Pallet, Storage, Call, Event<T>, Config<T>} = 46,
 
+        // Asset Management
+        AssetManager: pallet_asset_manager::{Pallet, Call, Storage, Event<T>} = 48,
         // Loans
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>} = 50,
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>} = 51,
