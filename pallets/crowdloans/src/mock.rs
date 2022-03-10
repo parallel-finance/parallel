@@ -38,6 +38,7 @@ use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chai
 pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
 pub use kusama_runtime;
+use primitives::ump::{XcmCall, XcmWeightFeeMisc};
 
 pub struct RelayChainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
 
@@ -504,6 +505,11 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         .build_storage::<Test>()
         .unwrap();
 
+    let xcm_weight_fee_misc = XcmWeightFeeMisc {
+        weight: 3_000_000_000,
+        fee: dot(10f64),
+    };
+
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
         Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
@@ -517,7 +523,8 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
             dot(30f64),
         )
         .unwrap();
-        XcmHelper::update_xcm_fees(Origin::root(), dot(10f64)).unwrap();
+        XcmHelper::update_xcm_weight_fee(Origin::root(), XcmCall::AddMemo, xcm_weight_fee_misc)
+            .unwrap();
     });
 
     ext
@@ -572,6 +579,11 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         .build_storage::<Test>()
         .unwrap();
 
+    let xcm_weight_fee_misc = XcmWeightFeeMisc {
+        weight: 3_000_000_000,
+        fee: dot(10f64),
+    };
+
     let parachain_info_config = parachain_info::GenesisConfig {
         parachain_id: para_id.into(),
     };
@@ -595,7 +607,8 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
             dot(30f64),
         )
         .unwrap();
-        XcmHelper::update_xcm_fees(Origin::root(), dot(10f64)).unwrap();
+        XcmHelper::update_xcm_weight_fee(Origin::root(), XcmCall::AddMemo, xcm_weight_fee_misc)
+            .unwrap();
     });
 
     ext
