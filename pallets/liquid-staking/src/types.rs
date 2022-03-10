@@ -250,4 +250,12 @@ impl<AccountId, Balance: BalanceT + FixedPointOperand> StakingLedger<AccountId, 
         // 2. No minimum balance check
         self.active -= value;
     }
+
+    /// If the first item is smaller than current_era,
+    /// then it's withdrawable on relaychain.
+    pub fn is_withdrawable(&self, current_era: EraIndex) -> bool {
+        self.unlocking
+            .first()
+            .map_or(false, |chunk| chunk.era <= current_era)
+    }
 }

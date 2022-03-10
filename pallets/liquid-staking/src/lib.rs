@@ -793,6 +793,11 @@ pub mod pallet {
             })
         }
 
+        fn is_withdrawable(index: DerivativeIndex) -> bool {
+            StakingLedgers::<T>::get(&index)
+                .map_or(false, |ledger| ledger.is_withdrawable(Self::current_era()))
+        }
+
         fn get_total_bonded() -> BalanceOf<T> {
             StakingLedgers::<T>::iter_values().fold(Zero::zero(), |acc, ledger| {
                 acc.saturating_add(ledger.active)
@@ -1207,9 +1212,6 @@ pub mod pallet {
 
             let derivative_index = T::DerivativeIndex::get();
             let unbonding_amount = Self::unbonding_of(derivative_index);
-            if !unbonding_amount.is_zero() {
-                Self::do_withdraw_unbonded(derivative_index, T::NumSlashingSpans::get())?;
-            }
 
             let (bond_amount, rebond_amount, unbond_amount) =
                 Self::matching_pool().matching(unbonding_amount)?;
@@ -1217,6 +1219,10 @@ pub mod pallet {
                 Self::do_bond(derivative_index, bond_amount, RewardDestination::Staked)?;
             } else {
                 Self::do_bond_extra(derivative_index, bond_amount)?;
+            }
+
+            if bond_amount.is_zero() && Self::is_withdrawable(derivative_index) {
+                Self::do_withdraw_unbonded(derivative_index, T::NumSlashingSpans::get())?;
             }
 
             Self::do_unbond(derivative_index, unbond_amount)?;
