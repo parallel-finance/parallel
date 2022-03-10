@@ -259,8 +259,6 @@ impl Contains<Call> for BaseCallFilter {
             Call::AMMRoute(_) |
             // Liquid Staking
             Call::LiquidStaking(_) |
-            // Farming
-            Call::Farming(_) |
             // Bridge
             Call::Bridge(_)
         )
