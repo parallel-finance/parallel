@@ -252,8 +252,15 @@ impl Contains<Call> for BaseCallFilter {
             Call::OracleMembership(_) |
             Call::GeneralCouncilMembership(_) |
             Call::TechnicalCommitteeMembership(_) |
-            // Route
-            Call::AMMRoute(_)
+            Call::LiquidStakingAgentsMembership(_) |
+            Call::BridgeMembership(_) |
+            // AMM
+            Call::AMM(_) |
+            Call::AMMRoute(_) |
+            // Liquid Staking
+            Call::LiquidStaking(_) |
+            // Bridge
+            Call::Bridge(_)
         )
 
         // // Consensus
@@ -263,11 +270,7 @@ impl Contains<Call> for BaseCallFilter {
         // Call::Liquidation(_) |
 
         // // LiquidStaking
-        // Call::LiquidStaking(_) |
         // Call::NomineeElection(_) |
-
-        // // Membership
-        // Call::LiquidStakingAgentsMembership(_)
     }
 }
 
@@ -1680,7 +1683,9 @@ impl Contains<Call> for WhiteListFilter {
             // Membership
             Call::OracleMembership(_) |
             Call::GeneralCouncilMembership(_) |
-            Call::TechnicalCommitteeMembership(_)
+            Call::TechnicalCommitteeMembership(_) |
+            Call::LiquidStakingAgentsMembership(_) |
+            Call::BridgeMembership(_)
         )
     }
 }
