@@ -305,6 +305,11 @@ pub mod pallet {
         OptionQuery,
     >;
 
+    /// Current Max WithdrewUnbonded Era, update in `WithdrawUnbonded` xcm callback
+    #[pallet::storage]
+    #[pallet::getter(fn max_withdrew_unbonded_era)]
+    pub type MaxWithdrewUnbondedEra<T: Config> = StorageValue<_, EraIndex, ValueQuery>;
+
     #[derive(Default)]
     #[pallet::genesis_config]
     pub struct GenesisConfig {
@@ -643,13 +648,13 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             Self::ensure_origin(origin)?;
             let who = T::Lookup::lookup(dest)?;
-            let current_era = Self::current_era();
+            let max_withdrew_unbonded_era = Self::max_withdrew_unbonded_era();
 
             Unlockings::<T>::try_mutate_exists(&who, |b| -> DispatchResult {
                 let mut amount: BalanceOf<T> = Zero::zero();
                 let chunks = b.as_mut().ok_or(Error::<T>::NothingToClaim)?;
                 chunks.retain(|chunk| {
-                    if chunk.era > current_era {
+                    if chunk.era > max_withdrew_unbonded_era {
                         true
                     } else {
                         amount += chunk.value;
@@ -672,8 +677,7 @@ pub mod pallet {
 
                 log::trace!(
                     target: "liquidStaking::claim_for",
-                    "era: {:?}, beneficiary: {:?}, amount: {:?}",
-                    &current_era,
+                    "beneficiary: {:?}, amount: {:?}",
                     &who,
                     amount
                 );
@@ -786,6 +790,11 @@ pub mod pallet {
             StakingLedgers::<T>::get(&index).map_or(Zero::zero(), |ledger| {
                 ledger.total.saturating_sub(ledger.active)
             })
+        }
+
+        fn has_unbonded(index: DerivativeIndex) -> bool {
+            StakingLedgers::<T>::get(&index)
+                .map_or(false, |ledger| ledger.has_unbonded(Self::current_era()))
         }
 
         fn get_total_bonded() -> BalanceOf<T> {
@@ -987,6 +996,10 @@ pub mod pallet {
             derivative_index: DerivativeIndex,
             num_slashing_spans: u32,
         ) -> DispatchResult {
+            if !Self::has_unbonded(derivative_index) {
+                return Ok(());
+            }
+
             ensure!(
                 T::DerivativeIndexList::get().contains(&derivative_index),
                 Error::<T>::InvalidDerivativeIndex
@@ -1142,11 +1155,13 @@ pub mod pallet {
                     index: derivative_index,
                     num_slashing_spans: _,
                 } => {
+                    let current_era = Self::current_era();
+                    MaxWithdrewUnbondedEra::<T>::put(current_era);
                     Self::do_update_ledger(derivative_index, |ledger| {
                         let total = ledger.total;
                         let staking_currency = Self::staking_currency()?;
                         let account_id = Self::account_id();
-                        ledger.consolidate_unlocked(Self::current_era());
+                        ledger.consolidate_unlocked(current_era);
                         let amount = total.saturating_sub(ledger.total);
                         T::Assets::mint_into(staking_currency, &account_id, amount)?;
                         Ok(())
@@ -1200,9 +1215,6 @@ pub mod pallet {
 
             let derivative_index = T::DerivativeIndex::get();
             let unbonding_amount = Self::unbonding_of(derivative_index);
-            if !unbonding_amount.is_zero() {
-                Self::do_withdraw_unbonded(derivative_index, T::NumSlashingSpans::get())?;
-            }
 
             let (bond_amount, rebond_amount, unbond_amount) =
                 Self::matching_pool().matching(unbonding_amount)?;
@@ -1214,6 +1226,8 @@ pub mod pallet {
 
             Self::do_unbond(derivative_index, unbond_amount)?;
             Self::do_rebond(derivative_index, rebond_amount)?;
+
+            Self::do_withdraw_unbonded(derivative_index, T::NumSlashingSpans::get())?;
 
             Self::do_update_exchange_rate()?;
 

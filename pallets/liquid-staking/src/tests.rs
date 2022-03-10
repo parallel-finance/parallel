@@ -385,6 +385,7 @@ fn test_transact_withdraw_unbonded_work() {
     let derivative_index = <Test as Config>::DerivativeIndex::get();
     ParaA::execute_with(|| {
         assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(6000f64),));
+        assert_ok!(LiquidStaking::unstake(Origin::signed(ALICE), ksm(2000f64),));
 
         assert_ok!(LiquidStaking::bond(
             Origin::signed(ALICE),
@@ -401,6 +402,11 @@ fn test_transact_withdraw_unbonded_work() {
             Origin::signed(ALICE),
             derivative_index,
             ksm(2f64)
+        ));
+        assert_ok!(LiquidStaking::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            1,
+            Response::ExecutionResult(None),
         ));
     });
 
@@ -428,6 +434,11 @@ fn test_transact_withdraw_unbonded_work() {
     });
 
     ParaA::execute_with(|| {
+        assert_ok!(LiquidStaking::force_set_current_era(
+            Origin::root(),
+            <KusamaRuntime as pallet_staking::Config>::BondingDuration::get(),
+        ));
+
         assert_ok!(LiquidStaking::withdraw_unbonded(
             Origin::signed(BOB),
             derivative_index,
@@ -633,7 +644,7 @@ fn claim_for_should_work() {
             0,
             Response::ExecutionResult(None),
         ));
-        CurrentEra::<Test>::put(4);
+        MaxWithdrewUnbondedEra::<Test>::put(4);
         assert_ok!(LiquidStaking::withdraw_unbonded(
             Origin::signed(BOB),
             derivative_index,
