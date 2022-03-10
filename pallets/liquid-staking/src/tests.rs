@@ -644,7 +644,7 @@ fn claim_for_should_work() {
             0,
             Response::ExecutionResult(None),
         ));
-        MaxWithdrawUnbondedEra::<Test>::put(4);
+        MaxWithdrewUnbondedEra::<Test>::put(4);
         assert_ok!(LiquidStaking::withdraw_unbonded(
             Origin::signed(BOB),
             derivative_index,
