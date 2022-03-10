@@ -6,8 +6,10 @@ use crate::types::StakingLedger;
 use crate::Pallet as LiquidStaking;
 
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite};
+use frame_support::pallet_prelude::Weight;
 use frame_support::traits::fungibles::Mutate;
 use frame_system::{self, RawOrigin as SystemOrigin};
+use primitives::ump::{XcmCall, XcmWeightFeeMisc};
 use primitives::{
     tokens::{KSM, XKSM},
     ump::RewardDestination,
@@ -19,7 +21,10 @@ use xcm::latest::prelude::*;
 
 const SEED: u32 = 0;
 const MARKET_CAP: u128 = 10000000000000000u128;
-const XCM_FEES: u128 = 50000000000u128;
+const XCM_WEIGHT_FEE: XcmWeightFeeMisc<Weight, Balance> = XcmWeightFeeMisc {
+    weight: 3_000_000_000,
+    fee: 50000000000u128,
+};
 const RESERVE_FACTOR: Ratio = Ratio::from_perthousand(5);
 const INITIAL_XCM_FEES: u128 = 1000000000000u128;
 const INITIAL_AMOUNT: u128 = 1000000000000000u128;
@@ -75,7 +80,12 @@ fn initial_set_up<
 
     LiquidStaking::<T>::update_market_cap(SystemOrigin::Root.into(), MARKET_CAP).unwrap();
 
-    pallet_xcm_helper::Pallet::<T>::update_xcm_fees(SystemOrigin::Root.into(), XCM_FEES).unwrap();
+    pallet_xcm_helper::Pallet::<T>::update_xcm_weight_fee(
+        SystemOrigin::Root.into(),
+        XcmCall::AddMemo,
+        XCM_WEIGHT_FEE,
+    )
+    .unwrap();
 
     <T as pallet_xcm_helper::Config>::Assets::mint_into(
         KSM,
