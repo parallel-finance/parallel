@@ -993,7 +993,7 @@ pub mod pallet {
             let mut refund_count = 0u32;
             let mut all_refunded = true;
 
-            let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+            let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
                 .ok_or(Error::<T>::VaultDoesNotExist)?;
 
             ensure!(
@@ -1002,7 +1002,7 @@ pub mod pallet {
             );
 
             'outer: for kind in [Contributed, Flying, Pending] {
-                for (who, (amount, _referral_code)) in
+                for (who, (amount, referral_code)) in
                     Self::contribution_iterator(vault.trie_index, kind)
                 {
                     if refund_count >= T::RemoveKeysLimit::get() {
@@ -1026,7 +1026,14 @@ pub mod pallet {
                         )?;
                     }
 
-                    Self::contribution_kill(vault.trie_index, &who, kind);
+                    Self::do_update_contribution(
+                        &who,
+                        &mut vault,
+                        amount,
+                        Some(referral_code.clone()),
+                        ArithmeticKind::Subtraction,
+                        kind,
+                    )?;
                 }
             }
 
@@ -1107,7 +1114,9 @@ pub mod pallet {
             })
         }
 
-        fn total_contribution(vault: &Vault<T>) -> Result<BalanceOf<T>, ArithmeticError> {
+        pub(crate) fn total_contribution(
+            vault: &Vault<T>,
+        ) -> Result<BalanceOf<T>, ArithmeticError> {
             vault
                 .contributed
                 .checked_add(vault.flying)

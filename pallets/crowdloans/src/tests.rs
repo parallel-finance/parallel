@@ -1159,6 +1159,7 @@ fn refund_should_work_when_vault_phase_is_closed() {
         let cap = 1_000_000_000_000;
         let end_block = BlockNumber::from(1_000_000_000u32);
         let contribution_strategy = ContributionStrategy::XCM;
+        let amount = 1_000;
 
         // Create a vault and try refund
         Crowdloans::create_vault(
@@ -1180,6 +1181,24 @@ fn refund_should_work_when_vault_phase_is_closed() {
         )
         .ok();
 
+        Crowdloans::contribute(
+            Origin::signed(ALICE), // origin
+            crowdloan,             // crowdloan
+            amount,                // amount
+            vec![],
+        )
+        .ok();
+
+        let vault = Crowdloans::vaults((&crowdloan, &LEASE_START, &LEASE_END)).unwrap();
+        assert_eq!(Crowdloans::total_contribution(&vault).unwrap(), amount);
+
+        Crowdloans::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0,
+            Response::ExecutionResult(None),
+        )
+        .unwrap();
+
         // Close Vault
         Crowdloans::close(
             frame_system::RawOrigin::Root.into(), // origin
@@ -1193,5 +1212,7 @@ fn refund_should_work_when_vault_phase_is_closed() {
             LEASE_START,                          // lease_start
             LEASE_END,                            // lease_end
         ));
+        let vault = Crowdloans::vaults((&crowdloan, &LEASE_START, &LEASE_END)).unwrap();
+        assert_eq!(Crowdloans::total_contribution(&vault).unwrap(), 0);
     })
 }
