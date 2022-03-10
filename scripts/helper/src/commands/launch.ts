@@ -87,7 +87,6 @@ async function para({ logger, options: { paraWs, network } }: ActionParameters) 
 
   call.push(
     api.tx.sudo.sudo(api.tx.liquidStaking.updateMarketCap(config.liquidMarketCap)),
-    api.tx.sudo.sudo(api.tx.xcmHelper.updateXcmFees(config.xcmFees)),
     api.tx.balances.transfer(createAddress(GiftPalletId), config.gift)
   )
 
