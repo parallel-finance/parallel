@@ -41,6 +41,7 @@ use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chai
 pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
 pub use kusama_runtime;
+use primitives::ump::{XcmCall, XcmWeightFeeMisc};
 
 parameter_types! {
     pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND / 4;
@@ -458,6 +459,11 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         .build_storage::<Test>()
         .unwrap();
 
+    let xcm_weight_fee_misc = XcmWeightFeeMisc {
+        weight: 3_000_000_000,
+        fee: ksm(10f64),
+    };
+
     GenesisBuild::<Test>::assimilate_storage(
         &crate::GenesisConfig {
             exchange_rate: Rate::one(),
@@ -502,7 +508,8 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         )
         .unwrap();
 
-        XcmHelper::update_xcm_fees(Origin::signed(BOB), ksm(10f64)).unwrap();
+        XcmHelper::update_xcm_weight_fee(Origin::root(), XcmCall::AddMemo, xcm_weight_fee_misc)
+            .unwrap();
     });
 
     ext
@@ -551,6 +558,11 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
     let mut t = frame_system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap();
+
+    let xcm_weight_fee_misc = XcmWeightFeeMisc {
+        weight: 3_000_000_000,
+        fee: ksm(10f64),
+    };
 
     let parachain_info_config = parachain_info::GenesisConfig {
         parachain_id: para_id.into(),
@@ -603,7 +615,8 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         .unwrap();
 
         LiquidStaking::update_market_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
-        XcmHelper::update_xcm_fees(Origin::signed(BOB), ksm(10f64)).unwrap();
+        XcmHelper::update_xcm_weight_fee(Origin::root(), XcmCall::AddMemo, xcm_weight_fee_misc)
+            .unwrap();
     });
 
     ext

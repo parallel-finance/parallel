@@ -291,29 +291,29 @@ pub enum PolkadotCall<T: Config> {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
-pub struct XcmWeightAndFeesMisc<Weight, Balance> {
+pub struct XcmWeightFeeMisc<Weight, Balance> {
     pub weight: Weight,
-    pub fees: Balance,
+    pub fee: Balance,
 }
 
-impl Default for XcmWeightAndFeesMisc<Weight, Balance> {
+impl Default for XcmWeightFeeMisc<Weight, Balance> {
     fn default() -> Self {
         let default_weight = 3_000_000_000;
-        let default_fees = 5_000_000_000;
-        XcmWeightAndFeesMisc {
+        let default_fee = 5_000_000_000;
+        XcmWeightFeeMisc {
             weight: default_weight,
-            fees: default_fees,
+            fee: default_fee,
         }
     }
 }
 
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub enum XCMActions {
+pub enum XcmCall {
     Bond,
     BondExtra,
-    UnBond,
-    ReBond,
-    WithdrawUnBond,
+    Unbond,
+    Rebond,
+    WithdrawUnbonded,
     Nominate,
     Contribute,
     Withdraw,

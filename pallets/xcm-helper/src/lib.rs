@@ -102,18 +102,13 @@ pub mod pallet {
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Xcm fee and weight updated
-        XcmFeeAndWeightUpdated(XcmWeightAndFeesMisc<Weight, BalanceOf<T>>),
+        XcmWeightFeeUpdated(XcmWeightFeeMisc<Weight, BalanceOf<T>>),
     }
 
     #[pallet::storage]
-    #[pallet::getter(fn xcm_weight_and_fee_misc)]
-    pub type XcmWeightAndFeeMisc<T: Config> = StorageMap<
-        _,
-        Twox64Concat,
-        XCMActions,
-        XcmWeightAndFeesMisc<Weight, BalanceOf<T>>,
-        ValueQuery,
-    >;
+    #[pallet::getter(fn xcm_weight_fee)]
+    pub type XcmWeightFee<T: Config> =
+        StorageMap<_, Twox64Concat, XcmCall, XcmWeightFeeMisc<Weight, BalanceOf<T>>, ValueQuery>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -136,26 +131,23 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Update xcm fees amount to be used in xcm.Withdraw message
-        #[pallet::weight(10_000)]
+        #[pallet::weight(<T as Config>::WeightInfo::update_xcm_weight_fee())]
         #[transactional]
-        pub fn update_xcm_weights_fees(
+        pub fn update_xcm_weight_fee(
             origin: OriginFor<T>,
-            xcm_action: XCMActions,
-            xcm_weight_fees_misc: XcmWeightAndFeesMisc<Weight, BalanceOf<T>>,
+            xcm_call: XcmCall,
+            xcm_weight_fee_misc: XcmWeightFeeMisc<Weight, BalanceOf<T>>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
 
+            ensure!(!xcm_weight_fee_misc.fee.is_zero(), Error::<T>::ZeroXcmFees);
             ensure!(
-                !xcm_weight_fees_misc.fees.is_zero(),
-                Error::<T>::ZeroXcmFees
-            );
-            ensure!(
-                !xcm_weight_fees_misc.weight.is_zero(),
+                !xcm_weight_fee_misc.weight.is_zero(),
                 Error::<T>::ZeroXcmWeightMisc
             );
 
-            XcmWeightAndFeeMisc::<T>::mutate(xcm_action, |v| *v = xcm_weight_fees_misc.clone());
-            Self::deposit_event(Event::<T>::XcmFeeAndWeightUpdated(xcm_weight_fees_misc));
+            XcmWeightFee::<T>::mutate(xcm_call, |v| *v = xcm_weight_fee_misc);
+            Self::deposit_event(Event::<T>::XcmWeightFeeUpdated(xcm_weight_fee_misc));
             Ok(().into())
         }
     }
@@ -314,7 +306,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         para_account_id: AccountIdOf<T>,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
-        let xcm_weight_fees_misc = Self::xcm_weight_and_fee_misc(XCMActions::Withdraw);
+        let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::Withdraw);
         Ok(switch_relay!({
             let call =
                 RelaychainCall::<T>::Crowdloans(CrowdloansCall::Withdraw(CrowdloansWithdrawCall {
@@ -324,10 +316,10 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
 
             let mut msg = Self::ump_transact(
                 call.encode().into(),
-                xcm_weight_fees_misc.weight,
+                xcm_weight_fee_misc.weight,
                 Self::refund_location(),
                 relay_currency,
-                xcm_weight_fees_misc.fees,
+                xcm_weight_fee_misc.fee,
             )?;
 
             let query_id = Self::report_outcome_notify(
@@ -352,7 +344,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         _who: &AccountIdOf<T>,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
-        let xcm_weight_fees_misc = Self::xcm_weight_and_fee_misc(XCMActions::Contribute);
+        let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::Contribute);
         Ok(switch_relay!({
             let call = RelaychainCall::<T>::Crowdloans(CrowdloansCall::Contribute(
                 CrowdloansContributeCall {
@@ -364,10 +356,10 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
 
             let mut msg = Self::ump_transact(
                 call.encode().into(),
-                xcm_weight_fees_misc.weight,
+                xcm_weight_fee_misc.weight,
                 Self::refund_location(),
                 relay_currency,
-                xcm_weight_fees_misc.fees,
+                xcm_weight_fee_misc.fee,
             )?;
 
             let query_id = Self::report_outcome_notify(
@@ -394,7 +386,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
         let controller = stash.clone();
-        let xcm_weight_fees_misc = Self::xcm_weight_and_fee_misc(XCMActions::Bond);
+        let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::Bond);
         Ok(switch_relay!({
             let call =
                 RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
@@ -422,10 +414,10 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
 
             let mut msg = Self::ump_transact(
                 call.encode().into(),
-                xcm_weight_fees_misc.weight,
+                xcm_weight_fee_misc.weight,
                 Self::refund_location(),
                 relay_currency,
-                xcm_weight_fees_misc.fees,
+                xcm_weight_fee_misc.fee,
             )?;
 
             let query_id = Self::report_outcome_notify(
@@ -450,7 +442,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
-        let xcm_weight_fees_misc = Self::xcm_weight_and_fee_misc(XCMActions::BondExtra);
+        let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::BondExtra);
         Ok(switch_relay!({
             let call =
                 RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
@@ -474,10 +466,10 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
 
             let mut msg = Self::ump_transact(
                 call.encode().into(),
-                xcm_weight_fees_misc.weight,
+                xcm_weight_fee_misc.weight,
                 Self::refund_location(),
                 relay_currency,
-                xcm_weight_fees_misc.fees,
+                xcm_weight_fee_misc.fee,
             )?;
 
             let query_id = Self::report_outcome_notify(
@@ -501,7 +493,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
-        let xcm_weight_fees_misc = Self::xcm_weight_and_fee_misc(XCMActions::UnBond);
+        let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::Unbond);
         Ok(switch_relay!({
             let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
                 UtilityAsDerivativeCall {
@@ -514,10 +506,10 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
 
             let mut msg = Self::ump_transact(
                 call.encode().into(),
-                xcm_weight_fees_misc.weight,
+                xcm_weight_fee_misc.weight,
                 Self::refund_location(),
                 relay_currency,
-                xcm_weight_fees_misc.fees,
+                xcm_weight_fee_misc.fee,
             )?;
 
             let query_id = Self::report_outcome_notify(
@@ -541,7 +533,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
-        let xcm_weight_fees_misc = Self::xcm_weight_and_fee_misc(XCMActions::ReBond);
+        let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::Rebond);
         Ok(switch_relay!({
             let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
                 UtilityAsDerivativeCall {
@@ -554,10 +546,10 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
 
             let mut msg = Self::ump_transact(
                 call.encode().into(),
-                xcm_weight_fees_misc.weight,
+                xcm_weight_fee_misc.weight,
                 Self::refund_location(),
                 relay_currency,
-                xcm_weight_fees_misc.fees,
+                xcm_weight_fee_misc.fee,
             )?;
 
             let query_id = Self::report_outcome_notify(
@@ -582,7 +574,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         index: u16,
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
-        let xcm_weight_fees_misc = Self::xcm_weight_and_fee_misc(XCMActions::WithdrawUnBond);
+        let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::WithdrawUnbonded);
         Ok(switch_relay!({
             let call =
                 RelaychainCall::Utility(Box::new(UtilityCall::BatchAll(UtilityBatchAllCall {
@@ -611,10 +603,10 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
 
             let mut msg = Self::ump_transact(
                 call.encode().into(),
-                xcm_weight_fees_misc.weight,
+                xcm_weight_fee_misc.weight,
                 Self::refund_location(),
                 relay_currency,
-                xcm_weight_fees_misc.fees,
+                xcm_weight_fee_misc.fee,
             )?;
 
             let query_id = Self::report_outcome_notify(
@@ -639,7 +631,7 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
         notify: impl Into<<T as pallet_xcm::Config>::Call>,
     ) -> Result<QueryId, DispatchError> {
         let targets_source = targets.into_iter().map(T::Lookup::unlookup).collect();
-        let xcm_weight_fees_misc = Self::xcm_weight_and_fee_misc(XCMActions::Nominate);
+        let xcm_weight_fee_misc = Self::xcm_weight_fee(XcmCall::Nominate);
         Ok(switch_relay!({
             let call = RelaychainCall::Utility(Box::new(UtilityCall::AsDerivative(
                 UtilityAsDerivativeCall {
@@ -654,10 +646,10 @@ impl<T: Config> XcmHelper<T, BalanceOf<T>, AssetIdOf<T>, AccountIdOf<T>> for Pal
 
             let mut msg = Self::ump_transact(
                 call.encode().into(),
-                xcm_weight_fees_misc.weight,
+                xcm_weight_fee_misc.weight,
                 Self::refund_location(),
                 relay_currency,
-                xcm_weight_fees_misc.fees,
+                xcm_weight_fee_misc.fee,
             )?;
 
             let query_id = Self::report_outcome_notify(
