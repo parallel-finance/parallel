@@ -235,9 +235,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::Vesting(_) |
             // Membership
             Call::GeneralCouncilMembership(_) |
-            Call::TechnicalCommitteeMembership(_) |
-            // Route
-            Call::AMMRoute(_)
+            Call::TechnicalCommitteeMembership(_)
         )
         // // 3rd Party
         // Call::Oracle(_) |
@@ -1504,10 +1502,10 @@ impl pallet_membership::Config<BridgeMembershipInstance> for Runtime {
 }
 
 parameter_types! {
-    pub const Parallel: ChainId = 0;
+    pub const Parallel: ChainId = 1;
     pub const BridgePalletId: PalletId = PalletId(*b"par/brid");
-    // Set a short lifetime for development
-    pub const ProposalLifetime: BlockNumber = 200;
+    // About 30 days: 30 * 24 * 60 * 60 / 6 = 2592000 blocks
+    pub const ProposalLifetime: BlockNumber = 2592000;
     pub const ThresholdPercentage: u32 = 50;
 }
 
@@ -1545,8 +1543,8 @@ impl orml_vesting::Config for Runtime {
 
 parameter_types! {
     pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
-    pub DefaultLpFee: Ratio = Ratio::from_rational(25u32, 10000u32);        // 0.25%
-    pub DefaultProtocolFee: Ratio = Ratio::from_rational(5u32, 10000u32);   // 0.05%
+    pub DefaultLpFee: Ratio = Ratio::from_rational(30u32, 10000u32);        // 0.30%
+    pub DefaultProtocolFee: Ratio = Ratio::from_rational(0u32, 10000u32);   // 0.00% no fees for launch
     pub DefaultProtocolFeeReceiver: AccountId = TreasuryPalletId::get().into_account();
     pub const MinimumLiquidity: u128 = 1_000u128;
 }

@@ -353,17 +353,11 @@ impl pallet_xcm_helper::Config for Test {
     type WeightInfo = ();
 }
 
-pub struct RelayChainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
-
-impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
-    for RelayChainBlockNumberProvider<T>
-{
-    type BlockNumber = primitives::BlockNumber;
+impl BlockNumberProvider for RelayChainBlockNumberProvider {
+    type BlockNumber = BlockNumber;
 
     fn current_block_number() -> Self::BlockNumber {
-        cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
-            .map(|d| d.relay_parent_number)
-            .unwrap_or_default()
+        Self::get()
     }
 }
 
@@ -380,6 +374,7 @@ parameter_types! {
     pub const BondingDuration: EraIndex = 3;
     pub const NumSlashingSpans: u32 = 0;
     pub static DerivativeIndexList: Vec<u16> = vec![0];
+    pub static RelayChainBlockNumberProvider: BlockNumber = 0;
 }
 
 impl crate::Config for Test {
@@ -402,7 +397,7 @@ impl crate::Config for Test {
     type MinUnstake = MinUnstake;
     type XCM = XcmHelper;
     type BondingDuration = BondingDuration;
-    type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Test>;
+    type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider;
     type Members = BobOrigin;
     type NumSlashingSpans = NumSlashingSpans;
 }
@@ -457,6 +452,7 @@ construct_runtime!(
 
 pub const ALICE: AccountId32 = AccountId32::new([1u8; 32]);
 pub const BOB: AccountId32 = AccountId32::new([2u8; 32]);
+pub const RESERVE_FACTOR: Ratio = Ratio::from_perthousand(5);
 
 pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = frame_system::GenesisConfig::default()
@@ -471,7 +467,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     GenesisBuild::<Test>::assimilate_storage(
         &crate::GenesisConfig {
             exchange_rate: Rate::one(),
-            reserve_factor: Ratio::from_perthousand(5),
+            reserve_factor: RESERVE_FACTOR,
         },
         &mut t,
     )

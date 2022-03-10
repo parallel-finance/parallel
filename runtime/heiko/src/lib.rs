@@ -252,8 +252,15 @@ impl Contains<Call> for BaseCallFilter {
             Call::OracleMembership(_) |
             Call::GeneralCouncilMembership(_) |
             Call::TechnicalCommitteeMembership(_) |
-            // Route
-            Call::AMMRoute(_)
+            Call::LiquidStakingAgentsMembership(_) |
+            Call::BridgeMembership(_) |
+            // AMM
+            Call::AMM(_) |
+            Call::AMMRoute(_) |
+            // Liquid Staking
+            Call::LiquidStaking(_) |
+            // Bridge
+            Call::Bridge(_)
         )
 
         // // Consensus
@@ -263,11 +270,7 @@ impl Contains<Call> for BaseCallFilter {
         // Call::Liquidation(_) |
 
         // // LiquidStaking
-        // Call::LiquidStaking(_) |
         // Call::NomineeElection(_) |
-
-        // // Membership
-        // Call::LiquidStakingAgentsMembership(_)
     }
 }
 
@@ -1473,8 +1476,8 @@ impl pallet_membership::Config<BridgeMembershipInstance> for Runtime {
 parameter_types! {
     pub const ParallelHeiko: ChainId = 0;
     pub const BridgePalletId: PalletId = PalletId(*b"par/brid");
-    // Set a short lifetime for development
-    pub const ProposalLifetime: BlockNumber = 200;
+    // About 30 days: 30 * 24 * 60 * 60 / 6 = 2592000 blocks
+    pub const ProposalLifetime: BlockNumber = 2592000;
     pub const ThresholdPercentage: u32 = 50;
 }
 
@@ -1680,7 +1683,9 @@ impl Contains<Call> for WhiteListFilter {
             // Membership
             Call::OracleMembership(_) |
             Call::GeneralCouncilMembership(_) |
-            Call::TechnicalCommitteeMembership(_)
+            Call::TechnicalCommitteeMembership(_) |
+            Call::LiquidStakingAgentsMembership(_) |
+            Call::BridgeMembership(_)
         )
     }
 }
