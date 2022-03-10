@@ -40,19 +40,31 @@
 #![allow(clippy::all)]
 
 use frame_support::{
-	traits::Get,
-	weights::{constants::RocksDbWeight, Weight},
+    traits::Get,
+    weights::{constants::RocksDbWeight, Weight},
 };
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_xcm_helper.
-pub trait WeightInfo {	fn update_xcm_weight_fee() -> Weight;}
+pub trait WeightInfo {
+    fn update_xcm_weight_fee() -> Weight;
+}
 
 /// Weights for pallet_xcm_helper using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
-impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	fn update_xcm_weight_fee() -> Weight {
-	(11_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(1 as Weight))			.saturating_add(T::DbWeight::get().writes(1 as Weight))	}}
+impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
+    fn update_xcm_weight_fee() -> Weight {
+        (11_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(1 as Weight))
+            .saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
+}
 
 // For backwards compatibility and tests
-impl WeightInfo for () {	fn update_xcm_weight_fee() -> Weight {
-	(11_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(1 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}}
+impl WeightInfo for () {
+    fn update_xcm_weight_fee() -> Weight {
+        (11_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(1 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(1 as Weight))
+    }
+}
