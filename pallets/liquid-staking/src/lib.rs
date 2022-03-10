@@ -793,9 +793,9 @@ pub mod pallet {
             })
         }
 
-        fn is_withdrawable(index: DerivativeIndex) -> bool {
+        fn has_unbonded(index: DerivativeIndex) -> bool {
             StakingLedgers::<T>::get(&index)
-                .map_or(false, |ledger| ledger.is_withdrawable(Self::current_era()))
+                .map_or(false, |ledger| ledger.has_unbonded(Self::current_era()))
         }
 
         fn get_total_bonded() -> BalanceOf<T> {
@@ -997,6 +997,10 @@ pub mod pallet {
             derivative_index: DerivativeIndex,
             num_slashing_spans: u32,
         ) -> DispatchResult {
+            if !Self::has_unbonded(derivative_index) {
+                return Ok(());
+            }
+
             ensure!(
                 T::DerivativeIndexList::get().contains(&derivative_index),
                 Error::<T>::InvalidDerivativeIndex
@@ -1221,12 +1225,10 @@ pub mod pallet {
                 Self::do_bond_extra(derivative_index, bond_amount)?;
             }
 
-            if bond_amount.is_zero() && Self::is_withdrawable(derivative_index) {
-                Self::do_withdraw_unbonded(derivative_index, T::NumSlashingSpans::get())?;
-            }
-
             Self::do_unbond(derivative_index, unbond_amount)?;
             Self::do_rebond(derivative_index, rebond_amount)?;
+
+            Self::do_withdraw_unbonded(derivative_index, T::NumSlashingSpans::get())?;
 
             Self::do_update_exchange_rate()?;
 
