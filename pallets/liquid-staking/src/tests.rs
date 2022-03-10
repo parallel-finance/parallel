@@ -710,7 +710,7 @@ fn test_on_initialize_work() {
 }
 
 #[test]
-fn test_update_staking_ledger_work() {
+fn test_force_set_staking_ledger_work() {
     new_test_ext().execute_with(|| {
         let derivative_index = <Test as Config>::DerivativeIndex::get();
         let bond_amount = 100;
@@ -720,7 +720,7 @@ fn test_update_staking_ledger_work() {
             bond_amount,
         );
         assert_noop!(
-            LiquidStaking::update_staking_ledger(
+            LiquidStaking::force_set_staking_ledger(
                 Origin::signed(ALICE),
                 derivative_index,
                 staking_ledger.clone()
@@ -733,7 +733,7 @@ fn test_update_staking_ledger_work() {
             staking_ledger.clone()
         );
         staking_ledger.bond_extra(bond_extra_amount);
-        assert_ok!(LiquidStaking::update_staking_ledger(
+        assert_ok!(LiquidStaking::force_set_staking_ledger(
             Origin::signed(ALICE),
             derivative_index,
             staking_ledger.clone()

@@ -172,7 +172,7 @@ benchmarks! {
         assert_last_event::<T>(Event::<T>::BondingExtra(0, BOND_AMOUNT).into());
     }
 
-    update_staking_ledger {
+    force_set_staking_ledger {
         let alice: T::AccountId = account("Sample", 100, SEED);
         initial_set_up::<T>(alice.clone());
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
@@ -318,6 +318,34 @@ benchmarks! {
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
     }: {
         LiquidStaking::<T>::on_initialize(1u32.into());
+        with_transaction(|| {
+            LiquidStaking::<T>::do_advance_era(1).unwrap();
+            TransactionOutcome::Commit(0)
+        });
+
+    }
+    verify {
+        let xcm_fee = T::XcmFees::get();
+        let reserve = ReserveFactor::<T>::get().mul_floor(STAKE_AMOUNT);
+        let real_stake = STAKE_AMOUNT - xcm_fee - reserve;
+        assert_eq!(EraStartBlock::<T>::get(), 0u32.into());
+        assert_eq!(CurrentEra::<T>::get(), 1);
+        assert_last_event::<T>(Event::<T>::NewEra(1, real_stake-UNBOND_AMOUNT, UNBOND_AMOUNT, 0).into());
+    }
+
+    force_advance_era {
+        let alice: T::AccountId = account("Sample", 100, SEED);
+        initial_set_up::<T>(alice.clone());
+        // Insert a ledger, let `on_initialize` process three xcm:
+        // do_withdraw_unbonded/do_bond_extra/do_rebond
+        let mut staking_ledger = <StakingLedger<T::AccountId, BalanceOf<T>>>::new(
+            LiquidStaking::<T>::derivative_sovereign_account_id(0u16),
+            BOND_AMOUNT,
+        );
+        staking_ledger.unbond(UNBOND_AMOUNT,10);
+        StakingLedgers::<T>::insert(0u16,staking_ledger);
+        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
+    }: {
         with_transaction(|| {
             LiquidStaking::<T>::do_advance_era(1).unwrap();
             TransactionOutcome::Commit(0)

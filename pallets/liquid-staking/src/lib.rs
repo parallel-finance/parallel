@@ -493,43 +493,6 @@ pub mod pallet {
             Ok(().into())
         }
 
-        /// Update staking_ledger for updating exchange rate in next era
-        #[pallet::weight(<T as Config>::WeightInfo::update_staking_ledger())]
-        #[transactional]
-        pub fn update_staking_ledger(
-            origin: OriginFor<T>,
-            derivative_index: DerivativeIndex,
-            staking_ledger: StakingLedger<T::AccountId, BalanceOf<T>>,
-        ) -> DispatchResultWithPostInfo {
-            Self::ensure_origin(origin)?;
-
-            if !StakingLedgers::<T>::contains_key(&derivative_index) {
-                return Err(Error::<T>::NotBonded.into());
-            }
-
-            Self::do_update_ledger(derivative_index, |ledger| {
-                // TODO: validate staking_ledger using storage proof
-                ensure!(
-                    ledger.unlocking == staking_ledger.unlocking,
-                    Error::<T>::InvalidStakingLedger
-                );
-                *ledger = staking_ledger.clone();
-                Ok(())
-            })?;
-
-            log::trace!(
-                target: "liquidStaking::update_staking_ledger",
-                "index: {:?}, staking_ledger: {:?}",
-                &derivative_index,
-                &staking_ledger,
-            );
-            Self::deposit_event(Event::<T>::StakingLedgerUpdated(
-                derivative_index,
-                staking_ledger,
-            ));
-            Ok(().into())
-        }
-
         /// Bond on relaychain via xcm.transact
         #[pallet::weight(<T as Config>::WeightInfo::bond())]
         #[transactional]
@@ -688,6 +651,7 @@ pub mod pallet {
             Ok(().into())
         }
 
+        /// Force set era start block
         #[pallet::weight(<T as Config>::WeightInfo::force_set_era_start_block())]
         #[transactional]
         pub fn force_set_era_start_block(
@@ -699,12 +663,56 @@ pub mod pallet {
             Ok(())
         }
 
+        /// Force set current era
         #[pallet::weight(<T as Config>::WeightInfo::force_set_current_era())]
         #[transactional]
         pub fn force_set_current_era(origin: OriginFor<T>, era: EraIndex) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
             CurrentEra::<T>::put(era);
             Ok(())
+        }
+
+        /// Force set staking_ledger for updating exchange rate in next era
+        #[pallet::weight(<T as Config>::WeightInfo::force_set_staking_ledger())]
+        #[transactional]
+        pub fn force_set_staking_ledger(
+            origin: OriginFor<T>,
+            derivative_index: DerivativeIndex,
+            staking_ledger: StakingLedger<T::AccountId, BalanceOf<T>>,
+        ) -> DispatchResultWithPostInfo {
+            Self::ensure_origin(origin)?;
+
+            Self::do_update_ledger(derivative_index, |ledger| {
+                // TODO: validate staking_ledger using storage proof
+                *ledger = staking_ledger.clone();
+                Ok(())
+            })?;
+
+            log::trace!(
+                target: "liquidStaking::force_set_staking_ledger",
+                "index: {:?}, staking_ledger: {:?}",
+                &derivative_index,
+                &staking_ledger,
+            );
+            Self::deposit_event(Event::<T>::StakingLedgerUpdated(
+                derivative_index,
+                staking_ledger,
+            ));
+            Ok(().into())
+        }
+
+        /// Force advance era
+        #[pallet::weight(<T as Config>::WeightInfo::force_advance_era())]
+        #[transactional]
+        pub fn force_advance_era(
+            origin: OriginFor<T>,
+            offset: EraIndex,
+        ) -> DispatchResultWithPostInfo {
+            Self::ensure_origin(origin)?;
+
+            Self::do_advance_era(offset)?;
+
+            Ok(().into())
         }
     }
 
@@ -1189,7 +1197,9 @@ pub mod pallet {
                 issuance,
             )
             .ok_or(Error::<T>::InvalidExchangeRate)?;
-            if new_exchange_rate != Self::exchange_rate() {
+            // slashes should be handled properly offchain
+            // by doing `bond_extra` using OrmlXcm or PolkadotXcm
+            if new_exchange_rate >= Self::exchange_rate() {
                 ExchangeRate::<T>::put(new_exchange_rate);
                 Self::deposit_event(Event::<T>::ExchangeRateUpdated(new_exchange_rate));
             }
