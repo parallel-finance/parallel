@@ -305,6 +305,11 @@ pub mod pallet {
         OptionQuery,
     >;
 
+    /// Current Max WithdrawUnbonded Era, update in `WithdrawUnbonded` xcm callback
+    #[pallet::storage]
+    #[pallet::getter(fn max_withdraw_unbonded_era)]
+    pub type MaxWithdrawUnbondedEra<T: Config> = StorageValue<_, EraIndex, ValueQuery>;
+
     #[derive(Default)]
     #[pallet::genesis_config]
     pub struct GenesisConfig {
@@ -643,13 +648,13 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             Self::ensure_origin(origin)?;
             let who = T::Lookup::lookup(dest)?;
-            let current_era = Self::current_era();
+            let max_withdraw_unbonded_era = Self::max_withdraw_unbonded_era();
 
             Unlockings::<T>::try_mutate_exists(&who, |b| -> DispatchResult {
                 let mut amount: BalanceOf<T> = Zero::zero();
                 let chunks = b.as_mut().ok_or(Error::<T>::NothingToClaim)?;
                 chunks.retain(|chunk| {
-                    if chunk.era > current_era {
+                    if chunk.era > max_withdraw_unbonded_era {
                         true
                     } else {
                         amount += chunk.value;
@@ -673,7 +678,7 @@ pub mod pallet {
                 log::trace!(
                     target: "liquidStaking::claim_for",
                     "era: {:?}, beneficiary: {:?}, amount: {:?}",
-                    &current_era,
+                    &max_withdraw_unbonded_era,
                     &who,
                     amount
                 );
@@ -1142,11 +1147,13 @@ pub mod pallet {
                     index: derivative_index,
                     num_slashing_spans: _,
                 } => {
+                    let current_era = Self::current_era();
+                    MaxWithdrawUnbondedEra::<T>::put(current_era);
                     Self::do_update_ledger(derivative_index, |ledger| {
                         let total = ledger.total;
                         let staking_currency = Self::staking_currency()?;
                         let account_id = Self::account_id();
-                        ledger.consolidate_unlocked(Self::current_era());
+                        ledger.consolidate_unlocked(current_era);
                         let amount = total.saturating_sub(ledger.total);
                         T::Assets::mint_into(staking_currency, &account_id, amount)?;
                         Ok(())
