@@ -52,7 +52,7 @@ pub trait WeightInfo {
     fn bond() -> Weight;
     fn nominate() -> Weight;
     fn bond_extra() -> Weight;
-    fn update_staking_ledger() -> Weight;
+    fn force_set_staking_ledger() -> Weight;
     fn unbond() -> Weight;
     fn rebond() -> Weight;
     fn withdraw_unbonded() -> Weight;
@@ -64,6 +64,7 @@ pub trait WeightInfo {
     fn force_set_current_era() -> Weight;
     fn on_initialize() -> Weight;
     fn on_initialize_with_advance_era() -> Weight;
+    fn force_advance_era() -> Weight;
 }
 
 /// Weights for pallet_liquid_staking using the Substrate node and recommended hardware.
@@ -94,7 +95,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().reads(13 as Weight))
             .saturating_add(T::DbWeight::get().writes(7 as Weight))
     }
-    fn update_staking_ledger() -> Weight {
+    fn force_set_staking_ledger() -> Weight {
         (32_880_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(1 as Weight))
             .saturating_add(T::DbWeight::get().writes(1 as Weight))
@@ -148,6 +149,11 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
             .saturating_add(T::DbWeight::get().reads(21 as Weight))
             .saturating_add(T::DbWeight::get().writes(14 as Weight))
     }
+    fn force_advance_era() -> Weight {
+        (353_038_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(21 as Weight))
+            .saturating_add(T::DbWeight::get().writes(14 as Weight))
+    }
 }
 
 // For backwards compatibility and tests
@@ -177,7 +183,7 @@ impl WeightInfo for () {
             .saturating_add(RocksDbWeight::get().reads(13 as Weight))
             .saturating_add(RocksDbWeight::get().writes(7 as Weight))
     }
-    fn update_staking_ledger() -> Weight {
+    fn force_set_staking_ledger() -> Weight {
         (32_880_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(1 as Weight))
             .saturating_add(RocksDbWeight::get().writes(1 as Weight))
@@ -227,6 +233,11 @@ impl WeightInfo for () {
         (5_720_000 as Weight).saturating_add(RocksDbWeight::get().reads(2 as Weight))
     }
     fn on_initialize_with_advance_era() -> Weight {
+        (353_038_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(21 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(14 as Weight))
+    }
+    fn force_advance_era() -> Weight {
         (353_038_000 as Weight)
             .saturating_add(RocksDbWeight::get().reads(21 as Weight))
             .saturating_add(RocksDbWeight::get().writes(14 as Weight))
