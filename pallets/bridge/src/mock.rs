@@ -173,7 +173,7 @@ parameter_types! {
     pub const BridgePalletId: PalletId = PalletId(*b"par/brid");
     pub const ProposalLifetime: BlockNumber = 50;
     pub const RootOperatorAccountId: AccountId = 7;
-    pub const ThresholdPercentage: u32 = 50;
+    pub const ThresholdPercentage: u32 = 80;
     pub GiftAccount: AccountId = PalletId(*b"par/gift").into_account();
 }
 
