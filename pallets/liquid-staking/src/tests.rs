@@ -739,6 +739,23 @@ fn test_force_set_staking_ledger_work() {
             staking_ledger.clone()
         ));
 
+        assert_noop!(
+            LiquidStaking::force_set_staking_ledger(
+                Origin::signed(ALICE),
+                derivative_index,
+                staking_ledger.clone()
+            ),
+            Error::<Test>::StakingLedgerLocked
+        );
+
+        LiquidStaking::on_finalize(1);
+
+        assert_ok!(LiquidStaking::force_set_staking_ledger(
+            Origin::signed(ALICE),
+            derivative_index,
+            staking_ledger.clone()
+        ));
+
         let new_staking_ledger = <StakingLedger<AccountId, BalanceOf<Test>>>::new(
             LiquidStaking::derivative_sovereign_account_id(derivative_index),
             bond_amount + bond_extra_amount,
