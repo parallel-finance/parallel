@@ -37,8 +37,7 @@ use frame_support::{
     transactional, Blake2_128Concat, PalletId,
 };
 use frame_system::{ensure_signed, pallet_prelude::OriginFor};
-use num_traits::cast::ToPrimitive;
-use num_traits::{CheckedDiv, CheckedMul};
+use num_traits::{cast::ToPrimitive, CheckedDiv, CheckedMul};
 use primitives::{Balance, ConvertToBigUint, CurrencyId, DecimalProvider};
 use sp_io::hashing::blake2_256;
 use sp_runtime::{

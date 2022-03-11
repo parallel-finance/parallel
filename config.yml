@@ -35,7 +35,7 @@ parachains:
       - --execution=wasm
       - --state-cache-size=0
     env:
-      RUST_LOG: xcm=trace,loans=trace,liquidStaking=trace,crowdloans=trace,amm=trace
+      RUST_LOG: xcm=trace,loans=trace,liquidStaking=trace,crowdloans=trace,amm=trace,router=trace,bridge=trace
     nodes:
       - flags:
           - --alice
