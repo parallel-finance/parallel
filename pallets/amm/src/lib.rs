@@ -624,12 +624,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
         // total reserves (only two pools)
         // let total_reserves
-        let total_reserves = x
-            .get_big_uint()
-            .checked_add(&y.get_big_uint())
-            .ok_or(Error::<T, I>::ConversionToU128Failed)?
-            .to_u128()
-            .ok_or(ArithmeticError::Overflow)?;
+        let total_reserves = x.checked_add(y).ok_or(ArithmeticError::Overflow)?;
 
         // constants
         // number of tokens
@@ -659,15 +654,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             dp = dp
                 .checked_mul(d)
                 .ok_or(ArithmeticError::Overflow)?
-                .checked_div(
-                    x.get_big_uint()
-                        .checked_mul(&n_t.get_big_uint())
-                        .ok_or(Error::<T, I>::ConversionToU128Failed)?
-                        .to_u128()
-                        .ok_or(ArithmeticError::Overflow)?,
-                )
-                .ok_or(Error::<T, I>::ConversionToU128Failed)?
-                .to_u128()
+                .checked_div(x.checked_mul(n_t).ok_or(ArithmeticError::Overflow)?)
                 .ok_or(ArithmeticError::Underflow)?;
 
             // dp = (dp * d) / (y * n_t);
@@ -675,8 +662,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
                 .checked_mul(d)
                 .ok_or(ArithmeticError::Overflow)?
                 .checked_div(y.checked_mul(n_t).ok_or(ArithmeticError::Overflow)?)
-                .ok_or(Error::<T, I>::ConversionToU128Failed)?
-                .to_u128()
                 .ok_or(ArithmeticError::Underflow)?;
 
             prev_d = d;
@@ -909,9 +894,10 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
         s += autonomous_var;
         c = (c * d) / (autonomous_var * n_t);
-        c = ((c * d) * a_precision) / (n_a * n_t);
-
-        let b = s + ((d * a_precision) / n_a);
+        // c = ((c * d) * a_precision) / (n_a * n_t);
+        c = (c * d) / (n_a * n_t);
+        // let b = s + ((d * a_precision) / n_a);
+        let b = s + ((d) / n_a);
 
         let mut y_prev: u128;
         let mut y = d;
