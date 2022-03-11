@@ -11,6 +11,7 @@ use primitives::{ChainId, CurrencyId};
 use sp_runtime::traits::StaticLookup;
 
 const ETH: ChainId = 1;
+const ROPOSTEN: ChainId = 2;
 
 const HKO: CurrencyId = 0;
 const EHKO: CurrencyId = 0;
@@ -25,7 +26,6 @@ fn transfer_initial_balance<T: Config + pallet_balances::Config<Balance = Balanc
     caller: T::AccountId,
 ) {
     let account_id = T::Lookup::unlookup(caller);
-    // T::Assets::mint_into(USDT, &caller, INITIAL_AMOUNT.into()).unwrap();
     pallet_balances::Pallet::<T>::set_balance(
         SystemOrigin::Root.into(),
         account_id,
@@ -52,17 +52,17 @@ benchmarks! {
 
     register_chain {
         let caller: T::AccountId = whitelisted_caller();
-    }: _(SystemOrigin::Root, ETH)
+    }: _(SystemOrigin::Root, ROPOSTEN)
     verify {
-        assert_last_event::<T>(Event::ChainRegistered(ETH).into())
+        assert_last_event::<T>(Event::ChainRegistered(ROPOSTEN).into())
     }
 
     unregister_chain {
         let caller: T::AccountId = whitelisted_caller();
-        assert_ok!(Bridge::<T>::register_chain(SystemOrigin::Root.into(), ETH));
-    }: _(SystemOrigin::Root, ETH)
+        assert_ok!(Bridge::<T>::register_chain(SystemOrigin::Root.into(), ROPOSTEN));
+    }: _(SystemOrigin::Root, 2)
     verify {
-        assert_last_event::<T>(Event::ChainRemoved(ETH).into())
+        assert_last_event::<T>(Event::ChainRemoved(ROPOSTEN).into())
     }
 
     register_bridge_token {
