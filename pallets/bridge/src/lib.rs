@@ -286,20 +286,6 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Set the threshold required to reach multi-signature consensus
-        #[pallet::weight(T::WeightInfo::set_vote_threshold())]
-        #[transactional]
-        pub fn set_vote_threshold(origin: OriginFor<T>, threshold: u32) -> DispatchResult {
-            T::OperateOrigin::ensure_origin(origin)?;
-            Self::ensure_valid_threshold(threshold, Self::get_members_count())?;
-
-            // Set a new voting threshold
-            VoteThreshold::<T>::put(threshold);
-            Self::deposit_event(Event::VoteThresholdChanged(threshold));
-
-            Ok(())
-        }
-
         /// Register the specified chain_id
         ///
         /// Only registered chains are allowed to do cross-chain

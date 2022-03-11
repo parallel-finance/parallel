@@ -50,13 +50,6 @@ benchmarks! {
         + pallet_balances::Config<Balance = Balance>
     }
 
-    set_vote_threshold {
-        let caller: T::AccountId = whitelisted_caller();
-    }: _(SystemOrigin::Root, 2)
-    verify {
-        assert_last_event::<T>(Event::VoteThresholdChanged(2).into())
-    }
-
     register_chain {
         let caller: T::AccountId = whitelisted_caller();
     }: _(SystemOrigin::Root, ETH)

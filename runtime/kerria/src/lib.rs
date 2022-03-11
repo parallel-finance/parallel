@@ -1492,7 +1492,7 @@ parameter_types! {
     pub const BridgePalletId: PalletId = PalletId(*b"par/brid");
     // Set a short lifetime for development
     pub const ProposalLifetime: BlockNumber = 200;
-    pub const ThresholdPercentage: u32 = 50;
+    pub const ThresholdPercentage: u32 = 80;
 }
 
 impl pallet_bridge::Config for Runtime {

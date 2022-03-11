@@ -1478,7 +1478,7 @@ parameter_types! {
     pub const BridgePalletId: PalletId = PalletId(*b"par/brid");
     // About 30 days: 30 * 24 * 60 * 60 / 6 = 2592000 blocks
     pub const ProposalLifetime: BlockNumber = 2592000;
-    pub const ThresholdPercentage: u32 = 50;
+    pub const ThresholdPercentage: u32 = 80;
 }
 
 impl pallet_bridge::Config for Runtime {
