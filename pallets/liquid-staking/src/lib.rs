@@ -244,6 +244,8 @@ pub mod pallet {
         AlreadyBonded,
         /// Can not schedule more unlock chunks.
         NoMoreChunks,
+        /// Staking ledger is locked due to mutation in notification_received
+        StakingLedgerLocked,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -304,6 +306,11 @@ pub mod pallet {
         StakingLedger<T::AccountId, BalanceOf<T>>,
         OptionQuery,
     >;
+
+    /// Set to true if staking ledger has been modified in this block
+    #[pallet::storage]
+    #[pallet::getter(fn is_updated)]
+    pub type IsUpdated<T: Config> = StorageMap<_, Twox64Concat, DerivativeIndex, bool, ValueQuery>;
 
     /// Current Max WithdrewUnbonded Era, update in `WithdrawUnbonded` xcm callback
     #[pallet::storage]
@@ -697,21 +704,21 @@ pub mod pallet {
             Self::ensure_origin(origin)?;
 
             Self::do_update_ledger(derivative_index, |ledger| {
-                // TODO: validate staking_ledger using storage proof
-                *ledger = staking_ledger.clone();
+                ensure!(
+                    !Self::is_updated(derivative_index),
+                    Error::<T>::StakingLedgerLocked
+                );
+                log::trace!(
+                    target: "liquidStaking::force_set_staking_ledger",
+                    "index: {:?}, staking_ledger: {:?}",
+                    &derivative_index,
+                    &staking_ledger,
+                );
+                // TODO: using storage proof to validate submitted staking_ledger
+                *ledger = staking_ledger;
                 Ok(())
             })?;
 
-            log::trace!(
-                target: "liquidStaking::force_set_staking_ledger",
-                "index: {:?}, staking_ledger: {:?}",
-                &derivative_index,
-                &staking_ledger,
-            );
-            Self::deposit_event(Event::<T>::StakingLedgerUpdated(
-                derivative_index,
-                staking_ledger,
-            ));
             Ok(().into())
         }
     }
@@ -747,6 +754,10 @@ pub mod pallet {
                     )
                 }
             })
+        }
+
+        fn on_finalize(_n: T::BlockNumber) {
+            IsUpdated::<T>::remove_all(None);
         }
     }
 
@@ -1214,6 +1225,11 @@ pub mod pallet {
             StakingLedgers::<T>::try_mutate(derivative_index, |ledger| -> DispatchResult {
                 let ledger = ledger.as_mut().ok_or(Error::<T>::NotBonded)?;
                 cb(ledger)?;
+                IsUpdated::<T>::insert(derivative_index, true);
+                Self::deposit_event(Event::<T>::StakingLedgerUpdated(
+                    derivative_index,
+                    ledger.clone(),
+                ));
                 Ok(())
             })
         }
