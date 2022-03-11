@@ -94,7 +94,6 @@ pub use pallet_bridge;
 pub use pallet_farming;
 pub use pallet_liquid_staking;
 pub use pallet_loans;
-pub use pallet_nominee_election;
 pub use pallet_prices;
 pub use pallet_router;
 
@@ -263,10 +262,7 @@ impl Contains<Call> for BaseCallFilter {
         )
 
         // // Consensus
-        // Call::CollatorSelection(_) |
-
-        // // LiquidStaking
-        // Call::NomineeElection(_) |
+        // Call::CollatorSelection(_)
     }
 }
 
@@ -556,7 +552,6 @@ impl pallet_liquid_staking::Config for Runtime {
 }
 
 parameter_types! {
-    pub const MaxValidators: u32 = 16;
     pub const LiquidStakingAgentsMembershipMaxMembers: u32 = 3;
 }
 
@@ -572,13 +567,6 @@ impl pallet_membership::Config<LiquidStakingAgentsMembershipInstance> for Runtim
     type MembershipChanged = ();
     type MaxMembers = LiquidStakingAgentsMembershipMaxMembers;
     type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
-}
-
-impl pallet_nominee_election::Config for Runtime {
-    type Event = Event;
-    type MaxValidators = MaxValidators;
-    type WeightInfo = pallet_nominee_election::weights::SubstrateWeight<Runtime>;
-    type Members = LiquidStakingAgentsMembership;
 }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
@@ -1736,7 +1724,6 @@ construct_runtime!(
 
         // LiquidStaking
         LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config} = 60,
-        NomineeElection: pallet_nominee_election::{Pallet, Call, Storage, Event<T>} = 61,
 
         // Membership
         GeneralCouncilMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 70,
