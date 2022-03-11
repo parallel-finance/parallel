@@ -89,11 +89,10 @@ pub mod impls;
 pub use constants::{currency, fee, paras, time};
 pub use impls::DealWithFees;
 
-pub use pallet_liquid_staking;
-// pub use pallet_liquidation;
 pub use pallet_amm;
 pub use pallet_bridge;
 pub use pallet_farming;
+pub use pallet_liquid_staking;
 pub use pallet_loans;
 pub use pallet_nominee_election;
 pub use pallet_prices;
@@ -265,9 +264,6 @@ impl Contains<Call> for BaseCallFilter {
 
         // // Consensus
         // Call::CollatorSelection(_) |
-
-        // // Loans
-        // Call::Liquidation(_) |
 
         // // LiquidStaking
         // Call::NomineeElection(_) |
@@ -584,16 +580,6 @@ impl pallet_nominee_election::Config for Runtime {
     type WeightInfo = pallet_nominee_election::weights::SubstrateWeight<Runtime>;
     type Members = LiquidStakingAgentsMembership;
 }
-
-// parameter_types! {
-//     pub const LockPeriod: u64 = 20000; // in milli-seconds
-//     pub const LiquidateFactor: Percent = Percent::from_percent(50);
-// }
-// impl pallet_liquidation::Config for Runtime {
-//     type AuthorityId = pallet_liquidation::crypto::AuthId;
-//     type LockPeriod = LockPeriod;
-//     type LiquidateFactor = LiquidateFactor;
-// }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
 where
@@ -1747,7 +1733,6 @@ construct_runtime!(
         Loans: pallet_loans::{Pallet, Call, Storage, Event<T>} = 50,
         Prices: pallet_prices::{Pallet, Storage, Call, Event<T>} = 51,
         Crowdloans: pallet_crowdloans::{Pallet, Call, Storage, Event<T>} = 52,
-        // Liquidation: pallet_liquidation::{Pallet, Call} = 53,
 
         // LiquidStaking
         LiquidStaking: pallet_liquid_staking::{Pallet, Call, Storage, Event<T>, Config} = 60,

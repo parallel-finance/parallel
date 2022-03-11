@@ -87,12 +87,11 @@ pub mod impls;
 pub use constants::{currency, fee, paras, time};
 pub use impls::DealWithFees;
 
-pub use pallet_liquid_staking;
-// pub use pallet_liquidation;
 pub use pallet_amm;
 pub use pallet_bridge;
 pub use pallet_crowdloans;
 pub use pallet_farming;
+pub use pallet_liquid_staking;
 pub use pallet_loans;
 pub use pallet_nominee_election;
 pub use pallet_prices;
@@ -242,7 +241,6 @@ impl Contains<Call> for BaseCallFilter {
             Call::Vesting(_) |
             // Loans
             Call::Loans(_) |
-            // Call::Liquidation(_) |
             Call::Prices(_) |
             // LiquidStaking
             Call::LiquidStaking(_) |
@@ -576,16 +574,6 @@ impl pallet_nominee_election::Config for Runtime {
     type WeightInfo = pallet_nominee_election::weights::SubstrateWeight<Runtime>;
     type Members = LiquidStakingAgentsMembership;
 }
-
-// parameter_types! {
-//     pub const LockPeriod: u64 = 20000; // in milli-seconds
-//     pub const LiquidateFactor: Percent = Percent::from_percent(50);
-// }
-// impl pallet_liquidation::Config for Runtime {
-//     type AuthorityId = pallet_liquidation::crypto::AuthId;
-//     type LockPeriod = LockPeriod;
-//     type LiquidateFactor = LiquidateFactor;
-// }
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
 where
@@ -1672,7 +1660,6 @@ impl Contains<Call> for WhiteListFilter {
             Call::Vesting(_) |
             // Loans
             // Call::Loans(_) |
-            // Call::Liquidation(_) |
             Call::Prices(_) |
             // LiquidStaking
             // Call::LiquidStaking(_) |
