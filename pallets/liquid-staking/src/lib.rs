@@ -672,6 +672,20 @@ pub mod pallet {
             Ok(())
         }
 
+        /// Force advance era
+        #[pallet::weight(<T as Config>::WeightInfo::force_advance_era())]
+        #[transactional]
+        pub fn force_advance_era(
+            origin: OriginFor<T>,
+            offset: EraIndex,
+        ) -> DispatchResultWithPostInfo {
+            T::UpdateOrigin::ensure_origin(origin)?;
+
+            Self::do_advance_era(offset)?;
+
+            Ok(().into())
+        }
+
         /// Force set staking_ledger for updating exchange rate in next era
         #[pallet::weight(<T as Config>::WeightInfo::force_set_staking_ledger())]
         #[transactional]
@@ -698,20 +712,6 @@ pub mod pallet {
                 derivative_index,
                 staking_ledger,
             ));
-            Ok(().into())
-        }
-
-        /// Force advance era
-        #[pallet::weight(<T as Config>::WeightInfo::force_advance_era())]
-        #[transactional]
-        pub fn force_advance_era(
-            origin: OriginFor<T>,
-            offset: EraIndex,
-        ) -> DispatchResultWithPostInfo {
-            Self::ensure_origin(origin)?;
-
-            Self::do_advance_era(offset)?;
-
             Ok(().into())
         }
     }
@@ -1163,15 +1163,15 @@ pub mod pallet {
                     index: derivative_index,
                     num_slashing_spans: _,
                 } => {
-                    let current_era = Self::current_era();
-                    MaxWithdrewUnbondedEra::<T>::put(current_era);
                     Self::do_update_ledger(derivative_index, |ledger| {
+                        let current_era = Self::current_era();
                         let total = ledger.total;
                         let staking_currency = Self::staking_currency()?;
                         let account_id = Self::account_id();
                         ledger.consolidate_unlocked(current_era);
                         let amount = total.saturating_sub(ledger.total);
                         T::Assets::mint_into(staking_currency, &account_id, amount)?;
+                        MaxWithdrewUnbondedEra::<T>::put(current_era);
                         Ok(())
                     })?;
                 }
@@ -1199,7 +1199,7 @@ pub mod pallet {
             .ok_or(Error::<T>::InvalidExchangeRate)?;
             // slashes should be handled properly offchain
             // by doing `bond_extra` using OrmlXcm or PolkadotXcm
-            if new_exchange_rate >= Self::exchange_rate() {
+            if new_exchange_rate > Self::exchange_rate() {
                 ExchangeRate::<T>::put(new_exchange_rate);
                 Self::deposit_event(Event::<T>::ExchangeRateUpdated(new_exchange_rate));
             }
