@@ -277,7 +277,15 @@ benchmarks! {
         initial_set_up::<T>(alice.clone());
         LiquidStaking::<T>::stake(SystemOrigin::Signed(alice.clone()).into(), STAKE_AMOUNT).unwrap();
         LiquidStaking::<T>::unstake(SystemOrigin::Signed(alice.clone()).into(), UNSTAKE_AMOUNT).unwrap();
-        MaxWithdrewUnbondedEra::<T>::put(28);
+        with_transaction(|| {
+            LiquidStaking::<T>::do_advance_era(4).unwrap();
+            TransactionOutcome::Commit(0)
+        });
+        LiquidStaking::<T>::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            0u64,
+            Response::ExecutionResult(None)
+        ).unwrap();
     }: _(SystemOrigin::Root, account_id)
     verify {
         assert_last_event::<T>(Event::<T>::ClaimedFor(alice, UNSTAKE_AMOUNT).into());

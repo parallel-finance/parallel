@@ -633,22 +633,24 @@ fn claim_for_should_work() {
         );
 
         let derivative_index = <Test as Config>::DerivativeIndex::get();
-        assert_ok!(LiquidStaking::bond(
-            Origin::signed(ALICE),
-            derivative_index,
-            ksm(3f64),
-            RewardDestination::Staked
-        ));
+        with_transaction(|| {
+            assert_ok!(LiquidStaking::do_advance_era(4));
+            TransactionOutcome::Commit(0)
+        });
         assert_ok!(LiquidStaking::notification_received(
             pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
             0,
             Response::ExecutionResult(None),
         ));
-        MaxWithdrewUnbondedEra::<Test>::put(4);
         assert_ok!(LiquidStaking::withdraw_unbonded(
             Origin::signed(BOB),
             derivative_index,
             0
+        ));
+        assert_ok!(LiquidStaking::notification_received(
+            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+            1,
+            Response::ExecutionResult(None),
         ));
 
         assert_ok!(LiquidStaking::claim_for(Origin::signed(BOB), Id(ALICE)));

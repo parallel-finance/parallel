@@ -246,6 +246,8 @@ pub mod pallet {
         NoMoreChunks,
         /// Staking ledger is locked due to mutation in notification_received
         StakingLedgerLocked,
+        /// Not withdrawn unbonded yet
+        NotWithdrawn,
     }
 
     /// The exchange rate between relaychain native asset and the voucher.
@@ -311,11 +313,6 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn is_updated)]
     pub type IsUpdated<T: Config> = StorageMap<_, Twox64Concat, DerivativeIndex, bool, ValueQuery>;
-
-    /// Current Max WithdrewUnbonded Era, update in `WithdrawUnbonded` xcm callback
-    #[pallet::storage]
-    #[pallet::getter(fn max_withdrew_unbonded_era)]
-    pub type MaxWithdrewUnbondedEra<T: Config> = StorageValue<_, EraIndex, ValueQuery>;
 
     #[derive(Default)]
     #[pallet::genesis_config]
@@ -618,25 +615,45 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             Self::ensure_origin(origin)?;
             let who = T::Lookup::lookup(dest)?;
-            let max_withdrew_unbonded_era = Self::max_withdrew_unbonded_era();
+            let current_era = Self::current_era();
 
             Unlockings::<T>::try_mutate_exists(&who, |b| -> DispatchResult {
                 let mut amount: BalanceOf<T> = Zero::zero();
                 let chunks = b.as_mut().ok_or(Error::<T>::NothingToClaim)?;
                 chunks.retain(|chunk| {
-                    if chunk.era > max_withdrew_unbonded_era {
+                    if chunk.era > current_era {
                         true
                     } else {
                         amount += chunk.value;
                         false
                     }
                 });
+
+                let total_unclaimed = T::Assets::reducible_balance(
+                    Self::staking_currency()?,
+                    &Self::account_id(),
+                    false,
+                )
+                .saturating_sub(Self::total_reserves())
+                .saturating_sub(Self::matching_pool().total_stake_amount);
+
+                log::trace!(
+                    target: "liquidStaking::claim_for",
+                    "current_era: {:?}, beneficiary: {:?}, total_unclaimed: {:?}, amount: {:?}",
+                    &current_era,
+                    &who,
+                    &total_unclaimed,
+                    amount
+                );
+
                 if amount.is_zero() {
                     return Err(Error::<T>::NothingToClaim.into());
                 }
-                if chunks.is_empty() {
-                    *b = None;
+
+                if total_unclaimed < amount {
+                    return Err(Error::<T>::NotWithdrawn.into());
                 }
+
                 T::Assets::transfer(
                     Self::staking_currency()?,
                     &Self::account_id(),
@@ -645,12 +662,9 @@ pub mod pallet {
                     false,
                 )?;
 
-                log::trace!(
-                    target: "liquidStaking::claim_for",
-                    "beneficiary: {:?}, amount: {:?}",
-                    &who,
-                    amount
-                );
+                if chunks.is_empty() {
+                    *b = None;
+                }
 
                 Self::deposit_event(Event::<T>::ClaimedFor(who.clone(), amount));
                 Ok(())
@@ -1128,7 +1142,9 @@ pub mod pallet {
                     );
                     StakingLedgers::<T>::insert(derivative_index, staking_ledger);
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        p.update_total_stake_amount(amount, Subtraction)
+                        p.update_total_stake_amount(amount, Subtraction)?;
+                        p.clear();
+                        Ok(())
                     })?;
                     T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), amount)?;
                 }
@@ -1141,7 +1157,9 @@ pub mod pallet {
                         Ok(())
                     })?;
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        p.update_total_stake_amount(amount, Subtraction)
+                        p.update_total_stake_amount(amount, Subtraction)?;
+                        p.clear();
+                        Ok(())
                     })?;
                     T::Assets::burn_from(Self::staking_currency()?, &Self::account_id(), amount)?;
                 }
@@ -1155,7 +1173,9 @@ pub mod pallet {
                         Ok(())
                     })?;
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        p.update_total_unstake_amount(amount, Subtraction)
+                        p.update_total_unstake_amount(amount, Subtraction)?;
+                        p.clear();
+                        Ok(())
                     })?;
                 }
                 Rebond {
@@ -1167,7 +1187,9 @@ pub mod pallet {
                         Ok(())
                     })?;
                     MatchingPool::<T>::try_mutate(|p| -> DispatchResult {
-                        p.update_total_stake_amount(amount, Subtraction)
+                        p.update_total_stake_amount(amount, Subtraction)?;
+                        p.clear();
+                        Ok(())
                     })?;
                 }
                 WithdrawUnbonded {
@@ -1182,7 +1204,6 @@ pub mod pallet {
                         ledger.consolidate_unlocked(current_era);
                         let amount = total.saturating_sub(ledger.total);
                         T::Assets::mint_into(staking_currency, &account_id, amount)?;
-                        MaxWithdrewUnbondedEra::<T>::put(current_era);
                         Ok(())
                     })?;
                 }

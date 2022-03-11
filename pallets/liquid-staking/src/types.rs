@@ -69,9 +69,6 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
                     .ok_or(ArithmeticError::Underflow)?;
             }
         }
-        if self.total_stake_amount == self.total_unstake_amount {
-            self.reset();
-        }
         Ok(())
     }
 
@@ -95,15 +92,16 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
                     .ok_or(ArithmeticError::Underflow)?;
             }
         }
-        if self.total_stake_amount == self.total_unstake_amount {
-            self.reset();
-        }
         Ok(())
     }
 
-    fn reset(&mut self) {
-        self.total_unstake_amount = Zero::zero();
+    pub fn clear(&mut self) {
+        if self.total_stake_amount != self.total_unstake_amount {
+            return;
+        }
+
         self.total_stake_amount = Zero::zero();
+        self.total_unstake_amount = Zero::zero();
     }
 }
 
