@@ -299,7 +299,7 @@ pub struct XcmWeightFeeMisc<Weight, Balance> {
 impl Default for XcmWeightFeeMisc<Weight, Balance> {
     fn default() -> Self {
         let default_weight = 3_000_000_000;
-        let default_fee = 5_000_000_000;
+        let default_fee = 10_000_000_000;
         XcmWeightFeeMisc {
             weight: default_weight,
             fee: default_fee,
