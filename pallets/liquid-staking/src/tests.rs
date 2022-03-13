@@ -13,11 +13,13 @@ use primitives::{
     ump::RewardDestination,
     Balance, Rate, Ratio,
 };
+use sp_runtime::traits::BlakeTwo256;
 use sp_runtime::{
     traits::{One, Zero},
     MultiAddress::Id,
     TransactionOutcome,
 };
+use sp_trie::StorageProof;
 use xcm_simulator::TestExt;
 
 #[test]
@@ -825,4 +827,27 @@ fn test_force_notification_received_work() {
         ));
         assert_eq!(XcmRequests::<Test>::get(query_id), None);
     })
+}
+
+fn test_storage_proof_approach_should_work() {
+    let relay_root = sp_core::hash::H256::from_slice(
+        &hex::decode("e6ea689908580b82ec897103923349e9d23a3a9a83e9e591b82a14e594771e81").unwrap(),
+    );
+
+    let proof_bytes = [
+        hex::decode("80009080e4455a74a1b18a746e782c8f82dd5fcef0ff894054cdad93105a020c493f5c21809800c465fb3f4bb74ad9612284389bd6bd14a43a3ce05d3a8801075c17b52fbd").unwrap(),
+        hex::decode("9e3e4907f716ac89b6347d15ececedca2f9a585f0b6a45321efae92aea15e0740ec7afe71000000000585f038e71612491192d68deab7e6f563fe11032000000806ec80d7afc89a3ccebe10fcdf04ca16518ff88d6b29462ec861b00d31239db35585f008ce9615de0775a82f8a94dc3d285a110010000004c5f0579297f4dfb9609e7e4c2ebab9ce40a040080b4bc1ac16dfbd37f60d99cf6c5862653a0a00a7331e5ca406ea9b0808e654d42585f049a2738eeb30896aacb8b3fb46471bd1004000000585f029a0310e1bb45d20cace77ccb62c97d1000e1f5054c5f07dad0317324aecae8744b87fc95f2f30402").unwrap(),
+        hex::decode("803f9380c08cb229b23415d8103aae8a617d5cdae4b844f24b74d70c80de5670e2d54730800f942caf987ab27334838568993bde55482687f235d693048528c38bd540fd3080c11e8851946484c4106dccd5d45db80ec4086121f1911c67224e83440ad6efda8059303d0936052e0ba97abe144c515afa36996c54a739cc4dc725ec0947101c83805c72f25b1b6304d16667e2766fa1a906cb081788eb4502787df7c3597412b17b807985da9a6baa5f454409f4efd1bc940f892ec0ef155928798b914fec7ad964c6801911fa0bcfcdd7aeb963ce71cb12958a9617b6319c9b6efb858facf97415a532806f87c53dcb8224365b839b43da140568e513d0555a8b6197108a2995e8f6e4e580c0a31eab3691c8b479394f82a49469efa6c92f54197ae8dc6c7a5627f3a993bc80889797b248833c7bffae8c56be986e1a1925b180268ec9cb2354932036db48d7").unwrap(),
+    ];
+
+    let key = hex::decode("5f3e4907f716ac89b6347d15ececedca422adb579f1dbf4f3886c5cfa3bb8cc4405808113ad68224168753ff4cf07d3e086f2422947fdbebd39a68f8708064bd5d9caab70d1d6a51abff895db91f5655").unwrap();
+
+    let relay_proof = StorageProof::new(proof_bytes.to_vec());
+
+    dbg!(sp_state_machine::read_proof_check::<BlakeTwo256, _>(
+        relay_root,
+        relay_proof.clone(),
+        [key]
+    )
+    .unwrap());
 }
