@@ -136,10 +136,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("vanilla"),
     impl_name: create_runtime_str!("vanilla"),
     authoring_version: 1,
-    spec_version: 178,
-    impl_version: 23,
+    spec_version: 179,
+    impl_version: 24,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 7,
+    transaction_version: 8,
     state_version: 0,
 };
 
