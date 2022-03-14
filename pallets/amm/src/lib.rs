@@ -633,14 +633,14 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         let a_precision: u128 = 100;
 
         // dont need precision since u128
-        // let a: u128 = __a
-        //     .checked_mul(a_precision)
-        //     .ok_or(ArithmeticError::Overflow)?;
+        let a: u128 = __a
+            .checked_mul(a_precision)
+            .ok_or(ArithmeticError::Overflow)?;
 
         let mut prev_d: u128;
 
         let mut d = total_reserves;
-        let n_a = __a.checked_mul(2u128).ok_or(ArithmeticError::Overflow)?;
+        let n_a = a.checked_mul(2u128).ok_or(ArithmeticError::Overflow)?;
 
         // 255 is a max number of loops
         // should throw error if does not converge
@@ -868,10 +868,20 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         mut autonomous_var: BalanceOf<T, I>,
         (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),
     ) -> Result<u128, DispatchError> {
+        // autonomous_var(Amount in) = 10_000
+        // Asset in = 101
+        // Asset out = 1001
+
         let (resx, _resy) = Self::get_reserves(asset_in, asset_out).unwrap();
 
+        // resx = 900000
+        // resy = 1000000
+
+        // adds reserve_x for amount in
+        // autonomous_var = autonomous_var + resx =
         autonomous_var += resx;
 
+        // passes asset in and asset out
         let d = Self::get_d((asset_in, asset_out)).unwrap();
 
         let mut c = d;
@@ -883,21 +893,43 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
         // Constant
         // Do we need this ?
-        // let a_precision = 100u128;
+        let a_precision = 100u128;
 
         //
-        let a = __a;
+        let a = __a
+            .checked_mul(a_precision)
+            .ok_or(ArithmeticError::Underflow)?;
 
         let n_a = n_t * a;
 
         let _x = 0u128;
 
         s += autonomous_var;
-        c = (c * d) / (autonomous_var * n_t);
-        // c = ((c * d) * a_precision) / (n_a * n_t);
-        c = (c * d) / (n_a * n_t);
-        // let b = s + ((d * a_precision) / n_a);
-        let b = s + ((d) / n_a);
+
+        c = (c.checked_mul(d).ok_or(ArithmeticError::Underflow)?)
+            .checked_div(
+                autonomous_var
+                    .checked_mul(n_t)
+                    .ok_or(ArithmeticError::Underflow)?,
+            )
+            .ok_or(ArithmeticError::Underflow)?;
+
+        c = (c
+            .checked_mul(d)
+            .ok_or(ArithmeticError::Underflow)?
+            .checked_add(a_precision)
+            .ok_or(ArithmeticError::Underflow)?)
+        .checked_div(n_a.checked_mul(n_t).ok_or(ArithmeticError::Underflow)?)
+        .ok_or(ArithmeticError::Underflow)?;
+
+        let b = s
+            .checked_add(
+                d.checked_mul(a_precision)
+                    .ok_or(ArithmeticError::Underflow)?
+                    .checked_div(n_a)
+                    .ok_or(ArithmeticError::Underflow)?,
+            )
+            .ok_or(ArithmeticError::Underflow)?;
 
         let mut y_prev: u128;
         let mut y = d;
@@ -906,7 +938,21 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         // should throw error if does not converge
         for _ in 0..255 {
             y_prev = y;
-            y = ((y * y) + c) / (((y * 2) + b) - d);
+
+            y = (y
+                .checked_mul(y)
+                .ok_or(ArithmeticError::Underflow)?
+                .checked_add(c)
+                .ok_or(ArithmeticError::Underflow)?)
+            .checked_div(
+                (y.checked_mul(2u128)
+                    .ok_or(ArithmeticError::Underflow)?
+                    .checked_add(b)
+                    .ok_or(ArithmeticError::Underflow)?)
+                .checked_sub(d)
+                .ok_or(ArithmeticError::Underflow)?,
+            )
+            .ok_or(ArithmeticError::Underflow)?;
 
             if y < y_prev {
                 break;

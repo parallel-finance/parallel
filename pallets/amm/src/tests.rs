@@ -1028,7 +1028,13 @@ fn close_unbalanced_small_stable_swap_amount_out_should_work() {
         let y = AMM::get_alternative_var(amount_in, (DOT, XDOT)).unwrap();
         /*
         u128 y = 1282261
-             amount_in = 10000
+        amount_in = 10000
+
+        float
+        y  = 989988.61254373263
+        dy =  10011.387456267374
+        ex =      1.0011387456267373
+
         */
         // let dy = 1_000_000 - y;
         // let ex_ratio = dy / amount_in;
