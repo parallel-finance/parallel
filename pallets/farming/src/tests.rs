@@ -45,7 +45,7 @@ fn pool_create_work() {
         // 6, can create a pool with different lock duration
         assert_ok!(Farming::create(
             Origin::root(),
-            TAKE_TOKEN,
+            STAKE_TOKEN,
             REWARD_TOKEN,
             30,
             50,
