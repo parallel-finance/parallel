@@ -1617,7 +1617,8 @@ parameter_types! {
     pub const FarmingPalletId: PalletId = PalletId(*b"par/farm");
     pub const MaxRewardTokens: u32 = 1000;
     pub const MaxUserLockItemsCount: u32 = 100;
-    pub const LockPoolMaxDuration: u32 = 50400;
+    pub const LockPoolMaxDuration: u32 = 2628000;
+    pub const CoolDownMaxDuration: u32 = 50400;
 }
 
 impl pallet_farming::Config for Runtime {
@@ -1628,6 +1629,7 @@ impl pallet_farming::Config for Runtime {
     type WeightInfo = pallet_farming::weights::SubstrateWeight<Runtime>;
     type MaxUserLockItemsCount = MaxUserLockItemsCount;
     type LockPoolMaxDuration = LockPoolMaxDuration;
+    type CoolDownMaxDuration = CoolDownMaxDuration;
     type Decimal = Decimal;
 }
 
