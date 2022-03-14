@@ -110,11 +110,13 @@ pub type StreamId = u128;
 
 pub type Stream = (
     // Remaining Balance
-    Amount,
+    Balance,
     // Deposit
-    Amount,
+    Balance,
+    // Currency Id
+    CurrencyId,
     // Rate Per Second
-    Amount,
+    Balance,
     // Recipient
     AccountId,
     // Sender
@@ -123,8 +125,6 @@ pub type Stream = (
     Timestamp,
     // Stop Time
     Timestamp,
-    // Currency to send
-    CurrencyId,
 );
 
 pub use cumulus_primitives_core::ParaId;
