@@ -921,18 +921,23 @@ fn small_stable_swap_amount_out_should_work() {
         ));
 
         let amount_in = 10;
+        let val = 1_000_000;
         let y = AMM::get_alternative_var(amount_in, (DOT, XDOT)).unwrap();
 
-        // let dy = 1_000_000 - y;
-        // let ex_ratio = dy / amount_in;
+        let dy: u128;
 
-        let dy = 1_000_000u128.checked_sub(y).unwrap();
+        if val > y {
+            dy = val - y;
+        } else {
+            dy = y - val;
+        }
+
         let ex_ratio = dy.checked_div(amount_in).unwrap();
 
         // assert_eq!(ex_ratio, 0.9999998837010935);
         // assert_eq!(dy, 9.999998837010935);
-        assert_eq!(ex_ratio, 0);
-        assert_eq!(dy, 9);
+        assert_eq!(ex_ratio, 0); // 33202
+        assert_eq!(dy, 9); // 332027
     })
 }
 

@@ -868,17 +868,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         mut autonomous_var: BalanceOf<T, I>,
         (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),
     ) -> Result<u128, DispatchError> {
-        // autonomous_var(Amount in) = 10_000
-        // Asset in = 101
-        // Asset out = 1001
-
         let (resx, _resy) = Self::get_reserves(asset_in, asset_out).unwrap();
-
-        // resx = 900000
-        // resy = 1000000
-
-        // adds reserve_x for amount in
-        // autonomous_var = autonomous_var + resx =
         autonomous_var += resx;
 
         // passes asset in and asset out
@@ -900,7 +890,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             .checked_mul(a_precision)
             .ok_or(ArithmeticError::Underflow)?;
 
-        let n_a = n_t * a;
+        let n_a = n_t.checked_mul(a).ok_or(ArithmeticError::Overflow)?;
 
         let _x = 0u128;
 
@@ -917,7 +907,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         c = (c
             .checked_mul(d)
             .ok_or(ArithmeticError::Underflow)?
-            .checked_add(a_precision)
+            .checked_mul(a_precision)
             .ok_or(ArithmeticError::Underflow)?)
         .checked_div(n_a.checked_mul(n_t).ok_or(ArithmeticError::Underflow)?)
         .ok_or(ArithmeticError::Underflow)?;
@@ -954,8 +944,14 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             )
             .ok_or(ArithmeticError::Underflow)?;
 
-            if y < y_prev {
-                break;
+            // Throws exception on Error
+            // Replaces
+            // if (y - y_prev).abs() < 1.0 {
+            //    break;
+            // }
+            match y.checked_sub(y_prev).ok_or(ArithmeticError::Overflow) {
+                Ok(_) => continue,
+                Err(_) => break,
             }
         }
 
