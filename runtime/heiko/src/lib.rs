@@ -257,7 +257,9 @@ impl Contains<Call> for BaseCallFilter {
             Call::GeneralCouncilMembership(_) |
             Call::TechnicalCommitteeMembership(_) |
             // Route
-            Call::AMMRoute(_)
+            Call::AMMRoute(_) |
+            // AssetManager
+            Call::AssetManager(_)
         )
 
         // // Consensus
@@ -1257,7 +1259,7 @@ impl Config for XcmConfig {
     type Call = Call;
     type XcmSender = XcmRouter;
     // How to withdraw and deposit an asset.
-    type AssetTransactor = LocalAssetTransactor;
+    type AssetTransactor = AssetTransactors;
     type OriginConverter = XcmOriginToTransactDispatchOrigin;
     type IsReserve = MultiNativeAsset;
     // Teleporting is disabled.

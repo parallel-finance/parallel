@@ -163,8 +163,7 @@ impl<
                 MultiCurrency::mint_into(currency_id, &who, amount)
                     .map_err(|e| XcmError::FailedToTransactAsset(e.into()))
             }
-            // ignore unknown asset
-            _ => Ok(()),
+            _ => Err(XcmError::AssetNotFound),
         }
     }
 
