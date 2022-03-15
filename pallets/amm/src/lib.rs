@@ -732,11 +732,8 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         let n_t = 2u128;
         let __a = 85u128;
 
-        // Constant
-        // Do we need this ?
         let a_precision = 100u128;
 
-        //
         let a = __a
             .checked_mul(a_precision)
             .ok_or(ArithmeticError::Underflow)?;
@@ -774,7 +771,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
         let mut y_prev;
         let mut y = d;
-
         // 255 is a max number of loops
         // should throw error if does not converge
         for _ in 0..255 {
