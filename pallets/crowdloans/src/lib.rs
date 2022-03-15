@@ -711,7 +711,7 @@ pub mod pallet {
             lease_end: LeasePeriod,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
-            Self::inner_claim(who, crowdloan, lease_start, lease_end)
+            Self::do_claim_for(who, crowdloan, lease_start, lease_end)
         }
 
         /// If a `crowdloan` succeeded, claim the liquid derivatives of the
@@ -727,7 +727,7 @@ pub mod pallet {
         ) -> DispatchResult {
             let _ = ensure_signed(origin)?;
             let who = T::Lookup::lookup(dest)?;
-            Self::inner_claim(who, crowdloan, lease_start, lease_end)
+            Self::do_claim_for(who, crowdloan, lease_start, lease_end)
         }
 
         /// If a `crowdloan` failed, withdraw the contributed assets
@@ -740,7 +740,7 @@ pub mod pallet {
             lease_end: LeasePeriod,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
-            Self::inner_withdraw(who, crowdloan, lease_start, lease_end)
+            Self::do_withdraw_for(who, crowdloan, lease_start, lease_end)
         }
 
         /// If a `crowdloan` failed, withdraw the contributed assets for others
@@ -755,7 +755,7 @@ pub mod pallet {
         ) -> DispatchResult {
             let _ = ensure_signed(origin)?;
             let who = T::Lookup::lookup(dest)?;
-            Self::inner_withdraw(who, crowdloan, lease_start, lease_end)
+            Self::do_withdraw_for(who, crowdloan, lease_start, lease_end)
         }
 
         /// If a `crowdloan` expired, redeem the contributed assets
@@ -1452,7 +1452,7 @@ pub mod pallet {
         }
 
         #[require_transactional]
-        fn inner_claim(
+        fn do_claim_for(
             who: T::AccountId,
             crowdloan: ParaId,
             lease_start: LeasePeriod,
@@ -1500,7 +1500,7 @@ pub mod pallet {
         }
 
         #[require_transactional]
-        fn inner_withdraw(
+        fn do_withdraw_for(
             who: T::AccountId,
             crowdloan: ParaId,
             lease_start: LeasePeriod,
