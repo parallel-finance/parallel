@@ -188,11 +188,11 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
             DOT => Some(MultiLocation::parent()),
-            XDOT => Some(MultiLocation::new(
+            SDOT => Some(MultiLocation::new(
                 1,
                 X2(
                     Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(b"xDOT".to_vec()),
+                    GeneralKey(b"sDOT".to_vec()),
                 ),
             )),
             _ => None,
@@ -210,8 +210,8 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xDOT".to_vec() => {
-                Some(XDOT)
+            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"sDOT".to_vec() => {
+                Some(SDOT)
             }
             _ => None,
         }
@@ -405,9 +405,9 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
         Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
-        Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(Origin::root(), SDOT, Id(ALICE), true, 1).unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
-        Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), SDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
         Assets::mint(
             Origin::signed(ALICE),
             DOT,
@@ -476,9 +476,9 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
     ext.execute_with(|| {
         System::set_block_number(1);
         Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
-        Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(Origin::root(), SDOT, Id(ALICE), true, 1).unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
-        Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
+        Assets::mint(Origin::signed(ALICE), SDOT, Id(ALICE), 100 * DOT_DECIMAL).unwrap();
         Assets::mint(
             Origin::signed(ALICE),
             DOT,

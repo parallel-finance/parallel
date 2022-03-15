@@ -13,7 +13,7 @@ use frame_support::{
 use frame_system::{self, RawOrigin as SystemOrigin};
 use primitives::ump::{XcmCall, XcmWeightFeeMisc};
 use primitives::{
-    tokens::{KSM, XKSM},
+    tokens::{KSM, SKSM},
     ump::RewardDestination,
     Balance, CurrencyId, Rate, Ratio,
 };
@@ -68,14 +68,14 @@ fn initial_set_up<
     )
     .unwrap();
 
-    pallet_assets::Pallet::<T>::force_create(SystemOrigin::Root.into(), XKSM, account_id, true, 1)
+    pallet_assets::Pallet::<T>::force_create(SystemOrigin::Root.into(), SKSM, account_id, true, 1)
         .ok();
 
     pallet_assets::Pallet::<T>::force_set_metadata(
         SystemOrigin::Root.into(),
-        XKSM,
+        SKSM,
         b"Parallel Kusama".to_vec(),
-        b"XKSM".to_vec(),
+        b"sKSM".to_vec(),
         12,
         false,
     )

@@ -17,7 +17,7 @@ use primitives::{
 use sp_runtime::traits::StaticLookup;
 use sp_std::prelude::*;
 
-const BASE_ASSET: CurrencyId = XDOT;
+const BASE_ASSET: CurrencyId = SDOT;
 const QUOTE_ASSET: CurrencyId = DOT;
 const INITIAL_AMOUNT: u128 = 1_000_000_000_000_000;
 const ASSET_ID: u32 = 10;
@@ -37,7 +37,7 @@ fn initial_set_up<
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        tokens::XDOT,
+        tokens::SDOT,
         account_id.clone(),
         true,
         One::one(),

@@ -25,7 +25,7 @@ use sp_runtime::traits::{One, StaticLookup};
 use sp_std::{vec, vec::Vec};
 
 const DOT: CurrencyId = tokens::DOT;
-const XDOT: CurrencyId = tokens::XDOT;
+const SDOT: CurrencyId = tokens::SDOT;
 const INITIAL_AMOUNT: u128 = 1_000_000_000_000_000;
 const ASSET_ID: u32 = 11;
 
@@ -43,7 +43,7 @@ fn initial_set_up<
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
-        tokens::XDOT,
+        tokens::SDOT,
         account_id.clone(),
         true,
         One::one(),
@@ -63,7 +63,7 @@ fn initial_set_up<
 
     let pool_creator = account("pool_creator", 1, 0);
     <T as crate::Config<I>>::Assets::mint_into(DOT, &pool_creator, INITIAL_AMOUNT).ok();
-    <T as crate::Config<I>>::Assets::mint_into(XDOT, &pool_creator, INITIAL_AMOUNT).ok();
+    <T as crate::Config<I>>::Assets::mint_into(SDOT, &pool_creator, INITIAL_AMOUNT).ok();
 
     pallet_assets::Pallet::<T>::force_create(
         SystemOrigin::Root.into(),
@@ -76,7 +76,7 @@ fn initial_set_up<
 
     assert_ok!(pallet_amm::Pallet::<T>::create_pool(
         T::CreatePoolOrigin::successful_origin(),
-        (DOT, XDOT),
+        (DOT, SDOT),
         (100_000_000u128, 100_000_000u128),
         pool_creator.clone(),
         ASSET_ID
@@ -84,7 +84,7 @@ fn initial_set_up<
 
     assert_ok!(pallet_amm::Pallet::<T>::add_liquidity(
         SystemOrigin::Signed(pool_creator).into(),
-        (DOT, XDOT),
+        (DOT, SDOT),
         (100_000_000u128, 100_000_000u128),
         (99_999u128, 99_999u128)
     ));
@@ -101,12 +101,12 @@ benchmarks_instance_pallet! {
         let amount_in = 1_000u128;
         let min_amount_out = 980u128;
         let expiry = u32::MAX;
-        let routes: Vec<_> = vec![DOT, XDOT];
+        let routes: Vec<_> = vec![DOT, SDOT];
     }: swap_exact_tokens_for_tokens(SystemOrigin::Signed(caller.clone()), routes, amount_in, min_amount_out)
 
     verify {
-        let routes: Vec<_> = vec![DOT, XDOT];
-        let amount_out: BalanceOf<T, I> = <T as crate::Config<I>>::Assets::balance(XDOT, &caller);
+        let routes: Vec<_> = vec![DOT, SDOT];
+        let amount_out: BalanceOf<T, I> = <T as crate::Config<I>>::Assets::balance(SDOT, &caller);
         let expected = 994u128;
 
         assert_eq!(amount_out, expected);
@@ -120,11 +120,11 @@ benchmarks_instance_pallet! {
         let amount_out = 980u128;
         let max_amount_in = 1_000u128;
         let expiry = u32::MAX;
-        let routes: Vec<_> = vec![DOT, XDOT];
+        let routes: Vec<_> = vec![DOT, SDOT];
     }: swap_tokens_for_exact_tokens(SystemOrigin::Signed(caller.clone()), routes, amount_out, max_amount_in)
 
     verify {
-        let routes: Vec<_> = vec![DOT, XDOT];
+        let routes: Vec<_> = vec![DOT, SDOT];
         let balance_after_trade: BalanceOf<T, I> = <T as crate::Config<I>>::Assets::balance(DOT, &caller);
         let amount_in = balance_before_trade - balance_after_trade;
         let expected = 986u128;

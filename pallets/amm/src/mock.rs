@@ -16,7 +16,7 @@ use sp_runtime::{
 use system::EnsureSignedBy;
 
 pub const DOT: CurrencyId = tokens::DOT;
-pub const XDOT: CurrencyId = tokens::XDOT;
+pub const SDOT: CurrencyId = tokens::SDOT;
 pub const KSM: CurrencyId = tokens::KSM;
 pub const SAMPLE_LP_TOKEN: CurrencyId = 42;
 pub const SAMPLE_LP_TOKEN_2: CurrencyId = 43;
@@ -212,7 +212,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
         Assets::force_create(Origin::root(), tokens::DOT, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), tokens::XDOT, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), tokens::SDOT, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), tokens::KSM, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), SAMPLE_LP_TOKEN, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), SAMPLE_LP_TOKEN_2, ALICE, true, 1).unwrap();
@@ -236,16 +236,16 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         )
         .unwrap();
 
-        Assets::mint(Origin::signed(ALICE), tokens::XDOT, ALICE, 100_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::SDOT, ALICE, 100_000_000).unwrap();
         Assets::mint(
             Origin::signed(ALICE),
-            tokens::XDOT,
+            tokens::SDOT,
             BOB,
             100_000_000_000_000_000_000,
         )
         .unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::XDOT, CHARLIE, 1000_000_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::XDOT, EVE, 1000_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::SDOT, CHARLIE, 1000_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), tokens::SDOT, EVE, 1000_000_000).unwrap();
 
         Assets::mint(Origin::signed(ALICE), tokens::KSM, ALICE, 100_000_000).unwrap();
         Assets::mint(Origin::signed(ALICE), tokens::KSM, BOB, 100_000_000).unwrap();

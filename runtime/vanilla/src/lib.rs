@@ -48,7 +48,7 @@ use polkadot_runtime_common::SlowAdjustingFeeUpdate;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::HEIKO_PREFIX,
-    tokens::{EUSDC, EUSDT, HKO, KAR, KSM, KUSD, LKSM, XKSM},
+    tokens::{EUSDC, EUSDT, HKO, KAR, KSM, KUSD, LKSM, SKSM},
     Index, *,
 };
 use sp_api::impl_runtime_apis;
@@ -339,11 +339,11 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
             KSM => Some(MultiLocation::parent()),
-            XKSM => Some(MultiLocation::new(
+            SKSM => Some(MultiLocation::new(
                 1,
                 X2(
                     Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(b"xKSM".to_vec()),
+                    GeneralKey(b"sKSM".to_vec()),
                 ),
             )),
             HKO => Some(MultiLocation::new(
@@ -389,13 +389,13 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xKSM".to_vec() => {
-                Some(XKSM)
+            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"sKSM".to_vec() => {
+                Some(SKSM)
             }
             MultiLocation {
                 parents: 0,
                 interior: X1(GeneralKey(key)),
-            } if key == b"xKSM".to_vec() => Some(XKSM),
+            } if key == b"sKSM".to_vec() => Some(SKSM),
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
@@ -513,9 +513,9 @@ parameter_types! {
     pub const DerivativeIndex: u16 = 0;
     pub const EraLength: BlockNumber = 1 * 3 * 60 / 6;
     pub const MinStake: Balance = 100_000_000_000; // 0.1KSM
-    pub const MinUnstake: Balance = 50_000_000_000; // 0.05xKSM
+    pub const MinUnstake: Balance = 50_000_000_000; // 0.05sKSM
     pub const StakingCurrency: CurrencyId = KSM;
-    pub const LiquidCurrency: CurrencyId = XKSM;
+    pub const LiquidCurrency: CurrencyId = SKSM;
     pub const XcmFees: Balance = 5_000_000_000; // 0.005KSM
     pub const BondingDuration: EraIndex = 3; // 9Minutes
     pub const NumSlashingSpans: u32 = 0;
@@ -964,17 +964,17 @@ pub type XcmOriginToTransactDispatchOrigin = (
 
 parameter_types! {
     pub KsmPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), ksm_per_second());
-    pub XKSMPerSecond: (AssetId, u128) = (
+    pub SKSMPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(b"xKSM".to_vec())),
+            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(b"sKSM".to_vec())),
         ).into(),
         ksm_per_second()
     );
-    pub XKSMPerSecondOfCanonicalLocation: (AssetId, u128) = (
+    pub SKSMPerSecondOfCanonicalLocation: (AssetId, u128) = (
         MultiLocation::new(
             0,
-            X1(GeneralKey(b"xKSM".to_vec())),
+            X1(GeneralKey(b"sKSM".to_vec())),
         ).into(),
         ksm_per_second()
     );
@@ -1046,8 +1046,8 @@ impl TakeRevenue for ToTreasury {
 
 pub type Trader = (
     FixedRateOfFungible<KsmPerSecond, ToTreasury>,
-    FixedRateOfFungible<XKSMPerSecond, ToTreasury>,
-    FixedRateOfFungible<XKSMPerSecondOfCanonicalLocation, ToTreasury>,
+    FixedRateOfFungible<SKSMPerSecond, ToTreasury>,
+    FixedRateOfFungible<SKSMPerSecondOfCanonicalLocation, ToTreasury>,
     FixedRateOfFungible<HkoPerSecond, ToTreasury>,
     FixedRateOfFungible<HkoPerSecondOfCanonicalLocation, ToTreasury>,
     FixedRateOfFungible<KusdPerSecond, ToTreasury>,
