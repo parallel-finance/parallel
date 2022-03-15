@@ -108,6 +108,8 @@ pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 // DAOFi id of a payment stream 
 pub type StreamId = u128;
 
+// TODO: Remove the type once it should be local only to the pallet
+/*
 pub type Stream = (
     // Remaining Balance
     Balance,
@@ -126,6 +128,7 @@ pub type Stream = (
     // Stop Time
     Timestamp,
 );
+*/
 
 pub use cumulus_primitives_core::ParaId;
 use num_bigint::{BigUint, ToBigUint};

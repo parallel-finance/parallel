@@ -20,6 +20,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
     log,
     pallet_prelude::*,
@@ -31,9 +32,11 @@ use frame_support::{
     weights::DispatchClass,
     PalletId,
 };
-use codec::{Encode, Decode};
-use sp_std::{fmt::Debug, prelude::*};
 use frame_system::pallet_prelude::*;
+use scale_info::TypeInfo;
+
+#[cfg(feature = "std")]
+use frame_support::serde::{Deserialize, Serialize};
 use primitives::*;
 use sp_runtime::{
     traits::{
@@ -42,17 +45,9 @@ use sp_runtime::{
     },
     ArithmeticError, FixedPointNumber, FixedU128,
 };
+use sp_std::{fmt::Debug, prelude::*};
 
 pub use pallet::*;
-
-#[derive(Encode, Decode, Default, Clone, PartialEq)]
-#[cfg_attr(feature = "std", derive(Debug))]
-pub struct Kitty<Hash, Balance> {
-    id: Hash,
-    dna: Hash,
-    price: Balance,
-    gen: u64,
-}
 
 //#[cfg(test)]
 //mod mock;
@@ -65,6 +60,32 @@ type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
 type BalanceOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
+type AccountOf<T> = <T as frame_system::Config>::AccountId;
+
+// Struct for Payroll stream
+#[derive(Clone, Encode, Decode, PartialEq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
+#[scale_info(skip_type_params(T))]
+#[codec(mel_bound())]
+pub struct Stream<T: Config> {
+    // Remaining Balance
+    remaining_balance: BalanceOf<T>,
+    // Deposit
+    deposit: BalanceOf<T>,
+    // Currency Id
+    currency_id: AssetIdOf<T>,
+    // Rate Per Second
+    rate_per_sec: BalanceOf<T>,
+    // Recipient
+    recipient: AccountOf<T>,
+    // Sender
+    sender: AccountOf<T>,
+    // Start Time
+    start_time: Timestamp,
+    // Stop Time
+    stop_time: Timestamp,
+}
+
+
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -93,7 +114,6 @@ pub mod pallet {
 
         /// Weight information
         type WeightInfo: WeightInfo;
-
     }
 
     #[pallet::error]
@@ -111,17 +131,17 @@ pub mod pallet {
         /// Creates a payment stream. \[stream_id, sender, recipient, deposit, currency_id, start_time, stop_time\]
         CreateStream(
             StreamId,
-            T::AccountId,
-            T::AccountId,
+            AccountOf<T>,
+            AccountOf<T>,
             BalanceOf<T>,
             AssetIdOf<T>,
             Timestamp,
             Timestamp,
         ),
         /// Withdraw payment from stream. \[stream_id, recipient, amount\]
-        WithdrawFromStream(StreamId, AccountId, Amount),
+        WithdrawFromStream(StreamId, AccountOf<T>, BalanceOf<T>),
         /// Cancel an existing stream. \[stream_id, sender, recipient, sender_balance, recipient_balance]
-        CancelStream(StreamId, AccountId, AccountId, Amount, Amount),
+        CancelStream(StreamId, AccountOf<T>, AccountOf<T>, BalanceOf<T>, BalanceOf<T>),
     }
 
     /// Next Stream Id
@@ -132,7 +152,7 @@ pub mod pallet {
     /// Global storage for streams
     #[pallet::storage]
     #[pallet::getter(fn get_stream)]
-    pub type Streams<T: Config> = StorageMap<_, Blake2_128Concat, StreamId, Stream, ValueQuery>;
+    pub type Streams<T: Config> = StorageMap<_, Twox64Concat, StreamId, Stream<T>>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -145,7 +165,7 @@ pub mod pallet {
         #[transactional]
         pub fn create_stream(
             origin: OriginFor<T>,
-            recipient: T::AccountId,
+            recipient: AccountOf<T>,
             deposit: BalanceOf<T>,
             currency: AssetIdOf<T>,
             rate_per_sec: BalanceOf<T>,
@@ -160,8 +180,9 @@ pub mod pallet {
                 Error::<T>::StartBeforeBlockTime
             );
             ensure!(stop_time > start_time, Error::<T>::StopBeforeStart);
+            /*
             // insert stream to the Streams
-            let stream: Stream = (
+            let stream: Stream<T> = (
                 deposit,      // remaining balance same value for now due to initialization
                 deposit,      // deposit
                 currency,     // currency id
@@ -171,8 +192,8 @@ pub mod pallet {
                 start_time,   // start_time
                 stop_time,    // stop_time
             );
-
-            Streams::<T>::insert(NextStreamId::get(), stream);
+            */
+            //Streams::<T>::insert(NextStreamId::get(), stream);
             Ok(().into())
         }
 
@@ -185,11 +206,14 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
             // check sender is stream sender
-            let stream = Streams::<T>::get(stream_id);
-            ensure!(sender == stream.5.into_account(), Error::<T>::NotTheStreamer);
+            //let stream = Streams::<T>::get(stream_id);
+            //ensure!(
+            //    sender == stream.5.into_account(),
+            //    Error::<T>::NotTheStreamer
+            //);
             // send funds back to sender
-            T::Assets::transfer(stream.2, &Self::account_id(), &sender, stream.0, false)?;
-            Streams::<T>::remove(stream_id);
+            //T::Assets::transfer(stream.2, &Self::account_id(), &sender, stream.0, false)?;
+            //Streams::<T>::remove(stream_id);
             Ok(().into())
         }
 
@@ -207,7 +231,7 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
-    pub fn account_id() -> T::AccountId {
+    pub fn account_id() -> AccountOf<T> {
         T::PalletId::get().into_account()
     }
 }
