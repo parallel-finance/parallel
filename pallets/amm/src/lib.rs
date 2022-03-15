@@ -631,7 +631,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         let __a: u128 = 85;
         let a_precision: u128 = 100;
 
-        // dont need precision since u128
         let a: u128 = __a
             .checked_mul(a_precision)
             .ok_or(ArithmeticError::Overflow)?;
