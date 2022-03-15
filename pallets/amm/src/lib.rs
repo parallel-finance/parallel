@@ -921,7 +921,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             )
             .ok_or(ArithmeticError::Underflow)?;
 
-        let mut y_prev: u128;
+        let mut y_prev = 0u128;
         let mut y = d;
 
         // 255 is a max number of loops
