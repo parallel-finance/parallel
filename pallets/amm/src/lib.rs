@@ -713,6 +713,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(d)
     }
 
+    // TODO: Replace Arithemtic Errors to the big_uint conversion error  merge with master
     #[allow(dead_code)]
     fn get_alternative_var(
         mut autonomous_var: BalanceOf<T, I>,
@@ -796,6 +797,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         }
 
         Ok(y)
+        // throw new Error('Approximation did not converge')
     }
 
     // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
