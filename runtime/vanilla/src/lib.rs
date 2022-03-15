@@ -1440,6 +1440,9 @@ impl pallet_amm::Config for Runtime {
     type MinimumLiquidity = MinimumLiquidity;
     type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
     type MaxLengthRoute = MaxLengthRoute;
+    type NumTokens = NumTokens;
+    type Precision = Precision;
+    type AmplificationCoefficient = AmplificationCoefficient;
 }
 
 parameter_types! {
@@ -1511,6 +1514,9 @@ impl pallet_xcm_helper::Config for Runtime {
 }
 parameter_types! {
     pub const MaxLengthRoute: u8 = 10;
+    pub const NumTokens: u8 = 2;
+    pub const Precision: u32 = 100;
+    pub const AmplificationCoefficient: u8 = 85;
     pub const RouterPalletId: PalletId = PalletId(*b"ammroute");
 }
 

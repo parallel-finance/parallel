@@ -116,6 +116,16 @@ pub mod pallet {
         /// How many routes we support at most
         #[pallet::constant]
         type MaxLengthRoute: Get<u32>;
+
+        /// Number of tokens supported by swap
+        #[pallet::constant]
+        type NumTokens: Get<u8>;
+
+        /// Precision
+        type Precision: Get<u128>;
+
+        /// Optimal Amplification Coefficient
+        type AmplificationCoefficient: Get<u8>;
     }
 
     #[pallet::error]
@@ -621,18 +631,10 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     ) -> Result<u128, DispatchError> {
         let (x, y) = Self::get_reserves(asset_in, asset_out)?;
 
-        // total reserves (only two pools)
-        // let total_reserves
         let total_reserves = x.checked_add(y).ok_or(ArithmeticError::Overflow)?;
 
-        // constants
-        // number of tokens
-        let n_t = 2;
-        let __a: u128 = 85;
-        let a_precision: u128 = 100;
-
-        let a: u128 = __a
-            .checked_mul(a_precision)
+        let a: u128 = (T::AmplificationCoefficient::get() as u128)
+            .checked_mul(T::Precision::get())
             .ok_or(ArithmeticError::Overflow)?;
 
         let mut prev_d: u128;
@@ -652,41 +654,49 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             dp = dp
                 .checked_mul(d)
                 .ok_or(ArithmeticError::Overflow)?
-                .checked_div(x.checked_mul(n_t).ok_or(ArithmeticError::Overflow)?)
+                .checked_div(
+                    x.checked_mul(T::NumTokens::get().into())
+                        .ok_or(ArithmeticError::Overflow)?,
+                )
                 .ok_or(ArithmeticError::Underflow)?;
 
             // dp = (dp * d) / (y * n_t);
             dp = dp
                 .checked_mul(d)
                 .ok_or(ArithmeticError::Overflow)?
-                .checked_div(y.checked_mul(n_t).ok_or(ArithmeticError::Overflow)?)
+                .checked_div(
+                    y.checked_mul(T::NumTokens::get().into())
+                        .ok_or(ArithmeticError::Overflow)?,
+                )
                 .ok_or(ArithmeticError::Underflow)?;
 
             prev_d = d;
 
             // d = ((((n_a * s) / a_precision) + (dp * n_t)) * d)
             //     / ((((n_a - a_precision) * d) / a_precision) + ((n_t + 1) * dp));
-            let k = dp.checked_mul(n_t).ok_or(ArithmeticError::Overflow)?;
+            let k = dp
+                .checked_mul(T::NumTokens::get().into())
+                .ok_or(ArithmeticError::Overflow)?;
 
             let m = n_a
                 .checked_mul(total_reserves)
                 .ok_or(ArithmeticError::Overflow)?
-                .checked_div(a_precision)
+                .checked_div(T::Precision::get())
                 .ok_or(ArithmeticError::Underflow)?
                 .checked_add(k)
                 .ok_or(ArithmeticError::Overflow)?;
 
             let n = n_a
-                .checked_sub(a_precision)
+                .checked_sub(T::Precision::get())
                 .ok_or(ArithmeticError::Underflow)?
                 .checked_mul(d)
                 .ok_or(ArithmeticError::Overflow)?;
 
             let u = n
-                .checked_div(a_precision)
+                .checked_div(T::Precision::get())
                 .ok_or(ArithmeticError::Underflow)?;
 
-            let l = n_t
+            let l = (T::NumTokens::get() as u128)
                 .checked_add(1u128)
                 .ok_or(ArithmeticError::Overflow)?
                 .checked_mul(dp)
@@ -713,7 +723,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         Ok(d)
     }
 
-    // TODO: Replace Arithemtic Errors to the big_uint conversion error  merge with master
+    // TODO: Replace Arithmetic Errors to the big_uint conversion error  merge with master
     #[allow(dead_code)]
     fn get_alternative_var(
         mut autonomous_var: BalanceOf<T, I>,
@@ -728,17 +738,13 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         let mut c = d;
         let mut s = 0u128;
 
-        // constants
-        let n_t = 2u128;
-        let __a = 85u128;
-
-        let a_precision = 100u128;
-
-        let a = __a
-            .checked_mul(a_precision)
+        let a = (T::AmplificationCoefficient::get() as u128)
+            .checked_mul(T::Precision::get())
             .ok_or(ArithmeticError::Underflow)?;
 
-        let n_a = n_t.checked_mul(a).ok_or(ArithmeticError::Overflow)?;
+        let n_a = (T::NumTokens::get() as u128)
+            .checked_mul(a)
+            .ok_or(ArithmeticError::Overflow)?;
 
         let _x = 0u128;
 
@@ -747,7 +753,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         c = (c.checked_mul(d).ok_or(ArithmeticError::Underflow)?)
             .checked_div(
                 autonomous_var
-                    .checked_mul(n_t)
+                    .checked_mul(T::NumTokens::get().into())
                     .ok_or(ArithmeticError::Underflow)?,
             )
             .ok_or(ArithmeticError::Underflow)?;
@@ -755,14 +761,17 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         c = (c
             .checked_mul(d)
             .ok_or(ArithmeticError::Underflow)?
-            .checked_mul(a_precision)
+            .checked_mul(T::Precision::get())
             .ok_or(ArithmeticError::Underflow)?)
-        .checked_div(n_a.checked_mul(n_t).ok_or(ArithmeticError::Underflow)?)
+        .checked_div(
+            n_a.checked_mul(T::NumTokens::get() as u128)
+                .ok_or(ArithmeticError::Underflow)?,
+        )
         .ok_or(ArithmeticError::Underflow)?;
 
         let b = s
             .checked_add(
-                d.checked_mul(a_precision)
+                d.checked_mul(T::Precision::get())
                     .ok_or(ArithmeticError::Underflow)?
                     .checked_div(n_a)
                     .ok_or(ArithmeticError::Underflow)?,
