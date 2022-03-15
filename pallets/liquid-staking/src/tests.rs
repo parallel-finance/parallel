@@ -7,7 +7,7 @@ use crate::{
 use frame_support::{assert_noop, assert_ok, storage::with_transaction, traits::Hooks};
 
 use primitives::{
-    tokens::{KSM, XKSM},
+    tokens::{KSM, SKSM},
     ump::RewardDestination,
     Balance, Rate, Ratio,
 };
@@ -35,7 +35,7 @@ fn stake_should_work() {
         // Check balance is correct
         assert_eq!(<Test as Config>::Assets::balance(KSM, &ALICE), ksm(90f64));
         assert_eq!(
-            <Test as Config>::Assets::balance(XKSM, &ALICE),
+            <Test as Config>::Assets::balance(SKSM, &ALICE),
             ksm(109.95f64)
         );
 

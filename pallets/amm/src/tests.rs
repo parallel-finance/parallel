@@ -11,13 +11,13 @@ fn create_pool_should_work() {
     new_test_ext().execute_with(|| {
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (1_000, 2_000),                  // Liquidity amounts to be added in pool
             BOB,                             // LPToken receiver
             SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 2_000);
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().base_amount, 2_000);
         assert_eq!(Assets::total_issuance(SAMPLE_LP_TOKEN), 1_414);
         // should be issuance minus the min liq locked
         assert_eq!(Assets::balance(SAMPLE_LP_TOKEN, BOB), 414);
@@ -61,19 +61,19 @@ fn add_liquidity_should_work() {
     new_test_ext().execute_with(|| {
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (1_000, 2_000),                  // Liquidity amounts to be added in pool
             ALICE,                           // LPToken receiver
             SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
         ));
         assert_ok!(AMM::add_liquidity(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (1_000, 2_000),                  // Liquidity amounts to be added in pool
             (5, 5),                          // specifying its worst case ratio when pool already
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 4_000);
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().base_amount, 4_000);
     })
 }
 
@@ -82,7 +82,7 @@ fn add_more_liquidity_should_work() {
     new_test_ext().execute_with(|| {
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (1_000, 2_000),                  // Liquidity amounts to be added in pool
             ALICE,                           // LPToken receiver
             SAMPLE_LP_TOKEN                  // Liquidity pool share representative token
@@ -90,13 +90,13 @@ fn add_more_liquidity_should_work() {
 
         assert_ok!(AMM::add_liquidity(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (3_000, 4_000),                  // Liquidity amounts to be added in pool
             (5, 5), // specifying its worst case ratio when pool already exists
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 6_000);
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 3_000);
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().base_amount, 6_000);
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().quote_amount, 3_000);
     })
 }
 
@@ -105,7 +105,7 @@ fn add_more_liquidity_should_not_work_if_minimum_base_amount_is_higher() {
     new_test_ext().execute_with(|| {
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (1_000, 2_000),                  // Liquidity amounts to be added in pool
             ALICE,                           // LPToken receiver
             SAMPLE_LP_TOKEN                  // Liquidity pool share representative token
@@ -114,7 +114,7 @@ fn add_more_liquidity_should_not_work_if_minimum_base_amount_is_higher() {
         assert_noop!(
             AMM::add_liquidity(
                 RawOrigin::Signed(ALICE).into(), // Origin
-                (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+                (DOT, SDOT),                     // Currency pool, in which liquidity will be added
                 (3_000, 4_000),                  // Liquidity amounts to be added in pool
                 (5_500, 5_00)                    // specifying its worst case ratio when pool already
             ),
@@ -128,7 +128,7 @@ fn add_more_liquidity_with_low_balance_should_not_work() {
     new_test_ext().execute_with(|| {
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (1_000, 2_000),                  // Liquidity amounts to be added in pool
             ALICE,                           // LPToken receiver
             SAMPLE_LP_TOKEN                  // Liquidity pool share representative token
@@ -136,7 +136,7 @@ fn add_more_liquidity_with_low_balance_should_not_work() {
 
         assert_ok!(AMM::add_liquidity(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (3_000, 4_000),                  // Liquidity amounts to be added in pool
             (1, 1),                          // specifying its worst case ratio when pool already
         ));
@@ -144,7 +144,7 @@ fn add_more_liquidity_with_low_balance_should_not_work() {
         assert_noop!(
             AMM::add_liquidity(
                 RawOrigin::Signed(ALICE).into(), // Origin
-                (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+                (DOT, SDOT),                     // Currency pool, in which liquidity will be added
                 (5000_000_000, 6000_000_000),    // Liquidity amounts to be added in pool
                 (5, 5), // specifying its worst case ratio when pool already
             ),
@@ -158,7 +158,7 @@ fn add_liquidity_by_another_user_should_work() {
     new_test_ext().execute_with(|| {
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (1_000, 2_000),                  // Liquidity amounts to be added in pool
             ALICE,                           // LPToken receiver
             SAMPLE_LP_TOKEN                  // Liquidity pool share representative token
@@ -166,19 +166,19 @@ fn add_liquidity_by_another_user_should_work() {
 
         assert_ok!(AMM::add_liquidity(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (3_000, 4_000),                  // Liquidity amounts to be added in pool
             (5, 5),                          // specifying its worst case ratio when pool already
         ));
 
         assert_ok!(AMM::add_liquidity(
             RawOrigin::Signed(BOB).into(), // Origin
-            (DOT, XDOT),                   // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                   // Currency pool, in which liquidity will be added
             (500, 1_000),                  // Liquidity amounts to be added in pool
             (5, 5),                        // specifying its worst case ratio when pool already
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 7_000);
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().base_amount, 7_000);
     })
 }
 
@@ -187,7 +187,7 @@ fn cannot_create_pool_twice() {
     new_test_ext().execute_with(|| {
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (1_000, 2_000),                  // Liquidity amounts to be added in pool
             ALICE,                           // LPToken receiver
             SAMPLE_LP_TOKEN                  // Liquidity pool share representative token
@@ -196,7 +196,7 @@ fn cannot_create_pool_twice() {
         assert_noop!(
             AMM::create_pool(
                 RawOrigin::Signed(ALICE).into(), // Origin
-                (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+                (DOT, SDOT),                     // Currency pool, in which liquidity will be added
                 (1_000, 2_000),                  // Liquidity amounts to be added in pool
                 ALICE,                           // LPToken receiver
                 SAMPLE_LP_TOKEN                  // Liquidity pool share representative token
@@ -215,7 +215,7 @@ fn remove_liquidity_whole_share_should_work() {
 
         let _ = AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (1_000, 9_000),                  // Liquidity amounts to be added in pool
             ALICE,                           // LPToken receiver
             SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
@@ -223,7 +223,7 @@ fn remove_liquidity_whole_share_should_work() {
 
         assert_ok!(AMM::remove_liquidity(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be removed
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be removed
             3_000 - MINIMUM_LIQUIDITY        // liquidity to be removed from user's liquidity
         ));
     })
@@ -238,23 +238,23 @@ fn remove_liquidity_only_portion_should_work() {
 
         let _ = AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (1_000, 9_000),                  // Liquidity amounts to be added in pool
             ALICE,                           // LPToken receiver
             SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
         );
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 9_000);
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 1_000);
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().base_amount, 9_000);
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().quote_amount, 1_000);
 
         assert_ok!(AMM::remove_liquidity(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be removed
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be removed
             1_500                            // Liquidity to be removed from user's liquidity
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 4_500);
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 500);
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().base_amount, 4_500);
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().quote_amount, 500);
     })
 }
 
@@ -263,21 +263,21 @@ fn remove_liquidity_user_more_liquidity_should_work() {
     new_test_ext().execute_with(|| {
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (1_000, 2_500),                  // Liquidity amounts to be added in pool
             ALICE,                           // LPToken receiver
             SAMPLE_LP_TOKEN                  // Liquidity pool share representative token
         ));
         assert_ok!(AMM::add_liquidity(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (1_500, 3_000),                  // Liquidity amounts to be added in pool
             (5, 5),                          // specifying its worst case ratio when pool already
         ));
 
         assert_ok!(AMM::remove_liquidity(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be removed
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be removed
             1_500                            // Liquidity to be removed from user's liquidity
         ));
     })
@@ -287,7 +287,7 @@ fn remove_liquidity_user_more_liquidity_should_work() {
 fn remove_liquidity_when_pool_does_not_exist_should_not_work() {
     new_test_ext().execute_with(|| {
         assert_noop!(
-            AMM::remove_liquidity(RawOrigin::Signed(ALICE).into(), (DOT, XDOT), 15),
+            AMM::remove_liquidity(RawOrigin::Signed(ALICE).into(), (DOT, SDOT), 15),
             Error::<Test>::PoolDoesNotExist
         );
     })
@@ -302,14 +302,14 @@ fn remove_liquidity_with_more_liquidity_should_not_work() {
 
         let _ = AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (1_000, 9_000),                  // Liquidity amounts to be added in pool
             ALICE,                           // LPToken receiver
             SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
         );
 
         assert_noop!(
-            AMM::remove_liquidity(RawOrigin::Signed(ALICE).into(), (DOT, XDOT), 3_0000),
+            AMM::remove_liquidity(RawOrigin::Signed(ALICE).into(), (DOT, SDOT), 3_0000),
             Error::<Test>::InsufficientLiquidity
         );
     })
@@ -323,20 +323,20 @@ fn swap_should_work_base_to_quote() {
         // create pool and add liquidity
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (100_000_000, 100_000_000),      // Liquidity amounts to be added in pool
             CHARLIE,                         // LPToken receiver
             SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
         ));
 
-        // XDOT is base_asset 1001
+        // SDOT is base_asset 1001
         // DOT is quote_asset 101
 
         // check that pool was funded correctly
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 100_000_000); // XDOT
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_000_000); // DOT
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().base_amount, 100_000_000); // SDOT
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().quote_amount, 100_000_000); // DOT
 
-        let path = vec![DOT, XDOT];
+        let path = vec![DOT, SDOT];
 
         let amount_in = 1_000;
 
@@ -344,9 +344,9 @@ fn swap_should_work_base_to_quote() {
 
         // check balances before swap
         assert_eq!(Assets::balance(DOT, trader), 1_000_000_000);
-        assert_eq!(Assets::balance(XDOT, trader), 1_000_000_000);
+        assert_eq!(Assets::balance(SDOT, trader), 1_000_000_000);
 
-        assert_ok!(AMM::swap(&trader, (DOT, XDOT), amounts_out[0]));
+        assert_ok!(AMM::swap(&trader, (DOT, SDOT), amounts_out[0]));
 
         assert_eq!(
             Assets::balance(DOT, trader),
@@ -354,7 +354,7 @@ fn swap_should_work_base_to_quote() {
         );
 
         assert_eq!(
-            Assets::balance(XDOT, trader),
+            Assets::balance(SDOT, trader),
             1_000_000_000 + amounts_out[1] // 1_000_000_996
         );
     })
@@ -368,20 +368,20 @@ fn swap_should_work_different_ratio_base_to_quote() {
         // create pool and add liquidity
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (100_000_000, 50_000_000),       // Liquidity amounts to be added in pool
             CHARLIE,                         // LPToken receiver
             SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
         ));
 
-        // XDOT is base_asset 1001
+        // SDOT is base_asset 1001
         // DOT is quote_asset 101
 
         // check that pool was funded correctly
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 50_000_000); // XDOT
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_000_000); // DOT
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().base_amount, 50_000_000); // SDOT
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().quote_amount, 100_000_000); // DOT
 
-        let path = vec![DOT, XDOT];
+        let path = vec![DOT, SDOT];
 
         let amount_in = 1_000;
 
@@ -389,9 +389,9 @@ fn swap_should_work_different_ratio_base_to_quote() {
 
         // check balances before swap
         assert_eq!(Assets::balance(DOT, trader), 1_000_000_000);
-        assert_eq!(Assets::balance(XDOT, trader), 1_000_000_000);
+        assert_eq!(Assets::balance(SDOT, trader), 1_000_000_000);
 
-        assert_ok!(AMM::swap(&trader, (DOT, XDOT), amounts_out[0],));
+        assert_ok!(AMM::swap(&trader, (DOT, SDOT), amounts_out[0],));
 
         assert_eq!(
             Assets::balance(DOT, trader),
@@ -399,7 +399,7 @@ fn swap_should_work_different_ratio_base_to_quote() {
         );
 
         assert_eq!(
-            Assets::balance(XDOT, trader),
+            Assets::balance(SDOT, trader),
             1_000_000_000 + amounts_out[1] // 1_000_000_996
         );
     })
@@ -413,20 +413,20 @@ fn swap_should_work_quote_to_base() {
         // create pool and add liquidity
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (XDOT, DOT),                     // Currency pool, in which liquidity will be added
+            (SDOT, DOT),                     // Currency pool, in which liquidity will be added
             (50_000_000, 100_000_000),       // Liquidity amounts to be added in pool
             CHARLIE,                         // LPToken receiver
             SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
         ));
 
-        // XDOT is base_asset 1001
+        // SDOT is base_asset 1001
         // DOT is quote_asset 101
 
         // check that pool was funded correctly
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 50_000_000); // XDOT
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_000_000); // DOT
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().base_amount, 50_000_000); // SDOT
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().quote_amount, 100_000_000); // DOT
 
-        let path = vec![DOT, XDOT];
+        let path = vec![DOT, SDOT];
 
         let amount_in = 1_000;
 
@@ -434,9 +434,9 @@ fn swap_should_work_quote_to_base() {
 
         // check balances before swap
         assert_eq!(Assets::balance(DOT, trader), 1_000_000_000);
-        assert_eq!(Assets::balance(XDOT, trader), 1_000_000_000);
+        assert_eq!(Assets::balance(SDOT, trader), 1_000_000_000);
 
-        assert_ok!(AMM::swap(&trader, (DOT, XDOT), amounts_out[0],));
+        assert_ok!(AMM::swap(&trader, (DOT, SDOT), amounts_out[0],));
 
         assert_eq!(
             Assets::balance(DOT, trader),
@@ -444,7 +444,7 @@ fn swap_should_work_quote_to_base() {
         );
 
         assert_eq!(
-            Assets::balance(XDOT, trader),
+            Assets::balance(SDOT, trader),
             1_000_000_000 + amounts_out[1] // 1_000_000_996
         );
     })
@@ -458,32 +458,32 @@ fn trade_should_work_base_to_quote_flipped_currencies_on_pool_creation() {
         // create pool and add liquidity
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (XDOT, DOT),                     // Currency pool, in which liquidity will be added
+            (SDOT, DOT),                     // Currency pool, in which liquidity will be added
             (100_000_000, 100_000_000),      // Liquidity amounts to be added in pool
             CHARLIE,                         // LPToken receiver
             SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
         ));
 
-        // XDOT is base_asset 1001
+        // SDOT is base_asset 1001
         // DOT is quote_asset 101
 
         // check that pool was funded correctly
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 100_000_000); // XDOT
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_000_000); // DOT
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().base_amount, 100_000_000); // SDOT
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().quote_amount, 100_000_000); // DOT
 
         // calculate amount out
-        assert_ok!(AMM::swap(&trader, (DOT, XDOT), 1_000));
+        assert_ok!(AMM::swap(&trader, (DOT, SDOT), 1_000));
 
         assert_eq!(
-            Assets::balance(XDOT, trader),
+            Assets::balance(SDOT, trader),
             1_000_000_000 + 996 // 1_000_000_996
         );
 
-        // pools values should be updated - we should have less XDOT
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 99_999_004);
+        // pools values should be updated - we should have less SDOT
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().base_amount, 99_999_004);
 
         // pools values should be updated - we should have more DOT in the pool
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_001_000);
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().quote_amount, 100_001_000);
     })
 }
 
@@ -495,33 +495,33 @@ fn trade_should_work_quote_to_base() {
         // create pool and add liquidity
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (100_000_000, 100_000_000),      // Liquidity amounts to be added in pool
             CHARLIE,                         // LPToken receiver
             SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
         ));
 
-        // XDOT is base_asset 1001
+        // SDOT is base_asset 1001
         // DOT is quote_asset 101
 
         // check that pool was funded correctly
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 100_000_000); // XDOT
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_000_000); // DOT
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().base_amount, 100_000_000); // SDOT
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().quote_amount, 100_000_000); // DOT
 
         // calculate amount out
         // trade base for quote
-        assert_ok!(AMM::swap(&trader, (DOT, XDOT), 1_000));
+        assert_ok!(AMM::swap(&trader, (DOT, SDOT), 1_000));
 
         assert_eq!(
-            Assets::balance(XDOT, trader),
+            Assets::balance(SDOT, trader),
             1_000_000_000 + 996 // 1_000_000_996
         );
 
         // we should have more DOT in the pool since were trading it for DOT
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_001_000);
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().quote_amount, 100_001_000);
 
-        // we should have less XDOT since we traded it for XDOT
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 99_999_004);
+        // we should have less SDOT since we traded it for SDOT
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().base_amount, 99_999_004);
     })
 }
 
@@ -532,7 +532,7 @@ fn trade_should_not_work_if_insufficient_amount_in() {
 
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (100_000, 100_000),              // Liquidity amounts to be added in pool
             CHARLIE,                         // LPToken receiver
             SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
@@ -541,18 +541,18 @@ fn trade_should_not_work_if_insufficient_amount_in() {
         // create pool and add liquidity
         assert_ok!(AMM::add_liquidity(
             RawOrigin::Signed(CHARLIE).into(), // Origin
-            (DOT, XDOT),                       // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                       // Currency pool, in which liquidity will be added
             (100_000, 100_000),                // Liquidity amounts to be added in pool
             (99_999, 99_999),                  // specifying its worst case ratio when pool already
         ));
 
         // check that pool was funded correctly
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 200_000); // XDOT
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 200_000); // DOT
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().base_amount, 200_000); // SDOT
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().quote_amount, 200_000); // DOT
 
         // amount out is less than minimum_amount_out
         assert_noop!(
-            AMM::swap(&trader, (DOT, XDOT), 332),
+            AMM::swap(&trader, (DOT, SDOT), 332),
             Error::<Test>::InsufficientAmountIn
         );
     })
@@ -566,29 +566,29 @@ fn trade_should_work_flipped_currencies() {
         // create pool and add liquidity
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (100_000, 50_000),               // Liquidity amounts to be added in pool
             CHARLIE,                         // LPToken receiver
             SAMPLE_LP_TOKEN                  // Liquidity pool share representative token
         ));
 
         // check that pool was funded correctly
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_000); // DOT
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 50_000); // XDOT
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().quote_amount, 100_000); // DOT
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().base_amount, 50_000); // SDOT
 
         // calculate amount out
-        assert_ok!(AMM::swap(&trader, (DOT, XDOT), 500));
+        assert_ok!(AMM::swap(&trader, (DOT, SDOT), 500));
 
         assert_eq!(
-            Assets::balance(XDOT, trader),
+            Assets::balance(SDOT, trader),
             1_000_000_000 + 248 //
         );
 
         // pools values should be updated - we should have less DOT in the pool
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().quote_amount, 100_000 + 500);
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().quote_amount, 100_000 + 500);
 
-        // pools values should be updated - we should have more XDOT
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 50_000 - 248);
+        // pools values should be updated - we should have more SDOT
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().base_amount, 50_000 - 248);
     })
 }
 
@@ -600,7 +600,7 @@ fn trade_should_not_work_if_amount_in_is_zero() {
         // create pool and add liquidity
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (1_000, 1_000),                  // Liquidity amounts to be added in pool
             ALICE,                           // LPToken receiver
             SAMPLE_LP_TOKEN                  // Liquidity pool share representative token
@@ -608,7 +608,7 @@ fn trade_should_not_work_if_amount_in_is_zero() {
 
         // fail if amount_in is zero
         assert_noop!(
-            AMM::swap(&trader, (DOT, XDOT), 0),
+            AMM::swap(&trader, (DOT, SDOT), 0),
             Error::<Test>::InsufficientAmountIn
         );
     })
@@ -621,7 +621,7 @@ fn trade_should_not_work_if_pool_does_not_exist() {
 
         // try to trade in pool with no liquidity
         assert_noop!(
-            AMM::swap(&trader, (DOT, XDOT), 10),
+            AMM::swap(&trader, (DOT, SDOT), 10),
             Error::<Test>::PoolDoesNotExist
         );
     })
@@ -647,7 +647,7 @@ fn amounts_out_should_work() {
     new_test_ext().execute_with(|| {
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (1_000, 2_000),                  // Liquidity amounts to be added in pool
             BOB,                             // LPToken receiver
             SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
@@ -661,7 +661,7 @@ fn amounts_out_should_work() {
             SAMPLE_LP_TOKEN_2,               // Liquidity pool share representative token
         ));
 
-        let path = vec![XDOT, DOT, KSM];
+        let path = vec![SDOT, DOT, KSM];
 
         let amount_in = 1_000;
 
@@ -676,7 +676,7 @@ fn long_route_amounts_in_should_work() {
     new_test_ext().execute_with(|| {
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (10_000, 20_000),                // Liquidity amounts to be added in pool
             BOB,                             // LPToken receiver
             SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
@@ -690,7 +690,7 @@ fn long_route_amounts_in_should_work() {
             SAMPLE_LP_TOKEN_2,               // Liquidity pool share representative token
         ));
 
-        let path = vec![XDOT, DOT, KSM];
+        let path = vec![SDOT, DOT, KSM];
 
         let amount_out = 1_000;
 
@@ -705,13 +705,13 @@ fn short_route_amounts_in_should_work() {
     new_test_ext().execute_with(|| {
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (10_000_000, 10_000_000),        // Liquidity amounts to be added in pool
             BOB,                             // LPToken receiver
             SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
         ));
 
-        let path = vec![DOT, XDOT];
+        let path = vec![DOT, SDOT];
 
         let amount_out = 1_000;
 
@@ -788,41 +788,41 @@ fn update_oracle_should_work() {
 
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (XDOT, DOT),                     // Currency pool, in which liquidity will be added
+            (SDOT, DOT),                     // Currency pool, in which liquidity will be added
             (100_000, 100_000),              // Liquidity amounts to be added in pool
             BOB,                             // LPToken receiver
             SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().block_timestamp_last, 0);
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().price_0_cumulative_last, 0);
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().price_1_cumulative_last, 0);
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().block_timestamp_last, 0);
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().price_0_cumulative_last, 0);
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().price_1_cumulative_last, 0);
 
         run_to_block(2);
 
-        assert_ok!(AMM::swap(&trader, (DOT, XDOT), 1_000));
+        assert_ok!(AMM::swap(&trader, (DOT, SDOT), 1_000));
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().block_timestamp_last, 2);
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().block_timestamp_last, 2);
         assert_eq!(
-            AMM::pools(XDOT, DOT).unwrap().price_0_cumulative_last,
+            AMM::pools(SDOT, DOT).unwrap().price_0_cumulative_last,
             2_040136143738700978
         );
         assert_eq!(
-            AMM::pools(XDOT, DOT).unwrap().price_1_cumulative_last,
+            AMM::pools(SDOT, DOT).unwrap().price_1_cumulative_last,
             1_960653465346534653
         );
 
         run_to_block(4);
 
-        assert_ok!(AMM::swap(&trader, (DOT, XDOT), 1_000));
+        assert_ok!(AMM::swap(&trader, (DOT, SDOT), 1_000));
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().block_timestamp_last, 4);
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().block_timestamp_last, 4);
         assert_eq!(
-            AMM::pools(XDOT, DOT).unwrap().price_0_cumulative_last,
+            AMM::pools(SDOT, DOT).unwrap().price_0_cumulative_last,
             4_120792162342213614
         );
         assert_eq!(
-            AMM::pools(XDOT, DOT).unwrap().price_1_cumulative_last,
+            AMM::pools(SDOT, DOT).unwrap().price_1_cumulative_last,
             3_883124053581828770
         );
     })
@@ -946,7 +946,7 @@ fn create_pool_large_amount_should_work() {
         .ok();
         Assets::mint(
             RawOrigin::Signed(ALICE).into(),
-            tokens::XDOT,
+            tokens::SDOT,
             ALICE,
             2_000_000_000_000_000_000_000,
         )
@@ -954,14 +954,14 @@ fn create_pool_large_amount_should_work() {
 
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(),                            // Origin
-            (DOT, XDOT), // Currency pool, in which liquidity will be added
+            (DOT, SDOT), // Currency pool, in which liquidity will be added
             (1_000_000_000_000_000_000, 2_000_000_000_000_000_000_000), // Liquidity amounts to be added in pool
             ALICE,                                                      // LPToken receiver
             SAMPLE_LP_TOKEN, // Liquidity pool share representative token
         ));
 
         assert_eq!(
-            AMM::pools(XDOT, DOT).unwrap().base_amount,
+            AMM::pools(SDOT, DOT).unwrap().base_amount,
             2_000_000_000_000_000_000_000
         );
         assert_eq!(
@@ -993,7 +993,7 @@ fn create_pool_large_amount_from_an_account_without_sufficient_amount_of_tokens_
         .ok();
         Assets::mint(
             RawOrigin::Signed(ALICE).into(),
-            tokens::XDOT,
+            tokens::SDOT,
             ALICE,
             2_000_000_000_000_000_000_000,
         )
@@ -1004,7 +1004,7 @@ fn create_pool_large_amount_from_an_account_without_sufficient_amount_of_tokens_
         assert_noop!(
             AMM::create_pool(
                 RawOrigin::Signed(ALICE).into(),                            // Origin
-                (DOT, XDOT), // Currency pool, in which liquidity will be added
+                (DOT, SDOT), // Currency pool, in which liquidity will be added
                 (1_000_000_000_000_000_000, 2_000_000_000_000_000_000_000), // Liquidity amounts to be added in pool
                 BOB,                                                        // LPToken receiver
                 SAMPLE_LP_TOKEN, // Liquidity pool share representative token
@@ -1036,7 +1036,7 @@ fn do_add_liquidity_exact_amounts_should_work() {
         // Already deposited 100000000
         Assets::mint(
             RawOrigin::Signed(ALICE).into(),
-            tokens::XDOT,
+            tokens::SDOT,
             ALICE,
             199_999_999_999_990_000_000_0,
         )
@@ -1044,19 +1044,19 @@ fn do_add_liquidity_exact_amounts_should_work() {
 
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(),                            // Origin
-            (DOT, XDOT), // Currency pool, in which liquidity will be added
+            (DOT, SDOT), // Currency pool, in which liquidity will be added
             (1_000_000_000_000_000_000, 2_000_000_000_000_000_000_000), // Liquidity amounts to be added in pool
             ALICE,                                                      // LPToken receiver
             SAMPLE_LP_TOKEN, // Liquidity pool share representative token
         ));
         assert_ok!(AMM::add_liquidity(
             RawOrigin::Signed(ALICE).into(),                            // Origin
-            (DOT, XDOT), // Currency pool, in which liquidity will be added
+            (DOT, SDOT), // Currency pool, in which liquidity will be added
             (1_000_000_000_000_000_000, 2_000_000_000_000_000_000_000), // Liquidity amounts to be added in pool
             (5, 5), // specifying its worst case ratio when pool already
         ));
 
-        assert_eq!(AMM::pools(XDOT, DOT).unwrap().base_amount, 4_000);
+        assert_eq!(AMM::pools(SDOT, DOT).unwrap().base_amount, 4_000);
     })
 }
 
@@ -1076,7 +1076,7 @@ fn do_add_liquidity_large_amounts_should_work() {
         .ok();
         Assets::mint(
             RawOrigin::Signed(ALICE).into(),
-            tokens::XDOT,
+            tokens::SDOT,
             ALICE,
             2_000_000_000_000_000_000_000,
         )
@@ -1084,7 +1084,7 @@ fn do_add_liquidity_large_amounts_should_work() {
 
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(), // Origin
-            (DOT, XDOT),                     // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                     // Currency pool, in which liquidity will be added
             (
                 1_000_000_000_000_000_000_000, // Either base amount or quote amount
                 2_000_000_000_000_000_000_000
@@ -1102,14 +1102,14 @@ fn handling_fees_should_work() {
         //
         assert_ok!(AMM::create_pool(
             RawOrigin::Signed(ALICE).into(),    // Origin
-            (DOT, XDOT),                        // Currency pool, in which liquidity will be added
+            (DOT, SDOT),                        // Currency pool, in which liquidity will be added
             (100_000_000_000, 100_000_000_000), // Liquidity amounts to be added in pool
             BOB,                                // LPToken receiver
             SAMPLE_LP_TOKEN                     // Liquidity pool share representative token
         ));
 
         // Another user makes a swap that should generate fees for the LP provider and the protocol
-        assert_ok!(AMM::swap(&FRANK, (DOT, XDOT), 6_000_000));
+        assert_ok!(AMM::swap(&FRANK, (DOT, SDOT), 6_000_000));
 
         // we can check the total balance
         //
@@ -1154,7 +1154,7 @@ fn handling_fees_should_work() {
 
         assert_ok!(AMM::remove_liquidity(
             RawOrigin::Signed(PROTOCOL_FEE_RECEIVER).into(),
-            (DOT, XDOT),
+            (DOT, SDOT),
             1_499,
         ));
 
@@ -1162,6 +1162,6 @@ fn handling_fees_should_work() {
         // split bewteen the two pools - the small difference is due to rounding errors
         assert_eq!(Assets::balance(DOT, PROTOCOL_FEE_RECEIVER), 1499);
 
-        assert_eq!(Assets::balance(XDOT, PROTOCOL_FEE_RECEIVER), 1498);
+        assert_eq!(Assets::balance(SDOT, PROTOCOL_FEE_RECEIVER), 1498);
     })
 }

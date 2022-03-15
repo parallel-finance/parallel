@@ -66,7 +66,7 @@ use polkadot_parachain::primitives::Sibling;
 use primitives::{
     currency::MultiCurrencyAdapter,
     network::PARALLEL_PREFIX,
-    tokens::{ACA, AUSD, DOT, EUSDC, EUSDT, LC_DOT, LDOT, PARA, XDOT},
+    tokens::{ACA, AUSD, DOT, EUSDC, EUSDT, LC_DOT, LDOT, PARA, SDOT},
     Index, *,
 };
 
@@ -339,11 +339,11 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
             DOT => Some(MultiLocation::parent()),
-            XDOT => Some(MultiLocation::new(
+            SDOT => Some(MultiLocation::new(
                 1,
                 X2(
                     Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(b"xDOT".to_vec()),
+                    GeneralKey(b"sDOT".to_vec()),
                 ),
             )),
             PARA => Some(MultiLocation::new(
@@ -396,13 +396,13 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xDOT".to_vec() => {
-                Some(XDOT)
+            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"sDOT".to_vec() => {
+                Some(SDOT)
             }
             MultiLocation {
                 parents: 0,
                 interior: X1(GeneralKey(key)),
-            } if key == b"xDOT".to_vec() => Some(XDOT),
+            } if key == b"sDOT".to_vec() => Some(SDOT),
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
@@ -540,9 +540,9 @@ parameter_types! {
     pub const DerivativeIndex: u16 = 0;
     pub const EraLength: BlockNumber = 6 * 4 * 3600 / 6;
     pub const MinStake: Balance = 10_000_000_000; // 1DOT
-    pub const MinUnstake: Balance = 5_000_000_000; // 0.5xDOT
+    pub const MinUnstake: Balance = 5_000_000_000; // 0.5sDOT
     pub const StakingCurrency: CurrencyId = DOT;
-    pub const LiquidCurrency: CurrencyId = XDOT;
+    pub const LiquidCurrency: CurrencyId = SDOT;
     pub const XcmFees: Balance = 500_000_000; // 0.05DOT
     pub const BondingDuration: EraIndex = 28; // 28Days
     pub const NumSlashingSpans: u32 = 0;
@@ -991,17 +991,17 @@ pub type XcmOriginToTransactDispatchOrigin = (
 
 parameter_types! {
     pub DotPerSecond: (AssetId, u128) = (AssetId::Concrete(MultiLocation::parent()), dot_per_second());
-    pub XDOTPerSecond: (AssetId, u128) = (
+    pub SDOTPerSecond: (AssetId, u128) = (
         MultiLocation::new(
             1,
-            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(b"xDOT".to_vec())),
+            X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(b"sDOT".to_vec())),
         ).into(),
         dot_per_second()
     );
-    pub XDOTPerSecondOfCanonicalLocation: (AssetId, u128) = (
+    pub SDOTPerSecondOfCanonicalLocation: (AssetId, u128) = (
         MultiLocation::new(
             0,
-            X1(GeneralKey(b"xDOT".to_vec())),
+            X1(GeneralKey(b"sDOT".to_vec())),
         ).into(),
         dot_per_second()
     );
@@ -1080,8 +1080,8 @@ impl TakeRevenue for ToTreasury {
 
 pub type Trader = (
     FixedRateOfFungible<DotPerSecond, ToTreasury>,
-    FixedRateOfFungible<XDOTPerSecond, ToTreasury>,
-    FixedRateOfFungible<XDOTPerSecondOfCanonicalLocation, ToTreasury>,
+    FixedRateOfFungible<SDOTPerSecond, ToTreasury>,
+    FixedRateOfFungible<SDOTPerSecondOfCanonicalLocation, ToTreasury>,
     FixedRateOfFungible<ParaPerSecond, ToTreasury>,
     FixedRateOfFungible<ParaPerSecondOfCanonicalLocation, ToTreasury>,
     FixedRateOfFungible<AusdPerSecond, ToTreasury>,

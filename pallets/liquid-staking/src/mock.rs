@@ -178,11 +178,11 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
             KSM => Some(MultiLocation::parent()),
-            XKSM => Some(MultiLocation::new(
+            SKSM => Some(MultiLocation::new(
                 1,
                 X2(
                     Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(b"xKSM".to_vec()),
+                    GeneralKey(b"sKSM".to_vec()),
                 ),
             )),
             _ => None,
@@ -200,8 +200,8 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xKSM".to_vec() => {
-                Some(XKSM)
+            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"sKSM".to_vec() => {
+                Some(SKSM)
             }
             _ => None,
         }
@@ -369,7 +369,7 @@ parameter_types! {
     pub const MinStake: Balance = 0;
     pub const MinUnstake: Balance = 0;
     pub const StakingCurrency: CurrencyId = KSM;
-    pub const LiquidCurrency: CurrencyId = XKSM;
+    pub const LiquidCurrency: CurrencyId = SKSM;
     pub const XcmFees: Balance = 0;
     pub const BondingDuration: EraIndex = 3;
     pub const NumSlashingSpans: u32 = 0;
@@ -485,18 +485,18 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
             false,
         )
         .unwrap();
-        Assets::force_create(Origin::root(), XKSM, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(Origin::root(), SKSM, Id(ALICE), true, 1).unwrap();
         Assets::force_set_metadata(
             Origin::root(),
-            XKSM,
+            SKSM,
             b"Parallel Kusama".to_vec(),
-            b"XKSM".to_vec(),
+            b"sKSM".to_vec(),
             12,
             false,
         )
         .unwrap();
         Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), ksm(100f64)).unwrap();
-        Assets::mint(Origin::signed(ALICE), XKSM, Id(ALICE), ksm(100f64)).unwrap();
+        Assets::mint(Origin::signed(ALICE), SKSM, Id(ALICE), ksm(100f64)).unwrap();
         Assets::mint(Origin::signed(ALICE), KSM, Id(BOB), ksm(20000f64)).unwrap();
 
         LiquidStaking::update_market_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
@@ -595,12 +595,12 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
             false,
         )
         .unwrap();
-        Assets::force_create(Origin::root(), XKSM, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(Origin::root(), SKSM, Id(ALICE), true, 1).unwrap();
         Assets::force_set_metadata(
             Origin::root(),
-            XKSM,
+            SKSM,
             b"Parallel Kusama".to_vec(),
-            b"XKSM".to_vec(),
+            b"sKSM".to_vec(),
             12,
             false,
         )

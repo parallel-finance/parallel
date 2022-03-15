@@ -62,14 +62,14 @@
     },
     {
       "name": "Parallel Staking Kusama",
-      "symbol": "XKSM",
+      "symbol": "sKSM",
       "assetId": 1000,
       "decimal": 12,
       "balances": []
     },
     {
       "name": "Parallel Crowdloans Kusama - (0 ~ 7)",
-      "symbol": "CKSM-0-7",
+      "symbol": "cKSM-0/7",
       "assetId": 4000,
       "decimal": 12,
       "balances": []

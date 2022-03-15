@@ -62,14 +62,14 @@
     },
     {
       "name": "Parallel Staking Polkadot",
-      "symbol": "XDOT",
+      "symbol": "sDOT",
       "assetId": 1001,
       "decimal": 10,
       "balances": []
     },
     {
       "name": "Parallel Crowdloans Polkadot - (0 ~ 7)",
-      "symbol": "CDOT-0-7",
+      "symbol": "cDOT-0/7",
       "assetId": 4000,
       "decimal": 10,
       "balances": []
