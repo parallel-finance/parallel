@@ -714,6 +714,8 @@ pub mod pallet {
             Self::inner_claim(who, crowdloan, lease_start, lease_end)
         }
 
+        /// If a `crowdloan` succeeded, claim the liquid derivatives of the
+        /// contributed assets for others
         #[pallet::weight(<T as Config>::WeightInfo::claim())]
         #[transactional]
         pub fn claim_for(
@@ -741,6 +743,7 @@ pub mod pallet {
             Self::inner_withdraw(who, crowdloan, lease_start, lease_end)
         }
 
+        /// If a `crowdloan` failed, withdraw the contributed assets for others
         #[pallet::weight(<T as Config>::WeightInfo::withdraw())]
         #[transactional]
         pub fn withdraw_for(
