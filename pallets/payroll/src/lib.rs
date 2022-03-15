@@ -203,6 +203,8 @@ pub mod pallet {
             Streams::<T>::insert(stream_id.clone(), stream);
             // Increment stream id
             NextStreamId::<T>::set(stream_id + 1);
+            // transfer deposit from sender to global EOA
+            T::Assets::transfer(currency_id.clone(), &sender, &Self::account_id(), deposit.clone(), false)?;
             Self::deposit_event(Event::<T>::CreateStream(stream_id, sender, recipient, deposit, currency_id, start_time, stop_time));
             Ok(().into())
         }
