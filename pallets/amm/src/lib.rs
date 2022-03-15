@@ -921,7 +921,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             )
             .ok_or(ArithmeticError::Underflow)?;
 
-        let mut y_prev = 0u128;
+        let mut y_prev;
         let mut y = d;
 
         // 255 is a max number of loops
@@ -944,11 +944,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             )
             .ok_or(ArithmeticError::Underflow)?;
 
-            // Throws exception on Error
-            // Replaces
-            // if (y - y_prev).abs() < 1.0 {
-            //    break;
-            // }
             match y.checked_sub(y_prev).ok_or(ArithmeticError::Overflow) {
                 Ok(_) => continue,
                 Err(_) => break,
@@ -956,7 +951,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         }
 
         Ok(y)
-        // throw new Error('Approximation did not converge')
     }
 
     // *************************************************************************************
