@@ -1380,6 +1380,10 @@ parameter_types! {
     pub DefaultProtocolFee: Ratio = Ratio::from_rational(5u32, 10000u32);   // 0.05%
     pub DefaultProtocolFeeReceiver: AccountId = TreasuryPalletId::get().into_account();
     pub const MinimumLiquidity: u128 = 1_000u128;
+    pub const NumTokens: u8 = 2;
+    pub const Precision: u32 = 100;
+    pub AmplificationCoefficient: u8 = 85;
+
 }
 
 impl pallet_amm::Config for Runtime {
@@ -1469,9 +1473,6 @@ impl pallet_xcm_helper::Config for Runtime {
 
 parameter_types! {
     pub const MaxLengthRoute: u8 = 10;
-    pub const NumTokens: u8 = 2;
-    pub const Precision: u32 = 100;
-    pub AmplificationCoefficient: u8 = 85;
     pub const RouterPalletId: PalletId = PalletId(*b"ammroute");
 }
 
