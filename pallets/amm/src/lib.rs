@@ -122,9 +122,11 @@ pub mod pallet {
         type NumTokens: Get<u8>;
 
         /// Precision
+        #[pallet::constant]
         type Precision: Get<u128>;
 
         /// Optimal Amplification Coefficient
+        #[pallet::constant]
         type AmplificationCoefficient: Get<u8>;
     }
 
