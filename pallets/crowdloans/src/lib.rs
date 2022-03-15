@@ -58,7 +58,7 @@ pub mod pallet {
         ArithmeticKind, Balance, CurrencyId, LeasePeriod, ParaId, TrieIndex, VaultId,
     };
     use sp_runtime::{
-        traits::{AccountIdConversion, BlockNumberProvider, Hash, Zero},
+        traits::{AccountIdConversion, BlockNumberProvider, Hash, StaticLookup, Zero},
         ArithmeticError, DispatchError,
     };
     use sp_std::{boxed::Box, vec::Vec};
@@ -711,46 +711,23 @@ pub mod pallet {
             lease_end: LeasePeriod,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
+            Self::do_claim_for(who, crowdloan, lease_start, lease_end)
+        }
 
-            let ctoken = Self::ctoken_of((&lease_start, &lease_end))
-                .ok_or(Error::<T>::CTokenDoesNotExist)?;
-            let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
-                .ok_or(Error::<T>::VaultDoesNotExist)?;
-
-            ensure!(
-                vault.phase == VaultPhase::Succeeded,
-                Error::<T>::IncorrectVaultPhase
-            );
-
-            let (amount, _) =
-                Self::contribution_get(vault.trie_index, &who, ChildStorageKind::Contributed);
-            ensure!(!amount.is_zero(), Error::<T>::NoContributions);
-
-            log::trace!(
-                target: "crowdloans::claim",
-                "who: {:?}, ctoken: {:?}, amount: {:?}, para_id: {:?}, lease_start: {:?}, lease_end: {:?}",
-                &who,
-                &ctoken,
-                &amount,
-                &crowdloan,
-                &lease_start,
-                &lease_end
-            );
-
-            T::Assets::mint_into(ctoken, &who, amount)?;
-
-            Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
-
-            Self::deposit_event(Event::<T>::VaultClaimed(
-                crowdloan,
-                (lease_start, lease_end),
-                ctoken,
-                who,
-                amount,
-                VaultPhase::Succeeded,
-            ));
-
-            Ok(())
+        /// If a `crowdloan` succeeded, claim the liquid derivatives of the
+        /// contributed assets for others
+        #[pallet::weight(<T as Config>::WeightInfo::claim())]
+        #[transactional]
+        pub fn claim_for(
+            origin: OriginFor<T>,
+            dest: <T::Lookup as StaticLookup>::Source,
+            crowdloan: ParaId,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod,
+        ) -> DispatchResult {
+            let _ = ensure_signed(origin)?;
+            let who = T::Lookup::lookup(dest)?;
+            Self::do_claim_for(who, crowdloan, lease_start, lease_end)
         }
 
         /// If a `crowdloan` failed, withdraw the contributed assets
@@ -763,51 +740,22 @@ pub mod pallet {
             lease_end: LeasePeriod,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
+            Self::do_withdraw_for(who, crowdloan, lease_start, lease_end)
+        }
 
-            let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
-                .ok_or(Error::<T>::VaultDoesNotExist)?;
-
-            ensure!(
-                vault.phase == VaultPhase::Failed,
-                Error::<T>::IncorrectVaultPhase
-            );
-
-            let (amount, _) =
-                Self::contribution_get(vault.trie_index, &who, ChildStorageKind::Contributed);
-            ensure!(!amount.is_zero(), Error::<T>::NoContributions);
-
-            log::trace!(
-                target: "crowdloans::withdraw",
-                "who: {:?}, amount: {:?}, para_id: {:?}, lease_start: {:?}, lease_end: {:?}",
-                &who,
-                &amount,
-                &crowdloan,
-                &lease_start,
-                &lease_end
-            );
-
-            Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
-
-            vault.contributed = vault
-                .contributed
-                .checked_sub(amount)
-                .ok_or(ArithmeticError::Underflow)?;
-
-            // SovereignAccount on relaychain must have
-            // withdrawn the contribution
-            T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
-
-            Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
-
-            Self::deposit_event(Event::<T>::VaultWithdrew(
-                crowdloan,
-                (lease_start, lease_end),
-                who,
-                amount,
-                VaultPhase::Failed,
-            ));
-
-            Ok(())
+        /// If a `crowdloan` failed, withdraw the contributed assets for others
+        #[pallet::weight(<T as Config>::WeightInfo::withdraw())]
+        #[transactional]
+        pub fn withdraw_for(
+            origin: OriginFor<T>,
+            dest: <T::Lookup as StaticLookup>::Source,
+            crowdloan: ParaId,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod,
+        ) -> DispatchResult {
+            let _ = ensure_signed(origin)?;
+            let who = T::Lookup::lookup(dest)?;
+            Self::do_withdraw_for(who, crowdloan, lease_start, lease_end)
         }
 
         /// If a `crowdloan` expired, redeem the contributed assets
@@ -1501,6 +1449,107 @@ pub mod pallet {
                     .count()
                     .is_zero()
             })
+        }
+
+        #[require_transactional]
+        fn do_claim_for(
+            who: T::AccountId,
+            crowdloan: ParaId,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod,
+        ) -> DispatchResult {
+            let ctoken = Self::ctoken_of((&lease_start, &lease_end))
+                .ok_or(Error::<T>::CTokenDoesNotExist)?;
+            let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+                .ok_or(Error::<T>::VaultDoesNotExist)?;
+
+            ensure!(
+                vault.phase == VaultPhase::Succeeded,
+                Error::<T>::IncorrectVaultPhase
+            );
+
+            let (amount, _) =
+                Self::contribution_get(vault.trie_index, &who, ChildStorageKind::Contributed);
+            ensure!(!amount.is_zero(), Error::<T>::NoContributions);
+
+            log::trace!(
+                target: "crowdloans::claim",
+                "who: {:?}, ctoken: {:?}, amount: {:?}, para_id: {:?}, lease_start: {:?}, lease_end: {:?}",
+                &who,
+                &ctoken,
+                &amount,
+                &crowdloan,
+                &lease_start,
+                &lease_end
+            );
+
+            T::Assets::mint_into(ctoken, &who, amount)?;
+
+            Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
+
+            Self::deposit_event(Event::<T>::VaultClaimed(
+                crowdloan,
+                (lease_start, lease_end),
+                ctoken,
+                who,
+                amount,
+                VaultPhase::Succeeded,
+            ));
+
+            Ok(())
+        }
+
+        #[require_transactional]
+        fn do_withdraw_for(
+            who: T::AccountId,
+            crowdloan: ParaId,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod,
+        ) -> DispatchResult {
+            let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+                .ok_or(Error::<T>::VaultDoesNotExist)?;
+
+            ensure!(
+                vault.phase == VaultPhase::Failed,
+                Error::<T>::IncorrectVaultPhase
+            );
+
+            let (amount, _) =
+                Self::contribution_get(vault.trie_index, &who, ChildStorageKind::Contributed);
+            ensure!(!amount.is_zero(), Error::<T>::NoContributions);
+
+            log::trace!(
+                target: "crowdloans::withdraw",
+                "who: {:?}, amount: {:?}, para_id: {:?}, lease_start: {:?}, lease_end: {:?}",
+                &who,
+                &amount,
+                &crowdloan,
+                &lease_start,
+                &lease_end
+            );
+
+            Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
+
+            vault.contributed = vault
+                .contributed
+                .checked_sub(amount)
+                .ok_or(ArithmeticError::Underflow)?;
+
+            // SovereignAccount on relaychain must have
+            // withdrawn the contribution
+            T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
+
+            Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
+
+            Self::deposit_event(Event::<T>::VaultWithdrew(
+                crowdloan,
+                (lease_start, lease_end),
+                who,
+                amount,
+                VaultPhase::Failed,
+            ));
+
+            Ok(())
         }
     }
 }
