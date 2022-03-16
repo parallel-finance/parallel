@@ -605,6 +605,25 @@ pub mod pallet {
             Ok(().into())
         }
 
+        /// Force trigger xcm callback
+        #[pallet::weight(<T as Config>::WeightInfo::notification_received())]
+        #[transactional]
+        pub fn force_notification_received(
+            origin: OriginFor<T>,
+            query_id: QueryId,
+        ) -> DispatchResult {
+            T::UpdateOrigin::ensure_origin(origin)?;
+            if let Some(request) = Self::xcm_request(&query_id) {
+                Self::do_notification_received(query_id, request, None)?;
+                Self::deposit_event(Event::<T>::NotificationReceived(
+                    Box::new(MultiLocation::here()),
+                    query_id,
+                    None,
+                ));
+            }
+            Ok(())
+        }
+
         /// Claim assets back when current era index arrived
         /// at target era
         #[pallet::weight(<T as Config>::WeightInfo::claim_for())]
