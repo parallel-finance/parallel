@@ -259,6 +259,8 @@ impl Contains<Call> for BaseCallFilter {
             Call::LiquidStaking(_) |
             // Bridge
             Call::Bridge(_)
+            // Farming
+            Call::Farming(_)
         )
 
         // // Consensus
