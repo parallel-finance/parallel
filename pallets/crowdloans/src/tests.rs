@@ -12,6 +12,7 @@ use polkadot_parachain::primitives::{HeadData, ValidationCode};
 use primitives::{tokens::DOT, BlockNumber, ParaId};
 use sp_runtime::{
     traits::{One, UniqueSaturatedInto, Zero},
+    DispatchError,
     MultiAddress::Id,
 };
 use xcm_simulator::TestExt;
@@ -37,16 +38,44 @@ fn create_new_vault_should_work() {
             One::one(),
         ));
 
+        assert_noop!(
+            Crowdloans::create_vault(
+                Origin::signed(EVE),   // origin
+                crowdloan,             // crowdloan
+                ctoken,                // ctoken
+                LEASE_START,           // lease_start
+                LEASE_END,             // lease_end
+                contribution_strategy, // contribution_strategy
+                cap,                   // cap
+                end_block              // end_block
+            ),
+            DispatchError::BadOrigin
+        );
+
         assert_ok!(Crowdloans::create_vault(
-            frame_system::RawOrigin::Root.into(), // origin
-            crowdloan,                            // crowdloan
-            ctoken,                               // ctoken
-            LEASE_START,                          // lease_start
-            LEASE_END,                            // lease_end
-            contribution_strategy,                // contribution_strategy
-            cap,                                  // cap
-            end_block                             // end_block
+            Origin::signed(ALICE), // origin
+            crowdloan,             // crowdloan
+            ctoken,                // ctoken
+            LEASE_START,           // lease_start
+            LEASE_END,             // lease_end
+            contribution_strategy, // contribution_strategy
+            cap,                   // cap
+            end_block              // end_block
         ));
+
+        assert_noop!(
+            Crowdloans::create_vault(
+                Origin::signed(CHARLIE), // origin
+                crowdloan,               // crowdloan
+                ctoken,                  // ctoken
+                LEASE_START,             // lease_start
+                LEASE_END,               // lease_end
+                contribution_strategy,   // contribution_strategy
+                cap,                     // cap
+                end_block                // end_block
+            ),
+            Error::<Test>::VaultAlreadyExists
+        );
 
         let just_created_vault =
             Crowdloans::vaults((&crowdloan, &LEASE_START, &LEASE_END)).unwrap();
