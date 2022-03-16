@@ -1,10 +1,12 @@
 use crate::{
     mock::*,
-    types::{MatchingLedger, StakingLedger, UnlockChunk},
+    types::{MatchingLedger, StakingLedger, UnlockChunk, XcmRequest},
     *,
 };
 
-use frame_support::{assert_noop, assert_ok, storage::with_transaction, traits::Hooks};
+use frame_support::{
+    assert_noop, assert_ok, error::BadOrigin, storage::with_transaction, traits::Hooks,
+};
 
 use primitives::{
     tokens::{KSM, SKSM},
@@ -784,5 +786,43 @@ fn test_force_set_current_era_work() {
         assert_eq!(CurrentEra::<Test>::get(), 0);
         assert_ok!(LiquidStaking::force_set_current_era(Origin::root(), 12));
         assert_eq!(CurrentEra::<Test>::get(), 12);
+    })
+}
+
+#[test]
+fn test_force_notification_received_work() {
+    new_test_ext().execute_with(|| {
+        let derivative_index = <Test as Config>::DerivativeIndex::get();
+        let bond_amount = ksm(10f64);
+        assert_ok!(LiquidStaking::stake(Origin::signed(ALICE), ksm(20f64),));
+
+        assert_ok!(LiquidStaking::bond(
+            Origin::signed(ALICE),
+            derivative_index,
+            bond_amount,
+            RewardDestination::Staked
+        ));
+        let query_id = 0;
+        assert_eq!(
+            XcmRequests::<Test>::get(query_id),
+            Some(XcmRequest::Bond {
+                index: derivative_index,
+                amount: bond_amount,
+            })
+        );
+        assert_noop!(
+            LiquidStaking::notification_received(
+                Origin::signed(ALICE),
+                query_id,
+                Response::ExecutionResult(None),
+            ),
+            BadOrigin
+        );
+        assert_ok!(LiquidStaking::notification_received(
+            Origin::root(),
+            query_id,
+            Response::ExecutionResult(None),
+        ));
+        assert_eq!(XcmRequests::<Test>::get(query_id), None);
     })
 }

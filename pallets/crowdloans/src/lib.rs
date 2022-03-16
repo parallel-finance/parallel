@@ -672,7 +672,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::auction_succeeded())]
         #[transactional]
         pub fn auction_succeeded(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
-            T::OpenCloseOrigin::ensure_origin(origin)?;
+            ensure_origin!(AuctionSucceededFailedOrigin, origin)?;
 
             log::trace!(
                 target: "crowdloans::auction_succeeded",
@@ -952,7 +952,7 @@ pub mod pallet {
             lease_end: LeasePeriod,
         ) -> DispatchResult {
             use ChildStorageKind::*;
-            T::RefundOrigin::ensure_origin(origin)?;
+            ensure_origin!(RefundOrigin, origin)?;
 
             let mut refund_count = 0u32;
             let mut all_refunded = true;
@@ -1024,7 +1024,7 @@ pub mod pallet {
             lease_start: LeasePeriod,
             lease_end: LeasePeriod,
         ) -> DispatchResult {
-            T::DissolveVaultOrigin::ensure_origin(origin)?;
+            ensure_origin!(DissolveVaultOrigin, origin)?;
 
             let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
                 .ok_or(Error::<T>::VaultDoesNotExist)?;

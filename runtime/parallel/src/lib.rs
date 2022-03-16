@@ -1246,7 +1246,7 @@ type EnsureRootOrAtLeastThreeFifthsGeneralCouncil = EnsureOneOf<
     pallet_collective::EnsureProportionAtLeast<_3, _5, AccountId, GeneralCouncilCollective>,
 >;
 
-type EnsureAllTechnicalComittee = EnsureOneOf<
+type EnsureRootOrAllTechnicalComittee = EnsureOneOf<
     EnsureRoot<AccountId>,
     pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, TechnicalCollective>,
 >;
@@ -1295,7 +1295,7 @@ impl pallet_democracy::Config for Runtime {
         pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, GeneralCouncilCollective>;
     // To cancel a proposal before it has been passed, the technical committee must be unanimous or
     // Root must agree.
-    type CancelProposalOrigin = EnsureAllTechnicalComittee;
+    type CancelProposalOrigin = EnsureRootOrAllTechnicalComittee;
     type BlacklistOrigin = EnsureRoot<AccountId>;
     // Any single technical committee member may veto a coming council proposal, however they can
     // only do it once and it lasts only for the cool-off period.
