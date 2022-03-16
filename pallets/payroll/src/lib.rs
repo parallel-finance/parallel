@@ -20,9 +20,13 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+#[cfg(test)]
+mod mock;
+#[cfg(test)]
+mod tests;
+
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
-    log,
     pallet_prelude::*,
     traits::{
         tokens::fungibles::{Inspect, Mutate, Transfer},
@@ -36,23 +40,14 @@ use frame_system::pallet_prelude::*;
 use scale_info::TypeInfo;
 
 #[cfg(feature = "std")]
-use frame_support::serde::{Deserialize, Serialize};
 use primitives::*;
 use sp_runtime::{
-    traits::{
-        AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One, StaticLookup,
-        Zero,
-    },
-    ArithmeticError, FixedPointNumber, FixedU128, DispatchError
+    traits::{AccountIdConversion, Zero},
+    ArithmeticError, DispatchError,
 };
-use sp_std::{fmt::Debug, prelude::*};
+use sp_std::prelude::*;
 
 pub use pallet::*;
-
-//#[cfg(test)]
-//mod mock;
-//#[cfg(test)]
-//mod tests;
 
 pub mod weights;
 
@@ -99,9 +94,6 @@ pub mod pallet {
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
-
-        /// Decimal provider.
-        type Decimal: DecimalProvider<CurrencyId>;
 
         /// The payroll module id, keep all collaterals of CDPs.
         #[pallet::constant]
@@ -193,19 +185,27 @@ pub mod pallet {
                 deposit,                    // deposit
                 currency_id,                // currency id
                 rate_per_sec,               // rate per second
-                recipient: recipient.clone(),                  // recipient
-                sender: sender.clone(),                     // sender
+                recipient: recipient.clone(), // recipient
+                sender: sender.clone(),     // sender
                 start_time,                 // start_time
                 stop_time,                  // stop_time
             };
             let stream_id = NextStreamId::<T>::get();
             // Insert stream to runtime
-            Streams::<T>::insert(stream_id.clone(), stream);
+            Streams::<T>::insert(stream_id, stream);
             // Increment stream id
             NextStreamId::<T>::set(stream_id + 1);
             // transfer deposit from sender to global EOA
-            T::Assets::transfer(currency_id.clone(), &sender, &Self::account_id(), deposit.clone(), false)?;
-            Self::deposit_event(Event::<T>::CreateStream(stream_id, sender, recipient, deposit, currency_id, start_time, stop_time));
+            T::Assets::transfer(currency_id, &sender, &Self::account_id(), deposit, false)?;
+            Self::deposit_event(Event::<T>::CreateStream(
+                stream_id,
+                sender,
+                recipient,
+                deposit,
+                currency_id,
+                start_time,
+                stop_time,
+            ));
             Ok(().into())
         }
 
@@ -218,20 +218,36 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
             // check sender is stream sender
-            let stream = Streams::<T>::get(stream_id.clone()).ok_or(DispatchError::CannotLookup)?;
-            ensure!(
-                sender == stream.sender,
-                Error::<T>::NotTheStreamer
-            );
+            let stream = Streams::<T>::get(stream_id).ok_or(DispatchError::CannotLookup)?;
+            ensure!(sender == stream.sender, Error::<T>::NotTheStreamer);
             // get sender and recipient balance at result
-            let sender_balance =  Self::balance_of(stream.clone(), &sender)?;
+            let sender_balance = Self::balance_of(stream.clone(), &sender)?;
             let recipient_balance = Self::balance_of(stream.clone(), &stream.recipient)?;
             // send funds back to sender and recipient with balance function
-            T::Assets::transfer(stream.currency_id.clone(), &Self::account_id(), &sender, sender_balance.clone(), false)?;
-            T::Assets::transfer(stream.currency_id.clone(), &Self::account_id(), &sender, recipient_balance.clone(), false)?;
+            T::Assets::transfer(
+                stream.currency_id,
+                &Self::account_id(),
+                &sender,
+                sender_balance,
+                false,
+            )?;
+            T::Assets::transfer(
+                stream.currency_id,
+                &Self::account_id(),
+                &sender,
+                recipient_balance,
+                false,
+            )?;
             // remove stream
             Streams::<T>::remove(stream_id);
-            Self::deposit_event(Event::<T>::CancelStream(stream_id, sender, stream.recipient, stream.currency_id, sender_balance, recipient_balance));
+            Self::deposit_event(Event::<T>::CancelStream(
+                stream_id,
+                sender,
+                stream.recipient,
+                stream.currency_id,
+                sender_balance,
+                recipient_balance,
+            ));
             Ok(().into())
         }
 
@@ -241,28 +257,38 @@ pub mod pallet {
         pub fn withdraw_from_stream(
             origin: OriginFor<T>,
             stream_id: StreamId,
-            currency_id: AssetIdOf<T>,
             amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
             // check sender is stream recipient
             let mut stream = Streams::<T>::get(stream_id).ok_or(DispatchError::CannotLookup)?;
-            ensure!(
-                sender == stream.recipient,
-                Error::<T>::NotTheRecipient
-            );
+            ensure!(sender == stream.recipient, Error::<T>::NotTheRecipient);
             // Check balance
             let balance = Self::balance_of(stream.clone(), &stream.recipient)?;
             ensure!(balance >= amount, Error::<T>::ExceedsBalance);
-            stream.remaining_balance = stream.remaining_balance.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
+            stream.remaining_balance = stream
+                .remaining_balance
+                .checked_sub(amount)
+                .ok_or(ArithmeticError::Underflow)?;
             // Check if balance is zero, then remove
             if stream.remaining_balance == 0 {
                 // remove
                 Streams::<T>::remove(stream_id);
             }
             // withdraw deposit from stream
-            T::Assets::transfer(stream.currency_id, &Self::account_id(), &sender, amount, false)?;
-            Self::deposit_event(Event::<T>::WithdrawFromStream(stream_id, stream.recipient, stream.currency_id, amount));
+            T::Assets::transfer(
+                stream.currency_id,
+                &Self::account_id(),
+                &sender,
+                amount,
+                false,
+            )?;
+            Self::deposit_event(Event::<T>::WithdrawFromStream(
+                stream_id,
+                stream.recipient,
+                stream.currency_id,
+                amount,
+            ));
             Ok(().into())
         }
     }
@@ -274,27 +300,45 @@ impl<T: Config> Pallet<T> {
     }
 
     // Measure balance of payroll with rate per sec
-    pub fn balance_of(stream: Stream<T>, who: &AccountOf<T>) -> Result<BalanceOf<T>, DispatchError> {
+    pub fn balance_of(
+        stream: Stream<T>,
+        who: &AccountOf<T>,
+    ) -> Result<BalanceOf<T>, DispatchError> {
         let now = T::UnixTime::now().as_secs();
+
+        println!("now {}", now);
         let delta = if now < stream.start_time {
             BalanceOf::<T>::zero()
         } else if now < stream.stop_time {
-            now.checked_sub(stream.start_time).ok_or(ArithmeticError::Underflow)? as u128
+            now.checked_sub(stream.start_time)
+                .ok_or(ArithmeticError::Underflow)? as u128
         } else {
-            stream.stop_time.checked_sub(stream.start_time).ok_or(ArithmeticError::Underflow)? as u128
+            stream
+                .stop_time
+                .checked_sub(stream.start_time)
+                .ok_or(ArithmeticError::Underflow)? as u128
         };
-        
+
         /*
          * If the stream `balance` does not equal `deposit`, it means there have been withdrawals.
          * We have to subtract the total amount withdrawn from the amount of money that has been
          * streamed until now.
          */
         let recipient_balance = if stream.deposit > stream.remaining_balance {
-            let withdrawl_amount = stream.deposit.checked_sub(stream.remaining_balance).ok_or(ArithmeticError::Underflow)?;
-            let recipient_balance = delta.checked_mul(stream.rate_per_sec).ok_or(ArithmeticError::Overflow)?;
-            recipient_balance.checked_sub(withdrawl_amount).ok_or(ArithmeticError::Underflow)?
+            let withdrawl_amount = stream
+                .deposit
+                .checked_sub(stream.remaining_balance)
+                .ok_or(ArithmeticError::Underflow)?;
+            let recipient_balance = delta
+                .checked_mul(stream.rate_per_sec)
+                .ok_or(ArithmeticError::Overflow)?;
+            recipient_balance
+                .checked_sub(withdrawl_amount)
+                .ok_or(ArithmeticError::Underflow)?
         } else {
-            delta.checked_mul(stream.rate_per_sec).ok_or(ArithmeticError::Overflow)?
+            delta
+                .checked_mul(stream.rate_per_sec)
+                .ok_or(ArithmeticError::Overflow)?
         };
 
         if *who == stream.recipient {
@@ -302,7 +346,10 @@ impl<T: Config> Pallet<T> {
         }
         if *who == stream.sender {
             let _recipient_balance = &recipient_balance;
-            let sender_balance = stream.remaining_balance.checked_sub(*_recipient_balance).ok_or(ArithmeticError::Underflow)?;
+            let sender_balance = stream
+                .remaining_balance
+                .checked_sub(*_recipient_balance)
+                .ok_or(ArithmeticError::Underflow)?;
             return Ok(sender_balance);
         }
         Ok(0)
