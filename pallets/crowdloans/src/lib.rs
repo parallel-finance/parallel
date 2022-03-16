@@ -80,15 +80,12 @@ pub mod pallet {
 
     macro_rules! ensure_origin {
         ($required_origin:ident, $origin:expr) => {
-            if T::$required_origin::ensure_origin($origin.clone()).is_ok() {
+            if T::$required_origin::ensure_origin($origin.clone()).is_ok()
+                || T::Members::contains(&ensure_signed($origin)?)
+            {
                 Ok(())
             } else {
-                let who = ensure_signed($origin)?;
-                if !T::Members::contains(&who) {
-                    Err(DispatchError::from(BadOrigin))
-                } else {
-                    Ok(())
-                }
+                Err(DispatchError::from(BadOrigin))
             }
         };
     }
