@@ -952,7 +952,7 @@ pub mod pallet {
             lease_end: LeasePeriod,
         ) -> DispatchResult {
             use ChildStorageKind::*;
-            T::RefundOrigin::ensure_origin(origin)?;
+            ensure_origin!(RefundOrigin, origin)?;
 
             let mut refund_count = 0u32;
             let mut all_refunded = true;
@@ -1024,7 +1024,7 @@ pub mod pallet {
             lease_start: LeasePeriod,
             lease_end: LeasePeriod,
         ) -> DispatchResult {
-            T::DissolveVaultOrigin::ensure_origin(origin)?;
+            ensure_origin!(DissolveVaultOrigin, origin)?;
 
             let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
                 .ok_or(Error::<T>::VaultDoesNotExist)?;
