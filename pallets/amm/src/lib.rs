@@ -750,7 +750,9 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
 
         let _x = 0u128;
 
-        s += autonomous_var;
+        s = s
+            .checked_add(autonomous_var)
+            .ok_or(ArithmeticError::Overflow)?;
 
         c = (c.checked_mul(d).ok_or(ArithmeticError::Underflow)?)
             .checked_div(
