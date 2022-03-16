@@ -672,7 +672,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::auction_succeeded())]
         #[transactional]
         pub fn auction_succeeded(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
-            T::OpenCloseOrigin::ensure_origin(origin)?;
+            ensure_origin!(AuctionSucceededFailedOrigin, origin)?;
 
             log::trace!(
                 target: "crowdloans::auction_succeeded",

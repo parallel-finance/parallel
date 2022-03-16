@@ -585,12 +585,6 @@ pub mod pallet {
             response: Response,
         ) -> DispatchResultWithPostInfo {
             let responder = ensure_response(<T as Config>::Origin::from(origin))?;
-            log::trace!(
-                target: "liquidStaking::notification_received",
-                "query_id: {:?}, response: {:?}",
-                &query_id,
-                &response
-            );
             if let Response::ExecutionResult(res) = response {
                 if let Some(request) = Self::xcm_request(&query_id) {
                     Self::do_notification_received(query_id, request, res)?;
@@ -1135,18 +1129,25 @@ pub mod pallet {
         #[require_transactional]
         fn do_notification_received(
             query_id: QueryId,
-            request: XcmRequest<T>,
+            req: XcmRequest<T>,
             res: Option<(u32, XcmError)>,
         ) -> DispatchResult {
             use ArithmeticKind::*;
             use XcmRequest::*;
+
+            log::trace!(
+                target: "liquidStaking::notification_received",
+                "query_id: {:?}, response: {:?}",
+                &query_id,
+                &res
+            );
 
             let executed = res.is_none();
             if !executed {
                 return Ok(());
             }
 
-            match request {
+            match req {
                 Bond {
                     index: derivative_index,
                     amount,
