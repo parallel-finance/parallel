@@ -119,7 +119,7 @@ async function relay({ logger, options: { relayWs, network } }: ActionParameters
     await api.tx.sudo
       .sudo(
         api.tx.registrar.forceRegister(
-          subAccountId(signer, derivativeIndex),
+          subAccountId(signer.address, derivativeIndex),
           config.paraDeposit,
           paraId,
           state,
@@ -137,7 +137,10 @@ async function relay({ logger, options: { relayWs, network } }: ActionParameters
   call.push(api.tx.sudo.sudo(api.tx.auctions.newAuction(config.auctionDuration, config.leaseIndex)))
   call.push(
     ...config.crowdloans.map(({ derivativeIndex }) =>
-      api.tx.balances.transfer(subAccountId(signer, derivativeIndex), config.crowdloanDeposit)
+      api.tx.balances.transfer(
+        subAccountId(signer.address, derivativeIndex),
+        config.crowdloanDeposit
+      )
     )
   )
   call.push(
