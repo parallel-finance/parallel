@@ -29,6 +29,10 @@ submodules:
 build:
 	cargo build --bin parallel
 
+.PHONY: build-release
+build-release:
+	cargo build --bin parallel --release
+
 .PHONY: ci
 ci: check lint check-helper check-wasm test
 

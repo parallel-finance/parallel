@@ -118,7 +118,7 @@ use pallet_xcm::XcmPassthrough;
 pub use sp_runtime::BuildStorage;
 
 use frame_support::{pallet_prelude::DispatchResult, transactional};
-use primitives::xcm_unit::{AsAssetType, FirstAssetTrader};
+use primitives::xcm_gadget::{AsAssetType, FirstAssetTrader};
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -1227,7 +1227,7 @@ parameter_types! {
 /// This is the struct that will handle the revenue from xcm fees
 /// We do not burn anything because we want to mimic exactly what
 /// the sovereign account has
-pub type XcmFeesToAccount = primitives::xcm_unit::XcmFeesToAccount<
+pub type XcmFeesToAccount = primitives::xcm_gadget::XcmFeesToAccount<
     Assets,
     (
         ConvertedConcreteAssetId<
