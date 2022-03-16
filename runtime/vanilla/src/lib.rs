@@ -248,6 +248,7 @@ impl Contains<Call> for BaseCallFilter {
             Call::TechnicalCommitteeMembership(_) |
             Call::OracleMembership(_) |
             Call::BridgeMembership(_) |
+            Call::CrowdloansAutomatorsMembership(_) |
             Call::LiquidStakingAgentsMembership(_) |
             // AMM
             Call::AMM(_) |
@@ -562,6 +563,24 @@ impl pallet_membership::Config<LiquidStakingAgentsMembershipInstance> for Runtim
     type MembershipInitialized = ();
     type MembershipChanged = ();
     type MaxMembers = LiquidStakingAgentsMembershipMaxMembers;
+    type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
+}
+
+parameter_types! {
+    pub const CrowdloansAutomatorsMembershipMaxMembers: u32 = 3;
+}
+
+type CrowdloansAutomatorsMembershipInstance = pallet_membership::Instance7;
+impl pallet_membership::Config<CrowdloansAutomatorsMembershipInstance> for Runtime {
+    type Event = Event;
+    type AddOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type RemoveOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type SwapOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type ResetOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type PrimeOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type MembershipInitialized = ();
+    type MembershipChanged = ();
+    type MaxMembers = CrowdloansAutomatorsMembershipMaxMembers;
     type WeightInfo = weights::pallet_membership::WeightInfo<Runtime>;
 }
 
@@ -1546,11 +1565,12 @@ impl pallet_crowdloans::Config for Runtime {
     type RefundOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type UpdateVaultOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type OpenCloseOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
-    type AuctionFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type AuctionSucceededFailedOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type SlotExpiredOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type WeightInfo = pallet_crowdloans::weights::SubstrateWeight<Runtime>;
     type XCM = XcmHelper;
     type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Runtime>;
+    type Members = CrowdloansAutomatorsMembership;
 }
 
 parameter_types! {
@@ -1660,6 +1680,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::TechnicalCommitteeMembership(_) |
             Call::OracleMembership(_) |
             Call::BridgeMembership(_) |
+            Call::CrowdloansAutomatorsMembership(_) |
             Call::LiquidStakingAgentsMembership(_)
         )
     }
@@ -1732,6 +1753,7 @@ construct_runtime!(
         OracleMembership: pallet_membership::<Instance3>::{Pallet, Call, Storage, Event<T>, Config<T>} = 72,
         LiquidStakingAgentsMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>} = 73,
         BridgeMembership: pallet_membership::<Instance6>::{Pallet, Call, Storage, Event<T>, Config<T>} = 74,
+        CrowdloansAutomatorsMembership: pallet_membership::<Instance7>::{Pallet, Call, Storage, Event<T>, Config<T>} = 75,
 
         // AMM
         AMM: pallet_amm::{Pallet, Call, Storage, Event<T>} = 80,

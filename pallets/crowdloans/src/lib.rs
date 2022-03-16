@@ -39,13 +39,14 @@ pub mod pallet {
 
     use frame_support::{
         dispatch::DispatchResult,
+        error::BadOrigin,
         log,
         pallet_prelude::*,
         require_transactional,
         storage::{child, ChildTriePrefixIterator},
         traits::{
             fungibles::{Inspect, Mutate, Transfer},
-            Get,
+            Get, SortedMembers,
         },
         transactional, Blake2_128Concat, PalletId,
     };
@@ -76,6 +77,18 @@ pub mod pallet {
     #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
+
+    macro_rules! ensure_origin {
+        ($required_origin:ident, $origin:expr) => {
+            if T::$required_origin::ensure_origin($origin.clone()).is_ok()
+                || T::Members::contains(&ensure_signed($origin)?)
+            {
+                Ok(())
+            } else {
+                Err(DispatchError::from(BadOrigin))
+            }
+        };
+    }
 
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_xcm::Config {
@@ -135,11 +148,14 @@ pub mod pallet {
         /// The origin which can close/reopen vault
         type OpenCloseOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
-        /// The origin which can call auction failed
-        type AuctionFailedOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        /// The origin which can call auction failed/succeeded
+        type AuctionSucceededFailedOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The origin which can call slot expired
         type SlotExpiredOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+
+        /// Approved automation group for Phase Transition, Vrf, VaultCreation, VaultUpdate, Refund and Dissolve
+        type Members: SortedMembers<Self::AccountId>;
 
         /// Weight information
         type WeightInfo: WeightInfo;
@@ -340,7 +356,7 @@ pub mod pallet {
             #[pallet::compact] cap: BalanceOf<T>,
             end_block: BlockNumberFor<T>,
         ) -> DispatchResult {
-            T::CreateVaultOrigin::ensure_origin(origin)?;
+            ensure_origin!(CreateVaultOrigin, origin)?;
 
             ensure!(!cap.is_zero(), Error::<T>::InvalidCap);
 
@@ -421,7 +437,7 @@ pub mod pallet {
             end_block: Option<BlockNumberFor<T>>,
             contribution_strategy: Option<ContributionStrategy>,
         ) -> DispatchResult {
-            T::UpdateVaultOrigin::ensure_origin(origin)?;
+            ensure_origin!(UpdateVaultOrigin, origin)?;
 
             let mut vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
 
@@ -468,7 +484,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::open())]
         #[transactional]
         pub fn open(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
-            T::OpenCloseOrigin::ensure_origin(origin)?;
+            ensure_origin!(OpenCloseOrigin, origin)?;
 
             log::trace!(
                 target: "crowdloans::open",
@@ -590,7 +606,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::set_vrf())]
         #[transactional]
         pub fn set_vrf(origin: OriginFor<T>, flag: bool) -> DispatchResult {
-            T::VrfOrigin::ensure_origin(origin)?;
+            ensure_origin!(VrfOrigin, origin)?;
 
             log::trace!(
                 target: "crowdloans::set_vrf",
@@ -608,7 +624,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::close())]
         #[transactional]
         pub fn close(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
-            T::OpenCloseOrigin::ensure_origin(origin)?;
+            ensure_origin!(OpenCloseOrigin, origin)?;
 
             log::trace!(
                 target: "crowdloans::close",
@@ -632,7 +648,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::reopen())]
         #[transactional]
         pub fn reopen(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
-            T::OpenCloseOrigin::ensure_origin(origin)?;
+            ensure_origin!(OpenCloseOrigin, origin)?;
 
             log::trace!(
                 target: "crowdloans::reopen",
@@ -681,7 +697,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::auction_failed())]
         #[transactional]
         pub fn auction_failed(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
-            T::AuctionFailedOrigin::ensure_origin(origin)?;
+            ensure_origin!(AuctionSucceededFailedOrigin, origin)?;
 
             log::trace!(
                 target: "crowdloans::auction_failed",
@@ -824,7 +840,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::slot_expired())]
         #[transactional]
         pub fn slot_expired(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
-            T::SlotExpiredOrigin::ensure_origin(origin)?;
+            ensure_origin!(SlotExpiredOrigin, origin)?;
 
             log::trace!(
                 target: "crowdloans::slot_expired",
@@ -847,7 +863,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::migrate_pending())]
         #[transactional]
         pub fn migrate_pending(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
-            T::MigrateOrigin::ensure_origin(origin)?;
+            ensure_origin!(MigrateOrigin, origin)?;
 
             let mut vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
             ensure!(

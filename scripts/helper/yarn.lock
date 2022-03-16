@@ -194,33 +194,33 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@parallel-finance/api@npm:^1.5.7":
-  version: 1.5.7
-  resolution: "@parallel-finance/api@npm:1.5.7"
+"@parallel-finance/api@npm:^1.5.9":
+  version: 1.5.9
+  resolution: "@parallel-finance/api@npm:1.5.9"
   dependencies:
     "@open-web3/orml-api-derive": ^1.0.2-3
-    "@parallel-finance/types": ^1.5.7
-  checksum: ab8f5c6675e4e1a78d45e011d69d5e4577465119be7f2dad147b61a976d62568e99f8e5d365c3e26c2c101cae217711619f91d410feea422bd75a9af783fa5ef
+    "@parallel-finance/types": ^1.5.9
+  checksum: 018e38cac78b495ce6bde6d91428f87cc0c48b052f386c7746ec5ba8cf23b67c4d3d9bf21e166cb230918f953620b551f95cca385ec916f018df38f2a0c1552b
   languageName: node
   linkType: hard
 
-"@parallel-finance/type-definitions@npm:^1.5.7":
-  version: 1.5.7
-  resolution: "@parallel-finance/type-definitions@npm:1.5.7"
+"@parallel-finance/type-definitions@npm:^1.5.9":
+  version: 1.5.9
+  resolution: "@parallel-finance/type-definitions@npm:1.5.9"
   dependencies:
     "@open-web3/orml-type-definitions": ^1.0.2-3
-  checksum: d4a45c6838d911957973b4aecd6445951528c9aa0c2ecf6735123bbf68f354a6a5663eb843b185c927ad1095b5e903ad922cfffcabc9449933d979d3c43c5216
+  checksum: f290d86e41ade8dc1f26aca0ba0d41d239dc2a81e73ad259c54bf535df38e5e85cf8ce7f110db4a6aa1c8181ee0ac818060dbfedcda24a12b222fb69b8871d68
   languageName: node
   linkType: hard
 
-"@parallel-finance/types@npm:^1.5.7":
-  version: 1.5.7
-  resolution: "@parallel-finance/types@npm:1.5.7"
+"@parallel-finance/types@npm:^1.5.9":
+  version: 1.5.9
+  resolution: "@parallel-finance/types@npm:1.5.9"
   dependencies:
     "@babel/runtime": ^7.10.2
     "@open-web3/orml-types": ^1.0.2-3
-    "@parallel-finance/type-definitions": ^1.5.7
-  checksum: 85929318678a81d5bd2a0f93824f8e52795da2b90ac4245047e13a70b856f383f04b359bb23bf1f9ff3bbecf21a5880920012206d8feab0e6860751ef20821e0
+    "@parallel-finance/type-definitions": ^1.5.9
+  checksum: fd7b0312f9c388f7749e671ba01e9e4f46a0f44e222e2f5c72ec0207717241dbe55c38120a8b54547407e234d690124724eb832687fc89f5b94200518dad5282
   languageName: node
   linkType: hard
 
@@ -2734,7 +2734,7 @@ __metadata:
   resolution: "parallel-helper@workspace:."
   dependencies:
     "@caporal/core": ^2.0.2
-    "@parallel-finance/api": ^1.5.7
+    "@parallel-finance/api": ^1.5.9
     "@polkadot/api": ^7.9.1
     "@polkadot/keyring": ^8.4.1
     "@polkadot/rpc-core": ^7.9.1

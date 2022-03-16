@@ -375,6 +375,20 @@ impl SortedMembers<AccountId> for BobOrigin {
     }
 }
 
+pub struct CharlieOrigin;
+impl SortedMembers<AccountId> for CharlieOrigin {
+    fn sorted_members() -> Vec<AccountId> {
+        vec![CHARLIE]
+    }
+}
+
+pub struct EveOrigin;
+impl SortedMembers<AccountId> for EveOrigin {
+    fn sorted_members() -> Vec<AccountId> {
+        vec![EVE]
+    }
+}
+
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
     pub const MinContribution: Balance = 0;
@@ -400,7 +414,7 @@ pub type VrfOrigin = EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrig
 pub type OpenCloseOrigin =
     EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
-pub type AuctionFailedOrigin =
+pub type AuctionSucceededFailedOrigin =
     EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
 
 pub type SlotExpiredOrigin =
@@ -424,11 +438,12 @@ impl crate::Config for Test {
     type UpdateVaultOrigin = UpdateVaultOrigin;
     type VrfOrigin = VrfOrigin;
     type OpenCloseOrigin = OpenCloseOrigin;
-    type AuctionFailedOrigin = AuctionFailedOrigin;
+    type AuctionSucceededFailedOrigin = AuctionSucceededFailedOrigin;
     type SlotExpiredOrigin = SlotExpiredOrigin;
     type WeightInfo = ();
     type XCM = XcmHelper;
     type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Test>;
+    type Members = CharlieOrigin;
 }
 
 parameter_types! {
@@ -499,6 +514,8 @@ construct_runtime!(
 
 pub const ALICE: AccountId32 = AccountId32::new([1u8; 32]);
 pub const BOB: AccountId32 = AccountId32::new([2u8; 32]);
+pub const CHARLIE: AccountId32 = AccountId32::new([3u8; 32]);
+pub const EVE: AccountId32 = AccountId32::new([4u8; 32]);
 
 pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     let t = frame_system::GenesisConfig::default()
