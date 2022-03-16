@@ -4,7 +4,9 @@ use crate::{
     *,
 };
 
-use frame_support::{assert_noop, assert_ok, storage::with_transaction, traits::Hooks};
+use frame_support::{
+    assert_noop, assert_ok, error::BadOrigin, storage::with_transaction, traits::Hooks,
+};
 
 use primitives::{
     tokens::{KSM, SKSM},
@@ -808,9 +810,18 @@ fn test_force_notification_received_work() {
                 amount: bond_amount,
             })
         );
-        assert_ok!(LiquidStaking::force_notification_received(
+        assert_noop!(
+            LiquidStaking::notification_received(
+                Origin::signed(ALICE),
+                query_id,
+                Response::ExecutionResult(None),
+            ),
+            BadOrigin
+        );
+        assert_ok!(LiquidStaking::notification_received(
             Origin::root(),
             query_id,
+            Response::ExecutionResult(None),
         ));
         assert_eq!(XcmRequests::<Test>::get(query_id), None);
     })
