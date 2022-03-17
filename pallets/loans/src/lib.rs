@@ -151,6 +151,8 @@ pub mod pallet {
         NewMarketMustHavePendingState,
         /// Market reached its upper limitation
         ExceededMarketCapacity,
+        /// Borrowing reached the borrow limit
+        ExceededBorrowLimit,
         /// Insufficient cash in the pool
         InsufficientCash,
         /// The factor should be bigger than 0% and smaller than 100%
@@ -498,6 +500,7 @@ pub mod pallet {
             close_factor: Ratio,
             liquidate_incentive: Rate,
             #[pallet::compact] cap: BalanceOf<T>,
+            #[pallet::compact] borrow_limit: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
 
@@ -521,6 +524,7 @@ pub mod pallet {
                     close_factor,
                     liquidate_incentive,
                     cap,
+                    borrow_limit,
                 };
                 stored_market.clone()
             })?;
@@ -1046,6 +1050,7 @@ impl<T: Config> Pallet<T> {
         borrower: &T::AccountId,
         borrow_amount: BalanceOf<T>,
     ) -> DispatchResult {
+        Self::ensure_under_borrow_limit(asset_id, borrow_amount)?;
         Self::ensure_enough_cash(asset_id, borrow_amount)?;
         let borrow_value = Self::get_asset_value(asset_id, borrow_amount)?;
         Self::ensure_liquidity(borrower, borrow_value)?;
@@ -1346,14 +1351,28 @@ impl<T: Config> Pallet<T> {
     /// Ensure market is enough to supply `amount` asset.
     fn ensure_capacity(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
         let market = Self::market(asset_id)?;
-
         // Assets holded by market currently.
         let current_cash = T::Assets::balance(asset_id, &Self::account_id());
-
         let total_cash = current_cash
             .checked_add(amount)
             .ok_or(ArithmeticError::Overflow)?;
         ensure!(total_cash <= market.cap, Error::<T>::ExceededMarketCapacity);
+
+        Ok(())
+    }
+
+    /// Make sure the borrowing under the borrow limit
+    fn ensure_under_borrow_limit(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
+        let market = Self::market(asset_id)?;
+        let total_borrows = Self::total_borrows(asset_id);
+        let new_total_borrows = total_borrows
+            .checked_add(amount)
+            .ok_or(ArithmeticError::Overflow)?;
+        ensure!(
+            new_total_borrows <= market.borrow_limit,
+            Error::<T>::ExceededBorrowLimit
+        );
+
         Ok(())
     }
 
@@ -1385,6 +1404,7 @@ impl<T: Config> Pallet<T> {
 
         Ok(())
     }
+
     // Ensures that `account` have sufficient liquidity to move your assets
     // Returns `Err` If InsufficientLiquidity
     // `account`: account that need a liquidity check
