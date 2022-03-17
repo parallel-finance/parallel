@@ -265,7 +265,7 @@ impl Contains<Call> for BaseCallFilter {
 pub struct CallFilterRouter;
 impl Contains<Call> for CallFilterRouter {
     fn contains(call: &Call) -> bool {
-        BaseCallFilter::contains(call) && EmergencyShutdown::contains(call)
+        BaseCallFilter::contains(call)
     }
 }
 
@@ -1687,6 +1687,7 @@ impl pallet_emergency_shutdown::Config for Runtime {
     type Event = Event;
     type Whitelist = WhiteListFilter;
     type ShutdownOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type Call = Call;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
