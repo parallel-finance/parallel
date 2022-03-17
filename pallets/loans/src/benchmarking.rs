@@ -169,7 +169,7 @@ benchmarks! {
             Ratio::from_percent(15),
             Rate::from_inner(Rate::DIV / 100 * 110),
             1_000_000_000_000_000_000_000u128,
-            1_000_000_000_000_000_000_000u128,
+            1_000_000_000_000_000_000_000u128
     )
     verify {
         let mut market = pending_market_mock::<T>(PKSM);
