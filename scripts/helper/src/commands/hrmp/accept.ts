@@ -31,7 +31,7 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
       )
       await api.tx.sudo
         .sudo(
-          api.tx.polkadotXcm.send(
+          api.tx.ormlXcm.sendAsSovereign(
             {
               V1: {
                 parents: 1,
