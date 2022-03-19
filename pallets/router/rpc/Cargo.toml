@@ -2,7 +2,7 @@
 authors = ['Parallel Team']
 edition = '2021'
 name    = 'pallet-router-rpc'
-version = '1.7.9'
+version = '1.8.0'
 
 [dependencies]
 codec               = { package = 'parity-scale-codec', version = '2.3.1' }

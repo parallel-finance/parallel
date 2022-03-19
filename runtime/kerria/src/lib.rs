@@ -137,10 +137,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("kerria"),
     impl_name: create_runtime_str!("kerria"),
     authoring_version: 1,
-    spec_version: 179,
-    impl_version: 24,
+    spec_version: 180,
+    impl_version: 25,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 8,
+    transaction_version: 9,
     state_version: 0,
 };
 
@@ -211,6 +211,10 @@ impl Contains<Call> for BaseCallFilter {
             Call::Assets(pallet_assets::Call::mint { .. }) |
             Call::Assets(pallet_assets::Call::transfer { .. }) |
             Call::Assets(pallet_assets::Call::burn { .. }) |
+            Call::Assets(pallet_assets::Call::destroy { .. }) |
+            Call::Assets(pallet_assets::Call::force_create { .. }) |
+            Call::Assets(pallet_assets::Call::force_set_metadata { .. }) |
+            Call::Assets(pallet_assets::Call::force_asset_status { .. }) |
             // Governance
             Call::Sudo(_) |
             Call::Democracy(_) |
@@ -223,7 +227,10 @@ impl Contains<Call> for BaseCallFilter {
             Call::ParachainSystem(_) |
             Call::XcmpQueue(_) |
             Call::DmpQueue(_) |
-            Call::PolkadotXcm(_) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_xcm_version { .. }) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_default_xcm_version { .. }) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_subscribe_version_notify { .. }) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_unsubscribe_version_notify { .. }) |
             Call::CumulusXcm(_) |
             // Consensus
             Call::Authorship(_) |
@@ -1664,6 +1671,10 @@ impl Contains<Call> for WhiteListFilter {
             Call::Assets(pallet_assets::Call::mint { .. }) |
             Call::Assets(pallet_assets::Call::transfer { .. }) |
             Call::Assets(pallet_assets::Call::burn { .. }) |
+            Call::Assets(pallet_assets::Call::destroy { .. }) |
+            Call::Assets(pallet_assets::Call::force_create { .. }) |
+            Call::Assets(pallet_assets::Call::force_set_metadata { .. }) |
+            Call::Assets(pallet_assets::Call::force_asset_status { .. }) |
             // Governance
             Call::Sudo(_) |
             Call::Democracy(_) |

@@ -69,7 +69,7 @@ export const createXcm = (encoded: string, sovereignAccount: string) => {
               }
             },
             fun: {
-              Fungible: '1000000000000'
+              Fungible: '500000000000'
             }
           }
         ]
@@ -84,7 +84,7 @@ export const createXcm = (encoded: string, sovereignAccount: string) => {
               }
             },
             fun: {
-              Fungible: '1000000000000'
+              Fungible: '500000000000'
             }
           },
           weightLimit: 'Unlimited'
