@@ -15,7 +15,7 @@ fn exceeded_market_capacity() {
         // Exceed upper bound.
         assert_err!(
             Loans::mint(Origin::signed(ALICE), DOT, amount),
-            Error::<Test>::ExceededMarketCapacity
+            Error::<Test>::MarketCapacityExceeded
         );
 
         Loans::redeem(Origin::signed(ALICE), DOT, amount).unwrap();

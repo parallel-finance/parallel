@@ -286,10 +286,10 @@ fn borrow_allowed_works() {
         ));
         // Borrow 10 DOT is ok
         assert_ok!(Loans::borrow_allowed(DOT, &ALICE, 10));
-        // Borrow 11 DOT should cause ExceededBorrowLimit
+        // Borrow 11 DOT should cause BorrowLimitExceeded
         assert_noop!(
             Loans::borrow_allowed(DOT, &ALICE, 11),
-            Error::<Test>::ExceededBorrowLimit
+            Error::<Test>::BorrowLimitExceeded
         );
     })
 }

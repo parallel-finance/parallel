@@ -149,10 +149,10 @@ pub mod pallet {
         MarketAlredyExists,
         /// New markets must have a pending state
         NewMarketMustHavePendingState,
-        /// Market reached its upper limitation
-        ExceededMarketCapacity,
-        /// Borrowing reached the borrow limit
-        ExceededBorrowLimit,
+        /// Upper bound of capacity is exceeded
+        MarketCapacityExceeded,
+        /// Upper bound of borrow limit is exceeded
+        BorrowLimitExceeded,
         /// Insufficient cash in the pool
         InsufficientCash,
         /// The factor should be bigger than 0% and smaller than 100%
@@ -1356,7 +1356,7 @@ impl<T: Config> Pallet<T> {
         let total_cash = current_cash
             .checked_add(amount)
             .ok_or(ArithmeticError::Overflow)?;
-        ensure!(total_cash <= market.cap, Error::<T>::ExceededMarketCapacity);
+        ensure!(total_cash <= market.cap, Error::<T>::MarketCapacityExceeded);
 
         Ok(())
     }
@@ -1370,7 +1370,7 @@ impl<T: Config> Pallet<T> {
             .ok_or(ArithmeticError::Overflow)?;
         ensure!(
             new_total_borrows <= market.borrow_limit,
-            Error::<T>::ExceededBorrowLimit
+            Error::<T>::BorrowLimitExceeded
         );
 
         Ok(())
