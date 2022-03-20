@@ -15,13 +15,34 @@
 use super::*;
 use mock::*;
 
+// basic function tests
 #[test]
-fn init_minting_ok() {
+fn create_stream_works() {
     new_test_ext().execute_with(|| {
-        assert_eq!(Assets::balance(KSM, ALICE), dollar(1000));
-        assert_eq!(Assets::balance(DOT, ALICE), dollar(1000));
-        assert_eq!(Assets::balance(USDT, ALICE), dollar(1000));
-        assert_eq!(Assets::balance(KSM, BOB), dollar(1000));
-        assert_eq!(Assets::balance(DOT, BOB), dollar(1000));
+        // Alice creates stream to Bob
+        // Dave cannot access
+    });
+}
+
+#[test]
+fn cancel_stream_works() {
+    new_test_ext().execute_with(|| {
+        // Alice creates stream to Bob
+        // Time passes for * seconds
+        // Alice cancels existing stream sent to bob
+        // Alice and Bob is received with * DOT and * DOT respectively
+        // Bob cannot access to previous stream
+    });
+}
+
+
+#[test]
+fn withdraw_from_stream_works() {
+    new_test_ext().execute_with(|| {
+        // Alice creates stream to Bob
+        // Dave cannot access it
+        // Bob withdraws payment
+        // Bob is received with * DOT 
+        // balance is updated in the existing stream 
     });
 }
