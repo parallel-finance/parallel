@@ -8,14 +8,17 @@ use crate::Pallet as Crowdloans;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{assert_ok, pallet_prelude::*, traits::fungibles::Mutate};
 use frame_system::{self, RawOrigin as SystemOrigin};
+use primitives::ump::{XcmCall, XcmWeightFeeMisc};
 use primitives::{Balance, CurrencyId, ParaId};
+use sp_runtime::traits::One;
 use sp_runtime::traits::StaticLookup;
-use sp_std::{convert::TryInto, prelude::*};
+use sp_std::prelude::*;
 use xcm::latest::prelude::*;
 
-use sp_runtime::traits::One;
-
-const XCM_FEES: u128 = 50000000000u128;
+const XCM_WEIGHT_FEE: XcmWeightFeeMisc<Weight, Balance> = XcmWeightFeeMisc {
+    weight: 3_000_000_000,
+    fee: 50000000000u128,
+};
 const CONTRIBUTE_AMOUNT: u128 = 20000000000000u128;
 const INITIAL_FEES: u128 = 1000000000000000u128;
 const INITIAL_AMOUNT: u128 = 1000000000000000u128;
@@ -59,7 +62,12 @@ fn initial_set_up<
     )
     .ok();
 
-    pallet_xcm_helper::Pallet::<T>::update_xcm_fees(SystemOrigin::Root.into(), XCM_FEES).unwrap();
+    pallet_xcm_helper::Pallet::<T>::update_xcm_weight_fee(
+        SystemOrigin::Root.into(),
+        XcmCall::AddMemo,
+        XCM_WEIGHT_FEE,
+    )
+    .unwrap();
     // fund caller with dot
     <T as pallet_xcm_helper::Config>::Assets::mint_into(
         T::RelayCurrency::get(),
@@ -195,20 +203,13 @@ benchmarks! {
         ).into())
     }
 
-    set_vrfs {
-        let ctoken = 12;
-        let caller: T::AccountId = whitelisted_caller();
-        let crowdloan = ParaId::from(1338u32);
-
-        initial_set_up::<T>(caller, ctoken);
-        assert_ok!(Crowdloans::<T>::create_vault(SystemOrigin::Root.into(), crowdloan, ctoken, LEASE_START, LEASE_END, ContributionStrategy::XCM, CAP, END_BLOCK.into()));
+    set_vrf {
     }: _(
         SystemOrigin::Root,
-        vec![ParaId::from(1336u32), ParaId::from(1337u32)]
+        true
     )
     verify {
-        let vrfs: BoundedVec<ParaId, T::MaxVrfs>  = vec![ParaId::from(1336), ParaId::from(1337)].try_into().unwrap();
-        assert_last_event::<T>(Event::VrfsUpdated(vrfs).into())
+        assert_last_event::<T>(Event::VrfUpdated(true).into())
     }
 
     reopen {

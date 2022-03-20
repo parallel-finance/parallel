@@ -1,5 +1,5 @@
 use crate::{
-    mock::{million_dollar, new_test_ext, Assets, Loans, Origin, Test, ALICE, DOT, KSM, XDOT},
+    mock::{million_dollar, new_test_ext, Assets, Loans, Origin, Test, ALICE, DOT, KSM, SDOT},
     tests::{dollar, run_to_block},
     Error,
 };
@@ -63,7 +63,7 @@ fn repay_borrow_all_no_underflow() {
 fn ensure_capacity_fails_when_market_not_existed() {
     new_test_ext().execute_with(|| {
         assert_err!(
-            Loans::ensure_capacity(XDOT, dollar(100)),
+            Loans::ensure_capacity(SDOT, dollar(100)),
             Error::<Test>::MarketDoesNotExist
         );
     });

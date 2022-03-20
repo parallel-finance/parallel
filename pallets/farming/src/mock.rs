@@ -4,24 +4,27 @@ use crate as pallet_farming;
 use frame_support::{parameter_types, traits::Everything, PalletId};
 use frame_system::{self as system, EnsureRoot};
 use primitives::DecimalProvider;
-use primitives::{tokens, Balance, CurrencyId};
-// use scale_info::TypeInfo;
+use primitives::{Balance, CurrencyId};
 #[cfg(feature = "std")]
-// use serde::{Deserialize, Serialize};
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
 };
 
-pub const DOT: CurrencyId = tokens::DOT;
-pub const SAMPLE_LP_TOKEN: CurrencyId = 42;
+pub const EHKO: CurrencyId = 0;
+pub const STAKE_TOKEN: CurrencyId = 1;
+pub const REWARD_TOKEN: CurrencyId = 2;
+pub const BIG_DECIMAL_STAKE_TOKEN: CurrencyId = 3;
+pub const BIG_DECIMAL_REWARD_TOKEN: CurrencyId = 4;
+pub const LOCK_DURATION: u64 = 20;
 
 pub type AccountId = u128;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
-pub const CHARLIE: AccountId = 3;
+pub const REWARD_TOKEN_PAYER: AccountId = 3;
+pub const CHARLIE: AccountId = 4;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -36,9 +39,9 @@ frame_support::construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
-        Farming: pallet_farming::{Pallet, Call, Storage, Event<T>},
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
         CurrencyAdapter: pallet_currency_adapter::{Pallet, Call},
+        Farming: pallet_farming::{Pallet, Call, Storage, Event<T>},
     }
 );
 
@@ -119,16 +122,18 @@ impl pallet_assets::Config for Test {
 
 parameter_types! {
     pub const FarmingPalletId: PalletId = PalletId(*b"par/farm");
-    pub const MaxRewardTokens: u32 = 1000;
-    pub const MaxUserLockItemsCount: u32 = 100;
-    pub const LockPoolMaxDuration: u32 = 50400;
+    pub const MaxUserLockItemsCount: u32 = 3;
+    pub const LockPoolMaxDuration: u32 = 2628000;
+    pub const CoolDownMaxDuration: u32 = 50400;
 }
 
 pub struct Decimal;
 impl DecimalProvider<CurrencyId> for Decimal {
     fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
         match *asset_id {
-            DOT => Some(12),
+            BIG_DECIMAL_STAKE_TOKEN | BIG_DECIMAL_REWARD_TOKEN => Some(24),
+            EHKO => Some(12),
+            STAKE_TOKEN => Some(12),
             _ => Some(10),
         }
     }
@@ -140,9 +145,9 @@ impl pallet_farming::Config for Test {
     type Event = Event;
     type Assets = CurrencyAdapter;
     type PalletId = FarmingPalletId;
-    type MaxRewardTokens = MaxRewardTokens;
     type MaxUserLockItemsCount = MaxUserLockItemsCount;
     type LockPoolMaxDuration = LockPoolMaxDuration;
+    type CoolDownMaxDuration = CoolDownMaxDuration;
     type Decimal = Decimal;
 }
 
@@ -162,29 +167,85 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .build_storage::<Test>()
         .unwrap();
     pallet_balances::GenesisConfig::<Test> {
-        balances: vec![
-            (ALICE, 100_000_000),
-            (BOB, 100_000_000),
-            (CHARLIE, 1000_000_000),
-        ],
+        balances: vec![(ALICE, 100_000_000), (BOB, 100_000_000)],
     }
     .assimilate_storage(&mut t)
     .unwrap();
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        Assets::force_create(Origin::root(), tokens::DOT, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), tokens::XDOT, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), SAMPLE_LP_TOKEN, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), STAKE_TOKEN, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), REWARD_TOKEN, REWARD_TOKEN_PAYER, true, 1).unwrap();
+        Assets::force_create(Origin::root(), BIG_DECIMAL_STAKE_TOKEN, ALICE, true, 1).unwrap();
+        Assets::force_create(
+            Origin::root(),
+            BIG_DECIMAL_REWARD_TOKEN,
+            REWARD_TOKEN_PAYER,
+            true,
+            1,
+        )
+        .unwrap();
 
-        Assets::mint(Origin::signed(ALICE), tokens::DOT, ALICE, 100_000_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::DOT, BOB, 100_000_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::DOT, CHARLIE, 1000_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), STAKE_TOKEN, ALICE, 500_000_000).unwrap();
+        Assets::mint(Origin::signed(ALICE), STAKE_TOKEN, BOB, 500_000_000).unwrap();
+        Assets::mint(
+            Origin::signed(ALICE),
+            STAKE_TOKEN,
+            CHARLIE,
+            1_100_000_000_000_000,
+        )
+        .unwrap();
+        Assets::mint(
+            Origin::signed(REWARD_TOKEN_PAYER),
+            REWARD_TOKEN,
+            REWARD_TOKEN_PAYER,
+            3_000_000_000_000_000,
+        )
+        .unwrap();
+        Assets::mint(
+            Origin::signed(ALICE),
+            BIG_DECIMAL_STAKE_TOKEN,
+            ALICE,
+            100_000_000_000_000_000_000_000_000,
+        )
+        .unwrap();
+        Assets::mint(
+            Origin::signed(REWARD_TOKEN_PAYER),
+            BIG_DECIMAL_REWARD_TOKEN,
+            REWARD_TOKEN_PAYER,
+            11_000_000_000_000_000_000_000_000_000_000,
+        )
+        .unwrap();
 
-        Assets::mint(Origin::signed(ALICE), tokens::XDOT, ALICE, 100_000_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::XDOT, BOB, 100_000_000).unwrap();
-        Assets::mint(Origin::signed(ALICE), tokens::XDOT, CHARLIE, 1000_000_000).unwrap();
+        Farming::create(
+            Origin::root(),
+            STAKE_TOKEN,
+            REWARD_TOKEN,
+            LOCK_DURATION,
+            100,
+        )
+        .unwrap();
+        let pool_info = Farming::pools((STAKE_TOKEN, REWARD_TOKEN, LOCK_DURATION)).unwrap();
+        assert_eq!(pool_info.is_active, false);
+        Farming::set_pool_status(
+            Origin::root(),
+            STAKE_TOKEN,
+            REWARD_TOKEN,
+            LOCK_DURATION,
+            true,
+        )
+        .unwrap();
+
+        System::set_block_number(0);
+        run_to_block(1);
     });
 
     ext
+}
+
+/// Progress to the given block, and then finalize the block.
+pub(crate) fn run_to_block(n: BlockNumber) {
+    for b in (System::block_number() + 1)..=n {
+        System::set_block_number(b);
+    }
 }

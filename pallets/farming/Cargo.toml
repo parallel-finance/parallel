@@ -2,7 +2,7 @@
 authors = ['Parallel Team']
 edition = '2021'
 name    = 'pallet-farming'
-version = '1.7.7'
+version = '1.8.0'
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']
@@ -12,6 +12,7 @@ codec              = { package = 'parity-scale-codec', version = '2.3.1', featur
 frame-benchmarking = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false, optional = true }
 frame-support      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 frame-system       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
+num-traits         = { default-features = false, version = '0.2' }
 pallet-assets      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 primitives         = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 scale-info         = { version = '1.0', default-features = false, features = ['derive'] }
@@ -19,7 +20,6 @@ serde              = { version = '1', features = ['derive'], optional = true }
 sp-io              = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 sp-runtime         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
 sp-std             = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17', default-features = false }
-
 
 [dev-dependencies]
 pallet-balances         = { branch = 'polkadot-v0.9.17', git = 'https://github.com/paritytech/substrate.git' }
@@ -40,6 +40,7 @@ std                = [
   'pallet-assets/std',
   'scale-info/std',
   'sp-std/std',
+  'num-traits/std',
 ]
 try-runtime        = ['frame-support/try-runtime']
 

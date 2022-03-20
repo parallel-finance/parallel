@@ -4,7 +4,9 @@ use frame_support::{
     construct_runtime,
     dispatch::Weight,
     parameter_types, sp_io,
-    traits::{EnsureOneOf, Everything, GenesisBuild, Nothing, SortedMembers},
+    traits::{
+        tokens::BalanceConversion, EnsureOneOf, Everything, GenesisBuild, Nothing, SortedMembers,
+    },
     weights::constants::WEIGHT_PER_SECOND,
     PalletId,
 };
@@ -21,7 +23,7 @@ use sp_runtime::{
     traits::{
         AccountIdConversion, AccountIdLookup, BlakeTwo256, BlockNumberProvider, Convert, Zero,
     },
-    AccountId32,
+    AccountId32, DispatchError,
     MultiAddress::Id,
 };
 pub use xcm::latest::prelude::*;
@@ -40,6 +42,7 @@ use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chai
 pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
 pub use kusama_runtime;
+use primitives::ump::{XcmCall, XcmWeightFeeMisc};
 
 pub struct RelayChainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
 
@@ -106,9 +109,10 @@ parameter_types! {
 }
 
 pub struct GiftConvert;
-impl Convert<Balance, Balance> for GiftConvert {
-    fn convert(_amount: Balance) -> Balance {
-        return Zero::zero();
+impl BalanceConversion<Balance, CurrencyId, Balance> for GiftConvert {
+    type Error = DispatchError;
+    fn to_asset_balance(_balance: Balance, _asset_id: CurrencyId) -> Result<Balance, Self::Error> {
+        Ok(Zero::zero())
     }
 }
 
@@ -120,6 +124,7 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
     LocationToAccountId,
     CurrencyIdConvert,
     NativeCurrencyId,
+    ExistentialDeposit,
     GiftAccount,
     GiftConvert,
 >;
@@ -255,11 +260,11 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
             DOT => Some(MultiLocation::parent()),
-            XDOT => Some(MultiLocation::new(
+            SDOT => Some(MultiLocation::new(
                 1,
                 X2(
                     Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(b"xDOT".to_vec()),
+                    GeneralKey(b"sDOT".to_vec()),
                 ),
             )),
             _ => None,
@@ -277,8 +282,8 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xDOT".to_vec() => {
-                Some(XDOT)
+            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"sDOT".to_vec() => {
+                Some(SDOT)
             }
             _ => None,
         }
@@ -399,9 +404,22 @@ impl SortedMembers<AccountId> for BobOrigin {
     }
 }
 
+pub struct CharlieOrigin;
+impl SortedMembers<AccountId> for CharlieOrigin {
+    fn sorted_members() -> Vec<AccountId> {
+        vec![CHARLIE]
+    }
+}
+
+pub struct EveOrigin;
+impl SortedMembers<AccountId> for EveOrigin {
+    fn sorted_members() -> Vec<AccountId> {
+        vec![EVE]
+    }
+}
+
 parameter_types! {
     pub const CrowdloansPalletId: PalletId = PalletId(*b"crwloans");
-    pub const MaxVrfs: u32 = 10;
     pub const MinContribution: Balance = 0;
     pub const MigrateKeysLimit: u32 = 10;
     pub const RemoveKeysLimit: u32 = 1000;
@@ -425,7 +443,7 @@ pub type VrfOrigin = EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrig
 pub type OpenCloseOrigin =
     EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<AliceOrigin, AccountId>>;
 
-pub type AuctionFailedOrigin =
+pub type AuctionSucceededFailedOrigin =
     EnsureOneOf<EnsureRoot<AccountId>, EnsureSignedBy<BobOrigin, AccountId>>;
 
 pub type SlotExpiredOrigin =
@@ -440,7 +458,6 @@ impl crate::Config for Test {
     type Assets = Assets;
     type RelayCurrency = RelayCurrency;
     type MinContribution = MinContribution;
-    type MaxVrfs = MaxVrfs;
     type MigrateKeysLimit = MigrateKeysLimit;
     type RemoveKeysLimit = RemoveKeysLimit;
     type MigrateOrigin = EnsureRoot<AccountId>;
@@ -450,11 +467,12 @@ impl crate::Config for Test {
     type UpdateVaultOrigin = UpdateVaultOrigin;
     type VrfOrigin = VrfOrigin;
     type OpenCloseOrigin = OpenCloseOrigin;
-    type AuctionFailedOrigin = AuctionFailedOrigin;
+    type AuctionSucceededFailedOrigin = AuctionSucceededFailedOrigin;
     type SlotExpiredOrigin = SlotExpiredOrigin;
     type WeightInfo = ();
     type XCM = XcmHelper;
     type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Test>;
+    type Members = CharlieOrigin;
 }
 
 parameter_types! {
@@ -525,18 +543,25 @@ construct_runtime!(
 
 pub const ALICE: AccountId32 = AccountId32::new([1u8; 32]);
 pub const BOB: AccountId32 = AccountId32::new([2u8; 32]);
+pub const CHARLIE: AccountId32 = AccountId32::new([3u8; 32]);
+pub const EVE: AccountId32 = AccountId32::new([4u8; 32]);
 
 pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     let t = frame_system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap();
 
+    let xcm_weight_fee_misc = XcmWeightFeeMisc {
+        weight: 3_000_000_000,
+        fee: dot(10f64),
+    };
+
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
         Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
-        Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(Origin::root(), SDOT, Id(ALICE), true, 1).unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), dot(100f64)).unwrap();
-        Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), dot(100f64)).unwrap();
+        Assets::mint(Origin::signed(ALICE), SDOT, Id(ALICE), dot(100f64)).unwrap();
         Assets::mint(
             Origin::signed(ALICE),
             DOT,
@@ -544,7 +569,8 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
             dot(30f64),
         )
         .unwrap();
-        XcmHelper::update_xcm_fees(Origin::root(), dot(10f64)).unwrap();
+        XcmHelper::update_xcm_weight_fee(Origin::root(), XcmCall::AddMemo, xcm_weight_fee_misc)
+            .unwrap();
     });
 
     ext
@@ -599,6 +625,11 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         .build_storage::<Test>()
         .unwrap();
 
+    let xcm_weight_fee_misc = XcmWeightFeeMisc {
+        weight: 3_000_000_000,
+        fee: dot(10f64),
+    };
+
     let parachain_info_config = parachain_info::GenesisConfig {
         parachain_id: para_id.into(),
     };
@@ -612,9 +643,9 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
     ext.execute_with(|| {
         System::set_block_number(1);
         Assets::force_create(Origin::root(), DOT, Id(ALICE), true, 1).unwrap();
-        Assets::force_create(Origin::root(), XDOT, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(Origin::root(), SDOT, Id(ALICE), true, 1).unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, Id(ALICE), dot(100_000f64)).unwrap();
-        Assets::mint(Origin::signed(ALICE), XDOT, Id(ALICE), dot(100f64)).unwrap();
+        Assets::mint(Origin::signed(ALICE), SDOT, Id(ALICE), dot(100f64)).unwrap();
         Assets::mint(
             Origin::signed(ALICE),
             DOT,
@@ -622,7 +653,8 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
             dot(30f64),
         )
         .unwrap();
-        XcmHelper::update_xcm_fees(Origin::root(), dot(10f64)).unwrap();
+        XcmHelper::update_xcm_weight_fee(Origin::root(), XcmCall::AddMemo, xcm_weight_fee_misc)
+            .unwrap();
     });
 
     ext

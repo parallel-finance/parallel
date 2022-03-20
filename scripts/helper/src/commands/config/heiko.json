@@ -1,19 +1,18 @@
 {
   "auctionDuration": 201600,
   "leaseIndex": 0,
-  "paraId": 2012,
-  "relayAsset": 101,
-  "gift": "10000000000000000",
-  "xcmFees": "5000000000",
+  "paraId": 2085,
+  "relayAsset": 100,
+  "gift": "1000000000000000",
   "liquidMarketCap": "10000000000000000",
   "paraDeposit": "0",
-  "crowdloanDeposit": "10000000000000",
+  "crowdloanDeposit": "50000000000000",
   "assets": [
     {
-      "name": "Polkadot",
-      "symbol": "DOT",
-      "assetId": 101,
-      "decimal": 10,
+      "name": "Kusama",
+      "symbol": "KSM",
+      "assetId": 100,
+      "decimal": 12,
       "balances": [
         ["5EYCAe5iie3JmgLB4rm1NHQtyYGiaYYBEB1jt7p35dXjQWJ8", "1000000000000000"],
         ["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000"]
@@ -27,24 +26,24 @@
       "balances": [["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000000"]]
     },
     {
-      "name": "Acala Dollar",
-      "symbol": "AUSD",
-      "assetId": 104,
+      "name": "Karura Dollar",
+      "symbol": "KUSD",
+      "assetId": 103,
       "decimal": 12,
       "balances": []
     },
     {
-      "name": "Acala",
-      "symbol": "ACA",
-      "assetId": 108,
+      "name": "Karura",
+      "symbol": "KAR",
+      "assetId": 107,
       "decimal": 12,
       "balances": []
     },
     {
-      "name": "Acala DOT",
-      "symbol": "LDOT",
-      "assetId": 110,
-      "decimal": 10,
+      "name": "Karura Kusama",
+      "symbol": "LKSM",
+      "assetId": 109,
+      "decimal": 12,
       "balances": []
     },
     {
@@ -62,36 +61,36 @@
       "balances": [["5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf", "100000000000000000000"]]
     },
     {
-      "name": "Parallel Staking Polkadot",
-      "symbol": "XDOT",
-      "assetId": 1001,
-      "decimal": 10,
+      "name": "Parallel Staking Kusama",
+      "symbol": "sKSM",
+      "assetId": 1000,
+      "decimal": 12,
       "balances": []
     },
     {
-      "name": "Parallel Crowdloans Polkadot - (0 ~ 7)",
-      "symbol": "CDOT-0-7",
+      "name": "Parallel Crowdloans Kusama - (0 ~ 7)",
+      "symbol": "cKSM-0/7",
       "assetId": 4000,
-      "decimal": 10,
+      "decimal": 12,
       "balances": []
     },
     {
-      "name": "Parallel LP-USDT/PARA",
-      "symbol": "LP-USDT/PARA",
+      "name": "Parallel LP-USDT/HKO",
+      "symbol": "LP-USDT/HKO",
       "assetId": 5000,
       "decimal": 12,
       "balances": []
     },
     {
-      "name": "Parallel LP-PARA/USDT",
-      "symbol": "LP-PARA/USDT",
+      "name": "Parallel LP-KSM/USDT",
+      "symbol": "LP-KSM/USDT",
       "assetId": 5001,
       "decimal": 12,
       "balances": []
     },
     {
-      "name": "Parallel LP-DOT/PARA",
-      "symbol": "LP-DOT/PARA",
+      "name": "Parallel LP-KSM/HKO",
+      "symbol": "LP-KSM/HKO",
       "assetId": 5002,
       "decimal": 12,
       "balances": []
@@ -99,7 +98,7 @@
   ],
   "markets": [
     {
-      "assetId": 101,
+      "assetId": 100,
       "marketConfig": {
         "closeFactor": 50e4,
         "collateralFactor": 50e4,
@@ -115,7 +114,7 @@
           }
         },
         "state": "Pending",
-        "ptokenId": 2101
+        "ptokenId": 2100
       }
     },
     {
@@ -139,7 +138,7 @@
       }
     },
     {
-      "assetId": 104,
+      "assetId": 103,
       "marketConfig": {
         "closeFactor": 50e4,
         "collateralFactor": 50e4,
@@ -155,7 +154,7 @@
           }
         },
         "state": "Pending",
-        "ptokenId": 2104
+        "ptokenId": 2103
       }
     },
     {
@@ -175,11 +174,11 @@
           }
         },
         "state": "Pending",
-        "ptokenId": 2104
+        "ptokenId": 2107
       }
     },
     {
-      "assetId": 110,
+      "assetId": 109,
       "marketConfig": {
         "closeFactor": 50e4,
         "collateralFactor": 50e4,
@@ -195,7 +194,7 @@
           }
         },
         "state": "Pending",
-        "ptokenId": 2110
+        "ptokenId": 2109
       }
     },
     {
@@ -239,7 +238,7 @@
       }
     },
     {
-      "assetId": 1001,
+      "assetId": 1000,
       "marketConfig": {
         "closeFactor": 50e4,
         "collateralFactor": 50e4,
@@ -255,25 +254,25 @@
           }
         },
         "state": "Pending",
-        "ptokenId": 3001
+        "ptokenId": 3000
       }
     }
   ],
   "pools": [
     {
-      "pool": [102, 1],
+      "pool": [102, 0],
       "liquidityAmounts": ["100000000000", "10000000000000000"],
       "lptokenReceiver": "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf",
       "liquidityProviderToken": 5000
     },
     {
-      "pool": [102, 101],
+      "pool": [102, 100],
       "liquidityAmounts": ["15000000000000", "50000000000000000"],
       "lptokenReceiver": "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf",
       "liquidityProviderToken": 5001
     },
     {
-      "pool": [101, 1],
+      "pool": [100, 0],
       "liquidityAmounts": ["10000000000000000", "30000000000000000000"],
       "lptokenReceiver": "5HHMY7e8UAqR5ZaHGaQnRW5EDR8dP7QpAyjeBu6V7vdXxxbf",
       "liquidityProviderToken": 5002

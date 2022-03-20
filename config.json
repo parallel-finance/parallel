@@ -1,0 +1,127 @@
+{
+  "relaychain": {
+    "bin": "../polkadot/target/release/polkadot",
+    "chain": "kusama-local",
+    "nodes": [
+      {
+        "name": "alice",
+        "wsPort": 9944,
+        "rpcPort": 9933,
+        "port": 30333,
+        "basePath": "data/9944",
+        "flags": [
+          "-l",
+          "xcm=trace",
+          "--state-cache-size",
+          "0"
+        ]
+      },
+      {
+        "name": "bob",
+        "wsPort": 9945,
+        "rpcPort": 9934,
+        "port": 30334,
+        "basePath": "data/9945",
+        "flags": [
+          "-l",
+          "xcm=trace",
+          "--state-cache-size",
+          "0"
+        ]
+      },
+      {
+        "name": "charlie",
+        "wsPort": 9946,
+        "rpcPort": 9935,
+        "port": 30335,
+        "basePath": "data/9946",
+        "flags": [
+          "-l",
+          "xcm=trace",
+          "--state-cache-size",
+          "0"
+        ]
+      },
+      {
+        "name": "dave",
+        "wsPort": 9947,
+        "rpcPort": 9936,
+        "port": 30336,
+        "basePath": "data/9947",
+        "flags": [
+          "-l",
+          "xcm=trace",
+          "--state-cache-size",
+          "0"
+        ]
+      }
+    ],
+    "genesis": {
+      "runtime": {}
+    }
+  },
+  "parachains": [
+    {
+      "bin": "./target/release/parallel",
+      "id": 2085,
+      "chain": "vanilla-dev",
+      "nodes": [
+        {
+          "wsPort": 9948,
+          "port": 30337,
+          "rpcPort": 9937,
+          "name": "alice",
+          "flags": [
+            "-l",
+            "xcm=trace,loans=trace,liquidStaking=trace,crowdloans=trace,amm=trace",
+            "--state-cache-size",
+            "0",
+            "--",
+            "--execution=wasm",
+            "--state-cache-size",
+            "0"
+          ],
+          "basePath": "data/9948"
+        },
+        {
+          "wsPort": 9949,
+          "port": 30338,
+          "rpcPort": 9938,
+          "name": "bob",
+          "flags": [
+            "-l",
+            "xcm=trace,loans=trace,liquidStaking=trace,crowdloans=trace,amm=trace",
+            "--state-cache-size",
+            "0",
+            "--",
+            "--execution=wasm",
+            "--state-cache-size",
+            "0"
+          ],
+          "basePath": "data/9949"
+        },
+        {
+          "wsPort": 9950,
+          "port": 30339,
+          "rpcPort": 9939,
+          "name": "charlie",
+          "flags": [
+            "-l",
+            "xcm=trace,loans=trace,liquidStaking=trace,crowdloans=trace,amm=trace",
+            "--state-cache-size",
+            "0",
+            "--",
+            "--execution=wasm",
+            "--state-cache-size",
+            "0"
+          ],
+          "basePath": "data/9950"
+        }
+      ]
+    }
+  ],
+  "simpleParachains": [],
+  "hrmpChannels": [],
+  "types": {},
+  "finalization": false
+}

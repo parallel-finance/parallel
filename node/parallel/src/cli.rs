@@ -22,7 +22,7 @@ use sc_cli::{KeySubcommand, SignCmd, VanityCmd, VerifyCmd};
 pub enum Subcommand {
     /// Key management CLI utilities
     #[clap(subcommand)]
-    Key(sc_cli::KeySubcommand),
+    Key(KeySubcommand),
 
     Sign(SignCmd),
 
@@ -101,16 +101,15 @@ pub struct ExportGenesisWasmCommand {
 }
 
 #[derive(Debug, Parser)]
-#[clap(settings = &[
-	clap::AppSettings::GlobalVersion,
-	clap::AppSettings::ArgsNegateSubcommands,
-	clap::AppSettings::SubcommandsNegateReqs,
-])]
+#[clap(
+    propagate_version = true,
+    args_conflicts_with_subcommands = true,
+    subcommand_negates_reqs = true
+)]
 pub struct Cli {
     #[clap(subcommand)]
     pub subcommand: Option<Subcommand>,
 
-    #[allow(missing_docs)]
     #[clap(flatten)]
     pub run: cumulus_client_cli::RunCmd,
 

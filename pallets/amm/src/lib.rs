@@ -259,14 +259,14 @@ pub mod pallet {
                         Error::<T, I>::NotAnIdealPrice
                     );
 
+                    Self::do_mint_protocol_fee(pool)?;
+
                     Self::do_add_liquidity(
                         &who,
                         pool,
                         (ideal_base_amount, ideal_quote_amount),
                         (base_asset, quote_asset),
                     )?;
-
-                    Self::do_mint_protocol_fee(pool)?;
 
                     log::trace!(
                         target: "amm::add_liquidity",
@@ -313,9 +313,11 @@ pub mod pallet {
 
             Pools::<T, I>::try_mutate(base_asset, quote_asset, |pool| -> DispatchResult {
                 let pool = pool.as_mut().ok_or(Error::<T, I>::PoolDoesNotExist)?;
+
+                Self::do_mint_protocol_fee(pool)?;
+
                 let (base_amount_removed, quote_amount_removed) =
                     Self::do_remove_liquidity(&who, pool, liquidity, (base_asset, quote_asset))?;
-                Self::do_mint_protocol_fee(pool)?;
 
                 log::trace!(
                     target: "amm::remove_liquidity",
@@ -744,6 +746,7 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             ideal_base_amount
                 .get_big_uint()
                 .checked_mul(&ideal_quote_amount.get_big_uint())
+                // loss of precision due to truncated sqrt
                 .map(|r| r.sqrt())
                 .and_then(|r| r.checked_sub(&T::MinimumLiquidity::get().get_big_uint()))
                 .ok_or(Error::<T, I>::ConversionToU128Failed)?
@@ -794,6 +797,13 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             ideal_quote_amount,
             true,
         )?;
+
+        if Self::protocol_fee_on() {
+            // we cannot hold k_last for really large values
+            // we can hold two u128s instead
+            pool.base_amount_last = pool.base_amount;
+            pool.quote_amount_last = pool.quote_amount;
+        }
 
         log::trace!(
             target: "amm::do_add_liquidity",
@@ -857,6 +867,13 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
         T::Assets::transfer(base_asset, &Self::account_id(), who, base_amount, false)?;
         T::Assets::transfer(quote_asset, &Self::account_id(), who, quote_amount, false)?;
 
+        if Self::protocol_fee_on() {
+            // we cannot hold k_last for really large values
+            // we can hold two u128s instead
+            pool.base_amount_last = pool.base_amount;
+            pool.quote_amount_last = pool.quote_amount;
+        }
+
         log::trace!(
             target: "amm::do_remove_liquidity",
             "who: {:?}, liquidity: {:?}, base_asset: {:?}, quote_asset: {:?}, base_amount: {:?}, quote_amount: {:?}",
@@ -877,55 +894,72 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
     ) -> Result<BalanceOf<T, I>, DispatchError> {
         // TODO: If we turn off protocol_fee later in runtime upgrade
         // this will reset root_k_last to zero which may not be good
-        if !Self::protocol_fee_on() || pool.root_k_last.is_zero() {
-            if !pool.root_k_last.is_zero() {
-                pool.root_k_last = Zero::zero();
+        let k_last = pool
+            .base_amount_last
+            .get_big_uint()
+            .checked_mul(&pool.quote_amount_last.get_big_uint())
+            .ok_or(ArithmeticError::Overflow)?;
+
+        if !Self::protocol_fee_on() {
+            // if fees are off and k_last is a value we need to reset it
+            if !k_last.is_zero() {
+                pool.base_amount_last = Zero::zero();
+                pool.quote_amount_last = Zero::zero();
+                return Ok(Zero::zero());
             }
+
+            // if fees are off and k_last is zero return
             return Ok(Zero::zero());
         }
+
+        // if the early exits do not return we know that k_last is not zero
+        // and that protocol fees are on
 
         let root_k = pool
             .base_amount
             .get_big_uint()
             .checked_mul(&pool.quote_amount.get_big_uint())
+            // loss of precision due to truncated sqrt
             .map(|r| r.sqrt())
-            .ok_or(Error::<T, I>::ConversionToU128Failed)?
-            .to_u128()
             .ok_or(ArithmeticError::Overflow)?;
 
-        if root_k <= pool.root_k_last {
+        let root_k_last = k_last
+            // loss of precision due to truncated sqrt
+            .sqrt();
+
+        if root_k <= root_k_last {
             return Ok(Zero::zero());
         }
 
-        let total_supply = T::Assets::total_issuance(pool.lp_token_id);
+        let total_supply = T::Assets::total_issuance(pool.lp_token_id).get_big_uint();
 
         let numerator = root_k
-            .get_big_uint()
-            .checked_sub(&pool.root_k_last.get_big_uint())
-            .and_then(|r| r.checked_mul(&total_supply.get_big_uint()))
-            .ok_or(Error::<T, I>::ConversionToU128Failed)?
-            .to_u128()
-            .ok_or(ArithmeticError::Overflow)?;
+            .checked_sub(&root_k_last)
+            .and_then(|r| r.checked_mul(&total_supply))
+            .ok_or(Error::<T, I>::ConversionToU128Failed)?;
+
+        let scalar = Self::get_protocol_fee_reciprocal_proportion()?
+            .checked_sub(One::one())
+            .ok_or(ArithmeticError::Underflow)?
+            .get_big_uint();
 
         let denominator = root_k
-            .get_big_uint()
-            .checked_mul(&Self::get_protocol_fee_reciprocal_proportion()?.get_big_uint())
-            .and_then(|r| r.checked_add(&pool.root_k_last.get_big_uint()))
-            .ok_or(Error::<T, I>::ConversionToU128Failed)?
-            .to_u128()
-            .ok_or(ArithmeticError::Overflow)?;
+            .checked_mul(&scalar)
+            .and_then(|r| r.checked_add(&root_k_last))
+            .ok_or(Error::<T, I>::ConversionToU128Failed)?;
 
         let protocol_fees = numerator
-            .checked_div(denominator)
-            .ok_or(ArithmeticError::Underflow)?;
+            // loss of precision due to truncated division
+            .checked_div(&denominator)
+            .ok_or(ArithmeticError::Underflow)?
+            .to_u128()
+            .ok_or(ArithmeticError::Overflow)?;
 
         T::Assets::mint_into(
             pool.lp_token_id,
             &T::ProtocolFeeReceiver::get(),
             protocol_fees,
         )?;
-
-        pool.root_k_last = root_k;
 
         log::trace!(
             target: "amm::do_mint_protocol_fee",
@@ -936,7 +970,6 @@ impl<T: Config<I>, I: 'static> Pallet<T, I> {
             &denominator,
             &protocol_fees
         );
-
         Ok(protocol_fees)
     }
 

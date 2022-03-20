@@ -87,7 +87,8 @@ async function para({ logger, options: { paraWs, network } }: ActionParameters) 
 
   call.push(
     api.tx.sudo.sudo(api.tx.liquidStaking.updateMarketCap(config.liquidMarketCap)),
-    api.tx.sudo.sudo(api.tx.xcmHelper.updateXcmFees(config.xcmFees)),
+    api.tx.sudo.sudo(api.tx.liquidStaking.forceSetEraStartBlock(61)),
+    api.tx.sudo.sudo(api.tx.liquidStaking.forceSetCurrentEra(3)),
     api.tx.balances.transfer(createAddress(GiftPalletId), config.gift)
   )
 
@@ -118,7 +119,7 @@ async function relay({ logger, options: { relayWs, network } }: ActionParameters
     await api.tx.sudo
       .sudo(
         api.tx.registrar.forceRegister(
-          subAccountId(signer, derivativeIndex),
+          subAccountId(signer.address, derivativeIndex),
           config.paraDeposit,
           paraId,
           state,
@@ -136,7 +137,10 @@ async function relay({ logger, options: { relayWs, network } }: ActionParameters
   call.push(api.tx.sudo.sudo(api.tx.auctions.newAuction(config.auctionDuration, config.leaseIndex)))
   call.push(
     ...config.crowdloans.map(({ derivativeIndex }) =>
-      api.tx.balances.transfer(subAccountId(signer, derivativeIndex), config.crowdloanDeposit)
+      api.tx.balances.transfer(
+        subAccountId(signer.address, derivativeIndex),
+        config.crowdloanDeposit
+      )
     )
   )
   call.push(

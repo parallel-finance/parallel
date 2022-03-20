@@ -20,7 +20,7 @@ use frame_system::EnsureSignedBy;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, FixedPointNumber};
 
-pub use primitives::tokens::{DOT, KSM, XDOT, XKSM};
+pub use primitives::tokens::{DOT, KSM, SDOT, SKSM};
 
 pub type AccountId = u128;
 pub type BlockNumber = u64;
@@ -100,8 +100,8 @@ pub struct Decimal;
 impl DecimalProvider<CurrencyId> for Decimal {
     fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
         match *asset_id {
-            DOT | XDOT => Some(10),
-            KSM | XKSM => Some(12),
+            DOT | SDOT => Some(10),
+            KSM | SKSM => Some(12),
             _ => None,
         }
     }
@@ -113,7 +113,7 @@ impl LiquidStakingCurrenciesProvider<CurrencyId> for LiquidStaking {
         Some(KSM)
     }
     fn get_liquid_currency() -> Option<CurrencyId> {
-        Some(XKSM)
+        Some(SKSM)
     }
 }
 

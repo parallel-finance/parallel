@@ -613,7 +613,7 @@ pub mod pallet {
             // underlying_token_amount = ptoken_amount * exchange_rate
             let exchange_rate = Self::exchange_rate(asset_id);
             let voucher_amount = Self::calc_collateral_amount(redeem_amount, exchange_rate)?;
-            let redeem_amount = Self::redeem_internal(&who, asset_id, voucher_amount)?;
+            let redeem_amount = Self::do_redeem(&who, asset_id, voucher_amount)?;
 
             Self::deposit_event(Event::<T>::Redeemed(who, asset_id, redeem_amount));
 
@@ -634,7 +634,7 @@ pub mod pallet {
 
             Self::update_earned_stored(&who, asset_id)?;
             let deposits = AccountDeposits::<T>::get(asset_id, &who);
-            let redeem_amount = Self::redeem_internal(&who, asset_id, deposits.voucher_balance)?;
+            let redeem_amount = Self::do_redeem(&who, asset_id, deposits.voucher_balance)?;
 
             Self::deposit_event(Event::<T>::Redeemed(who, asset_id, redeem_amount));
 
@@ -695,7 +695,7 @@ pub mod pallet {
             Self::ensure_active_market(asset_id)?;
 
             let account_borrows = Self::current_borrow_balance(&who, asset_id)?;
-            Self::repay_borrow_internal(&who, asset_id, account_borrows, repay_amount)?;
+            Self::do_repay_borrow(&who, asset_id, account_borrows, repay_amount)?;
 
             Self::deposit_event(Event::<T>::RepaidBorrow(who, asset_id, repay_amount));
 
@@ -715,7 +715,7 @@ pub mod pallet {
             Self::ensure_active_market(asset_id)?;
 
             let account_borrows = Self::current_borrow_balance(&who, asset_id)?;
-            Self::repay_borrow_internal(&who, asset_id, account_borrows, account_borrows)?;
+            Self::do_repay_borrow(&who, asset_id, account_borrows, account_borrows)?;
 
             Self::deposit_event(Event::<T>::RepaidBorrow(who, asset_id, account_borrows));
 
@@ -794,7 +794,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
-            Self::liquidate_borrow_internal(
+            Self::do_liquidate_borrow(
                 who,
                 borrower,
                 liquidate_token,
@@ -1006,7 +1006,7 @@ impl<T: Config> Pallet<T> {
     }
 
     #[require_transactional]
-    pub fn redeem_internal(
+    pub fn do_redeem(
         who: &T::AccountId,
         asset_id: AssetIdOf<T>,
         voucher_amount: BalanceOf<T>,
@@ -1054,7 +1054,7 @@ impl<T: Config> Pallet<T> {
     }
 
     #[require_transactional]
-    fn repay_borrow_internal(
+    fn do_repay_borrow(
         borrower: &T::AccountId,
         asset_id: AssetIdOf<T>,
         account_borrows: BalanceOf<T>,
@@ -1182,7 +1182,7 @@ impl<T: Config> Pallet<T> {
     /// and liquidator will receive collateral_token(as voucher amount) from
     /// borrower.
     #[require_transactional]
-    pub fn liquidate_borrow_internal(
+    pub fn do_liquidate_borrow(
         liquidator: T::AccountId,
         borrower: T::AccountId,
         liquidate_asset_id: AssetIdOf<T>,

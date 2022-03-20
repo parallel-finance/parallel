@@ -28,15 +28,18 @@ use frame_support::{
     pallet_prelude::*,
     require_transactional,
     traits::{
-        tokens::fungibles::{Inspect, Mutate, Transfer},
+        tokens::{
+            fungibles::{Inspect, Mutate, Transfer},
+            BalanceConversion,
+        },
         Get, SortedMembers,
     },
     transactional, PalletId,
 };
 use frame_system::{ensure_signed_or_root, pallet_prelude::*};
-use primitives::{Balance, BridgeId, ChainId, ChainNonce, CurrencyId, Ratio};
+use primitives::{Balance, BridgeInterval, ChainId, ChainNonce, CurrencyId, Ratio};
 use scale_info::prelude::{vec, vec::Vec};
-use sp_runtime::traits::AccountIdConversion;
+use sp_runtime::traits::{AccountIdConversion, Zero};
 
 mod benchmarking;
 mod mock;
@@ -63,7 +66,7 @@ pub type TeleAccount = Vec<u8>;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use primitives::BridgeId;
+    use primitives::BridgeInterval;
 
     use super::*;
 
@@ -89,6 +92,17 @@ pub mod pallet {
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
+
+        #[pallet::constant]
+        type GiftAccount: Get<Self::AccountId>;
+
+        type GiftConvert: BalanceConversion<Balance, CurrencyId, Balance>;
+
+        #[pallet::constant]
+        type NativeCurrencyId: Get<AssetIdOf<Self>>;
+
+        #[pallet::constant]
+        type ExistentialDeposit: Get<Balance>;
 
         /// The identifier for this chain.
         /// This must be unique and must not collide with existing IDs within a set of bridged chains.
@@ -239,12 +253,13 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn chain_nonces)]
-    pub type ChainNonces<T: Config> = StorageMap<_, Blake2_256, ChainId, ChainNonce, ValueQuery>;
+    pub type ChainNonces<T: Config> =
+        StorageMap<_, Blake2_128Concat, ChainId, ChainNonce, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn bridge_registry)]
     pub type BridgeRegistry<T: Config> =
-        StorageMap<_, Blake2_128Concat, ChainId, Vec<BridgeId>, OptionQuery>;
+        StorageMap<_, Blake2_128Concat, ChainId, Vec<BridgeInterval>, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn bridge_tokens)]
@@ -271,20 +286,6 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Set the threshold required to reach multi-signature consensus
-        #[pallet::weight(T::WeightInfo::set_vote_threshold())]
-        #[transactional]
-        pub fn set_vote_threshold(origin: OriginFor<T>, threshold: u32) -> DispatchResult {
-            T::OperateOrigin::ensure_origin(origin)?;
-            Self::ensure_valid_threshold(threshold, Self::get_members_count())?;
-
-            // Set a new voting threshold
-            VoteThreshold::<T>::put(threshold);
-            Self::deposit_event(Event::VoteThresholdChanged(threshold));
-
-            Ok(())
-        }
-
         /// Register the specified chain_id
         ///
         /// Only registered chains are allowed to do cross-chain
@@ -303,7 +304,7 @@ pub mod pallet {
 
             // Write a new chain_id into storage
             ChainNonces::<T>::insert(chain_id, 0);
-            let inital_registry: Vec<BridgeId> = vec![];
+            let inital_registry: Vec<BridgeInterval> = vec![];
             BridgeRegistry::<T>::insert(chain_id, inital_registry);
             Self::deposit_event(Event::ChainRegistered(chain_id));
 
@@ -313,17 +314,17 @@ pub mod pallet {
         /// Unregister the specified chain_id
         #[pallet::weight(T::WeightInfo::unregister_chain())]
         #[transactional]
-        pub fn unregister_chain(origin: OriginFor<T>, id: ChainId) -> DispatchResult {
+        pub fn unregister_chain(origin: OriginFor<T>, chain_id: ChainId) -> DispatchResult {
             T::OperateOrigin::ensure_origin(origin)?;
 
             // Unregistered chain_id should be existed
-            Self::ensure_chain_registered(id)?;
+            Self::ensure_chain_registered(chain_id)?;
 
             // Unregister the chain_id
-            ChainNonces::<T>::remove(id);
-            BridgeRegistry::<T>::remove(id);
+            ChainNonces::<T>::remove(chain_id);
+            BridgeRegistry::<T>::remove(chain_id);
 
-            Self::deposit_event(Event::ChainRemoved(id));
+            Self::deposit_event(Event::ChainRemoved(chain_id));
 
             Ok(())
         }
@@ -470,7 +471,54 @@ pub mod pallet {
                 to,
                 amount,
             };
-            Self::commit_vote(who, src_id, src_nonce, call.clone(), favour)?;
+            let now = <frame_system::Pallet<T>>::block_number();
+            let mut proposal = match Self::votes(src_id, (src_nonce, call.clone())) {
+                Some(p) => p,
+                None => {
+                    Self::deposit_event(Event::<T>::MaterializeInitialized(
+                        who.clone(),
+                        src_id,
+                        src_nonce,
+                        call.bridge_token_id,
+                        call.clone().to,
+                        call.amount,
+                    ));
+                    Proposal {
+                        expiry: now + T::ProposalLifetime::get(),
+                        ..Default::default()
+                    }
+                }
+            };
+
+            // Ensure the proposal isn't complete and member hasn't already voted
+            ensure!(!proposal.is_complete(), Error::<T>::ProposalAlreadyComplete);
+            ensure!(!proposal.is_expired(now), Error::<T>::ProposalExpired);
+            ensure!(!proposal.has_voted(&who), Error::<T>::MemberAlreadyVoted);
+
+            if favour {
+                proposal.votes_for.push(who.clone());
+                Self::deposit_event(Event::<T>::MaterializeVoteFor(
+                    src_id,
+                    src_nonce,
+                    who,
+                    call.bridge_token_id,
+                    call.clone().to,
+                    call.amount,
+                ));
+            } else {
+                proposal.votes_against.push(who.clone());
+                Self::deposit_event(Event::MaterializeVoteAgainst(
+                    src_id,
+                    src_nonce,
+                    who,
+                    call.bridge_token_id,
+                    call.clone().to,
+                    call.amount,
+                ));
+            }
+
+            ProposalVotes::<T>::insert(src_id, (src_nonce, call.clone()), proposal.clone());
+
             Self::resolve_proposal(src_id, src_nonce, call)
         }
     }
@@ -517,19 +565,22 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Checks if a chain is registered
-    fn chain_registered(id: ChainId) -> bool {
-        ChainNonces::<T>::contains_key(id)
+    fn chain_registered(chain_id: ChainId) -> bool {
+        ChainNonces::<T>::contains_key(chain_id)
     }
 
-    fn ensure_chain_registered(id: ChainId) -> DispatchResult {
-        ensure!(Self::chain_registered(id), Error::<T>::ChainIdNotRegistered);
+    fn ensure_chain_registered(chain_id: ChainId) -> DispatchResult {
+        ensure!(
+            Self::chain_registered(chain_id),
+            Error::<T>::ChainIdNotRegistered
+        );
 
         Ok(())
     }
 
-    fn ensure_chain_nonce_valid(id: ChainId, nonce: ChainNonce) -> DispatchResult {
+    fn ensure_chain_nonce_valid(chain_id: ChainId, chain_nonce: ChainNonce) -> DispatchResult {
         ensure!(
-            !Self::has_bridged(id, nonce),
+            !Self::has_bridged(chain_id, chain_nonce),
             Error::<T>::ProposalAlreadyComplete
         );
 
@@ -583,56 +634,60 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Increments the chain nonce for the specified chain_id
-    fn bump_nonce(id: ChainId) -> ChainNonce {
-        let nonce = Self::chain_nonces(id) + 1;
-        ChainNonces::<T>::insert(id, nonce);
+    fn bump_nonce(chain_id: ChainId) -> ChainNonce {
+        let nonce = Self::chain_nonces(chain_id) + 1;
+        ChainNonces::<T>::insert(chain_id, nonce);
 
         nonce
     }
 
-    fn merge_overlapping_intervals(mut registry: Vec<BridgeId>) -> Vec<BridgeId> {
+    fn merge_overlapping_intervals(mut registry: Vec<BridgeInterval>) -> Vec<BridgeInterval> {
         registry.sort_unstable_by(|a, b| a.0.cmp(&b.0));
-        let mut merged: Vec<BridgeId> = vec![];
+        let mut merged: Vec<BridgeInterval> = vec![];
         for r in registry {
-            if merged.is_empty() {
-                merged.push(r);
-            } else if let Some(last_merged) = merged.last_mut() {
-                if r.0 > last_merged.1 {
-                    merged.push(r);
-                } else {
-                    (*last_merged).1 = r.1.max(last_merged.1);
+            match merged.last_mut() {
+                None => merged.push(r),
+                Some(last_merged) => {
+                    if r.0 > last_merged.1 {
+                        merged.push(r);
+                    } else {
+                        (*last_merged).1 = r.1.max(last_merged.1);
+                    }
                 }
             }
         }
         merged
     }
 
-    pub fn has_bridged(id: ChainId, nonce: ChainNonce) -> bool {
-        BridgeRegistry::<T>::get(&id).map_or(false, |registry| {
-            registry.iter().any(|&r| (nonce >= r.0 && nonce <= r.1))
+    pub fn has_bridged(chain_id: ChainId, chain_nonce: ChainNonce) -> bool {
+        BridgeRegistry::<T>::get(&chain_id).map_or(false, |registry| {
+            registry
+                .iter()
+                .any(|&r| (chain_nonce >= r.0 && chain_nonce <= r.1))
         })
     }
 
     /// Records completed bridge transactions
     #[require_transactional]
-    fn update_bridge_registry(id: ChainId, nonce: ChainNonce) {
-        if BridgeRegistry::<T>::get(&id).is_none() {
-            return;
+    fn update_bridge_registry(chain_id: ChainId, nonce: ChainNonce) {
+        match BridgeRegistry::<T>::get(&chain_id) {
+            None => {}
+            Some(mut registry) => {
+                registry.iter_mut().for_each(|x| {
+                    match *x {
+                        (nonce_start, _) if nonce_start == (nonce + 1) => x.0 = nonce,
+                        (_, nonce_end) if nonce_end == (nonce - 1) => x.1 = nonce,
+                        _ => (),
+                    };
+                });
+                let mut registry = Self::merge_overlapping_intervals(registry);
+                if !registry.iter().any(|&r| (nonce >= r.0 && nonce <= r.1)) {
+                    registry.push((nonce, nonce));
+                }
+                registry.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+                BridgeRegistry::<T>::insert(chain_id, registry);
+            }
         }
-        let mut registry = BridgeRegistry::<T>::get(&id).unwrap();
-        registry.iter_mut().for_each(|x| {
-            match *x {
-                (nonce_start, _) if nonce_start == (nonce + 1) => x.0 = nonce,
-                (_, nonce_end) if nonce_end == (nonce - 1) => x.1 = nonce,
-                _ => (),
-            };
-        });
-        let mut registry = Self::merge_overlapping_intervals(registry);
-        if !registry.iter().any(|&r| (nonce >= r.0 && nonce <= r.1)) {
-            registry.push((nonce, nonce));
-        }
-        registry.sort_unstable_by(|a, b| a.0.cmp(&b.0));
-        BridgeRegistry::<T>::insert(id, registry);
     }
 
     /// Initiates a transfer of the bridge token
@@ -672,77 +727,6 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    #[require_transactional]
-    fn commit_vote(
-        who: T::AccountId,
-        src_id: ChainId,
-        src_nonce: ChainNonce,
-        call: MaterializeCallOf<T>,
-        favour: bool,
-    ) -> DispatchResult {
-        let now = <frame_system::Pallet<T>>::block_number();
-
-        let mut proposal = match Self::votes(src_id, (src_nonce, call.clone())) {
-            Some(p) => p,
-            None => {
-                let MaterializeCall {
-                    bridge_token_id,
-                    to,
-                    amount,
-                } = call.clone();
-
-                Self::deposit_event(Event::<T>::MaterializeInitialized(
-                    who.clone(),
-                    src_id,
-                    src_nonce,
-                    bridge_token_id,
-                    to,
-                    amount,
-                ));
-                Proposal {
-                    expiry: now + T::ProposalLifetime::get(),
-                    ..Default::default()
-                }
-            }
-        };
-
-        // Ensure the proposal isn't complete and member hasn't already voted
-        ensure!(!proposal.is_complete(), Error::<T>::ProposalAlreadyComplete);
-        ensure!(!proposal.is_expired(now), Error::<T>::ProposalExpired);
-        ensure!(!proposal.has_voted(&who), Error::<T>::MemberAlreadyVoted);
-
-        let MaterializeCall {
-            bridge_token_id,
-            to,
-            amount,
-        } = call.clone();
-        if favour {
-            proposal.votes_for.push(who.clone());
-            Self::deposit_event(Event::<T>::MaterializeVoteFor(
-                src_id,
-                src_nonce,
-                who,
-                bridge_token_id,
-                to,
-                amount,
-            ));
-        } else {
-            proposal.votes_against.push(who.clone());
-            Self::deposit_event(Event::MaterializeVoteAgainst(
-                src_id,
-                src_nonce,
-                who,
-                bridge_token_id,
-                to,
-                amount,
-            ));
-        }
-
-        ProposalVotes::<T>::insert(src_id, (src_nonce, call), proposal.clone());
-
-        Ok(())
-    }
-
     /// Attempts to finalize or cancel the proposal if the vote count allows.
     #[require_transactional]
     fn resolve_proposal(
@@ -769,6 +753,7 @@ impl<T: Config> Pallet<T> {
         }
     }
 
+    #[require_transactional]
     fn execute_materialize(
         src_id: ChainId,
         src_nonce: ChainNonce,
@@ -787,6 +772,7 @@ impl<T: Config> Pallet<T> {
             T::Assets::transfer(asset_id, &Self::account_id(), &call.to, call.amount, true)?;
         }
 
+        Self::grant_incentive_bonus(call.clone().to, asset_id, call.amount)?;
         Self::update_bridge_registry(src_id, src_nonce);
 
         log::trace!(
@@ -810,9 +796,37 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Cancels a proposal.
+    #[require_transactional]
     fn cancel_materialize(src_id: ChainId, src_nonce: ChainNonce) -> DispatchResult {
         Self::update_bridge_registry(src_id, src_nonce);
         Self::deposit_event(Event::ProposalRejected(src_id, src_nonce));
+
+        Ok(())
+    }
+
+    /// Reward some native tokens to users who don't have enough balance
+    #[require_transactional]
+    fn grant_incentive_bonus(
+        who: T::AccountId,
+        asset_id: CurrencyId,
+        amount: BalanceOf<T>,
+    ) -> DispatchResult {
+        let gift_account = T::GiftAccount::get();
+        let native_currency_id = T::NativeCurrencyId::get();
+        let gift_amount =
+            T::GiftConvert::to_asset_balance(amount, asset_id).unwrap_or_else(|_| Zero::zero());
+        let beneficiary_native_balance =
+            T::Assets::reducible_balance(native_currency_id, &who, true);
+        let reducible_balance =
+            T::Assets::reducible_balance(native_currency_id, &gift_account, false);
+
+        if !gift_amount.is_zero()
+            && reducible_balance >= gift_amount
+            && beneficiary_native_balance < gift_amount
+        {
+            let diff = T::ExistentialDeposit::get() + gift_amount - beneficiary_native_balance;
+            T::Assets::transfer(native_currency_id, &gift_account, &who, diff, false)?;
+        }
 
         Ok(())
     }

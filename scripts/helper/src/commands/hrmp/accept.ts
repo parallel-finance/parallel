@@ -1,9 +1,9 @@
-import { createXcm, getApi, nextNonce, sovereignAccountOf } from '../../utils'
+import { createXcm, getApi, getRelayApi, nextNonce, sovereignAccountOf } from '../../utils'
 import { Command, CreateCommandParameters, program } from '@caporal/core'
-import { ApiPromise, Keyring, WsProvider } from '@polkadot/api'
+import { Keyring } from '@polkadot/api'
 
 export default function ({ createCommand }: CreateCommandParameters): Command {
-  return createCommand('open hrmp channel to specific chain')
+  return createCommand('accept hrmp channel from specific chain')
     .argument('<source>', 'paraId of source chain', {
       validator: program.NUMBER
     })
@@ -11,7 +11,7 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
       validator: program.NUMBER
     })
     .option('-r, --relay-ws [url]', 'the relaychain API endpoint', {
-      default: 'wss://kusama-rpc.polkadot.io'
+      default: 'ws://127.0.0.1:9944'
     })
     .option('-p, --para-ws [url]', 'the parachain API endpoint', {
       default: 'ws://127.0.0.1:9948'
@@ -22,11 +22,8 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
         args: { source, target },
         options: { relayWs, paraWs }
       } = actionParameters
-
-      const encoded = await ApiPromise.create({
-        provider: new WsProvider(relayWs.toString())
-      })
-        .then(api => api.tx.hrmp.hrmpInitOpenChannel(target.valueOf() as number, 8, 102400).toHex())
+      const encoded = await getRelayApi(relayWs.toString())
+        .then(api => api.tx.hrmp.hrmpAcceptOpenChannel(source.valueOf() as number).toHex())
         .then(hex => `0x${hex.slice(6)}`)
       const api = await getApi(paraWs.toString())
       const signer = new Keyring({ type: 'sr25519' }).addFromUri(
@@ -41,7 +38,7 @@ export default function ({ createCommand }: CreateCommandParameters): Command {
                 interior: 'Here'
               }
             },
-            createXcm(encoded, sovereignAccountOf(source.valueOf() as number))
+            createXcm(encoded, sovereignAccountOf(target.valueOf() as number))
           )
         )
         .signAndSend(signer, { nonce: await nextNonce(api, signer) })

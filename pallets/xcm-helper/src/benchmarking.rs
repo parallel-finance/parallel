@@ -6,18 +6,11 @@ use frame_benchmarking::{benchmarks, impl_benchmark_test_suite};
 use frame_support::pallet_prelude::*;
 use frame_system::{self, RawOrigin as SystemOrigin};
 
-const XCM_FEES: u128 = 50000000000u128;
-const XCM_WEIGHT: XcmWeightMisc<Weight> = XcmWeightMisc {
-    bond_weight: 3_000_000_000,
-    bond_extra_weight: 3_000_000_000,
-    unbond_weight: 3_000_000_000,
-    rebond_weight: 3_000_000_000,
-    withdraw_unbonded_weight: 3_000_000_000,
-    nominate_weight: 3_000_000_000,
-    contribute_weight: 3_000_000_000,
-    withdraw_weight: 3_000_000_000,
-    add_memo_weight: 3_000_000_000,
+const XCM_WEIGHT_FEE: XcmWeightFeeMisc<Weight, Balance> = XcmWeightFeeMisc {
+    weight: 3_000_000_000,
+    fee: 50000000000u128,
 };
+
 fn assert_last_event<T: Config>(generic_event: <T as Config>::Event) {
     frame_system::Pallet::<T>::assert_last_event(generic_event.into());
 }
@@ -28,16 +21,10 @@ benchmarks! {
             <T as frame_system::Config>::Origin: From<pallet_xcm::Origin>
     }
 
-    update_xcm_fees {
-    }: _(SystemOrigin::Root, XCM_FEES)
+    update_xcm_weight_fee {
+     }: _(SystemOrigin::Root, XcmCall::AddMemo, XCM_WEIGHT_FEE)
     verify {
-        assert_last_event::<T>(Event::XcmFeesUpdated(XCM_FEES).into())
-    }
-
-    update_xcm_weight {
-    }: _(SystemOrigin::Root, XCM_WEIGHT)
-    verify {
-        assert_last_event::<T>(Event::XcmWeightUpdated(XCM_WEIGHT).into())
+        assert_last_event::<T>(Event::XcmWeightFeeUpdated(XCM_WEIGHT_FEE).into())
     }
 
 }

@@ -1,3 +1,6 @@
 [submodule "resources/specs"]
 	path = resources/specs
 	url = https://github.com/parallel-finance/specs
+[submodule "scripts/polkadot-launch"]
+	path = scripts/polkadot-launch
+	url = https://github.com/paritytech/polkadot-launch
