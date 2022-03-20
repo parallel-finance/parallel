@@ -1,6 +1,6 @@
 relaychain:
-  image: parallelfinance/polkadot:v0.9.16
-  chain: kusama-local
+  image: parallelfinance/polkadot:v0.9.17
+  chain: polkadot-local
   env:
     RUST_LOG: xcm=trace
   flags:
@@ -16,13 +16,13 @@ relaychain:
 parachains:
   - image: parallelfinance/parallel:latest
     chain:
-      base: vanilla-dev
+      base: kerria-dev
       collators:
         - alice
         - bob
         - charlie
       sudo: dave
-    id: 2085
+    id: 2012
     parachain: true
     flags:
       - --rpc-methods=unsafe

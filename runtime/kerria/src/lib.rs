@@ -74,7 +74,7 @@ use xcm::latest::prelude::*;
 use xcm_builder::{
     AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom,
     AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedRateOfFungible, FixedWeightBounds,
-    LocationInverter, ParentAsSuperuser, ParentIsDefault, RelayChainAsNative,
+    LocationInverter, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative,
     SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
     SignedToAccountId32, SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit,
 };
@@ -888,6 +888,8 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
     type ExecuteOverweightOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type ChannelInfo = ParachainSystem;
     type VersionWrapper = PolkadotXcm;
+    type ControllerOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type ControllerOriginConverter = XcmOriginToTransactDispatchOrigin;
 }
 
 impl cumulus_pallet_dmp_queue::Config for Runtime {
@@ -928,7 +930,7 @@ parameter_types! {
 /// `Transact` in order to determine the dispatch Origin.
 pub type LocationToAccountId = (
     // The parent (Relay-chain) origin converts to the default `AccountId`.
-    ParentIsDefault<AccountId>,
+    ParentIsPreset<AccountId>,
     // Sibling parachain origins convert to AccountId via the `ParaId::into`.
     SiblingParachainConvertsVia<Sibling, AccountId>,
     // Straight up local `AccountId32` origins just alias directly to `AccountId`.
