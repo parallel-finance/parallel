@@ -6052,6 +6052,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-stable-swap"
+version = "1.7.9"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "num-traits",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-currency-adapter",
+ "parallel-primitives",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-staking"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.16#4aeb95f7f38fcd519e2628f32f79044a8fef99d5"
