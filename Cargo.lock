@@ -6052,10 +6052,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-stable-swap"
+name = "pallet-stableswap"
 version = "1.7.9"
 dependencies = [
- "frame-benchmarking",
  "frame-support",
  "frame-system",
  "num-traits",
