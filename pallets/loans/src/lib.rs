@@ -64,6 +64,7 @@ mod ptoken;
 mod rate_model;
 mod types;
 
+pub mod migrations;
 pub mod weights;
 
 pub const MAX_INTEREST_CALCULATING_INTERVAL: u64 = 5 * 24 * 3600; // 5 days
@@ -73,6 +74,13 @@ type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
 type BalanceOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
+
+/// Utility type for managing upgrades/migrations.
+#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+pub enum Versions {
+    V1,
+    V2,
+}
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -321,6 +329,16 @@ pub mod pallet {
     #[pallet::storage]
     pub type UnderlyingAssetId<T: Config> =
         StorageMap<_, Blake2_128Concat, AssetIdOf<T>, AssetIdOf<T>>;
+
+    /// DefaultVersion is using for initialize the StorageVersion
+    #[pallet::type_value]
+    pub(super) fn DefaultVersion<T: Config>() -> Versions {
+        Versions::V1
+    }
+    /// Storage version of the pallet.
+    #[pallet::storage]
+    pub(crate) type StorageVersion<T: Config> =
+        StorageValue<_, Versions, ValueQuery, DefaultVersion<T>>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
