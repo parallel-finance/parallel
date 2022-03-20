@@ -39,7 +39,7 @@ polkadot-core-primitives        = { git = 'https://github.com/paritytech/polkado
 polkadot-parachain              = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17' }
 polkadot-runtime-common         = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17' }
 polkadot-runtime-parachains     = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17' }
-serde                           = { version = '1' }
+serde                           = { version = '1.0.136' }
 sp-core                         = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17' }
 sp-io                           = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17' }
 xcm-builder                     = { git = 'https://github.com/paritytech/polkadot.git', branch = 'release-v0.9.17' }

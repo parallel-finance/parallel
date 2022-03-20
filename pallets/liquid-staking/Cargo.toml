@@ -30,7 +30,7 @@ pallet-balances  = { git = 'https://github.com/paritytech/substrate.git', branch
 pallet-session   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17' }
 pallet-staking   = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17' }
 pallet-timestamp = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17' }
-serde            = { version = '1' }
+serde            = { version = '1.0.136' }
 sp-core          = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17' }
 sp-io            = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.17' }
 
