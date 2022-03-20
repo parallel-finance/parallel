@@ -1,10 +1,11 @@
-use core::marker::PhantomData;
-use frame_support::traits::OriginTrait;
 use frame_support::{
     construct_runtime,
     dispatch::Weight,
+    pallet_prelude::*,
     parameter_types, sp_io,
-    traits::{tokens::BalanceConversion, Everything, GenesisBuild, Nothing, SortedMembers},
+    traits::{
+        tokens::BalanceConversion, Everything, GenesisBuild, Nothing, OriginTrait, SortedMembers,
+    },
     weights::constants::WEIGHT_PER_SECOND,
     PalletId,
 };
