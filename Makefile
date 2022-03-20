@@ -10,7 +10,7 @@ SURI           											:= //Alice
 LAUNCH_CONFIG_YAML	  							:= config.yml
 LAUNCH_CONFIG_JSON	  							:= config.json
 DOCKER_TAG     											:= latest
-RELAY_DOCKER_TAG										:= v0.9.16
+RELAY_DOCKER_TAG										:= v0.9.17
 
 .PHONY: init
 init: submodules
