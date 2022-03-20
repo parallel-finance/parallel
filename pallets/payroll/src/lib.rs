@@ -22,7 +22,6 @@
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
-    log,
     pallet_prelude::*,
     traits::{
         tokens::fungibles::{Inspect, Mutate, Transfer},
@@ -34,18 +33,15 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use scale_info::TypeInfo;
-
-#[cfg(feature = "std")]
-use frame_support::serde::{Deserialize, Serialize};
 use primitives::*;
 use sp_runtime::{
     traits::{
-        AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One, StaticLookup,
+        AccountIdConversion,
         Zero,
     },
-    ArithmeticError, FixedPointNumber, FixedU128, DispatchError
+    ArithmeticError, DispatchError
 };
-use sp_std::{fmt::Debug, prelude::*};
+use sp_std::{prelude::*};
 
 pub use pallet::*;
 
@@ -99,10 +95,7 @@ pub mod pallet {
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
-
-        /// Decimal provider.
-        type Decimal: DecimalProvider<CurrencyId>;
-
+            
         /// The payroll module id, keep all collaterals of CDPs.
         #[pallet::constant]
         type PalletId: Get<PalletId>;
@@ -241,7 +234,6 @@ pub mod pallet {
         pub fn withdraw_from_stream(
             origin: OriginFor<T>,
             stream_id: StreamId,
-            currency_id: AssetIdOf<T>,
             amount: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;

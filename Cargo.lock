@@ -11757,6 +11757,7 @@ dependencies = [
  "pallet-membership",
  "pallet-multisig",
  "pallet-nominee-election",
+ "pallet-payroll",
  "pallet-preimage",
  "pallet-prices",
  "pallet-proxy",
