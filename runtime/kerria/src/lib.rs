@@ -1725,6 +1725,8 @@ impl pallet_emergency_shutdown::Config for Runtime {
     type Event = Event;
     type Whitelist = WhiteListFilter;
     type ShutdownOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
+    type Call = Call;
+    type EmergencyCallFilter = EmergencyShutdown;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
