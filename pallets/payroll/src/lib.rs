@@ -103,12 +103,19 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
-        StreamToOrigin,
+        /// Sender as specified themselves as the recipient
+        RecipientIsAlsoSender,
+        /// Insufficient deposit size
         DepositIsZero,
+        /// Start time is before current block time
         StartBeforeBlockTime,
+        /// Stop time is before start time
         StopBeforeStart,
+        /// Caller is not the streamer
         NotTheStreamer,
+        /// Caller is not the recipient
         NotTheRecipient,
+        /// Amount exceeds balance
         ExceedsBalance,
     }
 
@@ -167,7 +174,7 @@ pub mod pallet {
             stop_time: Timestamp,
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
-            ensure!(recipient != sender, Error::<T>::StreamToOrigin);
+            ensure!(recipient != sender, Error::<T>::RecipientIsAlsoSender);
             ensure!(deposit > 0, Error::<T>::DepositIsZero);
             ensure!(
                 start_time >= T::UnixTime::now().as_secs(),
