@@ -1,7 +1,7 @@
-PARA_ID        											:= 2085
-CHAIN          											:= vanilla-dev
-RELAY_CHAIN                         := kusama-local
-RUNTIME        											:= vanilla-runtime
+PARA_ID        											:= 2012
+CHAIN          											:= kerria-dev
+RELAY_CHAIN                         := polkadot-local
+RUNTIME        											:= kerria-runtime
 BLOCK_AT       											:= 0x0000000000000000000000000000000000000000000000000000000000000000
 URL            											:= ws://localhost:9948
 RELAY_URL            								:= ws://localhost:9944
@@ -9,8 +9,9 @@ KEYSTORE_PATH  											:= keystore
 SURI           											:= //Alice
 LAUNCH_CONFIG_YAML	  							:= config.yml
 LAUNCH_CONFIG_JSON	  							:= config.json
+DOCKER_OVERRIDE_YAML                := docker-compose.override.yml
 DOCKER_TAG     											:= latest
-RELAY_DOCKER_TAG										:= v0.9.16
+RELAY_DOCKER_TAG										:= v0.9.17
 
 .PHONY: init
 init: submodules
@@ -28,6 +29,10 @@ submodules:
 .PHONY: build
 build:
 	cargo build --bin parallel
+
+.PHONY: clean
+clean:
+	cargo clean -p parallel -p vanilla-runtime -p kerria-runtime -p heiko-runtime -p parallel-runtime
 
 .PHONY: ci
 ci: check lint check-helper check-wasm test
@@ -124,6 +129,7 @@ launch: shutdown
 	yq -i eval '.parachains[0].image = "parallelfinance/parallel:$(DOCKER_TAG)"' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.parachains[0].id = $(PARA_ID)' $(LAUNCH_CONFIG_YAML)
 	yq -i eval '.parachains[0].chain.base = "$(CHAIN)"' $(LAUNCH_CONFIG_YAML)
+	yq -i eval '.services["oracle-client"].environment.PARA_ID = $(PARA_ID)' $(DOCKER_OVERRIDE_YAML)
 	docker image pull parallelfinance/polkadot:$(RELAY_DOCKER_TAG)
 	docker image pull parallelfinance/parallel:$(DOCKER_TAG)
 	docker image pull parallelfinance/stake-client:latest
@@ -141,6 +147,10 @@ launch: shutdown
 .PHONY: launch-kerria
 launch-kerria:
 	make PARA_ID=2012 CHAIN=kerria-dev RELAY_CHAIN=polkadot-local launch
+
+.PHONY: launch-vanilla
+launch-vanilla:
+	make PARA_ID=2085 CHAIN=vanilla-dev RELAY_CHAIN=kusama-local launch
 
 .PHONY: dev-launch
 dev-launch: shutdown

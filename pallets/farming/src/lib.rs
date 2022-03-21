@@ -93,6 +93,10 @@ pub mod pallet {
         /// Specifies upper limit of lock duration for lock pool
         #[pallet::constant]
         type LockPoolMaxDuration: Get<Self::BlockNumber>;
+
+        /// Specifies upper limit of cool down duration for pool
+        #[pallet::constant]
+        type CoolDownMaxDuration: Get<Self::BlockNumber>;
     }
 
     #[pallet::error]
@@ -107,39 +111,71 @@ pub mod pallet {
         PoolInStatus,
         /// Not a valid duration
         NotAValidDuration,
-        /// Pool is in a target lock duration status
-        PoolIsInTargetLockDuration,
+        /// Pool is in a target cool down duration status
+        PoolIsInTargetCoolDownDuration,
         /// Not a valid amount
         NotAValidAmount,
+        /// Pool is in lock status, withdraw is not allowed.
+        PoolUnderLock,
         /// Deposit Balance must be greater than or equal to the withdraw amount
         DepositBalanceLow,
         /// Codec error
         CodecError,
         /// Excess max lock duration for lock pool
         ExcessMaxLockDuration,
+        /// Excess max cool down duration for pool
+        ExcessMaxCoolDownDuration,
         /// Excess max user lock item count
         ExcessMaxUserLockItemsCount,
+        /// Last reward is not finish
+        RewardNotFinish,
     }
 
     #[pallet::event]
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Add new pool
-        PoolAdded(AssetIdOf<T>, AssetIdOf<T>),
+        PoolAdded(AssetIdOf<T>, AssetIdOf<T>, T::BlockNumber),
         /// Pool new status was set.
-        PoolStatusChanged(AssetIdOf<T>, AssetIdOf<T>, bool),
-        /// Pool new lock duration was set.
-        PoolLockDurationChanged(AssetIdOf<T>, AssetIdOf<T>, T::BlockNumber),
+        PoolStatusChanged(AssetIdOf<T>, AssetIdOf<T>, T::BlockNumber, bool),
+        /// Pool new cool down duration was set.
+        PoolCoolDownDurationChanged(AssetIdOf<T>, AssetIdOf<T>, T::BlockNumber, T::BlockNumber),
+        /// Pool unlock height was reset.
+        PoolUnlockHeightReset(AssetIdOf<T>, AssetIdOf<T>, T::BlockNumber, T::BlockNumber),
         /// Deposited Assets in pool
-        AssetsDeposited(T::AccountId, AssetIdOf<T>, AssetIdOf<T>, BalanceOf<T>),
+        AssetsDeposited(
+            T::AccountId,
+            AssetIdOf<T>,
+            AssetIdOf<T>,
+            T::BlockNumber,
+            BalanceOf<T>,
+        ),
         /// Withdrew Assets from pool
-        AssetsWithdrew(T::AccountId, AssetIdOf<T>, AssetIdOf<T>, BalanceOf<T>),
+        AssetsWithdrew(
+            T::AccountId,
+            AssetIdOf<T>,
+            AssetIdOf<T>,
+            T::BlockNumber,
+            BalanceOf<T>,
+        ),
         /// Redeem Assets from lock pool
-        AssetsRedeem(T::AccountId, AssetIdOf<T>, AssetIdOf<T>, BalanceOf<T>),
+        AssetsRedeem(
+            T::AccountId,
+            AssetIdOf<T>,
+            AssetIdOf<T>,
+            T::BlockNumber,
+            BalanceOf<T>,
+        ),
         /// Reward Paid for user
-        RewardPaid(T::AccountId, AssetIdOf<T>, AssetIdOf<T>, BalanceOf<T>),
+        RewardPaid(
+            T::AccountId,
+            AssetIdOf<T>,
+            AssetIdOf<T>,
+            T::BlockNumber,
+            BalanceOf<T>,
+        ),
         /// Reward added
-        RewardAdded(AssetIdOf<T>, AssetIdOf<T>, BalanceOf<T>),
+        RewardAdded(AssetIdOf<T>, AssetIdOf<T>, T::BlockNumber, BalanceOf<T>),
     }
 
     #[pallet::pallet]
@@ -150,12 +186,13 @@ pub mod pallet {
     /// Each pool is associated to a stake asset and reward asset pair
     #[pallet::storage]
     #[pallet::getter(fn pools)]
-    pub type Pools<T: Config> = StorageDoubleMap<
+    pub type Pools<T: Config> = StorageNMap<
         _,
-        Blake2_128Concat,
-        AssetIdOf<T>,
-        Blake2_128Concat,
-        AssetIdOf<T>,
+        (
+            NMapKey<Blake2_128Concat, AssetIdOf<T>>,
+            NMapKey<Blake2_128Concat, AssetIdOf<T>>,
+            NMapKey<Blake2_128Concat, T::BlockNumber>,
+        ),
         PoolInfo<T::BlockNumber, BalanceOf<T>>,
         OptionQuery,
     >;
@@ -168,6 +205,7 @@ pub mod pallet {
         (
             NMapKey<Blake2_128Concat, AssetIdOf<T>>,
             NMapKey<Blake2_128Concat, AssetIdOf<T>>,
+            NMapKey<Blake2_128Concat, T::BlockNumber>,
             NMapKey<Blake2_128Concat, T::AccountId>,
         ),
         UserPosition<
@@ -185,7 +223,8 @@ pub mod pallet {
         ///
         /// - `asset`: The identifier of the staking asset.
         /// - `reward_asset`: The identifier of the reward asset.
-        /// - `lock_duration`: Lock block number after Withdraw.
+        /// - `lock_duration`: Lock block number after Deposit.
+        /// - `cool_down_duration`: Lock block number after Withdraw.
         #[pallet::weight(T::WeightInfo::create())]
         #[transactional]
         pub fn create(
@@ -193,11 +232,12 @@ pub mod pallet {
             asset: AssetIdOf<T>,
             reward_asset: AssetIdOf<T>,
             lock_duration: T::BlockNumber,
+            cool_down_duration: T::BlockNumber,
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
 
             ensure!(
-                !Pools::<T>::contains_key(&asset, &reward_asset),
+                !Pools::<T>::contains_key((&asset, &reward_asset, &lock_duration)),
                 Error::<T>::PoolAlreadyExists
             );
 
@@ -206,13 +246,18 @@ pub mod pallet {
                 Error::<T>::ExcessMaxLockDuration
             );
 
+            ensure!(
+                cool_down_duration <= T::CoolDownMaxDuration::get(),
+                Error::<T>::ExcessMaxCoolDownDuration
+            );
+
             let pool = PoolInfo {
-                lock_duration,
+                cool_down_duration,
                 ..Default::default()
             };
 
-            Pools::<T>::insert(&asset, &reward_asset, pool);
-            Self::deposit_event(Event::<T>::PoolAdded(asset, reward_asset));
+            Pools::<T>::insert((&asset, &reward_asset, &lock_duration), pool);
+            Self::deposit_event(Event::<T>::PoolAdded(asset, reward_asset, lock_duration));
             Ok(())
         }
 
@@ -222,6 +267,7 @@ pub mod pallet {
         ///
         /// - `asset`: The identifier of the staking asset.
         /// - `reward_asset`: The identifier of the reward asset.
+        /// - `lock_duration`: Lock block number after Deposit.
         /// - `is_active`: new active status.
         #[pallet::weight(T::WeightInfo::set_pool_status())]
         #[transactional]
@@ -229,35 +275,86 @@ pub mod pallet {
             origin: OriginFor<T>,
             asset: AssetIdOf<T>,
             reward_asset: AssetIdOf<T>,
+            lock_duration: T::BlockNumber,
             is_active: bool,
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
 
-            Pools::<T>::mutate(asset, reward_asset, |pool_info| -> DispatchResult {
-                let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
+            Pools::<T>::mutate(
+                (asset, reward_asset, lock_duration),
+                |pool_info| -> DispatchResult {
+                    let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
 
-                ensure!(pool_info.is_active != is_active, Error::<T>::PoolInStatus);
+                    ensure!(pool_info.is_active != is_active, Error::<T>::PoolInStatus);
 
-                pool_info.is_active = is_active;
-                Self::deposit_event(Event::<T>::PoolStatusChanged(
-                    asset,
-                    reward_asset,
-                    is_active,
-                ));
-                Ok(())
-            })
+                    pool_info.is_active = is_active;
+                    Self::deposit_event(Event::<T>::PoolStatusChanged(
+                        asset,
+                        reward_asset,
+                        lock_duration,
+                        is_active,
+                    ));
+                    Ok(())
+                },
+            )
         }
 
-        /// Set pool lock duration
+        /// Set pool cool down duration
         ///
         /// The origin must conform to `UpdateOrigin`.
         ///
         /// - `asset`: The identifier of the staking asset.
         /// - `reward_asset`: The identifier of the reward asset.
-        /// - `lock_duration`: new lock block number after Withdraw.
-        #[pallet::weight(T::WeightInfo::set_pool_lock_duration())]
+        /// - `lock_duration`: Lock block number after Deposit.
+        /// - `cool_down_duration`: new lock block number after Withdraw.
+        #[pallet::weight(T::WeightInfo::set_pool_cool_down_duration())]
         #[transactional]
-        pub fn set_pool_lock_duration(
+        pub fn set_pool_cool_down_duration(
+            origin: OriginFor<T>,
+            asset: AssetIdOf<T>,
+            reward_asset: AssetIdOf<T>,
+            lock_duration: T::BlockNumber,
+            cool_down_duration: T::BlockNumber,
+        ) -> DispatchResult {
+            T::UpdateOrigin::ensure_origin(origin)?;
+
+            ensure!(
+                cool_down_duration <= T::CoolDownMaxDuration::get(),
+                Error::<T>::ExcessMaxCoolDownDuration
+            );
+
+            Pools::<T>::mutate(
+                (asset, reward_asset, lock_duration),
+                |pool_info| -> DispatchResult {
+                    let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
+
+                    ensure!(
+                        pool_info.cool_down_duration != cool_down_duration,
+                        Error::<T>::PoolIsInTargetCoolDownDuration
+                    );
+
+                    pool_info.cool_down_duration = cool_down_duration;
+                    Self::deposit_event(Event::<T>::PoolCoolDownDurationChanged(
+                        asset,
+                        reward_asset,
+                        lock_duration,
+                        cool_down_duration,
+                    ));
+                    Ok(())
+                },
+            )
+        }
+
+        /// Reset pool unlock height
+        ///
+        /// The origin must conform to `UpdateOrigin`.
+        ///
+        /// - `asset`: The identifier of the staking asset.
+        /// - `reward_asset`: The identifier of the reward asset.
+        /// - `lock_duration`: Lock block number after Deposit.
+        #[pallet::weight(T::WeightInfo::reset_pool_unlock_height())]
+        #[transactional]
+        pub fn reset_pool_unlock_height(
             origin: OriginFor<T>,
             asset: AssetIdOf<T>,
             reward_asset: AssetIdOf<T>,
@@ -265,27 +362,28 @@ pub mod pallet {
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
 
-            ensure!(
-                lock_duration <= T::LockPoolMaxDuration::get(),
-                Error::<T>::ExcessMaxLockDuration
-            );
+            Pools::<T>::mutate(
+                (asset, reward_asset, lock_duration),
+                |pool_info| -> DispatchResult {
+                    let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
 
-            Pools::<T>::mutate(asset, reward_asset, |pool_info| -> DispatchResult {
-                let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
+                    let current_block_number = <frame_system::Pallet<T>>::block_number();
+                    ensure!(
+                        pool_info.unlock_height < current_block_number,
+                        Error::<T>::PoolUnderLock
+                    );
 
-                ensure!(
-                    pool_info.lock_duration != lock_duration,
-                    Error::<T>::PoolIsInTargetLockDuration
-                );
-
-                pool_info.lock_duration = lock_duration;
-                Self::deposit_event(Event::<T>::PoolLockDurationChanged(
-                    asset,
-                    reward_asset,
-                    lock_duration,
-                ));
-                Ok(())
-            })
+                    let new_unlock_height = current_block_number + lock_duration;
+                    pool_info.unlock_height = new_unlock_height;
+                    Self::deposit_event(Event::<T>::PoolUnlockHeightReset(
+                        asset,
+                        reward_asset,
+                        lock_duration,
+                        new_unlock_height,
+                    ));
+                    Ok(())
+                },
+            )
         }
 
         /// Depositing Assets to reward Pool
@@ -294,6 +392,7 @@ pub mod pallet {
         ///
         /// - `asset`: The identifier of the staking asset.
         /// - `reward_asset`: The identifier of the reward asset.
+        /// - `lock_duration`: Lock block number after Deposit.
         /// - `amount`: the amount of staking asset want to deposit.
         #[pallet::weight(T::WeightInfo::deposit())]
         #[transactional]
@@ -301,49 +400,54 @@ pub mod pallet {
             origin: OriginFor<T>,
             asset: AssetIdOf<T>,
             reward_asset: AssetIdOf<T>,
+            lock_duration: T::BlockNumber,
             amount: BalanceOf<T>,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
             ensure!(
-                Pools::<T>::contains_key(&asset, &reward_asset),
+                Pools::<T>::contains_key((&asset, &reward_asset, &lock_duration)),
                 Error::<T>::PoolDoesNotExist
             );
             ensure!(!amount.is_zero(), Error::<T>::NotAValidAmount);
 
-            Self::update_reward(Some(who.clone()), asset, reward_asset)?;
+            Self::update_reward(Some(who.clone()), asset, reward_asset, lock_duration)?;
 
             let asset_pool_account = Self::pool_account_id(asset)?;
-            Pools::<T>::mutate(asset, reward_asset, |pool_info| -> DispatchResult {
-                let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
+            Pools::<T>::mutate(
+                (asset, reward_asset, lock_duration),
+                |pool_info| -> DispatchResult {
+                    let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
 
-                ensure!(pool_info.is_active, Error::<T>::PoolIsNotActive);
+                    ensure!(pool_info.is_active, Error::<T>::PoolIsNotActive);
 
-                T::Assets::transfer(asset, &who, &asset_pool_account, amount, true)?;
+                    T::Assets::transfer(asset, &who, &asset_pool_account, amount, true)?;
 
-                pool_info.total_deposited = pool_info
-                    .total_deposited
-                    .checked_add(amount)
-                    .ok_or(ArithmeticError::Overflow)?;
+                    pool_info.total_deposited = pool_info
+                        .total_deposited
+                        .checked_add(amount)
+                        .ok_or(ArithmeticError::Overflow)?;
 
-                Positions::<T>::mutate(
-                    (&asset, &reward_asset, &who),
-                    |user_position| -> DispatchResult {
-                        user_position.deposit_balance = user_position
-                            .deposit_balance
-                            .checked_add(amount)
-                            .ok_or(ArithmeticError::Overflow)?;
-                        Ok(())
-                    },
-                )?;
+                    Positions::<T>::mutate(
+                        (&asset, &reward_asset, &lock_duration, &who),
+                        |user_position| -> DispatchResult {
+                            user_position.deposit_balance = user_position
+                                .deposit_balance
+                                .checked_add(amount)
+                                .ok_or(ArithmeticError::Overflow)?;
+                            Ok(())
+                        },
+                    )?;
 
-                Self::deposit_event(Event::<T>::AssetsDeposited(
-                    who,
-                    asset,
-                    reward_asset,
-                    amount,
-                ));
-                Ok(())
-            })
+                    Self::deposit_event(Event::<T>::AssetsDeposited(
+                        who,
+                        asset,
+                        reward_asset,
+                        lock_duration,
+                        amount,
+                    ));
+                    Ok(())
+                },
+            )
         }
 
         /// Withdrawing Assets from reward Pool
@@ -352,6 +456,7 @@ pub mod pallet {
         ///
         /// - `asset`: The identifier of the staking asset.
         /// - `reward_asset`: The identifier of the reward asset.
+        /// - `lock_duration`: Lock block number after Deposit.
         /// - `amount`: the amount of staking asset want to withdraw.
         #[pallet::weight(T::WeightInfo::withdraw())]
         #[transactional]
@@ -359,56 +464,78 @@ pub mod pallet {
             origin: OriginFor<T>,
             asset: AssetIdOf<T>,
             reward_asset: AssetIdOf<T>,
+            lock_duration: T::BlockNumber,
             amount: BalanceOf<T>,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
             ensure!(
-                Pools::<T>::contains_key(&asset, &reward_asset),
+                Pools::<T>::contains_key((&asset, &reward_asset, &lock_duration)),
                 Error::<T>::PoolDoesNotExist
             );
             ensure!(!amount.is_zero(), Error::<T>::NotAValidAmount);
 
-            let user_position = Positions::<T>::get((&asset, &reward_asset, &who));
+            let user_position = Positions::<T>::get((&asset, &reward_asset, &lock_duration, &who));
             ensure!(
                 user_position.deposit_balance >= amount,
                 Error::<T>::DepositBalanceLow
             );
 
-            Self::update_reward(Some(who.clone()), asset, reward_asset)?;
+            Self::update_reward(Some(who.clone()), asset, reward_asset, lock_duration)?;
 
-            let current_block_number = <frame_system::Pallet<T>>::block_number();
-            Pools::<T>::mutate(asset, reward_asset, |pool_info| -> DispatchResult {
-                let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
-                pool_info.total_deposited = pool_info
-                    .total_deposited
-                    .checked_sub(amount)
-                    .ok_or(ArithmeticError::Overflow)?;
+            Pools::<T>::mutate(
+                (asset, reward_asset, lock_duration),
+                |pool_info| -> DispatchResult {
+                    let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
 
-                Positions::<T>::mutate(
-                    (&asset, &reward_asset, &who),
-                    |user_position| -> DispatchResult {
-                        user_position.deposit_balance = user_position
-                            .deposit_balance
-                            .checked_sub(amount)
-                            .ok_or(ArithmeticError::Overflow)?;
+                    let current_block_number = <frame_system::Pallet<T>>::block_number();
+                    ensure!(
+                        current_block_number >= pool_info.unlock_height,
+                        Error::<T>::PoolUnderLock
+                    );
 
-                        if pool_info.lock_duration.is_zero() {
-                            let asset_pool_account = Self::pool_account_id(asset)?;
-                            T::Assets::transfer(asset, &asset_pool_account, &who, amount, true)?;
-                        } else {
-                            user_position
-                                .lock_balance_items
-                                .try_push((amount, current_block_number))
-                                .map_err(|_| Error::<T>::ExcessMaxUserLockItemsCount)?;
-                        }
+                    pool_info.total_deposited = pool_info
+                        .total_deposited
+                        .checked_sub(amount)
+                        .ok_or(ArithmeticError::Overflow)?;
 
-                        Ok(())
-                    },
-                )?;
+                    Positions::<T>::mutate(
+                        (&asset, &reward_asset, &lock_duration, &who),
+                        |user_position| -> DispatchResult {
+                            user_position.deposit_balance = user_position
+                                .deposit_balance
+                                .checked_sub(amount)
+                                .ok_or(ArithmeticError::Overflow)?;
 
-                Self::deposit_event(Event::<T>::AssetsWithdrew(who, asset, reward_asset, amount));
-                Ok(())
-            })
+                            if pool_info.cool_down_duration.is_zero() {
+                                let asset_pool_account = Self::pool_account_id(asset)?;
+                                T::Assets::transfer(
+                                    asset,
+                                    &asset_pool_account,
+                                    &who,
+                                    amount,
+                                    true,
+                                )?;
+                            } else {
+                                user_position
+                                    .lock_balance_items
+                                    .try_push((amount, current_block_number))
+                                    .map_err(|_| Error::<T>::ExcessMaxUserLockItemsCount)?;
+                            }
+
+                            Ok(())
+                        },
+                    )?;
+
+                    Self::deposit_event(Event::<T>::AssetsWithdrew(
+                        who,
+                        asset,
+                        reward_asset,
+                        lock_duration,
+                        amount,
+                    ));
+                    Ok(())
+                },
+            )
         }
 
         /// Redeem unlocked balance of staking asset from Pool
@@ -417,24 +544,26 @@ pub mod pallet {
         ///
         /// - `asset`: The identifier of the staking asset.
         /// - `reward_asset`: The identifier of the reward asset.
+        /// - `lock_duration`: Lock block number after Deposit.
         #[pallet::weight(T::WeightInfo::redeem())]
         #[transactional]
         pub fn redeem(
             origin: OriginFor<T>,
             asset: AssetIdOf<T>,
             reward_asset: AssetIdOf<T>,
+            lock_duration: T::BlockNumber,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
-            let pool_info = Pools::<T>::try_get(&asset, &reward_asset)
+            let pool_info = Pools::<T>::try_get((&asset, &reward_asset, &lock_duration))
                 .map_err(|_err| Error::<T>::PoolDoesNotExist)?;
 
             let current_block_number = <frame_system::Pallet<T>>::block_number();
             Positions::<T>::mutate(
-                (&asset, &reward_asset, &who),
+                (&asset, &reward_asset, &lock_duration, &who),
                 |user_position| -> DispatchResult {
                     let mut total_amount: BalanceOf<T> = 0;
                     for item in user_position.lock_balance_items.iter() {
-                        let unlock_block = item.1.saturating_add(pool_info.lock_duration);
+                        let unlock_block = item.1.saturating_add(pool_info.cool_down_duration);
                         if current_block_number >= unlock_block {
                             total_amount = total_amount
                                 .checked_add(item.0)
@@ -443,7 +572,7 @@ pub mod pallet {
                     }
 
                     user_position.lock_balance_items.retain(|item| {
-                        let unlock_block = item.1.saturating_add(pool_info.lock_duration);
+                        let unlock_block = item.1.saturating_add(pool_info.cool_down_duration);
                         current_block_number < unlock_block
                     });
 
@@ -456,6 +585,7 @@ pub mod pallet {
                         who.clone(),
                         asset,
                         reward_asset,
+                        lock_duration,
                         total_amount,
                     ));
                     Ok(())
@@ -469,25 +599,27 @@ pub mod pallet {
         ///
         /// - `asset`: The identifier of the staking asset.
         /// - `reward_asset`: The identifier of the reward asset.
+        /// - `lock_duration`: Lock block number after Deposit.
         #[pallet::weight(T::WeightInfo::claim())]
         #[transactional]
         pub fn claim(
             origin: OriginFor<T>,
             asset: AssetIdOf<T>,
             reward_asset: AssetIdOf<T>,
+            lock_duration: T::BlockNumber,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
             ensure!(
-                Pools::<T>::contains_key(&asset, &reward_asset),
+                Pools::<T>::contains_key((&asset, &reward_asset, &lock_duration)),
                 Error::<T>::PoolDoesNotExist
             );
 
-            Self::update_reward(Some(who.clone()), asset, reward_asset)?;
+            Self::update_reward(Some(who.clone()), asset, reward_asset, lock_duration)?;
 
             let asset_pool_account = Self::pool_account_id(reward_asset)?;
             Positions::<T>::mutate(
-                (&asset, &reward_asset, &who),
+                (&asset, &reward_asset, &lock_duration, &who),
                 |user_position| -> DispatchResult {
                     let reward_amount = user_position.reward_amount;
                     if reward_amount > 0 {
@@ -505,6 +637,7 @@ pub mod pallet {
                         who.clone(),
                         asset,
                         reward_asset,
+                        lock_duration,
                         reward_amount,
                     ));
                     Ok(())
@@ -518,6 +651,7 @@ pub mod pallet {
         ///
         /// - `asset`: The identifier of the staking asset.
         /// - `reward_asset`: The identifier of the reward asset.
+        /// - `lock_duration`: Lock block number after Deposit.
         /// - `payer`: the payer of reward asset.
         /// - `amount`: the amount of reward asset to dispatch.
         /// - `duration`: the number of block this reward will last for.
@@ -527,62 +661,77 @@ pub mod pallet {
             origin: OriginFor<T>,
             asset: AssetIdOf<T>,
             reward_asset: AssetIdOf<T>,
+            lock_duration: T::BlockNumber,
             payer: <T::Lookup as StaticLookup>::Source,
             amount: BalanceOf<T>,
-            duration: T::BlockNumber,
+            reward_duration: T::BlockNumber,
         ) -> DispatchResult {
             T::UpdateOrigin::ensure_origin(origin)?;
             ensure!(
-                Pools::<T>::contains_key(&asset, &reward_asset),
+                Pools::<T>::contains_key((&asset, &reward_asset, &lock_duration)),
                 Error::<T>::PoolDoesNotExist
             );
-            ensure!(!duration.is_zero(), Error::<T>::NotAValidDuration);
+            ensure!(!reward_duration.is_zero(), Error::<T>::NotAValidDuration);
 
-            Self::update_reward(None, asset, reward_asset)?;
+            Self::update_reward(None, asset, reward_asset, lock_duration)?;
 
             let current_block_number = <frame_system::Pallet<T>>::block_number();
-            Pools::<T>::mutate(asset, reward_asset, |pool_info| -> DispatchResult {
-                let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
-                let duration_balance = pool_info.block_to_balance(duration);
-                let reward_rate = if current_block_number >= pool_info.period_finish {
-                    amount
-                        .checked_div(duration_balance)
-                        .ok_or(ArithmeticError::Overflow)?
-                } else {
-                    let remaining = pool_info
-                        .period_finish
-                        .checked_sub(&current_block_number)
+            Pools::<T>::mutate(
+                (asset, reward_asset, lock_duration),
+                |pool_info| -> DispatchResult {
+                    let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
+                    let duration_balance = pool_info.block_to_balance(reward_duration);
+                    let reward_rate = if current_block_number >= pool_info.period_finish {
+                        amount
+                            .checked_div(duration_balance)
+                            .ok_or(ArithmeticError::Overflow)?
+                    } else {
+                        let remaining = pool_info
+                            .period_finish
+                            .checked_sub(&current_block_number)
+                            .ok_or(ArithmeticError::Overflow)?;
+                        let left_over = pool_info
+                            .block_to_balance(remaining)
+                            .checked_mul(pool_info.reward_rate)
+                            .ok_or(ArithmeticError::Overflow)?;
+                        let total = left_over
+                            .checked_add(amount)
+                            .ok_or(ArithmeticError::Overflow)?;
+                        total
+                            .checked_div(duration_balance)
+                            .ok_or(ArithmeticError::Overflow)?
+                    };
+
+                    let new_period_finish = current_block_number
+                        .checked_add(&reward_duration)
                         .ok_or(ArithmeticError::Overflow)?;
-                    let left_over = pool_info
-                        .block_to_balance(remaining)
-                        .checked_mul(pool_info.reward_rate)
-                        .ok_or(ArithmeticError::Overflow)?;
-                    let total = left_over
-                        .checked_add(amount)
-                        .ok_or(ArithmeticError::Overflow)?;
-                    total
-                        .checked_div(duration_balance)
-                        .ok_or(ArithmeticError::Overflow)?
-                };
 
-                let new_period_finish = current_block_number
-                    .checked_add(&duration)
-                    .ok_or(ArithmeticError::Overflow)?;
+                    pool_info.reward_duration = reward_duration;
+                    pool_info.period_finish = new_period_finish;
+                    pool_info.reward_rate = reward_rate;
+                    pool_info.last_update_block = current_block_number;
 
-                pool_info.duration = duration;
-                pool_info.period_finish = new_period_finish;
-                pool_info.reward_rate = reward_rate;
-                pool_info.last_update_block = current_block_number;
+                    if amount > 0 {
+                        let asset_pool_account = Self::pool_account_id(reward_asset)?;
+                        let payer = T::Lookup::lookup(payer)?;
+                        T::Assets::transfer(
+                            reward_asset,
+                            &payer,
+                            &asset_pool_account,
+                            amount,
+                            true,
+                        )?;
+                    }
 
-                if amount > 0 {
-                    let asset_pool_account = Self::pool_account_id(reward_asset)?;
-                    let payer = T::Lookup::lookup(payer)?;
-                    T::Assets::transfer(reward_asset, &payer, &asset_pool_account, amount, true)?;
-                }
-
-                Self::deposit_event(Event::<T>::RewardAdded(asset, reward_asset, amount));
-                Ok(())
-            })
+                    Self::deposit_event(Event::<T>::RewardAdded(
+                        asset,
+                        reward_asset,
+                        lock_duration,
+                        amount,
+                    ));
+                    Ok(())
+                },
+            )
         }
     }
 }
@@ -592,47 +741,51 @@ impl<T: Config> Pallet<T> {
         who: Option<T::AccountId>,
         asset: AssetIdOf<T>,
         reward_asset: AssetIdOf<T>,
+        lock_duration: T::BlockNumber,
     ) -> DispatchResult {
         let current_block_number = <frame_system::Pallet<T>>::block_number();
 
         //1, update pool reward info
-        Pools::<T>::mutate(asset, reward_asset, |pool_info| -> DispatchResult {
-            let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
+        Pools::<T>::mutate(
+            (asset, reward_asset, lock_duration),
+            |pool_info| -> DispatchResult {
+                let pool_info = pool_info.as_mut().ok_or(Error::<T>::PoolDoesNotExist)?;
 
-            pool_info.update_reward_per_share(current_block_number)?;
+                pool_info.update_reward_per_share(current_block_number)?;
 
-            //2, update user reward info
-            if let Some(who) = who {
-                Positions::<T>::mutate(
-                    (&asset, &reward_asset, &who),
-                    |user_position| -> DispatchResult {
-                        let diff = pool_info
-                            .reward_per_share(current_block_number)?
-                            .checked_sub(user_position.reward_per_share_paid)
-                            .ok_or(ArithmeticError::Overflow)?;
+                //2, update user reward info
+                if let Some(who) = who {
+                    Positions::<T>::mutate(
+                        (&asset, &reward_asset, &lock_duration, &who),
+                        |user_position| -> DispatchResult {
+                            let diff = pool_info
+                                .reward_per_share(current_block_number)?
+                                .checked_sub(user_position.reward_per_share_paid)
+                                .ok_or(ArithmeticError::Overflow)?;
 
-                        let earned = user_position
-                            .deposit_balance
-                            .get_big_uint()
-                            .checked_mul(&diff.get_big_uint())
-                            .and_then(|r| {
-                                r.checked_div(&pool_info.amount_per_share().get_big_uint())
-                            })
-                            .and_then(|r| {
-                                r.checked_add(&user_position.reward_amount.get_big_uint())
-                            })
-                            .and_then(|r| r.to_u128())
-                            .ok_or(ArithmeticError::Overflow)?;
+                            let earned = user_position
+                                .deposit_balance
+                                .get_big_uint()
+                                .checked_mul(&diff.get_big_uint())
+                                .and_then(|r| {
+                                    r.checked_div(&pool_info.amount_per_share().get_big_uint())
+                                })
+                                .and_then(|r| {
+                                    r.checked_add(&user_position.reward_amount.get_big_uint())
+                                })
+                                .and_then(|r| r.to_u128())
+                                .ok_or(ArithmeticError::Overflow)?;
 
-                        user_position.reward_amount = BalanceOf::<T>::saturated_from(earned);
-                        user_position.reward_per_share_paid = pool_info.reward_per_share_stored;
+                            user_position.reward_amount = BalanceOf::<T>::saturated_from(earned);
+                            user_position.reward_per_share_paid = pool_info.reward_per_share_stored;
 
-                        Ok(())
-                    },
-                )?
-            }
-            Ok(())
-        })
+                            Ok(())
+                        },
+                    )?
+                }
+                Ok(())
+            },
+        )
     }
 
     fn pool_account_id(asset_id: AssetIdOf<T>) -> Result<T::AccountId, DispatchError> {

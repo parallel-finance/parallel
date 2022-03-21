@@ -1,9 +1,11 @@
 use frame_support::{
     construct_runtime,
     dispatch::Weight,
+    pallet_prelude::*,
     parameter_types, sp_io,
     traits::{
-        tokens::BalanceConversion, EnsureOneOf, Everything, GenesisBuild, Nothing, SortedMembers,
+        tokens::BalanceConversion, EnsureOneOf, Everything, GenesisBuild, Nothing, OriginTrait,
+        SortedMembers,
     },
     weights::constants::WEIGHT_PER_SECOND,
     PalletId,
@@ -11,7 +13,7 @@ use frame_support::{
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
-use polkadot_parachain::primitives::Sibling;
+use polkadot_parachain::primitives::{IsSystem, Sibling};
 
 use polkadot_runtime_parachains::configuration::HostConfiguration;
 use primitives::{
@@ -31,11 +33,11 @@ pub use xcm_builder::{
     AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom,
     ChildParachainAsNative, ChildParachainConvertsVia, ChildSystemParachainAsSuperuser,
     CurrencyAdapter as XcmCurrencyAdapter, EnsureXcmOrigin, FixedRateOfFungible, FixedWeightBounds,
-    IsConcrete, LocationInverter, NativeAsset, ParentAsSuperuser, ParentIsDefault,
+    IsConcrete, LocationInverter, NativeAsset, ParentAsSuperuser, ParentIsPreset,
     RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
     SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
-use xcm_executor::{Config, XcmExecutor};
+use xcm_executor::{traits::ConvertOrigin, Config, XcmExecutor};
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
 
 pub type AccountId = AccountId32;
@@ -69,7 +71,7 @@ parameter_types! {
 }
 
 pub type LocationToAccountId = (
-    ParentIsDefault<AccountId>,
+    ParentIsPreset<AccountId>,
     SiblingParachainConvertsVia<Sibling, AccountId>,
     AccountId32Aliases<RelayNetwork, AccountId>,
 );
@@ -134,12 +136,37 @@ impl Config for XcmConfig {
     type AssetClaims = PolkadotXcm;
 }
 
+pub struct SystemParachainAsSuperuser<Origin>(PhantomData<Origin>);
+impl<Origin: OriginTrait> ConvertOrigin<Origin> for SystemParachainAsSuperuser<Origin> {
+    fn convert_origin(
+        origin: impl Into<MultiLocation>,
+        kind: OriginKind,
+    ) -> Result<Origin, MultiLocation> {
+        let origin = origin.into();
+        if kind == OriginKind::Superuser
+            && matches!(
+                origin,
+                MultiLocation {
+                    parents: 1,
+                    interior: X1(Parachain(id)),
+                } if ParaId::from(id).is_system(),
+            )
+        {
+            Ok(Origin::root())
+        } else {
+            Err(origin)
+        }
+    }
+}
+
 impl cumulus_pallet_xcmp_queue::Config for Test {
     type Event = Event;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
     type ChannelInfo = ParachainSystem;
     type VersionWrapper = ();
+    type ControllerOrigin = EnsureRoot<AccountId>;
+    type ControllerOriginConverter = SystemParachainAsSuperuser<Origin>;
 }
 
 impl cumulus_pallet_dmp_queue::Config for Test {
@@ -178,11 +205,11 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
             KSM => Some(MultiLocation::parent()),
-            XKSM => Some(MultiLocation::new(
+            SKSM => Some(MultiLocation::new(
                 1,
                 X2(
                     Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(b"xKSM".to_vec()),
+                    GeneralKey(b"sKSM".to_vec()),
                 ),
             )),
             _ => None,
@@ -200,8 +227,8 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xKSM".to_vec() => {
-                Some(XKSM)
+            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"sKSM".to_vec() => {
+                Some(SKSM)
             }
             _ => None,
         }
@@ -369,7 +396,7 @@ parameter_types! {
     pub const MinStake: Balance = 0;
     pub const MinUnstake: Balance = 0;
     pub const StakingCurrency: CurrencyId = KSM;
-    pub const LiquidCurrency: CurrencyId = XKSM;
+    pub const LiquidCurrency: CurrencyId = SKSM;
     pub const XcmFees: Balance = 0;
     pub const BondingDuration: EraIndex = 3;
     pub const NumSlashingSpans: u32 = 0;
@@ -485,18 +512,18 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
             false,
         )
         .unwrap();
-        Assets::force_create(Origin::root(), XKSM, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(Origin::root(), SKSM, Id(ALICE), true, 1).unwrap();
         Assets::force_set_metadata(
             Origin::root(),
-            XKSM,
+            SKSM,
             b"Parallel Kusama".to_vec(),
-            b"XKSM".to_vec(),
+            b"sKSM".to_vec(),
             12,
             false,
         )
         .unwrap();
         Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), ksm(100f64)).unwrap();
-        Assets::mint(Origin::signed(ALICE), XKSM, Id(ALICE), ksm(100f64)).unwrap();
+        Assets::mint(Origin::signed(ALICE), SKSM, Id(ALICE), ksm(100f64)).unwrap();
         Assets::mint(Origin::signed(ALICE), KSM, Id(BOB), ksm(20000f64)).unwrap();
 
         LiquidStaking::update_market_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
@@ -595,12 +622,12 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
             false,
         )
         .unwrap();
-        Assets::force_create(Origin::root(), XKSM, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(Origin::root(), SKSM, Id(ALICE), true, 1).unwrap();
         Assets::force_set_metadata(
             Origin::root(),
-            XKSM,
+            SKSM,
             b"Parallel Kusama".to_vec(),
-            b"XKSM".to_vec(),
+            b"sKSM".to_vec(),
             12,
             false,
         )
