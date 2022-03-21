@@ -216,8 +216,8 @@ pub mod pallet {
             let stream = Streams::<T>::get(stream_id).ok_or(DispatchError::CannotLookup)?;
             ensure!(sender == stream.sender, Error::<T>::NotTheStreamer);
             // get sender and recipient balance at result
-            let sender_balance = Self::balance_of(stream.clone(), &sender)?;
-            let recipient_balance = Self::balance_of(stream.clone(), &stream.recipient)?;
+            let sender_balance = Self::balance_of(&stream, &sender)?;
+            let recipient_balance = Self::balance_of(&stream, &stream.recipient)?;
             // send funds back to sender and recipient with balance function
             T::Assets::transfer(
                 stream.currency_id,
@@ -259,7 +259,7 @@ pub mod pallet {
             let mut stream = Streams::<T>::get(stream_id).ok_or(DispatchError::CannotLookup)?;
             ensure!(sender == stream.recipient, Error::<T>::NotTheRecipient);
             // Check balance
-            let balance = Self::balance_of(stream.clone(), &stream.recipient)?;
+            let balance = Self::balance_of(&stream, &stream.recipient)?;
             ensure!(balance >= amount, Error::<T>::ExceedsBalance);
             stream.remaining_balance = stream
                 .remaining_balance
@@ -297,7 +297,7 @@ impl<T: Config> Pallet<T> {
         T::PalletId::get().into_account()
     }
 
-    pub fn delta_of(stream: Stream<T>) -> Result<u64, DispatchError> {
+    pub fn delta_of(stream: &Stream<T>) -> Result<u64, DispatchError> {
         let now = T::UnixTime::now().as_secs();
         if now <= stream.start_time {
             Ok(0)
@@ -314,10 +314,10 @@ impl<T: Config> Pallet<T> {
 
     // Measure balance of payroll with rate per sec
     pub fn balance_of(
-        stream: Stream<T>,
+        stream: &Stream<T>,
         who: &AccountOf<T>,
     ) -> Result<BalanceOf<T>, DispatchError> {
-        let delta = Self::delta_of(stream.clone())? as BalanceOf<T>;
+        let delta = Self::delta_of(stream)? as BalanceOf<T>;
 
         /*
          * If the stream `balance` does not equal `deposit`, it means there have been withdrawals.
