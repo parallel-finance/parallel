@@ -32,16 +32,13 @@ use frame_support::{
     PalletId,
 };
 use frame_system::pallet_prelude::*;
-use scale_info::TypeInfo;
 use primitives::*;
+use scale_info::TypeInfo;
 use sp_runtime::{
-    traits::{
-        AccountIdConversion,
-        Zero,
-    },
-    ArithmeticError, DispatchError
+    traits::{AccountIdConversion, Zero},
+    ArithmeticError, DispatchError,
 };
-use sp_std::{prelude::*};
+use sp_std::prelude::*;
 
 pub use pallet::*;
 
@@ -95,7 +92,7 @@ pub mod pallet {
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
-            
+
         /// The payroll module id, keep all collaterals of CDPs.
         #[pallet::constant]
         type PalletId: Get<PalletId>;
@@ -185,20 +182,28 @@ pub mod pallet {
                 remaining_balance: deposit, // remaining balance same value for now due to initialization
                 deposit,                    // deposit
                 currency_id,                // currency id
-                rate_per_sec,               // rate per second
-                recipient: recipient.clone(),                  // recipient
-                sender: sender.clone(),                     // sender
+                rate_per_sec,               // rate per  millisecond
+                recipient: recipient.clone(), // recipient
+                sender: sender.clone(),     // sender
                 start_time,                 // start_time
                 stop_time,                  // stop_time
             };
             let stream_id = NextStreamId::<T>::get();
             // Insert stream to runtime
-            Streams::<T>::insert(stream_id.clone(), stream);
+            Streams::<T>::insert(stream_id, stream);
             // Increment stream id
             NextStreamId::<T>::set(stream_id + 1);
             // transfer deposit from sender to global EOA
-            T::Assets::transfer(currency_id.clone(), &sender, &Self::account_id(), deposit.clone(), false)?;
-            Self::deposit_event(Event::<T>::CreateStream(stream_id, sender, recipient, deposit, currency_id, start_time, stop_time));
+            T::Assets::transfer(currency_id, &sender, &Self::account_id(), deposit, false)?;
+            Self::deposit_event(Event::<T>::CreateStream(
+                stream_id,
+                sender,
+                recipient,
+                deposit,
+                currency_id,
+                start_time,
+                stop_time,
+            ));
             Ok(().into())
         }
 
@@ -211,20 +216,36 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
             // check sender is stream sender
-            let stream = Streams::<T>::get(stream_id.clone()).ok_or(DispatchError::CannotLookup)?;
-            ensure!(
-                sender == stream.sender,
-                Error::<T>::NotTheStreamer
-            );
+            let stream = Streams::<T>::get(stream_id).ok_or(DispatchError::CannotLookup)?;
+            ensure!(sender == stream.sender, Error::<T>::NotTheStreamer);
             // get sender and recipient balance at result
-            let sender_balance =  Self::balance_of(stream.clone(), &sender)?;
+            let sender_balance = Self::balance_of(stream.clone(), &sender)?;
             let recipient_balance = Self::balance_of(stream.clone(), &stream.recipient)?;
             // send funds back to sender and recipient with balance function
-            T::Assets::transfer(stream.currency_id.clone(), &Self::account_id(), &sender, sender_balance.clone(), false)?;
-            T::Assets::transfer(stream.currency_id.clone(), &Self::account_id(), &sender, recipient_balance.clone(), false)?;
+            T::Assets::transfer(
+                stream.currency_id,
+                &Self::account_id(),
+                &stream.recipient,
+                recipient_balance,
+                false,
+            )?;
+            T::Assets::transfer(
+                stream.currency_id,
+                &Self::account_id(),
+                &sender,
+                sender_balance,
+                false,
+            )?;
             // remove stream
             Streams::<T>::remove(stream_id);
-            Self::deposit_event(Event::<T>::CancelStream(stream_id, sender, stream.recipient, stream.currency_id, sender_balance, recipient_balance));
+            Self::deposit_event(Event::<T>::CancelStream(
+                stream_id,
+                sender,
+                stream.recipient,
+                stream.currency_id,
+                sender_balance,
+                recipient_balance,
+            ));
             Ok(().into())
         }
 
@@ -239,22 +260,36 @@ pub mod pallet {
             let sender = ensure_signed(origin)?;
             // check sender is stream recipient
             let mut stream = Streams::<T>::get(stream_id).ok_or(DispatchError::CannotLookup)?;
-            ensure!(
-                sender == stream.recipient,
-                Error::<T>::NotTheRecipient
-            );
+            ensure!(sender == stream.recipient, Error::<T>::NotTheRecipient);
             // Check balance
             let balance = Self::balance_of(stream.clone(), &stream.recipient)?;
             ensure!(balance >= amount, Error::<T>::ExceedsBalance);
-            stream.remaining_balance = stream.remaining_balance.checked_sub(amount).ok_or(ArithmeticError::Underflow)?;
+            stream.remaining_balance = stream
+                .remaining_balance
+                .checked_sub(amount)
+                .ok_or(ArithmeticError::Underflow)?;
             // Check if balance is zero, then remove
             if stream.remaining_balance == 0 {
                 // remove
                 Streams::<T>::remove(stream_id);
+            } else {
+                // insert new payroll
+                Streams::<T>::insert(stream_id, stream.clone());
             }
             // withdraw deposit from stream
-            T::Assets::transfer(stream.currency_id, &Self::account_id(), &sender, amount, false)?;
-            Self::deposit_event(Event::<T>::WithdrawFromStream(stream_id, stream.recipient, stream.currency_id, amount));
+            T::Assets::transfer(
+                stream.currency_id,
+                &Self::account_id(),
+                &sender,
+                amount,
+                false,
+            )?;
+            Self::deposit_event(Event::<T>::WithdrawFromStream(
+                stream_id,
+                stream.recipient,
+                stream.currency_id,
+                amount,
+            ));
             Ok(().into())
         }
     }
@@ -265,38 +300,66 @@ impl<T: Config> Pallet<T> {
         T::PalletId::get().into_account()
     }
 
-    // Measure balance of payroll with rate per sec
-    pub fn balance_of(stream: Stream<T>, who: &AccountOf<T>) -> Result<BalanceOf<T>, DispatchError> {
+    pub fn delta_of(stream: Stream<T>) -> Result<u64, DispatchError> {
         let now = T::UnixTime::now().as_secs();
-        let delta = if now < stream.start_time {
-            BalanceOf::<T>::zero()
+        if now <= stream.start_time {
+            return Ok(0);
         } else if now < stream.stop_time {
-            now.checked_sub(stream.start_time).ok_or(ArithmeticError::Underflow)? as u128
+            return now
+                .checked_sub(stream.start_time)
+                .ok_or(DispatchError::Arithmetic(ArithmeticError::Underflow));
         } else {
-            stream.stop_time.checked_sub(stream.start_time).ok_or(ArithmeticError::Underflow)? as u128
-        };
-        
+            return stream
+                .stop_time
+                .checked_sub(stream.start_time)
+                .ok_or(DispatchError::Arithmetic(ArithmeticError::Underflow));
+        }
+    }
+
+    // Measure balance of payroll with rate per sec
+    pub fn balance_of(
+        stream: Stream<T>,
+        who: &AccountOf<T>,
+    ) -> Result<BalanceOf<T>, DispatchError> {
+        let delta = Self::delta_of(stream.clone())? as BalanceOf<T>;
+
         /*
          * If the stream `balance` does not equal `deposit`, it means there have been withdrawals.
          * We have to subtract the total amount withdrawn from the amount of money that has been
          * streamed until now.
          */
         let recipient_balance = if stream.deposit > stream.remaining_balance {
-            let withdrawl_amount = stream.deposit.checked_sub(stream.remaining_balance).ok_or(ArithmeticError::Underflow)?;
-            let recipient_balance = delta.checked_mul(stream.rate_per_sec).ok_or(ArithmeticError::Overflow)?;
-            recipient_balance.checked_sub(withdrawl_amount).ok_or(ArithmeticError::Underflow)?
+            let withdrawal_amount = stream
+                .deposit
+                .checked_sub(stream.remaining_balance)
+                .ok_or(ArithmeticError::Underflow)?;
+            let recipient_balance = delta
+                .checked_mul(stream.rate_per_sec)
+                .ok_or(ArithmeticError::Overflow)?;
+            recipient_balance
+                .checked_sub(withdrawal_amount)
+                .ok_or(ArithmeticError::Underflow)?
         } else {
-            delta.checked_mul(stream.rate_per_sec).ok_or(ArithmeticError::Overflow)?
+            delta
+                .checked_mul(stream.rate_per_sec)
+                .ok_or(ArithmeticError::Overflow)?
         };
 
         if *who == stream.recipient {
-            return Ok(recipient_balance);
-        }
-        if *who == stream.sender {
+            if delta == (stream.stop_time - stream.start_time).into() {
+                return Ok(stream.remaining_balance);
+            } else {
+                return Ok(recipient_balance);
+            }
+        } else if *who == stream.sender {
             let _recipient_balance = &recipient_balance;
-            let sender_balance = stream.remaining_balance.checked_sub(*_recipient_balance).ok_or(ArithmeticError::Underflow)?;
+            let sender_balance = stream
+                .remaining_balance
+                .checked_sub(*_recipient_balance)
+                .ok_or(ArithmeticError::Underflow)?;
             return Ok(sender_balance);
+        } else {
+            Ok(0)
         }
-        Ok(0)
     }
 }

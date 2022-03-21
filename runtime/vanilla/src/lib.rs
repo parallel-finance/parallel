@@ -95,6 +95,7 @@ pub use pallet_crowdloans;
 pub use pallet_farming;
 pub use pallet_loans;
 pub use pallet_nominee_election;
+pub use pallet_payroll;
 pub use pallet_prices;
 pub use pallet_router;
 

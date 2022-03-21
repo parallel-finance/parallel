@@ -148,7 +148,7 @@ parameter_types! {
 
 impl Config for Test {
     type Event = Event;
-    type PalletId = PayrollPalletId; 
+    type PalletId = PayrollPalletId;
     type UnixTime = TimestampPallet;
     type Assets = CurrencyAdapter;
     type WeightInfo = ();
@@ -166,21 +166,18 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 
     let mut ext = sp_io::TestExternalities::new(t);
     ext.execute_with(|| {
-        // Init assets
+        // Init network tokens to execute extrinsics
+        Balances::set_balance(Origin::root(), BOB, dollar(1000), dollar(0)).unwrap();
+        Balances::set_balance(Origin::root(), ALICE, dollar(1000), dollar(0)).unwrap();
         Balances::set_balance(Origin::root(), DAVE, dollar(1000), dollar(0)).unwrap();
+        // Init DOT to alice with full access
         Assets::force_create(Origin::root(), DOT, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), KSM, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), USDT, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), XDOT, ALICE, true, 1).unwrap();
+        // Alice mints DOT
+        Assets::mint(Origin::signed(ALICE), DOT, ALICE, dollar(10000)).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, BOB, dollar(10000)).unwrap();
+        Assets::mint(Origin::signed(ALICE), DOT, DAVE, dollar(10000)).unwrap();
 
-        Assets::mint(Origin::signed(ALICE), KSM, ALICE, dollar(1000)).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, ALICE, dollar(1000)).unwrap();
-        Assets::mint(Origin::signed(ALICE), USDT, ALICE, dollar(1000)).unwrap();
-        Assets::mint(Origin::signed(ALICE), KSM, BOB, dollar(1000)).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, BOB, dollar(1000)).unwrap();
-        Assets::mint(Origin::signed(ALICE), DOT, DAVE, dollar(1000)).unwrap();
-        Assets::mint(Origin::signed(ALICE), USDT, DAVE, dollar(1000)).unwrap();
-
+        // Set block number and time
         System::set_block_number(0);
         TimestampPallet::set_timestamp(6000);
     });
