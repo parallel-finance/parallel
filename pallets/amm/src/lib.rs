@@ -1091,4 +1091,12 @@ impl<T: Config<I>, I: 'static> primitives::AMM<AccountIdOf<T>, AssetIdOf<T, I>, 
     fn get_pools() -> Result<Vec<(AssetIdOf<T, I>, AssetIdOf<T, I>)>, DispatchError> {
         Ok(Pools::<T, I>::iter_keys().collect())
     }
+
+    fn get_reserves(
+        asset_in: AssetIdOf<T, I>,
+        asset_out: AssetIdOf<T, I>,
+    ) -> Result<(BalanceOf<T, I>, BalanceOf<T, I>), DispatchError> {
+        let (amount_x, amount_y) = Self::get_reserves(asset_in, asset_out)?;
+        Ok((amount_x, amount_y))
+    }
 }

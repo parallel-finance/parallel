@@ -12,6 +12,7 @@ codec              = { package = 'parity-scale-codec', version = '2.3.1', featur
 frame-support      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', default-features = false }
 frame-system       = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', default-features = false }
 num-traits         = { default-features = false, version = '0.2' }
+pallet-amm         = { path = '../amm', default-features = false }
 pallet-assets      = { git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.16', default-features = false }
 primitives         = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 scale-info         = { version = '1.0', default-features = false, features = ['derive'] }
@@ -32,6 +33,7 @@ default            = ['std']
 std                = [
   'serde',
   'codec/std',
+  'pallet-amm/std',
   'frame-support/std',
   'frame-system/std',
   'primitives/std',

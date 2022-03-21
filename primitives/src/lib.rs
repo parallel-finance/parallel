@@ -172,6 +172,21 @@ pub trait AMM<AccountId, CurrencyId, Balance> {
     ) -> Result<(), DispatchError>;
 
     fn get_pools() -> Result<Vec<(CurrencyId, CurrencyId)>, DispatchError>;
+
+    fn get_reserves(
+        asset_in: CurrencyId,
+        asset_out: CurrencyId,
+    ) -> Result<(Balance, Balance), DispatchError>;
+}
+
+/// Exported traits from StableSwap pallet. These functions are to be used
+/// by the router.
+pub trait StableSwap<AccountId, CurrencyId, Balance> {
+    fn get_d(pair: (CurrencyId, CurrencyId)) -> Result<Balance, DispatchError>;
+    fn get_alternative_var(
+        autonomous_var: Balance,
+        pair: (CurrencyId, CurrencyId),
+    ) -> Result<Balance, DispatchError>;
 }
 
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug)]
