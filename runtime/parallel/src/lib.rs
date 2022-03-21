@@ -107,6 +107,7 @@ pub use frame_support::{
     },
     StorageValue,
 };
+use pallet_emergency_shutdown::EmergencyCallFilter;
 use pallet_xcm::XcmPassthrough;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -265,7 +266,7 @@ impl Contains<Call> for BaseCallFilter {
 pub struct CallFilterRouter;
 impl Contains<Call> for CallFilterRouter {
     fn contains(call: &Call) -> bool {
-        BaseCallFilter::contains(call)
+        BaseCallFilter::contains(call) && EmergencyShutdown::is_call_filtered(call)
     }
 }
 
@@ -1643,7 +1644,6 @@ impl pallet_farming::Config for Runtime {
     type LockPoolMaxDuration = LockPoolMaxDuration;
     type Decimal = Decimal;
 }
-
 pub struct WhiteListFilter;
 impl Contains<Call> for WhiteListFilter {
     fn contains(call: &Call) -> bool {
@@ -1655,6 +1655,10 @@ impl Contains<Call> for WhiteListFilter {
             Call::Balances(_) |
             Call::Assets(pallet_assets::Call::mint { .. }) |
             Call::Assets(pallet_assets::Call::burn { .. }) |
+            Call::Assets(pallet_assets::Call::destroy { .. }) |
+            Call::Assets(pallet_assets::Call::force_create { .. }) |
+            Call::Assets(pallet_assets::Call::force_set_metadata { .. }) |
+            Call::Assets(pallet_assets::Call::force_asset_status { .. }) |
             // Governance
             Call::Sudo(_) |
             Call::Democracy(_) |
@@ -1688,6 +1692,7 @@ impl pallet_emergency_shutdown::Config for Runtime {
     type Whitelist = WhiteListFilter;
     type ShutdownOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type Call = Call;
+    type EmergencyCallFilter = EmergencyShutdown;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

@@ -63,7 +63,9 @@ use frame_system::{
     EnsureRoot,
 };
 
+pub use frame_support::traits::PalletInfoAccess;
 use orml_xcm_support::{IsNativeConcrete, MultiNativeAsset};
+use pallet_emergency_shutdown::EmergencyCallFilter;
 use polkadot_parachain::primitives::Sibling;
 use primitives::{
     currency::MultiCurrencyAdapter,
@@ -269,7 +271,7 @@ impl Contains<Call> for BaseCallFilter {
 pub struct CallFilterRouter;
 impl Contains<Call> for CallFilterRouter {
     fn contains(call: &Call) -> bool {
-        BaseCallFilter::contains(call)
+        BaseCallFilter::contains(call) && EmergencyShutdown::is_call_filtered(call)
     }
 }
 
@@ -1623,6 +1625,11 @@ impl Contains<Call> for WhiteListFilter {
             Call::Balances(_) |
             Call::Assets(pallet_assets::Call::mint { .. }) |
             Call::Assets(pallet_assets::Call::transfer { .. }) |
+            Call::Assets(pallet_assets::Call::burn { .. }) |
+            Call::Assets(pallet_assets::Call::destroy { .. }) |
+            Call::Assets(pallet_assets::Call::force_create { .. }) |
+            Call::Assets(pallet_assets::Call::force_set_metadata { .. }) |
+            Call::Assets(pallet_assets::Call::force_asset_status { .. }) |
             // Governance
             Call::Sudo(_) |
             Call::Democracy(_) |
@@ -1635,7 +1642,10 @@ impl Contains<Call> for WhiteListFilter {
             Call::ParachainSystem(_) |
             Call::XcmpQueue(_) |
             Call::DmpQueue(_) |
-            Call::PolkadotXcm(_) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_xcm_version { .. }) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_default_xcm_version { .. }) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_subscribe_version_notify { .. }) |
+            Call::PolkadotXcm(pallet_xcm::Call::force_unsubscribe_version_notify { .. }) |
             Call::CumulusXcm(_) |
             // Consensus
             Call::Authorship(_) |
@@ -1669,6 +1679,7 @@ impl pallet_emergency_shutdown::Config for Runtime {
     type Whitelist = WhiteListFilter;
     type ShutdownOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type Call = Call;
+    type EmergencyCallFilter = EmergencyShutdown;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

@@ -98,6 +98,7 @@ pub use pallet_router;
 
 use currency::*;
 use fee::*;
+pub use frame_support::traits::PalletInfoAccess;
 pub use frame_support::{
     construct_runtime, parameter_types,
     traits::{KeyOwnerProofSystem, Randomness},
@@ -107,6 +108,7 @@ pub use frame_support::{
     },
     StorageValue,
 };
+use pallet_emergency_shutdown::EmergencyCallFilter;
 use pallet_xcm::XcmPassthrough;
 use time::*;
 
@@ -265,7 +267,7 @@ impl Contains<Call> for BaseCallFilter {
 pub struct CallFilterRouter;
 impl Contains<Call> for CallFilterRouter {
     fn contains(call: &Call) -> bool {
-        BaseCallFilter::contains(call)
+        BaseCallFilter::contains(call) && EmergencyShutdown::is_call_filtered(call)
     }
 }
 
@@ -1621,6 +1623,10 @@ impl Contains<Call> for WhiteListFilter {
             Call::Assets(pallet_assets::Call::mint { .. }) |
             Call::Assets(pallet_assets::Call::transfer { .. }) |
             Call::Assets(pallet_assets::Call::burn { .. }) |
+            Call::Assets(pallet_assets::Call::destroy { .. }) |
+            Call::Assets(pallet_assets::Call::force_create { .. }) |
+            Call::Assets(pallet_assets::Call::force_set_metadata { .. }) |
+            Call::Assets(pallet_assets::Call::force_asset_status { .. }) |
             // Governance
             Call::Sudo(_) |
             Call::Democracy(_) |
@@ -1658,7 +1664,7 @@ impl Contains<Call> for WhiteListFilter {
             Call::TechnicalCommitteeMembership(_) |
             Call::OracleMembership(_) |
             Call::BridgeMembership(_) |
-            Call::LiquidStakingAgentsMembership(_)
+			Call::LiquidStakingAgentsMembership(_)
         )
     }
 }
@@ -1668,6 +1674,7 @@ impl pallet_emergency_shutdown::Config for Runtime {
     type Whitelist = WhiteListFilter;
     type ShutdownOrigin = EnsureRootOrMoreThanHalfGeneralCouncil;
     type Call = Call;
+    type EmergencyCallFilter = EmergencyShutdown;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
