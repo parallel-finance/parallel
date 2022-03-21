@@ -300,16 +300,15 @@ impl<T: Config> Pallet<T> {
     pub fn delta_of(stream: Stream<T>) -> Result<u64, DispatchError> {
         let now = T::UnixTime::now().as_secs();
         if now <= stream.start_time {
-            return Ok(0);
+            Ok(0)
         } else if now < stream.stop_time {
-            return now
-                .checked_sub(stream.start_time)
-                .ok_or(DispatchError::Arithmetic(ArithmeticError::Underflow));
+            now.checked_sub(stream.start_time)
+                .ok_or(DispatchError::Arithmetic(ArithmeticError::Underflow))
         } else {
-            return stream
+            stream
                 .stop_time
                 .checked_sub(stream.start_time)
-                .ok_or(DispatchError::Arithmetic(ArithmeticError::Underflow));
+                .ok_or(DispatchError::Arithmetic(ArithmeticError::Underflow))
         }
     }
 
@@ -344,9 +343,9 @@ impl<T: Config> Pallet<T> {
 
         if *who == stream.recipient {
             if delta == (stream.stop_time - stream.start_time).into() {
-                return Ok(stream.remaining_balance);
+                Ok(stream.remaining_balance)
             } else {
-                return Ok(recipient_balance);
+                Ok(recipient_balance)
             }
         } else if *who == stream.sender {
             let _recipient_balance = &recipient_balance;
@@ -354,7 +353,7 @@ impl<T: Config> Pallet<T> {
                 .remaining_balance
                 .checked_sub(*_recipient_balance)
                 .ok_or(ArithmeticError::Underflow)?;
-            return Ok(sender_balance);
+            Ok(sender_balance)
         } else {
             Ok(0)
         }
