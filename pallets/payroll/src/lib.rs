@@ -34,10 +34,7 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use primitives::*;
 use scale_info::TypeInfo;
-use sp_runtime::{
-    traits::{AccountIdConversion, Zero},
-    ArithmeticError, DispatchError,
-};
+use sp_runtime::{traits::AccountIdConversion, ArithmeticError, DispatchError};
 use sp_std::prelude::*;
 
 pub use pallet::*;
