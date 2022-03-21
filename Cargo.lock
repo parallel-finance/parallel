@@ -2823,6 +2823,7 @@ dependencies = [
  "pallet-router-rpc-runtime-api",
  "pallet-scheduler",
  "pallet-session",
+ "pallet-stableswap",
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
@@ -6055,6 +6056,7 @@ dependencies = [
 name = "pallet-stableswap"
 version = "1.7.9"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "num-traits",

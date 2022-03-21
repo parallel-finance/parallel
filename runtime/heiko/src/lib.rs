@@ -96,6 +96,7 @@ pub use pallet_liquid_staking;
 pub use pallet_loans;
 pub use pallet_prices;
 pub use pallet_router;
+pub use pallet_stableswap;
 
 use currency::*;
 use fee::*;
@@ -1637,6 +1638,25 @@ impl pallet_farming::Config for Runtime {
     type Decimal = Decimal;
 }
 
+parameter_types! {
+    pub const StableSwapPalletId: PalletId = PalletId(*b"par/sswp");
+    pub const NumTokens: u8 = 2;
+    pub const Precision: u32 = 100;
+    pub const AmplificationCoefficient: u8 = 85;
+
+}
+
+impl pallet_stableswap::Config for Runtime {
+    type Event = Event;
+    type Assets = CurrencyAdapter;
+    type WeightInfo = pallet_stableswap::weights::SubstrateWeight<Runtime>;
+    type PalletId = StableSwapPalletId;
+    type AMM = AMM;
+    type NumTokens = ();
+    type Precision = ();
+    type AmplificationCoefficient = ();
+}
+
 pub struct WhiteListFilter;
 impl Contains<Call> for WhiteListFilter {
     fn contains(call: &Call) -> bool {
@@ -1770,6 +1790,7 @@ construct_runtime!(
         EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Storage, Event<T>} = 91,
         Farming: pallet_farming::{Pallet, Call, Storage, Event<T>} = 92,
         XcmHelper: pallet_xcm_helper::{Pallet, Call, Storage, Event<T>} = 93,
+        StableSwap: pallet_stableswap::{Pallet, Storage, Event<T>} = 94,
 
         // Parachain System, always put it at the end
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 20,
@@ -1981,6 +2002,7 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_crowdloans, Crowdloans);
             list_benchmark!(list, extra, pallet_xcm_helper, XcmHelper);
             list_benchmark!(list, extra, pallet_farming, Farming);
+            list_benchmark!(list, extra, pallet_stableswap, StableSwap);
 
             let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -2027,6 +2049,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_crowdloans, Crowdloans);
             add_benchmark!(params, batches, pallet_xcm_helper, XcmHelper);
             add_benchmark!(params, batches, pallet_farming, Farming);
+            add_benchmark!(params, batches, pallet_stableswap, StableSwap);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)

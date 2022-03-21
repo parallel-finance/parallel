@@ -23,14 +23,14 @@ use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_stableswap
 pub trait WeightInfo {
-    fn get_d() -> Weight;
+    fn get_delta() -> Weight;
     fn get_alternative_var() -> Weight;
 }
 
 /// Weights for stableswap using the Substrate node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
-    fn get_d() -> Weight {
+    fn get_delta() -> Weight {
         10_000 as Weight
     }
     fn get_alternative_var() -> Weight {
@@ -40,7 +40,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
-    fn get_d() -> Weight {
+    fn get_delta() -> Weight {
         10_000 as Weight
     }
     fn get_alternative_var() -> Weight {

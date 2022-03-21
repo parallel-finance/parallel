@@ -70,7 +70,8 @@ frame_support::construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
-        StableSwap: pallet_stableswap::{Pallet, Call, Storage, Event<T>},
+        DefaultStableSwap: pallet_stableswap::{Pallet, Storage, Event<T>},
+        DefaultAMM: pallet_amm::{Pallet, Call, Storage, Event<T>},
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
         CurrencyAdapter: pallet_currency_adapter::{Pallet, Call},
     }
@@ -152,7 +153,7 @@ impl pallet_assets::Config for Test {
 }
 
 parameter_types! {
-    pub const StableSwapPalletId: PalletId = PalletId(*b"par/stableswapp");
+    pub const AMMPalletId: PalletId = PalletId(*b"par/ammp");
     pub DefaultLpFee: Ratio = Ratio::from_rational(25u32, 10000u32);        // 0.25%
     pub DefaultProtocolFee: Ratio = Ratio::from_rational(5u32, 10000u32);   // 0.05%
     pub const DefaultProtocolFeeReceiver: AccountId = PROTOCOL_FEE_RECEIVER;
@@ -168,18 +169,36 @@ impl SortedMembers<AccountId> for AliceCreatePoolOrigin {
     }
 }
 
-impl pallet_stableswap::Config for Test {
+impl pallet_amm::Config for Test {
     type Event = Event;
     type Assets = CurrencyAdapter;
-    type PalletId = StableSwapPalletId;
+    type PalletId = AMMPalletId;
     type LockAccountId = LockAccountId;
-    type StableSwapWeightInfo = ();
+    type AMMWeightInfo = ();
     type CreatePoolOrigin = EnsureSignedBy<AliceCreatePoolOrigin, AccountId>;
     type LpFee = DefaultLpFee;
     type ProtocolFee = DefaultProtocolFee;
     type MinimumLiquidity = MinimumLiquidity;
     type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
     type MaxLengthRoute = MaxLengthRoute;
+}
+
+parameter_types! {
+    pub const StableSwapPalletId: PalletId = PalletId(*b"par/sswp");
+    pub const NumTokens: u8 = 2;
+    pub const Precision: u32 = 100;
+    pub const AmplificationCoefficient: u8 = 85;
+}
+
+impl pallet_stableswap::Config for Test {
+    type Event = Event;
+    type Assets = CurrencyAdapter;
+    type WeightInfo = ();
+    type PalletId = StableSwapPalletId;
+    type AMM = DefaultAMM;
+    type NumTokens = NumTokens;
+    type Precision = Precision;
+    type AmplificationCoefficient = AmplificationCoefficient;
 }
 
 parameter_types! {

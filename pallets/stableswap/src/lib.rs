@@ -40,7 +40,6 @@ use sp_runtime::{ArithmeticError, DispatchError};
 use sp_std::result::Result;
 
 pub use pallet::*;
-pub use weights::WeightInfo;
 
 use num_traits::{CheckedDiv, CheckedMul};
 
@@ -53,7 +52,7 @@ pub type BalanceOf<T, I = ()> =
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-
+    use crate::weights::WeightInfo;
     pub type Amounts<T, I> = sp_std::vec::Vec<BalanceOf<T, I>>;
 
     #[pallet::config]
@@ -65,6 +64,8 @@ pub mod pallet {
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
+
+        type WeightInfo: WeightInfo;
 
         #[pallet::constant]
         type PalletId: Get<PalletId>;
@@ -105,6 +106,7 @@ pub mod pallet {
         // https://github.com/curvefi/curve-contract/blob/master/contracts/pool-templates/base/SwapTemplateBase.vy
         // https://github.com/parallel-finance/amm-formula/blob/master/src/formula.rs
         // https://curve.fi/files/stableswap-paper.pdf
+        // #[pallet::weight(T::WeightInfo::get_delta())]
         pub(crate) fn do_get_delta(
             (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),
         ) -> Result<BalanceOf<T, I>, DispatchError> {
@@ -200,9 +202,19 @@ pub mod pallet {
             }
             // throw new Error('D does not converge')
             Self::deposit_event(Event::<T, I>::DeltaCalculated(asset_in, asset_out, d));
+
+            log::trace!(
+                target: "stableSwap::do_get_delta",
+                "asset_in: {:?}, asset_out: {:?}, delta: {:?}",
+                &asset_in,
+                &asset_out,
+                &d
+            );
+
             Ok(d)
         }
 
+        // #[pallet::weight(T::WeightsInfo::alternative_var())]
         pub(crate) fn do_get_alternative_var(
             mut autonomous_var: BalanceOf<T, I>,
             (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),
@@ -288,8 +300,6 @@ pub mod pallet {
             Ok(y)
             // throw new Error('Approximation did not converge')
         }
-
-        // ****************************************************************************************
     }
 }
 
@@ -297,7 +307,7 @@ pub mod pallet {
 impl<T: Config<I>, I: 'static>
     primitives::StableSwap<AccountIdOf<T>, AssetIdOf<T, I>, BalanceOf<T, I>> for Pallet<T, I>
 {
-    fn get_d(pair: (AssetIdOf<T, I>, AssetIdOf<T, I>)) -> Result<u128, DispatchError> {
+    fn get_d(pair: (AssetIdOf<T, I>, AssetIdOf<T, I>)) -> Result<BalanceOf<T, I>, DispatchError> {
         let d = Self::do_get_delta(pair)?;
         Ok(d)
     }
@@ -305,7 +315,7 @@ impl<T: Config<I>, I: 'static>
     fn get_alternative_var(
         autonomous_var: BalanceOf<T, I>,
         pair: (AssetIdOf<T, I>, AssetIdOf<T, I>),
-    ) -> Result<u128, DispatchError> {
+    ) -> Result<BalanceOf<T, I>, DispatchError> {
         let alternative_var = Self::do_get_alternative_var(autonomous_var, pair)?;
         Ok(alternative_var)
     }
