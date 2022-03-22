@@ -64,6 +64,7 @@ mod ptoken;
 mod rate_model;
 mod types;
 
+pub mod migrations;
 pub mod weights;
 
 pub const MAX_INTEREST_CALCULATING_INTERVAL: u64 = 5 * 24 * 3600; // 5 days
@@ -73,6 +74,13 @@ type AssetIdOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
 type BalanceOf<T> =
     <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::Balance;
+
+/// Utility type for managing upgrades/migrations.
+#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+pub enum Versions {
+    V1,
+    V2,
+}
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -149,8 +157,10 @@ pub mod pallet {
         MarketAlredyExists,
         /// New markets must have a pending state
         NewMarketMustHavePendingState,
-        /// Market reached its upper limitation
-        ExceededMarketCapacity,
+        /// Upper bound of capacity is exceeded
+        MarketCapacityExceeded,
+        /// Upper bound of borrow limit is exceeded
+        BorrowLimitExceeded,
         /// Insufficient cash in the pool
         InsufficientCash,
         /// The factor should be bigger than 0% and smaller than 100%
@@ -319,6 +329,16 @@ pub mod pallet {
     #[pallet::storage]
     pub type UnderlyingAssetId<T: Config> =
         StorageMap<_, Blake2_128Concat, AssetIdOf<T>, AssetIdOf<T>>;
+
+    /// DefaultVersion is using for initialize the StorageVersion
+    #[pallet::type_value]
+    pub(super) fn DefaultVersion<T: Config>() -> Versions {
+        Versions::V1
+    }
+    /// Storage version of the pallet.
+    #[pallet::storage]
+    pub(crate) type StorageVersion<T: Config> =
+        StorageValue<_, Versions, ValueQuery, DefaultVersion<T>>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info]
@@ -498,6 +518,7 @@ pub mod pallet {
             close_factor: Ratio,
             liquidate_incentive: Rate,
             #[pallet::compact] cap: BalanceOf<T>,
+            #[pallet::compact] borrow_limit: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
 
@@ -521,6 +542,7 @@ pub mod pallet {
                     close_factor,
                     liquidate_incentive,
                     cap,
+                    borrow_limit,
                 };
                 stored_market.clone()
             })?;
@@ -1046,6 +1068,7 @@ impl<T: Config> Pallet<T> {
         borrower: &T::AccountId,
         borrow_amount: BalanceOf<T>,
     ) -> DispatchResult {
+        Self::ensure_under_borrow_limit(asset_id, borrow_amount)?;
         Self::ensure_enough_cash(asset_id, borrow_amount)?;
         let borrow_value = Self::get_asset_value(asset_id, borrow_amount)?;
         Self::ensure_liquidity(borrower, borrow_value)?;
@@ -1346,14 +1369,28 @@ impl<T: Config> Pallet<T> {
     /// Ensure market is enough to supply `amount` asset.
     fn ensure_capacity(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
         let market = Self::market(asset_id)?;
-
         // Assets holded by market currently.
         let current_cash = T::Assets::balance(asset_id, &Self::account_id());
-
         let total_cash = current_cash
             .checked_add(amount)
             .ok_or(ArithmeticError::Overflow)?;
-        ensure!(total_cash <= market.cap, Error::<T>::ExceededMarketCapacity);
+        ensure!(total_cash <= market.cap, Error::<T>::MarketCapacityExceeded);
+
+        Ok(())
+    }
+
+    /// Make sure the borrowing under the borrow limit
+    fn ensure_under_borrow_limit(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
+        let market = Self::market(asset_id)?;
+        let total_borrows = Self::total_borrows(asset_id);
+        let new_total_borrows = total_borrows
+            .checked_add(amount)
+            .ok_or(ArithmeticError::Overflow)?;
+        ensure!(
+            new_total_borrows <= market.borrow_limit,
+            Error::<T>::BorrowLimitExceeded
+        );
+
         Ok(())
     }
 
@@ -1385,6 +1422,7 @@ impl<T: Config> Pallet<T> {
 
         Ok(())
     }
+
     // Ensures that `account` have sufficient liquidity to move your assets
     // Returns `Err` If InsufficientLiquidity
     // `account`: account that need a liquidity check

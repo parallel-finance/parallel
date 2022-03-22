@@ -36,7 +36,8 @@ fn market_mock<T: Config>() -> Market<BalanceOf<T>> {
             jump_utilization: Ratio::from_percent(80),
         }),
         reserve_factor: Ratio::from_percent(15),
-        cap: 1_000_000_000_000_000_000_000u128, // set to $1B
+        cap: 1_000_000_000_000_000_000_000u128, // set to 1B
+        borrow_limit: 1_000_000_000_000_000_000_000u128, // set to 1B
         ptoken_id: 1200,
     }
 }
@@ -167,6 +168,7 @@ benchmarks! {
             Ratio::from_percent(50),
             Ratio::from_percent(15),
             Rate::from_inner(Rate::DIV / 100 * 110),
+            1_000_000_000_000_000_000_000u128,
             1_000_000_000_000_000_000_000u128
     )
     verify {
