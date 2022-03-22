@@ -107,7 +107,6 @@ pub mod pallet {
         // https://github.com/curvefi/curve-contract/blob/master/contracts/pool-templates/base/SwapTemplateBase.vy
         // https://github.com/parallel-finance/amm-formula/blob/master/src/formula.rs
         // https://curve.fi/files/stableswap-paper.pdf
-        // #[pallet::weight(T::WeightInfo::get_delta())]
         pub(crate) fn do_get_delta(
             (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),
         ) -> Result<BalanceOf<T, I>, DispatchError> {
@@ -119,8 +118,6 @@ pub mod pallet {
                 .ok_or(Error::<T, I>::ConversionToU128Failed)?
                 .to_u128()
                 .ok_or(ArithmeticError::Underflow)?;
-
-            // let total_reserves = x.checked_add(y).ok_or(ArithmeticError::Overflow)?;
 
             let a: u128 = (T::AmplificationCoefficient::get() as u128)
                 .get_big_uint()
@@ -253,7 +250,6 @@ pub mod pallet {
             Ok(d)
         }
 
-        // #[pallet::weight(T::WeightsInfo::alternative_var())]
         pub(crate) fn do_get_alternative_var(
             mut autonomous_var: BalanceOf<T, I>,
             (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),

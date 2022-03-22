@@ -101,6 +101,7 @@ pallet-loans-rpc-runtime-api  = { path = '../../pallets/loans/rpc/runtime-api', 
 pallet-prices                 = { path = '../../pallets/prices', default-features = false }
 pallet-router                 = { path = '../../pallets/router', default-features = false }
 pallet-router-rpc-runtime-api = { path = '../../pallets/router/rpc/runtime-api', default-features = false }
+pallet-stableswap             = { path = '../../pallets/stableswap', default-features = false }
 pallet-xcm-helper             = { path = '../../pallets/xcm-helper', default-features = false }
 primitives                    = { package = 'parallel-primitives', path = '../../primitives', default-features = false }
 
@@ -134,6 +135,7 @@ runtime-benchmarks = [
   'pallet-crowdloans/runtime-benchmarks',
   'pallet-xcm-helper/runtime-benchmarks',
   'pallet-farming/runtime-benchmarks',
+  'pallet-stableswap/runtime-benchmarks',
 ]
 std                = [
   'codec/std',
@@ -211,6 +213,7 @@ std                = [
   'pallet-emergency-shutdown/std',
   'pallet-xcm-helper/std',
   'pallet-farming/std',
+  'pallet-stableswap/std',
 ]
 try-runtime        = [
   'frame-support/try-runtime',

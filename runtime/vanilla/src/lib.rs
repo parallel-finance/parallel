@@ -95,6 +95,7 @@ pub use pallet_liquid_staking;
 pub use pallet_loans;
 pub use pallet_prices;
 pub use pallet_router;
+pub use pallet_stableswap;
 
 use currency::*;
 use fee::*;

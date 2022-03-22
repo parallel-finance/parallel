@@ -1652,9 +1652,9 @@ impl pallet_stableswap::Config for Runtime {
     type WeightInfo = pallet_stableswap::weights::SubstrateWeight<Runtime>;
     type PalletId = StableSwapPalletId;
     type AMM = AMM;
-    type NumTokens = ();
-    type Precision = ();
-    type AmplificationCoefficient = ();
+    type NumTokens = NumTokens;
+    type Precision = Precision;
+    type AmplificationCoefficient = AmplificationCoefficient;
 }
 
 pub struct WhiteListFilter;
@@ -2002,7 +2002,6 @@ impl_runtime_apis! {
             list_benchmark!(list, extra, pallet_crowdloans, Crowdloans);
             list_benchmark!(list, extra, pallet_xcm_helper, XcmHelper);
             list_benchmark!(list, extra, pallet_farming, Farming);
-            list_benchmark!(list, extra, pallet_stableswap, StableSwap);
 
             let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -2049,7 +2048,6 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, pallet_crowdloans, Crowdloans);
             add_benchmark!(params, batches, pallet_xcm_helper, XcmHelper);
             add_benchmark!(params, batches, pallet_farming, Farming);
-            add_benchmark!(params, batches, pallet_stableswap, StableSwap);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)
