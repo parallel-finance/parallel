@@ -25,7 +25,11 @@ pub mod v2 {
             StorageVersion::<T>::get() == crate::Versions::V1,
             "must upgrade linearly"
         );
+        Markets::<T>::iter().for_each(|(asset_id, market)| {
+            log::info!("market {:#?}, {:#?}", asset_id, market);
+        });
         log::info!("👜 loans borrow-limit migration passes PRE migrate checks ✅",);
+
         Ok(())
     }
 
@@ -56,7 +60,11 @@ pub mod v2 {
             StorageVersion::<T>::get() == crate::Versions::V2,
             "must upgrade to V2"
         );
+        Markets::<T>::iter().for_each(|(asset_id, market)| {
+            log::info!("market {:#?}, {:#?}", asset_id, market);
+        });
         log::info!("👜 loans borrow-limit migration passes POST migrate checks ✅",);
+
         Ok(())
     }
 }
