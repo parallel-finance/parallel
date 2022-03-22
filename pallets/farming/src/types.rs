@@ -15,10 +15,12 @@ pub struct PoolInfo<BlockNumber, BalanceOf> {
     pub is_active: bool,
     /// total amount of staking asset user deposited
     pub total_deposited: BalanceOf,
-    /// lock duration after withdraw from reward pool
-    pub lock_duration: BlockNumber,
+    /// withdraw not allowed under unlock_height
+    pub unlock_height: BlockNumber,
+    /// cool down duration after withdraw.
+    pub cool_down_duration: BlockNumber,
     /// current reward duration
-    pub duration: BlockNumber,
+    pub reward_duration: BlockNumber,
     /// block number of reward ends
     pub period_finish: BlockNumber,
     /// block number of last reward update
@@ -34,8 +36,9 @@ impl<BlockNumber: Default, BalanceOf: Default> Default for PoolInfo<BlockNumber,
         Self {
             is_active: false,
             total_deposited: BalanceOf::default(),
-            lock_duration: BlockNumber::default(),
-            duration: BlockNumber::default(),
+            unlock_height: BlockNumber::default(),
+            cool_down_duration: BlockNumber::default(),
+            reward_duration: BlockNumber::default(),
             period_finish: BlockNumber::default(),
             last_update_block: BlockNumber::default(),
             reward_rate: BalanceOf::default(),

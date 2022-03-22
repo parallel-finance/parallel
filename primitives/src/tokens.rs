@@ -36,8 +36,8 @@ pub const EUSDT: CurrencyId = 201;
 pub const EUSDC: CurrencyId = 202;
 
 // Liquid Staking Derivative
-pub const XKSM: CurrencyId = 1000;
-pub const XDOT: CurrencyId = 1001;
+pub const SKSM: CurrencyId = 1000;
+pub const SDOT: CurrencyId = 1001;
 
 // Money Market Derivative
 pub const PHKO: CurrencyId = 2000;
@@ -57,22 +57,26 @@ pub const PLDOT: CurrencyId = 2110;
 pub const PEUSDT: CurrencyId = 2201;
 pub const PEUSDC: CurrencyId = 2202;
 
-pub const PXKSM: CurrencyId = 3000;
-pub const PXDOT: CurrencyId = 3001;
+pub const PSKSM: CurrencyId = 3000;
+pub const PSDOT: CurrencyId = 3001;
 
 // AMM LP Token
 pub const LP_USDT_HKO: CurrencyId = 5000;
 pub const LP_KSM_USDT: CurrencyId = 5001;
 pub const LP_KSM_HKO: CurrencyId = 5002;
+pub const LP_KSM_SKSM: CurrencyId = 5003;
 
 pub const LP_USDT_PARA: CurrencyId = 6000;
 pub const LP_DOT_USDT: CurrencyId = 6001;
 pub const LP_DOT_PARA: CurrencyId = 6002;
+pub const LP_DOT_SDOT: CurrencyId = 6003;
 
 // Crowdloan Derivative
 pub const CKSM_15_22: CurrencyId = 100150022;
+pub const CKSM_20_27: CurrencyId = 100200027;
 pub const CDOT_6_13: CurrencyId = 200060013;
 pub const CDOT_7_14: CurrencyId = 200070014;
+pub const CDOT_8_15: CurrencyId = 200080015;
 
 // Token Registration Information
 // +───────────+──────────────+────────────────────+
@@ -85,7 +89,7 @@ pub const CDOT_7_14: CurrencyId = 200070014;
 // | Heiko     | EUSDC        | N/A                |
 // | Heiko     | EUSDT        | N/A                |
 // | Heiko     | KAR          | N/A                |
-// | Heiko     | XKSM         | N/A                |
+// | Heiko     | SKSM         | N/A                |
 // | Heiko     | CKSM         | N/A                |
 // | Heiko     | LKSM         | N/A                |
 // | Heiko     | PHKO         | N/A                |
@@ -95,7 +99,7 @@ pub const CDOT_7_14: CurrencyId = 200070014;
 // | Heiko     | PEUSDT       | N/A                |
 // | Heiko     | PEUSDC       | N/A                |
 // | Heiko     | PKAR         | N/A                |
-// | Heiko     | PXKSM        | N/A                |
+// | Heiko     | PSKSM        | N/A                |
 // | Heiko     | PLKSM        | N/A                |
 // | Heiko     | PLCKSM       | N/A                |
 // | Heiko     | PCKSM        | N/A                |
@@ -107,7 +111,7 @@ pub const CDOT_7_14: CurrencyId = 200070014;
 // | Parallel  | EUSDC        | N/A                |
 // | Parallel  | EUSDT        | N/A                |
 // | Parallel  | ACA          | N/A                |
-// | Parallel  | XDOT         | N/A                |
+// | Parallel  | SDOT         | N/A                |
 // | Parallel  | CDOT         | N/A                |
 // | Parallel  | LDOT         | N/A                |
 // | Parallel  | LCDOT        | N/A                |
@@ -119,7 +123,7 @@ pub const CDOT_7_14: CurrencyId = 200070014;
 // | Parallel  | PEUSDC       | N/A                |
 // | Parallel  | PEUSDT       | N/A                |
 // | Parallel  | PACA         | N/A                |
-// | Parallel  | PXDOT        | N/A                |
+// | Parallel  | PSDOT        | N/A                |
 // | Parallel  | PLDOT        | N/A                |
 // | Parallel  | PLCDOT       | N/A                |
 // | Parallel  | PCDOT        | N/A                |

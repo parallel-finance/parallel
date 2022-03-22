@@ -20,7 +20,7 @@ VOLUME="chains"
 NODE_KEY="$1"
 KEYSTORE_PATH="$2"
 NODE_NAME="$3"
-DOCKER_IMAGE="parallelfinance/parallel:v1.7.7"
+DOCKER_IMAGE="parallelfinance/parallel:v1.8.0"
 BASE_PATH="/data"
 
 if [ $# -lt 3 ]; then
