@@ -23,7 +23,7 @@ use sp_runtime::{testing::Header, traits::IdentityLookup};
 use sp_std::vec::Vec;
 use std::{cell::RefCell, collections::HashMap};
 
-pub use primitives::tokens::{DOT, HKO, KSM, PDOT, PHKO, PKSM, PUSDT, USDT, XDOT, XKSM};
+pub use primitives::tokens::{DOT, HKO, KSM, PDOT, PHKO, PKSM, PUSDT, SDOT, SKSM, USDT};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -145,7 +145,7 @@ pub struct Decimal;
 impl DecimalProvider<CurrencyId> for Decimal {
     fn get_decimal(asset_id: &CurrencyId) -> Option<u8> {
         match *asset_id {
-            KSM | XKSM => Some(12),
+            KSM | SKSM => Some(12),
             HKO => Some(12),
             USDT => Some(6),
             _ => None,
@@ -159,7 +159,7 @@ impl LiquidStakingCurrenciesProvider<CurrencyId> for LiquidStaking {
         Some(KSM)
     }
     fn get_liquid_currency() -> Option<CurrencyId> {
-        Some(XKSM)
+        Some(SKSM)
     }
 }
 
@@ -185,7 +185,7 @@ impl MockPriceFeeder {
     thread_local! {
         pub static PRICES: RefCell<HashMap<CurrencyId, Option<PriceDetail>>> = {
             RefCell::new(
-                vec![HKO, DOT, KSM, USDT, XKSM, XDOT]
+                vec![HKO, DOT, KSM, USDT, SKSM, SDOT]
                     .iter()
                     .map(|&x| (x, Some((Price::saturating_from_integer(1), 1))))
                     .collect()
@@ -277,7 +277,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         Assets::force_create(Origin::root(), DOT, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), KSM, ALICE, true, 1).unwrap();
         Assets::force_create(Origin::root(), USDT, ALICE, true, 1).unwrap();
-        Assets::force_create(Origin::root(), XDOT, ALICE, true, 1).unwrap();
+        Assets::force_create(Origin::root(), SDOT, ALICE, true, 1).unwrap();
 
         Assets::mint(Origin::signed(ALICE), KSM, ALICE, dollar(1000)).unwrap();
         Assets::mint(Origin::signed(ALICE), DOT, ALICE, dollar(1000)).unwrap();

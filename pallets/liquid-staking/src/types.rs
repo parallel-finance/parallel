@@ -69,9 +69,6 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
                     .ok_or(ArithmeticError::Underflow)?;
             }
         }
-        if self.total_stake_amount == self.total_unstake_amount {
-            self.reset();
-        }
         Ok(())
     }
 
@@ -95,15 +92,16 @@ impl<Balance: BalanceT + FixedPointOperand> MatchingLedger<Balance> {
                     .ok_or(ArithmeticError::Underflow)?;
             }
         }
-        if self.total_stake_amount == self.total_unstake_amount {
-            self.reset();
-        }
         Ok(())
     }
 
-    fn reset(&mut self) {
-        self.total_unstake_amount = Zero::zero();
+    pub fn clear(&mut self) {
+        if self.total_stake_amount != self.total_unstake_amount {
+            return;
+        }
+
         self.total_stake_amount = Zero::zero();
+        self.total_unstake_amount = Zero::zero();
     }
 }
 
@@ -228,29 +226,34 @@ impl<AccountId, Balance: BalanceT + FixedPointOperand> StakingLedger<AccountId, 
     /// Schedule a portion of the stash to be unlocked ready for transfer out after the bond
     /// period ends. If this leaves an amount actively bonded less than
     pub fn unbond(&mut self, value: Balance, target_era: EraIndex) {
-        // let value = value.min(self.active);
-
-        // if let Some(mut chunk) = self
-        //     .unlocking
-        //     .last_mut()
-        //     .filter(|chunk| chunk.era == target_era)
-        // {
-        // To keep the chunk count down, we only keep one chunk per era. Since
-        // `unlocking` is a FIFO queue, if a chunk exists for `era` we know that it will
-        // be the last one.
-        // chunk.value = chunk.value.saturating_add(value);
-        // } else {
-        self.unlocking.push(UnlockChunk {
-            value,
-            era: target_era,
-        });
-        // };
+        if let Some(mut chunk) = self
+            .unlocking
+            .last_mut()
+            .filter(|chunk| chunk.era == target_era)
+        {
+            // To keep the chunk count down, we only keep one chunk per era. Since
+            // `unlocking` is a FIFO queue, if a chunk exists for `era` we know that it will
+            // be the last one.
+            chunk.value = chunk.value.saturating_add(value);
+        } else {
+            self.unlocking.push(UnlockChunk {
+                value,
+                era: target_era,
+            });
+        };
 
         // Skipped the minimum balance check because the platform will
         // bond `MinNominatorBond` to make sure:
         // 1. No chill call is needed
         // 2. No minimum balance check
         self.active -= value;
-        self.total -= value;
+    }
+
+    /// If the first item is smaller or equal to current_era,
+    /// then it has unbonded and is withdrawable on relaychain.
+    pub fn has_unbonded(&self, current_era: EraIndex) -> bool {
+        self.unlocking
+            .first()
+            .map_or(false, |chunk| chunk.era <= current_era)
     }
 }

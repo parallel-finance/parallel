@@ -39,13 +39,14 @@ pub mod pallet {
 
     use frame_support::{
         dispatch::DispatchResult,
+        error::BadOrigin,
         log,
         pallet_prelude::*,
         require_transactional,
         storage::{child, ChildTriePrefixIterator},
         traits::{
             fungibles::{Inspect, Mutate, Transfer},
-            Get,
+            Get, SortedMembers,
         },
         transactional, Blake2_128Concat, PalletId,
     };
@@ -58,7 +59,7 @@ pub mod pallet {
         ArithmeticKind, Balance, CurrencyId, LeasePeriod, ParaId, TrieIndex, VaultId,
     };
     use sp_runtime::{
-        traits::{AccountIdConversion, BlockNumberProvider, Hash, Zero},
+        traits::{AccountIdConversion, BlockNumberProvider, Hash, StaticLookup, Zero},
         ArithmeticError, DispatchError,
     };
     use sp_std::{boxed::Box, vec::Vec};
@@ -76,6 +77,18 @@ pub mod pallet {
     #[pallet::generate_store(pub(super) trait Store)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
+
+    macro_rules! ensure_origin {
+        ($required_origin:ident, $origin:expr) => {
+            if T::$required_origin::ensure_origin($origin.clone()).is_ok()
+                || T::Members::contains(&ensure_signed($origin)?)
+            {
+                Ok(())
+            } else {
+                Err(DispatchError::from(BadOrigin))
+            }
+        };
+    }
 
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_xcm::Config {
@@ -135,11 +148,14 @@ pub mod pallet {
         /// The origin which can close/reopen vault
         type OpenCloseOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
-        /// The origin which can call auction failed
-        type AuctionFailedOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+        /// The origin which can call auction failed/succeeded
+        type AuctionSucceededFailedOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 
         /// The origin which can call slot expired
         type SlotExpiredOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+
+        /// Approved automation group for Phase Transition, Vrf, VaultCreation, VaultUpdate, Refund and Dissolve
+        type Members: SortedMembers<Self::AccountId>;
 
         /// Weight information
         type WeightInfo: WeightInfo;
@@ -340,7 +356,7 @@ pub mod pallet {
             #[pallet::compact] cap: BalanceOf<T>,
             end_block: BlockNumberFor<T>,
         ) -> DispatchResult {
-            T::CreateVaultOrigin::ensure_origin(origin)?;
+            ensure_origin!(CreateVaultOrigin, origin)?;
 
             ensure!(!cap.is_zero(), Error::<T>::InvalidCap);
 
@@ -421,7 +437,7 @@ pub mod pallet {
             end_block: Option<BlockNumberFor<T>>,
             contribution_strategy: Option<ContributionStrategy>,
         ) -> DispatchResult {
-            T::UpdateVaultOrigin::ensure_origin(origin)?;
+            ensure_origin!(UpdateVaultOrigin, origin)?;
 
             let mut vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
 
@@ -468,7 +484,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::open())]
         #[transactional]
         pub fn open(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
-            T::OpenCloseOrigin::ensure_origin(origin)?;
+            ensure_origin!(OpenCloseOrigin, origin)?;
 
             log::trace!(
                 target: "crowdloans::open",
@@ -590,7 +606,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::set_vrf())]
         #[transactional]
         pub fn set_vrf(origin: OriginFor<T>, flag: bool) -> DispatchResult {
-            T::VrfOrigin::ensure_origin(origin)?;
+            ensure_origin!(VrfOrigin, origin)?;
 
             log::trace!(
                 target: "crowdloans::set_vrf",
@@ -608,7 +624,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::close())]
         #[transactional]
         pub fn close(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
-            T::OpenCloseOrigin::ensure_origin(origin)?;
+            ensure_origin!(OpenCloseOrigin, origin)?;
 
             log::trace!(
                 target: "crowdloans::close",
@@ -632,7 +648,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::reopen())]
         #[transactional]
         pub fn reopen(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
-            T::OpenCloseOrigin::ensure_origin(origin)?;
+            ensure_origin!(OpenCloseOrigin, origin)?;
 
             log::trace!(
                 target: "crowdloans::reopen",
@@ -656,7 +672,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::auction_succeeded())]
         #[transactional]
         pub fn auction_succeeded(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
-            T::OpenCloseOrigin::ensure_origin(origin)?;
+            ensure_origin!(AuctionSucceededFailedOrigin, origin)?;
 
             log::trace!(
                 target: "crowdloans::auction_succeeded",
@@ -681,7 +697,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::auction_failed())]
         #[transactional]
         pub fn auction_failed(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
-            T::AuctionFailedOrigin::ensure_origin(origin)?;
+            ensure_origin!(AuctionSucceededFailedOrigin, origin)?;
 
             log::trace!(
                 target: "crowdloans::auction_failed",
@@ -711,46 +727,23 @@ pub mod pallet {
             lease_end: LeasePeriod,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
+            Self::do_claim_for(who, crowdloan, lease_start, lease_end)
+        }
 
-            let ctoken = Self::ctoken_of((&lease_start, &lease_end))
-                .ok_or(Error::<T>::CTokenDoesNotExist)?;
-            let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
-                .ok_or(Error::<T>::VaultDoesNotExist)?;
-
-            ensure!(
-                vault.phase == VaultPhase::Succeeded,
-                Error::<T>::IncorrectVaultPhase
-            );
-
-            let (amount, _) =
-                Self::contribution_get(vault.trie_index, &who, ChildStorageKind::Contributed);
-            ensure!(!amount.is_zero(), Error::<T>::NoContributions);
-
-            log::trace!(
-                target: "crowdloans::claim",
-                "who: {:?}, ctoken: {:?}, amount: {:?}, para_id: {:?}, lease_start: {:?}, lease_end: {:?}",
-                &who,
-                &ctoken,
-                &amount,
-                &crowdloan,
-                &lease_start,
-                &lease_end
-            );
-
-            T::Assets::mint_into(ctoken, &who, amount)?;
-
-            Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
-
-            Self::deposit_event(Event::<T>::VaultClaimed(
-                crowdloan,
-                (lease_start, lease_end),
-                ctoken,
-                who,
-                amount,
-                VaultPhase::Succeeded,
-            ));
-
-            Ok(())
+        /// If a `crowdloan` succeeded, claim the liquid derivatives of the
+        /// contributed assets for others
+        #[pallet::weight(<T as Config>::WeightInfo::claim())]
+        #[transactional]
+        pub fn claim_for(
+            origin: OriginFor<T>,
+            dest: <T::Lookup as StaticLookup>::Source,
+            crowdloan: ParaId,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod,
+        ) -> DispatchResult {
+            let _ = ensure_signed(origin)?;
+            let who = T::Lookup::lookup(dest)?;
+            Self::do_claim_for(who, crowdloan, lease_start, lease_end)
         }
 
         /// If a `crowdloan` failed, withdraw the contributed assets
@@ -763,51 +756,22 @@ pub mod pallet {
             lease_end: LeasePeriod,
         ) -> DispatchResult {
             let who = ensure_signed(origin)?;
+            Self::do_withdraw_for(who, crowdloan, lease_start, lease_end)
+        }
 
-            let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
-                .ok_or(Error::<T>::VaultDoesNotExist)?;
-
-            ensure!(
-                vault.phase == VaultPhase::Failed,
-                Error::<T>::IncorrectVaultPhase
-            );
-
-            let (amount, _) =
-                Self::contribution_get(vault.trie_index, &who, ChildStorageKind::Contributed);
-            ensure!(!amount.is_zero(), Error::<T>::NoContributions);
-
-            log::trace!(
-                target: "crowdloans::withdraw",
-                "who: {:?}, amount: {:?}, para_id: {:?}, lease_start: {:?}, lease_end: {:?}",
-                &who,
-                &amount,
-                &crowdloan,
-                &lease_start,
-                &lease_end
-            );
-
-            Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
-
-            vault.contributed = vault
-                .contributed
-                .checked_sub(amount)
-                .ok_or(ArithmeticError::Underflow)?;
-
-            // SovereignAccount on relaychain must have
-            // withdrawn the contribution
-            T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
-
-            Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
-
-            Self::deposit_event(Event::<T>::VaultWithdrew(
-                crowdloan,
-                (lease_start, lease_end),
-                who,
-                amount,
-                VaultPhase::Failed,
-            ));
-
-            Ok(())
+        /// If a `crowdloan` failed, withdraw the contributed assets for others
+        #[pallet::weight(<T as Config>::WeightInfo::withdraw())]
+        #[transactional]
+        pub fn withdraw_for(
+            origin: OriginFor<T>,
+            dest: <T::Lookup as StaticLookup>::Source,
+            crowdloan: ParaId,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod,
+        ) -> DispatchResult {
+            let _ = ensure_signed(origin)?;
+            let who = T::Lookup::lookup(dest)?;
+            Self::do_withdraw_for(who, crowdloan, lease_start, lease_end)
         }
 
         /// If a `crowdloan` expired, redeem the contributed assets
@@ -876,7 +840,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::slot_expired())]
         #[transactional]
         pub fn slot_expired(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
-            T::SlotExpiredOrigin::ensure_origin(origin)?;
+            ensure_origin!(SlotExpiredOrigin, origin)?;
 
             log::trace!(
                 target: "crowdloans::slot_expired",
@@ -899,7 +863,7 @@ pub mod pallet {
         #[pallet::weight(<T as Config>::WeightInfo::migrate_pending())]
         #[transactional]
         pub fn migrate_pending(origin: OriginFor<T>, crowdloan: ParaId) -> DispatchResult {
-            T::MigrateOrigin::ensure_origin(origin)?;
+            ensure_origin!(MigrateOrigin, origin)?;
 
             let mut vault = Self::current_vault(crowdloan).ok_or(Error::<T>::VaultDoesNotExist)?;
             ensure!(
@@ -988,12 +952,12 @@ pub mod pallet {
             lease_end: LeasePeriod,
         ) -> DispatchResult {
             use ChildStorageKind::*;
-            T::RefundOrigin::ensure_origin(origin)?;
+            ensure_origin!(RefundOrigin, origin)?;
 
             let mut refund_count = 0u32;
             let mut all_refunded = true;
 
-            let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+            let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
                 .ok_or(Error::<T>::VaultDoesNotExist)?;
 
             ensure!(
@@ -1002,7 +966,7 @@ pub mod pallet {
             );
 
             'outer: for kind in [Contributed, Flying, Pending] {
-                for (who, (amount, _referral_code)) in
+                for (who, (amount, referral_code)) in
                     Self::contribution_iterator(vault.trie_index, kind)
                 {
                     if refund_count >= T::RemoveKeysLimit::get() {
@@ -1026,7 +990,14 @@ pub mod pallet {
                         )?;
                     }
 
-                    Self::contribution_kill(vault.trie_index, &who, kind);
+                    Self::do_update_contribution(
+                        &who,
+                        &mut vault,
+                        amount,
+                        Some(referral_code.clone()),
+                        ArithmeticKind::Subtraction,
+                        kind,
+                    )?;
                 }
             }
 
@@ -1053,7 +1024,7 @@ pub mod pallet {
             lease_start: LeasePeriod,
             lease_end: LeasePeriod,
         ) -> DispatchResult {
-            T::DissolveVaultOrigin::ensure_origin(origin)?;
+            ensure_origin!(DissolveVaultOrigin, origin)?;
 
             let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
                 .ok_or(Error::<T>::VaultDoesNotExist)?;
@@ -1107,7 +1078,9 @@ pub mod pallet {
             })
         }
 
-        fn total_contribution(vault: &Vault<T>) -> Result<BalanceOf<T>, ArithmeticError> {
+        pub(crate) fn total_contribution(
+            vault: &Vault<T>,
+        ) -> Result<BalanceOf<T>, ArithmeticError> {
             vault
                 .contributed
                 .checked_add(vault.flying)
@@ -1492,6 +1465,107 @@ pub mod pallet {
                     .count()
                     .is_zero()
             })
+        }
+
+        #[require_transactional]
+        fn do_claim_for(
+            who: T::AccountId,
+            crowdloan: ParaId,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod,
+        ) -> DispatchResult {
+            let ctoken = Self::ctoken_of((&lease_start, &lease_end))
+                .ok_or(Error::<T>::CTokenDoesNotExist)?;
+            let vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+                .ok_or(Error::<T>::VaultDoesNotExist)?;
+
+            ensure!(
+                vault.phase == VaultPhase::Succeeded,
+                Error::<T>::IncorrectVaultPhase
+            );
+
+            let (amount, _) =
+                Self::contribution_get(vault.trie_index, &who, ChildStorageKind::Contributed);
+            ensure!(!amount.is_zero(), Error::<T>::NoContributions);
+
+            log::trace!(
+                target: "crowdloans::claim",
+                "who: {:?}, ctoken: {:?}, amount: {:?}, para_id: {:?}, lease_start: {:?}, lease_end: {:?}",
+                &who,
+                &ctoken,
+                &amount,
+                &crowdloan,
+                &lease_start,
+                &lease_end
+            );
+
+            T::Assets::mint_into(ctoken, &who, amount)?;
+
+            Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
+
+            Self::deposit_event(Event::<T>::VaultClaimed(
+                crowdloan,
+                (lease_start, lease_end),
+                ctoken,
+                who,
+                amount,
+                VaultPhase::Succeeded,
+            ));
+
+            Ok(())
+        }
+
+        #[require_transactional]
+        fn do_withdraw_for(
+            who: T::AccountId,
+            crowdloan: ParaId,
+            lease_start: LeasePeriod,
+            lease_end: LeasePeriod,
+        ) -> DispatchResult {
+            let mut vault = Self::vaults((&crowdloan, &lease_start, &lease_end))
+                .ok_or(Error::<T>::VaultDoesNotExist)?;
+
+            ensure!(
+                vault.phase == VaultPhase::Failed,
+                Error::<T>::IncorrectVaultPhase
+            );
+
+            let (amount, _) =
+                Self::contribution_get(vault.trie_index, &who, ChildStorageKind::Contributed);
+            ensure!(!amount.is_zero(), Error::<T>::NoContributions);
+
+            log::trace!(
+                target: "crowdloans::withdraw",
+                "who: {:?}, amount: {:?}, para_id: {:?}, lease_start: {:?}, lease_end: {:?}",
+                &who,
+                &amount,
+                &crowdloan,
+                &lease_start,
+                &lease_end
+            );
+
+            Self::contribution_kill(vault.trie_index, &who, ChildStorageKind::Contributed);
+
+            vault.contributed = vault
+                .contributed
+                .checked_sub(amount)
+                .ok_or(ArithmeticError::Underflow)?;
+
+            // SovereignAccount on relaychain must have
+            // withdrawn the contribution
+            T::Assets::mint_into(T::RelayCurrency::get(), &who, amount)?;
+
+            Vaults::<T>::insert((&crowdloan, &lease_start, &lease_end), vault);
+
+            Self::deposit_event(Event::<T>::VaultWithdrew(
+                crowdloan,
+                (lease_start, lease_end),
+                who,
+                amount,
+                VaultPhase::Failed,
+            ));
+
+            Ok(())
         }
     }
 }

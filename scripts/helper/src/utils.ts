@@ -39,9 +39,9 @@ export const sovereignAccountOf = (paraId: number): string =>
     u8aConcat(stringToU8a('para'), bnToU8a(paraId, 32, true), EMPTY_U8A_32).subarray(0, 32)
   )
 
-export const subAccountId = (signer: KeyringPair, index: number): string => {
+export const subAccountId = (address: string, index: number): string => {
   const seedBytes = stringToU8a('modlpy/utilisuba')
-  const whoBytes = decodeAddress(signer.address)
+  const whoBytes = decodeAddress(address)
   const indexBytes = bnToU8a(index, 16).reverse()
   const combinedBytes = new Uint8Array(seedBytes.length + whoBytes.length + indexBytes.length)
   combinedBytes.set(seedBytes)
@@ -69,7 +69,7 @@ export const createXcm = (encoded: string, sovereignAccount: string) => {
               }
             },
             fun: {
-              Fungible: '1000000000000'
+              Fungible: '500000000000'
             }
           }
         ]
@@ -84,7 +84,7 @@ export const createXcm = (encoded: string, sovereignAccount: string) => {
               }
             },
             fun: {
-              Fungible: '1000000000000'
+              Fungible: '500000000000'
             }
           },
           weightLimit: 'Unlimited'
@@ -131,4 +131,9 @@ export const getApi = async (endpoint: string): Promise<ApiPromise> => {
       provider: new WsProvider(endpoint)
     })
   )
+}
+export const getRelayApi = async (endpoint: string): Promise<ApiPromise> => {
+  return ApiPromise.create({
+    provider: new WsProvider(endpoint)
+  })
 }

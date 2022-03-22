@@ -31,7 +31,7 @@ fn get_price_from_oracle() {
         );
 
         // currency not exist
-        assert_eq!(Prices::get_price(&XDOT), None);
+        assert_eq!(Prices::get_price(&SDOT), None);
     });
 }
 
@@ -174,7 +174,7 @@ fn get_liquid_price_work() {
         );
 
         assert_eq!(
-            Prices::get_price(&XKSM),
+            Prices::get_price(&SKSM),
             LiquidStakingExchangeRateProvider::get_exchange_rate()
                 .checked_mul_int(500 * 1_000_000 * PRICE_ONE)
                 .map(|i| (Price::from_inner(i), 0))

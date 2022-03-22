@@ -22,7 +22,7 @@ use jsonrpc_derive::rpc;
 use primitives::{Balance, CurrencyId};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
-use sp_runtime::{generic::BlockId, traits::Block as BlockT};
+use sp_runtime::{generic::BlockId, traits::Block as BlockT, FixedU128};
 use sp_std::vec::Vec;
 
 #[rpc]
@@ -34,7 +34,7 @@ pub trait RouterApi<BlockHash, AccountId> {
         token_in: CurrencyId,
         token_out: CurrencyId,
         at: Option<BlockHash>,
-    ) -> Result<(Vec<CurrencyId>, Balance)>;
+    ) -> Result<(Vec<CurrencyId>, FixedU128)>;
 }
 
 /// A struct that implements the [`RouteApi`].
@@ -82,7 +82,7 @@ where
         token_in: CurrencyId,
         token_out: CurrencyId,
         at: Option<<Block as BlockT>::Hash>,
-    ) -> Result<(Vec<CurrencyId>, Balance)> {
+    ) -> Result<(Vec<CurrencyId>, FixedU128)> {
         let api = self.client.runtime_api();
         let at = BlockId::hash(at.unwrap_or(self.client.info().best_hash));
         api.get_best_route(&at, amount_in, token_in, token_out)
