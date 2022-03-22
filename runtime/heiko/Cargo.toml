@@ -100,6 +100,7 @@ pallet-liquidation            = { path = '../../pallets/liquidation', default-fe
 pallet-loans                  = { path = '../../pallets/loans', default-features = false }
 pallet-loans-rpc-runtime-api  = { path = '../../pallets/loans/rpc/runtime-api', default-features = false }
 pallet-nominee-election       = { path = '../../pallets/nominee-election', default-features = false }
+pallet-payroll                = { path = '../../pallets/payroll', default-features = false }
 pallet-prices                 = { path = '../../pallets/prices', default-features = false }
 pallet-router                 = { path = '../../pallets/router', default-features = false }
 pallet-router-rpc-runtime-api = { path = '../../pallets/router/rpc/runtime-api', default-features = false }
@@ -184,6 +185,7 @@ std                = [
   'pallet-nominee-election/std',
   'pallet-liquid-staking/std',
   'pallet-liquidation/std',
+  'pallet-payroll/std',
   'pallet-prices/std',
   'pallet-multisig/std',
   'pallet-utility/std',
@@ -247,6 +249,7 @@ try-runtime        = [
   'pallet-liquid-staking/try-runtime',
   'pallet-liquidation/try-runtime',
   'pallet-nominee-election/try-runtime',
+  'pallet-payroll/try-runtime',
   'pallet-prices/try-runtime',
   'pallet-xcm-helper/try-runtime',
 ]

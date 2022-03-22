@@ -96,6 +96,7 @@ pub use pallet_bridge;
 pub use pallet_farming;
 pub use pallet_loans;
 pub use pallet_nominee_election;
+pub use pallet_payroll;
 pub use pallet_prices;
 pub use pallet_router;
 
@@ -1580,6 +1581,18 @@ impl pallet_crowdloans::Config for Runtime {
 }
 
 parameter_types! {
+    pub const PayrollPalletId: PalletId = PalletId(*b"par/payr");
+}
+
+impl pallet_payroll::Config for Runtime {
+    type Event = Event;
+    type Assets = CurrencyAdapter;
+    type PalletId = PayrollPalletId;
+    type UnixTime = Timestamp;
+    type WeightInfo = pallet_payroll::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
     pub const XcmHelperPalletId: PalletId = PalletId(*b"par/fees");
     pub const NotifyTimeout: BlockNumber = 100;
 }
@@ -1765,6 +1778,7 @@ construct_runtime!(
         EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Storage, Event<T>} = 91,
         Farming: pallet_farming::{Pallet, Call, Storage, Event<T>} = 92,
         XcmHelper: pallet_xcm_helper::{Pallet, Call, Storage, Event<T>} = 93,
+        Payroll: pallet_payroll::{Pallet, Call, Storage, Event<T>} = 94,
 
         // Parachain System, always put it at the end
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 20,
