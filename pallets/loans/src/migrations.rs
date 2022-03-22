@@ -17,16 +17,33 @@ use super::*;
 pub mod v2 {
     use super::*;
     use crate::{Config, StorageVersion, Weight};
-    use frame_support::{log, traits::Get};
+    use frame_support::{generate_storage_alias, log, traits::Get};
+
+    #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
+    #[derive(Clone, PartialEq, codec::Decode, codec::Encode, RuntimeDebug, TypeInfo)]
+    pub struct OldMarket<Balance> {
+        pub collateral_factor: Ratio,
+        pub reserve_factor: Ratio,
+        pub close_factor: Ratio,
+        pub liquidate_incentive: Rate,
+        pub rate_model: InterestRateModel,
+        pub state: MarketState,
+        pub cap: Balance,
+        pub ptoken_id: CurrencyId,
+    }
 
     #[cfg(feature = "try-runtime")]
     pub fn pre_migrate<T: Config>() -> Result<(), &'static str> {
+        generate_storage_alias!(Loans, Markets<T: Config> => Map<
+            (Blake2_128Concat, AssetIdOf<T>),
+            OldMarket<BalanceOf<T>>
+        >);
         frame_support::ensure!(
             StorageVersion::<T>::get() == crate::Versions::V1,
             "must upgrade linearly"
         );
-        Markets::<T>::iter().for_each(|(asset_id, market)| {
-            log::info!("market {:#?}, {:#?}", asset_id, market);
+        Markets::<T>::iter().for_each(|(asset_id, _market)| {
+            log::info!("market {:#?} need to migrate", asset_id);
         });
         log::info!("👜 loans borrow-limit migration passes PRE migrate checks ✅",);
 
@@ -38,10 +55,17 @@ pub mod v2 {
         if StorageVersion::<T>::get() == crate::Versions::V1 {
             log::info!("migrating loans to Versions::V2",);
 
-            Markets::<T>::translate::<Market<BalanceOf<T>>, _>(|_key, market| {
+            Markets::<T>::translate::<OldMarket<BalanceOf<T>>, _>(|_key, market| {
                 Some(Market {
                     borrow_limit: 1_000_000_000_000_000u128,
-                    ..market
+                    collateral_factor: market.collateral_factor,
+                    reserve_factor: market.reserve_factor,
+                    close_factor: market.close_factor,
+                    liquidate_incentive: market.liquidate_incentive,
+                    rate_model: market.rate_model,
+                    state: market.state,
+                    cap: market.cap,
+                    ptoken_id: market.ptoken_id,
                 })
             });
 
@@ -61,7 +85,11 @@ pub mod v2 {
             "must upgrade to V2"
         );
         Markets::<T>::iter().for_each(|(asset_id, market)| {
-            log::info!("market {:#?}, {:#?}", asset_id, market);
+            log::info!(
+                "market {:#?}, borrow_limit {:#?}",
+                asset_id,
+                market.borrow_limit
+            );
         });
         log::info!("👜 loans borrow-limit migration passes POST migrate checks ✅",);
 
