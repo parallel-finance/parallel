@@ -17,7 +17,7 @@ use super::*;
 pub mod v2 {
     use super::*;
     use crate::{Config, StorageVersion, Weight};
-    use frame_support::{generate_storage_alias, log, traits::Get};
+    use frame_support::{log, traits::Get};
 
     #[cfg_attr(feature = "std", derive(serde::Deserialize, serde::Serialize))]
     #[derive(Clone, PartialEq, codec::Decode, codec::Encode, RuntimeDebug, TypeInfo)]
@@ -34,7 +34,7 @@ pub mod v2 {
 
     #[cfg(feature = "try-runtime")]
     pub fn pre_migrate<T: Config>() -> Result<(), &'static str> {
-        generate_storage_alias!(Loans, Markets<T: Config> => Map<
+        frame_support::generate_storage_alias!(Loans, Markets<T: Config> => Map<
             (Blake2_128Concat, AssetIdOf<T>),
             OldMarket<BalanceOf<T>>
         >);
