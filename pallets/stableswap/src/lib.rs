@@ -106,7 +106,7 @@ pub mod pallet {
         // https://curve.fi/files/stableswap-paper.pdf
         pub(crate) fn do_get_delta(
             (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),
-        ) -> Result<Balance, DispatchError> {
+        ) -> Result<BalanceOf<T, I>, DispatchError> {
             let (x, y) = T::AMM::get_reserves(asset_in, asset_out).unwrap();
 
             let total_reserves = x
@@ -250,7 +250,7 @@ pub mod pallet {
         pub(crate) fn do_get_alternative_var(
             mut autonomous_var: BalanceOf<T, I>,
             (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),
-        ) -> Result<Balance, DispatchError> {
+        ) -> Result<BalanceOf<T, I>, DispatchError> {
             let (resx, _) = T::AMM::get_reserves(asset_in, asset_out).unwrap();
             autonomous_var = autonomous_var
                 .get_big_uint()
@@ -376,7 +376,7 @@ pub mod pallet {
 impl<T: Config<I>, I: 'static>
     primitives::StableSwap<AccountIdOf<T>, AssetIdOf<T, I>, BalanceOf<T, I>> for Pallet<T, I>
 {
-    fn get_d(pair: (AssetIdOf<T, I>, AssetIdOf<T, I>)) -> Result<u128, DispatchError> {
+    fn get_d(pair: (AssetIdOf<T, I>, AssetIdOf<T, I>)) -> Result<BalanceOf<T, I>, DispatchError> {
         let d = Self::do_get_delta(pair)?;
         Ok(d)
     }
@@ -384,7 +384,7 @@ impl<T: Config<I>, I: 'static>
     fn get_alternative_var(
         autonomous_var: BalanceOf<T, I>,
         pair: (AssetIdOf<T, I>, AssetIdOf<T, I>),
-    ) -> Result<u128, DispatchError> {
+    ) -> Result<BalanceOf<T, I>, DispatchError> {
         let alternative_var = Self::do_get_alternative_var(autonomous_var, pair)?;
         Ok(alternative_var)
     }
