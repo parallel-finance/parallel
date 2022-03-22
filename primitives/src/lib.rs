@@ -192,3 +192,8 @@ impl ConvertToBigUint for u128 {
         self.to_biguint().unwrap()
     }
 }
+
+/// Get current relaychain storage root hash
+pub trait StorageRootProvider {
+    fn current_storage_root() -> Hash;
+}

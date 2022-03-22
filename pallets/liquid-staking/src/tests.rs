@@ -682,7 +682,7 @@ fn test_on_initialize_work() {
         // 1.2 on_initialize_bond
         let total_era_blocknumbers = <Test as Config>::EraLength::get();
         assert_eq!(total_era_blocknumbers, 10);
-        RelayChainBlockNumberProvider::set(total_era_blocknumbers);
+        RelayChainValidationDataProvider::set(total_era_blocknumbers);
         LiquidStaking::on_initialize(System::block_number());
         assert_eq!(EraStartBlock::<Test>::get(), total_era_blocknumbers);
         assert_eq!(CurrentEra::<Test>::get(), 1);

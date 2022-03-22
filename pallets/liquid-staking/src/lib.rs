@@ -36,6 +36,7 @@ extern crate primitives;
 use frame_support::traits::{fungibles::InspectMetadata, tokens::Balance as BalanceT, Get};
 use primitives::{
     ExchangeRateProvider, LiquidStakingConvert, LiquidStakingCurrenciesProvider, Rate,
+    StorageRootProvider,
 };
 use sp_runtime::{traits::Zero, FixedPointNumber, FixedPointOperand};
 
@@ -170,7 +171,8 @@ pub mod pallet {
         type NumSlashingSpans: Get<u32>;
 
         /// The relay's BlockNumber provider
-        type RelayChainBlockNumberProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
+        type RelayChainValidationDataProvider: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>
+            + StorageRootProvider;
 
         /// To expose XCM helper functions
         type XCM: XcmHelper<Self, BalanceOf<Self>, AssetIdOf<Self>, Self::AccountId>;
@@ -752,7 +754,8 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
         fn on_initialize(block_number: T::BlockNumber) -> frame_support::weights::Weight {
-            let relaychain_block_number = T::RelayChainBlockNumberProvider::current_block_number();
+            let relaychain_block_number =
+                T::RelayChainValidationDataProvider::current_block_number();
             let offset = Self::offset(relaychain_block_number);
             log::trace!(
                 target: "liquidStaking::on_initialize",
@@ -1276,7 +1279,7 @@ pub mod pallet {
 
         #[require_transactional]
         pub(crate) fn do_advance_era(offset: EraIndex) -> DispatchResult {
-            EraStartBlock::<T>::put(T::RelayChainBlockNumberProvider::current_block_number());
+            EraStartBlock::<T>::put(T::RelayChainValidationDataProvider::current_block_number());
             CurrentEra::<T>::mutate(|e| *e = e.saturating_add(offset));
 
             let derivative_index = T::DerivativeIndex::get();
@@ -1351,12 +1354,7 @@ pub mod pallet {
             let key = Self::get_underlying_key(derivative_index);
             let value = staking_ledger.borrow().encode();
 
-            // TODO: get root hash
-            let relay_root = sp_core::hash::H256::from_slice(
-                &hex::decode("6f5c11cf6bfe2721697af3cecd0a6c5e5a0a6e1bf0671dfd5b68abd433f09764")
-                    .unwrap(),
-            );
-
+            let relay_root = T::RelayChainValidationDataProvider::current_storage_root();
             let relay_proof = StorageProof::new(proof_bytes);
             sp_state_machine::read_proof_check::<BlakeTwo256, _>(
                 relay_root,

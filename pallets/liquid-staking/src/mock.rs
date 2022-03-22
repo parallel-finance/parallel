@@ -17,7 +17,8 @@ use polkadot_parachain::primitives::{IsSystem, Sibling};
 
 use polkadot_runtime_parachains::configuration::HostConfiguration;
 use primitives::{
-    currency::MultiCurrencyAdapter, tokens::*, Balance, EraIndex, ParaId, Rate, Ratio,
+    currency::MultiCurrencyAdapter, tokens::*, Balance, EraIndex, Hash, ParaId, Rate, Ratio,
+    StorageRootProvider,
 };
 use sp_core::H256;
 use sp_runtime::{
@@ -380,11 +381,20 @@ impl pallet_xcm_helper::Config for Test {
     type WeightInfo = ();
 }
 
-impl BlockNumberProvider for RelayChainBlockNumberProvider {
+impl BlockNumberProvider for RelayChainValidationDataProvider {
     type BlockNumber = BlockNumber;
 
     fn current_block_number() -> Self::BlockNumber {
         Self::get()
+    }
+}
+
+impl StorageRootProvider for RelayChainValidationDataProvider {
+    fn current_storage_root() -> Hash {
+        sp_core::hash::H256::from_slice(
+            &hex::decode("6f5c11cf6bfe2721697af3cecd0a6c5e5a0a6e1bf0671dfd5b68abd433f09764")
+                .unwrap(),
+        )
     }
 }
 
@@ -401,7 +411,7 @@ parameter_types! {
     pub const BondingDuration: EraIndex = 3;
     pub const NumSlashingSpans: u32 = 0;
     pub static DerivativeIndexList: Vec<u16> = vec![0];
-    pub static RelayChainBlockNumberProvider: BlockNumber = 0;
+    pub static RelayChainValidationDataProvider: BlockNumber = 0;
 }
 
 impl crate::Config for Test {
@@ -424,7 +434,7 @@ impl crate::Config for Test {
     type MinUnstake = MinUnstake;
     type XCM = XcmHelper;
     type BondingDuration = BondingDuration;
-    type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider;
+    type RelayChainValidationDataProvider = RelayChainValidationDataProvider;
     type Members = BobOrigin;
     type NumSlashingSpans = NumSlashingSpans;
 }
