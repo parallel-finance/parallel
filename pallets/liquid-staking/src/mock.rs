@@ -548,7 +548,7 @@ decl_test_parachain! {
         Runtime = Test,
         XcmpMessageHandler = XcmpQueue,
         DmpMessageHandler = DmpQueue,
-        new_ext = para_ext(1),
+        new_ext = para_ext(2085),
     }
 }
 
@@ -578,7 +578,7 @@ pub type RelayEvent = kusama_runtime::Event;
 pub type ParaSystem = frame_system::Pallet<Test>;
 
 pub fn para_a_id() -> ParaId {
-    ParaId::from(1)
+    ParaId::from(2085)
 }
 
 pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
