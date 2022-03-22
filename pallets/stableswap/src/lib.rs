@@ -14,7 +14,7 @@
 
 //! # Stable Swap
 //!
-//! Given any [X, Y] asset pair, "base" is the `X` asset while "quote" is the `Y` asset.
+//! Provide low slippage and low fees when trading stablecoins
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -54,14 +54,11 @@ pub mod pallet {
     use super::*;
     use crate::weights::WeightInfo;
     use num_traits::ToPrimitive;
-    pub type Amounts<T, I> = sp_std::vec::Vec<BalanceOf<T, I>>;
 
     #[pallet::config]
     pub trait Config<I: 'static = ()>: frame_system::Config {
         type Event: From<Event<Self, I>> + IsType<<Self as frame_system::Config>::Event>;
 
-        /// Currency type for deposit/withdraw assets to/from amm
-        /// module
         type Assets: Transfer<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Inspect<Self::AccountId, AssetId = CurrencyId, Balance = Balance>
             + Mutate<Self::AccountId, AssetId = CurrencyId, Balance = Balance>;
