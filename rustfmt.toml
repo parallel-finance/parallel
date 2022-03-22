@@ -3,5 +3,4 @@ ignore = [
   "runtime/heiko/src/weights",
   "runtime/parallel/src/weights",
   "runtime/vanilla/src/weights",
-  "pallets/asset-manager",
 ]
