@@ -16,8 +16,7 @@
 
 use codec::Codec;
 use primitives::{Balance, CurrencyId};
-use sp_runtime::DispatchError;
-use sp_runtime::FixedU128;
+use sp_runtime::{DispatchError, FixedU128};
 use sp_std::vec::Vec;
 
 sp_api::decl_runtime_apis! {

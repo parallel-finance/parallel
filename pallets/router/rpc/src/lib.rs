@@ -22,8 +22,7 @@ use jsonrpc_derive::rpc;
 use primitives::{Balance, CurrencyId};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
-use sp_runtime::FixedU128;
-use sp_runtime::{generic::BlockId, traits::Block as BlockT};
+use sp_runtime::{generic::BlockId, traits::Block as BlockT, FixedU128};
 use sp_std::vec::Vec;
 
 #[rpc]
