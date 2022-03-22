@@ -41,7 +41,7 @@ use sp_std::result::Result;
 
 pub use pallet::*;
 
-use num_traits::{CheckedDiv, CheckedMul};
+use num_traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
 
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 pub type AssetIdOf<T, I = ()> =
@@ -53,6 +53,7 @@ pub type BalanceOf<T, I = ()> =
 pub mod pallet {
     use super::*;
     use crate::weights::WeightInfo;
+    use num_traits::ToPrimitive;
     pub type Amounts<T, I> = sp_std::vec::Vec<BalanceOf<T, I>>;
 
     #[pallet::config]
@@ -112,15 +113,26 @@ pub mod pallet {
         ) -> Result<BalanceOf<T, I>, DispatchError> {
             let (x, y) = T::AMM::get_reserves(asset_in, asset_out).unwrap();
 
-            let total_reserves = x.checked_add(y).ok_or(ArithmeticError::Overflow)?;
+            let total_reserves = x
+                .get_big_uint()
+                .checked_add(&y.get_big_uint())
+                .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                .to_u128()
+                .ok_or(ArithmeticError::Underflow)?;
+
+            // let total_reserves = x.checked_add(y).ok_or(ArithmeticError::Overflow)?;
 
             let a: u128 = (T::AmplificationCoefficient::get() as u128)
-                .checked_mul(T::Precision::get())
-                .ok_or(ArithmeticError::Overflow)?;
+                .get_big_uint()
+                .checked_mul(&T::Precision::get().get_big_uint())
+                .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                .to_u128()
+                .ok_or(ArithmeticError::Underflow)?;
 
             let mut prev_d: u128;
 
             let mut d = total_reserves;
+
             let n_a = a.checked_mul(2u128).ok_or(ArithmeticError::Overflow)?;
 
             // 255 is a max number of loops
@@ -128,27 +140,38 @@ pub mod pallet {
             for _ in 0..255 {
                 let mut dp = d;
 
-                // repeat twice instead of a loop since we only
-                // support two pools
-
-                // dp = (dp * d) / (x * n_t);
                 dp = dp
-                    .checked_mul(d)
-                    .ok_or(ArithmeticError::Overflow)?
+                    .get_big_uint()
+                    .checked_mul(&d.get_big_uint())
+                    .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                    .to_u128()
+                    .ok_or(ArithmeticError::Underflow)?
                     .checked_div(
-                        x.checked_mul(T::NumTokens::get().into())
-                            .ok_or(ArithmeticError::Overflow)?,
+                        x.get_big_uint()
+                            .checked_mul(&(T::NumTokens::get() as u128).get_big_uint())
+                            .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                            .to_u128()
+                            .ok_or(ArithmeticError::Underflow)?,
                     )
+                    .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                    .to_u128()
                     .ok_or(ArithmeticError::Underflow)?;
 
-                // dp = (dp * d) / (y * n_t);
                 dp = dp
-                    .checked_mul(d)
-                    .ok_or(ArithmeticError::Overflow)?
+                    .get_big_uint()
+                    .checked_mul(&d.get_big_uint())
+                    .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                    .to_u128()
+                    .ok_or(ArithmeticError::Underflow)?
                     .checked_div(
-                        y.checked_mul(T::NumTokens::get().into())
-                            .ok_or(ArithmeticError::Overflow)?,
+                        y.get_big_uint()
+                            .checked_mul(&(T::NumTokens::get() as u128).get_big_uint())
+                            .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                            .to_u128()
+                            .ok_or(ArithmeticError::Underflow)?,
                     )
+                    .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                    .to_u128()
                     .ok_or(ArithmeticError::Underflow)?;
 
                 prev_d = d;
@@ -160,35 +183,51 @@ pub mod pallet {
                     .ok_or(ArithmeticError::Overflow)?;
 
                 let m = n_a
-                    .checked_mul(total_reserves)
-                    .ok_or(ArithmeticError::Overflow)?
-                    .checked_div(T::Precision::get())
-                    .ok_or(ArithmeticError::Underflow)?
-                    .checked_add(k)
-                    .ok_or(ArithmeticError::Overflow)?;
+                    .get_big_uint()
+                    .checked_mul(&total_reserves.get_big_uint())
+                    .and_then(|r| r.checked_div(&T::Precision::get().get_big_uint()))
+                    .and_then(|r| r.checked_add(&k.get_big_uint()))
+                    .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                    .to_u128()
+                    .ok_or(ArithmeticError::Underflow)?;
 
                 let n = n_a
-                    .checked_sub(T::Precision::get())
-                    .ok_or(ArithmeticError::Underflow)?
-                    .checked_mul(d)
-                    .ok_or(ArithmeticError::Overflow)?;
+                    .get_big_uint()
+                    .checked_sub(&T::Precision::get().get_big_uint())
+                    .and_then(|r| r.checked_mul(&d.get_big_uint()))
+                    .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                    .to_u128()
+                    .ok_or(ArithmeticError::Underflow)?;
 
                 let u = n
-                    .checked_div(T::Precision::get())
+                    .get_big_uint()
+                    .checked_div(&T::Precision::get().get_big_uint())
+                    .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                    .to_u128()
                     .ok_or(ArithmeticError::Underflow)?;
 
                 let l = (T::NumTokens::get() as u128)
                     .checked_add(1u128)
                     .ok_or(ArithmeticError::Overflow)?
-                    .checked_mul(dp)
-                    .ok_or(ArithmeticError::Overflow)?;
+                    .get_big_uint()
+                    .checked_mul(&dp.get_big_uint())
+                    .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                    .to_u128()
+                    .ok_or(ArithmeticError::Underflow)?;
 
-                let _denom = u.checked_add(l).ok_or(ArithmeticError::Overflow)?;
+                let _denom = u
+                    .get_big_uint()
+                    .checked_add(&l.get_big_uint())
+                    .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                    .to_u128()
+                    .ok_or(ArithmeticError::Underflow)?;
 
                 d = m
-                    .checked_mul(d)
-                    .ok_or(ArithmeticError::Overflow)?
-                    .checked_div(_denom)
+                    .get_big_uint()
+                    .checked_mul(&d.get_big_uint())
+                    .and_then(|r| r.checked_div(&_denom.get_big_uint()))
+                    .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                    .to_u128()
                     .ok_or(ArithmeticError::Underflow)?;
 
                 // check if difference is less than 1
@@ -220,7 +259,12 @@ pub mod pallet {
             (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),
         ) -> Result<BalanceOf<T, I>, DispatchError> {
             let (resx, _) = T::AMM::get_reserves(asset_in, asset_out).unwrap();
-            autonomous_var += resx;
+            autonomous_var = autonomous_var
+                .get_big_uint()
+                .checked_add(&resx.get_big_uint())
+                .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                .to_u128()
+                .ok_or(ArithmeticError::Overflow)?;
 
             // passes asset in and asset out
             let d = Self::get_d((asset_in, asset_out)).unwrap();
@@ -229,45 +273,72 @@ pub mod pallet {
             let mut s = 0u128;
 
             let a = (T::AmplificationCoefficient::get() as u128)
-                .checked_mul(T::Precision::get())
+                .get_big_uint()
+                .checked_mul(&T::Precision::get().get_big_uint())
+                .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                .to_u128()
                 .ok_or(ArithmeticError::Underflow)?;
 
             let n_a = (T::NumTokens::get() as u128)
-                .checked_mul(a)
-                .ok_or(ArithmeticError::Overflow)?;
+                .get_big_uint()
+                .checked_mul(&a.get_big_uint())
+                .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                .to_u128()
+                .ok_or(ArithmeticError::Underflow)?;
 
             let _x = 0u128;
 
             s = s
-                .checked_add(autonomous_var)
-                .ok_or(ArithmeticError::Overflow)?;
+                .get_big_uint()
+                .checked_add(&autonomous_var.get_big_uint())
+                .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                .to_u128()
+                .ok_or(ArithmeticError::Underflow)?;
 
-            c = (c.checked_mul(d).ok_or(ArithmeticError::Underflow)?)
+            c = (c.get_big_uint().checked_mul(&d.get_big_uint()))
+                .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                .to_u128()
+                .ok_or(ArithmeticError::Underflow)?
                 .checked_div(
                     autonomous_var
-                        .checked_mul(T::NumTokens::get().into())
+                        .get_big_uint()
+                        .checked_mul(&(T::NumTokens::get() as u128).get_big_uint())
+                        .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                        .to_u128()
                         .ok_or(ArithmeticError::Underflow)?,
                 )
+                .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                .to_u128()
                 .ok_or(ArithmeticError::Underflow)?;
 
             c = (c
-                .checked_mul(d)
-                .ok_or(ArithmeticError::Underflow)?
-                .checked_mul(T::Precision::get())
-                .ok_or(ArithmeticError::Underflow)?)
+                .get_big_uint()
+                .checked_mul(&d.get_big_uint())
+                .and_then(|r| r.checked_mul(&T::Precision::get().get_big_uint())))
+            .ok_or(Error::<T, I>::ConversionToU128Failed)?
+            .to_u128()
+            .ok_or(ArithmeticError::Underflow)?
             .checked_div(
-                n_a.checked_mul(T::NumTokens::get() as u128)
+                n_a.get_big_uint()
+                    .checked_mul(&(T::NumTokens::get() as u128).get_big_uint())
+                    .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                    .to_u128()
                     .ok_or(ArithmeticError::Underflow)?,
             )
+            .ok_or(Error::<T, I>::ConversionToU128Failed)?
+            .to_u128()
             .ok_or(ArithmeticError::Underflow)?;
 
             let b = s
+                .get_big_uint()
                 .checked_add(
-                    d.checked_mul(T::Precision::get())
-                        .ok_or(ArithmeticError::Underflow)?
-                        .checked_div(n_a)
-                        .ok_or(ArithmeticError::Underflow)?,
+                    &d.get_big_uint()
+                        .checked_mul(&T::Precision::get().get_big_uint())
+                        .and_then(|r| r.checked_div(&n_a.get_big_uint()))
+                        .ok_or(Error::<T, I>::ConversionToU128Failed)?,
                 )
+                .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                .to_u128()
                 .ok_or(ArithmeticError::Underflow)?;
 
             let mut y_prev;
@@ -278,18 +349,23 @@ pub mod pallet {
                 y_prev = y;
 
                 y = (y
-                    .checked_mul(y)
-                    .ok_or(ArithmeticError::Underflow)?
-                    .checked_add(c)
+                    .get_big_uint()
+                    .checked_mul(&y.get_big_uint())
+                    .and_then(|r| r.checked_add(&c.get_big_uint()))
+                    .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                    .to_u128()
                     .ok_or(ArithmeticError::Underflow)?)
                 .checked_div(
-                    (y.checked_mul(2u128)
-                        .ok_or(ArithmeticError::Underflow)?
-                        .checked_add(b)
-                        .ok_or(ArithmeticError::Underflow)?)
-                    .checked_sub(d)
-                    .ok_or(ArithmeticError::Underflow)?,
+                    y.get_big_uint()
+                        .checked_mul(&2u128.get_big_uint())
+                        .and_then(|r| r.checked_add(&b.get_big_uint()))
+                        .and_then(|r| r.checked_sub(&d.get_big_uint()))
+                        .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                        .to_u128()
+                        .ok_or(ArithmeticError::Underflow)?,
                 )
+                .ok_or(Error::<T, I>::ConversionToU128Failed)?
+                .to_u128()
                 .ok_or(ArithmeticError::Underflow)?;
 
                 if y.eq(&y_prev) {
