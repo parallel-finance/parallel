@@ -7,7 +7,7 @@ use frame_support::{assert_err, assert_ok};
 use sp_runtime::FixedPointNumber;
 
 #[test]
-fn exceeded_market_capacity() {
+fn exceeded_supply_cap() {
     new_test_ext().execute_with(|| {
         Assets::mint(Origin::signed(ALICE), DOT, ALICE, million_dollar(1001)).unwrap();
         let amount = million_dollar(501);
@@ -15,7 +15,7 @@ fn exceeded_market_capacity() {
         // Exceed upper bound.
         assert_err!(
             Loans::mint(Origin::signed(ALICE), DOT, amount),
-            Error::<Test>::MarketCapacityExceeded
+            Error::<Test>::SupplyCapacityExceeded
         );
 
         Loans::redeem(Origin::signed(ALICE), DOT, amount).unwrap();
@@ -63,7 +63,7 @@ fn repay_borrow_all_no_underflow() {
 fn ensure_capacity_fails_when_market_not_existed() {
     new_test_ext().execute_with(|| {
         assert_err!(
-            Loans::ensure_capacity(SDOT, dollar(100)),
+            Loans::ensure_under_supply_cap(SDOT, dollar(100)),
             Error::<Test>::MarketDoesNotExist
         );
     });

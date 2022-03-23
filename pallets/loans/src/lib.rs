@@ -157,10 +157,10 @@ pub mod pallet {
         MarketAlredyExists,
         /// New markets must have a pending state
         NewMarketMustHavePendingState,
-        /// Upper bound of capacity is exceeded
-        MarketCapacityExceeded,
-        /// Upper bound of borrow limit is exceeded
-        BorrowLimitExceeded,
+        /// Upper bound of supplying is exceeded
+        SupplyCapacityExceeded,
+        /// Upper bound of borrowing is exceeded
+        BorrowCapacityExceeded,
         /// Insufficient cash in the pool
         InsufficientCash,
         /// The factor should be bigger than 0% and smaller than 100%
@@ -438,7 +438,7 @@ pub mod pallet {
                 market.reserve_factor > Ratio::zero() && market.reserve_factor < Ratio::one(),
                 Error::<T>::InvalidFactor,
             );
-            ensure!(market.cap > Zero::zero(), Error::<T>::InvalidCap,);
+            ensure!(market.supply_cap > Zero::zero(), Error::<T>::InvalidCap,);
 
             // Ensures a given `ptoken_id` not exists on the `Market` and `UnderlyingAssetId`.
             Self::ensure_ptoken(market.ptoken_id)?;
@@ -517,8 +517,8 @@ pub mod pallet {
             reserve_factor: Ratio,
             close_factor: Ratio,
             liquidate_incentive: Rate,
-            #[pallet::compact] cap: BalanceOf<T>,
-            #[pallet::compact] borrow_limit: BalanceOf<T>,
+            #[pallet::compact] supply_cap: BalanceOf<T>,
+            #[pallet::compact] borrow_cap: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
 
@@ -530,7 +530,7 @@ pub mod pallet {
                 reserve_factor > Ratio::zero() && reserve_factor < Ratio::one(),
                 Error::<T>::InvalidFactor
             );
-            ensure!(cap > Zero::zero(), Error::<T>::InvalidCap);
+            ensure!(supply_cap > Zero::zero(), Error::<T>::InvalidCap);
 
             let market = Self::mutate_market(asset_id, |stored_market| {
                 *stored_market = Market {
@@ -541,8 +541,8 @@ pub mod pallet {
                     reserve_factor,
                     close_factor,
                     liquidate_incentive,
-                    cap,
-                    borrow_limit,
+                    supply_cap,
+                    borrow_cap,
                 };
                 stored_market.clone()
             })?;
@@ -590,7 +590,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::ensure_active_market(asset_id)?;
-            Self::ensure_capacity(asset_id, mint_amount)?;
+            Self::ensure_under_supply_cap(asset_id, mint_amount)?;
 
             T::Assets::transfer(asset_id, &who, &Self::account_id(), mint_amount, false)?;
             Self::update_earned_stored(&who, asset_id)?;
@@ -1068,7 +1068,7 @@ impl<T: Config> Pallet<T> {
         borrower: &T::AccountId,
         borrow_amount: BalanceOf<T>,
     ) -> DispatchResult {
-        Self::ensure_under_borrow_limit(asset_id, borrow_amount)?;
+        Self::ensure_under_borrow_cap(asset_id, borrow_amount)?;
         Self::ensure_enough_cash(asset_id, borrow_amount)?;
         let borrow_value = Self::get_asset_value(asset_id, borrow_amount)?;
         Self::ensure_liquidity(borrower, borrow_value)?;
@@ -1367,28 +1367,31 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Ensure market is enough to supply `amount` asset.
-    fn ensure_capacity(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
+    fn ensure_under_supply_cap(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
         let market = Self::market(asset_id)?;
         // Assets holded by market currently.
         let current_cash = T::Assets::balance(asset_id, &Self::account_id());
         let total_cash = current_cash
             .checked_add(amount)
             .ok_or(ArithmeticError::Overflow)?;
-        ensure!(total_cash <= market.cap, Error::<T>::MarketCapacityExceeded);
+        ensure!(
+            total_cash <= market.supply_cap,
+            Error::<T>::SupplyCapacityExceeded
+        );
 
         Ok(())
     }
 
-    /// Make sure the borrowing under the borrow limit
-    fn ensure_under_borrow_limit(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
+    /// Make sure the borrowing under the borrow cap
+    fn ensure_under_borrow_cap(asset_id: AssetIdOf<T>, amount: BalanceOf<T>) -> DispatchResult {
         let market = Self::market(asset_id)?;
         let total_borrows = Self::total_borrows(asset_id);
         let new_total_borrows = total_borrows
             .checked_add(amount)
             .ok_or(ArithmeticError::Overflow)?;
         ensure!(
-            new_total_borrows <= market.borrow_limit,
-            Error::<T>::BorrowLimitExceeded
+            new_total_borrows <= market.borrow_cap,
+            Error::<T>::BorrowCapacityExceeded
         );
 
         Ok(())
