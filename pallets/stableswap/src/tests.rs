@@ -1,4 +1,3 @@
-use super::*;
 use crate::mock::*;
 use frame_support::assert_ok;
 use frame_system::RawOrigin;
@@ -14,7 +13,7 @@ fn stable_swap_amount_out_should_work() {
             SAMPLE_LP_TOKEN,                 // Liquidity pool share representative token
         ));
 
-        let y = DefaultStableSwap::get_alternative_var(10_000, (DOT, SDOT)).unwrap();
+        let y = DefaultStableSwap::do_get_alternative_var(10_000, (DOT, SDOT)).unwrap();
 
         let dy = 1_000_000u128.checked_sub(y).unwrap();
 
@@ -35,7 +34,7 @@ fn small_stable_swap_amount_out_should_work() {
 
         let amount_in = 10;
         let val = 1_000_000;
-        let y = DefaultStableSwap::get_alternative_var(amount_in, (DOT, SDOT)).unwrap();
+        let y = DefaultStableSwap::do_get_alternative_var(amount_in, (DOT, SDOT)).unwrap();
 
         let dy: u128;
 
@@ -64,7 +63,7 @@ fn large_stable_swap_amount_out_should_work() {
         ));
 
         let amount_in = 999_999;
-        let y = DefaultStableSwap::get_alternative_var(amount_in, (DOT, SDOT)).unwrap();
+        let y = DefaultStableSwap::do_get_alternative_var(amount_in, (DOT, SDOT)).unwrap();
 
         let dy = 1_000_000u128.checked_sub(y).unwrap();
         let ex_ratio = dy.checked_div(amount_in).unwrap();
@@ -86,7 +85,7 @@ fn unbalanced_stable_swap_amount_out_should_work() {
         ));
 
         let amount_in = 500;
-        let y = DefaultStableSwap::get_alternative_var(amount_in, (DOT, SDOT)).unwrap();
+        let y = DefaultStableSwap::do_get_alternative_var(amount_in, (DOT, SDOT)).unwrap();
 
         let dy = 1_000_000u128.checked_sub(y).unwrap();
         let ex_ratio = dy.checked_div(amount_in).unwrap();
@@ -108,7 +107,7 @@ fn unbalanced_small_stable_swap_amount_out_should_work() {
         ));
 
         let amount_in = 162;
-        let y = DefaultStableSwap::get_alternative_var(amount_in, (DOT, SDOT)).unwrap();
+        let y = DefaultStableSwap::do_get_alternative_var(amount_in, (DOT, SDOT)).unwrap();
 
         let dy = 1_000_000u128.checked_sub(y).unwrap();
         let ex_ratio = dy.checked_div(amount_in).unwrap();
@@ -130,7 +129,7 @@ fn close_unbalanced_small_stable_swap_amount_out_should_work() {
         ));
 
         let amount_in = 10_000;
-        let y = DefaultStableSwap::get_alternative_var(amount_in, (DOT, SDOT)).unwrap();
+        let y = DefaultStableSwap::do_get_alternative_var(amount_in, (DOT, SDOT)).unwrap();
 
         let dy = 1_000_000u128.checked_sub(y).unwrap();
         let ex_ratio = dy.checked_div(amount_in).unwrap();

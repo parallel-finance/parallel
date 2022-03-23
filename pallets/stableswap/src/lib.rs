@@ -35,7 +35,7 @@ use frame_support::{
     },
     PalletId,
 };
-use primitives::{Balance, ConvertToBigUint, CurrencyId, StableSwap, AMM};
+use primitives::{Balance, ConvertToBigUint, CurrencyId, AMM};
 use sp_runtime::{ArithmeticError, DispatchError};
 use sp_std::result::Result;
 
@@ -104,6 +104,7 @@ pub mod pallet {
         // https://github.com/curvefi/curve-contract/blob/master/contracts/pool-templates/base/SwapTemplateBase.vy
         // https://github.com/parallel-finance/amm-formula/blob/master/src/formula.rs
         // https://curve.fi/files/stableswap-paper.pdf
+        #[allow(dead_code)]
         pub(crate) fn do_get_delta(
             (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),
         ) -> Result<Balance, DispatchError> {
@@ -247,6 +248,7 @@ pub mod pallet {
             Ok(d)
         }
 
+        #[allow(dead_code)]
         pub(crate) fn do_get_alternative_var(
             mut autonomous_var: BalanceOf<T, I>,
             (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),
@@ -260,7 +262,7 @@ pub mod pallet {
                 .ok_or(ArithmeticError::Overflow)?;
 
             // passes asset in and asset out
-            let d = Self::get_d((asset_in, asset_out)).unwrap();
+            let d = Self::do_get_delta((asset_in, asset_out)).unwrap();
 
             let mut c = d;
             let mut s = 0u128;
