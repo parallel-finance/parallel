@@ -539,6 +539,7 @@ parameter_types! {
     pub const LiquidCurrency: CurrencyId = SDOT;
     pub const XcmFees: Balance = 500_000_000; // 0.05DOT
     pub const BondingDuration: EraIndex = 3; // 9Minutes
+    pub const MinNominatorBond: Balance = 100_000_000_000; // 10DOT
     pub const NumSlashingSpans: u32 = 0;
     pub DerivativeIndexList: Vec<u16> = vec![0];
 }
@@ -563,6 +564,7 @@ impl pallet_liquid_staking::Config for Runtime {
     type MinUnstake = MinUnstake;
     type XCM = XcmHelper;
     type BondingDuration = BondingDuration;
+    type MinNominatorBond = MinNominatorBond;
     type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Runtime>;
     type Members = LiquidStakingAgentsMembership;
     type NumSlashingSpans = NumSlashingSpans;

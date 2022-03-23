@@ -399,6 +399,7 @@ parameter_types! {
     pub const LiquidCurrency: CurrencyId = SKSM;
     pub const XcmFees: Balance = 0;
     pub const BondingDuration: EraIndex = 3;
+    pub const MinNominatorBond: Balance = 0;
     pub const NumSlashingSpans: u32 = 0;
     pub static DerivativeIndexList: Vec<u16> = vec![0];
     pub static RelayChainBlockNumberProvider: BlockNumber = 0;
@@ -424,6 +425,7 @@ impl crate::Config for Test {
     type MinUnstake = MinUnstake;
     type XCM = XcmHelper;
     type BondingDuration = BondingDuration;
+    type MinNominatorBond = MinNominatorBond;
     type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider;
     type Members = BobOrigin;
     type NumSlashingSpans = NumSlashingSpans;
@@ -526,7 +528,7 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         Assets::mint(Origin::signed(ALICE), SKSM, Id(ALICE), ksm(100f64)).unwrap();
         Assets::mint(Origin::signed(ALICE), KSM, Id(BOB), ksm(20000f64)).unwrap();
 
-        LiquidStaking::update_market_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
+        LiquidStaking::update_staking_ledger_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
         Assets::mint(
             Origin::signed(ALICE),
             KSM,
@@ -641,7 +643,7 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         )
         .unwrap();
 
-        LiquidStaking::update_market_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
+        LiquidStaking::update_staking_ledger_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
         XcmHelper::update_xcm_weight_fee(Origin::root(), XcmCall::AddMemo, xcm_weight_fee_misc)
             .unwrap();
     });
