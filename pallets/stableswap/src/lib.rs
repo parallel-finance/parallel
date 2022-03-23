@@ -373,19 +373,19 @@ pub mod pallet {
 }
 
 // For Parallel Router
-impl<T: Config<I>, I: 'static>
-    primitives::StableSwap<AccountIdOf<T>, AssetIdOf<T, I>, BalanceOf<T, I>> for Pallet<T, I>
-{
-    fn get_d(pair: (AssetIdOf<T, I>, AssetIdOf<T, I>)) -> Result<u128, DispatchError> {
-        let d = Self::do_get_delta(pair)?;
-        Ok(d)
-    }
-
-    fn get_alternative_var(
-        autonomous_var: BalanceOf<T, I>,
-        pair: (AssetIdOf<T, I>, AssetIdOf<T, I>),
-    ) -> Result<u128, DispatchError> {
-        let alternative_var = Self::do_get_alternative_var(autonomous_var, pair)?;
-        Ok(alternative_var)
-    }
-}
+// impl<T: Config<I>, I: 'static>
+//     primitives::StableSwap<AccountIdOf<T>, AssetIdOf<T, I>, BalanceOf<T, I>> for Pallet<T, I>
+// {
+//     fn get_d(pair: (AssetIdOf<T, I>, AssetIdOf<T, I>)) -> Result<u128, DispatchError> {
+//         let d = Self::do_get_delta(pair)?;
+//         Ok(d)
+//     }
+//
+//     fn get_alternative_var(
+//         autonomous_var: BalanceOf<T, I>,
+//         pair: (AssetIdOf<T, I>, AssetIdOf<T, I>),
+//     ) -> Result<u128, DispatchError> {
+//         let alternative_var = Self::do_get_alternative_var(autonomous_var, pair)?;
+//         Ok(alternative_var)
+//     }
+// }

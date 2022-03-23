@@ -181,13 +181,13 @@ pub trait AMM<AccountId, CurrencyId, Balance> {
 
 /// Exported traits from StableSwap pallet. These functions are to be used
 /// by the router.
-pub trait StableSwap<AccountId, CurrencyId, Balance> {
-    fn get_d(pair: (CurrencyId, CurrencyId)) -> Result<Balance, DispatchError>;
-    fn get_alternative_var(
-        autonomous_var: Balance,
-        pair: (CurrencyId, CurrencyId),
-    ) -> Result<Balance, DispatchError>;
-}
+// pub trait StableSwap<AccountId, CurrencyId, Balance> {
+//     fn get_d(pair: (CurrencyId, CurrencyId)) -> Result<u128, DispatchError>;
+//     fn get_alternative_var(
+//         autonomous_var: Balance,
+//         pair: (CurrencyId, CurrencyId),
+//     ) -> Result<u128, DispatchError>;
+// }
 
 #[derive(PartialEq, Eq, Copy, Clone, Encode, Decode, RuntimeDebug)]
 pub enum ArithmeticKind {
