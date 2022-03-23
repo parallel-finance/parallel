@@ -1358,7 +1358,7 @@ pub mod pallet {
             let relay_proof = StorageProof::new(proof_bytes);
             sp_state_machine::read_proof_check::<BlakeTwo256, _>(
                 relay_root,
-                relay_proof.clone(),
+                relay_proof,
                 [key.clone()],
             )
             .map_or(false, |pair| {

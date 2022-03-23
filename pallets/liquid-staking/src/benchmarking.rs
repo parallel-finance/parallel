@@ -186,7 +186,7 @@ benchmarks! {
             LiquidStaking::<T>::derivative_sovereign_account_id(0),
             BOND_AMOUNT,
         );
-    }: _(SystemOrigin::Root, 0u16,  staking_ledger.clone())
+    }: _(SystemOrigin::Root, 0u16,  staking_ledger.clone(), vec![])
     verify {
         assert_last_event::<T>(Event::<T>::StakingLedgerUpdated(0, staking_ledger).into());
     }
