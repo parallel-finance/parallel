@@ -172,24 +172,24 @@ benchmarks! {
         assert_last_event::<T>(Event::<T>::BondingExtra(0, BOND_AMOUNT).into());
     }
 
-    set_staking_ledger {
-        let alice: T::AccountId = account("Sample", 100, SEED);
-        initial_set_up::<T>(alice.clone());
-        LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
-        LiquidStaking::<T>::bond(SystemOrigin::Root.into(), 0, BOND_AMOUNT, RewardDestination::Staked).unwrap();
-        LiquidStaking::<T>::notification_received(
-            pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
-            0u64,
-            Response::ExecutionResult(None)
-        ).unwrap();
-        let staking_ledger = <StakingLedger<T::AccountId, BalanceOf<T>>>::new(
-            LiquidStaking::<T>::derivative_sovereign_account_id(0),
-            BOND_AMOUNT,
-        );
-    }: _(SystemOrigin::Root, 0u16,  staking_ledger.clone(), vec![])
-    verify {
-        assert_last_event::<T>(Event::<T>::StakingLedgerUpdated(0, staking_ledger).into());
-    }
+    // set_staking_ledger {
+    //     let alice: T::AccountId = account("Sample", 100, SEED);
+    //     initial_set_up::<T>(alice.clone());
+    //     LiquidStaking::<T>::stake(SystemOrigin::Signed(alice).into(), STAKE_AMOUNT).unwrap();
+    //     LiquidStaking::<T>::bond(SystemOrigin::Root.into(), 0, BOND_AMOUNT, RewardDestination::Staked).unwrap();
+    //     LiquidStaking::<T>::notification_received(
+    //         pallet_xcm::Origin::Response(MultiLocation::parent()).into(),
+    //         0u64,
+    //         Response::ExecutionResult(None)
+    //     ).unwrap();
+    //     let staking_ledger = <StakingLedger<T::AccountId, BalanceOf<T>>>::new(
+    //         LiquidStaking::<T>::derivative_sovereign_account_id(0),
+    //         BOND_AMOUNT,
+    //     );
+    // }: _(SystemOrigin::Root, 0u16,  staking_ledger.clone(), vec![])
+    // verify {
+    //     assert_last_event::<T>(Event::<T>::StakingLedgerUpdated(0, staking_ledger).into());
+    // }
 
     unbond {
         let alice: T::AccountId = account("Sample", 100, SEED);
