@@ -59,7 +59,7 @@ pub struct Market<Balance> {
     /// Current market state
     pub state: MarketState,
     /// Upper bound of supplying
-    pub cap: Balance,
+    pub supply_cap: Balance,
     /// Upper bound of borrowing
     pub borrow_cap: Balance,
     /// Ptoken asset id

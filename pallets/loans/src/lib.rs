@@ -438,7 +438,7 @@ pub mod pallet {
                 market.reserve_factor > Ratio::zero() && market.reserve_factor < Ratio::one(),
                 Error::<T>::InvalidFactor,
             );
-            ensure!(market.cap > Zero::zero(), Error::<T>::InvalidCap,);
+            ensure!(market.supply_cap > Zero::zero(), Error::<T>::InvalidCap,);
 
             // Ensures a given `ptoken_id` not exists on the `Market` and `UnderlyingAssetId`.
             Self::ensure_ptoken(market.ptoken_id)?;
@@ -517,7 +517,7 @@ pub mod pallet {
             reserve_factor: Ratio,
             close_factor: Ratio,
             liquidate_incentive: Rate,
-            #[pallet::compact] cap: BalanceOf<T>,
+            #[pallet::compact] supply_cap: BalanceOf<T>,
             #[pallet::compact] borrow_cap: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             T::UpdateOrigin::ensure_origin(origin)?;
@@ -530,7 +530,7 @@ pub mod pallet {
                 reserve_factor > Ratio::zero() && reserve_factor < Ratio::one(),
                 Error::<T>::InvalidFactor
             );
-            ensure!(cap > Zero::zero(), Error::<T>::InvalidCap);
+            ensure!(supply_cap > Zero::zero(), Error::<T>::InvalidCap);
 
             let market = Self::mutate_market(asset_id, |stored_market| {
                 *stored_market = Market {
@@ -541,7 +541,7 @@ pub mod pallet {
                     reserve_factor,
                     close_factor,
                     liquidate_incentive,
-                    cap,
+                    supply_cap,
                     borrow_cap,
                 };
                 stored_market.clone()
@@ -1374,7 +1374,10 @@ impl<T: Config> Pallet<T> {
         let total_cash = current_cash
             .checked_add(amount)
             .ok_or(ArithmeticError::Overflow)?;
-        ensure!(total_cash <= market.cap, Error::<T>::SupplyCapacityExceeded);
+        ensure!(
+            total_cash <= market.supply_cap,
+            Error::<T>::SupplyCapacityExceeded
+        );
 
         Ok(())
     }

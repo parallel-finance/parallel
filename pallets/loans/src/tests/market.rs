@@ -192,7 +192,7 @@ fn update_market_ensures_that_it_is_not_possible_to_modify_unknown_market_curren
                 market.reserve_factor,
                 market.close_factor,
                 market.liquidate_incentive,
-                market.cap,
+                market.supply_cap,
                 market.borrow_cap,
             ),
             Error::<Test>::MarketDoesNotExist
@@ -216,12 +216,12 @@ fn update_market_works() {
             market.reserve_factor,
             Default::default(),
             market.liquidate_incentive,
-            market.cap,
+            market.supply_cap,
             market.borrow_cap,
         ));
 
         assert_eq!(Loans::market(DOT).unwrap().close_factor, Default::default());
-        assert_eq!(Loans::market(DOT).unwrap().cap, market.cap);
+        assert_eq!(Loans::market(DOT).unwrap().supply_cap, market.supply_cap);
     })
 }
 
@@ -243,7 +243,7 @@ fn update_market_should_not_work_if_with_invalid_params() {
                 market.reserve_factor,
                 Default::default(),
                 market.liquidate_incentive,
-                market.cap,
+                market.supply_cap,
                 market.borrow_cap,
             ),
             Error::<Test>::InvalidFactor
@@ -256,7 +256,7 @@ fn update_market_should_not_work_if_with_invalid_params() {
                 market.reserve_factor,
                 Default::default(),
                 market.liquidate_incentive,
-                market.cap,
+                market.supply_cap,
                 market.borrow_cap,
             ),
             Error::<Test>::InvalidFactor
@@ -270,7 +270,7 @@ fn update_market_should_not_work_if_with_invalid_params() {
                 Ratio::zero(),
                 Default::default(),
                 market.liquidate_incentive,
-                market.cap,
+                market.supply_cap,
                 market.borrow_cap,
             ),
             Error::<Test>::InvalidFactor
@@ -283,7 +283,7 @@ fn update_market_should_not_work_if_with_invalid_params() {
                 Ratio::one(),
                 Default::default(),
                 market.liquidate_incentive,
-                market.cap,
+                market.supply_cap,
                 market.borrow_cap,
             ),
             Error::<Test>::InvalidFactor

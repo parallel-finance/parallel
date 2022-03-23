@@ -7,7 +7,7 @@ use frame_support::{assert_err, assert_ok};
 use sp_runtime::FixedPointNumber;
 
 #[test]
-fn exceeded_market_capacity() {
+fn exceeded_supply_cap() {
     new_test_ext().execute_with(|| {
         Assets::mint(Origin::signed(ALICE), DOT, ALICE, million_dollar(1001)).unwrap();
         let amount = million_dollar(501);
