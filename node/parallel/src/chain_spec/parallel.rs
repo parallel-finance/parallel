@@ -14,10 +14,11 @@
 
 use parallel_runtime::{
     opaque::SessionKeys, BalancesConfig, BridgeMembershipConfig, CollatorSelectionConfig,
-    DemocracyConfig, GeneralCouncilConfig, GeneralCouncilMembershipConfig, GenesisConfig,
-    LiquidStakingAgentsMembershipConfig, LiquidStakingConfig, OracleMembershipConfig,
-    ParachainInfoConfig, PolkadotXcmConfig, SessionConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeMembershipConfig, VestingConfig, WASM_BINARY,
+    CrowdloansAutomatorsMembershipConfig, DemocracyConfig, GeneralCouncilConfig,
+    GeneralCouncilMembershipConfig, GenesisConfig, LiquidStakingAgentsMembershipConfig,
+    LiquidStakingConfig, OracleMembershipConfig, ParachainInfoConfig, PolkadotXcmConfig,
+    SessionConfig, SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig, VestingConfig,
+    WASM_BINARY,
 };
 use primitives::{network::NetworkType, *};
 use sc_service::ChainType;
@@ -51,6 +52,7 @@ pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
             let oracle_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Ferdie")];
             let bridge_accounts = vec![get_account_id_from_seed::<sr25519::Public>("Alice")];
             let liquid_staking_agents = vec![get_account_id_from_seed::<sr25519::Public>("Eve")];
+            let crowdloans_automators = vec![get_account_id_from_seed::<sr25519::Public>("Bob")];
             let initial_allocation: Vec<(AccountId, Balance)> = accumulate(
                 vec![
                     // Faucet accounts
@@ -97,11 +99,12 @@ pub fn parallel_dev_config(id: ParaId) -> ChainSpec {
             parallel_genesis(
                 root_key,
                 invulnerables,
-                oracle_accounts,
-                bridge_accounts,
                 initial_allocation,
                 vesting_list,
+                oracle_accounts,
+                bridge_accounts,
                 liquid_staking_agents,
+                crowdloans_automators,
                 council,
                 technical_committee,
                 id,
@@ -126,11 +129,12 @@ pub fn parallel_config(_id: ParaId) -> Result<ChainSpec, String> {
 fn parallel_genesis(
     root_key: AccountId,
     invulnerables: Vec<(AccountId, AuraId)>,
-    oracle_accounts: Vec<AccountId>,
-    bridge_accounts: Vec<AccountId>,
     initial_allocation: Vec<(AccountId, Balance)>,
     vesting_list: Vec<(AccountId, BlockNumber, BlockNumber, u32, Balance)>,
+    oracle_accounts: Vec<AccountId>,
+    bridge_accounts: Vec<AccountId>,
     liquid_staking_agents: Vec<AccountId>,
+    crowdloans_automators: Vec<AccountId>,
     council: Vec<AccountId>,
     technical_committee: Vec<AccountId>,
     id: ParaId,
@@ -171,7 +175,7 @@ fn parallel_genesis(
         parachain_info: ParachainInfoConfig { parachain_id: id },
         liquid_staking: LiquidStakingConfig {
             exchange_rate: Rate::saturating_from_rational(100_u32, 100_u32), // 1
-            reserve_factor: Ratio::from_rational(5u32, 10_000u32),
+            reserve_factor: Ratio::from_rational(5u32, 10_000u32),           //0.05%
         },
         democracy: DemocracyConfig::default(),
         general_council: GeneralCouncilConfig::default(),
@@ -195,6 +199,10 @@ fn parallel_genesis(
         },
         liquid_staking_agents_membership: LiquidStakingAgentsMembershipConfig {
             members: liquid_staking_agents,
+            phantom: Default::default(),
+        },
+        crowdloans_automators_membership: CrowdloansAutomatorsMembershipConfig {
+            members: crowdloans_automators,
             phantom: Default::default(),
         },
         vesting: VestingConfig {

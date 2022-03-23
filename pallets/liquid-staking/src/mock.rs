@@ -1,17 +1,20 @@
 use frame_support::{
     construct_runtime,
     dispatch::Weight,
+    pallet_prelude::*,
     parameter_types, sp_io,
     traits::{
-        tokens::BalanceConversion, EnsureOneOf, Everything, GenesisBuild, Nothing, SortedMembers,
+        tokens::BalanceConversion, EnsureOneOf, Everything, GenesisBuild, Nothing, OriginTrait,
+        SortedMembers,
     },
     weights::constants::WEIGHT_PER_SECOND,
     PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
+use orml_traits::parameter_type_with_key;
 use orml_xcm_support::IsNativeConcrete;
 use pallet_xcm::XcmPassthrough;
-use polkadot_parachain::primitives::Sibling;
+use polkadot_parachain::primitives::{IsSystem, Sibling};
 
 use polkadot_runtime_parachains::configuration::HostConfiguration;
 use primitives::{
@@ -31,16 +34,17 @@ pub use xcm_builder::{
     AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom,
     ChildParachainAsNative, ChildParachainConvertsVia, ChildSystemParachainAsSuperuser,
     CurrencyAdapter as XcmCurrencyAdapter, EnsureXcmOrigin, FixedRateOfFungible, FixedWeightBounds,
-    IsConcrete, LocationInverter, NativeAsset, ParentAsSuperuser, ParentIsDefault,
+    IsConcrete, LocationInverter, NativeAsset, ParentAsSuperuser, ParentIsPreset,
     RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
     SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit,
 };
-use xcm_executor::{Config, XcmExecutor};
+use xcm_executor::{traits::ConvertOrigin, Config, XcmExecutor};
 use xcm_simulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
 
 pub type AccountId = AccountId32;
 pub type CurrencyId = u32;
 pub use kusama_runtime;
+use primitives::ump::{XcmCall, XcmWeightFeeMisc};
 
 parameter_types! {
     pub const ReservedXcmpWeight: Weight = WEIGHT_PER_SECOND / 4;
@@ -68,7 +72,7 @@ parameter_types! {
 }
 
 pub type LocationToAccountId = (
-    ParentIsDefault<AccountId>,
+    ParentIsPreset<AccountId>,
     SiblingParachainConvertsVia<Sibling, AccountId>,
     AccountId32Aliases<RelayNetwork, AccountId>,
 );
@@ -133,12 +137,37 @@ impl Config for XcmConfig {
     type AssetClaims = PolkadotXcm;
 }
 
+pub struct SystemParachainAsSuperuser<Origin>(PhantomData<Origin>);
+impl<Origin: OriginTrait> ConvertOrigin<Origin> for SystemParachainAsSuperuser<Origin> {
+    fn convert_origin(
+        origin: impl Into<MultiLocation>,
+        kind: OriginKind,
+    ) -> Result<Origin, MultiLocation> {
+        let origin = origin.into();
+        if kind == OriginKind::Superuser
+            && matches!(
+                origin,
+                MultiLocation {
+                    parents: 1,
+                    interior: X1(Parachain(id)),
+                } if ParaId::from(id).is_system(),
+            )
+        {
+            Ok(Origin::root())
+        } else {
+            Err(origin)
+        }
+    }
+}
+
 impl cumulus_pallet_xcmp_queue::Config for Test {
     type Event = Event;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
     type ChannelInfo = ParachainSystem;
     type VersionWrapper = ();
+    type ControllerOrigin = EnsureRoot<AccountId>;
+    type ControllerOriginConverter = SystemParachainAsSuperuser<Origin>;
 }
 
 impl cumulus_pallet_dmp_queue::Config for Test {
@@ -177,11 +206,11 @@ impl Convert<CurrencyId, Option<MultiLocation>> for CurrencyIdConvert {
     fn convert(id: CurrencyId) -> Option<MultiLocation> {
         match id {
             KSM => Some(MultiLocation::parent()),
-            XKSM => Some(MultiLocation::new(
+            SKSM => Some(MultiLocation::new(
                 1,
                 X2(
                     Parachain(ParachainInfo::parachain_id().into()),
-                    GeneralKey(b"xKSM".to_vec()),
+                    GeneralKey(b"sKSM".to_vec()),
                 ),
             )),
             _ => None,
@@ -199,8 +228,8 @@ impl Convert<MultiLocation, Option<CurrencyId>> for CurrencyIdConvert {
             MultiLocation {
                 parents: 1,
                 interior: X2(Parachain(id), GeneralKey(key)),
-            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"xKSM".to_vec() => {
-                Some(XKSM)
+            } if ParaId::from(id) == ParachainInfo::parachain_id() && key == b"sKSM".to_vec() => {
+                Some(SKSM)
             }
             _ => None,
         }
@@ -239,6 +268,12 @@ parameter_types! {
     pub const MaxAssetsForTransfer: usize = 2;
 }
 
+parameter_type_with_key! {
+    pub ParachainMinFee: |_location: MultiLocation| -> u128 {
+        u128::MAX
+    };
+}
+
 impl orml_xtokens::Config for Test {
     type Event = Event;
     type Balance = Balance;
@@ -251,6 +286,7 @@ impl orml_xtokens::Config for Test {
     type BaseXcmWeight = BaseXcmWeight;
     type LocationInverter = LocationInverter<Ancestry>;
     type MaxAssetsForTransfer = MaxAssetsForTransfer;
+    type MinXcmFee = ParachainMinFee;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
@@ -352,17 +388,11 @@ impl pallet_xcm_helper::Config for Test {
     type WeightInfo = ();
 }
 
-pub struct RelayChainBlockNumberProvider<T>(sp_std::marker::PhantomData<T>);
-
-impl<T: cumulus_pallet_parachain_system::Config> BlockNumberProvider
-    for RelayChainBlockNumberProvider<T>
-{
-    type BlockNumber = primitives::BlockNumber;
+impl BlockNumberProvider for RelayChainBlockNumberProvider {
+    type BlockNumber = BlockNumber;
 
     fn current_block_number() -> Self::BlockNumber {
-        cumulus_pallet_parachain_system::Pallet::<T>::validation_data()
-            .map(|d| d.relay_parent_number)
-            .unwrap_or_default()
+        Self::get()
     }
 }
 
@@ -374,11 +404,12 @@ parameter_types! {
     pub const MinStake: Balance = 0;
     pub const MinUnstake: Balance = 0;
     pub const StakingCurrency: CurrencyId = KSM;
-    pub const LiquidCurrency: CurrencyId = XKSM;
+    pub const LiquidCurrency: CurrencyId = SKSM;
     pub const XcmFees: Balance = 0;
     pub const BondingDuration: EraIndex = 3;
     pub const NumSlashingSpans: u32 = 0;
     pub static DerivativeIndexList: Vec<u16> = vec![0];
+    pub static RelayChainBlockNumberProvider: BlockNumber = 0;
 }
 
 impl crate::Config for Test {
@@ -401,7 +432,7 @@ impl crate::Config for Test {
     type MinUnstake = MinUnstake;
     type XCM = XcmHelper;
     type BondingDuration = BondingDuration;
-    type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider<Test>;
+    type RelayChainBlockNumberProvider = RelayChainBlockNumberProvider;
     type Members = BobOrigin;
     type NumSlashingSpans = NumSlashingSpans;
 }
@@ -456,16 +487,22 @@ construct_runtime!(
 
 pub const ALICE: AccountId32 = AccountId32::new([1u8; 32]);
 pub const BOB: AccountId32 = AccountId32::new([2u8; 32]);
+pub const RESERVE_FACTOR: Ratio = Ratio::from_perthousand(5);
 
 pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
     let mut t = frame_system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap();
 
+    let xcm_weight_fee_misc = XcmWeightFeeMisc {
+        weight: 3_000_000_000,
+        fee: ksm(10f64),
+    };
+
     GenesisBuild::<Test>::assimilate_storage(
         &crate::GenesisConfig {
             exchange_rate: Rate::one(),
-            reserve_factor: Ratio::from_perthousand(5),
+            reserve_factor: RESERVE_FACTOR,
         },
         &mut t,
     )
@@ -483,18 +520,18 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
             false,
         )
         .unwrap();
-        Assets::force_create(Origin::root(), XKSM, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(Origin::root(), SKSM, Id(ALICE), true, 1).unwrap();
         Assets::force_set_metadata(
             Origin::root(),
-            XKSM,
+            SKSM,
             b"Parallel Kusama".to_vec(),
-            b"XKSM".to_vec(),
+            b"sKSM".to_vec(),
             12,
             false,
         )
         .unwrap();
         Assets::mint(Origin::signed(ALICE), KSM, Id(ALICE), ksm(100f64)).unwrap();
-        Assets::mint(Origin::signed(ALICE), XKSM, Id(ALICE), ksm(100f64)).unwrap();
+        Assets::mint(Origin::signed(ALICE), SKSM, Id(ALICE), ksm(100f64)).unwrap();
         Assets::mint(Origin::signed(ALICE), KSM, Id(BOB), ksm(20000f64)).unwrap();
 
         LiquidStaking::update_market_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
@@ -506,7 +543,8 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
         )
         .unwrap();
 
-        XcmHelper::update_xcm_fees(Origin::signed(BOB), ksm(10f64)).unwrap();
+        XcmHelper::update_xcm_weight_fee(Origin::root(), XcmCall::AddMemo, xcm_weight_fee_misc)
+            .unwrap();
     });
 
     ext
@@ -556,6 +594,11 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         .build_storage::<Test>()
         .unwrap();
 
+    let xcm_weight_fee_misc = XcmWeightFeeMisc {
+        weight: 3_000_000_000,
+        fee: ksm(10f64),
+    };
+
     let parachain_info_config = parachain_info::GenesisConfig {
         parachain_id: para_id.into(),
     };
@@ -587,12 +630,12 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
             false,
         )
         .unwrap();
-        Assets::force_create(Origin::root(), XKSM, Id(ALICE), true, 1).unwrap();
+        Assets::force_create(Origin::root(), SKSM, Id(ALICE), true, 1).unwrap();
         Assets::force_set_metadata(
             Origin::root(),
-            XKSM,
+            SKSM,
             b"Parallel Kusama".to_vec(),
-            b"XKSM".to_vec(),
+            b"sKSM".to_vec(),
             12,
             false,
         )
@@ -607,7 +650,8 @@ pub fn para_ext(para_id: u32) -> sp_io::TestExternalities {
         .unwrap();
 
         LiquidStaking::update_market_cap(Origin::signed(BOB), ksm(10000f64)).unwrap();
-        XcmHelper::update_xcm_fees(Origin::signed(BOB), ksm(10f64)).unwrap();
+        XcmHelper::update_xcm_weight_fee(Origin::root(), XcmCall::AddMemo, xcm_weight_fee_misc)
+            .unwrap();
     });
 
     ext

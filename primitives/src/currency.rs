@@ -126,7 +126,7 @@ impl<
                     let gift_account = GiftAccount::get();
                     let native_currency_id = NativeCurrencyId::get();
                     let gift_amount =
-                        GiftConvert::to_asset_balance(amount.saturated_into(), native_currency_id)
+                        GiftConvert::to_asset_balance(amount.saturated_into(), currency_id)
                             .unwrap_or_else(|_| Zero::zero());
                     let beneficiary_native_balance =
                         MultiCurrency::reducible_balance(native_currency_id, &who, true);

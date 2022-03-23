@@ -140,14 +140,14 @@ impl<T: Config> Transfer<T::AccountId> for Pallet<T> {
             Error::<T>::InsufficientCollateral
         );
 
-        Self::transfer_ptokens_internal(ptoken_id, source, dest, amount)?;
+        Self::do_transfer_ptokens(ptoken_id, source, dest, amount)?;
         Ok(amount)
     }
 }
 
 impl<T: Config> Pallet<T> {
     #[require_transactional]
-    fn transfer_ptokens_internal(
+    fn do_transfer_ptokens(
         ptoken_id: AssetIdOf<T>,
         source: &T::AccountId,
         dest: &T::AccountId,

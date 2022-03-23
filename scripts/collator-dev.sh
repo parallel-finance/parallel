@@ -19,7 +19,7 @@ RELAY_CHAIN="${4:-kusama-local.json}"
 VOLUME="chains"
 NODE_NAME="$1"
 COLLATOR_NAME="${2:-alice}"
-DOCKER_IMAGE="parallelfinance/parallel:v1.7.7"
+DOCKER_IMAGE="parallelfinance/parallel:v1.8.0"
 BASE_PATH="/data"
 RELAY_BOOTNODES="/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWDEyCAUKviazJuXdWcAAVEf7nSm9BvPXyK6odp5PetCfV"
 

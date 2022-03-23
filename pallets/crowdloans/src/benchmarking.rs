@@ -8,14 +8,17 @@ use crate::Pallet as Crowdloans;
 use frame_benchmarking::{benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::{assert_ok, pallet_prelude::*, traits::fungibles::Mutate};
 use frame_system::{self, RawOrigin as SystemOrigin};
+use primitives::ump::{XcmCall, XcmWeightFeeMisc};
 use primitives::{Balance, CurrencyId, ParaId};
+use sp_runtime::traits::One;
 use sp_runtime::traits::StaticLookup;
 use sp_std::prelude::*;
 use xcm::latest::prelude::*;
 
-use sp_runtime::traits::One;
-
-const XCM_FEES: u128 = 50000000000u128;
+const XCM_WEIGHT_FEE: XcmWeightFeeMisc<Weight, Balance> = XcmWeightFeeMisc {
+    weight: 3_000_000_000,
+    fee: 50000000000u128,
+};
 const CONTRIBUTE_AMOUNT: u128 = 20000000000000u128;
 const INITIAL_FEES: u128 = 1000000000000000u128;
 const INITIAL_AMOUNT: u128 = 1000000000000000u128;
@@ -59,7 +62,12 @@ fn initial_set_up<
     )
     .ok();
 
-    pallet_xcm_helper::Pallet::<T>::update_xcm_fees(SystemOrigin::Root.into(), XCM_FEES).unwrap();
+    pallet_xcm_helper::Pallet::<T>::update_xcm_weight_fee(
+        SystemOrigin::Root.into(),
+        XcmCall::AddMemo,
+        XCM_WEIGHT_FEE,
+    )
+    .unwrap();
     // fund caller with dot
     <T as pallet_xcm_helper::Config>::Assets::mint_into(
         T::RelayCurrency::get(),

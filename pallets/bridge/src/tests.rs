@@ -3,60 +3,24 @@
 use super::{mock::*, Event, *};
 use frame_support::{assert_noop, assert_ok};
 use primitives::tokens::HKO;
-use sp_runtime::traits::BadOrigin;
 
 #[test]
 fn change_bridge_members_works() {
     new_test_ext().execute_with(|| {
         // Get members count works
         assert_eq!(Bridge::get_members_count(), 3);
-        assert_eq!(Bridge::vote_threshold(), 2);
+        assert_eq!(Bridge::vote_threshold(), 3);
 
         // After remove and swap, members count should be 2
         BridgeMembership::remove_member(Origin::root(), ALICE).unwrap();
         BridgeMembership::swap_member(Origin::root(), BOB, DAVE).unwrap();
         assert_eq!(Bridge::get_members_count(), 2);
-        assert_eq!(Bridge::vote_threshold(), 1);
-
-        // Current members: [CHARLIE , DAVE]
-        // The threshold is set dynamically, but can also be set by admin
-        assert_ok!(Bridge::set_vote_threshold(Origin::root(), 2,));
         assert_eq!(Bridge::vote_threshold(), 2);
-        assert_noop!(
-            Bridge::set_vote_threshold(Origin::root(), 3),
-            Error::<Test>::InvalidVoteThreshold,
-        );
 
         BridgeMembership::add_member(Origin::root(), ALICE).unwrap();
         BridgeMembership::add_member(Origin::root(), BOB).unwrap();
         BridgeMembership::add_member(Origin::root(), EVE).unwrap();
-        assert_eq!(Bridge::vote_threshold(), 3);
-    });
-}
-
-#[test]
-fn set_vote_threshold_works() {
-    new_test_ext().execute_with(|| {
-        // Threshold cannot be zero
-        assert_noop!(
-            Bridge::set_vote_threshold(Origin::root(), 0),
-            Error::<Test>::InvalidVoteThreshold,
-        );
-
-        // BridgeMembers cannot set threshold
-        assert_noop!(
-            Bridge::set_vote_threshold(Origin::signed(BOB), 2),
-            BadOrigin,
-        );
-
-        // OperateOrigin can set threshold
-        // [ALICE, BOB, CHARLIE]
-        assert_ok!(Bridge::set_vote_threshold(Origin::root(), 3,));
-        // When the count of members is 3, the threshold should be less than or equal to 3
-        assert_noop!(
-            Bridge::set_vote_threshold(Origin::root(), 4),
-            Error::<Test>::InvalidVoteThreshold,
-        );
+        assert_eq!(Bridge::vote_threshold(), 4);
     });
 }
 
@@ -68,9 +32,11 @@ fn test_valid_threshold() {
             Error::<Test>::InvalidVoteThreshold,
         );
         assert_ok!(Bridge::ensure_valid_threshold(1, 1));
-        assert_ok!(Bridge::ensure_valid_threshold(1, 2));
-        assert_ok!(Bridge::ensure_valid_threshold(2, 2));
-        assert_ok!(Bridge::ensure_valid_threshold(2, 3));
+        assert_noop!(
+            Bridge::ensure_valid_threshold(2, 3),
+            Error::<Test>::InvalidVoteThreshold,
+        );
+        assert_ok!(Bridge::ensure_valid_threshold(3, 3));
         assert_noop!(
             Bridge::ensure_valid_threshold(4, 3),
             Error::<Test>::InvalidVoteThreshold,
@@ -79,7 +45,7 @@ fn test_valid_threshold() {
             Bridge::ensure_valid_threshold(4, 10),
             Error::<Test>::InvalidVoteThreshold,
         );
-        assert_ok!(Bridge::ensure_valid_threshold(5, 10));
+        assert_ok!(Bridge::ensure_valid_threshold(8, 10));
         assert_ok!(Bridge::ensure_valid_threshold(10, 10));
     })
 }
@@ -124,6 +90,16 @@ fn gift_fees_works() {
 
         Bridge::materialize(Origin::signed(ALICE), ETH, 0, EUSDT, DAVE, dollar(10), true).unwrap();
         Bridge::materialize(Origin::signed(BOB), ETH, 0, EUSDT, DAVE, dollar(10), true).unwrap();
+        Bridge::materialize(
+            Origin::signed(CHARLIE),
+            ETH,
+            0,
+            EUSDT,
+            DAVE,
+            dollar(10),
+            true,
+        )
+        .unwrap();
         assert_eq!(<Test as Config>::Assets::balance(USDT, &DAVE), dollar(10));
         assert_eq!(
             <Test as Config>::Assets::balance(HKO, &DAVE),
@@ -137,6 +113,16 @@ fn gift_fees_works() {
 
         Bridge::materialize(Origin::signed(ALICE), ETH, 1, EUSDT, BOB, 299_000_000, true).unwrap();
         Bridge::materialize(Origin::signed(BOB), ETH, 1, EUSDT, BOB, 299_000_000, true).unwrap();
+        Bridge::materialize(
+            Origin::signed(CHARLIE),
+            ETH,
+            1,
+            EUSDT,
+            BOB,
+            299_000_000,
+            true,
+        )
+        .unwrap();
         assert_eq!(<Test as Config>::Assets::balance(USDT, &BOB), 299_000_000);
         assert_eq!(<Test as Config>::Assets::balance(HKO, &BOB), 0,);
 
@@ -148,7 +134,16 @@ fn gift_fees_works() {
 
         Bridge::materialize(Origin::signed(ALICE), ETH, 2, EUSDT, BOB, dollar(10), true).unwrap();
         Bridge::materialize(Origin::signed(BOB), ETH, 2, EUSDT, BOB, dollar(10), true).unwrap();
-
+        Bridge::materialize(
+            Origin::signed(CHARLIE),
+            ETH,
+            2,
+            EUSDT,
+            BOB,
+            dollar(10),
+            true,
+        )
+        .unwrap();
         assert_eq!(
             <Test as Config>::Assets::balance(HKO, &BOB),
             dollar(35) / 1000 + dollar(1) / 100,
@@ -162,7 +157,16 @@ fn gift_fees_works() {
 
         Bridge::materialize(Origin::signed(ALICE), ETH, 3, EUSDT, BOB, dollar(10), true).unwrap();
         Bridge::materialize(Origin::signed(BOB), ETH, 3, EUSDT, BOB, dollar(10), true).unwrap();
-
+        Bridge::materialize(
+            Origin::signed(CHARLIE),
+            ETH,
+            3,
+            EUSDT,
+            BOB,
+            dollar(10),
+            true,
+        )
+        .unwrap();
         assert_eq!(
             <Test as Config>::Assets::balance(HKO, &BOB),
             dollar(35) / 1000,
@@ -192,6 +196,7 @@ fn materialize_works() {
         Bridge::teleport(Origin::signed(EVE), ETH, EHKO, "TELE".into(), dollar(50)).unwrap();
         Bridge::materialize(Origin::signed(ALICE), ETH, 0, EHKO, EVE, dollar(10), true).unwrap();
         Bridge::materialize(Origin::signed(BOB), ETH, 0, EHKO, EVE, dollar(10), true).unwrap();
+        Bridge::materialize(Origin::signed(CHARLIE), ETH, 0, EHKO, EVE, dollar(10), true).unwrap();
         assert_eq!(
             <Test as Config>::Assets::balance(HKO, &Bridge::account_id()),
             dollar(40)
@@ -207,15 +212,10 @@ fn materialize_works() {
         // Adjust threshold with 2
         // Vote_for:    [ALICE, CHARLIE]
         // Vote_against [BOB]
-        assert_ok!(Bridge::set_vote_threshold(Origin::root(), 2));
         Bridge::materialize(Origin::signed(ALICE), ETH, 1, EHKO, EVE, dollar(10), true).unwrap();
         assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(60));
-        Bridge::materialize(Origin::signed(BOB), ETH, 1, EHKO, EVE, dollar(10), false).unwrap();
+        Bridge::materialize(Origin::signed(BOB), ETH, 1, EHKO, EVE, dollar(10), true).unwrap();
         assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(60));
-        assert_noop!(
-            Bridge::materialize(Origin::signed(BOB), ETH, 1, EHKO, EVE, dollar(10), true),
-            Error::<Test>::MemberAlreadyVoted,
-        );
         Bridge::materialize(Origin::signed(CHARLIE), ETH, 1, EHKO, EVE, dollar(10), true).unwrap();
         assert_eq!(<Test as Config>::Assets::balance(HKO, &EVE), dollar(70));
         assert_eq!(
@@ -341,9 +341,19 @@ fn materialize_external_currency_works() {
         );
 
         // EVE has 0 USDT, and then requests for materializing 10 USDT
-        // Current vote threshold is 2
+        // Current vote threshold is 3
         Bridge::materialize(Origin::signed(ALICE), ETH, 1, EUSDT, EVE, dollar(10), true).unwrap();
         Bridge::materialize(Origin::signed(BOB), ETH, 1, EUSDT, EVE, dollar(10), true).unwrap();
+        Bridge::materialize(
+            Origin::signed(CHARLIE),
+            ETH,
+            1,
+            EUSDT,
+            EVE,
+            dollar(10),
+            true,
+        )
+        .unwrap();
         assert_eq!(<Test as Config>::Assets::balance(USDT, &EVE), dollar(10));
 
         assert_events(vec![mock::Event::Bridge(Event::MaterializeMinted(

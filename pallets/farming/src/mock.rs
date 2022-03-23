@@ -17,6 +17,7 @@ pub const STAKE_TOKEN: CurrencyId = 1;
 pub const REWARD_TOKEN: CurrencyId = 2;
 pub const BIG_DECIMAL_STAKE_TOKEN: CurrencyId = 3;
 pub const BIG_DECIMAL_REWARD_TOKEN: CurrencyId = 4;
+pub const LOCK_DURATION: u64 = 20;
 
 pub type AccountId = u128;
 
@@ -122,7 +123,8 @@ impl pallet_assets::Config for Test {
 parameter_types! {
     pub const FarmingPalletId: PalletId = PalletId(*b"par/farm");
     pub const MaxUserLockItemsCount: u32 = 3;
-    pub const LockPoolMaxDuration: u32 = 50400;
+    pub const LockPoolMaxDuration: u32 = 2628000;
+    pub const CoolDownMaxDuration: u32 = 50400;
 }
 
 pub struct Decimal;
@@ -145,6 +147,7 @@ impl pallet_farming::Config for Test {
     type PalletId = FarmingPalletId;
     type MaxUserLockItemsCount = MaxUserLockItemsCount;
     type LockPoolMaxDuration = LockPoolMaxDuration;
+    type CoolDownMaxDuration = CoolDownMaxDuration;
     type Decimal = Decimal;
 }
 
@@ -214,10 +217,24 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         )
         .unwrap();
 
-        Farming::create(Origin::root(), STAKE_TOKEN, REWARD_TOKEN, 100).unwrap();
-        let pool_info = Farming::pools(STAKE_TOKEN, REWARD_TOKEN).unwrap();
+        Farming::create(
+            Origin::root(),
+            STAKE_TOKEN,
+            REWARD_TOKEN,
+            LOCK_DURATION,
+            100,
+        )
+        .unwrap();
+        let pool_info = Farming::pools((STAKE_TOKEN, REWARD_TOKEN, LOCK_DURATION)).unwrap();
         assert_eq!(pool_info.is_active, false);
-        Farming::set_pool_status(Origin::root(), STAKE_TOKEN, REWARD_TOKEN, true).unwrap();
+        Farming::set_pool_status(
+            Origin::root(),
+            STAKE_TOKEN,
+            REWARD_TOKEN,
+            LOCK_DURATION,
+            true,
+        )
+        .unwrap();
 
         System::set_block_number(0);
         run_to_block(1);

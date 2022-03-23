@@ -4,7 +4,6 @@
   "paraId": 2012,
   "relayAsset": 101,
   "gift": "10000000000000000",
-  "xcmFees": "5000000000",
   "liquidMarketCap": "10000000000000000",
   "paraDeposit": "0",
   "crowdloanDeposit": "10000000000000",
@@ -63,14 +62,14 @@
     },
     {
       "name": "Parallel Staking Polkadot",
-      "symbol": "XDOT",
+      "symbol": "sDOT",
       "assetId": 1001,
       "decimal": 10,
       "balances": []
     },
     {
       "name": "Parallel Crowdloans Polkadot - (0 ~ 7)",
-      "symbol": "CDOT-0-7",
+      "symbol": "cDOT-0/7",
       "assetId": 4000,
       "decimal": 10,
       "balances": []
@@ -283,7 +282,7 @@
     {
       "paraId": 2013,
       "derivativeIndex": 0,
-      "image": "parallelfinance/polkadot-collator:v0.9.16",
+      "image": "parallelfinance/polkadot-collator:v0.9.17",
       "chain": "shell",
       "ctokenId": 4000,
       "cap": "100000000000000",
@@ -295,7 +294,7 @@
     {
       "paraId": 2016,
       "derivativeIndex": 1,
-      "image": "parallelfinance/polkadot-collator:v0.9.16",
+      "image": "parallelfinance/polkadot-collator:v0.9.17",
       "chain": "shell",
       "ctokenId": 4000,
       "cap": "1000000000000000",
@@ -307,7 +306,7 @@
     {
       "paraId": 2100,
       "derivativeIndex": 2,
-      "image": "parallelfinance/polkadot-collator:v0.9.16",
+      "image": "parallelfinance/polkadot-collator:v0.9.17",
       "chain": "shell",
       "ctokenId": 4000,
       "cap": "10000000000000000",
