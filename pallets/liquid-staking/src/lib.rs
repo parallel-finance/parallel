@@ -558,7 +558,7 @@ pub mod pallet {
             derivative_index: DerivativeIndex,
             num_slashing_spans: u32,
         ) -> DispatchResult {
-            Self::ensure_origin(origin)?;
+            T::RelayOrigin::ensure_origin(origin)?;
             Self::do_withdraw_unbonded(derivative_index, num_slashing_spans)?;
             Ok(())
         }
@@ -571,7 +571,7 @@ pub mod pallet {
             derivative_index: DerivativeIndex,
             targets: Vec<T::AccountId>,
         ) -> DispatchResult {
-            Self::ensure_origin(origin)?;
+            T::RelayOrigin::ensure_origin(origin)?;
             Self::do_nominate(derivative_index, targets)?;
             Ok(())
         }
@@ -626,13 +626,7 @@ pub mod pallet {
                     }
                 });
 
-                let total_unclaimed = T::Assets::reducible_balance(
-                    Self::staking_currency()?,
-                    &Self::account_id(),
-                    false,
-                )
-                .saturating_sub(Self::total_reserves())
-                .saturating_sub(Self::matching_pool().total_stake_amount);
+                let total_unclaimed = Self::get_total_unclaimed(Self::staking_currency()?);
 
                 log::trace!(
                     target: "liquidStaking::claim_for",
@@ -795,6 +789,13 @@ pub mod pallet {
             Self::get_liquid_currency()
                 .ok_or(Error::<T>::InvalidLiquidCurrency)
                 .map_err(Into::into)
+        }
+
+        /// Get total unclaimed
+        pub fn get_total_unclaimed(staking_currency: AssetIdOf<T>) -> BalanceOf<T> {
+            T::Assets::reducible_balance(staking_currency, &Self::account_id(), false)
+                .saturating_sub(Self::total_reserves())
+                .saturating_sub(Self::matching_pool().total_stake_amount)
         }
 
         /// Derivative of parachain's account
