@@ -1356,14 +1356,15 @@ pub mod pallet {
 
             let relay_root = T::RelayChainValidationDataProvider::current_storage_root();
             let relay_proof = StorageProof::new(proof_bytes);
-            sp_state_machine::read_proof_check::<BlakeTwo256, _>(
-                relay_root,
-                relay_proof,
-                [key.clone()],
-            )
-            .map_or(false, |pair| {
-                pair.into_iter().collect::<Vec<_>>() == vec![(key, Some(value))]
-            })
+            let db = relay_proof.into_memory_db();
+            if let Ok(Some(result)) = sp_trie::read_trie_value::<sp_trie::LayoutV1<BlakeTwo256>, _>(
+                &db,
+                &relay_root,
+                &key,
+            ) {
+                return result == value;
+            }
+            false
         }
 
         fn get_underlying_key(derivative_index: DerivativeIndex) -> Vec<u8> {

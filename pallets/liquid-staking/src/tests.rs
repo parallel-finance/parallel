@@ -852,6 +852,21 @@ fn test_storage_proof_approach_should_work() {
 }
 
 #[test]
+fn test_verify_trie_prrof_work() {
+    type LayoutV1 = sp_trie::LayoutV1<BlakeTwo256>;
+    let r = ROOT_HASH;
+    let relay_root = sp_core::hash::H256::from_slice(&hex::decode(r).unwrap());
+    let key = hex::decode(MOCK_KEY).unwrap();
+    let value = hex::decode(MOCK_DATA).unwrap();
+    let relay_proof = StorageProof::new(get_mock_proof_bytes());
+    let db = relay_proof.into_memory_db();
+    let result = sp_trie::read_trie_value::<LayoutV1, _>(&db, &relay_root, &key)
+        .unwrap()
+        .unwrap();
+    assert_eq!(result, value);
+}
+
+#[test]
 fn test_verify_merkle_proof_work() {
     use codec::Encode;
     let derivative_index = <Test as Config>::DerivativeIndex::get();
