@@ -32,7 +32,7 @@ use frame_support::{
         fungibles::{InspectMetadata, Mutate},
         tokens::BalanceConversion,
         ChangeMembers, Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, InstanceFilter,
-        Nothing,
+        Nothing, OnRuntimeUpgrade,
     },
     PalletId,
 };
@@ -63,7 +63,7 @@ use sp_runtime::{
         BlockNumberProvider, Convert, Zero,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, DispatchError, KeyTypeId, Perbill, Permill, RuntimeDebug,
+    ApplyExtrinsicResult, DispatchError, FixedU128, KeyTypeId, Perbill, Permill, RuntimeDebug,
     SaturatedConversion,
 };
 use sp_std::prelude::*;
@@ -1821,8 +1821,27 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    (),
+    LoansMigrationV2,
 >;
+
+// Migration for loans pallet to add borrow limit in market.
+pub struct LoansMigrationV2;
+
+impl OnRuntimeUpgrade for LoansMigrationV2 {
+    fn on_runtime_upgrade() -> frame_support::weights::Weight {
+        pallet_loans::migrations::v2::migrate::<Runtime>()
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn pre_upgrade() -> Result<(), &'static str> {
+        pallet_loans::migrations::v2::pre_migrate::<Runtime>()
+    }
+
+    #[cfg(feature = "try-runtime")]
+    fn post_upgrade() -> Result<(), &'static str> {
+        pallet_loans::migrations::v2::post_migrate::<Runtime>()
+    }
+}
 
 impl_runtime_apis! {
     impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
@@ -1957,8 +1976,9 @@ impl_runtime_apis! {
     }
 
     impl pallet_router_rpc_runtime_api::RouterApi<Block, AccountId> for Runtime {
-        fn get_best_route(amount_in: Balance, token_in: CurrencyId, token_out: CurrencyId,) -> Result<(Vec<CurrencyId>, Balance), DispatchError> {
-            AMMRoute::get_best_route(amount_in, token_in, token_out)
+        fn get_best_route(amount_in: Balance, token_in: CurrencyId, token_out: CurrencyId) -> Result<(Vec<CurrencyId>, FixedU128), DispatchError> {
+            let (route, amount) = AMMRoute::get_best_route(amount_in, token_in, token_out)?;
+            Ok((route, amount.into()))
         }
     }
 
