@@ -590,10 +590,10 @@ fn test_transfer_bond() {
 }
 
 #[test]
-fn update_market_cap_should_not_work_if_with_invalid_param() {
+fn update_staking_ledger_cap_should_not_work_if_with_invalid_param() {
     new_test_ext().execute_with(|| {
         assert_noop!(
-            LiquidStaking::update_market_cap(Origin::root(), Zero::zero()),
+            LiquidStaking::update_staking_ledger_cap(Origin::root(), Zero::zero()),
             Error::<Test>::InvalidCap
         );
     })
@@ -684,7 +684,7 @@ fn test_on_initialize_work() {
         LiquidStaking::on_initialize(System::block_number());
         assert_eq!(EraStartBlock::<Test>::get(), total_era_blocknumbers);
         assert_eq!(CurrentEra::<Test>::get(), 1);
-        assert_eq!(LiquidStaking::staking_ledgers(derivative_index), None);
+        assert_eq!(LiquidStaking::staking_ledger(derivative_index), None);
         assert_eq!(
             LiquidStaking::matching_pool(),
             MatchingLedger {
@@ -705,7 +705,7 @@ fn test_on_initialize_work() {
             total_stake_amount,
         );
         assert_eq!(
-            LiquidStaking::staking_ledgers(derivative_index).unwrap(),
+            LiquidStaking::staking_ledger(derivative_index).unwrap(),
             staking_ledger
         );
 
@@ -733,7 +733,7 @@ fn test_force_set_staking_ledger_work() {
         );
         StakingLedgers::<Test>::insert(derivative_index, staking_ledger.clone());
         assert_eq!(
-            LiquidStaking::staking_ledgers(derivative_index).unwrap(),
+            LiquidStaking::staking_ledger(derivative_index).unwrap(),
             staking_ledger.clone()
         );
         staking_ledger.bond_extra(bond_extra_amount);
@@ -765,7 +765,7 @@ fn test_force_set_staking_ledger_work() {
             bond_amount + bond_extra_amount,
         );
         assert_eq!(
-            LiquidStaking::staking_ledgers(derivative_index).unwrap(),
+            LiquidStaking::staking_ledger(derivative_index).unwrap(),
             new_staking_ledger
         );
     })

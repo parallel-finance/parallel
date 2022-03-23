@@ -201,8 +201,8 @@ pub mod pallet {
         WithdrawingUnbonded(DerivativeIndex, u32),
         /// Sent staking.nominate call to relaychain
         Nominating(DerivativeIndex, Vec<T::AccountId>),
-        /// Ledger's bond cap was updated
-        MaxBondedPerLedgerUpdated(BalanceOf<T>),
+        /// Staking ledger's cap was updated
+        StakingLedgerCapUpdated(BalanceOf<T>),
         /// Reserve_factor was updated
         ReserveFactorUpdated(Ratio),
         /// Exchange rate was updated
@@ -277,7 +277,7 @@ pub mod pallet {
     #[pallet::getter(fn matching_pool)]
     pub type MatchingPool<T: Config> = StorageValue<_, MatchingLedger<BalanceOf<T>>, ValueQuery>;
 
-    /// Single ledger's cap for holding staking currency thus `staking_ledger.total`
+    /// Staking ledger's cap
     #[pallet::storage]
     #[pallet::getter(fn staking_ledger_cap)]
     pub type StakingLedgerCap<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
@@ -374,7 +374,7 @@ pub mod pallet {
             let liquid_amount =
                 Self::staking_to_liquid(amount).ok_or(Error::<T>::InvalidExchangeRate)?;
             let liquid_currency = Self::liquid_currency()?;
-            Self::ensure_max_bonded(liquid_currency, liquid_amount)?;
+            Self::ensure_market_cap(amount)?;
 
             T::Assets::mint_into(liquid_currency, &who, liquid_amount)?;
 
@@ -498,8 +498,8 @@ pub mod pallet {
                 "cap: {:?}",
                 &cap,
             );
-            MaxBondedPerLedger::<T>::mutate(|v| *v = cap);
-            Self::deposit_event(Event::<T>::MaxBondedPerLedgerUpdated(cap));
+            StakingLedgerCap::<T>::mutate(|v| *v = cap);
+            Self::deposit_event(Event::<T>::StakingLedgerCapUpdated(cap));
             Ok(().into())
         }
 
@@ -834,15 +834,15 @@ pub mod pallet {
 
         fn unbonded_of(index: DerivativeIndex) -> BalanceOf<T> {
             let current_era = Self::current_era();
-            Self::staking_ledger(&index)
-                .unlocking
-                .fold(Zero::zero(), |acc, chunk| {
+            Self::staking_ledger(&index).map_or(Zero::zero(), |ledger| {
+                ledger.unlocking.iter().fold(Zero::zero(), |acc, chunk| {
                     if chunk.era <= current_era {
                         acc.saturating_add(chunk.value)
                     } else {
                         acc
                     }
                 })
+            })
         }
 
         #[allow(dead_code)]
@@ -880,7 +880,7 @@ pub mod pallet {
                 amount >= T::MinNominatorBond::get(),
                 Error::<T>::InsufficientBond
             );
-            Self::ensure_max_bonded(derivative_index, amount)?;
+            Self::ensure_staking_ledger_cap(derivative_index, amount)?;
 
             log::trace!(
                 target: "liquidStaking::bond",
@@ -935,7 +935,7 @@ pub mod pallet {
                 StakingLedgers::<T>::contains_key(&derivative_index),
                 Error::<T>::NotBonded
             );
-            Self::ensure_max_bonded(derivative_index, amount)?;
+            Self::ensure_staking_ledger_cap(derivative_index, amount)?;
 
             log::trace!(
                 target: "liquidStaking::bond_extra",
@@ -1343,25 +1343,27 @@ pub mod pallet {
         }
 
         fn ensure_market_cap(amount: BalanceOf<T>) -> DispatchResult {
-            let market_cap =
-                Self::max_bonded_per_ledger().saturating_mul(StakingLedgers::<T>::get().len());
+            let market_cap = Self::staking_ledger_cap()
+                .saturating_mul(T::DerivativeIndexList::get().len() as BalanceOf<T>);
             ensure!(
-                Self::get_total_bonded().saturating_add(amount) <= market_cap,
+                Self::get_total_bonded()
+                    .saturating_add(Self::get_total_unbonding())
+                    .saturating_add(amount)
+                    <= market_cap,
                 Error::<T>::CapExceeded
             );
             Ok(())
         }
 
-        fn ensure_max_bonded(
+        fn ensure_staking_ledger_cap(
             derivative_index: DerivativeIndex,
             amount: BalanceOf<T>,
         ) -> DispatchResult {
-            let bonded = Self::bonded_of(derivative_index);
-            let new_bonded = bonded
-                .checked_add(amount)
-                .ok_or(ArithmeticError::Overflow)?;
             ensure!(
-                new_bonded <= Self::max_bonded_per_ledger(),
+                Self::bonded_of(derivative_index)
+                    .saturating_add(Self::unbonding_of(derivative_index))
+                    .saturating_add(amount)
+                    <= Self::staking_ledger_cap(),
                 Error::<T>::CapExceeded
             );
             Ok(())

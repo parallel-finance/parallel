@@ -83,7 +83,7 @@ fn initial_set_up<
 
     <T as pallet_xcm_helper::Config>::Assets::mint_into(KSM, &caller, INITIAL_AMOUNT).unwrap();
 
-    LiquidStaking::<T>::update_market_cap(SystemOrigin::Root.into(), MARKET_CAP).unwrap();
+    LiquidStaking::<T>::update_staking_ledger_cap(SystemOrigin::Root.into(), MARKET_CAP).unwrap();
 
     pallet_xcm_helper::Pallet::<T>::update_xcm_weight_fee(
         SystemOrigin::Root.into(),
@@ -252,7 +252,7 @@ benchmarks! {
         assert_eq!(ReserveFactor::<T>::get(), RESERVE_FACTOR);
     }
 
-    update_market_cap {
+    update_staking_ledger_cap {
     }: _(SystemOrigin::Root, MARKET_CAP)
     verify {
     }
