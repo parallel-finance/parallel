@@ -79,6 +79,22 @@ fn test_asset_exists_error() {
 }
 
 #[test]
+fn test_asset_create_failed_error() {
+    new_test_ext().execute_with(|| {
+        assert_noop!(
+            AssetManager::register_asset(
+                Origin::root(),
+                MockAssetType::MockAsset(1),
+                0u32.into(),
+                0u32.into(),
+                true
+            ),
+            Error::<Test>::ErrorCreatingAsset
+        );
+    });
+}
+
+#[test]
 fn test_root_can_change_units_per_second() {
     new_test_ext().execute_with(|| {
 		assert_ok!(AssetManager::register_asset(

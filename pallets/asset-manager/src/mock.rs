@@ -149,10 +149,13 @@ pub struct MockAssetPalletRegistrar;
 impl AssetRegistrar<Test> for MockAssetPalletRegistrar {
     fn create_asset(
         _asset: u32,
-        _min_balance: u64,
+        min_balance: u64,
         _metadata: u32,
         _is_sufficient: bool,
     ) -> Result<(), DispatchError> {
+        if min_balance == 0 {
+            return Err(DispatchError::from(Error::<Test>::ErrorCreatingAsset));
+        }
         Ok(())
     }
 }
