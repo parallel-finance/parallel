@@ -844,13 +844,13 @@ pub mod pallet {
                 return Ok(());
             }
 
+            if StakingLedgers::<T>::contains_key(&derivative_index) {
+                return Self::do_bond_extra(derivative_index, amount);
+            }
+
             ensure!(
                 T::DerivativeIndexList::get().contains(&derivative_index),
                 Error::<T>::InvalidDerivativeIndex
-            );
-            ensure!(
-                !StakingLedgers::<T>::contains_key(&derivative_index),
-                Error::<T>::AlreadyBonded
             );
 
             log::trace!(
@@ -1270,12 +1270,7 @@ pub mod pallet {
 
             let (bond_amount, rebond_amount, unbond_amount) =
                 Self::matching_pool().matching(unbonding_amount)?;
-            if !StakingLedgers::<T>::contains_key(&derivative_index) {
-                Self::do_bond(derivative_index, bond_amount, RewardDestination::Staked)?;
-            } else {
-                Self::do_bond_extra(derivative_index, bond_amount)?;
-            }
-
+            Self::do_bond(derivative_index, bond_amount, RewardDestination::Staked)?;
             Self::do_unbond(derivative_index, unbond_amount)?;
             Self::do_rebond(derivative_index, rebond_amount)?;
 
