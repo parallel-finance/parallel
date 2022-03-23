@@ -67,7 +67,7 @@ frame_support::construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
-        DefaultStableSwap: pallet_stableswap::{Pallet, Storage, Event<T>},
+        DefaultStableSwap: pallet_stableswap::{Pallet, Call, Storage, Event<T>},
         DefaultAMM: pallet_amm::{Pallet, Call, Storage, Event<T>},
         Assets: pallet_assets::{Pallet, Call, Storage, Event<T>},
         CurrencyAdapter: pallet_currency_adapter::{Pallet, Call},
