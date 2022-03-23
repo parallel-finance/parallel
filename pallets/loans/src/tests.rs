@@ -280,7 +280,7 @@ fn borrow_allowed_works() {
             Origin::root(),
             DOT,
             Market {
-                borrow_limit: 10,
+                borrow_cap: 10,
                 ..ACTIVE_MARKET_MOCK
             },
         ));
@@ -289,7 +289,7 @@ fn borrow_allowed_works() {
         // Borrow 11 DOT should cause BorrowLimitExceeded
         assert_noop!(
             Loans::borrow_allowed(DOT, &ALICE, 11),
-            Error::<Test>::BorrowLimitExceeded
+            Error::<Test>::BorrowCapacityExceeded
         );
     })
 }

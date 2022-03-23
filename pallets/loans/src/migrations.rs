@@ -57,7 +57,7 @@ pub mod v2 {
 
             Markets::<T>::translate::<OldMarket<BalanceOf<T>>, _>(|_key, market| {
                 Some(Market {
-                    borrow_limit: 1_000_000_000_000_000u128,
+                    borrow_cap: 1_000_000_000_000_000u128,
                     collateral_factor: market.collateral_factor,
                     reserve_factor: market.reserve_factor,
                     close_factor: market.close_factor,
@@ -86,9 +86,9 @@ pub mod v2 {
         );
         Markets::<T>::iter().for_each(|(asset_id, market)| {
             log::info!(
-                "market {:#?}, borrow_limit {:#?}",
+                "market {:#?}, borrow_cap {:#?}",
                 asset_id,
-                market.borrow_limit
+                market.borrow_cap
             );
         });
         log::info!("👜 loans borrow-limit migration passes POST migrate checks ✅",);

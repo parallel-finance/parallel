@@ -193,7 +193,7 @@ fn update_market_ensures_that_it_is_not_possible_to_modify_unknown_market_curren
                 market.close_factor,
                 market.liquidate_incentive,
                 market.cap,
-                market.borrow_limit,
+                market.borrow_cap,
             ),
             Error::<Test>::MarketDoesNotExist
         );
@@ -217,7 +217,7 @@ fn update_market_works() {
             Default::default(),
             market.liquidate_incentive,
             market.cap,
-            market.borrow_limit,
+            market.borrow_cap,
         ));
 
         assert_eq!(Loans::market(DOT).unwrap().close_factor, Default::default());
@@ -244,7 +244,7 @@ fn update_market_should_not_work_if_with_invalid_params() {
                 Default::default(),
                 market.liquidate_incentive,
                 market.cap,
-                market.borrow_limit,
+                market.borrow_cap,
             ),
             Error::<Test>::InvalidFactor
         );
@@ -257,7 +257,7 @@ fn update_market_should_not_work_if_with_invalid_params() {
                 Default::default(),
                 market.liquidate_incentive,
                 market.cap,
-                market.borrow_limit,
+                market.borrow_cap,
             ),
             Error::<Test>::InvalidFactor
         );
@@ -271,7 +271,7 @@ fn update_market_should_not_work_if_with_invalid_params() {
                 Default::default(),
                 market.liquidate_incentive,
                 market.cap,
-                market.borrow_limit,
+                market.borrow_cap,
             ),
             Error::<Test>::InvalidFactor
         );
@@ -284,7 +284,7 @@ fn update_market_should_not_work_if_with_invalid_params() {
                 Default::default(),
                 market.liquidate_incentive,
                 market.cap,
-                market.borrow_limit,
+                market.borrow_cap,
             ),
             Error::<Test>::InvalidFactor
         );
@@ -298,7 +298,7 @@ fn update_market_should_not_work_if_with_invalid_params() {
                 Default::default(),
                 Rate::from_inner(Rate::DIV / 100 * 90),
                 Zero::zero(),
-                market.borrow_limit,
+                market.borrow_cap,
             ),
             Error::<Test>::InvalidCap
         );

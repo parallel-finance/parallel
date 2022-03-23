@@ -37,7 +37,7 @@ fn market_mock<T: Config>() -> Market<BalanceOf<T>> {
         }),
         reserve_factor: Ratio::from_percent(15),
         cap: 1_000_000_000_000_000_000_000u128, // set to 1B
-        borrow_limit: 1_000_000_000_000_000_000_000u128, // set to 1B
+        borrow_cap: 1_000_000_000_000_000_000_000u128, // set to 1B
         ptoken_id: 1200,
     }
 }
