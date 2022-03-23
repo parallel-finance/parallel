@@ -442,7 +442,7 @@ fn test_transact_withdraw_unbonded_work() {
         ));
 
         assert_ok!(LiquidStaking::withdraw_unbonded(
-            Origin::signed(BOB),
+            Origin::root(),
             derivative_index,
             0
         ));
@@ -645,7 +645,7 @@ fn claim_for_should_work() {
             Response::ExecutionResult(None),
         ));
         assert_ok!(LiquidStaking::withdraw_unbonded(
-            Origin::signed(BOB),
+            Origin::root(),
             derivative_index,
             0
         ));
