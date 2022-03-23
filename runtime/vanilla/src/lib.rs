@@ -1646,9 +1646,9 @@ impl pallet_stableswap::Config for Runtime {
     type WeightInfo = pallet_stableswap::weights::SubstrateWeight<Runtime>;
     type PalletId = StableSwapPalletId;
     type AMM = AMM;
-    type NumTokens = ();
-    type Precision = ();
-    type AmplificationCoefficient = ();
+    type NumTokens = NumTokens;
+    type Precision = Precision;
+    type AmplificationCoefficient = AmplificationCoefficient;
 }
 
 pub struct WhiteListFilter;
@@ -1785,7 +1785,7 @@ construct_runtime!(
         EmergencyShutdown: pallet_emergency_shutdown::{Pallet, Call, Storage, Event<T>} = 91,
         Farming: pallet_farming::{Pallet, Call, Storage, Event<T>} = 92,
         XcmHelper: pallet_xcm_helper::{Pallet, Call, Storage, Event<T>} = 93,
-        StableSwap: pallet_stableswap::{Pallet, Storage, Event<T>} = 94,
+        StableSwap: pallet_stableswap::{Pallet, Call, Storage, Event<T>} = 94,
         // Parachain System, always put it at the end
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 20,
     }

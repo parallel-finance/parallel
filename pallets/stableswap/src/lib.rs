@@ -99,13 +99,17 @@ pub mod pallet {
     #[pallet::pallet]
     pub struct Pallet<T, I = ()>(_);
 
+    // No Extrinsic Calls
+    #[pallet::call]
+    impl<T: Config<I>, I: 'static> Pallet<T, I> {}
+
     impl<T: Config<I>, I: 'static> Pallet<T, I> {
         // https://miguelmota.com/blog/understanding-stableswap-curve/
         // https://github.com/curvefi/curve-contract/blob/master/contracts/pool-templates/base/SwapTemplateBase.vy
         // https://github.com/parallel-finance/amm-formula/blob/master/src/formula.rs
         // https://curve.fi/files/stableswap-paper.pdf
         #[allow(dead_code)]
-        pub(crate) fn do_get_delta(
+        pub fn do_get_delta(
             (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),
         ) -> Result<Balance, DispatchError> {
             let (x, y) = T::AMM::get_reserves(asset_in, asset_out).unwrap();
@@ -249,7 +253,7 @@ pub mod pallet {
         }
 
         #[allow(dead_code)]
-        pub(crate) fn do_get_alternative_var(
+        pub fn do_get_alternative_var(
             mut autonomous_var: BalanceOf<T, I>,
             (asset_in, asset_out): (AssetIdOf<T, I>, AssetIdOf<T, I>),
         ) -> Result<Balance, DispatchError> {
