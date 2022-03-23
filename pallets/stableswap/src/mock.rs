@@ -1,36 +1,19 @@
 use crate as pallet_stableswap;
-
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{parameter_types, traits::Everything, traits::SortedMembers, PalletId};
 use frame_system::{self as system, EnsureRoot};
 use primitives::{tokens, Balance, CurrencyId, Ratio};
 use scale_info::TypeInfo;
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
     RuntimeDebug,
 };
+
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 use system::EnsureSignedBy;
-
-pub const DOT: CurrencyId = tokens::DOT;
-pub const SDOT: CurrencyId = tokens::SDOT;
-pub const SAMPLE_LP_TOKEN: CurrencyId = 42;
-pub const SAMPLE_LP_TOKEN_2: CurrencyId = 43;
-
-pub const ALICE: AccountId = AccountId(1);
-pub const BOB: AccountId = AccountId(2);
-pub const CHARLIE: AccountId = AccountId(3);
-pub const EVE: AccountId = AccountId(4);
-pub const FRANK: AccountId = AccountId(5);
-pub const PROTOCOL_FEE_RECEIVER: AccountId = AccountId(99);
-
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
-type Block = frame_system::mocking::MockBlock<Test>;
-type BlockNumber = u64;
-
 #[derive(
     Encode,
     Decode,
@@ -48,6 +31,22 @@ type BlockNumber = u64;
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize, Hash))]
 pub struct AccountId(pub u64);
 
+type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
+type Block = frame_system::mocking::MockBlock<Test>;
+type BlockNumber = u64;
+
+pub const ALICE: AccountId = AccountId(1);
+pub const BOB: AccountId = AccountId(2);
+pub const CHARLIE: AccountId = AccountId(3);
+pub const EVE: AccountId = AccountId(4);
+pub const FRANK: AccountId = AccountId(5);
+pub const PROTOCOL_FEE_RECEIVER: AccountId = AccountId(99);
+
+pub const DOT: CurrencyId = tokens::DOT;
+pub const SDOT: CurrencyId = tokens::SDOT;
+pub const SAMPLE_LP_TOKEN: CurrencyId = 42;
+pub const SAMPLE_LP_TOKEN_2: CurrencyId = 43;
+
 impl sp_std::fmt::Display for AccountId {
     fn fmt(&self, f: &mut sp_std::fmt::Formatter<'_>) -> sp_std::fmt::Result {
         write!(f, "{}", self.0)
@@ -60,11 +59,10 @@ impl From<u64> for AccountId {
     }
 }
 
-// Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
     pub enum Test where
         Block = Block,
-        NodeBlock = Block,
+        NodeBlock =Block,
         UncheckedExtrinsic = UncheckedExtrinsic,
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
@@ -75,6 +73,23 @@ frame_support::construct_runtime!(
         CurrencyAdapter: pallet_currency_adapter::{Pallet, Call},
     }
 );
+
+parameter_types! {
+    pub const ExistentialDeposit: Balance = 1;
+    pub const MaxLocks: u32 = 50;
+}
+
+impl pallet_balances::Config for Test {
+    type MaxLocks = MaxLocks;
+    type Balance = Balance;
+    type Event = Event;
+    type DustRemoval = ();
+    type MaxReserves = ();
+    type ReserveIdentifier = [u8; 8];
+    type ExistentialDeposit = ExistentialDeposit;
+    type AccountStore = System;
+    type WeightInfo = ();
+}
 
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
@@ -109,20 +124,21 @@ impl system::Config for Test {
 }
 
 parameter_types! {
-    pub const ExistentialDeposit: Balance = 1;
-    pub const MaxLocks: u32 = 50;
+    pub const StableSwapPalletId: PalletId = PalletId(*b"par/sswp");
+    pub const NumTokens: u8 = 2;
+    pub const Precision: u32 = 100;
+    pub const AmplificationCoefficient: u8 = 85;
 }
 
-impl pallet_balances::Config for Test {
-    type MaxLocks = MaxLocks;
-    type Balance = Balance;
+impl pallet_stableswap::Config for Test {
     type Event = Event;
-    type DustRemoval = ();
-    type MaxReserves = ();
-    type ReserveIdentifier = [u8; 8];
-    type ExistentialDeposit = ExistentialDeposit;
-    type AccountStore = System;
+    type Assets = CurrencyAdapter;
     type WeightInfo = ();
+    type PalletId = StableSwapPalletId;
+    type AMM = DefaultAMM;
+    type NumTokens = NumTokens;
+    type Precision = Precision;
+    type AmplificationCoefficient = AmplificationCoefficient;
 }
 
 parameter_types! {
@@ -180,24 +196,6 @@ impl pallet_amm::Config for Test {
     type MinimumLiquidity = MinimumLiquidity;
     type ProtocolFeeReceiver = DefaultProtocolFeeReceiver;
     type MaxLengthRoute = MaxLengthRoute;
-}
-
-parameter_types! {
-    pub const StableSwapPalletId: PalletId = PalletId(*b"par/sswp");
-    pub const NumTokens: u8 = 2;
-    pub const Precision: u32 = 100;
-    pub const AmplificationCoefficient: u8 = 85;
-}
-
-impl pallet_stableswap::Config for Test {
-    type Event = Event;
-    type Assets = CurrencyAdapter;
-    type WeightInfo = ();
-    type PalletId = StableSwapPalletId;
-    type AMM = DefaultAMM;
-    type NumTokens = NumTokens;
-    type Precision = Precision;
-    type AmplificationCoefficient = AmplificationCoefficient;
 }
 
 parameter_types! {
