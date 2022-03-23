@@ -1146,6 +1146,29 @@ pub mod pallet {
         }
 
         #[require_transactional]
+        fn do_multi_bond(
+            amount: BalanceOf<T>,
+            payee: RewardDestination<T::AccountId>,
+        ) -> DispatchResult {
+            Ok(())
+        }
+
+        #[require_transactional]
+        fn do_multi_unbond(amount: BalanceOf<T>) -> DispatchResult {
+            Ok(())
+        }
+
+        #[require_transactional]
+        fn do_multi_rebond(amount: BalanceOf<T>) -> DispatchResult {
+            Ok(())
+        }
+
+        #[require_transactional]
+        fn do_multi_withdraw_unbonded(num_slashing_spans: u32) -> DispatchResult {
+            Ok(())
+        }
+
+        #[require_transactional]
         fn do_notification_received(
             query_id: QueryId,
             req: XcmRequest<T>,
@@ -1299,23 +1322,21 @@ pub mod pallet {
             EraStartBlock::<T>::put(T::RelayChainBlockNumberProvider::current_block_number());
             CurrentEra::<T>::mutate(|e| *e = e.saturating_add(offset));
 
-            let derivative_index = T::DerivativeIndex::get();
-            let unbonding_amount = Self::unbonding_of(derivative_index);
+            let unbonding_amount = Self::get_total_unbonding();
             let (bond_amount, rebond_amount, unbond_amount) =
                 Self::matching_pool().matching(unbonding_amount)?;
-            Self::do_bond(derivative_index, bond_amount, RewardDestination::Staked)?;
-            Self::do_rebond(derivative_index, rebond_amount)?;
+            Self::do_multi_bond(bond_amount, RewardDestination::Staked)?;
+            Self::do_multi_rebond(rebond_amount)?;
 
-            Self::do_unbond(derivative_index, unbond_amount)?;
+            Self::do_multi_unbond(unbond_amount)?;
 
-            Self::do_withdraw_unbonded(derivative_index, T::NumSlashingSpans::get())?;
+            Self::do_multi_withdraw_unbonded(T::NumSlashingSpans::get())?;
 
             Self::do_update_exchange_rate()?;
 
             log::trace!(
                 target: "liquidStaking::do_advance_era",
-                "index: {:?}, offset: {:?}, bond_amount: {:?}, rebond_amount: {:?}, unbond_amount: {:?}",
-                &derivative_index,
+                "offset: {:?}, bond_amount: {:?}, rebond_amount: {:?}, unbond_amount: {:?}",
                 &offset,
                 &bond_amount,
                 &rebond_amount,
