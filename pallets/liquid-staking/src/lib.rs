@@ -64,7 +64,7 @@ pub mod pallet {
     use pallet_xcm::ensure_response;
     use sp_runtime::{
         traits::{AccountIdConversion, BlockNumberProvider, CheckedDiv, CheckedSub, StaticLookup},
-        ArithmeticError, FixedPointNumber, FixedU128, TransactionOutcome,
+        ArithmeticError, FixedPointNumber, TransactionOutcome,
     };
     use sp_std::{boxed::Box, result::Result, vec::Vec};
 
@@ -845,7 +845,6 @@ pub mod pallet {
             })
         }
 
-        #[allow(dead_code)]
         fn get_total_unbonding() -> BalanceOf<T> {
             StakingLedgers::<T>::iter_values().fold(Zero::zero(), |acc, ledger| {
                 acc.saturating_add(ledger.total.saturating_sub(ledger.active))
@@ -856,6 +855,11 @@ pub mod pallet {
             StakingLedgers::<T>::iter_values().fold(Zero::zero(), |acc, ledger| {
                 acc.saturating_add(ledger.active)
             })
+        }
+
+        fn get_market_cap() -> BalanceOf<T> {
+            Self::staking_ledger_cap()
+                .saturating_mul(T::DerivativeIndexList::get().len() as BalanceOf<T>)
         }
 
         #[require_transactional]
@@ -1147,16 +1151,47 @@ pub mod pallet {
 
         #[require_transactional]
         fn do_multi_bond(
-            total_amount: BalanceOf<T>,
+            mut total_amount: BalanceOf<T>,
             payee: RewardDestination<T::AccountId>,
         ) -> DispatchResult {
             let total_bonded = Self::get_total_bonded();
+            let new_total_bonded = total_bonded
+                .saturating_add(total_amount)
+                .min(Self::get_market_cap());
+            total_amount = new_total_bonded.saturating_sub(total_bonded);
+            if total_amount.is_zero() {
+                return Ok(());
+            }
+
             let mut amounts: Vec<(DerivativeIndex, BalanceOf<T>)> = T::DerivativeIndexList::get()
                 .iter()
                 .map(|&index| (index, Self::bonded_of(index)))
                 .collect();
+            let num_ledgers = amounts.len() as BalanceOf<T>;
 
-            amounts.sort_by(|a, b| a.1.cmp(&a.1));
+            amounts.sort_by(|a, b| a.1.cmp(&b.1));
+
+            let mut distributions: Vec<(DerivativeIndex, BalanceOf<T>)> = vec![];
+            let mut remain = total_amount;
+
+            for (index, bonded) in amounts.into_iter() {
+                if remain.is_zero() {
+                    break;
+                }
+                let amount = Self::staking_ledger_cap().saturating_sub(bonded).min(
+                    new_total_bonded
+                        .saturating_div(num_ledgers)
+                        .saturating_sub(bonded),
+                );
+                if !amount.is_zero() {
+                    distributions.push((index, amount));
+                    remain = remain.saturating_sub(amount);
+                }
+            }
+
+            for (index, amount) in distributions.into_iter() {
+                Self::do_bond(index, amount, payee.clone())?;
+            }
 
             Ok(())
         }
@@ -1194,7 +1229,7 @@ pub mod pallet {
                     .saturating_sub(*amount)
                     .saturating_sub(T::MinNominatorBond::get())
                     .min(remain);
-                amount.saturating_add(extra);
+                *amount = amount.saturating_add(extra);
                 remain = remain.saturating_sub(extra);
                 idx += 1;
             }
@@ -1446,13 +1481,11 @@ pub mod pallet {
         }
 
         fn ensure_market_cap(amount: BalanceOf<T>) -> DispatchResult {
-            let market_cap = Self::staking_ledger_cap()
-                .saturating_mul(T::DerivativeIndexList::get().len() as BalanceOf<T>);
             ensure!(
                 Self::get_total_bonded()
                     .saturating_add(Self::get_total_unbonding())
                     .saturating_add(amount)
-                    <= market_cap,
+                    <= Self::get_market_cap(),
                 Error::<T>::CapExceeded
             );
             Ok(())
